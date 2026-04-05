@@ -46,7 +46,11 @@ Plans:
   3. Plan tasks contain exact file paths, complete code intent, and verification steps -- "TBD" or placeholder content is rejected
   4. When debugging, Claude gathers evidence and performs root cause analysis before attempting fixes -- and stops after 3 failed attempts
   5. After execution completes, a code review step checks spec compliance first, then code quality -- with two-stage subagent review (implementer self-review, then independent reviewers)
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Config infrastructure, SKILL.md indexes, and executor/planner/debugger rule files (TDD, spec-driven, debugging)
+- [ ] 02-02-PLAN.md — Code review agent, verification rules, and CLAUDE.md gate instructions
 
 ### Phase 3: Role-Based Gates
 **Goal**: Domain-expert perspectives challenge assumptions and catch issues at defined workflow trigger points
@@ -77,7 +81,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Router & Context Infrastructure | 0/3 | Planning complete | - |
-| 2. Engineering Discipline Rules | 0/TBD | Not started | - |
+| 2. Engineering Discipline Rules | 0/2 | Planning complete | - |
 | 3. Role-Based Gates | 0/TBD | Not started | - |
 | 4. Real-Project Validation | 0/TBD | Not started | - |
 
