@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "gates": {
+    "tdd_enforcement": true,
+    "role_reviews": true,
+    "bypass_protection": true
+  },
+  "role_triggers": {
+    "ceo_review": ["new-project", "scope-change"],
+    "eng_review": ["discuss-phase"],
+    "qa_gate": ["pre-ship"],
+    "security_audit": ["pre-ship"]
+  },
+  "tdd_exempt_plan_types": ["config", "docs", "scaffolding"],
+  "agent_skills_reference": {
+    "_comment": "Canonical skill mappings. Actual injection uses config.json agent_skills field.",
+    "gsd-executor": [".claude/skills/harness/tdd"],
+    "gsd-verifier": [".claude/skills/harness/rules"]
+  }
+}
