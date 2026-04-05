@@ -190,3 +190,19 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 > Profile not yet configured. Run `/gsd:profile-user` to generate your developer profile.
 > This section is managed by `generate-claude-profile` -- do not edit manually.
 <!-- GSD:profile-end -->
+
+<!-- GSD:skills-start source:skills/ -->
+## Project Skills
+
+| Skill | Description | Path |
+|-------|-------------|------|
+| harness |  | `.claude/skills/harness/SKILL.md` |
+<!-- GSD:skills-end -->
+<!-- GSD:harness-start -->
+## Harness
+
+Unified workflow harness active. Skills: `.claude/skills/harness/`
+Config: `.planning/harness.json`
+
+When dispatching subagents, include `.planning/harness.json` in the `<files_to_read>` block.
+<!-- GSD:harness-end -->
