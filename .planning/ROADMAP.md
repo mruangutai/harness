@@ -80,3 +80,14 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 2. Engineering Discipline Rules | 0/TBD | Not started | - |
 | 3. Role-Based Gates | 0/TBD | Not started | - |
 | 4. Real-Project Validation | 0/TBD | Not started | - |
+
+## Backlog
+
+### Phase 999.1: GSD Dependency Compatibility Check (BACKLOG)
+
+**Goal:** Session-start hook or command that detects GSD version drift against harness-verified version and surfaces breaking changes. Options: automated hook with `harness.json` version field, or documented checklist. Triggered by v1.30→v1.32 update requiring manual research and plan revision.
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd-review-backlog when ready)
