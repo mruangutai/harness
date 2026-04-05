@@ -29,7 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `.planning/config.json` contains a harness block with gate toggles (TDD, role triggers, bypass protection) alongside existing GSD settings
   4. GSD's existing artifact chain (PROJECT > REQUIREMENTS > ROADMAP > STATE > PLAN), subagent isolation, wave execution, discussion phase, research gates, and scope drift detection all function unchanged
   5. All harness rule files are self-contained copies (no references to upstream gstack/superpowers repos)
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Directory tree, config files, and routing SKILL.md
+- [ ] 01-02-PLAN.md — CLAUDE.md harness section and agent definition stubs
+- [ ] 01-03-PLAN.md — GSD compatibility verification and CTX requirement validation
 
 ### Phase 2: Engineering Discipline Rules
 **Goal**: Claude follows strict engineering discipline during implementation -- tests before code, specs before implementation, evidence before fixes, review before ship
@@ -71,7 +76,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Router & Context Infrastructure | 0/TBD | Not started | - |
+| 1. Router & Context Infrastructure | 0/3 | Planning complete | - |
 | 2. Engineering Discipline Rules | 0/TBD | Not started | - |
 | 3. Role-Based Gates | 0/TBD | Not started | - |
 | 4. Real-Project Validation | 0/TBD | Not started | - |
