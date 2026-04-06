@@ -37,6 +37,12 @@
     ],
     "gsd-verifier": [
       ".claude/skills/harness/rules"
+    ],
+    "gsd-planner": [
+      ".claude/skills/harness/rules"
+    ],
+    "gsd-debugger": [
+      ".claude/skills/harness/rules"
     ]
   },
   "mode": "yolo",
