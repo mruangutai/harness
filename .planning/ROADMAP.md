@@ -49,8 +49,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Config infrastructure, SKILL.md indexes, and executor/planner/debugger rule files (TDD, spec-driven, debugging)
-- [ ] 02-02-PLAN.md — Code review agent, verification rules, and CLAUDE.md gate instructions
+- [x] 02-01-PLAN.md — Config infrastructure, SKILL.md indexes, and executor/planner/debugger rule files (TDD, spec-driven, debugging)
+- [x] 02-02-PLAN.md — Code review agent, verification rules, and CLAUDE.md gate instructions
 
 ### Phase 3: Role-Based Gates
 **Goal**: Domain-expert perspectives challenge assumptions and catch issues at defined workflow trigger points
@@ -61,7 +61,11 @@ Plans:
   2. At the discuss-phase boundary, an Architect/Eng review locks architecture with data flow analysis, edge case enumeration, and test matrices -- referencing the existing codebase and PLAN.md
   3. Before shipping, QA receives the spec independently (not the implementation) and generates adversarial tests including regression tests
   4. When auth, data handling, or API code is touched, a Security audit runs OWASP Top 10 and STRIDE threat modeling before ship
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — CEO reviewer and Engineering reviewer agent prompts
+- [ ] 03-02-PLAN.md — QA reviewer, Security reviewer agents, and CLAUDE.md trigger instructions
 
 ### Phase 4: Real-Project Validation
 **Goal**: The complete harness is proven to work under real project pressure -- all four pain points (context drift, quality shortcuts, scope creep, lack of pushback) are verifiably resolved
@@ -82,7 +86,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Router & Context Infrastructure | 0/3 | Planning complete | - |
 | 2. Engineering Discipline Rules | 0/2 | Planning complete | - |
-| 3. Role-Based Gates | 0/TBD | Not started | - |
+| 3. Role-Based Gates | 0/2 | Planning complete | - |
 | 4. Real-Project Validation | 0/TBD | Not started | - |
 
 ## Backlog
