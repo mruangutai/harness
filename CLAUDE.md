@@ -205,4 +205,6 @@ Unified workflow harness active. Skills: `.claude/skills/harness/`
 Config: `.planning/harness.json`
 
 When dispatching subagents, include `.planning/harness.json` in the `<files_to_read>` block.
+Before /gsd-plan-phase: verify CONTEXT.md has approaches-with-tradeoffs and user approval.
+After /gsd-execute-phase on implementation plans: spawn harness-code-reviewer before /gsd-ship.
 <!-- GSD:harness-end -->
