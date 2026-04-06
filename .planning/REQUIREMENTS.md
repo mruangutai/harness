@@ -37,8 +37,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **ROLE-01**: CEO product challenge — at project init and major phase boundaries; validates scope, checks market fit, challenges assumptions with forcing questions; references PROJECT.md and REQUIREMENTS.md
 - [x] **ROLE-02**: Architect/Eng review — at discuss-phase boundary; locks architecture with data flow diagrams, edge cases, test matrices; references existing codebase and PLAN.md
-- [ ] **ROLE-03**: QA adversarial testing — pre-ship gate; tests against spec independently (receives spec, not implementation); generates regression tests; v1 without browser automation
-- [ ] **ROLE-04**: Security audit — OWASP Top 10 + STRIDE threat modeling pre-ship; conditional on phase content (triggers when auth, data handling, or API code is touched)
+- [x] **ROLE-03**: QA adversarial testing — pre-ship gate; tests against spec independently (receives spec, not implementation); generates regression tests; v1 without browser automation
+- [x] **ROLE-04**: Security audit — OWASP Top 10 + STRIDE threat modeling pre-ship; conditional on phase content (triggers when auth, data handling, or API code is touched)
 
 ### Validation
 
@@ -105,8 +105,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ENG-06 | Phase 2 | Pending |
 | ROLE-01 | Phase 3 | Complete |
 | ROLE-02 | Phase 3 | Complete |
-| ROLE-03 | Phase 3 | Pending |
-| ROLE-04 | Phase 3 | Pending |
+| ROLE-03 | Phase 3 | Complete |
+| ROLE-04 | Phase 3 | Complete |
 | VAL-01 | Phase 4 | Pending |
 | VAL-02 | Phase 4 | Pending |
 | VAL-03 | Phase 4 | Pending |

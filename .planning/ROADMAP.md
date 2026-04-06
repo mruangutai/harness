@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Router & Context Infrastructure** - Harness CLAUDE.md, routing layer, config extension, and GSD context integration
 - [ ] **Phase 2: Engineering Discipline Rules** - TDD enforcement, spec-driven development, systematic debugging, and code review gates
-- [ ] **Phase 3: Role-Based Gates** - CEO product challenge, Architect review, QA adversarial testing, and Security audit
+- [x] **Phase 3: Role-Based Gates** - CEO product challenge, Architect review, QA adversarial testing, and Security audit (completed 2026-04-06)
 - [ ] **Phase 4: Real-Project Validation** - End-to-end validation on a non-trivial project with all harness components active
 
 ## Phase Details
@@ -61,11 +61,11 @@ Plans:
   2. At the discuss-phase boundary, an Architect/Eng review locks architecture with data flow analysis, edge case enumeration, and test matrices -- referencing the existing codebase and PLAN.md
   3. Before shipping, QA receives the spec independently (not the implementation) and generates adversarial tests including regression tests
   4. When auth, data handling, or API code is touched, a Security audit runs OWASP Top 10 and STRIDE threat modeling before ship
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 03-01-PLAN.md — CEO reviewer and Engineering reviewer agent prompts
-- [ ] 03-02-PLAN.md — QA reviewer, Security reviewer agents, and CLAUDE.md trigger instructions
+- [x] 03-02-PLAN.md — QA reviewer, Security reviewer agents, and CLAUDE.md trigger instructions
 
 ### Phase 4: Real-Project Validation
 **Goal**: The complete harness is proven to work under real project pressure -- all four pain points (context drift, quality shortcuts, scope creep, lack of pushback) are verifiably resolved
@@ -86,7 +86,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Router & Context Infrastructure | 0/3 | Planning complete | - |
 | 2. Engineering Discipline Rules | 0/2 | Planning complete | - |
-| 3. Role-Based Gates | 1/2 | In Progress|  |
+| 3. Role-Based Gates | 2/2 | Complete   | 2026-04-06 |
 | 4. Real-Project Validation | 0/TBD | Not started | - |
 
 ## Backlog
