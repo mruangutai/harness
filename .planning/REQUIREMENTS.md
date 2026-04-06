@@ -35,8 +35,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Role-Based Perspectives (gstack)
 
-- [ ] **ROLE-01**: CEO product challenge — at project init and major phase boundaries; validates scope, checks market fit, challenges assumptions with forcing questions; references PROJECT.md and REQUIREMENTS.md
-- [ ] **ROLE-02**: Architect/Eng review — at discuss-phase boundary; locks architecture with data flow diagrams, edge cases, test matrices; references existing codebase and PLAN.md
+- [x] **ROLE-01**: CEO product challenge — at project init and major phase boundaries; validates scope, checks market fit, challenges assumptions with forcing questions; references PROJECT.md and REQUIREMENTS.md
+- [x] **ROLE-02**: Architect/Eng review — at discuss-phase boundary; locks architecture with data flow diagrams, edge cases, test matrices; references existing codebase and PLAN.md
 - [ ] **ROLE-03**: QA adversarial testing — pre-ship gate; tests against spec independently (receives spec, not implementation); generates regression tests; v1 without browser automation
 - [ ] **ROLE-04**: Security audit — OWASP Top 10 + STRIDE threat modeling pre-ship; conditional on phase content (triggers when auth, data handling, or API code is touched)
 
@@ -103,8 +103,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ENG-04 | Phase 2 | Pending |
 | ENG-05 | Phase 2 | Pending |
 | ENG-06 | Phase 2 | Pending |
-| ROLE-01 | Phase 3 | Pending |
-| ROLE-02 | Phase 3 | Pending |
+| ROLE-01 | Phase 3 | Complete |
+| ROLE-02 | Phase 3 | Complete |
 | ROLE-03 | Phase 3 | Pending |
 | ROLE-04 | Phase 3 | Pending |
 | VAL-01 | Phase 4 | Pending |
