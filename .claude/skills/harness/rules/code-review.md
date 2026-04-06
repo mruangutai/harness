@@ -32,7 +32,7 @@ Read: the changed files only. Do NOT re-read CONTEXT.md -- spec compliance is al
 Ask:
 1. Are there unhandled edge cases?
 2. Are there naming inconsistencies (variables, functions, files)?
-3. Are there complexity hotspots that should be decomposed?
+3. Are there complexity hotspots requiring decomposition?
 4. Are there missing error paths (missing null checks, unhandled exceptions, no error returns)?
 5. Is there dead code or unreachable branches?
 
