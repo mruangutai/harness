@@ -75,7 +75,14 @@ Plans:
   1. A real project with 500+ LOC scope, multiple phases, and at least one debugging scenario has been completed using the harness end-to-end
   2. Token budgets are measured empirically -- CLAUDE.md under 1K tokens, skill files measured for actual context consumption when injected into subagents
   3. All four pain points are verified resolved with specific evidence: context drift (subagent isolation working), quality shortcuts (TDD enforced), scope creep (drift detection caught drops), pushback (role gates challenged decisions)
-**Plans**: TBD
+**Plans:** 5 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Add pre-discuss mode to harness-eng-reviewer + CLAUDE.md trigger lines
+- [ ] 04-02-PLAN.md — Validation execution guide: Sub-Phase A (confidence scoring + data blocking)
+- [ ] 04-03-PLAN.md — Validation execution guide: Sub-Phase B (annotation UI)
+- [ ] 04-04-PLAN.md — Validation execution guide: Sub-Phase C (re-parse flow + unblock)
+- [ ] 04-05-PLAN.md — Token budget measurement + pain point evidence collection
 
 ## Progress
 
@@ -87,7 +94,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Router & Context Infrastructure | 0/3 | Planning complete | - |
 | 2. Engineering Discipline Rules | 0/2 | Planning complete | - |
 | 3. Role-Based Gates | 2/2 | Complete   | 2026-04-06 |
-| 4. Real-Project Validation | 0/TBD | Not started | - |
+| 4. Real-Project Validation | 0/5 | Planning complete | - |
 
 ## Backlog
 
