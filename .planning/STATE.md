@@ -72,7 +72,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+- [Phase 4 scope]: Architectural scoping gap in discuss-phase — for phases where the deliverable IS architecture (agents, APIs, data models), discuss-phase doesn't elicit architectural decisions. Options: (a) structured arch-scoping step in discuss-phase, or (b) eng reviewer shifted earlier as a "what questions should we ask?" prompt during discussion. Capture during Phase 4 discuss.
 
 ### Blockers/Concerns
 
