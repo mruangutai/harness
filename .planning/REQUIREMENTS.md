@@ -42,9 +42,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Validation
 
-- [ ] **VAL-01**: Harness validated on a real project (500+ LOC scope, multiple phases, at least one bug requiring debugging) before distribution
-- [ ] **VAL-02**: Token budget measured empirically — CLAUDE.md under 1K tokens, skill files measured for actual consumption when injected into subagents
-- [ ] **VAL-03**: All four pain points verified resolved: context drift, code quality shortcuts, scope creep, lack of pushback
+- [x] **VAL-01**: Harness validated on a real project (500+ LOC scope, multiple phases, at least one bug requiring debugging) before distribution
+- [x] **VAL-02**: Token budget measured empirically — CLAUDE.md under 1K tokens, skill files measured for actual consumption when injected into subagents
+- [x] **VAL-03**: All four pain points verified resolved: context drift, code quality shortcuts, scope creep, lack of pushback
 
 ## v2 Requirements
 
@@ -107,9 +107,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ROLE-02 | Phase 3 | Complete |
 | ROLE-03 | Phase 3 | Complete |
 | ROLE-04 | Phase 3 | Complete |
-| VAL-01 | Phase 4 | Pending |
-| VAL-02 | Phase 4 | Pending |
-| VAL-03 | Phase 4 | Pending |
+| VAL-01 | Phase 4 | Complete |
+| VAL-02 | Phase 4 | Complete |
+| VAL-03 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 24 total
