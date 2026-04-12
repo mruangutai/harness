@@ -1,7 +1,7 @@
 <purpose>
-Deploy harness skills from the harness repo to the global distribution point and all registered projects, or enroll an existing project for the first time.
+Deploy harness skills and agents from the harness repo to global locations and all registered projects, or enroll an existing project for the first time.
 
-Must be run from the harness repo. Skills are always pushed from the harness repo's working copy — what you deploy is what's currently in `.claude/skills/harness/`, not a tagged release.
+Must be run from the harness repo. What you deploy is the current working copy — skills from `.claude/skills/harness/` and agents from `.claude/agents/harness-*.md`.
 </purpose>
 
 <usage>
@@ -39,6 +39,14 @@ Read `.planning/config.json`, extract the `agent_skills` object, write it as:
 ```
 
 to `~/.claude/skills/harness/manifest.json`.
+
+Copy harness agents to the global agents directory:
+
+```bash
+cp .claude/agents/harness-*.md ~/.claude/agents/
+```
+
+Agents are global — they are not pushed per-project.
 </step>
 
 <step name="route">
@@ -124,6 +132,7 @@ Report:
 <success_criteria>
 - [ ] Global `~/.claude/skills/harness/` matches harness repo's `.claude/skills/harness/`
 - [ ] `~/.claude/skills/harness/manifest.json` reflects current `agent_skills` from config.json
+- [ ] Global `~/.claude/agents/harness-*.md` matches harness repo's `.claude/agents/harness-*.md`
 - [ ] Push mode: all reachable registered projects have updated skills
 - [ ] Enroll mode: project has skills, config.json agent_skills entries, and is in registry
 </success_criteria>
