@@ -1,0 +1,71 @@
+{
+  "_comment": "Pilot config for kaya-ai. Commands verified against the repo 2026-07-26: pyproject testpaths=tests, web/vitest.config.ts projects unit+storybook. NO Playwright installed -> ui.cmd is null, which the qa gate reports as a not-applicable soft skip.",
+  "schema_version": 1,
+  "cli_min_version": "2.1.217",
+
+  "test_matrix": {
+    "logic":        { "always": ["unit"] },
+    "api":          { "always": ["unit", "python"],
+                      "when": [{ "kind": "integration", "if": "touches_db_or_external" }] },
+    "cross_module": { "always": ["unit", "python"] },
+    "frontend":     { "always": ["unit"],
+                      "when": [{ "kind": "component", "if": "has_interaction_flow" }] },
+    "feature":      { "always": ["unit", "python", "component"],
+                      "when": [{ "kind": "ui", "if": "has_interaction_flow" }] },
+    "bugfix":       { "always": ["__bug_class__"] },
+    "ai_behavior":  { "always": ["eval"] },
+    "config":       { "always": [] },
+    "scaffolding":  { "always": [] },
+    "docs":         { "always": [] }
+  },
+
+  "test_kinds": {
+    "unit": {
+      "detect": "web/**/*.test.ts|web/**/*.test.tsx",
+      "exclude": ".claude/worktrees/**",
+      "cmd": "pnpm -C web test"
+    },
+    "component": {
+      "detect": "web/**/*.stories.ts|web/**/*.stories.tsx",
+      "exclude": ".claude/worktrees/**",
+      "cmd": "pnpm -C web test:stories"
+    },
+    "python": {
+      "detect": "tests/test_*.py",
+      "cmd": "uv run pytest"
+    },
+    "integration": {
+      "detect": "tests/test_*_supabase.py|tests/test_api_*.py",
+      "cmd": "uv run pytest -k 'supabase or api'"
+    },
+    "typecheck": {
+      "detect": "web/**/*.ts|web/**/*.tsx",
+      "cmd": "pnpm -C web typecheck"
+    },
+    "ui": {
+      "detect": "e2e/**",
+      "cmd": null,
+      "_note": "No Playwright in this repo. Soft-skips as 'not applicable'. This is the one gap the pilot cannot exercise — the UAT is the only user-facing verification available here."
+    },
+    "eval": {
+      "detect": "tests/*eval*.py|tests/stessa_eval_helpers.py",
+      "cmd": "uv run pytest -k eval",
+      "_note": "Partial. kaya-ai has eval helpers but no full harness; treat ai_behavior coverage as unproven."
+    }
+  },
+
+  "commit_attribution": {
+    "agent_prefix": "[harness:<step-id>]",
+    "human_prefix": "[harness:human]",
+    "_note": "Recovery derives what landed from git log rather than trusting a state file, and review scope depends on distinguishing human edits from agent commits."
+  },
+
+  "dirty_tree_whitelist": [".harness/**", ".claude/worktrees/**"],
+
+  "gates": {
+    "qa_gate": "blocking",
+    "review": "advisory_unless_high",
+    "uat": "blocking_when_uat_criteria_exist",
+    "merge": "user_gated"
+  }
+}
