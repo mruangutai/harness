@@ -134,6 +134,43 @@ no tool and does the work itself rather than failing.
 
 ---
 
+## Task ledger — snapshot 2026-07-26
+
+Mirrored here so the work survives a context clear independently of the session task list. Statuses at
+the time of writing; the live list is authoritative if the two disagree.
+
+| # | Task | Status |
+|---|---|---|
+| 1 | Verify the four remaining platform unknowns | **done** (DEC-100) |
+| 2 | settings.json prerequisites + `inject-expertise.sh` | **done** (DEC-101) |
+| 3 | Cost instrumentation before the first real run | pending — **mandatory**, cost is the post-build signal (DEC-99) |
+| 4 | `bin/check-state.sh` — orchestrator invariants | **done**, 10 invariants incl. the propagation check |
+| 5 | DIGEST schema validator | **done** (DEC-101) |
+| 6 | The eight rules as flat skills | **done** (DEC-63, DEC-100) |
+| 7 | Write-safety: Bash bypass + shared paths | **done** (DEC-85, DEC-107) |
+| 8 | Expertise governance holes | pending — provenance, decay, curation for all 15, global tier |
+| 9 | The 15 agent definitions | **done** (DEC-106, DEC-107) |
+| 10 | Crew runner + four v1 crews | pending — **now safety-critical**: `mutates_repo` serialization is the only enforcement of disjoint writes while the domain hook is down (DEC-108) |
+| 11 | Batch human touchpoints to two | pending |
+| 12 | `/harness-init` + distributed templates | pending |
+| 13 | Rewrite `harness-deploy` (distribution only, **+ prune**) | pending — **live risk**: 5 stale GSD-era agents in `~/.claude/agents/` are still spawnable, and kaya-ai has no project copies, so a pilot there would run them |
+| 14 | Router + `harness.json` + CLAUDE.md — **and size** | pending — CLAUDE.md is ~164k tok/feature, 3× the rule cost (DEC-105) |
+| 15 | Recover the five lost design GAPs | pending |
+| 16 | GSD-removal migration (19 items) | pending — items #1–2 delete the running mechanism; sequence after rule delivery is proven |
+| 17 | Take the full workflow through its paces in kaya-ai | pending — blocked on 3, 10, 12, 13 |
+| 18 | Fix the propagation defect mechanically | **done** (DEC-104) |
+
+**Immediate next action when context resumes:** `harness-backend-dev` is instrumented with a two-hook
+decision matrix to settle DEC-108. After a restart, spawn it on an out-of-domain write and check:
+
+| `/tmp/harness-fm-fired.log` | `/tmp/harness-hook-trace.log` | Conclusion |
+|---|---|---|
+| exists | exists | frontmatter hooks work; the absolute path fixed it |
+| exists | absent | hooks fire, but the script path or args are wrong |
+| **absent** | absent | **agent-frontmatter `PreToolUse` does not fire** — contradicting the docs; the hook is permanently a no-op and serialization is the only mechanism |
+
+---
+
 ## Platform claims — cited, quoted, version-pinned
 
 **Rule going forward: a claim without a URL, a quote, and a min-version marker does not count.** Three
