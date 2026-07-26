@@ -1626,3 +1626,47 @@ document size is a comfort.**
 **Residual honesty:** this catches the *literal-string* class of staleness only. A statement that
 contradicts a decision in different words still passes. That class needs a reader, and no script will
 substitute for one.
+
+## DEC-105 — The per-spawn baseline is ~15.3k tokens; CLAUDE.md is 31% of it, the rules 11%
+
+Measured 2026-07-26 with a spawn-by-spawn ledger, replacing the reviewers' estimates.
+
+**One user-facing feature = 19 spawns on the happy path, ~34 realistic:**
+
+| Segment | Spawns |
+|---|---|
+| `plan-feature` | product-lead (host) · pm · eng-lead (arch review) · visual-designer (+prototype) · ui-reviewer(A) |
+| `ship-feature` eng | eng-lead (host) · 2 specialist devs |
+| `ship-feature` validator | validator-lead (host) · qa · code ∥ security ∥ ui |
+| `ship-feature` product | product-lead (host) · pm goal-check · documentor |
+| CEO briefing | all 3 leads in parallel |
+| **+ 2 fix cycles** | +10 (each spawns a fresh eng run *and* validator run) |
+| **+ 2 question round-trips** | +4 · **+ curation** +1 |
+
+**10 of the 34 are lead spawns — 29% of the cost is intermediation**, and `eng-lead` alone is spawned
+4×. That is DEC-71's mandatory routing, priced.
+
+**Per-spawn baseline, before any work happens:**
+
+| Component | Tokens | Share |
+|---|---|---|
+| **CLAUDE.md hierarchy** (measured 5.4KB user + 13.9KB project) | ~4,829 | **31%** |
+| system prompt + tool defs | ~3,000 | 19% |
+| BRIEF + PLAN + STATE | ~3,000 | 19% |
+| **universal rules** (`handoff` + `expertise`) | ~1,727 | **11%** |
+| injected Expertise | ~1,500 | 9% |
+| role rule · `team-config.yaml` | ~1,284 | 8% |
+| **total** | **~15,340** | |
+
+**≈ 522k tokens of baseline per feature**, of which the eight rule skills are ~59k and CLAUDE.md is
+~164k — **nearly 3× more expensive than everything the harness added.**
+
+**Consequence, folded into task 14:** trimming CLAUDE.md is a larger lever than any rule optimization.
+The project file is 13.9KB, mostly GSD-era — the STACK.md framework analysis and comparison tables are
+*reference* material that belongs in `docs/`, not in all 34 spawns. Target ~5KB, saving ~80k/feature.
+Conventions, architecture notes and the developer profile stay; agents genuinely use those.
+
+**Two cautions.** Cutting carries a real risk — an agent silently depending on removed context fails
+invisibly — so the rewrite must state what moved and where. And these are *baseline* figures only:
+each spawn then accumulates working context on top, which is where the reviewers' 1.5–4M/feature
+estimate comes from. Only task 3's instrumentation will replace that with measurement.
