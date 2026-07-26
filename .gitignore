@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+
+# Harness run state — ephemeral scratch, pruned on log_retention_days.
+# Without this rule, run dirs dirty the working tree and the dirty-tree halt
+# (SPEC 8.6) deadlocks the next crew on the harness's own artifacts.
+.harness/features/*/runs/**
+
+# Local-only settings; the committed .claude/settings.json carries the
+# platform prerequisites that must travel with the repo.
+.claude/settings.local.json
+
+# Worktrees live inside .claude/ in some projects and must never be committed
+# or scanned as source (they duplicate every file).
+.claude/worktrees/
