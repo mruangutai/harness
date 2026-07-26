@@ -7,12 +7,6 @@ skills:
   - harness-handoff
   - harness-expertise
   - harness-zero-micro-management
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: .claude/skills/harness/bin/check-domain.sh harness-product-lead
 ---
 
 # Harness: Product Lead

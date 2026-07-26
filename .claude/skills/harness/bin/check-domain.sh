@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # PreToolUse hook — block an agent from writing outside its declared domain.
 #
-# Usage (in agent frontmatter):
-#   hooks:
-#     PreToolUse:
-#       - matcher: "Write|Edit"
-#         hooks:
-#           - type: command
-#             command: .claude/skills/harness/bin/check-domain.sh harness-frontend-dev
+# Registered in .claude/settings.json — NOT in agent frontmatter:
+#   "PreToolUse": [{ "matcher": "Write|Edit",
+#     "hooks": [{ "type": "command",
+#       "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] }]
+#
+# Agent identity comes from `agent_type` in the hook payload, because one global
+# registration serves all 15 agents. Agent-frontmatter PreToolUse hooks DO NOT FIRE
+# for spawned subagents in this environment (DEC-110, verified three times).
 #
 # VERIFIED (DEC-100): exit 2 blocks the tool call and stderr reaches the agent.
 # Only exit 2 blocks — exit 1 is a NON-blocking error and the write proceeds.
@@ -20,19 +21,53 @@
 #     fan-out safe. Do not treat a passing hook as proof of parallel safety.
 set -uo pipefail
 
-# TEMPORARY DIAGNOSTIC — unconditional trace, first thing, before any logic can
-# short-circuit. Tells us whether the hook fires at all.
-{
-  echo "FIRED $(date +%s) agent=${1:-<none>} pwd=$(pwd) CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR:-<unset>}"
-} >> /tmp/harness-hook-trace.log 2>/dev/null || true
+payload=$(cat)
 
-agent="${1:-}"
-[ -n "$agent" ] || { echo "check-domain: no agent name given; refusing to guess." >&2; exit 2; }
+# Agent identity: prefer `agent_type` from the hook payload, fall back to $1.
+#
+# WHY BOTH: agent-frontmatter PreToolUse hooks DO NOT FIRE for spawned subagents in
+# this environment — verified three times with three command forms, zero executions
+# (DEC-110). So the hook is registered in settings.json instead, where it does fire,
+# and identity has to come from the payload because one global registration serves
+# every agent.
+agent="$(printf '%s' "$payload" | python3 -c '
+import sys, json
+try:
+    print(json.load(sys.stdin).get("agent_type", "") or "")
+except Exception:
+    print("")
+' 2>/dev/null)"
+[ -n "$agent" ] || agent="${1:-}"
 
-root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+# NO agent identity = the main session (the orchestrator), not a subagent.
+# Never govern the orchestrator: it legitimately writes everywhere, and blocking it
+# would make the harness unable to maintain its own state.
+[ -n "$agent" ] || exit 0
+
+# Only harness agents are subject to domains.
+case "$agent" in
+  harness-*) ;;
+  *) exit 0 ;;
+esac
+
+# Locate the project root WITHOUT depending on cwd. A hook's working directory is
+# not guaranteed, and deriving root from pwd made this script fail OPEN whenever it
+# ran from anywhere else — silently disabling enforcement rather than reporting it.
+# This script lives at <root>/.claude/skills/harness/bin/, so walk up five levels.
+_self="${BASH_SOURCE[0]:-$0}"
+_selfdir="$(cd "$(dirname "$_self")" && pwd)"
+_derived="$(cd "$_selfdir/../../../.." && pwd)"
+
+root="${CLAUDE_PROJECT_DIR:-}"
+if [ -z "$root" ] || [ ! -r "$root/.harness/team-config.yaml" ]; then
+  if [ -r "$_derived/.harness/team-config.yaml" ]; then
+    root="$_derived"
+  else
+    root="${root:-$(pwd)}"
+  fi
+fi
 manifest="$root/.harness/team-config.yaml"
 
-payload=$(cat)
 target=$(printf '%s' "$payload" | python3 -c '
 import sys, json
 try:

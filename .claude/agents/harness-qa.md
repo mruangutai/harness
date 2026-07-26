@@ -7,12 +7,6 @@ skills:
   - harness-handoff
   - harness-expertise
   - harness-verification-rules
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: .claude/skills/harness/bin/check-domain.sh harness-qa
 ---
 
 # Harness: QA Engineer

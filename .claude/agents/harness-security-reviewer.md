@@ -6,12 +6,6 @@ color: orange
 skills:
   - harness-handoff
   - harness-expertise
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: .claude/skills/harness/bin/check-domain.sh harness-security-reviewer
 ---
 
 # Harness: Security Reviewer

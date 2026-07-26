@@ -1847,3 +1847,57 @@ invalidates is the other half**, and skipping the second half puts the claim rig
 
 This is the third recurrence (DEC-103, then the §0b claim, now caught only by reading). The honest
 conclusion is that no amount of care substitutes for the marker being part of writing the DEC.
+
+## DEC-110 — Agent-frontmatter `PreToolUse` does not fire; the domain hook moves to `settings.json` and WORKS
+<!-- stale: "SCRIPT WORKS, DELIVERY DOES NOT" -->
+<!-- stale: "Domain enforcement is currently fail-open" -->
+
+**Settled after three attempts.** Agent-frontmatter `PreToolUse` hooks **do not fire for spawned
+subagents** in this environment:
+
+| Attempt | Command form | Existence probe | Real trace | Blocked |
+|---|---|---|---|---|
+| 1 | `${CLAUDE_PROJECT_DIR}/…` | — | absent | no |
+| 2 | relative path | — | absent | no |
+| 3 | **absolute path + a dependency-free `touch`-style probe** | **absent** | absent | no |
+
+Attempt 3 is decisive: a hook whose entire command was an absolute-path script with no arguments and no
+dependencies **also never ran**. That eliminates interpolation, cwd, path resolution, arguments and script
+errors, leaving only one explanation. **This contradicts the documentation**, which states *"hooks only run
+while that specific subagent is active. All hook events are supported."*
+
+**Fix: register in `.claude/settings.json`, take identity from the payload.** Settings hooks demonstrably
+fire (proven earlier by `SubagentStart`), and the hook payload carries **`agent_type`** when the caller is
+a subagent — so one global registration serves all 15 agents and dispatches on identity.
+
+**Verified live**, in a single probe: `harness-backend-dev` **blocked** from `web/src/**` with the full
+permitted-paths message, and **allowed** into `src/**`.
+
+Two properties this arrangement must preserve, both tested:
+
+- **The orchestrator is never governed.** No `agent_type` means the main session, which legitimately
+  writes everywhere → exit 0 immediately. Without this the harness could not maintain its own state, and
+  a global `PreToolUse` hook would otherwise catch every write the orchestrator makes.
+- **Non-harness agents pass through** — `Explore`, `general-purpose` and any other are unaffected.
+
+The `hooks:` blocks are **stripped from all 15 agent files** as proven-dead weight, and the frontmatter
+remains valid (checked: 15/15 retain `name`, `description`, `tools`, and none references `check-domain`).
+
+### A second bug, found on the way and arguably worse
+
+The script derived the project root from `pwd`, so **it failed open whenever it ran from any directory
+other than the project root** — printing nothing and exiting 0, silently disabling enforcement. Since a
+hook's working directory is not guaranteed, this could have made the hook a no-op even once it fired.
+Root is now derived from the script's own location (`<root>/.claude/skills/harness/bin/`), making it
+cwd-independent. Verified blocking correctly when invoked from `/tmp`.
+
+**Note the failure shape:** the bug's effect was to *permit* rather than to error. That is the same
+fail-open pattern the reviewers, the rules, and now this hook have all been written to hunt — and it
+appeared in the enforcement mechanism itself.
+
+### What is still true
+
+`Bash` remains unguarded and all 9 doers hold it. **Serialization plus `isolation: worktree` is still the
+write-safety mechanism (DEC-85); this hook is a guardrail.** What has been recovered is the cheap catch of
+an *accidental* out-of-domain `Write`/`Edit` and the actionable rejection message — real value, but not the
+guarantee. Task 10's `mutates_repo` serialization stays safety-critical.

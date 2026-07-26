@@ -24,7 +24,7 @@ that would expose it.
 | `SubagentStart` fires for nested spawns? | **YES** — logged 1 top-level + 3 nested. Expertise reaches workers |
 | Nested skill dirs discoverable? | **NO** — skills must be flat. The four artifacts were invisible until fixed |
 | Parallel fan-out from inside a lead? | **YES** — 3 concurrent layer-2 spawns |
-| `PreToolUse` `exit 2` blocks a subagent write? | **From `settings.json`: yes**, 5/5 cases. **From agent frontmatter: NO — tested twice, fail-open** (DEC-108). One probe outstanding |
+| `PreToolUse` `exit 2` blocks a subagent write? | **YES from `settings.json`** — verified live end-to-end. **NO from agent frontmatter** — 3 forms, 0 executions (DEC-110) |
 
 ### 0a — `settings.json` prerequisites (setup, not a spike)
 
@@ -77,7 +77,7 @@ setting; the depth cap is defence in depth, not the primary control.
 silent degradation to flat, to memoryless agents, or to delegating workers is exactly the failure class
 this design tries to avoid.
 
-### 0b — Domain-enforcement hook — SCRIPT WORKS, DELIVERY DOES NOT (see DEC-108)
+### 0b — Domain-enforcement hook — WORKING, via `settings.json` not frontmatter
 
 `check-domain.sh` is built and tested (DEC-101): in-domain allowed · out-of-domain blocked · own
 Expertise allowed · shared paths allowed with a warning. Two details the source plan had wrong, and
@@ -92,38 +92,34 @@ getting either wrong makes the hook fail open:
 > additionally a **`PostToolUse`** hook running `eslint --fix ... || true` — a non-blocking fix-up, not
 > a blocking guard. It was never evidence for what it was cited to support.
 
-**Script: works.** Invoked directly it blocks with `exit 2`, prints the permitted globs, and passes a
-23-case matrix including per-squad and per-reviewer isolation.
+**WORKING.** Verified live: `harness-backend-dev` was blocked from `web/src/**` with the full
+permitted-paths message, and allowed into `src/**` in the same probe.
 
-> ⚠️ **Delivery: DOES NOT WORK.** Tested twice post-restart with a real agent
-> (`harness-backend-dev` writing into `harness-frontend-dev`'s domain). Both times the write
-> **succeeded with no error**, and an unconditional trace as the script's first statement recorded
-> **nothing** — the script never executed. Attempt 1 used `${CLAUDE_PROJECT_DIR}`; attempt 2 used a
-> relative path, eliminating interpolation as the cause. **Domain enforcement is currently fail-open.**
-> Full analysis in DEC-108.
+> **But NOT from agent frontmatter.** Agent-frontmatter `PreToolUse` hooks **do not fire** for spawned
+> subagents in this environment — tested three times with three command forms (`${CLAUDE_PROJECT_DIR}`,
+> relative, and absolute-plus-a-dependency-free-existence-probe). Zero executions, confirmed by an
+> unconditional trace as the script's first statement. This contradicts the documentation (DEC-110).
 >
-> **Next probe is instrumented and waiting on a restart.** `harness-backend-dev` carries two
-> `PreToolUse` entries: a pure existence test (`/tmp/harness-fm-probe.sh` — absolute path, no args, no
-> dependencies) and the real check with an absolute path. One spawn then decides it:
->
-> | `/tmp/harness-fm-fired.log` | `/tmp/harness-hook-trace.log` | Conclusion |
-> |---|---|---|
-> | exists | exists | frontmatter hooks work; the absolute path was the fix |
-> | exists | absent | hooks fire; the command path or args were wrong |
-> | **absent** | absent | **agent-frontmatter `PreToolUse` does not fire at all**, contradicting the docs |
+> **The hook is registered in `.claude/settings.json` instead**, where hooks demonstrably do fire, and
+> **agent identity comes from `agent_type` in the hook payload** — one global registration serves all 15.
+> The `hooks:` blocks have been stripped from all 15 agent files as dead weight.
 
-**What this costs, and what it does not.** DEC-85 had already demoted this hook to a *guardrail* and
-named **serialization** (SPEC §8.5) plus `isolation: worktree` as the write-safety mechanism, because the
-`Bash` bypass makes the hook non-load-bearing regardless — all 9 doers hold `Bash`. So the architecture
-survives. What is lost while the hook is down is the cheap catch of an *accidental* out-of-domain
-`Write`/`Edit` and the actionable "here is what you may write instead" message (DEC-100b). Both are
-conveniences.
+Two properties this arrangement must preserve, both verified:
 
-**Consequence:** the crew runner's `mutates_repo` serialization is now the **only** enforcement of
-disjoint writes, which promotes task 10 from bookkeeping to safety-critical.
+- **The orchestrator is never governed.** No `agent_type` in the payload means the main session, which
+  legitimately writes everywhere; the hook exits 0 immediately. Without this the harness could not
+  maintain its own state.
+- **Non-harness agents pass through.** `Explore`, `general-purpose` and the rest are unaffected.
 
-Note also: a domain hook belongs in agent frontmatter, never `settings.json`, or it governs the
-orchestrator too.
+A second bug was fixed on the way: the script derived the project root from `pwd`, so it **failed open
+whenever it ran from any other directory** — silently disabling enforcement rather than reporting it. Root
+is now derived from the script's own location, so it is cwd-independent.
+
+Still true regardless: the hook cannot see writes made via `Bash`, and all 9 doers hold it.
+**Serialization (SPEC §8.5) plus `isolation: worktree` remains the write-safety mechanism; this is a
+guardrail** (DEC-85).
+
+
 
 **`delete: false` is deleted from the design.** It never existed as a field and nothing implemented
 it — see SPEC §2.3. Destructive-operation restraint is a `Bash` matcher in `check-domain.sh`, or it

@@ -8,17 +8,6 @@ skills:
   - harness-expertise
   - harness-tdd-enforcement
   - harness-systematic-debugging
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        # (1) PURE EXISTENCE TEST — absolute path, no args, no deps. If this
-        #     never fires, agent-frontmatter PreToolUse does not run at all.
-        - type: command
-          command: /tmp/harness-fm-probe.sh
-        # (2) the real check, now with an ABSOLUTE path so no cwd assumption
-        - type: command
-          command: /Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/check-domain.sh harness-backend-dev
 ---
 
 # Harness: Backend Engineer

@@ -7,12 +7,6 @@ skills:
   - harness-handoff
   - harness-expertise
   - harness-code-review
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: .claude/skills/harness/bin/check-domain.sh harness-code-reviewer
 ---
 
 # Harness: Code Reviewer

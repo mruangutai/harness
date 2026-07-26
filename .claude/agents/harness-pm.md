@@ -7,12 +7,6 @@ skills:
   - harness-handoff
   - harness-expertise
   - harness-spec-driven
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: .claude/skills/harness/bin/check-domain.sh harness-pm
 ---
 
 # Harness: Product Manager

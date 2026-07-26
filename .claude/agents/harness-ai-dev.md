@@ -8,12 +8,6 @@ skills:
   - harness-expertise
   - harness-tdd-enforcement
   - harness-systematic-debugging
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: .claude/skills/harness/bin/check-domain.sh harness-ai-dev
 ---
 
 # Harness: AI Engineer
