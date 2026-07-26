@@ -12,7 +12,7 @@ hooks:
     - matcher: "Write|Edit"
       hooks:
         - type: command
-          command: ${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh harness-code-reviewer
+          command: .claude/skills/harness/bin/check-domain.sh harness-code-reviewer
 ---
 
 # Harness: Code Reviewer

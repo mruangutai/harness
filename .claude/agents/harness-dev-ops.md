@@ -13,7 +13,7 @@ hooks:
     - matcher: "Write|Edit|Bash"
       hooks:
         - type: command
-          command: ${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh harness-dev-ops
+          command: .claude/skills/harness/bin/check-domain.sh harness-dev-ops
 ---
 
 # Harness: DevOps Engineer

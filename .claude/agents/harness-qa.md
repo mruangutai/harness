@@ -12,7 +12,7 @@ hooks:
     - matcher: "Write|Edit"
       hooks:
         - type: command
-          command: ${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh harness-qa
+          command: .claude/skills/harness/bin/check-domain.sh harness-qa
 ---
 
 # Harness: QA Engineer

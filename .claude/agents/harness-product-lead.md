@@ -12,7 +12,7 @@ hooks:
     - matcher: "Write|Edit"
       hooks:
         - type: command
-          command: ${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh harness-product-lead
+          command: .claude/skills/harness/bin/check-domain.sh harness-product-lead
 ---
 
 # Harness: Product Lead

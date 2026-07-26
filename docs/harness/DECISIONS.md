@@ -1736,3 +1736,76 @@ Revisit once task 3's instrumentation produces real cost data.
 spawnable, and the first post-restart run should confirm the one residual platform unknown: that a
 `PreToolUse` hook declared in *agent frontmatter* fires. The `settings.json` variant is proven to block
 with `exit 2`; the docs assert the frontmatter variant, and it is now declared on all 15.
+
+## DEC-108 — Post-restart validation: Expertise injection WORKS, the domain hook DID NOT FIRE
+
+First run with all 15 agents spawnable. Three results, one of them bad.
+
+### ✅ Expertise injection works, including the hook path
+
+Planted `CANARY-7f3a9b` in `.harness/expertise/harness-backend-dev.md`, spawned that agent, and asked it
+to search its own context:
+
+> `CANARY_IN_CONTEXT: YES` — *"- P-01: CANARY-7f3a9b — this line exists only to prove Expertise
+> injection fires."*
+
+So `SubagentStart` → `inject-expertise.sh` → `additionalContext` works end to end for a **real harness
+agent**, and `${CLAUDE_PROJECT_DIR}` **does** interpolate in `settings.json` hooks. DEC-64 confirmed in
+production rather than by probe.
+
+### ✅ Project agent definitions override global ones
+
+`harness-code-reviewer` resolved to the **project** version, not the stale global: it reported `Write`
+available (the old one had none), all three expected skills preloaded, first heading
+`# Harness: Code Reviewer`, and no GSD in its role prompt.
+
+### ❌ The agent-frontmatter domain hook did not fire
+
+`harness-backend-dev` was asked to write `web/src/…` — a path the manifest assigns to
+`harness-frontend-dev`. **The write succeeded with no error and no hook output.** An unconditional trace
+placed as the first statement of `check-domain.sh` recorded **nothing**, so the script never executed.
+
+The script itself is correct: invoked directly with the same payload it blocks with `exit 2` and prints
+the permitted globs, and a 23-case matrix passes. The failure is in **delivery, not logic.**
+
+**Two candidates remain, and they cannot be distinguished without a restart** (frontmatter is not
+live-reloaded, DEC-100a):
+
+1. `${CLAUDE_PROJECT_DIR}` does not interpolate in *agent frontmatter* — the command path would then be
+   literal, the command not found, and a not-found exit is **non-zero but not 2**, which is a
+   *non-blocking* error. The write proceeds silently. This fits the evidence exactly, including the
+   absent trace.
+2. Agent-frontmatter `PreToolUse` does not fire for spawned subagents at all — contradicting the docs,
+   which state *"hooks only run while that specific subagent is active. All hook events are supported."*
+
+**Action taken:** all 15 hooks switched to a **relative** command path
+(`.claude/skills/harness/bin/check-domain.sh <agent>`), which needs no interpolation and matches the
+documented example form. The trace is retained, so the next session's first spawn is decisive: trace
+present → candidate 1 was the cause and it is fixed; trace still absent → candidate 2 is proven and
+frontmatter hooks cannot be relied on.
+
+### Why this does not sink the design
+
+**DEC-85 already demoted this hook to a guardrail** and named **serialization** (SPEC §8.5) plus
+`isolation: worktree` as the actual write-safety mechanism — because the `Bash` bypass makes the hook
+non-load-bearing regardless of whether it fires. That call now looks less like caution and more like the
+thing that saved the architecture: had the parallel-safety claim still rested on this hook, today's
+result would have invalidated it.
+
+**What is genuinely lost while the hook is down:** the cheap catch of an *accidental* out-of-domain
+`Write`/`Edit`, and the actionable "here is what you may write instead" message. Both are conveniences.
+The guarantee was never theirs to provide.
+
+**Consequence for task 10:** the crew runner's `mutates_repo` serialization is now the *only* enforcement
+of disjoint writes, which raises its priority from bookkeeping to safety-critical.
+
+### Incidental: `Grep` and `Glob` are unavailable in this environment
+
+Two agents independently reported `No such tool available: Grep` / `Glob`, with errors steering them to
+Bash `grep`/`find`. **This is inherited, not a defect in the agent files** — the main session does not
+have these tools either, and subagents inherit the main conversation's pool. The docs list both as
+retained for background subagents, so this is environment-specific.
+
+Left in the `tools:` lists deliberately: unresolved entries are dropped without error as long as
+something resolves, so naming them costs nothing here and keeps the definitions portable to environments
+that do have them.

@@ -11,7 +11,7 @@ hooks:
     - matcher: "Write|Edit"
       hooks:
         - type: command
-          command: ${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh harness-security-reviewer
+          command: .claude/skills/harness/bin/check-domain.sh harness-security-reviewer
 ---
 
 # Harness: Security Reviewer

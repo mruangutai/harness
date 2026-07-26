@@ -20,6 +20,12 @@
 #     fan-out safe. Do not treat a passing hook as proof of parallel safety.
 set -uo pipefail
 
+# TEMPORARY DIAGNOSTIC — unconditional trace, first thing, before any logic can
+# short-circuit. Tells us whether the hook fires at all.
+{
+  echo "FIRED $(date +%s) agent=${1:-<none>} pwd=$(pwd) CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR:-<unset>}"
+} >> /tmp/harness-hook-trace.log 2>/dev/null || true
+
 agent="${1:-}"
 [ -n "$agent" ] || { echo "check-domain: no agent name given; refusing to guess." >&2; exit 2; }
 
