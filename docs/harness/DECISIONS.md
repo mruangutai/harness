@@ -1670,3 +1670,69 @@ Conventions, architecture notes and the developer profile stay; agents genuinely
 invisibly — so the rewrite must state what moved and where. And these are *baseline* figures only:
 each spawn then accumulates working context on top, which is where the reviewers' 1.5–4M/feature
 estimate comes from. Only task 3's instrumentation will replace that with measurement.
+
+## DEC-106 — Reviewers need scoped `Write` — resolves a contradiction between SPEC §4.1 and §2.3
+
+**Found while building the roster.** §4.1 granted reviewers `Read, Glob, Grep (+Bash)` and no `Write`,
+while §2.3 simultaneously listed them as writers of `notes/review-<persona>-<runid>.md`. **A reviewer
+with no `Write` cannot produce its own artifact**, which the three-part return requires (§8).
+
+**Chose:** grant reviewers `Write`, scoped by the domain hook to exactly two paths — their namespaced
+report and their own Expertise file. **No `Edit` at all, and no source path in the domain.**
+**Over:** returning findings inline in the DIGEST (violates "artifact is a path, never a payload"), or
+having the lead write the reviewer's report (absurd — the lead has no `Bash` and did not do the review).
+**Because:** it is the same shape already used for leads, whose `Write` is scoped to their run dir. The
+guarantee that matters — *reviewers never mutate what they audit* — is now enforced **two ways**: no
+`Edit`, and a domain containing no source path. Writing your own findings is not mutating the subject.
+
+## DEC-107 — The 15 agents are built, and a glob bug in `check-domain.sh` is fixed
+
+**Roster complete:** 3 leads + 9 doers + 3 reviewers, all validated mechanically.
+
+| Tier | Agents | Tools | Skills |
+|---|---|---|---|
+| leads | product, eng, validator | Read Glob Grep **Agent** Write · **no Edit, no Bash** | +`zero-micro-management` |
+| doers | pm · visual-designer · documentor · frontend · backend · ai · data · dev-ops · qa | Read Glob Grep Edit Write Bash | + role rule |
+| reviewers | code · security · ui | Read Glob Grep Bash Write(2 paths) · **no Edit** | + role rule |
+
+**Deleted:** `harness-ceo-reviewer` (the user is the CEO), `harness-eng-reviewer` (architecture review
+moved into `eng-lead`), `harness-qa-reviewer` (`qa` is now a doer that writes tests).
+
+**Validated by script, not by eye** — 15/15 pass: frontmatter name matches filename · description
+present · **color is a valid named colour** (hex is invalid) · no `memory:` field anywhere (it would
+auto-enable `Write`/`Edit` and break the lead and reviewer guarantees, DEC-65) · both universal rules
+preloaded · every `skills:` entry resolves to a real skill dir · tier-correct tool grants · domain hook
+present and naming itself · **an entry in `team-config.yaml`**.
+
+### The bug: every lead was blocked from its own run dir
+
+`check-domain.sh`'s `/**` handling did a literal `str.startswith` on the text before `/**`. That works
+for `src/**` and fails silently for **any pattern with an earlier wildcard** — including
+`features/*/runs/*-eng/**`, which is exactly the leads' domain. So all three leads were blocked from
+the run bookkeeping that DEC-18 grants them `Write` for in the first place.
+
+Fixed with a proper glob→regex translation where `**` crosses separators and `*` does not. Note
+`fnmatch` cannot do this either — its `*` matches `/`, so `web/*/x` would wrongly match `web/a/b/x`.
+
+**Verified with a 23-case regression matrix**, all passing, plus per-squad isolation (eng-lead blocked
+from validator's run dir and vice versa) and per-reviewer isolation (code-reviewer blocked from
+security-reviewer's report path).
+
+**This is the fifth time in this project that a plausible implementation was wrong and only a test
+found it.** The pattern is now reliable enough to plan around: write the test matrix *before* believing
+the implementation.
+
+### Model tiers
+
+`model:` is omitted almost everywhere, which means `inherit` — the agent matches the session model. Only
+`documentor` is pinned to `sonnet`, as the most mechanical role. Deliberately conservative: the measured
+failure mode here is *fail-open bugs that pass their tests*, which is a capability failure, so
+downgrading reviewers and devs to save tokens would trade away the thing the org exists to provide.
+Revisit once task 3's instrumentation produces real cost data.
+
+### Still required before any of these can run
+
+**Agent definitions are not live-reloaded** (DEC-100a). A session must restart before any of the 15 is
+spawnable, and the first post-restart run should confirm the one residual platform unknown: that a
+`PreToolUse` hook declared in *agent frontmatter* fires. The `settings.json` variant is proven to block
+with `exit 2`; the docs assert the frontmatter variant, and it is now declared on all 15.

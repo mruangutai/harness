@@ -517,8 +517,18 @@ Body template (indented to keep the outline parseable):
 | | tools | mutates repo |
 |---|---|---|
 | **doers** | Read, Glob, Grep, Edit, Write, Bash | yes — only within its `## Domain` |
-| **reviewers** | Read, Glob, Grep (+ Bash where it needs `git diff`) | never |
-| **leads** | Read, Glob, Grep, **Agent**, and `Write` scoped to `features/*/runs/*-<its-squad>/**` | never — no `Edit`, no `Bash` |
+| **reviewers** | Read, Glob, Grep, Bash (for `git diff` — its own ground truth), and `Write` scoped to its own report + Expertise | **never mutates the repo** — no `Edit` |
+| **leads** | Read, Glob, Grep, **Agent**, and `Write` scoped to its own run dir + Expertise | never — no `Edit`, no `Bash` |
+
+**Why reviewers need `Write` — a contradiction now resolved.** An earlier version granted reviewers no
+`Write` while §2.3 simultaneously listed them as writers of `notes/review-<persona>-<runid>.md`. A
+reviewer with no `Write` **cannot produce its own artifact**, which the three-part return requires
+(§8). The resolution is the same shape as the leads': `Write` is granted but the domain hook scopes it
+to exactly two paths — its namespaced report and its own Expertise file.
+
+**"Reviewers never mutate" survives intact**, because the guarantee that matters is about *source
+code*, and it is now enforced two ways: no `Edit` at all, and a domain that contains no source path.
+Writing your own findings is not mutating what you audit.
 
 **Leads delegate, never execute — enforced by capability where possible.** No `Edit` and no `Bash`;
 `Write` **scoped by the domain hook to its own run dir only**. The `zero-micro-management` skill is

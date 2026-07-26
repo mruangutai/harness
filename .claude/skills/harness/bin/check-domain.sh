@@ -50,7 +50,7 @@ if [ ! -r "$manifest" ]; then
 fi
 
 python3 - "$agent" "$target" "$manifest" "$root" <<'PY'
-import sys, os, fnmatch, re
+import sys, os, re
 
 agent, target, manifest, root = sys.argv[1:5]
 
@@ -85,15 +85,43 @@ globs, shared = collect(agent)
 # Compare repo-relative, so an absolute tool path and a relative glob still meet.
 rel = os.path.relpath(os.path.abspath(target), os.path.abspath(root))
 
+def glob_to_re(pat):
+    """Translate a glob to a regex. `**` crosses separators, `*` does not.
+
+    fnmatch cannot do this: its `*` matches `/` too, so `web/*/x` would match
+    `web/a/b/x`. And a literal prefix comparison cannot do it either — the bug
+    this replaced used str.startswith on the text before `/**`, which silently
+    failed for any pattern with a wildcard earlier in the path, e.g.
+    `features/*/runs/*-eng/**`. That blocked every lead from its own run dir.
+    """
+    out, i = [], 0
+    while i < len(pat):
+        c = pat[i]
+        if pat.startswith("**", i):
+            out.append(".*"); i += 2
+            if pat.startswith("/", i):      # `**/` also matches zero segments
+                out.append("/?"); i += 1
+        elif c == "*":
+            out.append("[^/]*"); i += 1
+        elif c == "?":
+            out.append("[^/]"); i += 1
+        else:
+            out.append(re.escape(c)); i += 1
+    return re.compile("^" + "".join(out) + "$")
+
+
 def matches(path, pat):
     pat = pat.rstrip("/")
     if pat in (".", ""):            # "." means read-anything; never a write grant
         return False
     if pat.endswith("/**"):
-        return path.startswith(pat[:-3] + "/")
-    if pat.endswith("/"):
-        return path.startswith(pat)
-    return fnmatch.fnmatch(path, pat) or path.startswith(pat + "/")
+        # the directory itself, or anything beneath it
+        base = pat[:-3]
+        return bool(glob_to_re(base).match(path) or glob_to_re(base + "/**").match(path))
+    if glob_to_re(pat).match(path):
+        return True
+    # a bare dir pattern grants everything under it
+    return bool(glob_to_re(pat + "/**").match(path))
 
 if any(matches(rel, g) for g in globs):
     sys.exit(0)

@@ -1,38 +1,219 @@
+# Harness team manifest — the org as DATA, not prose.
+#
+# Read by the orchestrator at every /harness entry, by each lead when delegating,
+# and by bin/check-domain.sh on every Write/Edit to decide what an agent may touch.
+#
+# POLICY lives here (membership, consult-when routing, writable domains).
+# CAPABILITY lives in agent frontmatter (tools, model, color, hooks).
+# Nothing is declared twice.
+
+schema_version: 1
+cli_min_version: "2.1.217"        # floor for the spawn env vars (DEC-83)
+
 orchestrator:
   name: Orchestrator
-  skill: .claude/skills/harness/SKILL.md
+  skill: .claude/skills/harness/SKILL.md   # the playbook it runs; it is not an agent
   color: blue
 
 paths:
   agents: .claude/agents/
-  crews:  .claude/skills/harness/crews/
+  crews: .claude/skills/harness/crews/
   features: .harness/features/
+  expertise: .harness/expertise/
 
+# Preloaded into all 15 agents at every spawn via `skills:`. KEEP THIS MINIMAL —
+# measured at ~1,727 tokens per spawn, ~59k per feature (DEC-105).
 universal_rules:
   - harness-handoff
   - harness-expertise
 
-# Owned by NOBODY. Always serialized; the lead attributes the write. (DEC-85)
+# Owned by NOBODY. Writes here are always serialized and attributed to whichever
+# specialist the lead routed. Disjoint domains are unachievable for these files
+# (DEC-85), so pretending otherwise would either void the parallel-safety claim
+# or block routine work on files nobody may touch.
 shared:
   - { path: package.json }
+  - { path: package-lock.json }
   - { path: pnpm-lock.yaml }
+  - { path: yarn.lock }
   - { path: pyproject.toml }
   - { path: uv.lock }
+  - { path: requirements.txt }
+  - { path: tsconfig.json }
 
 teams:
+  # ───────────────────────────────────────────────────────────────────────────
+  - team-name: Product
+    team-color: purple
+    lead: { name: harness-product-lead }
+    conventions:
+      - id: astryx-design-system
+        rule: >
+          All UI work implements against the Astryx design system
+          (`@astryxdesign/core`, pinned). Do not introduce a second component
+          substrate. Deviating requires a PLAN ## Decisions entry.
+        provision: npm dependency — NOT a Claude capability. dev-ops verifies or installs at init.
+        reference: https://astryx.atmeta.com/
+    members:
+      - name: harness-pm
+        consult-when: >
+          Requirements, feature scoping, planning, task breakdown, codebase research,
+          acceptance criteria, success criteria, goal verification, REQ coverage, UAT scripts.
+        domain:
+          - { path: .harness/BRIEF.md, upsert: true }      # except ## Approval
+          - { path: .harness/PLAN.md, upsert: true }       # except ## Approval
+          - { path: .harness/notes/**, upsert: true }
+          - { path: .harness/expertise/harness-pm.md, upsert: true }
+          - { path: ".", read: true }
+
+      - name: harness-visual-designer
+        consult-when: >
+          Visual identity, palette, typography, spacing, component direction, light/dark,
+          mockups, high-fidelity prototypes — plus UX research, personas, journey mapping,
+          usability friction.
+        domain:
+          - { path: .harness/DESIGN.md, upsert: true }
+          - { path: .harness/notes/mockups/**, upsert: true }
+          - { path: .harness/notes/prototypes/**, upsert: true }
+          - { path: .harness/expertise/harness-visual-designer.md, upsert: true }
+          - { path: ".", read: true }
+
+      - name: harness-documentor
+        consult-when: >
+          READMEs, guides, reference docs, changelogs, user-facing explanation.
+        domain:
+          - { path: docs/**, upsert: true }
+          - { path: README.md, upsert: true }
+          - { path: .harness/README.md, upsert: true }
+          - { path: .harness/expertise/harness-documentor.md, upsert: true }
+          - { path: ".", read: true }
+
+  # ───────────────────────────────────────────────────────────────────────────
   - team-name: Engineering
     team-color: cyan
     lead: { name: harness-eng-lead }
+    conventions:
+      - id: supabase
+        rule: >
+          Use the Supabase plugin for database, auth, storage and edge functions.
+          Do not hand-roll what Supabase provides; do not add a second backend
+          substrate. Deviating requires a PLAN ## Decisions entry.
+        provision: Claude Code plugin — available. dev-ops confirms project linkage at init.
     members:
-      - name: harness-backend-dev
-        consult-when: APIs, services, business logic, auth, server-side integration
-        domain:
-          - { path: src/**, upsert: true }
-          - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
-          - { path: ".", read: true }
       - name: harness-frontend-dev
-        consult-when: UI components, styling, client state, accessibility
+        consult-when: >
+          UI components, styling, client-side state, forms, routing, accessibility,
+          browser behavior, responsive layout.
         domain:
-          - { path: web/src/**, upsert: true }
+          - { path: web/src/**, upsert: true }            # seeded by /harness-init
           - { path: .harness/expertise/harness-frontend-dev.md, upsert: true }
           - { path: ".", read: true }
+
+      - name: harness-backend-dev
+        consult-when: >
+          APIs, endpoints, services, business logic, auth flows, background jobs,
+          server-side integration, error handling at the service boundary.
+        domain:
+          - { path: src/**, upsert: true }               # seeded by /harness-init
+          - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
+          - { path: ".", read: true }
+
+      - name: harness-ai-dev
+        consult-when: >
+          LLM and agent features, prompts, model integration, tool definitions,
+          retrieval, evals, and anything whose output is non-deterministic.
+        domain:
+          - { path: src/**/prompts/**, upsert: true }     # seeded by /harness-init
+          - { path: evals/**, upsert: true }
+          - { path: .harness/expertise/harness-ai-dev.md, upsert: true }
+          - { path: ".", read: true }
+
+      - name: harness-data-engineer
+        consult-when: >
+          Schemas, migrations, pipelines, data models, queries, indexes,
+          serialization contracts, data backfills.
+        domain:
+          - { path: supabase/migrations/**, upsert: true }
+          - { path: src/**/schema*, upsert: true }        # seeded by /harness-init
+          - { path: .harness/expertise/harness-data-engineer.md, upsert: true }
+          - { path: ".", read: true }
+
+      - name: harness-dev-ops
+        consult-when: >
+          Infrastructure, CI/CD, build tooling, deployment, environment config,
+          scaffolding, dependency management, test-runner detection and setup.
+        domain:
+          - { path: .github/**, upsert: true }
+          - { path: Dockerfile, upsert: true }
+          - { path: .harness/harness.json, upsert: true }
+          - { path: .harness/expertise/harness-dev-ops.md, upsert: true }
+          - { path: ".", read: true }
+        # SHARP EDGE (DEC-85): dev-ops holds Bash, which bypasses path checks
+        # entirely. It is trusted by design — it owns deploy — and the
+        # compensating control is that merge and deploy stay user-gated.
+
+  # ───────────────────────────────────────────────────────────────────────────
+  - team-name: Validation
+    team-color: orange
+    lead: { name: harness-validator-lead }
+    members:
+      - name: harness-qa
+        consult-when: >
+          Test coverage, writing and running tests, regression tests, E2E, the
+          test-matrix gate, running evals authored by ai-dev, coverage gaps.
+        domain:
+          - { path: tests/**, upsert: true }              # seeded by /harness-init
+          - { path: web/src/**/*.test.*, upsert: true }
+          - { path: .harness/expertise/harness-qa.md, upsert: true }
+          - { path: ".", read: true }
+
+      # Reviewers write ONLY their own findings — no source path in any domain,
+      # enforced alongside having no Edit tool (SPEC 4.1).
+      - name: harness-code-reviewer
+        consult-when: >
+          Spec compliance, scope creep, omissions, code quality, maintainability,
+          fail-open branches, silent failure paths.
+        domain:
+          - { path: .harness/notes/review-harness-code-reviewer-*.md, upsert: true }
+          - { path: .harness/expertise/harness-code-reviewer.md, upsert: true }
+          - { path: ".", read: true }
+
+      - name: harness-security-reviewer
+        consult-when: >
+          Auth, secrets, input validation, injection, SSRF, deserialization,
+          OWASP Top 10, STRIDE threat modeling, data exposure in logs or exports.
+        domain:
+          - { path: .harness/notes/review-harness-security-reviewer-*.md, upsert: true }
+          - { path: .harness/expertise/harness-security-reviewer.md, upsert: true }
+          - { path: ".", read: true }
+
+      - name: harness-ui-reviewer
+        consult-when: >
+          Visual fidelity against DESIGN.md, design-contract soundness, UI
+          regressions, accessibility audit, dark/light parity.
+        domain:
+          - { path: .harness/notes/review-harness-ui-reviewer-*.md, upsert: true }
+          - { path: .harness/expertise/harness-ui-reviewer.md, upsert: true }
+          - { path: ".", read: true }
+
+# Leads write only their own squad's run bookkeeping and their own Expertise.
+# Listed separately because they host crews rather than being members of one.
+leads:
+  - name: harness-product-lead
+    squad: product
+    domain:
+      - { path: .harness/features/*/runs/*-product/**, upsert: true }
+      - { path: .harness/expertise/harness-product-lead.md, upsert: true }
+      - { path: ".", read: true }
+  - name: harness-eng-lead
+    squad: eng
+    domain:
+      - { path: .harness/features/*/runs/*-eng/**, upsert: true }
+      - { path: .harness/expertise/harness-eng-lead.md, upsert: true }
+      - { path: ".", read: true }
+  - name: harness-validator-lead
+    squad: validator
+    domain:
+      - { path: .harness/features/*/runs/*-validator/**, upsert: true }
+      - { path: .harness/expertise/harness-validator-lead.md, upsert: true }
+      - { path: ".", read: true }
