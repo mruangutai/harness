@@ -176,9 +176,9 @@ the time of writing; the live list is authoritative if the two disagree.
 | 7 | Write-safety: Bash bypass + shared paths | **done** (DEC-85, DEC-107) |
 | 8 | Expertise governance holes | pending — provenance, decay, curation for all 15, global tier |
 | 9 | The 15 agent definitions | **done** (DEC-106, DEC-107) |
-| 10 | Crew runner + four v1 crews | pending — **now safety-critical**: `mutates_repo` serialization is the only enforcement of disjoint writes while the domain hook is down (DEC-108) |
+| 10 | Crew runner + four v1 crews | pending — `mutates_repo` serialization is the write-safety mechanism (DEC-85). The domain hook is now working (DEC-110) but cannot see `Bash`, so serialization is still what makes fan-out safe |
 | 11 | Batch human touchpoints to two | pending |
-| 12 | `/harness-init` + distributed templates | pending |
+| 12 | `/harness-init` + distributed templates | **pending — NEXT.** Full spec below |
 | 13 | Rewrite `harness-deploy` (distribution only, **+ prune**) | pending — **live risk**: 5 stale GSD-era agents in `~/.claude/agents/` are still spawnable, and kaya-ai has no project copies, so a pilot there would run them |
 | 14 | Router + `harness.json` + CLAUDE.md — **and size** | pending — CLAUDE.md is ~164k tok/feature, 3× the rule cost (DEC-105) |
 | 15 | Recover the five lost design GAPs | pending |
@@ -186,11 +186,107 @@ the time of writing; the live list is authoritative if the two disagree.
 | 17 | Take the full workflow through its paces in kaya-ai | pending — blocked on 3, 10, 12, 13 |
 | 18 | Fix the propagation defect mechanically | **done** (DEC-104) |
 
-**Immediate next action when context resumes:** `harness-backend-dev` is instrumented with a two-hook
-decision matrix to settle DEC-108. After a restart, spawn it on an out-of-domain write and check:
+## Task 12 — `/harness-init`: complete spec
 
-| `/tmp/harness-fm-fired.log` | `/tmp/harness-hook-trace.log` | Conclusion |
+**Self-contained: everything needed to build this without prior conversation.**
+
+### What it is
+
+The onboarding interview, run **inside a target project**. It absorbs the deleted `bootstrap` crew
+(DEC-14). Delivered as a **flat skill** at `.claude/skills/harness-init/SKILL.md` — *not* a command,
+because commands do not distribute (DEC-06), and *not* nested, because a project skill is exactly one
+level under `.claude/skills/` (DEC-100).
+
+It must run in the **main session**: only that tier can call `AskUserQuestion` (DEC-42).
+
+### The division of labour it depends on
+
+| Operation | Does | Touches project state? |
 |---|---|---|
+| `/harness-deploy` (task 13) | distributes skills, agents, templates | **never** |
+| **`/harness-init`** | writes every project artifact | yes, once |
+
+Enroll = deploy + init. This split is what lets deploy be dumb and safe (DEC-12).
+
+### What it writes — six artifacts
+
+**1. `.claude/settings.json` — ALL THREE entries.** Omitting any degrades **silently**.
+
+```json
+{
+  "env": { "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2" },
+  "hooks": {
+    "SubagentStart": [ { "matcher": "harness-.*",
+      "hooks": [{ "type": "command",
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh" }] } ],
+    "PreToolUse": [ { "matcher": "Write|Edit",
+      "hooks": [{ "type": "command",
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] } ]
+  }
+}
+```
+
+- `PreToolUse` carries **no agent-name matcher** deliberately: one registration serves all 15 and the
+  script dispatches on `agent_type` from the payload (DEC-110/111).
+- **Merge, do not clobber.** Target projects have their own hooks — kaya-ai has five. Preserve them.
+
+**2. `.harness/harness.json`** — `test_matrix`, `test_kinds`, `gates`, `log_retention_days` (30),
+`commit_attribution`, `dirty_tree_whitelist`, `schema_version`, `cli_min_version: "2.1.217"`.
+
+**3. `.harness/team-config.yaml`** — from template, with `domain` globs seeded from detection, plus the
+`shared:` set and both team `conventions:`.
+
+**4. `.harness/BRIEF.md`** — a **draft** for the user to approve. Init never marks it approved.
+
+**5. `.gitignore` additions** — `.harness/features/*/runs/**`, `.claude/settings.local.json`,
+`.claude/worktrees/`, `.DS_Store`. Append; never overwrite an existing file.
+
+**6. `.harness/expertise/`** — the directory, empty. The injection hook treats a missing file as normal.
+
+### The interview
+
+1. **Technical** — project type (web app / API / CLI / library / data pipeline), frontend framework,
+   backend framework. Batch into one `AskUserQuestion` call.
+2. **Product** — goal, requirements, constraints, success criteria. Each `SC-NN` needs
+   `verify: automated | inspection | uat`; `automated` also needs an `evidence:` kind (DEC-73).
+3. **Approve the BRIEF** — the goal of record is signed before anything downstream runs.
+4. **Offer a design pass** — if the project has a UI, chain `visual-designer` → `ui-reviewer(A)` to
+   establish `DESIGN.md`.
+
+### Detection is delegated to `dev-ops`
+
+It owns test-runner discovery and source layout → `domain` globs. Three hard-won constraints:
+
+- **Verify every `cmd` by running it.** A command that resolves but is misconfigured is worse than one
+  that is absent — `node --test src/` reports `tests 1 / fail 1` for a module-load error, which reads
+  exactly like a failing suite (DEC-98).
+- **Never invent a plausible command.** A kind with no runner gets `cmd: null` and a reason; `qa` treats
+  that as a not-applicable soft skip. An invented command turns a hard gate into a silent no-op.
+- **Exclude worktree and vendor dirs from `detect` globs**, or a diff scan multiplies every test file by
+  the number of checkouts (measured: 3× in kaya-ai).
+
+### `--upgrade` mode
+
+Driven by `schema_version`. Merges **new** template entries while **preserving** project values —
+especially `domain` globs and `test_kinds.cmd`, which are per-project and must never be clobbered. The
+state check reports the version gap; the user triggers the upgrade (DEC-13).
+
+### It must warn about the restart
+
+**Agent definitions are not live-reloaded** (DEC-100a). After init writes agents, they are not spawnable
+until the session restarts. Say so explicitly at the end — a user who tries to run a crew immediately
+will otherwise get "Agent type not found" with no explanation.
+
+### Done when
+
+- `bin/check-state.sh` passes in a freshly-initialised project (it verifies all three settings entries,
+  INV-9).
+- A spawned harness agent is blocked from an out-of-domain write **in that project**, not just here.
+- Existing project hooks and `.gitignore` entries survived.
+
+---
+
+---|---|
 | exists | exists | frontmatter hooks work; the absolute path fixed it |
 | exists | absent | hooks fire, but the script path or args are wrong |
 | **absent** | absent | **agent-frontmatter `PreToolUse` does not fire** — contradicting the docs; the hook is permanently a no-op and serialization is the only mechanism |
