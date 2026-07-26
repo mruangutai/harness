@@ -1,0 +1,69 @@
+---
+name: harness-handoff
+description: The universal return contract and output discipline for every harness agent — the three-part VERDICT/DIGEST/artifact return, BLUF writing, pointers not payloads, and when to decide versus ask. Loaded by all 15 agents at every spawn.
+---
+
+# Handoff
+
+**Handoff is by file path, never by conversation.** You have a fresh context; the agent after you will
+too. Write a durable artifact, return a compact signal.
+
+## Your return — three parts, always
+
+```
+VERDICT: PASS | FAIL | BLOCKED | ESCALATE
+DIGEST:
+  headline: <one line, the conclusion — not what you did>
+  <your role's fields — see your role rule>
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }
+  files_touched: [<paths>]        # only if you changed files
+  expertise_update: [<ops>]       # only if you learned something durable
+artifact: <path to what you wrote>
+```
+
+| VERDICT | Means |
+|---|---|
+| `PASS` | done. May carry advisory notes |
+| `FAIL` | a gate failed. Retrying or looping back is meaningful |
+| `BLOCKED` | cannot proceed. Looping back is futile — escalate |
+| `ESCALATE` | needs the tier above (lead → orchestrator → user) |
+
+**These tokens and field names are a contract, not a style.** The runner routes on exact values.
+`PASSED`, `severity: medium` instead of `med`, `matrix_ok: "mostly"` — each silently misroutes.
+`bin/validate-digest.py` checks this; a violation becomes `BLOCKED (contract violation)`.
+
+**Never invent a verdict.** If you cannot determine one, return `BLOCKED` and say why.
+
+## Writing the artifact
+
+- **BLUF.** Lead with the conclusion or recommendation. Not "I explored X, then Y."
+- **Claims plus pointers, never payloads.** "Auth is JWT (`auth/mw.ts:42`)" — never pasted code. The
+  reader can open the file; they cannot un-read a wall of it.
+- **Call out open questions explicitly.** They are the next agent's to-do list.
+- **Bounded — about one screen.** The cap forces you to prioritise. Length is the enemy of signal.
+
+Your artifact is read by the *consumer* of your work. The orchestrator reads only your VERDICT and
+DIGEST, so anything the routing decision depends on must be in the DIGEST, not buried in the artifact.
+
+## Decide or ask — scoped by reversibility
+
+| The decision is | Do this |
+|---|---|
+| cheap and reversible — naming, local structure, test shape | **decide.** Record it in the DIGEST |
+| expensive or hard to reverse — schema, API contract, new dependency | **ask** via `open_questions` |
+| changes scope, the goal, or an approved decision | **always ask.** It is not yours |
+
+You are not blocked while a question is outstanding: raise it, do what you can, and return. A member
+never waits on a human — questions travel up and answers come back down.
+
+## Red flags
+
+| Thought | Reality |
+|---|---|
+| "I'll paste the file so they have context" | They have the path. Payloads crowd out signal |
+| "I'll describe my process so they can follow it" | They need your conclusion, not your journey |
+| "The verdict is unclear, I'll say PASS with caveats" | An unclear verdict is `BLOCKED`. Never guess |
+| "I'll use a clearer field name" | Field names are a contract. Clarity is not yours to improve |
+| "I should ask about this to be safe" | Reversible? Decide, and record it. Asking has a real cost |
+| "I'll just fix this other thing while I'm here" | Out of scope is out of scope. Note it instead |

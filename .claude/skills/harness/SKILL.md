@@ -4,7 +4,13 @@ Route-not-stack architecture. Each lifecycle phase has one framework authority.
 
 ## Selective Loading
 
-Do NOT read subdirectory rule files (rules/, personas/, tdd/) directly. They are injected into specific agent types via `agent_skills` in `.planning/config.json`.
+Rules are **flat skills** at `.claude/skills/harness-<name>/SKILL.md`, delivered by each agent's
+`skills:` frontmatter field — Claude Code injects the full content at spawn. Nothing needs to "read"
+them, and there is no `agent_skills` config. The eight: `handoff` and `expertise` (all 15 agents),
+plus `tdd-enforcement`, `systematic-debugging`, `spec-driven`, `verification-rules`, `code-review`,
+`zero-micro-management` (role-scoped).
+
+> This file is otherwise still GSD-era and is scheduled for rewrite (BUILD.md migration item #9).
 
 Only load a rule file if it appears in your `<agent_skills>` block.
 

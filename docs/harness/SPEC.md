@@ -865,11 +865,22 @@ Both are read at task start and written by the agent that owns them.
 an agent's edit would survive until the next `harness-deploy` and then vanish silently. Rules
 therefore *cannot* be agent-writable without breaking distribution.
 
-**The seven rules**, each a **flat** skill at `.claude/skills/harness-<name>/SKILL.md` and referenced as
-`harness-<name>`: `handoff`, `tdd-enforcement`, `spec-driven`, `code-review`, `verification-rules`,
-`expertise`, `zero-micro-management`.
+**The eight rules**, each a **flat** skill at `.claude/skills/harness-<name>/SKILL.md` and referenced as
+`harness-<name>`:
 
-Two are universal (`handoff`, `expertise` — all 15 agents); the rest are role-scoped.
+| Rule | Loaded by | Why |
+|---|---|---|
+| `handoff` | **all 15** | the return contract and output discipline |
+| `expertise` | **all 15** | when and how to update durable knowledge |
+| `tdd-enforcement` | 4 feature devs (+dev-ops, exempt on config/scaffolding) | test-first |
+| `systematic-debugging` | eng devs in debug mode | root cause before fix |
+| `spec-driven` | pm | requirements and decisions discipline |
+| `verification-rules` | qa | the test-matrix gate |
+| `code-review` | code-reviewer | two-stage review |
+| `zero-micro-management` | the 3 leads | delegate, never execute |
+
+Two are universal, so **they load on all 15 agents at every spawn — keep those two shortest.** An
+earlier count said "seven" and omitted `systematic-debugging`, which §3.4 has always listed.
 
 **Rules are uniform across all projects — there is no per-project rule overlay.** Project-specific
 *values* still vary (`domain` globs, `test_kinds`, §3); project-specific *behavior* does not.
