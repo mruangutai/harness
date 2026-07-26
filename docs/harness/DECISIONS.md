@@ -1738,6 +1738,8 @@ spawnable, and the first post-restart run should confirm the one residual platfo
 with `exit 2`; the docs assert the frontmatter variant, and it is now declared on all 15.
 
 ## DEC-108 — Post-restart validation: Expertise injection WORKS, the domain hook DID NOT FIRE
+<!-- stale: "Domain-enforcement hook — VERIFIED" -->
+<!-- stale: "blocking works, and the stderr reason" -->
 
 First run with all 15 agents spawnable. Three results, one of them bad.
 
@@ -1809,3 +1811,39 @@ retained for background subagents, so this is environment-specific.
 Left in the `tools:` lists deliberately: unresolved entries are dropped without error as long as
 something resolves, so naming them costs nothing here and keeps the definitions portable to environments
 that do have them.
+
+## DEC-109 — Attempt 2 (relative path) also failed; and the propagation defect recurred a third time
+
+**Second post-restart test, relative command path.** `harness-backend-dev` wrote into
+`harness-frontend-dev`'s domain again: **succeeded, no error, no trace.** The script never executed.
+
+| Attempt | Command form | Trace | Blocked |
+|---|---|---|---|
+| 1 | `${CLAUDE_PROJECT_DIR}/…/check-domain.sh <agent>` | absent | no |
+| 2 | `.claude/skills/harness/bin/check-domain.sh <agent>` | absent | no |
+| 3 | absolute path **+ a dependency-free existence probe** | *pending a restart* | — |
+
+Attempt 2 **eliminates `${CLAUDE_PROJECT_DIR}` interpolation** as the cause. It does **not** eliminate
+path resolution generally — a relative path only resolves if the hook's cwd is the project root, which is
+unverified. Attempt 3 removes that variable and adds a probe that distinguishes *"hooks do not fire"* from
+*"my command was wrong"*.
+
+**The subagent diagnosed it correctly and unprompted**, flagging fail-open enforcement as a blocking
+`open_question` and naming the relative-path commit as the suspect hypothesis while explicitly marking it
+unverified. It also proposed a `G-02` Gotcha — *"do not treat the hook as the guard; self-police paths."*
+Worth noting: it *proposed* the op rather than self-applying it, though DEC-67 gives doers that authority.
+Whether that is caution or a gap in the `harness-expertise` wording is worth watching.
+
+### The propagation defect recurred — a third time, and my own checker missed it
+
+BUILD.md §0b still read **"Domain-enforcement hook — VERIFIED, script shipped"** and *"blocking works"*
+after DEC-108 had recorded the opposite. `check-docs.sh` did not catch it **because I never declared a
+`<!-- stale: -->` marker on DEC-108** — the checker enforces what it is told, and I recorded the finding
+without registering the wording it invalidated.
+
+**So the mechanism is sound and the discipline around it is not.** Two markers now declared, and the
+lesson generalises: **writing a superseding decision is only half the work — declaring what it
+invalidates is the other half**, and skipping the second half puts the claim right back into circulation.
+
+This is the third recurrence (DEC-103, then the §0b claim, now caught only by reading). The honest
+conclusion is that no amount of care substitutes for the marker being part of writing the DEC.
