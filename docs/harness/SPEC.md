@@ -861,7 +861,7 @@ skills:
 ```
 
 **This makes rule delivery a runtime guarantee rather than an act of obedience.** There is no
-`## Discipline` step-0 instruction to skip, and no `<files_to_read>` belt-and-suspenders is needed —
+`## Discipline` step-0 instruction to skip, and no `<files_to_read>` belt-and-suspenders is needed — <!-- ok-stale -->
 the rule is in context before the agent takes its first action.
 
 Consequences of the mechanism, stated plainly:

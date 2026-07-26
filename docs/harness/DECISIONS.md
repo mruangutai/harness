@@ -708,6 +708,8 @@ work, matching every other gate except the two in DEC-34.
 automation" limitation, which is superseded — `qa` owns Playwright E2E execution (DEC-35).
 
 ## DEC-63 — Rule delivery switches to native `skills:` preload — SUPERSEDES DEC-20
+<!-- stale: "injected via agent_skills" -->
+<!-- stale: "## Discipline" -->
 
 **Chose:** each rule becomes a skill; each agent declares its rules in the `skills:` frontmatter
 field, and Claude Code injects the **full content** at spawn.
@@ -997,6 +999,8 @@ of nesting is "a reviewer subagent that dispatches a verifier per finding", whic
 state-consistency check should verify it — a project with depth unset silently degrades to flat.
 
 ## DEC-83 — Nesting default is 3, not off — CORRECTS DEC-82, and DEC-82 corrected DEC-39
+<!-- stale: "pending spike" -->
+<!-- stale: "nesting is off by default" -->
 
 Third correction to the same fact, which is itself the finding.
 
@@ -1032,6 +1036,7 @@ reported three documented env vars as fabricated. **A platform claim without a U
 min-version marker does not count.** BUILD.md now carries the cited table.
 
 ## DEC-84 — `delete: false` is deleted; it never existed — CORRECTS DEC-19's safety rail
+<!-- stale: "delete: false` everywhere is a blanket" -->
 
 **Chose:** remove it. Destructive-operation restraint is a `Bash` matcher in `check-domain.sh` with
 `exit 2`, or it does not exist.
@@ -1066,6 +1071,9 @@ attributed to whichever specialist the lead routed; no agent owns them.
 **Tradeoff accepted:** less parallelism than the design implied it had. It never actually had it.
 
 ## DEC-86 — Roster arithmetic corrected: 3 leads + 9 doers + 3 reviewers — CORRECTS DEC-67
+<!-- stale: "8 doers" -->
+<!-- stale: "4 reviewers" -->
+<!-- stale: "7 write-less" -->
 
 **The count was wrong in the spec and every reviewer inherited it.** DEC-67 and SPEC §5.3 said "8 doers"
 and "3 leads + 4 reviewers", making 7 agents write-less. Correct: **9 doers** (pm, visual-designer,
@@ -1188,6 +1196,7 @@ which means **the UAT is the only user-facing verification the pilot can exercis
 cannot claim to have tested the browser-automation path.
 
 ## DEC-95 — A git worktree is the unit of concurrency — CORRECTS DEC-88
+<!-- stale: "One feature at a time**, because" -->
 
 **Chose:** one feature **per worktree**, as many worktrees as you like. `.harness/` is per-worktree
 state, not per-repository state.
@@ -1362,6 +1371,9 @@ into an observation; and one real bug found and fixed in `harness-qa-gate` (DEC-
 SC-2 is the one cost that cannot be absorbed by spending more.
 
 ## DEC-100 — All four platform unknowns resolved empirically
+<!-- stale: "rules/<name>/SKILL.md" -->
+<!-- stale: "one unproven narrow case" -->
+<!-- stale: "one remaining spike" -->
 
 Probed 2026-07-26 with throwaway agents and hooks, since cleaned up. Three of four settled outright; the
 fourth is settled in substance with one link resting on documentation.
@@ -1567,3 +1579,50 @@ now failed once; it will fail again. Two options, neither yet chosen:
 
 Recorded as an open item rather than silently deferred: **the split's central property is currently
 unmet, and that is a live defect, not a stylistic preference.**
+
+## DEC-104 — Propagation is enforced by a checker whose registry is DECISIONS itself
+
+**Chose:** `bin/check-docs.sh`, wired into `check-state.sh` as INV-10. A decision that supersedes
+something declares the stale wording inline, in the same paragraph as the reasoning:
+
+```
+## DEC-83 — Nesting default is 3, not off
+<!-- stale: "pending spike" -->
+<!-- stale: "nesting is off by default" -->
+```
+
+The checker reads those markers out of DECISIONS.md and greps SPEC/BUILD for them, naming the DEC that
+invalidated each hit. **There is no separate registry to drift** — which matters, because a stale-claim
+registry going stale would be the same defect one level up.
+
+**Over:** (a) remembering to re-read SPEC — that has now failed once (DEC-103) and would again;
+(b) a standalone list of forbidden phrases, which drifts;
+(c) splitting SPEC to make it re-readable — see below, it does not work.
+
+**Verified against real history and one injected regression.** Declaring 12 markers on 6 superseding
+decisions surfaced 4 hits, **all of them false positives** — and the false positives were the useful part:
+the migration map legitimately quotes old wording in its «change *"old"* → new» rows, and §7 legitimately
+*describes* the mechanism it retired. Fixed with an **explicit** `<!-- ok-stale -->` escape rather than a
+heuristic, because a heuristic that guesses which quotes are intentional will be wrong in both directions.
+Re-injecting `pending spike 0b` was then caught and correctly attributed to DEC-83.
+
+### The size fix does NOT work — recorded so it is not attempted again
+
+DEC-103 offered "split the normative payload" as the root-cause fix. **Measured, it fails:**
+
+| | Lines |
+|---|---|
+| SPEC.md today | **1853** |
+| Normative payload extractable to a `SCHEMAS.md` (manifest 112, frontmatter 63, test_matrix 64, crew YAML 40, roster 31, `state.yaml` 27, DIGEST 23, `feature.yaml` 18) | −378 |
+| Correction narration that belongs in DECISIONS (8 sites: *"An earlier draft claimed…"*, *"that overstated it twice over"*) | ≈ −50 |
+| Result | **≈ 1425 — still 3× the 450-line target** |
+
+**The 450-line target was never achievable** for a system with 15 sections of genuine specification. The
+split's founding premise — *"short enough to re-read entirely after each change"* — was wishful, and
+building a discipline on it was the actual mistake. Extracting schemas remains defensible for
+*navigability*, but it must not be sold as fixing propagation. **Mechanical enforcement is the fix;
+document size is a comfort.**
+
+**Residual honesty:** this catches the *literal-string* class of staleness only. A statement that
+contradicts a decision in different words still passes. That class needs a reader, and no script will
+substitute for one.

@@ -119,6 +119,17 @@ else:
         bad.append("No SubagentStart hook — every agent starts with NO Expertise, "
                    "and no error is raised.")
 
+# --- INV-10: docs must not contradict a decision that superseded them (DEC-103).
+docs = os.path.join(root, "docs", "harness", "DECISIONS.md")
+if os.path.isfile(docs):
+    import subprocess
+    cd = os.path.join(root, ".claude/skills/harness/bin/check-docs.sh")
+    if os.access(cd, os.X_OK):
+        r = subprocess.run([cd], capture_output=True, text=True, cwd=root)
+        if r.returncode != 0:
+            bad.append("docs contain statements a superseding decision invalidated "
+                       "— run bin/check-docs.sh for the list.")
+
 for m in bad:  print(f"  VIOLATION  {m}")
 for m in warn: print(f"  note       {m}")
 if not bad and not warn:
