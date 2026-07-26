@@ -41,16 +41,27 @@ the CLI version (below).
     "SubagentStart": [
       { "matcher": "harness-.*",
         "hooks": [{ "type": "command",
-                    "command": ".claude/skills/harness/bin/inject-expertise.sh" }] }
+                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh" }] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Write|Edit",
+        "hooks": [{ "type": "command",
+                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] }
     ]
   }
 }
 ```
 
+⚠️ **All THREE entries are required, and `PreToolUse` is the one most recently added.** It carries no
+matcher on agent name deliberately — one global registration serves all 15, and the script dispatches on
+`agent_type` from the payload (DEC-110). If it is omitted, agents get Expertise but **domain enforcement
+is silently absent**.
+
 | Setting | Enables | If missing |
 |---|---|---|
 | `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "2"` | Pins nesting to exactly orchestrator → lead → worker. Depth 2 means the worker layer **cannot** delegate further, enforcing "workers are always leaves" mechanically | **Depends on CLI version, and the current default is the risk.** At the current default of **3**, workers *can* delegate — the opposite of the intended guarantee. On 2.1.217–218 the default was 1, so leads could not spawn at all |
 | `SubagentStart` hook | Expertise injection (SPEC §5.1) | Every agent starts with no Expertise and no error is raised |
+| **`PreToolUse` hook** | **Domain enforcement** (SPEC §4.2) — must be here, not in agent frontmatter, which does not fire (DEC-110) | Every agent can write anywhere. **Fail-open, silent** — the exact failure class this design tries to avoid |
 
 > **Correction.** An earlier version of this table claimed nesting was "off by default" and that a
 > missing setting collapsed the org to flat. **That is inverted for current versions.** The `sub-agents`

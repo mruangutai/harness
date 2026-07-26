@@ -1901,3 +1901,34 @@ appeared in the enforcement mechanism itself.
 write-safety mechanism (DEC-85); this hook is a guardrail.** What has been recovered is the cheap catch of
 an *accidental* out-of-domain `Write`/`Edit` and the actionable rejection message — real value, but not the
 guarantee. Task 10's `mutates_repo` serialization stays safety-critical.
+
+## DEC-111 — `/harness-init` must write THREE settings entries; the third was missing from its spec
+
+**Caught by the question "does `settings.json` get updated on init with the agent hooks?"** — and the
+answer was **no**. BUILD.md §0a's init template listed `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` and
+`SubagentStart`, but **not the `PreToolUse` domain hook**, which DEC-110 had just made load-bearing.
+
+A project initialised from that template would have got Expertise injection and **no domain enforcement
+at all**, with nothing to report it — fail-open and silent, the failure class this design exists to avoid.
+
+**Two fixes, because documenting it is not enough:**
+
+1. **The §0a template now shows all three**, with a note that `PreToolUse` carries no agent-name matcher
+   deliberately — one global registration serves all 15 and the script dispatches on `agent_type`.
+2. **`check-state.sh` INV-9 now verifies it**, so an omission is caught at every `/harness` entry rather
+   than discovered when an agent writes somewhere it should not. Verified by deleting the entry and
+   confirming the violation fires.
+
+**Why this kept happening:** DEC-110 changed *where* the hook lives, and the init spec described *what
+init writes*. Those are different documents, and the second did not follow the first — the propagation
+defect again, in its fourth appearance (DEC-103, the §0b claim, DEC-109, now this). The pattern is
+consistent enough to name: **a decision that relocates a mechanism must be followed to every place that
+provisions it**, and the only reliable enforcement is a script that checks the provisioning.
+
+### Also fixed: the propagation checker flagged all 1889 lines of SPEC
+
+DEC-109's prose explains the marker syntax by naming it inline, outside a code fence. The checker
+harvested that as an **empty pattern**, which matches every line. Now skips patterns under 4 characters.
+Same lesson as DEC-104's fence fix, one level down: **a tool that reads its own documentation as
+configuration needs to distinguish the two**, and both times the failure was discovered by running it
+rather than by reading it.

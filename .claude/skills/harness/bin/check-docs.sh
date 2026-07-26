@@ -50,7 +50,14 @@ for line in text.splitlines():
     if m:
         owner = m.group(1)
     for s in re.findall(r"<!--\s*stale:\s*(.+?)\s*-->", line):
-        pats.append((owner or "?", s.strip().strip('"\'')))
+        s = s.strip().strip('"\'')
+        # An EMPTY pattern matches every line. This is not hypothetical: DEC-109's
+        # prose mentions the marker syntax inline (outside a code fence) to explain
+        # it, and that got harvested as an empty rule that flagged all 1889 lines of
+        # SPEC. Require real content, and require it to be reasonably specific.
+        if len(s) < 4:
+            continue
+        pats.append((owner or "?", s))
 
 if not pats:
     print("check-docs: no <!-- stale: ... --> markers declared yet — nothing to check.")

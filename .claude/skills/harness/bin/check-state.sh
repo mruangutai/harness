@@ -115,9 +115,17 @@ else:
     if depth != "2":
         bad.append(f"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH is {depth!r}, expected \"2\". "
                    f"The default is 3, which lets WORKERS delegate (DEC-83).")
-    if not (sett.get("hooks") or {}).get("SubagentStart"):
+    hooks = sett.get("hooks") or {}
+    if not hooks.get("SubagentStart"):
         bad.append("No SubagentStart hook — every agent starts with NO Expertise, "
                    "and no error is raised.")
+    # Agent-frontmatter PreToolUse does not fire (DEC-110), so this registration is
+    # the ONLY thing enforcing domains. Its absence is silent and fail-open.
+    pre = hooks.get("PreToolUse") or []
+    if not any("check-domain" in str(h) for h in pre):
+        bad.append("No PreToolUse check-domain hook — domain enforcement is ABSENT "
+                   "and every agent can write anywhere. Frontmatter hooks do not "
+                   "fire (DEC-110), so settings.json is the only place this works.")
 
 # --- INV-10: docs must not contradict a decision that superseded them (DEC-103).
 docs = os.path.join(root, "docs", "harness", "DECISIONS.md")
