@@ -36,8 +36,16 @@ if not os.path.isfile(dec):
 text = open(dec, encoding="utf-8").read()
 
 # Attribute each marker to the DEC that declared it, so a hit names its authority.
-owner, pats = None, []
+owner, pats, infence = None, [], False
 for line in text.splitlines():
+    # Markers shown INSIDE a code fence are documentation of the format, not live
+    # declarations. Harvesting them would let an illustrative example become an
+    # enforced rule.
+    if line.lstrip().startswith("```"):
+        infence = not infence
+        continue
+    if infence:
+        continue
     m = re.match(r"^##\s+(DEC-\d+)", line)
     if m:
         owner = m.group(1)

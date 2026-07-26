@@ -8,8 +8,44 @@
 > `~/.claude/plans/i-want-to-remove-tingly-dongarra.md` (1007 lines). That file is retained
 > unmodified as the historical record. **This file is authoritative.**
 >
-> **Property that matters:** short enough to re-read *entirely* after each change. That is what
-> makes a decision propagate instead of landing in one section and being forgotten.
+> **How to use this file: load a section, not the file.** At ~28k tokens whole, and ~1.2k per section
+> on average, reading it end-to-end to change one thing is waste. Use the index below.
+>
+> An earlier header claimed the property that mattered was being "short enough to re-read entirely
+> after each change." **That was retracted** (DEC-104): the target was arbitrary, and a discipline
+> built on it failed — ten statements went stale before an audit caught them. Propagation is now
+> enforced by `bin/check-docs.sh`, not by anyone's memory.
+
+---
+
+## Index — load only what you need
+
+Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
+
+| Looking for | § | Cost |
+|---|---|---|
+| `.harness/` file layout, the question round-trip, state-consistency matrix, writer ownership, commit policy | **2** | 1.3k |
+| The 15-agent org, `team-config.yaml` manifest, `consult-when` routing, team conventions (Supabase/Astryx), deploy-vs-init, the roster table | **3** | 2.5k |
+| Agent frontmatter (what Claude Code parses, and what to avoid), tool grants per tier, the domain hook, reviewer verdict mapping, autonomy | **4** | 2.0k |
+| Expertise — injection hook, entry IDs, update ops, curation, CEO feedback, project vs global tiers | **5** | 2.0k |
+| Rules vs Expertise — which is which, who writes each | **6** | 0.3k |
+| Rule delivery via native `skills:` preload | **7** | 0.4k |
+| **The handoff contract** — three-part return, normative DIGEST schemas, conditional routing, malformed returns, git/PR lifecycle | **8** | 1.1k |
+| **Test guardrails** — the change-type matrix, `test_matrix`/`test_kinds`, the four resolution states, AI evals | **9** | 1.1k |
+| The orchestrator — loop, hierarchy and spawn depth, canonical flow, CEO briefing, consolidated DIGEST, escalation, `max_cycles` exhaustion | **10** | 2.7k |
+| **Execution state** — `feature.yaml`, `state.yaml`, REQ/FEAT/D/T levels, checkpoint-before-dispatch, success criteria and UAT | **11** | 2.3k |
+| Crew YAML schema and the runner algorithm | **12** | 0.7k |
+| The v1 crew catalog and the prototype gate | **13** | 0.8k |
+| Composability — v1 scope and the post-v1 flattening plan | **14** | 0.2k |
+| **Operating constraints** — single operator, one feature per worktree, your own hand edits, unmodelled costs | **15** | 0.9k |
+
+**Schemas are inline, deliberately.** Extracting them to a separate file was measured and rejected
+(DEC-104): it saves 378 lines but creates a second file for a decision to fail to land in, which is the
+defect this project has already hit once.
+
+**Runtime agents never load this file.** Rule skills, injected Expertise, and `BRIEF`/`PLAN`/`STATE` are
+what the 15 agents read at spawn. SPEC is a build-time artifact, so its size costs harness *development*,
+never harness *operation*.
 
 ---
 
