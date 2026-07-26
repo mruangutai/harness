@@ -1,0 +1,38 @@
+orchestrator:
+  name: Orchestrator
+  skill: .claude/skills/harness/SKILL.md
+  color: blue
+
+paths:
+  agents: .claude/agents/
+  crews:  .claude/skills/harness/crews/
+  features: .harness/features/
+
+universal_rules:
+  - harness-handoff
+  - harness-expertise
+
+# Owned by NOBODY. Always serialized; the lead attributes the write. (DEC-85)
+shared:
+  - { path: package.json }
+  - { path: pnpm-lock.yaml }
+  - { path: pyproject.toml }
+  - { path: uv.lock }
+
+teams:
+  - team-name: Engineering
+    team-color: cyan
+    lead: { name: harness-eng-lead }
+    members:
+      - name: harness-backend-dev
+        consult-when: APIs, services, business logic, auth, server-side integration
+        domain:
+          - { path: src/**, upsert: true }
+          - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
+          - { path: ".", read: true }
+      - name: harness-frontend-dev
+        consult-when: UI components, styling, client state, accessibility
+        domain:
+          - { path: web/src/**, upsert: true }
+          - { path: .harness/expertise/harness-frontend-dev.md, upsert: true }
+          - { path: ".", read: true }
