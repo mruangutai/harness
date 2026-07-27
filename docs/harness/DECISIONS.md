@@ -2653,3 +2653,47 @@ silent — which is the property that actually matters.
 <!-- stale: three prerequisites -->
 <!-- stale: ALL THREE entries -->
 <!-- stale: three platform prerequisites -->
+
+---
+
+## DEC-123 — The lead verdict roll-up is computed, not trusted
+
+SPEC 10.4 states the rule: the team verdict is the worst member verdict,
+`BLOCKED > ESCALATE > FAIL > PASS`. `ESCALATE` outranks `FAIL` deliberately — a decision only the
+user can make must not be masked by a failure the team could have fixed.
+
+That was prose, with a validator sitting next to it that could check it and did not. Verified live
+before fixing: a lead digest reporting `VERDICT: PASS` with a member at `verdict: FAIL` passed the
+hook. It is the same shape as DEC-19, DEC-110 and DEC-119, and the most consequential digest error
+available — **the orchestrator routes on `VERDICT` and never opens member entries** (SPEC 8), so a
+masked `FAIL` ships.
+
+`validate-digest.py` now computes the roll-up and rejects a return that reports better than its
+worst member. Reporting **worse** stays legal: a lead may know something its members could not see.
+Every member entry therefore needs its own `verdict:`; without one the roll-up is undecidable.
+
+**This is the only part of collation that is arithmetic.** Dedupe across overlapping reviewers,
+resolving contradictions, deciding what is blocking, and sending weak work back are judgement, stay
+prose, and should not be mechanized.
+
+### The format was unwritable, which is how this surfaced
+
+Making the digest a hard gate (DEC-122) exposed that **both** normative templates — SPEC 10.4's and
+the runner's — were rejected by the validator that enforces them. Five defects:
+
+| | |
+|---|---|
+| `\s*` after the colon matched newlines | `members:` swallowed its own first block line and parsed as a string |
+| Keys harvested at every depth | a `must_fix:` nested in one member entry satisfied the top-level roll-up — a false pass on the field the lead digest exists to carry |
+| Inline `#` comments parsed as value text | and both templates annotate themselves, so agents copy the comments |
+| SPEC packed `team`/`steps_run`/`cycles_used` on one line | not YAML; two required fields vanished silently |
+| SPEC omitted `files_touched` | universal per SPEC 8, required of leads too |
+
+Adds `bin/test-validate-digest.py`, 16 cases. Worth having because this validator can now block any
+agent in any project: a false negative accepts a malformed digest, a false positive wedges a working
+agent, and **both were live**. Neither was noticed because each was only ever exercised by the
+example that happened to pass — the same reason DEC-112's false pass went unnoticed.
+
+Both templates are now verified rather than read: extracted from the source files, placeholders
+filled, run through the validator. Flipping SPEC's own example to `PASS` gets it blocked.
+
