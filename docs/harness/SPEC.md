@@ -1480,7 +1480,7 @@ lead could make, dismissals recorded with reasons, open questions.
 
 Requiring the contract block in the file too would duplicate every field in two places with nothing
 checking the copy. Observed live (DEC-124): a lead returned a valid block and wrote an excellent
-prose report, and the earlier wording — "same shape as this block" — made that look like a
+prose report, and the earlier wording <!-- ok-stale --> made that look like a
 deviation when it was the better outcome.
 
 The per-member block is what preserves `STATE.md` granularity under hierarchy. **Each entry carries
