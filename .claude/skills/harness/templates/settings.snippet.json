@@ -1,0 +1,32 @@
+{
+  "_comment": "The three platform prerequisites. ALL THREE are required and EACH degrades SILENTLY if absent — none of them errors. bin/merge-settings.py merges exactly this into a project's .claude/settings.json without disturbing entries the project already has. Do not hand-merge; that is how one of the three goes missing.",
+
+  "env": {
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2"
+  },
+
+  "hooks": {
+    "SubagentStart": [
+      {
+        "matcher": "harness-.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
