@@ -17,7 +17,8 @@ orchestrator:
 
 paths:
   agents: .claude/agents/
-  crews: .claude/skills/harness/crews/
+  crews: .claude/skills/harness/crews/     # shipped by deploy — REPLACED WHOLESALE on every push
+  crew_overrides: .harness/crews/          # project-owned; deploy never touches it. Resolved FIRST (DEC-113)
   features: .harness/features/
   expertise: .harness/expertise/
 

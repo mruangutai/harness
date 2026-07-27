@@ -1,138 +1,121 @@
 <purpose>
-Deploy harness skills and agents from the harness repo to global locations and all registered projects, or enroll an existing project for the first time.
+Distribute the harness — skills, agents and templates — to the global location and every enrolled
+project, reconciling what is installed against what the repo actually contains.
 
-Must be run from the harness repo. What you deploy is the current working copy — skills from `.claude/skills/harness/` and agents from `.claude/agents/harness-*.md`.
+**It never writes project state.** Not `.harness/`, not `.planning/`, not `settings.json`. That is
+`/harness-init`'s job. **Enroll = deploy + init**, and this split is the whole reason deploy can be
+dumb enough to run unattended.
+
+Must be run from the harness repo. What ships is the current working copy.
 </purpose>
 
 <usage>
-/harness-deploy             — push updated skills to all registered projects
-/harness-deploy <path>      — enroll an existing project for the first time
+/harness-deploy             — push to global + all registered projects
+/harness-deploy <path>      — enroll a project (copies the tool, then tells you to run /harness-init)
 </usage>
 
 <process>
 
-<step name="validate">
-Confirm running from the harness repo:
+<step name="plan">
+The mechanical work lives in a script, because it deletes things and because a copy-only deploy is
+exactly how three agents this design removed stayed spawnable for months, pointing at a `.planning/`
+root that no longer exists.
+
+**Dry run is the default. Always run it first and show the user the plan verbatim.**
 
 ```bash
-ls .claude/skills/harness/SKILL.md 2>/dev/null && echo "ok" || echo "not harness repo"
+.claude/skills/harness/bin/deploy.sh
 ```
 
-If not found: "harness-deploy must be run from the harness repo." Stop.
+For enroll mode, pass the path:
+
+```bash
+.claude/skills/harness/bin/deploy.sh --project "<path>"
+```
+
+If the script refuses (not the harness repo, empty ship set, no flat skill dirs), stop and relay why.
+Each refusal guards against a push that would prune more than it installs.
 </step>
 
-<step name="update-global">
-Copy harness skills to the global distribution point:
+<step name="confirm">
+Read the plan back in plain English, and **name the destructive parts explicitly**:
 
-```bash
-mkdir -p ~/.claude/skills/harness
-cp -r .claude/skills/harness/. ~/.claude/skills/harness/
-```
+- every line marked `-` is a **deletion** — an agent removed from the design, or a directory from an
+  older layout. Re-running does not undo it.
+- every line marked `!` needs a human decision. The two that matter:
+  - **a registered project that no longer exists** — it will be dropped from the registry.
+  - **a project whose `.planning/config.json` still has `agent_skills`** pointing at paths this push
+    removes. That project's injection resolves to nothing afterwards. **Deploy will not fix it** —
+    that is project state. Report it and let the user decide.
 
-Write `~/.claude/skills/harness/manifest.json` from the current `agent_skills` block in `.planning/config.json`:
-
-Read `.planning/config.json`, extract the `agent_skills` object, write it as:
-```json
-{
-  "agent_skills": { ... }
-}
-```
-
-to `~/.claude/skills/harness/manifest.json`.
-
-Copy harness agents to the global agents directory:
-
-```bash
-cp .claude/agents/harness-*.md ~/.claude/agents/
-```
-
-Agents are global — they are not pushed per-project.
+Then ask whether to apply. **Do not apply without a yes** — this reaches outside the repo, into the
+user's global config and other repositories on their machine.
 </step>
 
-<step name="route">
-Check for a path argument.
+<step name="apply">
+```bash
+.claude/skills/harness/bin/deploy.sh --apply
+```
 
-- No argument → **push mode**
-- Path provided → **enroll mode**
+What it does, in order: backs up `~/.claude/agents/` if anything will be pruned · replaces each skill
+dir globally · prunes global skill dirs and agents absent from the repo · migrates
+`~/.gsd/harness-registry.json` to `~/.harness/registry.json` (keeping the old file as `.migrated`) ·
+pushes skill dirs to each live registered project and reconciles theirs.
+
+**Check the exit code.** A non-zero exit means it stopped partway, and a half-applied deploy is the
+worst state it can produce. Re-running is safe and completes it.
 </step>
 
-<step name="push-mode">
-**Push mode — update all registered projects**
-
-Read `~/.gsd/harness-registry.json`.
-
-If the file is missing or `projects` array is empty:
+<step name="report">
 ```
-No registered projects. Use /harness-deploy <path> to enroll a project first.
-```
-Stop.
-
-For each project path in the registry:
-
-```bash
-test -f "{path}/.planning/config.json" && echo "exists" || echo "missing"
+✓ Deployed — {N} skill dirs, 15 agents global; {M} project(s)
+  pruned: {list}
+  registry: ~/.harness/registry.json
 ```
 
-If exists:
-```bash
-cp -r ~/.claude/skills/harness/. "{path}/.claude/skills/harness/"
-```
-Report: `✓ {path}`
+Close with the two things a user gets wrong otherwise:
 
-If missing:
-Report: `✗ {path} — project not found (remove from registry?)`
-
-Final summary:
-```
-Deployed to {N}/{total} projects.
-```
-</step>
-
-<step name="enroll-mode">
-**Enroll mode — first-time setup for an existing project**
-
-Resolve the provided path to an absolute path.
-
-Verify the project is a GSD project:
-```bash
-test -f "{absolute-path}/.planning/config.json" && echo "ok" || echo "not a gsd project"
-```
-
-If not a GSD project: "No `.planning/config.json` found at {path}. Initialize GSD first with /gsd-new-project." Stop.
-
-Copy skills to the project:
-```bash
-mkdir -p "{absolute-path}/.claude/skills/harness"
-cp -r ~/.claude/skills/harness/. "{absolute-path}/.claude/skills/harness/"
-```
-
-Merge agent_skills into the project's config.json:
-- Read `{absolute-path}/.planning/config.json`
-- Read `~/.claude/skills/harness/manifest.json` for the entries to add
-- Merge: if `agent_skills` key already exists, add only the missing entries (do not overwrite existing entries for other agent types)
-- If `agent_skills` key is absent, add it with the full manifest entries
-- Write the updated config.json back
-
-Register the project:
-- Read `~/.gsd/harness-registry.json` (create as `{"projects":[]}` if missing)
-- If the absolute path is not already in the `projects` array, append it
-- Write back
-
-Report:
-```
-✓ Harness enrolled in {absolute-path}
-  — skills copied to .claude/skills/harness/
-  — agent_skills added to .planning/config.json
-  — registered in ~/.gsd/harness-registry.json
-```
+- **Restart Claude Code.** Agent definitions are not live-reloaded (DEC-100a), so the agents this push
+  installed are not spawnable until a restart. Skills and hooks do not need one.
+- **A project with no `.harness/` still needs `/harness-init`.** Deploy gave it the tool; init makes it
+  a harness project. Say which projects are in that state.
 </step>
 
 </process>
 
+<design_notes>
+
+**Agents are global only** (DEC-113). One copy in `~/.claude/agents/` is visible from every project, so
+per-project copies buy nothing and cost drift — a project holding a stale shadow silently overrides the
+fixed agent, and prune cannot see it. This deviates from SPEC §3.3's "global + enrolled projects"
+wording, deliberately.
+
+**Skill dirs are replaced wholesale**, because they are harness-owned end to end. This is why a
+project's crew overrides must **not** live in `.claude/skills/harness/crews/` — a push would delete
+them. Overrides go in `.harness/crews/`, which deploy never touches, and the runner resolves
+`.harness/crews/<name>.yaml` before `.claude/skills/harness/crews/<name>.yaml`.
+
+**The flat skill dirs are siblings of `harness/`, not children.** `cp -r .claude/skills/harness/.`
+copies the router, `bin/` and `templates/` and **none** of the seven rule skills or `harness-init`, so
+every agent's `skills:` list resolves to nothing — silently, because a missing skill is not an error.
+The script globs `.claude/skills/harness*/` and refuses to run if it finds only `harness/`.
+
+**What was removed from the old version, and why:**
+
+| Removed | Reason |
+|---|---|
+| `manifest.json` generation | `agent_skills` injection is gone. Rules are delivered by each agent's `skills:` frontmatter (DEC-63) |
+| Merging `agent_skills` into a project's `config.json` | Writing project state. That belongs to `/harness-init` |
+| The `.planning/config.json` "is this a GSD project?" gate | A project needs no GSD to receive the tool. Enroll then init |
+| Requiring `/gsd-new-project` first | That dependency is gone |
+
+</design_notes>
+
 <success_criteria>
-- [ ] Global `~/.claude/skills/harness/` matches harness repo's `.claude/skills/harness/`
-- [ ] `~/.claude/skills/harness/manifest.json` reflects current `agent_skills` from config.json
-- [ ] Global `~/.claude/agents/harness-*.md` matches harness repo's `.claude/agents/harness-*.md`
-- [ ] Push mode: all reachable registered projects have updated skills
-- [ ] Enroll mode: project has skills, config.json agent_skills entries, and is in registry
+- [ ] Dry run was shown to the user and applied only after an explicit yes
+- [ ] `~/.claude/skills/` holds every `harness*/` dir in the repo, and no others
+- [ ] `~/.claude/agents/` holds exactly the repo's `harness-*.md`, and no others
+- [ ] `~/.harness/registry.json` exists; the old `~/.gsd/` file is kept as `.migrated`
+- [ ] **No project's `.harness/`, `.planning/` or `settings.json` was touched**
+- [ ] Projects needing `/harness-init` were named in the report
 </success_criteria>
