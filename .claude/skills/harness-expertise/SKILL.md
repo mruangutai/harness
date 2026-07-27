@@ -57,7 +57,20 @@ Ask: *six spawns from now, would knowing this change what I do?* If no, do not w
 Cross this boundary and Expertise becomes a shadow decision log that bypasses your CEO's approval.
 When unsure: if a human would want to *sign off* on it, it is a decision.
 
-## How to propose an update
+## How to record an update — TWO steps, not one
+
+**If you hold `Write`, writing the file IS the update. The op in your DIGEST is a receipt, not a
+delivery mechanism.** Emitting an op and stopping leaves the file exactly as it was — this is the
+single most likely way to get this wrong, and it was observed live: an agent with `Write`, a real
+durable lesson and a granted path emitted a well-formed op and wrote nothing (DEC-125).
+
+| You hold | Do |
+|---|---|
+| `Write` — **all 9 doers, all 3 leads, all 3 reviewers** (everyone except where noted below) | **1. Write the file yourself.** Create it if absent, read-modify-write if not. **2. Also report the op** in your DIGEST, so the update is visible to the tier above |
+| no `Write` | report the op only; the tier above applies it |
+
+Check your own `tools:` if unsure. Almost everyone has `Write` — "propose it and someone else will
+apply it" is the exception, not the norm.
 
 Updates are **ops**, and every op names its target. Reconcile as you propose — you have the file in
 context, so you are the best-placed to notice a contradiction:
@@ -88,9 +101,9 @@ entries. If your new observation refines an existing one, refine it.
 At a cap, set `expertise_full: true` in your DIGEST and **stop**. Do not self-prune: the tier above
 you sees across runs and will send a curation note, which you then apply verbatim.
 
-**Who writes the file:** if you hold `Write`, apply your own ops in place — the domain hook scopes you
-to your own file. If you do not (leads and reviewers), the orchestrator applies them for you. Either
-way the op rides your DIGEST so the update is visible before it lands.
+**Who writes the file:** see the two-step table above. If you hold `Write` you apply your own ops in
+place — the domain hook scopes you to your own file, so the write is safe by construction. Either
+way the op rides your DIGEST so the update is visible.
 
 ## Red flags
 

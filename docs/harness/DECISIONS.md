@@ -2808,3 +2808,30 @@ deadlock as policy.
 <!-- stale: proceed without it and do not go looking for it -->
 <!-- stale: Init creating the dir empty is per spec -->
 
+### DEC-125 addendum — the first fix failed, and the reason is the interesting part
+
+Adding "create it if absent" to the top of the rule **did not work.** Retested with `harness-qa`,
+which had no Expertise file, a genuine durable lesson, and `.harness/expertise/harness-qa.md`
+already granted in its `domain`. It emitted a well-formed `expertise_update` op and **wrote
+nothing.**
+
+The instruction to apply it was already there — *"if you hold `Write`, apply your own ops in
+place"* — one clause, at the bottom, inside a paragraph about section caps. Above it sat a whole
+section headed **"How to propose an update."** The agent did what the dominant framing said. It
+proposed.
+
+**Emitting the op feels like completing the task**, because the op is structured, visible, and lands
+in the DIGEST where work gets reported. Nothing about that experience signals that the file is
+untouched.
+
+Fixed by restructuring rather than by adding more words: the section is now "How to record an
+update — **TWO steps, not one**", opening with *the op in your DIGEST is a receipt, not a delivery
+mechanism*, and a table stating who writes versus who only reports. Retested with `harness-dev-ops`
+from a clean slate: file created with the right skeleton, two real entries with stable IDs, ops also
+reported. Both steps.
+
+The general lesson, which is not about Expertise: **a correct instruction placed under a heading that
+frames the task differently will lose to the heading.** Burying the operative step at the end of a
+section named for the other option is the same defect as prose guarding a safety claim (DEC-19) —
+it reads as covered and is not.
+

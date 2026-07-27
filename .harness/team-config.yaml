@@ -180,6 +180,7 @@ teams:
         domain:
           - { path: tests/**, upsert: true }              # seeded by /harness-init
           - { path: web/src/**/*.test.*, upsert: true }
+          - { path: .harness/notes/qa-*.md, upsert: true }   # assessments; the 3 reviewers each own one, qa owned none
           - { path: .harness/expertise/harness-qa.md, upsert: true }
           - { path: ".", read: true }
 
