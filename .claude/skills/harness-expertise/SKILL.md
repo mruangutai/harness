@@ -5,7 +5,11 @@ description: When and how to update your durable Expertise file — the update-o
 
 # Expertise
 
-Your Expertise file is **already in your context** — a hook injected it at spawn. You do not read it,
+Your Expertise file is **already in your context** — a `SubagentStart` hook injected it at spawn,
+**if the file exists.** Most do not yet (BUILD task 8), and the hook is silent about it: nothing is
+injected and no error is raised, so absence looks exactly like an empty file. **If you see no
+Expertise block, you have none — proceed without it and do not go looking for it.** Observed on a
+live spawn where all four rule skills arrived and the Expertise file did not (DEC-124). You do not read it,
 and you do not go looking for it.
 
 It holds what you learned about *this codebase* that you would otherwise rediscover every spawn.

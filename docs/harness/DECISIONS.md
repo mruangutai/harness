@@ -2756,4 +2756,5 @@ subset, flagging it as a constraint question. **`python3 -c "import yaml"` fails
 YAML dependency would break the harness on its own development host, so the files-only constraint is
 load-bearing rather than stylistic. Harden the parser.
 <!-- stale: This one is checked, not trusted -->
+<!-- stale: or they run one after another and the fan-out is lost -->
 

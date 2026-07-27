@@ -64,8 +64,15 @@ a time**, even when the DAG would allow parallelism. This is the actual write-sa
 `check-domain.sh` cannot see writes made through `Bash`, and every doer holds it (DEC-85). Do not
 treat a passing domain hook as proof that parallel writes are safe.
 
-**d. Dispatch the rest of the ready set in one turn** — **all `Agent` calls in a single message**,
-or they run one after another and the fan-out is lost. Parallelism here is implicit in the DAG, not
+**d. Dispatch the rest of the ready set in one turn** — **all `Agent` calls in a single message.**
+
+*The reason is not what this used to say.* It claimed separate turns "run one after another and the
+fan-out is lost". **Measured, that is false**: a lead that dispatched three reviewers across three
+turns 16s and 8s apart still had all three running concurrently, because Claude Code backgrounds
+subagents (DEC-124). So dispatch across turns is not a broken run. One message is still the rule for
+two better reasons — it does not depend on backgrounding behaviour, which has changed before and is
+not something you can observe from inside; and it keeps one ready set to one checkpoint write, so
+`state.yaml` cannot describe a half-dispatched wave. Parallelism here is implicit in the DAG, not
 requested: any two `pending` steps whose `depends_on` are satisfied and which do not depend on each
 other go together. Verified to work from inside a lead (DEC-100). Caps: 20 concurrent, 200 per
 session, nested spawns counting toward both.
@@ -182,6 +189,12 @@ saw all of them. So decide, and say which:
 **Push-back is collation, not a separate phase.** You are the last tier that can cheaply fix a bad
 result: rework at your level costs one member spawn, and the same rework after the orchestrator has
 routed on your digest costs a whole cycle against the feature budget.
+
+**Do not assert anything about your own execution that you cannot verify.** The lead in DEC-124
+reported "three reviewers dispatched in a single message"; the spawn records showed three separate
+turns. It was not lying — an agent has no reliable view of its own turn boundaries. So report *what
+came back*, never *how you dispatched it*: topology is checked externally from spawn records, and a
+confident claim about it is noise at best and a false all-clear at worst.
 
 **d. Write the headline last.** One line, conclusion first, about what the team *achieved* — not
 what it did. "Auth endpoints ship-ready; refresh-token path still untested" routes. "Ran three steps
