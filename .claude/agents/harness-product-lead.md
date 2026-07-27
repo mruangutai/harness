@@ -7,6 +7,7 @@ skills:
   - harness-handoff
   - harness-expertise
   - harness-zero-micro-management
+  - harness-team
 ---
 
 # Harness: Product Lead
