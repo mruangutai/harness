@@ -127,6 +127,38 @@ else:
                    "and every agent can write anywhere. Frontmatter hooks do not "
                    "fire (DEC-110), so settings.json is the only place this works.")
 
+# --- INV-11: cost is the post-build signal (DEC-99), so an unmetered completed run
+# is a hole in the only evidence SC-1 will be judged on. Cheap to enforce, and the
+# failure is otherwise invisible — a run with no cost block looks exactly like a free one.
+cfg = read(os.path.join(H, "harness.json"))
+if cfg:
+    try:
+        cj = json.loads(cfg)
+    except Exception:
+        cj = {}
+        bad.append(".harness/harness.json is not valid JSON.")
+    if cj and not (cj.get("cost_model") or {}).get("rates"):
+        bad.append("harness.json has no cost_model.rates — runs cannot be costed, and cost "
+                   "is the post-build signal (DEC-99). Run /harness-init --upgrade.")
+    vo = (cj.get("cost_model") or {}).get("verified_on")
+    if vo:
+        # Prices change. A rate table nobody re-checks reports confident wrong numbers.
+        import datetime
+        try:
+            age = (datetime.date.today() - datetime.date.fromisoformat(vo)).days
+            if age > 90:
+                warn.append(f"cost_model rates were last verified {age} days ago ({vo}) — "
+                            f"re-check them against the pricing page.")
+        except Exception:
+            warn.append(f"cost_model.verified_on is not an ISO date: {vo!r}")
+
+for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml")):
+    txt = read(sy) or ""
+    if re.search(r"^status:\s*complete", txt, re.M) and not re.search(r"^cost:", txt, re.M):
+        rel = os.path.relpath(sy, H)
+        bad.append(f"{rel}: run is complete but has no cost: block — "
+                   f"run bin/cost-report.py --yaml and record it.")
+
 # --- INV-10: docs must not contradict a decision that superseded them (DEC-103).
 docs = os.path.join(root, "docs", "harness", "DECISIONS.md")
 if os.path.isfile(docs):
