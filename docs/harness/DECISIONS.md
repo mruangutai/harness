@@ -2304,3 +2304,74 @@ was likewise still pre-DEC-113 and now names `.harness/crews/` explicitly.
 building.** The domain block, the missing `Bash`, and the undiscoverable path were all present in a
 SPEC that had been reviewed repeatedly. The probe crew exists so the next platform shift is caught
 the same way.
+
+---
+
+## DEC-117 — Gating and parallel fan-out both work; the loop was destroying its own evidence
+
+Task 10 continues: concrete `on_fail` semantics in the runner, plus two crews — `gate-probe`
+(mechanism) and `review-team` (the first real v1 crew). Remaining: `plan-feature`, `ship-feature`,
+`debug`.
+
+### Gating — converged in exactly one cycle
+
+`gate-probe` is built so the producer's behaviour is a pure function of whether a review report was
+injected: no report → omit the token → reviewer FAILs; report present → add it → PASS. A healthy
+runner therefore takes exactly one cycle, and every other outcome names its own defect — 0 cycles
+means the gate never checked, hitting `max_cycles` means `feed: [self]` is not arriving.
+
+Ground truth from the spawn records:
+
+```
+depth 1  harness-validator-lead   Host gate-probe crew run
+depth 2  harness-qa               gate-probe produce#1
+depth 2  harness-code-reviewer    gate-probe gate#1          -> FAIL
+depth 2  harness-qa               gate-probe produce#2 (loop-back)
+depth 2  harness-code-reviewer    gate-probe gate#2          -> PASS
+```
+
+`cycles_used: 1`, per-step `cycles: 1`, `feed_path` recorded. The decisive evidence that
+`feed: [self]` delivered the *report* rather than merely a path is in the artifact: the producer
+quoted the reviewer's reason verbatim into the file, which it could only do by reading it.
+
+### Parallel fan-out — verified by overlap, not by assertion
+
+`review-team` dispatches three reviewers with no interdependencies. The lead reported "one turn";
+the transcripts confirm it:
+
+```
+code-reviewer      start 03:35:59  end 03:37:48
+security-reviewer  start 03:36:04  end 03:37:13
+ui-reviewer        start 03:36:08  end 03:36:45
+```
+
+The last start precedes the first finish, so the windows genuinely overlap. This check matters
+because **serial dispatch is invisible in the output** — the same three verdicts come back either
+way, correct and three times slower, with nothing to flag it. The runner now says so explicitly:
+serializing out of caution is the most expensive way to be wrong.
+
+The panel also earned its keep on a planted diff: both reviewers found the fail-open `except` and
+the token logged in plaintext, and they found two things that were *not* planted — zero real test
+coverage behind a green suite, and a module tracing to no REQ. `ui-reviewer` self-scoped out in 37
+seconds rather than manufacturing findings. The lead reconciled one severity up and another down
+with stated reasons, and rerouted the traceability finding to an open question rather than dropping
+it. Panel slice cost ≈ $16 against the crew's `max_cost_usd: 20`.
+
+**The fan-in is not a step.** validator-lead synthesizes in its own consolidated DIGEST; adding a
+fourth dispatched step to "synthesize" would be the lead paying a spawn to do its own job.
+
+### The defect: a loop that overwrites the reason it looped
+
+`gate` wrote to a fixed path, so the cycle-2 PASS note **overwrote the cycle-1 FAIL note**. The
+record of why a cycle was spent was destroyed by the thing that resolved it, and survived only
+incidentally because the producer had quoted it elsewhere.
+
+That is worse than untidy. `cycles_used` bounds the loop (GAP-4/DEC-49) and the reviewer's report is
+the evidence for each increment; without it a post-run audit sees a cycle was consumed and cannot
+say why. Fixed by resolving `{{cycle}}` in the output paths of anything that re-runs, and by
+correcting the §2.3 naming convention to `notes/review-<persona>-<runid>-c<cycle>.md`. The existing
+domain globs already permit the suffix — verified before relying on it.
+
+**Third consecutive increment where the defect was invisible to reading and obvious to running.**
+The domain block (DEC-116), the lead's missing `Bash` (DEC-116), and now the overwritten report were
+all present in a repeatedly-reviewed SPEC. The probe crews ship for that reason.

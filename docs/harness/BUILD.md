@@ -176,7 +176,7 @@ the time of writing; the live list is authoritative if the two disagree.
 | 7 | Write-safety: Bash bypass + shared paths | **done** (DEC-85, DEC-107) |
 | 8 | Expertise governance holes | pending — provenance, decay, curation for all 15, global tier. **Add: 14 of 15 `expertise/<agent>.md` files do not exist**, so `inject-expertise.sh` injects nothing on almost every spawn and says nothing about it (surfaced by the DEC-112 fixture run). Init creating the dir empty is per spec; what is missing is anything that ever populates it |
 | 9 | The 15 agent definitions | **done** (DEC-106, DEC-107) |
-| 10 | Crew runner + four v1 crews | **in progress** — MVP step 3 **done** (DEC-116): flat `harness-crew` runner + `crews/smoke.yaml`, hierarchy proven (lead at depth 1 spawning members at depth 2), state passed by file path. Remaining: gating (`on_fail`/`loop_back`/`max_cycles`), parallel fan-out, validator-lead panel, and the other 3 v1 crews |
+| 10 | Crew runner + four v1 crews | **in progress** — runner done incl. gating and parallel dispatch; hierarchy, `loop_back`/`feed`/`cycles_used` and concurrent fan-out all proven from spawn records (DEC-116, DEC-117). Crews: `smoke`, `gate-probe`, `review-team` (1 of 4 v1). Remaining: `plan-feature`, `ship-feature`, `debug` |
 | 11 | Batch human touchpoints to two | pending |
 | 12 | `/harness-init` + distributed templates | **done** — flat skill at `.claude/skills/harness-init/`, 8 templates, 3 merge scripts (DEC-112) |
 | 13 | Rewrite `harness-deploy` (distribution only, **+ prune**) | **done** (DEC-113) — `bin/deploy.sh`, dry-run by default, reconciles rather than copies. The live risk was confirmed real before the fix: 3 deleted agents spawnable everywhere, the global skill tree still the April layout |

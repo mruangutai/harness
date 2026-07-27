@@ -147,7 +147,9 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
   specialist owning that domain (frontend / backend / ai / data, routed by eng-lead so two devs
   never share a file); test files → qa; `BRIEF.md` + `PLAN.md` → pm; docs → documentor;
   `DESIGN.md` → visual-designer; `notes/research-*.md` → pm. **Reviewer reports are namespaced**
-  `notes/review-<persona>-<runid>.md` so a parallel reviewer panel cannot collide.
+  `notes/review-<persona>-<runid>-c<cycle>.md` so a parallel reviewer panel cannot collide **and a
+  loop-back cannot overwrite the report that caused it** — without the cycle component, the PASS on
+  cycle 2 destroys the FAIL evidence from cycle 1 (DEC-117).
 - **`## Approval` blocks are orchestrator-written** — the one carve-out to single-owner.
   `BRIEF.md` / `PLAN.md` are pm-owned *except* their `## Approval` section, which only the
   orchestrator writes (it alone has the user channel). **pm never self-approves.**

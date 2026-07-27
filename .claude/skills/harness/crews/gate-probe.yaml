@@ -1,0 +1,75 @@
+# The gating probe: prove a FAIL actually loops back, converges, and is bounded.
+#
+# WHAT IT PROVES. Four things the fix loop rests on, none of which the smoke crew
+# touches: on_fail fires on FAIL; loop_back re-dispatches the right step;
+# feed: [self] genuinely delivers the reviewer's report to that step; and
+# cycles_used increments in state.yaml rather than in the host's head.
+#
+# WHY IT CONVERGES BY CONSTRUCTION. The producer's behaviour is a pure function of
+# whether a review report was injected: no report -> omit the token -> reviewer
+# FAILs. Report present -> add the token -> reviewer PASSes. So a healthy runner
+# takes exactly one cycle, and any other outcome names its own defect:
+#
+#   0 cycles, PASS   -> the reviewer never actually checked; the gate is decorative
+#   1 cycle,  PASS   -> correct
+#   hits max_cycles  -> feed: [self] is not reaching the producer, so it repeats
+#                       itself verbatim and the loop cannot converge
+#
+# That third case is the one worth having a probe for: it looks like a flaky agent
+# and is actually a broken contract.
+#
+# SINGLE SQUAD ON PURPOSE. validator-lead dispatches its own members. A lead routes
+# within its squad; cross-squad routing belongs to the orchestrator (SPEC §3.4).
+
+name: gate-probe
+purpose: Prove on_fail/loop_back/feed/max_cycles — a FAIL must loop back, converge, and stay bounded.
+lead: validator-lead
+inputs: [feat]
+max_cost_usd: 10
+
+steps:
+  - id: produce
+    persona: qa
+    depends_on: []
+    inputs: []
+    outputs: [tests/test_gate_probe_{{feat}}.py]
+    mutates_repo: true             # writes a repo file -> serialized even when the DAG allows parallel
+    prompt: >
+      Mechanism probe, not real test authoring. Write
+      tests/test_gate_probe_{{feat}}.py — a file containing one trivial passing
+      test function and a comment line.
+
+      The comment line depends on ONE thing: were you given the path to a review
+      report in your inputs?
+
+      - NO review report given (first dispatch): the comment must read
+        `# gate-probe: awaiting review`. Do NOT include the token GATE-OK.
+      - Review report given: read it, then make the comment read
+        `# gate-probe: GATE-OK` and add a second comment quoting the reviewer's
+        stated reason verbatim.
+
+      Follow this exactly — the point is to exercise the loop, not to pass on the
+      first try. Return the standard three-part handoff with files_touched set.
+
+  - id: gate
+    persona: code-reviewer
+    depends_on: [produce]
+    inputs: [produce.outputs]
+    outputs: [.harness/notes/review-harness-code-reviewer-{{feat}}-c{{cycle}}.md]
+    mutates_repo: false
+    prompt: >
+      Mechanism probe. Read the file at the input path. Write your review note to
+      your output path, then gate on one criterion only:
+
+      - If the file contains the literal token GATE-OK, return VERDICT: PASS.
+      - If it does not, return VERDICT: FAIL with a DIGEST whose reason states
+        plainly that the token GATE-OK is absent and must be added.
+
+      Do not fix the file yourself — you have no Edit tool and it is not your
+      domain. Report the finding; the loop routes it back to its author.
+    on_fail:
+      action: loop_back
+      to: produce
+      feed: [self]                 # inject THIS step's report path into `produce`
+      max_cycles: 2                # converges in 1; 2 leaves headroom without hiding a stuck loop
+      then: escalate

@@ -62,13 +62,59 @@ a time**, even when the DAG would allow parallelism. This is the actual write-sa
 `check-domain.sh` cannot see writes made through `Bash`, and every doer holds it (DEC-85). Do not
 treat a passing domain hook as proof that parallel writes are safe.
 
-**d. Dispatch the rest of the ready set in one turn** — one `Agent` call per step, all in the same
-message so they run concurrently. Each prompt carries: the goal, the resolved **input paths**, the
-**output paths** the step must write, and nothing else. Caps are 20 concurrent and 200 per session.
+**d. Dispatch the rest of the ready set in one turn** — **all `Agent` calls in a single message**,
+or they run one after another and the fan-out is lost. Parallelism here is implicit in the DAG, not
+requested: any two `pending` steps whose `depends_on` are satisfied and which do not depend on each
+other go together. Verified to work from inside a lead (DEC-100). Caps: 20 concurrent, 200 per
+session, nested spawns counting toward both.
+
+Each prompt carries the goal, the resolved **input paths**, the **output paths** the step must
+write, and nothing else.
+
+**Do not serialize out of caution.** A panel of reviewers dispatched one at a time still returns the
+same verdicts, so the run looks correct while costing several times the wall-clock — the most
+expensive way to be wrong, because nothing surfaces it. If steps genuinely conflict, that is what
+`depends_on` and `mutates_repo` are for; encode it in the crew rather than in how you dispatch.
 
 **e. Collect returns and evaluate.** Read `VERDICT` and the `DIGEST` fields. Record both in
 `state.yaml`. On a missing or malformed `VERDICT`, re-prompt **once**, then record
 `BLOCKED (contract violation)` — never infer what the agent meant.
+
+**f. Apply `on_fail`.** Only on `FAIL`. `BLOCKED` and `ESCALATE` always stop the branch and go up —
+they mean the agent could not proceed, not that its work was rejected, so retrying is wrong.
+
+| `action` | Behaviour |
+|---|---|
+| `halt` | stop the run, report what completed |
+| `continue` | record the FAIL and carry on — for advisory steps that must not gate |
+| `loop_back` | re-dispatch a prior step with the failure report injected |
+
+For `loop_back`:
+
+1. **Choose the target by evidence, not by position.** Re-dispatch the step whose `files_touched`
+   produced the rejected work, which `to:` names explicitly or the failing DIGEST identifies. With
+   five eng specialists there is no single "build" step to fall back on, so guessing sends the fix
+   to the wrong agent.
+2. **`feed: [self]` means inject the failing step's report** — pass the reviewer's artifact **path**
+   into the re-dispatched prompt, alongside the original inputs. Without it the target repeats
+   itself verbatim and the loop cannot converge; this is the one place a return value must reach a
+   later prompt, and even then it travels as a path.
+3. **Count in `state.yaml`, not in your head.** Increment `cycles_used` on the *feature*, and the
+   per-step `cycles`, and write both before re-dispatching. Re-read them at the top of every
+   iteration — the count must survive a context reset, because the loop is exactly where one
+   happens.
+4. **Reset the downstream.** Steps that already ran after the target return to `pending`; their
+   previous verdicts are stale the moment their input changes.
+5. **Cycle-namespace the outputs of anything that re-runs.** Resolve `{{cycle}}` in output paths to
+   the current count. A step with a fixed output path overwrites its own earlier attempt, so the
+   PASS on cycle 2 destroys the FAIL report from cycle 1 — the evidence for why the cycle was spent
+   (observed: DEC-117). Reviewer reports especially: the failing one is the record.
+6. **On `max_cycles`, take `then:`** — `escalate` (up to the orchestrator, for the user) or `halt`.
+   Never silently retry past the bound. An unbounded fix loop is the failure this counter exists to
+   prevent.
+
+**A note on convergence.** If the same step fails twice with the same reason, more cycles will not
+help — say so in the escalation rather than spending the budget to prove it.
 
 ### 4. Close out
 

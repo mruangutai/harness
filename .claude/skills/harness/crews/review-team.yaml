@@ -1,0 +1,72 @@
+# review-team — the reviewer panel, run in parallel, synthesized by the lead.
+#
+# THE FAN-IN IS NOT A STEP. validator-lead hosts this DAG and does the assessment
+# itself in its consolidated DIGEST (SPEC §10.4): it is the independence layer over
+# qa, and adding a fourth dispatched step to "synthesize" would just be the lead
+# paying a spawn to do its own job.
+#
+# WHY PARALLEL MATTERS HERE. Three reviewers with no dependency on each other must
+# go out in ONE turn. Dispatched serially the verdicts are identical, so the run
+# still looks correct while taking three times as long — a failure that never
+# surfaces on its own. That is the specific thing this crew is used to verify.
+#
+# review_sha IS PINNED BY THE CALLER, not read from HEAD at each step. Reviewers
+# that resolve HEAD themselves can be gaslit by commits landing mid-review — the
+# GAP-7 failure (DEC-50). The orchestrator pins it before dispatch; INV-6 fails the
+# run if a validator run exists without it.
+
+name: review-team
+purpose: Run the reviewer panel in parallel against a pinned SHA; the lead synthesizes one actionable set.
+lead: validator-lead
+inputs: [feat, review_sha]
+max_cost_usd: 20
+
+steps:
+  # All three have depends_on: [] and do not depend on each other, so the runner
+  # dispatches them in a single turn. Each writes to its own namespaced note path,
+  # which is what makes parallel writes safe here (SPEC §2.3).
+  - id: code
+    persona: code-reviewer
+    depends_on: []
+    inputs: []
+    outputs: [.harness/notes/review-harness-code-reviewer-{{feat}}-c{{cycle}}.md]
+    mutates_repo: false
+    prompt: >
+      Review the diff at {{review_sha}} for {{feat}}. Two stages, in order: spec
+      compliance against the BRIEF and PLAN first, then code quality — and do not
+      start the second until the first passes. Hunt fail-open branches and silent
+      failure paths specifically. Write findings to your output path with a concrete
+      failure scenario for each; findings without one are not actionable. Do not fix
+      anything: you have no Edit tool and source is not your domain.
+
+  - id: security
+    persona: security-reviewer
+    depends_on: []
+    inputs: []
+    outputs: [.harness/notes/review-harness-security-reviewer-{{feat}}-c{{cycle}}.md]
+    mutates_repo: false
+    prompt: >
+      Self-scoping OWASP Top 10 and STRIDE audit of the diff at {{review_sha}} for
+      {{feat}}: auth, secrets, input validation, injection, and data exposure in logs
+      or exports. Write findings to your output path. If the diff has no security
+      surface, say so plainly and return PASS — a scoped-out review is a valid
+      result, and padding it with speculative findings is worse than silence.
+
+  - id: ui
+    persona: ui-reviewer
+    depends_on: []
+    inputs: []
+    outputs: [.harness/notes/review-harness-ui-reviewer-{{feat}}-c{{cycle}}.md]
+    mutates_repo: false
+    prompt: >
+      Mode B — audit the built UI in the diff at {{review_sha}} against DESIGN.md,
+      including accessibility and dark/light parity. **Self-scope out if the diff
+      touches no user-facing surface**: write a one-line note saying so and return
+      PASS. Do not manufacture findings to justify the spawn.
+
+# The lead's consolidated DIGEST is the deliverable. It must:
+#   - merge the three panels into ONE actionable set, de-duplicated
+#   - carry severity_max across the panel, since the gate reads that
+#   - name which reviewer raised each surviving finding, so it can be traced back
+#   - drop nothing silently: a finding the lead judges not worth acting on is
+#     recorded as assessed-and-dismissed with a reason, not omitted
