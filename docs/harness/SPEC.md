@@ -1467,8 +1467,21 @@ DIGEST:
   expertise_update: [<ops from this lead, §5.3>]
   sc_status:                          # §11.2 — carried once the goal-check has run
     - { id: SC-02, verdict: met, method: automated, evidence: "e2e/login.spec.ts:14 pass" }
-artifact: <run_dir>/digest.md         # the lead's collated report, same shape as this block
+artifact: <run_dir>/digest.md         # the collated report, written for a HUMAN — see below
 ```
+
+**The block above is the lead's RETURN. `<run_dir>/digest.md` is prose, and deliberately so.**
+
+Two different readers, two different forms. The return is the machine channel: the orchestrator
+routes on `VERDICT` + `DIGEST` and never opens the artifact (§8), and the `SubagentStop` hook
+validates the return at source. The artifact is what a human opens when they want to know what the
+team actually concluded — ranked `must_fix` with the ordering reasoned, the assessment that only the
+lead could make, dismissals recorded with reasons, open questions.
+
+Requiring the contract block in the file too would duplicate every field in two places with nothing
+checking the copy. Observed live (DEC-124): a lead returned a valid block and wrote an excellent
+prose report, and the earlier wording — "same shape as this block" — made that look like a
+deviation when it was the better outcome.
 
 The per-member block is what preserves `STATE.md` granularity under hierarchy. **Each entry carries
 its own `verdict:`** — the team verdict is computed from them, and `validate-digest.py` rejects a

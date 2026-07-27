@@ -2835,3 +2835,15 @@ frames the task differently will lose to the heading.** Burying the operative st
 section named for the other option is the same defect as prose guarding a safety claim (DEC-19) —
 it reads as covered and is not.
 
+### DEC-124 addendum — `digest.md` is prose; the return is the contract
+
+Resolved by the user. SPEC 10.4 said the artifact was "same shape as this block"; the live lead wrote
+a prose report instead, and the prose was the better artifact.
+
+**Two readers, two forms.** The return is the machine channel — the orchestrator routes on
+`VERDICT` + `DIGEST`, never opens the artifact (SPEC 8), and the `SubagentStop` hook validates the
+return at source. `<run_dir>/digest.md` is what a human opens. Requiring the block in the file as
+well would put every field in two places with nothing checking the second copy, which is the drift
+this project keeps paying for.
+<!-- stale: same shape as this block -->
+
