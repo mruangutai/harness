@@ -28,9 +28,9 @@ that would expose it.
 
 ### 0a — `settings.json` prerequisites (setup, not a spike)
 
-Two platform features the design depends on must be set explicitly. **A project missing either
-degrades silently rather than erroring** — and for the depth setting, what "missing" does depends on
-the CLI version (below).
+**Four** platform entries the design depends on must be set explicitly — one env var and three hooks.
+**A project missing any of them degrades silently rather than erroring** — and for the depth setting,
+what "missing" does depends on the CLI version (below).
 
 ```json
 {
@@ -128,14 +128,15 @@ permitted-paths message, and allowed into `src/**` in the same probe.
 > unconditional trace as the script's first statement. This contradicts the documentation (DEC-110).
 >
 > **The hook is registered in `.claude/settings.json` instead**, where hooks demonstrably do fire, and
-> **agent identity comes from `agent_type` in the hook payload** — one global registration serves all 15.
-> The `hooks:` blocks have been stripped from all 15 agent files as dead weight.
+> **agent identity comes from `agent_type` in the hook payload** — one global registration serves all 16.
+> The `hooks:` blocks have been stripped from all 15 agent files on disk as dead weight.
 
 Two properties this arrangement must preserve, both verified:
 
-- **The orchestrator is never governed.** No `agent_type` in the payload means the main session, which
+- **The main session is never governed.** No `agent_type` in the payload means the main session, which
   legitimately writes everywhere; the hook exits 0 immediately. Without this the harness could not
-  maintain its own state.
+  maintain its own state. Since DEC-120 the **orchestrator is a spawned agent and therefore IS
+  governed** — it carries an `agent_type` and has its own `domain` in the manifest.
 - **Non-harness agents pass through.** `Explore`, `general-purpose` and the rest are unaffected.
 
 A second bug was fixed on the way: the script derived the project root from `pwd`, so it **failed open
@@ -191,13 +192,13 @@ the time of writing; the live list is authoritative if the two disagree.
 | 5 | DIGEST schema validator | **done** (DEC-101) |
 | 6 | The eight rules as flat skills | **done** (DEC-63, DEC-100) |
 | 7 | Write-safety: Bash bypass + shared paths | **done** (DEC-85, DEC-107) |
-| 8 | Expertise governance holes | pending — provenance, decay, curation for all 15, global tier. **Add: 14 of 15 `expertise/<agent>.md` files do not exist**, so `inject-expertise.sh` injects nothing on almost every spawn and says nothing about it (surfaced by the DEC-112 fixture run). Init creating the dir empty is per spec; what is missing is anything that ever populates it |
-| 9 | The 15 agent definitions | **done** (DEC-106, DEC-107) |
+| 8 | Expertise governance holes | pending — provenance, decay, curation for all 16, global tier. **Add: 14 of 15 `expertise/<agent>.md` files do not exist**, so `inject-expertise.sh` injects nothing on almost every spawn and says nothing about it (surfaced by the DEC-112 fixture run). Init creating the dir empty is per spec; what is missing is anything that ever populates it |
+| 9 | The 15 squad agent definitions | **done** (DEC-106, DEC-107) — this is the *live* count in `.claude/agents/`. The org is 16: `harness-orchestrator` is the sixteenth and is **not yet written** — it belongs to task 14 |
 | 10 | Team runner + four v1 teams | **in progress** — runner done incl. gating and parallel dispatch, all proven from spawn records (DEC-116, DEC-117). **Scope corrected (DEC-118): only 2 of the 4 are teams** — `plan-feature` and `ship-feature` are orchestrator playbooks sequencing per-squad runs, since a team is single-squad by construction. Built: `review` team. **Digest enforcement is now wired and proven** — `validate-digest.py` runs as a `SubagentStop` hook, the fourth mandatory prerequisite, and an agent told to return bare `done` was blocked and had to correct itself (DEC-121, DEC-122). Remaining: `debug` (team), the two playbooks, and the question round-trip |
 | 11 | Batch human touchpoints to two | pending |
 | 12 | `/harness-init` + distributed templates | **done** — flat skill at `.claude/skills/harness-init/`, 8 templates, 3 merge scripts (DEC-112) |
 | 13 | Rewrite `harness-deploy` (distribution only, **+ prune**) | **done** (DEC-113) — `bin/deploy.sh`, dry-run by default, reconciles rather than copies. The live risk was confirmed real before the fix: 3 deleted agents spawnable everywhere, the global skill tree still the April layout |
-| 14 | Router + `harness.json` + CLAUDE.md — **and size** | pending — CLAUDE.md is ~164k tok/feature, 3× the rule cost (DEC-105) |
+| 14 | Router + **`.claude/agents/harness-orchestrator.md`** + `harness.json` + CLAUDE.md — **and size** | pending — DEC-120 made the orchestrator a *spawned agent*, so the sixteenth agent definition and the `/harness` entry doors are this task. The lifecycle doors are `/harness`, `/harness-plan` and `/harness-ship`; **`/harness-debug` is not one of them** — debugging is on-demand, invoked when there is a bug, not a stage of the build flow. CLAUDE.md is ~164k tok/feature, 3× the rule cost (DEC-105) |
 | 15 | Recover the five lost design GAPs | pending |
 | 16 | GSD-removal migration (19 items) | pending — items #1–2 delete the running mechanism; sequence after rule delivery is proven |
 | 17 | Take the full workflow through its paces in kaya-ai | pending — **blocked only on 10** now (3, 12, 13 done). Measure the DEC-114 open question: is the orchestrator really ~80% of spend? |
@@ -560,7 +561,7 @@ Beyond "build personas + assemble them." Prune freely.
    and a `skills:` list. Add `ui-reviewer` (modes A/B).
 5. **Full team semantics + the v1 team catalog** — the `VERDICT:`/`DIGEST:` contract,
    `on_fail`/`loop_back`/`max_cycles` gating, parallelism, `validator-lead` panel assessment. Build
-   the 4 v1 core teams (SPEC §13): `plan-feature`, `ship-feature`, `debug`, `review-team`. Flat and
+   the 4 v1 core teams (SPEC §13): `plan-feature`, `ship-feature`, `debug`, `review`. Flat and
    standalone — no sub-team composition. Defer `understand-codebase` and `docs-refresh`.
    - Also implement the **question round-trip** (SPEC §2.1): `open_questions` non-empty →
      orchestrator asks the user → re-delegate with answers via `resume_from`. This is the only
@@ -609,7 +610,7 @@ Beyond "build personas + assemble them." Prune freely.
 | 16 | `.harness/README.md` | **REWRITE, not create** — it already exists and contradicts this design. See the detail block below. **Owner: `documentor`.** |
 | 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.sh`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
 | 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what makes deploy safe to be dumb.** |
-| 19 | `rules/handoff.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 15 agents. Create it in MVP step 1 alongside the first persona. |
+| 19 | `.claude/skills/harness-handoff/SKILL.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 16 agents. Create it in MVP step 1 alongside the first persona. A **flat** skill, not `rules/handoff.md` (DEC-100). |
 
 **Also net-new, and reshaped:** all seven rules become **skill directories**
 (**flat**: `.claude/skills/harness-<name>/SKILL.md`, per DEC-100) referenced as `harness-<name>` in each agent's `skills:` frontmatter
@@ -683,7 +684,7 @@ left behind.
 |---|---|
 | `.planning/PROJECT.md` | `.harness/BRIEF.md` |
 | `.planning/ROADMAP.md` + active phase `PLAN.md`s | `.harness/PLAN.md` (`## Decisions` + `## Tasks`) |
-| `.planning/STATE.md` | `.harness/STATE.md` |
+| `.planning/STATE.md` | `.harness/features/<FEAT>/STATE.md` — per-feature since DEC-120; there is no project-level `STATE.md` |
 | `.planning/phases/**`, research | preserved as **history** — archive under `.harness/notes/history/`, or leave in git history and stop writing to it |
 
 **In-flight work — the main self-hosting risk.** The repo is mid-Phase-04
@@ -729,7 +730,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 
 - **Self-injection:** spawn `harness-backend-dev` on a trivial task; confirm it reads
   `tdd-enforcement.md` (writes a failing test first) **without any config field present.**
-- **Team end-to-end / parallel fan-in:** exercise a v1 team — `review-team`'s parallel reviewer panel
+- **Team end-to-end / parallel fan-in:** exercise a v1 team — the `review` team's parallel reviewer panel
   → **`validator-lead` assessment** fan-in. (Not `understand-codebase`, which is deferred.) Confirm
   reviewers run concurrently, the lead merges them into one actionable set, and outputs land in the
   run dir.
@@ -752,6 +753,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.claude/skills/harness/SKILL.md` | rewrite — router → coordinator playbook + lifecycle/team routing |
 | `.claude/skills/harness-team/SKILL.md` | **new** — generic runner, algorithm inline. **FLAT**, not `harness/team/`: nested skill dirs are undiscoverable (DEC-100). Team *data* stays at `harness/teams/*.yaml` — a data dir, not a skill |
 | `.claude/skills/harness/teams/*.yaml` | **new** — team configs |
+| `.claude/agents/harness-orchestrator.md` | **new, NOT YET WRITTEN** — the sixteenth agent. DEC-120 made the orchestrator a spawned layer-1 agent, one per in-flight feature; it is task 14 |
 | `.claude/agents/harness-{product,eng,validator}-lead.md` | **new** — domain leads |
 | `.claude/agents/harness-{frontend,backend,ai}-dev.md`, `harness-data-engineer.md`, `harness-dev-ops.md` | **new** — 5 eng specialists |
 | `.claude/agents/harness-{pm,qa,documentor,visual-designer,ui-reviewer}.md` | **new** — product/validator agents |
@@ -760,10 +762,10 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.claude/skills/harness/templates/*` | **new** — distributed schema templates (team-config, harness.json, BRIEF/PLAN/STATE/DESIGN, gitignore) |
 | `.claude/skills/harness-init/SKILL.md` | **done** — `/harness-init` project scaffolder. **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
 | `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.sh`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
-| `.claude/skills/harness-handoff/SKILL.md` | **new** — universal artifact discipline (all 15 agents) |
+| `.claude/skills/harness-handoff/SKILL.md` | **new** — universal artifact discipline (all 16 agents) |
 | `.claude/skills/harness-<name>/SKILL.md` × 7 | **restructured, FLAT** (DEC-100) — rules become skills for `skills:` preload; `handoff`, `expertise`, `zero-micro-management` are net-new |
 | `.claude/skills/harness/bin/inject-expertise.sh` | **new** — `SubagentStart` hook that injects an agent's Expertise |
-| `settings.json` — `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` + `SubagentStart` | **new** — both required, neither on by default (§ Step 0a) |
+| `settings.json` — `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` + `SubagentStart` + `PreToolUse` + `SubagentStop` | **new** — **all four required**, none on by default, and each degrades silently if absent (§ Step 0a; DEC-111, DEC-122) |
 | `.claude/agents/harness-{code,security}-reviewer.md` | rewrite — de-GSD'd + three-part return (`ceo-reviewer` and `eng-reviewer` are **deleted**) |
 | `.claude/skills/harness/rules/*.md` | rewrite — retarget injection prose to personas |
 | `.claude/commands/harness-deploy.md` | rewrite — strip agent_skills/manifest, repoint to `.harness/`, add teams + prune step |

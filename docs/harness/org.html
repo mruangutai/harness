@@ -218,7 +218,9 @@
       </div>
     </div>
     <p class="sub" style="margin-top:12px">Members have no spawn tool — the platform withholds it at the
-      last permitted layer, so workers are leaves by construction, not by convention.</p>
+      last permitted layer, so members are leaves by construction, not by convention.
+      <code>CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH</code> is <code>"3"</code>, which is what pins these
+      four tiers.</p>
   </section>
 
   <section>
@@ -257,9 +259,13 @@
   open_questions: [ ... ]        non-empty routes upward, toward you
 <b>artifact:</b> path to the real output — the pointer, not the payload</pre>
     </div>
-    <p class="sub" style="margin-top:10px">A lead's team digest is the same shape plus a per-member
-      roll-up. <code>validate-digest.py</code> checks it mechanically, because a reader normalizes
-      drift charitably and then one routing decision quietly goes the wrong way.</p>
+    <p class="sub" style="margin-top:10px"><b>Every field is required</b> — say &ldquo;nothing&rdquo;
+      with an explicit <code>[]</code>, never by leaving the key out. A lead's team digest is the same
+      shape plus a per-member roll-up, written to <code>&lt;run&gt;/digest.md</code>.
+      <code>validate-digest.py</code> enforces this as a <code>SubagentStop</code> hook — one of the
+      four mandatory <code>settings.json</code> entries — so a malformed return is rejected at source
+      and the agent must fix it before it can finish. Not advisory: a reader normalizes drift
+      charitably and then one routing decision quietly goes the wrong way.</p>
   </section>
 
   <section>
@@ -278,6 +284,7 @@
           <tr><td><code>…/runs/&lt;r&gt;/digest.md</code></td><td>The lead's collated report — the team digest, on disk</td><td class="owner o-eng">that run's lead</td></tr>
           <tr><td><code>notes/review-…</code></td><td>Reviewer findings, namespaced per reviewer and per cycle so a loop-back can't erase the report that caused it</td><td class="owner o-val">each reviewer</td></tr>
           <tr><td><code>expertise/&lt;agent&gt;.md</code></td><td>Durable per-agent knowledge, injected at every spawn</td><td class="owner">each agent, its own</td></tr>
+          <tr><td><code>logs/&lt;date&gt;.md</code></td><td>The append-only cross-flow stream — flows opened, escalations raised, questions answered, briefings held. Never loaded at spawn</td><td class="owner o-you">main session</td></tr>
         </tbody>
       </table>
     </div>

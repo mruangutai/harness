@@ -25,7 +25,7 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 | Looking for | § | Cost |
 |---|---|---|
 | `.harness/` file layout, the question round-trip, state-consistency matrix, writer ownership, commit policy | **2** | 1.3k |
-| The 15-agent org, `team-config.yaml` manifest, `consult-when` routing, team conventions (Supabase/Astryx), deploy-vs-init, the roster table | **3** | 2.5k |
+| The 16-agent org, `team-config.yaml` manifest, `consult-when` routing, team conventions (Supabase/Astryx), deploy-vs-init, the roster table | **3** | 2.5k |
 | Agent frontmatter (what Claude Code parses, and what to avoid), tool grants per tier, the domain hook, reviewer verdict mapping, autonomy | **4** | 2.0k |
 | Expertise — injection hook, entry IDs, update ops, curation, CEO feedback, project vs global tiers | **5** | 2.0k |
 | Rules vs Expertise — which is which, who writes each | **6** | 0.3k |
@@ -154,8 +154,9 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
 - **`## Approval` blocks are written by the MAIN SESSION** — the one carve-out to single-owner.
   It moved off the orchestrator with DEC-120: approval requires asking you, and only the main
   session can.
-  `BRIEF.md` / `PLAN.md` are pm-owned *except* their `## Approval` section, which only the
-  orchestrator writes (it alone has the user channel). **pm never self-approves.**
+  `BRIEF.md` / `PLAN.md` are pm-owned *except* their `## Approval` section, which only the main
+  session writes (it alone has the user channel). **pm never self-approves, and neither does the
+  orchestrator** — as a spawned agent it cannot call `AskUserQuestion`.
 - **Each feature's `STATE.md` is owned by that feature's orchestrator (single writer).** One
   orchestrator per feature is what keeps it single-writer under concurrent flows (DEC-120). In **flat** mode members return their DIGEST
   to the orchestrator, which appends it. In **hierarchical** mode members return to the lead; the
@@ -210,13 +211,19 @@ on the `log_retention_days` schedule.
 
 **You (CEO)** — sovereign. Define the goal, approve `BRIEF.md` and `PLAN.md`, own the merge.
 
-**Orchestrator** (the main session — not an agent) — two jobs:
+**Main session** (layer 0 — not an agent) — your channel and nothing else. It spawns an
+orchestrator per flow, relays that orchestrator's questions and briefings to you, and writes
+`## Approval` blocks and the cross-flow log `.harness/logs/<date>.md` (DEC-120).
 
-1. **Works directly with you** — asks questions, surfaces escalations, takes approvals.
+**Orchestrator** (`harness-orchestrator`, layer 1 — a **spawned agent**, one per in-flight feature,
+DEC-120) — two jobs:
+
+1. **Owns its feature end to end** — surfaces questions, escalations and briefings *upward to the
+   main session*, which is the tier that asks you. An orchestrator cannot call `AskUserQuestion`.
 2. **Delegates to and coordinates the three leads** — and routes an escalated question either **up
-   to you** or **laterally to another lead** (eng-lead hits a product ambiguity → orchestrator
-   routes it to product-lead, not to you). Lateral routing keeps you out of decisions your own team
-   can answer.
+   to the main session** or **laterally to another lead** (eng-lead hits a product ambiguity →
+   orchestrator routes it to product-lead, not to you). Lateral routing keeps you out of decisions
+   your own team can answer.
 
 | Lead | Squad | Owns |
 |---|---|---|
@@ -249,15 +256,29 @@ Everywhere else authorship is separated from audit: `visual-designer` authors `D
 The org is **data, not prose**. The manifest makes team membership and routing a lookup.
 
 ```yaml
+# The MAIN SESSION is the user channel and nothing else. Not an agent, so it carries no
+# agent_type and check-domain exits 0 for it — which is what lets it maintain state at all.
+main_session:
+  writes: [.harness/BRIEF.md ## Approval, .harness/PLAN.md ## Approval, .harness/logs/**]
+
+# The ORCHESTRATOR is a spawned agent, one per in-flight feature (DEC-120), so it IS
+# governed by check-domain and therefore needs a real domain.
 orchestrator:
-  name: Orchestrator
-  skill: .claude/skills/harness/SKILL.md   # the playbook it runs (it is not an agent)
+  name: harness-orchestrator
+  skill: .claude/skills/harness/SKILL.md   # the playbook it runs
   color: blue                              # NAMED colors only (§4.0) — hex is invalid
+  domain:
+    - { path: .harness/features/**,        upsert: true }
+    - { path: .harness/notes/answers-*.md, upsert: true }
+    - { path: .harness/expertise/harness-orchestrator.md, upsert: true }
+    - { path: ".", read: true }
 
 paths:
   agents: .claude/agents/
-  teams:  .claude/skills/harness/teams/
+  teams:  .claude/skills/harness/teams/    # shipped by deploy — REPLACED WHOLESALE on every push
+  team_overrides: .harness/teams/          # project-owned; resolved FIRST (DEC-113)
   features: .harness/features/
+  expertise: .harness/expertise/
 
 universal_rules:                            # preloaded by all 16 via `skills:` (§7)
   - harness-handoff
@@ -347,7 +368,7 @@ the request semantically at delegation time. There is no `domain:` field on a ta
 |---|---|
 | team membership, lead | `name`, `description` |
 | `consult-when` — what it's consulted for | `tools` |
-| `domain` — what paths it may write | `model`, `color`, `hooks` |
+| `domain` — what paths it may write | `model`, `color`, `skills` |
 
 **Not in the manifest:** agent `description` or `tools` (frontmatter owns those), and no file `path`
 — Claude Code resolves agents by name.
@@ -413,7 +434,7 @@ Mechanical detection (test-runner discovery, source layout → `domain` globs) i
 **`dev-ops`**; the interview itself runs in the **main session**, because only it can call
 `AskUserQuestion`.
 
-**The roster is NOT pruned per project.** All 15 agents are present everywhere; irrelevant ones
+**The roster is NOT pruned per project.** All 15 squad agents are present everywhere; irrelevant ones
 **self-scope** to "not in scope" at the cost of one cheap spawn. Team configs may still omit an
 obviously-irrelevant reviewer from a specific panel.
 
@@ -424,11 +445,17 @@ entries while preserving your `domain` values.
 
 ### 3.4 The roster
 
+**This table is the 15 squad agents — the org is 16.** `harness-orchestrator` (§10) is the
+sixteenth and is deliberately absent here: it belongs to no squad, and it is the one agent
+definition **not yet on disk** — writing `.claude/agents/harness-orchestrator.md` is BUILD task 14.
+So "16" is the designed org and "15" is the live count in `.claude/agents/` today. Where a sentence
+below says 15 it means this table; where it says 16 it means the org including the orchestrator.
+
 | Agent | Squad | Type | Role | Tools |
 |---|---|---|---|---|
 | `harness-product-lead` | — | **lead** | Conducts product teams; routes work across pm / visual-designer / documentor by `consult-when`; assesses and consolidates their DIGESTs | Read, Glob, Grep, **Agent** (no Edit/Bash) |
 | `harness-eng-lead` | — | **lead** | Conducts build teams; **routes each task to one of five specialists** by `consult-when`; **owns architecture review**; consolidates DIGESTs | Read, Glob, Grep, **Agent** (no Edit/Bash) |
-| `harness-validator-lead` | — | **lead** | Runs the review panel (`review-team`); **assesses and synthesizes** the feedback into one actionable set; the independence layer over `qa` | Read, Glob, Grep, **Agent** (no Edit/Bash) |
+| `harness-validator-lead` | — | **lead** | Runs the review panel (the `review` team); **assesses and synthesizes** the feedback into one actionable set; the independence layer over `qa` | Read, Glob, Grep, **Agent** (no Edit/Bash) |
 | `harness-pm` | product | doer | **Product manager — research + plan in one context.** (1) Research: explore code, resolve unknowns, web-research; (2) Plan: BRIEF + findings → `## Decisions` + specified `## Tasks` (with `change_type`). Greenfield mode drafts BRIEF. Checks the **feature goal**. Raises `open_questions` | Read, Glob, Grep, Edit, Write, Bash, Web |
 | `harness-visual-designer` | product | doer | **Visual identity + design contract:** (1) `DESIGN.md` — palette, type scale, spacing, component direction, light/dark; (2) throwaway mockups for exploration; (3) **decides whether a feature requires end-user interaction, and if so builds the high-fidelity prototype you must approve** (§13.1) | Read, Glob, Grep, Edit, Write, Bash, Skill |
 | `harness-documentor` | product | doer | Docs as user-facing communication — READMEs, guides, reference. Owns `.harness/README.md` | Read, Glob, Grep, Edit, Write, Bash |
@@ -449,7 +476,7 @@ largely TDD-exempt. eng-lead routes each task to exactly one of the five.
 **Discipline coverage:** `tdd-enforcement` → the 4 feature-code devs (dev-ops largely exempt via
 `config` / `scaffolding` change types) · `systematic-debugging` → eng devs in debug mode ·
 `spec-driven` → pm · `verification-rules` → qa · `code-review` → code-reviewer · `expertise` and
-`handoff` → all 15 · `zero-micro-management` → the 3 leads.
+`handoff` → all 16 · `zero-micro-management` → the 3 leads.
 
 ---
 
@@ -458,27 +485,26 @@ largely TDD-exempt. eng-lead routes each task to exactly one of the five.
 ### 4.0 Supported frontmatter
 
 Claude Code parses a fixed set of frontmatter fields in an agent `.md` file. Only `name` and
-`description` are required; everything else is optional. The harness uses seven of them:
+`description` are required; everything else is optional. The harness uses six of them:
 
 ```yaml
 ---
 name: harness-eng-lead
 description: "Engineering lead — routes work to specialists, owns architecture review"
-tools: [Read, Glob, Grep, Agent]     # leads: NO Edit/Bash (§4.1)
+tools: [Read, Glob, Grep, Agent, Write]   # leads: NO Edit/Bash (§4.1)
 model: opus                          # sonnet|opus|haiku|fable|<full id>|inherit
-color: teal                          # NAMED color only — see below
+color: cyan                          # NAMED color only — see below
 skills:                              # rule delivery — FULL content preloaded at spawn (§7)
   - harness-handoff
   - harness-zero-micro-management
   - harness-expertise
-hooks:                               # domain enforcement (§4.2)
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: .claude/skills/harness/bin/check-domain.sh harness-eng-lead
 ---
 ```
+
+**There is no `hooks:` block.** Domain enforcement is registered in `.claude/settings.json`, not in
+frontmatter — agent-frontmatter `PreToolUse` hooks **do not fire** for spawned subagents in this
+environment, proven across three attempts (DEC-110, §4.2). The `hooks:` blocks were stripped from
+all 15 agent files as dead weight; none of them declares one today.
 
 **`color` accepts a named color only** — `red`, `blue`, `green`, `yellow`, `purple`, `orange`,
 `pink`, `cyan`. Hex values are not valid. Team colors are therefore expressed as names.
@@ -513,7 +539,9 @@ Body template (indented to keep the outline parseable):
 
   ## Domain               ← POINTER; the authoritative list is in team-config.yaml
   Your writable paths are declared in `.harness/team-config.yaml` under your entry and
-  enforced by your PreToolUse hook. You may read anything; you may write only your domain.
+  enforced by the project-wide `PreToolUse` hook registered in `.claude/settings.json`,
+  which dispatches on your `agent_type` (§4.2). You may read anything; you may write only
+  your domain.
 
   ## Role · ## Protocol · ## Inputs · ## Output Format
 ```
@@ -547,8 +575,9 @@ the behavioral layer on top.
 
 > **Verified (DEC-101):** a `PreToolUse` hook blocks a subagent's `Write` with `exit 2`, and the stderr
 > reason reaches the agent — tested 5/5 cases including a lead's own run dir. Scoped lead `Write` holds.
-> Residual: the *agent-frontmatter* declaration site is asserted by the docs but untested, because agent
-> definitions are not live-reloaded (DEC-100a). On the restart checklist, not the risk register.
+> The residual that used to sit here — whether the *agent-frontmatter* declaration site works — was
+> settled by DEC-110: **it does not fire at all.** The hook is registered in `.claude/settings.json`
+> instead, and was then verified live blocking a real out-of-domain `Write` (DEC-110, DEC-112).
 
 ### 4.2 Domain enforcement — the hook
 
@@ -573,46 +602,66 @@ all-or-nothing — an agent with `Write` can write anywhere — so prose alone w
 doers clobber each other with **no error**: one write silently wins, and the lost change surfaces
 later with nothing pointing at the cause.
 
-The mechanism is a `PreToolUse` hook in each agent's frontmatter. Frontmatter hooks are supported and
-fire when the agent is spawned as a subagent — but **two details are non-negotiable, and getting
-either wrong makes the hook fail open**:
+The mechanism is **one global `PreToolUse` hook registered in `.claude/settings.json`** — the second
+of the four platform prerequisites (§0a of BUILD.md). It is *not* declared in agent frontmatter:
+**agent-frontmatter `PreToolUse` hooks do not fire for spawned subagents in this environment**,
+settled after three attempts including an absolute-path, dependency-free probe that also never ran
+(DEC-110). This contradicts the published documentation, and the docs lost.
 
-```yaml
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          # NO $FILE — the tool input arrives as JSON on stdin
-          command: .claude/skills/harness/bin/check-domain.sh harness-frontend-dev
+```json
+"PreToolUse": [
+  {
+    "matcher": "Write|Edit",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh"
+      }
+    ]
+  }
+]
 ```
 
-1. **Only `exit 2` blocks.** Any other non-zero exit is treated as a *non-blocking* error and **the
+Three details are non-negotiable, and getting any of them wrong makes the hook fail open:
+
+1. **No agent-name matcher and no agent-name argument.** One registration serves all 16 agents.
+   Identity comes from **`agent_type` in the hook payload**, which is present whenever the caller is
+   a subagent. The script dispatches on it.
+2. **Only `exit 2` blocks.** Any other non-zero exit is treated as a *non-blocking* error and **the
    write proceeds**. A script that exits 1 on violation silently permits every out-of-domain write
    while appearing to enforce — the exact silent corruption this hook exists to prevent.
-2. **There is no `$FILE` variable.** The tool input arrives as **JSON on stdin**; the target path
+3. **There is no `$FILE` variable.** The tool input arrives as **JSON on stdin**; the target path
    must be parsed from it. Only `${CLAUDE_PROJECT_DIR}`, `${CLAUDE_PLUGIN_ROOT}` and
    `${CLAUDE_PLUGIN_DATA}` are interpolated into the `command` string.
 
-`check-domain.sh` is therefore **generic and stateless**: read the JSON from stdin, extract the
-target path, look the named agent up in `.harness/team-config.yaml`, test the path against that
-agent's globs, and on violation write the reason to stderr and `exit 2`. Otherwise `exit 0`. It
+`check-domain.sh` is therefore **generic and stateless**: read the JSON from stdin, extract
+`agent_type` and the target path, look that agent up in `.harness/team-config.yaml`, test the path
+against its globs, and on violation write the reason to stderr and `exit 2`. Otherwise `exit 0`. It
 contains no project-specific globs and is identical in every project; the *manifest* is what varies.
 
 ```bash
-# shape only — the two things that must be right
-path=$(jq -r '.tool_input.file_path' <&0)
-if ! in_domain "$1" "$path"; then
-  echo "harness: $1 may not write $path (see .harness/team-config.yaml)" >&2
+# shape only — the three things that must be right
+agent=$(jq -r '.agent_type // empty' <&0)
+[ -z "$agent" ] && exit 0    # no agent_type = the MAIN SESSION, which is ungoverned
+path=$(jq -r '.tool_input.file_path')
+if ! in_domain "$agent" "$path"; then
+  echo "harness: $agent may not write $path (see .harness/team-config.yaml)" >&2
   exit 2                     # 2, not 1 — anything else lets the write through
 fi
 exit 0
 ```
 
-Because the hook is declared in that agent's frontmatter, it fires only for that agent's calls — no
-caller-identity detection needed. One canonical list, one identical hook line per agent, differing
-only in the name. This is the only mechanism that is both per-agent and path-scoped:
-`settings.json` rules are global and `tools:` is too coarse.
+Two pass-throughs the single global registration must preserve, both tested:
+
+- **The main session is never governed.** No `agent_type` means the main session, which
+  legitimately writes `## Approval` and `logs/` → `exit 0` immediately. Since DEC-120 the
+  *orchestrator* is a spawned agent and therefore **is** governed, with its own `domain` in the
+  manifest; this carve-out now protects only the main session, which writes almost nothing.
+- **Non-harness agents pass through** — `Explore`, `general-purpose` and any other are unaffected.
+
+The script also derives the project root from **its own location**, not from `pwd`: a hook's working
+directory is not guaranteed, and the `pwd` version failed open — printing nothing, exiting 0 —
+whenever it ran from anywhere but the project root (DEC-110).
 
 **The `Bash` bypass is the hook's real limitation, and it is not confined to `dev-ops`.** All **9
 doers** hold `Bash`. A `matcher: "Write|Edit"` hook sees none of `sed -i`, `cat > f`, `tee`, or a build
@@ -651,7 +700,8 @@ This prevents the non-convergence trap where a permanent minor nit loops forever
 
 ### 4.4 Autonomy is scoped by reversibility
 
-Stated once in `rules/handoff.md` and shared by all agents:
+Stated once in the `harness-handoff` skill (`.claude/skills/harness-handoff/SKILL.md`) and shared by
+all agents:
 
 | Decision | Behavior |
 |---|---|
@@ -659,8 +709,8 @@ Stated once in `rules/handoff.md` and shared by all agents:
 | expensive or hard to reverse (schema, API contract, new dependency) | **ask** via `open_questions` |
 | changes scope, goal, or a `## Decisions` entry | **always ask** — yours by definition |
 
-The tier that owns the human relationship (the orchestrator) is never itself "autonomous" — it
-asks; the members below it mostly don't need to.
+The tier that owns the human relationship (the main session, via the orchestrator) is never itself
+"autonomous" — it asks; the members below it mostly don't need to.
 
 ---
 
@@ -761,7 +811,8 @@ expertise_update:
 An op naming a nonexistent target is a **contract violation**: the applier rejects it and re-prompts
 once, then records `BLOCKED (contract violation)` — reusing §8.3 rather than guessing.
 
-**Who applies, by capability.** Read is uniform for all 15; writing splits:
+**Who applies, by capability.** Read is uniform for all 16; writing splits across the 15 squad
+agents as follows (the orchestrator holds `Write` scoped to its own Expertise file, §3.1):
 
 | Agent tier | Reconciles | Applies |
 |---|---|---|
@@ -886,8 +937,8 @@ therefore *cannot* be agent-writable without breaking distribution.
 
 | Rule | Loaded by | Why |
 |---|---|---|
-| `handoff` | **all 15** | the return contract and output discipline |
-| `expertise` | **all 15** | when and how to update durable knowledge |
+| `handoff` | **all 16** | the return contract and output discipline |
+| `expertise` | **all 16** | when and how to update durable knowledge |
 | `tdd-enforcement` | 4 feature devs (+dev-ops, exempt on config/scaffolding) | test-first |
 | `systematic-debugging` | eng devs in debug mode | root cause before fix |
 | `spec-driven` | pm | requirements and decisions discipline |
@@ -917,8 +968,8 @@ spawn — not just the description.
 ---
 name: harness-backend-dev
 skills:
-  - harness-handoff              # universal — all 15
-  - harness-expertise            # universal — all 15
+  - harness-handoff              # universal — all 16
+  - harness-expertise            # universal — all 16
   - harness-tdd-enforcement      # role-specific
 ---
 ```
@@ -948,7 +999,7 @@ copy.
 **Handoff is by file path, never by conversation** — fresh-context subagents cannot inherit history
 and should not. Each persona *writes* a durable artifact and *returns* a compact signal.
 
-**The three-part return (all 15 personas, leads included):**
+**The three-part return (all 16 agents, leads and the orchestrator included):**
 
 ```
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE   # control — drives DAG transitions
@@ -961,9 +1012,15 @@ DIGEST:                             # routing — orchestrator reads THIS, not t
   <persona-specific routing fields>
   open_questions:                   # a LIST of structured items, never a count
     - { id: Q1, question: "<text>", blocking: true, options: [...] }
-  files_touched: [<paths>]          # doers only
+  files_touched: [<paths>]          # doers; `[]` if none
+  expertise_update: [<ops>]         # `[]` if nothing durable was learned — the usual case
 artifact: <path>                    # the focal, high-SNR handoff doc — read by the CONSUMER persona
 ```
+
+**Every field is required** (DEC-121). Say "nothing" with an explicit `[]` — or `none` for a scalar
+that is genuinely inapplicable — never by omitting the key. Absence is ambiguous (found nothing, or
+never looked?) and emptiness is not, which matters most for `open_questions`, where silence is
+indistinguishable from a dropped question. Enforced at source by the `SubagentStop` hook (§8.3).
 
 - The artifact is the focal point, high signal-to-noise — full content stays on disk, read only by
   the downstream persona that needs it. **Never pasted into a return.**
@@ -991,7 +1048,8 @@ and enums may not drift per persona.
 - **leads:** the **consolidated DIGEST** schema in §10.4 is their persona schema — they are not
   exempt from the three-part return
 
-All personas additionally carry `expertise_updated` and, when applicable, `expertise_full` (§5).
+All personas additionally carry `expertise_update` (`[]` when nothing was learned — never omitted,
+DEC-121) and `expertise_full` (§5).
 
 ### 8.2 Conditional routing
 
@@ -1002,21 +1060,37 @@ All personas additionally carry `expertise_updated` and, when applicable, `exper
 
 ### 8.3 Malformed or missing return
 
-If a member returns no `VERDICT`, an unparseable `DIGEST`, or nothing at all, the host
-**re-prompts that step once**, asking only for the contract block. On a second failure it records
+**The contract is enforced by a `SubagentStop` hook, not by prose** (DEC-122). `validate-digest.py
+--hook` is the **fourth mandatory `settings.json` prerequisite**: it receives `last_assistant_message`
+and `agent_type`, and **`exit 2` prevents the subagent from stopping**, so a malformed return is
+rejected at source and the agent must fix it before it can finish. This covers all 16 agents
+including the leads, which runner prose never could — leads have no `Bash` to run a validator with.
+Advisory-first was considered and rejected: an advisory validator is exactly the "looks enforced,
+isn't" state that produced DEC-110 and DEC-119.
+
+Three deliberate pass-throughs, so what the hook declines to govern is explicit: an `agent_type`
+that is absent or not `harness-*` (`Explore`, `general-purpose` and the rest have no digest
+contract); `stop_hook_active` (blocking again would loop forever with no operator escape); and
+**our own failure** — unreadable payload, unknown persona, exception — which fails **open, loudly on
+stderr**, because a hook that blocks on its own bug wedges every agent in every project.
+
+The host-side path remains as the fallback for whatever the hook passes through: if a member returns
+no `VERDICT`, an unparseable `DIGEST`, or nothing at all, the host **re-prompts that step once**,
+asking only for the contract block. On a second failure it records
 `VERDICT: BLOCKED (contract violation)` and escalates. **The host never guesses a verdict** —
 silent misrouting is worse than a halt.
 
-### 8.4 Artifact output discipline — `rules/handoff.md`
+### 8.4 Artifact output discipline — the `harness-handoff` skill
 
-A **universal preamble read by every agent** (all 15), *in addition to* any role-specific rule:
+A **universal preamble read by every agent** (all 16), *in addition to* any role-specific rule:
 
 - **BLUF** — lead with the conclusion or recommendation, not the process. No "I explored X then Y."
 - **Claims + pointers, not payloads** — "Auth is JWT (`auth/mw.ts:42`)", never pasted code.
 - **Explicit "Open Questions / Decisions Needed"** — the consumer's to-do, called out.
 - **Bounded length** (≈ one screen) — the cap forces prioritization; length is the enemy of signal.
 
-It also carries the autonomy-by-reversibility rule (§4.4).
+It also carries the autonomy-by-reversibility rule (§4.4). The file is
+`.claude/skills/harness-handoff/SKILL.md` — a **flat** skill, like every rule (DEC-100).
 
 ### 8.5 Output classes
 
@@ -1162,19 +1236,25 @@ qualitative opinion.
 
 ## 10. The orchestrator
 
-**Definition:** the orchestrator holds the project's context, delegates to individual agents and to
-agent teams, receives their feedback, makes priority adjustments, and repeats. It plays a
-project-management *function*, but it is **not** named "PM" — that belongs to the `harness-pm`
-persona. The orchestrator is not a persona at all.
+**Definition:** the orchestrator holds one *feature's* context, delegates to the three leads,
+receives their feedback, makes priority adjustments, and repeats. It plays a project-management
+*function*, but it is **not** named "PM" — that belongs to the `harness-pm` persona. It is not a
+domain persona and belongs to no squad.
 
-**There is one orchestrator, at two delegation granularities:**
+**One orchestrator per in-flight feature (DEC-120):**
 
-- **The orchestrator = the main session** following the `/harness` playbook. It is *not* a subagent
-  and *not* a persona `.md` — it is a skill the main session runs (it must hold the spawn tool to
-  delegate).
+- **The orchestrator is a spawned agent**, `harness-orchestrator`, running at layer 1 below the main
+  session and following the `/harness` playbook. It is *not* the main session. Several run
+  concurrently, one per flow, each with a fresh bounded context — which is the whole reason it was
+  moved off the main session, whose context is your entire chat and was the dominant cost line
+  (DEC-114).
+- **It has no user channel.** A subagent cannot call `AskUserQuestion`, so every approval, question
+  and briefing bubbles one tier further, to the main session, which asks you and re-delegates. That
+  is the existing `open_questions` → ask → `resume_from` mechanism (§2.1) applied one tier up — not
+  new machinery.
 - **"The runner" is not a separate actor** — it is the orchestrator's *delegate-to-a-team*
-  subroutine (`team/SKILL.md`). Delegating to one persona = spawn directly; delegating to a team =
-  run that team's DAG.
+  subroutine (the `harness-team` skill). Delegating to one persona still goes through that persona's
+  lead (§10.2); delegating to a team = run that team's DAG.
 
 ### 10.1 The loop
 
@@ -1234,7 +1314,7 @@ review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) 
     uniform stream of consolidated DIGESTs, and no work is ever unassessed.
 - **Three domain leads** — `product-lead`, `eng-lead`, `validator-lead`. Each is granted the spawn
   tool. **The team's `lead:` field selects which one hosts that team's DAG** — there is no generic
-  lead parametrized per team. The host reads `team/SKILL.md`, spawns its squad members, runs the DAG
+  lead parametrized per team. The host reads the `harness-team` skill, spawns its squad members, runs the DAG
   (gating and loop-backs within the team), and returns a **consolidated DIGEST** up.
 - **Members** (doer and reviewer personas): spawned by the host lead. **Always leaves.**
 
@@ -1264,24 +1344,25 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
   `state.yaml`, cycle counters and the consolidated DIGEST. A team is never conducted by two leads.
 - **A lead may appear as a DAG step in another lead's team — as a reviewer only.** E.g.
   `plan-feature` (hosted by `product-lead`) has `eng-lead` as an architecture-review step. **In that
-  role a lead never routes or spawns** — it behaves as an ordinary leaf reviewer. This preserves one
-  nesting level: only the *host* lead spawns.
-- **All three leads exist as spawnable personas in BOTH hosting modes.** The spike decides only
+  role a lead never routes or spawns** — it behaves as an ordinary leaf reviewer. This keeps exactly
+  one spawning tier inside a team run: only the *host* lead spawns.
+- **All three leads exist as spawnable personas in BOTH hosting modes.** The hosting mode decides only
   *who hosts the DAG*, never whether leads exist. In flat mode the orchestrator hosts, and
   `eng-lead` (architecture review) and `validator-lead` (panel assessment) are still spawned as leaf
   steps.
 - **Keep user-approval steps at team boundaries, not mid-DAG inside a lead.** A subagent cannot call
   `AskUserQuestion`, so a lead can never pause to ask you. Questions ride up via `open_questions`
-  and the *orchestrator* asks.
+  to the orchestrator, which surfaces them to the **main session** — the only tier that can ask.
 - **Parallel fan-out from inside a lead is VERIFIED** (DEC-100) — a subagent issued three `Agent` calls
   in a single turn and all three returned. `validator-lead` runs its reviewer panel in parallel; the
   serial fallback and the hand-the-panel-to-the-orchestrator workaround are both unnecessary. Size panels
   against the real limits: **20** concurrent subagents per session, **200** per session in total, with
   nested and background spawns both counting.
 
-**Where the team-runner logic lives.** The algorithm is single-sourced in `team/SKILL.md` and hosted
-by whoever conducts the team: the team's named lead (hierarchical), or the main-session orchestrator
-(flat). Same algorithm; only the host differs. In hierarchical mode the orchestrator's context stays
+**Where the team-runner logic lives.** The algorithm is single-sourced in the `harness-team` skill
+(`.claude/skills/harness-team/SKILL.md`) and hosted by whoever conducts the team: the team's named
+lead (hierarchical), or the orchestrator agent itself (flat). Same algorithm; only the host differs.
+In hierarchical mode the orchestrator's context stays
 tiny — member spawns and DIGESTs live in the lead's context, and the orchestrator sees one
 consolidated DIGEST per team.
 
@@ -1293,7 +1374,7 @@ Three things trigger it — deliberately *not* every team completion:
 |---|---|
 | **`ship-feature` completes** | the natural ship decision |
 | **A lead returns `BLOCKED`** | work cannot proceed without you |
-| **On demand** — you ask "where are we?" | the orchestrator is your only interface; you never address a lead directly |
+| **On demand** — you ask "where are we?" | the main session relays to that flow's orchestrator; you never address a lead directly |
 
 `plan-feature` completing is **not** a briefing — it is the PLAN approval gate. The three
 user-facing moments stay distinct: an **approval** signs an artifact, a **question round-trip**
@@ -1311,8 +1392,9 @@ How it runs:
    against the feature budget, from `bin/cost-report.py` (§11.3). Cost is the post-build signal
    (DEC-99), and a signal the operator never sees is not being monitored.
 4. Writes it to `.harness/notes/ship-review-<FEAT>-<runid>.md`.
-5. **Presents it to you and requests instructions.** You decide: ship, fix first, re-scope, or stop
-   — and give feedback (§5.5).
+5. **Returns it to the main session, which presents it to you and requests instructions.** The
+   orchestrator writes the briefing but cannot deliver it — it has no user channel (§10). You
+   decide: ship, fix first, re-scope, or stop — and give feedback (§5.5).
 
 **Write it in plain English with light technical detail.** This is the one artifact addressed to a
 human rather than to another agent, and the `handoff.md` bounded-length rule applies to it as much as
@@ -1447,13 +1529,13 @@ that. Same shape as cost (DEC-116) — the tier that can see across runs is the 
 **A `BLOCKED` feature is reported, not forgotten** — the state-consistency check surfaces it at every
 `/harness` entry until you resolve it.
 
-> ⚠️ **It does not, however, mean you can work another feature in parallel.** An earlier draft promised
-> "independent features remain workable," which the state model cannot currently support:
-> `STATE.md ## Current` is **singular by construction** (§2), mutator serialization is per-team rather
-> than cross-feature, and two features in flight means two branches diverging from `main` with
-> committed Expertise files, daily logs and `PLAN.md` task statuses that are guaranteed to conflict at
-> merge. **One feature in flight at a time** until cross-feature merge semantics exist (§15). A
-> `BLOCKED` feature is therefore a stop-and-decide, not a switch-tasks.
+> ⚠️ **You may work another feature meanwhile — in another worktree.** A git worktree is the unit of
+> concurrency (§15.2, DEC-95) and each worktree has its own `.harness/`, so `STATE.md ## Current`
+> stays singular *within* a flow while N flows run at once — which is exactly what DEC-120's
+> one-orchestrator-per-feature shape exists to allow. What does **not** work is two flows sharing one
+> checkout: mutator serialization is per-team rather than cross-feature, and committed Expertise
+> files, daily logs and `PLAN.md` task statuses would then have two writers. So a `BLOCKED` feature
+> blocks **its worktree**, not you.
 
 ### 10.6 Two orchestration modes, one contract
 
@@ -1619,7 +1701,7 @@ input rate they would read as $17.26 (DEC-114).
 **Claude Code computes cost natively** — `claude_code.cost.usage` over OpenTelemetry, and
 `ccusage` reads it from these same transcripts. Those are the better source of a *total*.
 What they cannot give is **cost per harness agent**: OTel's `agent.name` documents that
-"Other user-defined agent names are replaced with `custom`", and all 15 harness agents are
+"Other user-defined agent names are replaced with `custom`", and all 16 harness agents are
 user-defined. `cost-report.py` exists for the attribution, and `--cross-check` compares its
 total against `ccusage` so a stale rate table is detected rather than silent.
 
@@ -1793,7 +1875,7 @@ The runner is a **skill** at `.claude/skills/harness-team/SKILL.md` with the alg
 project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable
 (DEC-100). Team *data* still lives under `.claude/skills/harness/teams/*.yaml` — that is a data
 directory, not a skill, and is found by path rather than by discovery. Its host is the team's named `lead:`
-subagent (hierarchical) or the main session (flat); the algorithm is identical either way.
+subagent (hierarchical) or the orchestrator agent (flat); the algorithm is identical either way.
 
 1. Resolve team YAML.
 2. Create the run workspace `.harness/features/<feat>/runs/<date>-<seq>-<squad>/` + `state.yaml`
@@ -1837,7 +1919,7 @@ the lead that conducts it. Panel membership is team config; reviewers self-scope
 | ★ **plan-feature** | **orchestrator-sequenced**, 3 segments | `[product-lead: pm → visual-designer(design pass)]` → `[eng-lead: architecture review]` → `[validator-lead: ui-reviewer(A)]` | **Not one team — three squad runs the orchestrator sequences**, for the same reason `ship-feature` is (DEC-118): `ui-reviewer` is validator-squad and `eng-lead` is a lead, so neither can be dispatched by `product-lead`. pm researches *and* plans in one context. eng-lead reviews architecture. **visual-designer runs the design pass and decides whether the feature requires end-user interaction** — if so it builds a **high-fidelity prototype** (§13.1). ui-reviewer(A) checks the contract is sound. Terminates in **one approval: you sign PLAN *and* prototype together** |
 | ★ **ship-feature** | orchestrator monitors; **eng-lead** and **validator-lead** each run their own squad | `{specialist devs, matched by consult-when} → qa → {code ∥ security ∥ ui} → validator-lead assesses → pm(goal-check) → documentor → ⟨CEO briefing⟩` | **Multi-squad, so the orchestrator sequences the squad segments** and each lead runs its own. No lead ever spawns outside its squad; the orchestrator owns the **branch and the feature-level cycle budget** across segments, while **each squad segment gets its own run dir owned by that squad's lead** (§11.4) — there is no shared run dir, which is what keeps every `state.yaml` single-writer. **Precondition: BRIEF *and* PLAN both approved.** eng-lead routes each task to a specialist by `consult-when`, then spawns and delegates. qa gates (writes + runs tests, `test_matrix` hard gate) → `loop_back` → dev. validator-lead assesses the panel into one actionable set. **pm goal-checks delivery** (REQ coverage + SC outcomes) — kept out of the quality panel so "did we deliver?" is not averaged with code nits. Terminates in the **CEO briefing** (§10.3); PR and merge follow your call, never automatically |
 | ★ **debug** | eng-lead | `pm(research) → specialist(debug mode) → qa → {code}` | pm reproduces and localizes; eng-lead routes the fix to the right specialist under `systematic-debugging`; qa loops back to the dev |
-| ★ **review-team** | validator-lead | `{code ∥ qa ∥ security ∥ ui} → validator-lead assesses` | Panel from team config; reviewers self-scope; **validator-lead assesses and synthesizes** one feedback set. **Advisory: does NOT fix or merge** — it returns `must_fix`; the caller owns remediation (`ship-feature` loops its dev; standalone, the orchestrator delegates a fix) |
+| ★ **review** | validator-lead | `{code ∥ qa ∥ security ∥ ui} → validator-lead assesses` | Panel from team config; reviewers self-scope; **validator-lead assesses and synthesizes** one feedback set. **Advisory: does NOT fix or merge** — it returns `must_fix`; the caller owns remediation (`ship-feature` loops its dev; standalone, the orchestrator delegates a fix) |
 | understand-codebase | product-lead | `{pm×N by disjoint area} → documentor` | fan-in (deferred). N pm instances scoped to disjoint areas writing separate `notes/research-<area>.md`; none may write `PLAN.md` |
 | docs-refresh | product-lead | `pm(research) → documentor → code-reviewer` | deferred |
 
@@ -1898,7 +1980,7 @@ approval, merge) reach you.
 Feature goal → `pm` · architecture → `eng-lead` · coverage → `qa` · security →
 `security-reviewer`. All anchor to the **user-approved** BRIEF; an unapproved BRIEF blocks the check.
 
-**The review panel is listed in both `ship-feature` and `review-team`.** That duplication is
+**The review panel is listed in both `ship-feature` and `review`.** That duplication is
 accepted in v1 (see DEC-54).
 
 ---
@@ -1926,9 +2008,15 @@ is not a limitation admitted late — it is the difference between a constraint 
 
 ### 15.1 Single operator, single session
 
-**The harness is single-operator by design.** Every "single writer" guarantee means *one agent in one
-session on one machine*. Two terminals means two orchestrators, and therefore two writers for
-`STATE.md`, `feature.yaml`, `logs/` and committed Expertise files. There is no lock file anywhere.
+**The harness is single-operator by design** (DEC-90). Every "single writer" guarantee means *one
+operator on one machine*.
+
+Note what DEC-120 did and did not change. Inside one session, N concurrent orchestrators are the
+*design*, and they do not collide: `STATE.md` and `feature.yaml` are per-feature and each has
+exactly one orchestrator, and `logs/` is written only by the main session. What is still unsafe is
+**two sessions over one checkout** — two main sessions means two writers for `logs/`, `## Approval`
+and the committed Expertise files, and there is no lock file anywhere. Separate checkouts are fine
+(§15.2).
 
 Two developers is out of scope for v1. If it is ever needed, the minimum is an advisory lock on
 `.harness/` plus per-operator run-dir namespacing — not a small change.
@@ -2005,5 +2093,7 @@ Recorded as known-absent rather than left to be discovered:
 - **A feature costs 19–45 spawns**, largely serialized. Nothing in the system logs or bounds this, and
   nothing would tell you it had become uneconomic.
 
-**This is the open question that gates whether the org in §3 should exist at all** — see BUILD.md
-§ "Pilot before building the org."
+**This no longer gates whether the org in §3 should exist** (DEC-99). Cost moved to post-build
+monitoring: `bin/cost-report.py` computes per-agent spend, `harness.json` carries `budgets`, and the
+CEO briefing carries a cost line (§10.3, §11.3). See BUILD.md § "Build the org; monitor cost in
+practice."
