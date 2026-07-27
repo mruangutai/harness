@@ -1706,21 +1706,26 @@ name: ship-feature
 purpose: One-line description (shown in listings).
 lead: eng-lead                     # REQUIRED — which domain lead hosts this DAG (§10)
 inputs: [goal]                     # crew-level args, injected as {{goal}}
+max_cost_usd: 15                   # OPTIONAL crew-level spend cap; defaults to harness.json
+                                   # budgets.per_run_usd. Bounds SPEND the way max_cycles bounds
+                                   # RETRIES — a crew that stays under its cycle cap can still burn
+                                   # the feature budget. Exhausting it takes the same path as an
+                                   # exhausted cycle budget: stop, BLOCKED, escalate to the user.
 steps:
   - id: plan
     persona: pm                    # -> subagent_type harness-pm
     depends_on: []                 # empty = root; DAG drives ordering + parallelism
     inputs: []                     # prior outputs, referenced as <step_id>.<filename>
-    outputs: [notes.md]            # transient step outputs, written to the step dir
-                                   # (canonical files like PLAN.md/BRIEF.md/DESIGN.md are
-                                   #  written IN PLACE by their owner — never staged here)
+    outputs: [.harness/notes/research-{{feat}}.md]
+                                   # Paths in the PRODUCING AGENT'S OWN domain — never the run dir.
+                                   # Members cannot write the run dir: it belongs to the lead
+                                   # (`features/*/runs/*-<squad>/**`), so a step told to write its
+                                   # output there is blocked by check-domain on dispatch (DEC-116).
+                                   # Every member already owns a namespaced artifact path, which is
+                                   # what makes step outputs disjoint under parallel fan-out.
     mutates_repo: false            # true forces serialization (§11.5)
     prompt: Produce a plan for {{goal}}. Write PLAN.md.
     on_fail: { action: halt|loop_back|continue, to: <step>, feed: [self], max_cycles: 3, then: escalate|halt }
-  max_cost_usd: 15          # OPTIONAL per-crew spend cap; defaults to harness.json budgets.per_run_usd.
-                            # Bounds SPEND the way max_cycles bounds RETRIES — a crew that stays
-                            # under its cycle cap can still burn the feature budget. Exhausting it
-                            # takes the same path: stop, BLOCKED, escalate to the user.
 ```
 
 - **`inputs: [goal]` resolves to a success-criteria set** (§11.6), not a sentence. The crew is done
@@ -1741,13 +1746,18 @@ steps:
 
 ### 12.1 The runner
 
-The runner is a **skill** at `.claude/skills/harness/crew/SKILL.md` with the algorithm inline —
-**not a command**, because commands do not distribute. Its host is the crew's named `lead:`
+The runner is a **skill** at `.claude/skills/harness-crew/SKILL.md` with the algorithm inline —
+**not a command**, because commands do not distribute, and **flat, not `harness/crew/`**, because a
+project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable
+(DEC-100). Crew *data* still lives under `.claude/skills/harness/crews/*.yaml` — that is a data
+directory, not a skill, and is found by path rather than by discovery. Its host is the crew's named `lead:`
 subagent (hierarchical) or the main session (flat); the algorithm is identical either way.
 
 1. Resolve crew YAML.
-2. Create the run workspace `.harness/features/<feat>/runs/<date>-<seq>-<squad>/` + per-step dirs +
-   `state.yaml` (§11).
+2. Create the run workspace `.harness/features/<feat>/runs/<date>-<seq>-<squad>/` + `state.yaml`
+   (§11). **The run dir is the lead's own bookkeeping — state.yaml and collected DIGESTs, nothing
+   a member writes.** Members write their outputs into their own domains (§12), so there are no
+   per-step dirs for them to write into.
 3. **Checkpoint-before-dispatch:** write `step X dispatched` to `state.yaml` *before* spawning, and
    `step X complete` after. Cycle counters are **read from and written to `state.yaml` on every
    iteration** — never held in the host's memory.
@@ -1760,10 +1770,18 @@ subagent (hierarchical) or the main session (flat); the algorithm is identical e
    consumer step dispatches.
 6. Report per-step verdicts + run dir.
 
+**A lead host cannot meter or timestamp its own run.** Leads hold `Read, Glob, Grep, Agent` and no
+`Bash` (§3.4/§4.1) — deliberately, so they cannot do a member's work — which also means no
+`cost-report.py` and no clock. The lead sets `cost: pending_orchestrator` and monotonic ordering
+markers; **the orchestrator runs the cost report after the lead returns** and owns the rollup into
+`feature.yaml` anyway (§11.3). Verified the hard way: the first real crew run returned
+`cost: unavailable` and tripped INV-11 (DEC-116).
+
 **Invocation UX:** the primary entry is the crew skill (triggers on "run the X crew" / "assemble a
 crew to…", taking crew name + goal). No crew name → the runner scans `crews/*.yaml` and lists
-`name` + `purpose` — the filesystem is the registry. **Crew resolution precedence:** project-local
-`crews/` overrides global.
+`name` + `purpose` — the filesystem is the registry. **Crew resolution precedence:** `.harness/crews/<name>.yaml`
+(project-owned, never touched by deploy) overrides `.claude/skills/harness/crews/<name>.yaml`
+(shipped, replaced wholesale on every push) — DEC-113.
 
 ---
 

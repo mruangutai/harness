@@ -176,7 +176,7 @@ the time of writing; the live list is authoritative if the two disagree.
 | 7 | Write-safety: Bash bypass + shared paths | **done** (DEC-85, DEC-107) |
 | 8 | Expertise governance holes | pending — provenance, decay, curation for all 15, global tier. **Add: 14 of 15 `expertise/<agent>.md` files do not exist**, so `inject-expertise.sh` injects nothing on almost every spawn and says nothing about it (surfaced by the DEC-112 fixture run). Init creating the dir empty is per spec; what is missing is anything that ever populates it |
 | 9 | The 15 agent definitions | **done** (DEC-106, DEC-107) |
-| 10 | Crew runner + four v1 crews | pending — `mutates_repo` serialization is the write-safety mechanism (DEC-85). The domain hook is now working (DEC-110) but cannot see `Bash`, so serialization is still what makes fan-out safe |
+| 10 | Crew runner + four v1 crews | **in progress** — MVP step 3 **done** (DEC-116): flat `harness-crew` runner + `crews/smoke.yaml`, hierarchy proven (lead at depth 1 spawning members at depth 2), state passed by file path. Remaining: gating (`on_fail`/`loop_back`/`max_cycles`), parallel fan-out, validator-lead panel, and the other 3 v1 crews |
 | 11 | Batch human touchpoints to two | pending |
 | 12 | `/harness-init` + distributed templates | **done** — flat skill at `.claude/skills/harness-init/`, 8 templates, 3 merge scripts (DEC-112) |
 | 13 | Rewrite `harness-deploy` (distribution only, **+ prune**) | **done** (DEC-113) — `bin/deploy.sh`, dry-run by default, reconciles rather than copies. The live risk was confirmed real before the fix: 3 deleted agents spawnable everywhere, the global skill tree still the April layout |
@@ -721,7 +721,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | Path | Status |
 |---|---|
 | `.claude/skills/harness/SKILL.md` | rewrite — router → coordinator playbook + lifecycle/crew routing |
-| `.claude/skills/harness/crew/SKILL.md` | **new** — generic runner, algorithm inline |
+| `.claude/skills/harness-crew/SKILL.md` | **new** — generic runner, algorithm inline. **FLAT**, not `harness/crew/`: nested skill dirs are undiscoverable (DEC-100). Crew *data* stays at `harness/crews/*.yaml` — a data dir, not a skill |
 | `.claude/skills/harness/crews/*.yaml` | **new** — crew configs |
 | `.claude/agents/harness-{product,eng,validator}-lead.md` | **new** — domain leads |
 | `.claude/agents/harness-{frontend,backend,ai}-dev.md`, `harness-data-engineer.md`, `harness-dev-ops.md` | **new** — 5 eng specialists |

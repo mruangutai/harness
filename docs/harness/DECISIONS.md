@@ -2238,3 +2238,69 @@ its threshold was forced — so "8 of 8 clean" means clean *on the paths exercis
 hypotheses were wrong before the source settled them: `GIT_CMD_LIB` looked like an unset dependency but
 is set inline one line above, and a malformed `grep -cl` (mutually exclusive flags) reported every hook
 as always-on until it was re-run. Both were caught by reading the file rather than trusting the probe.
+
+---
+
+## DEC-116 — The crew runner works; two spec defects found only by building it
+
+MVP step 3: the flat runner at `.claude/skills/harness-crew/SKILL.md` plus one linear crew
+(`crews/smoke.yaml`), proven end-to-end. Gating, loop-back, parallel fan-out and the other three v1
+crews remain (task 10 continues).
+
+### The hierarchy assumption is no longer an assumption
+
+Everything downstream of SPEC §10.2 rests on a lead being able to *host* a DAG rather than merely
+being spawnable. Confirmed from Claude Code's own spawn records — not from any agent's self-report:
+
+```
+depth 1  harness-product-lead       Host smoke crew run
+depth 2  harness-pm                 Smoke crew step: write
+depth 2  harness-visual-designer    Smoke crew step: read_back
+```
+
+The lead spawned both members itself. State passed by file path — step 2 echoed step 1's three lines
+character-for-character, diffed independently — no step hit a domain block, and the lead wrote a
+`state.yaml` with checkpoints, per-step verdicts and DIGESTs. This matters because the failure mode
+is silent: a lead with no `Agent` tool does the work itself and returns something plausible, which is
+why the probe crew ships and why it asserts on a verbatim echo rather than on a verdict.
+
+### Defect 1 — as specified, no step could write its own output
+
+§12 said step `outputs:` are "written to the step dir" in the run dir. But the run dir belongs to the
+**lead** (`features/*/runs/*-<squad>/**`); no member has write access. Probed before building:
+`harness-backend-dev` writing a step output into the eng run dir → `exit 2, BLOCKED`. **The first
+dispatch of any crew would have been blocked by the domain hook.**
+
+The fix required no domain changes, because the domains were already right: every member owns a
+namespaced artifact path (`notes/research-*`, `notes/review-<persona>-*`, `notes/mockups/**`,
+`tests/**`, `src/**`), and cross-writes between them are correctly blocked — verified both
+directions. So **§12 was the anomaly, not team-config**: step outputs resolve to the *producing
+agent's own domain*, and the run dir is lead-only bookkeeping. That also preserves disjointness under
+parallel fan-out, which staging everything in one shared run dir would have quietly destroyed.
+
+### Defect 2 — the host cannot meter the run it hosts
+
+The runner's close-out told the host to run `cost-report.py`. The first real run returned
+`cost: unavailable`: leads hold `Read, Glob, Grep, Agent` and **no `Bash`** (§3.4), so they cannot
+invoke it — and INV-11, added one commit earlier, fires on every lead-hosted run as a result. Two
+correct guards colliding, each fine alone.
+
+Resolved by moving cost to the tier that can do it and already owns it: the lead sets
+`cost: pending_orchestrator`, and the **orchestrator** runs the report after the lead returns, having
+already owned the `feature.yaml` rollup (§11.3). Same root cause disposes of timestamps — no `Bash`
+means no clock, so leads write monotonic ordering markers instead of inventing wall-clock times. The
+checkpoint property never needed real time: "dispatched with no matching completion" is decidable
+from presence alone.
+
+### Also corrected: the runner's own path, fifth instance of the propagation defect
+
+§12.1 placed the runner at `.claude/skills/harness/crew/SKILL.md` — the nested layout DEC-100 proved
+undiscoverable, and the same stale path already corrected once for `harness-init` (DEC-112). It is
+flat: `.claude/skills/harness-crew/`. Crew *data* stays at `harness/crews/*.yaml`, which is a data
+directory found by path rather than by discovery, so nesting is fine there. The crew-precedence line
+was likewise still pre-DEC-113 and now names `.harness/crews/` explicitly.
+
+**A pattern worth naming: every defect in this entry was invisible to reading and obvious to
+building.** The domain block, the missing `Bash`, and the undiscoverable path were all present in a
+SPEC that had been reviewed repeatedly. The probe crew exists so the next platform shift is caught
+the same way.
