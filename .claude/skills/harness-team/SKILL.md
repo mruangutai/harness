@@ -149,12 +149,18 @@ Four things, in order:
 `FAIL` deliberately** — a decision only the user can make must not be masked by a failure you could
 have fixed. Never report `PASS` because most members passed; one `FAIL` makes the team `FAIL`.
 
-**This one is checked, not trusted.** The `SubagentStop` hook computes the worst verdict across your
+**This one is checked — but only partly, today.** The `SubagentStop` hook computes the worst verdict across your
 `members:` entries and rejects a return that reports better than it. Reporting worse is allowed —
 you may have a reason your members could not see. Every member entry therefore needs a `verdict:`;
 without one the roll-up is undecidable and your return is rejected. It is the only part of collation
 that is arithmetic rather than judgement, and it is the most consequential thing you can get wrong:
 the orchestrator routes on your `VERDICT` and never opens member entries, so a masked `FAIL` ships.
+
+> ⚠️ **Do not treat the check as complete.** A live review panel reproduced four member-entry
+> formats that slip a masked `FAIL` past it, and one that disables the validator outright by
+> crashing it — the hook then exits 1, and only exit 2 blocks (DEC-124, task 22). Until that is
+> fixed, the roll-up rule is **yours to honour**, and the hook is a backstop that catches the
+> canonical case rather than a guarantee.
 
 **b. Merge, then dedupe.** `must_fix`, `files_touched` and `open_questions` are unions across
 members. Reviewers overlap by design — the panel is four lenses on one diff — so **the same defect
