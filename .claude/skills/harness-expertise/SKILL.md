@@ -1,6 +1,6 @@
 ---
 name: harness-expertise
-description: When and how to update your durable Expertise file — the update-only-if-it-changes-your-behaviour rule, the decision-versus-observation boundary, the op format with stable entry IDs, and section caps. Loaded by all 15 agents at every spawn.
+description: When and how to update your durable Expertise file — the update-only-if-it-changes-your-behaviour rule, the decision-versus-observation boundary, the op format with stable entry IDs, and section caps. Loaded by all 16 agents at every spawn.
 ---
 
 # Expertise

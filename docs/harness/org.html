@@ -1,0 +1,305 @@
+<title>Harness — the org, the flow, the artifacts</title>
+<style>
+  :root{
+    --paper:#f7f8fa; --card:#ffffff; --ink:#141920; --ink-2:#4a5464; --ink-3:#7c8798;
+    --rule:#dde2ea; --rule-2:#eef1f6;
+    --orch:#3567c7; --prod:#7a4fd6; --eng:#0e8fa8; --val:#c96a1e; --stop:#c0392b;
+    --orch-bg:#eaf0fc; --prod-bg:#f2ecfd; --eng-bg:#e6f5f8; --val-bg:#fbf0e4; --stop-bg:#fbeceb;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0c0f14; --card:#141a22; --ink:#e6ebf2; --ink-2:#9aa6b8; --ink-3:#6b7688;
+      --rule:#242c38; --rule-2:#1b222c;
+      --orch:#7ba3ee; --prod:#b394f5; --eng:#4cc4dc; --val:#e9a05a; --stop:#ee8377;
+      --orch-bg:#16202f; --prod-bg:#1f1a2e; --eng-bg:#10262c; --val-bg:#2a2016; --stop-bg:#2b1a19;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0c0f14; --card:#141a22; --ink:#e6ebf2; --ink-2:#9aa6b8; --ink-3:#6b7688;
+    --rule:#242c38; --rule-2:#1b222c;
+    --orch:#7ba3ee; --prod:#b394f5; --eng:#4cc4dc; --val:#e9a05a; --stop:#ee8377;
+    --orch-bg:#16202f; --prod-bg:#1f1a2e; --eng-bg:#10262c; --val-bg:#2a2016; --stop-bg:#2b1a19;
+  }
+  :root[data-theme="light"]{
+    --paper:#f7f8fa; --card:#ffffff; --ink:#141920; --ink-2:#4a5464; --ink-3:#7c8798;
+    --rule:#dde2ea; --rule-2:#eef1f6;
+    --orch:#3567c7; --prod:#7a4fd6; --eng:#0e8fa8; --val:#c96a1e; --stop:#c0392b;
+    --orch-bg:#eaf0fc; --prod-bg:#f2ecfd; --eng-bg:#e6f5f8; --val-bg:#fbf0e4; --stop-bg:#fbeceb;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font:15px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:44px 24px 72px; display:flex; flex-direction:column; gap:38px}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,"Cascadia Mono",monospace}
+
+  h1{font-size:26px; letter-spacing:-.02em; margin:0; text-wrap:balance}
+  h2{
+    font:600 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+    letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3);
+    margin:0 0 14px; padding-bottom:8px; border-bottom:1px solid var(--rule);
+  }
+  p{margin:0; color:var(--ink-2); max-width:66ch}
+  .lede{font-size:15.5px}
+  .sub{font-size:12.5px; color:var(--ink-3)}
+
+  /* ---- tier spine ---- */
+  .tier{display:grid; grid-template-columns:96px 1fr; gap:16px; align-items:stretch}
+  .depth{
+    display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:3px;
+    padding-right:14px; border-right:2px solid var(--rule); text-align:right;
+  }
+  .depth b{font:600 20px/1 ui-monospace,monospace; color:var(--ink)}
+  .depth span{font:500 10px/1.3 ui-monospace,monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+  .rail{display:flex; flex-direction:column; gap:8px; padding:2px 0}
+
+  .node{
+    background:var(--card); border:1px solid var(--rule); border-left:3px solid var(--accent,var(--rule));
+    border-radius:3px; padding:11px 14px; display:flex; flex-direction:column; gap:5px;
+  }
+  .node .top{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+  .name{font:600 13.5px/1 ui-monospace,monospace; color:var(--accent,var(--ink))}
+  .role{font-size:12.5px; color:var(--ink-2)}
+  .node p{font-size:12.5px; line-height:1.5}
+
+  .lanes{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+  @media (max-width:800px){ .lanes{grid-template-columns:1fr} .tier{grid-template-columns:64px 1fr} }
+
+  .lane{background:var(--card); border:1px solid var(--rule); border-top:3px solid var(--accent); border-radius:3px; overflow:hidden}
+  .lane-h{padding:9px 12px; background:var(--tint); display:flex; justify-content:space-between; align-items:baseline; gap:8px}
+  .lane-h b{font:600 12px/1 ui-monospace,monospace; letter-spacing:.06em; text-transform:uppercase; color:var(--accent)}
+  .lane-h span{font:500 10px/1 ui-monospace,monospace; color:var(--ink-3)}
+  .member{padding:9px 12px; border-top:1px solid var(--rule-2); display:flex; flex-direction:column; gap:2px}
+  .member b{font:600 12.5px/1.3 ui-monospace,monospace; color:var(--ink)}
+  .member span{font-size:11.5px; line-height:1.45; color:var(--ink-2)}
+
+  .prod{--accent:var(--prod); --tint:var(--prod-bg)}
+  .eng {--accent:var(--eng);  --tint:var(--eng-bg)}
+  .val {--accent:var(--val);  --tint:var(--val-bg)}
+  .orch{--accent:var(--orch); --tint:var(--orch-bg)}
+
+  .gap{display:flex; align-items:center; gap:10px; padding-left:112px; color:var(--ink-3)}
+  .gap .arw{font:600 13px/1 ui-monospace,monospace; color:var(--ink-3)}
+  .gap em{font-style:normal; font-size:11.5px}
+  @media (max-width:800px){ .gap{padding-left:80px} }
+
+  /* ---- flow ---- */
+  .flow{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  @media (max-width:800px){ .flow{grid-template-columns:1fr} }
+  .col{background:var(--card); border:1px solid var(--rule); border-radius:3px; padding:14px 16px}
+  .col h3{margin:0 0 10px; font:600 11px/1 ui-monospace,monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+  ol.steps{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:9px; counter-reset:s}
+  ol.steps li{
+    display:grid; grid-template-columns:20px 1fr; gap:10px; font-size:12.5px; line-height:1.5; color:var(--ink-2);
+    counter-increment:s;
+  }
+  ol.steps li::before{
+    content:counter(s); font:600 10px/18px ui-monospace,monospace; text-align:center;
+    color:var(--ink-3); border:1px solid var(--rule); border-radius:2px; height:18px;
+  }
+  ol.steps li b{color:var(--ink); font-weight:600}
+
+  .digest{
+    background:var(--card); border:1px solid var(--rule); border-radius:3px;
+    padding:14px 16px; overflow-x:auto;
+  }
+  .digest pre{margin:0; font:12.5px/1.65 ui-monospace,monospace; color:var(--ink-2)}
+  .digest pre b{color:var(--ink); font-weight:600}
+  .v-pass{color:var(--eng); font-weight:600}
+  .v-stop{color:var(--stop); font-weight:600}
+
+  /* ---- artifacts ---- */
+  table{width:100%; border-collapse:collapse; font-size:12.5px}
+  th{
+    text-align:left; padding:0 10px 8px; font:600 10px/1 ui-monospace,monospace;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--rule);
+  }
+  td{padding:9px 10px; border-bottom:1px solid var(--rule-2); color:var(--ink-2); vertical-align:top}
+  td:first-child{white-space:nowrap}
+  td code{font-size:12px; color:var(--ink)}
+  .owner{font:600 11.5px/1 ui-monospace,monospace; white-space:nowrap}
+  .o-orch{color:var(--orch)} .o-prod{color:var(--prod)} .o-eng{color:var(--eng)}
+  .o-val{color:var(--val)} .o-you{color:var(--ink)}
+
+  .rules{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+  @media (max-width:800px){ .rules{grid-template-columns:1fr} }
+  .rule-card{border:1px solid var(--rule); border-radius:3px; padding:12px 14px; background:var(--card)}
+  .rule-card b{display:block; font-size:12.5px; margin-bottom:4px; color:var(--ink)}
+  .rule-card span{font-size:12px; line-height:1.5; color:var(--ink-2)}
+  .stop{border-left:3px solid var(--stop)}
+  footer{font-size:11.5px; color:var(--ink-3); border-top:1px solid var(--rule); padding-top:14px}
+</style>
+
+<div class="wrap">
+
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>The harness org</h1>
+    <p class="lede">Sixteen agents in four tiers. Work is delegated downward one layer at a time; every
+      return travels upward as a <b>digest</b>. State passes by file path, never by conversation.</p>
+  </header>
+
+  <section>
+    <h2>Hierarchy — who may spawn whom</h2>
+    <div style="display:flex;flex-direction:column;gap:8px">
+
+      <div class="tier">
+        <div class="depth"><b>0</b><span>main session</span></div>
+        <div class="rail">
+          <div class="node orch">
+            <div class="top"><span class="name">main session</span><span class="role">your channel — and nothing else</span></div>
+            <p>The only tier that can ask you a question. Spawns orchestrators, relays their questions
+              to you, writes <code>## Approval</code> and the cross-flow log.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gap"><span class="arw">↓</span><em>spawns one orchestrator per in-flight feature</em></div>
+
+      <div class="tier">
+        <div class="depth"><b>1</b><span>orchestrator</span></div>
+        <div class="rail">
+          <div class="node orch">
+            <div class="top"><span class="name">harness-orchestrator</span><span class="role">one per feature — several run at once</span></div>
+            <p>Owns its feature end to end: <code>STATE.md</code>, <code>feature.yaml</code>, the
+              feature-wide cycle and cost budgets. Sequences squads, routes questions between leads,
+              decides the next segment. Cannot ask you — questions go up.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gap"><span class="arw">↓</span><em>delegates a team run to one lead at a time</em></div>
+
+      <div class="tier">
+        <div class="depth"><b>2</b><span>leads</span></div>
+        <div class="rail lanes">
+          <div class="lane prod"><div class="lane-h"><b>product-lead</b><span>purple</span></div>
+            <div class="member"><span>Conducts product work. Routes by <code>consult-when</code>, assesses what comes back, never does the work.</span></div></div>
+          <div class="lane eng"><div class="lane-h"><b>eng-lead</b><span>cyan</span></div>
+            <div class="member"><span>Conducts build and debug. Routes each task to exactly one of five specialists. Owns architecture review.</span></div></div>
+          <div class="lane val"><div class="lane-h"><b>validator-lead</b><span>orange</span></div>
+            <div class="member"><span>Runs the reviewer panel, synthesizes one actionable set. The independence layer over qa.</span></div></div>
+        </div>
+      </div>
+
+      <div class="gap"><span class="arw">↓</span><em>dispatches its own squad only — never another squad's members</em></div>
+
+      <div class="tier">
+        <div class="depth"><b>3</b><span>members · leaves</span></div>
+        <div class="rail lanes">
+
+          <div class="lane prod">
+            <div class="lane-h"><b>product</b><span>3</span></div>
+            <div class="member"><b>pm</b><span>Requirements, scoping, plans, codebase research, the goal-check and UAT script.</span></div>
+            <div class="member"><b>visual-designer</b><span>Owns <code>DESIGN.md</code>; mockups, and the prototype you approve.</span></div>
+            <div class="member"><b>documentor</b><span>READMEs, guides, reference, changelogs.</span></div>
+          </div>
+
+          <div class="lane eng">
+            <div class="lane-h"><b>engineering</b><span>5</span></div>
+            <div class="member"><b>frontend-dev</b><span>UI, styling, client state, routing, accessibility.</span></div>
+            <div class="member"><b>backend-dev</b><span>APIs, services, business logic, auth, jobs.</span></div>
+            <div class="member"><b>ai-dev</b><span>Prompts, model integration, retrieval — and the evals for them.</span></div>
+            <div class="member"><b>data-engineer</b><span>Schemas, migrations, pipelines, queries.</span></div>
+            <div class="member"><b>dev-ops</b><span>Infra, CI/CD, build tooling, test-runner detection.</span></div>
+          </div>
+
+          <div class="lane val">
+            <div class="lane-h"><b>validation</b><span>4</span></div>
+            <div class="member"><b>qa</b><span>Writes and runs tests; enforces the test matrix as a hard gate.</span></div>
+            <div class="member"><b>code-reviewer</b><span>Spec compliance first, then quality. Hunts fail-open paths.</span></div>
+            <div class="member"><b>security-reviewer</b><span>OWASP and STRIDE; auth, secrets, injection, data exposure.</span></div>
+            <div class="member"><b>ui-reviewer</b><span>Design-contract soundness, then built UI against it.</span></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <p class="sub" style="margin-top:12px">Members have no spawn tool — the platform withholds it at the
+      last permitted layer, so workers are leaves by construction, not by convention.</p>
+  </section>
+
+  <section>
+    <h2>How work and answers travel</h2>
+    <div class="flow">
+      <div class="col">
+        <h3>Down — delegation</h3>
+        <ol class="steps">
+          <li><b>You</b> open a flow at the main session.</li>
+          <li>It <b>spawns an orchestrator</b> for that feature.</li>
+          <li>The orchestrator <b>hands a team run to one lead.</b></li>
+          <li>The lead <b>dispatches its members</b> — independent steps in a single turn, so they run at once.</li>
+          <li>Each member gets a goal, <b>input paths</b>, and the output paths it must write. Never pasted content.</li>
+        </ol>
+      </div>
+      <div class="col">
+        <h3>Up — digests</h3>
+        <ol class="steps">
+          <li>Members <b>report a digest</b> to their lead.</li>
+          <li>The lead <b>collates and assesses</b> — including sending work back for rework.</li>
+          <li>It reports one <b>team digest</b> up.</li>
+          <li>The orchestrator <b>assesses across teams</b>, routes questions between leads, delegates another cycle.</li>
+          <li>Only what needs you — <b>escalations, briefings, approvals</b> — reaches the main session.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The digest — one contract at every tier</h2>
+    <div class="digest">
+<pre><b>VERDICT:</b> <span class="v-pass">PASS</span> | <span class="v-stop">FAIL</span> | <span class="v-stop">BLOCKED</span> | <span class="v-stop">ESCALATE</span>
+<b>DIGEST:</b>
+  headline:       one line, conclusion first
+  files_touched:  [ ... ]        doers only
+  open_questions: [ ... ]        non-empty routes upward, toward you
+<b>artifact:</b> path to the real output — the pointer, not the payload</pre>
+    </div>
+    <p class="sub" style="margin-top:10px">A lead's team digest is the same shape plus a per-member
+      roll-up. <code>validate-digest.py</code> checks it mechanically, because a reader normalizes
+      drift charitably and then one routing decision quietly goes the wrong way.</p>
+  </section>
+
+  <section>
+    <h2>Artifacts — single writer each</h2>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Path</th><th>What it is</th><th>Written by</th></tr></thead>
+        <tbody>
+          <tr><td><code>BRIEF.md</code></td><td>The goal of record — requirements and success criteria, each declaring how it gets verified</td><td class="owner o-prod">pm<span class="o-you"> · you sign</span></td></tr>
+          <tr><td><code>PLAN.md</code></td><td>Decisions, features, and fully specified tasks each carrying a <code>change_type</code></td><td class="owner o-prod">pm<span class="o-you"> · you sign</span></td></tr>
+          <tr><td><code>DESIGN.md</code></td><td>The visual contract: palette in both themes, type scale, spacing, component direction</td><td class="owner o-prod">visual-designer</td></tr>
+          <tr><td><code>team-config.yaml</code></td><td>The org as data — membership, routing, and every agent's writable domain</td><td class="owner o-you">/harness-init</td></tr>
+          <tr><td><code>features/&lt;F&gt;/STATE.md</code></td><td>That flow's live pointer and open questions. One per feature, so concurrent flows never share a writer</td><td class="owner o-orch">orchestrator</td></tr>
+          <tr><td><code>features/&lt;F&gt;/feature.yaml</code></td><td>Execution facts: branch, pinned review SHA, cycles used, cost</td><td class="owner o-orch">orchestrator</td></tr>
+          <tr><td><code>…/runs/&lt;r&gt;/state.yaml</code></td><td>One team run: per-step checkpoints, verdicts, retries</td><td class="owner o-eng">that run's lead</td></tr>
+          <tr><td><code>…/runs/&lt;r&gt;/digest.md</code></td><td>The lead's collated report — the team digest, on disk</td><td class="owner o-eng">that run's lead</td></tr>
+          <tr><td><code>notes/review-…</code></td><td>Reviewer findings, namespaced per reviewer and per cycle so a loop-back can't erase the report that caused it</td><td class="owner o-val">each reviewer</td></tr>
+          <tr><td><code>expertise/&lt;agent&gt;.md</code></td><td>Durable per-agent knowledge, injected at every spawn</td><td class="owner">each agent, its own</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Three rules that hold it together</h2>
+    <div class="rules">
+      <div class="rule-card"><b>Paths, not payloads</b><span>A return is control flow. The artifact is a
+        file and the next step is told where it is. Pasting content forward burns the context budget
+        the org exists to protect.</span></div>
+      <div class="rule-card"><b>One writer per path</b><span>Every domain is declared in
+        <code>team-config.yaml</code> and enforced on every write. An agent reaching outside its own
+        paths is blocked and told which are its own.</span></div>
+      <div class="rule-card stop"><b>Bounded, then escalated</b><span>Retries are capped per step and
+        per feature. Exhausting either stops the branch, preserves the work, and brings you a
+        briefing — never a silent retry.</span></div>
+    </div>
+  </section>
+
+  <footer>
+    Reference diagram · generated from <code>SPEC.md</code> §2–§13 and <code>team-config.yaml</code>.
+    Squad colors are the ones the manifest already assigns.
+  </footer>
+</div>

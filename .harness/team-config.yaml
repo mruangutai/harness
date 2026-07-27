@@ -10,10 +10,25 @@
 schema_version: 1
 cli_min_version: "2.1.217"        # floor for the spawn env vars (DEC-83)
 
+# The MAIN SESSION is the user channel and nothing else: it spawns orchestrators,
+# relays their questions to you, and writes `## Approval` and the cross-flow log.
+# It is not an agent and has no domain — check-domain exits 0 when a payload carries
+# no agent_type, which is what lets it maintain state at all.
+main_session:
+  writes: [.harness/BRIEF.md ## Approval, .harness/PLAN.md ## Approval, .harness/logs/**]
+
+# The ORCHESTRATOR is a spawned agent, one per in-flight feature, so N flows can run
+# at once (DEC-120). Being an agent means it IS governed by check-domain — hence the
+# domain below. It cannot call AskUserQuestion; questions bubble to the main session.
 orchestrator:
-  name: Orchestrator
-  skill: .claude/skills/harness/SKILL.md   # the playbook it runs; it is not an agent
+  name: harness-orchestrator
+  skill: .claude/skills/harness/SKILL.md   # the playbook it runs
   color: blue
+  domain:
+    - { path: .harness/features/**, upsert: true }   # its feature's STATE.md, feature.yaml, runs/
+    - { path: .harness/notes/answers-*.md, upsert: true }
+    - { path: .harness/expertise/harness-orchestrator.md, upsert: true }
+    - { path: ".", read: true }
 
 paths:
   agents: .claude/agents/
@@ -22,7 +37,7 @@ paths:
   features: .harness/features/
   expertise: .harness/expertise/
 
-# Preloaded into all 15 agents at every spawn via `skills:`. KEEP THIS MINIMAL —
+# Preloaded into all 16 agents at every spawn via `skills:`. KEEP THIS MINIMAL —
 # measured at ~1,727 tokens per spawn, ~59k per feature (DEC-105).
 universal_rules:
   - harness-handoff

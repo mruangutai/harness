@@ -44,7 +44,7 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 defect this project has already hit once.
 
 **Runtime agents never load this file.** Rule skills, injected Expertise, and `BRIEF`/`PLAN`/`STATE` are
-what the 15 agents read at spawn. SPEC is a build-time artifact, so its size costs harness *development*,
+what the 16 agents read at spawn. SPEC is a build-time artifact, so its size costs harness *development*,
 never harness *operation*.
 
 ---
@@ -56,7 +56,7 @@ The harness is a standalone Claude Code workflow system. It owns four things end
 | Concern | Mechanism |
 |---|---|
 | **State** | harness-owned files under `.harness/` (§2) |
-| **Org** | 15 agents in 3 squads under 3 domain leads (§3) |
+| **Org** | 16 agents: `harness-orchestrator` (one per in-flight feature) + 15 in 3 squads under 3 domain leads (§3) |
 | **Execution** | an orchestrator loop plus declarative teams (§10, §12) |
 | **Discipline delivery** | each agent self-injects its own rule files (§7) |
 
@@ -77,8 +77,8 @@ Four files plus `harness.json` and one directory:
 |---|---|---|---|
 | `.harness/BRIEF.md` | North star: Goal, Requirements (REQ-NN), Constraints, **Success Criteria (SC-NN)**, `## Approval`. Stable across the project. **The goal of record** — every goal-check anchors here. | all personas | `harness-pm` (drafts) · **user approves** |
 | `.harness/PLAN.md` | Active plan: `## Decisions` (D-NN), `## Approval` (user marker + date), `## Features` (FEAT-NN: name, `traces:` REQs, its tasks — §11), `## Tasks` (T-NN: paths, intent, `verify:`, `traces:`, `feature:`, `change_type:`, `status:`). | all personas | `harness-pm` (except `## Approval` → orchestrator) |
-| `.harness/STATE.md` | Live handoff digest — `## Current` (a *pointer* to the in-flight run's `state.yaml`, not a copy) + `## Open Questions`. Nothing else. **Bounded by construction** — no rotation rule needed. | all personas at spawn | **orchestrator only** |
-| `.harness/logs/<YYYY-MM-DD>.md` | Append-only activity stream, one file per day. Each entry is a rolled-up DIGEST: `time · run · team · agent · verdict · files · headline`. **Not loaded at spawn** — read only when a task explicitly calls for history. Pruned on a recurring schedule. | on request only | **orchestrator only** |
+| `.harness/features/<FEAT>/STATE.md` | Live handoff digest **per flow** — `## Current` (a *pointer* to the in-flight run's `state.yaml`, not a copy) + `## Open Questions`. Nothing else. **Bounded by construction** — no rotation rule needed. Per-feature since DEC-120: with N concurrent flows a single project-level file would have N writers | that flow's agents at spawn | **that feature's orchestrator only** |
+| `.harness/logs/<YYYY-MM-DD>.md` | Append-only **cross-flow** stream, one file per day: flow started, escalation raised, question answered, briefing held. Per-flow detail lives in that feature's `STATE.md` and run dirs. **Not loaded at spawn.** Pruned on a recurring schedule. | on request only | **main session only** — kept single-writer by being the one thing above the flows (DEC-120) |
 | `.harness/DESIGN.md` | Visual design contract: palette, type scale, spacing, component direction, light/dark. Established during `/harness-init`'s design pass; the authority UI work implements against. | frontend-dev, documentor, ui-reviewer | `harness-visual-designer` |
 | `.harness/notes/` | Durable artifacts, **feature-scoped where they belong to a feature**: `research-<topic>.md`, `mockups/*.html`, `prototypes/<FEAT>/`, `review-<persona>-<runid>.md`, `uat-<FEAT>.md`, `ship-review-<FEAT>-<runid>.md`, `answers-<FEAT>-<runid>.md`, `feedback.md` (leads-only read), `history/`. | pm, documentor, reviewers, leads | pm, visual-designer, reviewers, orchestrator (`feedback.md`, `answers-*`, `ship-review-*`) |
 
@@ -94,8 +94,9 @@ back *down*:
 1. **Orchestrator takes the user's prompt** and delegates it to the corresponding team member(s).
 2. **Members return questions** — the `open_questions` field in every DIGEST (§8) is the channel.
    Any persona may raise them; a member never blocks waiting on a human.
-3. **Orchestrator asks the user** (`AskUserQuestion` — the main session is the only tier with a user
-   channel).
+3. **The question reaches the main session, which asks you** (`AskUserQuestion` — still the only
+   tier with a user channel, but since DEC-120 the orchestrator is a *spawned agent*, so it cannot
+   ask either. Questions bubble one tier further: member → lead → orchestrator → main session).
 4. **Orchestrator re-delegates with the answers** written to disk and passed as an input path.
 
 `open_questions` is an **active routing signal, not a passive count**: non-empty → the orchestrator
@@ -150,10 +151,13 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
   `notes/review-<persona>-<runid>-c<cycle>.md` so a parallel reviewer panel cannot collide **and a
   loop-back cannot overwrite the report that caused it** — without the cycle component, the PASS on
   cycle 2 destroys the FAIL evidence from cycle 1 (DEC-117).
-- **`## Approval` blocks are orchestrator-written** — the one carve-out to single-owner.
+- **`## Approval` blocks are written by the MAIN SESSION** — the one carve-out to single-owner.
+  It moved off the orchestrator with DEC-120: approval requires asking you, and only the main
+  session can.
   `BRIEF.md` / `PLAN.md` are pm-owned *except* their `## Approval` section, which only the
   orchestrator writes (it alone has the user channel). **pm never self-approves.**
-- **`STATE.md` is orchestrator-owned (single writer).** In **flat** mode workers return their DIGEST
+- **Each feature's `STATE.md` is owned by that feature's orchestrator (single writer).** One
+  orchestrator per feature is what keeps it single-writer under concurrent flows (DEC-120). In **flat** mode workers return their DIGEST
   to the orchestrator, which appends it. In **hierarchical** mode workers return to the lead; the
   lead's consolidated DIGEST carries a **per-member log block**, and the orchestrator appends those
   — so per-worker granularity survives without a second writer.
@@ -202,7 +206,7 @@ on the `log_retention_days` schedule.
 
 ---
 
-## 3. The org — 15 agents in 3 squads
+## 3. The org — 16 agents: an orchestrator plus 15 in 3 squads
 
 **You (CEO)** — sovereign. Define the goal, approve `BRIEF.md` and `PLAN.md`, own the merge.
 
@@ -255,7 +259,7 @@ paths:
   teams:  .claude/skills/harness/teams/
   features: .harness/features/
 
-universal_rules:                            # preloaded by all 15 via `skills:` (§7)
+universal_rules:                            # preloaded by all 16 via `skills:` (§7)
   - harness-handoff
   - harness-expertise
 
@@ -349,7 +353,7 @@ the request semantically at delegation time. There is no `domain:` field on a ta
 — Claude Code resolves agents by name.
 
 **`universal_rules` stays minimal** — just `handoff` and `expertise`. Every entry is preloaded in
-full into all 15 agents at every spawn (§7), so a long list reintroduces exactly the context bloat
+full into all 16 agents at every spawn (§7), so a long list reintroduces exactly the context bloat
 the compact-return design exists to prevent.
 
 ### 3.2 Team conventions — binding technology choices
@@ -692,7 +696,7 @@ Two properties follow, and both matter:
   it. This is the same class of mechanism that makes `skills:` reliable (§7).
 - **No tool grant required.** A reviewer holding only `Read`/`Grep` still starts with its Expertise
   loaded. This is precisely why native `memory:` was rejected (§4.0): it would deliver the same
-  content but silently add `Write`/`Edit` to all 15 agents.
+  content but silently add `Write`/`Edit` to all 16 agents.
 
 An agent reads **only its own** file. One bounded exception: a lead may read a member's file during a
 curation pass (§5.4).
@@ -733,7 +737,7 @@ insight:
 
 | Layer | Where |
 |---|---|
-| The rule | the `harness-expertise` skill — preloaded by all 15 agents via `skills:` (§7): *"Update ONLY if you learned something that would change how you'd act next time."* Most tasks teach nothing durable and should produce **no** update. |
+| The rule | the `harness-expertise` skill — preloaded by all 16 agents via `skills:` (§7): *"Update ONLY if you learned something that would change how you'd act next time."* Most tasks teach nothing durable and should produce **no** update. |
 | Visibility | every update rides the DIGEST as an explicit op with a `why` — so it is observable before it lands, not discovered later |
 | Correction | curation (§5.4) catches what slipped through |
 
@@ -891,7 +895,7 @@ therefore *cannot* be agent-writable without breaking distribution.
 | `code-review` | code-reviewer | two-stage review |
 | `zero-micro-management` | the 3 leads | delegate, never execute |
 
-Two are universal, so **they load on all 15 agents at every spawn — keep those two shortest.** An
+Two are universal, so **they load on all 16 agents at every spawn — keep those two shortest.** An
 earlier count said "seven" and omitted `systematic-debugging`, which §3.4 has always listed.
 
 **Rules are uniform across all projects — there is no per-project rule overlay.** Project-specific
@@ -1197,9 +1201,9 @@ review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) 
 > the main conversation:
 >
 > ```
-> main session (orchestrator)   layer 0 — not counted
+> main session (user channel)   layer 0 — not counted
 >   └─ leads                    layer 1   ✓ can spawn
->       └─ team members         layer 2   ✓ run, but cannot spawn
+>       └─ team members         layer 3   ✓ run, but cannot spawn (verified at cap 3, DEC-120)
 >           └─ anything         layer 3   ✗ unreachable
 > ```
 >
@@ -1717,7 +1721,7 @@ rides the existing skill distribution. Teams are DAG-shaped data, support commen
 LLM-parsed at runtime with no build step.
 
 **A team is SINGLE-SQUAD by construction.** `lead:` is singular and required, a lead may only
-dispatch its own squad's members, and depth is capped at 2 — so a lead cannot spawn another lead to
+dispatch its own squad's members, and a lead cannot spawn another lead to
 reach across (that second lead would land at layer 2 with `Agent` withheld, and its members at an
 unreachable layer 3, DEC-102). Multi-squad lifecycles are therefore **orchestrator playbooks that
 sequence one team run per squad**, each with its own lead and its own run dir, not single teams
@@ -1894,7 +1898,7 @@ whole of composability in v1.
 nested runner. That is what would remove the accepted panel duplication (§13). It is not built in
 v1; the runner algorithm (§12.1) has no flattening step.
 
-**Hard limit:** a team is launched by the orchestrator (main session) or conducted by a lead —
+**Hard limit:** a team is launched by an orchestrator agent or conducted by a lead —
 **never from inside a worker persona.** Workers are leaves; one nesting level.
 
 ---

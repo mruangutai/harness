@@ -48,9 +48,10 @@ HOOK_SPECS = [
     },
 ]
 DEPTH_KEY = "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH"
-DEPTH_VAL = "2"
-DEPTH_WHY = ("Pins nesting to orchestrator -> lead -> worker. The current default is 3, "
-             "which lets WORKERS delegate — the opposite of the intended guarantee (DEC-83).")
+DEPTH_VAL = "3"
+DEPTH_WHY = ("Pins nesting to main-session -> orchestrator -> lead -> worker (DEC-120). "
+             "Verified at this value: layers 1 and 2 can spawn, layer 3 runs with Agent "
+             "withheld, layer 4 is unreachable — so workers stay leaves.")
 
 CMD = "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/%s"
 

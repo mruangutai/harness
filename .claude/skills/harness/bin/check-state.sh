@@ -33,7 +33,9 @@ if not os.path.isdir(H):
 
 brief = read(os.path.join(H, "BRIEF.md"))
 plan  = read(os.path.join(H, "PLAN.md"))
-state = read(os.path.join(H, "STATE.md"))
+# STATE.md is per-feature since DEC-120; read them all.
+states = {os.path.basename(os.path.dirname(p)): read(p)
+          for p in glob.glob(os.path.join(H, "features", "*", "STATE.md"))}
 
 def approved(txt):
     if not txt: return False
@@ -65,11 +67,12 @@ if plan is not None:
         if "change_type:" not in body:
             bad.append(f"{tid} has no change_type: — the qa gate cannot be applied to it.")
 
-# --- INV-5: STATE must not point at a task the plan does not contain.
-if state and plan:
-    for tid in set(re.findall(r"\bT-\d+\b", state)):
-        if not re.search(rf"^-\s*{tid}:", plan, re.M):
-            bad.append(f"STATE.md references {tid}, which is absent from PLAN.md.")
+# --- INV-5: no flow's STATE may point at a task the plan does not contain.
+if plan:
+    for feat, state in states.items():
+        for tid in set(re.findall(r"\bT-\d+\b", state or "")):
+            if not re.search(rf"^-\s*{tid}:", plan, re.M):
+                bad.append(f"{feat}/STATE.md references {tid}, which is absent from PLAN.md.")
 
 # --- INV-6..8: per-feature execution facts.
 for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
@@ -112,9 +115,10 @@ if sett is None:
                "prerequisites are unset, and both degrade silently.")
 else:
     depth = (sett.get("env") or {}).get("CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH")
-    if depth != "2":
-        bad.append(f"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH is {depth!r}, expected \"2\". "
-                   f"The default is 3, which lets WORKERS delegate (DEC-83).")
+    if depth != "3":
+        bad.append(f"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH is {depth!r}, expected \"3\". "
+                   f"The org needs 3 layers below the main session: orchestrator, lead, "
+                   f"member (DEC-120). At 2 the members layer cannot be reached.")
     hooks = sett.get("hooks") or {}
     if not hooks.get("SubagentStart"):
         bad.append("No SubagentStart hook — every agent starts with NO Expertise, "

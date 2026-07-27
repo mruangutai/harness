@@ -6,7 +6,7 @@ Route-not-stack architecture. Each lifecycle phase has one framework authority.
 
 Rules are **flat skills** at `.claude/skills/harness-<name>/SKILL.md`, delivered by each agent's
 `skills:` frontmatter field — Claude Code injects the full content at spawn. Nothing needs to "read"
-them, and there is no `agent_skills` config. The eight: `handoff` and `expertise` (all 15 agents),
+them, and there is no `agent_skills` config. The eight: `handoff` and `expertise` (all 16 agents),
 plus `tdd-enforcement`, `systematic-debugging`, `spec-driven`, `verification-rules`, `code-review`,
 `zero-micro-management` (role-scoped).
 

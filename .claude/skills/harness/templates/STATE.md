@@ -1,4 +1,8 @@
-<!-- TEMPLATE — ORCHESTRATOR-OWNED, single writer. Every agent reads this at spawn,
+<!-- TEMPLATE — instantiated at .harness/features/<FEAT>/STATE.md, ONE PER FLOW, owned by that
+     feature's orchestrator (DEC-120). Per-feature because N concurrent flows would otherwise give
+     a single project-level file N writers.
+
+     Single writer. Every agent reads this at spawn,
      so it must stay small: `## Current` and `## Open Questions`, nothing else.
 
      HISTORY DOES NOT LIVE HERE. The activity stream is .harness/logs/<date>.md,

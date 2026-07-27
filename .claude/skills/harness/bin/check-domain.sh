@@ -7,7 +7,7 @@
 #       "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] }]
 #
 # Agent identity comes from `agent_type` in the hook payload, because one global
-# registration serves all 15 agents. Agent-frontmatter PreToolUse hooks DO NOT FIRE
+# registration serves all 16 agents. Agent-frontmatter PreToolUse hooks DO NOT FIRE
 # for spawned subagents in this environment (DEC-110, verified three times).
 #
 # VERIFIED (DEC-100): exit 2 blocks the tool call and stderr reaches the agent.
@@ -39,9 +39,10 @@ except Exception:
 ' 2>/dev/null)"
 [ -n "$agent" ] || agent="${1:-}"
 
-# NO agent identity = the main session (the orchestrator), not a subagent.
-# Never govern the orchestrator: it legitimately writes everywhere, and blocking it
-# would make the harness unable to maintain its own state.
+# NO agent identity = the MAIN SESSION, not a subagent. Since DEC-120 the orchestrator
+# is a spawned agent and IS governed like any other; this carve-out now protects only
+# the main session, which writes little: `## Approval` blocks and the cross-flow log.
+# Never govern it — blocking it would make the harness unable to record your decisions.
 [ -n "$agent" ] || exit 0
 
 # Only harness agents are subject to domains.

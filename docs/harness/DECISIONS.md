@@ -2472,3 +2472,88 @@ a file the domain hook **blocks** it from writing, verified. Third time the same
 (cost in DEC-116, timestamps in DEC-116, cycles here): **an instruction that assumes a capability the
 tier's tool and domain grants deny.** Worth a standing check when writing any agent-facing prose —
 before telling a tier to do something, confirm its grants permit it.
+
+---
+
+## DEC-120 — The orchestrator becomes a spawned agent; the main session becomes the user channel
+
+**Supersedes DEC-102's conclusion** that `depth: 2` "is exactly the harness shape". The shape
+changed. <!-- stale: "depth=\"2\" is exactly the harness shape" -->
+
+### Why
+
+The operator wants **several flows in flight at once**, seeing only escalations, briefings and
+questions that genuinely need a decision. That is impossible while the orchestrator *is* the main
+session: one session, one conversation, one orchestrator, and its context is your entire chat —
+which DEC-114 measured as the dominant cost line.
+
+Making the orchestrator a spawned agent gives each flow a fresh bounded context and lets N run
+concurrently. The accepted cost is an extra round-trip: an orchestrator cannot call
+`AskUserQuestion`, so every approval, question and briefing bubbles to the main session, which asks
+and re-delegates. That is the existing `open_questions` → ask → `resume_from` mechanism (§2.1),
+applied one tier higher — not new machinery.
+
+```
+main session — thin. user channel, nothing else.        layer 0
+  ├─ harness-orchestrator (FEAT-01)                     layer 1
+  │    └─ lead ── members                               layers 2, 3
+  └─ harness-orchestrator (FEAT-02)                     layer 1
+       └─ lead ── members                               layers 2, 3
+```
+
+### What it forces
+
+**Depth 2 → 3 — VERIFIED, not inferred.** Members land at layer 3, and the guarantee that "workers
+are always leaves" has to survive the move. Depth semantics have already changed three times across
+CLI bands, so this was probed rather than reasoned about: four chained probe agents, each granted
+`Agent` in frontmatter and each asked to report whether the tool was actually present, run with
+`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3"` on CLI 2.1.220.
+
+```
+layer 1  Agent: YES  -> spawned layer 2
+layer 2  Agent: YES  -> spawned layer 3
+layer 3  Agent: NO   -> chain terminated; layer 4 never ran
+```
+
+Layer 3 reported searching its full tool inventory, including the deferred pool via `ToolSearch`,
+and finding no spawn tool. So the platform still enforces leaf-ness by **withholding** rather than
+erroring, one layer lower than before — exactly the shape the org needs: orchestrator and lead can
+delegate, members cannot.
+
+**What this did not test:** the probe used generic agents, not the real roster. It establishes the
+platform's behaviour at cap 3, not that an `orchestrator → lead → member` chain of actual harness
+agents works end to end. That is the next proving run, and it belongs with the first orchestrator.
+
+**A spawned orchestrator is governed.** `check-domain.sh` exits 0 when the payload carries no
+`agent_type`, on the reasoning that the main session "legitimately writes everywhere". Once the
+orchestrator is `harness-orchestrator` it has an identity and needs a real domain —
+`features/<FEAT>/**`, `logs/`, `notes/answers-*`. The carve-out still applies, but now it protects
+the *main session*, which after this change writes almost nothing.
+
+**`STATE.md` moves per-feature.** It is specified single-writer, and N orchestrators would give it N
+writers. It becomes `.harness/features/<FEAT>/STATE.md`, owned by that feature's orchestrator, and
+the project-level file is dropped. The trade the operator accepted: no single file answers "what is
+happening right now" — the main session scans `features/*/STATE.md`, which is cheap because the
+index is small. `feature.yaml` needs no change; one orchestrator per feature was already
+single-writer.
+
+### Entry — two doors, deliberately
+
+Commands do not distribute (DEC-06), so both are skills.
+
+| Door | Purpose |
+|---|---|
+| `/harness` | The general door. Bare = list in-flight flows and their pending questions. With a target and goal = spawn an orchestrator for it |
+| `/harness-plan` · `/harness-ship` · `/harness-debug` | Verb doors. Each spawns an orchestrator preloaded with that lifecycle playbook |
+
+Both exist because they answer different questions: the verb doors are unambiguous when you know
+what you want, and `/harness` is where you go when you do not — or when you just want to know what
+is running. This is also the **only** moment the main session learns its role: it has no
+frontmatter, so nothing injects a playbook into it. Before this, that level was referenced six times
+across SPEC and BUILD ("at every `/harness` entry") and defined nowhere — which is why all three
+test runs had orchestration hand-written into the prompt.
+
+### Not yet settled
+
+Whether the multi-squad lifecycles (`plan-feature`, `ship-feature`, DEC-118) are playbooks the
+orchestrator *reads*, or a DAG format it *executes* like a team. Deferred until one exists.

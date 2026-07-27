@@ -12,14 +12,14 @@ touches anything here; init writes it once. That split is what lets deploy run u
 |---|---|---|
 | `BRIEF.md` | The **goal of record**: Goal, `REQ-NN`, Constraints, `SC-NN` (each with a `verify:` method), `## Approval`. Stable across the project. | `pm` drafts · **you** approve |
 | `PLAN.md` | Active plan: `## Decisions` (`D-NN`), `## Approval`, `## Features` (`FEAT-NN`), `## Tasks` (`T-NN`, each with `change_type:`) | `pm` — except `## Approval` |
-| `STATE.md` | Live pointer only: `## Current` + `## Open Questions`. **No history** — that is what `logs/` is for, which is why this file needs no rotation rule | **orchestrator only** |
 | `DESIGN.md` | The visual design contract: palette in both themes, type scale, spacing, component direction | `visual-designer` |
 | `team-config.yaml` | **The org as data** — membership, `consult-when` routing, and each agent's writable `domain`. Read by `check-domain.sh` on every write | `/harness-init`, seeded from detection |
 | `harness.json` | `test_matrix`, `test_kinds`, `gates`, `cost_model`, `budgets`, `log_retention_days` | `/harness-init` · `dev-ops` fills `test_kinds` |
 | `expertise/<agent>.md` | Per-agent durable knowledge, injected at every spawn by the `SubagentStart` hook | each agent, its own file only |
 | `notes/` | Durable artifacts: `research-*`, `review-<persona>-<runid>-c<cycle>.md`, `mockups/`, `prototypes/`, `uat-<FEAT>.md`, `answers-<FEAT>-<runid>.md` | the owning agent |
-| `logs/<date>.md` | Append-only activity stream, one file per day. Never loaded at spawn | **orchestrator only** |
-| `features/<FEAT>/feature.yaml` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, cost, run list | **orchestrator only** |
+| `logs/<date>.md` | Append-only **cross-flow** stream: flow started, escalation, briefing. Never loaded at spawn | **main session only** |
+| `features/<FEAT>/STATE.md` | That flow's live pointer: `## Current` + `## Open Questions`. **No history** — `logs/` is for that. One per feature, so concurrent flows never share a writer | that feature's **orchestrator** |
+| `features/<FEAT>/feature.yaml` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, cost, run list | that feature's **orchestrator** |
 | `features/<FEAT>/runs/<run>/` | One team run: `state.yaml` + the lead's `digest.md` | that run's **lead** |
 | `teams/*.yaml` | *Optional.* Project overrides for shipped team definitions | you |
 
@@ -35,10 +35,11 @@ Three rules explain most of the table:
 
 - **Members write their own artifacts, never a run directory.** The run dir belongs to the lead. A
   member's outputs go to its own namespaced path — which is also what makes parallel steps safe.
-- **`## Approval` is orchestrator-written.** `pm` owns `BRIEF.md` and `PLAN.md` but never signs
-  them, because only the main session can ask you.
-- **The orchestrator owns anything spanning runs** — `STATE.md`, `logs/`, `feature.yaml`, and with
-  them the feature-wide cycle and cost budgets. Leads own one run each.
+- **`## Approval` is written by the main session.** `pm` owns `BRIEF.md` and `PLAN.md` but never
+  signs them, because signing means asking you and only the main session has a user channel.
+- **An orchestrator owns its whole feature** — that flow's `STATE.md`, `feature.yaml`, and the
+  feature-wide cycle and cost budgets. Leads own one run each; the main session owns only the
+  cross-flow log and your approvals.
 
 ## How work flows
 
@@ -46,7 +47,8 @@ A **team** is a lead plus its members. The lead conducts a DAG of steps, dispatc
 squad (`harness-team` skill; definitions in `.claude/skills/harness/teams/*.yaml`).
 
 ```
-orchestrator ──▶ lead ──▶ members        depth is capped at 2, so members are always leaves
+main session ──▶ orchestrator ──▶ lead ──▶ members
+     (user channel)   (one per flow)                depth 3: members are always leaves
 ```
 
 Handoff is **by file path, never by conversation**. Each agent writes an artifact and returns a
