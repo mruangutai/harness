@@ -44,7 +44,13 @@ artifact: .harness/features/FEAT-01/runs/r1/digest.md
 """
 case("lead, block-style members + bare empty key", "harness-eng-lead", LEAD_BLOCK, True)
 
-# Same content, every list inline. Both styles are legal YAML and agents write both.
+# Every list inline. Both styles are legal YAML and agents write both.
+#
+# NOTE the members entries are still STRUCTURED. An earlier version of this case used
+# bare strings (`[code-reviewer PASS, qa PASS]`) and the roll-up check rejected it —
+# correctly. That shorthand is not a format SPEC 10.4 sanctions: it drops `step` and
+# `files_touched`, which are the per-member granularity the field exists to carry, and
+# it leaves the team verdict underivable. The test was wrong, not the validator.
 case("lead, fully inline lists", "harness-validator-lead", """
 VERDICT: PASS
 DIGEST:
@@ -52,7 +58,7 @@ DIGEST:
   team: review
   steps_run: 5
   cycles_used: 0
-  members: [code-reviewer PASS, security-reviewer PASS, qa PASS, ui-reviewer n/a]
+  members: [{ step: s1, persona: code-reviewer, verdict: PASS }, { step: s2, persona: qa, verdict: PASS }]
   must_fix: []
   branch: none
   files_touched: []
@@ -218,6 +224,90 @@ DIGEST:
   headline: whatever
 artifact: x.md
 """, False, "no VERDICT")
+
+
+# The roll-up is the only part of collation that is arithmetic. It was prose with a
+# validator next to it that could check it and didn't — the shape of DEC-19/110/119.
+case("PASS over a failing member is rejected", "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: two of three passed
+  team: build
+  steps_run: 3
+  cycles_used: 0
+  members:
+    - { step: s1, persona: backend-dev, verdict: PASS }
+    - { step: s2, persona: qa, verdict: FAIL }
+  must_fix: ["refresh path untested"]
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "worst member verdict")
+
+# ESCALATE outranks FAIL: a decision only the user can make must not be masked by a
+# failure the team could have fixed.
+case("FAIL over an escalating member is rejected", "harness-validator-lead", """
+VERDICT: FAIL
+DIGEST:
+  headline: panel found issues and one open decision
+  team: review
+  steps_run: 4
+  cycles_used: 0
+  members:
+    - { step: s1, persona: code-reviewer, verdict: FAIL }
+    - { step: s2, persona: security-reviewer, verdict: ESCALATE }
+  must_fix: ["fail-open branch"]
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "ESCALATE")
+
+# Reporting WORSE than the members is allowed — a lead may have its own reason.
+case("lead may report worse than its members", "harness-eng-lead", """
+VERDICT: BLOCKED
+DIGEST:
+  headline: members passed but the branch will not build
+  team: build
+  steps_run: 2
+  cycles_used: 0
+  members:
+    - { step: s1, persona: backend-dev, verdict: PASS }
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", True)
+
+case("a members entry with no verdict is rejected", "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: clean
+  team: build
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - { step: s1, persona: backend-dev, headline: "did the thing" }
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "no verdict")
 
 
 def main():

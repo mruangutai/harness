@@ -1468,7 +1468,11 @@ DIGEST:
 artifact: <run_dir>/digest.md         # the lead's collated report, same shape as this block
 ```
 
-The per-member block is what preserves `STATE.md` granularity under hierarchy.
+The per-member block is what preserves `STATE.md` granularity under hierarchy. **Each entry carries
+its own `verdict:`** — the team verdict is computed from them, and `validate-digest.py` rejects a
+roll-up that reports better than its worst member (reporting *worse* is allowed; a lead may have a
+reason its members could not see). Bare-string entries like `[qa PASS]` are not a substitute: they
+drop `step` and `files_touched`, which is the granularity the field exists to carry.
 
 **One key per line.** An earlier version of this template packed `team`, `steps_run` and
 `cycles_used` onto a single source line to save space. That is not YAML: a lead copying it verbatim

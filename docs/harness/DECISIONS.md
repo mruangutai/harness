@@ -1367,6 +1367,7 @@ into an observation; and one real bug found and fixed in `harness-qa-gate` (DEC-
 SC-2 is the one cost that cannot be absorbed by spending more.
 
 ## DEC-100 — All four platform unknowns resolved empirically
+<!-- stale: "rules/handoff.md" -->
 
 Probed 2026-07-26 with throwaway agents and hooks, since cleaned up. Three of four settled outright; the
 fourth is settled in substance with one link resting on documentation.
@@ -1842,6 +1843,7 @@ This is the third recurrence (DEC-103, then the §0b claim, now caught only by r
 conclusion is that no amount of care substitutes for the marker being part of writing the DEC.
 
 ## DEC-110 — Agent-frontmatter `PreToolUse` does not fire; the domain hook moves to `settings.json` and WORKS
+<!-- stale: in each agent's frontmatter -->
 <!-- stale: "SCRIPT WORKS, DELIVERY DOES NOT" -->
 <!-- stale: "Domain enforcement is currently fail-open" -->
 
@@ -2469,6 +2471,13 @@ before telling a tier to do something, confirm its grants permit it.
 ---
 
 ## DEC-120 — The orchestrator becomes a spawned agent; the main session becomes the user channel
+<!-- stale: the main session — not an agent -->
+<!-- stale: orchestrator = the main session -->
+<!-- stale: main-session orchestrator -->
+<!-- stale: .harness/STATE.md -->
+<!-- stale: One feature in flight at a time -->
+<!-- stale: all 15 agents -->
+<!-- stale: all 15 personas -->
 
 **Supersedes DEC-102's conclusion** that `depth: 2` "is exactly the harness shape". The shape
 changed.
@@ -2558,6 +2567,7 @@ orchestrator *reads*, or a DAG format it *executes* like a team. Deferred until 
 ---
 
 ## DEC-121 — Every digest field is required; `[]` is how you say nothing
+<!-- stale: expertise_updated -->
 
 The validator built in DEC-101 skipped absent fields by design — *"presence is the persona's
 business; shape is ours"*. Demonstrated against the real `review` run's lead digest, that meant it

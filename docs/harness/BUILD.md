@@ -548,8 +548,9 @@ Proves the whole idea works at minimal surface.
    > **Corrected (DEC-118).** This step originally specified `team/SKILL.md` and a
    > `pm → backend-dev` team under `lead: eng-lead`. Both were unbuildable. The runner path is
    > nested and undiscoverable (DEC-100) — it is `harness-team/SKILL.md`. And `pm` is Product-squad
-   > while `eng-lead` leads Engineering: a lead only dispatches its own members, and the depth-2 cap
-   > means it cannot spawn a peer lead to reach across either. Step 3 predates the three-squad org
+   > while `eng-lead` leads Engineering: a lead only dispatches its own members, and the spawn-depth
+   > cap means it cannot spawn a peer lead to reach across either — a lead spawned by a lead would
+   > land one layer too deep and its members below the cap (DEC-118, re-based on depth 3 by DEC-120). Step 3 predates the three-squad org
    > that step 2 of this same list creates. The three things it asks to prove are unchanged and were
    > proven; only the vehicle differs.
 
@@ -610,7 +611,7 @@ Beyond "build personas + assemble them." Prune freely.
 | 16 | `.harness/README.md` | **REWRITE, not create** — it already exists and contradicts this design. See the detail block below. **Owner: `documentor`.** |
 | 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.sh`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
 | 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what makes deploy safe to be dumb.** |
-| 19 | `.claude/skills/harness-handoff/SKILL.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 16 agents. Create it in MVP step 1 alongside the first persona. A **flat** skill, not `rules/handoff.md` (DEC-100). |
+| 19 | `.claude/skills/harness-handoff/SKILL.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 16 agents. Create it in MVP step 1 alongside the first persona. A **flat** skill, not `rules/handoff.md` (DEC-100). | <!-- ok-stale -->
 
 **Also net-new, and reshaped:** all seven rules become **skill directories**
 (**flat**: `.claude/skills/harness-<name>/SKILL.md`, per DEC-100) referenced as `harness-<name>` in each agent's `skills:` frontmatter

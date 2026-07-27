@@ -98,11 +98,42 @@ def strip_comment(v):
     return "".join(out).strip()
 
 
+def split_items(s):
+    """Split an inline YAML list on top-level commas only.
+
+    A naive `s.split(",")` shreds structured entries: the members list is written
+    `[{ step: s1, persona: qa, verdict: PASS }, ...]`, and splitting every comma
+    turns one entry into three fragments — none of which carries a `verdict:`, so
+    the roll-up check reported four bogus violations against a valid digest.
+    """
+    items, buf, depth, q = [], [], 0, None
+    for c in s:
+        if q:
+            buf.append(c)
+            if c == q:
+                q = None
+            continue
+        if c in "\"'":
+            q = c
+        elif c in "[{":
+            depth += 1
+        elif c in "]}":
+            depth -= 1
+        elif c == "," and depth == 0:
+            items.append("".join(buf).strip())
+            buf = []
+            continue
+        buf.append(c)
+    if "".join(buf).strip():
+        items.append("".join(buf).strip())
+    return [i for i in items if i]
+
+
 def parse_scalar(v):
     v = v.strip().strip('"\'')
     if v.lower() in ("true", "false"): return v.lower() == "true"
     if re.fullmatch(r"-?\d+", v): return int(v)
-    if v.startswith("["): return [x.strip() for x in v[1:-1].split(",") if x.strip()]
+    if v.startswith("["): return split_items(v[1:-1])
     return v
 
 def parse_digest(text):
@@ -228,6 +259,44 @@ def validate(persona, text):
             err.append(f"{field}={val!r} must be an integer.")
         elif allowed is list and not isinstance(val, list):
             err.append(f"{field}={val!r} must be a list.")
+
+    # --- LEAD ROLL-UP: the top verdict must be the WORST member verdict (SPEC 10.4).
+    #
+    # This is the only part of collation that is arithmetic rather than judgement, and
+    # it was the one thing stated in prose with a validator sitting next to it that
+    # could check it and didn't — the DEC-19 / DEC-110 / DEC-119 shape exactly. A lead
+    # reporting PASS over a failing member is the single most consequential digest
+    # error possible: the orchestrator routes on VERDICT and never opens member
+    # entries (SPEC 8), so a masked FAIL ships.
+    #
+    # ESCALATE outranks FAIL deliberately: a decision only the user can make must not
+    # be hidden behind a failure the team could have fixed.
+    if persona == "lead" and isinstance(seen.get("members"), list) and m:
+        RANK = {"PASS": 0, "FAIL": 1, "ESCALATE": 2, "BLOCKED": 3}
+        top = m.group(1)
+        worst, worst_src = None, None
+        for item in seen["members"]:
+            mv = re.search(r"\bverdict:\s*([A-Za-z]+)", str(item))
+            if not mv:
+                # Their data, not our bug — the normative template carries a verdict in
+                # every member entry, and without one the roll-up is undecidable.
+                err.append(f"a members entry has no verdict: — {str(item)[:60]!r}. "
+                           f"Every member entry needs one; the team verdict is the "
+                           f"worst of them and cannot be computed otherwise.")
+                continue
+            v = mv.group(1).upper()
+            if v not in RANK:
+                err.append(f"member verdict {mv.group(1)!r} is not one of "
+                           f"{sorted(RANK)} — the roll-up cannot rank it.")
+                continue
+            if worst is None or RANK[v] > RANK[worst]:
+                worst, worst_src = v, str(item)[:60]
+        if worst and top in RANK and RANK[top] < RANK[worst]:
+            err.append(f"VERDICT is {top} but a member returned {worst} "
+                       f"({worst_src!r}). The team verdict is the WORST member verdict "
+                       f"— BLOCKED > ESCALATE > FAIL > PASS. The orchestrator routes on "
+                       f"your VERDICT and never opens member entries, so reporting "
+                       f"{top} here hides the {worst}.")
 
     # --- open_questions is a LIST of structured items, never a count (SPEC 8).
     oq = re.search(r"^\s*open_questions:[ \t]*(.*)$", text, re.M)
