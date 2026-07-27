@@ -8,8 +8,10 @@ description: Run a harness team — a small DAG of agents hosted by a domain lea
 A team is a **DAG of steps, each dispatched to one agent**, hosted by a domain lead. This skill is
 the algorithm; the teams are data at `.claude/skills/harness/teams/*.yaml`.
 
-**You are the host.** If you are a lead, you are running your own squad's DAG. If you are the main
-session, you are running it flat. The algorithm is identical either way — only who spawns differs.
+**You are the host.** If you are a lead, you are running your own squad's DAG. If you are the
+orchestrator, you are running it flat. The algorithm is identical either way — only who spawns
+differs. **The main session never hosts a team** — since DEC-120 it is the user channel and nothing
+else; it spawns an orchestrator per flow and that orchestrator hosts.
 
 ## The two rules that make this safe
 
@@ -232,6 +234,7 @@ DIGEST:
   members:                                   # per-member roll-up — NOT optional
     - { step: <id>, persona: <p>, verdict: <v>, headline: "...", files_touched: [...] }
   must_fix: [<union of blocking findings>]
+  files_touched: [<union across members>]    # universal — required of you too; [] if none
   branch: <branch | none>                    # `none` if the team mutated no repo
   files_touched: [<union across members>]    # universal field — `[]` if the team touched nothing
   open_questions: [...]                      # non-empty → the orchestrator surfaces it to the
