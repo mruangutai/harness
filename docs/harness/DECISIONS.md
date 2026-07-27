@@ -2481,7 +2481,11 @@ before telling a tier to do something, confirm its grants permit it.
 ## DEC-120 — The orchestrator becomes a spawned agent; the main session becomes the user channel
 
 **Supersedes DEC-102's conclusion** that `depth: 2` "is exactly the harness shape". The shape
-changed. <!-- stale: "depth=\"2\" is exactly the harness shape" -->
+changed.
+<!-- stale: SPAWN_DEPTH": "2" -->
+<!-- stale: SPAWN_DEPTH: "2" -->
+<!-- stale: one nesting level -->
+<!-- stale: workers are always leaves -->
 
 ### Why
 
@@ -2643,3 +2647,8 @@ as what it blocks:
 That last row is a deliberate asymmetry. Everywhere else this design prefers failing closed; here,
 the blast radius of our own bug is every subagent everywhere, and the failure is loud rather than
 silent — which is the property that actually matters.
+
+<!-- stale: three prerequisites -->
+<!-- stale: ALL THREE entries -->
+<!-- stale: all three entries -->
+<!-- stale: three `settings.json` -->

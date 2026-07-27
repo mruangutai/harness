@@ -21,7 +21,7 @@ that would expose it.
 
 | Unknown | Result |
 |---|---|
-| `SubagentStart` fires for nested spawns? | **YES** — logged 1 top-level + 3 nested. Expertise reaches workers |
+| `SubagentStart` fires for nested spawns? | **YES** — logged 1 top-level + 3 nested. Expertise reaches members |
 | Nested skill dirs discoverable? | **NO** — skills must be flat. The four artifacts were invisible until fixed |
 | Parallel fan-out from inside a lead? | **YES** — 3 concurrent layer-2 spawns |
 | `PreToolUse` `exit 2` blocks a subagent write? | **YES from `settings.json`** — verified live end-to-end. **NO from agent frontmatter** — 3 forms, 0 executions (DEC-110) |
@@ -35,7 +35,7 @@ the CLI version (below).
 ```json
 {
   "env": {
-    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2"
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"
   },
   "hooks": {
     "SubagentStart": [
@@ -47,21 +47,37 @@ the CLI version (below).
       { "matcher": "Write|Edit",
         "hooks": [{ "type": "command",
                     "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] }
+    ],
+    "SubagentStop": [
+      { "matcher": "harness-.*",
+        "hooks": [{ "type": "command",
+                    "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/validate-digest.py --hook" }] }
     ]
   }
 }
 ```
 
-⚠️ **All FOUR entries are required, and `SubagentStop` is the one most recently added (DEC-122).** It carries no
-matcher on agent name deliberately — one global registration serves all 15, and the script dispatches on
-`agent_type` from the payload (DEC-110). If it is omitted, agents get Expertise but **domain enforcement
-is silently absent**.
+> This snippet is **documentation**; `bin/merge-settings.py` is what executes. The two cannot drift:
+> passing `--template` makes the script fail loudly if the snippet stops describing what it writes.
+
+⚠️ **All FOUR entries are required. Every one of them degrades silently when absent** — that is the
+whole reason they are a hard gate rather than a recommendation:
+
+- no `SubagentStart` → agents start memoryless;
+- no `PreToolUse` → every agent can write anywhere (DEC-110);
+- no `SubagentStop` → malformed digests are accepted and the runner routes on fields that are not
+  there (DEC-122);
+- wrong depth → the members layer is unreachable, or members can delegate (DEC-120).
+
+`PreToolUse` and `SubagentStop` dispatch on `agent_type` from the payload rather than a per-agent
+matcher, so one registration each serves the whole roster.
 
 | Setting | Enables | If missing |
 |---|---|---|
-| `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "2"` | Pins nesting to exactly orchestrator → lead → worker. Depth 2 means the worker layer **cannot** delegate further, enforcing "workers are always leaves" mechanically | **Depends on CLI version, and the current default is the risk.** At the current default of **3**, workers *can* delegate — the opposite of the intended guarantee. On 2.1.217–218 the default was 1, so leads could not spawn at all |
+| `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3"` | Pins nesting to orchestrator → lead → member (DEC-120). At 3, members run with the `Agent` tool **withheld**, so "members are always leaves" is enforced mechanically | **Depends on CLI version.** 3 is the current default, so an unset project works *today* — but the default has changed three times. At 2 the members layer is unreachable; on 2.1.217–218 the default was 1, so leads could not spawn at all |
 | `SubagentStart` hook | Expertise injection (SPEC §5.1) | Every agent starts with no Expertise and no error is raised |
 | **`PreToolUse` hook** | **Domain enforcement** (SPEC §4.2) — must be here, not in agent frontmatter, which does not fire (DEC-110) | Every agent can write anywhere. **Fail-open, silent** — the exact failure class this design tries to avoid |
+| **`SubagentStop` hook** | **Digest-contract enforcement** (SPEC §10.4) — `validate-digest.py --hook`, exit 2, which the docs state "prevents the subagent from stopping" (DEC-122) | Malformed digests are accepted by whoever reads them. Also silent: a reader normalizes drift charitably and one routing decision quietly goes wrong |
 
 > **Correction.** An earlier version of this table claimed nesting was "off by default" and that a
 > missing setting collapsed the org to flat. **That is inverted for current versions.** The `sub-agents`
@@ -77,16 +93,16 @@ is silently absent**.
 | **≥ 2.1.219** | **3** (on) | yes |
 
 **Pin the harness at CLI ≥ 2.1.217**, which is the floor for all three spawn env vars, and set the depth
-explicitly to `2` in every project. Setting it explicitly is correct in *all* bands — it is the only
-value that both guarantees leads can spawn and guarantees workers cannot.
+explicitly to `3` in every project. Setting it explicitly is correct in *all* bands — relying on the
+default means the org silently reshapes the next time it moves.
 
-**Belt-and-suspenders, and the actually-reliable mechanism:** "workers are always leaves" is enforced
-independently by **omitting `Agent` from every worker's `tools:` list**. Do that regardless of the
+**Belt-and-suspenders, and the actually-reliable mechanism:** "members are always leaves" is enforced
+independently by **omitting `Agent` from every member's `tools:` list**. Do that regardless of the
 setting; the depth cap is defence in depth, not the primary control.
 
-**`/harness-init` must write both settings, and the state-consistency check must verify them** — a
-silent degradation to flat, to memoryless agents, or to delegating workers is exactly the failure class
-this design tries to avoid.
+**`/harness-init` must write all four entries, and the state-consistency check must verify them** — a
+silent degradation to flat, to memoryless agents, to delegating members, or to unvalidated digests is
+exactly the failure class this design tries to avoid.
 
 ### 0b — Domain-enforcement hook — WORKING, via `settings.json` not frontmatter
 
@@ -153,10 +169,11 @@ turn and all three returned, so `validator-lead` runs its panel in parallel and 
 unnecessary. Size panels against the real limits: **20** concurrent subagents per session, **200** per
 session total, nested and background spawns both counting.
 
-**And the depth cap is enforced by tool withholding, not by an error** (DEC-102). At layer 2 Claude Code
-strips `Agent` from the loaded list *and* the deferred pool, so a worker cannot delegate even if granted
-`Agent` in frontmatter. "Workers are always leaves" is a platform guarantee, and a worker that tries finds
-no tool and does the work itself rather than failing.
+**And the depth cap is enforced by tool withholding, not by an error** (DEC-102). At the last permitted
+layer — layer 3 under the cap of `"3"` (DEC-120) — Claude Code strips `Agent` from the loaded list *and*
+the deferred pool, so a member cannot delegate even if granted `Agent` in frontmatter. "Members are always
+leaves" is a platform guarantee, and a member that tries finds no tool and does the work itself rather
+than failing.
 
 ---
 
@@ -216,20 +233,24 @@ Enroll = deploy + init. This split is what lets deploy be dumb and safe (DEC-12)
 
 ```json
 {
-  "env": { "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "2" },
+  "env": { "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3" },
   "hooks": {
     "SubagentStart": [ { "matcher": "harness-.*",
       "hooks": [{ "type": "command",
         "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh" }] } ],
     "PreToolUse": [ { "matcher": "Write|Edit",
       "hooks": [{ "type": "command",
-        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] } ]
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh" }] } ],
+    "SubagentStop": [ { "matcher": "harness-.*",
+      "hooks": [{ "type": "command",
+        "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/validate-digest.py --hook" }] } ]
   }
 }
 ```
 
-- `PreToolUse` carries **no agent-name matcher** deliberately: one registration serves all 15 and the
-  script dispatches on `agent_type` from the payload (DEC-110/111).
+- `PreToolUse` carries **no agent-name matcher** deliberately: one registration serves the whole roster
+  and the script dispatches on `agent_type` from the payload (DEC-110/111). `SubagentStop` works the
+  same way, and passes through any `agent_type` that is not `harness-*` (DEC-122).
 - **Merge, do not clobber.** Target projects have their own hooks — kaya-ai has five. Preserve them.
 
 **2. `.harness/harness.json`** — `test_matrix`, `test_kinds`, `gates`, `log_retention_days` (30),
@@ -346,8 +367,8 @@ Verified 2026-07-26 against `code.claude.com/docs`. **Requires CLI ≥ 2.1.217.*
 **Still empirical, not settled by docs:**
 
 1. Frontmatter `PreToolUse` `exit 2` blocking **end-to-end** (spike 0b).
-2. Whether a `settings.json` `SubagentStart` hook fires for **nested** spawns (lead→worker). If it does
-   not, the 9 workers silently lose Expertise while leads keep theirs.
+2. Whether a `settings.json` `SubagentStart` hook fires for **nested** spawns (lead→member). If it does
+   not, the 9 members silently lose Expertise while leads keep theirs.
 3. ~~Whether a nested rule dir resolves in a `skills:` list.~~ **ANSWERED (DEC-100): it does not.** A
    project skill is `.claude/skills/<skill-name>/SKILL.md`, exactly one level. All seven rule skills must
    be flat.

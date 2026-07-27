@@ -2,7 +2,7 @@
 # SubagentStart hook — inject an agent's Expertise file into its starting context.
 #
 # VERIFIED (DEC-100): SubagentStart fires for NESTED spawns too, so this reaches
-# lead-spawned workers, not just top-level agents.
+# lead-spawned members, not just top-level agents.
 #
 # Contract: stdin = hook JSON carrying `agent_type`. stdout = JSON with
 # hookSpecificOutput.additionalContext. Always exit 0 — this hook must never

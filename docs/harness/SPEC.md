@@ -157,10 +157,10 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
   `BRIEF.md` / `PLAN.md` are pm-owned *except* their `## Approval` section, which only the
   orchestrator writes (it alone has the user channel). **pm never self-approves.**
 - **Each feature's `STATE.md` is owned by that feature's orchestrator (single writer).** One
-  orchestrator per feature is what keeps it single-writer under concurrent flows (DEC-120). In **flat** mode workers return their DIGEST
-  to the orchestrator, which appends it. In **hierarchical** mode workers return to the lead; the
+  orchestrator per feature is what keeps it single-writer under concurrent flows (DEC-120). In **flat** mode members return their DIGEST
+  to the orchestrator, which appends it. In **hierarchical** mode members return to the lead; the
   lead's consolidated DIGEST carries a **per-member log block**, and the orchestrator appends those
-  — so per-worker granularity survives without a second writer.
+  — so per-member granularity survives without a second writer.
 - **Persistent files are written in place; the run dir is for *transient* step outputs.** A persona
   whose deliverable is a canonical file (pm → `PLAN.md`) writes **directly** to `.harness/PLAN.md`.
   Run-dir artifacts (`.harness/features/<feat>/runs/<run>/`) hold reports and intermediates only.
@@ -660,7 +660,7 @@ Stated once in `rules/handoff.md` and shared by all agents:
 | changes scope, goal, or a `## Decisions` entry | **always ask** — yours by definition |
 
 The tier that owns the human relationship (the orchestrator) is never itself "autonomous" — it
-asks; the workers below it mostly don't need to.
+asks; the members below it mostly don't need to.
 
 ---
 
@@ -776,7 +776,7 @@ once, then records `BLOCKED (contract violation)` — reusing §8.3 rather than 
 No file ever has two writers: for the write-less tiers the orchestrator is the single writer;
 ownership stays logical rather than mechanical.
 
-**It composes with hierarchy for free.** Under hierarchical mode a worker's DIGEST goes to its lead,
+**It composes with hierarchy for free.** Under hierarchical mode a member's DIGEST goes to its lead,
 not the orchestrator — but `expertise_update` rides the **per-member block** the consolidated DIGEST
 already carries for `STATE.md` granularity (§2.3). No new channel. And because the DIGEST is
 persisted via `digest_ref` before the orchestrator acts (§11.4), an interrupted run can replay the
@@ -835,7 +835,7 @@ be:
 
 1. Orchestrator writes to **`.harness/notes/feedback.md`**, addressed:
    `@eng-lead: prefer the simplest thing that passes`. **Read by the 3 leads at spawn, not by the 12
-   workers.**
+   members.**
 2. The addressed lead reads it at its next spawn and **acts on it immediately**, in how it delegates
    that run.
 3. It returns the durable part as an `expertise_update` op plus `feedback_absorbed: [<entry>]`; the
@@ -1037,11 +1037,11 @@ specialists never own the same file.
 ### 8.6 Git and PR lifecycle
 
 - **Branch creation:** the **orchestrator/host** creates `harness/<slug>` *before* the first
-  mutating step. Not a worker's job.
+  mutating step. Not a member's job.
 - **Ground-truth diff for reviewers:** `git diff <base>...<review_sha>` **locally** — no `gh`, no
   network, no auth dependency. Reviewers do **not** require a live PR to review.
 - **PR creation:** a single **orchestrator step at the end of a passing team** (`gh pr create`), not
-  per-worker. If `gh` is unavailable or unauthenticated → the team still succeeds; report the branch
+  per-member. If `gh` is unavailable or unauthenticated → the team still succeeds; report the branch
   and skip PR creation (soft skip, not a halt).
 - **Merge is USER-GATED by default.** The orchestrator never auto-merges `main`. `harness.json` may
   opt into autonomous merge per-project, but the default is: gates pass → surface for approval.
@@ -1182,7 +1182,7 @@ persona. The orchestrator is not a persona at all.
    resumable — recovers after a context reset).
 2. **Decide next** — next task / persona / team per PLAN order + any pending adjustments.
 3. **Delegate** — hand a whole team to its named lead, or a single task to the lead that owns the
-   relevant persona. Never to a worker directly (§10.2).
+   relevant persona. Never to a member directly (§10.2).
 4. **Receive feedback** — collect each `VERDICT` + `DIGEST`.
 5. **Adjust** — log to `STATE`; route (loop-back, insert a gate, escalate, or send **pm** to
    re-plan).
@@ -1192,36 +1192,42 @@ persona. The orchestrator is not a persona at all.
 review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) are delegated to
 **pm**. The orchestrator conducts; it does not re-plan. "Who owns `PLAN.md`" stays unambiguous.
 
-### 10.2 Org shape — hierarchical, one nesting level
+### 10.2 Org shape — hierarchical, three layers below the main session
 
 > **Verified (DEC-100, DEC-102): hierarchical works. The flat fallback is not needed.** A subagent
 > spawned three subagents in one turn and all three returned.
 >
-> **`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "2"` encodes this org exactly** — depth counts layers *below*
-> the main conversation:
+> **`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: "3"` encodes this org exactly** (DEC-120) — depth counts
+> layers *below* the main conversation:
 >
 > ```
 > main session (user channel)   layer 0 — not counted
->   └─ leads                    layer 1   ✓ can spawn
->       └─ team members         layer 3   ✓ run, but cannot spawn (verified at cap 3, DEC-120)
->           └─ anything         layer 3   ✗ unreachable
+>   └─ orchestrator             layer 1   ✓ can spawn      one per in-flight feature
+>       └─ lead                 layer 2   ✓ can spawn
+>           └─ team members     layer 3   ✓ run, Agent withheld
+>               └─ anything     layer 4   ✗ unreachable
 > ```
 >
-> **"Workers are always leaves" is therefore enforced by the platform, not by our agent files.** At the
+> Verified empirically at cap 3: layer 1 spawned YES, layer 2 spawned YES, layer 3 reported the
+> `Agent` tool absent, layer 4 never ran.
+>
+> **"Members are always leaves" is therefore enforced by the platform, not by our agent files.** At the
 > depth limit Claude Code *withholds* the `Agent` tool — stripped from the loaded list and the deferred
-> pool alike — so a worker cannot delegate even if `Agent` were granted in its frontmatter. The failure
+> pool alike — so a member cannot delegate even if `Agent` were granted in its frontmatter. The failure
 > mode is benign: it finds no tool and does the work itself rather than erroring.
 >
-> The setting must be present. Absent it, the current default of **3** lets workers delegate — the
-> opposite of the guarantee (DEC-83). `check-state.sh` INV-9 verifies it, and omitting `Agent` from worker
-> `tools:` is retained as redundant-but-explicit belt-and-suspenders.
+> The setting must be present. At the platform default of 3 this org happens to fit, but the default has
+> changed three times (DEC-83) and a silent shift to 2 would make the members layer unreachable.
+> `check-state.sh` INV-9 asserts the value, and omitting `Agent` from member `tools:` is retained as
+> redundant-but-explicit belt-and-suspenders.
 
-- **orchestrator** (main session): delegates a *whole team* to that team's named lead, or a *single
-  task* to **the lead that owns the persona for that task** — never to a worker directly.
-  **There is no orchestrator→worker path.** Even a one-task request enters through the relevant lead,
+- **orchestrator** (layer 1, spawned — one per in-flight feature, DEC-120): delegates a *whole team*
+  to that team's named lead, or a *single task* to **the lead that owns the persona for that task** —
+  never to a member directly.
+  **There is no orchestrator→member path.** Even a one-task request enters through the relevant lead,
   which matches the task to a member by `consult-when` and delegates. This keeps one rule with no
   exception: the orchestrator talks to leads; leads run their squads.
-  - *Why no shortcut:* a direct-to-worker path would bypass the lead's routing, its assessment of
+  - *Why no shortcut:* a direct-to-member path would bypass the lead's routing, its assessment of
     the result, and its Expertise — the three things a lead exists for. It would also give the same
     work two possible shapes depending on how it was requested.
   - *Cost accepted:* one extra spawn for trivial single-task work. In exchange, `STATE.md` sees a
@@ -1230,7 +1236,7 @@ review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) 
   tool. **The team's `lead:` field selects which one hosts that team's DAG** — there is no generic
   lead parametrized per team. The host reads `team/SKILL.md`, spawns its squad members, runs the DAG
   (gating and loop-backs within the team), and returns a **consolidated DIGEST** up.
-- **Workers** (doer and reviewer personas): spawned by the host lead. **Always leaves.**
+- **Members** (doer and reviewer personas): spawned by the host lead. **Always leaves.**
 
 **What the leads are FOR: they MANAGE.** A lead receives a request in its domain, identifies which
 specialist should do the work, **spawns that member and delegates the task**, then assesses the
@@ -1407,7 +1413,7 @@ leaves a durable trace instead of living only in one lead's context. Two rules f
 - A member returns `BLOCKED` / `ESCALATE`, or `max_cycles` is exhausted → the lead stops that branch
   and rolls it up.
 - The orchestrator's rules on receiving an escalation:
-  - **`BLOCKED`** → surface to the user (a blocked worker cannot be fixed by retrying)
+  - **`BLOCKED`** → surface to the user (a blocked member cannot be fixed by retrying)
   - **`FAIL` with `must_fix`** → delegate a fix cycle
   - **plan-level defect** (wrong tasks or decisions) → delegate to **pm** to re-plan
   - **ambiguity or a needed decision** → surface to the user
@@ -1458,7 +1464,7 @@ that. Same shape as cost (DEC-116) — the tier that can see across runs is the 
 - **Ad-hoc `/harness` mode:** the orchestrator reads STATE, then routes the *next* persona using
   VERDICT + DIGEST.
 
-In both, **the orchestrator routes; workers never pick who runs next.**
+In both, **the orchestrator routes; members never pick who runs next.**
 
 ---
 
@@ -1909,7 +1915,7 @@ nested runner. That is what would remove the accepted panel duplication (§13). 
 v1; the runner algorithm (§12.1) has no flattening step.
 
 **Hard limit:** a team is launched by an orchestrator agent or conducted by a lead —
-**never from inside a worker persona.** Workers are leaves; one nesting level.
+**never from inside a member persona.** Members are leaves — the depth cap withholds `Agent` from them (§10.2).
 
 ---
 

@@ -140,7 +140,7 @@ Set `status: complete` (or `failed` / `blocked`), then **write your team digest 
 plus the fields only you can supply: the per-member roll-up (`members:`), the union of `must_fix`,
 `steps_run`, cycles spent, and your assessment of what the panel actually means. §10.4 is the
 contract; `validate-digest.py <lead-persona>` checks it. **The `members:` block is not optional** —
-it is what preserves per-worker granularity in `STATE.md` under hierarchy, and without it the
+it is what preserves per-member granularity in `STATE.md` under hierarchy, and without it the
 orchestrator cannot log who did what.
 
 **Do not try to run `cost-report.py` if you are a lead — you have no `Bash`.** Leads hold
