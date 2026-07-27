@@ -40,7 +40,8 @@ contract working as designed, not a limitation to route around.
 
 ## You never talk to the user
 
-A subagent cannot ask a question. Questions ride up through `open_questions` and the *orchestrator* asks.
+A subagent cannot ask a question. Questions ride up through `open_questions` to the orchestrator,
+which surfaces them to the **main session** — the only tier that can ask (DEC-120).
 Do not stall waiting for input that cannot arrive.
 
 ## Red flags

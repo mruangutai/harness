@@ -68,6 +68,36 @@ ALIAS = {
 def norm(p):
     return ALIAS.get(p, ALIAS.get("harness-" + p, p))
 
+def strip_comment(v):
+    """Drop a trailing YAML `# comment`, respecting quotes and brackets.
+
+    Not cosmetic. SPEC 10.4 and the runner both annotate their templates inline, so
+    an agent copying either writes `steps_run: 3   # …`. Without this, that parsed as
+    the STRING "3   # …" and failed "must be an integer", and worse — `members:   # …`
+    parsed as a scalar, so the block list under it was never seen. The validator
+    rejected its own documented format.
+
+    A `#` inside quotes or brackets is content: `headline: "fixes #42"`.
+    """
+    out, q, depth = [], None, 0
+    for i, c in enumerate(v):
+        if q:
+            out.append(c)
+            if c == q:
+                q = None
+            continue
+        if c in "\"'":
+            q = c
+        elif c in "[{":
+            depth += 1
+        elif c in "]}":
+            depth = max(0, depth - 1)
+        elif c == "#" and depth == 0 and (i == 0 or v[i - 1] in " \t"):
+            break
+        out.append(c)
+    return "".join(out).strip()
+
+
 def parse_scalar(v):
     v = v.strip().strip('"\'')
     if v.lower() in ("true", "false"): return v.lower() == "true"
@@ -75,8 +105,77 @@ def parse_scalar(v):
     if v.startswith("["): return [x.strip() for x in v[1:-1].split(",") if x.strip()]
     return v
 
+def parse_digest(text):
+    """Read the DIGEST block into {field: value}, honouring BOTH YAML list styles.
+
+    This replaced a one-line `re.findall(r"^\\s*(key):\\s*(.*)$")`, which had two
+    defects that between them made a correct lead digest impossible to write:
+
+    1. `\\s*` after the colon MATCHES NEWLINES. A key with a block-style value
+       therefore swallowed the first line of that block as its own scalar, so
+       `members:` parsed as the string "- { step: build, ... }" and was reported as
+       "must be a list" — while `steps_run` and `cycles_used`, sitting on the same
+       source line as `team:` in SPEC 10.4's own template, were never seen at all.
+       The normative example in the spec could not pass the validator that enforces it.
+    2. It harvested keys at EVERY depth. A `must_fix:` nested inside one member entry
+       satisfied the top-level `must_fix` requirement — a false pass on exactly the
+       roll-up field the lead digest exists to carry.
+
+    So: values never cross a line, and only keys at the DIGEST block's own indent
+    are digest fields. Deeper keys belong to a member entry and are that member's.
+    """
+    lines = text.splitlines()
+    start = next((i for i, l in enumerate(lines)
+                  if re.match(r"^\s*DIGEST:\s*$", l)), None)
+    if start is None:
+        return {}
+
+    body = lines[start + 1:]
+    # Base indent = the first real key under DIGEST:. Everything deeper is nested.
+    base = next((len(l) - len(l.lstrip())
+                 for l in body
+                 if l.strip() and re.match(r"^\s*[a-z_][a-z0-9_-]*:", l)), None)
+    if base is None:
+        return {}
+
+    out = {}
+    for i, line in enumerate(body):
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent < base:
+            break                      # dedented out of the block (`artifact:`)
+        if indent != base:
+            continue                   # nested — belongs to a member, not to us
+        # NOTE the hyphen in the class: a drifted key like `must-fix` must be PARSED
+        # before it can be reported as drift. Omitting it made this validator blind
+        # to exactly the defect class it exists to catch.
+        m = re.match(r"^\s*([a-z_][a-z0-9_-]*):[ \t]*(.*)$", line)
+        if not m:
+            continue
+        k, v = m.group(1), strip_comment(m.group(2))
+        if v:
+            out[k] = parse_scalar(v)
+            continue
+        # Empty value: a block list if the next non-blank deeper line is an item.
+        items = []
+        for nxt in body[i + 1:]:
+            if not nxt.strip():
+                continue
+            nind = len(nxt) - len(nxt.lstrip())
+            if nind <= base:
+                break
+            if nxt.lstrip().startswith("- "):
+                items.append(strip_comment(nxt.lstrip()[2:]))
+        # `key:` with nothing under it is an EMPTY LIST, not a missing field. Writing
+        # a bare `escalations:` is the natural way to say "none" and must not read as
+        # an omission — the point of requiring the key is that the agent asserted it.
+        out[k] = items
+    return out
+
+
 def validate(persona, text):
-    err, seen = [], {}
+    err = []
     persona = norm(persona)
     schema = SCHEMAS.get(persona)
     if schema is None:
@@ -96,11 +195,7 @@ def validate(persona, text):
     if not re.search(r"^\s*headline:\s*\S+", text, re.M):
         err.append("DIGEST has no headline: — the orchestrator routes on this.")
 
-    # NOTE the hyphen in the class: a drifted key like `must-fix` must be PARSED
-    # before it can be reported as drift. Omitting it made this validator blind to
-    # exactly the defect class it exists to catch.
-    for k, v in re.findall(r"^\s*([a-z_][a-z0-9_-]*):\s*(.*)$", text, re.M):
-        seen[k] = parse_scalar(v)
+    seen = parse_digest(text)
 
     # --- catch DRIFTED key spellings before reporting them as merely missing.
     for k in list(seen):
@@ -135,7 +230,7 @@ def validate(persona, text):
             err.append(f"{field}={val!r} must be a list.")
 
     # --- open_questions is a LIST of structured items, never a count (SPEC 8).
-    oq = re.search(r"^\s*open_questions:\s*(.*)$", text, re.M)
+    oq = re.search(r"^\s*open_questions:[ \t]*(.*)$", text, re.M)
     if oq and re.fullmatch(r"\d+", oq.group(1).strip()):
         err.append("open_questions is a COUNT; it must be a list of structured items — "
                    "it is an active routing signal, not a tally.")

@@ -23,7 +23,7 @@ Both are better sources of a *total* than a hand-maintained rate table.
 
 What neither gives you is **cost per harness agent**. The OTel `agent.name`
 attribute documents that "Other user-defined agent names are replaced with
-'custom'" — and all 15 harness agents are user-defined, so they collapse into a
+'custom'" — and all 16 harness agents are user-defined, so they collapse into a
 single bucket. ccusage aggregates per session/model/day, not per agent role.
 Per-agent, per-depth, per-team cost is precisely the axis DEC-99 wants watched,
 and this script is the only thing that produces it.

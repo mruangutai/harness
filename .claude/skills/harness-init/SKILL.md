@@ -41,7 +41,7 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
 
 **Use the scripts. Do not hand-edit `.claude/settings.json`, and do not hand-replicate a script that
 was denied.** All four entries degrade *silently* — no error, no warning — and a project that already
-has its own hooks is exactly where one of the three goes missing during a hand-merge. Both scripts
+has its own hooks is exactly where one of the four goes missing during a hand-merge. Both scripts
 preserve what is there and are safe to re-run.
 
 **If either script cannot run, STOP HERE and tell the user what to approve.** Do not proceed to step 2.
@@ -207,7 +207,7 @@ For a project that is already initialised, after a newer harness has been deploy
 
 | Thought | Reality |
 |---|---|
-| "I'll just add the hook to settings.json myself" | That is how one of the three goes missing. Run the script; it preserves the project's own hooks |
+| "I'll just add the hook to settings.json myself" | That is how one of the four goes missing. Run the script; it preserves the project's own hooks |
 | "The script was denied, I'll replicate what it does" | Stop instead. A half-installed init looks finished and has no domain enforcement — observed in testing |
 | "dev-ops filled the cmd, the `_reason` is harmless" | It says "unset — dev-ops has not run detection yet" next to a working command. Delete it |
 | "They must restart before anything works" | The hooks are live now. Only newly-written agent files need the restart |

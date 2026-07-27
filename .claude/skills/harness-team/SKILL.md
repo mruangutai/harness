@@ -76,22 +76,25 @@ same verdicts, so the run looks correct while costing several times the wall-clo
 expensive way to be wrong, because nothing surfaces it. If steps genuinely conflict, that is what
 `depends_on` and `mutates_repo` are for; encode it in the team rather than in how you dispatch.
 
-**e. Collect returns and validate them mechanically.** Read `VERDICT` and the `DIGEST` fields,
-record both in `state.yaml` — then check the digest against the schema rather than against your
-own judgement:
+**e. Collect returns.** Read `VERDICT` and the `DIGEST` fields and record both in `state.yaml`.
 
-```bash
-.claude/skills/harness/bin/validate-digest.py <persona> <<< "<the member's return>"
-```
+**The digest contract is already enforced for you — mechanically, at source.**
+`validate-digest.py --hook` runs as a **`SubagentStop` hook**, one of the four mandatory
+`settings.json` entries (DEC-122). `exit 2` prevents a subagent from stopping, so a member that
+returned to you at all has already been held to the schema: **every field present, `[]` for
+nothing, `none` for an inapplicable scalar** (DEC-121). This deliberately covers you too — leads
+have no `Bash` and could never have run a validator, which is exactly why the check moved off the
+runner and into a hook.
 
-**Your reading is not the check.** `severity_max: medium` instead of `med`, `must-fix` instead of
-`must_fix` — you will normalize all of those charitably, which is exactly why drift is invisible
-until one routing decision quietly goes the wrong way (DEC-101). A failing validation takes the
-existing `BLOCKED (contract violation)` path. On a missing or malformed `VERDICT`, re-prompt
-**once**, then record the violation — never infer what the agent meant.
+**So do not try to run it yourself, and do not substitute your reading for it.**
+`severity_max: medium` instead of `med`, `must-fix` instead of `must_fix` — you would normalize all
+of those charitably, which is why drift stays invisible until one routing decision quietly goes the
+wrong way (DEC-101). Your job on collect is to *route on* the fields, not to re-adjudicate them.
 
-*If you have no `Bash` (leads do not), you cannot run this yourself. Say so in your team digest and
-the orchestrator validates on receipt — the same split as cost and the feature counter.*
+What still lands on you is the residue the hook passes through: a return that is well-formed but
+substantively wrong, or a member that stopped for a reason the hook does not govern. On a missing or
+contradictory `VERDICT`, re-prompt **once**, then record `BLOCKED (contract violation)` — never
+infer what the agent meant.
 
 **f. Apply `on_fail`.** Only on `FAIL`. `BLOCKED` and `ESCALATE` always stop the branch and go up —
 they mean the agent could not proceed, not that its work was rejected, so retrying is wrong.
@@ -131,7 +134,50 @@ For `loop_back`:
 **A note on convergence.** If the same step fails twice with the same reason, more cycles will not
 help — say so in the escalation rather than spending the budget to prove it.
 
-### 4. Close out
+### 4. Collate — this is the job, not the paperwork
+
+You have N member digests. Collating them is **not** concatenation, and it is not a step you perform
+once the real work is done. It is the reason a lead tier exists: if your team digest is the members'
+digests stapled together, the orchestrator would have been better off reading them directly and you
+cost a spawn for nothing.
+
+Four things, in order:
+
+**a. Roll up the verdict.** `BLOCKED > ESCALATE > FAIL > PASS`, worst wins. **`ESCALATE` outranks
+`FAIL` deliberately** — a decision only the user can make must not be masked by a failure you could
+have fixed. Never report `PASS` because most members passed; one `FAIL` makes the team `FAIL`.
+
+**b. Merge, then dedupe.** `must_fix`, `files_touched` and `open_questions` are unions across
+members. Reviewers overlap by design — the panel is four lenses on one diff — so **the same defect
+will arrive three times in three vocabularies.** Merge those into one entry naming all three
+reporters. Three copies of one finding reads to the orchestrator as three problems and spends three
+fix cycles on one.
+
+**c. Assess — the part only you can do.** Each member saw its slice; you are the only agent that
+saw all of them. So decide, and say which:
+
+| What you found | What to do |
+|---|---|
+| Two members contradict each other | **Resolve it or escalate it.** Do not pass both up and let the orchestrator guess. If it is decidable from their artifacts, decide and say why |
+| A finding is real but not blocking | Keep it out of `must_fix`. That list is what gates the run; padding it makes the gate meaningless |
+| A finding is out of the team's scope | Route it — `open_questions` if the user must decide, `escalations` if a peer lead owns it |
+| A member's work is genuinely inadequate | **Send it back** (§3 `loop_back`) before you close. Reporting weak work up with a note is the failure mode `zero-micro-management` warns about from the other direction |
+| Everything passed and nothing is interesting | Say that in one line. A short digest is a good outcome, not an under-delivery |
+
+**Push-back is collation, not a separate phase.** You are the last tier that can cheaply fix a bad
+result: rework at your level costs one member spawn, and the same rework after the orchestrator has
+routed on your digest costs a whole cycle against the feature budget.
+
+**d. Write the headline last.** One line, conclusion first, about what the team *achieved* — not
+what it did. "Auth endpoints ship-ready; refresh-token path still untested" routes. "Ran three steps
+and collected digests" does not, and it is what the orchestrator reads before anything else.
+
+**What you must NOT do:** open a member's artifact to second-guess its contents line by line. You
+route on `VERDICT` + `DIGEST`; you read an artifact when a *decision of yours* depends on it (a
+contradiction to resolve, a `must_fix` you doubt), not as a review pass. The one thing you never do
+is re-derive a member's work yourself — that is the whole of `zero-micro-management`.
+
+### 5. Close out
 
 Set `status: complete` (or `failed` / `blocked`), then **write your team digest to
 `<run_dir>/digest.md`** and report it as your `artifact:`.
@@ -139,9 +185,9 @@ Set `status: complete` (or `failed` / `blocked`), then **write your team digest 
 **The team digest is a digest of digests, not a new document class.** Same shape as a member's,
 plus the fields only you can supply: the per-member roll-up (`members:`), the union of `must_fix`,
 `steps_run`, cycles spent, and your assessment of what the panel actually means. §10.4 is the
-contract; `validate-digest.py <lead-persona>` checks it. **The `members:` block is not optional** —
-it is what preserves per-member granularity in `STATE.md` under hierarchy, and without it the
-orchestrator cannot log who did what.
+contract, and the `SubagentStop` hook enforces it on **your** return as well — you cannot finish
+with a field missing. **The `members:` block is not optional** — it is what preserves per-member
+granularity in `STATE.md` under hierarchy, and without it the orchestrator cannot log who did what.
 
 **Do not try to run `cost-report.py` if you are a lead — you have no `Bash`.** Leads hold
 `Read, Glob, Grep, Agent` deliberately, so they cannot do a member's work; the same grant also
@@ -166,15 +212,27 @@ Report per-step verdicts and the run dir path. Not the artifacts' contents — t
 
 ## Reporting up
 
+**Every field is required** (DEC-121) — `[]` for an empty list, `none` for a scalar that is
+genuinely inapplicable. The `SubagentStop` hook will not let you stop without them.
+
 ```
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
+VERDICT: PASS | FAIL | BLOCKED | ESCALATE     # worst member verdict: BLOCKED > ESCALATE > FAIL > PASS
 DIGEST:
   headline: <one line — what the team achieved, not what it did>
-  steps: [<id>: <verdict>, ...]
-  files_touched: [<paths>]
-  cost_usd: <from the cost block>
-  open_questions: [...]        # non-empty = the orchestrator must ask the user
-artifact: <run_dir>/state.yaml
+  team: <name>                               # ONE KEY PER LINE — three on one line is not YAML,
+  steps_run: <n>                             # and the two trailing ones vanish silently
+  cycles_used: <n>
+  members:                                   # per-member roll-up — NOT optional
+    - { step: <id>, persona: <p>, verdict: <v>, headline: "...", files_touched: [...] }
+  must_fix: [<union of blocking findings>]
+  branch: <branch | none>                    # `none` if the team mutated no repo
+  files_touched: [<union across members>]    # universal field — `[]` if the team touched nothing
+  open_questions: [...]                      # non-empty → the orchestrator surfaces it to the
+                                             # MAIN SESSION, the only tier that can ask the user
+  escalations: [{ id, raised_by, question, domain, routed_to, resolution, decided_by, recorded_as }]
+  expertise_update: [<ops>]
+  sc_status: [{ id, verdict, method, evidence }]   # passthrough from pm's goal-check; [] if none ran
+artifact: <run_dir>/digest.md                # your collated report — NOT state.yaml
 ```
 
 ## Red flags

@@ -68,7 +68,7 @@ worst state it can produce. Re-running is safe and completes it.
 
 <step name="report">
 ```
-✓ Deployed — {N} skill dirs, 15 agents global; {M} project(s)
+✓ Deployed — {N} skill dirs, {A} agents global; {M} project(s)
   pruned: {list}
   registry: ~/.harness/registry.json
 ```

@@ -39,7 +39,7 @@ HOOK_SPECS = [
     {
         "event": "PreToolUse",
         "script": "check-domain.sh",
-        # NO agent-name matcher, deliberately: one registration serves all 15 and the
+        # NO agent-name matcher, deliberately: one registration serves all 16 and the
         # script dispatches on `agent_type` from the payload (DEC-110/111).
         "matcher": "Write|Edit",
         "why": "Domain enforcement. Absent -> every agent can write anywhere, "

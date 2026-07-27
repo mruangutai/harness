@@ -1448,7 +1448,9 @@ VERDICT: <roll-up>                  # worst member verdict: BLOCKED > ESCALATE >
                                     #   decision is never masked by a fixable failure
 DIGEST:
   headline: <one line — what the team achieved, not what it did>
-  team: <name>            steps_run: <n>   cycles_used: <n>
+  team: <name>                        # one key per line — see the note below
+  steps_run: <n>
+  cycles_used: <n>
   members:                            # per-member roll-up → orchestrator appends these to STATE.md
     - { step: build, persona: backend-dev, verdict: PASS, headline: "...", files_touched: [...] }
     - { step: qa,    persona: qa,          verdict: FAIL, severity_max: high, must_fix: [...] }
@@ -1467,6 +1469,14 @@ artifact: <run_dir>/digest.md         # the lead's collated report, same shape a
 ```
 
 The per-member block is what preserves `STATE.md` granularity under hierarchy.
+
+**One key per line.** An earlier version of this template packed `team`, `steps_run` and
+`cycles_used` onto a single source line to save space. That is not YAML: a lead copying it verbatim
+emitted one field named `team` whose value was the rest of the line, and lost the other two —
+silently, because the two lost fields simply read as absent. The normative example could not pass
+the validator that enforces it. Lists may be written either inline (`must_fix: []`) or as an
+indented block; both are accepted, and a bare `escalations:` with nothing under it is an empty
+list, not an omission.
 
 **Every field above is required** (DEC-121). A team that escalated nothing writes `escalations: []`;
 one that mutated no repo writes `branch: none`; one that ran no goal-check writes `sc_status: []`.

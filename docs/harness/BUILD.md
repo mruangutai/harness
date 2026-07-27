@@ -633,12 +633,13 @@ is **renamed to `expertise`** (DEC-80).
 - Registry `~/.gsd/harness-registry.json` → `~/.harness/registry.json`. **Migrate the existing
   registry file** — do not orphan it. Make the migration **idempotent**: handle both files present,
   and a project listed only in the old registry.
-- Copy skills + **all 15 agents** (glob `harness-*.md`) + propagate `teams/`.
+- Copy skills + **every agent on disk** (glob `harness-*.md` — 15 today, 16 once
+  `harness-orchestrator.md` lands with task 14) + propagate `teams/`.
 - ⚠️ **`cp -r .claude/skills/harness/.` is not enough, and this is easy to miss.** It copies the router,
   `bin/` and `templates/`, but **none of the flat skill dirs** — the seven rule skills *and*
   `harness-init` itself all live at `.claude/skills/harness-*/`, siblings of `harness/`, because a
   project skill is exactly one level down (DEC-100). Deploy must glob `.claude/skills/harness*/`. Without
-  it a project gets templates it has no `/harness-init` to instantiate, and 15 agents whose `skills:`
+  it a project gets templates it has no `/harness-init` to instantiate, and agents whose `skills:`
   lists resolve to nothing — silently, since a missing skill is not an error.
 - **Add a PRUNE/RECONCILE step.** Deploy is currently copy-only, so deleted agents live forever.
   Compute the set of `harness-*.md` in the repo and delete global/enrolled-project files not in it

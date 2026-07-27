@@ -1,5 +1,5 @@
 {
-  "_comment": "The four platform prerequisites. ALL FOUR are required and EACH degrades SILENTLY if absent \u2014 none of them errors. bin/merge-settings.py merges exactly this into a project's .claude/settings.json without disturbing entries the project already has. Do not hand-merge; that is how one of the three goes missing.",
+  "_comment": "The four platform prerequisites. ALL FOUR are required and EACH degrades SILENTLY if absent \u2014 none of them errors. bin/merge-settings.py merges exactly this into a project's .claude/settings.json without disturbing entries the project already has. Do not hand-merge; that is how one of the four goes missing.",
   "env": {
     "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"
   },

@@ -169,19 +169,6 @@ Conventions not yet established. Will populate as patterns emerge during develop
 Architecture not yet mapped. Follow existing patterns found in the codebase.
 <!-- GSD:architecture-end -->
 
-<!-- GSD:workflow-start source:GSD defaults -->
-## GSD Workflow Enforcement
-
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
-
-Use these entry points:
-- `/gsd:quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd:debug` for investigation and bug fixing
-- `/gsd:execute-phase` for planned phase work
-
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
-<!-- GSD:workflow-end -->
-
 
 
 <!-- GSD:profile-start -->
@@ -201,8 +188,24 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 <!-- GSD:harness-start -->
 ## Harness
 
-Unified workflow harness active. Skills: `.claude/skills/harness/`
-Config: `.planning/harness.json`
+Harness is active and **self-hosted** — this repo builds it and runs on it. There is no GSD
+dependency: no `.planning/` root, no `agent_skills`, no `<files_to_read>` blocks.
 
-When dispatching subagents, include `.planning/harness.json` in the `<files_to_read>` block.
+| What | Where |
+|---|---|
+| Project state | `.harness/` — see `.harness/README.md` for the layout and who writes what |
+| Config | `.harness/harness.json` (gates, `test_matrix`, `test_kinds`, budgets) |
+| The org, as data | `.harness/team-config.yaml` |
+| Rule skills | `.claude/skills/harness-<name>/` — **flat**, one level under `.claude/skills/` |
+| Agents | `.claude/agents/harness-*.md` |
+| Design docs | `docs/harness/SPEC.md` (what it is) · `DECISIONS.md` (why — **the authority**) · `BUILD.md` (what is left) |
+
+**The org is 16 agents in four tiers:** main session (layer 0, the only user channel) →
+`harness-orchestrator` (layer 1, one per in-flight feature) → three domain leads (layer 2) →
+members (layer 3, always leaves). Rules reach agents by native `skills:` preload, and Expertise by
+a `SubagentStart` hook — nothing needs to be told to go read a file.
+
+**Before changing any harness doc, read `docs/harness/DECISIONS.md`** and run
+`.claude/skills/harness/bin/check-docs.sh`. It is the propagation checker, and its registry is
+DECISIONS.md itself.
 <!-- GSD:harness-end -->

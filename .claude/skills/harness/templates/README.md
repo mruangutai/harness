@@ -12,7 +12,7 @@ what lets deploy be dumb and safe.
 | `BRIEF.md` | `.harness/BRIEF.md` | `/harness-init` drafts; `harness-pm` owns thereafter | init |
 | `gitignore.snippet` | `.gitignore` | `/harness-init` via `bin/merge-gitignore.sh` | init — **appended**, never overwritten |
 | `PLAN.md` | `.harness/PLAN.md` | `harness-pm` | first planning pass, not init |
-| `STATE.md` | `.harness/STATE.md` | orchestrator | first run, not init |
+| `STATE.md` | `.harness/features/<FEAT>/STATE.md` — **one per flow**, never a project-level file (DEC-120) | that feature's orchestrator | first run of that feature, not init |
 | `DESIGN.md` | `.harness/DESIGN.md` | `harness-visual-designer` | init's optional design pass, for UI projects only |
 
 **Everything directly in this directory is a template.** Anything that is not one lives in
