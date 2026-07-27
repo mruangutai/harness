@@ -2697,3 +2697,63 @@ example that happened to pass — the same reason DEC-112's false pass went unno
 Both templates are now verified rather than read: extracted from the source files, placeholders
 filled, run through the validator. Flipping SPEC's own example to `PASS` gets it blocked.
 
+---
+
+## DEC-124 — Lead collation is proven; the run disproved three things we believed
+
+First time any lead has actually conducted a team: `validator-lead` ran the `review` panel against
+a pinned SHA range of this repo's own validator work. **Collation works**, and it produced the thing
+a lead exists for — a cross-cutting conclusion no single reviewer had. `code-reviewer` filed "`--hook`
+has zero test coverage" as one of fifteen `low`s; the lead re-read the low tier, recognised it as the
+**common cause** of the panel's blocking findings, and made it the headline.
+
+Verified from Claude Code's spawn records and from disk, not from the lead's account:
+
+| Claim | Result |
+|---|---|
+| Lead opens its own run dir, members cannot | ✅ `state.yaml` + `digest.md` in the run dir; all three member artifacts in `notes/` |
+| Three members collected and assessed | ✅ merged, ranked, dismissals recorded with reasons |
+| Roll-up correct | ✅ `FAIL` over `FAIL`/`PASS`/`PASS` |
+| Return satisfies the contract | ✅ hook-enforced at source |
+| A reviewer may honestly scope out | ✅ `ui-reviewer` returned PASS with zero findings |
+
+### Three things the run disproved
+
+**1. The lead's own report of its behaviour was false.** It stated "three reviewers dispatched in a
+single message (one turn, parallel)". The spawn records show **three separate turns**, 16s and 8s
+apart. This is DEC-112's lesson recurring: an agent's account of what it did is not evidence.
+
+**2. But the runner's rationale for that rule is also wrong.** Measuring actual overlap, the three
+reviewers ran **concurrently anyway** — last start 24s, first finish 143s — because Claude Code
+backgrounds subagents. The runner says single-message dispatch is required "or they run one after
+another and the fan-out is lost." That is false as stated. Single-message dispatch remains preferable
+because it does not depend on backgrounding behaviour, but the stated reason has to be corrected
+rather than repeated.
+
+**3. `<run>/digest.md` is prose, not the contract block.** SPEC 10.4 says the artifact is "same shape
+as this block". The lead wrote an excellent human-readable report instead. The **return** carried the
+block and the hook checked it; the artifact was never validated by anything. Either SPEC or practice
+must move — recorded as open.
+
+### The panel found real defects in DEC-123's own code, all reproduced independently
+
+DEC-123 claimed the roll-up is "computed, not trusted". True only for canonical input:
+
+| Defect | Status |
+|---|---|
+| `severity_max: [high, low]` → `TypeError` → exit 1 → **only exit 2 blocks, so the gate is disabled** | reproduced; fail-open |
+| Quoted `"verdict: PASS on retry"` earlier in a member entry wins the first-match regex | reproduced; masked FAIL ships |
+| Multi-line inline `members: [` … `]` parses to `[]`, so the roll-up silently has nothing to check | reproduced |
+| `members: []` with `steps_run: 3` — no cross-check | reproduced |
+| **`--hook` mode has zero test coverage** — all 16 cases invoke CLI mode | confirmed; the common cause |
+
+A 16/16-green suite that never exercises the only mandatory mode is the same shape as DEC-119.
+
+### Q1 answered by evidence, not preference
+
+The reviewer asked whether to take a real YAML dependency rather than keep hardening a hand-rolled
+subset, flagging it as a constraint question. **`python3 -c "import yaml"` fails on this machine.** A
+YAML dependency would break the harness on its own development host, so the files-only constraint is
+load-bearing rather than stylistic. Harden the parser.
+<!-- stale: computed, not trusted -->
+
