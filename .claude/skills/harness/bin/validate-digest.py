@@ -8,6 +8,13 @@ of `med`, `must-fix` instead of `must_fix`, `matrix_ok: "mostly"` — an LLM rea
 charitably normalizes all of those, so drift is invisible by construction and the
 system behaves correctly right up until one routing decision doesn't.
 
+EVERY FIELD IS REQUIRED. An absent field is a violation, not a shortcut: silence
+is ambiguous ("none found" or "forgot to collate?") while an explicit `[]` is a
+positive assertion that the agent looked. Lists say nothing with `[]`; scalars
+that can be genuinely inapplicable say it with `none`. This is stricter than the
+first version, which skipped absent fields and therefore let a lead digest ship
+missing `members:` — the field SPEC calls load-bearing — while reporting "ok".
+
 Usage:  validate-digest.py <persona> [file]      (reads stdin if no file)
 Exit 0 = valid.  Exit 1 = contract violation (reasons on stdout).
 
@@ -19,11 +26,19 @@ import sys, re, json
 VERDICTS = {"PASS", "FAIL", "BLOCKED", "ESCALATE"}
 SEV      = ["info", "low", "med", "high", "critical"]
 
+# Required of EVERY persona — the universal return contract (harness-handoff).
+UNIVERSAL = {"open_questions": list, "files_touched": list, "expertise_update": list}
+
+# Scalars where "not applicable" is a real answer. The key is still required; the
+# value may be `none`/`null`, which asserts inapplicability rather than omitting it.
+NULLABLE = {"branch", "blocked_on"}
+
 # field -> (allowed values | type). Enums are EXACT; near-misses are the whole point.
 SCHEMAS = {
     "pm": {"feasibility": {"clear","risky","blocked"}, "surface": {"S","M","L"},
            "recommend": {"proceed","spike","reframe","halt"}, "risk": {"low","med","high"},
-           "tasks": int, "decisions": int, "needs_approval": bool, "flags": list},
+           "tasks": int, "decisions": int, "needs_approval": bool, "flags": list,
+           "sc_status": list},
     "dev": {"tests_added": int, "suite": {"pass","fail"}, "blocked_on": str},
     "qa": {"suite": {"pass","fail"}, "failures": int, "coverage_gaps": list, "matrix_ok": bool},
     "reviewer": {"severity_max": set(SEV), "findings": int, "must_fix": list},
@@ -31,8 +46,12 @@ SCHEMAS = {
     "documentor": {"docs_updated": list, "gaps": list},
     "dev-ops": {"change_type": {"config","scaffolding","infra","ci"},
                 "applied": list, "suite": {"pass","fail","n/a"}},
+    # SPEC 10.4 in full. `sc_status` is pm's field (11.6) riding up as a passthrough,
+    # surfaced at team level so the orchestrator can read goal-check status without
+    # opening member entries; `[]` when this team ran no goal-check.
     "lead": {"team": str, "steps_run": int, "cycles_used": int,
-             "members": list, "must_fix": list},
+             "members": list, "must_fix": list, "branch": str,
+             "escalations": list, "sc_status": list},
 }
 ALIAS = {
     "harness-pm": "pm", "harness-qa": "qa", "harness-documentor": "documentor",
@@ -89,10 +108,15 @@ def validate(persona, text):
                 err.append(f"key {k!r} is drifted spelling of {want!r} — the runner "
                            f"routes on the exact name and will not see it.")
 
-    for field, allowed in schema.items():
+    for field, allowed in {**schema, **UNIVERSAL}.items():
         if field not in seen:
-            continue                      # presence is the persona's business; shape is ours
+            hint = "`none` if genuinely not applicable" if field in NULLABLE else "`[]` if there are none"
+            err.append(f"missing {field!r} — every field is required; write {hint}. "
+                       f"An absent field is ambiguous; an explicit empty one asserts you looked.")
+            continue
         val = seen[field]
+        if field in NULLABLE and isinstance(val, str) and val.lower() in ("none", "null", "n/a"):
+            continue
         if isinstance(allowed, set):
             if val not in allowed:
                 extra = ""

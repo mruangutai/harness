@@ -17,8 +17,8 @@ DIGEST:
   <your role's fields — see your role rule>
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }
-  files_touched: [<paths>]        # only if you changed files
-  expertise_update: [<ops>]       # only if you learned something durable
+  files_touched: [<paths>]        # [] if you changed none
+  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: <path to what you wrote>
 ```
 
@@ -31,7 +31,10 @@ artifact: <path to what you wrote>
 
 **These tokens and field names are a contract, not a style.** The runner routes on exact values.
 `PASSED`, `severity: medium` instead of `med`, `matrix_ok: "mostly"` — each silently misroutes.
-`bin/validate-digest.py` checks this; a violation becomes `BLOCKED (contract violation)`.
+**Every field is required.** Say "nothing" with an explicit `[]` — or `none` for a scalar that is
+genuinely inapplicable — never by leaving the key out. An absent field is ambiguous (none found, or
+never looked?); an empty one asserts you looked. `bin/validate-digest.py` checks this, and a
+violation becomes `BLOCKED (contract violation)`.
 
 **Never invent a verdict.** If you cannot determine one, return `BLOCKED` and say why.
 

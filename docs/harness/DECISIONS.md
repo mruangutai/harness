@@ -2560,3 +2560,42 @@ test runs had orchestration hand-written into the prompt.
 
 Whether the multi-squad lifecycles (`plan-feature`, `ship-feature`, DEC-118) are playbooks the
 orchestrator *reads*, or a DAG format it *executes* like a team. Deferred until one exists.
+
+---
+
+## DEC-121 — Every digest field is required; `[]` is how you say nothing
+
+The validator built in DEC-101 skipped absent fields by design — *"presence is the persona's
+business; shape is ours"*. Demonstrated against the real `review` run's lead digest, that meant it
+caught **1 of 10** problems: the missing `artifact:`, and nothing else. `members:` — the field §10.4
+calls *"what preserves `STATE.md` granularity under hierarchy"* — sailed through while the validator
+printed "digest ok".
+
+**Now every field is required.** Say nothing with an explicit `[]`, or `none` for a scalar that is
+genuinely inapplicable (`branch`, `blocked_on`). Same digest now reports all ten.
+
+The reasoning is that **absence is ambiguous and emptiness is not.** A missing `must_fix` could mean
+the lead found nothing blocking or forgot to collate; `must_fix: []` asserts it looked. That
+distinction matters most for `open_questions`, which is the mechanism carrying a question all the
+way to the operator — silence there is indistinguishable from a dropped question.
+
+Three corrections came with it:
+
+- **The lead schema held 5 of §10.4's 10 fields.** `branch`, `escalations` and `sc_status` were
+  absent from the validator entirely, so no amount of presence-checking would have found them.
+  Completed.
+- **`sc_status` is not a lead's field.** Spotted in review: everything else in the team digest is
+  either universal or something the lead itself produces, while `sc_status` originates in **pm's**
+  goal-check (§11.6) and merely rides up so the orchestrator can read "is this done" without opening
+  member entries. It is now declared on pm at source and on the lead as a passthrough, `[]` in both
+  when no goal-check ran.
+- **§10.4 never listed `headline`**, yet the validator demanded it of every persona — the spec was
+  looser than the thing enforcing it. Added.
+
+`harness-handoff` said `files_touched` and `expertise_update` were "only if" fields, which directly
+contradicted the rule; both now read `[]` if none. Note the tension this creates with §5's
+*"most tasks teach nothing durable and should produce no update"* — that guidance is unchanged, and
+the correct expression of it is now `expertise_update: []` rather than an omitted key.
+
+**Still prose, not enforcement.** A validator nothing runs is a validator that does not exist — the
+same trap DEC-119 recorded. The `SubagentStop` hook that makes it mandatory is the next step.

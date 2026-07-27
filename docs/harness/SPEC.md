@@ -1359,6 +1359,7 @@ VERDICT: <roll-up>                  # worst member verdict: BLOCKED > ESCALATE >
                                     #   ESCALATE outranks FAIL so a needed user
                                     #   decision is never masked by a fixable failure
 DIGEST:
+  headline: <one line — what the team achieved, not what it did>
   team: <name>            steps_run: <n>   cycles_used: <n>
   members:                            # per-member roll-up → orchestrator appends these to STATE.md
     - { step: build, persona: backend-dev, verdict: PASS, headline: "...", files_touched: [...] }
@@ -1378,6 +1379,15 @@ artifact: <run_dir>/digest.md         # the lead's collated report, same shape a
 ```
 
 The per-member block is what preserves `STATE.md` granularity under hierarchy.
+
+**Every field above is required** (DEC-121). A team that escalated nothing writes `escalations: []`;
+one that mutated no repo writes `branch: none`; one that ran no goal-check writes `sc_status: []`.
+Absence is ambiguous and an explicit empty value is not — and the first version of the validator
+skipped absent fields, which let a real lead digest ship missing `members:` while reporting "ok".
+
+**`sc_status` is a passthrough, not a lead's own field.** It originates in pm's goal-check (§11.6)
+and is surfaced at team level so the orchestrator can read whether the feature is actually done
+without opening member entries.
 
 **Escalations are recorded, not just routed.** An `escalations` entry captures the question, the lead
 that raised it, where it was routed, **and how it was resolved** — so a lateral lead-to-lead decision
