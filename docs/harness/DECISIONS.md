@@ -2758,3 +2758,53 @@ load-bearing rather than stylistic. Harden the parser.
 <!-- stale: This one is checked, not trusted -->
 <!-- stale: or they run one after another and the fan-out is lost -->
 
+---
+
+## DEC-125 — Nobody was told to create the Expertise file, so nobody ever did
+
+13 of 15 `.harness/expertise/<agent>.md` files did not exist. BUILD task 8 had recorded the symptom
+— "`inject-expertise.sh` injects nothing on almost every spawn" — as an Expertise *governance* gap.
+It is not. It is one missing sentence.
+
+**The loop was closed:** the file is absent → the hook injects nothing and raises nothing (correct,
+by design — a new agent legitimately has none) → the agent sees no Expertise block → the
+`harness-expertise` rule only ever described how to **update** a file it opened by asserting "your
+Expertise file is **already in your context**" → the agent has nothing to update and no instruction
+to create → it does nothing → the file stays absent. Forever. Every agent behaved correctly at every
+step.
+
+The two files that existed came from agents improvising past the gap, which is why the failure was
+invisible: it looked like adoption starting slowly rather than a mechanism that could never start.
+
+### The diagnosis this replaces, and why that one was wrong
+
+The first diagnosis was that leads have no writer: SPEC 5.3 routes lead and reviewer
+`expertise_update` ops to "the orchestrator, which applies it verbatim — a scribe, not an editor",
+and `harness-orchestrator` does not exist (task 14). Real, but **not the cause** — **8 of the 9
+doers were also missing their file**, and doers hold `Write`, self-apply, and depend on no
+orchestrator. A cause that cannot explain two thirds of the instances is not the cause. The simplest
+explanation that covers all 13 is that nothing ever said "create it".
+
+**Two genuine defects surfaced on the way and are recorded, not fixed here:**
+
+1. **SPEC 5.3's capability table is factually false.** It splits on "3 leads + 3 reviewers (no
+   `Write`/`Edit`)". All six hold `Write` — leads need it for `state.yaml` and `digest.md`,
+   reviewers for their findings artifacts. What they lack is `Edit`. `team-config.yaml` already
+   grants each `upsert: true` on its own Expertise file, so the manifest and the spec disagree, and
+   the manifest is right.
+2. **The scribe route therefore has no reason to exist** and points at an agent that does not.
+   Leads and reviewers can write their own file, scoped by the domain hook to that one path.
+
+### The fix
+
+`harness-expertise` now says the absence of the block means *you are the first — create it*, gives
+the skeleton, and states that with `Write` and no `Edit`, updating is read-modify-write from the
+copy already in context. Writing the file from your new entry alone silently deletes every earlier
+one, which is the obvious next failure and cheaper to prevent than to detect.
+
+An earlier attempt at this made it worse: it correctly told agents the block may be absent and then
+concluded "you have none — proceed without it and do not go looking for it", which states the
+deadlock as policy.
+<!-- stale: proceed without it and do not go looking for it -->
+<!-- stale: Init creating the dir empty is per spec -->
+

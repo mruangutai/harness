@@ -6,11 +6,35 @@ description: When and how to update your durable Expertise file — the update-o
 # Expertise
 
 Your Expertise file is **already in your context** — a `SubagentStart` hook injected it at spawn,
-**if the file exists.** Most do not yet (BUILD task 8), and the hook is silent about it: nothing is
-injected and no error is raised, so absence looks exactly like an empty file. **If you see no
-Expertise block, you have none — proceed without it and do not go looking for it.** Observed on a
-live spawn where all four rule skills arrived and the Expertise file did not (DEC-124). You do not read it,
-and you do not go looking for it.
+**if the file exists.** You never read it yourself and never go looking for it.
+
+**If you see no Expertise block, the file does not exist yet and you are the first — so create it.**
+Do not treat its absence as "I have no Expertise and there is nothing to do". That reading is why
+13 of 15 of these files did not exist: the hook injects nothing and raises nothing, this rule only
+ever described *updating* a file it assumed was already there, and so every agent correctly did
+nothing, forever (DEC-125).
+
+Creating it is a normal `Write` to `.harness/expertise/<your-agent-name>.md`, which is in your
+`domain` — the write is permitted and scoped to that one path. Only do it when you actually have
+something that passes the rule below; an empty skeleton is worse than no file, because it looks
+like an agent that has learned nothing rather than one that has not run yet. Start from:
+
+```markdown
+# Expertise — <your-agent-name>
+
+## Patterns (max 15)
+- P-01: <the durable truth you just learned>
+
+## Gotchas (max 15)
+
+## Outcomes (max 10)
+
+## Open (max 5)
+```
+
+**You have no `Edit`, only `Write`, so updating means read-modify-write** — the current contents are
+already in your context, so reproduce them and add your entry. Never write the file from your entry
+alone; that silently deletes every earlier one.
 
 It holds what you learned about *this codebase* that you would otherwise rediscover every spawn.
 
