@@ -207,6 +207,65 @@ the time of writing; the live list is authoritative if the two disagree.
 | 20 | `debug` team | pending — **not critical, split out of 10.** Single-squad under `eng-lead`, same shape as the proven `review` team: `pm(research) → specialist(debug mode) → qa → {code}`. The specialist loads `harness-systematic-debugging`; **three failed fixes and it stops** and rolls up `BLOCKED` rather than authorizing a fourth. Buildable independently of 14 — it needs only a lead, which exists |
 | 19 | **Remove GSD globally** — the machine, not this repo | pending — **GATED on 17.** DEC-02's removal scope is *this repo* self-hosting: all 19 migration items are project-local, **zero** touch a global path. Unowned until now: 33 `gsd-*` agents, `~/.claude/get-shit-done/` (282 files), 8 global hooks, the `gsd-statusline.js` statusline, 14 GSD lines in the global CLAUDE.md, `~/.gsd/`. Do not start before the harness is proven end-to-end — the blast radius is every project, not one (DEC-115) |
 
+## Task 10 — proving lead collation: procedure, and what is still open
+
+**Written down because it spans a restart.** Agent definitions are not live-reloaded, so the
+`skills:` fix below cannot be verified in the session that made it.
+
+### The gap this task exists to close
+
+Everything built so far tests the digest **format** in isolation: the `SubagentStop` hook blocks a
+malformed return (DEC-122) and the verdict roll-up is computed (DEC-123). **No lead has ever
+actually conducted a team** — dispatched members, collected their digests, assessed them, and
+emitted a team digest. "Runner done" was in the ledger for weeks on the strength of gating and
+fan-out probes that never exercised collation.
+
+### The delivery gap found while setting the first run up
+
+**No lead could reach the runner.** Leads hold `[Read, Glob, Grep, Agent, Write]` — no `Skill` tool
+— `harness-team` was in no lead's `skills:` list, and no lead file named its path. A lead told to
+conduct a team would have improvised the algorithm.
+
+Note the distinction that matters here: **`skills:` preload is not the `Skill` tool.** The frontmatter
+field injects full content at spawn and needs no tool grant — the same mechanism already delivering
+the eight rule skills (DEC-63, DEC-100). `harness-team` was added to all three leads' `skills:`.
+
+### Step 1 — the preload probe (one spawn, do this FIRST after a restart)
+
+Cheap and unambiguous, and it gates whether the expensive re-run is worth doing. Spawn any lead and
+ask it to state what the runner says about **checkpoint-before-dispatch** — explicitly forbidding it
+from reading any file.
+
+- **Zero tool calls and a correct answer** → the preload delivers. Proceed to step 2.
+- **It reaches for `Read`, or cannot answer** → `skills:` preload does not carry a non-rule skill to
+  a lead. Fall back to naming the path in each lead's `## Conducting a team` section, and record why.
+
+The discriminator is the *absence of tool calls*, not the answer's plausibility. A lead with `Read`
+can always go find the file, which is exactly why the full team run is a weak test of preload.
+
+### Step 2 — the team run
+
+`validator-lead` conducts the `review` team against a pinned SHA. **Omit the runner path from the
+prompt** once the preload is confirmed; naming it is a crutch that hides the delivery question.
+
+### Verify from spawn records, not from the lead's report
+
+The DEC-112 false pass came from believing an agent's account of its own behaviour. Every row below
+is checkable independently of what the lead says:
+
+| Claim | Evidence that settles it |
+|---|---|
+| Three reviewers ran **in parallel** | spawn timestamps in one turn — not the lead's word |
+| Members wrote only their own paths | `.harness/notes/review-*` exist; run dir has no member-written file |
+| The run is real | `<run_dir>/state.yaml` and `<run_dir>/digest.md` on disk |
+| The team digest satisfies the contract | `bin/validate-digest.py harness-validator-lead <digest>` exits 0 |
+| The roll-up is right | top `VERDICT` equals the worst `verdict:` across `members:` |
+| Collation happened at all | overlapping findings merged, dismissals recorded with a reason — not three panels concatenated |
+
+The last row is the one no script can check, and the one the task is about.
+
+---
+
 ## Task 12 — `/harness-init`: complete spec — **BUILT** (DEC-112)
 
 **Self-contained: everything needed to build this without prior conversation.** The spec below is what
