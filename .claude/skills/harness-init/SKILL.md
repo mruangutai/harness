@@ -174,8 +174,8 @@ skipped — both are real failures, not noise to talk past.
 Then say this, explicitly, as the last thing — **but only if `/harness-deploy` installed or updated
 agent definitions during this same session:**
 
-> **Restart Claude Code before running a crew.** Agent definitions are not live-reloaded (DEC-100a), so
-> agents installed in this session are not spawnable yet. Without a restart the first crew fails with
+> **Restart Claude Code before running a team.** Agent definitions are not live-reloaded (DEC-100a), so
+> agents installed in this session are not spawnable yet. Without a restart the first team fails with
 > "Agent type not found" and no explanation.
 
 **Do not overstate this.** The hooks written in step 1 *are* live immediately — verified — and agents
@@ -217,4 +217,4 @@ For a project that is already initialised, after a newer harness has been deploy
 | "They described the goal to me, so it's approved" | Describing is not approving. Ask, then write what they answered |
 | "check-state says pending — close enough" | Nothing downstream may run against an unapproved brief. Onboarding is not done |
 | "I'll copy the new team-config over theirs" | Their `domain` globs are real and the template's are placeholders. Merge by hand |
-| "They can run a crew now" | Not until they restart. Agent definitions are not live-reloaded |
+| "They can run a team now" | Not until they restart. Agent definitions are not live-reloaded |

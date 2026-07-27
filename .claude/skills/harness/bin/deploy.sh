@@ -261,5 +261,5 @@ done
 
 say ""
 say "done. Agents are GLOBAL only — do not copy them per-project (DEC-113)."
-say "A project with no .harness/ still needs /harness-init before a crew will run."
+say "A project with no .harness/ still needs /harness-init before a team will run."
 say "Agent definitions are not live-reloaded: restart Claude Code before spawning."

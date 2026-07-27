@@ -2420,3 +2420,55 @@ platform auto-updates and every mechanism fails open) with the wrong container (
 for product-work DAGs, and the filesystem is the registry, so a probe listed there is a non-crew
 anyone might run against a feature). The hierarchy it proved is recorded in DEC-116 and re-exercised
 by every crew run since; the crew definition itself earned nothing further.
+
+---
+
+## DEC-119 — "team" everywhere, one artifact type per tier, and the two counters get owners
+
+Three terminology and ownership corrections, all from the same review. Earlier decisions keep the
+word "crew" as historical record; every live surface now says **team**.
+
+### crew → team
+
+`harness-crew/` → `harness-team/`, `skills/harness/crews/` → `teams/`, `.harness/crews/` →
+`.harness/teams/`, the `crew:` digest field → `team:`, and the prose in SPEC, BUILD, the templates,
+the agents and the scripts. `review-team.yaml` → `review.yaml`, since "team review-team" was
+redundant once the noun changed.
+
+### One artifact type at every tier
+
+`SYNTHESIS.md` is deleted. It appeared in §10.4 and `harness-product-lead.md` and it invented a
+second document class for something that was already a digest — which is what made the model hard to
+follow. The corrected model, in the operator's words:
+
+> members send a **digest** to leads · leads **collate and assess** their team's digests, including
+> sending work back, before reporting **their team's digest** up · the orchestrator assesses across
+> teams, routes questions between leads, delegates another cycle, or escalates to a briefing
+
+So the lead's output is a **digest of digests**, written to `<run_dir>/digest.md`. There is nothing
+to validate but digests, at every tier — which resolves the naming inconsistency in the validator:
+`validate-digest.py` was always right, the second noun was the error.
+
+### The validator was built and never wired in
+
+DEC-101 built `validate-digest.py` precisely because "normative is enforced by one LLM's opinion of
+parseability". It was referenced in `harness-handoff` and **nowhere in the runner**, so every digest
+across three live runs was accepted by a reader finding it reasonable — the exact enforcement the
+validator exists to replace. Measured cost of that gap: the `review` run satisfied **5 of 11**
+required §10.4 fields, missing `members:` (which is what preserves per-worker granularity under
+hierarchy) and the artifact itself. It is now invoked in the runner's collect step, and a failure
+takes the existing `BLOCKED (contract violation)` path.
+
+### The two cycle counters get explicit owners
+
+| Counter | Lives in | Owner |
+|---|---|---|
+| step `cycles` | run `state.yaml` | **lead** — writes it, reports it |
+| `cycles_used` / `max_total_cycles` | `feature.yaml` | **orchestrator** — increments from the lead's report |
+
+This ratifies the operator's ruling and matches file ownership that already existed. It also fixes a
+bug introduced in DEC-117: the runner told the lead to "increment `cycles_used` on the *feature*" —
+a file the domain hook **blocks** it from writing, verified. Third time the same shape has appeared
+(cost in DEC-116, timestamps in DEC-116, cycles here): **an instruction that assumes a capability the
+tier's tool and domain grants deny.** Worth a standing check when writing any agent-facing prose —
+before telling a tier to do something, confirm its grants permit it.

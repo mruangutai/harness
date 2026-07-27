@@ -27,8 +27,8 @@ orchestrator:
 
 paths:
   agents: .claude/agents/
-  crews: .claude/skills/harness/crews/     # shipped by deploy — REPLACED WHOLESALE on every push
-  crew_overrides: .harness/crews/          # project-owned; deploy never touches it. Resolved FIRST (DEC-113)
+  teams: .claude/skills/harness/teams/     # shipped by deploy — REPLACED WHOLESALE on every push
+  team_overrides: .harness/teams/          # project-owned; deploy never touches it. Resolved FIRST (DEC-113)
   features: .harness/features/
   expertise: .harness/expertise/
 
@@ -208,7 +208,7 @@ teams:
           - { path: ".", read: true }
 
 # Leads write only their own squad's run bookkeeping and their own Expertise.
-# Listed separately because they host crews rather than being members of one.
+# Listed separately because they host teams rather than being members of one.
 leads:
   - name: harness-product-lead
     squad: product

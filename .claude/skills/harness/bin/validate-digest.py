@@ -31,7 +31,7 @@ SCHEMAS = {
     "documentor": {"docs_updated": list, "gaps": list},
     "dev-ops": {"change_type": {"config","scaffolding","infra","ci"},
                 "applied": list, "suite": {"pass","fail","n/a"}},
-    "lead": {"crew": str, "steps_run": int, "cycles_used": int,
+    "lead": {"team": str, "steps_run": int, "cycles_used": int,
              "members": list, "must_fix": list},
 }
 ALIAS = {

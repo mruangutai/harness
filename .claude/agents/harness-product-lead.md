@@ -66,14 +66,14 @@ The three-part return (`harness-handoff`), using the consolidated schema:
 ```
 VERDICT: <worst member verdict: BLOCKED > ESCALATE > FAIL > PASS>
 DIGEST:
-  crew: <name>   steps_run: <n>   cycles_used: <n>
+  team: <name>   steps_run: <n>   cycles_used: <n>
   members:
     - { step: plan, persona: pm, verdict: PASS, headline: "...", files_touched: [...] }
   must_fix: [<union of blocking findings>]
   open_questions: [<unioned from members>]
   needs_approval: <bool>
   expertise_update: [<your own ops>]
-artifact: <run_dir>/SYNTHESIS.md
+artifact: <run_dir>/digest.md
 ```
 
 `ESCALATE` outranks `FAIL` in the roll-up, so a decision the user must make is never masked by a

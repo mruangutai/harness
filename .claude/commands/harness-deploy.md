@@ -91,9 +91,9 @@ fixed agent, and prune cannot see it. This deviates from SPEC §3.3's "global + 
 wording, deliberately.
 
 **Skill dirs are replaced wholesale**, because they are harness-owned end to end. This is why a
-project's crew overrides must **not** live in `.claude/skills/harness/crews/` — a push would delete
-them. Overrides go in `.harness/crews/`, which deploy never touches, and the runner resolves
-`.harness/crews/<name>.yaml` before `.claude/skills/harness/crews/<name>.yaml`.
+project's team overrides must **not** live in `.claude/skills/harness/teams/` — a push would delete
+them. Overrides go in `.harness/teams/`, which deploy never touches, and the runner resolves
+`.harness/teams/<name>.yaml` before `.claude/skills/harness/teams/<name>.yaml`.
 
 **The flat skill dirs are siblings of `harness/`, not children.** `cp -r .claude/skills/harness/.`
 copies the router, `bin/` and `templates/` and **none** of the seven rule skills or `harness-init`, so

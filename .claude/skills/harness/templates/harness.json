@@ -74,7 +74,7 @@
     "human_prefix": "[harness:human]"
   },
 
-  "_dirty_tree_note": "A dirty tree halts a crew with BLOCKED. Without this whitelist the harness's own run artifacts would deadlock the next run.",
+  "_dirty_tree_note": "A dirty tree halts a team with BLOCKED. Without this whitelist the harness's own run artifacts would deadlock the next run.",
   "dirty_tree_whitelist": [".harness/**", ".claude/worktrees/**"],
 
   "log_retention_days": 30,
@@ -127,7 +127,7 @@
     }
   },
 
-  "_budgets_note": "Cost is the post-build signal (DEC-99), so it needs a bound as well as a meter. These sit alongside max_cycles in the crew config: max_cycles bounds RETRIES, these bound SPEND. A crew that exceeds its budget stops and escalates rather than continuing — the same BLOCKED path an exhausted cycle budget takes. Measured anchor: one dev-ops detection spawn on claude-fable-5 cost $2.72 (DEC-114), so these are single-digit numbers of spawns, not hundreds.",
+  "_budgets_note": "Cost is the post-build signal (DEC-99), so it needs a bound as well as a meter. These sit alongside max_cycles in the team config: max_cycles bounds RETRIES, these bound SPEND. A team that exceeds its budget stops and escalates rather than continuing — the same BLOCKED path an exhausted cycle budget takes. Measured anchor: one dev-ops detection spawn on claude-fable-5 cost $2.72 (DEC-114), so these are single-digit numbers of spawns, not hundreds.",
   "budgets": {
     "per_feature_usd": 50.0,
     "per_run_usd": 15.0,

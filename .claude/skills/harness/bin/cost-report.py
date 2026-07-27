@@ -25,7 +25,7 @@ What neither gives you is **cost per harness agent**. The OTel `agent.name`
 attribute documents that "Other user-defined agent names are replaced with
 'custom'" — and all 15 harness agents are user-defined, so they collapse into a
 single bucket. ccusage aggregates per session/model/day, not per agent role.
-Per-agent, per-depth, per-crew cost is precisely the axis DEC-99 wants watched,
+Per-agent, per-depth, per-team cost is precisely the axis DEC-99 wants watched,
 and this script is the only thing that produces it.
 
 So: use ccusage or OTel for ground truth, use this for the breakdown, and run

@@ -1,6 +1,6 @@
 # The gating probe: prove a FAIL actually loops back, converges, and is bounded.
 #
-# WHAT IT PROVES. Four things the fix loop rests on, none of which the smoke crew
+# WHAT IT PROVES. Four things the fix loop rests on, none of which the smoke team
 # touches: on_fail fires on FAIL; loop_back re-dispatches the right step;
 # feed: [self] genuinely delivers the reviewer's report to that step; and
 # cycles_used increments in state.yaml rather than in the host's head.

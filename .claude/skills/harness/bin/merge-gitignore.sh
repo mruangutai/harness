@@ -4,7 +4,7 @@
 #   merge-gitignore.sh <project-root> [--check]
 #
 # WHY A SCRIPT: `.harness/features/*/runs/**` is not cosmetic. Run dirs are ephemeral
-# scratch, and the git-failure-mode rule halts a crew with BLOCKED on a dirty tree —
+# scratch, and the git-failure-mode rule halts a team with BLOCKED on a dirty tree —
 # so if this rule is missing, the harness's own artifacts deadlock the next run. The
 # project's existing .gitignore must survive intact, and re-running must be a no-op.
 #
@@ -61,7 +61,7 @@ fi
 {
   [ -f "$target" ] && [ -s "$target" ] && echo ""
   echo "# --- harness ---"
-  echo "# Run dirs are ephemeral; a dirty tree halts a crew with BLOCKED, so these"
+  echo "# Run dirs are ephemeral; a dirty tree halts a team with BLOCKED, so these"
   echo "# must be ignored or the harness deadlocks itself. Everything else under"
   echo "# .harness/ is committed on purpose — it is the record of what shipped."
   printf '%s' "$missing"

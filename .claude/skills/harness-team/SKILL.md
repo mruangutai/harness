@@ -1,12 +1,12 @@
 ---
-name: harness-crew
-description: Run a harness crew — a small DAG of agents hosted by a domain lead, passing state by file path. Use when asked to run a named crew, to assemble a crew for a goal, or to list the available crews.
+name: harness-team
+description: Run a harness team — a small DAG of agents hosted by a domain lead, passing state by file path. Use when asked to run a named team, to assemble a team for a goal, or to list the available teams.
 ---
 
-# Harness: Crew Runner
+# Harness: Team Runner
 
-A crew is a **DAG of steps, each dispatched to one agent**, hosted by a domain lead. This skill is
-the algorithm; the crews are data at `.claude/skills/harness/crews/*.yaml`.
+A team is a **DAG of steps, each dispatched to one agent**, hosted by a domain lead. This skill is
+the algorithm; the teams are data at `.claude/skills/harness/teams/*.yaml`.
 
 **You are the host.** If you are a lead, you are running your own squad's DAG. If you are the main
 session, you are running it flat. The algorithm is identical either way — only who spawns differs.
@@ -24,13 +24,13 @@ outputs disjoint when steps run in parallel.
 
 ## Process
 
-### 1. Resolve the crew
+### 1. Resolve the team
 
-`.harness/crews/<name>.yaml` first, then `.claude/skills/harness/crews/<name>.yaml`. Project
+`.harness/teams/<name>.yaml` first, then `.claude/skills/harness/teams/<name>.yaml`. Project
 overrides win: the shipped directory is replaced wholesale on every `/harness-deploy`, so anything
 project-specific has to live outside it (DEC-113).
 
-**No crew named?** List `name` + `purpose` from both directories and stop. The filesystem is the
+**No team named?** List `name` + `purpose` from both directories and stop. The filesystem is the
 registry — there is no catalog to keep in sync.
 
 ### 2. Open the run
@@ -44,7 +44,7 @@ registry — there is no catalog to keep in sync.
 create per-step directories for members — they write into their own domains.
 
 Seed `state.yaml` with `schema_version`, `run_id`, `feature`, `squad`, `host`, `status: running`,
-and one `steps:` entry per crew step with `status: pending`.
+and one `steps:` entry per team step with `status: pending`.
 
 ### 3. Loop
 
@@ -74,11 +74,24 @@ write, and nothing else.
 **Do not serialize out of caution.** A panel of reviewers dispatched one at a time still returns the
 same verdicts, so the run looks correct while costing several times the wall-clock — the most
 expensive way to be wrong, because nothing surfaces it. If steps genuinely conflict, that is what
-`depends_on` and `mutates_repo` are for; encode it in the crew rather than in how you dispatch.
+`depends_on` and `mutates_repo` are for; encode it in the team rather than in how you dispatch.
 
-**e. Collect returns and evaluate.** Read `VERDICT` and the `DIGEST` fields. Record both in
-`state.yaml`. On a missing or malformed `VERDICT`, re-prompt **once**, then record
-`BLOCKED (contract violation)` — never infer what the agent meant.
+**e. Collect returns and validate them mechanically.** Read `VERDICT` and the `DIGEST` fields,
+record both in `state.yaml` — then check the digest against the schema rather than against your
+own judgement:
+
+```bash
+.claude/skills/harness/bin/validate-digest.py <persona> <<< "<the member's return>"
+```
+
+**Your reading is not the check.** `severity_max: medium` instead of `med`, `must-fix` instead of
+`must_fix` — you will normalize all of those charitably, which is exactly why drift is invisible
+until one routing decision quietly goes the wrong way (DEC-101). A failing validation takes the
+existing `BLOCKED (contract violation)` path. On a missing or malformed `VERDICT`, re-prompt
+**once**, then record the violation — never infer what the agent meant.
+
+*If you have no `Bash` (leads do not), you cannot run this yourself. Say so in your team digest and
+the orchestrator validates on receipt — the same split as cost and the feature counter.*
 
 **f. Apply `on_fail`.** Only on `FAIL`. `BLOCKED` and `ESCALATE` always stop the branch and go up —
 they mean the agent could not proceed, not that its work was rejected, so retrying is wrong.
@@ -99,10 +112,12 @@ For `loop_back`:
    into the re-dispatched prompt, alongside the original inputs. Without it the target repeats
    itself verbatim and the loop cannot converge; this is the one place a return value must reach a
    later prompt, and even then it travels as a path.
-3. **Count in `state.yaml`, not in your head.** Increment `cycles_used` on the *feature*, and the
-   per-step `cycles`, and write both before re-dispatching. Re-read them at the top of every
-   iteration — the count must survive a context reset, because the loop is exactly where one
-   happens.
+3. **Count in your own `state.yaml`, not in your head — and not on the feature.** Increment the
+   per-step `cycles` and write it before re-dispatching; re-read it at the top of every iteration,
+   because the loop is exactly where a context reset happens. **Do not touch `feature.yaml`**: the
+   feature-wide `cycles_used` / `max_total_cycles` is the orchestrator's, and the domain hook blocks
+   you from writing it anyway. Report cycles spent in your team digest and let the orchestrator
+   increment (DEC-119).
 4. **Reset the downstream.** Steps that already ran after the target return to `pending`; their
    previous verdicts are stale the moment their input changes.
 5. **Cycle-namespace the outputs of anything that re-runs.** Resolve `{{cycle}}` in output paths to
@@ -118,7 +133,15 @@ help — say so in the escalation rather than spending the budget to prove it.
 
 ### 4. Close out
 
-Set `status: complete` (or `failed` / `blocked`) and report.
+Set `status: complete` (or `failed` / `blocked`), then **write your team digest to
+`<run_dir>/digest.md`** and report it as your `artifact:`.
+
+**The team digest is a digest of digests, not a new document class.** Same shape as a member's,
+plus the fields only you can supply: the per-member roll-up (`members:`), the union of `must_fix`,
+`steps_run`, cycles spent, and your assessment of what the panel actually means. §10.4 is the
+contract; `validate-digest.py <lead-persona>` checks it. **The `members:` block is not optional** —
+it is what preserves per-worker granularity in `STATE.md` under hierarchy, and without it the
+orchestrator cannot log who did what.
 
 **Do not try to run `cost-report.py` if you are a lead — you have no `Bash`.** Leads hold
 `Read, Glob, Grep, Agent` deliberately, so they cannot do a member's work; the same grant also
@@ -146,7 +169,7 @@ Report per-step verdicts and the run dir path. Not the artifacts' contents — t
 ```
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
-  headline: <one line — what the crew achieved, not what it did>
+  headline: <one line — what the team achieved, not what it did>
   steps: [<id>: <verdict>, ...]
   files_touched: [<paths>]
   cost_usd: <from the cost block>

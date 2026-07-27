@@ -18,7 +18,7 @@ writing a deliverable is.
 2. **Spawn that member and delegate** — the task, the inputs, the paths, the goal.
 3. **Assess what comes back.** Read their artifact and DIGEST. You are the one tier permitted to read
    member artifacts, and assessing is the half of your job that is not routing.
-4. **Consolidate and report up** — one DIGEST per crew, with a per-member block preserved.
+4. **Consolidate and report up** — one DIGEST per team, with a per-member block preserved.
 
 ## Routing edge cases
 

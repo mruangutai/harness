@@ -176,7 +176,7 @@ the time of writing; the live list is authoritative if the two disagree.
 | 7 | Write-safety: Bash bypass + shared paths | **done** (DEC-85, DEC-107) |
 | 8 | Expertise governance holes | pending — provenance, decay, curation for all 15, global tier. **Add: 14 of 15 `expertise/<agent>.md` files do not exist**, so `inject-expertise.sh` injects nothing on almost every spawn and says nothing about it (surfaced by the DEC-112 fixture run). Init creating the dir empty is per spec; what is missing is anything that ever populates it |
 | 9 | The 15 agent definitions | **done** (DEC-106, DEC-107) |
-| 10 | Crew runner + four v1 crews | **in progress** — runner done incl. gating and parallel dispatch, all proven from spawn records (DEC-116, DEC-117). **Scope corrected (DEC-118): only 2 of the 4 are crews** — `plan-feature` and `ship-feature` are orchestrator playbooks sequencing per-squad runs, since a crew is single-squad by construction. Built: `review-team`. Remaining: `debug` (crew), the two playbooks, and the question round-trip |
+| 10 | Team runner + four v1 teams | **in progress** — runner done incl. gating and parallel dispatch, all proven from spawn records (DEC-116, DEC-117). **Scope corrected (DEC-118): only 2 of the 4 are teams** — `plan-feature` and `ship-feature` are orchestrator playbooks sequencing per-squad runs, since a team is single-squad by construction. Built: `review-team`. Remaining: `debug` (team), the two playbooks, and the question round-trip |
 | 11 | Batch human touchpoints to two | pending |
 | 12 | `/harness-init` + distributed templates | **done** — flat skill at `.claude/skills/harness-init/`, 8 templates, 3 merge scripts (DEC-112) |
 | 13 | Rewrite `harness-deploy` (distribution only, **+ prune**) | **done** (DEC-113) — `bin/deploy.sh`, dry-run by default, reconciles rather than copies. The live risk was confirmed real before the fix: 3 deleted agents spawnable everywhere, the global skill tree still the April layout |
@@ -194,7 +194,7 @@ was built; the Done-when block at the end records how each criterion was verifie
 
 ### What it is
 
-The onboarding interview, run **inside a target project**. It absorbs the deleted `bootstrap` crew
+The onboarding interview, run **inside a target project**. It absorbs the deleted `bootstrap` team
 (DEC-14). Delivered as a **flat skill** at `.claude/skills/harness-init/SKILL.md` — *not* a command,
 because commands do not distribute (DEC-06), and *not* nested, because a project skill is exactly one
 level under `.claude/skills/` (DEC-100).
@@ -284,7 +284,7 @@ state check reports the version gap; the user triggers the upgrade (DEC-13).
 ### It must warn about the restart — but only about what actually needs one
 
 **Agent definitions are not live-reloaded** (DEC-100a): agent files written *during* a session are not
-spawnable until it restarts. Say so at the end, or a user who runs a crew immediately gets "Agent type
+spawnable until it restarts. Say so at the end, or a user who runs a team immediately gets "Agent type
 not found" with no explanation.
 
 > **Corrected 2026-07-26 (DEC-112).** The warning must not be broader than that. **Hooks written by
@@ -389,7 +389,7 @@ build requirement, and it must exist *before* the first real `kaya-ai` run, not 
 ### Retained from the deferred list — now in scope
 
 1. ~~**Cost instrumentation — do this first.**~~ **DONE (DEC-114).** Tokens and spawn count logged per
-   run in `state.yaml`; per-crew budgets alongside `max_cycles`; a cost line in the CEO briefing.
+   run in `state.yaml`; per-team budgets alongside `max_cycles`; a cost line in the CEO briefing.
    Built as `bin/cost-report.py` because **no existing tool can do it**: the transcripts carry no cost
    field (so `ccusage` is an estimator too, not an oracle), and Claude Code's native OTel — which does
    know the dollars — collapses every user-defined agent into `agent.name: "custom"`, losing the
@@ -496,7 +496,7 @@ outright, so doing them now risks polishing text that will not survive:
    human-gated writer or is deleted** (§5.6 names the risk and assigns no mechanism, and it is
    uncommitted, so it has no PR-review audit channel either).
 4. **Cost accounting as a first-class axis:** tokens and spawns logged per run in `state.yaml`,
-   per-crew budgets beside `max_cycles`, a cost line in the CEO briefing, cheaper model tiers as the
+   per-team budgets beside `max_cycles`, a cost line in the CEO briefing, cheaper model tiers as the
    doer/reviewer default.
 5. **Re-examine DEC-68 and DEC-71 against the numbers.** Single-purpose curation spawns and mandatory
    lead intermediation (minimum 3 spawns for a one-line tweak) are the two things every review expects
@@ -519,12 +519,12 @@ Proves the whole idea works at minimal surface.
    Expertise arrives via the `SubagentStart` hook.
 2. **Remaining doers + leads.** `pm` (research + plan + greenfield), `qa`, `documentor`,
    `visual-designer`, the other 4 eng specialists; plus all 3 leads.
-3. **One linear crew.** A minimal runner + a single linear crew, no gating or loop-back yet. Prove
+3. **One linear team.** A minimal runner + a single linear team, no gating or loop-back yet. Prove
    file-path state passing, lead→member dispatch, and the `lead:` host field. **DONE** (DEC-116).
 
-   > **Corrected (DEC-118).** This step originally specified `crew/SKILL.md` and a
-   > `pm → backend-dev` crew under `lead: eng-lead`. Both were unbuildable. The runner path is
-   > nested and undiscoverable (DEC-100) — it is `harness-crew/SKILL.md`. And `pm` is Product-squad
+   > **Corrected (DEC-118).** This step originally specified `team/SKILL.md` and a
+   > `pm → backend-dev` team under `lead: eng-lead`. Both were unbuildable. The runner path is
+   > nested and undiscoverable (DEC-100) — it is `harness-team/SKILL.md`. And `pm` is Product-squad
    > while `eng-lead` leads Engineering: a lead only dispatches its own members, and the depth-2 cap
    > means it cannot spawn a peer lead to reach across either. Step 3 predates the three-squad org
    > that step 2 of this same list creates. The three things it asks to prove are unchanged and were
@@ -536,10 +536,10 @@ Beyond "build personas + assemble them." Prune freely.
 
 4. **Rewrite the existing reviewers** — drop GSD, repoint to `.harness/`, add the three-part return
    and a `skills:` list. Add `ui-reviewer` (modes A/B).
-5. **Full crew semantics + the v1 crew catalog** — the `VERDICT:`/`DIGEST:` contract,
+5. **Full team semantics + the v1 team catalog** — the `VERDICT:`/`DIGEST:` contract,
    `on_fail`/`loop_back`/`max_cycles` gating, parallelism, `validator-lead` panel assessment. Build
-   the 4 v1 core crews (SPEC §13): `plan-feature`, `ship-feature`, `debug`, `review-team`. Flat and
-   standalone — no sub-crew composition. Defer `understand-codebase` and `docs-refresh`.
+   the 4 v1 core teams (SPEC §13): `plan-feature`, `ship-feature`, `debug`, `review-team`. Flat and
+   standalone — no sub-team composition. Defer `understand-codebase` and `docs-refresh`.
    - Also implement the **question round-trip** (SPEC §2.1): `open_questions` non-empty →
      orchestrator asks the user → re-delegate with answers via `resume_from`. This is the only
      human-in-the-loop mechanism; there is no interview step type.
@@ -577,16 +577,16 @@ Beyond "build personas + assemble them." Prune freely.
 | 6 | `rules/verification-rules.md` | Retarget to `harness-qa`. **Rewrite the "what NOT to duplicate / GSD verifier already checks" section** — no GSD verifier exists. SUMMARY.md → `STATE.md`/Completion Block; CONTEXT.md → `PLAN.md`. **Add the Test Guardrails protocol** (SPEC §9): test-matrix enforcement as a hard gate against the PR diff, TDD-coverage audit, Playwright E2E for UI. qa leans on the `webapp-testing`/Playwright capability. |
 | 7 | `rules/code-review.md` | CONTEXT.md → `PLAN.md`; SUMMARY.md → `STATE.md`; `tdd_exempt_plan_types` path → `.harness/harness.json`. The self-read pattern here is already correct. |
 | 8 | `rules/SKILL.md` | Rewrite the loading table: gsd-executor → **the 4 eng devs**; gsd-planner → **pm**; gsd-debugger → eng devs in debug mode; gsd-verifier → **qa**. Add `documentor`, `visual-designer`, **`dev-ops`** (tdd-enforcement with the config/scaffolding exemption), and the 3 leads. Reframe "injected via agent_skills" → "each persona loads its rule via `## Skills`." | <!-- ok-stale -->
-| 9 | `skills/harness/SKILL.md` (router) | **Biggest edit.** Invert the selective-loading rule (currently *"Do NOT read subdirectory rule files… injected via agent_skills"*). Drop config.json/`agent_skills`. Point at `.harness/`. Rewrite the lifecycle table (GSD owners → personas; drop the "Injected Skills" column → add a stage→persona→gate mapping). Add the crew-runner reference. | <!-- ok-stale -->
+| 9 | `skills/harness/SKILL.md` (router) | **Biggest edit.** Invert the selective-loading rule (currently *"Do NOT read subdirectory rule files… injected via agent_skills"*). Drop config.json/`agent_skills`. Point at `.harness/`. Rewrite the lifecycle table (GSD owners → personas; drop the "Injected Skills" column → add a stage→persona→gate mapping). Add the team-runner reference. | <!-- ok-stale -->
 | 10 | `harness.json` → `.harness/harness.json` | Remap `role_triggers` (new-project / discuss-phase / pre-ship → harness stages). **Delete `agent_skills_reference`.** Keep `gates`. **Add `test_matrix` + `test_kinds`** (generalizes `tdd_exempt_plan_types` — exempt types map to `[]`). Add `log_retention_days` (default 30). |
 | 11 | Agents — the full org | *Keep + rewrite 3 existing:* `code-reviewer`, `security-reviewer`, `qa` (now a **doer**). Drop `/gsd-*` trigger vocabulary, repoint inputs to `.harness/`, add the three-part `VERDICT:`/`DIGEST:`/`artifact:` return. **Delete** `harness-ceo-reviewer` and `harness-eng-reviewer` (architecture review moves into `eng-lead`). **Add 12:** 3 leads (`product-lead`, `eng-lead`, `validator-lead`), 5 eng specialists (`frontend-dev`, `backend-dev`, `ai-dev`, `data-engineer`, `dev-ops`), `pm`, `visual-designer`, `documentor`, `ui-reviewer`. **Total: 15.** |
 | 12 | `skills/harness/personas/` | **Delete** the stub dir — the roster lives in `.claude/agents/`. |
-| 13 | `CLAUDE.md` | Rewrite "GSD Workflow Enforcement" (route via `/harness`, not `/gsd:*`). Update the `<!-- GSD:harness-* -->` block to describe `.harness/` + crews. Flag the stale STACK.md block for rewrite. GSD marker comments become inert — harmless, drop optionally. |
+| 13 | `CLAUDE.md` | Rewrite "GSD Workflow Enforcement" (route via `/harness`, not `/gsd:*`). Update the `<!-- GSD:harness-* -->` block to describe `.harness/` + teams. Flag the stale STACK.md block for rewrite. GSD marker comments become inert — harmless, drop optionally. |
 | 14 | `.claude/commands/harness-deploy.md` | **DONE** (DEC-113). Scoped to distribution only — it must never write project state. See the detail block below. |
 | 15 | `.gitignore` | **NET-NEW FILE.** See the detail block below. |
 | 16 | `.harness/README.md` | **REWRITE, not create** — it already exists and contradicts this design. See the detail block below. **Owner: `documentor`.** |
 | 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.sh`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
-| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` crew): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what makes deploy safe to be dumb.** |
+| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what makes deploy safe to be dumb.** |
 | 19 | `rules/handoff.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 15 agents. Create it in MVP step 1 alongside the first persona. |
 
 **Also net-new, and reshaped:** all seven rules become **skill directories**
@@ -610,7 +610,7 @@ is **renamed to `expertise`** (DEC-80).
 - Registry `~/.gsd/harness-registry.json` → `~/.harness/registry.json`. **Migrate the existing
   registry file** — do not orphan it. Make the migration **idempotent**: handle both files present,
   and a project listed only in the old registry.
-- Copy skills + **all 15 agents** (glob `harness-*.md`) + propagate `crews/`.
+- Copy skills + **all 15 agents** (glob `harness-*.md`) + propagate `teams/`.
 - ⚠️ **`cp -r .claude/skills/harness/.` is not enough, and this is easy to miss.** It copies the router,
   `bin/` and `templates/`, but **none of the flat skill dirs** — the seven rule skills *and*
   `harness-init` itself all live at `.claude/skills/harness-*/`, siblings of `harness/`, because a
@@ -623,7 +623,7 @@ is **renamed to `expertise`** (DEC-80).
   spawnable everywhere, pointing at a `.planning/` root that no longer exists.
 - **Rewrite the deploy verification checklist** — it still asserts `manifest.json` / `agent_skills`
   presence.
-- Define **crew resolution precedence**: project-local `crews/` overrides global.
+- Define **team resolution precedence**: project-local `teams/` overrides global.
 - **Enroll = deploy + `/harness-init`.** The old flow required `/gsd-new-project` first; that
   dependency is gone.
 - ~~A post-cutover push should **strip the now-inert `agent_skills` block** from already-enrolled
@@ -636,7 +636,7 @@ is **renamed to `expertise`** (DEC-80).
 ### Detail: #15 — `.gitignore`
 
 The repo has **none**, yet the commit policy depends on ignoring `.harness/features/*/runs/**`.
-Without it, run dirs dirty the working tree — and the git-failure-mode rule halts a crew with
+Without it, run dirs dirty the working tree — and the git-failure-mode rule halts a team with
 `BLOCKED` on a dirty tree, so **the harness's own artifacts would deadlock the next run.** Add the
 rule here and to `harness-deploy` enroll (`templates/gitignore.snippet`). Reconcile the dirty-tree
 halt with a **whitelist**: harness-owned paths and in-progress staged work do not count as dirty.
@@ -672,11 +672,11 @@ in `.planning/STATE.md` are each triaged into a new `.harness/PLAN.md` task **or
 with a note.** Silently losing them is the failure mode to guard against.
 
 **Dev workflow flips:** development stops going through `/gsd:*` commands and goes through
-`/harness` + crews. `CLAUDE.md`'s "GSD Workflow Enforcement" section is replaced accordingly
+`/harness` + teams. `CLAUDE.md`'s "GSD Workflow Enforcement" section is replaced accordingly
 (migration item #13).
 
 **Sequencing:** the harness can only self-host *after* the MVP slice exists (state model + bootstrap
-+ first specialist + one crew). So this migration lands at the **END** of the build — bootstrap the
++ first specialist + one team). So this migration lands at the **END** of the build — bootstrap the
 new system with GSD still available, then cut over and retire `.planning/`.
 
 ---
@@ -685,7 +685,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 
 - **Runner-is-a-skill rests on a verified fact:** `/harness-deploy` distributes skills but **not**
   commands, so the runner must be a skill to propagate. State passes by file path (context-budget
-  discipline), and sub-crews flatten rather than nest.
+  discipline), and sub-teams flatten rather than nest.
 - **⚠️ Nested spawning is a HARD PREREQUISITE, not an assumption.** Evidence is mixed: some agent
   types list `Tools: *` (likely including the spawn tool), but the Workflow docs note "subagents
   can't spawn subagents in some configs" and "nesting is one level only." Everything downstream of
@@ -697,7 +697,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
   trust model TDD already uses.
 - **Concurrency cap (~10)** → keep fan-out ready-sets small.
 - **`.harness/` vs `.planning/` is a clean break** — intentional, not backward-compatible.
-- **Commands don't distribute** → invocation via skill; a `/crew` shortcut is optional.
+- **Commands don't distribute** → invocation via skill; a `/team` shortcut is optional.
 - **Domain enforcement is unproven** (Step 0a) and is the sole guarantee behind the parallel-safety
   claim and scoped lead `Write`.
 
@@ -707,7 +707,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 
 - **Self-injection:** spawn `harness-backend-dev` on a trivial task; confirm it reads
   `tdd-enforcement.md` (writes a failing test first) **without any config field present.**
-- **Crew end-to-end / parallel fan-in:** exercise a v1 crew — `review-team`'s parallel reviewer panel
+- **Team end-to-end / parallel fan-in:** exercise a v1 team — `review-team`'s parallel reviewer panel
   → **`validator-lead` assessment** fan-in. (Not `understand-codebase`, which is deferred.) Confirm
   reviewers run concurrently, the lead merges them into one actionable set, and outputs land in the
   run dir.
@@ -719,7 +719,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
   `code-reviewer` returns `VERDICT: FAIL`, the host loops back to the dev that produced the failing
   `files_touched` with the report injected, and escalates after `max_cycles`.
 - **GSD-free:** `grep -ri "gsd\|agent_skills\|get-shit-done" .claude/ .harness/` returns only
-  intentional history/notes; a fresh project with only `.harness/` (no GSD installed) can run a crew.
+  intentional history/notes; a fresh project with only `.harness/` (no GSD installed) can run a team.
 
 ---
 
@@ -727,9 +727,9 @@ new system with GSD still available, then cut over and retire `.planning/`.
 
 | Path | Status |
 |---|---|
-| `.claude/skills/harness/SKILL.md` | rewrite — router → coordinator playbook + lifecycle/crew routing |
-| `.claude/skills/harness-crew/SKILL.md` | **new** — generic runner, algorithm inline. **FLAT**, not `harness/crew/`: nested skill dirs are undiscoverable (DEC-100). Crew *data* stays at `harness/crews/*.yaml` — a data dir, not a skill |
-| `.claude/skills/harness/crews/*.yaml` | **new** — crew configs |
+| `.claude/skills/harness/SKILL.md` | rewrite — router → coordinator playbook + lifecycle/team routing |
+| `.claude/skills/harness-team/SKILL.md` | **new** — generic runner, algorithm inline. **FLAT**, not `harness/team/`: nested skill dirs are undiscoverable (DEC-100). Team *data* stays at `harness/teams/*.yaml` — a data dir, not a skill |
+| `.claude/skills/harness/teams/*.yaml` | **new** — team configs |
 | `.claude/agents/harness-{product,eng,validator}-lead.md` | **new** — domain leads |
 | `.claude/agents/harness-{frontend,backend,ai}-dev.md`, `harness-data-engineer.md`, `harness-dev-ops.md` | **new** — 5 eng specialists |
 | `.claude/agents/harness-{pm,qa,documentor,visual-designer,ui-reviewer}.md` | **new** — product/validator agents |
@@ -744,7 +744,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `settings.json` — `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` + `SubagentStart` | **new** — both required, neither on by default (§ Step 0a) |
 | `.claude/agents/harness-{code,security}-reviewer.md` | rewrite — de-GSD'd + three-part return (`ceo-reviewer` and `eng-reviewer` are **deleted**) |
 | `.claude/skills/harness/rules/*.md` | rewrite — retarget injection prose to personas |
-| `.claude/commands/harness-deploy.md` | rewrite — strip agent_skills/manifest, repoint to `.harness/`, add crews + prune step |
+| `.claude/commands/harness-deploy.md` | rewrite — strip agent_skills/manifest, repoint to `.harness/`, add teams + prune step |
 | `.gitignore` | **new** |
 | `.planning/config.json` + `harness.json` | delete `agent_skills`; move config to `.harness/` |
 
@@ -779,5 +779,5 @@ separate note, or session history) and resolved against SPEC.md. Do not substitu
 ### Post-ship follow-up
 
 Update the kaya-ai memory `pr-cycle-review-team.md` so it matches the shipped design: CEO out of the
-review panel; panel membership from crew config rather than auto-selected (DEC-57). Deferred until
+review panel; panel membership from team config rather than auto-selected (DEC-57). Deferred until
 the harness ships — decided, not forgotten.

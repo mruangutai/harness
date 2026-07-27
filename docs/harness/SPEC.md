@@ -34,8 +34,8 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 | **Test guardrails** — the change-type matrix, `test_matrix`/`test_kinds`, the four resolution states, AI evals | **9** | 1.1k |
 | The orchestrator — loop, hierarchy and spawn depth, canonical flow, CEO briefing, consolidated DIGEST, escalation, `max_cycles` exhaustion | **10** | 2.7k |
 | **Execution state** — `feature.yaml`, `state.yaml`, REQ/FEAT/D/T levels, checkpoint-before-dispatch, success criteria and UAT | **11** | 2.3k |
-| Crew YAML schema and the runner algorithm | **12** | 0.7k |
-| The v1 crew catalog and the prototype gate | **13** | 0.8k |
+| Team YAML schema and the runner algorithm | **12** | 0.7k |
+| The v1 team catalog and the prototype gate | **13** | 0.8k |
 | Composability — v1 scope and the post-v1 flattening plan | **14** | 0.2k |
 | **Operating constraints** — single operator, one feature per worktree, your own hand edits, unmodelled costs | **15** | 0.9k |
 
@@ -57,7 +57,7 @@ The harness is a standalone Claude Code workflow system. It owns four things end
 |---|---|
 | **State** | harness-owned files under `.harness/` (§2) |
 | **Org** | 15 agents in 3 squads under 3 domain leads (§3) |
-| **Execution** | an orchestrator loop plus declarative crews (§10, §12) |
+| **Execution** | an orchestrator loop plus declarative teams (§10, §12) |
 | **Discipline delivery** | each agent self-injects its own rule files (§7) |
 
 **You are the CEO.** You define the goal, approve `BRIEF.md` and `PLAN.md`, and own the merge.
@@ -78,7 +78,7 @@ Four files plus `harness.json` and one directory:
 | `.harness/BRIEF.md` | North star: Goal, Requirements (REQ-NN), Constraints, **Success Criteria (SC-NN)**, `## Approval`. Stable across the project. **The goal of record** — every goal-check anchors here. | all personas | `harness-pm` (drafts) · **user approves** |
 | `.harness/PLAN.md` | Active plan: `## Decisions` (D-NN), `## Approval` (user marker + date), `## Features` (FEAT-NN: name, `traces:` REQs, its tasks — §11), `## Tasks` (T-NN: paths, intent, `verify:`, `traces:`, `feature:`, `change_type:`, `status:`). | all personas | `harness-pm` (except `## Approval` → orchestrator) |
 | `.harness/STATE.md` | Live handoff digest — `## Current` (a *pointer* to the in-flight run's `state.yaml`, not a copy) + `## Open Questions`. Nothing else. **Bounded by construction** — no rotation rule needed. | all personas at spawn | **orchestrator only** |
-| `.harness/logs/<YYYY-MM-DD>.md` | Append-only activity stream, one file per day. Each entry is a rolled-up DIGEST: `time · run · crew · agent · verdict · files · headline`. **Not loaded at spawn** — read only when a task explicitly calls for history. Pruned on a recurring schedule. | on request only | **orchestrator only** |
+| `.harness/logs/<YYYY-MM-DD>.md` | Append-only activity stream, one file per day. Each entry is a rolled-up DIGEST: `time · run · team · agent · verdict · files · headline`. **Not loaded at spawn** — read only when a task explicitly calls for history. Pruned on a recurring schedule. | on request only | **orchestrator only** |
 | `.harness/DESIGN.md` | Visual design contract: palette, type scale, spacing, component direction, light/dark. Established during `/harness-init`'s design pass; the authority UI work implements against. | frontend-dev, documentor, ui-reviewer | `harness-visual-designer` |
 | `.harness/notes/` | Durable artifacts, **feature-scoped where they belong to a feature**: `research-<topic>.md`, `mockups/*.html`, `prototypes/<FEAT>/`, `review-<persona>-<runid>.md`, `uat-<FEAT>.md`, `ship-review-<FEAT>-<runid>.md`, `answers-<FEAT>-<runid>.md`, `feedback.md` (leads-only read), `history/`. | pm, documentor, reviewers, leads | pm, visual-designer, reviewers, orchestrator (`feedback.md`, `answers-*`, `ship-review-*`) |
 
@@ -121,7 +121,7 @@ feature accumulates several runs across several squads (§11), so a bare `<runid
 grepping `state.yaml` files to find out which feature an artifact belongs to. The id is in the
 filename so `ls` answers it.
 
-Onboarding is handled by `/harness-init`, not a crew (§3): it interviews you directly, writes
+Onboarding is handled by `/harness-init`, not a team (§3): it interviews you directly, writes
 `BRIEF.md` + `harness.json` + the manifest, and takes your approval. The round-trip above is the
 mechanism for every *subsequent* human-in-the-loop moment.
 
@@ -191,7 +191,7 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
 ### 2.5 Pause, resume, and commit policy
 
 **Cross-session pause/resume needs no separate mechanism:** `STATE.md` (`## Current` +
-`## Open Questions`) *is* the handoff artifact, re-read at every `/harness` entry. A mid-crew stop
+`## Open Questions`) *is* the handoff artifact, re-read at every `/harness` entry. A mid-team stop
 leaves its run dir behind; the state check surfaces it and offers resume or discard.
 
 **Commit policy:** `BRIEF.md` / `PLAN.md` / `STATE.md` / `notes/` / `logs/` / `expertise/` are
@@ -252,7 +252,7 @@ orchestrator:
 
 paths:
   agents: .claude/agents/
-  crews:  .claude/skills/harness/crews/
+  teams:  .claude/skills/harness/teams/
   features: .harness/features/
 
 universal_rules:                            # preloaded by all 15 via `skills:` (§7)
@@ -410,7 +410,7 @@ Mechanical detection (test-runner discovery, source layout → `domain` globs) i
 `AskUserQuestion`.
 
 **The roster is NOT pruned per project.** All 15 agents are present everywhere; irrelevant ones
-**self-scope** to "not in scope" at the cost of one cheap spawn. Crew configs may still omit an
+**self-scope** to "not in scope" at the cost of one cheap spawn. Team configs may still omit an
 obviously-irrelevant reviewer from a specific panel.
 
 **Template versioning handles org changes.** Templates carry a `schema_version`. When the harness
@@ -422,8 +422,8 @@ entries while preserving your `domain` values.
 
 | Agent | Squad | Type | Role | Tools |
 |---|---|---|---|---|
-| `harness-product-lead` | — | **lead** | Conducts product crews; routes work across pm / visual-designer / documentor by `consult-when`; assesses and consolidates their DIGESTs | Read, Glob, Grep, **Agent** (no Edit/Bash) |
-| `harness-eng-lead` | — | **lead** | Conducts build crews; **routes each task to one of five specialists** by `consult-when`; **owns architecture review**; consolidates DIGESTs | Read, Glob, Grep, **Agent** (no Edit/Bash) |
+| `harness-product-lead` | — | **lead** | Conducts product teams; routes work across pm / visual-designer / documentor by `consult-when`; assesses and consolidates their DIGESTs | Read, Glob, Grep, **Agent** (no Edit/Bash) |
+| `harness-eng-lead` | — | **lead** | Conducts build teams; **routes each task to one of five specialists** by `consult-when`; **owns architecture review**; consolidates DIGESTs | Read, Glob, Grep, **Agent** (no Edit/Bash) |
 | `harness-validator-lead` | — | **lead** | Runs the review panel (`review-team`); **assesses and synthesizes** the feedback into one actionable set; the independence layer over `qa` | Read, Glob, Grep, **Agent** (no Edit/Bash) |
 | `harness-pm` | product | doer | **Product manager — research + plan in one context.** (1) Research: explore code, resolve unknowns, web-research; (2) Plan: BRIEF + findings → `## Decisions` + specified `## Tasks` (with `change_type`). Greenfield mode drafts BRIEF. Checks the **feature goal**. Raises `open_questions` | Read, Glob, Grep, Edit, Write, Bash, Web |
 | `harness-visual-designer` | product | doer | **Visual identity + design contract:** (1) `DESIGN.md` — palette, type scale, spacing, component direction, light/dark; (2) throwaway mockups for exploration; (3) **decides whether a feature requires end-user interaction, and if so builds the high-fidelity prototype you must approve** (§13.1) | Read, Glob, Grep, Edit, Write, Bash, Skill |
@@ -1022,7 +1022,7 @@ Two classes of doer output:
   run-dir `outputs:`.
 - **Repo-mutators** (eng devs, qa, documentor, visual-designer): the deliverable is
   code / tests / docs / `DESIGN.md` **on disk**. They declare `output_class: repo`, and their DIGEST
-  carries `branch` + `files_touched` instead of run-dir files (the crew `outputs:` field is
+  carries `branch` + `files_touched` instead of run-dir files (the team `outputs:` field is
   meaningless for them).
 
 Repo-mutators hand off via a pull request. One branch per feature; devs → code commits, qa → test
@@ -1036,13 +1036,13 @@ specialists never own the same file.
   mutating step. Not a worker's job.
 - **Ground-truth diff for reviewers:** `git diff <base>...<review_sha>` **locally** — no `gh`, no
   network, no auth dependency. Reviewers do **not** require a live PR to review.
-- **PR creation:** a single **orchestrator step at the end of a passing crew** (`gh pr create`), not
-  per-worker. If `gh` is unavailable or unauthenticated → the crew still succeeds; report the branch
+- **PR creation:** a single **orchestrator step at the end of a passing team** (`gh pr create`), not
+  per-worker. If `gh` is unavailable or unauthenticated → the team still succeeds; report the branch
   and skip PR creation (soft skip, not a halt).
 - **Merge is USER-GATED by default.** The orchestrator never auto-merges `main`. `harness.json` may
   opt into autonomous merge per-project, but the default is: gates pass → surface for approval.
 - **Git failure modes** (dirty tree, no remote, branch exists, merge conflict, detached HEAD): the
-  host halts the crew with `VERDICT: BLOCKED` and reports the git state. **Never force, never
+  host halts the team with `VERDICT: BLOCKED` and reports the git state. **Never force, never
   auto-resolve conflicts.** The dirty-tree check uses a **whitelist**: harness-owned paths and
   in-progress staged work do not count as dirty.
 
@@ -1169,15 +1169,15 @@ persona. The orchestrator is not a persona at all.
   and *not* a persona `.md` — it is a skill the main session runs (it must hold the spawn tool to
   delegate).
 - **"The runner" is not a separate actor** — it is the orchestrator's *delegate-to-a-team*
-  subroutine (`crew/SKILL.md`). Delegating to one persona = spawn directly; delegating to a team =
-  run that crew's DAG.
+  subroutine (`team/SKILL.md`). Delegating to one persona = spawn directly; delegating to a team =
+  run that team's DAG.
 
 ### 10.1 The loop
 
 1. **Read context** — `BRIEF` + `PLAN` + `STATE`, held **on disk, re-read each cycle** (thin,
    resumable — recovers after a context reset).
 2. **Decide next** — next task / persona / team per PLAN order + any pending adjustments.
-3. **Delegate** — hand a whole crew to its named lead, or a single task to the lead that owns the
+3. **Delegate** — hand a whole team to its named lead, or a single task to the lead that owns the
    relevant persona. Never to a worker directly (§10.2).
 4. **Receive feedback** — collect each `VERDICT` + `DIGEST`.
 5. **Adjust** — log to `STATE`; route (loop-back, insert a gate, escalate, or send **pm** to
@@ -1212,7 +1212,7 @@ review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) 
 > opposite of the guarantee (DEC-83). `check-state.sh` INV-9 verifies it, and omitting `Agent` from worker
 > `tools:` is retained as redundant-but-explicit belt-and-suspenders.
 
-- **orchestrator** (main session): delegates a *whole crew* to that crew's named lead, or a *single
+- **orchestrator** (main session): delegates a *whole team* to that team's named lead, or a *single
   task* to **the lead that owns the persona for that task** — never to a worker directly.
   **There is no orchestrator→worker path.** Even a one-task request enters through the relevant lead,
   which matches the task to a member by `consult-when` and delegates. This keeps one rule with no
@@ -1223,9 +1223,9 @@ review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) 
   - *Cost accepted:* one extra spawn for trivial single-task work. In exchange, `STATE.md` sees a
     uniform stream of consolidated DIGESTs, and no work is ever unassessed.
 - **Three domain leads** — `product-lead`, `eng-lead`, `validator-lead`. Each is granted the spawn
-  tool. **The crew's `lead:` field selects which one hosts that crew's DAG** — there is no generic
-  lead parametrized per crew. The host reads `crew/SKILL.md`, spawns its squad members, runs the DAG
-  (gating and loop-backs within the crew), and returns a **consolidated DIGEST** up.
+  tool. **The team's `lead:` field selects which one hosts that team's DAG** — there is no generic
+  lead parametrized per team. The host reads `team/SKILL.md`, spawns its squad members, runs the DAG
+  (gating and loop-backs within the team), and returns a **consolidated DIGEST** up.
 - **Workers** (doer and reviewer personas): spawned by the host lead. **Always leaves.**
 
 **What the leads are FOR: they MANAGE.** A lead receives a request in its domain, identifies which
@@ -1250,9 +1250,9 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
 
 **Constraints on the shape:**
 
-- **Exactly one host per crew.** The `lead:` field names it, and that host solely owns the run dir,
-  `state.yaml`, cycle counters and the consolidated DIGEST. A crew is never conducted by two leads.
-- **A lead may appear as a DAG step in another lead's crew — as a reviewer only.** E.g.
+- **Exactly one host per team.** The `lead:` field names it, and that host solely owns the run dir,
+  `state.yaml`, cycle counters and the consolidated DIGEST. A team is never conducted by two leads.
+- **A lead may appear as a DAG step in another lead's team — as a reviewer only.** E.g.
   `plan-feature` (hosted by `product-lead`) has `eng-lead` as an architecture-review step. **In that
   role a lead never routes or spawns** — it behaves as an ordinary leaf reviewer. This preserves one
   nesting level: only the *host* lead spawns.
@@ -1260,7 +1260,7 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
   *who hosts the DAG*, never whether leads exist. In flat mode the orchestrator hosts, and
   `eng-lead` (architecture review) and `validator-lead` (panel assessment) are still spawned as leaf
   steps.
-- **Keep user-approval steps at crew boundaries, not mid-DAG inside a lead.** A subagent cannot call
+- **Keep user-approval steps at team boundaries, not mid-DAG inside a lead.** A subagent cannot call
   `AskUserQuestion`, so a lead can never pause to ask you. Questions ride up via `open_questions`
   and the *orchestrator* asks.
 - **Parallel fan-out from inside a lead is VERIFIED** (DEC-100) — a subagent issued three `Agent` calls
@@ -1269,15 +1269,15 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
   against the real limits: **20** concurrent subagents per session, **200** per session in total, with
   nested and background spawns both counting.
 
-**Where the crew-runner logic lives.** The algorithm is single-sourced in `crew/SKILL.md` and hosted
-by whoever conducts the crew: the crew's named lead (hierarchical), or the main-session orchestrator
+**Where the team-runner logic lives.** The algorithm is single-sourced in `team/SKILL.md` and hosted
+by whoever conducts the team: the team's named lead (hierarchical), or the main-session orchestrator
 (flat). Same algorithm; only the host differs. In hierarchical mode the orchestrator's context stays
 tiny — member spawns and DIGESTs live in the lead's context, and the orchestrator sees one
-consolidated DIGEST per crew.
+consolidated DIGEST per team.
 
 ### 10.3 The CEO briefing
 
-Three things trigger it — deliberately *not* every crew completion:
+Three things trigger it — deliberately *not* every team completion:
 
 | Trigger | Why |
 |---|---|
@@ -1343,19 +1343,24 @@ Next        Ship, fix the focus ring first, re-scope, or stop.
 **Merge is never automatic**; it follows your instruction here. And a feature with an unrun required
 UAT cannot be shipped, whatever else is green.
 
-### 10.4 The consolidated DIGEST (the up-channel contract)
+### 10.4 The team digest (the up-channel contract)
+
+**One artifact type at every tier.** A member reports a **digest** to its lead; the lead **collates
+and assesses** those into its **team digest** and reports that to the orchestrator; the orchestrator
+assesses across teams. There is no second document class — the lead's output is a digest of digests,
+written to `<run_dir>/digest.md` (DEC-119).
 
 ```
 VERDICT: <roll-up>                  # worst member verdict: BLOCKED > ESCALATE > FAIL > PASS
                                     #   ESCALATE outranks FAIL so a needed user
                                     #   decision is never masked by a fixable failure
 DIGEST:
-  crew: <name>            steps_run: <n>   cycles_used: <n>
+  team: <name>            steps_run: <n>   cycles_used: <n>
   members:                            # per-member roll-up → orchestrator appends these to STATE.md
     - { step: build, persona: backend-dev, verdict: PASS, headline: "...", files_touched: [...] }
     - { step: qa,    persona: qa,          verdict: FAIL, severity_max: high, must_fix: [...] }
   must_fix: [<union of blocking findings>]
-  branch: <branch>                    # if the crew mutated the repo
+  branch: <branch>                    # if the team mutated the repo
   open_questions: [<structured items, unioned from members>]
   escalations:                        # §10.5 — routing AND resolution are both recorded
     - { id: E1, raised_by: harness-eng-lead, question: "is partial SSO acceptable for v1?",
@@ -1365,7 +1370,7 @@ DIGEST:
   expertise_update: [<ops from this lead, §5.3>]
   sc_status:                          # §11.2 — carried once the goal-check has run
     - { id: SC-02, verdict: met, method: automated, evidence: "e2e/login.spec.ts:14 pass" }
-artifact: <run_dir>/SYNTHESIS.md      # the lead's merged report
+artifact: <run_dir>/digest.md         # the lead's collated report, same shape as this block
 ```
 
 The per-member block is what preserves `STATE.md` granularity under hierarchy.
@@ -1392,15 +1397,23 @@ leaves a durable trace instead of living only in one lead's context. Two rules f
   - **`FAIL` with `must_fix`** → delegate a fix cycle
   - **plan-level defect** (wrong tasks or decisions) → delegate to **pm** to re-plan
   - **ambiguity or a needed decision** → surface to the user
-- The orchestrator never silently retries past the crew's `max_cycles`.
+- The orchestrator never silently retries past the team's `max_cycles`.
 
-**When `max_cycles` is exhausted — exactly what happens.** Two counters exist and they bound
-different things: a step's `cycles` in run `state.yaml` (per-step retries) and the feature's
-`cycles_used` / `max_total_cycles` in `feature.yaml`, which bounds the fix loop **across runs**
-(§11.5). Exhausting either terminates the loop, and the sequence is:
+**When `max_cycles` is exhausted — exactly what happens.** Two counters exist, they bound different
+things, and **they have different owners** (DEC-119):
+
+| Counter | Lives in | Owned and written by | Bounds |
+|---|---|---|---|
+| step `cycles` | run `state.yaml` | **the lead** | retries of one step, within one run |
+| `cycles_used` / `max_total_cycles` | `feature.yaml` | **the orchestrator** | the fix loop across every run of the feature |
+
+The split follows the file ownership that already exists (§11.3/§11.4) and is enforced by the domain
+hook: a lead is **blocked** from writing `feature.yaml`, so it cannot increment the feature counter
+even if told to. The lead reports cycles spent in its team digest; the orchestrator increments from
+that. Same shape as cost (DEC-116) — the tier that can see across runs is the tier that bounds them. Exhausting either terminates the loop, and the sequence is:
 
 1. **Stop that branch.** No further retry of the failing step. Other independent branches of the DAG
-   are allowed to finish — exhaustion fails a branch, not necessarily the whole crew.
+   are allowed to finish — exhaustion fails a branch, not necessarily the whole team.
 2. **Preserve everything.** The run's `state.yaml` keeps the per-step history; the branch and all
    commits stay; nothing is reverted or abandoned. The feature's `status` stays `in_progress` — it is
    **not** set to `abandoned`, because that is your call, not the orchestrator's.
@@ -1416,7 +1429,7 @@ different things: a step's `cycles` in run `state.yaml` (per-step retries) and t
 
 > ⚠️ **It does not, however, mean you can work another feature in parallel.** An earlier draft promised
 > "independent features remain workable," which the state model cannot currently support:
-> `STATE.md ## Current` is **singular by construction** (§2), mutator serialization is per-crew rather
+> `STATE.md ## Current` is **singular by construction** (§2), mutator serialization is per-team rather
 > than cross-feature, and two features in flight means two branches diverging from `main` with
 > committed Expertise files, daily logs and `PLAN.md` task statuses that are guaranteed to conflict at
 > merge. **One feature in flight at a time** until cross-feature merge semantics exist (§15). A
@@ -1424,10 +1437,10 @@ different things: a step's `cycles` in run `state.yaml` (per-step retries) and t
 
 ### 10.6 Two orchestration modes, one contract
 
-- **Crew mode (declarative):** the crew YAML fixes the step order; the host executes the DAG.
+- **Team mode (declarative):** the team YAML fixes the step order; the host executes the DAG.
   DIGEST-predicate routing applies here too — the host may *insert* a gate (pm `flags:[security]` →
   add `security-reviewer`) or halt, but may **never** reassign step ownership or invent steps
-  outside the crew's personas.
+  outside the team's personas.
 - **Ad-hoc `/harness` mode:** the orchestrator reads STATE, then routes the *next* persona using
   VERDICT + DIGEST.
 
@@ -1554,7 +1567,7 @@ steps:
   - id: build
     persona: harness-backend-dev
     status: pending | dispatched | complete | failed | blocked | skipped
-    mutates_repo: true                    # copied from crew YAML
+    mutates_repo: true                    # copied from team YAML
     dispatched_at: 2026-07-27T09:41:02Z   # written BEFORE the spawn
     completed_at:  2026-07-27T09:48:19Z   # written AFTER the return
     cycles: 1                             # per-step retries; the cross-run budget is feature-level
@@ -1599,7 +1612,7 @@ total against `ccusage` so a stale rate table is detected rather than silent.
   risks double-commits). Re-spawn the host with `resume_from: <in-flight step>`; it reads
   `state.yaml` for what was dispatched and **`git log` for what actually landed** (`commits:` plus a
   mandatory `[harness:<step-id>]` commit prefix gives per-step attribution). Side effects become
-  derivable, not guessed. Honest scope: crews are resumable **at step boundaries**, not mid-step.
+  derivable, not guessed. Honest scope: teams are resumable **at step boundaries**, not mid-step.
 - **Retry budget is feature-level, not run-level.** A fix cycle spawns a *new eng run* plus a *new
   validator run*, so the loop spans runs; a counter inside one run's file cannot bound it.
   Exhaustion → `BLOCKED` → CEO briefing.
@@ -1614,7 +1627,7 @@ total against `ccusage` so a stale rate table is detected rather than silent.
 `logs/` (`log_retention_days`, default 30). `feature.yaml` is **committed**, so the durable record
 of what shipped — branch, PR, runs, verdicts — survives pruning.
 
-**Runner invocation contract:** the host is invoked with `(crew, goal)` and optionally
+**Runner invocation contract:** the host is invoked with `(team, goal)` and optionally
 `resume_from: <step-id>` + `answers: <path>`. The latter pair is how the orchestrator re-delegates
 after asking the user a member's `open_questions`, and how it restarts an interrupted run — the same
 parameters serve both.
@@ -1622,7 +1635,7 @@ parameters serve both.
 ### 11.6 Success criteria — the goal of record, and how it is verified
 
 **`goal` resolves to a success-criteria set, not a sentence.** When a host is invoked with
-`(crew, goal)`, `goal` is the FEAT plus the `SC-NN` entries its REQs trace to. A crew is **not done
+`(team, goal)`, `goal` is the FEAT plus the `SC-NN` entries its REQs trace to. A team is **not done
 when its steps complete — it is done when its success criteria are met.** A step DAG that ran to
 completion with `SC-05: not_met` is a `FAIL` that loops back, not a pass.
 
@@ -1697,27 +1710,27 @@ a UAT script for that feature:
 
 ---
 
-## 12. Crew schema and runner
+## 12. Team schema and runner
 
-**Config format: YAML, one file per crew**, at `.claude/skills/harness/crews/<name>.yaml` — which
-rides the existing skill distribution. Crews are DAG-shaped data, support comments, and are
+**Config format: YAML, one file per team**, at `.claude/skills/harness/teams/<name>.yaml` — which
+rides the existing skill distribution. Teams are DAG-shaped data, support comments, and are
 LLM-parsed at runtime with no build step.
 
-**A crew is SINGLE-SQUAD by construction.** `lead:` is singular and required, a lead may only
+**A team is SINGLE-SQUAD by construction.** `lead:` is singular and required, a lead may only
 dispatch its own squad's members, and depth is capped at 2 — so a lead cannot spawn another lead to
 reach across (that second lead would land at layer 2 with `Agent` withheld, and its members at an
 unreachable layer 3, DEC-102). Multi-squad lifecycles are therefore **orchestrator playbooks that
-sequence one crew run per squad**, each with its own lead and its own run dir, not single crews
-(DEC-118). §13 says this in `ship-feature`'s row; it holds for every crew.
+sequence one team run per squad**, each with its own lead and its own run dir, not single teams
+(DEC-118). §13 says this in `ship-feature`'s row; it holds for every team.
 
 ```yaml
 name: ship-feature
 purpose: One-line description (shown in listings).
 lead: eng-lead                     # REQUIRED — which domain lead hosts this DAG (§10)
-inputs: [goal]                     # crew-level args, injected as {{goal}}
-max_cost_usd: 15                   # OPTIONAL crew-level spend cap; defaults to harness.json
+inputs: [goal]                     # team-level args, injected as {{goal}}
+max_cost_usd: 15                   # OPTIONAL team-level spend cap; defaults to harness.json
                                    # budgets.per_run_usd. Bounds SPEND the way max_cycles bounds
-                                   # RETRIES — a crew that stays under its cycle cap can still burn
+                                   # RETRIES — a team that stays under its cycle cap can still burn
                                    # the feature budget. Exhausting it takes the same path as an
                                    # exhausted cycle budget: stop, BLOCKED, escalate to the user.
 steps:
@@ -1737,7 +1750,7 @@ steps:
     on_fail: { action: halt|loop_back|continue, to: <step>, feed: [self], max_cycles: 3, then: escalate|halt }
 ```
 
-- **`inputs: [goal]` resolves to a success-criteria set** (§11.6), not a sentence. The crew is done
+- **`inputs: [goal]` resolves to a success-criteria set** (§11.6), not a sentence. The team is done
   when its SC are met, not when its steps complete: a DAG that finished with an unmet SC is a `FAIL`
   that loops back, bounded only by `max_total_cycles`.
 - **Parallelism is implicit:** steps whose deps are all satisfied and that do not depend on each
@@ -1755,14 +1768,14 @@ steps:
 
 ### 12.1 The runner
 
-The runner is a **skill** at `.claude/skills/harness-crew/SKILL.md` with the algorithm inline —
-**not a command**, because commands do not distribute, and **flat, not `harness/crew/`**, because a
+The runner is a **skill** at `.claude/skills/harness-team/SKILL.md` with the algorithm inline —
+**not a command**, because commands do not distribute, and **flat, not `harness/team/`**, because a
 project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable
-(DEC-100). Crew *data* still lives under `.claude/skills/harness/crews/*.yaml` — that is a data
-directory, not a skill, and is found by path rather than by discovery. Its host is the crew's named `lead:`
+(DEC-100). Team *data* still lives under `.claude/skills/harness/teams/*.yaml` — that is a data
+directory, not a skill, and is found by path rather than by discovery. Its host is the team's named `lead:`
 subagent (hierarchical) or the main session (flat); the algorithm is identical either way.
 
-1. Resolve crew YAML.
+1. Resolve team YAML.
 2. Create the run workspace `.harness/features/<feat>/runs/<date>-<seq>-<squad>/` + `state.yaml`
    (§11). **The run dir is the lead's own bookkeeping — state.yaml and collected DIGESTs, nothing
    a member writes.** Members write their outputs into their own domains (§12), so there are no
@@ -1775,7 +1788,7 @@ subagent (hierarchical) or the main session (flat); the algorithm is identical e
    + discipline rule path) → collect returns → **evaluate `on_fail` against VERDICT *and* DIGEST
    predicates** → repeat until done or halt.
 5. **Promotion is not needed for canonical files** — their owners write them in place (§2.3). Only
-   if a crew deliberately stages a canonical file in a run dir must it be promoted *before* any
+   if a team deliberately stages a canonical file in a run dir must it be promoted *before* any
    consumer step dispatches.
 6. Report per-step verdicts + run dir.
 
@@ -1783,28 +1796,28 @@ subagent (hierarchical) or the main session (flat); the algorithm is identical e
 `Bash` (§3.4/§4.1) — deliberately, so they cannot do a member's work — which also means no
 `cost-report.py` and no clock. The lead sets `cost: pending_orchestrator` and monotonic ordering
 markers; **the orchestrator runs the cost report after the lead returns** and owns the rollup into
-`feature.yaml` anyway (§11.3). Verified the hard way: the first real crew run returned
+`feature.yaml` anyway (§11.3). Verified the hard way: the first real team run returned
 `cost: unavailable` and tripped INV-11 (DEC-116).
 
-**Invocation UX:** the primary entry is the crew skill (triggers on "run the X crew" / "assemble a
-crew to…", taking crew name + goal). No crew name → the runner scans `crews/*.yaml` and lists
-`name` + `purpose` — the filesystem is the registry. **Crew resolution precedence:** `.harness/crews/<name>.yaml`
-(project-owned, never touched by deploy) overrides `.claude/skills/harness/crews/<name>.yaml`
+**Invocation UX:** the primary entry is the team skill (triggers on "run the X team" / "assemble a
+team to…", taking team name + goal). No team name → the runner scans `teams/*.yaml` and lists
+`name` + `purpose` — the filesystem is the registry. **Team resolution precedence:** `.harness/teams/<name>.yaml`
+(project-owned, never touched by deploy) overrides `.claude/skills/harness/teams/<name>.yaml`
 (shipped, replaced wholesale on every push) — DEC-113.
 
 ---
 
-## 13. Crew catalog
+## 13. Team catalog
 
-Crews are the lifecycle. **Flat and standalone in v1** — no sub-crew composition. Each crew names
-the lead that conducts it. Panel membership is crew config; reviewers self-scope. ★ = v1 core.
+Teams are the lifecycle. **Flat and standalone in v1** — no sub-team composition. Each team names
+the lead that conducts it. Panel membership is team config; reviewers self-scope. ★ = v1 core.
 
-| Crew | Conducted by | DAG | Gates / notes |
+| Team | Conducted by | DAG | Gates / notes |
 |---|---|---|---|
-| ★ **plan-feature** | **orchestrator-sequenced**, 3 segments | `[product-lead: pm → visual-designer(design pass)]` → `[eng-lead: architecture review]` → `[validator-lead: ui-reviewer(A)]` | **Not one crew — three squad runs the orchestrator sequences**, for the same reason `ship-feature` is (DEC-118): `ui-reviewer` is validator-squad and `eng-lead` is a lead, so neither can be dispatched by `product-lead`. pm researches *and* plans in one context. eng-lead reviews architecture. **visual-designer runs the design pass and decides whether the feature requires end-user interaction** — if so it builds a **high-fidelity prototype** (§13.1). ui-reviewer(A) checks the contract is sound. Terminates in **one approval: you sign PLAN *and* prototype together** |
+| ★ **plan-feature** | **orchestrator-sequenced**, 3 segments | `[product-lead: pm → visual-designer(design pass)]` → `[eng-lead: architecture review]` → `[validator-lead: ui-reviewer(A)]` | **Not one team — three squad runs the orchestrator sequences**, for the same reason `ship-feature` is (DEC-118): `ui-reviewer` is validator-squad and `eng-lead` is a lead, so neither can be dispatched by `product-lead`. pm researches *and* plans in one context. eng-lead reviews architecture. **visual-designer runs the design pass and decides whether the feature requires end-user interaction** — if so it builds a **high-fidelity prototype** (§13.1). ui-reviewer(A) checks the contract is sound. Terminates in **one approval: you sign PLAN *and* prototype together** |
 | ★ **ship-feature** | orchestrator monitors; **eng-lead** and **validator-lead** each run their own squad | `{specialist devs, matched by consult-when} → qa → {code ∥ security ∥ ui} → validator-lead assesses → pm(goal-check) → documentor → ⟨CEO briefing⟩` | **Multi-squad, so the orchestrator sequences the squad segments** and each lead runs its own. No lead ever spawns outside its squad; the orchestrator owns the **branch and the feature-level cycle budget** across segments, while **each squad segment gets its own run dir owned by that squad's lead** (§11.4) — there is no shared run dir, which is what keeps every `state.yaml` single-writer. **Precondition: BRIEF *and* PLAN both approved.** eng-lead routes each task to a specialist by `consult-when`, then spawns and delegates. qa gates (writes + runs tests, `test_matrix` hard gate) → `loop_back` → dev. validator-lead assesses the panel into one actionable set. **pm goal-checks delivery** (REQ coverage + SC outcomes) — kept out of the quality panel so "did we deliver?" is not averaged with code nits. Terminates in the **CEO briefing** (§10.3); PR and merge follow your call, never automatically |
 | ★ **debug** | eng-lead | `pm(research) → specialist(debug mode) → qa → {code}` | pm reproduces and localizes; eng-lead routes the fix to the right specialist under `systematic-debugging`; qa loops back to the dev |
-| ★ **review-team** | validator-lead | `{code ∥ qa ∥ security ∥ ui} → validator-lead assesses` | Panel from crew config; reviewers self-scope; **validator-lead assesses and synthesizes** one feedback set. **Advisory: does NOT fix or merge** — it returns `must_fix`; the caller owns remediation (`ship-feature` loops its dev; standalone, the orchestrator delegates a fix) |
+| ★ **review-team** | validator-lead | `{code ∥ qa ∥ security ∥ ui} → validator-lead assesses` | Panel from team config; reviewers self-scope; **validator-lead assesses and synthesizes** one feedback set. **Advisory: does NOT fix or merge** — it returns `must_fix`; the caller owns remediation (`ship-feature` loops its dev; standalone, the orchestrator delegates a fix) |
 | understand-codebase | product-lead | `{pm×N by disjoint area} → documentor` | fan-in (deferred). N pm instances scoped to disjoint areas writing separate `notes/research-<area>.md`; none may write `PLAN.md` |
 | docs-refresh | product-lead | `pm(research) → documentor → code-reviewer` | deferred |
 
@@ -1818,7 +1831,7 @@ before it can be built.** This is a hard precondition on `ship-feature`, not a s
 | **Who decides it's needed** | `harness-visual-designer`, during the design pass in `plan-feature`. The design pass sits at the end of the product planning cycle, so the call lands *before* any build and *inside* what you approve |
 | **What "high fidelity" means** | Interactive and real enough to judge the experience — built on the team's design-system convention (§3.2), not a static image and not a wireframe. Throwaway mockups remain a separate, ungated exploration tool |
 | **Where it lives** | `.harness/notes/prototypes/<FEAT>/` — committed, so what you approved is on the record |
-| **How you review it** | Published as an Artifact where the project supports a single-file build, otherwise run locally with instructions in the crew's report |
+| **How you review it** | Published as an Artifact where the project supports a single-file build, otherwise run locally with instructions in the team's report |
 | **Approval** | Bundled with PLAN approval — one signature covers plan and prototype |
 
 **Why one approval rather than two:** the prototype and the plan answer the same question from two
@@ -1830,7 +1843,7 @@ and would let a plan lock while its own user experience was still unsettled.
 - `plan-feature` gets materially longer for user-facing features. Non-interactive features
   (`needs_prototype: false`) skip the design pass entirely and are unaffected.
 - **The trigger is a judgment call, made by one agent.** visual-designer decides, which means it can
-  be wrong in both directions. Mitigation: the decision and its reason are in the crew's DIGEST and
+  be wrong in both directions. Mitigation: the decision and its reason are in the team's DIGEST and
   therefore in front of you at the approval gate, so you can demand a prototype it did not think
   necessary — or waive one it did.
 - A rejected prototype loops back inside `plan-feature` and consumes a cycle; it does not reopen the
@@ -1872,16 +1885,16 @@ accepted in v1 (see DEC-54).
 
 ## 14. Composability
 
-**v1:** personas are stateless and name-referenced, therefore reusable across crews and repeatable
-within a crew — e.g. `ui-reviewer` runs twice, mode A pre-build and mode B post-build. This is the
+**v1:** personas are stateless and name-referenced, therefore reusable across teams and repeatable
+within a team — e.g. `ui-reviewer` runs twice, mode A pre-build and mode B post-build. This is the
 whole of composability in v1.
 
-**Post-v1 (out of scope for v1, specified here so it is not re-litigated):** sub-crews resolve by
+**Post-v1 (out of scope for v1, specified here so it is not re-litigated):** sub-teams resolve by
 **flattening** the child DAG into the parent at load time — ids namespaced, edges rewired — never a
 nested runner. That is what would remove the accepted panel duplication (§13). It is not built in
 v1; the runner algorithm (§12.1) has no flattening step.
 
-**Hard limit:** a crew is launched by the orchestrator (main session) or conducted by a lead —
+**Hard limit:** a team is launched by the orchestrator (main session) or conducted by a lead —
 **never from inside a worker persona.** Workers are leaves; one nesting level.
 
 ---
@@ -1912,7 +1925,7 @@ working tree and therefore **its own `.harness/`**:
 | | |
 |---|---|
 | **Within a worktree** | `STATE.md ## Current` being singular is *correct* — one feature, one in-flight run, no ambiguity |
-| **Across worktrees** | Features are genuinely independent. Mutator serialization is per-crew, which is sufficient because the crews are operating on different checkouts |
+| **Across worktrees** | Features are genuinely independent. Mutator serialization is per-team, which is sufficient because the teams are operating on different checkouts |
 | **At merge** | Ordinary git conflict resolution, no special machinery |
 
 So: **one feature per worktree, as many worktrees as you like.** `.harness/` is per-worktree state, not
@@ -1935,7 +1948,7 @@ A `BLOCKED` feature therefore blocks *its worktree*, and you may work another (�
 **You will edit a file directly, mid-feature.** Nothing in the design accounted for this, and two
 mechanisms actively punish it:
 
-- §8.6 halts a crew with `VERDICT: BLOCKED` on a dirty tree — so **your uncommitted edit deadlocks the
+- §8.6 halts a team with `VERDICT: BLOCKED` on a dirty tree — so **your uncommitted edit deadlocks the
   system**.
 - A manual commit to the feature branch lands **unreviewed and unattributed** between pinned
   `review_sha` values, invisible to the reviewers and to the qa matrix gate, both of which work from
