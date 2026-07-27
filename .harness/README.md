@@ -76,7 +76,7 @@ lead, so multi-squad lifecycles are sequenced by the orchestrator as one run per
 
 `BRIEF.md` missing means the project is not onboarded — run `/harness-init`.
 
-Run `bin/check-state.sh` any time; it checks the invariants that fail silently, including the three
+Run `bin/check-state.sh` any time; it checks the invariants that fail silently, including the four
 `settings.json` prerequisites, an unapproved brief, tasks missing `change_type`, and runs completed
 without a cost block.
 

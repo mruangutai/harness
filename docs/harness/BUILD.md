@@ -212,7 +212,7 @@ Enroll = deploy + init. This split is what lets deploy be dumb and safe (DEC-12)
 
 ### What it writes — six artifacts
 
-**1. `.claude/settings.json` — ALL THREE entries.** Omitting any degrades **silently**.
+**1. `.claude/settings.json` — ALL FOUR entries.** Omitting any degrades **silently**.
 
 ```json
 {

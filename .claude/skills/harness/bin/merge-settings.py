@@ -27,7 +27,7 @@ import os
 import shutil
 import sys
 
-# The three prerequisites, each keyed by the script basename that identifies it.
+# The four prerequisites, each keyed by the script basename that identifies it.
 HOOK_SPECS = [
     {
         "event": "SubagentStart",
