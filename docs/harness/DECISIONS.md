@@ -1228,8 +1228,11 @@ double-counts every test file three times over.
 
 ## DEC-96 — SC-4 measured: base rate is 0.44 defects/feature, but the artifacts cover ~79% of them
 
-**Measured** from `kaya-ai` history, 2026-07-04 → 2026-07-25 (470 commits). Full analysis in
-`PILOT-SC4-BASELINE.md`.
+**Measured** from `kaya-ai` history, 2026-07-04 → 2026-07-25 (470 commits). Method, kept here because
+the standalone analysis file was later retired: **43 feature units** (22 `feat` squash-PRs on master +
+21 `feat/*` merge-commit PRs — the repo merges both ways, so counting one style would have halved the
+denominator) against **19 escaped-defect units** (`fix` PRs on master, 18 of 19 citing a filed issue),
+with **0 reverts**. 19/43 = 0.44.
 
 | | |
 |---|---|

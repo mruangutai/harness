@@ -378,9 +378,10 @@ build requirement, and it must exist *before* the first real `kaya-ai` run, not 
 
 **What survives from the pilot work, and is already done:**
 
-- **SC-4 is measured** — base rate **0.44 defects/feature** from `kaya-ai` history, with the four
-  artifacts addressing ~79% of them (`PILOT-SC4-BASELINE.md`, DEC-96). Still the best evidence for what
-  the gates are worth.
+- **SC-4 is measured** — base rate **0.44 defects/feature** from `kaya-ai` history (19 escaped-defect
+  PRs against 43 feature units over 470 commits), with the four artifacts addressing ~79% of them
+  (DEC-96, which now carries the method; the standalone analysis file is retired). Still the best
+  evidence for what the gates are worth.
 - **SC-3 is partially met** — all four artifacts fired correctly in a throwaway run, and **review caught
   a fail-open defect that a green test suite missed** (DEC-97), reproducing `kaya-ai` #92. That was the
   inferred claim in DEC-96; it is now observed.
