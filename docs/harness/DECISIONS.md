@@ -2486,6 +2486,7 @@ changed.
 <!-- stale: one nesting level -->
 <!-- stale: workers are always leaves -->
 <!-- stale: session, you are running it flat -->
+<!-- stale: Single operator, single session -->
 
 ### Why
 

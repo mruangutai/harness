@@ -2022,10 +2022,13 @@ v1; the runner algorithm (§12.1) has no flattening step.
 Every guarantee in this document assumes an operating envelope that was previously implicit. Stating it
 is not a limitation admitted late — it is the difference between a constraint and a latent bug.
 
-### 15.1 Single operator, single session
+### 15.1 Single operator, one session per checkout
 
 **The harness is single-operator by design** (DEC-90). Every "single writer" guarantee means *one
 operator on one machine*.
+
+DEC-90 originally read "one agent in one session"; DEC-120 narrowed that. The unit is the
+**session-checkout pair**, not the session.
 
 Note what DEC-120 did and did not change. Inside one session, N concurrent orchestrators are the
 *design*, and they do not collide: `STATE.md` and `feature.yaml` are per-feature and each has
