@@ -125,6 +125,10 @@ else:
                    "and no error is raised.")
     # Agent-frontmatter PreToolUse does not fire (DEC-110), so this registration is
     # the ONLY thing enforcing domains. Its absence is silent and fail-open.
+    stop = hooks.get("SubagentStop") or []
+    if not any("validate-digest" in str(h) for h in stop):
+        bad.append("No SubagentStop validate-digest hook — malformed digests are accepted "
+                   "silently and the runner routes on fields that are not there (DEC-122).")
     pre = hooks.get("PreToolUse") or []
     if not any("check-domain" in str(h) for h in pre):
         bad.append("No PreToolUse check-domain hook — domain enforcement is ABSENT "

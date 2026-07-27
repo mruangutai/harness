@@ -2599,3 +2599,47 @@ the correct expression of it is now `expertise_update: []` rather than an omitte
 
 **Still prose, not enforcement.** A validator nothing runs is a validator that does not exist — the
 same trap DEC-119 recorded. The `SubagentStop` hook that makes it mandatory is the next step.
+
+---
+
+## DEC-122 — The digest contract is enforced by a `SubagentStop` hook, mandatory from day one
+
+DEC-121 made every digest field required. That was still prose, and this repo has now learned the
+same lesson three times: DEC-19 (prose guarding a safety claim is unenforceable), DEC-110 (domain
+enforcement silently absent), DEC-101/119 (a validator built and never wired). `validate-digest.py`
+now runs as a **`SubagentStop` hook** — the fourth mandatory `settings.json` prerequisite.
+
+Verified against `code.claude.com/docs/en/hooks`: `SubagentStop` receives `last_assistant_message`
+and `agent_type`, and **"exit 2 … prevents the subagent from stopping"**. So a malformed return is
+rejected at source and the agent must fix it before it can finish — enforcement, not a request. It
+covers all 16 agents including leads, which the runner prose never could, because leads have no
+`Bash` to run a validator with.
+
+**Advisory-first was considered and rejected.** An advisory validator is exactly the "looks
+enforced, isn't" state that produced DEC-110 and DEC-119. Hedging on it was the wrong instinct.
+
+### Proven live, not just wired
+
+A `harness-qa` agent was instructed to return the single word `done` and to omit the VERDICT,
+DIGEST and artifact entirely. It could not:
+
+- the hook's rejection text appears **in the subagent's own transcript**, so stderr reached it as
+  actionable feedback;
+- it took **4 assistant turns** — attempt, rejection, correction;
+- the final return was a complete, contract-satisfying digest, including a legitimate
+  `VERDICT: BLOCKED` and a blocking `open_questions` entry explaining that no work had been supplied.
+
+### Three deliberate pass-throughs
+
+The hook is shared by every subagent in the project, so what it declines to govern matters as much
+as what it blocks:
+
+| Condition | Why |
+|---|---|
+| `agent_type` absent or not `harness-*` | `Explore`, `general-purpose` and the rest have no digest contract. Governing them would break every unrelated subagent |
+| `stop_hook_active` | Set when we are already re-running after a stop hook blocked. Blocking again is an infinite loop with no operator escape |
+| Our own failure — unreadable payload, unknown persona, exception | **Fail open, loudly on stderr.** `check-domain.sh` set this precedent: a hook that blocks on its own bug wedges every agent in every project the moment a payload shape changes. Blocking is for *their* contract violation, never ours |
+
+That last row is a deliberate asymmetry. Everywhere else this design prefers failing closed; here,
+the blast radius of our own bug is every subagent everywhere, and the failure is loud rather than
+silent — which is the property that actually matters.

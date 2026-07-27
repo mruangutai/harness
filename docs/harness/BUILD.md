@@ -52,7 +52,7 @@ the CLI version (below).
 }
 ```
 
-⚠️ **All THREE entries are required, and `PreToolUse` is the one most recently added.** It carries no
+⚠️ **All FOUR entries are required, and `SubagentStop` is the one most recently added (DEC-122).** It carries no
 matcher on agent name deliberately — one global registration serves all 15, and the script dispatches on
 `agent_type` from the payload (DEC-110). If it is omitted, agents get Expertise but **domain enforcement
 is silently absent**.
@@ -306,7 +306,7 @@ The fixture was built to be adversarial: a pre-existing `.claude/settings.json` 
 own hooks on three events plus `permissions` and an `env` key, an existing `.gitignore` (one of whose
 entries the harness snippet also contains), and a split `web/` + `api/` source layout.
 
-- ✅ **`bin/check-state.sh` passes in a freshly-initialised project** (all three settings entries, INV-9).
+- ✅ **`bin/check-state.sh` passes in a freshly-initialised project** (all settings entries, INV-9).
   Exit 0. It exits **1** first on a pending brief — which is what forced the approval question above.
 - ✅ **A spawned harness agent is blocked from an out-of-domain write in that project.** `exit 2`, the
   full permitted-paths message reached the agent, and the file was absent from disk. The in-domain write

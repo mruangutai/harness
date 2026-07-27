@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Merge the three harness prerequisites into a project's .claude/settings.json.
+"""Merge the four harness prerequisites into a project's .claude/settings.json.
 
-WHY THIS IS A SCRIPT AND NOT AN INSTRUCTION: all three entries degrade SILENTLY if
+WHY THIS IS A SCRIPT AND NOT AN INSTRUCTION: all four entries degrade SILENTLY if
 absent — no error, no warning, just a harness with memoryless agents that can write
 anywhere. Hand-merging JSON into a file that already has the project's own hooks is
-exactly where one of the three quietly goes missing. So the merge is deterministic
+exactly where one of the four quietly goes missing. So the merge is deterministic
 and re-runnable, and `--check` can assert the result.
 
   merge-settings.py <project-root> [--check] [--template <path>]
@@ -45,6 +45,17 @@ HOOK_SPECS = [
         "why": "Domain enforcement. Absent -> every agent can write anywhere, "
                "fail-open and silent. Agent-frontmatter PreToolUse hooks DO NOT FIRE "
                "(DEC-110), so settings.json is the only place this works.",
+    },
+    {
+        "event": "SubagentStop",
+        "script": "validate-digest.py",
+        "args": " --hook",
+        # No agent matcher: one registration serves all 16, and the script passes
+        # through anything that is not a harness agent (DEC-122).
+        "matcher": "harness-.*",
+        "why": "Digest contract enforcement. Absent -> malformed returns are accepted "
+               "by whoever reads them, and the runner routes on fields that are not "
+               "there. A validator nothing runs does not exist (DEC-101, DEC-119).",
     },
 ]
 DEPTH_KEY = "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH"
@@ -160,7 +171,8 @@ def main():
             added.append(("hooks", spec["event"]))
             entries.append({
                 "matcher": spec["matcher"],
-                "hooks": [{"type": "command", "command": CMD % spec["script"]}],
+                "hooks": [{"type": "command",
+                           "command": (CMD % spec["script"]) + spec.get("args", "")}],
             })
         hooks[spec["event"]] = entries
     settings["hooks"] = hooks
@@ -171,7 +183,7 @@ def main():
             for m in missing:
                 print(f"  - {m}")
             return 1
-        print("merge-settings: all three prerequisites present.")
+        print("merge-settings: all four prerequisites present.")
         return 0
 
     if not missing:

@@ -30,7 +30,7 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
 
 ## Fresh init
 
-### 1. Install the three prerequisites — HARD GATE, do this first
+### 1. Install the four prerequisites — HARD GATE, do this first
 
 ```bash
 .claude/skills/harness/bin/merge-settings.py . \
@@ -40,7 +40,7 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
 ```
 
 **Use the scripts. Do not hand-edit `.claude/settings.json`, and do not hand-replicate a script that
-was denied.** All three entries degrade *silently* — no error, no warning — and a project that already
+was denied.** All four entries degrade *silently* — no error, no warning — and a project that already
 has its own hooks is exactly where one of the three goes missing during a hand-merge. Both scripts
 preserve what is there and are safe to re-run.
 
