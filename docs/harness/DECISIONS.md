@@ -2375,3 +2375,48 @@ domain globs already permit the suffix — verified before relying on it.
 **Third consecutive increment where the defect was invisible to reading and obvious to running.**
 The domain block (DEC-116), the lead's missing `Bash` (DEC-116), and now the overwritten report were
 all present in a repeatedly-reviewed SPEC. The probe crews ship for that reason.
+
+---
+
+## DEC-118 — A crew is single-squad by construction; multi-squad lifecycles are orchestrator playbooks
+
+Raised by a challenge to MVP step 3's `pm → backend-dev` crew under `lead: eng-lead`: the objection
+was that cross-squad work should route lead-to-lead — `pm → product-lead → eng-lead → backend-dev`
+— rather than one lead reaching into another squad. The instinct is right and the specific chain is
+impossible, for the same reason.
+
+**Depth is capped at 2 and enforced by tool withholding (DEC-102).** A lead spawned by a lead lands
+at layer 2, where `Agent` is stripped, and its members would be at layer 3 — unreachable. Confirmed
+across every crew run so far: leads only ever at depth 1, members only ever at depth 2. So a lead
+cannot reach another squad directly *or* through a peer lead.
+
+The correct route is through the orchestrator, the only tier that can dispatch a second lead:
+
+```
+orchestrator
+  ├─ product-lead → pm            [run 1]  ─ consolidated DIGEST up
+  └─ eng-lead     → backend-dev   [run 2]  ─ dispatched with run 1's artifact path
+```
+
+**The model was already correct in SPEC — in one place.** `ship-feature`'s catalog row states it
+plainly: "Multi-squad, so the orchestrator sequences the squad segments and each lead runs its own.
+No lead ever spawns outside its squad," each segment with its own lead-owned run dir. §14's hard
+limit agrees. This decision does not invent the rule; it **propagates it to the two places that
+contradicted it**, and states it in §12 where the runner will actually be read.
+
+| Contradicted it | Fix |
+|---|---|
+| **MVP step 3** — `pm → backend-dev` under `lead: eng-lead` | Corrected in place. `pm` is Product; `eng-lead` leads Engineering. The step predates the three-squad org that **step 2 of the same list** creates |
+| **`plan-feature`** — `product-lead` dispatching `eng-lead` and `ui-reviewer(A)` | Re-specified as three orchestrator-sequenced segments. `ui-reviewer` is validator-squad and `eng-lead` is a lead; neither is dispatchable by `product-lead` |
+
+So of the four v1 "crews", **two are not crews**: `plan-feature` and `ship-feature` are orchestrator
+playbooks composed of per-squad runs. `debug` and `review-team` are genuine single-squad crews. This
+was worth settling before building the remaining three, which would otherwise have been built on a
+shape the platform cannot execute.
+
+**`smoke` is deleted.** It was defended as a "permanent shippable health-check crew" — a framing
+that conflated a real need (BUILD's Step 0 asks for a re-runnable `harness-selftest`, because the
+platform auto-updates and every mechanism fails open) with the wrong container (the crew catalog is
+for product-work DAGs, and the filesystem is the registry, so a probe listed there is a non-crew
+anyone might run against a feature). The hierarchy it proved is recorded in DEC-116 and re-exercised
+by every crew run since; the crew definition itself earned nothing further.

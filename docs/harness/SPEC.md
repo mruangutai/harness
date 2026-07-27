@@ -1703,6 +1703,13 @@ a UAT script for that feature:
 rides the existing skill distribution. Crews are DAG-shaped data, support comments, and are
 LLM-parsed at runtime with no build step.
 
+**A crew is SINGLE-SQUAD by construction.** `lead:` is singular and required, a lead may only
+dispatch its own squad's members, and depth is capped at 2 — so a lead cannot spawn another lead to
+reach across (that second lead would land at layer 2 with `Agent` withheld, and its members at an
+unreachable layer 3, DEC-102). Multi-squad lifecycles are therefore **orchestrator playbooks that
+sequence one crew run per squad**, each with its own lead and its own run dir, not single crews
+(DEC-118). §13 says this in `ship-feature`'s row; it holds for every crew.
+
 ```yaml
 name: ship-feature
 purpose: One-line description (shown in listings).
@@ -1794,7 +1801,7 @@ the lead that conducts it. Panel membership is crew config; reviewers self-scope
 
 | Crew | Conducted by | DAG | Gates / notes |
 |---|---|---|---|
-| ★ **plan-feature** | product-lead → eng-lead | `pm → eng-lead(architecture review) → visual-designer(design pass) → ui-reviewer(A)` | pm researches *and* plans in one context. eng-lead reviews architecture. **visual-designer runs the design pass and decides whether the feature requires end-user interaction** — if so it builds a **high-fidelity prototype** (§13.1). ui-reviewer(A) checks the contract is sound. Terminates in **one approval: you sign PLAN *and* prototype together** |
+| ★ **plan-feature** | **orchestrator-sequenced**, 3 segments | `[product-lead: pm → visual-designer(design pass)]` → `[eng-lead: architecture review]` → `[validator-lead: ui-reviewer(A)]` | **Not one crew — three squad runs the orchestrator sequences**, for the same reason `ship-feature` is (DEC-118): `ui-reviewer` is validator-squad and `eng-lead` is a lead, so neither can be dispatched by `product-lead`. pm researches *and* plans in one context. eng-lead reviews architecture. **visual-designer runs the design pass and decides whether the feature requires end-user interaction** — if so it builds a **high-fidelity prototype** (§13.1). ui-reviewer(A) checks the contract is sound. Terminates in **one approval: you sign PLAN *and* prototype together** |
 | ★ **ship-feature** | orchestrator monitors; **eng-lead** and **validator-lead** each run their own squad | `{specialist devs, matched by consult-when} → qa → {code ∥ security ∥ ui} → validator-lead assesses → pm(goal-check) → documentor → ⟨CEO briefing⟩` | **Multi-squad, so the orchestrator sequences the squad segments** and each lead runs its own. No lead ever spawns outside its squad; the orchestrator owns the **branch and the feature-level cycle budget** across segments, while **each squad segment gets its own run dir owned by that squad's lead** (§11.4) — there is no shared run dir, which is what keeps every `state.yaml` single-writer. **Precondition: BRIEF *and* PLAN both approved.** eng-lead routes each task to a specialist by `consult-when`, then spawns and delegates. qa gates (writes + runs tests, `test_matrix` hard gate) → `loop_back` → dev. validator-lead assesses the panel into one actionable set. **pm goal-checks delivery** (REQ coverage + SC outcomes) — kept out of the quality panel so "did we deliver?" is not averaged with code nits. Terminates in the **CEO briefing** (§10.3); PR and merge follow your call, never automatically |
 | ★ **debug** | eng-lead | `pm(research) → specialist(debug mode) → qa → {code}` | pm reproduces and localizes; eng-lead routes the fix to the right specialist under `systematic-debugging`; qa loops back to the dev |
 | ★ **review-team** | validator-lead | `{code ∥ qa ∥ security ∥ ui} → validator-lead assesses` | Panel from crew config; reviewers self-scope; **validator-lead assesses and synthesizes** one feedback set. **Advisory: does NOT fix or merge** — it returns `must_fix`; the caller owns remediation (`ship-feature` loops its dev; standalone, the orchestrator delegates a fix) |
