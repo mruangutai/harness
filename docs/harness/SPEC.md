@@ -1455,7 +1455,9 @@ DIGEST:
     - { step: build, persona: backend-dev, verdict: PASS, headline: "...", files_touched: [...] }
     - { step: qa,    persona: qa,          verdict: FAIL, severity_max: high, must_fix: [...] }
   must_fix: [<union of blocking findings>]
-  branch: <branch>                    # if the team mutated the repo
+  files_touched: [<union across members>]
+                                      # universal (§8) — required of leads too, `[]` if none
+  branch: <branch|none>               # `none` if the team mutated no repo
   open_questions: [<structured items, unioned from members>]
   escalations:                        # §10.5 — routing AND resolution are both recorded
     - { id: E1, raised_by: harness-eng-lead, question: "is partial SSO acceptable for v1?",
