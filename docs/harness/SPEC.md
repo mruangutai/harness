@@ -383,7 +383,7 @@ not silently worked around.
 
 | Operation | Does | Touches project state? |
 |---|---|---|
-| **`/harness-deploy`** | distributes the tool — skills, agents, **templates** — to global + enrolled projects | **never** |
+| **`/harness-deploy`** | distributes the tool — **skills and templates** to global + enrolled projects, **agents to global only** (DEC-113) | **never** |
 | **`/harness-init`** | **THE onboarding interview** — run inside a project; asks project type, frameworks, and what you're building; writes every project artifact | yes, once |
 
 **Enroll = deploy + init.**
@@ -1295,7 +1295,9 @@ How it runs:
    which guarantees a complete cross-team picture with a consistent shape every time.
 3. Orchestrator assembles one briefing: each lead's summary, all open questions across teams,
    resolved escalations, proposed next steps, the goal-check result (REQ coverage + SC outcomes), the
-   **UAT** if one is required, and the **Expertise curation** block.
+   **UAT** if one is required, the **Expertise curation** block, and the **cost line** — spend so far
+   against the feature budget, from `bin/cost-report.py` (§11.3). Cost is the post-build signal
+   (DEC-99), and a signal the operator never sees is not being monitored.
 4. Writes it to `.harness/notes/ship-review-<FEAT>-<runid>.md`.
 5. **Presents it to you and requests instructions.** You decide: ship, fix first, re-scope, or stop
    — and give feedback (§5.5).
@@ -1318,6 +1320,9 @@ Validation  Tests pass, coverage complete. Security clean. One advisory
 Goal check  REQ-02 covered. SC-02 met (sign-in flow test passes).
             SC-07 met (no credentials in logs — checked).
             SC-05 needs you: it's a judgement about how the screen feels.
+
+Cost        $12.83 of the $50 budget (26%), across 9 spawns and 2 fix cycles.
+            Most of it — $7.40 — was the validator run that came back FAIL.
 
 UAT         Ready — 1 step, ~2 minutes.                      << BLOCKING
             Sign in with Google from a signed-out browser and tell me
@@ -1521,10 +1526,18 @@ status: in_progress | in_review | shipped | abandoned
 review_sha: def5678            # pinned per review cycle; branch is feature-level, so this is too
 cycles_used: 2                 # fix-loop budget SPANS runs
 max_total_cycles: 10
+cost_usd: 12.83                # rolled up from each run's state.yaml cost.total
+max_cost_usd: 50               # from harness.json budgets.per_feature_usd — this IS SC-1
 runs:
-  - { id: 2026-07-27-01-validator, squad: validator, verdict: FAIL }
-  - { id: 2026-07-27-02-eng,       squad: eng,       verdict: PASS }
+  - { id: 2026-07-27-01-validator, squad: validator, verdict: FAIL, cost_usd: 7.39 }
+  - { id: 2026-07-27-02-eng,       squad: eng,       verdict: PASS, cost_usd: 5.44 }
 ```
+
+**Cost is bounded feature-wide, exactly like `cycles_used`.** The two budgets bound different
+things — `max_total_cycles` bounds *retries*, `max_cost_usd` bounds *spend* — and either one
+exhausting is the same outcome: stop and escalate to the user via `BLOCKED`, never continue.
+A fix loop that stays under its cycle cap can still burn the feature's budget, so bounding
+cycles alone does not bound cost.
 
 ### 11.4 `state.yaml` — that squad's lead owns it
 
@@ -1551,7 +1564,29 @@ promoted:
   - { file: .harness/PLAN.md, sha: 9f8e7d6, at: <ts> }
 open_questions:
   - { id: Q1, step: build, question: "...", blocking: true }
+cost:                                   # written by bin/cost-report.py --yaml
+  currency: usd
+  total: 5.44
+  priced_on: 2026-07-27
+  rates_verified_on: 2026-07-26         # stale rates are a silent mis-report; surface the date
+  spawns: 2
+  by_agent:
+    - { agent: harness-dev-ops, depth: 1, spawns: 2, model: claude-fable-5, usd: 5.437,
+        in: 158, out: 29986, cw5m: 176828, cw1h: 0, cr: 1725806 }
 ```
+
+**The five token classes are recorded separately, never summed.** A cache read is
+0.1× base input and a 1h cache write is 2×, so a single `input_tokens` field cannot represent
+them — and cache reads are typically the largest class by volume and the smallest by cost. The
+measured example above is 1.7M cache-read tokens costing $1.73 of a $5.44 run; priced at base
+input rate they would read as $17.26 (DEC-114).
+
+**Claude Code computes cost natively** — `claude_code.cost.usage` over OpenTelemetry, and
+`ccusage` reads it from these same transcripts. Those are the better source of a *total*.
+What they cannot give is **cost per harness agent**: OTel's `agent.name` documents that
+"Other user-defined agent names are replaced with `custom`", and all 15 harness agents are
+user-defined. `cost-report.py` exists for the attribution, and `--cross-check` compares its
+total against `ccusage` so a stale rate table is detected rather than silent.
 
 ### 11.5 Properties this model guarantees
 
@@ -1682,6 +1717,10 @@ steps:
     mutates_repo: false            # true forces serialization (§11.5)
     prompt: Produce a plan for {{goal}}. Write PLAN.md.
     on_fail: { action: halt|loop_back|continue, to: <step>, feed: [self], max_cycles: 3, then: escalate|halt }
+  max_cost_usd: 15          # OPTIONAL per-crew spend cap; defaults to harness.json budgets.per_run_usd.
+                            # Bounds SPEND the way max_cycles bounds RETRIES — a crew that stays
+                            # under its cycle cap can still burn the feature budget. Exhausting it
+                            # takes the same path: stop, BLOCKED, escalate to the user.
 ```
 
 - **`inputs: [goal]` resolves to a success-criteria set** (§11.6), not a sentence. The crew is done

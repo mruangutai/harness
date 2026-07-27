@@ -1932,3 +1932,309 @@ harvested that as an **empty pattern**, which matches every line. Now skips patt
 Same lesson as DEC-104's fence fix, one level down: **a tool that reads its own documentation as
 configuration needs to distinguish the two**, and both times the failure was discovered by running it
 rather than by reading it.
+
+---
+
+## DEC-112 — `/harness-init` is built; and an agent that *declines* a write is not evidence the hook works
+
+Task 12 delivered: the flat skill `.claude/skills/harness-init/SKILL.md`, eight distributed templates
+under `.claude/skills/harness/templates/`, and three deterministic merge scripts in `bin/`.
+
+### The BRIEF-approval contradiction, resolved against the checker
+
+The task-12 spec said two incompatible things: artifact #4 said init **never marks the brief approved**,
+while interview step 3 said the goal is signed before anything runs and the first Done-when required
+`check-state.sh` to pass. <!-- stale: "never marks it approved" -->
+
+Run against a fixture, `check-state.sh` exits **1** on a pending brief (`BRIEF.md is NOT approved — halt`)
+and **0** on an approved one. So the two lines could not both hold, and the pending reading would have
+shipped an onboarding step that leaves every project halted.
+
+**Resolution: init never *self*-approves, but it does write the user's answer.** It asks with
+`AskUserQuestion` and writes `## Approval` on an explicit yes. This is not a carve-out — `## Approval` is
+**orchestrator-written by design** (SPEC §2.3), and pm is the tier forbidden from touching it precisely
+because pm has no user channel. Init runs at the orchestrator tier and does. A deferred approval leaves
+the brief pending and init says so plainly.
+
+### Merging is a script, and the fixture found two real defects in it
+
+`.claude/settings.json` and `.gitignore` are **merged by `merge-settings.py` / `merge-gitignore.sh`**,
+never hand-edited. Target projects have their own hooks — kaya-ai has five — and a hand-merge into a file
+you do not own is exactly where one of the three silent-failure entries goes missing. Both are idempotent
+and both take `--check`. Hook presence is matched on **script basename**, not the literal command string,
+so a project that registered the same hook via an absolute path is recognised rather than duplicated.
+
+`upgrade-config.py` merges `harness.json` but only **reports** on `team-config.yaml`. Every script in
+`bin/` runs with zero third-party dependencies, so there is no YAML library; putting the manifest's
+`domain` globs behind a hand-rolled YAML *writer* would place the only write-scope guarantee in the
+design behind a line-based regex. It prints the exact new entries and exits 1.
+
+Running it against the fixture caught two defects that reading it did not:
+
+1. `_template`, a template-only marker, was being merged into project state and then popped — so it was
+   reported as added while not being added. Now explicitly excluded.
+2. `_reason` was re-imposed on a `test_kinds` entry whose `cmd` dev-ops had since verified, pasting
+   *"unset — dev-ops has not run detection yet"* next to a working command. **A key's absence can itself
+   be the project's decision**, so preserve-on-conflict is not sufficient — some keys must also never be
+   *added*.
+
+### The finding worth carrying forward
+
+The first attempt at Done-when #2 spawned `harness-backend-dev` in the fixture and asked it to write
+out-of-domain. It **refused** — read the manifest, cited `web/src/**` as frontend-dev's, returned
+`VERDICT: BLOCKED`. That reads exactly like a pass. It is not one: the agent never issued the Write, so
+**the hook never executed**. Prose in the agent definition was doing the work, and the mechanism under
+test produced zero evidence about itself.
+
+Only a probe that forced the tool call proved it — `exit 2`, the full permitted-paths message reaching
+the agent, and the file absent from disk afterwards. The in-domain half was confirmed separately.
+
+This is the DEC-108/110 lesson one level up. There, a hook that did not fire looked like a hook that
+found nothing to block. Here, an agent's own obedience masked whether the guardrail existed at all.
+**A well-behaved agent and a working hook are indistinguishable from the outside — so a test of the hook
+must defeat the agent's good behaviour, or it is testing the prose.** The same trap applies to every
+remaining guardrail claim: serialization, the qa gate, and the dirty-tree halt.
+
+The technique that finally settled it, after two more agents also self-blocked: **an unconditional trace
+as the hook's first statement**, logging `agent_type` from the payload. It answers "did this run at all"
+without depending on any agent cooperating — the same instrument DEC-110 used, and the only one that
+distinguishes *blocked* from *never invoked*.
+
+### Composing the steps found three things component testing could not
+
+The skill's own workflow was then run headless against a second fixture (steps 1–5, both interview
+rounds skipped).
+
+1. **Hooks ARE live in the session that writes them.** Traced: a `harness-dev-ops` subagent spawned
+   after a mid-session `merge-settings.py` had its out-of-domain write blocked, `FIRED
+   agent=harness-dev-ops` in the log. So the skill's restart warning was **overstated** — it claimed the
+   harness agents are not spawnable in-session, which its own steps 4 and 8 contradict by spawning
+   three. The restart is only about **agent files written during that session** (DEC-100a); hooks and
+   pre-existing agents work immediately. Corrected.
+2. **A denied script must be a STOP, not a detour.** With the `bin/` scripts permission-blocked, the run
+   hand-replicated the `.gitignore` half, silently skipped the `settings.json` half, and **carried on
+   through step 5** — ending with a scaffolded `.harness/`, a seeded manifest, and no domain enforcement
+   at all. The subsequent probe write succeeded. Everything looked finished. Step 1 is now an explicit
+   hard gate with a `--check` that must pass before step 2, because *a half-installed init is worse than
+   a refused one* and it does not announce itself.
+3. **The fresh path could recreate the falsehood the upgrade path was just fixed for.** The template
+   ships `_reason: "unset — dev-ops has not run detection yet"` on every kind, and nothing told dev-ops
+   to delete it when filling a `cmd`. Now stated in both the skill and the template.
+
+Two things worked exactly as designed and are worth recording as such: dev-ops **ran** the project's
+`package.json` test script, found it was `echo "1 passing"`, and refused to write a stub as `unit.cmd`;
+and step 5's seeding produced fully disjoint dev domains, dropping every glob whose directory did not
+exist rather than pointing it somewhere plausible.
+
+---
+
+## DEC-113 — Deploy reconciles instead of copying; agents go global only
+
+Task 13. `/harness-deploy` is rewritten as distribution-only, with the mechanical work in
+`bin/deploy.sh` (dry run by default) and the command file reduced to plan → confirm → apply → report.
+
+**The live risk it clears, measured before the rewrite:** `~/.claude/agents/` held five agents — three
+of them (`ceo-reviewer`, `eng-reviewer`, `qa-reviewer`) **deleted from this design** and still spawnable
+in every project on the machine, pointing at a `.planning/` root that no longer exists. None of the 15
+current agents were there. `~/.claude/skills/harness/` was the **April layout** (`personas/`, `rules/`,
+`tdd/`, `manifest.json`) — structurally unrelated to the present one. The old deploy was copy-only, so
+nothing it ever did could have removed any of that.
+
+### Three decisions, each a deviation worth naming
+
+**1. Agents are distributed GLOBALLY ONLY.** SPEC §3.3 said "skills, agents, templates — to global +
+enrolled projects"; §3.3 is now corrected. One copy in `~/.claude/agents/` is visible from every
+project, so a per-project copy buys nothing and costs drift: a project holding a stale shadow silently
+overrides the fixed agent, and prune cannot see it because prune only walks the sets it knows about.
+Skills and templates still go both places — they are read by path, not resolved by name.
+
+**2. Crew overrides live in `.harness/crews/`, not `.claude/skills/harness/crews/`.** Deploy replaces
+skill dirs **wholesale**, because they are harness-owned end to end — which means an override placed
+inside the tool tree is destroyed by the next routine push. The precedence rule BUILD asked for
+("project-local overrides global") only holds if the override sits somewhere deploy never touches.
+Recorded in both manifests as `paths.crew_overrides`; the runner (task 10) resolves it first.
+
+**3. `agent_skills` cleanup is REPORTED, not performed.** BUILD's detail block asked deploy to strip
+the inert block from enrolled projects' `config.json`. That is writing project state, which the
+deploy/init split exists to forbid — and the same list says so two items earlier. The dry run now names
+any project whose `agent_skills` points at paths the push removes and leaves it to the user. Second
+instance of the DEC-112 shape: **one document holding two requirements that cannot both be satisfied**,
+found only by trying to implement both.
+
+### What the fixture caught that reading did not
+
+A fake `HOME` mirroring the real stale global state, plus a live registered project.
+
+1. **`set -u` plus `"${empty_array[@]}"` is an unbound-variable error on macOS's bash 3.2**, not an
+   empty loop. It aborted a real `--apply` **after the skills were copied and before agents, registry
+   or projects ran** — the half-applied state that is strictly worse than either end. Every
+   possibly-empty array now uses `${ARR+"${ARR[@]}"}`.
+2. **`printf ... | python3 - <<'PY'` silently discards the pipe.** The heredoc already occupies stdin,
+   so the program read nothing and wrote `{"projects": []}` — an **emptied registry** while the
+   per-project push visibly succeeded and printed `✓`. Two sources, one stdin, no error anywhere. Data
+   now goes via argv.
+
+Both are the DEC-112 lesson again: the output looked right, and only running it against real state
+showed it was not. Neither would have been caught by reading the script.
+
+### Safety properties, and why each exists
+
+- **Dry run is the default**, and the wrapper must show the plan and get a yes before `--apply`. This
+  reaches outside the repo, into the user's global config and other repositories.
+- **A wholesale `replace` names what it deletes.** "~ harness (replace)" hid four April-era subtrees;
+  the plan now lists every entry present in the destination and absent from the repo.
+- **Every delete target is derived from the repo's own file names**, never from an argument, and is
+  re-checked against `harness*` and its expected parent before `rm -rf`. The script refuses outright if
+  the computed ship set is empty or contains no flat skill dirs — a push computed from an empty set
+  would prune everything.
+- **`~/.claude/agents/` is backed up** before any prune.
+- **Dead registry entries are dropped**, not warned about forever. That is deploy's own state, not
+  project state, and the pre-migration file survives as `.migrated`.
+
+---
+
+## DEC-114 — Cost instrumentation: we compute the dollars, because nothing that knows them can attribute them
+
+Task 3. `cost_model` in the harness.json template, `bin/cost-report.py`, INV-11 in the state check,
+and cost wired into `state.yaml` (§11.4), `feature.yaml` (§11.3), the crew schema (§12) and the CEO
+briefing (§10.3).
+
+### The build-vs-adopt question, answered by looking
+
+Prompted by "is there an open source solution for this?", which was the right question to ask before
+hand-rolling a cost model. Three candidates, checked rather than assumed:
+
+| Source | Native dollars | Per-agent attribution | Infra | Retroactive |
+|---|---|---|---|---|
+| **Claude Code OTel** — `claude_code.cost.usage` (USD) | **yes** | **no** | needs a collector | no |
+| **ccusage** (~4.8k stars, MIT, offline) | no — computes it | no (session/model/day) | npx + node | yes |
+| **Transcript + our rate table** | no — computes it | **yes** (`agentType`, `spawnDepth`) | none | yes |
+
+Two findings settled it.
+
+**1. The transcripts carry no cost field.** A full key inventory of `usage` returns
+`input_tokens`, `output_tokens`, `cache_creation{_input_tokens}`, `cache_read_input_tokens`,
+`speed`, `inference_geo`, `service_tier`, `service_tier`, `iterations` — and nothing denominated in
+money. So **ccusage is an estimator too**, computing from its own rate table exactly as we do. It is
+not an oracle we are declining to use.
+
+**2. OTel knows the dollars but cannot name the agent.** Its `agent.name` attribute documents that
+*"Built-in agent names and agents from official-marketplace plugins appear verbatim. Other
+user-defined agent names are replaced with `custom`."* All 15 harness agents are user-defined, so
+every one collapses into a single `custom` bucket. `query_source` offers only `main` / `subagent` /
+`auxiliary`.
+
+**No option provides native dollars AND per-agent cost.** Per-agent is the axis DEC-99 asks us to
+monitor, so computing from tokens is *forced* — the rate table is the price of the attribution, not
+a shortcut around a better option. `--cross-check` runs `ccusage` when present and compares totals,
+turning rate-table staleness from silent into detected; it is never a dependency (files-only rule).
+
+### Three ways to get this wrong, all found by measuring
+
+**Cache reads are the biggest volume and the smallest cost.** The five token classes differ by 20×
+(read 0.1× base input, 5m write 1.25×, 1h write 2×, output 5×) and must never be summed. The
+measured dev-ops spawn: 862,903 cache-read tokens, 88,414 write, 14,993 output, 79 input →
+**$2.72** on `claude-fable-5`. Price the cache reads at base input and the same run reads as $11.35.
+
+**The cache-write TTL split is nested.** `cache_creation_input_tokens` is the total of both TTLs;
+the per-TTL breakdown is in `cache_creation.ephemeral_{5m,1h}_input_tokens`. A 1h write billed at
+the 5m rate under-reports by 37%. Where the breakdown is absent we attribute to 5m and **say so** —
+the total is then a declared floor, not a quiet guess.
+
+**`speed` and `inference_geo` were nearly missed, and are a silent halving.** Both are recorded per
+message. Fast mode bills Opus 5 at **$10/$50 instead of $5/$25**, and it is one `/fast` away in any
+session; `inference_geo: "us"` applies 1.1× to every class. Keying spend on model alone would have
+reported half the truth with nothing to indicate it. Tokens are now keyed by
+`(model, speed, inference_geo)`, and an unrecognised combination — Haiku at fast speed, an unknown
+geo, a model with no rate period covering the run date — is reported **UNPRICED with exit 1** rather
+than priced at the standard rate. A cost gate that reports a confident wrong number is worse than
+one that reports none.
+
+### What the first real numbers say
+
+Across the fixture's probe sessions: **$38.81, which is 78% of the $50/feature budget SC-1 uses as
+its kill threshold** — for work that was not a feature at all, just onboarding probes.
+
+More surprising: **the orchestrator's own context is ~80% of it** ($31.17 of $38.81), against $7.64
+for all six subagent spawns combined. The design has been treating fan-out as the cost driver and
+the thin orchestrator as cheap; on this sample the opposite holds, because the main session carries
+a large cached context across every turn while subagents are short-lived. One sample from probe
+traffic is not a feature run and must not be over-read — but it is a direct challenge to an
+unexamined premise, and task 17 should measure it deliberately rather than assume either way.
+
+**Budgets are bounded like cycles.** `max_cost_usd` sits beside `max_cycles` in the crew schema and
+`feature.yaml`: one bounds retries, the other bounds spend, and a fix loop can stay under its cycle
+cap while burning the feature budget. Exhausting either takes the same path — stop, `BLOCKED`,
+escalate. `budgets.per_feature_usd` defaults to 50, because SC-1 *is* the criterion; inventing a
+second number would have meant two thresholds disagreeing about the same thing.
+
+**INV-11** makes the meter non-optional: a run with `status: complete` and no `cost:` block is a
+violation, missing `cost_model.rates` is a violation, and rates unverified for over 90 days are a
+warning. An unmetered run is indistinguishable from a free one.
+
+---
+
+## DEC-115 — GSD removal is repo-scoped; the global surface is a separate, gated task
+
+Surfaced by a `PostToolUse:Bash` hook error — "Hook JSON output validation failed — (root): Invalid
+input" — and the follow-up question of whether the offending hook could just be deleted "since we're
+removing GSD anyway."
+
+**It could not, and the premise needed correcting.** DEC-02's removal scope is *this repo* self-hosting
+off GSD. All **19** items in the migration map are project-local; **zero** reference a global path, and
+neither SPEC, BUILD nor DECISIONS mentions removing GSD from the machine. Meanwhile global GSD is very
+much alive and serving the operator's other projects: 33 `gsd-*` agents, 282 files under
+`~/.claude/get-shit-done/`, 8 hooks in global settings, the statusline, and 14 GSD-referencing lines in
+the global CLAUDE.md. Removing GSD *here* implies nothing about any of that. Recorded as **task 19,
+gated on task 17** — the sequencing gate that protects this repo ("never delete the running mechanism
+before the replacement is proven") applies with more force globally, where the blast radius is every
+project rather than one.
+
+### The bug, and why the obvious fix was the wrong one
+
+`gsd-context-monitor.js` v1.42.3 chose its output event name by guessing the harness from an
+environment variable:
+
+```js
+hookEventName: process.env.GEMINI_API_KEY ? "AfterTool" : "PostToolUse",
+```
+
+With `GEMINI_API_KEY` set — as it was — the hook emitted `hookEventName: "AfterTool"` under Claude
+Code, which is not a valid event, so the payload failed schema validation. Reproduced by running the
+hook twice with only that variable differing.
+
+**Deleting the script, as first proposed, would have made it worse:** the `settings.json` entry would
+still have pointed at it, converting an occasional error on the *warning* path into a missing-command
+failure on **every** `Bash|Edit|Write|MultiEdit|Agent|Task` call in every project. The fix was to
+remove the settings entry and leave the file inert and restorable — `gsd-check-update.js` runs at every
+SessionStart and may re-add the entry.
+
+**And the failure was not cosmetic.** The rejected payload *was* the context warning, so the agent
+never received it. A feature that appears to be running, is registered, executes without error, and
+silently delivers nothing — the same fail-open class this design keeps encountering, this time in the
+tooling around it rather than in it. The correct upstream fix is one line: the input payload already
+carries `hook_event_name`, so `data.hook_event_name || "PostToolUse"` needs no guessing.
+
+### Audit of the 8 remaining global hooks — the bug class is contained
+
+Probed the way the context monitor was, plus a source read:
+
+| Property | Finding |
+|---|---|
+| Harness-detection heuristic (`GEMINI_API_KEY`) | **only** in `gsd-context-monitor.js` — the one removed |
+| Emit a `hookEventName` | 6 of 8 — all hardcode the value matching their registered event |
+| Runtime probe (realistic payload) | 8 of 8: exit 0, no spurious stdout, no state mutation |
+| Opt-in behind `hooks.community: true` | `validate-commit`, `phase-boundary`, `session-state` — inert in this repo, which sets only `context_warnings` |
+| Reads `.planning/` by **relative** path | `validate-commit`, `phase-boundary`, `session-state` — cwd-dependent |
+
+The cwd-dependence is the same defect fixed in `check-domain.sh` (§0b), where deriving root from `pwd`
+silently disabled enforcement from any other directory. Here it fails *closed* — an opt-in hook that
+cannot find its config stays off — so it is latent fragility, not an active bug. Worth knowing before
+anyone copies the pattern.
+
+**Two method notes, both mistakes made during this audit.** A hook that is silent on a happy-path
+payload proves nothing: the context monitor was silent on its first probe too, and only confessed once
+its threshold was forced — so "8 of 8 clean" means clean *on the paths exercised*, not healthy. And two
+hypotheses were wrong before the source settled them: `GIT_CMD_LIB` looked like an unset dependency but
+is set inline one line above, and a malformed `grep -cl` (mutually exclusive flags) reported every hook
+as always-on until it was re-run. Both were caught by reading the file rather than trusting the probe.

@@ -169,26 +169,28 @@ the time of writing; the live list is authoritative if the two disagree.
 |---|---|---|
 | 1 | Verify the four remaining platform unknowns | **done** (DEC-100) |
 | 2 | settings.json prerequisites + `inject-expertise.sh` | **done** (DEC-101) |
-| 3 | Cost instrumentation before the first real run | pending — **mandatory**, cost is the post-build signal (DEC-99) |
+| 3 | Cost instrumentation before the first real run | **done** (DEC-114) — `bin/cost-report.py` + `cost_model` + INV-11. First numbers: one dev-ops spawn **$2.72**; probe traffic already at **78% of the $50/feature** SC-1 threshold, and **~80% of it is the orchestrator**, not the fan-out |
 | 4 | `bin/check-state.sh` — orchestrator invariants | **done**, 10 invariants incl. the propagation check |
 | 5 | DIGEST schema validator | **done** (DEC-101) |
 | 6 | The eight rules as flat skills | **done** (DEC-63, DEC-100) |
 | 7 | Write-safety: Bash bypass + shared paths | **done** (DEC-85, DEC-107) |
-| 8 | Expertise governance holes | pending — provenance, decay, curation for all 15, global tier |
+| 8 | Expertise governance holes | pending — provenance, decay, curation for all 15, global tier. **Add: 14 of 15 `expertise/<agent>.md` files do not exist**, so `inject-expertise.sh` injects nothing on almost every spawn and says nothing about it (surfaced by the DEC-112 fixture run). Init creating the dir empty is per spec; what is missing is anything that ever populates it |
 | 9 | The 15 agent definitions | **done** (DEC-106, DEC-107) |
 | 10 | Crew runner + four v1 crews | pending — `mutates_repo` serialization is the write-safety mechanism (DEC-85). The domain hook is now working (DEC-110) but cannot see `Bash`, so serialization is still what makes fan-out safe |
 | 11 | Batch human touchpoints to two | pending |
-| 12 | `/harness-init` + distributed templates | **pending — NEXT.** Full spec below |
-| 13 | Rewrite `harness-deploy` (distribution only, **+ prune**) | pending — **live risk**: 5 stale GSD-era agents in `~/.claude/agents/` are still spawnable, and kaya-ai has no project copies, so a pilot there would run them |
+| 12 | `/harness-init` + distributed templates | **done** — flat skill at `.claude/skills/harness-init/`, 8 templates, 3 merge scripts (DEC-112) |
+| 13 | Rewrite `harness-deploy` (distribution only, **+ prune**) | **done** (DEC-113) — `bin/deploy.sh`, dry-run by default, reconciles rather than copies. The live risk was confirmed real before the fix: 3 deleted agents spawnable everywhere, the global skill tree still the April layout |
 | 14 | Router + `harness.json` + CLAUDE.md — **and size** | pending — CLAUDE.md is ~164k tok/feature, 3× the rule cost (DEC-105) |
 | 15 | Recover the five lost design GAPs | pending |
 | 16 | GSD-removal migration (19 items) | pending — items #1–2 delete the running mechanism; sequence after rule delivery is proven |
-| 17 | Take the full workflow through its paces in kaya-ai | pending — blocked on 3, 10, 12, 13 |
+| 17 | Take the full workflow through its paces in kaya-ai | pending — **blocked only on 10** now (3, 12, 13 done). Measure the DEC-114 open question: is the orchestrator really ~80% of spend? |
 | 18 | Fix the propagation defect mechanically | **done** (DEC-104) |
+| 19 | **Remove GSD globally** — the machine, not this repo | pending — **GATED on 17.** DEC-02's removal scope is *this repo* self-hosting: all 19 migration items are project-local, **zero** touch a global path. Unowned until now: 33 `gsd-*` agents, `~/.claude/get-shit-done/` (282 files), 8 global hooks, the `gsd-statusline.js` statusline, 14 GSD lines in the global CLAUDE.md, `~/.gsd/`. Do not start before the harness is proven end-to-end — the blast radius is every project, not one (DEC-115) |
 
-## Task 12 — `/harness-init`: complete spec
+## Task 12 — `/harness-init`: complete spec — **BUILT** (DEC-112)
 
-**Self-contained: everything needed to build this without prior conversation.**
+**Self-contained: everything needed to build this without prior conversation.** The spec below is what
+was built; the Done-when block at the end records how each criterion was verified.
 
 ### What it is
 
@@ -236,7 +238,15 @@ Enroll = deploy + init. This split is what lets deploy be dumb and safe (DEC-12)
 **3. `.harness/team-config.yaml`** — from template, with `domain` globs seeded from detection, plus the
 `shared:` set and both team `conventions:`.
 
-**4. `.harness/BRIEF.md`** — a **draft** for the user to approve. Init never marks it approved.
+**4. `.harness/BRIEF.md`** — a **draft**, then the user's approval written into it.
+
+> **Corrected 2026-07-26.** An earlier version of this line said "init never marks it approved," which
+> contradicts interview step 3 below *and* the first Done-when: `check-state.sh` reports
+> `BRIEF.md is NOT approved — halt` on a pending brief, so an init that leaves one has not onboarded
+> the project (verified against a fixture: exit 1 pending, exit 0 approved). The real rule is that init
+> never **self**-approves. It asks with `AskUserQuestion` and writes what the user answered.
+> `## Approval` is orchestrator-written by design (SPEC §2.3) — pm is the tier forbidden from touching
+> it, because pm has no user channel. If the user defers, the brief stays pending and init says so.
 
 **5. `.gitignore` additions** — `.harness/features/*/runs/**`, `.claude/settings.local.json`,
 `.claude/worktrees/`, `.DS_Store`. Append; never overwrite an existing file.
@@ -271,25 +281,39 @@ Driven by `schema_version`. Merges **new** template entries while **preserving**
 especially `domain` globs and `test_kinds.cmd`, which are per-project and must never be clobbered. The
 state check reports the version gap; the user triggers the upgrade (DEC-13).
 
-### It must warn about the restart
+### It must warn about the restart — but only about what actually needs one
 
-**Agent definitions are not live-reloaded** (DEC-100a). After init writes agents, they are not spawnable
-until the session restarts. Say so explicitly at the end — a user who tries to run a crew immediately
-will otherwise get "Agent type not found" with no explanation.
+**Agent definitions are not live-reloaded** (DEC-100a): agent files written *during* a session are not
+spawnable until it restarts. Say so at the end, or a user who runs a crew immediately gets "Agent type
+not found" with no explanation.
 
-### Done when
+> **Corrected 2026-07-26 (DEC-112).** The warning must not be broader than that. **Hooks written by
+> init ARE live in the same session** — traced: a subagent spawned after a mid-session
+> `merge-settings.py` was blocked by the freshly-registered hook. And init itself spawns three agents
+> (steps 4 and 8), which would be impossible if nothing were spawnable. The restart is about newly
+> written *agent files*, nothing else.
 
-- `bin/check-state.sh` passes in a freshly-initialised project (it verifies all three settings entries,
-  INV-9).
-- A spawned harness agent is blocked from an out-of-domain write **in that project**, not just here.
-- Existing project hooks and `.gitignore` entries survived.
+### Step 1 is a hard gate
 
----
+If `merge-settings.py` or `merge-gitignore.sh` cannot run, **init stops there.** Observed in testing
+(DEC-112): with the scripts denied, a run hand-replicated the `.gitignore` half, skipped the settings
+half, and continued to step 5 — producing a finished-looking project with **no domain enforcement**. A
+half-installed init does not announce itself, which makes it worse than a refused one.
 
----|---|
-| exists | exists | frontmatter hooks work; the absolute path fixed it |
-| exists | absent | hooks fire, but the script path or args are wrong |
-| **absent** | absent | **agent-frontmatter `PreToolUse` does not fire** — contradicting the docs; the hook is permanently a no-op and serialization is the only mechanism |
+### Done when — all three VERIFIED against a fixture project
+
+The fixture was built to be adversarial: a pre-existing `.claude/settings.json` carrying the project's
+own hooks on three events plus `permissions` and an `env` key, an existing `.gitignore` (one of whose
+entries the harness snippet also contains), and a split `web/` + `api/` source layout.
+
+- ✅ **`bin/check-state.sh` passes in a freshly-initialised project** (all three settings entries, INV-9).
+  Exit 0. It exits **1** first on a pending brief — which is what forced the approval question above.
+- ✅ **A spawned harness agent is blocked from an out-of-domain write in that project.** `exit 2`, the
+  full permitted-paths message reached the agent, and the file was absent from disk. The in-domain write
+  succeeded in the same fixture. **The first attempt at this was a false pass** — see DEC-112: the agent
+  read the manifest and declined on its own, so the hook never executed and the prose was doing the work.
+- ✅ **Existing project hooks and `.gitignore` entries survived.** All three original hooks, `permissions`
+  and the project's `env` key intact; the shared `.gitignore` entry appears once, not twice.
 
 ---
 
@@ -364,9 +388,13 @@ build requirement, and it must exist *before* the first real `kaya-ai` run, not 
 
 ### Retained from the deferred list — now in scope
 
-1. **Cost instrumentation — do this first.** Tokens and spawn count logged per run in `state.yaml`;
-   per-crew budgets alongside `max_cycles`; a cost line in the CEO briefing. Without it the post-build
-   monitoring decision is unenforceable.
+1. ~~**Cost instrumentation — do this first.**~~ **DONE (DEC-114).** Tokens and spawn count logged per
+   run in `state.yaml`; per-crew budgets alongside `max_cycles`; a cost line in the CEO briefing.
+   Built as `bin/cost-report.py` because **no existing tool can do it**: the transcripts carry no cost
+   field (so `ccusage` is an estimator too, not an oracle), and Claude Code's native OTel — which does
+   know the dollars — collapses every user-defined agent into `agent.name: "custom"`, losing the
+   per-agent axis this exists to measure. `--cross-check` compares our total against `ccusage` so a
+   stale rate table is detected rather than silent.
 2. `bin/check-state.sh` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
    validator run dispatches, `cycles_used` ≥ FAIL count, approval reset after re-plan, every run dir
    referenced from STATE).
@@ -547,11 +575,11 @@ Beyond "build personas + assemble them." Prune freely.
 | 11 | Agents — the full org | *Keep + rewrite 3 existing:* `code-reviewer`, `security-reviewer`, `qa` (now a **doer**). Drop `/gsd-*` trigger vocabulary, repoint inputs to `.harness/`, add the three-part `VERDICT:`/`DIGEST:`/`artifact:` return. **Delete** `harness-ceo-reviewer` and `harness-eng-reviewer` (architecture review moves into `eng-lead`). **Add 12:** 3 leads (`product-lead`, `eng-lead`, `validator-lead`), 5 eng specialists (`frontend-dev`, `backend-dev`, `ai-dev`, `data-engineer`, `dev-ops`), `pm`, `visual-designer`, `documentor`, `ui-reviewer`. **Total: 15.** |
 | 12 | `skills/harness/personas/` | **Delete** the stub dir — the roster lives in `.claude/agents/`. |
 | 13 | `CLAUDE.md` | Rewrite "GSD Workflow Enforcement" (route via `/harness`, not `/gsd:*`). Update the `<!-- GSD:harness-* -->` block to describe `.harness/` + crews. Flag the stale STACK.md block for rewrite. GSD marker comments become inert — harmless, drop optionally. |
-| 14 | `.claude/commands/harness-deploy.md` | **Scope it to distribution only — it must never write project state.** See the detail block below. |
+| 14 | `.claude/commands/harness-deploy.md` | **DONE** (DEC-113). Scoped to distribution only — it must never write project state. See the detail block below. |
 | 15 | `.gitignore` | **NET-NEW FILE.** See the detail block below. |
 | 16 | `.harness/README.md` | **REWRITE, not create** — it already exists and contradicts this design. See the detail block below. **Owner: `documentor`.** |
 | 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.sh`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
-| 18 | `/harness-init` + `templates/` | **NET-NEW.** The onboarding interview (absorbs the deleted `bootstrap` crew): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what makes deploy safe to be dumb.** |
+| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` crew): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what makes deploy safe to be dumb.** |
 | 19 | `rules/handoff.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 15 agents. Create it in MVP step 1 alongside the first persona. |
 
 **Also net-new, and reshaped:** all seven rules become **skill directories**
@@ -576,6 +604,12 @@ is **renamed to `expertise`** (DEC-80).
   registry file** — do not orphan it. Make the migration **idempotent**: handle both files present,
   and a project listed only in the old registry.
 - Copy skills + **all 15 agents** (glob `harness-*.md`) + propagate `crews/`.
+- ⚠️ **`cp -r .claude/skills/harness/.` is not enough, and this is easy to miss.** It copies the router,
+  `bin/` and `templates/`, but **none of the flat skill dirs** — the seven rule skills *and*
+  `harness-init` itself all live at `.claude/skills/harness-*/`, siblings of `harness/`, because a
+  project skill is exactly one level down (DEC-100). Deploy must glob `.claude/skills/harness*/`. Without
+  it a project gets templates it has no `/harness-init` to instantiate, and 15 agents whose `skills:`
+  lists resolve to nothing — silently, since a missing skill is not an error.
 - **Add a PRUNE/RECONCILE step.** Deploy is currently copy-only, so deleted agents live forever.
   Compute the set of `harness-*.md` in the repo and delete global/enrolled-project files not in it
   (**dry-run listing first**). Without this, `harness-ceo-reviewer` and `harness-eng-reviewer` remain
@@ -585,8 +619,12 @@ is **renamed to `expertise`** (DEC-80).
 - Define **crew resolution precedence**: project-local `crews/` overrides global.
 - **Enroll = deploy + `/harness-init`.** The old flow required `/gsd-new-project` first; that
   dependency is gone.
-- A post-cutover push should **strip the now-inert `agent_skills` block** from already-enrolled
-  projects' `config.json`.
+- ~~A post-cutover push should **strip the now-inert `agent_skills` block** from already-enrolled
+  projects' `config.json`.~~ **Corrected (DEC-113): deploy REPORTS this, it does not fix it.** Editing
+  a project's `config.json` is writing project state, which is the one thing the deploy/init split
+  exists to forbid — and an item in this same list two lines up says exactly that. Same shape as the
+  BRIEF-approval contradiction (DEC-112): two requirements in one document, incompatible. The dry run
+  now names any project whose `agent_skills` points at paths the push removes, and stops there.
 
 ### Detail: #15 — `.gitignore`
 
@@ -691,7 +729,8 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.harness/team-config.yaml` | **new** — team manifest (membership + `consult-when` routing + `domain` write scope) |
 | `.claude/skills/harness/bin/check-domain.sh` | **new** — domain-enforcement hook script (the one deliberate exception to files-only) |
 | `.claude/skills/harness/templates/*` | **new** — distributed schema templates (team-config, harness.json, BRIEF/PLAN/STATE/DESIGN, gitignore) |
-| `.claude/skills/harness/init/SKILL.md` | **new** — `/harness-init` project scaffolder |
+| `.claude/skills/harness-init/SKILL.md` | **done** — `/harness-init` project scaffolder. **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
+| `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.sh`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
 | `.claude/skills/harness-handoff/SKILL.md` | **new** — universal artifact discipline (all 15 agents) |
 | `.claude/skills/harness-<name>/SKILL.md` × 7 | **restructured, FLAT** (DEC-100) — rules become skills for `skills:` preload; `handoff`, `expertise`, `zero-micro-management` are net-new |
 | `.claude/skills/harness/bin/inject-expertise.sh` | **new** — `SubagentStart` hook that injects an agent's Expertise |
