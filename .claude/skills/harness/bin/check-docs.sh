@@ -25,8 +25,8 @@
 set -uo pipefail
 cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
-python3 - <<'PY'
-import re, sys, os
+python3 - "$@" <<'PY'
+import re, sys, os, glob
 
 D = "docs/harness"
 dec = os.path.join(D, "DECISIONS.md")
@@ -63,8 +63,58 @@ if not pats:
     print("check-docs: no <!-- stale: ... --> markers declared yet — nothing to check.")
     sys.exit(0)
 
-targets = [os.path.join(D, f) for f in ("SPEC.md", "BUILD.md")]
-targets = [t for t in targets if os.path.isfile(t)]
+# EVERY prose surface a human or an agent reads, not just the two design docs.
+#
+# It was SPEC.md + BUILD.md only. Two separate failures came out of that narrowness in
+# one session, on runs that were green the whole time:
+#
+#   - "three prerequisites" and "three `settings.json`" survived in harness-init's
+#     SKILL.md and .harness/README.md and had to be found by hand-grep;
+#   - harness-init's own `description:` — the line the model reads to decide whether to
+#     invoke the skill — still advertised "three platform prerequisites" after
+#     everything else had been corrected.
+#
+# A skill is read by an agent at spawn and a template is copied into a project, so a
+# stale claim in either propagates FURTHER than one in SPEC.md, not less. Frontmatter
+# is the worst place of all for one, because it is the part nobody re-reads.
+targets = []
+for base, pats_ in ((D, ("*.md", "*.html")),
+                    (".harness", ("*.md",)),
+                    (".claude/skills", ("*.md",)),
+                    (".claude/commands", ("*.md",))):
+    for pat in pats_:
+        targets += glob.glob(os.path.join(base, "**", pat), recursive=True)
+# DECISIONS.md is the registry, not a target: it QUOTES stale wording by design, in
+# the very paragraph that supersedes it. Scanning it would flag every marker forever.
+targets = sorted(t for t in set(targets)
+                 if os.path.isfile(t) and os.path.basename(t) != "DECISIONS.md")
+
+if "--audit" in sys.argv:
+    # Which markers are actually load-bearing? A marker that matches nothing today AND
+    # has never matched anything in history is inert, and inert rules make a green run
+    # read as more thorough than it is (the DEC-119 failure in another costume). This
+    # found 11 of 25 — all wording from the pre-restructure plan file, never in the repo.
+    #
+    # HEURISTIC, NOT PROOF, and it errs toward calling a live marker dead: history is
+    # only visible for TRACKED files, and a marker whose wording spans a line break can
+    # never match a line-based checker even though the claim is really there. Before
+    # deleting one, confirm which it is. `three `settings.json`` was the second kind.
+    import subprocess
+    print(f"marker audit — {len(pats)} declared, {len(targets)} file(s) scanned\n")
+    dead = 0
+    for dec, p in pats:
+        live = sum(1 for t in targets
+                   for ln in open(t, encoding="utf-8", errors="replace").read().splitlines()
+                   if p.lower() in ln.lower())
+        r = subprocess.run(["git", "log", "--oneline", "-S", p, "--"] + targets,
+                           capture_output=True, text=True)
+        hist = len([l for l in r.stdout.splitlines() if l.strip()])
+        if not live and not hist:
+            dead += 1
+            print(f"  INERT   {dec:8} {p!r} — never matched any scanned file, ever.")
+    print(f"\n{dead} inert marker(s) of {len(pats)}."
+          if dead else f"\nall {len(pats)} markers are load-bearing.")
+    sys.exit(1 if dead else 0)
 
 hits = 0
 for t in targets:

@@ -1,6 +1,6 @@
 ---
 name: harness-init
-description: Onboard a project to the harness — interview the user, write .harness/, and install the three platform prerequisites. Use when a project has no .harness/, when check-state.sh reports "not onboarded", or when a schema_version gap calls for --upgrade.
+description: Onboard a project to the harness — interview the user, write .harness/, and install the four platform prerequisites. Use when a project has no .harness/, when check-state.sh reports "not onboarded", or when a schema_version gap calls for --upgrade.
 ---
 
 # Harness: Init
