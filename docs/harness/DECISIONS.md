@@ -3281,3 +3281,18 @@ sees where their item went. Inbound the backlog gets a vote; outbound the plan g
 **The harness's own design docs (SPEC/DECISIONS/BUILD) do not mirror.** If this repo ever wants
 Issues, it eats its own dog food — features through `/harness-plan`, same machinery — not a
 BUILD.md scraper.
+
+### DEC-138 amendment 2 — triage: "what should we do next?", and silence on Issues
+
+**The triage route.** "What should we do next?" belongs to no orchestrator — it exists before a
+feature does. It is pm's remit through product-lead, and it is **the one sanctioned direct
+main-session→lead dispatch**, justified narrowly: no feature exists for an orchestrator to own, and
+triage writes no state — it reads (Issues, the codebase map, shipped history) and recommends. pm
+returns ranked candidates with rationale; the user picks; the pick seeds `/harness-plan`. Any
+dispatch that would WRITE feature state still goes through an orchestrator, no exceptions.
+
+**Silent on Issues in v1.** Agents create, close, and cite absorptions — no agent-authored comments
+in the org's repo until the mirror proves itself on a real feature. Division of labour restated:
+pm is the mind (reads and interprets the backlog at plan time), the orchestrator is the hand
+(mechanical mirror at its checkpoints); they never negotiate about Issues — pm's reading flows into
+PLAN, PLAN through the user's signature, the orchestrator mirrors what was signed.

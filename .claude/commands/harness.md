@@ -18,6 +18,10 @@ BRIEF/PLAN, which routes to step 1.
   cost vs budget, last run) and ask which — or whether to start a new one.
 - **New feature** → `pm` must plan it first: that is `/harness-plan`.
 - **"where are we?"** → relay a briefing request to that feature's orchestrator (trigger 3, §10.3).
+- **"what should we do next?"** → mission **triage**: the one sanctioned direct dispatch to
+  `harness-product-lead` (no feature exists for an orchestrator to own; triage writes no state).
+  pm reads the backlog (GitHub Issues if `github.sync`), the codebase map, and shipped history,
+  and returns ranked candidates with rationale. You pick; the pick seeds `/harness-plan` (DEC-138).
 - **"map the codebase"** (or a project with no `.harness/codebase/`) → mission **map**: the
   understand-codebase playbook. On an existing codebase this is the FIRST flow, before any feature
   (DEC-137) — everything after plans against the map.
