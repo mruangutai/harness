@@ -3232,3 +3232,31 @@ the workaround path.
 `stale: <FEAT>`; the **owning specialist** rewrites its own stale sections — eagerly, in the same
 ship flow, one member spawn per actually-touched domain — so the map is never knowingly stale at
 rest and no one ever rewrites a view they don't own.
+
+---
+
+## DEC-138 — GitHub Issues integration: asymmetric truth, orchestrator-executed, full loop (task 24)
+
+kaya-ai tracks milestones and tasks in GitHub Issues, mirroring FEAT→T-NN. The integration, as
+decided:
+
+**Mapping.** `FEAT-NN-<slug>` → milestone (DEC-133's slug makes the title readable) · `T-NN` →
+issue labeled `harness`, body carrying the task spec, `change_type` and `traces:` · SC-NN → the
+milestone description's checklist · `[harness:t-NN]` commits gain `#<issue>` so GitHub auto-links
+and `closes #` auto-closes · shipped → milestone closed. Issue numbers are recorded in
+`feature.yaml` (`issues: {T-01: <n>}`) at creation — without that, closure is guesswork.
+
+**Asymmetric truth.** Issues are pm's research INPUT at plan time — existing backlog can become
+tasks, through pm, under the user's signature. After approval, sync is strictly OUTBOUND. GitHub
+is never a write path into PLAN.md: a wiki-editable UI feeding an approval-gated artifact is the
+DEC-19 bypass shape, and bidirectional conflict resolution has no machinery here. Inbound edits
+re-enter only through a new plan cycle.
+
+**Orchestrator-executed, at its existing checkpoints** — plan approved → create; task commit lands
+→ close; shipped → close milestone. Gated per project by `github.sync: true` in `harness.json`
+(the standing outward-facing consent, granted once by the user at init). **GitHub is a mirror,
+never a gate:** `gh` absent or unauthenticated → the flow succeeds and reports the sync skipped,
+per the SPEC §12 precedent for branch/PR operations.
+
+**V1 is the full loop** (intake + outbound + numbers + graceful skip), built before kaya-ai so the
+first real feature is mirrored from day one.
