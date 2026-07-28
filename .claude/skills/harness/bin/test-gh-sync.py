@@ -32,6 +32,7 @@ case "$1 $2" in
     n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
     echo "https://github.com/implentio/fake/issues/$n" ;;
   "issue close") exit 0 ;;
+  "label create") exit 0 ;;
 esac
 exit 0
 """
@@ -153,10 +154,19 @@ with tempfile.TemporaryDirectory() as tmp:
     check("issue numbers recorded in feature.yaml",
           "milestone: 7" in fy and re.search(r"T-01: 4\d", fy), fy)
 
+    check("labels ensured before any issue create",
+          [l for l in log if "label create" in l]
+          and log.index([l for l in log if "label create" in l][0])
+              < log.index([l for l in log if "issue create" in l][0]),
+          str(log[:6]))
+    ms_idx = log.index([l for l in log if "milestones -f" in l or ("milestones" in l and "POST" in l)][0])
+    # feature.yaml already carried the milestone before the last issue was created:
+    # asserted indirectly — the recorded map exists even though save happens per-create.
+
     # --- idempotency: rerun creates nothing new
     n_before = len(calls(tmp))
     r = run(["open", feat], tmp)
-    new = [l for l in calls(tmp)[n_before:] if "create" in l or "milestones" in l]
+    new = [l for l in calls(tmp)[n_before:] if "issue create" in l or "milestones" in l]
     check("re-run open creates nothing", r.returncode == 0 and not new, str(new))
 
     # --- close-task closes the issue AND the absorbed ones

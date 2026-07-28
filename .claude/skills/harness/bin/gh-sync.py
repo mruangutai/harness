@@ -164,16 +164,48 @@ def save_recorded(feat_dir, rec):
 
 # ---------- commands ----------
 
+def ensure_labels(repo, labels):
+    """Create any missing labels first. LIVE SMOKE FINDING #1: GitHub rejects an issue
+    create naming a label the repo does not define — new repos ship `bug` but not
+    `harness`/`chore`. Errors here are swallowed (label already exists is the common
+    case); the create call below is what surfaces a genuinely broken repo."""
+    colors = {"harness": "5319e7", "chore": "cccccc", "bug": "d73a4a", "enhancement": "a2eeef"}
+    for l in labels:
+        subprocess.run([GH, "label", "create", l, "--repo", repo,
+                        "--color", colors.get(l, "ededed"),
+                        "--description", "created by harness gh-sync"],
+                       capture_output=True)
+
+
 def cmd_open(feat_dir, repo):
     brief, tasks, rec = parse_brief(feat_dir), parse_tasks(feat_dir), load_recorded(feat_dir)
+    ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
 
     if rec["milestone"] is None:
         desc = (f"{brief['problem']}\n\n**Goal:** {brief['goal']}\n\n## Definition of done\n"
                 + "\n".join(f"- [ ] {sid}: {txt}" for sid, txt in brief["scs"]))
-        out = gh(["api", "-X", "POST", f"repos/{repo}/milestones",
-                  "-f", f"title={brief['feat']}", "-f", f"description={desc}"])
-        rec["milestone"] = json.loads(out)["number"]
-        print(f"gh-sync: milestone #{rec['milestone']} created for {brief['feat']}")
+        r = subprocess.run([GH, "api", "-X", "POST", f"repos/{repo}/milestones",
+                            "-f", f"title={brief['feat']}", "-f", f"description={desc}"],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            rec["milestone"] = json.loads(r.stdout)["number"]
+            print(f"gh-sync: milestone #{rec['milestone']} created for {brief['feat']}")
+        else:
+            # LIVE SMOKE FINDING #3: 422 when the title already exists — a previous run
+            # created it and died before recording (or a human made one). Resolve by
+            # lookup instead of failing; anything else is a real environmental skip.
+            out = gh(["api", f"repos/{repo}/milestones", "-q",
+                      f'[.[] | select(.title == "{brief["feat"]}") | .number] | first'])
+            if not out or out == "null":
+                skip(f"milestone create failed and no existing one matches: "
+                     f"{(r.stderr or r.stdout).strip()[:200]}")
+            rec["milestone"] = int(out)
+            print(f"gh-sync: milestone #{rec['milestone']} recovered by title lookup")
+        # LIVE SMOKE FINDING #2: record the milestone IMMEDIATELY. The first live run
+        # created it, hit a downstream failure, exited before saving — and the re-run
+        # 422'd on the orphan. The record-after-every-create rule applies to the
+        # milestone too, not just issues (DEC-131, applied fully this time).
+        save_recorded(feat_dir, rec)
     else:
         print(f"gh-sync: milestone #{rec['milestone']} already recorded — skipping")
 
