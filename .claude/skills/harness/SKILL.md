@@ -90,6 +90,38 @@ anything. When the main session re-delegates you with an answers file
 (`.harness/features/<FEAT>/notes/answers-<runid>.md`), pass its **path** into the re-dispatched run —
 `resume_from` semantics: the run picks up from its checkpointed `state.yaml`, not from scratch.
 
+## Mission: map — understand-codebase (DEC-137)
+
+Builds `.harness/codebase/` for a project the org has never seen. Not a team — **you sequence
+per-squad runs** (DEC-118), each specialist authoring the view it will later consume. The manifest
+carves the map by author; a wrong-author write is hook-blocked.
+
+1. **Eng squad run** (eng-lead): backend-dev → `api-surface.md` + `domains/`; data-engineer →
+   `data-flows.md`; frontend-dev → `ui-surface.md`; ai-dev → `llm-patterns.md`; dev-ops →
+   `stack.md`. Steps are parallel — disjoint outputs. **A specialist whose surface does not exist
+   self-scopes out in one line** (a CLI has no ui-surface); an empty view is a valid result.
+2. **In the same turn, dispatch validator-lead**: security-reviewer → `trust-boundaries.md`; and
+   **product-lead**: pm → `product-surface.md`. Independent of the eng run — all three go together.
+3. **Documentor consolidates last** (product-lead, second run): reads every view, writes
+   `architecture.md` and `INDEX.md` from the template (`templates/codebase-INDEX.md`). **The 60-line
+   index cap is documentor's to honor** — the index is injected into every future spawn.
+
+Rules that bind every view: **every claim carries a `file:line` anchor** — unanchored prose is
+opinion, not a map; every section header carries `author · date · anchors-verified: <sha>`; the map
+records what IS, never what should be — improvement ideas go to `open_questions`, not the map.
+
+## Ship-refresh — the map stays true (DEC-137 amendment)
+
+In mission ship, after the SCs pass and before the briefing:
+
+1. Union the feature's `files_touched` across its team digests; intersect with the map's domains.
+2. No intersection → skip, note it, done. Intersection →
+3. **Documentor** (skeleton grant only): update `INDEX.md` provenance and mark each affected role
+   section `stale: <FEAT>`.
+4. **Each owning specialist** rewrites its own stale sections — one member spawn per actually-
+   touched domain, dispatched through its lead in the same flow. Nobody rewrites a view they do
+   not own; the map is never knowingly stale at rest.
+
 ## The CEO briefing (three triggers, not every completion)
 
 `ship-feature` completes · a lead returns `BLOCKED` · the main session relays "where are we?".

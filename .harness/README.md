@@ -17,6 +17,7 @@ touches anything here; init writes it once. That split is what lets deploy run u
 | `harness.json` | `test_matrix`, `test_kinds`, `gates`, `cost_model`, `budgets`, `log_retention_days` | `/harness-init` · `dev-ops` fills `test_kinds` |
 | `expertise/<agent>.md` | Per-agent durable knowledge, injected at every spawn by the `SubagentStart` hook | each agent, its own file only |
 | `features/<FEAT>/notes/` | That feature's durable artifacts: `research-*`, `review-<persona>-c<cycle>.md`, `qa-*`, `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `mockups/`, `prototypes/` — **the path carries the feature id** (DEC-130) | the owning agent |
+| `codebase/` | **The codebase map** (DEC-137) — per-project structural knowledge: capped `INDEX.md` (injected at every spawn), `architecture.md`, `domains/`, and one lens per authoring role. Anchored claims, per-section provenance, ship-refreshed | each view's **authoring role**; skeleton documentor |
 | `notes/` | **Project-scoped** durable artifacts only (cross-feature research, docs sweeps). Anything belonging to a FEAT lives in that feature's `notes/` | the owning agent |
 | `logs/<date>.md` | Append-only **cross-flow** stream: flow started, escalation, briefing. Never loaded at spawn | **main session only** |
 | `features/<FEAT>/STATE.md` | That flow's live pointer: `## Current` + `## Open Questions`. **No history** — `logs/` is for that. One per feature, so concurrent flows never share a writer | that feature's **orchestrator** |

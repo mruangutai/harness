@@ -18,6 +18,9 @@ BRIEF/PLAN, which routes to step 1.
   cost vs budget, last run) and ask which — or whether to start a new one.
 - **New feature** → `pm` must plan it first: that is `/harness-plan`.
 - **"where are we?"** → relay a briefing request to that feature's orchestrator (trigger 3, §10.3).
+- **"map the codebase"** (or a project with no `.harness/codebase/`) → mission **map**: the
+  understand-codebase playbook. On an existing codebase this is the FIRST flow, before any feature
+  (DEC-137) — everything after plans against the map.
 
 ## 2. Approvals are yours
 

@@ -13,6 +13,7 @@ what lets deploy be dumb and safe.
 | `gitignore.snippet` | `.gitignore` | `/harness-init` via `bin/merge-gitignore.sh` | init — **appended**, never overwritten |
 | `PLAN.md` | `.harness/features/<FEAT>/PLAN.md` | `harness-pm` | first planning pass, not init |
 | `STATE.md` | `.harness/features/<FEAT>/STATE.md` — **one per flow**, never a project-level file (DEC-120) | that feature's orchestrator | first run of that feature, not init |
+| `codebase-INDEX.md` | `.harness/codebase/INDEX.md` | `documentor`, via the understand-codebase playbook | first map run, not init |
 | `DESIGN.md` | `.harness/features/<FEAT>/DESIGN.md` | `harness-visual-designer` | init's optional design pass, for UI projects only |
 
 **Everything directly in this directory is a template.** Anything that is not one lives in

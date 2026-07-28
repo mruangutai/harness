@@ -40,6 +40,8 @@ if body.strip():
 '
 }
 
+index="$root/.harness/codebase/INDEX.md"
+
 {
   # Global tier first, project second — project wins on conflict, and later
   # text carries more weight, so ordering encodes the precedence rule.
@@ -49,7 +51,18 @@ if body.strip():
   fi
   if [ -r "$proj" ]; then
     printf '## Your Expertise — this codebase (project tier, authoritative on conflict)\n\n'
-    cat "$proj"; printf '\n'
+    cat "$proj"; printf '\n\n'
+  fi
+  # The codebase map's index (DEC-137) — the third knowledge tier, delivered the same
+  # way as Expertise because preload is the only delivery path with a clean record
+  # (DEC-125 x4: everything that relied on being pointed at failed silently at least
+  # once). Absent on an unmapped project, and that is normal — silence is correct here.
+  # ONLY the index rides the spawn; details are fetched by path. Cap enforced at
+  # authoring time (60 lines); truncated here as a backstop so one runaway index
+  # cannot re-create the CLAUDE.md bloat (DEC-135) across every spawn.
+  if [ -r "$index" ]; then
+    printf '## Codebase map — index (details on disk; every claim carries file:line anchors; the map is a hint, code is truth)\n\n'
+    head -n 80 "$index"; printf '\n'
   fi
 } | emit
 

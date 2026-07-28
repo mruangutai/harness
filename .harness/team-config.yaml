@@ -89,6 +89,7 @@ teams:
           - { path: .harness/features/*/notes/research-*.md, upsert: true }   # the PATH carries the FEAT id (DEC-130)
           - { path: .harness/notes/research-*.md, upsert: true }            # project-scoped research only
           - { path: .harness/features/*/notes/uat-*.md, upsert: true }
+          - { path: .harness/codebase/product-surface.md, upsert: true }   # its map lens (DEC-137)
           - { path: .harness/expertise/harness-pm.md, upsert: true }
           - { path: ".", read: true }
 
@@ -111,6 +112,8 @@ teams:
           - { path: docs/**, upsert: true }
           - { path: README.md, upsert: true }
           - { path: .harness/README.md, upsert: true }
+          - { path: .harness/codebase/INDEX.md, upsert: true }            # skeleton ONLY (DEC-137)
+          - { path: .harness/codebase/architecture.md, upsert: true }
           - { path: .harness/expertise/harness-documentor.md, upsert: true }
           - { path: ".", read: true }
 
@@ -132,6 +135,7 @@ teams:
           browser behavior, responsive layout.
         domain:
           - { path: web/src/**, upsert: true }            # seeded by /harness-init
+          - { path: .harness/codebase/ui-surface.md, upsert: true }       # its map lens (DEC-137)
           - { path: .harness/expertise/harness-frontend-dev.md, upsert: true }
           - { path: ".", read: true }
 
@@ -142,6 +146,8 @@ teams:
         domain:
           - { path: src/**, upsert: true }               # seeded by /harness-init
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
+          - { path: .harness/codebase/api-surface.md, upsert: true }      # its map lens (DEC-137)
+          - { path: .harness/codebase/domains/**, upsert: true }        # module grouping
           - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
           - { path: ".", read: true }
 
@@ -152,6 +158,7 @@ teams:
         domain:
           - { path: src/**/prompts/**, upsert: true }     # seeded by /harness-init
           - { path: evals/**, upsert: true }
+          - { path: .harness/codebase/llm-patterns.md, upsert: true }     # its map lens (DEC-137)
           - { path: .harness/expertise/harness-ai-dev.md, upsert: true }
           - { path: ".", read: true }
 
@@ -162,6 +169,7 @@ teams:
         domain:
           - { path: supabase/migrations/**, upsert: true }
           - { path: src/**/schema*, upsert: true }        # seeded by /harness-init
+          - { path: .harness/codebase/data-flows.md, upsert: true }       # its map lens (DEC-137)
           - { path: .harness/expertise/harness-data-engineer.md, upsert: true }
           - { path: ".", read: true }
 
@@ -174,6 +182,7 @@ teams:
           - { path: Dockerfile, upsert: true }
           - { path: .harness/harness.json, upsert: true }
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
+          - { path: .harness/codebase/stack.md, upsert: true }            # its map lens (DEC-137)
           - { path: .harness/expertise/harness-dev-ops.md, upsert: true }
           - { path: ".", read: true }
         # SHARP EDGE (DEC-85): dev-ops holds Bash, which bypasses path checks
@@ -213,6 +222,7 @@ teams:
           OWASP Top 10, STRIDE threat modeling, data exposure in logs or exports.
         domain:
           - { path: .harness/features/*/notes/review-harness-security-reviewer-*.md, upsert: true }
+          - { path: .harness/codebase/trust-boundaries.md, upsert: true } # its map lens (DEC-137)
           - { path: .harness/expertise/harness-security-reviewer.md, upsert: true }
           - { path: ".", read: true }
 
