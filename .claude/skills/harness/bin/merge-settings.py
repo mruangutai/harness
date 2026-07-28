@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Merge the four harness prerequisites into a project's .claude/settings.json.
+"""Merge the five harness prerequisites into a project's .claude/settings.json.
 
-WHY THIS IS A SCRIPT AND NOT AN INSTRUCTION: all four entries degrade SILENTLY if
+WHY THIS IS A SCRIPT AND NOT AN INSTRUCTION: all five entries degrade SILENTLY if
 absent — no error, no warning, just a harness with memoryless agents that can write
 anywhere. Hand-merging JSON into a file that already has the project's own hooks is
-exactly where one of the four quietly goes missing. So the merge is deterministic
+exactly where one of the five quietly goes missing. So the merge is deterministic
 and re-runnable, and `--check` can assert the result.
 
   merge-settings.py <project-root> [--check] [--template <path>]
@@ -27,7 +27,7 @@ import os
 import shutil
 import sys
 
-# The four prerequisites, each keyed by the script basename that identifies it.
+# The five prerequisites, each keyed by the script basename that identifies it.
 HOOK_SPECS = [
     {
         "event": "SubagentStart",
@@ -56,6 +56,16 @@ HOOK_SPECS = [
         "why": "Digest contract enforcement. Absent -> malformed returns are accepted "
                "by whoever reads them, and the runner routes on fields that are not "
                "there. A validator nothing runs does not exist (DEC-101, DEC-119).",
+    },
+    {
+        "event": "PreToolUse",
+        "script": "branch-create-gate.sh",
+        # Bash matcher, separate entry from check-domain (Write|Edit). SELF-GATING on
+        # harness.json github.sync — registered everywhere, no-op where the mirror is
+        # off, so registration stays unconditional like every prerequisite (DEC-144).
+        "matcher": "Bash",
+        "why": "Branch-creation work-tracking gate. Absent -> branches with no issue or "
+               "flow behind them, silently.",
     },
 ]
 DEPTH_KEY = "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH"
@@ -183,7 +193,7 @@ def main():
             for m in missing:
                 print(f"  - {m}")
             return 1
-        print("merge-settings: all four prerequisites present.")
+        print("merge-settings: all five prerequisites present.")
         return 0
 
     if not missing:

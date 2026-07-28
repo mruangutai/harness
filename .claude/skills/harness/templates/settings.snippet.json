@@ -1,5 +1,5 @@
 {
-  "_comment": "The four platform prerequisites. ALL FOUR are required and EACH degrades SILENTLY if absent \u2014 none of them errors. bin/merge-settings.py merges exactly this into a project's .claude/settings.json without disturbing entries the project already has. Do not hand-merge; that is how one of the four goes missing.",
+  "_comment": "The five platform prerequisites. ALL FIVE are required and EACH degrades SILENTLY if absent \u2014 none of them errors. bin/merge-settings.py merges exactly this into a project's .claude/settings.json without disturbing entries the project already has. Do not hand-merge; that is how one of the five goes missing.",
   "env": {
     "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"
   },
@@ -22,6 +22,15 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/branch-create-gate.sh"
           }
         ]
       }

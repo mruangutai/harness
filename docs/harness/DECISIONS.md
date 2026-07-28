@@ -3462,3 +3462,28 @@ DEC-85 pressure handled exactly right, and the opposite of the bin/-ownership in
   tasks of this shape.
 - **Worktrees branch from the LOCAL branch, not origin** — with unpushed commits, origin is behind
   the pinned SHA. Added to the runner's worktree guidance.
+
+---
+
+## DEC-144 — The branch-creation gate joins the harness: fifth prerequisite, self-gating on the mirror
+
+Reviewed at the user's request: kaya-ai's field-proven `branch-create-gate.sh` — a `PreToolUse:Bash`
+gate requiring every new git branch to name the work it serves, with a best-effort project-board
+In-Progress flip. Ported into `bin/` with four genericizations: the hardcoded kaya board IDs become
+OPTIONAL `harness.json` config (`github.project_number/project_id/status_field/in_progress_option`;
+absent = flip skipped); the repo is the PINNED `github.repo` on every gh call, never cwd-inferred
+(DEC-138); `jq` is gone (python3 stdlib, like every harness script); and a second branch grammar is
+accepted — `<type>/FEAT-NN-slug` / `BUG-NN-slug` validated against the flow existing on disk,
+because harness flows branch per feature and the original's issue-number-only rule would have
+denied every legitimate orchestrator branch.
+
+**Registration is unconditional — the fifth `settings.json` prerequisite** — because the script
+self-gates on `github.sync` and exits instantly where the mirror is off. Conditional registration
+would be a second INV-13-style limbo. Unlike gh-sync (a mirror that must never gate), this IS a
+gate: unverifiable states (gh missing, unauthenticated) DENY with the reason rather than waving
+work through. Nine offline proof shapes green, including the original's year-token guard and both
+grammars. The init question that keys it ("Mirror features to GitHub Issues?") was already in place
+(DEC-138).
+<!-- stale: four prerequisites -->
+<!-- stale: ALL FOUR entries -->
+<!-- stale: fourth mandatory -->

@@ -28,7 +28,7 @@ that would expose it.
 
 ### 0a — `settings.json` prerequisites (setup, not a spike)
 
-**Four** platform entries the design depends on must be set explicitly — one env var and three hooks.
+**Five** platform entries the design depends on must be set explicitly — one env var and four hooks.
 **A project missing any of them degrades silently rather than erroring** — and for the depth setting,
 what "missing" does depends on the CLI version (below).
 
@@ -60,7 +60,7 @@ what "missing" does depends on the CLI version (below).
 > This snippet is **documentation**; `bin/merge-settings.py` is what executes. The two cannot drift:
 > passing `--template` makes the script fail loudly if the snippet stops describing what it writes.
 
-⚠️ **All FOUR entries are required. Every one of them degrades silently when absent** — that is the
+⚠️ **All FIVE entries are required. Every one of them degrades silently when absent** — that is the
 whole reason they are a hard gate rather than a recommendation:
 
 - no `SubagentStart` → agents start memoryless;
@@ -100,7 +100,7 @@ default means the org silently reshapes the next time it moves.
 independently by **omitting `Agent` from every member's `tools:` list**. Do that regardless of the
 setting; the depth cap is defence in depth, not the primary control.
 
-**`/harness-init` must write all four entries, and the state-consistency check must verify them** — a
+**`/harness-init` must write all five entries, and the state-consistency check must verify them** — a
 silent degradation to flat, to memoryless agents, to delegating members, or to unvalidated digests is
 exactly the failure class this design tries to avoid.
 
@@ -358,7 +358,7 @@ Enroll = deploy + init. This split is what lets deploy be dumb and safe (DEC-12)
 
 ### What it writes — six artifacts
 
-**1. `.claude/settings.json` — ALL FOUR entries.** Omitting any degrades **silently**.
+**1. `.claude/settings.json` — ALL FIVE entries.** Omitting any degrades **silently**.
 
 ```json
 {

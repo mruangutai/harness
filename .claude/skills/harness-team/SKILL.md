@@ -90,7 +90,7 @@ expensive way to be wrong, because nothing surfaces it. If steps genuinely confl
 **e. Collect returns.** Read `VERDICT` and the `DIGEST` fields and record both in `state.yaml`.
 
 **The digest contract is enforced for you — mechanically, at source, not by your own reading of it.**
-`validate-digest.py --hook` runs as a **`SubagentStop` hook**, one of the four mandatory
+`validate-digest.py --hook` runs as a **`SubagentStop` hook**, one of the five mandatory
 `settings.json` entries (DEC-122). `exit 2` prevents a subagent from stopping, so a member that
 returned a malformed digest gets rejected and re-prompted before it can hand it to you. This
 deliberately covers you too — leads have no `Bash` and could never have run a validator, which is

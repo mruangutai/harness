@@ -167,6 +167,9 @@ else:
         bad.append("No SubagentStop validate-digest hook — malformed digests are accepted "
                    "silently and the runner routes on fields that are not there (DEC-122).")
     pre = hooks.get("PreToolUse") or []
+    if not any("branch-create-gate" in str(h) for h in pre):
+        bad.append("No PreToolUse branch-create-gate hook — branch creation is ungated "
+                   "(self-gating on github.sync, so registration is safe everywhere; DEC-144).")
     if not any("check-domain" in str(h) for h in pre):
         bad.append("No PreToolUse check-domain hook — domain enforcement is ABSENT "
                    "and every agent can write anywhere. Frontmatter hooks do not "

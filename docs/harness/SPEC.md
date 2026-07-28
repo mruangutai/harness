@@ -1057,7 +1057,7 @@ DEC-121) and `expertise_full` (§5).
 ### 8.3 Malformed or missing return
 
 **The contract is enforced by a `SubagentStop` hook, not by prose** (DEC-122). `validate-digest.py
---hook` is the **fourth mandatory `settings.json` prerequisite**: it receives `last_assistant_message`
+--hook` is one of the mandatory `settings.json` prerequisites: it receives `last_assistant_message`
 and `agent_type`, and **`exit 2` prevents the subagent from stopping**, so a malformed return is
 rejected at source. This covers all 16 agents including the leads, which runner prose never could —
 leads have no `Bash` to run a validator with. Advisory-first was considered and rejected: an advisory
