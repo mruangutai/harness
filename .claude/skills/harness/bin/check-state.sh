@@ -204,6 +204,24 @@ for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml"))
         bad.append(f"{rel}: run is complete but has no cost: block — "
                    f"run bin/cost-report.py --yaml and record it.")
 
+# --- INV-14: real code with no codebase map (DEC-140). The map moved into init
+# after the first real onboarding built a feature UNMAPPED — "run the map first"
+# as prose is the forgettable class. Greenfield is fine: the heuristic only fires
+# when meaningful source exists. A warn, not a violation — flows still run.
+SRC_EXT = (".py",".ts",".tsx",".js",".jsx",".go",".rb",".rs",".java",".kt",".swift",".php",".c",".cc",".cpp")
+if not os.path.isfile(os.path.join(H, "codebase", "INDEX.md")):
+    n_src = 0
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")
+                       and d not in ("node_modules","vendor","dist","build","docs")]
+        n_src += sum(1 for f in filenames if f.endswith(SRC_EXT))
+        if n_src > 5:
+            break
+    if n_src > 5:
+        warn.append("codebase has real source but no map (.harness/codebase/INDEX.md) — "
+                    "run mission map (/harness \"map the codebase\"). Every unmapped spawn "
+                    "re-derives structure the map would have carried (DEC-140).")
+
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
 # (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip
 # silently, which reads exactly like a working mirror to anyone not tailing logs.

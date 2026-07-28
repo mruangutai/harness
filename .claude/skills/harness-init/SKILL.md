@@ -152,6 +152,19 @@ This is not self-approval and it is not a shortcut:
 until they approve, and that `/harness` will keep saying so. A pending brief is a correct state; a
 brief you approved on their behalf is not.
 
+### Map the codebase — runs AS PART OF INIT, not as a remembered follow-up (DEC-140)
+
+If the project has **existing source code**, the last act of init is spawning
+`harness-orchestrator` with **mission map** (DEC-137) — the org's structural knowledge is built
+before the first feature ever plans, so nothing downstream can run unmapped. Observed failure this
+guards against: a feature build ran before the map in the first real onboarding, because "run the
+map first" lived only in prose.
+
+- **Existing code** (dev-ops detection found source beyond scaffolding) → spawn mission map now,
+  in the background; tell the user it is running and that `codebase/map.html` lands when done.
+- **Greenfield** (no meaningful source) → skip, and say so — the map builds naturally as ships
+  refresh it. INV-14 will start nagging the moment real code exists without a map.
+
 ### GitHub Issues mirror — ask ONCE, here, so it is never forgotten (DEC-138)
 
 Ask the user: **"Mirror features to GitHub Issues? (feature → milestone, tasks → issues, one-way

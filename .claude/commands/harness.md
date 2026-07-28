@@ -26,9 +26,9 @@ BRIEF/PLAN, which routes to step 1.
   `harness-product-lead` (no feature exists for an orchestrator to own; triage writes no state).
   pm reads the backlog (GitHub Issues if `github.sync`), the codebase map, and shipped history,
   and returns ranked candidates with rationale. You pick; the pick seeds `/harness-plan` (DEC-138).
-- **"map the codebase"** (or a project with no `.harness/codebase/`) → mission **map**: the
-  understand-codebase playbook. On an existing codebase this is the FIRST flow, before any feature
-  (DEC-137) — everything after plans against the map.
+- **"map the codebase"** (or INV-14 warning of code without a map) → mission **map**. Normally
+  this ran AT INIT (DEC-140) and this route is for re-maps and projects onboarded before the rule;
+  everything plans against the map, so run it before the next feature if it is missing.
 
 ## 2. Approvals are yours
 

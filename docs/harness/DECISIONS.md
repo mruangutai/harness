@@ -3357,3 +3357,24 @@ a parallel `bugs/` root would re-carve everything for nothing). A lightweight un
 rejected: "small" is a judgment that drifts, and a second path around the signature is the DEC-19
 bypass shape. The standalone all-in-one debug team was rejected with it — a fix that ships without
 qa, review, or a signature between diagnosis and change.
+
+---
+
+## DEC-140 — The map runs at init; INV-14 nags code that has none
+
+Field report from kaya-ai's first onboarding: a feature build ran **before** the map, because
+"mission map is the first flow" lived only in prose — the forgettable class, same as the GitHub
+consent (DEC-138) and every delivery gap before it (DEC-125). Two layers close it:
+
+- **Init runs the map.** If dev-ops detection found existing source, the last act of `/harness-init`
+  is spawning the orchestrator with mission map, in the background. Greenfield skips with a note —
+  the map builds naturally as ships refresh it.
+- **INV-14** warns whenever real source (>5 files by extension, dot-dirs and vendor trees pruned)
+  exists with no `.harness/codebase/INDEX.md` — catching projects onboarded before this rule,
+  kaya-ai included, at their next gate. A warn, not a violation: flows still run unmapped, they
+  just pay the re-derivation cost the warning names. Proven on three fixture shapes (code-no-map
+  warns; mapped silent; greenfield silent).
+
+Known edge, accepted: this repo itself never warns — its "source" lives under `.claude/`, which the
+heuristic prunes. The harness mapping itself is a curiosity, not a need. The door's map route
+remains for re-maps and pre-rule projects.
