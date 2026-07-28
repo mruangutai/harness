@@ -87,13 +87,22 @@ expensive way to be wrong, because nothing surfaces it. If steps genuinely confl
 
 **e. Collect returns.** Read `VERDICT` and the `DIGEST` fields and record both in `state.yaml`.
 
-**The digest contract is already enforced for you — mechanically, at source.**
+**The digest contract is enforced for you — mechanically, at source, not by your own reading of it.**
 `validate-digest.py --hook` runs as a **`SubagentStop` hook**, one of the four mandatory
 `settings.json` entries (DEC-122). `exit 2` prevents a subagent from stopping, so a member that
-returned to you at all has already been held to the schema: **every field present, `[]` for
-nothing, `none` for an inapplicable scalar** (DEC-121). This deliberately covers you too — leads
-have no `Bash` and could never have run a validator, which is exactly why the check moved off the
-runner and into a hook.
+returned a malformed digest gets rejected and re-prompted before it can hand it to you. This
+deliberately covers you too — leads have no `Bash` and could never have run a validator, which is
+exactly why the check moved off the runner and into a hook.
+
+**This is not the same as "every field is guaranteed present" (BUILD task 22).** A live review
+panel proved the earlier wording here false: four ordinary digest formats — nothing exotic, no
+malformed YAML by any normal reading — reached you with a masked `FAIL` at hook exit 0, because the
+roll-up guard was decorative for anything but canonical input. Hardened since, but three gaps are
+structural, not bugs to fix away: the hook deliberately **passes through** a non-harness
+`agent_type`, `stop_hook_active` (so it never wedges a member in a re-prompt loop), and its own
+internal failure (fail OPEN, loudly on stderr — never crash to an ambiguous exit). A return that
+reached you through any of those three paths was never checked. Treat the hook as a strong filter
+that catches drift and structural violations, not as proof you can skip reading what came back.
 
 **So do not try to run it yourself, and do not substitute your reading for it.**
 `severity_max: medium` instead of `med`, `must-fix` instead of `must_fix` — you would normalize all

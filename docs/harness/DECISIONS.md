@@ -2872,3 +2872,120 @@ Applied:
 Delivery is `skills:` preload — full content at spawn, zero tool calls, proven by this morning's
 probe — so the pointer costs nothing at runtime. The canonical dev template validates against the
 dev schema; the lead template was already validated when harness-team was fixed.
+
+---
+
+## DEC-127 — The digest gate's own defects, found by a live review panel, are fixed — and enforcement's real shape is now written down
+
+DEC-123 claimed the roll-up guard was "computed, not trusted." A review panel (DEC-124) proved that
+true only for canonical input, and traced the common cause: `--hook` — the only mode DEC-122 makes
+mandatory — had zero test coverage in a suite that reported 16/16 green. This is the fourth time this
+project has learned that a green suite exercising the wrong surface is indistinguishable from no
+suite (DEC-101, DEC-110, DEC-119, DEC-124's own re-statement of the shape).
+
+### Fixed, following the panel's fix order exactly
+
+1. **F1 — the roll-up guard, hardened, not rewritten.** Q1 was answered by DEC-124 before this task
+   started: `python3 -c "import yaml"` fails on this repo's own host, so the files-only constraint
+   (CLAUDE.md) is load-bearing, not stylistic. The parser was hardened instead of replaced with a
+   real dependency:
+   - Member-entry verdicts are looked up by **key** (`parse_member_entry` + `top_level_colon`), never
+     matched as `verdict:` text anywhere in the entry — closes the quote-blind first-match repro,
+     where a quoted headline containing the literal text `"verdict: PASS on retry"` won a bare regex
+     search before the entry's real (failing) verdict was ever read.
+   - `parse_digest` now follows an inline value's unclosed brackets/braces **across lines** instead
+     of truncating at the first — closes the multi-line `members: [` repro, which used to silently
+     parse to `[]` and made the roll-up guard's `isinstance(..., list)` gate pass over nothing.
+   - `split_items` only opens a quote when it starts a token (the preceding character is a delimiter,
+     bracket, or whitespace) — closes the unbalanced-apostrophe repro, where a mid-word `'` (e.g.
+     `didn't`) used to open an unterminated quote and fuse the rest of the list into one entry.
+   - New cross-check: `members: []` beside `steps_run > 0` is now a violation (SPEC 10.4: members is
+     NOT optional) — closes the fourth repro, which had no check linking the two fields at all.
+   - An inline value whose brackets never balance is a new sentinel (`_UNPARSED`), reported as a
+     violation — never silently coerced to an empty list, which was the failure shape underneath
+     three of the four repros.
+2. **The fail-open crash.** `severity_max: [low, med]` (a list) against a set-typed schema field
+   raised an uncaught `TypeError` inside `validate()`; in `--hook` mode that meant exit 1, and only
+   exit 2 blocks (DEC-100/DEC-122) — so the digest shipped completely unvalidated with no signal.
+   Guarded the membership test on `isinstance(val, list)` (reported as a real violation, not skipped),
+   and wrapped `hook_mode()`'s `validate()` call in `try/except` that reports on stderr and returns
+   0 — fail OPEN, LOUDLY, on our own bug, matching `check-domain.sh`'s precedent. This was already
+   the direction check-domain.sh established for pass-throughs; it just wasn't applied to the one
+   call that could actually raise.
+3. **Hook-mode test coverage, landed with 1–2, not after.** `test-validate-digest.py` gained a
+   `--hook` runner that asserts the **exact** exit code (2 reject / 1 crash / 0 pass are three
+   different outcomes — asserting "nonzero == rejected" would let the fail-open crash masquerade as a
+   correct rejection, reproducing the exact blind spot this task exists to close) and matches
+   rejection text on **stderr** (hook mode writes there, not stdout). Nine hook cases cover all five
+   repros plus the three deliberate pass-throughs (non-harness `agent_type`, `stop_hook_active`,
+   empty `last_assistant_message`), each verified to fail against a saved pre-fix copy of the
+   validator and pass against the fixed one.
+4. **Docs corrected last**, after the fixes changed what is true:
+   - `harness-team/SKILL.md` §e no longer claims "a member that returned to you at all has already
+     been held to the schema: every field present" — false for every one of the panel's repros. It
+     now names the three structural pass-throughs (non-harness `agent_type`, `stop_hook_active`, our
+     own failure) as the boundary of what the hook actually checked, and says explicitly that a lead
+     should not skip reading a return just because it survived the hook.
+   - `SPEC.md` §8.3's "the agent must fix it before it can finish" is corrected to "exactly one
+     rejection deep" — `stop_hook_active` means an agent that re-emits the identical malformed digest
+     on its second stop is accepted. The platform caps this at one wasted turn, not an infinite loop,
+     but the old wording claimed a guarantee the mechanism does not make.
+
+### Also fixed (the panel's "fold into the next touch of the file" list)
+
+F4 (`DIGEST:` with a trailing comment — SPEC's own template writes it that way), F5 (standard YAML
+block-mapping member entries spanning lines — legal YAML, and SPEC 10.4's own `escalations` example
+is written that way), F6 (absent `agent_type` is now loud on stderr, distinguishable from a present
+non-harness value which stays silent), F7 (`headline` must be at the DIGEST block's own level, read
+from the parsed map — not matched anywhere in the text at any depth), F12 (`str`-typed fields now
+have a real type branch; a bare NULLABLE key with nothing under it no longer silently becomes `[]`
+where DEC-121 requires the literal `none`), F13 (the `open_questions`-is-a-count check now reads the
+parsed top-level value, not a whole-text regex that could false-positive on a nested field of the
+same name), F11 (the enum near-miss test now asserts the actual hint text, not a substring that
+happens to be vacuously present regardless of whether the hint exists), F14 (CLI mode no longer
+crashes with `UnicodeEncodeError` under `LC_ALL=C` — stdout reconfigured to `backslashreplace`,
+matching stderr), F15 (the drift-spelling check now iterates the full field set — schema plus
+`UNIVERSAL` — not schema alone).
+
+**F10 (duplicate `files_touched:` key in the harness-team template) is found, not fixed.** It still
+passes because the hand-rolled parser is last-wins on a repeated key. Not on this task's fold-in
+list, and the panel filed it non-blocking; left for the next touch, now backed by the template-
+extraction test below that would need a positive assertion updated if it's ever fixed.
+
+**The template-extraction test now exists.** DEC-123 claimed both normative templates were
+"extracted from the source files, run through the validator" with no such test on disk. One now
+reads SPEC §10.4 and harness-team "Reporting up" directly from their files, fills each `<placeholder>`
+mechanically, and runs the result through the validator as a lead digest. Both pass.
+
+### `harness-orchestrator` added to `SCHEMAS`/`ALIAS`, ahead of its own BUILD task
+
+BUILD task 14 (writing `.claude/agents/harness-orchestrator.md`) is running in parallel with this
+one. The schema here is the **reconciled** one from that work, not derived independently from SPEC
+§10.3/§11.3 (SPEC defines a *briefing artifact* — `.harness/notes/ship-review-<FEAT>-<runid>.md` —
+for the orchestrator, not a digest block, so there was nothing to derive without coordinating):
+
+```
+"orchestrator": {"feature": str,
+                  "status": {"in_progress", "in_review", "shipped", "blocked", "awaiting_user"},
+                  "runs": list, "cycles_used": int, "cost_usd": str, "briefing": str}
+```
+
+`briefing` is NULLABLE (`none` except when a briefing was written, in which case it is the path).
+`cost_usd` is `str`, not numeric — it carries values like `"12.83"` from `cost-report.py` and
+`"pending"` mid-run. These are exactly the fields the **main session** routes on when the
+orchestrator returns: `status` decides relay-to-user vs. done, `runs`/`cycles_used`/`cost_usd` are
+the budget accounting it logs, `briefing` is the path it presents. Everything else about a feature's
+execution stays on disk in `feature.yaml` (§11.3), never in the digest.
+
+**Consequence recorded, not silently accepted:** adding `harness-orchestrator` to `SCHEMAS` means the
+hook starts governing an agent whose definition file does not exist on disk yet — BUILD task 14 must
+land a `harness-orchestrator` that actually emits this shape, or every orchestrator digest is
+rejected the moment task 14's agent starts returning.
+
+### Evidence
+
+`test-validate-digest.py`: 16 pre-existing CLI cases unchanged and green; 9 new CLI cases for the
+fold-ins; 9 hook-mode cases (5 repros + 3 pass-throughs + F6); 2 template-extraction cases — 36 total,
+all green. Every new case verified against a saved pre-fix copy of the validator
+(`VALIDATE_DIGEST_BIN` env override): all fail there except the three pass-through cases, which were
+never broken and are asserted unchanged. `check-docs.sh` exits 0 after the doc corrections above.
