@@ -29,7 +29,13 @@ write the `## Approval` block yourself. pm never self-approves; the orchestrator
 
 One `Agent` call, `subagent_type: harness-orchestrator`, **in the background** — that is what lets
 N flows run at once while you stay free. The prompt carries only: the feature id, the mission
-(plan / ship / resume / brief), and file paths — never file contents. Log the spawn to
+(plan / ship / resume / brief), and file paths — never file contents.
+
+**Do not author success criteria in the spawn prompt.** pm owns SC-NN and their `verify:` methods —
+that derivation is the product work the role exists for, and the user's signature is the check on it
+(observed: a pre-written SC list reduced pm to a transcriber, DEC-132). What the user mandates about
+the outcome rides as **goal constraints** — "must reject the echo repro" — which pm must honor while
+authoring the criteria. Wording, numbering and verify methods stay pm's. Log the spawn to
 `.harness/logs/<date>.md` (append; create the file if it is the day's first entry).
 
 ## 4. Relay on return — route on `status`, never re-derive the work

@@ -3088,3 +3088,18 @@ Consequences, each recorded where it acts:
   debris before this entry was written.
 - The rerun's actual targets all passed: pm produced the DEC-129/130 layout **first try, zero
   domain rejections** — instructed, not rejection-taught — with `## Problem` preceding `## Goal`.
+
+---
+
+## DEC-132 — Success criteria are authored by pm; the spawn prompt carries goal constraints, not SC text
+
+The user noticed the FEAT-02 mission prompt handing pm finished SCs ("may refine wording, not
+weaken"). Provenance: the main session wrote them at the door; the orchestrator relayed faithfully.
+That reduces pm to a transcriber of criteria and forecloses the derivation — outcome plus `verify:`
+method — that is the role's actual product work, checked by the user's signature (harness-brief).
+
+The legitimate form of the same impulse: the CEO may mandate outcomes. Those enter the prompt as
+**goal constraints** pm must honor while authoring SC-NN; wording, numbering and verify methods stay
+pm's. Recorded at the door (`/harness` step 3), which is where the defect occurred. That pm added
+SC-3 unprompted on the first run shows the authorship instinct survives even a bad prompt — the fix
+is to stop suppressing it.
