@@ -113,11 +113,23 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
                    f"— the fix loop is no longer bounded.")
 
     # INV-8: a referenced run dir must exist, or resume has nothing to read.
+    recorded = set()
     for rid, _, _ in runs:
-        d = os.path.join(os.path.dirname(fy), "runs", rid.strip())
+        rid = rid.strip(); recorded.add(rid)
+        d = os.path.join(os.path.dirname(fy), "runs", rid)
         if not os.path.isdir(d):
-            warn.append(f"{feat}: run {rid.strip()} is referenced but its dir is absent "
+            warn.append(f"{feat}: run {rid} is referenced but its dir is absent "
                         f"(pruned, or never created).")
+    # INV-12: the INVERSE — a run dir nothing records. Observed live (DEC-131): an
+    # interrupt killed the orchestrator's view while its orphaned subtree ran on and
+    # wrote a whole run. Work on disk that no orchestrator knows about is invisible
+    # to resume unless something surfaces it.
+    for d in glob.glob(os.path.join(os.path.dirname(fy), "runs", "*")):
+        rid = os.path.basename(d)
+        if os.path.isdir(d) and rid not in recorded:
+            warn.append(f"{feat}: run dir {rid} exists on disk but feature.yaml does not "
+                        f"record it — orphaned work (interrupted flow?). A resume must "
+                        f"reconcile it, not rediscover it by luck.")
 
 # --- INV-9: platform prerequisites that fail SILENTLY if absent (DEC-100).
 sett = None

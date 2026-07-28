@@ -3067,3 +3067,24 @@ failure, not repeated).
 <!-- stale: .harness/notes/answers- -->
 <!-- stale: .harness/notes/ship-review- -->
 <!-- stale: .harness/notes/uat- -->
+
+---
+
+## DEC-131 — Interrupting a parent's spawn does not kill the child; INV-12 catches the orphaned work
+
+Platform behaviour, observed live on the FEAT-02 rerun: the orchestrator's product-lead dispatch
+returned `[Request interrupted by user for tool use]` — a permission prompt on the nested spawn —
+and the orchestrator correctly returned `BLOCKED`, reporting `runs: []`, zero cost, exactly what it
+saw. **But the child had already launched and ran on as an orphan**: product-lead → pm completed
+BRIEF, PLAN and the research note minutes after the orchestrator died, and the lead's collation was
+cut off mid-run (`state.yaml` `status: running`, no `digest.md` — checkpoint-before-dispatch made
+the half-state provably in-flight, as designed).
+
+Consequences, each recorded where it acts:
+
+- **The work survives and the money is not wasted** — a resume reconciles rather than redoes.
+- **Disk can hold a run no orchestrator records.** Nothing flagged the inverse of INV-8, so
+  **INV-12** now warns on any run dir absent from `feature.yaml` — verified firing on the live
+  debris before this entry was written.
+- The rerun's actual targets all passed: pm produced the DEC-129/130 layout **first try, zero
+  domain rejections** — instructed, not rejection-taught — with `## Problem` preceding `## Goal`.
