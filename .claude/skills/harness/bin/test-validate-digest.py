@@ -10,12 +10,68 @@ noticed because each was only ever exercised by the example that happened to pas
 
     ./test-validate-digest.py     -> exit 0 all pass, 1 otherwise
 """
-import json, subprocess, sys, os
+import json, re, subprocess, sys, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
 # each new regression case actually fails against the old code (task 22).
 VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
+REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+
+# The two normative templates (DEC-123) must validate — extracted from their
+# SOURCE FILES and run through the validator, not eyeballed. (name, file, heading)
+TEMPLATES = [
+    ("SPEC §10.4", os.path.join(REPO_ROOT, "docs/harness/SPEC.md"),
+     "### 10.4 The team digest"),
+    ("harness-team \"Reporting up\"",
+     os.path.join(REPO_ROOT, ".claude/skills/harness-team/SKILL.md"),
+     "## Reporting up"),
+]
+
+
+def extract_fenced_block(path, anchor):
+    text = open(path).read()
+    idx = text.index(anchor)
+    start = text.index("```", idx)
+    nl = text.index("\n", start)
+    end = text.index("```", nl)
+    return text[nl + 1:end]
+
+
+def fill_placeholders(text):
+    """Fill a normative template's `<placeholder>` markers with concrete, valid
+    values so it can be run through the validator as a real digest. Every
+    substitution is mechanical — no restructuring, no correcting the template.
+    """
+    text = text.replace("<roll-up>", "FAIL")           # worst member below is FAIL
+    text = re.sub(r"\[<[^\]\n]*>\]", "[]", text)        # `[<prose>]` list placeholders
+    text = re.sub(r"\[\.\.\.\]", "[]", text)            # `[...]` list placeholders
+    text = re.sub(r"\[\{[^\]\n]*\}\]", "[]", text)      # `[{ key, key, ... }]` shorthand
+    text = text.replace('"..."', '"example"')
+    text = (text.replace("<id>", "s1")
+                .replace("<p>", "backend-dev")
+                .replace("<v>", "PASS"))
+    text = re.sub(r"<branch\s*\|\s*none>", "none", text)
+    text = text.replace("<n>", "1").replace("<run_dir>", "r")
+    text = re.sub(r"<[^>\n]*>", "example", text)        # anything else scalar
+    return text
+
+
+def run_template_cases():
+    fails = 0
+    for name, path, anchor in TEMPLATES:
+        filled = fill_placeholders(extract_fenced_block(path, anchor))
+        r = subprocess.run([VALIDATE, "lead"], input=filled,
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            print(f"ok    [template] {name}")
+        else:
+            fails += 1
+            print(f"FAIL  [template] {name}")
+            for l in r.stdout.strip().splitlines():
+                print(f"      | {l}")
+    print(f"\n{len(TEMPLATES) - fails}/{len(TEMPLATES)} template cases passed.")
+    return fails
 
 # (name, persona, digest text, expect_ok, must_mention)
 CASES = []
@@ -714,6 +770,7 @@ def run_hook_cases():
 def main():
     fails = run_cli_cases()
     fails += run_hook_cases()
+    fails += run_template_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 
