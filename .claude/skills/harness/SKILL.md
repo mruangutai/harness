@@ -14,8 +14,12 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
 1. **Read state from disk, every cycle** — `BRIEF.md`, `PLAN.md`, your feature's `STATE.md` and
    `feature.yaml`. Never from memory: your context may reset, and the files are what survive.
    First cycle ever: instantiate `STATE.md` and `feature.yaml` from
-   `.claude/skills/harness/templates/`, and verify **BRIEF and PLAN both carry
-   `status: approved`** — an unapproved artifact stops you at step 0, `BLOCKED`.
+   `.claude/skills/harness/templates/`. **The approval gate depends on your mission:**
+   - mission **ship** (or resuming one): BRIEF *and* PLAN must both carry `status: approved` —
+     an unapproved artifact stops you at step 0, `BLOCKED`.
+   - mission **plan**: producing those artifacts IS the mission — a missing or pending BRIEF/PLAN
+     is your starting state, not a violation. Your terminus is returning them `pending` for the
+     user's signature; you never mark them approved (only the main session writes `## Approval`).
 2. **Decide next** — next task/team in PLAN order, plus any pending adjustment from the last cycle.
 3. **Delegate to a lead, never a member.** A whole team goes to its named lead (the lead hosts the
    DAG via `harness-team`); a single task goes to the lead that owns the relevant persona, which
