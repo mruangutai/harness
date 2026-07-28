@@ -3260,3 +3260,24 @@ per the SPEC §12 precedent for branch/PR operations.
 
 **V1 is the full loop** (intake + outbound + numbers + graceful skip), built before kaya-ai so the
 first real feature is mirrored from day one.
+
+### DEC-138 amendment — the structural spec, confirmed
+
+**One source document per GitHub construct.** Milestone ← BRIEF (title `FEAT-NN-<slug>`; description
+= Problem + Goal + the SC checklist, so the milestone page IS the definition of done). Issue ← PLAN
+`## Tasks`, one per T-NN (body: spec verbatim, `change_type`, `traces:`; labels `harness` + squad).
+Issue closes via `closes #<n>` on the `[harness:t-NN]` commit; milestone closes on the user's ship
+acceptance.
+
+**Not mirrored, deliberately:** D-NN decisions (approval-gated in PLAN; issues reference them —
+a decision as an issue invites drive-by reopening of signed choices), approvals, run dirs/digests,
+Expertise, the codebase map. Mirror the work, not the machinery.
+
+**Intake absorbs, never imports 1:1.** Backlog issues are symptoms written by whoever hit them; pm
+plans work by its real shape. One T-NN may cover several existing issues — its issue body records
+`absorbs: #12, #14, #31` and they close with it, so nothing silently vanishes and every watcher
+sees where their item went. Inbound the backlog gets a vote; outbound the plan gets the decision.
+
+**The harness's own design docs (SPEC/DECISIONS/BUILD) do not mirror.** If this repo ever wants
+Issues, it eats its own dog food — features through `/harness-plan`, same machinery — not a
+BUILD.md scraper.
