@@ -77,7 +77,7 @@ requested: any two `pending` steps whose `depends_on` are satisfied and which do
 other go together. Verified to work from inside a lead (DEC-100). Caps: 20 concurrent, 200 per
 session, nested spawns counting toward both.
 
-Each prompt carries the goal, the resolved **input paths**, the **output paths** the step must
+Each dispatch is titled `<flow-id> · <step or task id> · <what, 3–6 words>` — same flow id the orchestrator used, plus your step id (DEC-142); a member's spawn title must be traceable to the flow it serves. Each prompt carries the goal, the resolved **input paths**, the **output paths** the step must
 write, and nothing else.
 
 **Do not serialize out of caution.** A panel of reviewers dispatched one at a time still returns the

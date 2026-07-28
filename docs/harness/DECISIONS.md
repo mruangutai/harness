@@ -3418,3 +3418,18 @@ deferred call was waiting for — **documentor is now `model: opus`** (writing f
 entire role), and every view must open with `## In brief`: three to six sentences of plain English
 before any anchored detail. The anchored rigor stays; it follows the prose instead of replacing it.
 Kaya's existing views predate the rule — their re-authoring rides the next map refresh there.
+
+---
+
+## DEC-142 — One dispatch-title convention at every layer
+
+Field report from kaya-ai: the same piece of work read as three different things at three layers —
+a stale orchestrator title, a generic lead title, a task-worded member title — and the user watching
+the spawn tree reasonably suspected duplicated work. Titles were free text at each dispatching tier.
+
+Convention, now stated at all three origins (door, playbook, team runner):
+**`<flow-id> · <step or task id> · <what, 3–6 words>`** — e.g. `FEAT-02 · T-01 · red repro cases`,
+`BUG-01 · investigate · reproduce and localize`. The flow id appears in every title all the way
+down; a spawn title that cannot be traced to its flow is a dispatch defect. Ergonomics, not
+mechanics — nothing routes on titles — but the spawn tree is the user's only live view of a running
+org, and it should read as one chain.

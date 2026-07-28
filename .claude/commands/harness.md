@@ -38,6 +38,8 @@ write the `## Approval` block yourself. pm never self-approves; the orchestrator
 
 ## 3. Spawn the orchestrator
 
+**Dispatch titles follow one convention at every layer** (DEC-142): `<flow-id> · <step or task id> · <what, 3–6 words>` — e.g. `FEAT-02 · plan · draft brief and plan`. The flow id appears in EVERY spawn title all the way down, so the user watching the agent tree sees one chain, not three unrelated tasks.
+
 One `Agent` call, `subagent_type: harness-orchestrator`, **in the background** — that is what lets
 N flows run at once while you stay free. The prompt carries only: the feature id, the mission
 (plan / ship / resume / brief), and file paths — never file contents.
