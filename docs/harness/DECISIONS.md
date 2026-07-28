@@ -2872,3 +2872,36 @@ Applied:
 Delivery is `skills:` preload — full content at spawn, zero tool calls, proven by this morning's
 probe — so the pointer costs nothing at runtime. The canonical dev template validates against the
 dev schema; the lead template was already validated when harness-team was fixed.
+
+---
+
+## DEC-128 — The orchestrator exists: agent, playbook, and three doors
+
+Task 14's core, built while task 22 hardens the validator in a parallel worktree.
+
+**`.claude/agents/harness-orchestrator.md`** — the sixteenth agent. Layer 1, one per in-flight
+feature, `tools: [Read, Glob, Grep, Agent, Write, Bash]`. `Bash` because SPEC §11.3/INV-11 make it
+the tier that runs `cost-report.py` — the leads cannot (DEC-116). It preloads the `harness` skill,
+so the playbook arrives at spawn the same way the leads get `harness-team` (the DEC-126 mechanism,
+proven by the preload probe).
+
+**`.claude/skills/harness/SKILL.md`** — the GSD-era router stub (`.planning/`, `agent_skills`,
+`<files_to_read>`, a lifecycle table owned by GSD) replaced by the orchestrator playbook: the §10.1
+loop, the routing table for lead returns, both budgets with the exhaustion sequence, the question
+round-trip's middle leg, and the §10.3 briefing procedure.
+
+**Three doors, relay protocol central.** `/harness` carries the whole main-session protocol —
+gate on `check-state.sh`, approvals, background spawn, the status-routed relay table, `logs/`
+appends. `/harness-plan` and `/harness-ship` are thin: read `/harness`, apply a mission and a
+terminus (one PLAN+prototype approval; the CEO briefing). Same 2+-agents-share-one-copy rule as
+DEC-126. `/harness-debug` deliberately does not exist — debugging is on-demand, not a stage.
+
+**The orchestrator digest schema** (`feature, status, runs, cycles_used, cost_usd, briefing` +
+universals) was defined here and sent to the task-22 agent mid-run, so the validator and the agent
+file land matching. `briefing` is nullable; `cost_usd` is a string because it carries "pending".
+
+**Unproven, stated plainly:** no flow has run through these files yet. The round-trip's
+orchestrator half and the doors' relay loop are specified, not demonstrated — proving them is what
+task 17's kaya-ai run (and a smoke flow before it) is for. CLAUDE.md size (DEC-105) remains open
+under task 14.
+

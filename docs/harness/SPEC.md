@@ -446,9 +446,9 @@ entries while preserving your `domain` values.
 ### 3.4 The roster
 
 **This table is the 15 squad agents — the org is 16.** `harness-orchestrator` (§10) is the
-sixteenth and is deliberately absent here: it belongs to no squad, and it is the one agent
-definition **not yet on disk** — writing `.claude/agents/harness-orchestrator.md` is BUILD task 14.
-So "16" is the designed org and "15" is the live count in `.claude/agents/` today. Where a sentence
+sixteenth and is deliberately absent here: it belongs to no squad. Its definition is
+`.claude/agents/harness-orchestrator.md` (landed with BUILD task 14, DEC-128); its playbook is the
+`harness` skill, which it preloads. Where a sentence
 below says 15 it means this table; where it says 16 it means the org including the orchestrator.
 
 | Agent | Squad | Type | Role | Tools |
