@@ -3119,3 +3119,22 @@ the stable join key, the slug carries the meaning. pm coins the slug at BRIEF ti
 the goal; **immutable once created**, since every recorded reference breaks on rename. No machinery
 changes: globs are `features/*/…` and the team YAML's `{{feat}}` is opaque. The two pre-existing
 bare-number dirs stay as history — FEAT-02's ship flow was live under that name when this landed.
+
+---
+
+## DEC-134 — Cost budget is informational; cycles stay hard. And every agent pins its model
+
+Per the user, after the first live ship flow BLOCKED at ~$49 of a $40 budget with every gate green
+and one $5 step remaining: **crossing `max_cost_usd` never stops work.** It is a visibility
+threshold — actual-vs-budget rides every orchestrator return and every briefing, a crossing is
+flagged in the headline, wild divergence (multiples, not percents) raises a non-blocking question.
+The blocking version protected nothing and cost a goal-check. `max_total_cycles` **stays hard**:
+runaway fix loops have no natural end, which is a different failure class than expensive-but-
+converging work. (The user said "budget"; scoping it to the cost budget is the recorded reading.)
+
+**Models pinned in frontmatter:** judgment tier — the 3 leads, pm, visual-designer, and the
+orchestrator — `model: opus`; the other 10 members `model: sonnet`. The orchestrator was not in the
+user's enumeration; grouping it with the judgment tier is the recorded assumption. Context: the
+overrun's root cause was every agent inheriting the session's fable-tier model (~$20/lead-run);
+pinning makes per-role cost a design property instead of an accident of who spawned the session.
+<!-- stale: exhausting either ends the loop -->

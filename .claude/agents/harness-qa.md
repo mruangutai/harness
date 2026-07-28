@@ -3,6 +3,7 @@ name: harness-qa
 description: QA engineer — derives expected coverage from the brief with no source access, then writes and runs tests, enforces the test-matrix gate against the diff, runs ai-dev's evals, and supplies the evidence the goal-check consumes. Use before shipping or when asking whether a change is adequately tested.
 tools: [Read, Glob, Grep, Edit, Write, Bash, Skill]
 color: orange
+model: sonnet
 skills:
   - harness-handoff
   - harness-expertise

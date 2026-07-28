@@ -3,6 +3,7 @@ name: harness-ui-reviewer
 description: UI reviewer — two modes: pre-build, judge whether DESIGN.md is a sound contract; post-build, adversarially audit the implemented UI against it including accessibility and dark/light parity. Self-scopes out on non-UI diffs. Read-only on source.
 tools: [Read, Glob, Grep, Bash, Write]
 color: orange
+model: sonnet
 skills:
   - harness-handoff
   - harness-expertise

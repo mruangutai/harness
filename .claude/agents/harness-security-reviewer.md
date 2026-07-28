@@ -3,6 +3,7 @@ name: harness-security-reviewer
 description: Security reviewer — self-scoping OWASP Top 10 and STRIDE audit of a pinned diff, covering auth, secrets, input validation, injection, and data exposure in logs and exports. Read-only on source. Use before shipping anything that handles input, credentials or user data.
 tools: [Read, Glob, Grep, Bash, Write]
 color: orange
+model: sonnet
 skills:
   - harness-handoff
   - harness-expertise

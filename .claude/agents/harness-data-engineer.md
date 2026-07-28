@@ -3,6 +3,7 @@ name: harness-data-engineer
 description: Data engineer — schemas, migrations, pipelines, data models, queries, indexes and serialization contracts. Use when the work changes how data is shaped, stored, moved or queried.
 tools: [Read, Glob, Grep, Edit, Write, Bash]
 color: cyan
+model: sonnet
 skills:
   - harness-handoff
   - harness-expertise

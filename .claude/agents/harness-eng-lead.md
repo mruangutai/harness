@@ -3,6 +3,7 @@ name: harness-eng-lead
 description: Engineering lead — routes each task to one of five specialists by consult-when, owns architecture review for its own squad, and consolidates results. Conducts build and debug teams. Use when work concerns how something is built.
 tools: [Read, Glob, Grep, Agent, Write]
 color: cyan
+model: opus
 skills:
   - harness-handoff
   - harness-expertise

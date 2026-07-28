@@ -3,6 +3,7 @@ name: harness-ai-dev
 description: AI engineer — LLM and agent features, prompts, model integration, tool definitions, retrieval, and the evals that gate them. Use when the work involves an LLM or any non-deterministic output.
 tools: [Read, Glob, Grep, Edit, Write, Bash, WebSearch, WebFetch]
 color: cyan
+model: sonnet
 skills:
   - harness-handoff
   - harness-expertise

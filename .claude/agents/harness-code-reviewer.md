@@ -3,6 +3,7 @@ name: harness-code-reviewer
 description: Code reviewer — two-stage review against a pinned SHA: spec compliance first, then code quality, hunting fail-open branches and silent failure paths. Read-only on source; returns findings, never fixes. Use before shipping or merging.
 tools: [Read, Glob, Grep, Bash, Write]
 color: orange
+model: sonnet
 skills:
   - harness-handoff
   - harness-expertise

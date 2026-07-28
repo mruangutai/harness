@@ -1682,11 +1682,14 @@ runs:
   - { id: 2026-07-27-02-eng,       squad: eng,       verdict: PASS, cost_usd: 5.44 }
 ```
 
-**Cost is bounded feature-wide, exactly like `cycles_used`.** The two budgets bound different
-things — `max_total_cycles` bounds *retries*, `max_cost_usd` bounds *spend* — and either one
-exhausting is the same outcome: stop and escalate to the user via `BLOCKED`, never continue.
-A fix loop that stays under its cycle cap can still burn the feature's budget, so bounding
-cycles alone does not bound cost.
+**The two budgets have different teeth (DEC-134).** `max_total_cycles` bounds *retries* and is
+**hard**: exhaustion stops the flow as `BLOCKED`, because a runaway fix loop is a real failure mode
+with no natural end. `max_cost_usd` is **informational**: it is the visibility threshold the cost
+line is judged against — surfaced in every orchestrator return and every briefing, flagged loudly
+when crossed — but crossing it never stops work. The first live flow proved the blocking version
+wrong: a ~$9 overrun killed a run one $5 step from done, protecting nothing. Wild divergence
+(multiples of budget, not percents) is raised as a non-blocking question; the user, seeing every
+cost line, decides.
 
 ### 11.4 `state.yaml` — that squad's lead owns it
 

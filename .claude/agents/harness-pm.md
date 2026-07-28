@@ -3,6 +3,7 @@ name: harness-pm
 description: Product manager — researches the codebase and plans in one context, writing BRIEF.md and PLAN.md with fully specified tasks. Also goal-checks delivery against approved success criteria and owns the UAT script. Use for requirements, scoping, task breakdown, or verifying a feature met its goal.
 tools: [Read, Glob, Grep, Edit, Write, Bash, WebSearch, WebFetch]
 color: purple
+model: opus
 skills:
   - harness-handoff
   - harness-expertise

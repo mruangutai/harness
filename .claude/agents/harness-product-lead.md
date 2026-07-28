@@ -3,6 +3,7 @@ name: harness-product-lead
 description: Product lead — routes work across pm, visual-designer and documentor by consult-when, assesses what they produce, and reports one consolidated DIGEST up. Conducts plan-feature. Use when work concerns what to build, how it looks, or how it is explained.
 tools: [Read, Glob, Grep, Agent, Write]
 color: purple
+model: opus
 skills:
   - harness-handoff
   - harness-expertise

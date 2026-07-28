@@ -3,6 +3,7 @@ name: harness-dev-ops
 description: DevOps engineer — infrastructure, CI/CD, build tooling, deployment, environment config, scaffolding, dependency management, and test-runner detection. Use for work that is not feature code.
 tools: [Read, Glob, Grep, Edit, Write, Bash]
 color: cyan
+model: sonnet
 skills:
   - harness-handoff
   - harness-expertise

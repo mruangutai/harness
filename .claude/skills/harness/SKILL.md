@@ -36,9 +36,10 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    `verify:` method. Then:
    - all met → done; proceed to the briefing.
    - any unmet → that is a **fix cycle, not a shrug**: route the gap to the owning lead with pm's
-     evidence, increment `cycles_used`, and loop again. Repeat until the SCs pass **or a budget
-     exhausts** — the budgets outrank "until done", always; exhaustion is `BLOCKED` to the user
-     with the unmet SCs named, never a quiet stop and never a redefinition of done.
+     evidence, increment `cycles_used`, and loop again. Repeat until the SCs pass **or the cycle budget
+     exhausts** — `max_total_cycles` outranks "until done"; exhaustion is `BLOCKED` to the user
+     with the unmet SCs named, never a quiet stop and never a redefinition of done. Cost does not
+     stop the loop — it is reported, not enforced (DEC-134).
    - an SC that *cannot* be met as written (wrong premise, changed scope) is a plan-level problem:
      pm re-plans under the user's approval. You never mark an SC met, waived, or edited yourself.
    - an **emergent SC** — a criterion the build surfaced that BRIEF never stated — is **never
@@ -65,14 +66,21 @@ escalate). Plan-level changes are pm's — delegate re-planning, never edit `PLA
 | `ESCALATE`, only the user can decide | return `awaiting_user` with it in `open_questions` |
 | non-empty `open_questions` | union them; blocking ones make the whole return `awaiting_user` |
 
-## The two budgets — exhausting either ends the loop
+## The two budgets — one hard, one informational (DEC-134)
 
-`cycles_used`/`max_total_cycles` bounds retries; `cost_usd`/`max_cost_usd` bounds spend
-(`harness.json` `budgets`). Both live in `feature.yaml`; both are incremented only by you, from the
-lead's report and from `bin/cost-report.py --yaml` after every run (a complete run with no `cost:`
-block is an INV-11 violation). On exhaustion: stop the branch, preserve everything — runs, commits,
-state; nothing is reverted — set `status: blocked`, and return `BLOCKED` with what was spent and
-what remains undone. **Never silently continue past a bound.**
+Both live in `feature.yaml`; both are maintained only by you, from the lead's report and from
+`bin/cost-report.py --yaml` after every run (a complete run with no `cost:` block is an INV-11
+violation).
+
+- **`cycles_used`/`max_total_cycles` is a HARD bound** — it exists to kill runaway fix loops. On
+  exhaustion: stop the branch, preserve everything, `status: blocked`, return `BLOCKED`. Never
+  silently continue past it.
+- **`cost_usd`/`max_cost_usd` is INFORMATIONAL** — a visibility line, not a gate. Crossing it never
+  stops work (observed: a $9 overrun killed a flow one $5 step from done). Duties instead: flag the
+  crossing in your next digest's headline, carry actual-vs-budget in every return and in the
+  briefing's cost line, and if spend is diverging *wildly* from the budget (multiples, not percent),
+  raise it as a non-blocking `open_question`. **Never fabricate a figure to stay under it** —
+  honest-approximate over precise-invented, always.
 
 ## The question round-trip (SPEC §2.1 — you are the middle of it)
 
@@ -103,5 +111,6 @@ anything. When the main session re-delegates you with an answers file
 | "I'll dispatch the specialist directly, it's one small task" | Through its lead. No orchestrator→member path, no exceptions |
 | "The plan is obviously wrong here, I'll fix it" | pm re-plans, under the user's approval. You conduct |
 | "One more retry past max_cycles will land it" | The bound is the feature. `BLOCKED`, with the evidence |
+| "We are over the cost budget, better stop/hide it" | Cost never stops work and is never hidden — report the overrun and continue (DEC-134) |
 | "I'll keep the counters in my head this cycle" | `feature.yaml`, every cycle. Your context may not survive to the next one |
 | "The digest passed the hook, so the work is fine" | The hook checks shape. Assessing substance is your job |

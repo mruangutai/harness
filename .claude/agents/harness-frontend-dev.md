@@ -3,6 +3,7 @@ name: harness-frontend-dev
 description: Frontend engineer — UI components, styling, client state, forms, routing and accessibility, implemented against DESIGN.md and built test-first. Use when the work is what a user sees or operates.
 tools: [Read, Glob, Grep, Edit, Write, Bash]
 color: cyan
+model: sonnet
 skills:
   - harness-handoff
   - harness-expertise

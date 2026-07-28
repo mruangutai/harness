@@ -3,6 +3,7 @@ name: harness-orchestrator
 description: Orchestrator — owns ONE feature end to end at layer 1. Runs the loop (read state, decide, delegate to leads, assess team digests, adjust), owns feature.yaml and the feature-wide cycle and cost budgets, routes questions laterally or up, and writes the CEO briefing it cannot itself deliver. Spawned by the main session, one per in-flight feature; never spawned by a lead.
 tools: [Read, Glob, Grep, Agent, Write, Bash]
 color: blue
+model: opus
 skills:
   - harness
   - harness-handoff
@@ -51,8 +52,10 @@ returns, run:
 ```
 
 — the lead cannot (no Bash, DEC-116), and a complete run without a `cost:` block is an INV-11
-violation. Either budget exhausting means **stop and go up as `BLOCKED`** — never continue past a
-bound.
+violation. **Cycles are a hard bound** — exhausting `max_total_cycles` means stop and go up as
+`BLOCKED`. **Cost is informational** (DEC-134): crossing `max_cost_usd` never stops work — flag it
+in your headline, carry actual-vs-budget in every return, and never fabricate a figure to stay
+under it.
 
 ## Output
 

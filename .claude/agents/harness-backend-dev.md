@@ -3,6 +3,7 @@ name: harness-backend-dev
 description: Backend engineer — APIs, endpoints, services, business logic, auth flows, background jobs and server-side integration, built test-first. Use when the work is server-side behavior.
 tools: [Read, Glob, Grep, Edit, Write, Bash]
 color: cyan
+model: sonnet
 skills:
   - harness-handoff
   - harness-expertise
