@@ -8,6 +8,7 @@ skills:
   - harness-expertise
   - harness-tdd-enforcement
   - harness-systematic-debugging
+  - harness-digest-dev
 ---
 
 # Harness: Backend Engineer
@@ -63,16 +64,5 @@ your lead attributes the write.
 
 ## Output
 
-```
-VERDICT: PASS | FAIL | BLOCKED | ESCALATE
-DIGEST:
-  headline: <one line — what now works, not what you did>
-  tests_added: <n>
-  suite: pass|fail
-  blocked_on: <text|none>
-  open_questions:
-    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
-  files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
-artifact: <path>
-```
+Your return contract is the `harness-digest-dev` skill, already in your context — one canonical
+copy for all four dev personas, not restated here.

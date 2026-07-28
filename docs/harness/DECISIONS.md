@@ -2847,3 +2847,28 @@ well would put every field in two places with nothing checking the second copy, 
 this project keeps paying for.
 <!-- stale: same shape as this block -->
 
+
+---
+
+## DEC-126 — Group templates centralize where a group has 2+ agents; singletons stay inline
+
+The user's cut, after seeing the 4 dev `## Output` blocks were byte-identical copies: a group of
+2+ agents sharing one digest schema shares one canonical template; a schema with exactly one agent
+keeps its template inline, because a central file for one reader is pure indirection.
+
+Applied:
+- **devs (4, identical)** → new flat skill `harness-digest-dev`, added to the four `skills:` lists;
+  agent files carry a pointer, not a copy.
+- **leads (3)** → the canonical copy already existed: `harness-team` "Reporting up", preloaded on
+  all three since the collation work. The inline blocks written earlier today duplicated it and are
+  replaced with a pointer plus each lead's per-role extras (`needs_approval`; `severity_max` +
+  `adequacy_notes`).
+- **reviewers (3) stay inline, deliberately** — measured first: their blocks share only
+  `severity_max/findings/must_fix`; the bulk is role-specific (code: `spec_violations`,
+  `review_sha`, `human_commits_in_scope`; security: `threat_model`, `scope_reason`). Centralizing
+  five shared lines while keeping large inline extras adds indirection without removing duplication.
+- **singletons (pm, qa, visual-designer, documentor, dev-ops) stay inline** per the rule.
+
+Delivery is `skills:` preload — full content at spawn, zero tool calls, proven by this morning's
+probe — so the pointer costs nothing at runtime. The canonical dev template validates against the
+dev schema; the lead template was already validated when harness-team was fixed.
