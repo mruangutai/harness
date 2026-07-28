@@ -3296,3 +3296,11 @@ in the org's repo until the mirror proves itself on a real feature. Division of 
 pm is the mind (reads and interprets the backlog at plan time), the orchestrator is the hand
 (mechanical mirror at its checkpoints); they never negotiate about Issues — pm's reading flows into
 PLAN, PLAN through the user's signature, the orchestrator mirrors what was signed.
+
+### DEC-138 amendment 3 — issue type labels derive from `change_type`
+
+Per the user: `chore` for scaffolding/infrastructure work, `bug` for bugfixes, and no type label
+for feature/enhancement work. Mechanical, because every T-NN already carries `change_type`:
+`config`/`scaffolding`/`infra`/`ci` → `chore` · `bugfix` → `bug` · everything else → unlabeled.
+`gh-sync.py` applies it at issue creation; no agent judgment involved. (The `harness` provenance
+label is orthogonal and stays — it marks agent-created issues, not their type.)
