@@ -22,6 +22,7 @@ touches anything here; init writes it once. That split is what lets deploy run u
 | `features/<FEAT>/feature.yaml` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, cost, run list | that feature's **orchestrator** |
 | `features/<FEAT>/runs/<run>/` | One team run: `state.yaml` + the lead's `digest.md` | that run's **lead** |
 | `teams/*.yaml` | *Optional.* Project overrides for shipped team definitions | you |
+| `.claude/agents/*.md` | The org's own definitions. **Deliberately unowned by every agent** — an agent editing these is self-modification, so changing what the org *is* stays with the tier that has a user channel. Agents raise `open_questions` instead | **you** (main session) |
 
 **Committed**, except `features/*/runs/**`, which is ephemeral scratch — and must be git-ignored, or
 a dirty tree deadlocks the next run.

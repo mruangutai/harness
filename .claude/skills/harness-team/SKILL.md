@@ -175,6 +175,16 @@ will arrive three times in three vocabularies.** Merge those into one entry nami
 reporters. Three copies of one finding reads to the orchestrator as three problems and spends three
 fix cycles on one.
 
+**Re-rank `low` and `info` against what the project does NEXT, not against each other.** Severity
+and priority are different axes and you are the only tier that can see the second. A member grades
+severity from inside its own lens; it cannot know the roadmap. So an `info` finding that blocks the
+next task outranks a `med` that does not.
+
+Observed (DEC-124): a panel filed "`harness-orchestrator` has no schema, so it is ungated the moment
+that agent exists" as `info` — correctly, since the agent does not exist yet and the defect is inert
+today. The lead sorted by inherited severity and dropped it. It was the single item on the list that
+intersected the very next task on the ledger. **Nothing was mis-graded; it was mis-prioritised.**
+
 **c. Assess — the part only you can do.** Each member saw its slice; you are the only agent that
 saw all of them. So decide, and say which:
 

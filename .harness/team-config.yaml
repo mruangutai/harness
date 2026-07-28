@@ -30,6 +30,13 @@ orchestrator:
     - { path: .harness/expertise/harness-orchestrator.md, upsert: true }
     - { path: ".", read: true }
 
+# .claude/agents/** IS DELIBERATELY UNOWNED — no agent may write it, and that is the point.
+# Agent definitions are the org's own constitution; an agent editing them is self-modification,
+# and the tier that can change what the org IS should be the one with a user channel. Edits are
+# the MAIN SESSION's. An agent that finds a defect in an agent file raises `open_questions`.
+# (Decided after a review panel found harness-ui-reviewer.md's output template packs two fields
+# per line — the exact defect its own validator rejects — and no domain covered the file.)
+
 paths:
   agents: .claude/agents/
   teams: .claude/skills/harness/teams/     # shipped by deploy — REPLACED WHOLESALE on every push

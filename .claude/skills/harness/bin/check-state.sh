@@ -172,11 +172,29 @@ docs = os.path.join(root, "docs", "harness", "DECISIONS.md")
 if os.path.isfile(docs):
     import subprocess
     cd = os.path.join(root, ".claude/skills/harness/bin/check-docs.sh")
-    if os.access(cd, os.X_OK):
+    # NEVER skip silently. This used to be `if os.access(cd, X_OK):` with no else,
+    # so a checker that lost its exec bit — or went missing in a partial deploy —
+    # made INV-10 pass. An invariant that reports "all state invariants hold"
+    # because it could not run is worse than one that fails: it is DEC-110's
+    # fail-open-and-silent shape inside the thing built to catch it. Three separate
+    # agents flagged it independently before it was fixed.
+    if not os.path.isfile(cd):
+        bad.append(f"INV-10 could not run: {os.path.relpath(cd, root)} is missing. "
+                   f"Doc propagation is UNCHECKED — likely a partial deploy.")
+    elif not os.access(cd, os.X_OK):
+        bad.append(f"INV-10 could not run: {os.path.relpath(cd, root)} is not executable. "
+                   f"Doc propagation is UNCHECKED. Fix with `chmod +x`.")
+    else:
         r = subprocess.run([cd], capture_output=True, text=True, cwd=root)
-        if r.returncode != 0:
+        if r.returncode == 1:
             bad.append("docs contain statements a superseding decision invalidated "
                        "— run bin/check-docs.sh for the list.")
+        elif r.returncode != 0:
+            # Exit 1 is "found stale statements". Anything else is the checker
+            # itself failing, which must not read as a clean bill of health.
+            bad.append(f"INV-10 could not run: check-docs.sh exited {r.returncode}. "
+                       f"Doc propagation is UNCHECKED. stderr: "
+                       f"{(r.stderr or '').strip().splitlines()[-1] if r.stderr.strip() else '(none)'}")
 
 for m in bad:  print(f"  VIOLATION  {m}")
 for m in warn: print(f"  note       {m}")
