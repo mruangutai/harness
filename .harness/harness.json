@@ -241,5 +241,9 @@
     "review": "advisory_unless_high",
     "uat": "blocking_when_uat_criteria_exist",
     "merge": "user_gated"
+  },
+  "github": {
+    "sync": false,
+    "repo": null
   }
 }

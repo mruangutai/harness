@@ -152,6 +152,18 @@ This is not self-approval and it is not a shortcut:
 until they approve, and that `/harness` will keep saying so. A pending brief is a correct state; a
 brief you approved on their behalf is not.
 
+### GitHub Issues mirror — ask ONCE, here, so it is never forgotten (DEC-138)
+
+Ask the user: **"Mirror features to GitHub Issues? (feature → milestone, tasks → issues, one-way
+outbound after your plan approval)"**
+
+- **Yes** → run `gh repo view --json nameWithOwner -q .nameWithOwner` in the project, show the
+  result, and get explicit confirmation — **the repo is pinned under the user's eyes, never
+  inferred later** (a fork or renamed remote would publish to the wrong org silently). Write
+  `"github": { "sync": true, "repo": "<owner/name>" }` into `.harness/harness.json`.
+- **No** → write `"github": { "sync": false, "repo": null }` — an explicit off, not an absence.
+  INV-13 treats a missing block as "never asked" and nags; an explicit false is a decision.
+
 ### 8. Design pass — UI projects only
 
 If step 3 said there is a UI, offer it: `harness-visual-designer` establishes `.harness/features/<FEAT>/DESIGN.md`

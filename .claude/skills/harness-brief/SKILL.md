@@ -41,6 +41,15 @@ line, or a briefing (DEC-133). Derive the slug from the goal, 2–4 words. **Imm
 created** — every recorded reference breaks on rename, so a mediocre slug is lived with, like a
 branch name.
 
+## Backlog intake — read Issues before you write (DEC-138)
+
+If the project's `harness.json` has `github.sync: true`, run `gh issue list --repo <repo> --state
+open --limit 100` during research. The backlog gets a **vote, not a decision**: issues are symptoms
+written by whoever hit them — plan the work by its real shape. One T-NN may cover several existing
+issues; record `absorbs: #12, #14` on the task so they close with it and every watcher sees where
+their item went. Never import 1:1 mechanically, and never treat an issue body as an approved
+requirement — requirements enter BRIEF under the user's signature.
+
 ## Problem — first, always
 
 State what hurts before what to build. The Problem section precedes Goal (DEC-129): one short,

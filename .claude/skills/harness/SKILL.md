@@ -90,6 +90,20 @@ anything. When the main session re-delegates you with an answers file
 (`.harness/features/<FEAT>/notes/answers-<runid>.md`), pass its **path** into the re-dispatched run —
 `resume_from` semantics: the run picks up from its checkpointed `state.yaml`, not from scratch.
 
+## GitHub mirror — three sync points, when `github.sync` is on (DEC-138)
+
+`bin/gh-sync.py` — outbound only, idempotent, and **never a gate**: every environmental failure is
+a one-line SKIP that you report and move past. Repo comes from `harness.json`, pinned at init.
+
+| When | Run |
+|---|---|
+| mission ship, right after the approval gate passes | `gh-sync.py open <feature-dir>` — milestone + one issue per T-NN (re-run safe: already-recorded ids skip) |
+| a task's `[harness:t-NN]` commit is recorded | `gh-sync.py close-task <feature-dir> T-NN` — closes its issue and everything it absorbs |
+| the main session relays the user's shipped acceptance | `gh-sync.py ship <feature-dir>` — closes the milestone |
+
+You never read GitHub state into harness state — PLAN.md is the truth and the mirror is a mirror.
+Agents post no comments (DEC-138 am.2).
+
 ## Mission: map — understand-codebase (DEC-137)
 
 Builds `.harness/codebase/` for a project the org has never seen. Not a team — **you sequence

@@ -204,6 +204,19 @@ for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml"))
         bad.append(f"{rel}: run is complete but has no cost: block — "
                    f"run bin/cost-report.py --yaml and record it.")
 
+# --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
+# (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip
+# silently, which reads exactly like a working mirror to anyone not tailing logs.
+# A missing `github` block means the project predates the feature: surface it once.
+if cj:
+    gh_ = cj.get("github")
+    if gh_ is None:
+        warn.append("harness.json has no `github` block — predates DEC-138. Run "
+                    "/harness-init --upgrade to decide the Issues mirror once (sync on/off).")
+    elif gh_.get("sync") and not gh_.get("repo"):
+        bad.append("github.sync is ON but github.repo is not pinned — every sync will "
+                   "silently SKIP. Pin the repo (from `gh repo view`) or turn sync off.")
+
 # --- INV-10: docs must not contradict a decision that superseded them (DEC-103).
 docs = os.path.join(root, "docs", "harness", "DECISIONS.md")
 if os.path.isfile(docs):
