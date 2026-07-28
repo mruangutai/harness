@@ -220,7 +220,11 @@
     <p class="sub" style="margin-top:12px">Members have no spawn tool — the platform withholds it at the
       last permitted layer, so members are leaves by construction, not by convention.
       <code>CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH</code> is <code>"3"</code>, which is what pins these
-      four tiers.</p>
+      four tiers. <b>Models are pinned per role:</b> the judgment tier — orchestrator, the three
+      leads, pm, visual-designer, documentor — runs <code>opus</code>; the other members run
+      <code>sonnet</code>. Flows are <code>FEAT-NN-&lt;slug&gt;</code>, defects
+      <code>BUG-NN-&lt;slug&gt;</code>, and every dispatch title carries the flow id all the way
+      down, so the spawn tree reads as one chain.</p>
   </section>
 
   <section>
@@ -274,15 +278,16 @@
       <table>
         <thead><tr><th>Path</th><th>What it is</th><th>Written by</th></tr></thead>
         <tbody>
-          <tr><td><code>BRIEF.md</code></td><td>The goal of record — requirements and success criteria, each declaring how it gets verified</td><td class="owner o-prod">pm<span class="o-you"> · you sign</span></td></tr>
-          <tr><td><code>PLAN.md</code></td><td>Decisions, features, and fully specified tasks each carrying a <code>change_type</code></td><td class="owner o-prod">pm<span class="o-you"> · you sign</span></td></tr>
-          <tr><td><code>DESIGN.md</code></td><td>The visual contract: palette in both themes, type scale, spacing, component direction</td><td class="owner o-prod">visual-designer</td></tr>
+          <tr><td><code>features/&lt;F&gt;/BRIEF.md</code></td><td>The goal of record — requirements and success criteria, each declaring how it gets verified</td><td class="owner o-prod">pm<span class="o-you"> · you sign</span></td></tr>
+          <tr><td><code>features/&lt;F&gt;/PLAN.md</code></td><td>Decisions, features, and fully specified tasks each carrying a <code>change_type</code></td><td class="owner o-prod">pm<span class="o-you"> · you sign</span></td></tr>
+          <tr><td><code>features/&lt;F&gt;/DESIGN.md</code></td><td>The visual contract: palette in both themes, type scale, spacing, component direction</td><td class="owner o-prod">visual-designer</td></tr>
           <tr><td><code>team-config.yaml</code></td><td>The org as data — membership, routing, and every agent's writable domain</td><td class="owner o-you">/harness-init</td></tr>
           <tr><td><code>features/&lt;F&gt;/STATE.md</code></td><td>That flow's live pointer and open questions. One per feature, so concurrent flows never share a writer</td><td class="owner o-orch">orchestrator</td></tr>
           <tr><td><code>features/&lt;F&gt;/feature.yaml</code></td><td>Execution facts: branch, pinned review SHA, cycles used, cost</td><td class="owner o-orch">orchestrator</td></tr>
           <tr><td><code>…/runs/&lt;r&gt;/state.yaml</code></td><td>One team run: per-step checkpoints, verdicts, retries</td><td class="owner o-eng">that run's lead</td></tr>
           <tr><td><code>…/runs/&lt;r&gt;/digest.md</code></td><td>The lead's collated report — the team digest, on disk</td><td class="owner o-eng">that run's lead</td></tr>
-          <tr><td><code>notes/review-…</code></td><td>Reviewer findings, namespaced per reviewer and per cycle so a loop-back can't erase the report that caused it</td><td class="owner o-val">each reviewer</td></tr>
+          <tr><td><code>features/&lt;F&gt;/notes/…</code></td><td>That flow's durable artifacts — research, reviewer findings (per reviewer, per cycle), answers, ship-review, UAT. The path carries the flow id, namespaced per reviewer and per cycle so a loop-back can't erase the report that caused it</td><td class="owner o-val">each reviewer</td></tr>
+          <tr><td><code>codebase/</code></td><td>The codebase map — one view per authoring role, INDEX injected into every spawn, <code>map.html</code> derived for humans. Ship-refreshed by owners</td><td class="owner">each view's author · skeleton documentor</td></tr>
           <tr><td><code>expertise/&lt;agent&gt;.md</code></td><td>Durable per-agent knowledge, injected at every spawn</td><td class="owner">each agent, its own</td></tr>
           <tr><td><code>logs/&lt;date&gt;.md</code></td><td>The append-only cross-flow stream — flows opened, escalations raised, questions answered, briefings held. Never loaded at spawn</td><td class="owner o-you">main session</td></tr>
         </tbody>
@@ -299,14 +304,35 @@
       <div class="rule-card"><b>One writer per path</b><span>Every domain is declared in
         <code>team-config.yaml</code> and enforced on every write. An agent reaching outside its own
         paths is blocked and told which are its own.</span></div>
-      <div class="rule-card stop"><b>Bounded, then escalated</b><span>Retries are capped per step and
-        per feature. Exhausting either stops the branch, preserves the work, and brings you a
-        briefing — never a silent retry.</span></div>
+      <div class="rule-card stop"><b>Cycles bound; cost informs</b><span>Retry cycles are a hard cap —
+        exhausting them stops the branch, preserves the work, and brings you the decision. The cost
+        budget never stops work: overruns are flagged loudly in every return and briefing, and never
+        fabricated under.</span></div>
     </div>
   </section>
 
+  <section>
+    <h2>The doors — how you start anything</h2>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>You say</th><th>What runs</th><th>Ends with</th></tr></thead>
+        <tbody>
+          <tr><td>"what should we do next?"</td><td><b>triage</b> — pm reads the backlog (GitHub Issues), the codebase map, shipped history</td><td>ranked candidates; you pick</td></tr>
+          <tr><td><code>/harness-plan</code></td><td><b>plan</b> — pm authors BRIEF (<code>## Problem</code> first) + PLAN; eng architecture review; design pass</td><td>one signature: PLAN + prototype</td></tr>
+          <tr><td><code>/harness-ship</code></td><td><b>ship</b> — build test-first → qa gate → review panel vs a pinned SHA → pm goal-check → the loop runs until the <em>success criteria</em> pass, not until tasks run out</td><td>the CEO briefing; ship / fix / stop is yours</td></tr>
+          <tr><td>a bug report</td><td><b>debug</b> — cause unknown: investigate first (reproduce → localize → root-cause, no fix), then it becomes a plan</td><td>a <code>BUG-NN</code> flow through the same gates</td></tr>
+          <tr><td>"map the codebase"</td><td><b>map</b> — every specialist authors the view it will consume; documentor consolidates; runs at init on existing code</td><td><code>codebase/</code> + <code>map.html</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sub" style="margin-top:10px"><b>GitHub mirror</b> (per-project, consented at init): plan approval →
+      milestone + one issue per task, labels derived from <code>change_type</code>; task commits close their
+      issues and anything they absorb; your ship acceptance closes the milestone and turns unstruck
+      briefing residuals into backlog issues. One-way — GitHub never writes into the plan.</p>
+  </section>
+
   <footer>
-    Reference diagram · generated from <code>SPEC.md</code> §2–§13 and <code>team-config.yaml</code>.
+    Reference diagram · updated 2026-07-28 (through DEC-142) · generated from <code>SPEC.md</code> §2–§13 and <code>team-config.yaml</code>.
     Squad colors are the ones the manifest already assigns.
   </footer>
 </div>
