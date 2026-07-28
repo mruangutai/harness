@@ -74,7 +74,8 @@ files is a routing decision for your lead. Return `open_questions`.
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line — what now works, not what you did>
-  tests_added: <n>   suite: pass|fail
+  tests_added: <n>
+  suite: pass|fail
   blocked_on: <text|none>
   files_touched: [<paths>]
   open_questions: [...]

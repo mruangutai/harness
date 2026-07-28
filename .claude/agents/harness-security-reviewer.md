@@ -78,7 +78,8 @@ false positives train people to ignore you, which is the worst outcome for a sec
 VERDICT: PASS | FAIL
 DIGEST:
   headline: <one line>
-  in_scope: <bool>   scope_reason: "<why this diff has or lacks a surface>"
+  in_scope: <bool>
+  scope_reason: "<why this diff has or lacks a surface>"
   severity_max: info|low|med|high|critical
   findings: <n>
   must_fix: [<item>]

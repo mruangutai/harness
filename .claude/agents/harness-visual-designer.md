@@ -59,7 +59,9 @@ needs no approval. The prototype is the gate; mockups are how you get there.
 DIGEST:
   headline: <one line>
   contract: written|updated|unchanged
-  needs_prototype: <bool>   why: "<one line — the user reads this>"
-  mockups: [<paths>]        prototype: <path|none>
+  needs_prototype: <bool>
+  why: "<one line — the user reads this>"
+  mockups: [<paths>]
+  prototype: <path|none>
   direction_choices: [<the alternatives you considered and rejected>]
 ```

@@ -60,7 +60,8 @@ tests `SC-03`, say so, and the gap returns to a dev.
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line>
-  suite: pass|fail            failures: <n>
+  suite: pass|fail
+  failures: <n>
   matrix_ok: <bool>           # a BOOL. "mostly" is a contract violation
   kinds: [{ kind: unit, state: satisfied, cmd: "...", named_tests: <n> }]
   coverage_gaps: [<area>]     # include Phase 1 expectations with no test

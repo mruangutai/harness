@@ -68,10 +68,14 @@ evidence**, only report what qa and the reviewers produced. Do not soften a `not
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line>
-  feasibility: clear|risky|blocked      surface: S|M|L
+  feasibility: clear|risky|blocked
+  surface: S|M|L
   flags: [security, migration, external-api, ...]
   recommend: proceed|spike|reframe|halt
-  tasks: <n>   decisions: <n>   needs_approval: <bool>   risk: low|med|high
+  tasks: <n>
+  decisions: <n>
+  needs_approval: <bool>
+  risk: low|med|high
   sc_status: [{ id: SC-01, verdict: met, method: automated, evidence: "<pointer>" }]
   open_questions: [...]
 artifact: <path>

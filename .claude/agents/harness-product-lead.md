@@ -67,7 +67,9 @@ The three-part return (`harness-handoff`), using the consolidated schema:
 ```
 VERDICT: <worst member verdict: BLOCKED > ESCALATE > FAIL > PASS>
 DIGEST:
-  team: <name>   steps_run: <n>   cycles_used: <n>
+  team: <name>
+  steps_run: <n>
+  cycles_used: <n>
   members:
     - { step: plan, persona: pm, verdict: PASS, headline: "...", files_touched: [...] }
   must_fix: [<union of blocking findings>]

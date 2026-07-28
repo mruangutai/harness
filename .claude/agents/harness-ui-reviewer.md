@@ -79,9 +79,11 @@ permits it, you may note it but you may not block on it.
 VERDICT: PASS | FAIL
 DIGEST:
   headline: <one line>
-  mode: A|B          in_scope: <bool>
+  mode: A|B                          # ONE KEY PER LINE — two on a line is not YAML,
+  in_scope: <bool>                   # and the trailing one vanishes silently
   severity_max: info|low|med|high|critical
-  findings: <n>      must_fix: [<item>]
+  findings: <n>
+  must_fix: [<item>]
   states_unspecified: [<state>]      # mode A
   contract_violations: [{ path: ..., actual: ..., specified: ... }]   # mode B
   a11y: [<finding>]
