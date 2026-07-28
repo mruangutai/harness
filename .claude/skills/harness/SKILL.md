@@ -119,6 +119,11 @@ carves the map by author; a wrong-author write is hook-blocked.
 3. **Documentor consolidates last** (product-lead, second run): reads every view, writes
    `architecture.md` and `INDEX.md` from the template (`templates/codebase-INDEX.md`). **The 60-line
    index cap is documentor's to honor** — the index is injected into every future spawn.
+4. **Render the human view:** run `bin/render-map.py` — generates `codebase/map.html` (collapsible
+   TOC, domain sections, Mermaid architecture diagrams) FROM the markdown. Derived, never authored:
+   no agent writes HTML, and it needs no freshness policy of its own — it is exactly as fresh as the
+   markdown it projects. Architecture diagrams (physical + component) are authored as ```mermaid
+   blocks in `architecture.md` by documentor.
 
 Rules that bind every view: **every claim carries a `file:line` anchor** — unanchored prose is
 opinion, not a map; every section header carries `author · date · anchors-verified: <sha>`; the map
@@ -135,6 +140,7 @@ In mission ship, after the SCs pass and before the briefing:
 4. **Each owning specialist** rewrites its own stale sections — one member spawn per actually-
    touched domain, dispatched through its lead in the same flow. Nobody rewrites a view they do
    not own; the map is never knowingly stale at rest.
+5. **Re-render:** run `bin/render-map.py` — the HTML follows the markdown mechanically.
 
 ## The CEO briefing (three triggers, not every completion)
 

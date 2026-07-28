@@ -3323,3 +3323,17 @@ anyway — a spawn for a third opinion on something the user is about to read).
 
 Mechanically: `gh-sync.py backlog <feature-dir>` reads the accepted residuals (the main session
 passes them after the briefing decision) — part of the door's shipped row alongside `ship`.
+
+### DEC-137 amendment 2 — the human view: map.html, derived and never authored
+
+Per the user: the map also renders to a single HTML artifact — collapsible side TOC, domain
+sections, physical- and component-level architecture diagrams. The structural rule that decides
+everything: **derived, never authored.** Agents write only the markdown views; `bin/render-map.py`
+projects them into `codebase/map.html` deterministically (stdlib, no build step). Diagrams are
+authored as Mermaid blocks in `architecture.md` — text, diffable, anchorable — rendered by
+mermaid.js from CDN in the viewer's browser, degrading offline to visible source (the files-only
+constraint governs the harness runtime, not the browser). No separate refresh mechanism exists or
+is needed: the renderer runs at the end of the map mission and every ship-refresh, and running it
+by hand IS the manual refresh — the HTML is exactly as fresh as the markdown, by construction.
+A parallel authored HTML would be the duplication-drift class killed twice already (DEC-126,
+DEC-135).
