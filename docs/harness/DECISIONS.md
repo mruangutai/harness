@@ -3404,3 +3404,17 @@ computed contrast and node counts correctly while missing the shrunken rendered 
 saw in seconds. It must now declare rendered-size/layout dimensions as "needs eyes" rather than
 implying coverage. The complementary strength stood: it traced every diagram claim to code and
 found two substance gaps no human eyeball would have.
+
+### DEC-141 addendum — round 2: the viewport inversion, and documentor to opus
+
+Two more from the user against the fixed render. **Viewport:** capping `<main>` at reading width
+forced diagrams into a 60rem box — panning inside the pre *and* scrolling the page, four directions.
+Inverted: the prose elements carry the 60rem cap, the page does not, and the diagram gets one
+scroll container at full window width with a fixed max height (78vh). Top-down orientation joins
+the authoring guidance — layered architectures read naturally TD.
+
+**Jargon:** the html read as a parts inventory, not prose. This was the evidence the morning's
+deferred call was waiting for — **documentor is now `model: opus`** (writing for humans is its
+entire role), and every view must open with `## In brief`: three to six sentences of plain English
+before any anchored detail. The anchored rigor stays; it follows the prose instead of replacing it.
+Kaya's existing views predate the rule — their re-authoring rides the next map refresh there.

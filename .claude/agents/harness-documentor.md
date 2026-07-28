@@ -2,7 +2,7 @@
 name: harness-documentor
 description: Documentor — writes documentation as user-facing communication: READMEs, guides, reference docs, changelogs. Use when something needs explaining to a human who did not build it.
 tools: [Read, Glob, Grep, Edit, Write, Bash]
-model: sonnet
+model: opus
 color: purple
 skills:
   - harness-handoff

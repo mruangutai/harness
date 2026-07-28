@@ -118,7 +118,10 @@ nav h1 { font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:v
 nav details { margin:2px 0 } nav summary { cursor:pointer; font-weight:600; padding:3px 0 }
 nav a { display:block; color:var(--fg); text-decoration:none; padding:2px 0 2px 14px;
   font-size:13.5px; opacity:.85 } nav a:hover { color:var(--accent) }
-main { flex:1; max-width:60rem; padding:24px 48px 80px }
+main { flex:1; min-width:0; padding:24px 48px 80px }
+/* Reading width caps the PROSE, not the page — capping <main> forced diagrams into a
+   60rem box and produced four-direction scrolling (the user's finding, round 2). */
+main h1, main h2, main h3, main h4, main h5, main p, main ul, main pre:not(.mermaid) { max-width:60rem }
 main h1 { font-size:1.9em; margin:0 0 .3em }
 h2 { font-size:1.45em; border-bottom:2px solid var(--accent); padding-bottom:8px; margin-top:2.6em }
 h3 { font-size:1.18em; color:var(--accent); margin:1.8em 0 .5em }
@@ -128,8 +131,10 @@ p, li { margin:.45em 0 } ul { padding-left:1.4em; margin:.5em 0 }
 section + section { margin-top:3.5em }
 code { background:var(--side); padding:1px 5px; border-radius:4px; font-size:.92em }
 pre { background:var(--side); padding:12px; border-radius:8px; overflow-x:auto }
-pre.mermaid { background:transparent; text-align:left; overflow-x:auto; min-height:120px }
-pre.mermaid svg { min-width:640px; max-width:none !important; height:auto }
+/* One scroll container: full window width, fixed max height, pan INSIDE it only. */
+pre.mermaid { background:transparent; text-align:left; width:100%; max-height:78vh;
+  overflow:auto; min-height:120px; border:1px solid var(--line); border-radius:8px; padding:8px }
+pre.mermaid svg { max-width:none !important; height:auto }
 .meta { color:var(--accent); font-size:12.5px }
 """
 

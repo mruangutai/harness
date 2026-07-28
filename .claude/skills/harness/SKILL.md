@@ -149,6 +149,12 @@ opinion, not a map; every section header carries `author · date · anchors-veri
 records what IS, never what should be — improvement ideas go to `open_questions`, not the map.
 
 Authoring rules the first real audit earned (DEC-141):
+- **Every view opens with `## In brief` — plain English, no jargon, no anchors** — three to six
+  sentences a non-engineer reads and understands. The map's first audience is the human opening
+  map.html; the anchored technical detail FOLLOWS the prose, never replaces it. A view that reads
+  as a parts inventory has failed its reader (observed, round 2 of the kaya audit).
+- **Prefer top-down (`graph TD`) diagram orientation** — layered architectures read naturally
+  top-down, and the rendered viewport is full-window-width with a fixed height.
 - **Every diagram edge is labeled with what flows — in BOTH directions.** An edge labeled only
   with its write path hides the read path sharing the same arrow.
 - **An arrow into a module means what the module's NAME implies.** `WORKER → api/` read as an HTTP
