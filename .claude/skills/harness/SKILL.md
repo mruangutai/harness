@@ -37,6 +37,14 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
      with the unmet SCs named, never a quiet stop and never a redefinition of done.
    - an SC that *cannot* be met as written (wrong premise, changed scope) is a plan-level problem:
      pm re-plans under the user's approval. You never mark an SC met, waived, or edited yourself.
+   - an **emergent SC** — a criterion the build surfaced that BRIEF never stated — is **never
+     something to loop on and never yours to adopt.** Route it to pm, whose job is to judge whether
+     it is genuinely new or detail an existing SC already covers. If new, it changes what "done"
+     means, and BRIEF is approval-gated: it reaches the user, packaged with pm's recommendation.
+     The significance rubric is the one everyone already carries (§4.4, `harness-handoff`):
+     **significant = touches an approval-gated artifact (BRIEF REQ/SC, PLAN `D-NN`, DESIGN) or is
+     hard to reverse** — and a new SC always does the former, so the only judgment left is pm's
+     new-vs-covered call.
    Also stop for: the feature blocked, or the user must decide. Then return.
 
 **Authority boundary:** execution-time adjustments are yours (loop back, insert a review, reorder,
