@@ -13,7 +13,7 @@ BRIEF/PLAN, which routes to step 1.
 
 ## 1. Resolve the mission
 
-- **Argument names a feature** (`FEAT-NN` or a goal in words) → that flow.
+- **Argument names a feature** (`FEAT-NN-<slug>`, a bare `FEAT-NN` prefix, or a goal in words) → that flow. New features get their id coined by pm at BRIEF time — number plus kebab slug (DEC-133).
 - **No argument** → list in-flight features from `.harness/features/*/feature.yaml` (id, status,
   cost vs budget, last run) and ask which — or whether to start a new one.
 - **New feature** → `pm` must plan it first: that is `/harness-plan`.

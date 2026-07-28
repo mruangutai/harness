@@ -33,6 +33,14 @@ below).
 ```markdown
 # BRIEF — FEAT-01 Transcript author filter
 
+## The feature id — you coin it, once
+
+`FEAT-NN-<kebab-slug>` — number for ordering and cheap references, slug for meaning:
+`FEAT-02-verdict-shadowing`, not `FEAT-02`. A bare number tells the user nothing in `ls`, a log
+line, or a briefing (DEC-133). Derive the slug from the goal, 2–4 words. **Immutable once
+created** — every recorded reference breaks on rename, so a mediocre slug is lived with, like a
+branch name.
+
 ## Problem — first, always
 
 State what hurts before what to build. The Problem section precedes Goal (DEC-129): one short,

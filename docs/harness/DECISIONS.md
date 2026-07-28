@@ -3108,3 +3108,14 @@ is to stop suppressing it.
 is **expected**. The user states what done must include; pm's job includes what done also requires
 that nobody said. SCs that merely restate the user's list are under-delivery, and the signature is
 where the user prunes over-reach — the gate working, not a reason to hold back.
+
+---
+
+## DEC-133 — Feature ids carry a slug: `FEAT-NN-<kebab-slug>`
+
+Per the user: `FEAT-01`, `FEAT-02` say nothing useful in a directory listing, a log line, or a
+briefing. The id becomes `FEAT-NN-<kebab-slug>` (`FEAT-02-verdict-shadowing`) — the number stays
+the stable join key, the slug carries the meaning. pm coins the slug at BRIEF time, 2–4 words from
+the goal; **immutable once created**, since every recorded reference breaks on rename. No machinery
+changes: globs are `features/*/…` and the team YAML's `{{feat}}` is opaque. The two pre-existing
+bare-number dirs stay as history — FEAT-02's ship flow was live under that name when this landed.
