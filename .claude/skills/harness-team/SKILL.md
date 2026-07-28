@@ -59,6 +59,8 @@ Until every step is terminal, or you halt:
 which is what makes every recovery case decidable. Cycle counters live in `state.yaml` and are
 re-read each iteration — never carried in your head, because your context may not survive.
 
+**Worktrees, if the project mandates them:** branch from the **local** branch, never `origin/<branch>` — with unpushed commits origin is behind the pinned SHA and the worktree silently builds against the wrong base (DEC-143).
+
 **c. Serialize anything that mutates the repo.** Steps with `mutates_repo: true` dispatch **one at
 a time**, even when the DAG would allow parallelism. This is the actual write-safety mechanism —
 `check-domain.sh` cannot see writes made through `Bash`, and every doer holds it (DEC-85). Do not

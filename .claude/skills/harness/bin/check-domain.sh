@@ -127,6 +127,22 @@ globs, shared = collect(agent)
 # Compare repo-relative, so an absolute tool path and a relative glob still meet.
 rel = os.path.relpath(os.path.abspath(target), os.path.abspath(root))
 
+# WORKTREES (DEC-143). A git worktree under .claude/worktrees/<name>/ is a full
+# checkout, but to this hook it was just a subdirectory: the same repo-relative
+# path that globs ALLOW in the main checkout arrived as
+# .claude/worktrees/t01-83/src/... and matched nothing — so in a
+# worktree-per-session project, NO doer could write source at all. Found in
+# kaya-ai at the first build dispatch after plan approval, the most expensive
+# possible place.
+#
+# Fix: match the RAW path first (so a glob that deliberately targets
+# .claude/worktrees/** still works — none exist today, but the edge is real),
+# then strip the worktree prefix and match the in-worktree path against the same
+# globs. This is NOT a widen: identical globs, anchored to the checkout the
+# agent is standing in.
+_wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
+rel_candidates = [rel] + ([_wt.group(1)] if _wt else [])
+
 def glob_to_re(pat):
     """Translate a glob to a regex. `**` crosses separators, `*` does not.
 
@@ -165,10 +181,10 @@ def matches(path, pat):
     # a bare dir pattern grants everything under it
     return bool(glob_to_re(pat + "/**").match(path))
 
-if any(matches(rel, g) for g in globs):
+if any(matches(r, g) for r in rel_candidates for g in globs):
     sys.exit(0)
 
-if any(matches(rel, g) for g in shared):
+if any(matches(r, g) for r in rel_candidates for g in shared):
     # Shared paths are owned by nobody and always serialized (DEC-85). Allow the
     # write, but say so — an unnoticed shared-file edit is how two agents collide.
     print(f"check-domain: {agent} is writing SHARED path {rel} "

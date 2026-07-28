@@ -3433,3 +3433,32 @@ Convention, now stated at all three origins (door, playbook, team runner):
 down; a spawn title that cannot be traced to its flow is a dispatch defect. Ergonomics, not
 mechanics — nothing routes on titles — but the spawn tree is the user's only live view of a running
 org, and it should read as one chain.
+
+---
+
+## DEC-143 — check-domain.sh sees through worktrees; the unsplittable-task gap is task 25
+
+Field report from kaya-ai, at the most expensive possible place — the first build dispatch after
+plan approval: in a worktree-per-session project, **no doer could write source at all.** The hook
+computed paths relative to the main checkout, so `.claude/worktrees/t01-83/src/…` was just a
+subdirectory matching no repo-relative glob, while the identical path in the main checkout passed.
+
+**Fix, in the hook:** match the raw path first (preserving any future glob that deliberately
+targets `.claude/worktrees/**` — the reporter's own edge case), then strip the worktree prefix and
+match the in-worktree path against the same globs. Not a widen — identical globs, anchored to the
+checkout the agent stands in. Seven proof shapes green, including the verbatim kaya repros,
+absolute paths, and foreign-path blocks in both checkouts.
+
+**Credit where due:** the kaya orchestrator identified and explicitly REJECTED the third option —
+Bash writes the hook admits it cannot see — as guardrail evasion, then used a recorded, scoped
+waiver instead (main-checkout build on the feature branch, waiver in feature state). That is the
+DEC-85 pressure handled exactly right, and the opposite of the bin/-ownership incident (FEAT-02).
+
+**Two design notes captured, not fixed here:**
+- **Task 25 — shared-workspace mode.** A task that removes a default relied on by N call sites, in
+  a repo whose pre-commit runs the full suite, is unsplittable across commits: sequenced squad runs
+  must share one workspace with no intermediate commit. Per-agent worktree isolation cannot provide
+  that even with the hook fixed. Dispatch planning needs a declared "shared workspace" mode for
+  tasks of this shape.
+- **Worktrees branch from the LOCAL branch, not origin** — with unpushed commits, origin is behind
+  the pinned SHA. Added to the runner's worktree guidance.
