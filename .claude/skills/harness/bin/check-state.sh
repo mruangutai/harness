@@ -98,7 +98,16 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
         m = re.search(rf"^{k}:\s*(\S+)", txt, re.M)
         return m.group(1) if m else None
 
-    runs = re.findall(r"\{\s*id:\s*([^,]+),\s*squad:\s*([^,]+),\s*verdict:\s*([^\s}]+)", txt)
+    # BOTH YAML list forms — inline `{ id: X, squad: Y, verdict: Z }` and block
+    #   - id: X
+    #     squad: Y
+    #     verdict: Z
+    # The inline-only regex made INV-12 false-positive on a fully-recorded feature.yaml
+    # the first time a real orchestrator wrote one (it used block form, legitimately).
+    # Same single-format bug as the digest parser (DEC-123) and INV-4 (DEC-129).
+    runs = re.findall(r"\{\s*id:\s*([^,]+),\s*squad:\s*([^,]+),\s*verdict:\s*([^\s},]+)", txt)
+    runs += re.findall(r"^\s*-\s*id:\s*(\S+)\s*\n\s*squad:\s*(\S+)\s*\n\s*verdict:\s*(\S+)",
+                       txt, re.M)
 
     # INV-6: reviewers must diff a pinned SHA, never a moving HEAD (DEC-50).
     if any(sq.strip() == "validator" for _, sq, _ in runs) and not val("review_sha"):
