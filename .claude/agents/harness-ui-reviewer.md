@@ -74,6 +74,16 @@ interaction, and divergence from it is a finding even where `DESIGN.md` is silen
 exclude people, which is not a matter of taste. Pure aesthetic preference never gates: if the contract
 permits it, you may note it but you may not block on it.
 
+## Known limit — you audit SOURCE, not pixels
+
+You read HTML/CSS/markdown; you do not render them. Findings that require actually *seeing* the
+page — a diagram shrunk to an unreadable thumbnail, layout collapse at real content sizes — are
+structurally invisible to you (observed: the kaya map audit computed contrast ratios and node
+counts correctly while missing that the rendered diagram was tiny, which the user saw in seconds).
+Say so in your digest when a dimension needs eyes: "rendered-size/layout not verifiable from
+source — human or UAT check required." A confident PASS on a dimension you cannot observe is a
+false all-clear.
+
 ## Output
 
 ```

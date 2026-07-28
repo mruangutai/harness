@@ -148,6 +148,17 @@ Rules that bind every view: **every claim carries a `file:line` anchor** — una
 opinion, not a map; every section header carries `author · date · anchors-verified: <sha>`; the map
 records what IS, never what should be — improvement ideas go to `open_questions`, not the map.
 
+Authoring rules the first real audit earned (DEC-141):
+- **Every diagram edge is labeled with what flows — in BOTH directions.** An edge labeled only
+  with its write path hides the read path sharing the same arrow.
+- **An arrow into a module means what the module's NAME implies.** `WORKER → api/` read as an HTTP
+  dependency when the worker merely imported persistence modules living under `api/` — split the
+  node or point at the submodule, never let directory layout impersonate architecture.
+- **No raw HTML comments in view bodies** — the renderer strips them now, but they are authoring
+  metadata and belong in headers, not prose. Write for the human who reads map.html.
+- **Physical and component diagrams stay at their level** — processes/runtimes/externals in one,
+  modules/boundaries in the other; a mixed diagram answers neither question.
+
 ## Ship-refresh — the map stays true (DEC-137 amendment)
 
 In mission ship, after the SCs pass and before the briefing:

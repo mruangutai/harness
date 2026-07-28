@@ -30,8 +30,12 @@ ORDER = ["INDEX.md", "architecture.md", "product-surface.md", "api-surface.md",
 
 
 def md_to_html(md):
+    # HTML comments are authoring metadata (template headers, ownership notes) — the
+    # kaya audit found one rendered as visible body prose (reviewer finding, med).
+    md = re.sub(r"<!--.*?-->", "", md, flags=re.S)
     out, i, lines = [], 0, md.splitlines()
     in_list = False
+    seen_h1 = False
     while i < len(lines):
         l = lines[i]
         fence = re.match(r"^```(\w*)\s*$", l)
@@ -53,7 +57,14 @@ def md_to_html(md):
             out.append("</ul>"); in_list = False
         h = re.match(r"^(#{1,4})\s+(.*)$", l)
         if h:
-            n = min(len(h.group(1)) + 1, 5)   # page h1 is the title; content shifts down
+            if len(h.group(1)) == 1 and not seen_h1:
+                # Each view's own `# Title` duplicates the section heading the page
+                # already emits — rendering both produced SIBLING h2s and a flat,
+                # wrong document outline (the audit's high/a11y finding).
+                seen_h1 = True
+                i += 1
+                continue
+            n = min(len(h.group(1)) + 2, 6)   # section h2 owns the view; content nests below
             txt = inline(h.group(2))
             out.append(f'<h{n} id="{slug(h.group(2))}">{txt}</h{n}>')
         elif l.lstrip().startswith("- "):
@@ -71,7 +82,7 @@ def md_to_html(md):
 def inline(s):
     s = html.escape(s)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
-    s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
+    s = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
     return s
 
 
@@ -107,18 +118,25 @@ nav h1 { font-size:14px; text-transform:uppercase; letter-spacing:.08em; color:v
 nav details { margin:2px 0 } nav summary { cursor:pointer; font-weight:600; padding:3px 0 }
 nav a { display:block; color:var(--fg); text-decoration:none; padding:2px 0 2px 14px;
   font-size:13.5px; opacity:.85 } nav a:hover { color:var(--accent) }
-main { flex:1; max-width:60rem; padding:24px 40px }
-h2 { border-bottom:1px solid var(--line); padding-bottom:6px; margin-top:2.2em }
+main { flex:1; max-width:60rem; padding:24px 48px 80px }
+main h1 { font-size:1.9em; margin:0 0 .3em }
+h2 { font-size:1.45em; border-bottom:2px solid var(--accent); padding-bottom:8px; margin-top:2.6em }
+h3 { font-size:1.18em; color:var(--accent); margin:1.8em 0 .5em }
+h4 { font-size:1.02em; text-transform:uppercase; letter-spacing:.05em; margin:1.5em 0 .4em }
+h5, h6 { font-size:.95em; margin:1.2em 0 .3em }
+p, li { margin:.45em 0 } ul { padding-left:1.4em; margin:.5em 0 }
+section + section { margin-top:3.5em }
 code { background:var(--side); padding:1px 5px; border-radius:4px; font-size:.92em }
 pre { background:var(--side); padding:12px; border-radius:8px; overflow-x:auto }
-pre.mermaid { background:transparent; text-align:center }
+pre.mermaid { background:transparent; text-align:left; overflow-x:auto; min-height:120px }
+pre.mermaid svg { min-width:640px; max-width:none !important; height:auto }
 .meta { color:var(--accent); font-size:12.5px }
 """
 
 JS = """
 const s=document.createElement('script');
 s.src='https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
-s.onload=()=>mermaid.initialize({startOnLoad:true,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'default'});
+s.onload=()=>mermaid.initialize({startOnLoad:true,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'default',flowchart:{useMaxWidth:false},sequence:{useMaxWidth:false},er:{useMaxWidth:false}}); /* useMaxWidth:false: default shrink-to-fit rendered real diagrams as unreadable thumbnails (the user's finding); full size + scroll container instead */
 s.onerror=()=>{}; /* offline: mermaid sources stay visible as text — the fallback IS the degradation */
 document.head.appendChild(s);
 """
@@ -152,7 +170,7 @@ def main():
            f"<nav><h1>Codebase map</h1>{''.join(nav)}"
            "<p class='meta'>Derived from .harness/codebase/*.md — do not edit; regenerate with "
            "bin/render-map.py. The map is a hint; code is truth.</p></nav>"
-           f"<main>{''.join(body)}</main><script>{JS}</script></body></html>")
+           f"<main><h1>Codebase map</h1>{''.join(body)}</main><script>{JS}</script></body></html>")
     out = os.path.join(cb, "map.html")
     open(out, "w", encoding="utf-8").write(doc)
     print(f"render-map: wrote {os.path.relpath(out, root)} ({len(docs)} view(s))")

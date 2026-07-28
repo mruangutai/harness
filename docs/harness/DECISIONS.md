@@ -3378,3 +3378,29 @@ consent (DEC-138) and every delivery gap before it (DEC-125). Two layers close i
 Known edge, accepted: this repo itself never warns — its "source" lives under `.claude/`, which the
 heuristic prunes. The harness mapping itself is a curiosity, not a need. The door's map route
 remains for re-maps and pre-rule projects.
+
+---
+
+## DEC-141 — The first real map audit: renderer fixes codified, and the reviewer's blind spot named
+
+kaya-ai's map was audited twice — by the user (three findings) and independently by ui-reviewer
+(four). The overlap and the misses are both codified:
+
+**Renderer defects (mine), fixed in `render-map.py` with regression proofs (16 total):** sibling
+`<h2>`s per section and no `<h1>` in `<main>` — the reviewer's high/a11y finding and the user's
+"headers blend in," same defect through two lenses (each view's own `# Title` now folds into the
+section heading; content nests h4+; full type scale and spacing rhythm styled). HTML comments
+stripped from view bodies (they rendered as prose). Mermaid `useMaxWidth:false` + scroll container
+— the user's "diagram too small"; the default shrink-to-fit renders real diagrams as thumbnails.
+
+**Content learnings → the map mission's authoring rules:** label every edge with what flows in both
+directions (the write-only label hid the read path); never let directory layout impersonate
+architecture (`WORKER → api/` implied HTTP where only a persistence import existed); no raw HTML
+comments in prose; keep each diagram at its declared level. The two kaya diagram defects themselves
+are kaya-side content fixes, reported to that session.
+
+**Reviewer calibration, recorded in its agent file:** ui-reviewer audits source, not pixels — it
+computed contrast and node counts correctly while missing the shrunken rendered diagram the user
+saw in seconds. It must now declare rendered-size/layout dimensions as "needs eyes" rather than
+implying coverage. The complementary strength stood: it traced every diagram claim to code and
+found two substance gaps no human eyeball would have.
