@@ -3155,3 +3155,26 @@ surface is a standing ok-stale tax, not a resource. CLAUDE.md is now ~0.8k token
 dead GSD-compatibility constraint marked retired), the Harness section, and two conventions this
 session proved the hard way (verify prose claims; check-docs before commit). Per-feature CLAUDE.md
 load drops from ~164k to ~35k tokens. Closes the last open item of task 14.
+
+---
+
+## DEC-136 — `.planning/` retired; the GSD dev state is triaged, not dropped (task 16)
+
+The migration map's 19 items were almost all completed incidentally as the harness self-hosted —
+rules became flat skills (DEC-63/100), the router became the orchestrator playbook (DEC-128),
+CLAUDE.md was rewritten (DEC-135), the manifest/templates/init/deploy chain shipped (DEC-112/113).
+What remained of task 16 was the one thing the self-hosting section warned about: retiring
+`.planning/` **without silently losing its open items**. The triage, item by item:
+
+| Open item in `.planning/` | Disposition |
+|---|---|
+| Todo: "architectural scoping gap in discuss-phase" | **Resolved by design.** The harness's plan flow embeds eng-lead architecture review as a segment — it ran twice in FEAT-02 and forced a real loop-back. The gap was a GSD-shape problem; the shape is gone |
+| Blocker: "gstack persona prompt surgery needs research" | **Superseded.** Personas were copy-owned and rewritten as the 15 squad agents (DEC-106/107) |
+| Blocker: "real project selection needed (500+ LOC, debugging scenario)" | **Tracked as task 17** — kaya-ai |
+| Roadmap Phases 1–3 | Delivered as ledger tasks 6, 12–14 (natively, not as GSD integration) |
+| Roadmap Phase 4 (validation) | Task 17 |
+
+History stays in git (same call as DEC-135's archive: a directory of stale GSD-shaped state inside
+the repo is a standing cost, not a resource). The three surviving `gsd` mentions in live files are
+legitimate: deploy's registry-migration code (`~/.gsd/` → `~/.harness/`, functional) and CLAUDE.md's
+two historical sentences.
