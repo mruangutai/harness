@@ -10,17 +10,84 @@ noticed because each was only ever exercised by the example that happened to pas
 
     ./test-validate-digest.py     -> exit 0 all pass, 1 otherwise
 """
-import subprocess, sys, os
+import json, re, subprocess, sys, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-VALIDATE = os.path.join(HERE, "validate-digest.py")
+# Overridable so the pre-fix binary can be run through the SAME suite to prove
+# each new regression case actually fails against the old code (task 22).
+VALIDATE = os.environ.get("VALIDATE_DIGEST_BIN") or os.path.join(HERE, "validate-digest.py")
+REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+
+# The two normative templates (DEC-123) must validate — extracted from their
+# SOURCE FILES and run through the validator, not eyeballed. (name, file, heading)
+TEMPLATES = [
+    ("SPEC §10.4", os.path.join(REPO_ROOT, "docs/harness/SPEC.md"),
+     "### 10.4 The team digest"),
+    ("harness-team \"Reporting up\"",
+     os.path.join(REPO_ROOT, ".claude/skills/harness-team/SKILL.md"),
+     "## Reporting up"),
+]
+
+
+def extract_fenced_block(path, anchor):
+    text = open(path).read()
+    idx = text.index(anchor)
+    start = text.index("```", idx)
+    nl = text.index("\n", start)
+    end = text.index("```", nl)
+    return text[nl + 1:end]
+
+
+def fill_placeholders(text):
+    """Fill a normative template's `<placeholder>` markers with concrete, valid
+    values so it can be run through the validator as a real digest. Every
+    substitution is mechanical — no restructuring, no correcting the template.
+    """
+    text = text.replace("<roll-up>", "FAIL")           # worst member below is FAIL
+    text = re.sub(r"\[<[^\]\n]*>\]", "[]", text)        # `[<prose>]` list placeholders
+    text = re.sub(r"\[\.\.\.\]", "[]", text)            # `[...]` list placeholders
+    text = re.sub(r"\[\{[^\]\n]*\}\]", "[]", text)      # `[{ key, key, ... }]` shorthand
+    text = text.replace('"..."', '"example"')
+    text = (text.replace("<id>", "s1")
+                .replace("<p>", "backend-dev")
+                .replace("<v>", "PASS"))
+    text = re.sub(r"<branch\s*\|\s*none>", "none", text)
+    text = text.replace("<n>", "1").replace("<run_dir>", "r")
+    text = re.sub(r"<[^>\n]*>", "example", text)        # anything else scalar
+    return text
+
+
+def run_template_cases():
+    fails = 0
+    for name, path, anchor in TEMPLATES:
+        filled = fill_placeholders(extract_fenced_block(path, anchor))
+        r = subprocess.run([VALIDATE, "lead"], input=filled,
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            print(f"ok    [template] {name}")
+        else:
+            fails += 1
+            print(f"FAIL  [template] {name}")
+            for l in r.stdout.strip().splitlines():
+                print(f"      | {l}")
+    print(f"\n{len(TEMPLATES) - fails}/{len(TEMPLATES)} template cases passed.")
+    return fails
 
 # (name, persona, digest text, expect_ok, must_mention)
 CASES = []
+# (name, agent_type, last_assistant_message text or None, payload_overrides dict,
+#  expect_exit, must_mention_on_stderr)
+HOOK_CASES = []
 
 
 def case(name, persona, text, ok, mentions=None):
     CASES.append((name, persona, text.strip() + "\n", ok, mentions))
+
+
+def hook_case(name, agent_type, text, expect_exit, mentions=None, **overrides):
+    payload = {"agent_type": agent_type, "last_assistant_message": text}
+    payload.update(overrides)
+    HOOK_CASES.append((name, payload, expect_exit, mentions))
 
 
 LEAD_BLOCK = """
@@ -145,7 +212,12 @@ DIGEST:
   open_questions: []
   expertise_update: []
 artifact: .harness/notes/review-code.md
-""", False, "med")
+""", False,
+     # F11: `mentions="med"` used to pass vacuously — "med" is a substring of
+     # "medium", the value the error message echoes back regardless of whether the
+     # near-miss hint exists at all. Assert the actual hint text so deleting the
+     # hint would fail this test.
+     "mean 'med'")
 
 case("open_questions as a count, not a list", "harness-qa", """
 VERDICT: PASS
@@ -310,7 +382,338 @@ artifact: r/digest.md
 """, False, "no verdict")
 
 
-def main():
+# =====================================================================
+# --hook mode (BUILD task 22 / F8): the ONLY mode DEC-122 makes mandatory had
+# ZERO coverage in the 16 CLI-only cases above, which is why all five repros
+# below shipped a masked FAIL at exit 0 and the fail-open crash went unnoticed.
+# Every case here asserts the EXACT exit code (2 reject / 0 pass — never just
+# "nonzero"), because a crash (old exit 1) must not be mistaken for a correct
+# rejection: that confusion IS the fail-open bug.
+# =====================================================================
+
+# F1 repro 1 — quote-blind, first-match verdict regex. No unusual formatting:
+# a member's own (quoted) headline contains the text "verdict: PASS", and the
+# member's REAL verdict is FAIL. The old `re.search(r"\bverdict:...", str(item))`
+# matched the quoted text first and masked the FAIL.
+hook_case("F1.1 quoted headline text must not satisfy the verdict lookup",
+          "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: retry needed
+  team: build
+  steps_run: 2
+  cycles_used: 1
+  members:
+    - { step: qa, persona: qa, headline: "verdict: PASS on retry", verdict: FAIL }
+  must_fix: ["fix it"]
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", 2, "worst member verdict")
+
+# F1 repro 2 — multi-line inline `members: [` list. The old parser took only
+# the FIRST line of an unclosed inline value, so `members: [` alone parsed to
+# `[]` and the roll-up guard (gated on `isinstance(members, list)`) saw an
+# empty list and emitted silence over a masked FAIL.
+hook_case("F1.2 multi-line inline members list is followed to its close",
+          "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: two ran
+  team: build
+  steps_run: 2
+  cycles_used: 0
+  members: [
+    { step: build, persona: backend-dev, verdict: PASS },
+    { step: qa, persona: qa, verdict: FAIL }
+  ]
+  must_fix: ["fix it"]
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", 2, "worst member verdict")
+
+# F1 repro 3 — an unquoted apostrophe mid-word used to be treated as a quote
+# OPEN by `split_items`, so once opened (in entry 2's headline) it swallowed
+# every character until end-of-string with no closing match — fusing entry 2
+# and entry 3 into one item. The OLD roll-up (a bare `re.search` for
+# `verdict:` ANYWHERE in that fused string) then matched entry 2's own,
+# earlier, `verdict: PASS` first and never saw entry 3's real `verdict: FAIL`.
+hook_case("F1.3 unquoted apostrophe must not fuse list entries",
+          "harness-validator-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: panel ran
+  team: review
+  steps_run: 3
+  cycles_used: 0
+  members: [{ step: s1, persona: code-reviewer, verdict: PASS }, { step: s2, persona: qa, headline: didn't stop, verdict: PASS }, { step: s3, persona: security-reviewer, verdict: FAIL }]
+  must_fix: ["fix it"]
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", 2, "worst member verdict")
+
+# F1 repro 4 — `members: []` alongside `steps_run: 3`: no cross-check existed,
+# so a team that ran steps and reported zero members passed silently.
+hook_case("F1.4 empty members against a nonzero steps_run is rejected",
+          "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: nothing to report, apparently
+  team: build
+  steps_run: 3
+  cycles_used: 0
+  members: []
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", 2, "steps_run=3")
+
+# Fail-open crash — `severity_max: [low, med]` (a LIST) against a set-typed
+# schema field used to raise TypeError inside `validate()`, uncaught, which
+# in --hook mode meant exit 1 — and only exit 2 blocks, so the digest shipped
+# completely unvalidated with no signal. Must now be a normal exit-2 rejection.
+hook_case("fail-open crash: list-valued enum is a reported violation, not a crash",
+          "harness-code-reviewer", """
+VERDICT: FAIL
+DIGEST:
+  headline: two findings
+  severity_max: [low, med]
+  findings: 2
+  must_fix: []
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/notes/review-code.md
+""", 2, "must be a single value")
+
+# --- The three deliberate pass-throughs (DEC-122), each asserted at exit 0 ---
+
+hook_case("pass-through: non-harness agent_type is not governed",
+          "Explore", "VERDICT: PASS\nDIGEST:\nartifact: x.md\n", 0)
+
+hook_case("pass-through: stop_hook_active avoids the infinite-block loop",
+          "harness-qa", "done", 0, stop_hook_active=True)
+
+hook_case("pass-through: empty last_assistant_message passes with a stated reason",
+          "harness-qa", "", 0, mentions="no final message")
+
+# F6: absent agent_type key must be LOUD on stderr — distinguishable from a
+# present-but-non-harness value (which stays silent, asserted above).
+def _missing_agent_type_case():
+    payload = {"last_assistant_message": "whatever"}
+    HOOK_CASES.append(("F6 missing agent_type key is loud, not silent",
+                        payload, 0, "agent_type"))
+_missing_agent_type_case()
+
+
+# --- Fold-ins (BUILD task 22) ---
+
+# F4: DIGEST: with a trailing comment must still be recognized — SPEC 8's own
+# normative template writes it exactly this way, so the validator rejected the
+# format it teaches agents to copy.
+case("DIGEST: with a trailing comment is still recognized", "harness-backend-dev", """
+VERDICT: PASS
+DIGEST:                             # routing — orchestrator reads THIS
+  headline: jwt middleware added, suite green
+  tests_added: 4
+  suite: pass
+  blocked_on: none
+  files_touched: [src/auth.ts]
+  open_questions: []
+  expertise_update: []
+artifact: .harness/notes/impl-auth.md
+""", True)
+
+# F5: standard YAML block-mapping member entries (`- step: s1` / newline /
+# `  verdict: PASS`) must be accepted — SPEC 10.4's own `escalations` example
+# is written across lines, and it is legal YAML.
+case("block-mapping member entries spanning lines are accepted", "harness-eng-lead", """
+VERDICT: FAIL
+DIGEST:
+  headline: qa failed on the refresh path
+  team: build
+  steps_run: 2
+  cycles_used: 0
+  members:
+    - step: build
+      persona: backend-dev
+      verdict: PASS
+    - step: qa
+      persona: qa
+      verdict: FAIL
+  must_fix: ["refresh path untested"]
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", True)
+
+# F7: `headline` must be read at the DIGEST block's own level. No top-level
+# headline, but a block-style member happens to carry its OWN `headline:` at a
+# deeper level — that must not satisfy the top-level requirement.
+case("a member's nested headline does not satisfy the top-level one", "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  team: build
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - step: s1
+      persona: backend-dev
+      headline: "did the thing"
+      verdict: PASS
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "no headline")
+
+# F12: str-typed fields hit no type branch before this fix — an int silently
+# satisfied a `str` field.
+case("an int does not satisfy a str-typed field", "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: clean
+  team: 7
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - { step: s1, persona: backend-dev, verdict: PASS }
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "must be a non-empty string")
+
+# F12: a bare `branch:` with nothing under it parses to `[]`, which is not the
+# literal `none` DEC-121 requires for an inapplicable NULLABLE scalar.
+case("a bare NULLABLE scalar key must not silently become an empty list", "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: clean
+  team: build
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - { step: s1, persona: backend-dev, verdict: PASS }
+  must_fix: []
+  branch:
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "must be a non-empty string")
+
+# F13: the open_questions-is-a-count check must read the DIGEST's OWN top-level
+# value from the parsed map, not a whole-text regex — a NESTED
+# `open_questions: 0` inside a member entry, appearing before the real
+# top-level list, must not produce a false positive on an otherwise-valid digest.
+case("a nested open_questions count must not trip the top-level check", "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: clean
+  team: build
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - step: s1
+      persona: backend-dev
+      verdict: PASS
+      open_questions: 0
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", True)
+
+# F15: the drift-spelling check must cover UNIVERSAL fields too, not just the
+# persona schema — `files-touched` (hyphenated) is drift of the universal
+# `files_touched`, not merely an absent field.
+case("drift in a UNIVERSAL field is caught, not just schema fields", "harness-backend-dev", """
+VERDICT: PASS
+DIGEST:
+  headline: jwt middleware added, suite green
+  tests_added: 4
+  suite: pass
+  blocked_on: none
+  files-touched: [src/auth.ts]
+  open_questions: []
+  expertise_update: []
+artifact: .harness/notes/impl-auth.md
+""", False, "drifted")
+
+# harness-orchestrator (reconciled schema, not the `lead` shape) — a positive
+# case using the exact fields agreed for BUILD task 14.
+case("orchestrator digest with the reconciled schema", "harness-orchestrator", """
+VERDICT: PASS
+DIGEST:
+  headline: FEAT-01 shipped
+  feature: FEAT-01
+  status: shipped
+  runs: [r1, r2]
+  cycles_used: 2
+  cost_usd: "12.83"
+  briefing: .harness/notes/ship-review-FEAT-01-r2.md
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/features/FEAT-01/feature.yaml
+""", True)
+
+case("orchestrator briefing is NULLABLE — `none` when nothing was written", "harness-orchestrator", """
+VERDICT: PASS
+DIGEST:
+  headline: mid-flight, no briefing yet
+  feature: FEAT-01
+  status: in_progress
+  runs: [r1]
+  cycles_used: 1
+  cost_usd: "4.10"
+  briefing: none
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/features/FEAT-01/feature.yaml
+""", True)
+
+
+def run_cli_cases():
     fails = 0
     for name, persona, text, want_ok, mentions in CASES:
         r = subprocess.run([VALIDATE, persona], input=text,
@@ -331,7 +734,44 @@ def main():
                 print(f"      | {l}")
         else:
             print(f"ok    {name}")
-    print(f"\n{len(CASES) - fails}/{len(CASES)} passed.")
+    print(f"\n{len(CASES) - fails}/{len(CASES)} CLI cases passed.")
+    return fails
+
+
+def run_hook_cases():
+    """Drive --hook mode directly: JSON payload on stdin, EXACT exit code
+    asserted (2 reject / 0 pass — never just 'nonzero'), rejection text
+    checked on STDERR (hook mode writes there, not stdout). Asserting only
+    "nonzero == rejected" would let the fail-open crash (exit 1) masquerade
+    as a correct rejection — exactly the bug this suite exists to catch.
+    """
+    fails = 0
+    for name, payload, want_exit, mentions in HOOK_CASES:
+        r = subprocess.run([VALIDATE, "--hook"], input=json.dumps(payload),
+                           capture_output=True, text=True)
+        bad = []
+        if r.returncode != want_exit:
+            bad.append(f"expected exit {want_exit}, got {r.returncode}")
+        if mentions and mentions.lower() not in r.stderr.lower():
+            bad.append(f"stderr should mention {mentions!r}")
+        if bad:
+            fails += 1
+            print(f"FAIL  [hook] {name}")
+            for b in bad:
+                print(f"        {b}")
+            for l in r.stderr.strip().splitlines():
+                print(f"      | {l}")
+        else:
+            print(f"ok    [hook] {name}")
+    print(f"\n{len(HOOK_CASES) - fails}/{len(HOOK_CASES)} hook cases passed.")
+    return fails
+
+
+def main():
+    fails = run_cli_cases()
+    fails += run_hook_cases()
+    fails += run_template_cases()
+    print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0
 
 
