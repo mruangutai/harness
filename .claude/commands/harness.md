@@ -13,11 +13,15 @@ BRIEF/PLAN, which routes to step 1.
 
 ## 1. Resolve the mission
 
-- **Argument names a feature** (`FEAT-NN-<slug>`, a bare `FEAT-NN` prefix, or a goal in words) → that flow. New features get their id coined by pm at BRIEF time — number plus kebab slug (DEC-133).
+- **Argument names a flow** (`FEAT-NN-<slug>` / `BUG-NN-<slug>`, a bare prefix, or a goal in words) → that flow. New features get their id coined by pm at BRIEF time — number plus kebab slug (DEC-133).
 - **No argument** → list in-flight features from `.harness/features/*/feature.yaml` (id, status,
   cost vs budget, last run) and ask which — or whether to start a new one.
 - **New feature** → `pm` must plan it first: that is `/harness-plan`.
 - **"where are we?"** → relay a briefing request to that feature's orchestrator (trigger 3, §10.3).
+- **A bug report** ("X is broken", a stack trace, a failing repro) → mission **debug**: cause
+  unknown → an investigation segment runs FIRST and its root-cause report seeds the plan; cause
+  already known → straight to `/harness-plan` (the FEAT-02 pattern). Either way the fix ships
+  through the normal gates under a `BUG-NN-<slug>` id — there is no ungated bug lane (DEC-139).
 - **"what should we do next?"** → mission **triage**: the one sanctioned direct dispatch to
   `harness-product-lead` (no feature exists for an orchestrator to own; triage writes no state).
   pm reads the backlog (GitHub Issues if `github.sync`), the codebase map, and shipped history,

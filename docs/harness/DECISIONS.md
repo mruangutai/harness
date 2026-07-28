@@ -3337,3 +3337,23 @@ is needed: the renderer runs at the end of the map mission and every ship-refres
 by hand IS the manual refresh — the HTML is exactly as fresh as the markdown, by construction.
 A parallel authored HTML would be the duplication-drift class killed twice already (DEC-126,
 DEC-135).
+
+---
+
+## DEC-139 — Debug is an investigation segment, not a team; bugs are BUG-NN flows through the same gates
+
+Task 20's ledger row carried a contradiction: "single-squad under eng-lead" with a DAG spanning
+three squads (pm → specialist → qa/code), which DEC-118 forbids a team to be. Resolving it exposed
+the real question — what is debug that FEAT-02 (a bugfix, fully served by plan→ship) was not?
+Answer: **the unknown cause.** Debug = an investigation segment in front of the normal flow:
+eng specialist in debug mode reproduces, localizes, and root-causes with evidence — no fix — and
+that report seeds pm's mini-plan; signature and ship follow the standard gates. Known-cause bugs
+skip the segment entirely. Three failed hypothesis cycles is `BLOCKED`, per systematic-debugging.
+
+**Bugs are full flows, named `BUG-NN-<kebab-slug>`** (user's call): independent number sequence,
+same rules as FEAT ids, and deliberately the same folder root (`.harness/features/` — the flows
+root; zero scripts hardcode the FEAT prefix and all 18 domain globs are `features/*`, verified, so
+a parallel `bugs/` root would re-carve everything for nothing). A lightweight ungated bug lane was
+rejected: "small" is a judgment that drifts, and a second path around the signature is the DEC-19
+bypass shape. The standalone all-in-one debug team was rejected with it — a fix that ships without
+qa, review, or a signature between diagnosis and change.

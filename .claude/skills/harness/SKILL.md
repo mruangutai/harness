@@ -90,6 +90,25 @@ anything. When the main session re-delegates you with an answers file
 (`.harness/features/<FEAT>/notes/answers-<runid>.md`), pass its **path** into the re-dispatched run —
 `resume_from` semantics: the run picks up from its checkpointed `state.yaml`, not from scratch.
 
+## Mission: debug — investigate first, then it becomes a plan (DEC-139)
+
+For *symptom known, cause unknown*. When the cause is already known there is nothing to
+investigate — that is a plan mission with a `BUG-NN` id (the FEAT-02 pattern).
+
+1. **Investigation segment** — dispatch eng-lead: one specialist, chosen by `consult-when`, in
+   debug mode (`harness-systematic-debugging` governs it): **reproduce → localize → root-cause,
+   with evidence — no fix.** The deliverable is a root-cause report in the flow's `notes/`
+   (repro steps, the failing case, the causal chain with `file:line` anchors, and the fix surface
+   it implies). Three failed reproduction/hypothesis cycles → `BLOCKED` up, per the skill — an
+   uninvestigatable bug is a decision for the user, not a budget sink.
+2. **The report seeds the plan** — pm drafts the mini-BRIEF/PLAN from it (`## Problem` = the
+   diagnosis; SC-01 is always "the repro fails pre-fix and passes post", verify: automated;
+   tasks are `change_type: bugfix`). Same signature, same gates, same mirror (`bug` label derives).
+3. **Ship as normal.** Nothing about being a bug relaxes a gate — a second, lighter lane is how
+   approval bypasses grow (DEC-19).
+
+Ids: **`BUG-NN-<kebab-slug>`**, independent sequence from FEAT, same folder root and machinery.
+
 ## GitHub mirror — three sync points, when `github.sync` is on (DEC-138)
 
 `bin/gh-sync.py` — outbound only, idempotent, and **never a gate**: every environmental failure is
