@@ -14,11 +14,12 @@ to global installation and a distributable package.
 
 ### Constraints
 
-- **Delivery format**: Files-only for v1 (CLAUDE.md, skills, agents) — no CLI, no build step, no dependencies
-- ~~GSD compatibility~~ — retired: GSD was uninstalled 2026-07-26 and the harness self-hosts (DEC-02)
-- **Context budget**: The harness itself must not bloat Claude's context — selective loading, not everything-at-once
-- **Copy-and-own**: Absorb gstack/superpowers patterns into harness-owned files, not live external dependencies
-- **TDD scope**: Mandatory for implementation code, exempt for config/scaffolding/one-off scripts
+- **Files-only, no dependencies** — no CLI, no build step, nothing to `pip install`. This one is
+  load-bearing: it has decided real questions (no YAML parser dependency, no template generator).
+- **Context budget** — the harness must not bloat context: selective loading, never everything-at-once.
+
+(TDD scope lives in `harness.json` `test_matrix` + the `tdd-enforcement` skill — enforced there, not
+restated here.)
 
 ## Harness
 
