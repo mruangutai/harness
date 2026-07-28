@@ -3,8 +3,11 @@
 ## Patterns
 - P-01: `cost-report.py` is project-cumulative with no per-run filter; it also exits 1 when the
   transcript contains models it refuses to price (e.g. claude-opus-4-8, <synthetic>) even though
-  the YAML block is emitted. Append with `cmd; echo $?` not `cmd && ...`, and treat run-level
-  cost_usd as an approximate attribution, noted as such in feature.yaml.
+  the YAML block is emitted. Append with `cmd; echo $?` not `cmd && ...`. Attribute a run by
+  DIFFING per-agent `by_agent` cumulatives between this run's block and the previous run's —
+  the top-line `total:` delta includes unrelated sessions. Fable-tier lead runs measured ~$20
+  each (FEAT-02 runs 03/04), so a $40 feature budget is ~2 such runs after planning: check the
+  bound BEFORE dispatching, not after.
 
 ## Gotchas
 - G-01: check-domain.sh blocks the orchestrator from writing other agents' expertise files

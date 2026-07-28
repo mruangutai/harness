@@ -37,3 +37,16 @@ plan — run the plan-feature sequence, return artifacts pending user signature.
   no end-user interaction and no DESIGN.md exists; there is no contract to review.
 - seq-7: plan-feature complete. BRIEF.md + PLAN.md approval sections pending; status set to
   awaiting_user. Next: user signs (one signature covers both), then build flow (T-01 → T-02).
+- seq-8: ship flow (new orchestrator). Approvals confirmed on BRIEF/PLAN (2026-07-27).
+- seq-9: run 2026-07-27-03-eng (build) complete, PASS, 1 cycle. T-01 red-first at 6546b1d,
+  T-02 fix at d9b16e5; suite 40/40 green, pre-fix binary fails exactly the new cases.
+  Orchestrator verified suite exit 0 directly. review_sha pinned d9b16e5.
+- seq-10: run 2026-07-27-04-validator complete, PASS. qa gate met (bugfix matrix floor,
+  pre-fix proof re-run); panel unanimous PASS at pinned SHA, severity_max low, must_fix
+  empty; ui self-scoped out. F-1 (DIGEST-first returns now rejected) assessed
+  non-gating, fails closed.
+- seq-11: BUDGET BOUND HIT. Cost attribution ~$49 of max $40 (P-01 approximate; fable-tier
+  runs ~$21 each). pm goal-check NOT dispatched per never-continue-past-a-bound. Status
+  blocked; briefing at notes/ship-review-2026-07-27-04.md. Decisions for user: fund
+  goal-check (~$5) or waive on qa evidence; merge sign-off; team-config ownership of
+  .claude/skills/harness/bin/** (non-blocking).

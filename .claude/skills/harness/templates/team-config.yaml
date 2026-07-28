@@ -144,6 +144,7 @@ teams:
           server-side integration, error handling at the service boundary.
         domain:
           - { path: src/**, upsert: true }                 # SEED — backend source root
+          - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
           - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
           - { path: ".", read: true }
 
@@ -175,6 +176,7 @@ teams:
           - { path: .github/**, upsert: true }
           - { path: Dockerfile, upsert: true }
           - { path: .harness/harness.json, upsert: true }
+          - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
           - { path: .harness/expertise/harness-dev-ops.md, upsert: true }
           - { path: ".", read: true }
         # SHARP EDGE (DEC-85): dev-ops holds Bash, which bypasses path checks
