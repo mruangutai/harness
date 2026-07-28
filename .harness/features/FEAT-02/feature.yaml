@@ -1,7 +1,7 @@
 feature_id: FEAT-02
 branch: feat/harness-native-foundation
 pr: none
-status: blocked  # budget bound hit before pm goal-check; see notes/ship-review-2026-07-27-04.md
+status: shipped  # budget bound hit before pm goal-check; see notes/ship-review-2026-07-27-04.md
 review_sha: d9b16e5323526d6f02228b48652ded84328a40cb
 cycles_used: 4
 max_total_cycles: 10
