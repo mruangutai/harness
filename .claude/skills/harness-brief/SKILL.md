@@ -48,6 +48,13 @@ One paragraph, in the user's own framing. What changes for whom.
 - REQ-02: The filter state survives a page reload.
 
 ## Success Criteria
+
+**User-mandated outcomes are binding — and never sufficient.** Translate each into a proper SC-NN
+with a verify: method, then ADD what done also requires that nobody said: regression safety, the
+failure modes your research surfaced, the adjacent thing that breaks. You are expected to author
+beyond the user's list (DEC-132); a brief whose SCs merely restate it is under-delivery. The
+signature is where the user prunes any you over-reached on — that is the gate working, not a
+reason to hold back.
 - SC-01: Filtering by author returns only that author's turns, and the count matches.
   verify: automated      evidence: unit
 - SC-02: The filter control reads as part of the review surface, not bolted on.

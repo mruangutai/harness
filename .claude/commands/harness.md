@@ -35,7 +35,7 @@ N flows run at once while you stay free. The prompt carries only: the feature id
 that derivation is the product work the role exists for, and the user's signature is the check on it
 (observed: a pre-written SC list reduced pm to a transcriber, DEC-132). What the user mandates about
 the outcome rides as **goal constraints** — "must reject the echo repro" — which pm must honor while
-authoring the criteria. Wording, numbering and verify methods stay pm's. Log the spawn to
+authoring the criteria. Wording, numbering and verify methods stay pm's — and pm is **expected to add criteria beyond the user's**, not just translate: the user states what done must include; pm's job includes finding what done ALSO requires that nobody said (regression safety, failure modes research surfaces). A brief whose SCs are exactly the user's list, restated, is under-delivery. Log the spawn to
 `.harness/logs/<date>.md` (append; create the file if it is the day's first entry).
 
 ## 4. Relay on return — route on `status`, never re-derive the work

@@ -3103,3 +3103,8 @@ The legitimate form of the same impulse: the CEO may mandate outcomes. Those ent
 pm's. Recorded at the door (`/harness` step 3), which is where the defect occurred. That pm added
 SC-3 unprompted on the first run shows the authorship instinct survives even a bad prompt — the fix
 is to stop suppressing it.
+
+**Amended same day, per the user:** adding criteria beyond the user's is not merely permitted — it
+is **expected**. The user states what done must include; pm's job includes what done also requires
+that nobody said. SCs that merely restate the user's list are under-delivery, and the signature is
+where the user prunes over-reach — the gate working, not a reason to hold back.
