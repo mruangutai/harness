@@ -3138,3 +3138,19 @@ user's enumeration; grouping it with the judgment tier is the recorded assumptio
 overrun's root cause was every agent inheriting the session's fable-tier model (~$20/lead-run);
 pinning makes per-role cost a design property instead of an accident of who spawned the session.
 <!-- stale: exhausting either ends the loop -->
+
+---
+
+## DEC-135 — CLAUDE.md cut 79%: the per-spawn tax was mostly a stale artifact
+
+DEC-105 measured CLAUDE.md at ~164k tokens per feature — ~3.7k tokens read by every one of a
+feature's ~44 spawns. Eleven of its fifteen kilobytes were the April 2026 GSD-era stack analysis:
+not merely oversized but **false** since self-hosting — it described GSD as the backbone, tables of
+`agent_skills` mechanics, a `<files_to_read>` convention, none of which exist. Every agent paid to
+read a wrong history of the system it runs in.
+
+Archived verbatim to `docs/harness/archive/STACK-ANALYSIS-2026-04.md` (the research citations keep
+value); CLAUDE.md is now ~0.8k tokens — Project (blurb corrected to the self-hosted reality; the
+dead GSD-compatibility constraint marked retired), the Harness section, and two conventions this
+session proved the hard way (verify prose claims; check-docs before commit). Per-feature CLAUDE.md
+load drops from ~164k to ~35k tokens. Closes the last open item of task 14.
