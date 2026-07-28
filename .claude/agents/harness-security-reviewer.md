@@ -84,5 +84,9 @@ DIGEST:
   findings: <n>
   must_fix: [<item>]
   threat_model: [{ boundary: ..., stride: T|I|E|..., mitigated: <bool> }]
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<paths>]        # [] if you changed none
+  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: .harness/notes/review-harness-security-reviewer-<runid>.md
 ```

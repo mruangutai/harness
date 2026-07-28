@@ -77,6 +77,9 @@ DIGEST:
   needs_approval: <bool>
   risk: low|med|high
   sc_status: [{ id: SC-01, verdict: met, method: automated, evidence: "<pointer>" }]
-  open_questions: [...]
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<paths>]        # [] if you changed none
+  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: <path>
 ```

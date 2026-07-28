@@ -72,6 +72,9 @@ DIGEST:
   applied: [<paths>]
   suite: pass|fail|n/a          # n/a for genuinely TDD-exempt work
   test_kinds_written: [<kind: cmd>]   # when you ran detection
-  open_questions: [...]         # anything irreversible belongs here, not done
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<paths>]        # [] if you changed none
+  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: <path>
 ```

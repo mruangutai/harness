@@ -56,12 +56,18 @@ needs no approval. The prototype is the gate; mockups are how you get there.
 ## Output
 
 ```
+VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line>
-  contract: written|updated|unchanged
+  contract: written|updated        # ONLY these two — the validator rejects anything else
   needs_prototype: <bool>
   why: "<one line — the user reads this>"
   mockups: [<paths>]
   prototype: <path|none>
   direction_choices: [<the alternatives you considered and rejected>]
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<paths>]        # [] if you changed none
+  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
+artifact: <.harness/DESIGN.md>
 ```

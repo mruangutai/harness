@@ -73,6 +73,30 @@ That is the handoff contract working, not an obstacle to route around.
 
 ## Output
 
-Consolidated three-part return, per-member block preserved. Include `escalations:` with how each was
-resolved — a lateral lead-to-lead decision must leave a trace, and if it is really an architectural
-choice it belongs in `PLAN.md ## Decisions` under the user's approval, not in your run dir.
+The three-part return (`harness-handoff`), consolidated —
+**self-contained; this is the whole contract, do not merge it with another template**:
+
+```
+VERDICT: <worst member verdict — BLOCKED > ESCALATE > FAIL > PASS>
+DIGEST:
+  headline: <one line — what the team achieved, not what it did>
+  team: <name>
+  steps_run: <n>
+  cycles_used: <n>
+  members:
+    - { step: <id>, persona: <p>, verdict: PASS, headline: "...", files_touched: [<paths>] }
+  must_fix: [<union of blocking findings, deduped>]
+  branch: <branch|none>
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<union across members>]        # [] if the team touched nothing
+  escalations: [{ id, raised_by, question, domain, routed_to, resolution, decided_by, recorded_as }]
+  expertise_update: [<your own ops>]             # [] if you learned nothing durable
+  sc_status: [{ id, verdict, method, evidence }] # [] if no goal-check ran
+artifact: <run_dir>/digest.md
+```
+
+**Every field is required** (DEC-121) — `[]` for an empty list, `none` for an inapplicable scalar.
+The `SubagentStop` hook will not let you stop without them, and it computes the roll-up: reporting
+better than your worst member is rejected. `ESCALATE` outranks `FAIL` so a decision only the user
+can make is never masked by a failure someone could have fixed.

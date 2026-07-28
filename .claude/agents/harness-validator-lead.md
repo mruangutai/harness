@@ -74,10 +74,32 @@ author, which is the whole reason your squad exists.
 
 ## Output
 
-Consolidated three-part return with the per-member block, plus:
+The three-part return (`harness-handoff`), consolidated —
+**self-contained; this is the whole contract, do not merge it with another template**:
 
 ```
-  must_fix: [<union, deduped, ranked>]
+VERDICT: <worst member verdict — BLOCKED > ESCALATE > FAIL > PASS>
+DIGEST:
+  headline: <one line — what the team achieved, not what it did>
+  team: <name>
+  steps_run: <n>
+  cycles_used: <n>
+  members:
+    - { step: <id>, persona: <p>, verdict: PASS, headline: "...", files_touched: [<paths>] }
+  must_fix: [<union of blocking findings, deduped>]
+  branch: <branch|none>
   severity_max: info|low|med|high|critical
   adequacy_notes: [<what the panel could not tell you>]
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<union across members>]        # [] if the team touched nothing
+  escalations: [{ id, raised_by, question, domain, routed_to, resolution, decided_by, recorded_as }]
+  expertise_update: [<your own ops>]             # [] if you learned nothing durable
+  sc_status: [{ id, verdict, method, evidence }] # [] if no goal-check ran
+artifact: <run_dir>/digest.md
 ```
+
+**Every field is required** (DEC-121) — `[]` for an empty list, `none` for an inapplicable scalar.
+The `SubagentStop` hook will not let you stop without them, and it computes the roll-up: reporting
+better than your worst member is rejected. `ESCALATE` outranks `FAIL` so a decision only the user
+can make is never masked by a failure someone could have fixed.

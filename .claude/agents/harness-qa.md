@@ -66,6 +66,9 @@ DIGEST:
   kinds: [{ kind: unit, state: satisfied, cmd: "...", named_tests: <n> }]
   coverage_gaps: [<area>]     # include Phase 1 expectations with no test
   sc_evidence: [{ id: SC-01, test: "<path:line>" }]
-  files_touched: [<test paths>]
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<paths>]        # [] if you changed none
+  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: <path>
 ```

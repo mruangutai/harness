@@ -74,5 +74,9 @@ DIGEST:
   spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: D-NN }]
   reviewed: "base..<review_sha>"
   human_commits_in_scope: [<sha>]
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<paths>]        # [] if you changed none
+  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: .harness/notes/review-harness-code-reviewer-<runid>.md
 ```

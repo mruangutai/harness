@@ -77,7 +77,9 @@ DIGEST:
   tests_added: <n>
   suite: pass|fail
   blocked_on: <text|none>
-  files_touched: [<paths>]
-  open_questions: [...]
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<paths>]        # [] if you changed none
+  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: <path>
 ```

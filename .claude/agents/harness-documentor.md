@@ -43,9 +43,15 @@ missing the two hardest-gated fields. Anyone copying it would be misled. Rewriti
 ## Output
 
 ```
+VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line>
   docs_updated: [<paths>]
   gaps: [<what still lacks documentation, and who would need it>]
   stale_found: [<paths where prose contradicts code>]
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<paths>]        # [] if you changed none
+  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
+artifact: <.harness/notes/<doc-or-path-written>>
 ```

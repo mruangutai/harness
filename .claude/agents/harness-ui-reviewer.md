@@ -87,5 +87,9 @@ DIGEST:
   states_unspecified: [<state>]      # mode A
   contract_violations: [{ path: ..., actual: ..., specified: ... }]   # mode B
   a11y: [<finding>]
+  open_questions:
+    - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
+  files_touched: [<paths>]        # [] if you changed none
+  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: .harness/notes/review-harness-ui-reviewer-<runid>.md
 ```
