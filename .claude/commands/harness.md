@@ -36,7 +36,7 @@ N flows run at once while you stay free. The prompt carries only: the feature id
 
 | Orchestrator returned | You do |
 |---|---|
-| `awaiting_user` + `open_questions` | `AskUserQuestion` (batch them), write the answers to `.harness/notes/answers-<FEAT>-<runid>.md`, re-spawn the orchestrator with that path and mission `resume` |
+| `awaiting_user` + `open_questions` | `AskUserQuestion` (batch them), write the answers to `.harness/features/<FEAT>/notes/answers-<runid>.md`, re-spawn the orchestrator with that path and mission `resume` |
 | `briefing: <path>` | present the briefing verbatim, take the instruction (ship / fix / re-scope / stop), send it back down as the next mission |
 | `blocked` | tell the user what blocked and what was spent; the decision is theirs |
 | `shipped` / `PASS` | report it, log it. PR and merge remain the user's call — never automatic |

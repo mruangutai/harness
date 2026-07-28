@@ -16,7 +16,8 @@ touches anything here; init writes it once. That split is what lets deploy run u
 | `team-config.yaml` | **The org as data** — membership, `consult-when` routing, and each agent's writable `domain`. Read by `check-domain.sh` on every write | `/harness-init`, seeded from detection |
 | `harness.json` | `test_matrix`, `test_kinds`, `gates`, `cost_model`, `budgets`, `log_retention_days` | `/harness-init` · `dev-ops` fills `test_kinds` |
 | `expertise/<agent>.md` | Per-agent durable knowledge, injected at every spawn by the `SubagentStart` hook | each agent, its own file only |
-| `notes/` | Durable artifacts: `research-*`, `review-<persona>-<runid>-c<cycle>.md`, `mockups/`, `prototypes/`, `uat-<FEAT>.md`, `answers-<FEAT>-<runid>.md` | the owning agent |
+| `features/<FEAT>/notes/` | That feature's durable artifacts: `research-*`, `review-<persona>-c<cycle>.md`, `qa-*`, `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `mockups/`, `prototypes/` — **the path carries the feature id** (DEC-130) | the owning agent |
+| `notes/` | **Project-scoped** durable artifacts only (cross-feature research, docs sweeps). Anything belonging to a FEAT lives in that feature's `notes/` | the owning agent |
 | `logs/<date>.md` | Append-only **cross-flow** stream: flow started, escalation, briefing. Never loaded at spawn | **main session only** |
 | `features/<FEAT>/STATE.md` | That flow's live pointer: `## Current` + `## Open Questions`. **No history** — `logs/` is for that. One per feature, so concurrent flows never share a writer | that feature's **orchestrator** |
 | `features/<FEAT>/feature.yaml` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, cost, run list | that feature's **orchestrator** |

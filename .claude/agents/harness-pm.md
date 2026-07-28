@@ -52,7 +52,7 @@ to qa — not to the user.
 
 ## Mode 3 — The UAT
 
-Any `verify: uat` criterion becomes a step in `.harness/notes/uat-<FEAT>.md`. **You decide when it is
+Any `verify: uat` criterion becomes a step in `.harness/features/<FEAT>/notes/uat.md`. **You decide when it is
 `ready`**, and only once every `automated` and `inspection` criterion has already passed — never hand
 the user a hand-test for a build whose tests are red. Short, concrete steps, one observable outcome
 each. You never mark it passed.

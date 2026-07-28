@@ -744,7 +744,7 @@ is **renamed to `expertise`** (DEC-80).
 `inject-expertise.sh` (the `SubagentStart` hook).
 
 **Net-new artifacts:** `.harness/expertise/<agent>.md` per agent with stable entry IDs (SPEC §5.2),
-`.harness/notes/uat-<FEAT>.md`, `.harness/notes/prototypes/<FEAT>/`.
+`.harness/features/<FEAT>/notes/uat.md`, `.harness/notes/prototypes/<FEAT>/`.
 
 ### Detail: #14 — `harness-deploy.md`
 

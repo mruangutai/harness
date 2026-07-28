@@ -3047,3 +3047,23 @@ looking for a problem, and the goal-check has nothing to anchor against.
 <!-- stale: .harness/BRIEF.md -->
 <!-- stale: .harness/PLAN.md -->
 <!-- stale: .harness/DESIGN.md -->
+
+---
+
+## DEC-130 — Feature notes live in the feature's folder; the path is the id
+
+DEC-129 stopped halfway: it moved BRIEF/PLAN/DESIGN into `features/<FEAT>/` but left feature notes
+flat under `.harness/notes/` with the FEAT id encoded in filenames, enforced by glob. The user's
+observation: centralize per feature. `features/<FEAT>/notes/` now holds research, reviews, qa
+assessments, answers, ship-review, uat, mockups and prototypes. The filename convention and its
+glob enforcement retire — **a directory cannot forget its feature id the way a filename did on
+pm's first outing.** Retiring a feature is now one directory. `.harness/notes/` remains for
+genuinely project-scoped artifacts (cross-feature research, docs sweeps), and pm keeps a
+project-level research glob for that.
+
+Also closed on the way: the template manifest never had qa's notes grant at all — live/template
+drift caught by asserting every substitution rather than replacing blind (the DEC-129 sweep's own
+failure, not repeated).
+<!-- stale: .harness/notes/answers- -->
+<!-- stale: .harness/notes/ship-review- -->
+<!-- stale: .harness/notes/uat- -->

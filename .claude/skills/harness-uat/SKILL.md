@@ -69,7 +69,7 @@ Rules for steps:
   are probably too vague; go back to the BRIEF.
 - **Include the failure you most suspect.** If something feels fragile, make it a step.
 
-Write to `.harness/notes/uat-<FEAT>.md`. Committed, so what was accepted and when is on the record.
+Write to `.harness/features/<FEAT>/notes/uat.md`. Committed, so what was accepted and when is on the record.
 
 ### 4. Hand it over
 
@@ -91,7 +91,7 @@ A failed UAT consumes a fix cycle. Do not argue with the result or reinterpret i
 
 ```
 UAT ready — 2 steps, about 3 minutes.
-.harness/notes/uat-FEAT-01.md
+.harness/features/FEAT-01/notes/uat.md
 
 Everything else is already green: 14 unit tests, 31 python tests,
 review passed with 2 non-blocking notes.

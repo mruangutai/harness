@@ -68,7 +68,7 @@ DIGEST:
   runs: [{ id, squad, verdict, cost_usd }]
   cycles_used: <n>
   cost_usd: "<spend so far, or pending>"
-  briefing: <path|none>           # .harness/notes/ship-review-<FEAT>-<runid>.md when written
+  briefing: <path|none>           # .harness/features/<FEAT>/notes/ship-review-<runid>.md when written
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none — non-empty means the
                                                              # main session must ask the user
@@ -78,4 +78,4 @@ artifact: .harness/features/<FEAT>/feature.yaml
 ```
 
 `status: awaiting_user` + non-empty `open_questions` is the question round-trip: the main session
-asks, writes `.harness/notes/answers-<FEAT>-<runid>.md`, and re-delegates you with that path.
+asks, writes `.harness/features/<FEAT>/notes/answers-<runid>.md`, and re-delegates you with that path.

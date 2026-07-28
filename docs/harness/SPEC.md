@@ -112,15 +112,11 @@ surfaces everything else. The orchestrator asks, then re-delegates with answers 
 and crash recovery share one code path.
 
 **Answers are durable, not ephemeral.** The orchestrator writes user answers to
-`.harness/notes/answers-<FEAT>-<runid>.md`, never only into a run dir — run dirs are pruned, and
+`.harness/features/<FEAT>/notes/answers-<runid>.md`, never only into a run dir — run dirs are pruned, and
 durable artifacts may be written from these answers. Lateral lead→lead routing uses the same file,
 since two leads share no run dir.
 
-**Feature-scoped artifacts name their feature.** `answers-`, `ship-review-`, `uat-` and
-`prototypes/` all carry the `FEAT-NN` id, and each file's header repeats the feature and run. A
-feature accumulates several runs across several squads (§11), so a bare `<runid>` leaves you
-grepping `state.yaml` files to find out which feature an artifact belongs to. The id is in the
-filename so `ls` answers it.
+**Feature-scoped artifacts live in the feature's folder** — `.harness/features/<FEAT>/notes/` (DEC-130). The path carries the feature id, so filenames no longer need to: `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `research-*`, `review-<persona>-c<n>.md`. An earlier convention encoded the FEAT id in filenames under a flat `notes/` <!-- ok-stale -->; it retired because the id was forgettable (observed on pm's first outing) while a directory cannot be. `.harness/notes/` remains for genuinely project-scoped artifacts only.
 
 Onboarding is handled by `/harness-init`, not a team (§3): it interviews you directly, writes
 `BRIEF.md` + `harness.json` + the manifest, and takes your approval. The round-trip above is the
@@ -269,7 +265,7 @@ orchestrator:
   color: blue                              # NAMED colors only (§4.0) — hex is invalid
   domain:
     - { path: .harness/features/**,        upsert: true }
-    - { path: .harness/notes/answers-*.md, upsert: true }
+    - { path: .harness/features/*/notes/answers-*.md, upsert: true }
     - { path: .harness/expertise/harness-orchestrator.md, upsert: true }
     - { path: ".", read: true }
 
@@ -1398,7 +1394,7 @@ How it runs:
    **UAT** if one is required, the **Expertise curation** block, and the **cost line** — spend so far
    against the feature budget, from `bin/cost-report.py` (§11.3). Cost is the post-build signal
    (DEC-99), and a signal the operator never sees is not being monitored.
-4. Writes it to `.harness/notes/ship-review-<FEAT>-<runid>.md`.
+4. Writes it to `.harness/features/<FEAT>/notes/ship-review-<runid>.md`.
 5. **Returns it to the main session, which presents it to you and requests instructions.** The
    orchestrator writes the briefing but cannot deliver it — it has no user channel (§10). You
    decide: ship, fix first, re-scope, or stop — and give feedback (§5.5).
@@ -1820,7 +1816,7 @@ Because pm authors the plan *and* runs this check, it is one of the two acknowle
 points (§3) — but note it is the *weakest* form of self-review available here: pm cannot manufacture
 evidence, only report what qa and the reviewers produced.
 
-**The UAT — `.harness/notes/uat-<FEAT>.md`, pm-owned.** Any SC marked `verify: uat` produces a step in
+**The UAT — `.harness/features/<FEAT>/notes/uat.md`, pm-owned.** Any SC marked `verify: uat` produces a step in
 a UAT script for that feature:
 
 ```markdown

@@ -29,7 +29,7 @@ steps:
     persona: code-reviewer
     depends_on: []
     inputs: []
-    outputs: [.harness/notes/review-harness-code-reviewer-{{feat}}-c{{cycle}}.md]
+    outputs: [.harness/features/{{feat}}/notes/review-harness-code-reviewer-c{{cycle}}.md]
     mutates_repo: false
     prompt: >
       Review the diff at {{review_sha}} for {{feat}}. Two stages, in order: spec
@@ -43,7 +43,7 @@ steps:
     persona: security-reviewer
     depends_on: []
     inputs: []
-    outputs: [.harness/notes/review-harness-security-reviewer-{{feat}}-c{{cycle}}.md]
+    outputs: [.harness/features/{{feat}}/notes/review-harness-security-reviewer-c{{cycle}}.md]
     mutates_repo: false
     prompt: >
       Self-scoping OWASP Top 10 and STRIDE audit of the diff at {{review_sha}} for
@@ -56,7 +56,7 @@ steps:
     persona: ui-reviewer
     depends_on: []
     inputs: []
-    outputs: [.harness/notes/review-harness-ui-reviewer-{{feat}}-c{{cycle}}.md]
+    outputs: [.harness/features/{{feat}}/notes/review-harness-ui-reviewer-c{{cycle}}.md]
     mutates_repo: false
     prompt: >
       Mode B — audit the built UI in the diff at {{review_sha}} against DESIGN.md,

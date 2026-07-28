@@ -22,7 +22,7 @@
 
 <The channel from subagents to the user. A non-empty entry is an ACTIVE ROUTING
 SIGNAL, not a note: the orchestrator asks the user, writes the answers to
-.harness/notes/answers-<FEAT>-<runid>.md, and re-delegates with that path. Clear
+.harness/features/<FEAT>/notes/answers-<runid>.md, and re-delegates with that path. Clear
 each entry when it is answered.>
 
 - <question, and who is blocked on it>

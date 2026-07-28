@@ -41,7 +41,7 @@ like a task missing `change_type`.
   verify: inspection  -> a reviewer reads code or output and cites file:line.
                          Evidence: code- / security- / ui-reviewer.
   verify: uat         -> only the user can judge it. Becomes a step in
-                         .harness/notes/uat-<FEAT>.md, executed by the user.
+                         .harness/features/<FEAT>/notes/uat.md, executed by the user.
 
 Reject and rewrite any SC that: has no verify: or two; is `automated` with no
 `evidence:`; is not falsifiable ("the code is clean"); or restates a requirement

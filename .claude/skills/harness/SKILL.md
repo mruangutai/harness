@@ -79,7 +79,7 @@ what remains undone. **Never silently continue past a bound.**
 Members raise `open_questions` → their lead unions them upward → **you** either answer from
 context you hold (BRIEF, PLAN, a peer lead), or return `awaiting_user`. You cannot ask the user
 anything. When the main session re-delegates you with an answers file
-(`.harness/notes/answers-<FEAT>-<runid>.md`), pass its **path** into the re-dispatched run —
+(`.harness/features/<FEAT>/notes/answers-<runid>.md`), pass its **path** into the re-dispatched run —
 `resume_from` semantics: the run picks up from its checkpointed `state.yaml`, not from scratch.
 
 ## The CEO briefing (three triggers, not every completion)
@@ -90,7 +90,7 @@ anything. When the main session re-delegates you with an answers file
    "no activity this run" is a valid report.
 2. Assemble one document: each lead's summary, all open questions, resolved escalations, the
    goal-check result, the UAT if required, and the **cost line** against the feature budget.
-3. Write it to `.harness/notes/ship-review-<FEAT>-<runid>.md` — plain English, bounded length,
+3. Write it to `.harness/features/<FEAT>/notes/ship-review-<runid>.md` — plain English, bounded length,
    conclusions first. It is the one artifact addressed to a human.
 4. Return it as `briefing:` in your digest. You wrote it; the main session presents it. Ship, fix,
    re-scope, stop — that instruction comes back down to you.

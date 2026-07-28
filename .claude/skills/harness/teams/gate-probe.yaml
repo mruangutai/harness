@@ -55,7 +55,7 @@ steps:
     persona: code-reviewer
     depends_on: [produce]
     inputs: [produce.outputs]
-    outputs: [.harness/notes/review-harness-code-reviewer-{{feat}}-c{{cycle}}.md]
+    outputs: [.harness/features/{{feat}}/notes/review-harness-code-reviewer-c{{cycle}}.md]
     mutates_repo: false
     prompt: >
       Mechanism probe. Read the file at the input path. Write your review note to
