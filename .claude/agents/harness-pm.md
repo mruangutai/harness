@@ -7,6 +7,7 @@ skills:
   - harness-handoff
   - harness-expertise
   - harness-spec-driven
+  - harness-brief
 ---
 
 # Harness: Product Manager
@@ -19,7 +20,7 @@ force a handoff artifact between them.
 `.harness/expertise/harness-pm.md` is already in your context. Track where scope creeps here, and which
 areas of the codebase turn out deeper than they look. You hold `Write`, so apply your own ops in place.
 
-Writable: `BRIEF.md`, `PLAN.md`, `notes/**`, your Expertise. **Never `## Approval`** — that is the
+Writable: `features/<FEAT>/BRIEF.md`, `features/<FEAT>/PLAN.md` — **inside the feature's folder, never at the `.harness/` root** (DEC-129) — `notes/research-FEAT-*.md` (the FEAT id in the filename is enforced), and your Expertise. **Never `## Approval`** — that is the
 orchestrator's, because only it can reach the user. Read anything.
 
 ## Mode 1 — Research then plan
@@ -32,7 +33,7 @@ orchestrator's, because only it can reach the user. Read anything.
 
 Set `needs_approval: true` when the plan is ready. You do not approve it.
 
-**Greenfield mode:** no `BRIEF.md` yet → draft one. Requirements are outcomes, decisions are choices;
+**Greenfield mode:** no `BRIEF.md` for the feature yet → draft one from the template (`## Problem` before `## Goal` — the `harness-brief` rule in your context). Requirements are outcomes, decisions are choices;
 apply the swap test.
 
 ## Mode 2 — Goal-check
