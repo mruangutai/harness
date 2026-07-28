@@ -3149,8 +3149,9 @@ not merely oversized but **false** since self-hosting — it described GSD as th
 `agent_skills` mechanics, a `<files_to_read>` convention, none of which exist. Every agent paid to
 read a wrong history of the system it runs in.
 
-Archived verbatim to `docs/harness/archive/STACK-ANALYSIS-2026-04.md` (the research citations keep
-value); CLAUDE.md is now ~0.8k tokens — Project (blurb corrected to the self-hosted reality; the
+Deleted outright — briefly archived, then the user asked whether the archive earned its keep and it
+did not: git history holds every byte, and a file of stale GSD claims inside check-docs' scan
+surface is a standing ok-stale tax, not a resource. CLAUDE.md is now ~0.8k tokens — Project (blurb corrected to the self-hosted reality; the
 dead GSD-compatibility constraint marked retired), the Harness section, and two conventions this
 session proved the hard way (verify prose claims; check-docs before commit). Per-feature CLAUDE.md
 load drops from ~164k to ~35k tokens. Closes the last open item of task 14.

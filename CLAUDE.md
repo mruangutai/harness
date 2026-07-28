@@ -47,5 +47,4 @@ DECISIONS.md itself.
 
 - Every claim in prose that a command can check gets checked before it is written.
 - Check `bin/check-docs.sh` BEFORE committing, never after.
-- The archived GSD-era stack analysis lives at `docs/harness/archive/STACK-ANALYSIS-2026-04.md` —
-  historical only; it predates self-hosting and describes a GSD backbone that no longer exists.
+- The GSD-era stack analysis that once filled this file lives in git history only (removed at DEC-135).
