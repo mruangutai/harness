@@ -26,7 +26,8 @@ orchestrator:
   color: blue
   domain:
     - { path: .harness/features/**, upsert: true }   # its feature's STATE.md, feature.yaml, runs/
-    - { path: .harness/notes/answers-*.md, upsert: true }
+    - { path: .harness/notes/answers-FEAT-*.md, upsert: true }
+    - { path: .harness/notes/ship-review-FEAT-*.md, upsert: true }   # the briefing (DEC-129)
     - { path: .harness/expertise/harness-orchestrator.md, upsert: true }
     - { path: ".", read: true }
 
@@ -85,7 +86,8 @@ teams:
         domain:
           - { path: .harness/features/*/BRIEF.md, upsert: true }   # except ## Approval (DEC-129)
           - { path: .harness/features/*/PLAN.md, upsert: true }    # except ## Approval (DEC-129)
-          - { path: .harness/notes/**, upsert: true }
+          - { path: .harness/notes/research-FEAT-*.md, upsert: true }   # FEAT id REQUIRED (DEC-129)
+          - { path: .harness/notes/uat-FEAT-*.md, upsert: true }
           - { path: .harness/expertise/harness-pm.md, upsert: true }
           - { path: ".", read: true }
 
@@ -187,7 +189,7 @@ teams:
         domain:
           - { path: tests/**, upsert: true }              # seeded by /harness-init
           - { path: web/src/**/*.test.*, upsert: true }
-          - { path: .harness/notes/qa-*.md, upsert: true }   # assessments; the 3 reviewers each own one, qa owned none
+          - { path: .harness/notes/qa-FEAT-*.md, upsert: true }   # assessments; the 3 reviewers each own one, qa owned none
           - { path: .harness/expertise/harness-qa.md, upsert: true }
           - { path: ".", read: true }
 
@@ -198,7 +200,7 @@ teams:
           Spec compliance, scope creep, omissions, code quality, maintainability,
           fail-open branches, silent failure paths.
         domain:
-          - { path: .harness/notes/review-harness-code-reviewer-*.md, upsert: true }
+          - { path: .harness/notes/review-harness-code-reviewer-FEAT-*.md, upsert: true }
           - { path: .harness/expertise/harness-code-reviewer.md, upsert: true }
           - { path: ".", read: true }
 
@@ -207,7 +209,7 @@ teams:
           Auth, secrets, input validation, injection, SSRF, deserialization,
           OWASP Top 10, STRIDE threat modeling, data exposure in logs or exports.
         domain:
-          - { path: .harness/notes/review-harness-security-reviewer-*.md, upsert: true }
+          - { path: .harness/notes/review-harness-security-reviewer-FEAT-*.md, upsert: true }
           - { path: .harness/expertise/harness-security-reviewer.md, upsert: true }
           - { path: ".", read: true }
 
@@ -216,7 +218,7 @@ teams:
           Visual fidelity against DESIGN.md, design-contract soundness, UI
           regressions, accessibility audit, dark/light parity.
         domain:
-          - { path: .harness/notes/review-harness-ui-reviewer-*.md, upsert: true }
+          - { path: .harness/notes/review-harness-ui-reviewer-FEAT-*.md, upsert: true }
           - { path: .harness/expertise/harness-ui-reviewer.md, upsert: true }
           - { path: ".", read: true }
 
