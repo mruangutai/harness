@@ -376,6 +376,16 @@ def validate(persona, text):
     if schema is None:
         return [f"unknown persona {persona!r} — cannot validate; refusing to pass it."]
 
+    # Echo-shadowing fix (BUILD task 22 follow-up): agents sometimes echo the
+    # harness-handoff template (a schema-valid VERDICT/DIGEST block) before their
+    # real return. Every anchor below is first-match, so the echo used to shadow
+    # the real block. The contract mandates the real return LAST, so slice from
+    # the last line-start VERDICT: and validate only that. No anchor at all keeps
+    # whole-text behavior — the "no VERDICT" path stays byte-identical.
+    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
+    if anchors:
+        text = text[anchors[-1].start():]
+
     # --- VERDICT: exact token, exact spelling.
     m = re.search(r"^\s*VERDICT:\s*(\S+)", text, re.M)
     if not m:
