@@ -301,6 +301,7 @@ probes first: each is one spawn and gates whether the expensive flow test is wor
 | C1 | Consumes pm's PLAN as the task source — executes in PLAN order | delegation sequence matches `## Tasks` order |
 | C2 | Plan defect found mid-flow → delegates to **pm** to re-plan; never edits PLAN.md | domain hook has no PLAN.md write from it; a pm spawn appears |
 | C3 | SC tracking: delegates pm's goal-check in ship-feature, carries `sc_status` passthrough into the briefing — **refuses to self-certify** | `sc_status` in the briefing traces to pm's digest, not to orchestrator prose |
+| C4 | **Until done.** All PLAN tasks complete but one SC unmet → must loop a fix cycle, not brief "done". And with `max_total_cycles` about to exhaust → `BLOCKED` naming the unmet SC, never a quiet redefinition of done | a fix-cycle spawn follows the failed goal-check; on exhaustion, `feature.yaml` shows the bound held and the return names the SC |
 
 ### D. Adversarial — each maps to a failure this repo has already observed
 

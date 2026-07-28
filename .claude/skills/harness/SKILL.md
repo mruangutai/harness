@@ -26,7 +26,18 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    but shape is not truth: spot-check `files_touched` against the artifacts when a claim matters.
 5. **Adjust and record** — append the per-member roll-up to `STATE.md`, update `feature.yaml`
    (runs list, `cycles_used` from what the lead reported, cost), then route (below).
-6. **Loop** until PLAN is done, the feature is blocked, or the user must decide. Then return.
+6. **Loop until DONE — and done means the success criteria are met, not the tasks exhausted.**
+   PLAN tasks completing is the builder's claim; BRIEF's `SC-NN` are the goal's. When the last task
+   lands, delegate **pm's goal-check** (through product-lead): every SC verified by its declared
+   `verify:` method. Then:
+   - all met → done; proceed to the briefing.
+   - any unmet → that is a **fix cycle, not a shrug**: route the gap to the owning lead with pm's
+     evidence, increment `cycles_used`, and loop again. Repeat until the SCs pass **or a budget
+     exhausts** — the budgets outrank "until done", always; exhaustion is `BLOCKED` to the user
+     with the unmet SCs named, never a quiet stop and never a redefinition of done.
+   - an SC that *cannot* be met as written (wrong premise, changed scope) is a plan-level problem:
+     pm re-plans under the user's approval. You never mark an SC met, waived, or edited yourself.
+   Also stop for: the feature blocked, or the user must decide. Then return.
 
 **Authority boundary:** execution-time adjustments are yours (loop back, insert a review, reorder,
 escalate). Plan-level changes are pm's — delegate re-planning, never edit `PLAN.md` yourself.
