@@ -3178,3 +3178,38 @@ History stays in git (same call as DEC-135's archive: a directory of stale GSD-s
 the repo is a standing cost, not a resource). The three surviving `gsd` mentions in live files are
 legitimate: deploy's registry-migration code (`~/.gsd/` → `~/.harness/`, functional) and CLAUDE.md's
 two historical sentences.
+
+---
+
+## DEC-137 — The codebase map: a third knowledge tier, role-authored, index-preloaded, ship-refreshed
+
+Raised by the user before kaya-ai: agents entering an existing codebase should consult a durable
+map instead of combing the code per task — domains, architecture, data flows, stack, LLM patterns —
+with pm planning against it and each specialist reading its own view. Design settled by discussion:
+
+**A third tier.** Expertise is per-agent-learned; feature docs are per-feature; the map is
+**per-project structural knowledge**, at `.harness/codebase/`: `INDEX.md`, `architecture.md`,
+`domains/<module>.md`, `data-flows.md`, `stack.md`, plus role lenses that POINT into the shared
+skeleton rather than restate it — one map, role-indexed, because per-role documents would recreate
+the template-duplication drift (DEC-126).
+
+**Role-authored** (supersedes SPEC §13's deferred `pm×N → documentor` shape): the consumer authors
+its view — data-engineer the schemas/flows, frontend-dev the UI surface, ai-dev the LLM patterns,
+security-reviewer the trust boundaries, pm the product surface; documentor consolidates the
+skeleton. Multi-squad ⇒ an **orchestrator playbook** (DEC-118), which also exercises matrix A4/D9.
+
+**Index preloaded, details by path.** `INDEX.md` (hard cap ~60 lines) is injected at every spawn by
+the existing `SubagentStart` hook alongside Expertise. Decided against pointers-only on the
+session's own evidence: every artifact delivered by preload worked on first contact; every artifact
+relying on being pointed at failed silently at least once (DEC-125 ×4). Cost ≈ 250 tokens × ~44
+spawns ≈ 11k/feature — ~7% of the DEC-135 cut — against 5–20k saved per avoided code-comb. The
+rejected hybrid (preload for routers only) reintroduces per-role delivery gaps exactly where the
+map matters most (solo debug).
+
+**Truth discipline:** every map claim carries a `file:line` anchor and its section a date; the map
+is a hint, code is truth. **Ship-triggered refresh:** after each shipped feature, documentor
+updates sections whose domains intersect the team digests' `files_touched` — drift bounded by one
+feature. The index refreshes with it.
+
+**Sequencing:** built as task 23; runs as the FIRST act of task 17 — kaya-ai is onboarded, then
+mapped, and every subsequent feature plans against the map.
