@@ -1,7 +1,7 @@
 # FEAT-02 — VERDICT-shadowing fix in validate-digest.py
 
 ## Current
-- plan-feature COMPLETE, awaiting user signature on .harness/BRIEF.md + .harness/PLAN.md (## Approval unsigned)
+- plan-feature COMPLETE, awaiting user signature on .harness/features/FEAT-02/BRIEF.md + PLAN.md (moved, DEC-129) (## Approval unsigned)
 - Segment 1 (pm + design pass): PASS — BRIEF.md and PLAN.md drafted; designer ruled no UI, no prototype
 - Segment 2 (eng-lead arch review): FAIL c1 (comment-bearing lead-template echo defeated D-01 regex)
   → pm loop_back cycle 1 → D-05 strip-before-match + T-01 case 1b red repro + D-06 (artifact-echo

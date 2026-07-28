@@ -86,8 +86,13 @@ for base, pats_ in ((D, ("*.md", "*.html")),
         targets += glob.glob(os.path.join(base, "**", pat), recursive=True)
 # DECISIONS.md is the registry, not a target: it QUOTES stale wording by design, in
 # the very paragraph that supersedes it. Scanning it would flag every marker forever.
+# Run dirs are ephemeral, git-ignored RECORDS of what happened — a digest that says
+# "pm wrote .harness/PLAN.md" was true when written and stays true as history, exactly
+# like a quote in DECISIONS.md. Scanning them makes every path migration flag its own
+# past. STATE.md and feature docs stay in scope: those are live.
 targets = sorted(t for t in set(targets)
-                 if os.path.isfile(t) and os.path.basename(t) != "DECISIONS.md")
+                 if os.path.isfile(t) and os.path.basename(t) != "DECISIONS.md"
+                 and "/runs/" not in t)
 
 if "--audit" in sys.argv:
     # Which markers are actually load-bearing? A marker that matches nothing today AND
