@@ -3304,3 +3304,22 @@ for feature/enhancement work. Mechanical, because every T-NN already carries `ch
 `config`/`scaffolding`/`infra`/`ci` → `chore` · `bugfix` → `bug` · everything else → unlabeled.
 `gh-sync.py` applies it at issue creation; no agent judgment involved. (The `harness` provenance
 label is orthogonal and stays — it marks agent-created issues, not their type.)
+
+### DEC-138 amendment 4 — leads' residual findings become issues through the briefing, never directly
+
+The user asked how findings raised by leads reach GitHub. The split: **blocking findings
+(`must_fix`) never become issues** — they route back into the current flow as fix cycles and die
+there. **Residuals** — findings that survive the lead's collation but do not gate (FEAT-02's F-1
+advisory, qa's coverage notes) — are future backlog, and today they die in the briefing notes.
+
+Route: **briefing-gated.** The briefing's residual-findings section is a *proposed backlog* list;
+on the user's ship acceptance, unstruck entries become plain backlog issues — labeled `harness`
+plus `bug`/`chore` by finding nature, unlabeled for enhancements, **no milestone** (they belong to
+no feature yet; a later plan cycle may absorb them). Rejected alternatives: digest→GitHub direct
+(publishes unapproved judgment — FEAT-02's panel raised 15, collation dismissed 10; noise is how
+backlogs die, and work items enter existence through a human signature, same as tasks); pm-first
+review (the lead's collation already is the quality filter, and pm sees the backlog at next triage
+anyway — a spawn for a third opinion on something the user is about to read).
+
+Mechanically: `gh-sync.py backlog <feature-dir>` reads the accepted residuals (the main session
+passes them after the briefing decision) — part of the door's shipped row alongside `ship`.

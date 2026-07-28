@@ -52,7 +52,7 @@ authoring the criteria. Wording, numbering and verify methods stay pm's — and 
 | `awaiting_user` + `open_questions` | `AskUserQuestion` (batch them), write the answers to `.harness/features/<FEAT>/notes/answers-<runid>.md`, re-spawn the orchestrator with that path and mission `resume` |
 | `briefing: <path>` | present the briefing verbatim, take the instruction (ship / fix / re-scope / stop), send it back down as the next mission |
 | `blocked` | tell the user what blocked and what was spent; the decision is theirs |
-| `shipped` / `PASS` | report it, log it, and if `github.sync` is on run `bin/gh-sync.py ship <feature-dir>` (closes the milestone). PR and merge remain the user's call — never automatic |
+| `shipped` / `PASS` | report it, log it, and if `github.sync` is on run `bin/gh-sync.py ship <feature-dir>` (closes the milestone), and offer the briefing's residual-findings list as proposed backlog — entries the user does not strike become plain backlog issues via `gh-sync.py backlog` (labeled by nature, no milestone; DEC-138 am.4). PR and merge remain the user's call — never automatic |
 
 Log every return (one line: feature, verdict, status, cost) to `.harness/logs/<date>.md`.
 

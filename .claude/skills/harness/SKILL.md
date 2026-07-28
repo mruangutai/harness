@@ -143,7 +143,10 @@ In mission ship, after the SCs pass and before the briefing:
 1. Spawn **all three leads in parallel** — "report on your domain." All three always report;
    "no activity this run" is a valid report.
 2. Assemble one document: each lead's summary, all open questions, resolved escalations, the
-   goal-check result, the UAT if required, and the **cost line** against the feature budget.
+   goal-check result, the UAT if required, the **cost line** against the feature budget — and a
+   **proposed backlog**: the residual findings that survived collation but do not gate, each with
+   its nature (`bug`/`chore`/enhancement). On the user's ship acceptance the unstruck ones become
+   backlog issues (DEC-138 am.4); anything not listed here dies silently, so list them all.
 3. Write it to `.harness/features/<FEAT>/notes/ship-review-<runid>.md` — plain English, bounded length,
    conclusions first. It is the one artifact addressed to a human.
 4. Return it as `briefing:` in your digest. You wrote it; the main session presents it. Ship, fix,

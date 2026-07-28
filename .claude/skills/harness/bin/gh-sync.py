@@ -210,6 +210,28 @@ def cmd_close_task(feat_dir, tid, repo):
         print(f"gh-sync: closed absorbed issue #{n}")
 
 
+def cmd_backlog(feat_dir, repo, items):
+    """User-accepted residual findings -> plain backlog issues (DEC-138 am.4).
+
+    Called by the MAIN SESSION after the briefing decision, with one arg per accepted
+    residual as `nature:title` (nature: bug|chore|enhancement). No milestone — these
+    belong to no feature yet; a later plan cycle may absorb them. This is the only
+    entry point for findings: digests never write to GitHub directly.
+    """
+    feat = os.path.basename(os.path.abspath(feat_dir))
+    for item in items:
+        nature, _, title = item.partition(":")
+        if nature not in ("bug", "chore", "enhancement") or not title.strip():
+            die(f"backlog item must be nature:title (bug|chore|enhancement), got {item!r}")
+        labels = ["harness"] + ([nature] if nature != "enhancement" else [])
+        args = ["issue", "create", "--repo", repo, "--title", title.strip(),
+                "--body", f"Residual finding from {feat}, accepted at the ship briefing."]
+        for l in labels:
+            args += ["--label", l]
+        url = gh(args)
+        print(f"gh-sync: backlog issue #{url.rstrip('/').rsplit('/', 1)[-1]} [{', '.join(labels)}] — {title.strip()}")
+
+
 def cmd_ship(feat_dir, repo):
     rec = load_recorded(feat_dir)
     if rec["milestone"] is None:
@@ -221,7 +243,7 @@ def cmd_ship(feat_dir, repo):
 
 def main():
     if len(sys.argv) < 3:
-        die("usage: gh-sync.py open|close-task|ship <feature-dir> [T-NN]")
+        die("usage: gh-sync.py open|close-task|ship|backlog <feature-dir> [T-NN | nature:title ...]")
     cmd, feat_dir = sys.argv[1], sys.argv[2]
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
@@ -235,6 +257,10 @@ def main():
         cmd_close_task(feat_dir, sys.argv[3], repo)
     elif cmd == "ship":
         cmd_ship(feat_dir, repo)
+    elif cmd == "backlog":
+        if len(sys.argv) < 4:
+            die("backlog needs at least one nature:title item")
+        cmd_backlog(feat_dir, repo, sys.argv[3:])
     else:
         die(f"unknown command {cmd!r}")
 

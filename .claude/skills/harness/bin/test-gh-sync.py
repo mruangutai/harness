@@ -175,5 +175,20 @@ with tempfile.TemporaryDirectory() as tmp:
     check("ship PATCHes milestone closed",
           r.returncode == 0 and any("milestones/7" in l and "state=closed" in l for l in log), str(log))
 
+    # --- backlog: accepted residuals become plain issues, labeled by nature, no milestone
+    open(os.path.join(tmp, "calls.log"), "w").close()
+    r = run(["backlog", feat, "bug:echo-only returns unhandled", "chore:INV-10 exec-bit hole",
+             "enhancement:progress events"], tmp)
+    log = [l for l in calls(tmp) if "issue create" in l]
+    check("backlog creates 3 issues, exit 0", r.returncode == 0 and len(log) == 3, str(log))
+    check("backlog natures label correctly",
+          any("--label harness --label bug" in l for l in log)
+          and any("--label harness --label chore" in l for l in log)
+          and any("progress events" in l and "--label harness" in l and "chore" not in l and "bug" not in l for l in log),
+          str(log))
+    check("backlog issues carry NO milestone", all("--milestone" not in l for l in log), str(log))
+    r = run(["backlog", feat, "typo-no-colon"], tmp)
+    check("malformed backlog item -> ERROR exit 1", r.returncode == 1, r.stdout)
+
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)
