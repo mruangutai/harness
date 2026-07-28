@@ -713,6 +713,119 @@ artifact: .harness/features/FEAT-01/feature.yaml
 """, True)
 
 
+
+# =====================================================================
+# FEAT-02 T-01: echo shadowing. An agent that echoes the harness-handoff
+# contract template before its real return gets the ECHO validated: the
+# verdict regex (:380), parse_digest's DIGEST anchor (:283), and the
+# artifact check (:388) are all first-match-wins, and the template line
+# `VERDICT: PASS | FAIL | BLOCKED | ESCALATE` captures as a valid PASS.
+# Per review advisory A-1 the echo blocks below are FILLED and
+# schema-valid for their persona — a bare-placeholder echo is rejected
+# on missing fields pre-fix, which would not reproduce the defect.
+# =====================================================================
+
+QA_ECHO = """
+VERDICT: PASS | FAIL | BLOCKED | ESCALATE
+DIGEST:
+  headline: example headline copied from the contract
+  suite: pass
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: true
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/notes/example.md
+"""
+
+LEAD_ECHO = """
+VERDICT: PASS | FAIL | BLOCKED | ESCALATE
+DIGEST:
+  headline: example headline copied from the contract
+  team: build
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - { step: s1, persona: backend-dev, verdict: PASS }
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: .harness/notes/example.md
+"""
+
+QA_REAL_FAIL_MISSING_MATRIX = """
+VERDICT: FAIL
+DIGEST:
+  headline: refresh path fails under load
+  suite: fail
+  failures: 2
+  coverage_gaps: ["refresh path"]
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/notes/qa.md
+"""
+
+# (1) Echo + fully valid real FAIL: must exit 0 with the REAL block routed.
+# Pre-fix this is green by coincidence (the echo validates too) — it exists
+# to pin post-fix behaviour, paired with (2) which is red pre-fix.
+case("echo shadow: valid real FAIL after a template echo still validates",
+     "harness-qa", QA_ECHO + """
+VERDICT: FAIL
+DIGEST:
+  headline: refresh path fails under load
+  suite: fail
+  failures: 2
+  coverage_gaps: ["refresh path"]
+  matrix_ok: true
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/notes/qa.md
+""", True)
+
+# (2) Echo + real block MISSING matrix_ok: must be REJECTED for the missing
+# field. Pre-fix it falsely exits 0 — the echoed (complete) block is the one
+# validated and the real return is never examined.
+case("echo shadow: missing matrix_ok in the real block is not masked by the echo",
+     "harness-qa", QA_ECHO + QA_REAL_FAIL_MISSING_MATRIX, False, "matrix_ok")
+
+# (3) Lead echo + real lead block whose members carry a FAIL under a top-level
+# PASS: the roll-up must see the REAL members and reject. Pre-fix the echoed
+# all-PASS block shadows and the roll-up never runs on the real one.
+case("echo shadow: lead roll-up must read the real members, not the echo",
+     "harness-eng-lead", LEAD_ECHO + """
+VERDICT: PASS
+DIGEST:
+  headline: two ran, one failed
+  team: build
+  steps_run: 2
+  cycles_used: 0
+  members:
+    - { step: build, persona: backend-dev, verdict: PASS }
+    - { step: qa, persona: qa, verdict: FAIL }
+  must_fix: ["refresh path untested"]
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "worst")
+
+# (4) Hook-mode variant of (2): the SubagentStop hook is the mandatory mode
+# (DEC-122), so the shadowing must be caught there too — exit 2, matrix_ok
+# named on stderr. Pre-fix: exit 0, the masked return ships.
+hook_case("echo shadow [hook]: missing matrix_ok behind an echo is exit 2",
+          "harness-qa", QA_ECHO + QA_REAL_FAIL_MISSING_MATRIX, 2, "matrix_ok")
+
+
 def run_cli_cases():
     fails = 0
     for name, persona, text, want_ok, mentions in CASES:
