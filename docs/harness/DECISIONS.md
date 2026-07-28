@@ -3213,3 +3213,22 @@ feature. The index refreshes with it.
 
 **Sequencing:** built as task 23; runs as the FIRST act of task 17 — kaya-ai is onboarded, then
 mapped, and every subsequent feature plans against the map.
+
+### DEC-137 amendment — authorship is enforced by glob, and the refresh respects it
+
+The user asked how authorship is *ensured*; answering exposed an inconsistency in the entry above.
+As written, the ship-refresh had documentor updating specialists' sections — violating
+author-is-consumer in exactly the path where the map spends its life.
+
+**Enforcement stack:** (1) each map file is carved to its authoring role in `team-config.yaml` —
+`check-domain.sh` makes a wrong-author `Write`/`Edit` mechanically impossible; documentor's grant is
+the skeleton only (`INDEX.md`, `architecture.md`); (2) every section header carries provenance
+(`author · date · anchors-verified: <sha>`), the audit trail and the refresh dirty-bit; (3) the
+playbook routes each view to its squad per DEC-118. Known crack, stated: the DEC-85 Bash bypass —
+globs are a strong fence, not a cryptographic one; correct grants up front are what keep agents off
+the workaround path.
+
+**Refresh, corrected:** documentor updates the skeleton and *marks* affected role sections
+`stale: <FEAT>`; the **owning specialist** rewrites its own stale sections — eagerly, in the same
+ship flow, one member spawn per actually-touched domain — so the map is never knowingly stale at
+rest and no one ever rewrites a view they don't own.
