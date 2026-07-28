@@ -1,6 +1,6 @@
 ---
 name: harness-brief
-description: Write or update .harness/BRIEF.md for a feature — requirements (REQ-NN) and success criteria (SC-NN) where every criterion declares how it will be verified. Use when starting a feature, when "done" is ambiguous, or when asked to define scope or acceptance criteria.
+description: Write or update .harness/features/<FEAT>/BRIEF.md for a feature — requirements (REQ-NN) and success criteria (SC-NN) where every criterion declares how it will be verified. Use when starting a feature, when "done" is ambiguous, or when asked to define scope or acceptance criteria.
 ---
 
 # Harness: Brief
@@ -14,7 +14,7 @@ A criterion with no method is not verifiable, and discovering that at ship time 
 
 ### 1. Read what exists
 
-- `.harness/BRIEF.md` if present — you are updating, not replacing.
+- `.harness/features/<FEAT>/BRIEF.md` if present — you are updating, not replacing.
 - The repo's `CLAUDE.md` for project context.
 - Do **not** explore the whole codebase. This is a scope document, not a research task.
 
@@ -32,6 +32,13 @@ below).
 
 ```markdown
 # BRIEF — FEAT-01 Transcript author filter
+
+## Problem — first, always
+
+State what hurts before what to build. The Problem section precedes Goal (DEC-129): one short,
+observed paragraph — who hits it, when, what it costs. A brief that cannot state the problem
+without naming the solution is a solution looking for a problem, and the goal-check later has
+nothing to anchor "did this help?" against.
 
 ## Goal
 One paragraph, in the user's own framing. What changes for whom.
@@ -99,7 +106,7 @@ Do not set `## Approval` yourself. Ever.
 Report in plain English, not IDs:
 
 ```
-BRIEF written — .harness/BRIEF.md
+BRIEF written — .harness/features/<FEAT>/BRIEF.md
 
 Goal      Reviewers can narrow a long transcript to one author.
 2 requirements, 3 success criteria.

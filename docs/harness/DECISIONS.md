@@ -3021,3 +3021,29 @@ file land matching. `briefing` is nullable; `cost_usd` is a string because it ca
 orchestrator half and the doors' relay loop are specified, not demonstrated — proving them is what
 task 17's kaya-ai run (and a smoke flow before it) is for. CLAUDE.md size (DEC-105) remains open
 under task 14.
+
+---
+
+## DEC-129 — Feature docs live in the feature's folder; BRIEF states the Problem before the Goal
+
+The first smoke flow wrote `.harness/BRIEF.md` and `.harness/PLAN.md` at the root — where a second
+feature would overwrite them. The user's call: **a folder named for the feature holds generically
+named files**, not derived filenames at the root. `BRIEF.md`, `PLAN.md` and `DESIGN.md` join
+`STATE.md`/`feature.yaml` in `.harness/features/<FEAT>/` — one dir is one feature's whole world,
+templates stay generic, and the namespace already existed (DEC-120). "Decisions" needs no file:
+`D-NN` is PLAN's `## Decisions` section. `notes/` keeps its FEAT-in-filename convention because runs
+prune while notes persist — and it is now **enforced by domain glob** (`research-FEAT-*.md`), since
+the smoke's pm promptly wrote `research-verdict-shadowing.md` with no id.
+
+Onboarding's signal moves accordingly: not "BRIEF.md exists" (a fresh project has zero features)
+but `harness.json` + `team-config.yaml` exist. INV-1..5 are per-feature now, and INV-4/5 accept
+both task formats after the smoke showed heading-style tasks made INV-4 silently vacuous — plus a
+guard: T-NN ids present but none parsing is itself a violation, so a third format cannot re-open
+the hole.
+
+Also per the user: **`## Problem` precedes `## Goal` in every BRIEF.** What hurts, observed, before
+what to build — a brief that cannot state the problem without naming the solution is a solution
+looking for a problem, and the goal-check has nothing to anchor against.
+<!-- stale: .harness/BRIEF.md -->
+<!-- stale: .harness/PLAN.md -->
+<!-- stale: .harness/DESIGN.md -->

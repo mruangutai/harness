@@ -16,7 +16,7 @@ builds the right thing. Finding it second means the entire quality pass was wast
 
 ## Stage 1 — spec compliance
 
-Read `.harness/BRIEF.md` and `PLAN.md ## Decisions`, then the diff. Ask four questions:
+Read `.harness/features/<FEAT>/BRIEF.md` and `PLAN.md ## Decisions`, then the diff. Ask four questions:
 
 1. Does every change serve a documented `REQ-NN` or `D-NN`?
 2. Is anything here that **no** requirement asked for? *(scope creep — a finding even when it is an

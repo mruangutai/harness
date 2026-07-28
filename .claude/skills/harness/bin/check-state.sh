@@ -31,8 +31,12 @@ if not os.path.isdir(H):
     print("harness: no .harness/ — project not onboarded. Run /harness-init.")
     sys.exit(1)
 
-brief = read(os.path.join(H, "BRIEF.md"))
-plan  = read(os.path.join(H, "PLAN.md"))
+# BRIEF/PLAN are PER-FEATURE since DEC-129 — .harness/features/<FEAT>/{BRIEF,PLAN}.md.
+# Root-level singletons collided the moment a second feature existed.
+briefs = {os.path.basename(os.path.dirname(p)): read(p)
+          for p in glob.glob(os.path.join(H, "features", "*", "BRIEF.md"))}
+plans  = {os.path.basename(os.path.dirname(p)): read(p)
+          for p in glob.glob(os.path.join(H, "features", "*", "PLAN.md"))}
 # STATE.md is per-feature since DEC-120; read them all.
 states = {os.path.basename(os.path.dirname(p)): read(p)
           for p in glob.glob(os.path.join(H, "features", "*", "STATE.md"))}
@@ -45,34 +49,46 @@ def approved(txt):
 def has_approval_block(txt):
     return bool(txt) and re.search(r"^##\s+Approval\s*$", txt, re.M) is not None
 
-# --- INV-1/2: the goal of record must be signed before anything runs on it.
-if brief is None:
-    bad.append("BRIEF.md missing — nothing downstream may run without a goal of record.")
-else:
+# --- INV-1/2: every feature's goal of record must be signed before its flows run.
+# Onboarding itself is signalled by harness.json + team-config.yaml (DEC-129), not a BRIEF:
+# a freshly-onboarded project legitimately has zero features yet.
+if not os.path.isfile(os.path.join(H, "harness.json")):
+    bad.append(".harness/harness.json missing — not onboarded (or half-onboarded). Run /harness-init.")
+for feat, brief in briefs.items():
     if not has_approval_block(brief):
-        bad.append("BRIEF.md has no '## Approval' section — cannot tell if the goal is signed.")
+        bad.append(f"{feat}/BRIEF.md has no '## Approval' section — cannot tell if the goal is signed.")
     elif not approved(brief):
-        bad.append("BRIEF.md is NOT approved — halt and surface to the user.")
+        bad.append(f"{feat}/BRIEF.md is NOT approved — halt that flow and surface to the user.")
+for feat in states:
+    if feat not in briefs:
+        bad.append(f"{feat} has STATE.md but no BRIEF.md — a flow is running with no goal of record.")
 
 # --- INV-3: a plan must be signed too, and re-planning must reset that signature.
-if plan is not None:
+for feat, plan in plans.items():
     if not has_approval_block(plan):
-        bad.append("PLAN.md has no '## Approval' section.")
+        bad.append(f"{feat}/PLAN.md has no '## Approval' section.")
     elif not approved(plan):
-        warn.append("PLAN.md approval is pending — awaiting the user.")
+        warn.append(f"{feat}/PLAN.md approval is pending — awaiting the user.")
 
     # --- INV-4: every task must carry change_type or the qa gate cannot apply.
-    tasks = re.findall(r"^-\s*(T-\d+):(.*?)(?=^-\s*T-\d+:|\Z)", plan, re.M | re.S)
+    # Tasks may be list items (`- T-01:`) or headings (`### T-01 —`) — the smoke's pm
+    # wrote headings and the list-only regex made this check silently vacuous (DEC-129).
+    tasks = re.findall(r"^(?:-\s*|#+\s*)(T-\d+)\b(.*?)(?=^(?:-\s*|#+\s*)T-\d+\b|\Z)",
+                       plan, re.M | re.S)
+    if not tasks and re.search(r"\bT-\d+\b", plan):
+        bad.append(f"{feat}/PLAN.md mentions T-NN ids but none parse as tasks — "
+                   f"INV-4/5 would be vacuous. Fix the task format.")
     for tid, body in tasks:
         if "change_type:" not in body:
-            bad.append(f"{tid} has no change_type: — the qa gate cannot be applied to it.")
+            bad.append(f"{feat}: {tid} has no change_type: — the qa gate cannot be applied to it.")
 
-# --- INV-5: no flow's STATE may point at a task the plan does not contain.
-if plan:
-    for feat, state in states.items():
-        for tid in set(re.findall(r"\bT-\d+\b", state or "")):
-            if not re.search(rf"^-\s*{tid}:", plan, re.M):
-                bad.append(f"{feat}/STATE.md references {tid}, which is absent from PLAN.md.")
+    # --- INV-5: no flow's STATE may point at a task its plan does not contain.
+    state = states.get(feat)
+    if state:
+        plan_ids = {tid for tid, _ in tasks}
+        for tid in set(re.findall(r"\bT-\d+\b", state)):
+            if tid not in plan_ids:
+                bad.append(f"{feat}/STATE.md references {tid}, which is absent from its PLAN.md.")
 
 # --- INV-6..8: per-feature execution facts.
 for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):

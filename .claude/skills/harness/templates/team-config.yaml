@@ -25,7 +25,7 @@ cli_min_version: "2.1.217"        # floor for the spawn env vars (DEC-83)
 # It is not an agent and has no domain — check-domain exits 0 when a payload carries
 # no agent_type, which is what lets it maintain state at all.
 main_session:
-  writes: [.harness/BRIEF.md ## Approval, .harness/PLAN.md ## Approval, .harness/logs/**]
+  writes: [.harness/features/*/BRIEF.md ## Approval, .harness/features/*/PLAN.md ## Approval, .harness/logs/**]
 
 # The ORCHESTRATOR is a spawned agent, one per in-flight feature, so N flows can run
 # at once (DEC-120). Being an agent means it IS governed by check-domain — hence the
@@ -86,8 +86,8 @@ teams:
           Requirements, feature scoping, planning, task breakdown, codebase research,
           acceptance criteria, success criteria, goal verification, REQ coverage, UAT scripts.
         domain:
-          - { path: .harness/BRIEF.md, upsert: true }      # except ## Approval
-          - { path: .harness/PLAN.md, upsert: true }       # except ## Approval
+          - { path: .harness/features/*/BRIEF.md, upsert: true }   # except ## Approval (DEC-129)
+          - { path: .harness/features/*/PLAN.md, upsert: true }    # except ## Approval (DEC-129)
           - { path: .harness/notes/**, upsert: true }
           - { path: .harness/expertise/harness-pm.md, upsert: true }
           - { path: ".", read: true }
@@ -98,7 +98,7 @@ teams:
           mockups, high-fidelity prototypes — plus UX research, personas, journey mapping,
           usability friction.
         domain:
-          - { path: .harness/DESIGN.md, upsert: true }
+          - { path: .harness/features/*/DESIGN.md, upsert: true }  # per-feature (DEC-129)
           - { path: .harness/notes/mockups/**, upsert: true }
           - { path: .harness/notes/prototypes/**, upsert: true }
           - { path: .harness/expertise/harness-visual-designer.md, upsert: true }

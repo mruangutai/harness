@@ -381,7 +381,7 @@ Enroll = deploy + init. This split is what lets deploy be dumb and safe (DEC-12)
 **3. `.harness/team-config.yaml`** — from template, with `domain` globs seeded from detection, plus the
 `shared:` set and both team `conventions:`.
 
-**4. `.harness/BRIEF.md`** — a **draft**, then the user's approval written into it.
+**4. `.harness/features/<FEAT>/BRIEF.md`** — a **draft**, then the user's approval written into it.
 
 > **Corrected 2026-07-26.** An earlier version of this line said "init never marks it approved," which
 > contradicts interview step 3 below *and* the first Done-when: `check-state.sh` reports
@@ -805,8 +805,8 @@ left behind.
 
 | From | To |
 |---|---|
-| `.planning/PROJECT.md` | `.harness/BRIEF.md` |
-| `.planning/ROADMAP.md` + active phase `PLAN.md`s | `.harness/PLAN.md` (`## Decisions` + `## Tasks`) |
+| `.planning/PROJECT.md` | `.harness/features/<FEAT>/BRIEF.md` |
+| `.planning/ROADMAP.md` + active phase `PLAN.md`s | `.harness/features/<FEAT>/PLAN.md` (`## Decisions` + `## Tasks`) |
 | `.planning/STATE.md` | `.harness/features/<FEAT>/STATE.md` — per-feature since DEC-120; there is no project-level `STATE.md` |
 | `.planning/phases/**`, research | preserved as **history** — archive under `.harness/notes/history/`, or leave in git history and stop writing to it |
 
@@ -814,7 +814,7 @@ left behind.
 (real-project-validation, ~71%) in GSD terms. That *framing* dissolves — validation now happens by
 the harness building itself. **But Phase-04's open items must be explicitly mapped, not dropped:**
 its remaining plans, pending todos (e.g. the architectural-scoping-gap item), and recorded blockers
-in `.planning/STATE.md` are each triaged into a new `.harness/PLAN.md` task **or consciously retired
+in `.planning/STATE.md` are each triaged into a new `.harness/features/<FEAT>/PLAN.md` task **or consciously retired
 with a note.** Silently losing them is the failure mode to guard against.
 
 **Dev workflow flips:** development stops going through `/gsd:*` commands and goes through

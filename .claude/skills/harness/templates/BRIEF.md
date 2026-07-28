@@ -4,6 +4,12 @@
 
 # BRIEF — <project name>
 
+## Problem
+
+<What hurts today, observed — not the solution. One short paragraph: who hits it, when, and what it
+costs. If you cannot state the problem without naming the solution, you have a solution looking for
+a problem (DEC-129).>
+
 ## Goal
 
 <One paragraph, in the user's own framing. What changes, and for whom. Not how.>

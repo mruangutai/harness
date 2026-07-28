@@ -9,11 +9,11 @@ what lets deploy be dumb and safe.
 | `settings.snippet.json` | `.claude/settings.json` | `/harness-init` via `bin/merge-settings.py` | init — **merged**, never clobbered |
 | `harness.json` | `.harness/harness.json` | `/harness-init`, then `dev-ops` fills `test_kinds.cmd` | init |
 | `team-config.yaml` | `.harness/team-config.yaml` | `/harness-init`, seeding `# SEED` globs from detection | init |
-| `BRIEF.md` | `.harness/BRIEF.md` | `/harness-init` drafts; `harness-pm` owns thereafter | init |
+| `BRIEF.md` | `.harness/features/<FEAT>/BRIEF.md` | `/harness-init` drafts; `harness-pm` owns thereafter | init |
 | `gitignore.snippet` | `.gitignore` | `/harness-init` via `bin/merge-gitignore.sh` | init — **appended**, never overwritten |
-| `PLAN.md` | `.harness/PLAN.md` | `harness-pm` | first planning pass, not init |
+| `PLAN.md` | `.harness/features/<FEAT>/PLAN.md` | `harness-pm` | first planning pass, not init |
 | `STATE.md` | `.harness/features/<FEAT>/STATE.md` — **one per flow**, never a project-level file (DEC-120) | that feature's orchestrator | first run of that feature, not init |
-| `DESIGN.md` | `.harness/DESIGN.md` | `harness-visual-designer` | init's optional design pass, for UI projects only |
+| `DESIGN.md` | `.harness/features/<FEAT>/DESIGN.md` | `harness-visual-designer` | init's optional design pass, for UI projects only |
 
 **Everything directly in this directory is a template.** Anything that is not one lives in
 `examples/` — currently `harness.kaya-ai.json`, the filled pilot config for `kaya-ai`, kept as a worked

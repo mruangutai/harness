@@ -127,7 +127,7 @@ a separate root. It is the one exception to the disjointness rule above, and it 
 ### 6. Interview — product, then the BRIEF
 
 Second `AskUserQuestion` round: the goal, requirements, constraints, and what "done" looks like from
-outside the code. Then write `.harness/BRIEF.md` from the template.
+outside the code. Then write `.harness/features/<FEAT>/BRIEF.md` from the template.
 
 Follow the `harness-brief` skill's discipline: apply the **REQ test** (a requirement survives changing
 your mind about implementation), and give **every `SC-NN` a `verify:`** — `automated` (plus an
@@ -154,7 +154,7 @@ brief you approved on their behalf is not.
 
 ### 8. Design pass — UI projects only
 
-If step 3 said there is a UI, offer it: `harness-visual-designer` establishes `.harness/DESIGN.md`
+If step 3 said there is a UI, offer it: `harness-visual-designer` establishes `.harness/features/<FEAT>/DESIGN.md`
 (palette in **both** themes, type scale, spacing, component direction), then `harness-ui-reviewer` in
 **mode A** judges whether that contract is sound before anything is built against it.
 

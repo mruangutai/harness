@@ -15,7 +15,7 @@ green tests that never checked whether the thing is any good.
 
 ### 1. Collect the criteria that need a human
 
-Read `.harness/BRIEF.md`. Take every `SC-NN` with `verify: uat`.
+Read `.harness/features/<FEAT>/BRIEF.md`. Take every `SC-NN` with `verify: uat`.
 
 **If there are none, say so and stop.** A change with no human-judgeable criteria needs no UAT — do not
 manufacture one. That is a legitimate and common outcome for backend-only work.

@@ -69,5 +69,5 @@ DIGEST:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
-artifact: <.harness/DESIGN.md>
+artifact: <.harness/features/<FEAT>/DESIGN.md>
 ```

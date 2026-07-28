@@ -75,11 +75,11 @@ Four files plus `harness.json` and one directory:
 
 | File | Purpose | Read by | Written by |
 |---|---|---|---|
-| `.harness/BRIEF.md` | North star: Goal, Requirements (REQ-NN), Constraints, **Success Criteria (SC-NN)**, `## Approval`. Stable across the project. **The goal of record** — every goal-check anchors here. | all personas | `harness-pm` (drafts) · **user approves** |
-| `.harness/PLAN.md` | Active plan: `## Decisions` (D-NN), `## Approval` (user marker + date), `## Features` (FEAT-NN: name, `traces:` REQs, its tasks — §11), `## Tasks` (T-NN: paths, intent, `verify:`, `traces:`, `feature:`, `change_type:`, `status:`). | all personas | `harness-pm` (except `## Approval` → orchestrator) |
+| `.harness/features/<FEAT>/BRIEF.md` | North star: Goal, Requirements (REQ-NN), Constraints, **Success Criteria (SC-NN)**, `## Approval`. Stable across the project. **The goal of record** — every goal-check anchors here. | all personas | `harness-pm` (drafts) · **user approves** |
+| `.harness/features/<FEAT>/PLAN.md` | Active plan: `## Decisions` (D-NN), `## Approval` (user marker + date), `## Features` (FEAT-NN: name, `traces:` REQs, its tasks — §11), `## Tasks` (T-NN: paths, intent, `verify:`, `traces:`, `feature:`, `change_type:`, `status:`). | all personas | `harness-pm` (except `## Approval` → orchestrator) |
 | `.harness/features/<FEAT>/STATE.md` | Live handoff digest **per flow** — `## Current` (a *pointer* to the in-flight run's `state.yaml`, not a copy) + `## Open Questions`. Nothing else. **Bounded by construction** — no rotation rule needed. Per-feature since DEC-120: with N concurrent flows a single project-level file would have N writers | that flow's agents at spawn | **that feature's orchestrator only** |
 | `.harness/logs/<YYYY-MM-DD>.md` | Append-only **cross-flow** stream, one file per day: flow started, escalation raised, question answered, briefing held. Per-flow detail lives in that feature's `STATE.md` and run dirs. **Not loaded at spawn.** Pruned on a recurring schedule. | on request only | **main session only** — kept single-writer by being the one thing above the flows (DEC-120) |
-| `.harness/DESIGN.md` | Visual design contract: palette, type scale, spacing, component direction, light/dark. Established during `/harness-init`'s design pass; the authority UI work implements against. | frontend-dev, documentor, ui-reviewer | `harness-visual-designer` |
+| `.harness/features/<FEAT>/DESIGN.md` | Visual design contract: palette, type scale, spacing, component direction, light/dark. Established during `/harness-init`'s design pass; the authority UI work implements against. | frontend-dev, documentor, ui-reviewer | `harness-visual-designer` |
 | `.harness/notes/` | Durable artifacts, **feature-scoped where they belong to a feature**: `research-<topic>.md`, `mockups/*.html`, `prototypes/<FEAT>/`, `review-<persona>-<runid>.md`, `uat-<FEAT>.md`, `ship-review-<FEAT>-<runid>.md`, `answers-<FEAT>-<runid>.md`, `feedback.md` (leads-only read), `history/`. | pm, documentor, reviewers, leads | pm, visual-designer, reviewers, orchestrator (`feedback.md`, `answers-*`, `ship-review-*`) |
 
 Also present: `.harness/harness.json` (config — gates, `test_matrix`, `test_kinds`,
@@ -163,7 +163,7 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
   lead's consolidated DIGEST carries a **per-member log block**, and the orchestrator appends those
   — so per-member granularity survives without a second writer.
 - **Persistent files are written in place; the run dir is for *transient* step outputs.** A persona
-  whose deliverable is a canonical file (pm → `PLAN.md`) writes **directly** to `.harness/PLAN.md`.
+  whose deliverable is a canonical file (pm → `PLAN.md`) writes **directly** to `.harness/features/<FEAT>/PLAN.md`.
   Run-dir artifacts (`.harness/features/<feat>/runs/<run>/`) hold reports and intermediates only.
   Where a step *does* stage a canonical file in its run dir, the **promotion step (copy → overwrite
   persistent path) must complete before any consumer step dispatches** — otherwise the consumer
@@ -259,7 +259,7 @@ The org is **data, not prose**. The manifest makes team membership and routing a
 # The MAIN SESSION is the user channel and nothing else. Not an agent, so it carries no
 # agent_type and check-domain exits 0 for it — which is what lets it maintain state at all.
 main_session:
-  writes: [.harness/BRIEF.md ## Approval, .harness/PLAN.md ## Approval, .harness/logs/**]
+  writes: [.harness/features/<FEAT>/BRIEF.md ## Approval, .harness/features/<FEAT>/PLAN.md ## Approval, .harness/logs/**]
 
 # The ORCHESTRATOR is a spawned agent, one per in-flight feature (DEC-120), so it IS
 # governed by check-domain and therefore needs a real domain.
@@ -299,8 +299,8 @@ teams:
       - name: harness-pm
         consult-when: Requirements, feature scoping, planning, task breakdown, codebase research, acceptance criteria, goal verification
         domain:
-          - { path: .harness/BRIEF.md,  upsert: true }   # except ## Approval (orchestrator-only)
-          - { path: .harness/PLAN.md,   upsert: true }   # except ## Approval
+          - { path: .harness/features/<FEAT>/BRIEF.md,  upsert: true }   # except ## Approval (orchestrator-only)
+          - { path: .harness/features/<FEAT>/PLAN.md,   upsert: true }   # except ## Approval
           - { path: .harness/notes/,    upsert: true }
           - { path: .harness/expertise/harness-pm.md, upsert: true }   # REQUIRED for §5.3 self-apply
           - { path: ".",                read: true }     # read anything, write nothing else
@@ -1714,7 +1714,7 @@ steps:
     digest_ref: steps/build/digest.yaml   # referenced, never inlined
     commits: [a1b2c3d]                    # attribution for resume
 promoted:
-  - { file: .harness/PLAN.md, sha: 9f8e7d6, at: <ts> }
+  - { file: .harness/features/<FEAT>/PLAN.md, sha: 9f8e7d6, at: <ts> }
 open_questions:
   - { id: Q1, step: build, question: "...", blocking: true }
 cost:                                   # written by bin/cost-report.py --yaml

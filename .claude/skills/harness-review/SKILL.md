@@ -52,7 +52,7 @@ user's change is worse than halting.
 **Ordered first deliberately.** Beautiful code that builds the wrong thing is a more expensive failure
 than ugly code that builds the right thing, and finding it second wastes the quality pass.
 
-Read `.harness/BRIEF.md`. For each `REQ-NN` and each `SC-NN`:
+Read `.harness/features/<FEAT>/BRIEF.md`. For each `REQ-NN` and each `SC-NN`:
 
 - Is it delivered by this diff, or explicitly out of scope for this change?
 - For `verify: automated` criteria — does the named test kind actually exercise it? (`harness-qa-gate`
