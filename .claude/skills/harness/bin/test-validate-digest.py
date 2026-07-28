@@ -469,6 +469,194 @@ def _missing_agent_type_case():
 _missing_agent_type_case()
 
 
+# --- Fold-ins (BUILD task 22) ---
+
+# F4: DIGEST: with a trailing comment must still be recognized — SPEC 8's own
+# normative template writes it exactly this way, so the validator rejected the
+# format it teaches agents to copy.
+case("DIGEST: with a trailing comment is still recognized", "harness-backend-dev", """
+VERDICT: PASS
+DIGEST:                             # routing — orchestrator reads THIS
+  headline: jwt middleware added, suite green
+  tests_added: 4
+  suite: pass
+  blocked_on: none
+  files_touched: [src/auth.ts]
+  open_questions: []
+  expertise_update: []
+artifact: .harness/notes/impl-auth.md
+""", True)
+
+# F5: standard YAML block-mapping member entries (`- step: s1` / newline /
+# `  verdict: PASS`) must be accepted — SPEC 10.4's own `escalations` example
+# is written across lines, and it is legal YAML.
+case("block-mapping member entries spanning lines are accepted", "harness-eng-lead", """
+VERDICT: FAIL
+DIGEST:
+  headline: qa failed on the refresh path
+  team: build
+  steps_run: 2
+  cycles_used: 0
+  members:
+    - step: build
+      persona: backend-dev
+      verdict: PASS
+    - step: qa
+      persona: qa
+      verdict: FAIL
+  must_fix: ["refresh path untested"]
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", True)
+
+# F7: `headline` must be read at the DIGEST block's own level. No top-level
+# headline, but a block-style member happens to carry its OWN `headline:` at a
+# deeper level — that must not satisfy the top-level requirement.
+case("a member's nested headline does not satisfy the top-level one", "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  team: build
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - step: s1
+      persona: backend-dev
+      headline: "did the thing"
+      verdict: PASS
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "no headline")
+
+# F12: str-typed fields hit no type branch before this fix — an int silently
+# satisfied a `str` field.
+case("an int does not satisfy a str-typed field", "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: clean
+  team: 7
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - { step: s1, persona: backend-dev, verdict: PASS }
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "must be a non-empty string")
+
+# F12: a bare `branch:` with nothing under it parses to `[]`, which is not the
+# literal `none` DEC-121 requires for an inapplicable NULLABLE scalar.
+case("a bare NULLABLE scalar key must not silently become an empty list", "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: clean
+  team: build
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - { step: s1, persona: backend-dev, verdict: PASS }
+  must_fix: []
+  branch:
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", False, "must be a non-empty string")
+
+# F13: the open_questions-is-a-count check must read the DIGEST's OWN top-level
+# value from the parsed map, not a whole-text regex — a NESTED
+# `open_questions: 0` inside a member entry, appearing before the real
+# top-level list, must not produce a false positive on an otherwise-valid digest.
+case("a nested open_questions count must not trip the top-level check", "harness-eng-lead", """
+VERDICT: PASS
+DIGEST:
+  headline: clean
+  team: build
+  steps_run: 1
+  cycles_used: 0
+  members:
+    - step: s1
+      persona: backend-dev
+      verdict: PASS
+      open_questions: 0
+  must_fix: []
+  branch: none
+  files_touched: []
+  open_questions: []
+  escalations: []
+  expertise_update: []
+  sc_status: []
+artifact: r/digest.md
+""", True)
+
+# F15: the drift-spelling check must cover UNIVERSAL fields too, not just the
+# persona schema — `files-touched` (hyphenated) is drift of the universal
+# `files_touched`, not merely an absent field.
+case("drift in a UNIVERSAL field is caught, not just schema fields", "harness-backend-dev", """
+VERDICT: PASS
+DIGEST:
+  headline: jwt middleware added, suite green
+  tests_added: 4
+  suite: pass
+  blocked_on: none
+  files-touched: [src/auth.ts]
+  open_questions: []
+  expertise_update: []
+artifact: .harness/notes/impl-auth.md
+""", False, "drifted")
+
+# harness-orchestrator (reconciled schema, not the `lead` shape) — a positive
+# case using the exact fields agreed for BUILD task 14.
+case("orchestrator digest with the reconciled schema", "harness-orchestrator", """
+VERDICT: PASS
+DIGEST:
+  headline: FEAT-01 shipped
+  feature: FEAT-01
+  status: shipped
+  runs: [r1, r2]
+  cycles_used: 2
+  cost_usd: "12.83"
+  briefing: .harness/notes/ship-review-FEAT-01-r2.md
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/features/FEAT-01/feature.yaml
+""", True)
+
+case("orchestrator briefing is NULLABLE — `none` when nothing was written", "harness-orchestrator", """
+VERDICT: PASS
+DIGEST:
+  headline: mid-flight, no briefing yet
+  feature: FEAT-01
+  status: in_progress
+  runs: [r1]
+  cycles_used: 1
+  cost_usd: "4.10"
+  briefing: none
+  files_touched: []
+  open_questions: []
+  expertise_update: []
+artifact: .harness/features/FEAT-01/feature.yaml
+""", True)
+
+
 def run_cli_cases():
     fails = 0
     for name, persona, text, want_ok, mentions in CASES:
