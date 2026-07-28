@@ -19,5 +19,12 @@
   rules "no end-user interaction" and no DESIGN.md exists — there is no contract to review and
   ui-reviewer would self-scope out at the cost of a spawn. Record the skip and rationale in
   STATE.md and feature.yaml.
+- O-02: An interrupted lead dispatch whose subtree ran on leaves member artifacts on disk while
+  the run's state.yaml still shows every step pending (checkpoints were the host's to write).
+  Recovery that worked (FEAT-02): orchestrator verifies the artifacts' key claims directly, then
+  re-dispatches the SAME lead with explicit assess-not-redo instructions — mark the recovered
+  step complete-with-note, run only the remaining steps. Do not redo the work and do not mark
+  steps complete yourself; the run dir is the lead's.
 
 ## Open
+

@@ -1,0 +1,21 @@
+feature_id: FEAT-02
+branch: feat/harness-native-foundation
+pr: none
+status: awaiting_user
+review_sha: none
+cycles_used: 2
+max_total_cycles: 10
+cost_usd: 7  # approximate attribution — cost-report.py is project-cumulative with no per-run filter (P-01)
+max_cost_usd: 40
+runs:
+  - id: 2026-07-27-01-product
+    squad: product
+    verdict: PASS
+    cost_usd: 5  # approx; see note above
+  - id: 2026-07-27-02-eng
+    squad: eng
+    verdict: PASS
+    cost_usd: 2  # approx; see note above
+skipped_segments:
+  - segment: 3-ui-reviewer-contract-check
+    reason: design pass ruled no end-user interaction and no DESIGN.md exists — no contract to review (Expertise O-01)
