@@ -280,7 +280,7 @@ DIGEST:
   open_questions: [...]                      # non-empty → the orchestrator surfaces it to the
                                              # MAIN SESSION, the only tier that can ask the user
   escalations: [{ id, raised_by, question, domain, routed_to, resolution, decided_by, recorded_as }]
-  expertise_update: [<ops>]
+  expertise_update: [<ops>]                  # [] except on a distillation dispatch
   sc_status: [{ id, verdict, method, evidence }]   # passthrough from pm's goal-check; [] if none ran
 artifact: <run_dir>/digest.md                # your collated report — NOT state.yaml
 ```

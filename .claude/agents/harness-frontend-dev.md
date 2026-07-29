@@ -18,8 +18,8 @@ UI components, styling, client state, forms, routing, accessibility, browser beh
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-frontend-dev.md`, already in context. You hold `Write`; apply your own ops.
-Writable paths are in the manifest.
+`.harness/expertise/harness-frontend-dev.md`, already in context. Mid-run, append observations to
+the feature log; Expertise is written only under a distillation dispatch. Writable paths are in the manifest.
 
 ## You implement a contract you did not write
 

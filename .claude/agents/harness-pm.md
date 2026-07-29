@@ -18,8 +18,9 @@ force a handoff artifact between them.
 
 ## Expertise · Domain
 
-`.harness/expertise/harness-pm.md` is already in your context. Track where scope creeps here, and which
-areas of the codebase turn out deeper than they look. You hold `Write`, so apply your own ops in place.
+`.harness/expertise/harness-pm.md` is already in your context. Track where scope creeps and which
+areas run deeper than they look by appending observations to the feature log; Expertise is written
+only under a distillation dispatch.
 
 Writable: `features/<FEAT>/BRIEF.md`, `features/<FEAT>/PLAN.md` — **inside the feature's folder, never at the `.harness/` root** (DEC-129) — `notes/research-FEAT-*.md` (the FEAT id in the filename is enforced), and your Expertise. **Never `## Approval`** — that is the
 orchestrator's, because only it can reach the user. Read anything.

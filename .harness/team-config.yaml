@@ -29,6 +29,7 @@ orchestrator:
     - { path: .harness/features/*/notes/answers-*.md, upsert: true }
     - { path: .harness/features/*/notes/ship-review-*.md, upsert: true }   # the briefing
     - { path: .harness/expertise/harness-orchestrator.md, upsert: true }
+    - { path: .harness/features/*/observations/harness-orchestrator.md, upsert: true }   # hot layer (DEC-145)
     - { path: ".", read: true }
 
 # .claude/agents/** IS DELIBERATELY UNOWNED — no agent may write it, and that is the point.
@@ -91,6 +92,7 @@ teams:
           - { path: .harness/features/*/notes/uat-*.md, upsert: true }
           - { path: .harness/codebase/product-surface.md, upsert: true }   # its map lens (DEC-137)
           - { path: .harness/expertise/harness-pm.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-pm.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
       - name: harness-visual-designer
@@ -103,6 +105,7 @@ teams:
           - { path: .harness/features/*/notes/mockups/**, upsert: true }
           - { path: .harness/features/*/notes/prototypes/**, upsert: true }
           - { path: .harness/expertise/harness-visual-designer.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-visual-designer.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
       - name: harness-documentor
@@ -115,6 +118,7 @@ teams:
           - { path: .harness/codebase/INDEX.md, upsert: true }            # skeleton ONLY (DEC-137)
           - { path: .harness/codebase/architecture.md, upsert: true }
           - { path: .harness/expertise/harness-documentor.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-documentor.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
   # ───────────────────────────────────────────────────────────────────────────
@@ -137,6 +141,7 @@ teams:
           - { path: web/src/**, upsert: true }            # seeded by /harness-init
           - { path: .harness/codebase/ui-surface.md, upsert: true }       # its map lens (DEC-137)
           - { path: .harness/expertise/harness-frontend-dev.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-frontend-dev.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
       - name: harness-backend-dev
@@ -149,6 +154,7 @@ teams:
           - { path: .harness/codebase/api-surface.md, upsert: true }      # its map lens (DEC-137)
           - { path: .harness/codebase/domains/**, upsert: true }        # module grouping
           - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-backend-dev.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
       - name: harness-ai-dev
@@ -160,6 +166,7 @@ teams:
           - { path: evals/**, upsert: true }
           - { path: .harness/codebase/llm-patterns.md, upsert: true }     # its map lens (DEC-137)
           - { path: .harness/expertise/harness-ai-dev.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-ai-dev.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
       - name: harness-data-engineer
@@ -171,6 +178,7 @@ teams:
           - { path: src/**/schema*, upsert: true }        # seeded by /harness-init
           - { path: .harness/codebase/data-flows.md, upsert: true }       # its map lens (DEC-137)
           - { path: .harness/expertise/harness-data-engineer.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-data-engineer.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
       - name: harness-dev-ops
@@ -184,6 +192,7 @@ teams:
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
           - { path: .harness/codebase/stack.md, upsert: true }            # its map lens (DEC-137)
           - { path: .harness/expertise/harness-dev-ops.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-dev-ops.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
         # SHARP EDGE (DEC-85): dev-ops holds Bash, which bypasses path checks
         # entirely. It is trusted by design — it owns deploy — and the
@@ -203,6 +212,7 @@ teams:
           - { path: web/src/**/*.test.*, upsert: true }
           - { path: .harness/features/*/notes/qa-*.md, upsert: true }   # assessments; the 3 reviewers each own one, qa owned none
           - { path: .harness/expertise/harness-qa.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-qa.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
       # Reviewers write ONLY their own findings — no source path in any domain,
@@ -214,6 +224,7 @@ teams:
         domain:
           - { path: .harness/features/*/notes/review-harness-code-reviewer-*.md, upsert: true }
           - { path: .harness/expertise/harness-code-reviewer.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-code-reviewer.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
       - name: harness-security-reviewer
@@ -224,6 +235,7 @@ teams:
           - { path: .harness/features/*/notes/review-harness-security-reviewer-*.md, upsert: true }
           - { path: .harness/codebase/trust-boundaries.md, upsert: true } # its map lens (DEC-137)
           - { path: .harness/expertise/harness-security-reviewer.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-security-reviewer.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
       - name: harness-ui-reviewer
@@ -233,6 +245,7 @@ teams:
         domain:
           - { path: .harness/features/*/notes/review-harness-ui-reviewer-*.md, upsert: true }
           - { path: .harness/expertise/harness-ui-reviewer.md, upsert: true }
+          - { path: .harness/features/*/observations/harness-ui-reviewer.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
 
 # Leads write only their own squad's run bookkeeping and their own Expertise.
@@ -243,16 +256,19 @@ leads:
     domain:
       - { path: .harness/features/*/runs/*-product/**, upsert: true }
       - { path: .harness/expertise/harness-product-lead.md, upsert: true }
+      - { path: .harness/features/*/observations/harness-product-lead.md, upsert: true }   # hot layer (DEC-145)
       - { path: ".", read: true }
   - name: harness-eng-lead
     squad: eng
     domain:
       - { path: .harness/features/*/runs/*-eng/**, upsert: true }
       - { path: .harness/expertise/harness-eng-lead.md, upsert: true }
+      - { path: .harness/features/*/observations/harness-eng-lead.md, upsert: true }   # hot layer (DEC-145)
       - { path: ".", read: true }
   - name: harness-validator-lead
     squad: validator
     domain:
       - { path: .harness/features/*/runs/*-validator/**, upsert: true }
       - { path: .harness/expertise/harness-validator-lead.md, upsert: true }
+      - { path: .harness/features/*/observations/harness-validator-lead.md, upsert: true }   # hot layer (DEC-145)
       - { path: ".", read: true }

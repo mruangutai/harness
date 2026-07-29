@@ -178,6 +178,37 @@ In mission ship, after the SCs pass and before the briefing:
    not own; the map is never knowingly stale at rest.
 5. **Re-render:** run `bin/render-map.py` — the HTML follows the markdown mechanically.
 
+## Feature-close distillation — observations become Expertise (DEC-145)
+
+In mission ship, after the SCs pass and before the briefing (alongside ship-refresh):
+
+1. Dispatch **each lead that ran this feature** once: "distill — read your members' observation
+   logs under `.harness/features/<FEAT>/observations/`, **and skim the feature's run digests for
+   lessons the member never logged**, then have each member distill what passes the six-spawns
+   test into its Expertise file per `harness-expertise`, run
+   `bin/check-expertise.sh .harness/expertise/`, report per-section counts before and after."
+   Members who hold `Write` apply their own ops under the lead's dispatch; for the write-less
+   reviewers the lead returns the ops and **you** apply them verbatim.
+2. **The digest-skim is recall, not judgment** (dry-run-proven, DEC-145 am.2). The lead relays at
+   most **3 candidates per member**, phrased as sourced observations ("your t04 digest noted X"),
+   never as pre-written entries — and flags any existing entry the digests show is stale. The
+   member is the sole judge: it accepts, or **rejects with a reason** recorded in its distillation
+   digest — rejection is a first-class outcome, never re-litigated. At a full section a candidate
+   enters only by **displacing** an entry the member judges weaker, never by merging into a
+   survivor; nothing weaker → the candidate dies, and that is healthy, not `expertise_full`.
+3. Distill the **leads' own logs** yourself the same way DEC-69 curates them: recommend, the lead
+   returns condense ops, you apply. Your own log too — your Expertise file is in your domain.
+4. Observation logs stay in place under the feature dir — archived with the run, never injected.
+   Each distillation digest counts accepted entries by source (observations vs digest-skim) — if
+   the skim's accepted count stays ~0 across features, it is not earning its cycle and gets cut.
+
+Mid-run, nobody writes Expertise; `expertise_update: []` is the normal DIGEST. This step is the
+only place project Expertise changes during a flow.
+
+**Run-dir slugs:** name run dirs `<task-or-purpose>-<squad>` (`t04-fe-eng`, `plan-product`) — the
+squad suffix is what the lead's domain glob keys on; never embed the feature id, the parent dir
+already carries it.
+
 ## The CEO briefing (three triggers, not every completion)
 
 `ship-feature` completes · a lead returns `BLOCKED` · the main session relays "where are we?".

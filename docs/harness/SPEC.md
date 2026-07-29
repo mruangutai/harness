@@ -712,10 +712,17 @@ The tier that owns the human relationship (the main session, via the orchestrato
 
 ## 5. Expertise — per-agent durable knowledge
 
-Each agent keeps an **Expertise** file: durable knowledge it starts every task with and refines on
-completion. This recovers what a stateless-subagent design otherwise discards at every spawn —
-eng-lead's sense of what works in *this* codebase, qa's knowledge of which tests are flaky, pm's feel
-for where scope creeps.
+Each agent keeps an **Expertise** file: durable knowledge it starts every task with. This recovers
+what a stateless-subagent design otherwise discards at every spawn — eng-lead's sense of what works
+in *this* codebase, qa's knowledge of which tests are flaky, pm's feel for where scope creeps.
+
+Memory is **two-layered** (DEC-145). Mid-run, an agent appends granular, feature-specific
+**observations** to `.harness/features/<FEAT>/observations/<agent>.md` — never injected, so detail
+is free. The Expertise file itself is written **only at distillation** (feature close, a curation
+note, or `/harness-curate`): the agent hot with an incident records specifics, and the durable rule
+requires stepping back across incidents — a different job at a different time. The first field test
+proved this: mid-run-written Expertise grew to thousands of words of incident narrative, taxing
+every spawn.
 
 > **One name.** This is called **Expertise** throughout: the file is `.harness/expertise/<agent>.md`
 > and the governing rule is the `harness-expertise` skill. The terms "mental model" and
@@ -770,6 +777,12 @@ reconciliation can only append.
 IDs are assigned per section and never reused after a drop, so a dropped `P-11` stays gone rather
 than being silently replaced by a different fact under the same name.
 
+**Entries are rules, not stories** (DEC-145): `WHEN <situation> DO <action>` or a durable repo
+fact, at most 50 words, naming no feature/task/issue IDs, no nested bullets or instance lists. The
+four section names above are the only legal ones, and the file budget is **150 lines** —
+`bin/check-expertise.sh` enforces all of it mechanically, and the injection hook hard-truncates at
+150 lines with a loud warning so a bloated file cannot silently tax every spawn.
+
 **Decision vs observation — a hard boundary:**
 
 - **A choice** → `PLAN.md ## Decisions` (approval-gated). *"We decided on Postgres."*
@@ -778,20 +791,26 @@ than being silently replaced by a different fact under the same name.
 
 Without this boundary, Expertise becomes a shadow decision log that bypasses your approval.
 
+- **A defect in the harness itself** (a hook that didn't fire, a validator that passed garbage) →
+  `open_questions`, so it reaches the harness owner. Never Expertise: a bug report ages into a
+  stale workaround the moment the bug is fixed. (DEC-145 am.)
+
 **Content quality is ADVISORY, in three layers** — a hook can block a path, but cannot judge an
 insight:
 
 | Layer | Where |
 |---|---|
-| The rule | the `harness-expertise` skill — preloaded by all 16 agents via `skills:` (§7): *"Update ONLY if you learned something that would change how you'd act next time."* Most tasks teach nothing durable and should produce **no** update. |
+| The rule | the `harness-expertise` skill — preloaded by all 16 agents via `skills:` (§7): mid-run, observations only; at distillation, keep only what passes *"six spawns from now, would knowing this change what I do?"* Most observations fail it, and `expertise_update: []` is the usual DIGEST. |
 | Visibility | every update rides the DIGEST as an explicit op with a `why` — so it is observable before it lands, not discovered later |
 | Correction | curation (§5.4) catches what slipped through |
 
-### 5.3 Updating — reconcile at propose time, then apply
+### 5.3 Updating — distillation-time only; reconcile at propose time, then apply
 
-Appending is not enough: a **contradicting or stale entry can land while well under the cap**, and a
-cap-triggered pass would never catch it. So reconciliation happens **when the update is proposed**, by
-the agent that already has the file in context from the injection hook.
+Expertise updates happen **only under a distillation dispatch** (§5.4) — on a normal run the agent
+appends observations and returns `expertise_update: []`. Appending is not enough even then: a
+**contradicting or stale entry can land while well under the cap**, and a cap-triggered pass would
+never catch it. So reconciliation happens **when the update is proposed**, by the agent that
+already has the file in context from the injection hook.
 
 Updates are therefore **ops, not appends**, and every op names its target:
 
@@ -829,14 +848,20 @@ already carries for `STATE.md` granularity (§2.3). No new channel. And because 
 persisted via `digest_ref` before the orchestrator acts (§11.4), an interrupted run can replay the
 update rather than lose it.
 
-### 5.4 Overflow and curation
+### 5.4 Distillation and curation
+
+**The standing step is feature-close distillation** (DEC-145), run by the orchestrator in mission
+ship, after the SCs pass and before the briefing: each lead is dispatched once to distill its
+members' observation logs into Expertise ops — cross-incident rules, feature IDs stripped, verified
+with `bin/check-expertise.sh`; the orchestrator then distills the leads' logs (and its own) the
+same way. Observation logs stay under the feature dir, archived with the run, never injected. This
+is the only point in a flow where project Expertise changes.
 
 **On overflow the rule is condense, not truncate** — keep durable patterns, drop incidents;
-per-section, so one bad prune cannot gut the file. A section at its cap sets `expertise_full: true`;
-**no agent self-prunes on overflow.**
-
-The rule is: **recommendation comes from the tier above; application comes from whoever holds the
-pen.**
+per-section, so one bad prune cannot gut the file. Distillation IS the curation step, so the
+distilling agent condenses under the caps itself; only if it cannot do so without losing durable
+rules does it set `expertise_full: true` and stop, and then: **recommendation comes from the tier
+above; application comes from whoever holds the pen.**
 
 | File | Overflow recommender | Applier |
 |---|---|---|
@@ -844,19 +869,14 @@ pen.**
 | **reviewer** | its lead (same as above) | the **orchestrator** |
 | **lead** | the **orchestrator** — at the CEO briefing it holds all three leads' consolidated DIGESTs at once, so it has the cross-lead view leads have over members, at no extra spawn cost | the **orchestrator** — but it does **not** prune unilaterally: it spawns the lead **immediately** with its recommendation, the lead returns the actual condense ops, and the orchestrator applies them. Judgment stays with the only agent that knows what its entries mean; the pen stays with the writer |
 
-**Curation happens IMMEDIATELY, not at the next natural spawn.** If the member is no longer running,
-the lead **spawns it solely to apply the curation note** — a single-purpose spawn that does nothing
-else.
+**Escalated curation happens IMMEDIATELY, not at the next natural spawn.** If the member is no
+longer running, the lead **spawns it solely to apply the curation note** — a single-purpose spawn
+that does nothing else. The recommendation is only as good as the context that produced it; a cheap
+extra spawn is strictly better than a stale or re-derived recommendation.
 
-The reason is that the recommendation is only as good as the context that produced it. The lead holds
-the cross-run view *now* — the member's file, its recent DIGESTs, what actually happened this run.
-Deferring to "the member's next delegation" means that context is gone by the time the note is
-applied, and either the note has to carry its own justification forward or the lead has to reconstruct
-it. A cheap extra spawn is strictly better than a stale or re-derived recommendation. The same applies
-one tier up: the orchestrator spawns a lead immediately for its condense ops rather than waiting.
-
-**Curation triggers:** (a) an `expertise_full` flag → curate immediately; (b) a light pass at each CEO
-briefing, where the relevant parties are already spawned and reading output.
+**Curation triggers:** (a) the feature-close distillation step, always; (b) an `expertise_full`
+flag from a distilling agent → escalate immediately per the table; (c) out-of-band, the
+`/harness-curate` skill from the main session.
 
 **Curation of leads is surfaced to you.** Because the three leads are your direct reports, the
 briefing carries a compact curation block that **applies unless you object** — you can veto or edit

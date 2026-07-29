@@ -247,6 +247,14 @@ from reading any file.
 The discriminator is the *absence of tool calls*, not the answer's plausibility. A lead with `Read`
 can always go find the file, which is exactly why the full team run is a weak test of preload.
 
+**Live evidence raising this probe's priority (kaya-ai, 2026-07-28):** the orchestrator there
+recorded that Expertise injection failed to fire on one of its own spawns, cause unknown — the same
+symptom class as DEC-108's non-firing domain hook. One occurrence, self-reported, but it cost a
+repeat of an already-recorded failure. The probe should also cover `SubagentStart` injection, not
+only `skills:` preload: spawn one harness agent whose Expertise file exists and confirm the block
+arrives. (Originally mis-filed as orchestrator Expertise; removed from there — a harness defect is
+a bug report, not a learning.)
+
 ### Step 2 — the team run
 
 `validator-lead` conducts the `review` team against a pinned SHA. **Omit the runner path from the

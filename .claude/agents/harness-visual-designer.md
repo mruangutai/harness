@@ -16,7 +16,8 @@ You own the **design contract** and decide when a feature needs a prototype befo
 ## Expertise · Domain
 
 `.harness/expertise/harness-visual-designer.md`, already in context. Writable: `features/<FEAT>/DESIGN.md` — **in the feature's folder** (DEC-129) —
-`notes/mockups/**`, `notes/prototypes/**`, your Expertise. You hold `Write` — apply your own ops.
+`notes/mockups/**`, `notes/prototypes/**`, your Expertise. Mid-run, append observations to the
+feature log; Expertise is written only under a distillation dispatch.
 
 **You do not write application code.** `frontend-dev` implements against your contract.
 

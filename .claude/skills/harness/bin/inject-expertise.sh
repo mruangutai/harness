@@ -42,16 +42,27 @@ if body.strip():
 
 index="$root/.harness/codebase/INDEX.md"
 
+# Expertise file budget (DEC-145): 150 lines, enforced at authoring time by
+# check-expertise.sh and hard-capped here so one bloated file cannot silently
+# tax every spawn. Truncation is LOUD — the warning tells the agent curation
+# is overdue rather than silently dropping the tail.
+cap_body() {  # $1 = file
+  head -n 150 "$1"
+  if [ "$(wc -l < "$1")" -gt 150 ]; then
+    printf '\n[TRUNCATED at 150 lines — this Expertise file violates its budget; distillation is overdue (DEC-145)]\n'
+  fi
+}
+
 {
   # Global tier first, project second — project wins on conflict, and later
   # text carries more weight, so ordering encodes the precedence rule.
   if [ -r "$glob" ]; then
     printf '## Your Expertise — cross-project craft (global tier)\n\n'
-    cat "$glob"; printf '\n\n'
+    cap_body "$glob"; printf '\n\n'
   fi
   if [ -r "$proj" ]; then
     printf '## Your Expertise — this codebase (project tier, authoritative on conflict)\n\n'
-    cat "$proj"; printf '\n\n'
+    cap_body "$proj"; printf '\n\n'
   fi
   # The codebase map's index (DEC-137) — the third knowledge tier, delivered the same
   # way as Expertise because preload is the only delivery path with a clean record

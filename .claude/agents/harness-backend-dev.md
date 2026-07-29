@@ -19,8 +19,8 @@ APIs, services, business logic, auth, background jobs, server-side integration.
 ## Expertise · Domain
 
 `.harness/expertise/harness-backend-dev.md` is already in your context — how this codebase's service
-layer actually behaves, which integrations are flaky, what the error conventions are. You hold `Write`;
-apply your own ops.
+layer actually behaves, which integrations are flaky, what the error conventions are. Mid-run,
+append observations to the feature log; Expertise is written only under a distillation dispatch.
 
 Writable paths are in `.harness/team-config.yaml`. Read anything.
 

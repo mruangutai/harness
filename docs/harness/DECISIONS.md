@@ -3487,3 +3487,63 @@ grammars. The init question that keys it ("Mirror features to GitHub Issues?") w
 <!-- stale: four prerequisites -->
 <!-- stale: ALL FOUR entries -->
 <!-- stale: fourth mandatory -->
+
+---
+
+## DEC-145 — Expertise v2: observations mid-run, Expertise only at distillation
+
+Field report from the kaya-ai two-feature run: Expertise files bloated to 1,371 lines / ~21k words
+across 13 files (pm 6,796 words, product-lead 5,191, validator-lead 3,092). The entry-count caps
+held — the growth was *inside* entries (one 1,073-word bullet; another with ten inlined incidents
+labelled (a)–(j)) and in invented, uncapped section names ("Recurring failure modes", "Assessing
+members"). Since `inject-expertise.sh` cats the whole file into every spawn, every dispatch paid
+the tax, compounding per cycle.
+
+Three root causes, all verified: injection was whole-file and uncapped; the §5.4 curation loop was
+spec-only — carried into no runtime skill, so nothing ever distilled; and the design asked the
+agent hot with an incident to record AND abstract in the same moment. It records. "Prefer merge
+over add" then rewarded appending case histories to existing entries — cap-compliant bloat.
+
+**The fix splits recording from distillation.** Mid-run, agents append granular observations to
+`.harness/features/<FEAT>/observations/<agent>.md` — never injected, so detail is free; every
+agent's domain gains that one path. Expertise is written only under a distillation dispatch: the
+new feature-close step in the orchestrator playbook (leads distill members, orchestrator distills
+leads, per DEC-69's recommend/condense/apply split), or the new `/harness-curate` skill
+out-of-band. `expertise_update: []` is the normal DIGEST on every other run.
+
+**Format is now mechanical, not advisory:** entries are WHEN/DO rules or durable repo facts, ≤50
+words, no FEAT/T/issue tokens, no nested bullets or instance lists; four canonical sections only;
+150-line file budget. `bin/check-expertise.sh` enforces it (exit 1 with per-violation report), and
+`inject-expertise.sh` hard-truncates at 150 lines with a loud in-context warning, so one bloated
+file can never again silently tax every spawn. `merge` is redefined: the result may be no longer
+than the longer input — appending an instance is `add` wearing a costume.
+
+Supersedes the mid-run write discipline of DEC-24/66/67 (the op format, IDs, and who-holds-the-pen
+all survive; only the *when* moved) and DEC-25/68's overflow flow becomes the escalation path when
+a distilling agent cannot condense under the caps. Live probe deferred to the next kaya-ai feature
+run: agents appending observations, feature-close distillation firing, injected context staying
+under budget.
+<!-- stale: apply your own ops -->
+<!-- stale: merge` over `add -->
+<!-- stale: if you learned nothing durable -->
+
+**Amendment (same day):** a third boundary joined decision-vs-observation: **a harness defect is a
+bug report, not a learning** — it routes to `open_questions`, never Expertise, because a recorded
+workaround outlives the fix. Found live in the kaya retrofit: the orchestrator had filed "injection
+failed to fire once; cat the file manually" and "member caps silently stop learning" as Outcomes —
+the first is now evidence on BUILD.md's task-10 preload probe, the second is this very decision.
+
+**Amendment 2 (2026-07-29) — the digest-skim, dry-run-proven before wiring.** Tested on FEAT-01's
+11 real eng digests with a sandboxed member before touching the playbook. The lead (recall) stayed
+bounded — 3 sourced, observation-phrased candidates per member — and its yield included a class we
+did not predict: two existing Expertise entries contradicted by code shipped later in the feature,
+so the skim doubles as a staleness audit. The member (precision) accepted 2, and REJECTED one with
+a reason — no rubber-stamping of its lead. Wired into the playbook with the guards that keep the
+three-party split a pipeline, not diffusion: ≤3 candidates, observation-phrasing, rejection as a
+first-class recorded outcome, displacement-never-merge at a full section, and per-source accept
+counts in the distillation digest so a skim that stops yielding gets cut. Also pinned the run-dir
+slug grammar (`<task-or-purpose>-<squad>`, no feature infix) — FEAT-02's dirs embedded the feature
+id redundantly. Displacement-at-cap remains untested (no section was full); first live distillation
+covers it. Same test measured re-bloat velocity: 9 of 15 kaya files failed the checker within a day
+of distillation because kaya still ran the old rules — deploy is the gating control, not authoring
+discipline.

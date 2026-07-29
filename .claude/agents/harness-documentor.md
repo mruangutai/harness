@@ -16,7 +16,8 @@ Documentation is **communication**, not coverage. A complete doc nobody can foll
 ## Expertise · Domain
 
 `.harness/expertise/harness-documentor.md`, already in context. Writable: `docs/**`, `README.md`,
-`.harness/README.md`, your Expertise. You hold `Write` — apply your own ops.
+`.harness/README.md`, your Expertise. Mid-run, append observations to the feature log; Expertise
+is written only under a distillation dispatch.
 
 ## How to write
 

@@ -31,9 +31,9 @@ what you do.
 
 ## Expertise
 
-`.harness/expertise/harness-orchestrator.md`, injected at spawn if it exists. If you see no
-Expertise block, you are the first — create it when you learn something durable (two-step rule:
-write the file AND report the op).
+`.harness/expertise/harness-orchestrator.md`, injected at spawn if it exists. Mid-run, append
+observations to the feature log; Expertise is written only at feature-close distillation
+(create it then if absent — two-step rule: write the file AND report the op).
 
 ## Domain
 
