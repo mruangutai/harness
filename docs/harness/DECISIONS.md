@@ -3547,3 +3547,19 @@ id redundantly. Displacement-at-cap remains untested (no section was full); firs
 covers it. Same test measured re-bloat velocity: 9 of 15 kaya files failed the checker within a day
 of distillation because kaya still ran the old rules — deploy is the gating control, not authoring
 discipline.
+
+---
+
+## DEC-146 — Board-flip lookup inverted: issue → projectItems, no item cap
+
+The DEC-144 port kept the original's lookup direction for the In-Progress flip: list the whole
+project (`gh project item-list --limit 500`) and filter for the issue client-side. The cap is a
+time bomb — past 500 board items the issue falls outside the page, `item` comes back empty, and
+the `[ -n "$item" ] &&` guard **silently skips the flip forever**: the gate still gates, but the
+board decays with no failure anywhere. Raising the limit only moves the date.
+
+Inverted the direction: one GraphQL query on the issue node's `projectItems` (an issue sits on at
+most a handful of boards), filtered by the pinned `project_id`. O(boards-per-issue) instead of
+O(tickets-per-board); no pagination, no cap. Six offline proof shapes green, including a two-board
+node set where the flip must select by project id, both deny forms, the flow-dir form, and the
+sync-off pass-through. Flip stays best-effort by design — only the lookup direction changed.

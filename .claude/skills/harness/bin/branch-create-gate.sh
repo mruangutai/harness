@@ -96,10 +96,14 @@ fi
 [ "$state" = "OPEN" ] || deny "Issue #${num} is ${state}, not OPEN. Branch off an open issue."
 
 # ---- optional board flip (config-driven; the original hardcoded kaya's IDs)
+# Item-id lookup goes ISSUE → projectItems (a handful of boards per issue), not
+# project → item-list (O(board size), which needed a --limit that silently broke
+# past 500 tickets). No cap in this direction.
 if [ "$PROJ_NUM" != "-" ] && [ "$PROJ_ID" != "-" ] && [ "$FIELD_ID" != "-" ] && [ "$OPT_ID" != "-" ]; then
-  owner="${REPO%%/*}"
-  item=$("$GH" project item-list "$PROJ_NUM" --owner "$owner" --format json --limit 500 2>/dev/null \
-    | python3 -c "import sys,json;n=int(sys.argv[1]);d=json.load(sys.stdin);print(next((i['id'] for i in d.get('items',[]) if (i.get('content') or {}).get('number')==n),''))" "$num" 2>/dev/null)
+  item=$("$GH" api graphql \
+    -f query='query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){issue(number:$num){projectItems(first:50){nodes{id project{id}}}}}}' \
+    -f owner="${REPO%%/*}" -f repo="${REPO#*/}" -F num="$num" 2>/dev/null \
+    | python3 -c "import sys,json;p=sys.argv[1];d=json.load(sys.stdin);ns=(((d.get('data') or {}).get('repository') or {}).get('issue') or {}).get('projectItems',{}).get('nodes') or [];print(next((n['id'] for n in ns if (n.get('project') or {}).get('id')==p),''))" "$PROJ_ID" 2>/dev/null)
   [ -n "$item" ] && "$GH" project item-edit --id "$item" --project-id "$PROJ_ID" \
     --field-id "$FIELD_ID" --single-select-option-id "$OPT_ID" >/dev/null 2>&1
 fi
