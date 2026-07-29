@@ -169,6 +169,33 @@ Authoring rules the first real audit earned (DEC-141):
 - **Physical and component diagrams stay at their level** — processes/runtimes/externals in one,
   modules/boundaries in the other; a mixed diagram answers neither question.
 
+## Mission: deepen — the architecture-review scan (DEC-149)
+
+Runs **between features**, on the user's invocation or when a briefing/backlog signals friction —
+never inside a build (mid-build is the wrong time to want a different architecture). Proposes work;
+the map records what IS. Adapted from Matt Pocock's `improve-codebase-architecture` (MIT), re-homed
+onto harness machinery:
+
+1. **Scope by heat.** Hot spots first: the files the last shipped feature(s) touched (union their
+   `files_touched`), then `git log --oneline` recurrence. Deepening pays off where change happens.
+2. **Scan** (eng-lead conducts): specialists walk their own surfaces for friction, in the
+   `harness-codebase-design` vocabulary — shallow modules (deletion test), understanding one
+   concept requiring a bounce across many small modules, tests that reach past an interface, seams
+   nothing varies across. Read `glossary.md` first — candidates are named in domain terms — and the
+   feature dirs' `## Decisions`: a candidate contradicting a recorded D-NN surfaces only if the
+   friction justifies REOPENING it, flagged as such.
+3. **Verify adversarially** (validator-lead): each candidate gets the review-panel treatment — is
+   the friction real, does the deletion test actually concentrate complexity, what breaks? Killed
+   candidates die with a reason.
+4. **Report:** survivors land in `.harness/features/` as a notes artifact — per candidate: files,
+   problem, solution in plain English, benefits as locality/leverage, recommendation strength
+   (Strong / Worth exploring / Speculative) — topped by ONE top recommendation. Human-readable
+   rendering follows the render-map pattern (offline, derived, never authored HTML). No interfaces
+   are designed at this stage.
+5. **The user picks at the briefing.** An accepted candidate enters `/harness-plan` as a normal
+   feature (design-it-twice available to eng-lead at its interface-defining tasks); a rejection
+   with a load-bearing reason is recorded as a D-NN so the next scan does not re-suggest it.
+
 ## Ship-refresh — the map stays true (DEC-137 amendment)
 
 In mission ship, after the SCs pass and before the briefing:

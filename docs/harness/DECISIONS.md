@@ -3598,3 +3598,38 @@ context/state-on-disk design already guarantees a successor loses nothing (prove
 orchestrator dying at a restart AFTER completing its render, with zero loss). Payloads never ride
 forward: a member's output lives in its digest file; the orchestrator's context needs the verdict
 and the path.
+
+---
+
+## DEC-149 — Design knowledge enters the org: vocabulary, glossary, and the deepen mission
+
+Three imports from Matt Pocock's MIT-licensed skills (mattpocock/skills), each re-homed onto
+existing harness machinery rather than bolted on:
+
+**`harness-codebase-design` — a new rule skill** (from `codebase-design`): the deep-module
+vocabulary (module/interface/seam/adapter/depth/leverage/locality) plus four tests — the deletion
+test, the-interface-is-the-test-surface, one-adapter-hypothetical-two-real, and
+state-the-lifetime-with-the-seam (the fourth is ours, generalized from the kaya pool-leak that four
+green gates missed and eng-lead's diff-read caught). Preloaded by **eng-lead** (dispatch constraints,
+architecture review, optional design-it-twice on interface-defining tasks) and **code-reviewer**
+(stage-two finding shapes). Doers receive it through dispatch prompts, not preload — context budget.
+
+**The D-NN bar and the glossary — into `harness-spec-driven`** (from `domain-modeling`): a choice
+earns a D-NN only when hard-to-reverse ∧ surprising-without-context ∧ real-trade-off; otherwise it
+is a digest note. NO second decision store — the ADR practice's filter is imported, its `docs/adr/`
+is not (nothing is declared twice). The ubiquitous language lives at
+`.harness/codebase/glossary.md`, a pm-owned map lens (domain granted in team-config): challenge
+drift before it lands in a REQ, sharpen overloaded terms before SCs are written against them, code
+wins over stated meaning, update inline at ship-refresh. Field motivation: kaya's status-vocabulary
+question and the expense_credit badge-vs-blocker confusion both went up as open questions a
+glossary would have pre-answered.
+
+**Mission `deepen` — in the playbook** (from `improve-codebase-architecture`): a between-features
+scan, never mid-build. Hot spots from the last ship's `files_touched` → eng squad scans in the
+design vocabulary → validator panel adversarially verifies each candidate → surviving candidates
+reported with recommendation strength → the user picks at a briefing, and the pick enters
+/harness-plan as a normal feature. Three adaptations from the original: the interactive grilling
+loop becomes the main-session approval conversation (agents have no user channel); the CDN-built
+HTML report becomes the render-map offline pattern; rejected-with-reason becomes a D-NN instead of
+an ADR. Cadence: the three imports fire at different times — the vocabulary is a lens on every
+step, glossary/D-NN-bar fire where language and decisions are born, deepen runs between features.

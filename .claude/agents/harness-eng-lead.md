@@ -9,6 +9,7 @@ skills:
   - harness-expertise
   - harness-zero-micro-management
   - harness-team
+  - harness-codebase-design
 ---
 
 # Harness: Engineering Lead

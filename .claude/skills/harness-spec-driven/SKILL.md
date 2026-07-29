@@ -43,6 +43,30 @@ If implementation choices are logged as requirements, your own goal-check will "
 delivered your technical decisions rather than the outcomes that were committed to — passing green while
 missing the point entirely.
 
+**The D-NN bar (DEC-149, adapted from ADR practice):** a choice earns a `D-NN` — and therefore the
+user's attention at approval — only when ALL THREE hold: **hard to reverse** (changing course later
+costs something real), **surprising without context** (a future reader would ask "why this way?"),
+and **a real trade-off** (genuine alternatives existed). Anything failing one is a digest note, not
+a decision. A rejected alternative that a future architecture scan would re-suggest is the classic
+D-NN: record the load-bearing reason so it is not re-litigated.
+
+## The glossary — the domain's language is yours to keep sharp
+
+`.harness/codebase/glossary.md` is your map lens for the domain's **ubiquitous language**: one
+canonical term per concept, no implementation detail — a glossary, never a spec or scratch pad.
+Working rules (DEC-149, adapted from domain-modeling practice):
+
+- **Challenge drift:** a brief, dispatch or user phrase that conflicts with the glossary gets
+  called out before it lands in a REQ ("the glossary defines *cancellation* as X; you seem to mean
+  Y — which?").
+- **Sharpen fuzz:** an overloaded term ("account" — the Customer or the User?) gets a canonical
+  name before an SC is written against it.
+- **Code wins:** when a stated meaning contradicts what the code does, surface the contradiction —
+  the same re-derive discipline you already apply to anchors, aimed at language.
+- **Update inline, at the moment a term is settled** — a feature that pins a vocabulary (an enum,
+  a status set) updates the glossary in the same ship-refresh pass that updates your
+  product-surface lens. Create the file lazily; empty is worse than absent.
+
 ## Success criteria declare how they are verified
 
 Every `SC-NN` carries `verify: automated | inspection | uat`. An SC with no method is not verifiable, and

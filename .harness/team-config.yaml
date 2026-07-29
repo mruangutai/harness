@@ -91,6 +91,7 @@ teams:
           - { path: .harness/notes/research-*.md, upsert: true }            # project-scoped research only
           - { path: .harness/features/*/notes/uat-*.md, upsert: true }
           - { path: .harness/codebase/product-surface.md, upsert: true }   # its map lens (DEC-137)
+          - { path: .harness/codebase/glossary.md, upsert: true }          # ubiquitous language (DEC-149)
           - { path: .harness/expertise/harness-pm.md, upsert: true }
           - { path: .harness/features/*/observations/harness-pm.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }

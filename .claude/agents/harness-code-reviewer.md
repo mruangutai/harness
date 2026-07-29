@@ -8,6 +8,7 @@ skills:
   - harness-handoff
   - harness-expertise
   - harness-code-review
+  - harness-codebase-design
 ---
 
 # Harness: Code Reviewer
