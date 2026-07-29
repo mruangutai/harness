@@ -247,6 +247,11 @@ from reading any file.
 The discriminator is the *absence of tool calls*, not the answer's plausibility. A lead with `Read`
 can always go find the file, which is exactly why the full team run is a weak test of preload.
 
+**Second open defect from the same source (kaya-ai, 2026-07-29, extracted at re-curation):** the
+`SubagentStop` validator passes returns that carry only an `artifact:` path with **no VERDICT and
+no DIGEST** — a lead without `Bash` cannot recover such a return and must burn an evidence-only
+re-dispatch. Reported independently by kaya's validator-lead (twice, against harness-qa).
+
 **Live evidence raising this probe's priority (kaya-ai, 2026-07-28):** the orchestrator there
 recorded that Expertise injection failed to fire on one of its own spawns, cause unknown — the same
 symptom class as DEC-108's non-firing domain hook. One occurrence, self-reported, but it cost a
