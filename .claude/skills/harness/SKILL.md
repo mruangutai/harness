@@ -213,6 +213,22 @@ only place project Expertise changes during a flow.
 squad suffix is what the lead's domain glob keys on; never embed the feature id, the parent dir
 already carries it.
 
+## Relay yourself before you get expensive (DEC-148)
+
+Your context is disposable by design — every dispatch checkpoints `state.yaml` BEFORE the spawn,
+and `feature.yaml`/`STATE.md`/run digests carry everything a successor needs. That is not just
+crash insurance: cost grows with the square of your session length (each turn re-reads everything
+before it), so a 700-turn orchestrator costs far more than sequential shorter ones doing identical
+work. `cost-report.py`'s context watchdog flags the ratio after the fact; you prevent it:
+
+- **At each mission-phase boundary** (plan → build → validate → ship), if the phase behind you took
+  more than ~10 dispatches, finish the phase, write the checkpoint, and END YOUR RUN — report
+  "phase complete, spawn a successor for the next phase" instead of continuing. The successor reads
+  state and loses nothing; this is the same recovery path a crash already exercises.
+- **Never carry payloads forward.** What a member returned lives in its digest file; your context
+  only needs the verdict and the path. If you find yourself re-reading your own long history to
+  remember a detail, that detail belonged in `STATE.md`.
+
 ## The CEO briefing (three triggers, not every completion)
 
 `ship-feature` completes · a lead returns `BLOCKED` · the main session relays "where are we?".

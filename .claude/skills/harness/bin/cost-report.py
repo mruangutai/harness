@@ -140,6 +140,7 @@ def tally(path):
         u_speed = usage.get("speed") or "standard"
         u_geo = usage.get("inference_geo") or "not_available"
         t = per_model[(msg.get("model") or "unknown", u_speed, u_geo)]
+        t["_turns"] += 1
         t["input"] += usage.get("input_tokens") or 0
         t["output"] += usage.get("output_tokens") or 0
         t["cache_read"] += usage.get("cache_read_input_tokens") or 0
@@ -260,6 +261,20 @@ def main():
             lines.append((c, agent, depth, label, spawns.get((agent, depth), 1), dict(t)))
     lines.sort(reverse=True, key=lambda x: x[0])
 
+    # Context watchdog (DEC-148): cache_read / turns ≈ average context re-read per
+    # turn. Cost grows ~quadratically with session length, so a high ratio is the
+    # early signal of a context that should have been relayed to a fresh spawn —
+    # it shows up here months before it shows up as a four-digit cost line.
+    cpt_threshold = int(budgets.get("context_per_turn_tokens") or 200_000)
+    watchdog = []
+    for c, agent, depth, model, n, t in lines:
+        turns = t.get("_turns", 0)
+        if turns >= 20:  # ratios over a handful of turns are noise
+            cpt = t.get("cache_read", 0) // max(turns, 1)
+            if cpt > cpt_threshold:
+                watchdog.append((cpt, agent, depth, model, turns))
+    watchdog.sort(reverse=True)
+
     if as_yaml:
         print("cost:")
         print(f"  currency: usd")
@@ -274,6 +289,11 @@ def main():
                   f"in: {t.get('input',0)}, out: {t.get('output',0)}, "
                   f"cw5m: {t.get('cache_write_5m',0)}, cw1h: {t.get('cache_write_1h',0)}, "
                   f"cr: {t.get('cache_read',0)} }}")
+        if watchdog:
+            print(f"  context_watchdog:   # avg cache-read/turn over {cpt_threshold:,} tokens — relay to a fresh spawn (DEC-148)")
+            for cpt, agent, depth, model, turns in watchdog:
+                print(f"    - {{ agent: {agent}, depth: {depth}, model: {model}, "
+                      f"turns: {turns}, context_per_turn: {cpt} }}")
         if unpriced:
             print("  unpriced:")
             for a, m in unpriced:
@@ -296,6 +316,11 @@ def main():
               f"{t.get('cache_write_5m',0):,}/{t.get('cache_write_1h',0):,}/"
               f"{t.get('cache_read',0):,}")
     print(f"\n  {'TOTAL':<28} {'':>1} {'':>3} {'':<18} {total:>8.4f}")
+
+    if watchdog:
+        print(f"\n  CONTEXT WATCHDOG — avg cache-read/turn over {cpt_threshold:,} tokens (relay to a fresh spawn, DEC-148):")
+        for cpt, agent, depth, model, turns in watchdog:
+            print(f"    {agent:<28} {model:<18} {turns:>5} turns   {cpt:,}/turn")
 
     per_feature = budgets.get("per_feature_usd")
     if per_feature:

@@ -3577,3 +3577,24 @@ this is a platform invariant that holds for every spawner in every project. Wron
 the rule skills — the playbook's delegation rule and the team runner's dispatch step now state it —
 via the SPEC §7 promotion path firing on its first real case. Heuristic worth keeping: **a lesson
 three or more agents record independently is constitution or codebase-map content, not Expertise.**
+
+---
+
+## DEC-148 — The long-context tax: a watchdog in cost-report and a relay rule in the playbook
+
+The kaya cost snapshot's headline line — $1,010 on one "orchestrator" row — decomposed to ~all
+cache reads: 3.48B tokens of context re-read, i.e. context length × turn count, growing with the
+square of session length. Measured directly: the map rebuild orchestrator averaged 310k tokens of
+context per turn over 1,360 turns; the cumulative main-session line, 304k/turn over 11,449 turns.
+Expertise injection was 1–3% of that tax (DEC-145 already caps it); the dominant term is agents
+living too long in one context.
+
+Two changes. **cost-report.py grows a context watchdog:** it now counts turns per agent line and
+flags any agent whose average cache-read/turn exceeds `budgets.context_per_turn_tokens` (default
+200k) — first run on kaya flagged exactly the three known offenders and nothing else. **The
+playbook grows a relay rule:** the orchestrator ends its run at mission-phase boundaries once a
+phase has cost ~10+ dispatches, reporting "phase complete, spawn a successor" — the disposable-
+context/state-on-disk design already guarantees a successor loses nothing (proven by the map
+orchestrator dying at a restart AFTER completing its render, with zero loss). Payloads never ride
+forward: a member's output lives in its digest file; the orchestrator's context needs the verdict
+and the path.
