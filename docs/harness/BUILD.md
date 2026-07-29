@@ -211,6 +211,26 @@ the time of writing; the live list is authoritative if the two disagree.
 | 20 | debug ability | **built** (DEC-139) — not a team: an investigation segment (eng specialist in debug mode: reproduce → localize → root-cause with evidence, no fix; 3 failed hypotheses = BLOCKED) whose report seeds pm's mini-plan; then the standard gates. Bugs are `BUG-NN-<slug>` flows, same machinery (verified prefix-agnostic). Ledger's old single-squad row contradicted DEC-118 and is superseded. Unproven until kaya-ai's first real bug |
 | 19 | **Remove GSD globally** — the machine, not this repo | **done — verified empty 2026-07-28.** The 2026-07-26 global uninstall covered the entire inventory; every item checked live: 0 gsd agents, 0 commands, 0 hook refs, no statusline, 0 global-CLAUDE.md lines, `~/.claude/get-shit-done/` and `~/.gsd/` both gone. The DEC-115 gate had been guarding a fallback that no longer existed. Residual is per-project debris in target repos (kaya-ai's own `.planning/`, stale memories) — handled at onboarding, not globally |
 
+## Baseline — 2026-07-29, after DEC-145..148 (measure the next kaya feature against this)
+
+All numbers measured in the field (kaya-ai, FEAT-01 era, old rules), not estimated:
+
+| Metric | Baseline (old rules) | Target signal (new rules) | How to measure |
+|---|---|---|---|
+| Expertise checker pass rate | 9 of 15 files FAILING within 24h of a clean distillation | 15/15 stays green across a feature | `bin/check-expertise.sh .harness/expertise/` |
+| Expertise corpus size | 1,422 lines / 23,145 words at peak; worst file 383 lines | ≤150 lines/file by physics; corpus roughly flat per feature | `wc -lw .harness/expertise/*.md` |
+| Per-spawn injection tax | worst file ~7k tokens, uncapped, growing | ≤150 lines hard-capped, truncation warning never seen | grep the warning string in spawn contexts |
+| Context per turn | map-orchestrator 310k cache-read/turn × 1,360 turns; cumulative main line 304k/turn × 11,449 turns | orchestrator lines under the 200k watchdog threshold; watchdog section empty for new runs | `bin/cost-report.py --since <feature start>` |
+| Cost per feature | cumulative $1,338 vs $50/feature budget (per-feature cut unavailable pre-DEC-148) | first clean per-feature number via `--since`; the $50 SC-1 budget is the stated bar | `bin/cost-report.py --yaml --since <date>` |
+| Mid-run Expertise writes | routine (the bloat vector) | zero — `expertise_update: []` on every non-distillation DIGEST | grep DIGESTs in run dirs |
+| Digest-skim yield | dry-run: 2 accepted + 1 reasoned rejection + 2 stale-entry catches from 11 digests | non-zero accepted count per feature, else sunset it (DEC-145 am.2) | per-source counts in distillation digests |
+| Flat-roster spawn error | recurred ≥4 times across 3 agents' independent lessons | zero recurrences (now constitutional, DEC-147) | grep session logs for the rejection string |
+| Relay behavior | orchestrators lived 700–1,360 turns in one context | phase-boundary handoffs appear; longest orchestrator life shrinks | turns column in the watchdog output |
+
+The first full FEAT-02 build→ship run on the new rules is the experiment; run the comparison at its
+CEO briefing. Also still owed from this table's era: the displacement-at-cap rule has never fired
+live, and the observations logs have existed for zero features — both get their first data there.
+
 ## Task 10 — proving lead collation: procedure, and what is still open
 
 **Written down because it spans a restart.** Agent definitions are not live-reloaded, so the
