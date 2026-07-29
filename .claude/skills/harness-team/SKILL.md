@@ -66,7 +66,9 @@ a time**, even when the DAG would allow parallelism. This is the actual write-sa
 `check-domain.sh` cannot see writes made through `Bash`, and every doer holds it (DEC-85). Do not
 treat a passing domain hook as proof that parallel writes are safe.
 
-**d. Dispatch the rest of the ready set in one turn** — **all `Agent` calls in a single message.**
+**d. Dispatch the rest of the ready set in one turn** — **all `Agent` calls in a single message,
+never with a `name:` parameter** (a spawned host is itself a teammate, and teammate→teammate named
+spawns are rejected — "the roster is flat"; plain subagents succeed, DEC-147).
 
 *The reason is not what this used to say.* It claimed separate turns "run one after another and the
 fan-out is lost". **Measured, that is false**: a lead that dispatched three reviewers across three

@@ -21,7 +21,11 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
      is your starting state, not a violation. Your terminus is returning them `pending` for the
      user's signature; you never mark them approved (only the main session writes `## Approval`).
 2. **Decide next** — next task/team in PLAN order, plus any pending adjustment from the last cycle.
-3. **Delegate to a lead, never a member.** Title every dispatch `<flow-id> · <step or task id> · <what, 3–6 words>` — the flow id at every layer is what lets the user read the spawn tree as one chain (DEC-142). A whole team goes to its named lead (the lead hosts the
+3. **Delegate to a lead, never a member.** Every dispatch is a plain subagent — **never pass a
+   `name:` parameter**: you are yourself a teammate, and the platform rejects teammate→teammate
+   spawns ("the roster is flat"). The identical dispatch without `name:` succeeds (DEC-147). Title
+   every dispatch `<flow-id> · <step or task id> · <what, 3–6 words>` — the flow id at every layer
+   is what lets the user read the spawn tree as one chain (DEC-142). A whole team goes to its named lead (the lead hosts the
    DAG via `harness-team`); a single task goes to the lead that owns the relevant persona, which
    routes it by `consult-when`. Cross-squad work is **one run per squad, sequenced by you** — a lead
    cannot dispatch another squad (DEC-118). Pass paths, never content; pin `review_sha` before any

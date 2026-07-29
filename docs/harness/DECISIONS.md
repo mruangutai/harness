@@ -3563,3 +3563,17 @@ most a handful of boards), filtered by the pinned `project_id`. O(boards-per-iss
 O(tickets-per-board); no pagination, no cap. Six offline proof shapes green, including a two-board
 node set where the flip must select by project id, both deny forms, the flow-dir form, and the
 sync-off pass-through. Flip stays best-effort by design — only the lookup direction changed.
+
+---
+
+## DEC-147 — Flat-roster rule promoted from Expertise to the constitution
+
+Kaya field report: an orchestrator dispatched eng-lead with a `name:` parameter and got the
+platform rejection "Teammates cannot spawn other teammates — the team roster is flat" — for at
+least the fourth time. Three agents had each already learned this independently (orchestrator,
+eng-lead, product-lead Expertise all carry "omit `name:`"), and it recurred anyway: Expertise is
+per-agent and probabilistic (a fresh agent, or one injection miss, and the lesson is absent), while
+this is a platform invariant that holds for every spawner in every project. Wrong tier. Promoted to
+the rule skills — the playbook's delegation rule and the team runner's dispatch step now state it —
+via the SPEC §7 promotion path firing on its first real case. Heuristic worth keeping: **a lesson
+three or more agents record independently is constitution or codebase-map content, not Expertise.**
