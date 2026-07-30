@@ -91,6 +91,7 @@ if [ ! -r "$manifest" ]; then
   exit 0
 fi
 
+domain_check() {
 python3 - "$agent" "$target" "$manifest" "$root" <<'PY'
 import sys, os, re
 
@@ -202,4 +203,74 @@ if shared:
 print(f"  If this path should be yours, it belongs in {os.path.relpath(manifest, root)} "
       f"— do not work around this hook.", file=sys.stderr)
 sys.exit(2)
+PY
+}
+
+domain_check; rc=$?
+[ "$rc" -eq 0 ] || exit "$rc"
+
+# ---- STATE-FILE SHAPE GATE (DEC-150) ------------------------------------------------
+# feature.yaml and STATE.md are read at every cycle/spawn, so they must stay
+# index-sized. This gate denies the Write that starts the accretion — the 141KB
+# feature.yaml observed in the field was built one read-modify-write at a time,
+# and every increment passes the full content through this hook. Write only:
+# the governed writers (orchestrator, leads) hold no Edit, and an Edit payload
+# cannot be sized without reading the target.
+# Payload rides an env var: `python3 -` takes its PROGRAM from stdin, so piping
+# the payload alongside a heredoc silently loses it (the gate's first draft did
+# exactly that and passed everything).
+HOOK_PAYLOAD="$payload" python3 - "$target" "$root" <<'PY'
+import sys, os, re, json
+
+target, root = sys.argv[1:3]
+try:
+    d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
+except Exception:
+    sys.exit(0)
+if (d.get("tool_name") or "") != "Write":
+    sys.exit(0)
+content = (d.get("tool_input") or {}).get("content") or ""
+
+rel = os.path.relpath(os.path.abspath(target), os.path.abspath(root))
+wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
+if wt:
+    rel = wt.group(1)
+
+lines = content.splitlines()
+
+def deny(msgs):
+    print("check-domain: BLOCKED — state-file shape (DEC-150).", file=sys.stderr)
+    for m in msgs:
+        print(f"  {m}", file=sys.stderr)
+    print("  Routing: current truth REPLACES STATE.md ## Current; per-run findings go in that "
+          "run's digest.md; rationale goes in notes/. State files carry no history.",
+          file=sys.stderr)
+    sys.exit(2)
+
+if re.match(r"^\.harness/features/[^/]+/feature\.yaml$", rel):
+    problems = []
+    if len(lines) > 200:
+        problems.append(f"feature.yaml is {len(lines)} lines — budget is 200. It is data a script "
+                        f"parses, not a journal.")
+    comments = sum(1 for l in lines if l.lstrip().startswith("#"))
+    if comments > 20:
+        problems.append(f"{comments} comment lines — budget is 20. Narrative commentary does not "
+                        f"belong in feature.yaml.")
+    if problems:
+        deny(problems)
+
+if re.match(r"^\.harness/features/[^/]+/STATE\.md$", rel):
+    problems = []
+    if len(lines) > 120:
+        problems.append(f"STATE.md is {len(lines)} lines — budget is 120. It holds no history: "
+                        f"## Current is replaced, never appended.")
+    h2 = [l.strip() for l in lines if l.startswith("## ")]
+    bad = [h for h in h2 if h not in ("## Current", "## Open Questions")]
+    if bad:
+        problems.append(f"illegal section(s) {bad} — STATE.md is `## Current` + "
+                        f"`## Open Questions` and nothing else (SPEC §2).")
+    if problems:
+        deny(problems)
+
+sys.exit(0)
 PY

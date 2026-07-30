@@ -11,8 +11,15 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
 
 ## The loop
 
-1. **Read state from disk, every cycle** — `BRIEF.md`, `PLAN.md`, your feature's `STATE.md` and
-   `feature.yaml`. Never from memory: your context may reset, and the files are what survive.
+1. **Read state from disk, every cycle** — your feature's `STATE.md` and `feature.yaml`, plus the
+   `BRIEF.md`/`PLAN.md` **sections your current step needs** (Grep for the task/SC id; PLAN can run
+   to tens of KB and you rarely need it whole). Never from memory: your context may reset, and the
+   files are what survive. **Resuming a predecessor: the handoff prompt is your working set** —
+   read only the artifacts it names, by path. `runs/` and `notes/` are archives, read by pointer
+   when a specific digest is cited, NEVER as a startup sweep — a wholesale read of a mature
+   feature dir costs ~100k tokens before the first decision (DEC-150).
+   First cycle ever: instantiate `STATE.md` and `feature.yaml` from
+   `.claude/skills/harness/templates/`. **The approval gate depends on your mission:**
    First cycle ever: instantiate `STATE.md` and `feature.yaml` from
    `.claude/skills/harness/templates/`. **The approval gate depends on your mission:**
    - mission **ship** (or resuming one): BRIEF *and* PLAN must both carry `status: approved` —
@@ -32,8 +39,11 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    validator run (INV-6).
 4. **Receive the team digest.** The `SubagentStop` hook has checked its shape and roll-up at source,
    but shape is not truth: spot-check `files_touched` against the artifacts when a claim matters.
-5. **Adjust and record** — append the per-member roll-up to `STATE.md`, update `feature.yaml`
-   (runs list, `cycles_used` from what the lead reported, cost), then route (below).
+5. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now (it holds no
+   history; the per-run detail already lives in that run's digest), update `feature.yaml`'s DATA
+   (runs list, `cycles_used` from what the lead reported, cost — values, never narrative: the
+   shape gate denies a feature.yaml over 200 lines or 20 comment lines, DEC-150), then route
+   (below).
 6. **Loop until DONE — and done means the success criteria are met, not the tasks exhausted.**
    PLAN tasks completing is the builder's claim; BRIEF's `SC-NN` are the goal's. When the last task
    lands, delegate **pm's goal-check** (through product-lead): every SC verified by its declared
@@ -254,7 +264,9 @@ work. `cost-report.py`'s context watchdog flags the ratio after the fact; you pr
   state and loses nothing; this is the same recovery path a crash already exercises.
 - **Never carry payloads forward.** What a member returned lives in its digest file; your context
   only needs the verdict and the path. If you find yourself re-reading your own long history to
-  remember a detail, that detail belonged in `STATE.md`.
+  remember a detail: current truth belongs in `STATE.md ## Current` (replaced, not appended),
+  per-run findings in that run's digest, rationale in `notes/` — never in feature.yaml, and never
+  as history anywhere spawn-read.
 
 ## The CEO briefing (three triggers, not every completion)
 

@@ -3633,3 +3633,40 @@ loop becomes the main-session approval conversation (agents have no user channel
 HTML report becomes the render-map offline pattern; rejected-with-reason becomes a D-NN instead of
 an ADR. Cadence: the three imports fire at different times — the vocabulary is a lens on every
 step, glossary/D-NN-bar fire where language and decisions are born, deepen runs between features.
+
+---
+
+## DEC-150 — State files get physics: the shape gate, and the resume-reading rule
+
+Field report: a resumed FEAT-01 orchestrator hit ~100k tokens "almost immediately." The suspected
+cause (a validator digest it was told to read) measured 6.5KB — innocent. The real causes: the
+handoff's "read all state from disk first: {BRIEF,PLAN,feature.yaml,notes/,runs/}" pointed at
+~1.1MB across 111 files, and feature.yaml itself had grown to 141KB / 1,644 lines of narrative
+YAML comments — the orchestrator's memory dump, paid for by every successor. FEAT-02's copy showed
+the same disease early (a cost figure stored as a paragraph-long string).
+
+The spec was already right — STATE.md is `## Current` + `## Open Questions`, "holds no history at
+all" (§2), feature.yaml is data a script parses — but nothing enforced it, and the playbook itself
+taught the opposite: step 5 said "APPEND the per-member roll-up to STATE.md."
+<!-- stale: append the per-member roll-up -->
+
+Three changes. **A shape gate in check-domain.sh** (stage two, after the domain check): a `Write`
+to `.harness/features/*/feature.yaml` over 200 lines or 20 comment lines, or to `STATE.md` over
+120 lines or carrying any section besides the two legal ones, is DENIED with the routing table as
+the reason — current truth replaces `## Current`, per-run findings go to that run's digest,
+rationale to notes/. Accretion is impossible: the governed writers hold Write not Edit, so every
+increment re-passes the whole file through the gate. Eight proof shapes green (clean/oversized/
+comment-heavy feature.yaml, legal/illegal STATE.md, Edit skipped, main session ungoverned, domain
+block intact). Known side door: Bash writes (DEC-85) — guardrail evasion by constitution, caught
+after the fact by the context watchdog. One found-bug recorded for script authors: `python3 -`
+takes its PROGRAM from stdin, so piping data alongside a heredoc silently loses the data — the
+gate's first draft passed everything; payload now rides an env var.
+
+**The playbook's reading and writing rules corrected:** step 1 scopes reads (Grep BRIEF/PLAN by
+task id; on resume the handoff prompt IS the working set; runs/ and notes/ are archives read by
+pointer, never a startup sweep); step 5 now says REPLACE `## Current`, data-not-narrative for
+feature.yaml; the DEC-148 relay text names the three correct homes instead of "STATE.md" loosely.
+
+**Enforcement honestly labeled:** the reading rule is advisory (reads cannot be gated); the write
+gate is physics; the context watchdog names whoever ignores the advisory part. Kaya's existing
+141KB feature.yaml is cleaned up separately — the gate only prevents new accretion.
