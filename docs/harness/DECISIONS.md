@@ -3872,3 +3872,37 @@ Two clarifications, no new machinery:
 Not mechanized: nothing distinguishes a first-pass run from a rework run in state files, so a
 checker cannot recount cycles independently; INV-7 (cycles_used ≥ recorded FAIL runs) remains
 the floor. Revisit if run records gain a `rework_of:` marker.
+
+## DEC-158 — Context-budget pass: skills carry the rule, DECISIONS carries the rule's history
+
+Measured per-spawn preload (agent file + `skills:` + injected Expertise): orchestrator ~12.3k
+tokens, leads ~8.4–9.2k, dev specialists ~4.8k — replayed across every spawn (kaya FEAT-02:
+58 frontend-dev, 46 product-lead spawns). Profiling the two largest skills (`harness-team` 3.6k
+words, `harness` 3.5k) showed ~25–30% was not rules but rule *history*: incident narratives,
+"this used to say X and was measured false", superseded-rationale walkthroughs. That is
+DECISIONS.md's genre in the agents' hot path — an agent needs the rule and one clause of why,
+not the rule's biography, and since DEC-156 several of those paragraphs restate what a gate now
+enforces mechanically.
+
+Four moves, in force for all rule skills:
+
+1. **Rule + one-clause why + DEC pointer.** History, incident detail, and superseded reasoning
+   live in DECISIONS.md only. Red-flag tables and one-clause whys stay — bare imperatives get
+   rationalized around (DEC-19's lesson), and the tables are dense.
+2. **Conditionally-relevant skills load on demand.** `harness-systematic-debugging` leaves the
+   five dev specialists' preload (its own description says "when working a bug"); a debug-mode
+   dispatch prompt tells the specialist to Read the skill file first (devs hold Read, not Skill).
+   ~800 tokens off every non-bug dev spawn.
+3. **Rare-mission playbook sections move to `references/`.** Missions map and deepen run between
+   features, not in the plan/ship loop every orchestrator spawn serves; they live in
+   `.claude/skills/harness/references/missions.md`, read by path when dispatched with that
+   mission. Ship-refresh and feature-close distillation stay inline — they run every ship.
+4. **Single-source shared contracts.** One canonical copy, pointers elsewhere (the
+   `harness-digest-dev` pattern). Applied here to the DEC-155 dispatch rule (now one line +
+   pointer in harness-team, since dispatch-guard.sh enforces it mechanically) and the stale
+   BUILD-task-22 roll-up warning (the "until that is fixed" box outlived its fix, FEAT-02).
+
+Kept deliberately: the whys themselves, red-flag tables, and everything load-bearing for
+compliance. The real kaya token sink — orchestrators at 258–310k cache-read/turn from session
+longevity — is DEC-148/150's problem, not the skills'; this pass buys latency and instruction
+signal, not a cost order-of-magnitude.

@@ -9,7 +9,6 @@ skills:
   - harness-handoff
   - harness-expertise
   - harness-tdd-enforcement
-  - harness-systematic-debugging
 ---
 
 # Harness: DevOps Engineer

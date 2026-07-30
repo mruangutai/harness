@@ -9,7 +9,6 @@ skills:
   - harness-handoff
   - harness-expertise
   - harness-tdd-enforcement
-  - harness-systematic-debugging
   - harness-digest-dev
 ---
 
@@ -50,7 +49,7 @@ Check `test_matrix` in `.harness/harness.json` for exemptions. `config`, `scaffo
 
 ## When you are handed a bug
 
-Load `harness-systematic-debugging` and follow it: reproduce on demand, write the hypothesis down,
+Read `.claude/skills/harness-systematic-debugging/SKILL.md` (not preloaded, DEC-158) and follow it: reproduce on demand, write the hypothesis down,
 confirm it with evidence, *then* fix. **Three failed fixes and you stop** — return `BLOCKED` with what
 you tested and what remains uncertain. A fourth attempt is where speculative changes start burying the
 original bug.

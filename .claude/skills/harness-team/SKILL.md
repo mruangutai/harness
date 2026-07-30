@@ -78,26 +78,18 @@ treat a passing domain hook as proof that parallel writes are safe.
 never with a `name:` parameter** (a spawned host is itself a teammate, and teammate→teammate named
 spawns are rejected — "the roster is flat"; plain subagents succeed, DEC-147).
 
-*The reason is not what this used to say.* It claimed separate turns "run one after another and the
-fan-out is lost". **Measured, that is false**: a lead that dispatched three reviewers across three
-turns 16s and 8s apart still had all three running concurrently, because Claude Code backgrounds
-subagents (DEC-124). So dispatch across turns is not a broken run. One message is still the rule for
-two better reasons — it does not depend on backgrounding behaviour, which has changed before and is
-not something you can observe from inside; and it keeps one ready set to one checkpoint write, so
-`state.yaml` cannot describe a half-dispatched wave. Parallelism here is implicit in the DAG, not
-requested: any two `pending` steps whose `depends_on` are satisfied and which do not depend on each
-other go together. Verified to work from inside a lead (DEC-100). Caps: 20 concurrent, 200 per
-session, nested spawns counting toward both.
+One message is the rule for two reasons: it does not depend on backgrounding behaviour, which has
+changed before and is unobservable from inside; and one ready set means one checkpoint write, so
+`state.yaml` never describes a half-dispatched wave (DEC-124, DEC-100). Parallelism is implicit in
+the DAG: any two `pending` steps with satisfied `depends_on` and no mutual dependency go together.
+Caps: 20 concurrent, 200 per session, nested spawns counting toward both.
 
 Each dispatch is titled `<flow-id> · <step or task id> · <what, 3–6 words>` — same flow id the orchestrator used, plus your step id (DEC-142); a member's spawn title must be traceable to the flow it serves. Each prompt carries the goal, the resolved **input paths**, the **output paths** the step must
 write, and nothing else.
 
-**Never pass a `model:` parameter in a dispatch (DEC-155).** A member's model is pinned in its
-agent frontmatter — that pin is org design (DEC-152's tiers), and a per-invocation `model:`
-silently outranks it. If you believe a task genuinely needs a stronger model, that is an
-escalation, not a dispatch option: raise it in `open_questions` with the evidence and let it be
-decided above you and recorded. A quiet upgrade is unbudgeted spend that no gate will ever
-surface.
+**Never pass `model:` in a dispatch** — the frontmatter pin is org design (DEC-152/155) and
+`dispatch-guard.sh` blocks the call. A task that genuinely needs a stronger model is an
+escalation via `open_questions`, decided and recorded above you.
 
 **Do not serialize out of caution.** A panel of reviewers dispatched one at a time still returns the
 same verdicts, so the run looks correct while costing several times the wall-clock — the most
@@ -113,15 +105,11 @@ returned a malformed digest gets rejected and re-prompted before it can hand it 
 deliberately covers you too — leads have no `Bash` and could never have run a validator, which is
 exactly why the check moved off the runner and into a hook.
 
-**This is not the same as "every field is guaranteed present" (BUILD task 22).** A live review
-panel proved the earlier wording here false: four ordinary digest formats — nothing exotic, no
-malformed YAML by any normal reading — reached you with a masked `FAIL` at hook exit 0, because the
-roll-up guard was decorative for anything but canonical input. Hardened since, but three gaps are
-structural, not bugs to fix away: the hook deliberately **passes through** a non-harness
-`agent_type`, `stop_hook_active` (so it never wedges a member in a re-prompt loop), and its own
-internal failure (fail OPEN, loudly on stderr — never crash to an ambiguous exit). A return that
-reached you through any of those three paths was never checked. Treat the hook as a strong filter
-that catches drift and structural violations, not as proof you can skip reading what came back.
+**Three gaps are structural, not bugs** (BUILD task 22): the hook deliberately passes through a
+non-harness `agent_type`, `stop_hook_active` (so it never wedges a member in a re-prompt loop),
+and its own internal failure (fail OPEN, loudly). A return that reached you through any of those
+paths was never checked — treat the hook as a strong filter, not as proof you can skip reading
+what came back.
 
 **So do not try to run it yourself, and do not substitute your reading for it.**
 `severity_max: medium` instead of `med`, `must-fix` instead of `must_fix` — you would normalize all
@@ -175,10 +163,8 @@ help — say so in the escalation rather than spending the budget to prove it.
 
 ### 4. Collate — this is the job, not the paperwork
 
-You have N member digests. Collating them is **not** concatenation, and it is not a step you perform
-once the real work is done. It is the reason a lead tier exists: if your team digest is the members'
-digests stapled together, the orchestrator would have been better off reading them directly and you
-cost a spawn for nothing.
+Collating N member digests is **not** concatenation — it is why the lead tier exists. A stapled
+digest means the orchestrator paid your spawn for nothing.
 
 Four things, in order:
 
@@ -186,18 +172,13 @@ Four things, in order:
 `FAIL` deliberately** — a decision only the user can make must not be masked by a failure you could
 have fixed. Never report `PASS` because most members passed; one `FAIL` makes the team `FAIL`.
 
-**This one is checked — but only partly, today.** The `SubagentStop` hook computes the worst verdict across your
-`members:` entries and rejects a return that reports better than it. Reporting worse is allowed —
-you may have a reason your members could not see. Every member entry therefore needs a `verdict:`;
-without one the roll-up is undecidable and your return is rejected. It is the only part of collation
-that is arithmetic rather than judgement, and it is the most consequential thing you can get wrong:
-the orchestrator routes on your `VERDICT` and never opens member entries, so a masked `FAIL` ships.
-
-> ⚠️ **Do not treat the check as complete.** A live review panel reproduced four member-entry
-> formats that slip a masked `FAIL` past it, and one that disables the validator outright by
-> crashing it — the hook then exits 1, and only exit 2 blocks (DEC-124, task 22). Until that is
-> fixed, the roll-up rule is **yours to honour**, and the hook is a backstop that catches the
-> canonical case rather than a guarantee.
+**This one is checked.** The `SubagentStop` hook computes the worst verdict across your `members:`
+entries and rejects a return that reports better (worse is allowed — you may see what members could
+not). Every member entry therefore needs a `verdict:` or your return is rejected. It is the most
+consequential thing you can get wrong: the orchestrator routes on your `VERDICT` and never opens
+member entries, so a masked `FAIL` ships. The check has been hardened against the known format and
+echo shadowings (BUILD task 22, FEAT-02), but the structural pass-throughs above still apply — the
+rule is yours to honour; the hook is the backstop.
 
 **b. Merge, then dedupe.** `must_fix`, `files_touched` and `open_questions` are unions across
 members. Reviewers overlap by design — the panel is four lenses on one diff — so **the same defect
@@ -210,10 +191,8 @@ and priority are different axes and you are the only tier that can see the secon
 severity from inside its own lens; it cannot know the roadmap. So an `info` finding that blocks the
 next task outranks a `med` that does not.
 
-Observed (DEC-124): a panel filed "`harness-orchestrator` has no schema, so it is ungated the moment
-that agent exists" as `info` — correctly, since the agent does not exist yet and the defect is inert
-today. The lead sorted by inherited severity and dropped it. It was the single item on the list that
-intersected the very next task on the ledger. **Nothing was mis-graded; it was mis-prioritised.**
+An inert `info` finding that intersects the next task on the ledger outranks a `med` that does
+not — nothing need be mis-graded for the list to be mis-prioritised (observed: DEC-124).
 
 **c. Assess — the part only you can do.** Each member saw its slice; you are the only agent that
 saw all of them. So decide, and say which:
@@ -230,11 +209,9 @@ saw all of them. So decide, and say which:
 result: rework at your level costs one member spawn, and the same rework after the orchestrator has
 routed on your digest costs a whole cycle against the feature budget.
 
-**Do not assert anything about your own execution that you cannot verify.** The lead in DEC-124
-reported "three reviewers dispatched in a single message"; the spawn records showed three separate
-turns. It was not lying — an agent has no reliable view of its own turn boundaries. So report *what
-came back*, never *how you dispatched it*: topology is checked externally from spawn records, and a
-confident claim about it is noise at best and a false all-clear at worst.
+**Report what came back, never how you dispatched it** — an agent has no reliable view of its own
+turn boundaries (DEC-124). Topology is checked externally from spawn records; a confident claim
+about your own dispatch shape is noise at best, a false all-clear at worst.
 
 **d. Write the headline last.** One line, conclusion first, about what the team *achieved* — not
 what it did. "Auth endpoints ship-ready; refresh-token path still untested" routes. "Ran three steps
@@ -270,10 +247,8 @@ orchestrator fill it after you return:
 .claude/skills/harness/bin/cost-report.py --yaml >> <run_dir>/state.yaml
 ```
 
-This is the right owner anyway — the orchestrator already owns the feature-level cost rollup in
-`feature.yaml` (§11.3) and is the only tier that can see every squad's runs. A complete run left
-without a `cost:` block is an INV-11 violation: an unmetered run is indistinguishable from a free
-one, and cost is the post-build signal (DEC-99).
+A complete run left without a `cost:` block is an INV-11 violation — an unmetered run is
+indistinguishable from a free one (DEC-99, DEC-116).
 
 **Timestamps, same cause.** No `Bash` means no clock, so use monotonic ordering markers
 (`seq-1`, `seq-2`, …) rather than inventing wall-clock times. The checkpoint property does not need
@@ -298,7 +273,6 @@ DIGEST:
   must_fix: [<union of blocking findings>]
   files_touched: [<union across members>]    # universal — required of you too; [] if none
   branch: <branch | none>                    # `none` if the team mutated no repo
-  files_touched: [<union across members>]    # universal field — `[]` if the team touched nothing
   open_questions: [...]                      # non-empty → the orchestrator surfaces it to the
                                              # MAIN SESSION, the only tier that can ask the user
   escalations: [{ id, raised_by, question, domain, routed_to, resolution, decided_by, recorded_as }]

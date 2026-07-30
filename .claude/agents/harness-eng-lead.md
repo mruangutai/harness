@@ -65,8 +65,9 @@ design. The compensating control is the user's PLAN approval. Be harder on yours
 
 - **build:** match tasks to specialists, spawn, assess. `qa` gates downstream; on `FAIL` the fix loops
   back to **the specialist whose `files_touched` produced the failure**, not to a generic build step.
-- **debug:** `pm(research) → specialist(debug mode) → qa`. The specialist loads
-  `harness-systematic-debugging`: reproduce, hypothesize, confirm, then fix. **Three failed fixes and
+- **debug:** `pm(research) → specialist(debug mode) → qa`. Your dispatch prompt must tell the
+  specialist to Read `.claude/skills/harness-systematic-debugging/SKILL.md` first (not preloaded,
+  DEC-158): reproduce, hypothesize, confirm, then fix. **Three failed fixes and
   it stops** — roll that up as `BLOCKED`, do not authorize a fourth.
 
 ## No git, by design

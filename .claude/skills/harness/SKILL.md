@@ -30,10 +30,9 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
      user's signature; you never mark them approved (only the main session writes `## Approval`).
 2. **Decide next** — next task/team in PLAN order, plus any pending adjustment from the last cycle.
 3. **Delegate to a lead, never a member.** Every dispatch is a plain subagent — **never pass a
-   `name:` parameter**: you are yourself a teammate, and the platform rejects teammate→teammate
-   spawns ("the roster is flat"). The identical dispatch without `name:` succeeds (DEC-147). Title
-   every dispatch `<flow-id> · <step or task id> · <what, 3–6 words>` — the flow id at every layer
-   is what lets the user read the spawn tree as one chain (DEC-142). A whole team goes to its named lead (the lead hosts the
+   `name:` parameter** (teammate→teammate named spawns are rejected; the roster is flat, DEC-147).
+   Title every dispatch `<flow-id> · <step or task id> · <what, 3–6 words>` so the user reads the
+   spawn tree as one chain (DEC-142). A whole team goes to its named lead (the lead hosts the
    DAG via `harness-team`); a single task goes to the lead that owns the relevant persona, which
    routes it by `consult-when`. Cross-squad work is **one run per squad, sequenced by you** — a lead
    cannot dispatch another squad (DEC-118). Pass paths, never content; pin `review_sha` before any
@@ -58,14 +57,10 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
      stop the loop — it is reported, not enforced (DEC-134).
    - an SC that *cannot* be met as written (wrong premise, changed scope) is a plan-level problem:
      pm re-plans under the user's approval. You never mark an SC met, waived, or edited yourself.
-   - an **emergent SC** — a criterion the build surfaced that BRIEF never stated — is **never
-     something to loop on and never yours to adopt.** Route it to pm, whose job is to judge whether
-     it is genuinely new or detail an existing SC already covers. If new, it changes what "done"
-     means, and BRIEF is approval-gated: it reaches the user, packaged with pm's recommendation.
-     The significance rubric is the one everyone already carries (§4.4, `harness-handoff`):
-     **significant = touches an approval-gated artifact (BRIEF REQ/SC, PLAN `D-NN`, DESIGN) or is
-     hard to reverse** — and a new SC always does the former, so the only judgment left is pm's
-     new-vs-covered call.
+   - an **emergent SC** — a criterion BRIEF never stated — is never yours to adopt or loop on.
+     Route it to pm to judge new-vs-covered; if genuinely new it changes what "done" means and
+     reaches the user with pm's recommendation (BRIEF is approval-gated; §4.4's significance
+     rubric applies).
    Also stop for: the feature blocked, or the user must decide. Then return.
 
 **Authority boundary:** execution-time adjustments are yours (loop back, insert a review, reorder,
@@ -116,7 +111,9 @@ For *symptom known, cause unknown*. When the cause is already known there is not
 investigate — that is a plan mission with a `BUG-NN` id (the FEAT-02 pattern).
 
 1. **Investigation segment** — dispatch eng-lead: one specialist, chosen by `consult-when`, in
-   debug mode (`harness-systematic-debugging` governs it): **reproduce → localize → root-cause,
+   debug mode (`harness-systematic-debugging` governs it — NOT preloaded since DEC-158: the
+   dispatch prompt must tell the specialist to Read
+   `.claude/skills/harness-systematic-debugging/SKILL.md` first): **reproduce → localize → root-cause,
    with evidence — no fix.** The deliverable is a root-cause report in the flow's `notes/`
    (repro steps, the failing case, the causal chain with `file:line` anchors, and the fix surface
    it implies). Three failed reproduction/hypothesis cycles → `BLOCKED` up, per the skill — an
@@ -149,74 +146,12 @@ commit.
 You never read GitHub state into harness state — PLAN.md is the truth and the mirror is a mirror.
 Agents post no comments (DEC-138 am.2).
 
-## Mission: map — understand-codebase (DEC-137)
+## Missions map and deepen — read the reference when dispatched with one
 
-Builds `.harness/codebase/` for a project the org has never seen. Not a team — **you sequence
-per-squad runs** (DEC-118), each specialist authoring the view it will later consume. The manifest
-carves the map by author; a wrong-author write is hook-blocked.
-
-1. **Eng squad run** (eng-lead): backend-dev → `api-surface.md` + `domains/`; data-engineer →
-   `data-flows.md`; frontend-dev → `ui-surface.md`; ai-dev → `llm-patterns.md`; dev-ops →
-   `stack.md`. Steps are parallel — disjoint outputs. **A specialist whose surface does not exist
-   self-scopes out in one line** (a CLI has no ui-surface); an empty view is a valid result.
-2. **In the same turn, dispatch validator-lead**: security-reviewer → `trust-boundaries.md`; and
-   **product-lead**: pm → `product-surface.md`. Independent of the eng run — all three go together.
-3. **Documentor consolidates last** (product-lead, second run): reads every view, writes
-   `architecture.md` and `INDEX.md` from the template (`templates/codebase-INDEX.md`). **The 60-line
-   index cap is documentor's to honor** — the index is injected into every future spawn.
-4. **Render the human view:** run `bin/render-map.py` — generates `codebase/map.html` (collapsible
-   TOC, domain sections, Mermaid architecture diagrams) FROM the markdown. Derived, never authored:
-   no agent writes HTML, and it needs no freshness policy of its own — it is exactly as fresh as the
-   markdown it projects. Architecture diagrams (physical + component) are authored as ```mermaid
-   blocks in `architecture.md` by documentor.
-
-Rules that bind every view: **every claim carries a `file:line` anchor** — unanchored prose is
-opinion, not a map; every section header carries `author · date · anchors-verified: <sha>`; the map
-records what IS, never what should be — improvement ideas go to `open_questions`, not the map.
-
-Authoring rules the first real audit earned (DEC-141):
-- **Every view opens with `## In brief` — plain English, no jargon, no anchors** — three to six
-  sentences a non-engineer reads and understands. The map's first audience is the human opening
-  map.html; the anchored technical detail FOLLOWS the prose, never replaces it. A view that reads
-  as a parts inventory has failed its reader (observed, round 2 of the kaya audit).
-- **Prefer top-down (`graph TD`) diagram orientation** — layered architectures read naturally
-  top-down, and the rendered viewport is full-window-width with a fixed height.
-- **Every diagram edge is labeled with what flows — in BOTH directions.** An edge labeled only
-  with its write path hides the read path sharing the same arrow.
-- **An arrow into a module means what the module's NAME implies.** `WORKER → api/` read as an HTTP
-  dependency when the worker merely imported persistence modules living under `api/` — split the
-  node or point at the submodule, never let directory layout impersonate architecture.
-- **No raw HTML comments in view bodies** — the renderer strips them now, but they are authoring
-  metadata and belong in headers, not prose. Write for the human who reads map.html.
-- **Physical and component diagrams stay at their level** — processes/runtimes/externals in one,
-  modules/boundaries in the other; a mixed diagram answers neither question.
-
-## Mission: deepen — the architecture-review scan (DEC-149)
-
-Runs **between features**, on the user's invocation or when a briefing/backlog signals friction —
-never inside a build (mid-build is the wrong time to want a different architecture). Proposes work;
-the map records what IS. Adapted from Matt Pocock's `improve-codebase-architecture` (MIT), re-homed
-onto harness machinery:
-
-1. **Scope by heat.** Hot spots first: the files the last shipped feature(s) touched (union their
-   `files_touched`), then `git log --oneline` recurrence. Deepening pays off where change happens.
-2. **Scan** (eng-lead conducts): specialists walk their own surfaces for friction, in the
-   `harness-codebase-design` vocabulary — shallow modules (deletion test), understanding one
-   concept requiring a bounce across many small modules, tests that reach past an interface, seams
-   nothing varies across. Read `glossary.md` first — candidates are named in domain terms — and the
-   feature dirs' `## Decisions`: a candidate contradicting a recorded D-NN surfaces only if the
-   friction justifies REOPENING it, flagged as such.
-3. **Verify adversarially** (validator-lead): each candidate gets the review-panel treatment — is
-   the friction real, does the deletion test actually concentrate complexity, what breaks? Killed
-   candidates die with a reason.
-4. **Report:** survivors land in `.harness/features/` as a notes artifact — per candidate: files,
-   problem, solution in plain English, benefits as locality/leverage, recommendation strength
-   (Strong / Worth exploring / Speculative) — topped by ONE top recommendation. Human-readable
-   rendering follows the render-map pattern (offline, derived, never authored HTML). No interfaces
-   are designed at this stage.
-5. **The user picks at the briefing.** An accepted candidate enters `/harness-plan` as a normal
-   feature (design-it-twice available to eng-lead at its interface-defining tasks); a rejection
-   with a load-bearing reason is recorded as a D-NN so the next scan does not re-suggest it.
+Mission **map** (understand-codebase, DEC-137) and mission **deepen** (the architecture-review
+scan, DEC-149) run between features, never inside a build. When your dispatch names one, Read
+`.claude/skills/harness/references/missions.md` before acting — the full procedure lives there
+(DEC-158).
 
 ## Ship-refresh — the map stays true (DEC-137 amendment)
 
