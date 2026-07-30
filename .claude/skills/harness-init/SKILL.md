@@ -1,6 +1,6 @@
 ---
 name: harness-init
-description: Onboard a project to the harness — interview the user, write .harness/, and install the five platform prerequisites. Use when a project has no .harness/, when check-state.sh reports "not onboarded", or when a schema_version gap calls for --upgrade.
+description: Onboard a project to the harness — interview the user, write .harness/, and install the six platform prerequisites. Use when a project has no .harness/, when check-state.sh reports "not onboarded", or when a schema_version gap calls for --upgrade.
 ---
 
 # Harness: Init
@@ -30,7 +30,7 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
 
 ## Fresh init
 
-### 1. Install the five prerequisites — HARD GATE, do this first
+### 1. Install the six prerequisites — HARD GATE, do this first
 
 ```bash
 .claude/skills/harness/bin/merge-settings.py . \

@@ -22,7 +22,7 @@ Exit 0 = valid.  Exit 1 = contract violation (reasons on stdout).
 A violation routes into the BLOCKED (contract violation) path SPEC 8.3 already
 defines. Never guess a verdict — silent misrouting is worse than a halt.
 """
-import sys, re, json
+import sys, re, os, json
 
 VERDICTS = {"PASS", "FAIL", "BLOCKED", "ESCALATE"}
 SEV      = ["info", "low", "med", "high", "critical"]
@@ -539,6 +539,65 @@ def validate(persona, text):
                    "it is an active routing signal, not a tally.")
     return err
 
+def check_artifact_file(agent, text, payload):
+    """DEC-156: a lead's WRITTEN digest.md must carry the same §10.4 block.
+
+    The FEAT-02 (kaya-ai) audit found all 14 run digest.md files were narrative
+    markdown with no contract block — every in-message return had passed this
+    hook, so nothing ever looked at the durable copy, which is the one a
+    successor context actually reads. Validate the file at the return's
+    `artifact:` path with the same schema, while the lead is still alive to fix
+    it.
+
+    FAIL OPEN, LOUDLY when the file cannot be located or read: a hook whose cwd
+    drifts (worktrees, unset CLAUDE_PROJECT_DIR) must not block a legitimate
+    lead on our own resolution bug. check-state.sh INV-15 is the deterministic
+    backstop that runs from repo root and catches what this pass-through misses.
+    Blocking is for THEIR contract violation, never our lookup failure.
+    """
+    # Same tail-anchor discipline as validate(): the real return is LAST, so an
+    # echoed template's `artifact:` line must not win. Take the final match.
+    tail = text
+    anchors = list(re.finditer(r"^\s*VERDICT:", text, re.M))
+    if anchors:
+        tail = text[anchors[-1].start():]
+    m = None
+    for m in re.finditer(r"^\s*artifact:\s*(\S+)", tail, re.M):
+        pass
+    if not m:
+        return 0  # validate() already required artifact:; nothing to resolve here.
+    path = strip_comment(m.group(1)).strip("\"'")
+    if not path.endswith("digest.md"):
+        # The lead artifact contract is <run_dir>/digest.md; a differently-named
+        # artifact is INV-15's finding (it can see the run dir), not this hook's.
+        return 0
+
+    cands = ([path] if os.path.isabs(path) else
+             [os.path.join(b, path) for b in
+              (payload.get("cwd"), os.environ.get("CLAUDE_PROJECT_DIR"), os.getcwd()) if b])
+    found = next((p for p in cands if os.path.isfile(p)), None)
+    if not found:
+        print(f"check-digest: {agent}'s artifact {path} not found from the hook's vantage — "
+              f"file-shape check skipped; check-state.sh INV-15 will audit it from repo root.",
+              file=sys.stderr)
+        return 0
+    try:
+        ferrs = validate(agent, open(found, encoding="utf-8").read())
+    except Exception as e:
+        print(f"check-digest: internal error validating {found} ({e!r}) — passing through; "
+              f"this is our bug, not theirs.", file=sys.stderr)
+        return 0
+    if not ferrs:
+        return 0
+    print(f"Your return is valid, but the digest FILE you wrote ({path}) does not carry the "
+          f"same contract block — and the file is what a successor context reads (DEC-156). "
+          f"Rewrite it as the §10.4 return (VERDICT / DIGEST / artifact), prose assessment "
+          f"below the block:", file=sys.stderr)
+    for e in ferrs:
+        print(f"  - {e}", file=sys.stderr)
+    return 2
+
+
 def hook_mode():
     """SubagentStop hook: reject a malformed digest at source.
 
@@ -607,6 +666,10 @@ def hook_mode():
               f"passing through; this is our bug, not theirs.", file=sys.stderr)
         return 0
     if not errs:
+        # Message valid. For leads, the DURABLE copy must comply too (DEC-156) —
+        # the orchestrator's successor reads runs/<id>/digest.md, never this message.
+        if norm(agent) == "lead":
+            return check_artifact_file(agent, text, d)
         return 0
 
     print(f"Your return does not satisfy the digest contract, so it cannot be accepted. "

@@ -28,7 +28,7 @@ that would expose it.
 
 ### 0a — `settings.json` prerequisites (setup, not a spike)
 
-**Five** platform entries the design depends on must be set explicitly — one env var and four hooks.
+**Six** platform entries the design depends on must be set explicitly — one env var and five hook registrations (DEC-156 added dispatch-guard).
 **A project missing any of them degrades silently rather than erroring** — and for the depth setting,
 what "missing" does depends on the CLI version (below).
 
@@ -60,13 +60,14 @@ what "missing" does depends on the CLI version (below).
 > This snippet is **documentation**; `bin/merge-settings.py` is what executes. The two cannot drift:
 > passing `--template` makes the script fail loudly if the snippet stops describing what it writes.
 
-⚠️ **All FIVE entries are required. Every one of them degrades silently when absent** — that is the
+⚠️ **All SIX entries are required. Every one of them degrades silently when absent** — that is the
 whole reason they are a hard gate rather than a recommendation:
 
 - no `SubagentStart` → agents start memoryless;
 - no `PreToolUse` → every agent can write anywhere (DEC-110);
 - no `SubagentStop` → malformed digests are accepted and the runner routes on fields that are not
   there (DEC-122);
+- no `PreToolUse` dispatch-guard → a lead can silently override a member's pinned model (DEC-155/156);
 - wrong depth → the members layer is unreachable, or members can delegate (DEC-120).
 
 `PreToolUse` and `SubagentStop` dispatch on `agent_type` from the payload rather than a per-agent
@@ -391,7 +392,7 @@ Enroll = deploy + init. This split is what lets deploy be dumb and safe (DEC-12)
 
 ### What it writes — six artifacts
 
-**1. `.claude/settings.json` — ALL FIVE entries.** Omitting any degrades **silently**.
+**1. `.claude/settings.json` — ALL SIX entries.** Omitting any degrades **silently**.
 
 ```json
 {

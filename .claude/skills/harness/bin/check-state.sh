@@ -170,6 +170,10 @@ else:
     if not any("branch-create-gate" in str(h) for h in pre):
         bad.append("No PreToolUse branch-create-gate hook — branch creation is ungated "
                    "(self-gating on github.sync, so registration is safe everywhere; DEC-144).")
+    if not any("dispatch-guard" in str(h) for h in pre):
+        bad.append("No PreToolUse dispatch-guard hook — a lead can silently override a "
+                   "member's pinned model per-dispatch (DEC-155/156); the org's tier "
+                   "design is unenforced.")
     if not any("check-domain" in str(h) for h in pre):
         bad.append("No PreToolUse check-domain hook — domain enforcement is ABSENT "
                    "and every agent can write anywhere. Frontmatter hooks do not "
@@ -200,12 +204,72 @@ if cfg:
         except Exception:
             warn.append(f"cost_model.verified_on is not an ISO date: {vo!r}")
 
+import subprocess
+
+# --- INV-15 (DEC-156): a complete lead-hosted run's digest.md is the durable copy a
+# successor reads — it must exist and satisfy the lead digest contract. The SubagentStop
+# hook checks it at source but fails open when it cannot resolve the path (worktrees,
+# cwd drift); this sweep runs from repo root and cannot be fooled.
+# --- INV-16 (DEC-154, mechanized): state.yaml is a checkpoint — identifiers, enums,
+# counters, paths, sequence markers. Top-level keys come from this whitelist, and no key
+# repeats (the FEAT-02 audit found `cost:` written twice in 12 of 15 files — the second
+# key silently shadows the first in any YAML parser).
+LEADS = {"harness-product-lead", "harness-eng-lead", "harness-validator-lead"}
+CHECKPOINT_KEYS = {
+    # seed (harness-team §2)
+    "schema_version", "run_id", "feature", "squad", "host", "status", "steps",
+    # loop bookkeeping
+    "cycles_used", "cost",
+    # pins and context markers
+    "flow", "task", "team", "branch", "worktree",
+    "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
+    # roll-up enums and the report pointer — matchable values, so checkpoint-legal
+    "verdict", "severity_max", "digest",
+}
+vd = os.path.join(root, ".claude/skills/harness/bin/validate-digest.py")
 for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml")):
     txt = read(sy) or ""
-    if re.search(r"^status:\s*complete", txt, re.M) and not re.search(r"^cost:", txt, re.M):
-        rel = os.path.relpath(sy, H)
+    rel = os.path.relpath(sy, H)
+    rundir = os.path.dirname(sy)
+    complete = bool(re.search(r"^status:\s*complete", txt, re.M))
+
+    # INV-11: cost is the post-build signal (DEC-99) — an unmetered completed run is a
+    # hole in the only evidence SC-1 is judged on, and looks exactly like a free one.
+    if complete and not re.search(r"^cost:", txt, re.M):
         bad.append(f"{rel}: run is complete but has no cost: block — "
                    f"run bin/cost-report.py --yaml and record it.")
+
+    # INV-16: shape.
+    keys = re.findall(r"^([A-Za-z_][A-Za-z0-9_-]*):", txt, re.M)
+    dups = sorted({k for k in keys if keys.count(k) > 1})
+    if dups:
+        bad.append(f"{rel}: duplicate top-level key(s) {dups} — a repeated key is silently "
+                   f"shadowed by its last occurrence. Replace the placeholder when filling "
+                   f"it in; never append a second copy (DEC-156).")
+    unknown = sorted({k for k in keys if k not in CHECKPOINT_KEYS})
+    if unknown:
+        bad.append(f"{rel}: non-checkpoint top-level key(s) {unknown} — state.yaml carries "
+                   f"only identifiers, enums, counters, paths and sequence markers "
+                   f"(DEC-154). Findings and assessment prose belong in that run's "
+                   f"digest.md; a one-line note: per step entry is the ceiling.")
+
+    # INV-15: the durable digest.
+    hm = re.search(r"^host:\s*(\S+)", txt, re.M)
+    if complete and hm and hm.group(1) in LEADS:
+        dg = os.path.join(rundir, "digest.md")
+        if not os.path.isfile(dg):
+            bad.append(f"{os.path.relpath(rundir, H)}: run is complete but digest.md is "
+                       f"missing — the lead's report artifact never landed (DEC-156).")
+        elif not os.path.isfile(vd):
+            bad.append(f"INV-15 could not run: {os.path.relpath(vd, root)} is missing. "
+                       f"Digest files are UNCHECKED — likely a partial deploy.")
+        else:
+            r = subprocess.run([sys.executable, vd, "lead", dg],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                bad.append(f"{os.path.relpath(dg, H)}: does not satisfy the lead digest "
+                           f"contract — a successor reads this file, not the transcript "
+                           f"(DEC-156). Run bin/validate-digest.py lead on it for reasons.")
 
 # --- INV-14: real code with no codebase map (DEC-140). The map moved into init
 # after the first real onboarding built a feature UNMAPPED — "run the map first"

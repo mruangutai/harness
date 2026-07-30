@@ -48,6 +48,14 @@ create per-step directories for members — they write into their own domains.
 Seed `state.yaml` with `schema_version`, `run_id`, `feature`, `squad`, `host`, `status: running`,
 and one `steps:` entry per team step with `status: pending`.
 
+**`state.yaml` is a checkpoint, not a notebook (DEC-154).** Every value in it is an identifier, an
+enum, a counter, a path, or a sequence marker — something a fresh context can act on without
+reading it. Findings, code citations, assessment reasoning, and anything else written in sentences
+belong in `digest.md`; a one-line `note:` per step is the ceiling for prose. The test: if a value
+needs to be *read* rather than *matched*, it is in the wrong file. Ad-hoc top-level keys holding
+prose lists (`pre_dispatch_checks:`, `lead_assessment_*:`) are the violation this rule exists to
+name — record the *verdicts* they justify in the step entry, and the justification in the digest.
+
 ### 3. Loop
 
 Until every step is terminal, or you halt:
@@ -84,6 +92,13 @@ session, nested spawns counting toward both.
 Each dispatch is titled `<flow-id> · <step or task id> · <what, 3–6 words>` — same flow id the orchestrator used, plus your step id (DEC-142); a member's spawn title must be traceable to the flow it serves. Each prompt carries the goal, the resolved **input paths**, the **output paths** the step must
 write, and nothing else.
 
+**Never pass a `model:` parameter in a dispatch (DEC-155).** A member's model is pinned in its
+agent frontmatter — that pin is org design (DEC-152's tiers), and a per-invocation `model:`
+silently outranks it. If you believe a task genuinely needs a stronger model, that is an
+escalation, not a dispatch option: raise it in `open_questions` with the evidence and let it be
+decided above you and recorded. A quiet upgrade is unbudgeted spend that no gate will ever
+surface.
+
 **Do not serialize out of caution.** A panel of reviewers dispatched one at a time still returns the
 same verdicts, so the run looks correct while costing several times the wall-clock — the most
 expensive way to be wrong, because nothing surfaces it. If steps genuinely conflict, that is what
@@ -92,7 +107,7 @@ expensive way to be wrong, because nothing surfaces it. If steps genuinely confl
 **e. Collect returns.** Read `VERDICT` and the `DIGEST` fields and record both in `state.yaml`.
 
 **The digest contract is enforced for you — mechanically, at source, not by your own reading of it.**
-`validate-digest.py --hook` runs as a **`SubagentStop` hook**, one of the five mandatory
+`validate-digest.py --hook` runs as a **`SubagentStop` hook**, one of the six mandatory
 `settings.json` entries (DEC-122). `exit 2` prevents a subagent from stopping, so a member that
 returned a malformed digest gets rejected and re-prompted before it can hand it to you. This
 deliberately covers you too — leads have no `Bash` and could never have run a validator, which is
@@ -237,7 +252,10 @@ Set `status: complete` (or `failed` / `blocked`), then **write your team digest 
 plus the fields only you can supply: the per-member roll-up (`members:`), the union of `must_fix`,
 `steps_run`, cycles spent, and your assessment of what the panel actually means. §10.4 is the
 contract, and the `SubagentStop` hook enforces it on **your** return as well — you cannot finish
-with a field missing. **The `members:` block is not optional** — it is what preserves per-member
+with a field missing. The hook also validates the **file** at your `artifact:` path against the
+same schema (DEC-156): a narrative digest.md with no contract block is rejected exactly like a
+malformed return, because the file — not your transcript — is what a successor context reads.
+Prose assessment goes below the block, never instead of it. **The `members:` block is not optional** — it is what preserves per-member
 granularity in `STATE.md` under hierarchy, and without it the orchestrator cannot log who did what.
 
 **Do not try to run `cost-report.py` if you are a lead — you have no `Bash`.** Leads hold
@@ -298,3 +316,4 @@ artifact: <run_dir>/digest.md                # your collated report — NOT stat
 | "The agent clearly meant PASS" | Missing `VERDICT` is `BLOCKED (contract violation)` after one re-prompt. Do not guess |
 | "I'll dispatch these one at a time to be safe" | Independent, non-mutating steps go in one turn. Serial dispatch wastes the fan-out |
 | "I'll write state.yaml at the end" | Checkpoint before dispatch, or a crash leaves an undecidable run |
+| "I'll record my assessment reasoning in state.yaml so it survives" | Prose survives in `digest.md`. state.yaml carries verdicts and markers a fresh context can match, not read (DEC-154) |

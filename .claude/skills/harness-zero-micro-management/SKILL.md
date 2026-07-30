@@ -55,3 +55,4 @@ Do not stall waiting for input that cannot arrive.
 | "I'll spawn a member from another squad" | You cannot. Escalate |
 | "I'll ask the user directly" | You have no channel. Use `open_questions` |
 | "I'll re-plan this myself since I can see the problem" | Plan changes belong to `pm`. Escalate |
+| "This task is hard — I'll dispatch the member on a stronger model" | Model pins are org design (DEC-152). Never pass `model:` in a dispatch; escalate with evidence instead (DEC-155) |

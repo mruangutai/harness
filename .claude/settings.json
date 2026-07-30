@@ -36,6 +36,15 @@
             "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/bash-write-guard.sh"
           }
         ]
+      },
+      {
+        "matcher": "Task|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/dispatch-guard.sh"
+          }
+        ]
       }
     ],
     "SubagentStop": [

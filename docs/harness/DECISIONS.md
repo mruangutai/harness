@@ -3740,3 +3740,101 @@ Residual, stated honestly: python-heredoc writes evade the guard's shell parsing
 audit's second pass) — the guard remains a casual-shape filter per DEC-151; heredoc evasion is
 deliberate-obfuscation class, caught post-hoc. The audit could not exhaustively prove the main
 session never wrote source attributed to an agent — spot-checks found none.
+
+## DEC-154 — state.yaml is a checkpoint, not a notebook
+
+Observed in the wild (kaya-ai, FEAT-02 run t01-fe-eng): the eng lead's `state.yaml` carried
+ad-hoc top-level keys — `pre_dispatch_checks:`, `lead_assessment_cycle_1:` — holding multi-line
+prose list items dense with file:line citations and reasoning. Valid YAML, and no written rule
+forbade it: harness-team specified the seed fields and the checkpoint discipline but never
+constrained what *else* the file may hold, while separately declaring the lead's report artifact
+is `digest.md`, "NOT state.yaml". The lead was duplicating digest material into the checkpoint
+file.
+
+Why it matters: `state.yaml` exists so a fresh context can decide recovery *mechanically* —
+which steps are in flight, what cycle the run is on. Prose in that file is read, not matched;
+it burns the budget of every context that must load the file to make a decision, and it invites
+drift between the two copies of the same finding (the digest is collected once; the checkpoint
+is rewritten every dispatch).
+
+The rule, now stated in harness-team: every value in `state.yaml` is an identifier, an enum, a
+counter, a path, or a sequence marker. One-line `note:` per step is the prose ceiling. Findings,
+citations, and assessment reasoning go in `digest.md`; the step entry records only the verdicts
+they justify. Test: a value that must be read rather than matched is in the wrong file.
+
+Mechanized at DEC-156 (leads kept padding — the FEAT-02 audit found ad-hoc prose keys in all
+15 run checkpoints): check-state.sh INV-16 now whitelists top-level state.yaml keys and rejects
+duplicates.
+
+## DEC-155 — Members run on their pinned model; a lead override is an escalation, not a parameter
+
+Observed in the wild (kaya-ai, FEAT-02 ship, T-02): the eng-lead dispatched
+harness-frontend-dev with an explicit `model: "opus"` in the Agent call. Claude Code's
+resolution order puts a per-invocation `model` parameter above agent frontmatter, so the doer —
+pinned `model: sonnet` in its definition — executed on claude-opus-5. Nothing sanctioned it: the
+orchestrator's prompt to that lead never mentioned a model, the lead recorded no rationale, and
+no rule forbade it. Dispatches in the same feature that passed no parameter ran sonnet as
+pinned, confirming the pin works when left alone.
+
+Why it matters: the model-per-agent assignment is org design — DEC-152 deliberately splits the
+seven judging agents (opus, effort high) from the nine doers (sonnet, effort medium). A lead
+that quietly upgrades its member re-decides that trade per-dispatch, invisibly: nothing in
+state.yaml, the digest, or any gate records which model actually ran, so the cost shows up in
+the budget with no cause attached. The failure mode is not the upgrade itself — a hard task may
+genuinely warrant one — it is that the decision was free and unrecorded.
+
+The rule, stated in harness-team (dispatch step) and the leads' zero-micro-management red
+flags: never pass `model:` in a dispatch. Believing a task needs a stronger model is an
+escalation — raise it in `open_questions` with evidence; the decision happens above the lead
+and gets recorded. Same shape as DEC-31's reviewers-advise-don't-block: judgment is welcome,
+unilateral silent action is not.
+
+Mechanized at DEC-156: dispatch-guard.sh (PreToolUse on the spawn tool) rejects a harness
+agent's dispatch carrying a `model:` parameter. The transcript JSONL (`"model":` on the spawn
+record) remains the audit trail. Separately noted for cost accounting, not sanctioned against: the user-level
+`advisorModel: opus` setting attaches an Opus advisor to every agent regardless of execution
+model — that is Claude Code configuration, outside the org's authority.
+
+## DEC-156 — Prose-only rules from the FEAT-02 audit get gates: digest file, checkpoint shape, dispatch parameters
+
+The FEAT-02 (kaya-ai) output audit found three rule classes that were stated but had nothing
+enforcing them, and all three drifted in the same run:
+
+1. **The written team digest.** All 14 `runs/*/digest.md` files were narrative markdown with no
+   §10.4 block — every one returns `BLOCKED (contract violation)` from `validate-digest.py lead`.
+   The SubagentStop hook validates only `last_assistant_message`, so the in-message return passed
+   while the durable copy — the one a successor context actually reads — did not comply. Nothing
+   could have caught it: the gap is structural, not a lapse.
+2. **The run checkpoint.** DEC-154's rule existed only as skill prose; all 15 state.yaml files
+   carried ad-hoc prose keys, 15 different top-level key sets, and 12 carried a duplicate `cost:`
+   key (`cost: pending_orchestrator` left in place when the orchestrator appended the cost block —
+   YAML where the second key silently shadows the first).
+3. **Dispatch parameters.** DEC-155's `model:` override ran unsanctioned because nothing inspects
+   Agent-call inputs.
+
+Same answer as DEC-19/DEC-122 — prose guarding a contract is unenforceable, a script guards it:
+
+- **validate-digest.py --hook, extended:** after a lead's in-message return validates, the hook
+  resolves the return's `artifact:` path and validates the FILE against the same lead schema;
+  a non-conforming file is exit 2 while the lead is still alive to fix it. If the path cannot be
+  resolved from the hook's vantage (worktrees, cwd drift), it passes through LOUDLY and the sweep
+  below catches it — fail-open-with-signal, per the hook's own precedent, because blocking on our
+  resolution bug would wedge legitimate leads.
+- **check-state.sh INV-15:** for every run with `status: complete` and a lead host, `digest.md`
+  must exist and pass `validate-digest.py lead` — the deterministic backstop that runs from repo
+  root and cannot be fooled by cwd.
+- **check-state.sh INV-16 (mechanizes DEC-154):** run state.yaml top-level keys must come from
+  the checkpoint whitelist (seed fields + loop fields + pins), and no key may repeat. Prose keys
+  (`pre_dispatch_checks:`, `lead_assessment:` …) are named in the rejection with their routing:
+  digest.md.
+- **dispatch-guard.sh (mechanizes DEC-155):** new PreToolUse hook on the spawn tool
+  (matcher `Task|Agent`); a harness agent's dispatch carrying a `model:` parameter is exit 2 with
+  the escalation route in the message. The main session (no `agent_type`) is never governed —
+  model choice at the user channel is the user's. Registered in settings.snippet.json and
+  checked by INV-9 like the other four mandatory hooks (now five).
+
+Honest scope: the hook file-check is one-shot (`stop_hook_active` passes through, by design), so
+a lead that fails the file check once and returns unchanged is caught by INV-15, not the hook.
+INV-16's whitelist will need a new key added when the checkpoint legitimately grows a field —
+that cost is the point: growing the checkpoint becomes a decision, not an accretion.
+

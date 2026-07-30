@@ -516,6 +516,46 @@ hook_case("pass-through: stop_hook_active avoids the infinite-block loop",
 hook_case("pass-through: empty last_assistant_message passes with a stated reason",
           "harness-qa", "", 0, mentions="no final message")
 
+# --- DEC-156: a lead's WRITTEN digest.md must carry the contract block too ---
+# The kaya-ai FEAT-02 audit found every run digest.md was narrative markdown while
+# every in-message return had passed this hook — the durable copy (the one a
+# successor reads) was never looked at. These cases pin the file check: real files
+# in a tempdir, artifact path resolved via the payload's `cwd`.
+import tempfile
+_D156 = tempfile.mkdtemp(prefix="vd-dec156-")
+
+def _dec156_case(name, file_content, expect_exit, mentions=None,
+                 agent="harness-eng-lead", fname="digest.md"):
+    rd = tempfile.mkdtemp(dir=_D156)
+    rel = os.path.join("runs", "r1", fname)
+    os.makedirs(os.path.dirname(os.path.join(rd, rel)))
+    if file_content is not None:
+        with open(os.path.join(rd, rel), "w") as f:
+            f.write(file_content)
+    msg = LEAD_BLOCK.replace(
+        "artifact: .harness/features/FEAT-01/runs/r1/digest.md", f"artifact: {rel}")
+    HOOK_CASES.append((name,
+                       {"agent_type": agent, "last_assistant_message": msg, "cwd": rd},
+                       expect_exit, mentions))
+
+_dec156_case("DEC-156: narrative digest.md with no contract block is exit 2",
+             "# Team digest — T-01\n\n**PASS.** All gates green, see tables below.\n",
+             2, mentions="digest FILE")
+_dec156_case("DEC-156: digest.md carrying the same valid block is exit 0",
+             LEAD_BLOCK, 0)
+_dec156_case("DEC-156: missing file fails OPEN with the INV-15 pointer, not a block",
+             None, 0, mentions="INV-15")
+_dec156_case("DEC-156: file check governs leads only — a dev's artifact is not read",
+             "# notes, not a digest\n", 0, agent="harness-backend-dev", fname="notes.md")
+# The dev case needs a valid dev message, not a lead one — rebuild its payload.
+_n, _p, _e, _m = HOOK_CASES.pop()
+_p["last_assistant_message"] = (
+    "VERDICT: PASS\nDIGEST:\n  headline: built\n  tests_added: 2\n  suite: pass\n"
+    "  blocked_on: none\n  branch: none\n  files_touched: []\n  open_questions: []\n"
+    "  expertise_update: []\nartifact: runs/r1/notes.md\n")
+HOOK_CASES.append((_n, _p, _e, _m))
+
+
 # F6: absent agent_type key must be LOUD on stderr — distinguishable from a
 # present-but-non-harness value (which stays silent, asserted above).
 def _missing_agent_type_case():

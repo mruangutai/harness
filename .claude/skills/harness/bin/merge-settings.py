@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Merge the five harness prerequisites into a project's .claude/settings.json.
+"""Merge the six harness prerequisites into a project's .claude/settings.json.
 
-WHY THIS IS A SCRIPT AND NOT AN INSTRUCTION: all five entries degrade SILENTLY if
+WHY THIS IS A SCRIPT AND NOT AN INSTRUCTION: all six entries degrade SILENTLY if
 absent — no error, no warning, just a harness with memoryless agents that can write
 anywhere. Hand-merging JSON into a file that already has the project's own hooks is
-exactly where one of the five quietly goes missing. So the merge is deterministic
+exactly where one of the six quietly goes missing. So the merge is deterministic
 and re-runnable, and `--check` can assert the result.
 
   merge-settings.py <project-root> [--check] [--template <path>]
@@ -27,7 +27,7 @@ import os
 import shutil
 import sys
 
-# The five prerequisites, each keyed by the script basename that identifies it.
+# The six prerequisites, each keyed by the script basename that identifies it.
 HOOK_SPECS = [
     {
         "event": "SubagentStart",
@@ -66,6 +66,27 @@ HOOK_SPECS = [
         "matcher": "Bash",
         "why": "Branch-creation work-tracking gate. Absent -> branches with no issue or "
                "flow behind them, silently.",
+    },
+    {
+        # Rides the same Bash matcher entry as branch-create-gate when installed from
+        # the snippet; hook_present matches on basename so either shape is recognized.
+        # Was in the snippet since DEC-151 but missing HERE — the one-way template
+        # check never caught it, so deploys silently skipped it.
+        "event": "PreToolUse",
+        "script": "bash-write-guard.sh",
+        "matcher": "Bash",
+        "why": "Bash write-bypass guard (DEC-151). Absent -> the common shell write "
+               "shapes (sed -i, tee, redirects) bypass domain enforcement silently.",
+    },
+    {
+        "event": "PreToolUse",
+        "script": "dispatch-guard.sh",
+        # No agent matcher: the script passes through anything that is not a harness
+        # agent, and the main session (no agent_type) is never governed (DEC-156).
+        "matcher": "Task|Agent",
+        "why": "Dispatch-parameter guard (DEC-155/156). Absent -> a lead can silently "
+               "override a member's pinned model per-dispatch; the tier design is "
+               "unenforced and the spend is unattributed.",
     },
 ]
 DEPTH_KEY = "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH"
@@ -193,7 +214,7 @@ def main():
             for m in missing:
                 print(f"  - {m}")
             return 1
-        print("merge-settings: all five prerequisites present.")
+        print("merge-settings: all six prerequisites present.")
         return 0
 
     if not missing:
