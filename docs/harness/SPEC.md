@@ -1692,6 +1692,7 @@ feature_id: FEAT-01            # join key ONLY — no name, no traces, no task l
 branch: harness/sso
 pr: 214
 status: in_progress | in_review | shipped | abandoned
+phase: plan | build | validate | ship   # the CURRENT phase; one orchestrator per phase (DEC-159)
 review_sha: def5678            # pinned per review cycle; branch is feature-level, so this is too
 cycles_used: 2                 # fix-loop budget SPANS runs
 max_total_cycles: 10

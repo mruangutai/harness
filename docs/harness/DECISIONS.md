@@ -3906,3 +3906,54 @@ Kept deliberately: the whys themselves, red-flag tables, and everything load-bea
 compliance. The real kaya token sink — orchestrators at 258–310k cache-read/turn from session
 longevity — is DEC-148/150's problem, not the skills'; this pass buys latency and instruction
 signal, not a cost order-of-magnitude.
+
+## DEC-159 — Orchestrators are per-phase; the handoff note carries intent, trust, and dead ends
+
+The measured cost lever after DEC-158: kaya's context watchdog showed orchestrators at 258–310k
+cache-read tokens per turn from session longevity alone — one long orchestrator outspends every
+skill-trimming pass combined. DEC-148 already said "relay at phase boundaries if the phase took
+more than ~10 dispatches", but it was advisory prose with a threshold judgment, and the field
+evidence (kaya FEAT-01/FEAT-02) shows the successions that did happen worked mechanically while
+losing the predecessor's working memory: inherited claims were stale at both successions (a "fix"
+for an already-fixed defect, findings already closed at HEAD), and a pre-dispatch verification
+once found half the requested work already done.
+
+**The seam: per-phase by default.** An orchestrator's mission IS its phase (plan → build →
+validate → ship); ending at the boundary is normal termination, continuing is the exception.
+Exit predicates are disk-checkable: plan and ship end at user gates (those seams were always
+free); build exits when every planned T-NN has a PASS run in feature.yaml. `feature.yaml` gains a
+`phase:` field; transitions are STATE.md log entries. The fix loop is the sanctioned exception —
+validator FAILs are worked inside the validate-phase orchestrator, not relayed per cycle; a fix
+loop that runs long is what monitoring is for, and a mid-phase relay is the bounded escape.
+Small features collapse naturally: short phases mean cheap sessions, and a feature small enough
+to plan-and-ship in one sitting never meets a seam worth paying a relay for.
+
+**The handoff: working memory, not summary.** Everything the checkpoint discipline covers is
+already on disk; what dies with the context is exactly four things, so the note
+(`notes/handoff-<ending-phase>.md`, template `templates/HANDOFF.md`, ~40-line cap,
+superseded never appended) has exactly four sections:
+
+- `## Next` — the decided-but-not-dispatched action, cited to PLAN.
+- `## Trust` — claims the successor will act on, one line each in the grammar
+  `claim — evidence pointer — verified-at <sha> | UNVERIFIED`. Written at the calm moment a
+  phase ends, NEXT is nearly deterministic; the trust flags price re-verification for the rest.
+- `## Dead ends` — exclusions active for the next phase, same grammar; no pointer, no entry.
+  Durable exclusions belong in PLAN Decisions or observations, never here.
+- `## Working set` — the 3–5 paths read first; everything else is archive.
+
+The successor's step zero is validating `## Next` against PLAN/STATE (one grep) — the note never
+grants trust, it prices it. STATE.md remains the single durable truth per feature, `## Current`
+replaced across every orchestrator that ever serves it; the note is ephemeral and dead once
+validated. **Disk-only reconstruction stays fully supported** — the note is an accelerator, and
+nothing may ever require it, or a crash becomes unrecoverable.
+
+**Enforcement, the digest pattern (DEC-156) pointed at a new artifact:** check-domain.sh's
+DEC-150 write-time shape gate grows a third pattern — handoff-*.md is denied on a missing
+required heading or >40 lines while the author is still alive to fix it; check-state.sh INV-17
+flags a feature whose `phase:` sits past a seam with no handoff note for the crossing, or a
+note that fails the shape. Not mechanized: the in-flight turn-count nudge (warn an orchestrator
+that is N turns deep mid-fix-loop) — deferred until a live fix loop actually produces the
+degraded-relay case; the watchdog remains the post-hoc audit.
+
+Relay economics, stated once: a succession costs a fresh ~10k preload plus the working set
+(~30–50k total) and is won back the moment it prevents a handful of 300k-cache-read turns.

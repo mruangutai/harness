@@ -261,6 +261,26 @@ if re.match(r"^\.harness/features/[^/]+/feature\.yaml$", rel):
     if problems:
         deny(problems)
 
+if re.match(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$", rel):
+    # DEC-159: the handoff note is working memory for a successor — four fixed
+    # sections, hard-capped, denied at write while the author can still fix it.
+    problems = []
+    if len(lines) > 40:
+        problems.append(f"handoff note is {len(lines)} lines — cap is 40. It is intent, trust,"
+                        f" dead ends and a working set, not a narrative; history lives on disk.")
+    required = ["## Next", "## Trust", "## Dead ends", "## Working set"]
+    low = [l.strip().lower() for l in lines]
+    missing = [h for h in required if h.lower() not in low]
+    if missing:
+        problems.append(f"missing required section(s) {missing} — the four sections are the"
+                        f" contract (templates/HANDOFF.md); a freeform handoff drifts like an"
+                        f" unvalidated digest did (DEC-156).")
+    if problems:
+        print("check-domain: BLOCKED — handoff shape (DEC-159).", file=sys.stderr)
+        for m in problems:
+            print(f"  {m}", file=sys.stderr)
+        sys.exit(2)
+
 if re.match(r"^\.harness/features/[^/]+/STATE\.md$", rel):
     problems = []
     if len(lines) > 120:

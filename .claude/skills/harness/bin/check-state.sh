@@ -206,6 +206,33 @@ if cfg:
 
 import subprocess
 
+# --- INV-17 (DEC-159): per-phase orchestrators hand off through notes/handoff-<phase>.md.
+# A feature whose phase: sits past a seam with no handoff note for the crossing lost the
+# predecessor's working memory — recoverable (disk-only is supported) but never silent.
+# Only enforced when the feature declares phase: at all, so pre-DEC-159 features stay quiet.
+PHASE_ORDER = ["plan", "build", "validate", "ship"]
+HANDOFF_HEADINGS = ["## next", "## trust", "## dead ends", "## working set"]
+for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+    feat = os.path.basename(os.path.dirname(fy))
+    txt = read(fy) or ""
+    pm_ = re.search(r"^phase:\s*(\S+)", txt, re.M)
+    if not pm_ or pm_.group(1) not in PHASE_ORDER:
+        continue
+    idx = PHASE_ORDER.index(pm_.group(1))
+    for prev in PHASE_ORDER[:idx]:
+        hp = os.path.join(os.path.dirname(fy), "notes", f"handoff-{prev}.md")
+        if not os.path.isfile(hp):
+            bad.append(f"{feat}: phase is '{pm_.group(1)}' but notes/handoff-{prev}.md is "
+                       f"missing — the {prev} seam was crossed without a handoff; the "
+                       f"successor is on the disk-only path (DEC-159).")
+            continue
+        hl = [l.strip().lower() for l in (read(hp) or "").splitlines()]
+        miss = [h for h in HANDOFF_HEADINGS if h not in hl]
+        if miss or len(hl) > 40:
+            bad.append(f"{feat}: notes/handoff-{prev}.md fails the shape (missing {miss}, "
+                       f"{len(hl)} lines vs cap 40) — a freeform handoff drifts like an "
+                       f"unvalidated digest did (DEC-159/156).")
+
 # --- INV-15 (DEC-156): a complete lead-hosted run's digest.md is the durable copy a
 # successor reads — it must exist and satisfy the lead digest contract. The SubagentStop
 # hook checks it at source but fails open when it cannot resolve the path (worktrees,

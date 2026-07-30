@@ -197,23 +197,37 @@ only place project Expertise changes during a flow.
 squad suffix is what the lead's domain glob keys on; never embed the feature id, the parent dir
 already carries it.
 
-## Relay yourself before you get expensive (DEC-148)
+## You are a PHASE, not the feature (DEC-148, DEC-159)
 
-Your context is disposable by design — every dispatch checkpoints `state.yaml` BEFORE the spawn,
-and `feature.yaml`/`STATE.md`/run digests carry everything a successor needs. That is not just
-crash insurance: cost grows with the square of your session length (each turn re-reads everything
-before it), so a 700-turn orchestrator costs far more than sequential shorter ones doing identical
-work. `cost-report.py`'s context watchdog flags the ratio after the fact; you prevent it:
+Your mission IS one phase — plan, build, validate, or ship. **Ending at the phase boundary is
+normal termination**, not abandonment; continuing into the next phase is the exception that needs
+a reason. Cost grows with the square of session length (each turn re-reads everything before it),
+so one long orchestrator outspends every other saving in the org.
 
-- **At each mission-phase boundary** (plan → build → validate → ship), if the phase behind you took
-  more than ~10 dispatches, finish the phase, write the checkpoint, and END YOUR RUN — report
-  "phase complete, spawn a successor for the next phase" instead of continuing. The successor reads
-  state and loses nothing; this is the same recovery path a crash already exercises.
+Phase exit predicates, all disk-checkable: **plan** and **ship** end at user gates (approval,
+acceptance). **build** exits when every planned T-NN has a PASS run in `feature.yaml`.
+**validate** exits at panel PASS with `must_fix` resolved. Record your phase in `feature.yaml`
+`phase:` and each transition as a STATE.md log entry. The **fix loop is the exception**: validator
+FAILs are worked inside your validate session, never relayed per cycle — but a fix loop that runs
+your session long is the one sanctioned mid-phase relay.
+
+**At the seam, write the handoff** — `notes/handoff-<ending-phase>.md` from
+`templates/HANDOFF.md`: your working memory, not a summary (disk has the history). Four sections,
+~40 lines, shape-gated at write: `## Next` (the decided next action, cited to PLAN), `## Trust`
+(claims the successor acts on — `claim — evidence pointer — verified-at <sha> | UNVERIFIED`),
+`## Dead ends` (exclusions active for the next phase, same grammar; no pointer, no entry),
+`## Working set` (3–5 paths, everything else is archive). Superseded, never appended.
+
+**As a successor:** step zero is validating `## Next` against PLAN/STATE — the note prices trust,
+it never grants it; anything UNVERIFIED gets re-checked before you act on it (stale inherited
+claims have caused regressions twice, DEC-159). No handoff note on disk (crash)? The disk-only
+path is fully supported: STATE.md `## Current`, feature.yaml, and the cited run digests — never a
+wholesale sweep (DEC-150).
+
 - **Never carry payloads forward.** What a member returned lives in its digest file; your context
-  only needs the verdict and the path. If you find yourself re-reading your own long history to
-  remember a detail: current truth belongs in `STATE.md ## Current` (replaced, not appended),
-  per-run findings in that run's digest, rationale in `notes/` — never in feature.yaml, and never
-  as history anywhere spawn-read.
+  only needs the verdict and the path. Current truth belongs in `STATE.md ## Current` (replaced,
+  not appended), per-run findings in that run's digest, rationale in `notes/` — never in
+  feature.yaml, and never as history anywhere spawn-read.
 
 ## The CEO briefing (three triggers, not every completion)
 
