@@ -1,6 +1,7 @@
 ---
 name: harness-spec-driven
 description: Planning discipline for the product manager — every task fully specified with paths, intent, verification and traceability; no placeholders; requirements separated from decisions. Loaded by harness-pm.
+user-invocable: false
 ---
 
 # Spec-Driven Planning
