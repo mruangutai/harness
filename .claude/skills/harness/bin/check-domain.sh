@@ -13,10 +13,12 @@
 # VERIFIED (DEC-100): exit 2 blocks the tool call and stderr reaches the agent.
 # Only exit 2 blocks — exit 1 is a NON-blocking error and the write proceeds.
 #
-# HONEST SCOPE (DEC-85): this is a GUARDRAIL, not the write-safety mechanism.
-#   - It cannot see writes made via Bash (sed -i, cat >, tee, build scripts), and
-#     all 9 doers hold Bash. Extracting write targets from arbitrary shell is
-#     unwinnable.
+# HONEST SCOPE (DEC-85, narrowed by DEC-151): this is a GUARDRAIL, not the
+# write-safety mechanism.
+#   - It cannot see writes made via Bash. The COMMON bypass shapes (sed -i,
+#     perl -pi, tee, redirects, rm/mv/cp) are now denied by the sibling
+#     bash-write-guard.sh after a live qa bypass (DEC-151); truly arbitrary
+#     shell remains unwinnable and is caught post-hoc, not pre.
 #   - Serialization (SPEC 8.5) plus `isolation: worktree` is what actually makes
 #     fan-out safe. Do not treat a passing hook as proof of parallel safety.
 set -uo pipefail

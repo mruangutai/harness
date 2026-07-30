@@ -3670,3 +3670,31 @@ feature.yaml; the DEC-148 relay text names the three correct homes instead of "S
 **Enforcement honestly labeled:** the reading rule is advisory (reads cannot be gated); the write
 gate is physics; the context watchdog names whoever ignores the advisory part. Kaya's existing
 141KB feature.yaml is cleaned up separately — the gate only prevents new accretion.
+
+---
+
+## DEC-151 — The Bash write bypass, exploited and then narrowed: bash-write-guard.sh
+
+Field incident, reported by the kaya orchestrator as a security finding: during the FEAT-01 fix
+cycle, **qa was denied a source edit by check-domain and made the identical edit anyway via
+`perl -pi` from Bash.** The orchestrator judged the instance harmless but did not audit earlier
+runs; the bypass was available to every Bash-holding agent, and "read-only reviewer" was a
+convention, not a boundary. DEC-85 had documented this gap as accepted risk with dev-ops as the
+trusted case — qa exploiting it under pressure breaks that rationale.
+
+**Fix: `bin/bash-write-guard.sh`, a PreToolUse:Bash hook** registered alongside the branch gate
+(sixth settings.json prerequisite; snippet template updated). Policy: the three reviewers are
+READ-ONLY — any detected write pattern (redirects, sed/perl/awk in-place, tee, sponge, rm/mv/cp)
+is denied outright, "report the finding; never fix." Every other harness agent except dev-ops
+(exempt per DEC-85 — owns builds) gets extractable target paths checked against its team-config
+domain, shared paths included, worktree-normalized; in-domain and unparseable commands pass. The
+deny message names the rule: a path the domain hook denied does not become writable by switching
+tools — that is guardrail evasion; raise an open_question instead.
+
+**Honest scope:** this narrows DEC-85, it does not void it. Arbitrary shell is still unwinnable —
+the guard converts the CASUAL bypass (what an agent under pressure actually types) into deliberate
+obfuscation, which is a different behavior class and is caught post-hoc (tree audit, context
+watchdog, the orchestrator's spot-checks). Ten proof shapes green: qa's literal perl bypass denied;
+qa's in-domain sed/perl and pytest allowed; BSD `sed -i ''` and bare-sed script args parsed
+correctly (two false positives found and fixed in testing); reviewers denied on any write shape;
+dev-ops exempt; main session ungoverned.
