@@ -23,16 +23,11 @@ sitting at this level would ship to every enrolled project as though it were one
 
 ## Two conventions that carry the weight
 
-**`# SEED`** marks a value that differs per project. `/harness-init` replaces it from detection.
-An unseeded glob **fails closed** — the agent gets blocked with an actionable message naming its
-permitted paths. That is the safe direction, and it is why widening a domain to `**` to "fix" a
-block is never the answer.
+**`# SEED`** — replaced from detection by `/harness-init`; an unseeded glob **fails closed**
+(the full rule lives in team-config.yaml's header — never widen a domain to `**` to "fix" a block).
 
-**`"cmd": null` plus a `_reason`** is how an absent test runner is recorded. `dev-ops` replaces a
-`null` only with a command it has actually **run**. Never write a plausible command you have not
-executed: a `cmd` that resolves but is misconfigured reads exactly like a failing suite, and an
-invented one turns a hard gate into a silent no-op — strictly worse than no gate at all. A `null`
-`cmd` is a not-applicable soft skip in the qa gate.
+**`"cmd": null` plus a `_reason`** — an absent test runner, a not-applicable soft skip in the qa
+gate. dev-ops fills it only with a command it has actually run (harness-init step 4 has the why).
 
 ## Versioning
 

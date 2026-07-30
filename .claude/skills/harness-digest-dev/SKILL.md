@@ -26,3 +26,11 @@ artifact: <path>
 
 **Every field is required** (DEC-121) — `[]` for an empty list, `none` for an inapplicable scalar.
 The `SubagentStop` hook rejects a return missing any of them.
+
+## Reaching a boundary (shared by the same four)
+
+You cannot write outside your domain; the hook names what you may write. **Never work around it** —
+a path that should be yours belongs in the manifest, and a change needing another specialist's files
+is a routing decision for your lead: return it in `open_questions`. Shared files (`package.json`,
+lockfiles, `tsconfig.json`) are owned by nobody — allowed, serialized, and your lead attributes the
+write.

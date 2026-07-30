@@ -5,10 +5,7 @@
 # feed: [self] genuinely delivers the reviewer's report to that step; and
 # cycles_used increments in state.yaml rather than in the host's head.
 #
-# WHY IT CONVERGES BY CONSTRUCTION. The producer's behaviour is a pure function of
-# whether a review report was injected: no report -> omit the token -> reviewer
-# FAILs. Report present -> add the token -> reviewer PASSes. So a healthy runner
-# takes exactly one cycle, and any other outcome names its own defect:
+# A healthy runner takes exactly one cycle; any other outcome names its own defect:
 #
 #   0 cycles, PASS   -> the reviewer never actually checked; the gate is decorative
 #   1 cycle,  PASS   -> correct

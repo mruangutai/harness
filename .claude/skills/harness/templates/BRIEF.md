@@ -43,9 +43,7 @@ like a task missing `change_type`.
   verify: uat         -> only the user can judge it. Becomes a step in
                          .harness/features/<FEAT>/notes/uat.md, executed by the user.
 
-Reject and rewrite any SC that: has no verify: or two; is `automated` with no
-`evidence:`; is not falsifiable ("the code is clean"); or restates a requirement
-instead of naming an outcome.>
+SC well-formedness rules live in `harness-brief` — the writer preloads them.>
 
 - SC-01: <observable outcome>
   verify: automated        evidence: unit

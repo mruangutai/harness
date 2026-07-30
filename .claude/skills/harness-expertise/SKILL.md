@@ -16,19 +16,15 @@ Memory has **two layers**, and confusing them is the failure this skill exists t
 | **Observations** — hot, granular, this feature | `.harness/features/<FEAT>/observations/<your-agent-name>.md` | by you, mid-run, freely | **never** |
 | **Expertise** — cold, rule-form, durable | `.harness/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
 
-The reason for the split: the agent that just lived an incident records specifics — feature IDs,
-line numbers, case histories. The durable rule requires stepping back across incidents, which is a
-different job at a different time. Expertise files written mid-run grew to thousands of words of
-incident narrative and taxed every subsequent spawn (DEC-145). So mid-run you only *observe*;
-someone abstracts *later*, cold.
+Why the split: mid-run-written Expertise bloated into incident narrative that taxed every spawn
+(DEC-145). Mid-run you only *observe*; distillation happens later, cold.
 
 ## Mid-run: append an observation
 
 Learned something that might matter later? APPEND it to your observations log — one dated bullet,
 as granular as you like: feature IDs, line anchors, incident narrative, all welcome. It is never
-injected, so detail is free. Create the file on first use; you hold `Write` not `Edit`, so
-appending means read-modify-write (the log may not be in your context — Read it first if it
-exists).
+injected, so detail is free. Create the file on first use; `Write`-not-`Edit` means appending is read-modify-write — Read the
+log first if it exists.
 
 ```markdown
 # Observations — <your-agent-name> — <FEAT>
@@ -59,11 +55,9 @@ You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch ex
 
 1. Read your observations log(s) and your current Expertise (already in context).
 2. Extract what passes the test: *six spawns from now, would knowing this change what I do?*
-   Most observations fail it. That is normal. Your lead may relay **candidates** it found in run
-   digests — you are the sole judge of them: accept, or reject with a reason in your DIGEST.
-   Rejecting your lead's candidate is a valid outcome, not friction. At a full section a new entry
-   enters only by **displacing** one you judge weaker — never by merging into a survivor; if
-   nothing is weaker, the candidate dies.
+   Most observations fail it — that is normal. Lead-relayed candidates: you are the sole judge;
+   rejecting with a reason is a valid outcome. At a full section a new entry enters only by
+   **displacing** one you judge weaker — never by merging into a survivor; nothing weaker, it dies.
 3. Write the file — create it if absent, read-modify-write if not. **Never write it from your new
    entries alone; that silently deletes every earlier one** (DEC-125). Report the ops in your
    DIGEST's `expertise_update` as the receipt.
@@ -76,13 +70,11 @@ Every entry is **WHEN <situation> DO <action>**, at most **50 words**, and names
 task IDs** — no `FEAT-NN`, `T-NN`, issue `#NN`. Durable repo facts ("`tests/` is not type-checked
 here") qualify without the WHEN/DO shape, but the caps still hold.
 
-A **recipe** (setup steps, config values, field names) rots with the code and nothing re-validates
-Expertise against the tree. It qualifies only as a pointer to a living in-repo exemplar — "copy the
-passing jobs-API test's auth monkeypatching" — never as inlined values recalled from an old run.
+A **recipe** (setup steps, config values, field names) rots with the code — it qualifies only as a
+pointer to a living in-repo exemplar, never as inlined values recalled from an old run.
 
 An entry citing more than one incident is a distillation smell: keep the rule, drop the cases.
-`merge` means the result is **no longer than the longer input** — appending a new instance to an
-existing entry is `add` wearing a costume, and instance lists ("(a)… (j)") are banned.
+A `merge` result is **no longer than the longer input**; instance lists are banned.
 
 ```markdown
 # Expertise — <your-agent-name>

@@ -36,12 +36,9 @@ below).
 ## The feature id — you coin it, once
 
 `FEAT-NN-<kebab-slug>` for features, **`BUG-NN-<kebab-slug>` for defects** (independent number
-sequences, same rules; both live under `.harness/features/` — the flows root). Number for
-ordering and cheap references, slug for meaning:
-`FEAT-02-verdict-shadowing`, not `FEAT-02`. A bare number tells the user nothing in `ls`, a log
-line, or a briefing (DEC-133). Derive the slug from the goal, 2–4 words. **Immutable once
-created** — every recorded reference breaks on rename, so a mediocre slug is lived with, like a
-branch name.
+sequences, same rules; both live under `.harness/features/`). Slug from the goal, 2–4 words — a
+bare number tells the user nothing (DEC-133). **Immutable once created**: recorded references
+break on rename.
 
 ## Backlog intake — read Issues before you write (DEC-138)
 
@@ -55,9 +52,8 @@ requirement — requirements enter BRIEF under the user's signature.
 ## Problem — first, always
 
 State what hurts before what to build. The Problem section precedes Goal (DEC-129): one short,
-observed paragraph — who hits it, when, what it costs. A brief that cannot state the problem
-without naming the solution is a solution looking for a problem, and the goal-check later has
-nothing to anchor "did this help?" against.
+observed paragraph — who hits it, when, what it costs. Without it the goal-check has nothing to
+anchor "did this help?" against.
 
 ## Goal
 One paragraph, in the user's own framing. What changes for whom.
@@ -69,11 +65,9 @@ One paragraph, in the user's own framing. What changes for whom.
 ## Success Criteria
 
 **User-mandated outcomes are binding — and never sufficient.** Translate each into a proper SC-NN
-with a verify: method, then ADD what done also requires that nobody said: regression safety, the
-failure modes your research surfaced, the adjacent thing that breaks. You are expected to author
-beyond the user's list (DEC-132); a brief whose SCs merely restate it is under-delivery. The
-signature is where the user prunes any you over-reached on — that is the gate working, not a
-reason to hold back.
+with a verify: method, then ADD what done also requires that nobody said: regression safety,
+surfaced failure modes, the adjacent thing that breaks (DEC-132). The user prunes over-reach at
+signature.
 - SC-01: Filtering by author returns only that author's turns, and the count matches.
   verify: automated      evidence: unit
 - SC-02: The filter control reads as part of the review surface, not bolted on.
@@ -116,9 +110,8 @@ decision. Move it to `## Constraints` or drop it.
 > "Use Supabase social login" is a **decision**.
 > "Users can sign in with their Google account" is a **requirement**.
 
-This matters because SC verification is checked against this file. If technical choices are logged as
-requirements, verification confirms you delivered your own implementation decisions rather than the
-outcomes you committed to — passing green while missing the point.
+Why it matters: log a decision as a REQ and verification confirms your implementation choices, not
+the committed outcomes.
 
 ### 6. Hand back for approval
 

@@ -43,9 +43,8 @@ Read **two** signals, never just the exit code: what kind of failure, not merely
 | **not applicable** | the tooling genuinely is absent (e.g. `ui` with no Playwright) | **soft skip.** Report it; do not FAIL |
 | **misconfigured** | `cmd` is null/absent · no test files matched · the failure is a **load / import / collection / syntax error** rather than an assertion | **`BLOCKED`** — never `FAIL` |
 
-⚠️ **Do not use "zero tests collected" to detect misconfiguration.** Verified: `node --test src/` on a
-directory reports `tests 1 / fail 1` for a module-load error — a count-based rule reads that as a real
-failure and sends the reader hunting a bug that does not exist. **The failure kind is the signal.**
+⚠️ **Do not use "zero tests collected" to detect misconfiguration.** `node --test src/` reports
+`tests 1 / fail 1` for a module-load error. **The failure kind is the signal.**
 
 A genuine `FAIL` looks like a **named** test with an assertion diff. Misconfiguration looks like
 `MODULE_NOT_FOUND`, `ImportError`, `No test files found`, a collection `ERROR`, or a "test" whose name is
@@ -61,12 +60,10 @@ shows the order, confirm the test came **first**. Report violations as findings 
 themselves fail the gate.
 
 **Perturbation proofs run in a worktree, never the main checkout (DEC-153).** Proving a test
-discriminates (mutate the source, watch the test fail, restore) is sanctioned and encouraged — but
-the main checkout is write-gated against you: the bash-write-guard denies your in-place edits of
-source there by design. Run the proof in a disposable worktree (`isolation: worktree`, or
-`git worktree add`), where the guard permits it; verify your restore with byte-identity
-(`git status --porcelain <path>`), never a read-back. Editing gated source in the main checkout
-"just briefly" is the exact incident the guard exists to stop.
+discriminates (mutate, watch it fail, restore) is sanctioned — but the bash-write-guard denies your
+in-place source edits in the main checkout by design. Run the proof in a disposable worktree
+(`isolation: worktree`, or `git worktree add`); verify the restore with
+`git status --porcelain <path>`, never a read-back.
 
 ## You supply the evidence, not the verdict on the goal
 

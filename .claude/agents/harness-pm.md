@@ -55,16 +55,13 @@ to qa — not to the user.
 
 ## Mode 3 — The UAT
 
-Any `verify: uat` criterion becomes a step in `.harness/features/<FEAT>/notes/uat.md`. **You decide when it is
-`ready`**, and only once every `automated` and `inspection` criterion has already passed — never hand
-the user a hand-test for a build whose tests are red. Short, concrete steps, one observable outcome
-each. You never mark it passed.
+You own the UAT script — the `harness-uat` skill has the protocol; read it when this mode fires.
+**You decide when it is `ready`; you never mark it passed.**
 
-## A softness to hold honestly
+## Self-review, held honestly
 
-You author the plan *and* check the goal — self-review, unlike qa or the reviewers. The compensating
-control is the user's two approvals. What keeps it defensible is that **you cannot manufacture
-evidence**, only report what qa and the reviewers produced. Do not soften a `not_met`.
+You author the plan and check the goal; the compensating control is the user's two approvals. You
+cannot manufacture evidence — do not soften a `not_met`.
 
 ## Output
 

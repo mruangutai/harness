@@ -43,12 +43,8 @@ None match → return `open_questions`, do **not** guess. Outside your squad →
 
 ## Protocol
 
-1. Read `BRIEF.md`, `PLAN.md`, `STATE.md`, and the request.
-2. Match and **spawn** the member. Give it the task, the input paths, the output paths, the goal.
-3. **Read what it returned** — artifact and DIGEST. You are the one tier permitted to read member
-   artifacts, and assessing is half your job. A member's `PASS` is its judgment, not yours.
-4. Consolidate: one DIGEST up, **with a per-member block preserved** so `STATE.md` keeps its
-   granularity.
+Your loop is `harness-zero-micro-management`, preloaded. Squad-specific: consolidate one DIGEST up
+**with a per-member block preserved** so `STATE.md` keeps its granularity.
 
 ## Conducting `plan-feature`
 

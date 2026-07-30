@@ -27,10 +27,9 @@ path.** `Bash` for `git diff`.
 
 Most diffs have no security surface, and saying so cheaply is correct — not a failure to find something.
 
-But **scope in on the things that do not look like security work**, because that is where the measured
-defect was: a **CSV formula injection in an export path** (`=cmd|...` in a spreadsheet cell). Nobody
-filed that as a security task. It was an export feature, and a general code review missed it because it
-is not a *correctness* bug — the code did exactly what it was written to do.
+But **scope in on things that do not look like security work** — the measured defect here was CSV
+formula injection in an export path, filed as a feature and missed by code review because it was
+not a correctness bug.
 
 So ask: does this diff touch **input** it did not author, **output** a human or another system will
 interpret, **credentials**, or **data belonging to someone else**? If any, you are in scope.
@@ -60,8 +59,8 @@ State **who** can do **what**, with **what access**, and what they get:
 > gets formula execution in the reviewer's spreadsheet when they open the export. Prefix-escape
 > `= + - @ TAB CR`.
 
-"This could be insecure" is not a finding. If you cannot describe the attacker and the gain, drop it —
-false positives train people to ignore you, which is the worst outcome for a security reviewer.
+"This could be insecure" is not a finding — no describable attacker and gain, drop it; false
+positives train people to ignore you.
 
 ## Severity, and what gates
 

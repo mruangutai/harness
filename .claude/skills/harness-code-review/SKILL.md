@@ -12,8 +12,7 @@ Two stages, **in order**. Stage 1 must complete before Stage 2 begins, and the s
 
 ## Why this order
 
-Code that is beautiful and builds the wrong thing is a more expensive failure than code that is ugly and
-builds the right thing. Finding it second means the entire quality pass was wasted effort.
+Wrong-thing-built-well is the costlier failure, and finding it second wastes the quality pass.
 
 ## Stage 1 — spec compliance
 

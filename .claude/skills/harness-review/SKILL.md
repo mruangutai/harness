@@ -7,11 +7,8 @@ description: Review a change against a pinned SHA — spec compliance first, the
 
 Review a change against **a pinned commit, never a moving `HEAD`**, in two ordered stages.
 
-Two properties make this different from an ordinary review:
-
-1. **The diff target cannot move.** A commit landing mid-review must not change what you reviewed.
-2. **Human hand-edits are reconciled, not ignored.** A change that never got reviewed must never inherit
-   a passing review.
+Two invariants: **the diff target cannot move** (a commit mid-review must not change what you
+reviewed), and **hand-edits never inherit a passing review**.
 
 ## Process
 
@@ -49,8 +46,8 @@ user's change is worse than halting.
 
 ### 3. Stage one — spec compliance
 
-**Ordered first deliberately.** Beautiful code that builds the wrong thing is a more expensive failure
-than ugly code that builds the right thing, and finding it second wastes the quality pass.
+**Ordered first deliberately** — wrong-thing-built-well is the costlier failure, and finding it
+second wastes the quality pass.
 
 Read `.harness/features/<FEAT>/BRIEF.md`. For each `REQ-NN` and each `SC-NN`:
 
@@ -75,20 +72,9 @@ copy-paste divergence, and comments that no longer match the code.
 
 ### 5. Classify findings, and gate honestly
 
-| Severity | Meaning |
-|---|---|
-| `critical` | data loss, security hole, or certain breakage |
-| `high` | wrong behavior in a realistic case |
-| `med` | wrong behavior in an unlikely case, or real maintainability cost |
-| `low` / `info` | worth knowing, not worth blocking |
-
-**Gate rule — advisory by default:**
-
-- `must_fix` non-empty **or** `severity_max ≥ high` → `FAIL`
-- otherwise → **`PASS` (with notes)** — logged and surfaced, does not block
-
-Style and opinion never gate. This exists to prevent the non-convergence trap where one permanent nit
-loops forever.
+Severity levels are defined in `harness-code-review` (one canonical copy). Gate rule:
+`must_fix` non-empty or `severity_max ≥ high` → `FAIL`; otherwise `PASS` with notes. Style and
+opinion never gate — one permanent nit must not loop forever.
 
 Every finding needs a concrete failure scenario: **specific inputs or state → specific wrong outcome.**
 "This could be fragile" is not a finding. If you cannot state how it breaks, drop it.

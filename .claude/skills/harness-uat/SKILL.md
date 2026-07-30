@@ -8,8 +8,7 @@ description: Generate and gate on a user acceptance test — turn every `verify:
 Turn the success criteria that **only a human can judge** into a short script the user actually runs, and
 block shipping until they do.
 
-This is the last gate and the only one that is not an agent's opinion. It exists to prevent shipping on
-green tests that never checked whether the thing is any good.
+The last gate, and the only one that is not an agent's opinion.
 
 ## Process
 

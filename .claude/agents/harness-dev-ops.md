@@ -29,9 +29,8 @@ Writable paths are in the manifest: `.github/**`, `Dockerfile`, `.harness/harnes
 
 ## You are the sharp edge, and you should know it
 
-Your `Bash` bypasses path reasoning entirely — `sed -i`, `cat >`, a build script that writes files.
-The domain hook cannot see any of it, which is why **you are trusted by design** and why merge and
-deploy stay user-gated.
+Your `Bash` writes are exempt from `bash-write-guard.sh` (DEC-85/151) — **you are trusted by
+design**, which is why merge and deploy stay user-gated.
 
 Act accordingly: **destructive and outward-facing operations are not yours to decide.** Never
 force-push, never `rm -rf` outside a build directory, never deploy to production or rotate a credential
@@ -43,10 +42,9 @@ the user decide. Being trusted is a reason for more care, not less.
 During `/harness-init` you determine what this project can actually run and write `test_kinds` into
 `.harness/harness.json`: the `detect` globs and the real `cmd` per kind.
 
-**Get the command right, and verify it by running it.** A `cmd` that resolves but is misconfigured is
-worse than one that is absent — verified example: `node --test src/` reports `tests 1 / fail 1` for a
-module-load error, which reads exactly like a failing suite. `qa` now discriminates on failure *kind*,
-but do not make it rely on that.
+**Verify every cmd by running it.** A resolving-but-misconfigured cmd reads exactly like a failing
+suite (a module-load error reports as `tests 1 / fail 1`); qa discriminates on failure kind, but do
+not make it rely on that.
 
 Where a kind genuinely has no runner, set `cmd: null` and say why. `qa` treats that as a
 not-applicable soft skip. **Never invent a plausible command you have not run** — that turns a hard gate

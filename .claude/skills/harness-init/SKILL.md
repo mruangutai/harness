@@ -40,19 +40,16 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
 ```
 
 **Use the scripts. Do not hand-edit `.claude/settings.json`, and do not hand-replicate a script that
-was denied.** All five entries degrade *silently* — no error, no warning — and a project that already
-has its own hooks is exactly where one of the five goes missing during a hand-merge. Both scripts
+was denied.** All six entries degrade *silently* — no error, no warning — and a project that already
+has its own hooks is exactly where one of the six goes missing during a hand-merge. Both scripts
 preserve what is there and are safe to re-run.
 
-**If either script cannot run, STOP HERE and tell the user what to approve.** Do not proceed to step 2.
-This has already gone wrong once in testing: with the scripts denied, an init hand-wrote the `.gitignore`
-half, silently skipped the settings half, and carried on through step 5 — producing a project with a
-manifest, a scaffolded `.harness/`, and **no domain enforcement whatsoever**. Everything downstream looks
-finished, which is precisely why a half-installed init is worse than a refused one.
+**If either script cannot run, STOP HERE and tell the user what to approve.** Do not proceed to
+step 2 — a half-installed init looks finished but has no domain enforcement, which is worse than a
+refused one (observed in testing).
 
-The hooks take effect **immediately, in this session** — verified: a subagent spawned after this merge
-had its out-of-domain write blocked by the freshly-registered hook. So steps 4 and 8 below run *with*
-enforcement on, and nothing here waits on a restart.
+The hooks are live **immediately, in this session** — steps 4 and 8 below run *with* enforcement
+on; nothing here waits on a restart (step 9 has the one real restart caveat).
 
 ### 2. Scaffold `.harness/` from the templates
 
@@ -90,14 +87,12 @@ Spawn `harness-dev-ops` with the answers from step 3. It must:
 - **Never invent a plausible command.** A kind with no runner keeps `cmd: null`, and its placeholder
   `_reason` is **replaced with the real one** ("no Playwright in this project", "no eval harness yet").
   `qa` treats null as a not-applicable soft skip; an invented command turns a hard gate into a silent
-  no-op, which is strictly worse than no gate. A worked example from testing: this project's
-  `package.json` declared `"test": "echo \"1 passing\""` — dev-ops ran it, saw it was a stub, and
-  correctly refused to write it as `unit.cmd`.
+  no-op, which is strictly worse than no gate.
 - **Delete the `_reason` on any kind whose `cmd` it fills.** Every kind ships with
   `_reason: "unset — dev-ops has not run detection yet"`. Leaving that next to a command dev-ops has
   since verified states a falsehood about the project's own config.
-- Keep worktree and vendor dirs in every `exclude`, or a diff scan multiplies each test file by the
-  number of checkouts (measured 3× in kaya-ai).
+- Keep worktree and vendor dirs in every `exclude`, or a diff scan multiplies each test file per
+  checkout.
 - **Report the source layout** in its DIGEST — frontend root, backend root, prompt/agent dir, migrations
   dir, test root, docs root — for the next step. It does not write the manifest itself.
 - Check the team conventions: is `@astryxdesign/core` present, is Supabase linked? Report, do not
@@ -140,13 +135,10 @@ Summarise the brief in plain English: the goal as you understood it, how many RE
 SC will be checked, and **which ones will need the user personally** (the `uat` ones). Then ask with
 `AskUserQuestion`: approve, or amend?
 
-**On an explicit yes, write `## Approval` yourself** — `status: approved`, their name, today's date.
-This is not self-approval and it is not a shortcut:
-
-- `## Approval` is **orchestrator-written by design** (SPEC §2.3). pm never touches it because pm has
-  no user channel; init runs at the orchestrator tier and does.
-- Until it says `approved`, `check-state.sh` reports `BRIEF.md is NOT approved — halt` and **nothing
-  downstream may run.** An init that leaves a pending brief has not finished onboarding the project.
+**On an explicit yes, write `## Approval` yourself** — `status: approved`, their name, today's
+date. Not self-approval: init runs at the tier with the user channel (SPEC §2.3), and until it says
+`approved`, `check-state.sh` halts everything downstream. An init that leaves a pending brief has
+not finished onboarding.
 
 **If the user amends or defers, leave it pending** — and tell them plainly that the harness is blocked
 until they approve, and that `/harness` will keep saying so. A pending brief is a correct state; a
@@ -156,9 +148,7 @@ brief you approved on their behalf is not.
 
 If the project has **existing source code**, the last act of init is spawning
 `harness-orchestrator` with **mission map** (DEC-137) — the org's structural knowledge is built
-before the first feature ever plans, so nothing downstream can run unmapped. Observed failure this
-guards against: a feature build ran before the map in the first real onboarding, because "run the
-map first" lived only in prose.
+before the first feature ever plans, so nothing downstream runs unmapped.
 
 - **Existing code** (dev-ops detection found source beyond scaffolding) → spawn mission map now,
   in the background; tell the user it is running and that `codebase/map.html` lands when done.
@@ -232,7 +222,7 @@ For a project that is already initialised, after a newer harness has been deploy
 
 | Thought | Reality |
 |---|---|
-| "I'll just add the hook to settings.json myself" | That is how one of the five goes missing. Run the script; it preserves the project's own hooks |
+| "I'll just add the hook to settings.json myself" | That is how one of the six goes missing. Run the script; it preserves the project's own hooks |
 | "The script was denied, I'll replicate what it does" | Stop instead. A half-installed init looks finished and has no domain enforcement — observed in testing |
 | "dev-ops filled the cmd, the `_reason` is harmless" | It says "unset — dev-ops has not run detection yet" next to a working command. Delete it |
 | "They must restart before anything works" | The hooks are live now. Only newly-written agent files need the restart |

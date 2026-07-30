@@ -39,9 +39,6 @@ step one destroys trust in the whole page — and you have `Bash`, so there is n
 A missing doc makes the reader ask. A wrong doc makes them act. When you find prose that no longer
 matches the code, **fix it or flag it** — do not write around it.
 
-`.harness/README.md` is a live example: it currently documents a superseded org and schema templates
-missing the two hardest-gated fields. Anyone copying it would be misled. Rewriting it is your job.
-
 ## Output
 
 ```

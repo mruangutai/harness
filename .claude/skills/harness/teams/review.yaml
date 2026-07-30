@@ -5,15 +5,9 @@
 # qa, and adding a fourth dispatched step to "synthesize" would just be the lead
 # paying a spawn to do its own job.
 #
-# WHY PARALLEL MATTERS HERE. Three reviewers with no dependency on each other must
-# go out in ONE turn. Dispatched serially the verdicts are identical, so the run
-# still looks correct while taking three times as long — a failure that never
-# surfaces on its own. That is the specific thing this team is used to verify.
-#
-# review_sha IS PINNED BY THE CALLER, not read from HEAD at each step. Reviewers
-# that resolve HEAD themselves can be gaslit by commits landing mid-review — the
-# GAP-7 failure (DEC-50). The orchestrator pins it before dispatch; INV-6 fails the
-# run if a validator run exists without it.
+# Three independent reviewers dispatch in ONE turn — serial dispatch looks correct
+# while running 3× slower. review_sha IS PINNED BY THE CALLER, never read from
+# HEAD (DEC-50; INV-6 fails an unpinned validator run).
 
 name: review
 purpose: Run the reviewer panel in parallel against a pinned SHA; the lead synthesizes one actionable set.

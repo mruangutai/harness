@@ -48,16 +48,9 @@ do not invent a matrix.
 The matrix is a **floor, not a ceiling**: you may add a requirement the diff clearly warrants. You may
 never drop below it.
 
-| Change type | Required |
-|---|:---|
-| `logic` | unit |
-| `api` | unit + functional; integration **if it touches a DB or external service** |
-| `cross_module` | unit + functional + integration |
-| `frontend` | unit + component; ui **if there is an interaction flow** |
-| `feature` | unit + functional + integration + ui |
-| `bugfix` | a regression test that **reproduces the bug**, matching the bug's class |
-| `ai_behavior` | eval |
-| `config` / `scaffolding` / `docs` | exempt |
+The matrix in `harness.json` is the authority — apply it as read, never restate or paraphrase it
+(a hardcoded copy here has already drifted from the config once). For `bugfix`, the required test
+is a regression test that **reproduces the bug**, matching its class.
 
 ### 4. Check presence, then run
 
@@ -82,17 +75,9 @@ test* run and fail its assertion, or did the runner fall over before it could ru
 | **not applicable** | the tooling genuinely is not present in this project (e.g. `ui` with no Playwright installed) | **soft skip.** Report `ui: skipped (no browser target)` and do **not** FAIL |
 | **misconfigured** | `cmd` is `null`/absent; **no test files matched**; or the failure is a **load / import / collection / syntax error** rather than an assertion failure | **`BLOCKED`** — never `FAIL` |
 
-⚠️ **Do NOT use "zero tests collected" as the test for misconfiguration.** It looks like the obvious
-signal and it is wrong: **some runners synthesize a failing test out of a load error.** Verified live —
-`node --test src/` on Node 26 cannot resolve `src` as a module and reports:
-
-```
-Error: Cannot find module '.../src'   code: 'MODULE_NOT_FOUND'
-ℹ tests 1      ℹ pass 0      ℹ fail 1
-```
-
-**`tests 1`, not `tests 0`.** A count-based rule classifies that as a genuine failure and sends the
-reader hunting a bug that does not exist. The load error is the signal; the count is noise.
+⚠️ **Do NOT use "zero tests collected" as the test for misconfiguration** — some runners synthesize
+a failing test out of a load error (`node --test` reports `tests 1 / fail 1` on `MODULE_NOT_FOUND`).
+The failure kind is the signal; the count is noise.
 
 **Look for these, and treat any of them as `BLOCKED`:**
 
@@ -105,13 +90,8 @@ reader hunting a bug that does not exist. The load error is the signal; the coun
 
 A genuine `FAIL` looks different: a **named** test with an assertion diff — *expected X, received Y*.
 
-```
-VERDICT: BLOCKED — test command misconfigured for kind 'unit'
-  cmd:    node --test src/
-  error:  Cannot find module '.../src'   (MODULE_NOT_FOUND, before any test ran)
-  cause:  this runner treats `src` as a module, not a directory.
-          Fix the cmd in .harness/harness.json — the code is not the problem.
-```
+A misconfigured cmd returns `VERDICT: BLOCKED — test command misconfigured for kind '<kind>'`,
+naming the cmd, the error, and the fix location (`.harness/harness.json`) — the code is not the problem.
 
 **No test files matched, with exit 0, is also `BLOCKED`** — a runner that silently matched nothing has
 told you the glob is wrong, and passing on it is exactly the no-op'd hard gate this section exists to

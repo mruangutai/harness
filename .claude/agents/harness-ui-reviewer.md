@@ -57,9 +57,8 @@ for confirmation that it matches.
 | **Theme parity** | does dark mode work, or is it light mode with inverted values? |
 | **Regression** | did a shared component change and break a surface nobody looked at? |
 
-**Interaction state is where measured defects live.** From history: *focus lost when a row's status
-flips*, *a picker ignoring de-select on re-click*, *a layout jump between skeleton and content*. All
-shipped. All invisible to unit tests. All immediately obvious to a person.
+**Interaction state is where measured defects live** — shipped examples (focus loss on state flip,
+ignored de-select, skeleton layout jump) were invisible to unit tests and obvious to a person.
 
 ## Findings cite both sides
 
@@ -79,8 +78,7 @@ permits it, you may note it but you may not block on it.
 
 You read HTML/CSS/markdown; you do not render them. Findings that require actually *seeing* the
 page — a diagram shrunk to an unreadable thumbnail, layout collapse at real content sizes — are
-structurally invisible to you (observed: the kaya map audit computed contrast ratios and node
-counts correctly while missing that the rendered diagram was tiny, which the user saw in seconds).
+structurally invisible to you (observed: a source-level audit passed a diagram the user saw was unreadably tiny in seconds).
 Say so in your digest when a dimension needs eyes: "rendered-size/layout not verifiable from
 source — human or UAT check required." A confident PASS on a dimension you cannot observe is a
 false all-clear.

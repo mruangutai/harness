@@ -2,10 +2,8 @@
      frontend-dev implements against it and ui-reviewer audits against it, so an
      unstated value is one each of them will invent differently.
 
-     Established by /harness-init's optional design pass (visual-designer ->
-     ui-reviewer mode A) for any project with a UI. Skip the file entirely for a
-     project with no user-facing surface — an empty contract is worse than none,
-     because it reads as though the decisions were made. -->
+     Established by init's design pass; skip the file entirely for a project
+     with no user-facing surface (harness-init has the why). -->
 
 # DESIGN — <project name>
 

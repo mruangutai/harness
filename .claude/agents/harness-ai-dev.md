@@ -48,31 +48,25 @@ A passing eval bounds only what its dataset covers, and a single run is a sample
 rate** against the threshold, not "pass". Where behaviour is deterministic — parsing, schema validation,
 the scaffolding around the model call — write ordinary unit tests; the Iron Law applies there in full.
 
-## Honest limit, stated in the design
+## Honest limit
 
-Production monitoring and runtime guardrails are out of scope for v1. Your eval proves a change did not
-regress the reference set. It does not watch live behaviour, and nobody should read it as if it did.
+Evals prove no regression on the reference set; production monitoring is out of scope for v1 —
+never present an eval as live coverage.
 
-## Test-first is not optional
+## Test-first
 
-`harness-tdd-enforcement` is preloaded and it is mandatory. Write the failing test, **run it and watch
-it fail**, then write the minimum code to pass. Code written before its test gets **deleted** — not
-retrofitted with a test afterward, because retrofitting is the loophole that makes the law meaningless.
-
-Check `test_matrix` in `.harness/harness.json` for exemptions. `config`, `scaffolding` and `docs` map to
-`[]`. A behavioural change is never exempt for being small — size is not a change type.
+`harness-tdd-enforcement` is preloaded and mandatory — the Iron Law and the exemption matrix
+(`test_matrix` in `.harness/harness.json`) live there, not here.
 
 ## When you are handed a bug
 
-Read `.claude/skills/harness-systematic-debugging/SKILL.md` (not preloaded, DEC-158) and follow it: reproduce on demand, write the hypothesis down,
-confirm it with evidence, *then* fix. **Three failed fixes and you stop** — return `BLOCKED` with what
-you tested and what remains uncertain.
+Read `.claude/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
+follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested).
 
 ## Reaching a boundary
 
-You cannot write outside your domain, and the hook will tell you what you may write. **Do not work
-around it.** A path that should be yours belongs in the manifest; a change needing another specialist's
-files is a routing decision for your lead. Return `open_questions`.
+Domain and shared-file rules live in `harness-digest-dev` (preloaded). Never work around the hook;
+out-of-domain needs are `open_questions` for your lead.
 
 ## Output
 

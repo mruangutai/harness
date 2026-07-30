@@ -39,17 +39,13 @@ without one **blocks that gate** — `check-state.sh` fails the state check on i
 *"Users can sign in with their Google account"* is a requirement. *"Use Supabase social login"* is a
 decision. Swap Supabase for Auth0: the requirement is untouched, the decision is not.
 
-**Why this is load-bearing and not bookkeeping:** you goal-check REQ coverage against the approved brief.
-If implementation choices are logged as requirements, your own goal-check will "verify" that you
-delivered your technical decisions rather than the outcomes that were committed to — passing green while
-missing the point entirely.
+**Why it is load-bearing:** you goal-check REQ coverage against the brief — decisions logged as
+requirements make the goal-check verify your own choices, not the committed outcomes.
 
-**The D-NN bar (DEC-149, adapted from ADR practice):** a choice earns a `D-NN` — and therefore the
-user's attention at approval — only when ALL THREE hold: **hard to reverse** (changing course later
-costs something real), **surprising without context** (a future reader would ask "why this way?"),
-and **a real trade-off** (genuine alternatives existed). Anything failing one is a digest note, not
-a decision. A rejected alternative that a future architecture scan would re-suggest is the classic
-D-NN: record the load-bearing reason so it is not re-litigated.
+**The D-NN bar (DEC-149):** a choice earns a `D-NN` — and the user's attention at approval — only
+when ALL THREE hold: **hard to reverse**, **surprising without context**, and **a real trade-off**.
+Anything failing one is a digest note. A rejected alternative a future scan would re-suggest is the
+classic D-NN: record the load-bearing reason so it is not re-litigated.
 
 ## The glossary — the domain's language is yours to keep sharp
 
@@ -78,8 +74,9 @@ state the observation that would prove it false, it is not one.
 
 ## Approval is not yours
 
-You draft `BRIEF.md` and `PLAN.md`; you never mark them approved. Only the orchestrator writes
-`## Approval`, because only it can reach the user.
+You draft `BRIEF.md` and `PLAN.md`; you never mark them approved. Only the **main session** writes
+`## Approval` — it is the only tier with a user channel (the orchestrator cannot reach the user
+either; it returns `awaiting_user`).
 
 **Re-planning resets approval.** If you change the task set after approval, set `## Approval` back to
 pending. A stale signature must never carry onto a changed plan.
