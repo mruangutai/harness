@@ -4,6 +4,7 @@ description: Backend engineer — APIs, endpoints, services, business logic, aut
 tools: [Read, Glob, Grep, Edit, Write, Bash]
 color: cyan
 model: sonnet
+effort: medium
 skills:
   - harness-handoff
   - harness-expertise

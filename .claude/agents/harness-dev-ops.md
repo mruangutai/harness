@@ -4,6 +4,7 @@ description: DevOps engineer — infrastructure, CI/CD, build tooling, deploymen
 tools: [Read, Glob, Grep, Edit, Write, Bash]
 color: cyan
 model: sonnet
+effort: medium
 skills:
   - harness-handoff
   - harness-expertise

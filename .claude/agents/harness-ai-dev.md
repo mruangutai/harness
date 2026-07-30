@@ -4,6 +4,7 @@ description: AI engineer — LLM and agent features, prompts, model integration,
 tools: [Read, Glob, Grep, Edit, Write, Bash, WebSearch, WebFetch]
 color: cyan
 model: sonnet
+effort: medium
 skills:
   - harness-handoff
   - harness-expertise

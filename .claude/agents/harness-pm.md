@@ -4,6 +4,7 @@ description: Product manager — researches the codebase and plans in one contex
 tools: [Read, Glob, Grep, Edit, Write, Bash, WebSearch, WebFetch]
 color: purple
 model: opus
+effort: medium
 skills:
   - harness-handoff
   - harness-expertise

@@ -4,6 +4,7 @@ description: Validation lead — runs the reviewer panel, assesses and synthesiz
 tools: [Read, Glob, Grep, Agent, Write]
 color: orange
 model: opus
+effort: high
 skills:
   - harness-handoff
   - harness-expertise

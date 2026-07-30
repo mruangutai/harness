@@ -4,6 +4,7 @@ description: Product lead — routes work across pm, visual-designer and documen
 tools: [Read, Glob, Grep, Agent, Write]
 color: purple
 model: opus
+effort: high
 skills:
   - harness-handoff
   - harness-expertise

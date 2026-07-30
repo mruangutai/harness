@@ -4,6 +4,7 @@ description: Visual designer — owns DESIGN.md as the design contract, builds t
 tools: [Read, Glob, Grep, Edit, Write, Bash, Skill]
 color: purple
 model: opus
+effort: medium
 skills:
   - harness-handoff
   - harness-expertise

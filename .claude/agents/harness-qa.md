@@ -4,6 +4,7 @@ description: QA engineer — derives expected coverage from the brief with no so
 tools: [Read, Glob, Grep, Edit, Write, Bash, Skill]
 color: orange
 model: sonnet
+effort: medium
 skills:
   - harness-handoff
   - harness-expertise

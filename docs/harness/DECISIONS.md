@@ -3698,3 +3698,18 @@ watchdog, the orchestrator's spot-checks). Ten proof shapes green: qa's literal 
 qa's in-domain sed/perl and pytest allowed; BSD `sed -i ''` and bare-sed script args parsed
 correctly (two false positives found and fixed in testing); reviewers denied on any write shape;
 dev-ops exempt; main session ungoverned.
+
+---
+
+## DEC-152 — Reasoning effort pinned per tier; the session default stops leaking down
+
+Found while investigating the model-selection scare: no agent declared `effort:`, so all 16
+inherited the spawning session's setting — and the user's saved default is LOW, meaning both kaya
+features ran their entire judging apparatus at low effort invisibly. Frontmatter `effort:`
+overrides the session (sub-agents docs).
+
+Pinned by tier: the seven **judging** agents — orchestrator, three leads, three reviewers — run
+`effort: high` (they are the error-catching tier and a small fraction of spawns); the nine
+**doers** run `effort: medium`. The user chose judgment quality now over baseline purity: the
+DEC-145..148 baseline was measured at inherited-low, so effort is a known confound in the FEAT-02
+comparison — noted here so the comparison reads it as two changes, not one.

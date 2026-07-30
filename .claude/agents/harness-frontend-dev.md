@@ -4,6 +4,7 @@ description: Frontend engineer — UI components, styling, client state, forms, 
 tools: [Read, Glob, Grep, Edit, Write, Bash]
 color: cyan
 model: sonnet
+effort: medium
 skills:
   - harness-handoff
   - harness-expertise

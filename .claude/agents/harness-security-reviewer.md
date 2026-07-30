@@ -4,6 +4,7 @@ description: Security reviewer — self-scoping OWASP Top 10 and STRIDE audit of
 tools: [Read, Glob, Grep, Bash, Write]
 color: orange
 model: sonnet
+effort: high
 skills:
   - harness-handoff
   - harness-expertise

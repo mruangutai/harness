@@ -4,6 +4,7 @@ description: Code reviewer — two-stage review against a pinned SHA: spec compl
 tools: [Read, Glob, Grep, Bash, Write]
 color: orange
 model: sonnet
+effort: high
 skills:
   - harness-handoff
   - harness-expertise

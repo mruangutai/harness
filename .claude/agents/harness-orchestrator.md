@@ -4,6 +4,7 @@ description: Orchestrator — owns ONE feature end to end at layer 1. Runs the l
 tools: [Read, Glob, Grep, Agent, Write, Bash]
 color: blue
 model: opus
+effort: high
 skills:
   - harness
   - harness-handoff

@@ -4,6 +4,7 @@ description: Data engineer — schemas, migrations, pipelines, data models, quer
 tools: [Read, Glob, Grep, Edit, Write, Bash]
 color: cyan
 model: sonnet
+effort: medium
 skills:
   - harness-handoff
   - harness-expertise

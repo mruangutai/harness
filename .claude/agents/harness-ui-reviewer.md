@@ -4,6 +4,7 @@ description: UI reviewer — two modes: pre-build, judge whether DESIGN.md is a 
 tools: [Read, Glob, Grep, Bash, Write]
 color: orange
 model: sonnet
+effort: high
 skills:
   - harness-handoff
   - harness-expertise
