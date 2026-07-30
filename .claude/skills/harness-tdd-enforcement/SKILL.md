@@ -1,6 +1,7 @@
 ---
 name: harness-tdd-enforcement
 description: The test-first Iron Law and its anti-rationalization guards — write a failing test before any production code, delete code written out of order, and reject under-specified tasks. Loaded by harness-frontend-dev, harness-backend-dev, harness-ai-dev, harness-data-engineer, and harness-dev-ops.
+user-invocable: false
 ---
 
 # TDD Enforcement
