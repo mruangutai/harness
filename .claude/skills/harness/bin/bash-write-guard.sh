@@ -179,6 +179,7 @@ for name, paths in findings:
         # reach this branch (denied on any write pattern above).
         if re.match(r"^\.claude/worktrees/", rel):
             continue
+        cands = [rel]
         if rel.startswith(".."):
             continue  # outside repo — not this hook's problem
         # tmp/cache noise is not a domain question
