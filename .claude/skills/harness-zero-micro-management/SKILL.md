@@ -1,6 +1,7 @@
 ---
 name: harness-zero-micro-management
 description: Delegation discipline for the three domain leads — route work to the specialist who owns it, assess the result, never do the work yourself. Loaded by harness-product-lead, harness-eng-lead, harness-validator-lead.
+user-invocable: false
 ---
 
 # Zero Micro-Management

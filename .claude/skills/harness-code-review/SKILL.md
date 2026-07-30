@@ -1,6 +1,7 @@
 ---
 name: harness-code-review
 description: Two-stage review protocol — spec compliance must pass before code quality is examined, findings need concrete failure scenarios, and only substantive issues gate. Loaded by harness-code-reviewer.
+user-invocable: false
 ---
 
 # Code Review Protocol

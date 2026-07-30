@@ -1,6 +1,7 @@
 ---
 name: harness-verification-rules
 description: Verification discipline for QA — enforce the test matrix against the diff, resolve each test kind to one of four states, audit test-first compliance, and supply the evidence the goal-check consumes. Loaded by harness-qa.
+user-invocable: false
 ---
 
 # Verification Rules

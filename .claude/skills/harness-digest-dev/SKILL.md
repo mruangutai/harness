@@ -1,6 +1,7 @@
 ---
 name: harness-digest-dev
 description: The return contract shared by the four engineering specialists — frontend-dev, backend-dev, ai-dev, data-engineer. One canonical copy; the agent files point here.
+user-invocable: false
 ---
 
 # Dev return contract

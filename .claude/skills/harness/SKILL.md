@@ -1,6 +1,7 @@
 ---
 name: harness
 description: The orchestrator playbook — the loop one harness-orchestrator runs to take ONE feature from plan to ship: delegate to leads, assess team digests, own the budgets, route questions, brief the CEO. Preloaded by harness-orchestrator; the main session reads it only to know what to expect back.
+user-invocable: false
 ---
 
 # Harness: Orchestrator Playbook
@@ -18,8 +19,6 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    read only the artifacts it names, by path. `runs/` and `notes/` are archives, read by pointer
    when a specific digest is cited, NEVER as a startup sweep — a wholesale read of a mature
    feature dir costs ~100k tokens before the first decision (DEC-150).
-   First cycle ever: instantiate `STATE.md` and `feature.yaml` from
-   `.claude/skills/harness/templates/`. **The approval gate depends on your mission:**
    First cycle ever: instantiate `STATE.md` and `feature.yaml` from
    `.claude/skills/harness/templates/`. **The approval gate depends on your mission:**
    - mission **ship** (or resuming one): BRIEF *and* PLAN must both carry `status: approved` —

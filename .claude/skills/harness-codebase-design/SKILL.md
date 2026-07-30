@@ -1,6 +1,7 @@
 ---
 name: harness-codebase-design
 description: The design vocabulary — deep modules, seams, adapters, depth, leverage, locality — and the principles that turn "architecture review" into a checklist. Loaded by harness-eng-lead and harness-code-reviewer.
+user-invocable: false
 ---
 
 # Codebase design — the vocabulary and its tests

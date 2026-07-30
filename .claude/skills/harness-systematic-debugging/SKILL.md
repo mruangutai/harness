@@ -1,6 +1,7 @@
 ---
 name: harness-systematic-debugging
 description: Four-phase debugging protocol — reproduce before hypothesizing, hypothesize before touching code, confirm with evidence before fixing, and stop after three failed fixes. Loaded by the engineering specialists when working a bug.
+user-invocable: false
 ---
 
 # Systematic Debugging

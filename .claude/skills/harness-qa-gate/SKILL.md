@@ -1,6 +1,7 @@
 ---
 name: harness-qa-gate
 description: Enforce the test matrix against a diff — infer change type, determine required test kinds, verify they exist, run them, and PASS or FAIL. Use before shipping, before merging, when asked whether a change is adequately tested, or when asked to run the tests for a change.
+user-invocable: false
 ---
 
 # Harness: QA Gate

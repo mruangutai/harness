@@ -1,6 +1,7 @@
 ---
 name: harness-handoff
 description: The universal return contract and output discipline for every harness agent — the three-part VERDICT/DIGEST/artifact return, BLUF writing, pointers not payloads, and when to decide versus ask. Loaded by all 16 agents at every spawn.
+user-invocable: false
 ---
 
 # Handoff

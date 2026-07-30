@@ -1,6 +1,7 @@
 ---
 name: harness-expertise
 description: The two-layer memory — append granular observations to the per-feature log mid-run, and write the injected Expertise file only under a distillation dispatch, in rule form, mechanically capped. Loaded by all 16 agents at every spawn.
+user-invocable: false
 ---
 
 # Expertise
