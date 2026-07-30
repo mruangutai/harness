@@ -3838,3 +3838,37 @@ a lead that fails the file check once and returns unchanged is caught by INV-15,
 INV-16's whitelist will need a new key added when the checkpoint legitimately grows a field —
 that cost is the point: growing the checkpoint becomes a decision, not an accretion.
 
+## DEC-157 — A cycle is a rework loop, not a run; the default budget moves into harness.json
+
+`max_total_cycles` kept exhausting on healthy features and the escalations read as "budget too
+low" (kaya-ai FEAT-01: raised 10 → 30 → 40 → 44 by three user decisions, closed at 42 used;
+FEAT-02: raised 10 → 22, closed at 19). The audit of those numbers says otherwise: FEAT-02's 19
+"cycles" span 16 runs, of which only ~6 were rework — three fix runs (design-fix, t02-fix,
+sc02-fix) and three runs carrying one internal send-back each (t01, t04, t05). The rest were
+first-pass runs counted as cycles because leads reported `cycles: 1` for clean runs and the
+orchestrator summed them. So any feature with more than ~10 planned runs mechanically went
+BLOCKED with zero failures — the same protect-nothing stop DEC-134 removed from the cost bound,
+now caused by the retry bound counting the wrong unit.
+
+Two clarifications, no new machinery:
+
+- **The unit: `cycles_used` counts REWORK ONLY.** It increments when a FAIL is routed back, when
+  an unmet SC re-dispatches, or when a lead reports send-backs inside a run — never for a
+  first-pass run. A clean run reports and contributes **zero** cycles (a lead's digest
+  `cycles_used` is its send-back count, not its step count). First-pass work is already bounded
+  by the PLAN's task list, which has a natural end; the cycle budget exists solely for the loop
+  that does not — consecutive rework. Inflating the number instead (30–50 while counting runs)
+  was rejected: it defeats the bound's one job, killing a genuine runaway loop early.
+- **The default: `budgets.max_total_cycles: 10` in harness.json.** Until now no default existed
+  anywhere — the only "10" was SPEC's illustrative feature.yaml, which orchestrators copied;
+  kaya's own orchestrator Expertise records the gap ("a max_total_cycles written into
+  feature.yaml is an orchestrator guess and wants a PLAN Decisions entry"). The orchestrator now
+  seeds `feature.yaml` from the config value, same source-of-authority shape as
+  `max_cost_usd` ← `budgets.per_feature_usd`. Ten *rework* loops fits the evidence: FEAT-02's ~6
+  true rework cycles clear it, and ten consecutive fix loops on one feature IS the runaway the
+  bound exists to kill. Raising it per-feature remains a user decision recorded in feature.yaml,
+  as both kaya features already practiced.
+
+Not mechanized: nothing distinguishes a first-pass run from a rework run in state files, so a
+checker cannot recount cycles independently; INV-7 (cycles_used ≥ recorded FAIL runs) remains
+the floor. Revisit if run records gain a `rework_of:` marker.

@@ -234,7 +234,9 @@
     "per_feature_usd": 40,
     "per_run_usd": 15.0,
     "warn_at_fraction": 0.7,
-    "_per_feature_rationale": "SC-1 kills the org above $50/feature. The budget IS the criterion, not a separate guess."
+    "_per_feature_rationale": "SC-1 kills the org above $50/feature. The budget IS the criterion, not a separate guess.",
+    "max_total_cycles": 10,
+    "_max_total_cycles_rationale": "REWORK loops only (DEC-157): a cycle is a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back \u2014 never a first-pass run, which the PLAN's task list already bounds. Ten consecutive rework loops on one feature is the runaway this kills. Per-feature raises are user decisions recorded in feature.yaml."
   },
   "gates": {
     "qa_gate": "blocking",

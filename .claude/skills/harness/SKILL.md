@@ -20,7 +20,9 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    when a specific digest is cited, NEVER as a startup sweep — a wholesale read of a mature
    feature dir costs ~100k tokens before the first decision (DEC-150).
    First cycle ever: instantiate `STATE.md` and `feature.yaml` from
-   `.claude/skills/harness/templates/`. **The approval gate depends on your mission:**
+   `.claude/skills/harness/templates/` — `max_total_cycles` comes from harness.json
+   `budgets.max_total_cycles`, never your own guess; raising it later is a user decision
+   recorded in feature.yaml (DEC-157). **The approval gate depends on your mission:**
    - mission **ship** (or resuming one): BRIEF *and* PLAN must both carry `status: approved` —
      an unapproved artifact stops you at step 0, `BLOCKED`.
    - mission **plan**: producing those artifacts IS the mission — a missing or pending BRIEF/PLAN
@@ -40,7 +42,8 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    but shape is not truth: spot-check `files_touched` against the artifacts when a claim matters.
 5. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now (it holds no
    history; the per-run detail already lives in that run's digest), update `feature.yaml`'s DATA
-   (runs list, `cycles_used` from what the lead reported, cost — values, never narrative: the
+   (runs list, `cycles_used` from the lead's reported SEND-BACKS — a clean first-pass run adds
+   ZERO cycles; only rework counts (DEC-157) — cost — values, never narrative: the
    shape gate denies a feature.yaml over 200 lines or 20 comment lines, DEC-150), then route
    (below).
 6. **Loop until DONE — and done means the success criteria are met, not the tasks exhausted.**
@@ -87,7 +90,11 @@ violation).
 
 - **`cycles_used`/`max_total_cycles` is a HARD bound** — it exists to kill runaway fix loops. On
   exhaustion: stop the branch, preserve everything, `status: blocked`, return `BLOCKED`. Never
-  silently continue past it.
+  silently continue past it. **A cycle is REWORK ONLY (DEC-157):** a FAIL routed back, an unmet-SC
+  re-dispatch, or a send-back a lead reports from inside a run. A first-pass run — however many
+  steps it has — contributes zero: the PLAN's task list already bounds forward work, and counting
+  runs as cycles is how a healthy 16-run feature goes BLOCKED with nothing wrong. The default (10)
+  lives in harness.json `budgets.max_total_cycles`.
 - **`cost_usd`/`max_cost_usd` is INFORMATIONAL** — a visibility line, not a gate. Crossing it never
   stops work (observed: a $9 overrun killed a flow one $5 step from done). Duties instead: flag the
   crossing in your next digest's headline, carry actual-vs-budget in every return and in the

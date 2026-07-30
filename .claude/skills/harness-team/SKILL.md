@@ -157,7 +157,9 @@ For `loop_back`:
    because the loop is exactly where a context reset happens. **Do not touch `feature.yaml`**: the
    feature-wide `cycles_used` / `max_total_cycles` is the orchestrator's, and the domain hook blocks
    you from writing it anyway. Report cycles spent in your team digest and let the orchestrator
-   increment (DEC-119).
+   increment (DEC-119). **Cycles spent means SEND-BACKS (DEC-157):** a clean run where every step
+   passed first time reports `cycles_used: 0` — a first pass is work, not rework, and reporting
+   `1` for it is how a healthy feature exhausts its budget with nothing wrong.
 4. **Reset the downstream.** Steps that already ran after the target return to `pending`; their
    previous verdicts are stale the moment their input changes.
 5. **Cycle-namespace the outputs of anything that re-runs.** Resolve `{{cycle}}` in output paths to

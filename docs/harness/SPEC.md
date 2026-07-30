@@ -1559,7 +1559,7 @@ things, and **they have different owners** (DEC-119):
 | Counter | Lives in | Owned and written by | Bounds |
 |---|---|---|---|
 | step `cycles` | run `state.yaml` | **the lead** | retries of one step, within one run |
-| `cycles_used` / `max_total_cycles` | `feature.yaml` | **the orchestrator** | the fix loop across every run of the feature |
+| `cycles_used` / `max_total_cycles` | `feature.yaml` | **the orchestrator** | REWORK across every run of the feature — FAILs routed back, unmet-SC re-dispatches, lead-reported send-backs. A clean first-pass run contributes zero (DEC-157) |
 
 The split follows the file ownership that already exists (§11.3/§11.4) and is enforced by the domain
 hook: a lead is **blocked** from writing `feature.yaml`, so it cannot increment the feature counter
@@ -1704,7 +1704,9 @@ runs:
 
 **The two budgets have different teeth (DEC-134).** `max_total_cycles` bounds *retries* and is
 **hard**: exhaustion stops the flow as `BLOCKED`, because a runaway fix loop is a real failure mode
-with no natural end. `max_cost_usd` is **informational**: it is the visibility threshold the cost
+with no natural end. It counts **rework only** — a first-pass run is bounded by the PLAN's task
+list and adds nothing (DEC-157); the default (10) lives in harness.json `budgets.max_total_cycles`
+and per-feature raises are user decisions recorded in feature.yaml. `max_cost_usd` is **informational**: it is the visibility threshold the cost
 line is judged against — surfaced in every orchestrator return and every briefing, flagged loudly
 when crossed — but crossing it never stops work. The first live flow proved the blocking version
 wrong: a ~$9 overrun killed a run one $5 step from done, protecting nothing. Wild divergence
