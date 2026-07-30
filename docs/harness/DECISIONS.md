@@ -3713,3 +3713,30 @@ Pinned by tier: the seven **judging** agents — orchestrator, three leads, thre
 **doers** run `effort: medium`. The user chose judgment quality now over baseline purity: the
 DEC-145..148 baseline was measured at inherited-low, so effort is a known confound in the FEAT-02
 comparison — noted here so the comparison reads it as two changes, not one.
+
+---
+
+## DEC-153 — The audit's verdict, and two sanctions: worktree perturbation, orchestrator commits
+
+The one-shot bypass audit (190 subagent + 78 main transcripts, 788 raw write-pattern hits, 34
+surviving the source-path filter) found the qa `perl -pi` incident was **not isolated but also not
+malicious**: qa bypassed the domain fence in five transcripts, every instance a backup-perturb-
+restore mutation proof — the discipline of proving a test discriminates, done in the only place the
+tooling allowed. A fixes-orchestrator additionally made probe edits to source via python heredocs
+(invisible to shell-pattern parsing) and **committed source directly** (c04482a, 6e02fa8, shipped
+in PR #299) — content doer-produced and gate-checked, but staged by an agent whose domain is
+`.harness/features/**`. Nothing dirty at HEAD anywhere.
+
+Two sanctions, both user-decided. **Perturbation proofs get a legal home:** bash-write-guard now
+permits governed-agent writes under `.claude/worktrees/**` — disposable checkouts are where
+mutation proofs live; the main checkout stays hard-gated; reviewers stay read-only everywhere
+(they never reach the path check). qa's rule skill states the protocol: worktree, byte-identity
+restore verification, never "just briefly" in the main checkout. **The commit pen is the
+orchestrator's:** it stages by explicit pathspec and commits the feature branch it owns; merge/PR/
+deploy stay user-gated; probe edits must be byte-verified restored before any commit. Recorded in
+the playbook.
+
+Residual, stated honestly: python-heredoc writes evade the guard's shell parsing (found by the
+audit's second pass) — the guard remains a casual-shape filter per DEC-151; heredoc evasion is
+deliberate-obfuscation class, caught post-hoc. The audit could not exhaustively prove the main
+session never wrote source attributed to an agent — spot-checks found none.

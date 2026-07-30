@@ -173,8 +173,12 @@ for name, paths in findings:
     for p in paths:
         ap = os.path.abspath(os.path.join(root, p)) if not os.path.isabs(p) else p
         rel = os.path.relpath(ap, os.path.abspath(root))
-        wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
-        cands = [rel] + ([wt.group(1)] if wt else [])
+        # Worktree carve-out (DEC-153): disposable checkouts are where sanctioned
+        # perturbation proofs live — qa mutates source there to prove a test
+        # discriminates. The MAIN checkout stays hard-protected. Reviewers never
+        # reach this branch (denied on any write pattern above).
+        if re.match(r"^\.claude/worktrees/", rel):
+            continue
         if rel.startswith(".."):
             continue  # outside repo — not this hook's problem
         # tmp/cache noise is not a domain question

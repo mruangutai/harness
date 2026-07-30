@@ -59,6 +59,14 @@ Beyond presence: for each behavioural change in the diff, confirm a test covers 
 shows the order, confirm the test came **first**. Report violations as findings — they do not by
 themselves fail the gate.
 
+**Perturbation proofs run in a worktree, never the main checkout (DEC-153).** Proving a test
+discriminates (mutate the source, watch the test fail, restore) is sanctioned and encouraged — but
+the main checkout is write-gated against you: the bash-write-guard denies your in-place edits of
+source there by design. Run the proof in a disposable worktree (`isolation: worktree`, or
+`git worktree add`), where the guard permits it; verify your restore with byte-identity
+(`git status --porcelain <path>`), never a read-back. Editing gated source in the main checkout
+"just briefly" is the exact incident the guard exists to stop.
+
 ## You supply the evidence, not the verdict on the goal
 
 `pm` goal-checks success criteria by **collecting** evidence rather than re-testing. For every SC marked

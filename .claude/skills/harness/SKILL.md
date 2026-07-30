@@ -132,6 +132,12 @@ a one-line SKIP that you report and move past. Repo comes from `harness.json`, p
 |---|---|
 | mission ship, right after the approval gate passes | `gh-sync.py open <feature-dir>` — milestone + one issue per T-NN (re-run safe: already-recorded ids skip) |
 | a task's `[harness:t-NN]` commit is recorded | `gh-sync.py close-task <feature-dir> T-NN` — closes its issue and everything it absorbs |
+
+**The commit pen is yours (DEC-153):** you stage and commit the feature branch — by explicit
+pathspec, never `git add -A` (the tree carries held dirt) — committing work your doers produced
+and your gates checked. Merge, PR and deploy stay user-gated. Probe edits you make while
+verifying must be backed up, restored, and byte-verified (`git status --porcelain`) before any
+commit.
 | the main session relays the user's shipped acceptance | `gh-sync.py ship <feature-dir>` — closes the milestone |
 
 You never read GitHub state into harness state — PLAN.md is the truth and the mirror is a mirror.
