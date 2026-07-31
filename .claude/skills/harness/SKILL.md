@@ -144,7 +144,9 @@ commit.
 | the main session relays the user's shipped acceptance | `gh-sync.py ship <feature-dir>` — closes the milestone |
 
 You never read GitHub state into harness state — PLAN.md is the truth and the mirror is a mirror.
-Agents post no comments (DEC-138 am.2).
+The mirror posts no comments — it creates, closes and cites absorptions, never editorializes
+(DEC-138 am.2/am.4). Wayfinding's resolution comments are a different thing and are sanctioned:
+there the comment IS the decision record (DEC-166/167).
 
 ## Missions map and deepen — read the reference when dispatched with one
 

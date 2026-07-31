@@ -4240,3 +4240,28 @@ One operational gotcha for any implementation: **`sub_issues_summary` is eventua
 read `total: 1` immediately after the second attach and corrected to `total: 2` seconds later. Never
 assert on it right after a write — the same class of mistake as reading a cost meter before it
 settles.
+
+### DEC-138 amendment 4 — the silence rule is the MIRROR's, and abandonment closes `not_planned`
+
+Two clarifications the sub-issue exploration forced.
+
+**Scope of am.2's silence.** "No agent-authored comments in the org's repo" was written for the
+**mirror** — the orchestrator mechanically reflecting signed work — and as a v1 caution ("until the
+mirror proves itself on a real feature"; three features have now mirrored). It does **not** govern
+wayfinding, where the resolution comment on a decision ticket **is** the artifact, not commentary on
+someone else's work (DEC-166/167), and where the author is the main session rather than a mirroring
+agent. The mirror stays silent: it creates, closes, and cites absorptions, and never editorializes.
+
+**Abandonment closes `not_planned`** (user decision). Verified enum — GitHub's `state_reason` accepts
+exactly `completed`, `not_planned`, `duplicate`; `not_doing` returns 422, so "not doing" could only
+ever be a label, never a close reason. `not_planned` renders a visually distinct icon, which is the
+point: an abandoned feature must not read as a shipped one at a glance. The *reason* it was dropped
+lives in the ship-review artifact, not on the issue, because the mirror posts no comments.
+
+**Not implementable until the sub-issue migration, deliberately.** Today's recorded issues are
+adopted backlog items — all eleven of FEAT-03's tasks point at #48, which is still wanted — so the
+mirror has nothing that is unambiguously the feature's to close, and closing an adopted issue
+`not_planned` would assert something false about live work. Post-migration: close the feature's own
+**sub-issues** `not_planned`, leave the adopted parent open, close the milestone (milestones take no
+`state_reason` — close is close). That gives `cmd_ship` and a new `cmd_abandon` the same shape, one
+per terminal state.

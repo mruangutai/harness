@@ -90,6 +90,21 @@ not a follow-up.
    (the model as specified, which would then finally be used)?
 3. **`absorbs:` semantics** — today it closes absorbed issues on task closure. With partial
    absorption being the norm, should it stop closing and only cross-reference?
+4. **`parent:` is recorded, never discovered.** `wayfind.py`'s `parent_of` is a *read*; `gh-sync`
+   must not use it. Record `parent:` in `feature.yaml` beside `milestone:` at creation, so the mirror
+   stays write-only and idempotency keeps coming from local receipts (DEC-138).
+5. **Abandonment — decided (user, 2026-07-31): close as `not_planned`.** Verified enum: GitHub
+   accepts exactly `completed` · `not_planned` · `duplicate` as `state_reason`; `not_doing` is a 422,
+   and "not doing" can only ever be a label, not a close reason. So `not_planned` is the mechanism
+   and the *why* goes in the ship-review artifact, not on the issue (the mirror posts no comments —
+   DEC-138 am.2).
+   **This is only implementable after the migration**, which is why no `abandon` subcommand exists
+   yet: today's recorded "issues" are adopted backlog items (all of FEAT-03's eleven point at #48,
+   which is still wanted), so nothing is unambiguously the feature's to close. Post-migration the
+   feature's own **sub-issues** are unambiguously ours → close those `not_planned`; leave the adopted
+   parent open; close the milestone (milestones take no `state_reason` — close is close). Ship-side
+   symmetry: `cmd_ship` closes parent + milestone on acceptance, `cmd_abandon` closes sub-issues
+   `not_planned` + milestone on abandonment.
 
 ## Cost and shape
 
