@@ -1,0 +1,25 @@
+feat(FEAT-03): the unit gate runs the bin test scripts [harness:t-01]
+
+`test_kinds.unit.cmd` was the single path `test-validate-digest.py` and
+`unit.detect`'s globs matched zero files in this repo, so eight success
+criteria claiming `evidence: unit` rested on a gate that did not run.
+
+`run-unit-tests.sh` holds an explicit ordered list of test scripts and
+STREAMS each child's stdout and stderr through unfiltered — a bare
+`python3 "$s"`, no capture, no tee, no redirection. That is the
+load-bearing property: five downstream tasks' verifies read `ok` lines
+the children emit, and a runner that captured them would satisfy the
+letter of "one PASS/FAIL line per script" while silently voiding all of
+them. Verified structurally: `ALL PASSED` appears once in
+`test-gh-sync.py` and zero times in the runner.
+
+Exit codes are three-valued so qa can route correctly: 2 for
+MISCONFIGURED (an unlisted `test-*.py` found by the glob, named on
+stderr), 1 for a real assertion failure, 0 only when every listed script
+passed. `detect` gains `.claude/skills/harness/bin/test-*.py`; `exclude`
+and every other key are untouched.
+
+T-01 of 8. Plan: .harness/features/FEAT-03-subissue-mirror/PLAN.md
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_014eZMX1bCGRrL71dpHXwYCj

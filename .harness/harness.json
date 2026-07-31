@@ -81,9 +81,9 @@
   "_test_kinds_note": "EVERY cmd ships as null. dev-ops replaces it with a command it has RUN and seen pass, or leaves it null and REPLACES the placeholder _reason with the real one. NEVER write a plausible-looking command you have not executed: `node --test src/` reports `tests 1 / fail 1` for a module-load error, which reads exactly like a failing suite (DEC-98). A null cmd is a not-applicable soft skip in the qa gate; an invented cmd turns a hard gate into a silent no-op, which is strictly worse. DELETE the _reason on any kind whose cmd you fill \u2014 leaving 'unset, detection has not run' beside a verified command is a lie about the project's own config. `exclude` keeps worktree and vendor dirs out of diff scans \u2014 measured 3x test-file inflation in kaya-ai without it.",
   "test_kinds": {
     "unit": {
-      "detect": "tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py",
+      "detect": "tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py|.claude/skills/harness/bin/test-*.py",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**|dist/**|build/**",
-      "cmd": ".claude/skills/harness/bin/test-validate-digest.py"
+      "cmd": ".claude/skills/harness/bin/run-unit-tests.sh"
     },
     "functional": {
       "detect": "tests/functional/**",

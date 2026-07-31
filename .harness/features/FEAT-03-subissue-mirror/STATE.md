@@ -3,118 +3,101 @@
 ## Current
 
 - feature: FEAT-03-subissue-mirror
-- run: .harness/features/FEAT-03-subissue-mirror/runs/2026-07-31-08-eng/state.yaml
+- run: (build phase opening — first run dir is 2026-07-31-09-eng)
 - squad: eng
-- status: awaiting-user
-- phase: plan — at the approval gate, this phase's exit predicate (DEC-148). Fix cycle 3 closed PASS;
-  BRIEF and PLAN are repaired, re-verified and sign-ready.
-- note: **Fix cycle 3 (`cycles_used: 3`, DEC-157)** — the user authorized the Q15 fix the previous cycle
-  raised and deliberately left unfixed. pm applied it (run 07-product PASS, no send-back); eng-lead
-  re-verified per-item (run 08-eng PASS, `must_fix: []`, no send-back, no member spawn).
-  **THE CHANGE — `ship`'s parent close was the mirror image of the abandon defect cycle 2 fixed.** T-06
-  and SC-04 closed the parent unconditionally as `completed`; for an ADOPTED parent that asserts the
-  user's live backlog item is done, exactly as false as closing it `not_planned` would have been. Now
-  conditional on `github.parent_origin` (D-01), symmetric with `abandon`: `created` -> close `completed`,
-  `adopted` -> leave OPEN, absent/`none` -> leave OPEN (the specified default, for abandon's stated
-  reason — SC-10 bars editing existing `github:` blocks so pre-existing features carry no marker, and the
-  false assertion is the strictly worse error). **The milestone still closes unconditionally; only the
-  parent's fate branches.**
-  **Six sites carried the unconditional claim, not the two Q15 named** — greped before dispatch: BRIEF
-  Goal prose, **REQ-04** (falsified as written by the adopted case), SC-04, **SC-13's second clause**
-  (the criterion telling the main session what to write into `SKILL.md` — it would otherwise have gone
-  green on prose asserting the unconditional close), T-06 (heading + intent + `verify:` labels), and
-  **T-08's DECISIONS am.7 instruction text**, which would have written the old behaviour into the
-  permanent record. SC-11 was checked and is clean: it enumerates only the am.1 reversal.
-  **The test assertion split, which was the reason for the cycle.** The single label "ship closes parent
-  then milestone" is retired; three fixtures now, mirroring T-05: `ship closes a created parent
-  completed` / `ship leaves an adopted parent open` / `ship leaves a parent with no recorded origin open`.
-  The two leave-open fixtures assert absence in **both** close shapes (`issue close 40` AND
-  `PATCH repos/*/issues/40`) — the MF-1 one-form class, which already burned this feature once.
-  **pm caught an over-correction the brief did not name, and eng-lead confirmed the guard discriminates.**
-  One `if origin == "created":` wrapping both the parent close and the milestone PATCH would pass all
-  three parent labels and the retained `ship PATCHes milestone closed`, and nothing else would catch it.
-  pm added a fourth label — `ship closes the milestone regardless of parent origin`, emitted inside the
-  ADOPTED fixture, so the over-scoped guard suppresses the PATCH in exactly the fixture that asserts it.
-  Adds no task and no SC; admitted as blocking-and-introduced-by-this-repair. The comment step correctly
-  stayed **unconditional**: `--body-file` posts on any recorded parent, because commenting on an adopted
-  issue asserts nothing false (T-05 step 1 has the identical shape).
-  **No new `D-NN`** — D-01's note was extended to say the recorded origin governs BOTH terminal
-  subcommands, using cycle 2's precedent sentence ("D-01's recorded-never-discovered applied to a field
-  D-01 already owns"). eng-lead upheld it: a D-07 would split one rule across two decisions and make the
-  symmetry easier to break. D-NN 6, tasks 8, SC 13 — all re-greped.
-  **eng-lead reproduced the absence-greps FIRST-HAND** rather than relaying pm's, as in run 06: `ship`
-  greps exactly 3 lines in `test-gh-sync.py` (`:181`, `:183`, `:185` the retained milestone assertion),
-  all seven new T-06 labels count 0 and the retired label counts 0; `parent_origin` counts 0 in
-  `gh-sync.py` with no `def cmd_abandon`, so no code could compose those strings. It also verified the
-  absent-origin fixture's premise itself — `save_recorded` is called only at `gh-sync.py:208,228,230`,
-  all inside `cmd_open`, none at or after `cmd_ship:267` — so pm's claim is its own, not T-05's copied
-  blind. Receipts were taken via `python3 test-gh-sync.py`; `run-unit-tests.sh` lands with T-01.
-  **Q16 closed:** PLAN:20-24 names `1ce886a` the **pinned review baseline** rather than "the current
-  HEAD" — pinned, not re-anchored, so the rot does not reproduce on the next commit. Byte-identity
-  stands: `git diff --stat f929d44 HEAD -- .claude/skills/harness/bin` empty at HEAD `a8fce12`, and
-  `observed @` greps 27 with `observed @f929d44` also 27, so no receipt moved.
-  Both `## Approval` blocks still `status: pending` (BRIEF:233, PLAN:653 — greped, not trusted from the
-  moved line numbers); only the main session signs. `DECISIONS.md` has 0 `amendment 7`, `SKILL.md:137,144`
-  still carry the superseded wording (1 match each, SC-13's subject), everything under `bin/` untouched,
-  no existing feature's `github:` block edited (SC-10).
-  **Cost is OVER budget: ~$162 of $120, by roughly $42.** Reported, never gated (DEC-134). This cycle
-  cost $21 ($16 product + $5 eng); the overrun is dominated by prior cycles and this orchestrator's own
-  session share, approximate because a second depth-1 orchestrator shares the transcript. Segments 1b
-  and 3 remain skipped. Q15 and Q16 are CLOSED — recorded in `feature.yaml resolved:`.
+- status: in-progress
+- phase: **build** (was plan). Exit predicate (DEC-148): every T-01..T-08 carries a PASS run in
+  `feature.yaml runs:`.
+- note: **The approval gate PASSED and was verified first-hand, not trusted from the dispatch.**
+  BRIEF:233 and PLAN:653 both read `status: approved` / `approved-by: Mike Ruangutai` /
+  `date: 2026-07-31`, signed at `4d00dbc`; `check-state.sh` exits 0 ("all state invariants hold"),
+  which also retires Q10's symptom. The plan-phase handoff note (seq-4) said "wait for the
+  signature" — that `## Next` is now satisfied, which is why the build starts rather than blocks.
+  **All three GitHub mirror sync points are SKIPPED for the whole feature** — `harness.json`
+  `github.sync: false`, `github.repo: null`, so `gh-sync.py open`, `close-task` and `ship` post
+  nothing (DEC-138: environmental failure is a SKIP, never a gate). Recorded in
+  `skipped_segments`. Every GitHub Issues invariant this feature builds is therefore proven against
+  `test-gh-sync.py`'s fake `gh` only — BRIEF `## Verification gaps` already states this and DEC-168's
+  measured probe carries the live API behaviour.
+  **Build dispatch shape — three runs, because no `build` team yaml exists (Q9).** Step lists are
+  passed inline; naming a nonexistent team would make the lead list-and-stop per `harness-team` §1.
+  - **09-eng: T-01 ALONE, as a real boundary.** T-01 is `change_type: config`, whose `test_matrix`
+    row is `always: []` — no qa gate will ever cover it, so its own `verify:` block is the only
+    check that exists. Eight SCs claim `evidence: unit`, and `unit` is not a runner until T-01
+    lands. The load-bearing property is STREAMING (PLAN:144-151): a runner that captured child
+    output would satisfy "one PASS/FAIL line per script" and silently void five downstream verifies.
+    Gate on the `ALL PASSED` line emitted by `test-gh-sync.py` **itself**, re-checked by the
+    orchestrator before T-02 dispatches.
+  - **10-eng: T-02..T-07 sequential.** T-03..T-06 all edit `gh-sync.py` + `test-gh-sync.py`, so
+    `mutates_repo: true` serializes them however the DAG is drawn; one lead spawn beats five.
+  - **11-product: T-08** — the lateral hop (Q8). `harness-documentor` is a product-squad member
+    (`team-config.yaml:112`), so eng-lead cannot spawn it; the orchestrator routes it (DEC-118).
+    After eng, not parallel: SC-11 reads `check-docs.sh` and `check-state.sh` INV-10 across the repo.
+  **Goal-check will be scoped SC-01..SC-12, with SC-13 carved out in the dispatch text.** Not a
+  waiver: PLAN `## Preconditions and hand-offs` records SC-13 as a **main-session** pre-ship step
+  and no agent domain covers `.claude/skills/harness/SKILL.md`. Handing all 13 to pm returns SC-13
+  unmet, FAILs the roll-up, and demands a fix cycle routable to no lead — precisely the
+  BLOCKED-on-an-unowned-criterion outcome Q13 predicts. It rides up as an `open_question` and a
+  named pre-ship step in the briefing instead, carrying its exact grep and fix cycle 3's raised bar
+  (the `:144` ship row must name the parent **and** name it conditional on recorded origin).
+  **Cost is OVER budget before the build's first dispatch: ~$162 of $120, by ~$42.** Reported, never
+  gated (DEC-134). Expect the 10-eng run to exceed `per_run_usd: 15.0` as well — six tasks, one
+  lead, member spawns each. Neither figure stops work.
+  Tree state at build start: one held-dirt file, `.harness/logs/2026-07-31.md` (the main session's),
+  which must never be staged. Commits go by explicit pathspec with `git commit -F` (Q14).
 
 ## Open Questions
 
-- Q17 (NEW, eng-lead, non-blocking, cosmetic) — **four PLAN sites cite `feature.yaml:41` for
-  `parent: none` and the line has moved twice** (to `:54` during this cycle's review, then to `:61` when
-  the orchestrator recorded run 08 — proof the anchor class is inherently unstable, not that one number
-  is stale). Sites: PLAN `:88`, `:464`, `:479`, `:529`; three pre-date this repair, one rode in with it.
-  The asserted FACT is true in every case (this feature has no recorded parent), so nothing is falsified
-  and it failed the blocking-and-introduced bar. Fix by citing the field (`feature.yaml github.parent`)
-  rather than a line, in one pass, if a cycle opens anyway.
-- Q13 (for the user at signature) — **SC-13 is a success criterion only the user can satisfy.** Its
-  subject (`.claude/skills/harness/SKILL.md:137,144`) is covered by no agent domain; MF-5's remedy rests
-  entirely on that edit, eng-lead having accepted a softening of its run-02 wording (the
-  `<!-- stale: -->` marker became optional, with SC-13's ship-gate grep substituted as the detection
-  mechanism). **Fix cycle 3 raised this clause's bar:** SC-13 now also requires that the `SKILL.md` ship
-  row NOT assert an unconditional parent close, so the pending edit's wording must carry the conditional.
-  If the edit is not made before ship, SC-13 is unmet at goal-check, the gap can be routed to no lead,
-  and the feature goes BLOCKED on a criterion the plan always knew was un-owned. Named at PLAN
-  `## Preconditions`. Distinct from Q1, which predates SC-13's existence.
+- Q17 (eng-lead, non-blocking, cosmetic) — **four PLAN sites cite `feature.yaml:41` for
+  `parent: none` and the line keeps moving** (`:54`, then `:61`, and again this cycle when the phase
+  transition was recorded — proof the anchor class is inherently unstable, not that one number is
+  stale). Sites: PLAN `:88`, `:464`, `:479`, `:529`. The asserted FACT is true in every case, so
+  nothing is falsified. Fix by citing the field (`feature.yaml github.parent`) rather than a line,
+  in one pass, only if a cycle opens anyway. Proposed for the ship backlog as a chore.
+- Q13 (for the user, pre-ship) — **SC-13 is a success criterion only the main session can satisfy.**
+  Its subject (`.claude/skills/harness/SKILL.md:137,144`) is covered by no agent domain; MF-5's
+  remedy rests entirely on that edit, eng-lead having accepted a softening of its run-02 wording
+  (the `<!-- stale: -->` marker became optional, with SC-13's ship-gate grep substituted as the
+  detection mechanism). T-08 must declare **no** marker for still-live wording — a marker whose
+  phrase is still present turns `check-docs.sh` red and gates every `/harness` entry on an edit no
+  agent may make. Carved out of the agent goal-check; returned to the main session as a named
+  pre-ship step.
 - Q14 (orchestrator, harness defect) — `bash-write-guard.sh` scans the WHOLE bash command string,
-  including quoted and heredoc CONTENT, and reads any `>` in it as a shell redirect. Three distinct hits:
-  the mandated `Co-Authored-By: ... <noreply@anthropic.com>` trailer in `git commit -m`; an arrow inside
-  heredoc PROSE; and a third heredoc that reported "targets GitHub". The workaround is not "avoid one
-  trailer" but "avoid `>` in ANY bash prose": commit messages get written to a file and passed via
-  `git commit -F`, and edit scripts must not carry arrows in their text. A rule backfiring on content it
-  should not be parsing, not a workaround to keep.
-- Q1 (pm) — `.claude/skills/harness/SKILL.md:137,144` state the contract this feature reverses; no
-  agent domain covers that file. ANSWERED IN PLAN, not closed: pm kept REQ-09 whole and named the
-  SKILL.md edit as a main-session pre-ship step (PLAN `## Preconditions`, T-08), with SC-13 as its
-  checkable form and the `check-docs.sh` consequence stated both ways. See Q13.
-- Q2 (pm) — the BRIEF-H1 parent-title contract needs `.claude/skills/harness-brief/SKILL.md`;
-  same uncovered-domain problem.
+  including quoted and heredoc CONTENT, and reads any `>` in it as a shell redirect. **Reproduced
+  again this run:** a read-only `python3 -c` printing `test_matrix` rows was BLOCKED because the
+  literal `->` inside a print argument parsed as a redirect target. Four distinct hit classes now:
+  the mandated `Co-Authored-By: … <noreply@anthropic.com>` trailer, an arrow in heredoc prose, a
+  heredoc that "targets GitHub", and now an arrow in a `-c` string. The workaround is "avoid `>` in
+  ANY bash prose": commit messages via `git commit -F <file>`. A rule backfiring on content it
+  should not parse — a bug to file, never a workaround to keep.
+- Q11 (orchestrator, harness defect) — the playbook's
+  `cost-report.py --yaml >> <run_dir>/state.yaml` append produces a duplicate top-level `cost:` key
+  beside the lead's `cost: pending_orchestrator`, which `check-state.sh` rejects per DEC-156. The
+  obvious fix (renaming the placeholder) is ALSO rejected: `CHECKPOINT_KEYS`
+  (`check-state.sh:258-268`) admits only `cost`, so the metered figure must nest as `cost.run_usd`.
+  Hand-resolved that way in all eight prior run dirs; the playbook instruction and the invariant
+  still disagree.
+- Q10 (orchestrator, harness defect) — `check-state.sh` infers a cycle from any FAIL run, so it
+  fired a VIOLATION on the legitimate "FAIL held at the user gate" state DEC-157 defines as zero
+  cycles. Symptom retired now that both artifacts are approved and it exits 0; the
+  over-approximation is still a defect. Also asymmetric: a pending PLAN is a `note`, a pending BRIEF
+  a VIOLATION — yet a plan mission ends with both pending.
+- Q9 (eng-lead, harness gap) — **no `build` team yaml exists** (only `gate-probe.yaml`,
+  `review.yaml`). Worked around this run by passing inline step lists; the gap is real and reaches
+  every future build phase. Proposed for the ship backlog as a chore.
+- Q1 / Q2 (pm) — `.claude/skills/harness/SKILL.md:137,144` and
+  `.claude/skills/harness-brief/SKILL.md` (the BRIEF-H1 parent-title contract) both state contracts
+  this feature changes, and no agent domain covers either file. Q1 is ANSWERED IN PLAN, not closed
+  (see Q13). Q2 is unowned and out of this BRIEF.
 - Q3 (pm) — freezing an adopted wayfinding map issue's body at hand-off is settled in the grilling
   but scoped out of this BRIEF; nobody owns it.
-- Q4 (pm) — prototype gate: pm judged NO prototype required (re-confirmed at cycle 1 — the surface
-  is `gh-sync.py`/`wayfind.py`/`check-state.sh` behaviour plus a DECISIONS.md amendment, no
-  end-user interactive surface), substituting for visual-designer, which never ran. Overridable.
+- Q4 (pm) — prototype gate: pm judged NO prototype required (re-confirmed at cycle 1), substituting
+  for visual-designer, which never ran. Overridable.
 - Q5 (pm) — PLAN adds an `attached:` receipt list to `feature.yaml github:`, a local-state schema
   addition the grilling did not name. eng-lead judged it safely writable under the regex constraint,
   with one sharp edge: the issues reader `^\s{4}(T-\d+):\s*(\d+)` would misread a nested form. Fix
   cycle 2's `parent_origin` key rides the same constraint and was shaped to clear it.
 - Q6 (pm) — pm judges the slug `subissue-mirror` narrower than the feature; id not renamed, and
-  DEC-133 makes it immutable now (re-confirmed at cycle 2 when the rename was scoped to prose only).
-- Q8 (eng-lead) — T-08's owner harness-documentor is in the Product squad; the build segment needs
-  lateral routing through product-lead, eng-lead cannot spawn it.
-- Q9 (eng-lead) — no `build` team yaml exists (only gate-probe.yaml, review.yaml); pre-existing gap
-  that the build phase hits.
-- Q10 (orchestrator, harness defect) — check-state.sh infers a cycle from any FAIL run, so it fired
-  a VIOLATION on the legitimate "FAIL held at the user gate" state DEC-157 defines as zero cycles.
-  Moot now `cycles_used: 3`; the over-approximation is still a defect. Also asymmetric: a pending
-  PLAN is a `note`, a pending BRIEF is a VIOLATION — yet a plan mission ends with both pending.
-- Q11 (orchestrator, harness defect) — the playbook's `cost-report.py --yaml >> <run_dir>/state.yaml`
-  append produces a duplicate top-level `cost:` key beside the lead's `cost: pending_orchestrator`,
-  which check-state.sh rejects per DEC-156. The obvious fix (renaming the placeholder to
-  `run_cost_usd:`) is ALSO rejected — `CHECKPOINT_KEYS` (check-state.sh:258-268) admits only `cost`,
-  so the metered figure must nest as `cost.run_usd`. Hand-resolved that way in all eight run dirs;
-  the playbook instruction and the invariant still disagree.
+  DEC-133 makes it immutable now.
+- Q8 (eng-lead) — RESOLVED IN SHAPE: T-08's owner `harness-documentor` is product squad, so the
+  orchestrator routes it to product-lead as run 11 (DEC-118). Kept for the record.

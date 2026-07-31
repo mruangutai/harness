@@ -1,12 +1,12 @@
 feature_id: FEAT-03-subissue-mirror
-phase: plan
-branch: feat/harness-native-foundation  # plan phase writes only .harness/ artifacts; build branches later
+phase: build                    # DEC-148 exit predicate: every T-NN carries a PASS run below
+branch: feat/harness-native-foundation
 pr: none
-status: awaiting_user
-review_sha: 1ce886a
-cycles_used: 3                # DEC-157: fix cycle 3 — user-authorized Q15 (ship's parent close) routed to pm
+status: in_progress
+review_sha: 1ce886a             # PLAN review baseline; re-pinned at build HEAD for the validator panel (INV-6)
+cycles_used: 4                # DEC-157 rework only: 3 plan fix cycles + 1 send-back eng-lead reported inside run 09
 max_total_cycles: 10          # harness.json budgets.max_total_cycles
-cost_usd: 162                 # approx, OVER max_cost_usd by ~42 — reported not gated (DEC-134)
+cost_usd: 173                 # approx, OVER max_cost_usd by ~53 — reported not gated (DEC-134)
 max_cost_usd: 120             # mirrors harness.json per_feature_usd — user raised 40 -> 120 at 1ce886a
 runs:
   - id: 2026-07-31-01-product
@@ -41,8 +41,13 @@ runs:
     squad: eng
     verdict: PASS   # scoped re-verification of fix cycle 3 — 8 items + 4 risk checks PASS, no must_fix
     cost_usd: 5   # snapshot delta: eng-lead +5.44 (reviewed directly, no member spawn)
+  - id: 2026-07-31-09-eng
+    squad: eng
+    verdict: PASS   # T-01 — unit is a real streaming runner; 1 send-back for an unnamed invocation form
+    cost_usd: 11  # snapshot delta: eng-lead opus 34.82 to 44.41, dev-ops sonnet approx +1 over 2 spawns
 pending:
-  - user signature on BRIEF.md and PLAN.md — both `## Approval` `status: pending`. Plan phase ends here.
+  - T-02..T-07 (eng squad), T-08 (product squad, lateral hop)
+  - SC-13 — main-session SKILL.md edit, pre-ship, no agent domain covers it (Q13)
 resolved:
   - MF-1..MF-6 all resolved; eng-lead re-verified by id at run 2026-07-31-04-eng
   - MF-6 discharged outside the plan at f929d44 (gitignore __pycache__/*.pyc, tracked .pyc untracked)
@@ -52,11 +57,14 @@ resolved:
   - Q15 CLOSED at fix cycle 3 — ship's parent close now conditional on parent_origin, symmetric with
     abandon; 6 sites edited (run 07), re-verified per-item with must_fix [] (run 08)
   - Q16 CLOSED at fix cycle 3 — PLAN:20-24 names 1ce886a the pinned review baseline, not "current HEAD"
+  - approval gate PASSED — BRIEF:233 and PLAN:653 both status approved, Mike Ruangutai, at 4d00dbc
 skipped_segments:
   - segment: 1b-visual-designer-design-pass
     reason: surface is bin/*.py, feature.yaml fields and GitHub API calls — no end-user visual surface, no DESIGN.md
   - segment: 3-ui-reviewer-contract-check
     reason: no DESIGN.md contract exists to review (Expertise O-01)
+  - segment: gh-sync-mirror-all-three-sync-points
+    reason: harness.json github.sync false and github.repo null — open/close-task/ship all SKIP (DEC-138)
 github:
   parent: none                # recorded at creation by gh-sync open, never discovered (DEC-138)
   milestone: none
