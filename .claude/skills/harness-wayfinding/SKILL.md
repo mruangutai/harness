@@ -41,6 +41,18 @@ permission to carry on past it.
   tickets/T-NN-<slug>.md
 ```
 
+**The effort slug comes from the DESTINATION, not the idea you were handed** — the idea's wording is
+the fuzzy part; the destination is the first thing charting settles, so it is the first thing stable
+enough to name a directory after (which is why the dir appears at step 3, never step 1). kebab-case,
+2–4 words, **immutable once created**: the path is what `/harness-plan` is handed and what the BRIEF
+cites, so a rename breaks recorded references (DEC-133's reasoning, applied here).
+
+**No number, deliberately** — `FEAT-NN`/`T-NN` numbers exist because those ids ride in commit
+trailers, issue bodies and `traces:` lines; an effort id appears once, at hand-off. And **never
+reuse a feature's slug**: an effort may spawn several features, and a 1:1 name invites the reader to
+assume it is one. Test: if a second effort could plausibly claim the same slug, it was not specific
+enough — `bulk-statement-correction`, not `statements`.
+
 `MAP.md` is an **index, not a store**: a decision lives in exactly one place — its ticket — and the
 map only gists it and points. Load `MAP.md` once per session; zoom a ticket on demand.
 

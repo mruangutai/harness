@@ -1,4 +1,4 @@
-# Effort — <name>
+# Effort — <name matching the dir slug: kebab-case, 2–4 words, from the DESTINATION>
 
 <!-- The map is an INDEX, not a store (DEC-165): a decision lives in exactly one place, its
      ticket file, and this file only gists it and points. Loaded once per session — keep it
