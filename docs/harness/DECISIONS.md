@@ -4295,3 +4295,80 @@ approved artifact. That makes the constraint mechanical rather than a matter of 
 
 Unchanged: the mirror is still write-only, PLAN.md is still the truth, and issue state is still never
 read back into an approval-gated artifact (DEC-138 proper).
+
+### DEC-138 amendment 7 — the sub-issue mirror: one parent per feature, and `absorbs:` closes nothing
+
+The shipped shape of the GitHub Issues mirror after the sub-issue migration. Two things here reverse
+earlier text; the rest is the contract as the code now runs it (`.claude/skills/harness/bin/gh-sync.py`).
+
+**`absorbs:` is a citation and closes nothing — this supersedes am.1's "they close with it."** A
+task's issue body still records `absorbs: #12, #14, #31` (written at create, `gh-sync.py:278-279`), but
+`close-task` issues **exactly one** `issue close` — the task's own issue — and then only *prints* the
+absorbed numbers, `— left open for the ship briefing` (`gh-sync.py:310-314`). The suite assertion
+inverted with it: `absorbed #12 #14 NOT closed` (`test-gh-sync.py:245`) replaced the old
+`absorbed #12 #14 closed`. The reason, recorded so the reversal is not re-litigated: **absorption is
+normally partial.** kaya's #315/#209/#309/#312/#305 were each only *part*-covered by the task that
+cited them, and a script must not infer that a partly-covered issue is done. So the only route from
+"the feature covered this" to "this is closed" is a **human signature** — the same briefing-gated route
+am.4 uses for leads' residual findings. Trade-off, accepted: watchers of an absorbed issue no longer
+see it close automatically; they see the citation and the ship briefing.
+
+**`open` creates one sub-issue per `T-NN` under a single parent, adopted-or-created but never
+discovered.** Precedence, first match wins: (1) `feature.yaml github.parent` already holds a number →
+use it; (2) `--parent <n>` on the command line → adopt it; (3) otherwise `open` **creates** one, title
+`<FEAT-NN-slug> — <the BRIEF H1's human phrase>`, body = the BRIEF's Problem plus `**Goal:**`, label
+`harness` (`gh-sync.py:255-271`). The number is **recorded** at `feature.yaml github.parent`, and calling the
+parent endpoint to *find* it is rejected: that is a READ, and DEC-138 makes the mirror write-only —
+idempotency comes from local receipts, so a discovery path would be a second, contradictory source of
+truth. Children attach by the child's internal **`id`**, never its `number` (the trap of DEC-138's
+live probe). The **origin** is recorded at the same moment as the number, at
+`feature.yaml github.parent_origin` — `created` or `adopted` — because re-deriving it later would mean
+reading GitHub.
+
+**Both terminal subcommands branch on the recorded origin.** `ship` and `abandon` are mirror images,
+and the parent's fate is conditional in both:
+
+| | created parent | adopted parent | no recorded origin | milestone |
+|---|---|---|---|---|
+| `ship` | closed — `issue close` with no `--reason`, i.e. GitHub's default `completed` | left **open** | left **open** | closed |
+| `abandon` | closed `state_reason=not_planned` | left **open** | left **open** | closed |
+
+`abandon` additionally closes the feature's **own** sub-issues `not_planned`, and posts the signed
+reason on any recorded parent whatever its origin; `ship` posts the signed `--body-file` the same way.
+Milestones take no `state_reason` — close is close — and the milestone's close **does not depend on the
+parent's origin: it closes in all three parent cases** (`gh-sync.py:379-410`, `:317-355`). Neither
+subcommand closes a parent it did not create.
+
+Why the branch, recorded because it cost this feature two of its three fix cycles:
+
+- a **created** parent is this feature's own container; left open with every child closed it is an
+  orphan nothing will ever close;
+- closing an **adopted** parent would assert something false about someone else's live backlog item —
+  `completed` and `not_planned` are *both* false claims about a thing this feature does not own;
+- **absent or unrecognised origin defaults to leave-open.** Stated explicitly because SC-10 forbids
+  editing the `github:` block of any existing `feature.yaml`, so no pre-existing feature carries the
+  marker — this feature included (`FEAT-03-subissue-mirror/feature.yaml:73` is `parent: none`).
+
+**Shared code, and migration scope.** REQ-06's three primitives — the internal-id attach, the parent
+read, the blocking-edge write — plus the internal-id lookup and `gh_bin()` now live in exactly one
+place, `.claude/skills/harness/bin/gh_issues.py`, as **argv builders**; each caller keeps its own
+runner, because `gh-sync.py` skips-and-exits-0 on an environmental failure while `wayfind.py` dies exit
+1. `gh-sync.py` imports only `internal_id_args` and `attach_sub_issue_args`; its containing **no** call
+to `parent_args` or `blocked_by_args` is a standing regression guard for the write-only rule.
+**Migration is new-features-only** — no backfill, no retrofit, no edit to any existing feature's
+recorded map.
+
+**Not here yet.** Feature B — `depends_on:` in PLAN becoming `blocked_by` edges — is sequenced
+separately, and **no `blocked_by` edge is emitted by the GitHub Issues sync**: the builder exists but
+its only caller is wayfinding (`wayfind.py:283`).
+
+**Two prose sites are a named main-session pre-ship step, not an agent's** (SC-13):
+`.claude/skills/harness/SKILL.md:137` still reads "closes its issue and everything it absorbs" — the
+superseded contract — and `:144`'s ship row names only the milestone, where it must name the parent as
+**conditional on its recorded origin**. No agent domain covers that file (`team-config.yaml` grants
+`.claude/skills/harness/bin/**` and nothing else under `.claude/skills/` — `:154`, `:193`), so it returns to the main session before ship. Deliberately, this
+amendment declares **no** staleness marker for either phrase: `check-docs.sh` scans
+`.claude/skills/**/*.md`, so a marker for wording that is still live would turn the checker red and gate
+every `/harness` entry on an edit no agent may make. The checker is silent about this gap **by design**;
+SC-13's own grep at the ship gate is what detects it. If the mechanical route is preferred, the ordering
+is: land the SKILL.md edit first, then a marker may be declared — never before.
