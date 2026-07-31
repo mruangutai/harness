@@ -4194,5 +4194,19 @@ matrix table). Now explicit, and `--body "<text>"` is the default path so a shor
 file at all: the **dialog** is saved nowhere (it is the transcript — ephemeral, and a verbatim log
 is not a decision); the **decision** is the ticket's resolution comment; the **gist** is one line in
 the map's `## Decisions so far`; a substantial **asset** is a repo file *linked* from the comment,
-never pasted and never a second copy. Order is always decide → record on the ticket → gist on the
-map. Markdown mode remains the whole store only when `github.sync` is off — never alongside.
+never pasted and never a second copy. Markdown mode remains the whole store only when
+`github.sync` is off — never alongside.
+
+**And the gist is written by the tool, not remembered by a human.** `resolve` now REQUIRES
+`--gist "<one line>"`, discovers the ticket's map itself (the sub-issues `parent` endpoint —
+verified live), and appends the line to that map body's `## Decisions so far` in the same
+invocation as the comment and the close. Three drift holes closed at once: a resolution recorded
+only on its ticket (the map silently stops being an index), a gist written on the sub-issue instead
+of the map, and a hand-edited map body diverging from what the tickets say. It refuses to run if the
+map has no `## Decisions so far` section, rather than putting the line somewhere plausible.
+
+**The round mechanism belongs to both doors.** `harness-grilling` said "one question at a time"
+flatly while its sibling batched the frontier — a contradiction between two skills the same session
+loads. Both now carry the same rule with the same guard: batch only what is genuinely independent,
+one at a time for anything dependent or needing exploration, and a question sitting on the frontier
+only because its dependency was never traced is not independent.

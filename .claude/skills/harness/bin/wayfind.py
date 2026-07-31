@@ -19,8 +19,8 @@ touches a shared, human-visible surface, so the plan is shown first.
   wayfind.py ticket <map#> <type> "<title>"  # create a ticket as a sub-issue  [--apply]
   wayfind.py block <ticket#> --by <ticket#>  # native blocked_by edge  [--apply]
   wayfind.py claim <ticket#>                 # assign to @me — the claim  [--apply]
-  wayfind.py resolve <ticket#> --body "<text>"   # post resolution + close  [--apply]
-  wayfind.py resolve <ticket#> --file <path>     # same, body from a file (long answers/assets)
+  wayfind.py resolve <ticket#> --body "<text>" --gist "<one line>"   # comment + close + gist  [--apply]
+  wayfind.py resolve <ticket#> --file <path> --gist "<one line>"    # same, body from a file
 
 Exit 0 = done (or planned). Exit 1 = a problem the caller must surface.
 Repo comes from .harness/harness.json `github.repo`, pinned at init and never
@@ -140,6 +140,41 @@ def frontier(repo, mapnum):
             continue                      # claimed — another session owns it
         out.append(full)
     return out
+
+
+def parent_of(repo, num):
+    """The map a ticket belongs to, via the sub-issues parent endpoint (404 = no parent)."""
+    p = gh_json(["api", f"repos/{repo}/issues/{num}/parent"], allow_fail=True)
+    return p.get("number") if isinstance(p, dict) else None
+
+
+def append_gist(repo, mapnum, line, apply):
+    """Append ONE line under the map body's `## Decisions so far` (DEC-167).
+
+    Read-modify-write on the issue body, because the alternative is a human remembering to
+    hand-edit the map after every resolution — and a gist that is sometimes written is a map
+    that silently stops being an index. Inserted at the END of the section so the list reads
+    in resolution order.
+    """
+    body = issue(repo, mapnum, "body").get("body") or ""
+    head = "## Decisions so far"
+    if head not in body:
+        die(f"map #{mapnum} has no '{head}' section — fix the map body first; the gist has "
+            f"nowhere to go and a decision recorded only on its ticket leaves no index.")
+    before, rest = body.split(head, 1)
+    # the section runs to the next top-level heading
+    nxt = rest.find("\n## ")
+    section, after = (rest[:nxt], rest[nxt:]) if nxt != -1 else (rest, "")
+    section = section.rstrip("\n") + f"\n{line}\n"
+    new_body = before + head + section + after
+    if not apply:
+        print(f"  would append to map #{mapnum} '## Decisions so far':\n    {line}")
+        return
+    r = subprocess.run(["gh", "issue", "edit", str(mapnum), "-R", repo, "--body-file", "-"],
+                       input=new_body, capture_output=True, text=True)
+    if r.returncode != 0:
+        die(f"gh issue edit (map body) failed: {(r.stderr or '').strip()}")
+    print(f"  gisted on map #{mapnum}")
 
 
 def cmd_round(repo, mapnum):
@@ -265,10 +300,19 @@ def main():
             comment = ["issue", "comment", t, "-R", repo, "--body-file", path]
         else:
             die("resolve needs --body \"<text>\" or --file <path>")
+        if "--gist" not in a:
+            die("resolve needs --gist \"<one line>\" — the map is an index, and a decision "
+                "recorded only on its ticket leaves the map silently incomplete (DEC-167). "
+                "One line: what was decided, not how.")
+        gist = a[a.index("--gist") + 1]
+        mapnum = parent_of(repo, t)
+        if mapnum is None:
+            die(f"ticket #{t} has no parent map — attach it first "
+                f"(wayfind.py ticket <map#> <type> …), or this is not a wayfinding ticket.")
+        ti = issue(repo, t, "title")
         do([comment, ["issue", "close", t, "-R", repo]], apply)
-        if apply:
-            print("  now add ONE gisted line to the map's ## Decisions so far, pointing at "
-                  "this ticket — the map is an index, not a store.")
+        append_gist(repo, mapnum, f"- [#{t} {ti.get('title','')}]"
+                    f"(https://github.com/{repo}/issues/{t}) — {gist}", apply)
         return 0
 
     die(f"unknown subcommand {sub!r}")

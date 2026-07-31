@@ -17,8 +17,14 @@ possible moment to find that is here, in conversation, before a spawn.
 
 ## The discipline
 
-- **One question at a time**, with your recommended answer attached. Several at once is
-  bewildering and gets you the first answer plus noise. Wait for each.
+- **One question at a time by default**, with your recommended answer attached — several *dependent*
+  questions at once is bewildering and gets you the first answer plus noise. Wait for each.
+- **Except: batch a genuinely independent round.** Hold the decision tree in mind; its **frontier**
+  is every question whose prerequisites are already settled. Those do not depend on each other, so
+  asking them as one numbered round — each with a recommendation — is faster and no less rigorous,
+  and the user's answers then push the frontier outward for the next round (DEC-167). A question
+  whose answer hangs on another still-open question belongs to a *later* round, never this one.
+  When in doubt, or when a question needs real exploration, go back to one at a time.
 - **Facts are YOURS to find; decisions are the user's.** If the filesystem, git, the codebase map,
   or a command can answer it, go look — never ask the user something you could check. Dispatch an
   `Explore` subagent for anything broad. Then put the *decision* to them and wait.
@@ -91,7 +97,8 @@ confirms. Then:
 
 | Thought | Reality |
 |---|---|
-| "I'll ask these four together to save time" | Bewildering. One at a time, recommendation attached |
+| "I'll ask these four together to save time" | Only if they are genuinely independent — a numbered frontier round. Dependent questions still go one at a time |
+| "They're all on the frontier, so I'll dump every open question" | A question on the frontier only because you never traced its dependency is not independent |
 | "I'll ask the user which file holds X" | A fact. Go look. Only decisions are theirs |
 | "The user is busy; pm can figure the rest out" | pm plans from what it is told, and guesses become REQs nobody meant |
 | "This is obviously in scope" | If it is past the destination it is out of scope. Say so and record it |
