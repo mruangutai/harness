@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Mirror a feature to GitHub Issues — one-way, outbound, never a gate (DEC-138).
 
-  gh-sync.py open  <feature-dir>          plan approved -> milestone + one issue per T-NN
-  gh-sync.py close-task <feature-dir> T-NN    task's commit landed -> close its issue (+ absorbed)
-  gh-sync.py ship  <feature-dir>          user accepted shipped -> close the milestone
+  gh-sync.py open  <feature-dir>          plan approved -> milestone + parent + one issue per T-NN
+  gh-sync.py close-task <feature-dir> T-NN    task's commit landed -> close its issue
+  gh-sync.py abandon <feature-dir> --reason-file <path>  feature abandoned -> close subs
+                                           not_planned, close the milestone, post the reason
+  gh-sync.py ship  <feature-dir> [--body-file <path>]  shipped -> close the milestone,
+                                           close the parent only if `open` created it, and
+                                           post --body-file on any recorded parent if given
 
 TRUTH DIRECTION IS THE POINT. PLAN.md is approval-gated and is the only source; this
 script projects it outward. It never reads GitHub state back into harness state —
@@ -38,6 +42,9 @@ import shutil
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from gh_issues import internal_id_args, attach_sub_issue_args
+
 GH = os.environ.get("GH_SYNC_GH", "gh")
 
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
@@ -53,6 +60,24 @@ def die(msg):
     """Caller error: the dispatch itself is wrong. Visible, exit 1."""
     print(f"gh-sync: ERROR — {msg}")
     sys.exit(1)
+
+
+def post_body_path(path, flag):
+    """Validate a --body-file-style path argument (DEC-138 am.6: the mirror never composes
+    text — the path itself is passed to gh, never its contents). Every failure here is a
+    caller error, never environmental: an empty or unreadable file would otherwise reach
+    gh(), get rejected, and be reported as a SKIP that silently posts no reason at all."""
+    if path is None:
+        die(f"{flag} is required")
+    if not os.path.isfile(path):
+        die(f"{path} is not a file")
+    if os.path.getsize(path) == 0:
+        die(f"{path} is empty")
+    try:
+        open(path, encoding="utf-8").read()
+    except OSError as e:
+        die(f"{path} is unreadable ({e})")
+    return path
 
 
 def gh(args, capture=True):
@@ -104,8 +129,12 @@ def parse_brief(feat_dir):
     feat = os.path.basename(os.path.abspath(feat_dir))
     scs = re.findall(r"^- (SC-\d+):\s*(.+?)(?=^- SC-\d+:|\Z)", section(t, "Success Criteria"),
                      re.M | re.S)
+    h1 = t.split("\n", 1)[0]
+    parts = h1.split("—", 2)
+    phrase = parts[2].strip() if len(parts) >= 3 else ""
     return {
         "feat": feat,
+        "phrase": phrase,
         "problem": section(t, "Problem"),
         "goal": section(t, "Goal"),
         "scs": [(sid, " ".join(body.split())[:200]) for sid, body in scs],
@@ -143,12 +172,19 @@ def type_label(change_type):
 
 def load_recorded(feat_dir):
     t = read(os.path.join(feat_dir, "feature.yaml"))
-    rec = {"milestone": None, "issues": {}}
+    rec = {"milestone": None, "parent": None, "parent_origin": None, "attached": [], "issues": {}}
     m = re.search(r"^github:\s*$(.*?)(?=^\S|\Z)", t, re.M | re.S)
     if m:
         blk = m.group(1)
         n = re.search(r"^\s*milestone:\s*(\d+)", blk, re.M)
         rec["milestone"] = int(n.group(1)) if n else None
+        p = re.search(r"^\s*parent:\s*(\d+)", blk, re.M)
+        rec["parent"] = int(p.group(1)) if p else None
+        po = re.search(r"^\s*parent_origin:\s*(created|adopted)\b", blk, re.M)
+        rec["parent_origin"] = po.group(1) if po else None
+        a = re.search(r"^\s*attached:\s*\[([^\]]*)\]", blk, re.M)
+        if a:
+            rec["attached"] = [x.strip() for x in a.group(1).split(",") if x.strip()]
         rec["issues"] = {k: int(v) for k, v in re.findall(r"^\s{4}(T-\d+):\s*(\d+)", blk, re.M)}
     return rec
 
@@ -157,7 +193,14 @@ def save_recorded(feat_dir, rec):
     p = os.path.join(feat_dir, "feature.yaml")
     t = read(p)
     t = re.sub(r"^github:\s*$.*?(?=^\S|\Z)", "", t, flags=re.M | re.S).rstrip("\n") + "\n"
-    lines = ["github:", f"  milestone: {rec['milestone']}", "  issues:"]
+    lines = [
+        "github:",
+        f"  milestone: {rec['milestone']}",
+        f"  parent: {rec['parent'] if rec['parent'] is not None else 'none'}",
+        f"  parent_origin: {rec['parent_origin'] or 'none'}",
+        f"  attached: [{', '.join(rec['attached'])}]",
+        "  issues:",
+    ]
     lines += [f"    {tid}: {num}" for tid, num in sorted(rec["issues"].items())]
     open(p, "w").write(t + "\n".join(lines) + "\n")
 
@@ -177,7 +220,7 @@ def ensure_labels(repo, labels):
                        capture_output=True)
 
 
-def cmd_open(feat_dir, repo):
+def cmd_open(feat_dir, repo, parent_arg=None):
     brief, tasks, rec = parse_brief(feat_dir), parse_tasks(feat_dir), load_recorded(feat_dir)
     ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
 
@@ -209,24 +252,53 @@ def cmd_open(feat_dir, repo):
     else:
         print(f"gh-sync: milestone #{rec['milestone']} already recorded — skipping")
 
+    # D-01: the parent is adopted-or-created, its number recorded, never discovered.
+    if rec["parent"] is not None:
+        print(f"gh-sync: parent #{rec['parent']} already recorded — skipping")
+    elif parent_arg is not None:
+        rec["parent"] = int(parent_arg)
+        rec["parent_origin"] = "adopted"
+        save_recorded(feat_dir, rec)   # DEC-131: record immediately, same call as the number
+        print(f"gh-sync: parent #{rec['parent']} adopted")
+    else:
+        title = f"{brief['feat']} — {brief['phrase']}" if brief["phrase"] else brief["feat"]
+        body = f"{brief['problem']}\n\n**Goal:** {brief['goal']}"
+        url = gh(["issue", "create", "--repo", repo, "--title", title,
+                  "--body", body, "--label", "harness"])
+        rec["parent"] = int(url.rstrip("/").rsplit("/", 1)[-1])
+        rec["parent_origin"] = "created"
+        save_recorded(feat_dir, rec)
+        print(f"gh-sync: parent #{rec['parent']} created")
+
     for task in tasks:
         if task["id"] in rec["issues"]:
             print(f"gh-sync: {task['id']} already issue #{rec['issues'][task['id']]} — skipping")
+        else:
+            body = task["body"]
+            if task["absorbs"]:
+                body += "\n\nabsorbs: " + ", ".join(f"#{n}" for n in task["absorbs"])
+            labels = ["harness"] + ([type_label(task["change_type"])] if type_label(task["change_type"]) else [])
+            args = ["issue", "create", "--repo", repo,
+                    "--title", f"{task['id']} — {task['title']}", "--body", body,
+                    "--milestone", brief["feat"]]
+            for l in labels:
+                args += ["--label", l]
+            url = gh(args)
+            num = int(url.rstrip("/").rsplit("/", 1)[-1])
+            rec["issues"][task["id"]] = num
+            save_recorded(feat_dir, rec)   # after EVERY create — a crash mid-loop must not orphan issues
+            print(f"gh-sync: {task['id']} -> issue #{num} [{', '.join(labels)}]")
+
+        # Attach to the parent — a separate receipt from the create, so a crash between
+        # recording the issue and attaching it is resumed rather than repeated or lost.
+        if task["id"] in rec["attached"]:
             continue
-        body = task["body"]
-        if task["absorbs"]:
-            body += "\n\nabsorbs: " + ", ".join(f"#{n}" for n in task["absorbs"])
-        labels = ["harness"] + ([type_label(task["change_type"])] if type_label(task["change_type"]) else [])
-        args = ["issue", "create", "--repo", repo,
-                "--title", f"{task['id']} — {task['title']}", "--body", body,
-                "--milestone", brief["feat"]]
-        for l in labels:
-            args += ["--label", l]
-        url = gh(args)
-        num = int(url.rstrip("/").rsplit("/", 1)[-1])
-        rec["issues"][task["id"]] = num
-        save_recorded(feat_dir, rec)   # after EVERY create — a crash mid-loop must not orphan issues
-        print(f"gh-sync: {task['id']} -> issue #{num} [{', '.join(labels)}]")
+        child_num = rec["issues"][task["id"]]
+        child_id = gh(internal_id_args(repo, child_num))
+        gh(attach_sub_issue_args(repo, rec["parent"], child_id), capture=False)
+        rec["attached"].append(task["id"])
+        save_recorded(feat_dir, rec)
+        print(f"gh-sync: {task['id']} (issue #{child_num}) attached to parent #{rec['parent']}")
     save_recorded(feat_dir, rec)
 
 
@@ -237,9 +309,49 @@ def cmd_close_task(feat_dir, tid, repo):
     tasks = {t["id"]: t for t in parse_tasks(feat_dir)}
     gh(["issue", "close", str(rec["issues"][tid]), "--repo", repo], capture=False)
     print(f"gh-sync: closed issue #{rec['issues'][tid]} for {tid}")
-    for n in tasks.get(tid, {}).get("absorbs", []):
-        gh(["issue", "close", n, "--repo", repo], capture=False)
-        print(f"gh-sync: closed absorbed issue #{n}")
+    absorbed = tasks.get(tid, {}).get("absorbs", [])
+    if absorbed:
+        print(f"gh-sync: {tid} absorbs {', '.join('#' + n for n in absorbed)} — left open for the ship briefing")
+
+
+def cmd_abandon(feat_dir, repo, reason_file):
+    """Terminal state: closes every recorded sub-issue not_planned, closes the milestone,
+    posts the reason on the parent, and closes the parent itself only if `open` created it
+    (D-01) — an adopted parent, or one with no recorded origin, is left open. Writes no
+    receipt: this is a closing action, not a recording one, so `feature.yaml` is untouched."""
+    reason_file = post_body_path(reason_file, "--reason-file")
+    rec = load_recorded(feat_dir)
+    if rec["milestone"] is None and not rec["issues"]:
+        skip("no recorded milestone or issues — nothing to abandon (was `open` run?)")
+
+    if rec["parent"] is not None:
+        gh(["issue", "comment", str(rec["parent"]), "--repo", repo,
+            "--body-file", reason_file], capture=False)
+        print(f"gh-sync: reason posted on parent #{rec['parent']}")
+    else:
+        print("gh-sync: no parent recorded — reason not posted")
+
+    for tid, num in sorted(rec["issues"].items()):
+        gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{num}",
+            "-f", "state=closed", "-f", "state_reason=not_planned"], capture=False)
+        print(f"gh-sync: closed issue #{num} for {tid} (not_planned)")
+
+    if rec["milestone"] is not None:
+        gh(["api", "-X", "PATCH", f"repos/{repo}/milestones/{rec['milestone']}",
+            "-f", "state=closed"])
+        print(f"gh-sync: milestone #{rec['milestone']} closed")
+    else:
+        print("gh-sync: no milestone recorded — nothing to close")
+
+    # D-01: the parent's fate follows its recorded origin, never unconditional leave-open.
+    if rec["parent"] is not None:
+        if rec["parent_origin"] == "created":
+            gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{rec['parent']}",
+                "-f", "state=closed", "-f", "state_reason=not_planned"], capture=False)
+            print(f"gh-sync: parent #{rec['parent']} closed (not_planned)")
+        else:
+            print(f"gh-sync: parent #{rec['parent']} left open "
+                  f"(origin={rec['parent_origin'] or 'none'})")
 
 
 def cmd_backlog(feat_dir, repo, items):
@@ -264,35 +376,85 @@ def cmd_backlog(feat_dir, repo, items):
         print(f"gh-sync: backlog issue #{url.rstrip('/').rsplit('/', 1)[-1]} [{', '.join(labels)}] — {title.strip()}")
 
 
-def cmd_ship(feat_dir, repo):
+def cmd_ship(feat_dir, repo, body_file=None):
+    """Terminal state: PATCHes the milestone closed unconditionally, and — the mirror image
+    of `abandon` step 4 — closes the parent only if `open` created it (D-01, SC-04): an
+    adopted parent, or one with no recorded origin, is left open. Writes no receipt: this is
+    a closing action, not a recording one, so `feature.yaml` is untouched."""
+    if body_file is not None:
+        body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)
     if rec["milestone"] is None:
         skip("no recorded milestone — nothing to close")
+
+    # The comment is UNCONDITIONAL: posts on any recorded parent whatever its origin.
+    if body_file is not None and rec["parent"] is not None:
+        gh(["issue", "comment", str(rec["parent"]), "--repo", repo,
+            "--body-file", body_file], capture=False)
+        print(f"gh-sync: ship review posted on parent #{rec['parent']}")
+
+    # D-01: the parent's close follows its recorded origin, never unconditional.
+    if rec["parent"] is not None:
+        if rec["parent_origin"] == "created":
+            gh(["issue", "close", str(rec["parent"]), "--repo", repo], capture=False)
+            print(f"gh-sync: parent #{rec['parent']} closed")
+        else:
+            print(f"gh-sync: parent #{rec['parent']} left open "
+                  f"(origin={rec['parent_origin'] or 'none'})")
+    else:
+        print("gh-sync: no parent recorded — closing milestone only")
+
+    # The milestone is unaffected by parent origin: it PATCHes closed in all three cases.
     gh(["api", "-X", "PATCH", f"repos/{repo}/milestones/{rec['milestone']}",
         "-f", "state=closed"])
     print(f"gh-sync: milestone #{rec['milestone']} closed")
 
 
 def main():
-    if len(sys.argv) < 3:
-        die("usage: gh-sync.py open|close-task|ship|backlog <feature-dir> [T-NN | nature:title ...]")
-    cmd, feat_dir = sys.argv[1], sys.argv[2]
+    argv = sys.argv[1:]
+    parent_arg = None
+    if "--parent" in argv:
+        i = argv.index("--parent")
+        if i + 1 >= len(argv):
+            die("--parent needs a value")
+        parent_arg = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+    reason_file = None
+    if "--reason-file" in argv:
+        i = argv.index("--reason-file")
+        if i + 1 >= len(argv):
+            die("--reason-file needs a value")
+        reason_file = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+    body_file = None
+    if "--body-file" in argv:
+        i = argv.index("--body-file")
+        if i + 1 >= len(argv):
+            die("--body-file needs a value")
+        body_file = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+    if len(argv) < 2:
+        die("usage: gh-sync.py open|close-task|abandon|ship|backlog <feature-dir> "
+            "[T-NN | nature:title ...] [--parent <n>] [--reason-file <path>] [--body-file <path>]")
+    cmd, feat_dir = argv[0], argv[1]
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
     root = os.path.abspath(os.path.join(feat_dir, "..", "..", ".."))
     repo = load_config(root)
     if cmd == "open":
-        cmd_open(feat_dir, repo)
+        cmd_open(feat_dir, repo, parent_arg)
     elif cmd == "close-task":
-        if len(sys.argv) < 4:
+        if len(argv) < 3:
             die("close-task needs a T-NN")
-        cmd_close_task(feat_dir, sys.argv[3], repo)
+        cmd_close_task(feat_dir, argv[2], repo)
+    elif cmd == "abandon":
+        cmd_abandon(feat_dir, repo, reason_file)
     elif cmd == "ship":
-        cmd_ship(feat_dir, repo)
+        cmd_ship(feat_dir, repo, body_file)
     elif cmd == "backlog":
-        if len(sys.argv) < 4:
+        if len(argv) < 3:
             die("backlog needs at least one nature:title item")
-        cmd_backlog(feat_dir, repo, sys.argv[3:])
+        cmd_backlog(feat_dir, repo, argv[2:])
     else:
         die(f"unknown command {cmd!r}")
 

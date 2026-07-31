@@ -363,6 +363,26 @@ if cj:
                         f"(DEC-163). Either stand up a runner (a dev-ops task) or accept it "
                         f"explicitly in the BRIEF's verification-gaps line.")
 
+# --- INV-21 (D-05): a mirrored feature whose task issues are recorded but whose
+# container (parent) never was — `ship`/`abandon` cannot close it and `open` will not
+# re-derive it (the mirror is write-only, DEC-138). Warn, not violation (D-05): the
+# GitHub Issues sync is never a gate, and a re-run of `open` fixes it (INV-20's
+# precedent). Vacuous when github.sync is off — the check costs nothing then.
+if cj and (cj.get("github") or {}).get("sync"):
+    for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+        feat = os.path.basename(os.path.dirname(fy))
+        txt = read(fy) or ""
+        m = re.search(r"^github:\s*$(.*?)(?=^\S|\Z)", txt, re.M | re.S)
+        if not m:
+            continue
+        blk = m.group(1)
+        has_issue = re.search(r"^\s{4}T-\d+:\s*\d+", blk, re.M)
+        has_parent = re.search(r"^\s*parent:\s*\d+", blk, re.M)
+        if has_issue and not has_parent:
+            warn.append(f"INV-21: {feat} has recorded task issues but no numeric "
+                        f"parent — ship/abandon cannot close the container and open "
+                        f"will not re-derive it (D-05). Re-run `open` to record it.")
+
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
 # (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip
 # silently, which reads exactly like a working mirror to anyone not tailing logs.

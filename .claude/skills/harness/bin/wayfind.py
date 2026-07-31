@@ -29,6 +29,9 @@ with the markdown-fallback instruction; wayfinding then runs in files-only mode.
 """
 import json, os, subprocess, sys
 
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+import gh_issues as ghi
+
 TYPES = ("research", "prototype", "grilling", "task")
 LABELS = {"wayfinder:map": ("0e8a16", "A wayfinding effort map (DEC-166)")}
 for _t in TYPES:
@@ -66,7 +69,7 @@ def cfg():
 
 
 def gh_json(args, allow_fail=False):
-    r = subprocess.run(["gh"] + args, capture_output=True, text=True)
+    r = subprocess.run([ghi.gh_bin()] + args, capture_output=True, text=True)
     if r.returncode != 0:
         if allow_fail:
             return None
@@ -83,7 +86,7 @@ def do(cmds, apply):
         if not apply:
             print("  would run: gh " + " ".join(c))
             continue
-        r = subprocess.run(["gh"] + c, capture_output=True, text=True)
+        r = subprocess.run([ghi.gh_bin()] + c, capture_output=True, text=True)
         if r.returncode != 0:
             die(f"gh {' '.join(c[:3])}… failed: {(r.stderr or '').strip()}")
         out = (r.stdout or "").strip()
@@ -144,7 +147,7 @@ def frontier(repo, mapnum):
 
 def parent_of(repo, num):
     """The map a ticket belongs to, via the sub-issues parent endpoint (404 = no parent)."""
-    p = gh_json(["api", f"repos/{repo}/issues/{num}/parent"], allow_fail=True)
+    p = gh_json(ghi.parent_args(repo, num), allow_fail=True)
     return p.get("number") if isinstance(p, dict) else None
 
 
@@ -170,7 +173,7 @@ def append_gist(repo, mapnum, line, apply):
     if not apply:
         print(f"  would append to map #{mapnum} '## Decisions so far':\n    {line}")
         return
-    r = subprocess.run(["gh", "issue", "edit", str(mapnum), "-R", repo, "--body-file", "-"],
+    r = subprocess.run([ghi.gh_bin(), "issue", "edit", str(mapnum), "-R", repo, "--body-file", "-"],
                        input=new_body, capture_output=True, text=True)
     if r.returncode != 0:
         die(f"gh issue edit (map body) failed: {(r.stderr or '').strip()}")
@@ -268,17 +271,16 @@ def main():
         num = str(url).rstrip("/").split("/")[-1]
         # THE TRAP: sub_issues takes the child's internal id, never its number.
         cid = issue(repo, num, "id")["id"] if isinstance(issue(repo, num, "id"), dict) else None
-        cid = cid or gh_json(["api", f"repos/{repo}/issues/{num}", "--jq", ".id"])
-        do([["api", f"repos/{repo}/issues/{mapnum}/sub_issues", "-F", f"sub_issue_id={cid}"]], True)
+        cid = cid or gh_json(ghi.internal_id_args(repo, num))
+        do([ghi.attach_sub_issue_args(repo, mapnum, cid)], True)
         print(f"  ticket #{num} [{ttype}] attached to map #{mapnum}")
         return 0
 
     if sub == "block":
         t = a[1]
         by = a[a.index("--by") + 1] if "--by" in a else die("block needs --by <ticket#>")
-        bid = gh_json(["api", f"repos/{repo}/issues/{by}", "--jq", ".id"])
-        do([["api", f"repos/{repo}/issues/{t}/dependencies/blocked_by",
-             "-F", f"issue_id={bid}"]], apply)
+        bid = gh_json(ghi.internal_id_args(repo, by))
+        do([ghi.blocked_by_args(repo, t, bid)], apply)
         return 0
 
     if sub == "claim":

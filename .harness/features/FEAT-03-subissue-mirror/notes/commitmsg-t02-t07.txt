@@ -1,0 +1,52 @@
+feat(FEAT-03): the GitHub Issues mirror closes correctly at both terminal states [harness:t-02] [harness:t-03] [harness:t-04] [harness:t-05] [harness:t-06] [harness:t-07]
+
+Six tasks, one sequential run. Every one of them mutates `gh-sync.py` or
+its suite, so they ran strictly one at a time.
+
+T-02 — `gh_issues.py` holds the three REQ-06 primitives plus `gh_bin()`,
+argv builders only, executing nothing: `wayfind.py` dies exit 1 and is
+dry-run by default while `gh-sync.py` skips exit 0, so each caller keeps
+its own runner (D-03). Exactly three `wayfind.py` call sites convert and
+all three hardcoded `"gh"` literals route through `gh_bin()`, which is
+what lets the fake `gh` intercept helper-built calls. The two wayfinding
+list GETs keep their endpoint strings inline and are out of scope — the
+retained GETs and the extracted writes build the identical endpoint
+string, which is why every check here is scoped to the payload or lookup
+form and never to the path.
+
+T-03 — `open` creates one sub-issue per `T-NN` under a single parent that
+is adopted or created but never discovered (D-01), attaches each by the
+child's internal `id` rather than its `number`, and records the attach as
+a separate receipt so a crash between recording and attaching is
+repaired by a re-run instead of duplicated.
+
+T-04 — `close-task` closes exactly one issue. `absorbs:` is now a
+citation and closes nothing; both assertions that encoded the old
+cascade were inverted in place rather than deleted, so the reversal is
+visible in the suite (D-02).
+
+T-05, T-06 — the two terminal states, symmetric. The recorded
+`parent_origin` governs both: a parent `open` created closes
+(`not_planned` on abandon, `completed` on ship), an adopted parent is
+left open because closing someone else's live item asserts something
+false, and no recorded origin is left open as the specified default. The
+milestone closes unconditionally in both, asserted rather than assumed:
+the label proving it is emitted inside the ADOPTED fixture, the only
+placement that catches a single origin guard wrapped around both the
+parent close and the milestone PATCH. The comment step stays
+unconditional, since commenting on an adopted issue asserts nothing
+false. Each leave-open case asserts absence in BOTH close forms.
+
+T-07 — INV-21 reports a mirrored feature with recorded issues and no
+recorded parent at warn level, leaving the exit code unchanged, with
+`test-check-state.py` covering the parent-recorded and sync-off cases
+too. It joins `run-unit-tests.sh`'s explicit list; the list and the
+`test-*.py` drift glob remain two separate mechanisms.
+
+`run-unit-tests.sh` exits 0 naming all three scripts. `check-docs.sh`
+exits 0, no stale statements.
+
+T-02..T-07 of 8. Plan: .harness/features/FEAT-03-subissue-mirror/PLAN.md
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_014eZMX1bCGRrL71dpHXwYCj

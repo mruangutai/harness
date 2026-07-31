@@ -4,9 +4,9 @@ branch: feat/harness-native-foundation
 pr: none
 status: in_progress
 review_sha: 1ce886a             # PLAN review baseline; re-pinned at build HEAD for the validator panel (INV-6)
-cycles_used: 4                # DEC-157 rework only: 3 plan fix cycles + 1 send-back eng-lead reported inside run 09
+cycles_used: 6                # DEC-157 rework only: 3 plan fix cycles + 1 send-back (run 09) + 2 prose-only (run 10)
 max_total_cycles: 10          # harness.json budgets.max_total_cycles
-cost_usd: 173                 # approx, OVER max_cost_usd by ~53 — reported not gated (DEC-134)
+cost_usd: 227                 # approx, OVER max_cost_usd by ~107 (1.9x) — reported not gated (DEC-134)
 max_cost_usd: 120             # mirrors harness.json per_feature_usd — user raised 40 -> 120 at 1ce886a
 runs:
   - id: 2026-07-31-01-product
@@ -45,8 +45,12 @@ runs:
     squad: eng
     verdict: PASS   # T-01 — unit is a real streaming runner; 1 send-back for an unnamed invocation form
     cost_usd: 11  # snapshot delta: eng-lead opus 34.82 to 44.41, dev-ops sonnet approx +1 over 2 spawns
+  - id: 2026-07-31-10-eng
+    squad: eng
+    verdict: PASS   # T-02..T-07 — module extracted, open/close-task/abandon/ship + INV-21; 2 prose send-backs
+    cost_usd: 54  # snapshot delta: eng-lead 44.41 to 80.35, backend-dev sonnet +15.76, dev-ops +1.99
 pending:
-  - T-02..T-07 (eng squad), T-08 (product squad, lateral hop)
+  - T-08 (product squad, lateral hop via product-lead — harness-documentor is not eng's to spawn)
   - SC-13 — main-session SKILL.md edit, pre-ship, no agent domain covers it (Q13)
 resolved:
   - MF-1..MF-6 all resolved; eng-lead re-verified by id at run 2026-07-31-04-eng
