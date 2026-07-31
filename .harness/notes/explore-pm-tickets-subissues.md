@@ -1,0 +1,94 @@
+# Explore — move pm's T-NN tickets to the issue + sub-issue model
+
+**Recommendation: YES, and it fixes a live defect rather than adding polish.** The flat model
+DEC-138 specified (one issue per `T-NN`) has never once been used as designed, and the workaround
+every feature reached for has disabled `close-task` for the whole build. Sub-issues are the shape
+the work actually has.
+
+## The evidence — the specified model has a 0-for-3 record
+
+`feature.yaml` `github.issues` across every kaya feature:
+
+| Feature | Milestone | T-NN → issue mapping | Reality |
+|---|---|---|---|
+| FEAT-01 | #8 | T-01→83, T-02→168, **T-03→31, T-04→31** | many-to-one collision |
+| FEAT-02 | #9 | **all → #120** | one issue for every task |
+| FEAT-03 | #10 (open=0, closed=0) | **all 11 → #48** | one issue, milestone EMPTY |
+
+DEC-138 says one issue per T-NN; three features produced zero instances of it. Not sloppiness — its
+own amendment predicted why: *"Intake absorbs, never imports 1:1."* pm plans by the work's real
+shape, so tasks are usually **parts of** an existing backlog issue, not new peers of it.
+
+## The live defect this causes
+
+FEAT-03's own `feature.yaml` documents it, in caps: a **"CLOSE-TASK HAZARD, ELEVENFOLD"** — because
+all eleven tasks map to #48, `close-task` on *any* task closes #48, so the note instructs that
+close-task must not be run at all during the build. The mirror's task-closure half is switched off
+for the entire feature, by hand, with a comment as the only guard.
+
+The flat model forces a lose-lose: either create per-task issues that duplicate or conflict with
+partially-absorbed backlog items (#315/#209/#309/#312/#305 are each only *partly* covered), or map
+many tasks to one issue and give up per-task closure.
+
+## Why sub-issues resolve it
+
+Adopt the existing backlog issue (#48) as the **parent**; create one **sub-issue per T-NN**. Then:
+
+- `close-task` closes that task's own sub-issue — the hazard disappears, no hand-guard needed.
+- The parent closes at ship acceptance, its natural moment, exactly as the milestone does today.
+- Partially-absorbed backlog issues stay untouched and separate; `absorbs:` keeps its current
+  meaning without a closure side effect.
+- GitHub renders the tree and a completion count natively (`sub_issues_summary` — verified live:
+  `{completed, percent_completed, total}`), so feature progress is visible without opening anything.
+- Task ordering can ride native `blocked_by` edges, which is what makes GitHub show what is
+  actually startable.
+
+## Answers to the questions the task raised
+
+**Milestone vs parent issue — keep both, they do different jobs.** Verified: an issue can be a
+sub-issue *and* carry a milestone (#48 sits in milestone FEAT-01 today). The milestone remains the
+**definition of done** — its description holds Problem + Goal + the SC checklist, per DEC-138's
+amendment — while the parent issue holds the **task tree**. Note today's milestone #10 is *empty*
+(open=0/closed=0) precisely because no issues were created; sub-issues would populate it and give
+the progress bar something real to count.
+
+**Native `blocked_by` for task order — worth it, and cheap.** PLAN's task ordering is already
+computed; emitting it as dependency edges is one extra call per edge at `open` time. Value is the
+same as wayfinding's frontier: the human sees what is startable without reading PLAN. **PLAN stays
+the source of truth** — DEC-138's asymmetric truth is untouched, since these edges are written
+outbound and never read back into planning.
+
+**DEC-138 collision — none.** Creating sub-issue links and dependency edges is *outbound*, which is
+all DEC-138 constrains after approval. Nothing here reads issue state into PLAN. (Wayfinding does
+read state, but only pre-approval, where DEC-138 already sanctions issues as pm's input.)
+
+**Migration — new features only.** FEAT-01 and FEAT-02 are shipped; retrofitting them buys nothing
+and risks closing settled issues. FEAT-03 is mid-build with its hazard documented and worked around
+— converting it live would rewire the mirror underneath a running build. Apply to the next feature
+that runs `open`.
+
+**Shared helpers — extract, do not reimplement.** `wayfind.py` already has the three primitives:
+`parent_of`, create-then-attach (the sub-issue API takes the child's internal `id`, not its
+`number`), and the `blocked_by` write. `gh-sync.py` needs all three. Two copies of the id-not-number
+trap is exactly the duplication class DEC-158 keeps finding — the extraction is part of the work,
+not a follow-up.
+
+## Open questions for the plan
+
+1. **Closure semantics, unverified:** whether closing a parent auto-closes open sub-issues (and
+   whether an all-subs-closed parent auto-closes). Neither behavior is documented in what I checked,
+   and `close-task`'s correctness depends on it. **Verify empirically before building** — a scratch
+   parent + one sub in a sandbox repo, not in kaya.
+2. **What is the parent when nothing is adopted?** A greenfield feature has no backlog issue to
+   adopt. Create a `FEAT-NN` parent issue, or let the milestone stand alone with flat task issues
+   (the model as specified, which would then finally be used)?
+3. **`absorbs:` semantics** — today it closes absorbed issues on task closure. With partial
+   absorption being the norm, should it stop closing and only cross-reference?
+
+## Cost and shape
+
+Small: `gh-sync.py cmd_open` gains create-then-attach plus optional dependency edges; `close_task`
+becomes correct instead of hazardous; `feature.yaml` records `parent:` alongside `milestone:`. It is
+a normal feature — one `change_type: api`-ish task set with real verify steps — so it goes through
+`/harness-plan`, not a side edit. **The `absorbs:`/closure question (open #3) is the one thing that
+could change the shape, so it belongs in the grilling before pm plans it.**
