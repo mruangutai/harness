@@ -3984,3 +3984,17 @@ DEC-157's `budgets.max_total_cycles` default never reached kaya's `.harness/harn
 handoff's Trust section caught the discrepancy against SKILL.md. Added to kaya directly; the
 general path for config-schema additions remains `/harness-init --upgrade`, and a DEC that adds a
 harness.json key must say so.
+
+## DEC-161 — Missions get explicit doors, and deploy ships the commands
+
+Two discoverability gaps, found in one conversation: (1) missions map and deepen had no slash
+command — the user-invocable surface was /harness-plan, /harness-ship, /harness-deploy plus
+free-form asks, so deepen (DEC-149) sat unexercised in kaya with nothing advertising it;
+(2) deploy.sh never shipped `.claude/commands/` at all — kaya ran three features on free-form
+prompts because /harness* did not exist there, and nothing flagged it.
+
+Added `/harness-deepen` and `/harness-map` as thin doors over the general `/harness` router
+(same pattern as plan/ship: "read harness.md with mission X, differences listed"), routed both
+in harness.md step 1, and made deploy.sh treat `commands/harness*.md` as part of the
+distributable — copied global and per-project, stale harness-named commands pruned, project-own
+commands untouched.

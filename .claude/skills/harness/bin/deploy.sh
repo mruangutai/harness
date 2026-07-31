@@ -53,6 +53,12 @@ SKILL_DIRS=(); for d in "$REPO"/.claude/skills/harness*/; do
   [ -d "$d" ] && SKILL_DIRS+=("$(basename "$d")"); done
 AGENTS=(); for f in "$REPO"/.claude/agents/harness-*.md; do
   [ -f "$f" ] && AGENTS+=("$(basename "$f")"); done
+# Slash commands are part of the distributable (DEC-161): without them a deployed
+# project has the machinery but no discoverable doors — kaya ran three features on
+# free-form prompts before anyone noticed /harness* was never shipped.
+COMMANDS=(); for f in "$REPO"/.claude/commands/harness*.md; do
+  [ -f "$f" ] && COMMANDS+=("$(basename "$f")"); done
+GLOBAL_COMMANDS="$HOME/.claude/commands"
 
 if [ ${#SKILL_DIRS[@]} -eq 0 ] || [ ${#AGENTS[@]} -eq 0 ]; then
   echo "deploy: found ${#SKILL_DIRS[@]} skill dirs and ${#AGENTS[@]} agents — refusing." >&2
@@ -224,10 +230,18 @@ for n in ${STALE_SKILLS+"${STALE_SKILLS[@]}"}; do
 done
 mkdir -p "$GLOBAL_AGENTS"
 for a in "${AGENTS[@]}"; do cp "$REPO/.claude/agents/$a" "$GLOBAL_AGENTS/$a"; done
+mkdir -p "$GLOBAL_COMMANDS"
+for c in ${COMMANDS+"${COMMANDS[@]}"}; do cp "$REPO/.claude/commands/$c" "$GLOBAL_COMMANDS/$c"; done
+for f in "$GLOBAL_COMMANDS"/harness*.md; do
+  [ -f "$f" ] || continue
+  n="$(basename "$f")"; keep=0
+  for c in ${COMMANDS+"${COMMANDS[@]}"}; do [ "$c" = "$n" ] && keep=1; done
+  [ $keep -eq 0 ] && rm -f "$f"
+done
 for n in ${STALE_AGENTS+"${STALE_AGENTS[@]}"}; do
   case "$n" in harness-*.md) rm -f "${GLOBAL_AGENTS:?}/$n" ;; esac
 done
-say "  global: ${#SKILL_DIRS[@]} skill dirs, ${#AGENTS[@]} agents, ${#STALE_SKILLS[@]} skill prune(s), ${#STALE_AGENTS[@]} agent prune(s)"
+say "  global: ${#SKILL_DIRS[@]} skill dirs, ${#AGENTS[@]} agents, ${#COMMANDS[@]} commands, ${#STALE_SKILLS[@]} skill prune(s), ${#STALE_AGENTS[@]} agent prune(s)"
 
 mkdir -p "$(dirname "$REG_NEW")"
 # Only live projects are written back; a path that no longer exists is dropped.
@@ -247,6 +261,14 @@ say "  registry: $REG_NEW"
 for p in ${LIVE+"${LIVE[@]}"}; do
   for s in "${SKILL_DIRS[@]}"; do
     safe_replace_dir "$REPO/.claude/skills/$s" "$p/.claude/skills" "$s"
+  done
+  mkdir -p "$p/.claude/commands"
+  for c in ${COMMANDS+"${COMMANDS[@]}"}; do cp "$REPO/.claude/commands/$c" "$p/.claude/commands/$c"; done
+  for f in "$p"/.claude/commands/harness*.md; do
+    [ -f "$f" ] || continue
+    n="$(basename "$f")"; keep=0
+    for c in ${COMMANDS+"${COMMANDS[@]}"}; do [ "$c" = "$n" ] && keep=1; done
+    [ $keep -eq 0 ] && rm -f "$f"
   done
   # Reconcile the project's tool tree too — a stale skill dir there shadows nothing
   # but is read by agents as though it were current.
