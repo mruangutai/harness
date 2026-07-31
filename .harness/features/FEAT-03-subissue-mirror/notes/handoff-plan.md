@@ -1,60 +1,60 @@
-# Handoff — FEAT-03-subissue-mirror, plan → build — written at 1ce886a, seq-2 (supersedes seq-1)
+# Handoff — FEAT-03-subissue-mirror, plan → build — written at 65e8cc7, seq-3 (supersedes seq-2)
 
 ## Next
 
-**Wait for the user's signature, then start the build phase.** Both `## Approval` blocks are
-`status: pending` (BRIEF.md:203, PLAN.md:504) — an unapproved artifact stops a build mission at step 0.
-On signature, build T-01..T-08 in PLAN order; PLAN's `## Preconditions` (:39-57) must be read FIRST —
-one precondition is already satisfied (pycache ignore) and one is an **outstanding main-session
-pre-ship edit** (`.claude/skills/harness/SKILL.md:137,144`, SC-13's subject) no agent domain covers.
-**T-08 is owned by harness-documentor, a PRODUCT squad member** — route it laterally through
-product-lead, not eng-lead (Q8). Fix cycle 1 is closed; `cycles_used: 1` of 10.
+**Wait for the user's signature, then start the build phase.** Fix cycle 2 is CLOSED: pm repaired both
+changes (run 05-product PASS) and eng-lead re-verified them per-item (run 06-eng PASS, zero `must_fix`).
+Both `## Approval` blocks are `status: pending`, which stops a build mission at step 0 until signed.
+On signature, build T-01..T-08 in PLAN order; read PLAN `## Preconditions` FIRST — one is an outstanding
+**main-session** edit (`.claude/skills/harness/SKILL.md:137,144`, SC-13) no agent domain covers, and
+**T-08's owner harness-documentor is PRODUCT squad** — route laterally via product-lead (Q8).
 
 ## Trust
 
-- BRIEF.md (203 lines, 9 REQ, **13** SC) and PLAN.md (504 lines, D-01..D-06, T-01..T-08, new
-  `## Preconditions`) repaired; both `## Approval` `status: pending` — grep of both — verified-at 1ce886a
-- All six `must_fix` resolved; eng-lead's per-id `defect_verdicts` in
-  `runs/2026-07-31-04-eng/digest.md` — that file is the receipt, not this note — verified-at 1ce886a
-- **SC-06's four absence-greps genuinely fail today**, so they can only pass after T-02:
-  `"-F", f"sub_issue_id=` ×1, `"-F", f"issue_id=` ×1, `"--jq", ".id"` ×2, `/parent"` ×1 in
-  `wayfind.py` — ran `grep -cF` on each — verified-at 1ce886a
-- **SC-06's second half passes VACUOUSLY today and that is correct:**
-  `grep -cE 'parent_args|blocked_by_args' gh-sync.py` is **0** — a regression guard on builders T-02
-  creates, not an absence-grep proving a change. Do not "fix" it — ran it — verified-at 1ce886a
-- Budget raised by the user 40 → 120 (`harness.json:234`, rationale `:237`, commit 1ce886a); ~$87
-  spent, all in planning — `git show` + per-agent snapshot deltas — verified-at 1ce886a, approximate
-- Tree clean, nothing pycache tracked or untracked (`git status --porcelain` empty) — verified-at 1ce886a
-- seq-1's Trust claims still hold (`test-gh-sync.py` exit 0 with both contract-encoding assertions
-  live; `test_kinds.unit.detect` matches zero files; `deploy.sh` copies `bin/` as a directory;
-  `check-docs.sh` exits 0): af2159e..1ce886a touches only `.gitignore`, the gitignore snippet, one
-  removed `.pyc`, `harness.json`'s `budgets` block, `.harness/logs/` and FEAT-03's own artifacts —
-  re-pinned by **diff intersection**, not by re-running — verified-at 1ce886a
-- Mirror invariants are provable only against the fake `gh` (`github.sync: false`, `repo: null`); the
-  live API path rides on DEC-168's measured probe — UNVERIFIED at this sha (inherited)
+- Cycle 2 applied by pm (run 05-product PASS, no send-back); both `## Approval` still `status: pending`
+  — one grep match each at BRIEF:214 / PLAN:599 — verified-at 65e8cc7
+- **Abandon is now conditional**: adopted → open, created → close `not_planned`, absent origin → open.
+  Receipt `  parent_origin: created|adopted|none`, two-space sibling key before `  issues:`; 20× PLAN,
+  3× BRIEF — `grep -c` — verified-at 65e8cc7
+- **eng-lead re-verified cycle 2 per-item and reproduced the absence-greps FIRST-HAND** (run 06-eng PASS,
+  zero `must_fix`): in `bin/`, `parent_origin` and `abandon` both count ZERO, so all nine T-05 labels are
+  provably absent from today's output — the MF-1 void-grep class did not recur — its digest, run 06-eng
+- **Four unconditional-claim sites changed, not the two the task named** — BRIEF SC-03, T-05 step 4,
+  T-05's `ok` label, **and T-08's DECISIONS am.7 instruction text** — grepped pre-dispatch — verified-at 65e8cc7
+- Retired label `"abandon leaves the parent open"` greps **1** in PLAN (`:491`) — prose documenting its own
+  retirement, not a live label. Read it before filing a defect — verified-at 65e8cc7
+- Task count held at **8**; T-06/SC-04 unchanged, still the unconditional `completed` close — verified-at 65e8cc7
+- Rename: BRIEF 19 → **9** `mirror`, PLAN 11 → **7** (`grep -o|wc -l`); 3 survivors are immutable slug
+  occurrences (DEC-133). Handed-down "17 and 10" were approximate — the RULE governs — verified-at 65e8cc7
+- `f929d44` still the valid code anchor: `git diff --stat f929d44..HEAD -- ':!.harness/'` empty, so no
+  `observed @` receipt moved — ran it — verified-at 65e8cc7
+- **Cost OVER budget: ~$141 of $120, by ~$21** (DEC-134: never gates). Runs 05/06 were $24 and $7 by P-01
+  snapshot delta; the rest is orchestrator session share, not separable from a second depth-1 orchestrator
+- Mirror invariants hold only against the fake `gh`; the live API path rides on DEC-168's probe — UNVERIFIED
 
 ## Dead ends
 
-- **Path-level greps for SC-06** — unsatisfiable and self-voiding: the retained list GETs
-  (`wayfind.py:113`, `:117`) and the extracted writes build the identical endpoint string.
-  Discriminate on payload/lookup only — BRIEF SC-06:75-89 — source: MF-1, closed this cycle
-- **The `ticket` dry-run print at `wayfind.py:262-263`** — stays verbatim; it is why the `-F` checks
-  are scoped to the argv form, not the bare `sub_issue_id=` substring — BRIEF SC-06:88-89
-- **`grep -- '--jq .id'`** — zero matches, passes vacuously; the source carries the two-argv-item
-  form. Recorded in PLAN as a documented false green — source: MF-1
-- **Merging T-05+T-06 / any change to the task count** — held at 8 deliberately; the current
-  decomposition is the premise of the signature. A merge is a `D-NN` — source: orchestrator, this cycle
-- **Feature B, both halves of the razor** — extracting the `blocked_by` write and the parent read is
-  IN; `gh-sync.py` *calling* either is OUT — BRIEF `## Out of scope`, pinned by SC-06 — source: grilling
-- **Re-probing closure semantics**, and **asserting on `sub_issues_summary` right after a write**
-  (eventually consistent) — DEC-168 — source: grilling `## Facts I verified`
-- **Retrofitting FEAT-01/FEAT-02/kaya's FEAT-03** — new features only — BRIEF `## Constraints`
-- **visual-designer / ui-reviewer, and renaming the feature id** — no visual surface, no DESIGN.md,
-  prototype gate re-confirmed NO — `feature.yaml skipped_segments`, Q4, Q6
+- **Reopening the grilling** (`.harness/notes/grilling-subissue-mirror-2026-07-31.md`) — cycle 2
+  PRESERVES "leave the adopted parent open" and only ADDS the created case; root cause was D-01 adding a
+  third origin after the grilling settled two — source: user, this cycle
+- **Editing `docs/harness/DECISIONS.md` or `.claude/skills/harness/SKILL.md` for the rename** — first is
+  historical record and defines "mirror" at DEC-138; second rides with SC-13. **Renaming the dir or
+  slug** — DEC-133 immutability, breaks four run dirs — source: user, Q6
+- **Fixing T-06/`ship`'s unconditional parent close** — the symmetric defect (closing an ADOPTED parent
+  `completed`). Real, recorded as **Q15**, NOT authorized — source: user's two-change scope
+- **Merging T-05+T-06 / changing the task count** — held at 8; the decomposition is the premise of the
+  signature — source: orchestrator, cycles 1 and 2
+- **Path-level greps for SC-06** — self-voiding: the retained list GETs (`wayfind.py:113`, `:117`) and the
+  extracted writes build the identical endpoint string. Payload/lookup only; `grep -- '--jq .id'` passes
+  vacuously (source carries the two-argv form) — source: MF-1
+- **Feature B, both halves** — extracting the `blocked_by` write and parent read is IN, `gh-sync.py`
+  *calling* either is OUT — source: grilling, pinned by SC-06
+- **Re-probing closure semantics** / **asserting on `sub_issues_summary` post-write** — DEC-168.
+  **Retrofitting FEAT-01/FEAT-02/kaya's FEAT-03** — new features only — BRIEF `## Constraints`.
+  **visual-designer / ui-reviewer** — no visual surface, no DESIGN.md — `skipped_segments`, Q4
 
 ## Working set
 
-- `.harness/features/FEAT-03-subissue-mirror/PLAN.md` (read `## Preconditions` first)
-- `.harness/features/FEAT-03-subissue-mirror/BRIEF.md`
-- `.harness/features/FEAT-03-subissue-mirror/runs/2026-07-31-04-eng/digest.md`
+- `.harness/features/FEAT-03-subissue-mirror/PLAN.md` (`## Preconditions` first) and `BRIEF.md`
+- `runs/2026-07-31-06-eng/digest.md` (cycle-2 receipts) and `runs/2026-07-31-05-product/digest.md`
 - `.claude/skills/harness/bin/{gh-sync.py,wayfind.py,test-gh-sync.py}`

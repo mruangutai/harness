@@ -1,7 +1,7 @@
 # PLAN — FEAT-03-subissue-mirror
 
 Eight tasks. T-01 makes the `unit` gate able to see `gh-sync.py` at all (it cannot today), T-02
-extracts the shared GitHub primitives, T-03–T-06 rewrite the four mirror commands around one
+extracts the shared GitHub primitives, T-03–T-06 rewrite the four GitHub Issues commands around one
 sub-issue per `T-NN`, T-07 adds the missing-parent invariant, T-08 records the reversed contract.
 
 Order: T-01 → T-02 → T-03 → T-04 → T-05 → T-06 → T-07 → T-08. T-01 and T-02 are independent of each
@@ -70,6 +70,19 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   and DEC-138 makes the mirror write-only; idempotency comes from local receipts, so a discovery
   path would be a second, contradictory source of truth. Consequence a future scan will re-suggest
   and must not: `gh-sync.py` importing `parent_of` is a defect, not a convenience.
+  **The origin is recorded too, at `github.parent_origin` (`created` | `adopted`), because `abandon`
+  branches on it (SC-03).** A parent this feature *created* exists only to hold its tasks — left open
+  with every child closed `not_planned` it is an orphan nothing will ever close — while closing an
+  *adopted* one would assert something false about someone else's live item. Re-deriving which it was
+  at abandon time would mean reading GitHub, which DEC-138 forbids, so the receipt is written at the
+  same moment the number is. **This preserves the grilling's decision rather than reversing it**
+  (`notes/grilling-subissue-mirror-2026-07-31.md:34-35` says "leaves an **adopted** parent open" —
+  the word is already there); the created case is what D-01 introduced and what SC-03 previously
+  generalised over by mistake. **Absent or unrecognised origin ⇒ treat as adopted, i.e. leave open**
+  — the specified default, because SC-10 forbids editing existing `github:` blocks so pre-existing
+  features (this one included: `feature.yaml:41` is `parent: none`) will never carry a marker.
+  No new `D-NN`: this is D-01's "recorded, never discovered" applied to a field D-01 already owns,
+  and it fails DEC-149's bar on all three counts.
 - **D-02 — `absorbs:` stops closing anything.** It becomes citation-only: the absorbed numbers stay
   in the task's issue body (already the behaviour at create) and `close-task` closes exactly one
   issue. This **reverses DEC-138 am.1's "they close with it"** and inverts two live assertions
@@ -93,14 +106,14 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   spec question: `internal_id_args(repo, num)` returns the argv, and `wayfind.py` keeps executing it
   through its own `gh_json()`. So the literal `"--jq", ".id"` argv pair leaves `wayfind.py`
   (today `:271`, `:279`) while the call itself stays. That is what makes it grep-checkable.
-- **D-04 — the `unit` kind becomes a runner (remedy (a)), rather than pinning the mirror SCs to
+- **D-04 — the `unit` kind becomes a runner (remedy (a)), rather than pinning the GitHub Issues SCs to
   inspection.** `unit.cmd` is one script today and `unit.detect` matches zero files here (verified:
   the glob set resolves to `[]`), so an SC claiming `evidence: unit` would be proven by a test that
   never touches `gh-sync.py` — DEC-163's gate-that-looks-real-and-does-nothing. Cost:
   `.harness/harness.json` is dev-ops's domain, so T-01 is a dev-ops task. Rejected: BRIEF-recorded
   gap + `verify: inspection` on eight SCs — cheaper to write, permanently weaker, and it leaves the
   next feature with the same blind gate.
-- **D-05 — the missing-parent invariant is INV-21 at warn level.** Warn, not violation: the mirror is
+- **D-05 — the missing-parent invariant is INV-21 at warn level.** Warn, not violation: the GitHub Issues sync is
   never a gate, and an unrecorded parent is a per-feature bookkeeping gap that a re-run of `open`
   fixes. INV-20 is the warn-level precedent (flows still run). Contrast INV-13, which *is*
   violation-level, because `sync: true` with `repo: null` is a config contradiction that makes every
@@ -246,8 +259,8 @@ Three things this plan depends on that are **not tasks**, because no agent domai
     **When the phrase is empty the title is the bare feat-id with no trailing em-dash** — not
     `FEAT-05-export-fix — FEAT-05-export-fix`.
   - `load_recorded` reads `parent` from the `github:` block (`^\s*parent:\s*(\d+)`; `none`/absent →
-    `None`) plus an `attached:` list of `T-NN` ids, and `save_recorded` writes `parent:` and
-    `attached:` alongside `milestone:` and `issues:`. **Both extend — today `save_recorded`
+    `None`) plus an `attached:` list of `T-NN` ids **and `parent_origin`**, and `save_recorded` writes
+    `parent:`, `parent_origin:` and `attached:` alongside `milestone:` and `issues:`. **Both extend — today `save_recorded`
     regexes out the whole `github:` block and rewrites it as milestone+issues, which would delete
     the `parent: none` line this feature's own `feature.yaml` already carries.**
   - **On-disk forms, pinned — this is a corruption trap, not a style choice.** `load_recorded`'s
@@ -257,8 +270,37 @@ Three things this plan depends on that are **not tasks**, because no agent domai
     indent**: `  attached: [T-01, T-02]`, and `  attached: []` when empty. The null parent is
     lowercase `none` (`  parent: none`) — `f"  parent: {rec['parent']}"` would emit the literal
     `None`, which neither the template nor INV-21 recognises.
+  - **The origin receipt is a sibling key at two-space indent, chosen over a flag on the `parent:`
+    line precisely because it leaves that line's shape untouched.** On disk, byte-exact:
+    `  parent_origin: created` · `  parent_origin: adopted` · `  parent_origin: none` when there is
+    no parent. `load_recorded` reads it with `^\s*parent_origin:\s*(created|adopted)\b` (anything
+    else, including absent → `None`), `save_recorded` emits
+    `f"  parent_origin: {rec['parent_origin'] or 'none'}"`, and the line is written **before
+    `  issues:`** — `issues:` stays last because its entries are the only nested ones, and any key
+    written after it would land inside the issue mapping. Verdicts on the three readers of this
+    shape, each checked rather than assumed:
+    1. **The issues reader `^\s{4}(T-\d+):\s*(\d+)` (`gh-sync.py:152`) — unaffected.** Two-space
+       indent and the key is not `T-NN`, so nothing is re-read as an issue number. A nested mapping
+       under a new key *would* have corrupted the issue map; that is why the form is a flat scalar.
+    2. **`load_recorded`'s parent reader and `save_recorded`'s writer — extended, exactly as
+       specified above.** The existing `^\s*parent:\s*(\d+)` cannot false-match
+       `  parent_origin: created` (it fails at the `_`), so the number and the origin are read by two
+       independent, non-overlapping patterns and neither shadows the other.
+    3. **T-07's INV-21 — unaffected: no intent change, no fixture change, no new `ok` label.** It
+       keys on a numeric `parent:`, and the origin key cannot satisfy that pattern anchored or
+       unanchored because its values are never numeric. Verified, not patched — **T-07's intent,
+       fixtures and `ok` labels are unchanged by this receipt.** (Its prose carries one
+       terminology-only rename at `:529`, from CHANGE 2, which touches no detection logic.)
+  - **`parent` and `parent_origin` are written by the same `save_recorded` call, always.** A crash
+    between the two would leave a created parent reading as absent-origin, which degrades to
+    leave-open and reproduces the exact orphan the receipt exists to prevent — DEC-131 crash
+    discipline, the same reasoning as the attach receipt below.
   - `main()` accepts an optional `--parent <n>` for `open`, stripped from argv before dispatch.
-  - `cmd_open`: after the milestone step, resolve the parent by D-01's precedence. Adopted (recorded
+  - `cmd_open`: after the milestone step, resolve the parent by D-01's precedence, **recording
+    `rec["parent_origin"]` in the same `save_recorded` call as `rec["parent"]`** — `adopted` for
+    precedence branches 1 and 2, `created` for branch 3. A parent already recorded with an origin
+    keeps it; a parent already recorded *without* one is left without one (SC-10 forbids editing an
+    existing `github:` block, and absent means leave-open, which is the safe reading). Adopted (recorded
     or `--parent`) → record it and print `parent #<n> adopted`; none → create the issue with
     `--title "<feat-id> — <phrase>"` (or the bare feat-id if the phrase is empty), `--body` = BRIEF
     `## Problem` + `\n\n**Goal:** ` + `## Goal`, `--label harness`, no milestone; record it
@@ -293,20 +335,36 @@ Three things this plan depends on that are **not tasks**, because no agent domai
     exactly one attach POST for T-01 and no `issue create` for it; **round trip both ways** — a
     `feature.yaml` that already carries `parent: 40` still carries it after the per-task
     `save_recorded` calls, and the issue map survives writing the parent.
+    **Three more, all for the origin receipt (SC-05's landing site is here, not in a task of its
+    own):** a created parent writes `  parent_origin: created` on disk and `load_recorded` reads it
+    back as `created`; `--parent 55` writes `  parent_origin: adopted`; and the origin **survives the
+    per-task `save_recorded` calls** — read the file after the last task and assert the line is still
+    there, since the round-trip trap at `save_recorded` (it rewrites the whole `github:` block) is
+    exactly what would drop it and make SC-03's parent distinction undecidable again. Assert on the
+    file text, not only on the in-memory `rec`.
 - verify:
   - `.claude/skills/harness/bin/run-unit-tests.sh` → exit 0, with `ok` lines for
     "parent created and recorded", "three sub-issues attached to the parent", "attach uses internal
     id not number", "--parent adopts", "re-run open creates nothing", "recorded-not-attached task is
     attached on re-run", "pre-existing parent survives per-task saves", "parent title carries the
-    H1 phrase", "empty phrase titles the parent with no trailing em-dash", and the retained
-    "re-run open creates nothing".
+    H1 phrase", "empty phrase titles the parent with no trailing em-dash", "created parent records
+    origin created", "adopted parent records origin adopted", "parent_origin survives per-task
+    saves", and the retained "re-run open creates nothing".
     `observed @f929d44:` `python3 .claude/skills/harness/bin/test-gh-sync.py` exits 0 / `ALL PASSED`,
     and `grep -cF` was run for every label above against that output:
     - **absent today (`0`), so discriminating** — "parent created and recorded", "three sub-issues
       attached to the parent", "attach uses internal id not number", "--parent adopts",
       "recorded-not-attached task is attached on re-run", "pre-existing parent survives per-task
       saves", "parent title carries the H1 phrase", "empty phrase titles the parent with no trailing
-      em-dash". Eight of the nine.
+      em-dash", and this cycle's three origin-receipt labels — "created parent records origin
+      created", "adopted parent records origin adopted", "parent_origin survives per-task saves"
+      (each `grep -cF` = **0** against the suite output produced by
+      `python3 .claude/skills/harness/bin/test-gh-sync.py`, run on a tree byte-identical to
+      `f929d44` under `.claude/skills/harness/bin/**` — the same equivalence `## Verify receipts`
+      relies on, re-verified empty this cycle). Eleven of the twelve.
+      Two source-side receipts for the same, also run: `grep -c parent_origin
+      .claude/skills/harness/bin/gh-sync.py` is **0** and the same against `test-gh-sync.py` is
+      **0** — both must be ≥1 after this task.
     - **already present today (`1`) and already passing** — "re-run open creates nothing"
       (`test-gh-sync.py:172`). It is **retained as the idempotency guard, not evidence of change**:
       it must keep passing once the attach step exists, which is a real regression risk, but it
@@ -353,7 +411,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
 ### T-05 — `cmd_abandon --reason-file`: the second terminal state
 - owner: harness-backend-dev
 - change_type: logic
-- traces: REQ-04, SC-03, SC-12
+- traces: REQ-04, SC-03, SC-12, D-01
 - files: edit `.claude/skills/harness/bin/gh-sync.py`, edit `.claude/skills/harness/bin/test-gh-sync.py`
 - intent: a **new** subcommand (`gh-sync.py abandon <feature-dir> --reason-file <path>`) wired into
   `main()`'s dispatch and the module docstring's usage block.
@@ -387,21 +445,54 @@ Three things this plan depends on that are **not tasks**, because no agent domai
      None:`, else print one line saying no milestone was recorded and **exit 0** — the sub-issues
      were already closed, so this is neither `skip()` (work happened) nor `die` (nothing is wrong
      with the caller).
-  4. **Leave the parent open.** An adopted parent is someone else's live backlog item, and a fresh
-     one is the container the sub-issues' `not_planned` state already explains.
+  4. **The parent's fate is conditional on `rec["parent_origin"]` (D-01, SC-03) — it is not
+     unconditional leave-open.**
+     - `adopted` → **leave OPEN.** Someone else's live item; closing it would assert something false.
+     - `created` → **close it with `state_reason: not_planned`**, using the *same* PATCH form as step
+       2 (`gh api -X PATCH repos/<repo>/issues/<parent> -f state=closed -f state_reason=not_planned`),
+       not `gh issue close`. One form means one fake-`gh` case and one enum, so am.5's `not_doing`
+       422 cannot creep back in. A created parent exists only to hold this feature's tasks: left open
+       with every child closed it is an orphan nobody wants and nothing will ever close, and
+       `not_planned` asserts nothing false about it.
+     - **absent or unrecognised origin → leave OPEN.** The specified default, not an undefined case:
+       SC-10 forbids editing an existing `github:` block, so every pre-existing feature (this one
+       included — `feature.yaml:41` is `parent: none`) reaches `abandon` with no marker, and the false
+       assertion is the strictly worse of the two errors.
+     This preserves the grilling's decision (`:34-35`, "leaves an **adopted** parent open") and adds
+     the origin D-01 introduced afterwards; it does not reopen it.
   Do not read or assert on `sub_issues_summary` (eventually consistent, DEC-168). Tests: fake `gh`
   needs a case for `api -X PATCH repos/*/issues/*` echoing `{}`. Assert — one PATCH per recorded
-  task issue, each carrying `state_reason=not_planned`; the milestone PATCHed closed; **no** close
-  call naming the parent; the comment call uses `--body-file` and the log contains none of the file's
+  task issue, each carrying `state_reason=not_planned`; the milestone PATCHed closed;
+  **the parent, in three fixtures, and each assertion is scoped to the parent's own URL over the
+  fake-gh call log — never to a bare `state_reason=not_planned` count, because step 2 already emits
+  one of those per sub-issue:**
+  - `parent: 40` + `parent_origin: adopted` → **no call naming #40 in either close form.** Cover
+    **both** shapes — `issue close 40` and `PATCH repos/*/issues/40` — since an implementation
+    closing it by the other form would otherwise pass a one-form check (the MF-1 class).
+  - `parent: 40` + `parent_origin: created` → **exactly one** call whose URL ends `issues/40`,
+    carrying `state=closed` **and** `state_reason=not_planned`, and no `issue close 40`.
+  - `parent: 40` and **no `parent_origin:` line at all** — exactly `feature.yaml:41`'s shape but with
+    a real number, so the default is actually exercised rather than passing vacuously on a null
+    parent → **no call naming #40 in either form.** Without this fixture the absent-origin default is
+    a third state with no test. **The fixture's premise is protected because `cmd_abandon` writes no
+    receipt: steps 1–4 close and comment only, and never call `save_recorded`** — so the absent
+    `parent_origin:` line cannot be back-filled mid-test by T-03's writer. Assert the line is still
+    absent from the file after the run, which is what makes that property checked rather than assumed.
+  Also assert: the comment call uses `--body-file` and the log contains none of the file's
   text; missing `--reason-file` → exit 1; an **empty** reason file → exit 1 and **zero** gh calls;
   issues recorded with `milestone: none` → exit 0, subs PATCHed, and **no** call whose URL contains
   `milestones/None`; `sync: false` → SKIP exit 0.
 - verify: `.claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with `ok` lines for "abandon closes
-  3 subs not_planned", "abandon closes the milestone", "abandon leaves the parent open", "abandon
+  3 subs not_planned", "abandon closes the milestone", **"abandon leaves an adopted parent open"**,
+  **"abandon closes a created parent not_planned"**, **"abandon leaves a parent with no recorded
+  origin open"**, "abandon
   posts via --body-file", "abandon without --reason-file exits 1", "abandon with an empty reason file
-  exits 1", "abandon with no recorded milestone never builds milestones/None".
+  exits 1", "abandon with no recorded milestone never builds milestones/None". The single label
+  "abandon leaves the parent open" is **gone — it split into the three parent labels above**, because
+  one label cannot report a conditional and would have gone green defending the wrong behaviour.
   `observed @f929d44:` today's suite exits 0 / `ALL PASSED` and `grep -cF` was run for each of those
-  seven labels against its output — **all 0**, none pre-exists. Also
+  nine labels against its output — **all 0**, none pre-exists (the retired label greps **0** as well,
+  so nothing is being left behind). Also
   `grep -c 'def cmd_abandon' .claude/skills/harness/bin/gh-sync.py` → **0** (run, not assumed).
   Discriminating on every line.
 
@@ -442,7 +533,7 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   INV-13 (`:366`), add **INV-21 at warn level** (`warn.append`, never `bad`): when `harness.json`
   `github.sync` is true (`cj` is already in scope there), then for each
   `.harness/features/*/feature.yaml` whose `github:` block has a non-empty `issues:` map and no
-  numeric `parent:`, warn naming the feature — the mirror's tasks exist but their container is
+  numeric `parent:`, warn naming the feature — the feature's task issues exist but their container is
   unrecorded, so `ship` and `abandon` cannot close it and `open` will not re-derive it (the mirror is
   write-only, DEC-138). `INV-21` is a free number (0 matches in the file today). Parse with the same
   regex-on-text style the file already uses; no YAML dependency. It must stay **vacuous when
@@ -476,11 +567,15 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   never discovered; `close-task` closes exactly one issue and **`absorbs:` no longer closes
   anything** — explicitly superseding am.1's "they close with it", with the reason (partial
   absorption is the norm; a work item changes state through a human signature); `ship` closes parent
-  + milestone, `abandon` closes the feature's sub-issues `not_planned` and leaves the parent open —
-  name the `abandon` row's existence so a reader is not left with three sync points; the three
+  + milestone, `abandon` closes the feature's sub-issues `not_planned` and then **branches on the
+  parent's recorded origin** (`feature.yaml github.parent_origin`): a parent `open` created is closed
+  `not_planned` (it is this feature's own container, and left open it is an orphan), an adopted one is
+  left open (closing someone else's live item asserts something false), and **absent origin defaults
+  to leave-open** — record that default, since no pre-existing feature carries the marker. Name the
+  `abandon` row's existence so a reader is not left with three sync points; the three
   primitives now live in `bin/gh_issues.py`; migration is new features only. Note that Feature B
   (`depends_on:`, `blocked_by` edges) is sequenced separately and that no `blocked_by` edge is
-  emitted by the mirror yet.
+  emitted by the GitHub Issues sync yet.
   **Declare NO `<!-- stale: … -->` marker for the two `.claude/skills/harness/SKILL.md` phrases
   (`:137` "closes its issue and everything it absorbs", `:144` ship "closes the milestone"), and
   record instead, in the amendment's prose, that those edits are a named main-session pre-ship

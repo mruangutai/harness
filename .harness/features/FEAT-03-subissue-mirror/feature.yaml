@@ -4,9 +4,9 @@ branch: feat/harness-native-foundation  # plan phase writes only .harness/ artif
 pr: none
 status: awaiting_user
 review_sha: 1ce886a
-cycles_used: 1                # DEC-157: eng-lead's FAIL routed back to pm as one fix cycle, closed PASS
+cycles_used: 2                # DEC-157: fix cycle 2 — user-found parent-on-abandon defect routed to pm
 max_total_cycles: 10          # harness.json budgets.max_total_cycles
-cost_usd: 87                  # approx, per-agent snapshot deltas (P-01), incl. orchestrator share
+cost_usd: 141                 # approx, OVER max_cost_usd by ~21 — reported not gated (DEC-134)
 max_cost_usd: 120             # mirrors harness.json per_feature_usd — user raised 40 -> 120 at 1ce886a
 runs:
   - id: 2026-07-31-01-product
@@ -25,6 +25,14 @@ runs:
     squad: eng
     verdict: PASS   # scoped re-verification — all six defects resolved by id, no new blocking findings
     cost_usd: 6   # snapshot delta: eng-lead +6.34 (no member spawn)
+  - id: 2026-07-31-05-product
+    squad: product
+    verdict: PASS   # fix cycle 2 — parent_origin conditional + mirror->GitHub Issues rename, no send-back
+    cost_usd: 24  # snapshot delta: product-lead +12.78, pm +11.03
+  - id: 2026-07-31-06-eng
+    squad: eng
+    verdict: PASS   # scoped re-verification of fix cycle 2 — both changes hold, no must_fix, no send-back
+    cost_usd: 7   # snapshot delta: eng-lead +6.66 (reviewed directly, no member spawn)
 pending:
   - user signature on BRIEF.md and PLAN.md — both `## Approval` `status: pending`. Plan phase ends here.
 resolved:
@@ -32,6 +40,7 @@ resolved:
   - MF-6 discharged outside the plan at f929d44 (gitignore __pycache__/*.pyc, tracked .pyc untracked)
   - Q12 tree dirt cleared by the same commit
   - Q7 budget answered by the user at 1ce886a — per_feature_usd 40 -> 120, task count held at 8
+  - fix cycle 2 CHANGE 1 + CHANGE 2 applied by pm (run 05), re-verified by eng-lead per-item (run 06)
 skipped_segments:
   - segment: 1b-visual-designer-design-pass
     reason: surface is bin/*.py, feature.yaml fields and GitHub API calls — no end-user visual surface, no DESIGN.md

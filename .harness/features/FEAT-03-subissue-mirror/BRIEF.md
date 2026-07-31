@@ -6,23 +6,23 @@
 
 ## Problem
 
-The mirror DEC-138 specified — one GitHub issue per `T-NN` — has never once been used as designed,
+GitHub Issues as DEC-138 specified them — one issue per `T-NN` — have never once been used as designed,
 and the workaround every feature reached for disabled task closure for a whole build. In **kaya**,
 `feature.yaml github.issues` shows FEAT-01 collapsing T-03 and T-04 onto #31, FEAT-02 mapping every
 task to #120, and **kaya's FEAT-03** mapping all eleven tasks to #48 with milestone #10 empty
 (open=0/closed=0). Kaya's FEAT-03 documents the consequence in its own `feature.yaml`, in caps — a
 **"CLOSE-TASK HAZARD, ELEVENFOLD"**: because all eleven tasks point at #48, `gh-sync.py close-task`
 on *any* task closes #48, so the note instructs that `close-task` must not be run at all during the
-build. The mirror's closure half is switched off by hand, with a comment as the only guard. This is
+build. The closure half of GitHub Issues is switched off by hand, with a comment as the only guard. This is
 not sloppiness — DEC-138 am.1 predicted it ("intake absorbs, never imports 1:1"): tasks are usually
 *parts of* an existing backlog issue, not new peers of it. The second half of the problem is
 symmetric and simpler: `gh-sync.py` has `open`, `close-task`, `backlog` and `ship` and **no
-abandonment path at all**, so a feature the user drops leaves its mirror open forever, or gets
+abandonment path at all**, so a feature the user drops leaves its GitHub Issues open forever, or gets
 closed as though it shipped.
 
 ## Goal
 
-Make the mirror close correctly for both terminal states. Each `T-NN` gets its **own sub-issue**
+Make GitHub Issues close correctly for both terminal states. Each `T-NN` gets its **own sub-issue**
 under one parent container per feature, so `close-task` closes exactly one task and the eleven-fold
 hazard is structurally impossible rather than hand-guarded. Ship closes the container and the
 milestone; abandonment closes the feature's own sub-issues as `not_planned` and posts the reason
@@ -42,11 +42,11 @@ in `wayfind.py` and get **extracted**, not re-implemented.
   never read back out of the tracker — the mirror stays write-only.
 - REQ-06: The internal-id attach trap, the parent read and the blocking-edge write each exist in
   exactly one place in the codebase, shared by every caller.
-- REQ-07: A feature whose mirror is on and whose tasks are mirrored, but whose container is
+- REQ-07: A feature whose GitHub Issues sync is on and whose tasks are mirrored, but whose container is
   unrecorded, is surfaced to a human at every `/harness` entry.
-- REQ-08: Every behaviour of the mirror is provable offline — no test and no build step requires a
+- REQ-08: Every behaviour of the GitHub Issues sync is provable offline — no test and no build step requires a
   live tracker call.
-- REQ-09: The changed mirror contract is recorded where a later reader will find it, and no prose
+- REQ-09: The changed GitHub Issues contract is recorded where a later reader will find it, and no prose
   the org still reads states the superseded one — both the decision record and the standing
   dispatch-time prose. (Which agent or tier makes each edit is a PLAN concern; the outcome is that
   no live prose contradicts the new contract at ship. See `PLAN ## Preconditions and hand-offs`.)
@@ -62,15 +62,26 @@ in `wayfind.py` and get **extracted**, not re-implemented.
   appears anywhere in the call log.
   verify: automated      evidence: unit
 - SC-03: `abandon --reason-file <path>` closes every recorded sub-issue with
-  `state_reason=not_planned`, closes the milestone, leaves the parent **open**, and posts the reason
-  through a file path (no string the mirror assembled).
+  `state_reason=not_planned`, closes the milestone, and posts the reason through a file path (no
+  string the mirror assembled). **The parent's fate follows its recorded origin**
+  (`feature.yaml github.parent_origin`, D-01), and the three cases are each asserted:
+  - a parent `open` **created** (origin 3) is closed `state_reason=not_planned` — it exists only to
+    hold this feature's tasks, so leaving it open with every child closed makes an orphan that
+    nothing will ever close, and `not_planned` asserts nothing false about it;
+  - an **adopted** parent (origins 1 and 2 — a wayfinding map issue or an absorbed backlog issue) is
+    left **open**, because closing someone else's live item asserts something false;
+  - **no recorded origin ⇒ left open.** This is the specified default, not an undefined case: SC-10
+    forbids editing any existing `feature.yaml`'s `github:` block, so pre-existing and null-parent
+    features carry no marker, and of the two possible errors the false assertion is the worse one.
   verify: automated      evidence: unit
 - SC-04: `ship` closes the parent issue and the milestone; with `--body-file <path>` it posts that
   file verbatim and nothing else.
   verify: automated      evidence: unit
-- SC-05: `parent`, `milestone`, the `T-NN` issue map and the attach receipts survive a
-  `feature.yaml` write/read round trip in both directions — recording the parent does not lose the
+- SC-05: `parent`, `parent_origin`, `milestone`, the `T-NN` issue map and the attach receipts survive
+  a `feature.yaml` write/read round trip in both directions — recording the parent does not lose the
   issue map, and recording an issue does not lose a `parent:` line that was already there.
+  `parent_origin` is named explicitly because a receipt `save_recorded` silently drops makes SC-03's
+  parent distinction undecidable again; the assertion itself is in T-03's list.
   verify: automated      evidence: unit
 - SC-06: The three primitives of REQ-06 exist in exactly one place. Each is identified by its
   **payload or lookup form, never by its endpoint path** — after extraction `wayfind.py` contains
@@ -106,7 +117,7 @@ in `wayfind.py` and get **extracted**, not re-implemented.
 - SC-11: `check-docs.sh` exits 0 and `check-state.sh` INV-10 is clean after the DECISIONS amendment
   lands, with the reversal of DEC-138 am.1's "they close with it" recorded.
   verify: inspection
-- SC-12: A mirror step that fails for an environmental reason (sync off, repo unpinned, gh missing,
+- SC-12: A GitHub Issues sync step that fails for an environmental reason (sync off, repo unpinned, gh missing,
   a failing API call) still exits 0 with one SKIP line, for the new subcommands as well as the old.
   verify: automated      evidence: unit
 
@@ -129,7 +140,7 @@ in `wayfind.py` and get **extracted**, not re-implemented.
   runner and widens `detect`; SC-07 is `inspection` rather than `automated` because an SC about the
   gate cannot be proven by the gate it changes.
 - **The live GitHub API path is not proven by anything in this repo.** `github.sync` is `false` and
-  `github.repo` is `null` here, so every mirror invariant is exercised against `test-gh-sync.py`'s
+  `github.repo` is `null` here, so every GitHub Issues invariant is exercised against `test-gh-sync.py`'s
   fake `gh` only. What carries the real API's behaviour instead: DEC-168's measured live probe
   (closure does not cascade in either direction; `sub_issues_summary` is eventually consistent) and
   the first live `open` on a project that has sync on — which stays a user-gated moment, not a gate
@@ -190,7 +201,7 @@ in `wayfind.py` and get **extracted**, not re-implemented.
 - **Retrofitting FEAT-01/FEAT-02/kaya's FEAT-03.**
 - **Freezing an adopted wayfinding map issue's body** at hand-off (pruning `## Not yet specified` /
   `## Out of scope`, adding `Superseded by BRIEF.md at <sha>`). Wayfinding issues are main-session
-  authored (DEC-166/167); the mirror only *adopts a parent number*. See Q2.
+  authored (DEC-166/167); the GitHub Issues sync only *adopts a parent number*. See Q2.
 - **Teaching the next pm the H1 title contract.** This BRIEF's H1 carries the human phrase that
   `gh-sync.py` reads to title the parent (`FEAT-NN-<slug> — <human phrase>`, the settled convention).
   The place that would make it a standing convention is `.claude/skills/harness-brief/SKILL.md`,
