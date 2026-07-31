@@ -47,7 +47,9 @@ in `wayfind.py` and get **extracted**, not re-implemented.
 - REQ-08: Every behaviour of the mirror is provable offline — no test and no build step requires a
   live tracker call.
 - REQ-09: The changed mirror contract is recorded where a later reader will find it, and no prose
-  the org still reads states the superseded one.
+  the org still reads states the superseded one — both the decision record and the standing
+  dispatch-time prose. (Which agent or tier makes each edit is a PLAN concern; the outcome is that
+  no live prose contradicts the new contract at ship. See `PLAN ## Preconditions and hand-offs`.)
 
 ## Success Criteria
 
@@ -70,9 +72,21 @@ in `wayfind.py` and get **extracted**, not re-implemented.
   `feature.yaml` write/read round trip in both directions — recording the parent does not lose the
   issue map, and recording an issue does not lose a `parent:` line that was already there.
   verify: automated      evidence: unit
-- SC-06: `wayfind.py` and `gh-sync.py` construct **no** sub-issue, parent or `blocked_by` endpoint
-  string of their own — every one comes from the shared module — and `gh-sync.py` contains no call
-  to the parent read or the `blocked_by` write.
+- SC-06: The three primitives of REQ-06 exist in exactly one place. Each is identified by its
+  **payload or lookup form, never by its endpoint path** — after extraction `wayfind.py` contains
+  none of the four: the argv `"-F", f"sub_issue_id=` (the internal-id attach, today `:272`),
+  `"-F", f"issue_id=` (the blocking-edge write, today `:281`), `"--jq", ".id"` (the internal-id
+  lookup, today `:271` and `:279`) and `/parent"` (the parent read, today `:147`). Second half:
+  `gh-sync.py` contains no call to `parent_args` or `blocked_by_args`.
+  **Carve-out, and it is load-bearing:** the sub-issue list GET (`wayfind.py:113`) and the blocker
+  list GET (`:117`) **stay in `wayfind.py` with their endpoint strings inline** and are out of scope
+  — they are wayfinding reads, not among REQ-06's three primitives. A path-level check could never
+  prove this SC and would *void* it: the retained list GETs and the extracted writes build the
+  **identical** endpoint string (`repos/{repo}/issues/{num}/sub_issues`,
+  `repos/{repo}/issues/{num}/dependencies/blocked_by`), differing only by the `-F` payload, so a
+  grep on the path asserts the absence of code that must remain. The `ticket` dry-run print at
+  `:262-263` also stays verbatim (it names the trap in prose), which is why the two `-F` checks are
+  scoped to the argv form rather than the bare `sub_issue_id=` substring.
   verify: inspection
 - SC-07: The `unit` gate actually exercises `gh-sync.py`: `test_kinds.unit.cmd` runs both bin test
   scripts, and `test_kinds.unit.detect` matches them (today it matches zero files in this repo).
@@ -96,6 +110,13 @@ in `wayfind.py` and get **extracted**, not re-implemented.
   a failing API call) still exits 0 with one SKIP line, for the new subcommands as well as the old.
   verify: automated      evidence: unit
 
+- SC-13: No prose the org reads at dispatch still states the superseded closure contract. At ship,
+  `grep -c 'closes its issue and everything it absorbs' .claude/skills/harness/SKILL.md` is 0 (one
+  match today, `:137`), and `:144`'s ship row names the parent as well as the milestone. This is a
+  **main-session** edit, not an agent's — see `PLAN ## Preconditions and hand-offs` for the owner
+  and for why `check-docs.sh` cannot detect this gap.
+  verify: inspection
+
 ## Verification gaps
 
 - `functional`, `integration`, `component`, `ui`, `eval` and `typecheck` all have `cmd: null` in
@@ -113,6 +134,17 @@ in `wayfind.py` and get **extracted**, not re-implemented.
   (closure does not cascade in either direction; `sub_issues_summary` is eventually consistent) and
   the first live `open` on a project that has sync on — which stays a user-gated moment, not a gate
   this feature can pass.
+- **Nothing mechanical detects the SKILL.md prose gap (SC-13).** `check-docs.sh` scans
+  `.claude/skills/**/*.md`, but the only mechanism it has is a `<!-- stale: … -->` marker declared in
+  `DECISIONS.md`, and declaring one for a phrase that is still live turns the checker **red** and
+  gates every `/harness` entry on an edit no agent may make. So T-08 declares no marker, verified
+  `check-docs.sh` stays exit 0 throughout (observed exit 0 at `f929d44`, "no stale statements
+  found"), and **the checker is silent about SC-13 by design.** What carries it instead: the named
+  pre-ship step in `PLAN ## Preconditions and hand-offs` and SC-13's own grep, run at the ship gate.
+- **`check-state.sh` exits 1 in this repo for reasons unrelated to this feature** (observed at
+  `f929d44`: `BRIEF.md is NOT approved`, plus an orphaned run dir). No SC and no task verify may
+  assert `check-state.sh` exits 0; they assert on the specific invariant's line and on the exit code
+  being **unchanged from the pre-change baseline**.
 - No `functional` runner means the orchestrator's end-to-end sequence (open → close-task per commit →
   ship/abandon) is proven step-by-step, never as one flow.
 

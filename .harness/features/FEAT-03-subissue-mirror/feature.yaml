@@ -3,15 +3,11 @@ phase: plan
 branch: feat/harness-native-foundation  # plan phase writes only .harness/ artifacts; build branches later
 pr: none
 status: awaiting_user
-review_sha: af2159e
-cycles_used: 0
-# cycles_used stays 0 DELIBERATELY: DEC-157 counts REWORK only, and eng-lead's FAIL was NOT routed
-# back — it is held at the user gate behind Q7. check-state.sh fires a VIOLATION here (it infers a
-# cycle from any FAIL run); DECISIONS.md is the authority, so do not "fix" this by bumping to 1.
-# The invariant's over-approximation rides up as Q10.
+review_sha: 1ce886a
+cycles_used: 1                # DEC-157: eng-lead's FAIL routed back to pm as one fix cycle, closed PASS
 max_total_cycles: 10          # harness.json budgets.max_total_cycles
-cost_usd: 44                  # approx, per-agent snapshot deltas (P-01) — EXCEEDS max_cost_usd in the PLAN phase alone
-max_cost_usd: 40              # harness.json budgets.per_feature_usd
+cost_usd: 87                  # approx, per-agent snapshot deltas (P-01), incl. orchestrator share
+max_cost_usd: 120             # mirrors harness.json per_feature_usd — user raised 40 -> 120 at 1ce886a
 runs:
   - id: 2026-07-31-01-product
     squad: product
@@ -21,9 +17,21 @@ runs:
     squad: eng
     verdict: FAIL   # 6 must_fix on PLAN/BRIEF task specs; destination and module design judged sound
     cost_usd: 16  # snapshot delta: eng-lead +16.37 (reviewed directly, no member spawn)
+  - id: 2026-07-31-03-product
+    squad: product
+    verdict: PASS   # fix cycle 1 — pm answered MF-1..MF-6 in artifact text, no send-back
+    cost_usd: 21  # snapshot delta: product-lead +11.53, pm +9.18
+  - id: 2026-07-31-04-eng
+    squad: eng
+    verdict: PASS   # scoped re-verification — all six defects resolved by id, no new blocking findings
+    cost_usd: 6   # snapshot delta: eng-lead +6.34 (no member spawn)
 pending:
-  - eng-lead's MF-1..MF-6 not routed to pm — held at the user gate because Q7 (budget/task count)
-    may change the decomposition the fixes would apply to. Next action is in notes/handoff-plan.md.
+  - user signature on BRIEF.md and PLAN.md — both `## Approval` `status: pending`. Plan phase ends here.
+resolved:
+  - MF-1..MF-6 all resolved; eng-lead re-verified by id at run 2026-07-31-04-eng
+  - MF-6 discharged outside the plan at f929d44 (gitignore __pycache__/*.pyc, tracked .pyc untracked)
+  - Q12 tree dirt cleared by the same commit
+  - Q7 budget answered by the user at 1ce886a — per_feature_usd 40 -> 120, task count held at 8
 skipped_segments:
   - segment: 1b-visual-designer-design-pass
     reason: surface is bin/*.py, feature.yaml fields and GitHub API calls — no end-user visual surface, no DESIGN.md
