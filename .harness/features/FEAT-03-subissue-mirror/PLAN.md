@@ -650,4 +650,10 @@ Three things this plan depends on that are **not tasks**, because no agent domai
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: Mike Ruangutai
+date: 2026-07-31
+note: signed after three fix cycles — eng-lead arch review (6 must_fix), the user-found
+parent-on-abandon defect, and Q15 (ship's symmetric close). Accepts the T-01..T-08
+decomposition, D-02's reversal of DEC-138 am.1 (absorbs stops closing), and SC-13's
+dependency on a main-session SKILL.md edit before ship.
