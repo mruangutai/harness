@@ -1,7 +1,7 @@
 # Handoff — <FEAT-NN>, <ending phase> → <next phase> — written at <sha>, seq-<N>
 
 <!-- Working memory for your successor, NOT a summary — disk already has the history
-     (DEC-159). Four sections, all required, ~40 lines total; check-domain denies the
+     (DEC-159). Four sections, all required, ~60 lines total; check-domain denies the
      Write otherwise. Entry grammar for Trust and Dead ends:
        claim — evidence pointer — verified-at <sha> | UNVERIFIED
      No pointer, no entry. Superseded, never appended. -->

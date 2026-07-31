@@ -3930,7 +3930,7 @@ to plan-and-ship in one sitting never meets a seam worth paying a relay for.
 
 **The handoff: working memory, not summary.** Everything the checkpoint discipline covers is
 already on disk; what dies with the context is exactly four things, so the note
-(`notes/handoff-<ending-phase>.md`, template `templates/HANDOFF.md`, ~40-line cap,
+(`notes/handoff-<ending-phase>.md`, template `templates/HANDOFF.md`, ~60-line cap (raised from 40 at DEC-160),
 superseded never appended) has exactly four sections:
 
 - `## Next` — the decided-but-not-dispatched action, cited to PLAN.
@@ -3957,3 +3957,30 @@ degraded-relay case; the watchdog remains the post-hoc audit.
 
 Relay economics, stated once: a succession costs a fresh ~10k preload plus the working set
 (~30–50k total) and is won back the moment it prevents a handful of 300k-cache-read turns.
+
+## DEC-160 — First live handoff: the cap was tight, the sweep does not deter, and deploy cannot ship config
+
+FEAT-03 (kaya-ai) crossed the plan seam within a day of DEC-159 landing, and the first live
+handoff note was written unprompted — content exactly to spec: trust entries carrying
+`verified-at <sha>` and an honest `UNVERIFIED by me at source — I accepted pm's reading` on the
+heaviest premise, dead ends with pointers, a validated `## Next`. Three findings from watching it:
+
+1. **Cap 40 → 60.** The note ran 49 lines with zero fat — every line changed what the successor
+   does. A cap the first compliant artifact violates is mis-set; 60 keeps the not-a-second-STATE.md
+   pressure while fitting a real four-section handoff. (Also fixed: INV-17's message printed
+   `missing []` when only the length failed.)
+2. **Run state.yaml gets the write-time gate (mechanizes DEC-154 fully).** The first post-deploy
+   run violated INV-16 within hours (`lead_checks:`, top-level `note:`) — the entry-time sweep
+   reports but demonstrably does not deter. check-domain.sh now denies a run state.yaml Write
+   carrying non-whitelisted or duplicate top-level keys, same pattern as feature.yaml/STATE.md/
+   handoffs. The whitelist is deliberately duplicated in check-state.sh (INV-16) and
+   check-domain.sh, cross-referenced by comment — two scripts, no shared import, files-only.
+3. **INV-18: run dirs without feature.yaml.** FEAT-03's whole plan phase ran before feature.yaml
+   existed, during which INV-8/12/17 had nothing to key on — a feature can complete a phase
+   invisible to every feature-keyed invariant. Now flagged.
+
+Also surfaced, fixed out-of-band: deploy.sh never writes project state (by design, DEC-113), so
+DEC-157's `budgets.max_total_cycles` default never reached kaya's `.harness/harness.json` — the
+handoff's Trust section caught the discrepancy against SKILL.md. Added to kaya directly; the
+general path for config-schema additions remains `/harness-init --upgrade`, and a DEC that adds a
+harness.json key must say so.

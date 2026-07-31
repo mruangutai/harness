@@ -228,10 +228,23 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
             continue
         hl = [l.strip().lower() for l in (read(hp) or "").splitlines()]
         miss = [h for h in HANDOFF_HEADINGS if h not in hl]
-        if miss or len(hl) > 40:
-            bad.append(f"{feat}: notes/handoff-{prev}.md fails the shape (missing {miss}, "
-                       f"{len(hl)} lines vs cap 40) — a freeform handoff drifts like an "
-                       f"unvalidated digest did (DEC-159/156).")
+        if miss or len(hl) > 60:
+            why = []
+            if miss: why.append(f"missing section(s) {miss}")
+            if len(hl) > 60: why.append(f"{len(hl)} lines vs cap 60")
+            bad.append(f"{feat}: notes/handoff-{prev}.md fails the shape ({'; '.join(why)}) "
+                       f"— a freeform handoff drifts like an unvalidated digest did "
+                       f"(DEC-159/160).")
+
+# --- INV-18 (DEC-160): a feature with run dirs but no feature.yaml is invisible to
+# every feature-keyed invariant (INV-8/12/17) — a whole phase can run unchecked.
+# Observed live: FEAT-03's plan phase ran to completion before feature.yaml existed.
+for rd in glob.glob(os.path.join(H, "features", "*", "runs")):
+    fdir = os.path.dirname(rd)
+    if os.listdir(rd) and not os.path.isfile(os.path.join(fdir, "feature.yaml")):
+        bad.append(f"{os.path.basename(fdir)}: has runs/ but no feature.yaml — the feature is "
+                   f"invisible to run reconciliation and phase checks; instantiate it from the "
+                   f"template (the playbook's first-cycle duty).")
 
 # --- INV-15 (DEC-156): a complete lead-hosted run's digest.md is the durable copy a
 # successor reads — it must exist and satisfy the lead digest contract. The SubagentStop

@@ -213,7 +213,7 @@ your session long is the one sanctioned mid-phase relay.
 
 **At the seam, write the handoff** — `notes/handoff-<ending-phase>.md` from
 `templates/HANDOFF.md`: your working memory, not a summary (disk has the history). Four sections,
-~40 lines, shape-gated at write: `## Next` (the decided next action, cited to PLAN), `## Trust`
+~60 lines, shape-gated at write: `## Next` (the decided next action, cited to PLAN), `## Trust`
 (claims the successor acts on — `claim — evidence pointer — verified-at <sha> | UNVERIFIED`),
 `## Dead ends` (exclusions active for the next phase, same grammar; no pointer, no entry),
 `## Working set` (3–5 paths, everything else is archive). Superseded, never appended.

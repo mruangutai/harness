@@ -261,12 +261,38 @@ if re.match(r"^\.harness/features/[^/]+/feature\.yaml$", rel):
     if problems:
         deny(problems)
 
+if re.match(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$", rel):
+    # DEC-154/160: the run checkpoint carries only whitelisted top-level keys.
+    # INV-16 sweeps this at entry; this denies it at write, while the author can
+    # fix it — the first post-deploy run (FEAT-03 plan) violated within hours of
+    # the sweep landing, so entry-time alone demonstrably does not deter.
+    # KEEP IN SYNC with CHECKPOINT_KEYS in check-state.sh.
+    ALLOWED = {"schema_version", "run_id", "feature", "squad", "host", "status", "steps",
+               "cycles_used", "cost", "flow", "task", "team", "branch", "worktree",
+               "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
+               "verdict", "severity_max", "digest"}
+    keys = re.findall(r"^([A-Za-z_][A-Za-z0-9_-]*):", content, re.M)
+    unknown = sorted({k for k in keys if k not in ALLOWED})
+    dups = sorted({k for k in keys if keys.count(k) > 1})
+    if unknown or dups:
+        print("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook (DEC-154).",
+              file=sys.stderr)
+        if unknown:
+            print(f"  non-checkpoint top-level key(s) {unknown} — findings and assessment prose "
+                  f"belong in this run's digest.md; a one-line note: per STEP entry is the "
+                  f"prose ceiling.", file=sys.stderr)
+        if dups:
+            print(f"  duplicate top-level key(s) {dups} — the second silently shadows the first; "
+                  f"replace the placeholder, never append a copy (DEC-156).", file=sys.stderr)
+        sys.exit(2)
+
 if re.match(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$", rel):
     # DEC-159: the handoff note is working memory for a successor — four fixed
     # sections, hard-capped, denied at write while the author can still fix it.
+    # Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
     problems = []
-    if len(lines) > 40:
-        problems.append(f"handoff note is {len(lines)} lines — cap is 40. It is intent, trust,"
+    if len(lines) > 60:
+        problems.append(f"handoff note is {len(lines)} lines — cap is 60. It is intent, trust,"
                         f" dead ends and a working set, not a narrative; history lives on disk.")
     required = ["## Next", "## Trust", "## Dead ends", "## Working set"]
     low = [l.strip().lower() for l in lines]
