@@ -4135,3 +4135,39 @@ Terminus, either door: decisions, never deliverables. `/harness-plan` takes the 
 `## Decisions so far` is what pm authors REQs from, `## Out of scope` is what keeps BRIEF scope
 honest, ticket resolutions are there to zoom. pm still owns REQs, SCs and tasks; wayfinding removes
 the fog, not pm's job.
+
+## DEC-166 — Wayfinding switches to the tracker: sub-issues, native blocking, assignee-as-claim
+
+DEC-165 built the markdown map and recorded the tracker form as preferred-but-unbuilt. Built now, on
+the user's go-ahead, and **verified before building rather than assumed**: `gh` 2.92.0 with
+`repos/{repo}/issues/{n}/sub_issues` and `repos/{repo}/issues/{n}/dependencies/blocked_by` both
+live on the pinned repo, so the faithful wayfinder shape — map issue, tickets as sub-issues, native
+blocking edges, assignee as the claim, resolution as a comment — is fully implementable with no
+degraded body conventions.
+
+Why the tracker wins where it is available: a map that spans days is a **shared** artifact. The
+human reads it, adds a ticket, or sees the frontier render in GitHub's own UI without opening an
+agent session — which is the entire point of a map versus a one-shot grilling record. Storage is
+chosen by **config, not preference**: `github.sync: true` and a working `gh` → tracker; otherwise
+local markdown, which stays fully supported (no repo, no network, no sync still works).
+
+**`bin/wayfind.py` owns every tracker operation** — `map` · `frontier` · `chart` · `ticket` ·
+`block` · `claim` · `resolve` — because three of them are traps by hand, which is exactly the
+DEC-19 test for when prose must become a script: the sub-issue API takes the child's internal `id`
+and NOT its `number` (a number silently attaches the wrong issue or 422s); the frontier is a
+compound query (open AND every blocker closed AND unassigned) that no single `gh` invocation
+expresses; and a ticket created without its `wayfinder:<type>` label is invisible to every later
+query. Mutations are **dry-run until `--apply`** (deploy.sh's precedent — this writes to a shared,
+human-visible surface, so the plan is shown first), and the script refuses to run at all when
+`github.sync` is off, pointing at markdown mode instead.
+
+Read paths verified live against the pinned repo; write paths are dry-run verified only — the first
+real `chart --apply` is their live test, deliberately not run against a production tracker to avoid
+leaving a test map behind (GitHub issues do not delete cleanly).
+
+Recorded because it is the reasoning that changed: DEC-165's original objection — that DEC-138's
+one-way rule forbade this — was **wrong**, and was corrected in place. DEC-138 governs mirroring
+*approved* feature work and explicitly sanctions issues as pm's research input at plan time;
+wayfinding runs entirely before approval, so the frontier being a read breaks nothing. The adjacent
+concern ("a decision as an issue invites drive-by reopening") guards *signed* D-NNs — wayfinding
+decisions are provisional by construction, and reopening one is the point of a map.

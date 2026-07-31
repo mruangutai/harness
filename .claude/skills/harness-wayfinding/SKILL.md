@@ -1,6 +1,6 @@
 ---
 name: harness-wayfinding
-description: Take a vague idea to plannable clarity when one sitting cannot hold it — a persistent map of decision tickets under .harness/efforts/, resolved one per session by grilling, research, prototype or task, until nothing is left to decide and the effort hands off to /harness-plan. Run by the main session only.
+description: Take a vague idea to plannable clarity when one sitting cannot hold it — a persistent map of decision tickets (GitHub sub-issues, or local markdown when sync is off), resolved one per session by grilling, research, prototype or task, until nothing is left to decide and the effort hands off to /harness-plan. Run by the main session only.
 ---
 
 # Wayfinding — the map from fog to a plannable idea
@@ -11,9 +11,26 @@ you need a **map that survives between sittings**. That is this skill. Adapted f
 `wayfinder` (MIT), re-homed onto harness files (DEC-165).
 
 **Main session only** — every HITL ticket resolves through live exchange with the user, and no
-subagent has a channel to them (DEC-120). **The map lives in local markdown, never on the issue
-tracker**: harness's GitHub mirror is outbound-only and never reads issue state (DEC-138), and the
-frontier is a read.
+subagent has a channel to them (DEC-120).
+
+**Two storage modes, chosen by config, not by preference (DEC-166):**
+
+| `github.sync` in harness.json | Mode | Where the map lives |
+|---|---|---|
+| `true` and `gh` works | **tracker** (the default) | a `wayfinder:map` issue; tickets are **sub-issues**; blocking is the native `blocked_by` dependency; the claim is the assignee |
+| `false`, or `gh` missing/unauthenticated | **markdown** | `.harness/efforts/<slug>/MAP.md` + `tickets/T-NN-<slug>.md` |
+
+Tracker mode is preferred because a map that spans days is a **shared** artifact: you can read it,
+add a ticket, or see the frontier render in GitHub's own UI without opening a session. This is not
+the DEC-138 mirror — wayfinding runs entirely *before* any approval, where DEC-138 already sanctions
+issues as an input, so reading issue state here breaks no one-way rule.
+
+**Every tracker operation goes through `bin/wayfind.py`**, never hand-typed `gh`:
+`map <n>` · `frontier <n>` · `chart` · `ticket <map#> <type> "<title>"` · `block <n> --by <n>` ·
+`claim <n>` · `resolve <n> <file>`. Mutations are **dry-run until `--apply`**. Three operations are
+traps by hand and the script exists for them: the sub-issue API takes the child's internal `id` and
+not its `number`; the frontier is a compound query no single `gh` call expresses; and a ticket
+created without its `wayfinder:<type>` label is invisible to every later query.
 
 ## Grill or map? — the entry test
 
@@ -35,30 +52,38 @@ permission to carry on past it.
 
 ## The map
 
+**Tracker mode** — the map issue's body is the low-res whole (same sections as
+`templates/MAP.md`: Destination, Notes, Decisions so far, Not yet specified, Out of scope); each
+ticket is a sub-issue whose body is `## Question`, its answer posted as the resolution comment on
+close. No ticket table is maintained by hand: status, type and blocking all live natively, and
+`wayfind.py map <n>` renders the view.
+
+**Markdown mode** — the same shape in files:
+
 ```
 .harness/efforts/<slug>/
   MAP.md              # the low-resolution whole, from templates/MAP.md
   tickets/T-NN-<slug>.md
 ```
 
-**The effort slug comes from the DESTINATION, not the idea you were handed** — the idea's wording is
-the fuzzy part; the destination is the first thing charting settles, so it is the first thing stable
-enough to name a directory after (which is why the dir appears at step 3, never step 1). kebab-case,
-2–4 words, **immutable once created**: the path is what `/harness-plan` is handed and what the BRIEF
-cites, so a rename breaks recorded references (DEC-133's reasoning, applied here).
+**Naming, either mode: the name comes from the DESTINATION, not the idea you were handed** — the
+idea's wording is the fuzzy part; the destination is the first thing charting settles, which is why
+the map is created at step 3, never step 1. 2–4 words. Tracker mode titles the issue
+`Effort — <name>` and its **number** is the identity thereafter. Markdown mode kebab-cases it into
+`.harness/efforts/<slug>/`, and that slug is **immutable** — the path is what `/harness-plan` is
+handed and what the BRIEF cites, so a rename breaks recorded references (DEC-133's reasoning).
+**Never reuse a feature's name**: an effort may spawn several features, and a 1:1 name invites the
+reader to assume it is one. Test: if a second effort could plausibly claim the same name, it was not
+specific enough — `bulk-statement-correction`, not `statements`.
 
-**No number, deliberately** — `FEAT-NN`/`T-NN` numbers exist because those ids ride in commit
-trailers, issue bodies and `traces:` lines; an effort id appears once, at hand-off. And **never
-reuse a feature's slug**: an effort may spawn several features, and a 1:1 name invites the reader to
-assume it is one. Test: if a second effort could plausibly claim the same slug, it was not specific
-enough — `bulk-statement-correction`, not `statements`.
+**The map is an index, not a store** in both modes: a decision lives in exactly one place — its
+ticket — and the map only gists it and points. Load the map once per session; zoom a ticket on
+demand.
 
-`MAP.md` is an **index, not a store**: a decision lives in exactly one place — its ticket — and the
-map only gists it and points. Load `MAP.md` once per session; zoom a ticket on demand.
-
-Ticket status lives in the map's ticket table (`open` · `claimed` · `closed`), each row naming the
-ticket's **type** and what blocks it. The **frontier** is every open ticket whose blockers are all
-closed — the edge of the known, and the only thing takeable now.
+**The frontier is every open ticket whose blockers are all closed and which nobody has claimed** —
+the edge of the known, and the only takeable work. Tracker mode computes it from native state
+(`wayfind.py frontier <n>`); markdown mode reads it off the ticket table, whose rows carry
+`open` · `claimed` · `closed` plus type and blockers.
 
 ## Ticket types — because not every unknown is a conversation
 
@@ -79,9 +104,12 @@ produced a fabricated decision, which is worse than an open ticket.
 2. **Map the frontier breadth-first** — grill across the whole space rather than deep on one thread,
    surfacing the open decisions and what is takeable now. **Surfaced no fog?** The idea did not need
    a map: stop, say so, and hand the grilling artifact to `/harness-plan`.
-3. **Write `MAP.md`** from `templates/MAP.md` — destination and notes filled, decisions empty, the
-   dim view written into `## Not yet specified`.
-4. **Write the tickets you can specify now**, then wire blockers in a second pass.
+3. **Create the map** — tracker: `wayfind.py chart "<destination>" --apply`, then fill its body's
+   Destination and Notes (decisions empty, the dim view in `## Not yet specified`). Markdown:
+   the same from `templates/MAP.md`.
+4. **Create the tickets you can specify now** (`wayfind.py ticket <map#> <type> "<title>" --apply`),
+   then wire blockers in a **second pass** — issues need ids before they can reference each other
+   (`wayfind.py block <n> --by <n> --apply`).
 5. **Fire the research tickets in parallel** — they need no user, so they run now while the map is
    fresh.
 6. **Stop.** Charting resolves nothing; a session that charts and then starts resolving has spent
@@ -89,12 +117,15 @@ produced a fabricated decision, which is worse than an open ticket.
 
 ## Working the map (each later session)
 
-1. Load `MAP.md` — the low-res view, not every ticket body.
-2. Take the first frontier ticket (or the one the user names) and **claim it** in the table before
-   any work, so a concurrent session skips it.
+1. Load the low-res view — `wayfind.py map <n>` (tracker) or `MAP.md` (markdown). Not every
+   ticket body.
+2. Take the first frontier ticket (or the one the user names) and **claim it first**, before any
+   work, so a concurrent session skips it — `wayfind.py claim <n> --apply` (the assignee IS the
+   claim; an open unassigned ticket is unclaimed).
 3. Resolve it by its type. Zoom only what this ticket needs.
-4. Record: the answer in the ticket file under `## Resolution`, status `closed`, and **one gisted
-   line** in the map's `## Decisions so far` pointing at it.
+4. Record: the answer as the ticket's resolution and the ticket closed — `wayfind.py resolve <n>
+   <file> --apply` (markdown: `## Resolution` in the ticket file) — plus **one gisted line** in the
+   map's `## Decisions so far` pointing at it.
 5. **Graduate the fog the answer sharpened** into new tickets, clearing those patches from
    `## Not yet specified`. If the answer puts something past the destination, close it into
    `## Out of scope` with the reason — never resolve it on the route.
@@ -130,3 +161,5 @@ not its job.
 | "It's out of scope but I'll note it in the fog" | Fog gathers only *toward* the destination. Out of scope is its own section |
 | "The map is nearly clear, I'll start building" | The edge of the map is the hand-off to `/harness-plan`, not a green light |
 | "I'll put the ticket detail in MAP.md so it's all in one place" | The map is an index. A decision lives in one place — its ticket |
+| "I'll wire the sub-issue with the ticket number" | The API takes the internal `id`. Use `wayfind.py ticket`, which reads it for you |
+| "I'll maintain a ticket table in the tracker map's body" | Status, type and blocking are native there. A hand-kept table is a second copy that drifts |
