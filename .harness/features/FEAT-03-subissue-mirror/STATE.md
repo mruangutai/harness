@@ -73,11 +73,14 @@
   mechanism). Consequence if the edit is not made before ship: SC-13 is unmet at goal-check, the gap
   can be routed to no lead, and the feature goes BLOCKED on a criterion the plan always knew was
   un-owned. Named at PLAN `## Preconditions`. Distinct from Q1, which predates SC-13's existence.
-- Q14 (orchestrator, harness defect) — `bash-write-guard.sh` reads `<noreply@anthropic.com>` in
-  a `git commit -m` argument as a shell redirect and BLOCKS the call ("redirect targets 1,"). The
-  Co-Authored-By trailer is mandated, so every orchestrator commit hits this and must be routed
-  through a `-F <file>` message written into the agent's own domain. A rule backfiring, not a
-  workaround to keep.
+- Q14 (orchestrator, harness defect, SCOPE WIDENED this cycle) — `bash-write-guard.sh` scans the
+  WHOLE bash command string, including quoted and heredoc CONTENT, and reads any `>` in it as a
+  shell redirect. Three distinct hits so far: the mandated `Co-Authored-By: ... <noreply@anthropic.com>`
+  trailer in `git commit -m` ("redirect targets 1,"); an arrow `-> 0` inside heredoc PROSE
+  ("redirect targets 0"); and a third heredoc that reported "targets GitHub". So the workaround is not
+  "avoid one trailer" but "avoid `>` in ANY bash prose": commit messages get written to a file with
+  the Write tool and passed via `git commit -F`, and edit scripts must not carry arrows in their text.
+  A rule backfiring on content it should not be parsing, not a workaround to keep.
 - Q1 (pm) — `.claude/skills/harness/SKILL.md:137,144` state the contract this feature reverses; no
   agent domain covers that file. ANSWERED IN PLAN, not closed: pm kept REQ-09 whole and named the
   SKILL.md edit as a main-session pre-ship step (PLAN `## Preconditions`, T-08), with SC-13 as its
