@@ -85,9 +85,19 @@ not a follow-up.
    does not silently orphan-close outstanding tasks. Also observed: `sub_issues_summary` is
    **eventually consistent** — it read `total: 1` immediately after the second attach and corrected
    to `total: 2` within seconds, so never assert on it straight after a write.
-2. **What is the parent when nothing is adopted?** A greenfield feature has no backlog issue to
-   adopt. Create a `FEAT-NN` parent issue, or let the milestone stand alone with flat task issues
-   (the model as specified, which would then finally be used)?
+2. **What is the parent when nothing is adopted? — and the wayfinding continuity.** A greenfield
+   feature has no backlog issue to adopt. Three candidates, and the third is the interesting one:
+   (a) create a bare `FEAT-NN` parent issue; (b) let the milestone stand alone with flat task issues
+   (the model as specified, finally used); (c) **the effort's wayfinding map issue BECOMES the
+   feature's parent issue.** (c) has real pull: the map already holds `## Destination` and
+   `## Decisions so far` — precisely the rationale a reader of the tasks needs — so the issue that
+   held the decisions grows the tasks that implement them, and the audit trail is one object instead
+   of two. The cost to weigh: the map's `## Not yet specified` and `## Out of scope` sections go stale
+   the moment BRIEF is signed (BRIEF's scope supersedes them), so either they get pruned at hand-off
+   or the parent body carries dead sections. Also, one effort may spawn several features — then it is
+   one map parent to many feature parents, and (c) only fits the 1:1 case.
+   **User's stated direction:** sub-issues are the unit of work; the parent is the deliberate,
+   intentional container — and wayfinding reinforces exactly that reading.
 3. **`absorbs:` semantics** — today it closes absorbed issues on task closure. With partial
    absorption being the norm, should it stop closing and only cross-reference?
 4. **`parent:` is recorded, never discovered.** `wayfind.py`'s `parent_of` is a *read*; `gh-sync`
@@ -95,9 +105,11 @@ not a follow-up.
    stays write-only and idempotency keeps coming from local receipts (DEC-138).
 5. **Abandonment — decided (user, 2026-07-31): close as `not_planned`.** Verified enum: GitHub
    accepts exactly `completed` · `not_planned` · `duplicate` as `state_reason`; `not_doing` is a 422,
-   and "not doing" can only ever be a label, not a close reason. So `not_planned` is the mechanism
-   and the *why* goes in the ship-review artifact, not on the issue (the mirror posts no comments —
-   DEC-138 am.2).
+   and "not doing" can only ever be a label, not a close reason. So `not_planned` is the mechanism,
+   and the *why* IS posted as a comment — taken **verbatim from the ship-review artifact the user
+   signed**, never composed by the mirror (DEC-138 am.5: provenance, not silence). Implementation
+   consequence: `cmd_abandon` takes `--reason-file <path>`, so the mirror has no text of its own to
+   editorialize with.
    **This is only implementable after the migration**, which is why no `abandon` subcommand exists
    yet: today's recorded "issues" are adopted backlog items (all of FEAT-03's eleven point at #48,
    which is still wanted), so nothing is unambiguously the feature's to close. Post-migration the
