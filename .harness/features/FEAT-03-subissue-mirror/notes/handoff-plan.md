@@ -1,60 +1,60 @@
-# Handoff — FEAT-03-subissue-mirror, plan → build — written at 65e8cc7, seq-3 (supersedes seq-2)
+# Handoff — FEAT-03-subissue-mirror, plan → build — written at a8fce12, seq-4 (supersedes seq-3)
 
 ## Next
 
-**Wait for the user's signature, then start the build phase.** Fix cycle 2 is CLOSED: pm repaired both
-changes (run 05-product PASS) and eng-lead re-verified them per-item (run 06-eng PASS, zero `must_fix`).
-Both `## Approval` blocks are `status: pending`, which stops a build mission at step 0 until signed.
-On signature, build T-01..T-08 in PLAN order; read PLAN `## Preconditions` FIRST — one is an outstanding
-**main-session** edit (`.claude/skills/harness/SKILL.md:137,144`, SC-13) no agent domain covers, and
-**T-08's owner harness-documentor is PRODUCT squad** — route laterally via product-lead (Q8).
+**Wait for the user's signature, then start the build phase.** Fix cycle 3 is CLOSED (runs 07/08 PASS,
+zero `must_fix`); both `## Approval` are `status: pending`, which stops a build mission at step 0. On
+signature, build T-01..T-08 in PLAN order, reading PLAN `## Preconditions` FIRST — one is an outstanding
+**main-session** edit (`SKILL.md:137,144`, SC-13) no agent domain covers, and **T-08's owner
+harness-documentor is PRODUCT squad**, routed via product-lead (Q8). **SC-13's bar rose (Q13):** that
+ship row must not assert an unconditional parent close either.
 
 ## Trust
 
-- Cycle 2 applied by pm (run 05-product PASS, no send-back); both `## Approval` still `status: pending`
-  — one grep match each at BRIEF:214 / PLAN:599 — verified-at 65e8cc7
-- **Abandon is now conditional**: adopted → open, created → close `not_planned`, absent origin → open.
-  Receipt `  parent_origin: created|adopted|none`, two-space sibling key before `  issues:`; 20× PLAN,
-  3× BRIEF — `grep -c` — verified-at 65e8cc7
-- **eng-lead re-verified cycle 2 per-item and reproduced the absence-greps FIRST-HAND** (run 06-eng PASS,
-  zero `must_fix`): in `bin/`, `parent_origin` and `abandon` both count ZERO, so all nine T-05 labels are
-  provably absent from today's output — the MF-1 void-grep class did not recur — its digest, run 06-eng
-- **Four unconditional-claim sites changed, not the two the task named** — BRIEF SC-03, T-05 step 4,
-  T-05's `ok` label, **and T-08's DECISIONS am.7 instruction text** — grepped pre-dispatch — verified-at 65e8cc7
-- Retired label `"abandon leaves the parent open"` greps **1** in PLAN (`:491`) — prose documenting its own
-  retirement, not a live label. Read it before filing a defect — verified-at 65e8cc7
-- Task count held at **8**; T-06/SC-04 unchanged, still the unconditional `completed` close — verified-at 65e8cc7
-- Rename: BRIEF 19 → **9** `mirror`, PLAN 11 → **7** (`grep -o|wc -l`); 3 survivors are immutable slug
-  occurrences (DEC-133). Handed-down "17 and 10" were approximate — the RULE governs — verified-at 65e8cc7
-- `f929d44` still the valid code anchor: `git diff --stat f929d44..HEAD -- ':!.harness/'` empty, so no
-  `observed @` receipt moved — ran it — verified-at 65e8cc7
-- **Cost OVER budget: ~$141 of $120, by ~$21** (DEC-134: never gates). Runs 05/06 were $24 and $7 by P-01
-  snapshot delta; the rest is orchestrator session share, not separable from a second depth-1 orchestrator
+- Both `## Approval` still `status: pending` — greped at BRIEF:233 / PLAN:653, NOT trusted from line
+  numbers, which moved as SC-04 and T-06 grew — verified-at a8fce12
+- **`ship` is now conditional, symmetric with `abandon`**: `created` → close `completed`, `adopted` →
+  open, absent origin → open. **The milestone still closes unconditionally** — only the parent branches.
+  Six sites changed, not the two Q15 named: BRIEF Goal prose, REQ-04, SC-04, **SC-13's second clause**,
+  T-06 (heading/intent/verify), **T-08's am.7 instruction text** — greped pre-dispatch — verified-at a8fce12
+- **eng-lead reproduced the absence-greps FIRST-HAND** (run 08, `must_fix: []`): all seven new T-06 labels
+  and the retired `ship closes parent then milestone` count 0; `:185` is the retained `ship PATCHes
+  milestone closed`, not `:186`; and both leave-open fixtures assert absence in BOTH close forms
+  (`issue close 40` AND `PATCH repos/*/issues/40`), so the MF-1 one-form class did not recur — run 08 digest
+- **A fourth T-06 label guards an over-correction:** `ship closes the milestone regardless of parent
+  origin`, in the ADOPTED fixture — one `if origin == "created":` over both the parent close and the
+  milestone PATCH would otherwise pass every other label. No new task, no new SC — run 08-eng digest
+- **The comment step is UNCONDITIONAL by design** — `--body-file` posts on any recorded parent regardless
+  of origin (T-05 step 1 is identical). Do not "fix" it — verified-at a8fce12
+- **No new `D-NN`**; D-01 now governs BOTH terminal subcommands. D-NN 6, tasks 8, SC 13, and `f929d44`
+  still the valid code anchor (`git diff --stat f929d44 HEAD -- .claude/skills/harness/bin` empty;
+  `observed @` greps 27, `observed @f929d44` also 27) — all re-run — verified-at a8fce12
+- **Cost OVER budget: ~$162 of $120, by ~$42** (DEC-134: never gates). This cycle $21 ($16 + $5) — run
+  07/08 `cost.run_usd`, P-01 snapshot deltas; the rest is prior cycles plus orchestrator session share
 - Mirror invariants hold only against the fake `gh`; the live API path rides on DEC-168's probe — UNVERIFIED
 
 ## Dead ends
 
-- **Reopening the grilling** (`.harness/notes/grilling-subissue-mirror-2026-07-31.md`) — cycle 2
-  PRESERVES "leave the adopted parent open" and only ADDS the created case; root cause was D-01 adding a
-  third origin after the grilling settled two — source: user, this cycle
-- **Editing `docs/harness/DECISIONS.md` or `.claude/skills/harness/SKILL.md` for the rename** — first is
-  historical record and defines "mirror" at DEC-138; second rides with SC-13. **Renaming the dir or
-  slug** — DEC-133 immutability, breaks four run dirs — source: user, Q6
-- **Fixing T-06/`ship`'s unconditional parent close** — the symmetric defect (closing an ADOPTED parent
-  `completed`). Real, recorded as **Q15**, NOT authorized — source: user's two-change scope
-- **Merging T-05+T-06 / changing the task count** — held at 8; the decomposition is the premise of the
-  signature — source: orchestrator, cycles 1 and 2
-- **Path-level greps for SC-06** — self-voiding: the retained list GETs (`wayfind.py:113`, `:117`) and the
-  extracted writes build the identical endpoint string. Payload/lookup only; `grep -- '--jq .id'` passes
-  vacuously (source carries the two-argv form) — source: MF-1
-- **Feature B, both halves** — extracting the `blocked_by` write and parent read is IN, `gh-sync.py`
-  *calling* either is OUT — source: grilling, pinned by SC-06
-- **Re-probing closure semantics** / **asserting on `sub_issues_summary` post-write** — DEC-168.
-  **Retrofitting FEAT-01/FEAT-02/kaya's FEAT-03** — new features only — BRIEF `## Constraints`.
-  **visual-designer / ui-reviewer** — no visual surface, no DESIGN.md — `skipped_segments`, Q4
+- **Reopening Q15 or the grilling** — `ship`'s conditional is settled and re-verified; the close FORM for
+  the `created` case stays `gh issue close <parent>`, not a PATCH — source: user, this cycle; run 08
+- **Re-anchoring PLAN:20-24 to a live HEAD** — it names `1ce886a` as the PINNED review baseline on
+  purpose; re-anchoring reproduces the rot next commit — source: orchestrator, this cycle
+- **Editing `DECISIONS.md`** (historical record) **or `SKILL.md`** (the main session's step, SC-13), and
+  **renaming the dir or slug** (DEC-133, breaks eight run dirs) — source: user, Q6
+- **Fixing Q17** (four PLAN sites cite `feature.yaml:41` for `parent: none`; it is now `:61`) — the fact
+  asserted is true everywhere, so it is cosmetic; cite the FIELD not a line, and only if a cycle opens
+  anyway. **Changing the task count / merging T-05+T-06** — held at 8 through three cycles, and the
+  decomposition is the premise of the signature. **The ~3 prose "mirror" survivors** — one is correctly
+  the relationship claim — sources: eng-lead run 08; orchestrator cycles 1–3; user, this cycle
+- **Path-level greps for SC-06** — self-voiding: retained list GETs and extracted writes build the
+  identical endpoint string; payload/lookup only (MF-1). **Feature B** — extracting the `blocked_by`
+  write and parent read is IN, `gh-sync.py` *calling* either is OUT (grilling, pinned by SC-06).
+  **Re-probing closure semantics** / **asserting on `sub_issues_summary` post-write** — DEC-168.
+  **Retrofitting FEAT-01/FEAT-02/kaya's FEAT-03** — new features only. **visual-designer / ui-reviewer**
+  — no visual surface, no DESIGN.md — `skipped_segments`, Q4
 
 ## Working set
 
 - `.harness/features/FEAT-03-subissue-mirror/PLAN.md` (`## Preconditions` first) and `BRIEF.md`
-- `runs/2026-07-31-06-eng/digest.md` (cycle-2 receipts) and `runs/2026-07-31-05-product/digest.md`
-- `.claude/skills/harness/bin/{gh-sync.py,wayfind.py,test-gh-sync.py}`
+- `runs/2026-07-31-08-eng/digest.md` (cycle-3 receipts), `runs/2026-07-31-07-product/digest.md`, and
+  `.claude/skills/harness/bin/{gh-sync.py,wayfind.py,test-gh-sync.py}`

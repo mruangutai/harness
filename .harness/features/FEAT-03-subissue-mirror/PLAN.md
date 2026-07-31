@@ -17,9 +17,11 @@ reason to move a decomposition the user is being asked to sign.
 
 Every `verify:` below carries `observed @f929d44:` — the exit status the command actually produced
 against the tree at the review sha, recorded next to the status expected after the task lands.
-`f929d44` and the current `HEAD` (`1ce886a`) are byte-identical under
+`f929d44` and the **pinned review baseline `1ce886a`** (`feature.yaml review_sha`; HEAD has moved on
+since, and re-anchoring this clause to whatever HEAD is today would only reproduce the rot) are
+byte-identical under
 `.claude/skills/harness/bin/**` (`git diff --stat f929d44 HEAD -- .claude/skills/harness/bin` is
-empty), so every receipt below is valid at both.
+empty — still empty at `a8fce12`, re-run this cycle), so every receipt below is valid at both.
 
 Two rules the receipts enforce:
 
@@ -70,8 +72,11 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   and DEC-138 makes the mirror write-only; idempotency comes from local receipts, so a discovery
   path would be a second, contradictory source of truth. Consequence a future scan will re-suggest
   and must not: `gh-sync.py` importing `parent_of` is a defect, not a convenience.
-  **The origin is recorded too, at `github.parent_origin` (`created` | `adopted`), because `abandon`
-  branches on it (SC-03).** A parent this feature *created* exists only to hold its tasks — left open
+  **The origin is recorded too, at `github.parent_origin` (`created` | `adopted`), because the
+  recorded origin governs BOTH terminal subcommands: `abandon` branches on it (SC-03) and `ship`
+  branches on it the same way (SC-04) — a created parent closes (`not_planned` on abandon,
+  `completed` on ship), an adopted one and an absent origin are left open by either.** A parent this
+  feature *created* exists only to hold its tasks — left open
   with every child closed `not_planned` it is an orphan nothing will ever close — while closing an
   *adopted* one would assert something false about someone else's live item. Re-deriving which it was
   at abandon time would mean reading GitHub, which DEC-138 forbids, so the receipt is written at the
@@ -496,30 +501,75 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   `grep -c 'def cmd_abandon' .claude/skills/harness/bin/gh-sync.py` → **0** (run, not assumed).
   Discriminating on every line.
 
-### T-06 — `ship` closes the parent as well as the milestone
+### T-06 — `ship` closes the milestone, and the parent only if `open` created it
 - owner: harness-backend-dev
 - change_type: logic
-- traces: REQ-04, SC-04, SC-12
+- traces: REQ-04, SC-04, SC-12, D-01
 - files: edit `.claude/skills/harness/bin/gh-sync.py`, edit `.claude/skills/harness/bin/test-gh-sync.py`
 - intent: `cmd_ship` gains an optional `--body-file <path>` (stripped in `main()`), validated by
   **T-05's `post_body_path` helper — identically: missing flag value, non-file, empty file and
   unreadable file are all `die` exit 1.** One contract, one implementation, so the two subcommands
   cannot drift; T-05 lands first and owns the helper. Order: if `--body-file` is given and a parent
   is recorded, `gh issue comment <parent> --repo <repo> --body-file <path>` (the signed ship review,
-  verbatim — DEC-138 am.6); then close the parent (`gh issue close <parent> --repo <repo>`, i.e.
-  `state_reason: completed`, the default — distinct from abandonment's icon); then PATCH the milestone
-  closed exactly as today. No recorded parent → close the milestone only and print one line saying
-  so; no recorded milestone → `skip`, as today (unchanged, `gh-sync.py:269-270`). Tests: assert ship
-  closes the parent **and** PATCHes the milestone, in that order; that `--body-file` posts once via
-  `--body-file`; that ship without `--body-file` posts nothing; and that `--body-file` naming an
-  empty file exits 1 with zero gh calls.
-- verify: `.claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with `ok` lines for "ship closes
-  parent then milestone", "ship --body-file posts once", "ship without --body-file posts nothing",
-  "ship with an empty body file exits 1".
-  `observed @f929d44:` today's suite exits 0 / `ALL PASSED`, `grep -cF` was run for each of those four
-  labels against its output — **all 0** — and the only ship assertion present is
-  `ship PATCHes milestone closed` (`test-gh-sync.py:186`), which this task must keep passing.
-  Discriminating.
+  verbatim — DEC-138 am.6); then the parent's close, conditional per below; then PATCH the milestone
+  closed exactly as today. **The comment is UNCONDITIONAL** — it posts on any recorded parent
+  whatever its origin, because commenting on an adopted parent asserts nothing false, and T-05 step 1
+  has the identical shape. Only the close branches.
+  **The parent's close is conditional on `rec["parent_origin"]` (D-01, SC-04) — the mirror image of
+  T-05 step 4, not an unconditional close:**
+  - `created` → **close it**, `gh issue close <parent> --repo <repo>` — i.e. `state_reason:
+    completed`, the default. **The close form is unchanged from the reviewed plan** (not the PATCH
+    form T-05 uses for its `not_planned` close), so the existing fake-`gh` `issue close` case covers
+    it untouched. A created parent exists only to hold this feature's tasks, so when they are all
+    closed it is genuinely done.
+  - `adopted` → **leave OPEN.** Closing someone else's live backlog item as `completed` asserts that
+    the user's item is done — exactly as false as closing it `not_planned` would have been.
+  - **absent or unrecognised origin → leave OPEN.** The specified default, not an undefined case, and
+    the same one T-05 step 4 carries: SC-10 forbids editing an existing `github:` block, so every
+    pre-existing feature (this one included — `feature.yaml:41` is `parent: none`) reaches `ship` with
+    no marker, and the false assertion is the strictly worse of the two errors.
+  **The milestone is unaffected: it PATCHes closed in all three cases.** No recorded parent → close
+  the milestone only and print one line saying so; no recorded milestone → `skip`, as today
+  (unchanged, `gh-sync.py:269-270`).
+  Tests — **the parent, in three fixtures, each assertion scoped to the parent's own number over the
+  fake-gh call log:**
+  - `parent: 40` + `parent_origin: created` → **exactly one** `issue close 40`, and the milestone
+    PATCHed closed **after** it (the ordering assertion lives inside this fixture's assertion body,
+    not in a label of its own — a compound label cannot report which half broke).
+  - `parent: 40` + `parent_origin: adopted` → **no call naming #40 in either close form.** Cover
+    **both** shapes — `issue close 40` and `PATCH repos/*/issues/40` — since an implementation closing
+    it by the other form would otherwise pass a one-form check (the MF-1 class). Assert in this same
+    fixture that the milestone **is** still PATCHed closed, which is the discriminating case for
+    "the milestone is unconditional": a close of both under one `if origin == "created":` would pass
+    every parent label and the retained milestone assertion, and nothing else would catch it. **This
+    fixture is where the `ok` label "ship closes the milestone regardless of parent origin" is
+    emitted, once**; the other two fixtures assert the milestone inline, unlabelled.
+  - `parent: 40` and **no `parent_origin:` line at all** → **no call naming #40 in either form**, and
+    the milestone still PATCHed closed. Without this fixture the absent-origin default is a third
+    state with no test, distinct from recognised-`adopted`. **The fixture's premise is protected
+    because `cmd_ship` writes no receipt: `save_recorded` greps 0 in `cmd_ship`'s region
+    (`gh-sync.py:267` to end of file, verified this cycle at `a8fce12`)** — so the absent
+    `parent_origin:` line cannot be back-filled mid-test by T-03's writer. Assert the line is still
+    absent from the file after the run, which is what makes that property checked rather than assumed.
+  Also assert: `--body-file` posts once via `--body-file` (on an adopted parent, so the comment's
+  unconditionality is what is being checked); ship without `--body-file` posts nothing; `--body-file`
+  naming an empty file exits 1 with zero gh calls.
+- verify: `.claude/skills/harness/bin/run-unit-tests.sh` → exit 0 with `ok` lines for **"ship closes a
+  created parent completed"**, **"ship leaves an adopted parent open"**, **"ship leaves a parent with
+  no recorded origin open"**, **"ship closes the milestone regardless of parent origin"**, "ship
+  --body-file posts once", "ship without --body-file posts nothing", "ship with an empty body file
+  exits 1". The single label "ship closes parent then milestone" is **gone — it split into the three
+  parent labels above plus the milestone label**, because one label cannot report a conditional and
+  would have gone green defending the wrong behaviour.
+  `observed @f929d44:` today's suite exits 0 / `ALL PASSED` and `grep -cF` was run for each of those
+  seven labels against its output — **all 0**, none pre-exists, and the **retired** label "ship closes
+  parent then milestone" greps **0** as well, so nothing is left behind. The only ship assertion
+  present today is `ship PATCHes milestone closed` (`test-gh-sync.py:185-186` — the reviewed plan's
+  `:186` was the assertion's second line; the label is at `:185`), which this task must keep passing.
+  The suite was run with `python3 .claude/skills/harness/bin/test-gh-sync.py` on a tree byte-identical
+  to `f929d44` under `.claude/skills/harness/bin/**` (`git diff --stat` empty, re-run this cycle at
+  `a8fce12`), the same equivalence `## Verify receipts` relies on; `run-unit-tests.sh` itself does not
+  exist until T-01 lands. Discriminating on every line.
 
 ### T-07 — INV-21: a mirrored feature with no recorded parent
 - owner: harness-dev-ops
@@ -566,12 +616,16 @@ Three things this plan depends on that are **not tasks**, because no agent domai
   parent per feature; the parent adopted-or-created and **recorded** at `feature.yaml github.parent`,
   never discovered; `close-task` closes exactly one issue and **`absorbs:` no longer closes
   anything** — explicitly superseding am.1's "they close with it", with the reason (partial
-  absorption is the norm; a work item changes state through a human signature); `ship` closes parent
-  + milestone, `abandon` closes the feature's sub-issues `not_planned` and then **branches on the
-  parent's recorded origin** (`feature.yaml github.parent_origin`): a parent `open` created is closed
-  `not_planned` (it is this feature's own container, and left open it is an orphan), an adopted one is
-  left open (closing someone else's live item asserts something false), and **absent origin defaults
-  to leave-open** — record that default, since no pre-existing feature carries the marker. Name the
+  absorption is the norm; a work item changes state through a human signature); `ship` closes the
+  milestone unconditionally, `abandon` closes the feature's sub-issues `not_planned` and closes the
+  milestone, and **both terminal subcommands branch on the parent's recorded origin**
+  (`feature.yaml github.parent_origin`) — a parent `open` created is closed by `ship` with the default
+  `completed` and by `abandon` as `not_planned`, while an adopted parent and an absent origin are left
+  **open by either**. Record the reasons, since they are what stops the branch being re-litigated: a
+  created parent is this feature's own container, and left open with every child closed it is an
+  orphan nothing will ever close; closing an adopted one asserts something false about someone else's
+  live item, whichever `state_reason` is used; and **absent origin defaults to leave-open** — record
+  that default explicitly, since no pre-existing feature carries the marker. Name the
   `abandon` row's existence so a reader is not left with three sync points; the three
   primitives now live in `bin/gh_issues.py`; migration is new features only. Note that Feature B
   (`depends_on:`, `blocked_by` edges) is sequenced separately and that no `blocked_by` edge is

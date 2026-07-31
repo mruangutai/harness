@@ -24,8 +24,10 @@ closed as though it shipped.
 
 Make GitHub Issues close correctly for both terminal states. Each `T-NN` gets its **own sub-issue**
 under one parent container per feature, so `close-task` closes exactly one task and the eleven-fold
-hazard is structurally impossible rather than hand-guarded. Ship closes the container and the
-milestone; abandonment closes the feature's own sub-issues as `not_planned` and posts the reason
+hazard is structurally impossible rather than hand-guarded. Ship closes the milestone, and closes the
+container only when the container is one this feature created — a container adopted from someone
+else's live item is left open at both terminal states.
+Abandonment closes the feature's own sub-issues as `not_planned` and posts the reason
 verbatim from the ship review the user signed. The three GitHub primitives this needs already exist
 in `wayfind.py` and get **extracted**, not re-implemented.
 
@@ -36,8 +38,10 @@ in `wayfind.py` and get **extracted**, not re-implemented.
 - REQ-02: Closing one task closes exactly that task's item — no other tracker item changes state.
 - REQ-03: Backlog issues a task absorbs are cited on that task's item and survive its closure
   unchanged; they change state only through a human signature.
-- REQ-04: Both terminal states have a path. Shipping closes the container and the definition of
-  done; abandonment is visibly distinct from shipping and carries the user-signed reason verbatim.
+- REQ-04: Both terminal states have a path. Shipping closes the definition of done, and closes the
+  container when the container is known to belong to this feature; a container that was already someone else's
+  live item is never closed by either terminal state. Abandonment is visibly distinct from shipping
+  and carries the user-signed reason verbatim.
 - REQ-05: The container is recorded in local state when the mirror creates or adopts it, and is
   never read back out of the tracker — the mirror stays write-only.
 - REQ-06: The internal-id attach trap, the parent read and the blocking-edge write each exist in
@@ -74,8 +78,21 @@ in `wayfind.py` and get **extracted**, not re-implemented.
     forbids editing any existing `feature.yaml`'s `github:` block, so pre-existing and null-parent
     features carry no marker, and of the two possible errors the false assertion is the worse one.
   verify: automated      evidence: unit
-- SC-04: `ship` closes the parent issue and the milestone; with `--body-file <path>` it posts that
-  file verbatim and nothing else.
+- SC-04: `ship` closes the milestone **unconditionally**, and with `--body-file <path>` it posts that
+  file verbatim and nothing else. **The parent's fate follows its recorded origin**
+  (`feature.yaml github.parent_origin`, D-01) — the mirror image of SC-03, and the three cases are
+  each asserted:
+  - a parent `open` **created** (origin 3) is closed with the default `state_reason=completed` — it
+    exists only to hold this feature's tasks, so when they are all closed it is genuinely done;
+  - an **adopted** parent (origins 1 and 2 — a wayfinding map issue or an absorbed backlog issue) is
+    left **open**: asserting that someone else's live item is `completed` is exactly as false as
+    closing it `not_planned` would have been;
+  - **no recorded origin ⇒ left open.** The same specified default as SC-03 and for the same reason:
+    SC-10 forbids editing any existing `feature.yaml`'s `github:` block, so pre-existing and
+    null-parent features carry no marker, and of the two possible errors the false assertion is the
+    worse one.
+  The milestone closes in the adopted and absent-origin cases too — the conditional governs the
+  parent only, and that is asserted rather than assumed.
   verify: automated      evidence: unit
 - SC-05: `parent`, `parent_origin`, `milestone`, the `T-NN` issue map and the attach receipts survive
   a `feature.yaml` write/read round trip in both directions — recording the parent does not lose the
@@ -123,7 +140,9 @@ in `wayfind.py` and get **extracted**, not re-implemented.
 
 - SC-13: No prose the org reads at dispatch still states the superseded closure contract. At ship,
   `grep -c 'closes its issue and everything it absorbs' .claude/skills/harness/SKILL.md` is 0 (one
-  match today, `:137`), and `:144`'s ship row names the parent as well as the milestone. This is a
+  match today, `:137`), and `:144`'s ship row names the parent as well as the milestone **and names the
+parent as conditional on its recorded origin** — a row asserting that ship closes the parent
+unconditionally does not satisfy this criterion. This is a
   **main-session** edit, not an agent's — see `PLAN ## Preconditions and hand-offs` for the owner
   and for why `check-docs.sh` cannot detect this gap.
   verify: inspection
