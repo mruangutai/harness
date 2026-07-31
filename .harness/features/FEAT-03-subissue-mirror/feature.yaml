@@ -1,0 +1,35 @@
+feature_id: FEAT-03-subissue-mirror
+phase: plan
+branch: feat/harness-native-foundation  # plan phase writes only .harness/ artifacts; build branches later
+pr: none
+status: awaiting_user
+review_sha: af2159e
+cycles_used: 0
+# cycles_used stays 0 DELIBERATELY: DEC-157 counts REWORK only, and eng-lead's FAIL was NOT routed
+# back — it is held at the user gate behind Q7. check-state.sh fires a VIOLATION here (it infers a
+# cycle from any FAIL run); DECISIONS.md is the authority, so do not "fix" this by bumping to 1.
+# The invariant's over-approximation rides up as Q10.
+max_total_cycles: 10          # harness.json budgets.max_total_cycles
+cost_usd: 44                  # approx, per-agent snapshot deltas (P-01) — EXCEEDS max_cost_usd in the PLAN phase alone
+max_cost_usd: 40              # harness.json budgets.per_feature_usd
+runs:
+  - id: 2026-07-31-01-product
+    squad: product
+    verdict: PASS
+    cost_usd: 19  # snapshot delta: pm +10.09, product-lead +8.86
+  - id: 2026-07-31-02-eng
+    squad: eng
+    verdict: FAIL   # 6 must_fix on PLAN/BRIEF task specs; destination and module design judged sound
+    cost_usd: 16  # snapshot delta: eng-lead +16.37 (reviewed directly, no member spawn)
+pending:
+  - eng-lead's MF-1..MF-6 not routed to pm — held at the user gate because Q7 (budget/task count)
+    may change the decomposition the fixes would apply to. Next action is in notes/handoff-plan.md.
+skipped_segments:
+  - segment: 1b-visual-designer-design-pass
+    reason: surface is bin/*.py, feature.yaml fields and GitHub API calls — no end-user visual surface, no DESIGN.md
+  - segment: 3-ui-reviewer-contract-check
+    reason: no DESIGN.md contract exists to review (Expertise O-01)
+github:
+  parent: none                # recorded at creation by gh-sync open, never discovered (DEC-138)
+  milestone: none
+  issues: {}

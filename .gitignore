@@ -13,3 +13,8 @@
 # Worktrees live inside .claude/ in some projects and must never be committed
 # or scanned as source (they duplicate every file).
 .claude/worktrees/
+
+# harness: compiled bytecode and merge-settings backups are never committed
+__pycache__/
+*.pyc
+.claude/settings.json.harness-bak
