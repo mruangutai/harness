@@ -329,6 +329,16 @@ if not os.path.isfile(os.path.join(H, "codebase", "INDEX.md")):
                     "run mission map (/harness \"map the codebase\"). Every unmapped spawn "
                     "re-derives structure the map would have carried (DEC-140).")
 
+# --- INV-19 (DEC-162): a mapped codebase without a glossary means the ubiquitous
+# language lives nowhere — "create lazily" fired zero times across three shipped
+# features while enums and status vocabularies were being pinned. Warn-level, like
+# INV-14: flows still run, but pm's next map/plan pass owes the file.
+if os.path.isfile(os.path.join(H, "codebase", "INDEX.md")) and \
+   not os.path.isfile(os.path.join(H, "codebase", "glossary.md")):
+    warn.append("codebase is mapped but has no glossary.md — the domain's ubiquitous language "
+                "is unrecorded (DEC-162). pm authors it (mission map assigns it; or seed it "
+                "from shipped features' pinned vocabulary).")
+
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
 # (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip
 # silently, which reads exactly like a working mirror to anyone not tailing logs.

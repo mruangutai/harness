@@ -3998,3 +3998,23 @@ Added `/harness-deepen` and `/harness-map` as thin doors over the general `/harn
 in harness.md step 1, and made deploy.sh treat `commands/harness*.md` as part of the
 distributable — copied global and per-project, stale harness-named commands pruned, project-own
 commands untouched.
+
+## DEC-162 — The glossary gets a checkable moment; domain-modeling is otherwise already resident
+
+Assessed Matt Pocock's `domain-modeling` skill for adoption (the user's ask). Finding: DEC-149
+already cloned its core into `harness-spec-driven`'s glossary section — challenge drift, sharpen
+fuzz, code-wins, update-inline, glossary-never-a-spec — and its ADR three-part test is verbatim
+the D-NN bar, where harness's version is stronger (approval-gated). Not adopted, deliberately:
+multi-context maps (`CONTEXT-MAP.md`) — no project has bounded contexts yet, and speculative
+structure fails the deletion test.
+
+What WAS missing is enforcement: `.harness/codebase/glossary.md` was "create lazily when the
+first term is resolved," and across three shipped kaya features that fired zero times — while a
+four-status enum and a review-loop vocabulary were being pinned. Same failure shape as DEC-140
+("run the map first" as prose): a duty attached to no checkable moment does not happen. pm's
+domain has granted the path since DEC-149; nothing assigned the work.
+
+Two changes: mission map now assigns pm `glossary.md` alongside `product-surface.md` — the map
+is the checkable moment the language gets recorded; and check-state INV-19 warns (INV-14's
+level: flows still run) when a mapped codebase has no glossary. Existing mapped projects get
+seeded from their shipped features' pinned vocabulary rather than waiting for a re-map.

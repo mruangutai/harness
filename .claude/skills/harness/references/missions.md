@@ -14,7 +14,11 @@ carves the map by author; a wrong-author write is hook-blocked.
    `stack.md`. Steps are parallel — disjoint outputs. **A specialist whose surface does not exist
    self-scopes out in one line** (a CLI has no ui-surface); an empty view is a valid result.
 2. **In the same turn, dispatch validator-lead**: security-reviewer → `trust-boundaries.md`; and
-   **product-lead**: pm → `product-surface.md`. Independent of the eng run — all three go together.
+   **product-lead**: pm → `product-surface.md` **and `glossary.md`** (the ubiquitous language —
+   one canonical term per concept, `_Avoid:` variants named, no implementation detail; the
+   authoring rules are pm's own `harness-spec-driven` glossary section). Lazy creation failed in
+   the field — three features shipped vocabulary with no glossary (DEC-162) — so the map is the
+   checkable moment it gets authored. Independent of the eng run — all three go together.
 3. **Documentor consolidates last** (product-lead, second run): reads every view, writes
    `architecture.md` and `INDEX.md` from the template (`templates/codebase-INDEX.md`). **The 60-line
    index cap is documentor's to honor** — the index is injected into every future spawn.
