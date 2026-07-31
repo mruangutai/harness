@@ -8,7 +8,8 @@ description: Take a vague idea to plannable clarity when one sitting cannot hold
 `harness-grilling` takes an idea to clarity **in one sitting**. When the idea is bigger than that —
 the destination itself is fuzzy, or there are more open decisions than one conversation can hold —
 you need a **map that survives between sittings**. That is this skill. Adapted from Matt Pocock's
-`wayfinder` (MIT), re-homed onto harness files (DEC-165).
+`wayfinder` and `batch-grill-me` (the frontier round), MIT, re-homed onto harness machinery
+(DEC-165/166/167).
 
 **Main session only** — every HITL ticket resolves through live exchange with the user, and no
 subagent has a channel to them (DEC-120).

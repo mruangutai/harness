@@ -7,8 +7,8 @@ description: Dialog to clarity before anything is built — a relentless one-que
 
 **Only the main session runs this.** It is the sole tier with a user channel (DEC-120), so a
 subagent cannot grill anyone — and an agent that answers its own questions has broken the
-discipline entirely. Adapted from Matt Pocock's `grilling`/`wayfinder` (MIT), re-homed onto
-harness machinery (DEC-164).
+discipline entirely. Adapted from Matt Pocock's `grilling`, `batch-grill-me` (the frontier round)
+and `wayfinder` (MIT), re-homed onto harness machinery (DEC-164/167).
 
 Why it is blocking: pm plans from what it is told. Every unstated assumption at this moment
 becomes a REQ nobody meant, an SC that cannot be verified, or a build cycle spent discovering the
