@@ -231,10 +231,10 @@
   },
   "_budgets_note": "Cost is the post-build signal (DEC-99), so it needs a bound as well as a meter. These sit alongside max_cycles in the team config: max_cycles bounds RETRIES, these bound SPEND. A team that exceeds its budget stops and escalates rather than continuing \u2014 the same BLOCKED path an exhausted cycle budget takes. Measured anchor: one dev-ops detection spawn on claude-fable-5 cost $2.72 (DEC-114), so these are single-digit numbers of spawns, not hundreds.",
   "budgets": {
-    "per_feature_usd": 40,
+    "per_feature_usd": 120,
     "per_run_usd": 15.0,
     "warn_at_fraction": 0.7,
-    "_per_feature_rationale": "SC-1 kills the org above $50/feature. The budget IS the criterion, not a separate guess.",
+    "_per_feature_rationale": "SELF-HOSTED rate (raised 40 -> 120, user decision 2026-07-31). The $40 figure came from SC-1 for PRODUCT features and was never re-tested here: in this repo the codebase under change IS the documentation every agent must read to be correct (~7,400 lines of DECISIONS/SPEC/BUILD), and FEAT-03's PLAN PHASE ALONE spent ~$44 at a measured 137 cache-read tokens per output token. Lower this again once the DECISIONS.md index lands and the mandatory-reading floor drops.",
     "max_total_cycles": 10,
     "_max_total_cycles_rationale": "REWORK loops only (DEC-157): a cycle is a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back \u2014 never a first-pass run, which the PLAN's task list already bounds. Ten consecutive rework loops on one feature is the runaway this kills. Per-feature raises are user decisions recorded in feature.yaml."
   },
