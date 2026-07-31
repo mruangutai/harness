@@ -11,6 +11,11 @@ The onboarding interview, run **inside a target project**. `/harness-deploy` dis
 **Run this in the main session.** Only the main session can call `AskUserQuestion` — a subagent has no
 channel to the user. Delegate the *mechanical detection* to `dev-ops`; never delegate the interview.
 
+**The interview IS a grilling (DEC-164).** Load `harness-grilling` and run it: one question at a
+time with your recommendation, facts looked up rather than asked, destination named first, and the
+artifact written to `.harness/notes/`. Its answers seed `harness.json`, the domain description, and
+the first `glossary.md` terms.
+
 ## Preflight — stop if any of these fails
 
 ```bash
@@ -88,6 +93,12 @@ Spawn `harness-dev-ops` with the answers from step 3. It must:
   `_reason` is **replaced with the real one** ("no Playwright in this project", "no eval harness yet").
   `qa` treats null as a not-applicable soft skip; an invented command turns a hard gate into a silent
   no-op, which is strictly worse than no gate.
+- **Surface every remaining `cmd: null` to the user as a DECISION, not a footnote (DEC-163).**
+  Cross-reference each against what the project actually has: a null `ui` runner in a project with
+  a real UI, a null `eval` with real LLM code, a null `integration` with a real database. For each,
+  `AskUserQuestion`: stand the runner up now (a dev-ops task), or accept the gap knowing SCs can
+  never rest on that kind. Record the answer; an accepted gap belongs in the backlog. A null kind
+  that reaches the first feature unspoken becomes a permanent blind spot nobody chose.
 - **Delete the `_reason` on any kind whose `cmd` it fills.** Every kind ships with
   `_reason: "unset — dev-ops has not run detection yet"`. Leaving that next to a command dev-ops has
   since verified states a falsehood about the project's own config.

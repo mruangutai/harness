@@ -75,6 +75,29 @@ signature.
 - SC-03: No PII reaches logs from the filter path.
   verify: inspection
 
+## Verification gaps — say them out loud, at the signature (DEC-163)
+
+Before writing a single `verify: automated`, read `test_kinds` in `.harness/harness.json`. A kind
+with `cmd: null` has **no runner**: qa resolves it to a soft skip, so an SC resting on it can never
+be met and never fails loudly — a gate that looks real and does nothing.
+
+Two duties, and the second is the one that was missing:
+
+1. **Never rest an SC on a null kind.** Pin it to a kind that exists, or use `inspection`/`uat`.
+2. **Record the gap where the user signs.** If any null kind covers a surface this feature actually
+   touches (a UI change with no `ui` runner, LLM behaviour with no `eval`, a DB path with no
+   `integration`), the BRIEF carries a one-line-per-gap block naming what is therefore NOT proven
+   and what carries it instead. Silently routing around the gap is how a feature ships believing
+   it was verified. `check-state.sh` INV-20 flags the same gaps against the codebase map; a
+   standing runner gap is a **dev-ops task worth raising** — put it in the backlog, not just in
+   this brief.
+
+```markdown
+## Verification gaps
+- `integration` has no runner: DB-path claims rest on monkeypatched functional tests, not a live
+  database. Applying migrations stays a user-gated deploy step.
+```
+
 ## Constraints
 - Anything that bounds the solution: existing contracts, conventions, things not to touch.
 

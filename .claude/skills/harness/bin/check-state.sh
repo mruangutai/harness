@@ -339,6 +339,30 @@ if os.path.isfile(os.path.join(H, "codebase", "INDEX.md")) and \
                 "is unrecorded (DEC-162). pm authors it (mission map assigns it; or seed it "
                 "from shipped features' pinned vocabulary).")
 
+# --- INV-20 (DEC-163): a test kind with cmd: null is an HONEST record of no runner — but
+# when the product HAS that surface, it is also a silent hole: qa resolves the kind to a soft
+# skip, so an SC resting on it can never fail loudly, and pm quietly stops writing SCs against
+# it. The discriminating check is the codebase map, which already records which surfaces exist:
+# a null runner matters exactly when its surface view is more than a self-scoped-out stub.
+# Warn-level (INV-14's level) — flows still run; the point is that the gap reaches a human.
+KIND_SURFACE = {"ui": "ui-surface.md", "component": "ui-surface.md",
+                "eval": "llm-patterns.md", "integration": "data-flows.md"}
+if cj:
+    kinds = cj.get("test_kinds") or {}
+    for kind, view in KIND_SURFACE.items():
+        spec = kinds.get(kind)
+        if not isinstance(spec, dict) or spec.get("cmd"):
+            continue
+        vp = os.path.join(H, "codebase", view)
+        vt = read(vp)
+        # A self-scoped-out view is a line or two ("no UI surface here"); a real one is long.
+        if vt and len(vt.splitlines()) > 20:
+            warn.append(f"test kind '{kind}' has cmd: null but {view} describes a real surface "
+                        f"({len(vt.splitlines())} lines) — SCs cannot rest on '{kind}' and qa "
+                        f"records it as a soft skip, so the gap is invisible at ship time "
+                        f"(DEC-163). Either stand up a runner (a dev-ops task) or accept it "
+                        f"explicitly in the BRIEF's verification-gaps line.")
+
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
 # (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip
 # silently, which reads exactly like a working mirror to anyone not tailing logs.

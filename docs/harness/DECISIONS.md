@@ -4018,3 +4018,68 @@ Two changes: mission map now assigns pm `glossary.md` alongside `product-surface
 is the checkable moment the language gets recorded; and check-state INV-19 warns (INV-14's
 level: flows still run) when a mapped codebase has no glossary. Existing mapped projects get
 seeded from their shipped features' pinned vocabulary rather than waiting for a re-map.
+
+## DEC-163 — A null test runner over a real surface is a gap that gets escalated, not absorbed
+
+`cmd: null` is the honest record dev-ops is required to write when it finds no runner for a test
+kind (never invent a plausible command — DEC-100-era rule, still right). What was missing is what
+happens next. qa resolves a null kind to a **soft skip**, so an SC resting on it can never be met
+and never fails loudly; pm, correctly avoiding that trap, quietly stops writing SCs against the
+kind. The result is a gate that looks real and does nothing, chosen by nobody.
+
+Measured in kaya: `ui`, `eval` and `integration` are all null, while the codebase map describes
+`ui-surface.md` at 292 lines, `llm-patterns.md` at 203, and `data-flows.md` at 315 — three real
+surfaces with no runner. Across three shipped features nothing ever escalated it; FEAT-01 had to
+note in its plan that `cross_module`'s integration evidence "records as skipped, carried by
+unit+functional", and FEAT-03 pinned all 17 SCs to the two kinds that exist. Correct planning,
+invisible consequence.
+
+**The discriminating check is the codebase map** — it already records which surfaces exist, so a
+null runner matters exactly when its surface view is more than a self-scoped-out stub (a CLI with
+no `ui` runner is fine; a web app with none is not). Three surfacings, one per audience:
+
+- **check-state.sh INV-20** (warn-level, INV-14's level — flows still run): a null kind whose
+  mapped surface exceeds a stub is reported at every `/harness` entry, naming the kind, the view,
+  and both remedies. Verified: fires on exactly kaya's three, silent on the two with runners.
+- **BRIEF `## Verification gaps`** (`harness-brief`): pm may never rest an SC on a null kind — that
+  much was already implied — and now must record, where the user signs, what is therefore NOT
+  proven and what carries it instead. The approval gate is the visibility moment.
+- **Onboarding** (`harness-init`): every remaining null kind is put to the user as a decision —
+  stand up the runner now, or accept the gap knowingly — with an accepted gap going to the backlog.
+
+Not mechanized: nothing blocks a feature over a null kind, deliberately. A missing runner is a
+priority call the user makes, and hard-failing on it would stop work the org can still do honestly
+(the DEC-134 lesson about bounds that protect nothing).
+
+## DEC-164 — Grilling is blocking step zero: dialog to clarity before the org spends a spawn
+
+pm plans from what it is told, and the org's most expensive failures start as unstated assumptions:
+**five kaya premises briefed as fact were FALSE at HEAD** on one feature, caught only because a
+successor re-verified them. The cheapest place to find that is in conversation with the user, before
+any spawn. Adopted from Matt Pocock's `grilling`/`grill-me` and the transferable half of
+`wayfinder` (MIT), re-homed onto harness machinery.
+
+`harness-grilling` is **main-session only** — the sole tier with a user channel (DEC-120), and an
+agent that answers its own questions has broken the discipline. The rules: one question at a time
+with a recommendation attached; **facts are the agent's to find, decisions are the user's**;
+dependencies first; challenge language against `glossary.md` as you go; never act until the user
+declares shared understanding.
+
+From wayfinder, three ideas earn their place without its machinery: **name the destination first**
+(it fixes scope, so everything else is judged against it), **fog of war** (`## Not yet specified` —
+in-scope questions not yet sharp enough to state; the test is the question's sharpness, never
+whether you can answer it), and **out of scope** (ruled beyond the destination; scope, not
+sharpness, lands it there). The artifact is `.harness/notes/grilling-<slug>-<date>.md`, one screen,
+whose `## Settled` seeds BRIEF's REQs and whose `## Facts I verified` saves pm a research pass —
+handed to pm as a **path**, never a transcript.
+
+Wired blocking at two doors: `/harness-plan` step zero, and `harness-init`'s interview (whose
+answers also seed `harness.json`, the domain description, and the first glossary terms). Skipping
+it is the user's explicit call, never the main session's assumption.
+
+**Wayfinder's full form — a tracker-hosted map of decision tickets with claims, blocking edges and
+frontier queries — is deliberately NOT adopted.** It solves multi-session efforts too big for one
+plan, and no harness project has had one; building the structure first is what the deletion test
+kills. It also collides with DEC-138 (the GitHub mirror is outbound-only; harness never reads issue
+state), so if a fog-wrapped multi-feature effort ever appears, the map goes in local markdown under
+`.harness/`, not on the tracker — recorded here so that is not re-litigated from scratch.
