@@ -25,6 +25,20 @@ add a ticket, or see the frontier render in GitHub's own UI without opening a se
 the DEC-138 mirror — wayfinding runs entirely *before* any approval, where DEC-138 already sanctions
 issues as an input, so reading issue state here breaks no one-way rule.
 
+**In tracker mode GitHub is the canonical store — there is no markdown shadow (DEC-167).** What is
+saved, and where:
+
+| What | Where it lives | Notes |
+|---|---|---|
+| The **dialog** itself | nowhere, deliberately | it is the transcript: ephemeral, and a verbatim log is not a decision |
+| The **decision** | the ticket's resolution comment, on close | `wayfind.py resolve <n> --body "…"` — inline by default, so a short answer needs no local file |
+| The **one-line gist** | the map body's `## Decisions so far` | the index entry pointing back at the ticket |
+| A substantial **asset** (research findings, a prototype, a long analysis) | a file in the repo, **linked** from the comment | never pasted into the issue, and never a second copy of the decision |
+
+The order is always **decide → record on the ticket → gist on the map**. Writing a local markdown
+copy of a decision that already lives on a ticket is the two-copies drift this org keeps finding
+(the digest.md gap, the qa-gate matrix table) — do not do it.
+
 **Every tracker operation goes through `bin/wayfind.py`**, never hand-typed `gh`:
 `map <n>` · `frontier <n>` · `chart` · `ticket <map#> <type> "<title>"` · `block <n> --by <n>` ·
 `claim <n>` · `resolve <n> <file>`. Mutations are **dry-run until `--apply`**. Three operations are
@@ -129,8 +143,25 @@ produced a fabricated decision, which is worse than an open ticket.
 5. **Graduate the fog the answer sharpened** into new tickets, clearing those patches from
    `## Not yet specified`. If the answer puts something past the destination, close it into
    `## Out of scope` with the reason — never resolve it on the route.
-6. **One decision per session** (research tickets excepted). Then stop, even if you feel fine: the
-   next session starts fresh and cheap, and a long session writes worse answers (DEC-159).
+6. **One THREAD per session, then stop** — even if you feel fine: the next session starts fresh and
+   cheap, and a long session writes worse answers (DEC-159). A thread is either one ticket explored
+   deeply, **or one frontier round** (below). Sessions are contexts, not calendar days: running six
+   back to back in an afternoon is the intended use, and costs only a map reload each.
+
+## Clarity fast AND context-cheap — the frontier round (DEC-167)
+
+The serialising rule bounds how deep one decision is explored; it never required serialising
+**independent** decisions, and frontier tickets are by construction unblocked by each other. So:
+
+- **Fire every `research` ticket on the frontier in parallel, immediately** — they need no user, and
+  fog most often hangs on facts. `wayfind.py round <n>` lists them first for exactly this.
+- **Put the frontier's HITL tickets to the user as ONE numbered round**, each with your recommended
+  answer, then wait. Their answers reshape the tree; recompute the frontier and go again.
+- **Drop back to one-at-a-time** the moment a question needs real exploration, or when an answer
+  would change what the next question even is — that is a dependency, and dependencies serialise.
+
+A round is not a licence to dump every open question: a ticket still on the frontier only because
+nobody wired its blocker is not independent, it is mis-wired.
 
 ## Fog, and out of scope
 

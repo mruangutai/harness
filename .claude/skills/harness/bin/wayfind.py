@@ -14,11 +14,13 @@ touches a shared, human-visible surface, so the plan is shown first.
 
   wayfind.py map <map#>                      # low-res view: destination, decisions, frontier
   wayfind.py frontier <map#>                 # takeable tickets only (open, unblocked, unclaimed)
+  wayfind.py round <map#>                    # the frontier as ONE numbered round + research to fire
   wayfind.py chart "<destination title>"     # create the map issue  [--apply]
   wayfind.py ticket <map#> <type> "<title>"  # create a ticket as a sub-issue  [--apply]
   wayfind.py block <ticket#> --by <ticket#>  # native blocked_by edge  [--apply]
   wayfind.py claim <ticket#>                 # assign to @me — the claim  [--apply]
-  wayfind.py resolve <ticket#> <file>        # post resolution comment + close  [--apply]
+  wayfind.py resolve <ticket#> --body "<text>"   # post resolution + close  [--apply]
+  wayfind.py resolve <ticket#> --file <path>     # same, body from a file (long answers/assets)
 
 Exit 0 = done (or planned). Exit 1 = a problem the caller must surface.
 Repo comes from .harness/harness.json `github.repo`, pinned at init and never
@@ -140,6 +142,33 @@ def frontier(repo, mapnum):
     return out
 
 
+def cmd_round(repo, mapnum):
+    """Print the frontier as a numbered round to put to the user in ONE message (DEC-167).
+
+    The one-ticket-per-session rule bounds how deep a single decision is explored; it never
+    required serialising INDEPENDENT decisions. Tickets on the frontier are by definition
+    unblocked by each other, so asking them together is faster and no less rigorous — as long
+    as each carries a recommendation and HITL answers still come from the human.
+    """
+    f = frontier(repo, mapnum)
+    hitl = [t for t in f if ticket_type(t) != "research"]
+    afk = [t for t in f if ticket_type(t) == "research"]
+    if afk:
+        print(f"FIRE IN PARALLEL NOW ({len(afk)} research ticket(s) — no user needed):")
+        for t in afk:
+            print(f"  #{t['number']}  {t['title']}")
+        print()
+    if not hitl:
+        print("No HITL tickets on the frontier — nothing to put to the user this round.")
+        return
+    print(f"ROUND — {len(hitl)} independent question(s). Ask them together, each with your "
+          f"recommendation, then WAIT for the answers:")
+    for i, t in enumerate(hitl, 1):
+        print(f"  {i}. #{t['number']} [{ticket_type(t)}] {t['title']}")
+    print("\nAfter the answers: resolve each ticket, then recompute — answers push the "
+          "frontier outward and may graduate fog.")
+
+
 def cmd_map(repo, mapnum):
     m = issue(repo, mapnum)
     print(f"# {m['title']}  (#{m['number']}, {m['state']})\n")
@@ -168,6 +197,9 @@ def main():
 
     if sub == "map":
         cmd_map(repo, a[1]); return 0
+
+    if sub == "round":
+        cmd_round(repo, a[1]); return 0
 
     if sub == "frontier":
         f = frontier(repo, a[1])
@@ -219,11 +251,21 @@ def main():
         return 0
 
     if sub == "resolve":
-        t, path = a[1], a[2]
-        if not os.path.isfile(path):
-            die(f"{path} not found — write the resolution to a file first")
-        do([["issue", "comment", t, "-R", repo, "--body-file", path],
-            ["issue", "close", t, "-R", repo]], apply)
+        t = a[1]
+        # Inline --body is the DEFAULT path (DEC-167): the ticket comment is the canonical
+        # record, so a local file per decision would be a second copy that drifts. --file
+        # exists for genuinely long bodies and for pasting a linked asset's summary.
+        if "--body" in a:
+            body = a[a.index("--body") + 1]
+            comment = ["issue", "comment", t, "-R", repo, "--body", body]
+        elif "--file" in a:
+            path = a[a.index("--file") + 1]
+            if not os.path.isfile(path):
+                die(f"{path} not found")
+            comment = ["issue", "comment", t, "-R", repo, "--body-file", path]
+        else:
+            die("resolve needs --body \"<text>\" or --file <path>")
+        do([comment, ["issue", "close", t, "-R", repo]], apply)
         if apply:
             print("  now add ONE gisted line to the map's ## Decisions so far, pointing at "
                   "this ticket — the map is an index, not a store.")

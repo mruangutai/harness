@@ -4171,3 +4171,28 @@ one-way rule forbade this — was **wrong**, and was corrected in place. DEC-138
 wayfinding runs entirely before approval, so the frontier being a read breaks nothing. The adjacent
 concern ("a decision as an issue invites drive-by reopening") guards *signed* D-NNs — wayfinding
 decisions are provisional by construction, and reopening one is the point of a map.
+
+## DEC-167 — Frontier rounds for speed; GitHub is the canonical store, with no markdown shadow
+
+Two corrections after DEC-166, both from the user's reading of how it would actually feel to use.
+
+**1. "One decision per session" was over-read as slow.** The rule bounds how deep a single decision
+is explored (DEC-159's anti-degradation logic); it never required serialising *independent*
+decisions, and frontier tickets are by construction unblocked by each other. Two speed levers,
+neither costing rigour: fire every frontier `research` ticket in **parallel** at once (no user
+needed, and fog most often hangs on facts), and put the frontier's HITL tickets to the user as **one
+numbered round** with a recommendation each — Matt Pocock's `batch-grill-me` shape, which is the
+same author's answer to the same problem. Drop back to one-at-a-time the moment a question needs
+real exploration or an answer would change what the next question is; that is a dependency, and
+dependencies serialise. `wayfind.py round <n>` computes both lists. Also clarified: **a session is a
+context, not a calendar day** — six back to back in an afternoon is the intended use and costs one
+map reload each, so "clarity as fast as possible" and "context-cheap" are not in tension.
+
+**2. Tracker mode has no markdown shadow.** `resolve <n> <file>` implied a local file per decision,
+which would recreate the two-copies drift this org keeps finding (the digest.md gap, the qa-gate
+matrix table). Now explicit, and `--body "<text>"` is the default path so a short answer needs no
+file at all: the **dialog** is saved nowhere (it is the transcript — ephemeral, and a verbatim log
+is not a decision); the **decision** is the ticket's resolution comment; the **gist** is one line in
+the map's `## Decisions so far`; a substantial **asset** is a repo file *linked* from the comment,
+never pasted and never a second copy. Order is always decide → record on the ticket → gist on the
+map. Markdown mode remains the whole store only when `github.sync` is off — never alongside.
