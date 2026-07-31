@@ -4217,3 +4217,26 @@ sits on the frontier beside batchable questions. A ticket on the frontier only b
 dependency was never wired is not independent, it is mis-wired. **The user's stated preference
 outranks the whole heuristic** — how they want to be asked is their decision, not a tuning
 parameter.
+
+## DEC-168 — Sub-issue closure does not cascade, in either direction (measured)
+
+Probed live in `mruangutai/harness` (scratch issues #1 parent, #2/#3 subs, all since closed and
+annotated) because `close-task`'s correctness under the sub-issue model depends on it and nothing in
+the docs consulted stated it. Three results, all favourable:
+
+| Action | Result |
+|---|---|
+| close ONE sub of two | parent stays **open**; summary → `completed: 1, 50%` |
+| close the LAST open sub | parent **stays open**; summary → `completed: 2, 100%` |
+| close the PARENT with two open subs | subs **stay open** |
+
+So closure is entirely manual in both directions. What that buys the DEC-138 sub-issue migration
+(explored in `.harness/notes/explore-pm-tickets-subissues.md`): `close-task` on a task's sub-issue
+closes exactly that task — the FEAT-03 "CLOSE-TASK HAZARD, ELEVENFOLD" cannot recur; the parent must
+be closed deliberately at ship acceptance, so it never drifts closed on its own; and a parent closed
+early cannot silently orphan-close outstanding tasks.
+
+One operational gotcha for any implementation: **`sub_issues_summary` is eventually consistent.** It
+read `total: 1` immediately after the second attach and corrected to `total: 2` seconds later. Never
+assert on it right after a write — the same class of mistake as reading a cost meter before it
+settles.

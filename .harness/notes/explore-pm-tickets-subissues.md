@@ -75,10 +75,16 @@ not a follow-up.
 
 ## Open questions for the plan
 
-1. **Closure semantics, unverified:** whether closing a parent auto-closes open sub-issues (and
-   whether an all-subs-closed parent auto-closes). Neither behavior is documented in what I checked,
-   and `close-task`'s correctness depends on it. **Verify empirically before building** — a scratch
-   parent + one sub in a sandbox repo, not in kaya.
+1. **Closure semantics — RESOLVED empirically** (probe in `mruangutai/harness`, scratch issues
+   #1/#2/#3, since closed): **closure does not cascade in either direction.** Closing one sub leaves
+   the parent open; closing the LAST sub still leaves the parent open (summary reached
+   `completed: 2, percent_completed: 100` and the parent stayed `open`); closing the parent leaves
+   every open sub OPEN. Consequences for the design, all good: `close-task` on a sub-issue closes
+   exactly that task and nothing else — the FEAT-03 hazard cannot recur; the parent must be closed
+   deliberately at ship acceptance (it will never drift closed on its own); and a parent closed early
+   does not silently orphan-close outstanding tasks. Also observed: `sub_issues_summary` is
+   **eventually consistent** — it read `total: 1` immediately after the second attach and corrected
+   to `total: 2` within seconds, so never assert on it straight after a write.
 2. **What is the parent when nothing is adopted?** A greenfield feature has no backlog issue to
    adopt. Create a `FEAT-NN` parent issue, or let the milestone stand alone with flat task issues
    (the model as specified, which would then finally be used)?
