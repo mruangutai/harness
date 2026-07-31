@@ -4105,10 +4105,26 @@ Adopted, with the three things `harness-grilling` structurally could not do:
    the pre-feature phase: a long session writes worse answers, and the map is what makes stopping
    free.
 
-Two harness-specific rulings. **The map is local markdown, never the issue tracker** — DEC-138 makes
-the mirror outbound-only and the frontier is a read, so a tracker-hosted map would invert the org's
-one-way rule. **Charting and resolving are separate sessions** — a session that charts and then
-starts resolving does both badly.
+Two harness-specific rulings. **The map is local markdown for now** — and the first stated reason
+for that was WRONG, corrected here: DEC-138's outbound-only rule governs mirroring *approved*
+feature work ("issues are pm's research INPUT at plan time… after approval, sync is strictly
+OUTBOUND"), and wayfinding happens entirely before any approval, so it was never constrained by
+it. The honest reasons are practical: markdown works with no network, no repo and no `github.sync`,
+adds no read paths to `gh-sync.py`, is committed with the code (so it lands in PR diffs and
+outlives the transcript window), and keeps one copy of the truth.
+
+**The source skill supports both modes** (tracker when provided, "default to the local-markdown
+tracker" when not), and the user's stated preference is the faithful tracker form — map issue
+labelled `wayfinder:map`, tickets as sub-issues, native blocking edges, assignee as the claim,
+resolution as a comment — because a map that spans days is a *shared* artifact and GitHub is where
+a human can read it, add a ticket, or see the frontier render without opening a session. **Not
+built yet, deliberately, pending the user's go-ahead**; when it is, tracker-mode is preferred where
+`github.sync` is on with markdown as the fallback, and the "decision as an issue invites drive-by
+reopening" concern from DEC-138's amendment does not transfer — that guards *signed* D-NNs, while
+wayfinding decisions are provisional by construction.
+
+**Charting and resolving are separate sessions** — a session that charts and then starts resolving
+does both badly.
 
 The entry test keeps the two doors honest: fits one conversation → `/harness-grill`; the destination
 itself is fuzzy or decisions wait on facts and prototypes → `/harness-wayfind`; a grilling that
