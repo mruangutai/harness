@@ -28,6 +28,11 @@ possible moment to find that is here, in conversation, before a spawn.
   gets called out here, not after it lands in a REQ (`harness-spec-driven`'s glossary rules).
 - **Never act on it until the user confirms** you have reached shared understanding.
 
+**One sitting is the scope of this skill.** If the destination itself needs deciding, or a question
+stalls on a fact or a prototype you do not have, this idea is bigger than a conversation: promote it
+to `harness-wayfinding` (a persistent map, one decision per session), carrying what is already
+settled. Do not grind a fog-wrapped idea through a single exhausting session (DEC-165).
+
 ## Name the destination first
 
 The first act is naming what reaching the end looks like — a shipped surface, a decision locked, a

@@ -4077,9 +4077,45 @@ Wired blocking at two doors: `/harness-plan` step zero, and `harness-init`'s int
 answers also seed `harness.json`, the domain description, and the first glossary terms). Skipping
 it is the user's explicit call, never the main session's assumption.
 
-**Wayfinder's full form — a tracker-hosted map of decision tickets with claims, blocking edges and
-frontier queries — is deliberately NOT adopted.** It solves multi-session efforts too big for one
-plan, and no harness project has had one; building the structure first is what the deletion test
-kills. It also collides with DEC-138 (the GitHub mirror is outbound-only; harness never reads issue
-state), so if a fog-wrapped multi-feature effort ever appears, the map goes in local markdown under
-`.harness/`, not on the tracker — recorded here so that is not re-litigated from scratch.
+Wayfinder's full form was deferred here and **adopted at DEC-165** once the user named the actual
+goal (vague → plannable, which is wayfinder's own purpose): as local markdown under
+`.harness/efforts/`, never on the tracker, since DEC-138 makes the mirror outbound-only and the
+frontier is a read.
+
+## DEC-165 — Wayfinding adopted: a local-markdown map for ideas one sitting cannot hold
+
+DEC-164 deferred wayfinder's full form as speculative. The user corrected the premise: the point of
+grilling *and* wayfinding is one pipeline — take an idea from vague to clear enough that (a) we are
+aligned and (b) it can be handed to planning. That is wayfinder's own stated purpose, and the org
+had only the one-sitting half of it. Kaya's own roadmap thinking ("the visibility, context and
+system-of-record layer for 3PL ops") is exactly the shape a single conversation cannot settle.
+
+Adopted, with the three things `harness-grilling` structurally could not do:
+
+1. **Persistence across sittings.** The grilling artifact is a one-shot record with no notion of
+   what is takeable next. A map at `.harness/efforts/<slug>/` — `MAP.md` (index) plus
+   `tickets/T-NN-<slug>.md` (one decision each) — survives between sessions; the **frontier** (open
+   tickets whose blockers are closed) is what a fresh session reads to know where to stand.
+2. **Ticket types, because not every unknown is a conversation.** `research` (agent alone — a
+   decision waiting on a fact is the agent's job, never a question for the user), `prototype` (build
+   something cheap to react to when "how should it behave" is the question), `grilling` (the
+   default), `task` (something must exist before a decision is possible). A HITL ticket the agent
+   answers itself is a fabricated decision — worse than an open ticket.
+3. **One decision per session** (research excepted) — which also carries DEC-159's discipline into
+   the pre-feature phase: a long session writes worse answers, and the map is what makes stopping
+   free.
+
+Two harness-specific rulings. **The map is local markdown, never the issue tracker** — DEC-138 makes
+the mirror outbound-only and the frontier is a read, so a tracker-hosted map would invert the org's
+one-way rule. **Charting and resolving are separate sessions** — a session that charts and then
+starts resolving does both badly.
+
+The entry test keeps the two doors honest: fits one conversation → `/harness-grill`; the destination
+itself is fuzzy or decisions wait on facts and prototypes → `/harness-wayfind`; a grilling that
+stalls on "we cannot answer that until we know X" gets **promoted** to a map carrying what is
+settled. A map with three tickets you could have talked through was a worse conversation.
+
+Terminus, either door: decisions, never deliverables. `/harness-plan` takes the artifact path —
+`## Decisions so far` is what pm authors REQs from, `## Out of scope` is what keeps BRIEF scope
+honest, ticket resolutions are there to zoom. pm still owns REQs, SCs and tasks; wayfinding removes
+the fog, not pm's job.
