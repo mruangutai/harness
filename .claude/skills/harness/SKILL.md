@@ -144,7 +144,7 @@ commit.
 | the main session relays the user's shipped acceptance | `gh-sync.py ship <feature-dir>` — closes the milestone |
 
 You never read GitHub state into harness state — PLAN.md is the truth and the mirror is a mirror.
-**Anything posted into the repo is the user's own words or text the user signed (DEC-138 am.5).**
+**Anything posted into the repo is the user's own words or text the user signed (DEC-138 am.6).**
 The mirror never composes: a post takes its body from a file path — the signed ship-review, the
 approved artifact — never from a string you assembled. Agents doing the work post nothing; they
 return digests.

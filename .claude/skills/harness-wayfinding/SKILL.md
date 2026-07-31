@@ -32,7 +32,7 @@ saved, and where:
 | What | Where it lives | Notes |
 |---|---|---|
 | The **dialog** itself | nowhere, deliberately | it is the transcript: ephemeral, and a verbatim log is not a decision |
-| The **decision** | the ticket's resolution comment, on close | `wayfind.py resolve <n> --body "…"` — inline by default, so a short answer needs no local file. Postable because it is the **user's own answer**, not agent prose (DEC-138 am.5) |
+| The **decision** | the ticket's resolution comment, on close | `wayfind.py resolve <n> --body "…"` — inline by default, so a short answer needs no local file. Postable because it is the **user's own answer**, not agent prose (DEC-138 am.6) |
 | The **one-line gist** | the map body's `## Decisions so far` | the index entry pointing back at the ticket |
 | A substantial **asset** (research findings, a prototype, a long analysis) | a file in the repo, **linked** from the comment | never pasted into the issue, and never a second copy of the decision |
 

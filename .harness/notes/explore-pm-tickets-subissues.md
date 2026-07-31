@@ -107,7 +107,7 @@ not a follow-up.
    accepts exactly `completed` · `not_planned` · `duplicate` as `state_reason`; `not_doing` is a 422,
    and "not doing" can only ever be a label, not a close reason. So `not_planned` is the mechanism,
    and the *why* IS posted as a comment — taken **verbatim from the ship-review artifact the user
-   signed**, never composed by the mirror (DEC-138 am.5: provenance, not silence). Implementation
+   signed**, never composed by the mirror (DEC-138 am.6: provenance, not silence). Implementation
    consequence: `cmd_abandon` takes `--reason-file <path>`, so the mirror has no text of its own to
    editorialize with.
    **This is only implementable after the migration**, which is why no `abandon` subcommand exists

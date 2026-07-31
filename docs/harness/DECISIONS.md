@@ -4241,7 +4241,7 @@ read `total: 1` immediately after the second attach and corrected to `total: 2` 
 assert on it right after a write — the same class of mistake as reading a cost meter before it
 settles.
 
-### DEC-138 amendment 4 — the silence rule is the MIRROR's, and abandonment closes `not_planned`
+### DEC-138 amendment 5 — the silence rule is the MIRROR's, and abandonment closes `not_planned`
 
 Two clarifications the sub-issue exploration forced.
 
@@ -4256,7 +4256,7 @@ agent. The mirror stays silent: it creates, closes, and cites absorptions, and n
 exactly `completed`, `not_planned`, `duplicate`; `not_doing` returns 422, so "not doing" could only
 ever be a label, never a close reason. `not_planned` renders a visually distinct icon, which is the
 point: an abandoned feature must not read as a shipped one at a glance. The *reason* it was dropped
-**is posted as a comment, verbatim from the signed ship-review artifact** — see am.5; a closed issue
+**is posted as a comment, verbatim from the signed ship-review artifact** — see am.6; a closed issue
 with a distinct icon and no explanation is opaque to the only audience the mirror exists for.
 
 **Not implementable until the sub-issue migration, deliberately.** Today's recorded issues are
@@ -4265,12 +4265,13 @@ mirror has nothing that is unambiguously the feature's to close, and closing an 
 `not_planned` would assert something false about live work. Post-migration: close the feature's own
 **sub-issues** `not_planned`, leave the adopted parent open, close the milestone (milestones take no
 `state_reason` — close is close). That gives `cmd_ship` and a new `cmd_abandon` the same shape, one
-per terminal state.
+per terminal state. (Originally filed as am.4 — renumbered to am.5 on discovering a collision with the
+existing am.4 on briefing-gated residuals.)
 
-### DEC-138 amendment 5 — the comment rule is about PROVENANCE, not about which skill is asking
+### DEC-138 amendment 6 — the comment rule is about PROVENANCE, not about which skill is asking
 
 am.2 banned agent-authored comments outright, as a v1 caution ("until the mirror proves itself on a
-real feature" — three have now mirrored). am.4 then carved out wayfinding, which was the right
+real feature" — three have now mirrored). am.5 then carved out wayfinding, which was the right
 outcome reached by the wrong reasoning: the exemption is not "wayfinding is special." The user
 identified the actual line, and it is **provenance**:
 
@@ -4282,7 +4283,7 @@ What that permits and forbids, in every case the org has:
 | Post | Provenance | Verdict |
 |---|---|---|
 | a wayfinding ticket's resolution comment | the user's own answer, captured live | **allowed** — it IS the decision record (DEC-166/167) |
-| an abandonment reason on a closed issue | a line from the ship-review the user signed, posted **verbatim** | **allowed** (am.4) |
+| an abandonment reason on a closed issue | a line from the ship-review the user signed, posted **verbatim** | **allowed** (am.5) |
 | a ship summary on the parent issue at acceptance | same — signed artifact, verbatim | **allowed** |
 | a dev / reviewer / qa / lead commenting mid-build | unreviewed agent prose | **forbidden** — they return digests; a second status channel competes with `STATE.md` and drifts from it |
 | the mirror composing its own text at post time | agent prose, however brief | **forbidden** — mirror what was signed, never author |
