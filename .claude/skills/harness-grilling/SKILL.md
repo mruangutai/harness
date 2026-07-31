@@ -19,12 +19,13 @@ possible moment to find that is here, in conversation, before a spawn.
 
 - **One question at a time by default**, with your recommended answer attached — several *dependent*
   questions at once is bewildering and gets you the first answer plus noise. Wait for each.
-- **Except: batch a genuinely independent round.** Hold the decision tree in mind; its **frontier**
-  is every question whose prerequisites are already settled. Those do not depend on each other, so
-  asking them as one numbered round — each with a recommendation — is faster and no less rigorous,
-  and the user's answers then push the frontier outward for the next round (DEC-167). A question
-  whose answer hangs on another still-open question belongs to a *later* round, never this one.
-  When in doubt, or when a question needs real exploration, go back to one at a time.
+- **Except: batch a round that is BOTH independent and shallow.** Hold the decision tree in mind;
+  its **frontier** is every question whose prerequisites are settled. Ask as one numbered round the
+  frontier questions that are *also* shallow — a recommendation plus a pick settles each — then wait;
+  their answers push the frontier outward for the next round (DEC-167). **Serialise anything
+  dependent** (an answer changes the later questions) **or deep** (it needs back-and-forth to reach
+  an answer): independence alone does not make three deep questions one round. The user's stated
+  preference — "one at a time", "give me everything" — outranks this heuristic.
 - **Facts are YOURS to find; decisions are the user's.** If the filesystem, git, the codebase map,
   or a command can answer it, go look — never ask the user something you could check. Dispatch an
   `Explore` subagent for anything broad. Then put the *decision* to them and wait.

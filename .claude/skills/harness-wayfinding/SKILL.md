@@ -152,14 +152,29 @@ produced a fabricated decision, which is worse than an open ticket.
 ## Clarity fast AND context-cheap — the frontier round (DEC-167)
 
 The serialising rule bounds how deep one decision is explored; it never required serialising
-**independent** decisions, and frontier tickets are by construction unblocked by each other. So:
+**independent** decisions, and frontier tickets are by construction unblocked by each other.
 
-- **Fire every `research` ticket on the frontier in parallel, immediately** — they need no user, and
-  fog most often hangs on facts. `wayfind.py round <n>` lists them first for exactly this.
-- **Put the frontier's HITL tickets to the user as ONE numbered round**, each with your recommended
-  answer, then wait. Their answers reshape the tree; recompute the frontier and go again.
-- **Drop back to one-at-a-time** the moment a question needs real exploration, or when an answer
-  would change what the next question even is — that is a dependency, and dependencies serialise.
+**Step 1 — split the frontier by who drives it.** Every `research` ticket fires **in parallel,
+immediately**: no user is needed, and fog most often hangs on facts. `wayfind.py round <n>` lists
+those first for exactly this reason.
+
+**Step 2 — for what is left, batch or serialise on TWO axes, not one:**
+
+| | **Shallow** (a recommendation plus a pick settles it) | **Deep** (needs back-and-forth to reach an answer) |
+|---|---|---|
+| **Independent** | **BATCH** — one numbered round, recommendation each, then wait | **serialise** — one ticket per thread |
+| **Dependent** | serialise — the first answer changes the later questions | serialise |
+
+Independence alone is not enough: two questions can be unblocked by each other and still each need a
+real conversation. Depth alone is not enough either: three deep questions do not become one round by
+being independent.
+
+**`prototype` tickets are never line items in a round.** The artifact *is* the exchange — you build
+something cheap, the user reacts, and that reaction is the answer. It gets its own thread even when
+it sits on the frontier beside three batchable questions.
+
+**The user's stated preference outranks this table.** "Just ask me one at a time" or "give me
+everything you've got" is a decision about how they want to work; take it and drop the heuristic.
 
 A round is not a licence to dump every open question: a ticket still on the frontier only because
 nobody wired its blocker is not independent, it is mis-wired.

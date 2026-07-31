@@ -4205,8 +4205,15 @@ only on its ticket (the map silently stops being an index), a gist written on th
 of the map, and a hand-edited map body diverging from what the tickets say. It refuses to run if the
 map has no `## Decisions so far` section, rather than putting the line somewhere plausible.
 
-**The round mechanism belongs to both doors.** `harness-grilling` said "one question at a time"
-flatly while its sibling batched the frontier — a contradiction between two skills the same session
-loads. Both now carry the same rule with the same guard: batch only what is genuinely independent,
-one at a time for anything dependent or needing exploration, and a question sitting on the frontier
-only because its dependency was never traced is not independent.
+**The round mechanism belongs to both doors, on a two-axis test.** `harness-grilling` said "one
+question at a time" flatly while its sibling batched the frontier — a contradiction between two
+skills the same session loads. Both now carry one rule, and the first draft of it conflated two
+different axes; corrected: **batch only what is BOTH independent and shallow** (a recommendation
+plus a pick settles it). Serialise anything **dependent** (an answer changes the later questions) or
+**deep** (it needs back-and-forth to reach an answer) — independence alone does not make three deep
+questions one round, and depth alone does not make two shallow ones serial. `prototype` tickets are
+never line items in a round: the artifact *is* the exchange, so it gets its own thread even when it
+sits on the frontier beside batchable questions. A ticket on the frontier only because its
+dependency was never wired is not independent, it is mis-wired. **The user's stated preference
+outranks the whole heuristic** — how they want to be asked is their decision, not a tuning
+parameter.
