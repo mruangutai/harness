@@ -79,23 +79,23 @@ escalate). Plan-level changes are pm's — delegate re-planning, never edit `PLA
 
 ## The two budgets — one hard, one informational (DEC-134)
 
-Both live in `feature.yaml`; both are maintained only by you, from the lead's report and from
+Both live in `feature.yaml`, maintained only by you, from the lead's report and from
 `bin/cost-report.py --yaml` after every run (a complete run with no `cost:` block is an INV-11
 violation).
 
-- **`cycles_used`/`max_total_cycles` is a HARD bound** — it exists to kill runaway fix loops. On
-  exhaustion: stop the branch, preserve everything, `status: blocked`, return `BLOCKED`. Never
-  silently continue past it. **A cycle is REWORK ONLY (DEC-157):** a FAIL routed back, an unmet-SC
-  re-dispatch, or a send-back a lead reports from inside a run. A first-pass run — however many
-  steps it has — contributes zero: the PLAN's task list already bounds forward work, and counting
-  runs as cycles is how a healthy 16-run feature goes BLOCKED with nothing wrong. The default (10)
-  lives in harness.json `budgets.max_total_cycles`.
-- **`cost_usd`/`max_cost_usd` is INFORMATIONAL** — a visibility line, not a gate. Crossing it never
-  stops work (observed: a $9 overrun killed a flow one $5 step from done). Duties instead: flag the
-  crossing in your next digest's headline, carry actual-vs-budget in every return and in the
-  briefing's cost line, and if spend is diverging *wildly* from the budget (multiples, not percent),
-  raise it as a non-blocking `open_question`. **Never fabricate a figure to stay under it** —
-  honest-approximate over precise-invented, always.
+| | Teeth | On crossing |
+|---|---|---|
+| `cycles_used` / `max_total_cycles` | **HARD** — it kills runaway fix loops | stop the branch, preserve everything, `status: blocked`, return `BLOCKED`. Never silently continue |
+| `cost_usd` / `max_cost_usd` | **INFORMATIONAL** — a visibility line, never a gate | flag it in your next headline, carry actual-vs-budget in every return and in the briefing, and raise a non-blocking `open_question` only if spend diverges by *multiples* |
+
+**A cycle is REWORK ONLY (DEC-157)** — a FAIL routed back, an unmet-SC re-dispatch, or a send-back a
+lead reports from inside a run. A first-pass run contributes **zero**, however many steps it has: the
+PLAN's task list already bounds forward work, and counting runs as cycles is how a healthy 16-run
+feature goes BLOCKED with nothing wrong. The default (10) lives in harness.json
+`budgets.max_total_cycles`.
+
+**Cost never stops work** — observed: a $9 overrun killed a flow one $5 step from done. And **never
+fabricate a figure to stay under it**: honest-approximate beats precise-invented, always.
 
 ## The question round-trip (SPEC §2.1 — you are the middle of it)
 

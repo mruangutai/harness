@@ -132,31 +132,16 @@ they mean the agent could not proceed, not that its work was rejected, so retryi
 
 For `loop_back`:
 
-1. **Choose the target by evidence, not by position.** Re-dispatch the step whose `files_touched`
-   produced the rejected work, which `to:` names explicitly or the failing DIGEST identifies. With
-   five eng specialists there is no single "build" step to fall back on, so guessing sends the fix
-   to the wrong agent.
-2. **`feed: [self]` means inject the failing step's report** — pass the reviewer's artifact **path**
-   into the re-dispatched prompt, alongside the original inputs. Without it the target repeats
-   itself verbatim and the loop cannot converge; this is the one place a return value must reach a
-   later prompt, and even then it travels as a path.
-3. **Count in your own `state.yaml`, not in your head — and not on the feature.** Increment the
-   per-step `cycles` and write it before re-dispatching; re-read it at the top of every iteration,
-   because the loop is exactly where a context reset happens. **Do not touch `feature.yaml`**: the
-   feature-wide `cycles_used` / `max_total_cycles` is the orchestrator's, and the domain hook blocks
-   you from writing it anyway. Report cycles spent in your team digest and let the orchestrator
-   increment (DEC-119). **Cycles spent means SEND-BACKS (DEC-157):** a clean run where every step
-   passed first time reports `cycles_used: 0` — a first pass is work, not rework, and reporting
-   `1` for it is how a healthy feature exhausts its budget with nothing wrong.
-4. **Reset the downstream.** Steps that already ran after the target return to `pending`; their
-   previous verdicts are stale the moment their input changes.
-5. **Cycle-namespace the outputs of anything that re-runs.** Resolve `{{cycle}}` in output paths to
-   the current count. A step with a fixed output path overwrites its own earlier attempt, so the
-   PASS on cycle 2 destroys the FAIL report from cycle 1 — the evidence for why the cycle was spent
-   (observed: DEC-117). Reviewer reports especially: the failing one is the record.
-6. **On `max_cycles`, take `then:`** — `escalate` (up to the orchestrator, for the user) or `halt`.
-   Never silently retry past the bound. An unbounded fix loop is the failure this counter exists to
-   prevent.
+| What | Do | Why |
+|---|---|---|
+| **target** | re-dispatch the step whose `files_touched` produced the rejection — or the one `to:` names | five specialists, no generic "build" step to guess at |
+| **`feed: [self]`** | inject the failing report's **path** into the re-dispatch, with the original inputs | without it the target repeats itself verbatim and cannot converge; the one place a return value reaches a later prompt, and even then as a path |
+| **counting** | per-step `cycles` in **your** `state.yaml`, written before re-dispatch, re-read each iteration | the loop is exactly where a context reset happens |
+| | never `feature.yaml` — feature-wide counters are the orchestrator's, and the hook blocks you (DEC-119) | report cycles spent in your digest and let it increment |
+| | cycles means **send-backs**: a clean first pass reports `0` (DEC-157) | counting runs instead is how a healthy feature exhausts its budget |
+| **downstream** | steps that ran after the target → `pending` | their verdicts are stale the moment their input changes |
+| **outputs** | resolve `{{cycle}}` in any path that re-runs | else cycle 2's PASS overwrites cycle 1's FAIL — the evidence for why the cycle was spent (DEC-117) |
+| **at `max_cycles`** | take `then:` — `escalate` or `halt` | never silently retry past the bound; an unbounded fix loop is what the counter exists to prevent |
 
 **A note on convergence.** If the same step fails twice with the same reason, more cycles will not
 help — say so in the escalation rather than spending the budget to prove it.
@@ -164,63 +149,38 @@ help — say so in the escalation rather than spending the budget to prove it.
 ### 4. Collate — this is the job, not the paperwork
 
 Collating N member digests is **not** concatenation — it is why the lead tier exists. A stapled
-digest means the orchestrator paid your spawn for nothing.
+digest means the orchestrator paid your spawn for nothing. Four things, in order:
 
-Four things, in order:
+| | Do | Why |
+|---|---|---|
+| **a. roll up** | `BLOCKED > ESCALATE > FAIL > PASS`, worst wins. One `FAIL` makes the team `FAIL` | `ESCALATE` outranks `FAIL` deliberately: a decision only the user can make must not hide behind a failure you could fix |
+| | every member entry carries a `verdict:` | the `SubagentStop` hook computes the worst and rejects a return that claims better; without a verdict it rejects outright |
+| | reporting **worse** than your members is allowed | you may see what they could not |
+| **b. merge** | union `must_fix`, `files_touched`, `open_questions`; merge one defect reported three ways into one entry naming all three reporters | the panel is four lenses on one diff; three copies read as three problems and spend three fix cycles on one |
+| | re-rank `low`/`info` against **what the project does next** | severity and priority are different axes and you are the only tier that sees the second — an inert `info` intersecting the next task outranks a `med` that does not (DEC-124) |
+| **c. assess** | see the table below — this is the part only you can do | each member saw its slice; you saw all of them |
+| **d. headline** | one line, conclusion first, what the team **achieved** | "Auth ship-ready; refresh path untested" routes. "Ran three steps" does not, and it is read before anything else |
 
-**a. Roll up the verdict.** `BLOCKED > ESCALATE > FAIL > PASS`, worst wins. **`ESCALATE` outranks
-`FAIL` deliberately** — a decision only the user can make must not be masked by a failure you could
-have fixed. Never report `PASS` because most members passed; one `FAIL` makes the team `FAIL`.
+**The roll-up is checked, and it is the most consequential thing you can get wrong** — the
+orchestrator routes on your `VERDICT` and never opens member entries, so a masked `FAIL` ships. The
+hook is hardened against the known format and echo shadowings (BUILD task 22, FEAT-02) but the
+structural pass-throughs above still apply: the rule is yours to honour, the hook is the backstop.
 
-**This one is checked.** The `SubagentStop` hook computes the worst verdict across your `members:`
-entries and rejects a return that reports better (worse is allowed — you may see what members could
-not). Every member entry therefore needs a `verdict:` or your return is rejected. It is the most
-consequential thing you can get wrong: the orchestrator routes on your `VERDICT` and never opens
-member entries, so a masked `FAIL` ships. The check has been hardened against the known format and
-echo shadowings (BUILD task 22, FEAT-02), but the structural pass-throughs above still apply — the
-rule is yours to honour; the hook is the backstop.
-
-**b. Merge, then dedupe.** `must_fix`, `files_touched` and `open_questions` are unions across
-members. Reviewers overlap by design — the panel is four lenses on one diff — so **the same defect
-will arrive three times in three vocabularies.** Merge those into one entry naming all three
-reporters. Three copies of one finding reads to the orchestrator as three problems and spends three
-fix cycles on one.
-
-**Re-rank `low` and `info` against what the project does NEXT, not against each other.** Severity
-and priority are different axes and you are the only tier that can see the second. A member grades
-severity from inside its own lens; it cannot know the roadmap. So an `info` finding that blocks the
-next task outranks a `med` that does not.
-
-An inert `info` finding that intersects the next task on the ledger outranks a `med` that does
-not — nothing need be mis-graded for the list to be mis-prioritised (observed: DEC-124).
-
-**c. Assess — the part only you can do.** Each member saw its slice; you are the only agent that
-saw all of them. So decide, and say which:
+**c. Assess — decide, and say which:**
 
 | What you found | What to do |
 |---|---|
-| Two members contradict each other | **Resolve it or escalate it.** Do not pass both up and let the orchestrator guess. If it is decidable from their artifacts, decide and say why |
-| A finding is real but not blocking | Keep it out of `must_fix`. That list is what gates the run; padding it makes the gate meaningless |
-| A finding is out of the team's scope | Route it — `open_questions` if the user must decide, `escalations` if a peer lead owns it |
-| A member's work is genuinely inadequate | **Send it back** (§3 `loop_back`) before you close. Reporting weak work up with a note is the failure mode `zero-micro-management` warns about from the other direction |
-| Everything passed and nothing is interesting | Say that in one line. A short digest is a good outcome, not an under-delivery |
+| Two members contradict each other | **Resolve or escalate.** Do not pass both up and let the orchestrator guess. Decidable from their artifacts? Decide, and say why |
+| A finding is real but not blocking | Keep it out of `must_fix` — that list gates the run, and padding it makes the gate meaningless |
+| A finding is out of the team's scope | Route it: `open_questions` if the user must decide, `escalations` if a peer lead owns it |
+| A member's work is genuinely inadequate | **Send it back** (§3 `loop_back`) before you close. Reporting weak work up with a note is `zero-micro-management`'s failure mode from the other side |
+| Everything passed and nothing is interesting | Say so in one line. A short digest is a good outcome |
 
-**Push-back is collation, not a separate phase.** You are the last tier that can cheaply fix a bad
-result: rework at your level costs one member spawn, and the same rework after the orchestrator has
-routed on your digest costs a whole cycle against the feature budget.
-
-**Report what came back, never how you dispatched it** — an agent has no reliable view of its own
-turn boundaries (DEC-124). Topology is checked externally from spawn records; a confident claim
-about your own dispatch shape is noise at best, a false all-clear at worst.
-
-**d. Write the headline last.** One line, conclusion first, about what the team *achieved* — not
-what it did. "Auth endpoints ship-ready; refresh-token path still untested" routes. "Ran three steps
-and collected digests" does not, and it is what the orchestrator reads before anything else.
-
-**What you must NOT do:** open a member's artifact to second-guess its contents line by line. You
-route on `VERDICT` + `DIGEST`; you read an artifact when a *decision of yours* depends on it (a
-contradiction to resolve, a `must_fix` you doubt), not as a review pass. The one thing you never do
-is re-derive a member's work yourself — that is the whole of `zero-micro-management`.
+| Rule | Why |
+|---|---|
+| **Push-back is collation, not a later phase** | rework at your tier costs one member spawn; the same rework after the orchestrator routed on your digest costs a feature cycle |
+| **Report what came back, never how you dispatched it** | an agent has no reliable view of its own turn boundaries (DEC-124); topology is checked from spawn records, so a claim about it is noise at best, a false all-clear at worst |
+| **Never open an artifact to second-guess it line by line** | you route on `VERDICT` + `DIGEST`; read an artifact only when a decision of *yours* turns on it — re-deriving a member's work is the whole of `zero-micro-management` |
 
 ### 5. Close out
 
