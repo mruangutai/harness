@@ -1,12 +1,12 @@
 feature_id: FEAT-03-subissue-mirror
-phase: build                    # DEC-148 exit predicate: every T-NN carries a PASS run below
+phase: validate                 # build EXITED: T-01..T-08 all carry PASS runs; committed 2897b09, ae728e8, e68ba00
 branch: feat/harness-native-foundation
 pr: none
 status: in_progress
-review_sha: 1ce886a             # PLAN review baseline; re-pinned at build HEAD for the validator panel (INV-6)
+review_sha: e68ba00             # re-pinned at build HEAD for the validator panel (INV-6); 1ce886a was the PLAN baseline
 cycles_used: 6                # DEC-157 rework only: 3 plan fix cycles + 1 send-back (run 09) + 2 prose-only (run 10)
 max_total_cycles: 10          # harness.json budgets.max_total_cycles
-cost_usd: 239                 # approx, OVER max_cost_usd by ~119 (2.0x) — reported not gated (DEC-134)
+cost_usd: 269                 # approx, OVER max_cost_usd by ~149 (2.2x) — reported not gated (DEC-134)
 max_cost_usd: 120             # mirrors harness.json per_feature_usd — user raised 40 -> 120 at 1ce886a
 runs:
   - id: 2026-07-31-01-product
@@ -53,6 +53,12 @@ runs:
     squad: product
     verdict: PASS   # T-08 — DEC-138 am.7 records the reversal and the origin-conditional close; 0 send-backs
     cost_usd: 12  # snapshot delta: product-lead 42.96 to 51.32, documentor +4.02
+  - id: 2026-07-31-12-validator
+    squad: validator
+    verdict: PASS   # panel + added qa step: must_fix [], matrix_ok true, severity_max low, 0 send-backs
+    # dir suffix is -validator not -validation: check-domain grants runs/*-validator/** only. And a
+    # trailing comment on the squad: line silently voids check-state.sh:109's block-form parse.
+    cost_usd: 30  # snapshot delta: validator-lead 16.76, code-reviewer 6.88, qa 3.91, security 2.43
 pending:
   - SC-13 — main-session SKILL.md edit, pre-ship, no agent domain covers it (Q13)
 resolved:

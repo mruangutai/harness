@@ -1,0 +1,36 @@
+chore(FEAT-03): validation panel PASS — reviewer, security and qa findings on record
+
+The reviewer panel ran against the pinned range `4d00dbc..e68ba00` with
+`must_fix: []`, `matrix_ok: true`, `severity_max: low` and zero
+send-backs. `qa_gate` is `blocking` in harness.json, so the gate that
+actually decides this phase is qa's, and it is satisfied: the unit runner
+exits 0 over three scripts and each of the seven `evidence: unit` success
+criteria is named to a test line.
+
+Two execution-time adjustments, both recorded rather than silent. A `qa`
+step was ADDED to the `review` team — `review.yaml` ships with only
+`code`, `security` and `ui`, so running it as written would have exited
+validation with the project's one blocking gate never having run. The
+`ui` step was SKIPPED: no visual surface, no DESIGN.md, and ui-reviewer
+would self-scope out at the cost of a spawn.
+
+Also lands `notes/handoff-build.md`, which the build-to-validate seam
+requires (DEC-159) and whose absence check-state.sh reported as a
+VIOLATION. The build phase was crossed inside one orchestrator session
+rather than relayed, but the note is what a successor reads, so the
+invariant holds either way.
+
+Two numbers corrected against primary sources rather than carried
+forward: there are SEVEN `evidence: unit` criteria, not eight (SC-01,
+02, 03, 04, 05, 08, 12; the remaining six are `verify: inspection`), and
+the empty `sub_issue_id` receipt window raised during the build does not
+exist as built, because `gh()`'s `skip()` is `sys.exit(0)`, which makes
+the attach path act-then-receipt.
+
+Residual findings are non-blocking and carried to the ship briefing's
+proposed backlog, led by `post_body_path`'s narrow `except OSError`:
+ranked first on irreversibility rather than severity, since a wrong file
+posted to a public tracker cannot be un-posted.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_014eZMX1bCGRrL71dpHXwYCj
