@@ -1,12 +1,12 @@
 feature_id: FEAT-03-subissue-mirror
-phase: validate                 # build EXITED: T-01..T-08 all carry PASS runs; committed 2897b09, ae728e8, e68ba00
+phase: ship                     # validate EXITED at panel PASS, must_fix []; goal-check 12 of 12 in-scope SCs met
 branch: feat/harness-native-foundation
 pr: none
-status: in_progress
+status: awaiting_user
 review_sha: e68ba00             # re-pinned at build HEAD for the validator panel (INV-6); 1ce886a was the PLAN baseline
 cycles_used: 6                # DEC-157 rework only: 3 plan fix cycles + 1 send-back (run 09) + 2 prose-only (run 10)
 max_total_cycles: 10          # harness.json budgets.max_total_cycles
-cost_usd: 269                 # approx, OVER max_cost_usd by ~149 (2.2x) — reported not gated (DEC-134)
+cost_usd: 341                 # approx, OVER max_cost_usd by ~221 (2.8x) — reported not gated (DEC-134)
 max_cost_usd: 120             # mirrors harness.json per_feature_usd — user raised 40 -> 120 at 1ce886a
 runs:
   - id: 2026-07-31-01-product
@@ -59,8 +59,29 @@ runs:
     # dir suffix is -validator not -validation: check-domain grants runs/*-validator/** only. And a
     # trailing comment on the squad: line silently voids check-state.sh:109's block-form parse.
     cost_usd: 30  # snapshot delta: validator-lead 16.76, code-reviewer 6.88, qa 3.91, security 2.43
+  - id: 2026-07-31-13-product
+    squad: product
+    verdict: PASS   # pm goal-check: 12 of 12 in-scope SCs met; SC-12 gap was a false premise, 0 send-backs
+    cost_usd: 23  # snapshot delta: product-lead 51.32 to 65.84, pm 36.29 to 44.33
+  - id: 2026-07-31-14-eng
+    squad: eng
+    verdict: PASS   # close-out: eng domain report + distillation (dev-ops 4, backend-dev 5 entries)
+    cost_usd: 9   # snapshot delta: eng-lead 80.35 to 88.36, dev-ops +0.62, backend-dev +0.64
+  - id: 2026-07-31-15-product
+    squad: product
+    verdict: PASS   # close-out: product domain report + distillation (documentor 6, pm 4 entries, created)
+    cost_usd: 26  # snapshot delta: product-lead 65.84 to 87.91, documentor +1.69, pm +1.94
+  - id: 2026-07-31-16-validator
+    squad: validator
+    verdict: PASS   # close-out: validation report + distillation; repaired 4 pre-existing sec-reviewer violations
+    cost_usd: 14  # snapshot delta: validator-lead 16.76 to 28.58, qa/code-rev/sec sonnet +2.51 combined
 pending:
+  - USER DECISION on notes/ship-review-2026-07-31-16.md — ship / fix / re-scope / stop
   - SC-13 — main-session SKILL.md edit, pre-ship, no agent domain covers it (Q13)
+  - three leads' own Expertise ops ride up unapplied in the orchestrator digest (13 ops; G-01 corrected:
+    leads DO hold their own file with upsert, so this was an over-generalization of my own instruction)
+  - GOAL-CHECK PASSED — SC-01..SC-12 all met (run 13). SC-12's reported gap rested on a false premise:
+    ship pre-existed at 4d00dbc, abandon is the only new verb, covered at test-gh-sync.py:529
 resolved:
   - MF-1..MF-6 all resolved; eng-lead re-verified by id at run 2026-07-31-04-eng
   - MF-6 discharged outside the plan at f929d44 (gitignore __pycache__/*.pyc, tracked .pyc untracked)

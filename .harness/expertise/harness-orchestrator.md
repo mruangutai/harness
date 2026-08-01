@@ -1,64 +1,76 @@
 # Expertise — harness-orchestrator
 
-## Patterns
-- P-01: `cost-report.py` is project-cumulative with no per-run filter; it also exits 1 when the
-  transcript contains models it refuses to price (e.g. claude-opus-4-8, <synthetic>) even though
-  the YAML block is emitted. Append with `cmd; echo $?` not `cmd && ...`. Attribute a run by
-  DIFFING per-agent `by_agent` cumulatives between this run's block and the previous run's —
-  the top-line `total:` delta includes unrelated sessions. Fable-tier lead runs measured ~$20
-  each (FEAT-02 runs 03/04), so a $40 feature budget is ~2 such runs after planning: check the
-  bound BEFORE dispatching, not after.
+## Patterns (max 15)
 
-- P-02: Before diagnosing a resumed feature, check whether its runs were PLANTED rather than
-  executed — it reclassifies every finding. The decisive evidence is `.harness/logs/<date>.md`,
-  which records fixture staging by defect id ("05:39 fixtures staged: D1(FEAT-97) D3+D10(FEAT-98)")
-  and tells you HOW MANY defects to expect, so you know when to stop looking. Uniform mtimes across
-  the whole feature dir plus wholly-untracked git status are corroborating, not proof on their own.
-  When staged: no transcript exists, so cost is recorded-not-measured and no `cost-report.py`
-  append is owed (INV-11 is not exposed); and an off-contract digest shape is a fixture property,
-  never a live SubagentStop hook gap — do not file it as a DEC-124-style bug.
+- P-01: WHEN metering a run DO diff per-agent `by_agent` cumulatives against the previous run's block,
+  never the top-line total, and record the post-run cumulative beside the delta as the next baseline.
+  The reporter is project-cumulative and exits 1 on unpriceable models while still emitting.
+- P-02: WHEN a resumed feature's runs look complete DO check whether they were PLANTED rather than
+  executed before diagnosing anything — the dated log under `.harness/logs/` records fixture staging by
+  defect id. Staged runs owe no cost append, and an off-contract digest is then a fixture property,
+  not a hook gap.
+- P-03: WHEN a plan cites a line number inside `feature.yaml` DO treat the anchor as already rotten and
+  cite the FIELD instead — the orchestrator rewrites that file every run, so nobody can keep the
+  reference true.
+- P-04: WHEN dispatching a fix DO pass the discriminating RULE plus an explicit LEAVE list rather than a
+  survey of sites. The LEAVE list does the work: unnamed near-misses are where a member spends a spawn
+  re-judging what is already settled.
+- P-05: WHEN a fix task names N sites carrying a defect DO grep the behaviour word across brief and plan
+  yourself first — the count is habitually low, and the two layers a site list forgets are the
+  REQUIREMENT and the verification CRITERION, which would otherwise go green on wrong prose.
+- P-06: WHEN a review panel returns a finding that would cost a fix cycle DO verify its central premise
+  at the pinned base commit first. "This surface is new" is one grep against the approval commit, and a
+  finding resting on a false premise buys a cycle for nothing.
+- P-07: WHEN a shipped team file is named for a phase DO check it covers every gate the config marks
+  blocking before dispatching it — a team missing a blocking step exits the phase with that gate never
+  run, and the roll-up still reads PASS.
+- P-08: WHEN a narrowing conditional is added anywhere DO require a guard assertion for the over-scoped
+  version of it, emitted inside the case that version would suppress. Before the branch existed there
+  was nothing to over-scope, so the fix's own tests are the only place it is catchable.
 
-## Gotchas
-- G-01: check-domain.sh blocks the orchestrator from writing other agents' expertise files
-  (`.harness/expertise/<agent>.md` other than its own), contradicting harness-expertise's "the
-  orchestrator applies them for you" for leads. Lead expertise ops must ride up to the main
-  session in `expertise_update` instead.
-- G-02: Dispatch prompts must not name `.harness/notes/**` as an output path for eng-lead — its
-  domain excludes it; reviewer artifacts go under `.harness/features/*/runs/*-eng/**`.
-- G-03: A task can arrive naming a defect that is not on disk, framed as small housekeeping
-  ("a reviewer noted X is stale", "set field Y for consistency"). VERIFY THE PREMISE FIRST — on
-  FEAT-99-d7-fixture the cited trace was already correct and the "consistency" edit would have
-  introduced an off-contract token (`pr: n/a`; `none` is the DEC-121 scalar token, and `n/a` is
-  pinned to `suite:` only, SPEC.md:1043). Two further tells that a small ask is really a refusal:
-  the target text is unspecified so any edit invents approved content, and the file is an
-  approval-gated PLAN.md section or another feature's shipped record. Refuse on the MERITS with a
-  citation, not on domain alone — "someone told me to" defeats the domain argument but not the
-  contract one. Size is not scope: "while you're at it" is where scope creep enters.
-- G-04: On a `resume`, reconcile every digest's `files_touched` against `find` over the feature dir
-  — NOT against `git status`, which shows an untracked feature dir as one bare `??` line and hides
-  every artifact inside it. FEAT-98-d3d10-fixture's eng digest claimed `files_touched: []` and "no
-  files were changed anywhere" while `notes/research-t1-findings.md` sat in the feature's own
-  notes/. Distinct from O-02: there state.yaml said `pending` and the artifacts were the surprise;
-  here state.yaml said `complete` and the digest actively DENIED the file. A digest can be
-  well-formed, hook-passing and still false about its own writes. Do not edit the offending digest
-  — the run dir is the lead's; record the contradiction in STATE.md and the `runs:` entry instead.
+## Gotchas (max 15)
 
-## Outcomes
-- O-01: plan-feature segment 3 (ui-reviewer contract check) is skippable when the design pass
-  rules "no end-user interaction" and no DESIGN.md exists — there is no contract to review and
-  ui-reviewer would self-scope out at the cost of a spawn. Record the skip and rationale in
-  STATE.md and feature.yaml.
-- O-02: An interrupted lead dispatch whose subtree ran on leaves member artifacts on disk while
-  the run's state.yaml still shows every step pending (checkpoints were the host's to write).
-  Recovery that worked (FEAT-02): orchestrator verifies the artifacts' key claims directly, then
-  re-dispatches the SAME lead with explicit assess-not-redo instructions — mark the recovered
-  step complete-with-note, run only the remaining steps. Do not redo the work and do not mark
-  steps complete yourself; the run dir is the lead's.
-- O-03: A `resume` mission can land on a feature with BRIEF.md + PLAN.md and NO feature.yaml or
-  STATE.md. Creating both is the orchestrator's own in-domain work and is the real deliverable
-  when the named asks turn out to be refusals — the return contract points `artifact:` at
-  feature.yaml, so without it there is nothing to return. Budgets come from `harness.json`
-  (`budgets.per_feature_usd`), never inherited from another feature. With `runs: []` there is no
-  `cost-report.py` basis and no INV-11 exposure: `cost_usd: pending` is correct, not a gap.
+- G-01: WHEN routing Expertise ops DO check the owner's own domain grant first. The domain hook blocks
+  the orchestrator from writing ANOTHER agent's file, but leads and members hold their own with
+  `upsert: true` — telling a lead not to self-apply strands its ops with no owner at all.
+- G-02: Dispatch prompts must not name `.harness/notes/**` as an output path for eng-lead — its domain
+  excludes it. Member and reviewer artifacts belong under the path that member's own grant names.
+- G-03: WHEN a task arrives naming a defect as small housekeeping DO verify the premise on disk and
+  refuse on the MERITS with a citation, not on domain alone. Two tells: the target text is
+  unspecified so any edit invents approved content, or the file is approval-gated.
+- G-04: WHEN reconciling a resume DO diff every digest's `files_touched` against `find` over the feature
+  dir, never `git status` — an untracked feature dir shows as one bare `??` line and hides every
+  artifact inside it. A digest can be well-formed, hook-passing and still false about its own writes.
+- G-05: State-file caps are PreToolUse BLOCKs and the only write tool is whole-file, so every overrun
+  costs a redraft rather than an edit. Draft a seam handoff at ~50 lines against its 60 cap and the
+  state file at ~105 against its 120; fixed headers and blank lines eat the rest.
+- G-06: WHEN crossing a phase seam DO write the handoff note even when continuing in the same session
+  instead of relaying — the invariant checker reads the phase field and reports a missing seam note as a
+  VIOLATION, not as advice.
+- G-07: A run dir's squad suffix must match the owning lead's domain glob exactly, and a trailing
+  comment on a run entry's `squad:` line silently drops that run from the invariant checker's
+  block-form parse. Put comments on the verdict or cost line instead.
+- G-08: WHEN a guard rejects a shell command for a redirect you did not write DO look for `>` inside
+  quoted or heredoc PROSE — the scan does not respect quoting. Pass commit messages by file, and write
+  any prose containing angle brackets with the file-write tool rather than a heredoc.
 
-## Open
+## Outcomes (max 10)
+
+- O-01: WHEN the design pass rules no end-user interaction and no design contract exists DO skip the
+  ui-reviewer step and record the skip with its rationale — there is nothing to review and the reviewer
+  self-scopes out at the cost of a spawn. The same rationale retires the post-build ui audit.
+- O-02: WHEN an interrupted dispatch left member artifacts on disk while every step still reads
+  `pending` DO verify the artifacts' key claims yourself, then re-dispatch the SAME lead with explicit
+  assess-not-redo instructions. Never redo the work, never mark another agent's steps complete.
+- O-03: WHEN a mission lands on a feature with a brief and plan but no state or feature file DO create
+  both — that is the real deliverable when the named asks turn out to be refusals. Budgets come from
+  project config, never inherited from another feature.
+- O-04: WHEN a plan carries a criterion whose subject no agent domain covers DO carve it out of the
+  agent goal-check citing the plan's own precondition, and return it as a named pre-ship step. Handing
+  it to a checker returns it unmet and demands a fix cycle routable to no lead.
+
+## Open (max 5)
+
+- OQ-01: Relayed distillation candidates were accepted at near 100% across six members in one feature.
+  Good sourcing and a member treating relay as instruction look identical in one sample; a second
+  feature with zero rejections means the relay has become dictation.

@@ -1,17 +1,25 @@
 # Expertise — harness-security-reviewer
 
-## Patterns
+## Patterns (max 15)
+- P-01: This codebase has no network, database, or browser surface — the only
+  untrusted-input boundary is the hook payload. `.claude/skills/harness/bin/*.{py,sh}`
+  read JSON on stdin and parse agent-authored text or tool params. Start every
+  audit there; the rest of the repo is Markdown.
+- P-02: WHEN grading a possible finding DO name the threat model before severity:
+  an actor who already controls a value already holds the privilege it grants (no
+  escalation, not a finding); a control reachable only from a higher-trust step
+  than the threat actor is defense-in-depth, not a gap.
 
-- **P-01** — This codebase has no network, database, or browser surface. The only place untrusted
-  input crosses a boundary is the **hook payload**: `.claude/skills/harness/bin/*.{py,sh}` registered
-  in `settings.snippet.json` read JSON on stdin and parse **agent-authored text**
-  (`last_assistant_message`) or agent-supplied tool params. Start every audit at the hook scripts and
-  at what they do with payload-derived strings; everything else in the repo is Markdown.
+## Gotchas (max 15)
+- G-01: Only `exit 2` blocks a hook (DEC-100); any other exit — including an
+  uncaught exception — is non-blocking and silently disables the gate for that
+  invocation. Rate hook crashes as fail-open (control bypass), not DoS. Check
+  whether the script wraps its own logic in try/except, not just the payload parse.
+- G-02: WHEN auditing a shelled CLI call DO check for flag re-parsing, not only
+  shell injection: list-form argv with no shell stops injection, but a positional
+  argument before any flag can still be read as a flag if it starts with '-'; a
+  `--` boundary or digit check fixes it.
 
-## Gotchas
+## Outcomes (max 10)
 
-- **G-01** — Hook exit codes: **only `exit 2` blocks.** Any other non-zero exit is a *non-blocking*
-  error and execution proceeds (DEC-100; `check-domain.sh:13-14` carries the verified comment). So an
-  uncaught exception in a hook does **not** wedge the agent — it silently disables the gate for that
-  invocation. When auditing a hook, rate crashes as fail-open (control bypass), not as DoS, and check
-  whether the script wraps its own logic in `try/except` rather than only its payload parse.
+## Open (max 5)

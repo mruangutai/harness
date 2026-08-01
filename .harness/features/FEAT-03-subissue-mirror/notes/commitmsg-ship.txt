@@ -1,0 +1,39 @@
+chore(FEAT-03): ship review written; feature-close distillation across six members
+
+The feature is at its user gate. Goal-check returned twelve of twelve
+in-scope success criteria met, over a panel that had already passed with
+no blocking findings. `notes/ship-review-2026-07-31-16.md` is the
+briefing and the only artifact here addressed to a human: it carries the
+cost line against budget, the honest limits of the assurance, and a
+proposed backlog of twelve residual findings each with a nature. Ship,
+fix, re-scope or stop is the user's call, and SC-13 remains the user's
+own two-line edit to a file no agent domain covers.
+
+SC-12's reported evidence gap turned out to rest on a false premise and
+is closed. `ship` is a pre-existing subcommand — the brief says so and
+`cmd_ship` was already defined at the approval commit, where
+`cmd_abandon` was not — so `abandon` is the only new verb and it is
+covered by name. What seeded the error is real and is on the backlog: a
+test label claiming "for the new subcommand too" sits above an
+invocation of an old one, and that false label travelled two review
+tiers as though it were a measurement.
+
+Distillation touched eight Expertise files and REPAIRED two rather than
+merely extending them. `harness-security-reviewer.md` carried four
+pre-existing violations of its own validator, and
+`harness-orchestrator.md` carried eleven — six entries over the 50-word
+cap and five naming feature ids. Both were being injected at every spawn
+in that state. Four files were created from absent. All eight now pass
+`check-expertise.sh`; prior entries were condensed, never dropped.
+
+Also lands `notes/handoff-validate.md`, which the validate-to-ship seam
+requires and whose absence check-state.sh reports as a VIOLATION.
+
+Thirteen lead Expertise ops ride up unapplied and need an owner: the
+dispatch told each lead not to self-apply, on an over-generalized
+reading of a rule that constrains only the orchestrator. Each lead in
+fact holds its own file with upsert. That rule is now corrected in
+place.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_014eZMX1bCGRrL71dpHXwYCj

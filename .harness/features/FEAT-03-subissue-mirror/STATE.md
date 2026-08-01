@@ -3,93 +3,77 @@
 ## Current
 
 - feature: FEAT-03-subissue-mirror
-- run: .harness/features/FEAT-03-subissue-mirror/runs/2026-07-31-11-product/state.yaml (last complete)
-- squad: validation (next)
-- status: in-progress
-- phase: **validate** (was build). Build EXITED on its disk-checkable predicate (DEC-148): T-01..T-08
-  all carry PASS runs in `feature.yaml`. Validate exits at panel PASS with `must_fix` resolved.
-- note: **BUILD IS DONE AND COMMITTED — three commits, `4d00dbc..e68ba00`.** `2897b09` T-01,
-  `ae728e8` T-02..T-07, `e68ba00` T-08. `review_sha` re-pinned from the plan baseline `1ce886a` to
-  `e68ba00` (INV-6). Tree carries only the held dirt `.harness/logs/2026-07-31.md`, never staged.
-  **Every discriminating receipt was re-verified by the orchestrator, not taken from a digest.**
-  `run-unit-tests.sh` exits 0 naming three scripts. All four SC-06 payload/lookup absences are clean
-  in `wayfind.py` while BOTH carve-out list GETs remain (`sub_issues", "--paginate"` = 1,
-  `dependencies/blocked_by",$` = 1 — 0 would have meant a wrongly extracted GET). No bare `"gh"`
-  literal remains. `parent_args|blocked_by_args` in `gh-sync.py` = 0, the standing guard intact. The
-  suite now prints `close-task closes exactly one issue` and `absorbed #12 #14 NOT closed` — the
-  inversion D-02 demanded, not a deleted assertion. All four leave-open fixtures assert absence in
-  BOTH close forms (`issue close 40` AND a regex over any `issues/40` call), so the MF-1 class did not
-  recur. `ship closes the milestone regardless of parent origin` is emitted inside the ADOPTED fixture
-  at `test-gh-sync.py:583` — the only placement catching one `if origin == "created":` wrapped around
-  both the parent close and the milestone PATCH. `check-docs.sh` exit 0 (45 patterns / 73 files, "no
-  stale statements found") and `check-state.sh` exit 0 with no INV-10 line, both after DEC-138 am.7
-  landed at `DECISIONS.md:4299-4374` with NO staleness marker declared — the deliberate choice that
-  keeps the checker green (SC-11) and leaves SC-13 to the main session.
-  **Two things the plan did not anticipate, both execution-time adjustments:** (1) `review.yaml` has
-  only `code`, `security`, `ui` and **no `qa` step**, yet `harness.json` sets `qa_gate: blocking` —
-  running it as written would exit validate with the blocking gate never run. `harness-qa` is a
-  Validation member (`team-config.yaml:207`), so validator-lead gets the `review` team **plus an added
-  `qa` step**. (2) The `ui` step is skipped on the rationale already in `skipped_segments` — no visual
-  surface, no DESIGN.md; ui-reviewer would self-scope out at the cost of a spawn.
-  **Ship-refresh is SKIPPED: there is no map.** No `INDEX.md` anywhere in the repo and no map dir
-  under `.harness/`, so there is no provenance to update and no stale role section to rewrite.
-  **Goal-check is scoped SC-01..SC-12, SC-13 carved out** on the `PLAN ## Preconditions` citation —
-  not a waiver; a fix cycle for SC-13 is routable to no lead (Q13). SC-06, SC-07, SC-09, SC-10, SC-11
-  are `verify: inspection` and are NOT spoken to by the green suite. One pre-empted false positive:
-  this feature's own `feature.yaml` IS in the diff (phase, cycles, cost, runs), so a loose SC-10 read
-  flags it — the discriminating check is the `github:` block, still `parent: none` / `milestone: none`
-  / `issues: {}`, unchanged, and no other feature's `feature.yaml` is in the range.
-  **Budgets, flagged up rather than absorbed.** `cycles_used: 6 of 10`, correct per DEC-157
-  (lead-reported send-backs count even when prose-only: 3 plan fix cycles, 1 in run 09, 2 in run 10) —
-  four left, panel not yet run. `cost_usd` ~239 of 120, **2.0x**; run 10 alone ~$54 against
-  `per_run_usd: 15.0`. Cost never gates (DEC-134); both ride up as non-blocking open questions,
-  because raising either bound is the user's decision and should reach them before exhaustion.
+- run: .harness/features/FEAT-03-subissue-mirror/runs/2026-07-31-16-validator/state.yaml (last complete)
+- squad: none — nothing is dispatchable
+- status: awaiting-user
+- phase: **ship** (was validate). Validate EXITED at panel PASS with `must_fix: []`; the goal-check then
+  returned **12 of 12 in-scope SCs met**. Ship ends at a user gate, which is where this now sits.
+- note: **THE BRIEFING IS WRITTEN AND THE FEATURE AWAITS THE USER.**
+  `notes/ship-review-2026-07-31-16.md` — the one artifact addressed to a human. Three things come back
+  from the user and from no agent: the **ship / fix / re-scope / stop** decision; the **SC-13 edit** to
+  `.claude/skills/harness/SKILL.md:137,144`, which no agent domain covers; and a **judgement on the
+  half-applied `abandon`** (a mid-flight `gh()` failure in the reason-comment step calls `skip()`, which
+  is `sys.exit(0)`, so the command can exit 0 having closed nothing — it satisfies SC-12 literally, so it
+  is emergent, not a defect against anything approved; pm recommends a follow-on BRIEF item, and I
+  endorse that). On `ship`, the unstruck B-1..B-12 become issues; anything struck dies silently.
+  **Five commits, all on `feat/harness-native-foundation`, nothing merged and no PR:** `2897b09` T-01,
+  `ae728e8` T-02..T-07, `e68ba00` T-08, `4d4c3af` validation bookkeeping, plus this close-out.
+  `git log 4d00dbc..HEAD` shows only mine — validator-lead's Q5 (files modified at its spawn) is
+  resolved: the two `harness-*/SKILL.md` files were last touched by pre-existing `9a1f638`/`e4a07fb`.
+  **Every load-bearing receipt was re-run by me, never taken from a digest.** `run-unit-tests.sh` exit 0
+  over three scripts; `check-docs.sh` exit 0; `check-state.sh` all invariants hold; all four SC-06
+  payload/lookup absences clean while both carve-out list GETs still count 1; `parent_args|
+  blocked_by_args` in `gh-sync.py` = 0; `absorbed #12 #14 NOT closed` present.
+  **SC-12's reported evidence gap was a FALSE PREMISE and is closed.** validator-lead read `ship` as a
+  new subcommand; `BRIEF:19-20` names it pre-existing, and at the approval commit `cmd_ship` was defined
+  while `cmd_abandon` was not. `abandon` is the only new verb and `test-gh-sync.py:529` covers it. **What
+  seeded the error is real and is B-2:** `:353`'s label claims "for the new subcommand too (SC-12)" while
+  `:351` invokes `open`. A lying test label travelled two tiers as though it were a measurement. Routing
+  it to pm rather than adjudicating it myself is what caught it, at the cost of no cycle.
+  **Distillation done — and two Expertise files were REPAIRED, not merely extended.**
+  All eight `.harness/expertise/*.md` now pass `check-expertise.sh`. `harness-security-reviewer.md` had
+  **four pre-existing violations** its member fixed; **my own had eleven** (six entries over the 50-word
+  cap, five carrying feature ids), distilled this run — the spawn hook had been injecting a file its own
+  validator rejects. Four files were created from absent (documentor, pm, qa, code-reviewer). 23 member
+  entries accepted; the digest-skim sourced a majority, so it earned its cycle — though validator-lead
+  rightly flags that 8-of-8 acceptance cannot distinguish good sourcing from relay-as-dictation in one
+  sample, now `OQ-01` in my own Expertise.
+  **13 lead Expertise ops ride up UNAPPLIED in my digest** (eng 4, product 6, validator 3). My dispatch
+  told the leads not to self-apply, on an over-generalized reading of my own G-01: the domain hook blocks
+  **me** from writing another agent's file, but `team-config.yaml:259` grants each lead its own with
+  `upsert: true`. product-lead caught the error and complied anyway. G-01 is now corrected.
+  **Skips, all recorded rather than silent:** all three GitHub mirror sync points (`github.sync` false,
+  `repo` null — so the mirror posts nothing and every invariant is proven against the fake `gh`); the
+  `ui` panel step and visual-designer (no visual surface, no DESIGN.md); ship-refresh (no `INDEX.md` and
+  no map dir exists anywhere in the repo).
+  **Budgets: cost ~$341 of $120 (2.8x); `cycles_used` 6 of 10.** Cost never gates (DEC-134). ~$162
+  predates the build; build ~$74, validation ~$53, close-out ~$49; the six-task build run alone was ~$54
+  against `per_run_usd: 15.0`. Three of the six cycles were **prose-only** send-backs — no implementation
+  was rejected once — which is why 6 reads heavier than the work was. Both bounds are the user's to
+  raise; neither was edited.
 
 ## Open Questions
 
-- **Q13 (for the user, PRE-SHIP) — SC-13 is a criterion only the main session can satisfy.** Its
-  subject `.claude/skills/harness/SKILL.md:137,144` is covered by no agent domain. Verified still open
-  at `e68ba00`: `grep -c 'closes its issue and everything it absorbs' SKILL.md` is **1** and `:144`'s
-  ship row still names only the milestone. Fix cycle 3 raised the bar — the row must name the parent
-  **and** name it conditional on recorded origin; a row asserting an unconditional close does not
-  satisfy SC-13. Nothing mechanical detects this: `check-docs.sh` is silent **by design**, because a
-  staleness marker for still-live wording turns the checker red and gates every `/harness` entry on an
-  edit no agent may make. T-08 therefore declared no marker. Returned as a named pre-ship step.
-- Q18 (eng-lead, run 10) — `cmd_open`'s attach receipt is written after a `gh()` internal-id lookup;
-  a lookup returning exit 0 with EMPTY stdout would POST an empty `sub_issue_id` and still be
-  receipted, so no re-run repairs it. Window is narrow (a real `gh api` failure exits non-zero, which
-  `gh()` turns into SKIP exit 0 before the POST) and PLAN specifies no guard, so the member correctly
-  declined to add one. Accept, or add an empty-id guard as a follow-up.
-- Q19 (eng-lead, run 10) — `wayfind.py` is exercised by NO test in `run-unit-tests.sh`, yet T-02 made
-  it import-dependent on `gh_issues.py`. Its runtime path rests on one ad-hoc import probe. Low risk
-  given dry-run-by-default, but unproven by the gate rather than proven by it.
-- Q20 (eng-lead, run 10, harness defect) — `validate-digest.py`'s dev-ops `change_type` enum is
-  `{config, scaffolding, infra, ci}` and lacks `logic`, the value PLAN:576 scopes T-07 with. Two
-  vocabularies, one field name; t07 reported `infra` and flagged it rather than working around it.
-- Q9 (eng-lead, harness gap — CONFIRMED, WIDER THAN FILED) — no `build` team yaml exists, worked
-  around in all three build runs with inline step lists; **and** `review.yaml` lacks the `qa` step the
-  blocking `qa_gate` needs. Both reach every future feature.
-- Q14 (orchestrator, harness defect) — `bash-write-guard.sh` reads any `>` in a bash command string,
-  including quoted and heredoc CONTENT, as a redirect. Five hit classes now, two new this run: an
-  arrow inside a read-only `python3 -c` print argument, and an HTML comment marker in heredoc prose.
-  Workarounds: `git commit -F <file>`, and the Write tool for prose with angle brackets.
-- Q11 (orchestrator, harness defect) — the playbook's `cost-report.py --yaml >>` append makes a
-  duplicate top-level `cost:` that `check-state.sh` rejects (DEC-156); renaming the placeholder is
-  also rejected since `CHECKPOINT_KEYS` admits only `cost`. Hand-nested as `cost.run_usd` in all
-  eleven run dirs. Also: the script is project-cumulative with no per-run filter and exits 1 on
-  unpriceable models while still emitting, so attribution is by diffing `by_agent` run to run.
-- Q17 / Q16b (cosmetic, non-blocking) — PLAN cites `feature.yaml:41` for `parent: none` at four sites
-  and the line keeps moving (now `:73`); documentor cited `:73` in the amendment rather than edit the
-  approval-gated PLAN. And PLAN:644 / PLAN:649 / BRIEF:174-177 baseline `check-docs.sh` at 69 files
-  and `check-state.sh` at exit 1, observed 73 files and exit 0. No SC asserts any of these literals,
-  so nothing is falsified. Cite fields, not lines.
-- Q10 (orchestrator, harness defect) — `check-state.sh` infers a cycle from any FAIL run, firing a
-  VIOLATION on the "FAIL held at the user gate" state DEC-157 defines as zero cycles. Symptom retired
-  at signature; the over-approximation stands, as does the asymmetry (pending PLAN is a note, pending
-  BRIEF a violation — yet a plan mission ends with both pending).
-- Q1 / Q2 / Q3 / Q4 / Q5 / Q6 (pm, from planning) — unowned-domain prose (`SKILL.md`,
-  `harness-brief/SKILL.md`), the frozen adopted-parent body, the prototype gate judged not required,
-  the `attached:` receipt schema addition (landed; suite asserts both survival cases), and the slug
-  judged narrower than the feature (immutable under DEC-133). Unchanged this run.
-- Q8 (eng-lead) — CLOSED IN EXECUTION: T-08 routed to product-lead as run 11 (DEC-118), PASS, zero
-  send-backs.
+- **SC-13 (for the user, PRE-SHIP, blocking the feature's completeness)** — the only criterion no agent
+  can satisfy. `grep -c 'closes its issue and everything it absorbs' .claude/skills/harness/SKILL.md`
+  reads **1** and must read **0**; `:144`'s ship row must name the parent **and** name it conditional on
+  recorded origin — a row asserting an unconditional close does not satisfy it. Nothing mechanical
+  detects this **by design**: a staleness marker for still-live wording turns `check-docs.sh` red and
+  gates every `/harness` entry on an edit no agent may make, so T-08 declared none. Carried in the
+  briefing as a named pre-ship step with its exact grep.
+- **`abandon` can half-apply (for the user, judgement)** — see the phase note. Emergent, not a defect;
+  pm recommends a follow-on BRIEF item and I endorse it. Not adopted as an SC by me — that is not mine.
+- **13 unapplied lead Expertise ops** — need an owner. Each lead holds its own file with `upsert: true`,
+  so a one-line re-dispatch per lead would apply them; otherwise the main session applies them verbatim.
+  If nobody acts, three leads' lessons from this feature are lost, since observations are never injected.
+- Backlog candidates B-1..B-12 are enumerated with natures in the briefing and are **not** repeated here
+  — the briefing is their single home, and only what survives the user's strike-through becomes an issue.
+  Six of the twelve are harness-tooling defects rather than anything this feature built: the bash
+  write-guard's `>` misparse (five hits this run), `check-state.sh:109`'s run parser dropping any entry
+  with a trailing comment on its `squad:` line, the missing `build` team plus `review.yaml`'s absent `qa`
+  step under a **blocking** `qa_gate`, the cost reporter's per-run gap, `validate-digest.py`'s
+  `change_type` vocabulary collision, and `check-expertise.sh`'s blind spots.
+- Q1..Q8 (pm and eng-lead, from planning) — unowned-domain prose (`SKILL.md`, `harness-brief/SKILL.md`),
+  the frozen adopted-parent body, the prototype gate judged not required, the `attached:` receipt schema
+  (landed; the suite asserts both survival cases), and the slug judged narrower than the feature
+  (immutable under DEC-133). Q8 CLOSED in execution — T-08 routed to product-lead as run 11 (DEC-118).
