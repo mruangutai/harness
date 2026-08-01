@@ -64,6 +64,23 @@ Working rules (DEC-149, adapted from domain-modeling practice):
   a status set) updates the glossary in the same ship-refresh pass that updates your
   product-surface lens. Create the file lazily; empty is worse than absent.
 
+## Citations and baselines rot — anchor them so they cannot (B-11, B-12)
+
+Two failure shapes, both measured on FEAT-03 where four citations were stale before the build began:
+
+- **Cite the FIELD, never the line, in any file the org rewrites.** `feature.yaml:41` was cited four
+  times for `parent: none`; the orchestrator rewrote that file every run and line 41 became
+  `squad: eng`. Write `feature.yaml github.parent` instead. Line anchors are correct only into files
+  a task does not touch — source, migrations, a pinned SHA's tree.
+- **A recorded baseline carries the sha it was observed at, and the condition.** "check-state.sh
+  exits 1" went stale the moment the user signed the approval — the signature itself changed the
+  answer. Write `observed exit 1 at <sha>, BRIEF pending`, so a later reader can tell drift from
+  falsification. A bare number is unfalsifiable and therefore unverifiable.
+
+Nothing false is asserted when either rots, which is exactly why neither gets caught: the claim
+survives while the pointer dies. Both are `verify:` inputs, so a rotted anchor sends a doer to the
+wrong place with a correct instruction.
+
 ## Success criteria declare how they are verified
 
 Every `SC-NN` carries `verify: automated | inspection | uat`. An SC with no method is not verifiable, and

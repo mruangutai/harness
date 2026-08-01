@@ -1,3 +1,5 @@
+# Expertise — harness-dev-ops
+
 ## Patterns (max 15)
 - P-01: This repo has no build system — no package.json, Makefile, or .github/. All automation is Claude Code hooks in .claude/settings.json (SubagentStart / PreToolUse / SubagentStop), which is the only wiring mechanism in use.
 - P-02: WHEN a test runner combines an explicit list with a glob-based drift detector DO keep the two mechanisms separate — collapsing to glob-and-run erases the case that makes a specific exit code reachable and silently disables drift detection.

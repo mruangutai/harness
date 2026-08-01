@@ -1,3 +1,5 @@
+# Expertise — harness-backend-dev
+
 ## Patterns (max 15)
 - P-01: CANARY-7f3a9b — this line exists only to prove Expertise injection fires.
 - P-02: WHEN a task's listed verify steps are grep receipts plus a test suite that imports code
