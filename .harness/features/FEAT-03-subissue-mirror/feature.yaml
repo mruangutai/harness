@@ -6,7 +6,7 @@ status: in_review              # briefing written, awaiting the user's ship/fix/
 review_sha: e68ba00             # re-pinned at build HEAD for the validator panel (INV-6); 1ce886a was the PLAN baseline
 cycles_used: 6                # DEC-157 rework only: 3 plan fix cycles + 1 send-back (run 09) + 2 prose-only (run 10)
 max_total_cycles: 10          # harness.json budgets.max_total_cycles
-cost_usd: 341                 # approx, OVER max_cost_usd by ~221 (2.8x) — reported not gated (DEC-134)
+cost_usd: 358                 # approx, OVER max_cost_usd by ~238 (3.0x) — reported not gated (DEC-134)
 max_cost_usd: 120             # mirrors harness.json per_feature_usd — user raised 40 -> 120 at 1ce886a
 runs:
   - id: 2026-07-31-01-product
@@ -75,11 +75,24 @@ runs:
     squad: validator
     verdict: PASS   # close-out: validation report + distillation; repaired 4 pre-existing sec-reviewer violations
     cost_usd: 14  # snapshot delta: validator-lead 16.76 to 28.58, qa/code-rev/sec sonnet +2.51 combined
+  - id: 2026-08-01-17-eng
+    squad: eng
+    verdict: PASS   # lead distillation repair: 4 own ops applied verbatim, file created, 0 dropped
+    cost_usd: 5   # snapshot delta: eng-lead 88.36 to 93.58 over 2 spawns (distill + 1-field digest fix)
+  - id: 2026-08-01-18-product
+    squad: product
+    verdict: PASS   # lead distillation repair: 6 own ops applied verbatim, file created, 0 dropped
+    cost_usd: 6   # snapshot delta: product-lead 87.91 to 93.62 over 2 spawns (distill + digest encoding)
+  - id: 2026-08-01-19-validator
+    squad: validator
+    verdict: PASS   # lead distillation repair: 3 own ops applied verbatim, file created, 0 dropped
+    cost_usd: 6   # snapshot delta: validator-lead 28.58 to 34.79, one spawn, no fix round needed
 pending:
   - USER DECISION on notes/ship-review-2026-07-31-16.md — ship / fix / re-scope / stop
   - SC-13 — main-session SKILL.md edit, pre-ship, no agent domain covers it (Q13)
-  - three leads' own Expertise ops ride up unapplied in the orchestrator digest (13 ops; G-01 corrected:
-    leads DO hold their own file with upsert, so this was an over-generalization of my own instruction)
+  - B-13 CANDIDATE, new at run 17-19 — validate-digest.py:493-497 rejects `members: []` with a non-zero
+    steps_run, so a lead's self-executed step has no truthful encoding. Raised by both product-lead and
+    validator-lead independently. Not in the signed briefing; reaches the user via the run digest only
   - GOAL-CHECK PASSED — SC-01..SC-12 all met (run 13). SC-12's reported gap rested on a false premise:
     ship pre-existed at 4d00dbc, abandon is the only new verb, covered at test-gh-sync.py:529
 resolved:
@@ -92,6 +105,8 @@ resolved:
     abandon; 6 sites edited (run 07), re-verified per-item with must_fix [] (run 08)
   - Q16 CLOSED at fix cycle 3 — PLAN:20-24 names 1ce886a the pinned review baseline, not "current HEAD"
   - approval gate PASSED — BRIEF:233 and PLAN:653 both status approved, Mike Ruangutai, at 4d00dbc
+  - LEAD DISTILLATION CLOSED at runs 17-19 — all 13 lead ops applied by their own owners, 0 dropped;
+    check-expertise.sh over .harness/expertise/ is OK on all 11 files, exit 0
 skipped_segments:
   - segment: 1b-visual-designer-design-pass
     reason: surface is bin/*.py, feature.yaml fields and GitHub API calls — no end-user visual surface, no DESIGN.md

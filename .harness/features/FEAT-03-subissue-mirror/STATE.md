@@ -3,54 +3,52 @@
 ## Current
 
 - feature: FEAT-03-subissue-mirror
-- run: .harness/features/FEAT-03-subissue-mirror/runs/2026-07-31-16-validator/state.yaml (last complete)
+- run: .harness/features/FEAT-03-subissue-mirror/runs/2026-08-01-19-validator/state.yaml (last complete)
 - squad: none — nothing is dispatchable
 - status: awaiting-user
-- phase: **ship** (was validate). Validate EXITED at panel PASS with `must_fix: []`; the goal-check then
-  returned **12 of 12 in-scope SCs met**. Ship ends at a user gate, which is where this now sits.
+- phase: **ship**, unchanged. The feature still sits at its user gate; this run moved no gate.
 - note: **THE BRIEFING IS WRITTEN AND THE FEATURE AWAITS THE USER.**
   `notes/ship-review-2026-07-31-16.md` — the one artifact addressed to a human. Three things come back
   from the user and from no agent: the **ship / fix / re-scope / stop** decision; the **SC-13 edit** to
   `.claude/skills/harness/SKILL.md:137,144`, which no agent domain covers; and a **judgement on the
   half-applied `abandon`** (a mid-flight `gh()` failure in the reason-comment step calls `skip()`, which
-  is `sys.exit(0)`, so the command can exit 0 having closed nothing — it satisfies SC-12 literally, so it
-  is emergent, not a defect against anything approved; pm recommends a follow-on BRIEF item, and I
-  endorse that). On `ship`, the unstruck B-1..B-12 become issues; anything struck dies silently.
-  **Five commits, all on `feat/harness-native-foundation`, nothing merged and no PR:** `2897b09` T-01,
-  `ae728e8` T-02..T-07, `e68ba00` T-08, `4d4c3af` validation bookkeeping, plus this close-out.
-  `git log 4d00dbc..HEAD` shows only mine — validator-lead's Q5 (files modified at its spawn) is
-  resolved: the two `harness-*/SKILL.md` files were last touched by pre-existing `9a1f638`/`e4a07fb`.
-  **Every load-bearing receipt was re-run by me, never taken from a digest.** `run-unit-tests.sh` exit 0
-  over three scripts; `check-docs.sh` exit 0; `check-state.sh` all invariants hold; all four SC-06
-  payload/lookup absences clean while both carve-out list GETs still count 1; `parent_args|
-  blocked_by_args` in `gh-sync.py` = 0; `absorbed #12 #14 NOT closed` present.
-  **SC-12's reported evidence gap was a FALSE PREMISE and is closed.** validator-lead read `ship` as a
-  new subcommand; `BRIEF:19-20` names it pre-existing, and at the approval commit `cmd_ship` was defined
-  while `cmd_abandon` was not. `abandon` is the only new verb and `test-gh-sync.py:529` covers it. **What
-  seeded the error is real and is B-2:** `:353`'s label claims "for the new subcommand too (SC-12)" while
-  `:351` invokes `open`. A lying test label travelled two tiers as though it were a measurement. Routing
-  it to pm rather than adjudicating it myself is what caught it, at the cost of no cycle.
-  **Distillation done — and two Expertise files were REPAIRED, not merely extended.**
-  All eight `.harness/expertise/*.md` now pass `check-expertise.sh`. `harness-security-reviewer.md` had
-  **four pre-existing violations** its member fixed; **my own had eleven** (six entries over the 50-word
-  cap, five carrying feature ids), distilled this run — the spawn hook had been injecting a file its own
-  validator rejects. Four files were created from absent (documentor, pm, qa, code-reviewer). 23 member
-  entries accepted; the digest-skim sourced a majority, so it earned its cycle — though validator-lead
-  rightly flags that 8-of-8 acceptance cannot distinguish good sourcing from relay-as-dictation in one
-  sample, now `OQ-01` in my own Expertise.
-  **13 lead Expertise ops ride up UNAPPLIED in my digest** (eng 4, product 6, validator 3). My dispatch
-  told the leads not to self-apply, on an over-generalized reading of my own G-01: the domain hook blocks
-  **me** from writing another agent's file, but `team-config.yaml:259` grants each lead its own with
-  `upsert: true`. product-lead caught the error and complied anyway. G-01 is now corrected.
+  is `sys.exit(0)`, so the command can exit 0 having closed nothing — emergent, not a defect against
+  anything approved; pm recommends a follow-on BRIEF item and I endorse it). On `ship`, the unstruck
+  B-1..B-12 become issues; anything struck dies silently.
+  **THE LEAD DISTILLATION DEADLOCK IS CLEARED — runs 17-19, all 13 ops applied by their own owners.**
+  This is the one thing this session did. `harness-eng-lead.md` (4 ops: Patterns 3, Gotchas 1),
+  `harness-product-lead.md` (6: Patterns 3, Gotchas 2, Outcomes 1) and `harness-validator-lead.md`
+  (3: Patterns 2, Open 1) **did not exist at all** and now do. **Nothing was dropped and nothing was
+  re-adjudicated** — each lead applied its own recorded judgments verbatim, assigning ids only.
+  `check-expertise.sh .harness/expertise/` is **OK on all 11 files, exit 0**, run by me, including the
+  title rule added at `99dd80a` after every one of those leads' runs.
+  **The defect this repaired was mine.** My close-out dispatch told the leads not to self-apply, reading
+  my own G-01 too widely: the domain hook blocks the ORCHESTRATOR from writing another agent's Expertise
+  file, but `team-config.yaml` grants each lead its own with `upsert: true`. That left 13 ops with no
+  owner. G-01 is corrected, and each lead was told plainly this run that its own file is its own domain.
+  **My dispatch also prescribed an illegal digest encoding, and two leads needed a send-back for it.**
+  I specified `steps_run: 1` with `members: []`; `validate-digest.py:493-497` rejects that pair. Both
+  eng-lead's and product-lead's digest FILES failed my own file-level check (DEC-156) while their returns
+  had been accepted — the retry path passes through unvalidated, which is how it got past the hook.
+  validator-lead caught it unprompted and encoded correctly the first time. **All three files now return
+  `digest ok`**, verified by me after the fix, in two different legal encodings: eng-lead and
+  validator-lead as `steps_run: 0` with `members: []`, product-lead as `steps_run: 0` with itself named
+  in `members:` to keep the roll-up granular.
+  **One blemish left unrepaired, deliberately:** `runs/2026-08-01-18-product/digest.md` still argues in
+  prose against the `steps_run: 0` its own block now carries. It is contained in an archived digest and
+  does not affect the gate, and at 3x the cost budget I judged another spawn not worth it — recorded here
+  rather than fixed, which is the honest trade and not an oversight.
+  **Distillation across the whole feature is now closed:** 23 member entries at runs 14-16 plus these 13
+  lead entries, and every one of the 11 Expertise files passes its validator.
   **Skips, all recorded rather than silent:** all three GitHub mirror sync points (`github.sync` false,
-  `repo` null — so the mirror posts nothing and every invariant is proven against the fake `gh`); the
-  `ui` panel step and visual-designer (no visual surface, no DESIGN.md); ship-refresh (no `INDEX.md` and
-  no map dir exists anywhere in the repo).
-  **Budgets: cost ~$341 of $120 (2.8x); `cycles_used` 6 of 10.** Cost never gates (DEC-134). ~$162
-  predates the build; build ~$74, validation ~$53, close-out ~$49; the six-task build run alone was ~$54
-  against `per_run_usd: 15.0`. Three of the six cycles were **prose-only** send-backs — no implementation
-  was rejected once — which is why 6 reads heavier than the work was. Both bounds are the user's to
-  raise; neither was edited.
+  `repo` null); the `ui` panel step and visual-designer (no visual surface, no DESIGN.md); ship-refresh
+  (no `INDEX.md` and no map dir exists anywhere in the repo).
+  **Budgets: cost ~$358 of $120 (3.0x); `cycles_used` 6 of 10, UNCHANGED.** Cost never gates (DEC-134).
+  This run added ~$17 measured (eng-lead +5.22, product-lead +5.71, validator-lead +6.21 as snapshot
+  deltas) plus my own orchestrator share, which is **not derivable**: no orchestrator cumulative has been
+  recorded in a run state file since run 04, so the ~$358 total carries an estimate for my tier and is
+  honest-approximate, not precise. `cycles_used` stays 6 deliberately: this repaired a botched close-out
+  step of my own, and neither send-back rejected any member's product.
 
 ## Open Questions
 
@@ -63,16 +61,18 @@
   briefing as a named pre-ship step with its exact grep.
 - **`abandon` can half-apply (for the user, judgement)** — see the phase note. Emergent, not a defect;
   pm recommends a follow-on BRIEF item and I endorse it. Not adopted as an SC by me — that is not mine.
-- **13 unapplied lead Expertise ops** — need an owner. Each lead holds its own file with `upsert: true`,
-  so a one-line re-dispatch per lead would apply them; otherwise the main session applies them verbatim.
-  If nobody acts, three leads' lessons from this feature are lost, since observations are never injected.
+- **B-13 CANDIDATE, new and NOT in the signed briefing** — `validate-digest.py:493-497` rejects
+  `members: []` alongside a non-zero `steps_run`, so a lead's self-executed step (self-distillation is
+  the one step a lead performs rather than routes) has no truthful encoding: report `steps_run: 0` and
+  the step vanishes from the count, or name yourself in `members:` and the host folds into the roll-up it
+  exists to police. Raised independently by product-lead and validator-lead; product-lead proposes either
+  allowing `members: []` when host-executed steps account for the count, or a separate `host_steps:`
+  counter. Non-blocking. Related second finding: a subagent's re-return after a hook rejection passes
+  through unvalidated, so the hook did not catch the bad pair on either lead's retry.
 - Backlog candidates B-1..B-12 are enumerated with natures in the briefing and are **not** repeated here
   — the briefing is their single home, and only what survives the user's strike-through becomes an issue.
-  Six of the twelve are harness-tooling defects rather than anything this feature built: the bash
-  write-guard's `>` misparse (five hits this run), `check-state.sh:109`'s run parser dropping any entry
-  with a trailing comment on its `squad:` line, the missing `build` team plus `review.yaml`'s absent `qa`
-  step under a **blocking** `qa_gate`, the cost reporter's per-run gap, `validate-digest.py`'s
-  `change_type` vocabulary collision, and `check-expertise.sh`'s blind spots.
+  Six of the twelve are harness-tooling defects rather than anything this feature built, including the
+  bash write-guard's `>` misparse, which blocked me twice more this run.
 - Q1..Q8 (pm and eng-lead, from planning) — unowned-domain prose (`SKILL.md`, `harness-brief/SKILL.md`),
   the frozen adopted-parent body, the prototype gate judged not required, the `attached:` receipt schema
   (landed; the suite asserts both survival cases), and the slug judged narrower than the feature
