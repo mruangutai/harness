@@ -53,6 +53,12 @@
 - G-08: WHEN a guard rejects a shell command for a redirect you did not write DO look for `>` inside
   quoted or heredoc PROSE — the scan does not respect quoting. Pass commit messages by file, and write
   any prose containing angle brackets with the file-write tool rather than a heredoc.
+- G-09: WHEN a dispatch prescribes digest field VALUES DO check the pair against the digest validator
+  first, then re-run it on the returned FILE — a re-return after a stop-hook rejection passes through
+  unvalidated, so an accepted return is no evidence its artifact is contract-valid.
+- G-10: WHEN a dispatch would tell a lead to run a checker DO run it yourself and say so — leads hold no
+  Bash, so the instruction returns an unverifiable claim, a forbidden member spawn, or an escalation on
+  the contradiction. Hold every mechanical gate at your own tier.
 
 ## Outcomes (max 10)
 
@@ -68,6 +74,9 @@
 - O-04: WHEN a plan carries a criterion whose subject no agent domain covers DO carve it out of the
   agent goal-check citing the plan's own precondition, and return it as a named pre-ship step. Handing
   it to a checker returns it unmet and demands a fix cycle routable to no lead.
+- O-05: WHEN re-dispatching an agent to apply ops it already recorded DO name the source path and say
+  application-not-re-adjudication, and pre-measure anything a cap would force it to condense. Verbatim
+  application then costs one spawn, and a drop becomes a reported judgement rather than silent drift.
 
 ## Open (max 5)
 
