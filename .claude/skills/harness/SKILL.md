@@ -133,15 +133,15 @@ a one-line SKIP that you report and move past. Repo comes from `harness.json`, p
 
 | When | Run |
 |---|---|
-| mission ship, right after the approval gate passes | `gh-sync.py open <feature-dir>` — milestone + one issue per T-NN (re-run safe: already-recorded ids skip) |
-| a task's `[harness:t-NN]` commit is recorded | `gh-sync.py close-task <feature-dir> T-NN` — closes its issue and everything it absorbs |
+| mission ship, right after the approval gate passes | `gh-sync.py open <feature-dir>` — milestone + one **parent** issue (adopted or created, recorded with its `parent_origin`) + one **sub-issue** per T-NN (re-run safe: already-recorded ids skip) |
+| a task's `[harness:t-NN]` commit is recorded | `gh-sync.py close-task <feature-dir> T-NN` — closes **that task's sub-issue and nothing else**; issues it `absorbs:` are cited, never closed (DEC-138 am.7) |
 
 **The commit pen is yours (DEC-153):** you stage and commit the feature branch — by explicit
 pathspec, never `git add -A` (the tree carries held dirt) — committing work your doers produced
 and your gates checked. Merge, PR and deploy stay user-gated. Probe edits you make while
 verifying must be backed up, restored, and byte-verified (`git status --porcelain`) before any
 commit.
-| the main session relays the user's shipped acceptance | `gh-sync.py ship <feature-dir>` — closes the milestone |
+| the main session relays the user's shipped acceptance | `gh-sync.py ship <feature-dir>` — closes the milestone unconditionally, and the parent **only if `parent_origin` is `created`** (an adopted issue is someone's live work and stays open). `gh-sync.py abandon <feature-dir> --reason-file <path>` is the other terminal state: sub-issues `not_planned`, same conditional parent rule |
 
 You never read GitHub state into harness state — PLAN.md is the truth and the mirror is a mirror.
 **Anything posted into the repo is the user's own words or text the user signed (DEC-138 am.6).**
