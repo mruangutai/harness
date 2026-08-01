@@ -37,6 +37,10 @@ Look for: correctness bugs · unhandled errors · **silent failure paths** · mi
 dropped async rejections · boundary and off-by-one conditions · resource leaks · dead code left behind ·
 copy-paste divergence · comments that no longer match the code.
 
+**For every absence assertion, ask what presence assertion sits beside it (DEC-169).** A verify
+step that only proves the wrong words are gone passes when the right words are deleted too —
+demonstrated live: SC-13's grep passed on a variant that removed two load-bearing rows.
+
 **Fail-open is the highest-value pattern to hunt.** Measured in this project's history: a dangling
 reference that resolved to "valid" instead of blocking, a filter that returned a fabricated result on a
 partial match. Both passed their test suites. Ask of every branch: *when this lookup misses, does it
