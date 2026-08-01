@@ -4372,3 +4372,42 @@ amendment declares **no** staleness marker for either phrase: `check-docs.sh` sc
 every `/harness` entry on an edit no agent may make. The checker is silent about this gap **by design**;
 SC-13's own grep at the ship gate is what detects it. If the mechanical route is preferred, the ordering
 is: land the SKILL.md edit first, then a marker may be declared — never before.
+
+## DEC-169 — An absence check is never a criterion on its own; pair it with a presence check
+
+Demonstrated, not argued. SC-13 required that `.claude/skills/harness/SKILL.md` stop stating the
+closure contract FEAT-03 reversed, checked as
+`grep -c 'closes its issue and everything it absorbs' == 0`. Run against three variants of the file:
+
+| Variant | clause gone (need 0) | `ship` row present | parent conditional | `close-task` documented |
+|---|---|---|---|---|
+| original | 1 | yes | no | yes |
+| **two lines deleted** | **0 — PASSES** | **gone** | no | **gone** |
+| corrected | 0 | yes | yes | yes |
+
+`sed -d` on two lines satisfies the criterion completely and destroys the org's only record of when
+to run `close-task` and when to run `ship`. An orchestrator reading the result would never close a
+task issue or a milestone again — a worse defect than the stale prose, shipped behind a green gate.
+
+What saved SC-13 was its second clause, which is not a grep: *":144's ship row must name the parent
+AND name it conditional on recorded origin."* Deletion cannot satisfy a requirement that something
+**be present and say something specific**. That is also why SC-13 is `verify: inspection` and not
+`automated` — the automatable half is precisely the half that can be gamed.
+
+**The rule: an absence check proves only that the wrong words are gone, never that the right words
+are there. Every absence check needs a presence check beside it, or `rm` passes the gate.** It
+applies to prose greps, to code greps, and to test assertions equally.
+
+Third instance in one feature, which is why it is written down rather than re-derived:
+- **MF-1** — SC-06's absence-greps, as first written, asserted the removal of code that must
+  *remain* (the retained list GETs build the same endpoint string as the extracted writes), so the
+  obvious repair would have voided the SC. Fixed by discriminating on payload form, and by asserting
+  absence in **both** close forms rather than one.
+- **B-2** — a test label claiming "for the new subcommand" above an invocation of an old one. A false
+  label travelled two review tiers as a measurement and produced a report of a gap that did not
+  exist.
+- **SC-13** — this entry.
+
+Applies forward to `harness-verification-rules` and `harness-code-review` as a review question:
+*for every absence assertion, what presence assertion sits beside it?* An SC with only the first
+half is not verifiable, however green it runs.

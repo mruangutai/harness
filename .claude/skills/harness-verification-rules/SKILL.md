@@ -43,6 +43,11 @@ Read **two** signals, never just the exit code: what kind of failure, not merely
 | **not applicable** | the tooling genuinely is absent (e.g. `ui` with no Playwright) | **soft skip.** Report it; do not FAIL |
 | **misconfigured** | `cmd` is null/absent · no test files matched · the failure is a **load / import / collection / syntax error** rather than an assertion | **`BLOCKED`** — never `FAIL` |
 
+**An absence assertion is never a check on its own (DEC-169).** For every "X is gone" assertion,
+name the presence assertion beside it — `sed -d` satisfies an absence-grep completely and can delete
+the thing that had to stay. Demonstrated live: SC-13's grep passed on a variant that removed two
+load-bearing rows.
+
 ⚠️ **Do not use "zero tests collected" to detect misconfiguration.** `node --test src/` reports
 `tests 1 / fail 1` for a module-load error. **The failure kind is the signal.**
 
