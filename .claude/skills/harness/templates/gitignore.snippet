@@ -1,0 +1,14 @@
+# --- harness ---
+# Run dirs are ephemeral scratch. They MUST be ignored: a dirty tree halts a team run
+# with BLOCKED, so without this the harness's own artifacts deadlock the next run.
+# Everything else under .harness/ is committed on purpose — BRIEF, PLAN, STATE,
+# notes, logs, expertise and features/*/feature.yaml are the record of what shipped,
+# and reviewers auditing the PR diff need to see plan and state changes.
+.harness/features/*/runs/**
+__pycache__/
+*.pyc
+.claude/settings.json.harness-bak
+.claude/settings.local.json
+.claude/worktrees/
+.DS_Store
+# --- end harness ---

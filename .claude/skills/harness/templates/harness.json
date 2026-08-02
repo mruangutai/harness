@@ -1,0 +1,254 @@
+{
+  "_template": "Canonical harness.json. /harness-init copies this to .harness/harness.json and dev-ops fills every test_kinds.cmd by RUNNING it. See templates/README.md.",
+  "schema_version": 1,
+  "cli_min_version": "2.1.217",
+  "_test_matrix_note": "change_type -> required test kinds. A FLOOR, not a ceiling: qa may add kinds it infers from the diff, never drop below. Predicate names in `when` are FIXED DATA so the gate is auditable; qa evaluates them against the diff.",
+  "test_matrix": {
+    "logic": {
+      "always": [
+        "unit"
+      ]
+    },
+    "api": {
+      "always": [
+        "unit",
+        "functional"
+      ],
+      "when": [
+        {
+          "kind": "integration",
+          "if": "touches_db_or_external"
+        }
+      ]
+    },
+    "cross_module": {
+      "always": [
+        "unit",
+        "functional",
+        "integration"
+      ]
+    },
+    "frontend": {
+      "always": [
+        "unit",
+        "component"
+      ],
+      "when": [
+        {
+          "kind": "ui",
+          "if": "has_interaction_flow"
+        }
+      ]
+    },
+    "feature": {
+      "always": [
+        "unit",
+        "functional",
+        "integration"
+      ],
+      "when": [
+        {
+          "kind": "ui",
+          "if": "has_interaction_flow"
+        }
+      ]
+    },
+    "bugfix": {
+      "always": [
+        "unit"
+      ],
+      "when": [
+        {
+          "kind": "__bug_class__",
+          "if": "match_bug_class"
+        }
+      ]
+    },
+    "ai_behavior": {
+      "always": [
+        "eval"
+      ]
+    },
+    "config": {
+      "always": []
+    },
+    "scaffolding": {
+      "always": []
+    },
+    "docs": {
+      "always": []
+    }
+  },
+  "_test_kinds_note": "EVERY cmd ships as null. dev-ops replaces it with a command it has RUN and seen pass, or leaves it null and REPLACES the placeholder _reason with the real one. NEVER write a plausible-looking command you have not executed: `node --test src/` reports `tests 1 / fail 1` for a module-load error, which reads exactly like a failing suite (DEC-98). A null cmd is a not-applicable soft skip in the qa gate; an invented cmd turns a hard gate into a silent no-op, which is strictly worse. DELETE the _reason on any kind whose cmd you fill \u2014 leaving 'unset, detection has not run' beside a verified command is a lie about the project's own config. `exclude` keeps worktree and vendor dirs out of diff scans \u2014 measured 3x test-file inflation in kaya-ai without it.",
+  "test_kinds": {
+    "unit": {
+      "detect": "tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py",
+      "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**|dist/**|build/**",
+      "cmd": null,
+      "_reason": "unset \u2014 dev-ops has not run detection yet"
+    },
+    "functional": {
+      "detect": "tests/functional/**",
+      "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
+      "cmd": null,
+      "_reason": "unset \u2014 dev-ops has not run detection yet"
+    },
+    "integration": {
+      "detect": "tests/integration/**",
+      "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
+      "cmd": null,
+      "_reason": "unset \u2014 dev-ops has not run detection yet"
+    },
+    "component": {
+      "detect": "**/*.spec.tsx|**/*.stories.tsx|**/*.stories.ts",
+      "exclude": ".claude/worktrees/**|node_modules/**|dist/**|build/**",
+      "cmd": null,
+      "_reason": "unset \u2014 dev-ops has not run detection yet"
+    },
+    "ui": {
+      "detect": "tests/e2e/**|e2e/**|**/*.e2e.spec.ts",
+      "exclude": ".claude/worktrees/**|node_modules/**",
+      "cmd": null,
+      "_reason": "unset \u2014 dev-ops has not run detection yet. If the project has no browser-driver, leave null: qa records `ui: skipped (no browser target)` and does NOT fail."
+    },
+    "eval": {
+      "detect": "evals/**|tests/**eval**",
+      "exclude": ".claude/worktrees/**|node_modules/**|.venv/**",
+      "cmd": null,
+      "_reason": "unset \u2014 dev-ops has not run detection yet. Required only for change_type: ai_behavior; ai-dev authors the eval, qa gates it."
+    },
+    "typecheck": {
+      "detect": "**/*.ts|**/*.tsx",
+      "exclude": ".claude/worktrees/**|node_modules/**|dist/**|build/**",
+      "cmd": null,
+      "_reason": "unset \u2014 dev-ops has not run detection yet. Not in the matrix; available for qa to add."
+    }
+  },
+  "_commit_attribution_note": "Recovery derives what landed from `git log` rather than trusting a state file, and review scope depends on telling human edits from agent commits (SPEC 15.3).",
+  "commit_attribution": {
+    "agent_prefix": "[harness:<step-id>]",
+    "human_prefix": "[harness:human]"
+  },
+  "_dirty_tree_note": "A dirty tree halts a team with BLOCKED. Without this whitelist the harness's own run artifacts would deadlock the next run.",
+  "dirty_tree_whitelist": [
+    ".harness/**",
+    ".claude/worktrees/**"
+  ],
+  "log_retention_days": 30,
+  "_cost_model_note": "Rates in USD per million tokens, VERIFIED 2026-07-26 against platform.claude.com/docs/en/about-claude/pricing.md. The four token classes are priced SEPARATELY and must never be summed into one 'input' number: a cache read is 0.1x base input, a 5m cache write 1.25x, a 1h cache write 2x. Cache reads are typically the largest token class by volume and the smallest by cost \u2014 pricing them at base input rate overstates a run by ~10x on its biggest line. Every model is a LIST of dated rate periods so a price change cannot silently mis-report; cost-report.py picks the period covering the run date and REFUSES to price a model whose periods do not cover it.",
+  "cost_model": {
+    "unit": "usd_per_mtok",
+    "verified_on": "2026-07-26",
+    "source": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+    "rates": {
+      "claude-fable-5": [
+        {
+          "from": "2000-01-01",
+          "input": 10.0,
+          "output": 50.0,
+          "cache_write_5m": 12.5,
+          "cache_write_1h": 20.0,
+          "cache_read": 1.0
+        }
+      ],
+      "claude-opus-5": [
+        {
+          "from": "2000-01-01",
+          "input": 5.0,
+          "output": 25.0,
+          "cache_write_5m": 6.25,
+          "cache_write_1h": 10.0,
+          "cache_read": 0.5
+        }
+      ],
+      "claude-sonnet-5": [
+        {
+          "from": "2000-01-01",
+          "until": "2026-08-31",
+          "input": 2.0,
+          "output": 10.0,
+          "cache_write_5m": 2.5,
+          "cache_write_1h": 4.0,
+          "cache_read": 0.2,
+          "_note": "INTRODUCTORY pricing, expires 2026-08-31."
+        },
+        {
+          "from": "2026-09-01",
+          "input": 3.0,
+          "output": 15.0,
+          "cache_write_5m": 3.75,
+          "cache_write_1h": 6.0,
+          "cache_read": 0.3,
+          "_note": "Standard pricing. A config that hardcoded only the intro rate would under-report Sonnet 5 spend by 50% from this date."
+        }
+      ],
+      "claude-haiku-4-5": [
+        {
+          "from": "2000-01-01",
+          "input": 1.0,
+          "output": 5.0,
+          "cache_write_5m": 1.25,
+          "cache_write_1h": 2.0,
+          "cache_read": 0.1
+        }
+      ]
+    },
+    "_modifier_note": "The transcript records three price-affecting fields per message \u2014 `speed`, `inference_geo`, `service_tier` \u2014 and IGNORING THEM IS A SILENT HALVING. Fast mode on Opus 5 bills $10/$50 instead of $5/$25, and it is one `/fast` away in any session; a cost report that assumes standard speed would report half the true spend with no indication anything was wrong. cost-report.py groups tokens by (model, speed, inference_geo) and REFUSES to price a combination it has no entry for.",
+    "modifiers": {
+      "speed": {
+        "standard": {
+          "_multiplier": 1.0
+        },
+        "fast": {
+          "_note": "Not a multiplier \u2014 fast mode has its OWN published rates, and only on Opus 5 / Opus 4.8. Caching multipliers still apply on top of them.",
+          "rates": {
+            "claude-opus-5": {
+              "input": 10.0,
+              "output": 50.0,
+              "cache_write_5m": 12.5,
+              "cache_write_1h": 20.0,
+              "cache_read": 1.0
+            },
+            "claude-opus-4-8": {
+              "input": 10.0,
+              "output": 50.0,
+              "cache_write_5m": 12.5,
+              "cache_write_1h": 20.0,
+              "cache_read": 1.0
+            }
+          }
+        }
+      },
+      "inference_geo": {
+        "_note": "US-only inference applies 1.1x to every token class on Claude 4.6+. `global` and `not_available` are standard.",
+        "global": 1.0,
+        "not_available": 1.0,
+        "us": 1.1
+      }
+    },
+    "_server_tool_note": "Charged on top of tokens. Web fetch and code execution alongside web search are free; standalone code execution bills per container-hour after a large monthly free tier, which a single-operator harness will not reach.",
+    "server_tools": {
+      "web_search_usd_per_1k_requests": 10.0
+    }
+  },
+  "_budgets_note": "Cost is the post-build signal (DEC-99), so it needs a bound as well as a meter. These sit alongside max_cycles in the team config: max_cycles bounds RETRIES, these bound SPEND. A team that exceeds its budget stops and escalates rather than continuing \u2014 the same BLOCKED path an exhausted cycle budget takes. Measured anchor: one dev-ops detection spawn on claude-fable-5 cost $2.72 (DEC-114), so these are single-digit numbers of spawns, not hundreds.",
+  "budgets": {
+    "per_feature_usd": 50.0,
+    "per_run_usd": 15.0,
+    "warn_at_fraction": 0.7,
+    "_per_feature_rationale": "SC-1 kills the org above $50/feature. The budget IS the criterion, not a separate guess.",
+    "max_total_cycles": 10,
+    "_max_total_cycles_rationale": "REWORK loops only (DEC-157): a cycle is a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back \u2014 never a first-pass run, which the PLAN's task list already bounds. Ten consecutive rework loops on one feature is the runaway this kills. Per-feature raises are user decisions recorded in feature.yaml."
+  },
+  "gates": {
+    "qa_gate": "blocking",
+    "review": "advisory_unless_high",
+    "uat": "blocking_when_uat_criteria_exist",
+    "merge": "user_gated"
+  },
+  "github": {
+    "_note": "GitHub Issues mirror (DEC-138). sync is asked ONCE at /harness-init; repo is pinned there from `gh repo view` under the user's eyes and NEVER re-inferred per call. One-way outbound after plan approval; gh absent = skip-and-report, never a gate.",
+    "sync": false,
+    "repo": null
+  }
+}

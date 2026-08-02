@@ -1,0 +1,39 @@
+docs(FEAT-03): record the reversed closure contract as DEC-138 am.7 [harness:t-08]
+
+DEC-138 amendment 1 said an absorbed issue "closes with" its absorbing
+task. It no longer does, and the record has to say so — a decision
+reversed in code but not in DECISIONS.md is a decision the next agent
+will re-derive from the old text.
+
+Amendment 7 records four things:
+
+- `absorbs:` is a citation and closes nothing. `close-task` produces
+  exactly one `issue close`.
+- `open` creates one sub-issue per `T-NN` under a single parent that is
+  adopted or created but never discovered, attached by the child's
+  internal `id` rather than its `number`.
+- Both terminal subcommands branch on the recorded `parent_origin`, as a
+  table: `ship` closes a created parent (GitHub's default `completed`)
+  and `abandon` closes one `not_planned`, while an adopted parent and one
+  with no recorded origin are left open in both — closing someone else's
+  live backlog item asserts something false, and `completed` and
+  `not_planned` are equally false about a thing this feature does not
+  own. The milestone closes in all three parent cases. Neither
+  subcommand closes a parent it did not create.
+- REQ-06's primitives live in exactly one place, as argv builders, with
+  each caller keeping its own runner.
+
+**No `<!-- stale: ... -->` marker is declared**, deliberately. The
+superseded wording is still live at `.claude/skills/harness/SKILL.md:137`
+and `:144`, a file no agent domain covers; a marker for a phrase still
+present turns `check-docs.sh` red and gates every `/harness` entry on an
+edit no agent may make. So the checker stays exit 0 and is silent about
+that gap by design — the amendment names it as a main-session pre-ship
+step instead. Observed after the edit: `check-docs.sh` exit 0, "no stale
+statements found"; `check-state.sh` exit 0 with no INV-10 line.
+
+T-08 of 8, and the last task of the build phase.
+Plan: .harness/features/FEAT-03-subissue-mirror/PLAN.md
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_014eZMX1bCGRrL71dpHXwYCj

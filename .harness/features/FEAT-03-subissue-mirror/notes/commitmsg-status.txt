@@ -1,0 +1,11 @@
+chore(FEAT-03): status is in_review, not awaiting_user
+
+`awaiting_user` is the question round-trip token: it tells the main
+session to ask the user, write an answers file, and re-delegate the
+orchestrator. That is not what this feature needs. The briefing is
+written, and what comes back is a ship / fix / re-scope / stop decision —
+which is `in_review`. The open questions ride alongside the briefing
+rather than routing the return.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_014eZMX1bCGRrL71dpHXwYCj
