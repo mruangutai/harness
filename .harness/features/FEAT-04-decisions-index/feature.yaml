@@ -1,8 +1,8 @@
 feature_id: FEAT-04-decisions-index
-phase: validate            # exit predicate MET: panel PASS, must_fix empty, goal-check 12/12
+phase: ship                # validate CLOSED at b621be6; seam note notes/handoff-validate.md
 branch: feat/decisions-index
 pr: none
-status: in_progress
+status: in_review
 review_sha: 363b539        # RE-PINNED from bdfa3ab: that pin holds neither T-09's nor T-10's edit
 cycles_used: 6             # 2 plan; +1 run 07; +1 run 08; +1 run 12 cap remediation; +1 run 12 send-back
 max_total_cycles: 10       # validate added ZERO — every run passed first pass (DEC-157)

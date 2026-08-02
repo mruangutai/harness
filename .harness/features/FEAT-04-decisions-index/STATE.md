@@ -3,10 +3,11 @@
 ## Current
 
 - feature: FEAT-04-decisions-index
-- phase: **validate — exit predicate MET.** Panel PASS with `must_fix` empty, and the goal-check
-  returned **12 of 12 success criteria met** at `363b539`. Next and last step of this mission is the
-  CEO briefing; the ship gate itself is the user's.
-- status: in_progress. No blocking question outstanding — the three my predecessor raised are all
+- phase: **validate CLOSED** at `b621be6`; `phase: ship` is the next owner's. Seam note
+  `notes/handoff-validate.md` (53 lines). Panel PASS with `must_fix` empty, goal-check **12 of 12**
+  at `363b539`, and the CEO briefing written at `notes/ship-review-2026-08-02-15-product.md`.
+  The ship gate itself is the user's and no agent can take it.
+- status: in_review. No blocking question outstanding — the three my predecessor raised are all
   discharged (BRIEF/PLAN re-signed at `feebf60`; the staged note deleted; T-09/T-10 landed at
   `363b539`). I re-ran every receipt rather than taking them on report.
 - branch: `feat/decisions-index`. `review_sha` **re-pinned `bdfa3ab` → `363b539`**: the old pin held
@@ -14,22 +15,26 @@
   stale pin rather than by fact.
 - **The deliverable is complete and green.** `docs/harness/DECISIONS-INDEX.md`: 170 rows, 190 lines
   (cap 260), 0 `RULING PENDING`, 0 rows over the 30-word ruling cap. Measured by me at `363b539`.
-- gates at `363b539`, all run by me: `check-docs.sh` exit 0 at 45 patterns; `run-unit-tests.sh` exit
-  0 with `PASS test-gen-decisions-index.py` and no `MISCONFIGURED`; `check-state.sh` exit 0;
-  `test-gen-decisions-index.py` direct, exit 0, all six cases `ok`.
+- gates at `b621be6`, all run by me: `check-docs.sh` exit 0 at 45 patterns across 106 files;
+  `run-unit-tests.sh` exit 0 with `PASS test-gen-decisions-index.py` and no `MISCONFIGURED`;
+  `check-state.sh` exit 0; `test-gen-decisions-index.py` direct, exit 0, all six cases `ok`.
 - **SC-01's count moved and that is correct.** Its prose pins 169 rows at `f723194`; the operative
   clause is "counted at run time rather than against a frozen number", and `DEC-170` landed mid-build.
   170 index rows against 170 live authority headings (171 raw, one fenced at `DECISIONS.md:1583`).
   No BRIEF amendment: the criterion as written is met, and a third re-signature is not warranted.
-- validate runs: **13 product** (SC-08's live receipt — bare plant at `docs/harness/SPEC.md:2162`
-  drove `check-docs.sh` 0 → 1 → 0, exactly one hit attributed to `DEC-120`, tree byte-clean after
-  revert) → **14 validator** (panel: code + security + qa in one turn; `ui` skipped, no design
-  surface; `severity_max: med`, `review: advisory_unless_high` so not blocking) → **15 product**
-  (pm's goal-check, 12/12).
+- validate runs, all first-pass: **13 product** (SC-08's live receipt — bare plant at
+  `docs/harness/SPEC.md:2162` drove `check-docs.sh` 0 → 1 → 0, exactly one hit attributed to
+  `DEC-120`, tree byte-clean after revert) → **14 validator** (panel: code + security + qa in one
+  turn; `ui` skipped for want of any design surface, `qa` added because the shipped review team has
+  no step for a blocking gate; `severity_max: med` and `review: advisory_unless_high`, so not
+  blocking) → **15 product** (pm's goal-check, 12/12).
 - budgets: cost **$324 against $120 — 2.7x, and a FLOOR**, since advisor spend appears in no
-  `cost-report.py` row. Validate phase itself cost ~$49 across three runs. Never a gate (DEC-134).
-  `cycles_used` **6 of 10** — the validate phase added **zero**: every run passed first time.
-- `ship-refresh` skipped: there is no `.harness/codebase/` on disk, so no map to intersect.
+  `cost-report.py` row. Validate itself was ~$49 across three runs. Never a gate (DEC-134).
+  `cycles_used` **6 of 10** — validate added **zero**: every run passed first time.
+- two segments deferred rather than run, both recorded in `feature.yaml skipped_segments` and
+  disclosed in the briefing: `ship-refresh` (no `.harness/codebase/` exists, so no map to intersect),
+  feature-close distillation (validate-phase members hold no observations log yet), and the
+  three-lead briefing report round (I hosted every validate run and cite each digest by path).
 
 ## Open Questions
 
