@@ -115,3 +115,24 @@
   best-effort vs advisory) and scope (which agents, which paths) while dropping enumerations,
   rationale and second conjuncts got all 170 rows inside 30 words with zero truth exceptions —
   DEC-85 fits in 28 words with its `isolation: worktree` clause intact.
+- 2026-08-02 (s2, SC-08 live receipt): the three-line hit block reproduces the pinned phrase on TWO
+  physical lines, not one — `check-docs.sh:143` prints `matches {pat!r}` and `pat` IS the phrase, so
+  the attribution line needs the escape exactly as much as the `:144` echo does. Verbatim (escaped):
+  line 1 `STALE  docs/harness/SPEC.md:2162`; line 2 `matches 'all 15 agents', invalidated by DEC-120` <!-- ok-stale -->;
+  line 3 `> The org is all 15 agents.` <!-- ok-stale --> — the echo is what lets a reviewer audit that the
+  plant was genuinely bare. Exit codes 0 (baseline, 45 patterns / 101 files) -> 1 (exactly one stale
+  statement) -> 0 after `git restore docs/harness/SPEC.md`, with `git status --porcelain` on that path
+  empty and the file back to 2160 lines. Landing line 2162 was read from the checker's own output, not
+  computed from `wc -l` (2160 + a blank separator line).
+- 2026-08-02 (s2, SC-08): `--audit` exits 0 printing `marker audit — 45 declared, 101 file(s) scanned`
+  and `all 45 markers are load-bearing`, i.e. zero `INERT` rows, from which DEC-120's pinned phrase is
+  not inert follows. `check-docs.sh:122` is `sys.exit(1 if dead else 0)`, so the audit's status is a
+  marker-inventory datum, never a docs gate — a nonzero there is not a propagation failure.
+- 2026-08-02 (s2, SC-08): before planting, replicate the harvest loop in `python3 - <<EOF` and test the
+  candidate line against all 45 patterns, not just the one you are aiming at. DEC-120 alone declares
+  seven markers at `DECISIONS.md:2474-2480`, so a verbose sentence can trip a sibling and break
+  "exactly one" while being perfectly true. `The org is all 15 agents.` <!-- ok-stale --> matched one.
+- 2026-08-02 (s2, SC-08): append the plant with `Edit` anchored on the file's unique last lines, not a
+  shell redirect — `bash-write-guard.sh` has misfired on compound/redirect commands four times in this
+  feature — and confirm the target ends in `0a` (`tail -c 1 | xxd`) first, or the appended text joins
+  the last line and the landing anchor is wrong.
