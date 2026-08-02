@@ -52,7 +52,13 @@ fi
 
 if [ "$mode" = "--check" ]; then
   echo "merge-gitignore: MISSING from $target:" >&2
-  printf '  - %s\n' $missing >&2
+  # Quoted AND iterated. Unquoted, `$missing` glob-expanded (the snippet holds
+  # *.pyc) and printed cwd filenames instead of the rules. Fully quoted, one
+  # printf swallowed every line and only the first got the "  - " prefix.
+  # (review of PR #4, and of the first fix for it)
+  printf '%s\n' "$missing" | while IFS= read -r _rule; do
+    [ -n "$_rule" ] && printf '  - %s\n' "$_rule"
+  done >&2
   exit 1
 fi
 

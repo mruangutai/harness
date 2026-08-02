@@ -145,7 +145,26 @@ sett = None
 for p in (".claude/settings.json", ".claude/settings.local.json"):
     t = read(os.path.join(root, p))
     if t:
-        try: sett = (sett or {}) | json.loads(t)
+        try:
+            # DEEP merge, one level into hooks/env. A shallow `|` let any `hooks` key
+            # in settings.local.json wholesale shadow settings.json's, so INV-9 then
+            # reported every OTHER hook as missing and blocked /harness entry on a
+            # correctly configured project -- a false diagnosis sending the reader to
+            # re-run merge-settings for hooks already present (review of PR #4).
+            nxt = json.loads(t)
+            if sett is None:
+                sett = nxt
+            else:
+                for k, v in nxt.items():
+                    if k in ("hooks", "env") and isinstance(v, dict) and isinstance(sett.get(k), dict):
+                        for ek, ev in v.items():
+                            # union the per-event lists: presence anywhere is what INV-9 asks
+                            if isinstance(ev, list) and isinstance(sett[k].get(ek), list):
+                                sett[k][ek] = sett[k][ek] + ev
+                            else:
+                                sett[k][ek] = ev
+                    else:
+                        sett[k] = v
         except Exception: warn.append(f"{p} is not valid JSON.")
 if sett is None:
     bad.append("No .claude/settings.json — the spawn-depth and Expertise-injection "

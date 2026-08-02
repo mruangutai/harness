@@ -5,12 +5,14 @@ with CLAUDE_PROJECT_DIR pointed at each, never against the real repo state.
 
 No test invokes a real `gh` binary and none asserts on `sub_issues_summary` (SC-09).
 """
-import os
+import json, os
 import subprocess
 import sys
 import tempfile
 
-SCRIPT = os.path.join(
+# Overridable so a fix can be proven RED against a reverted copy — the same
+# VALIDATE_DIGEST_BIN escape test-validate-digest.py uses.
+SCRIPT = os.environ.get("CHECK_STATE_BIN") or os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "check-state.sh"
 )
 
@@ -85,10 +87,52 @@ def case_c():
         return ok, code
 
 
+def case_d():
+    """PR #4 review: settings.local.json must not hide settings.json's hooks.
+
+    A shallow `sett | json.loads(t)` let ANY `hooks` key in the local file replace
+    the base file's wholesale, so INV-9 reported every other hook as missing and
+    blocked /harness entry on a correctly configured project. Fixture: base has all
+    five hook events registered; local adds ONE unrelated PreToolUse entry. INV-9
+    must stay silent about the hooks it can still see.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        make_fixture(tmp, '{"cost_model": {"rates": {}}}', "  parent: 40")
+        cl = os.path.join(tmp, ".claude")
+        os.makedirs(cl, exist_ok=True)
+        base = {"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
+                "hooks": {
+                    "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                    "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
+                    "PreToolUse": [
+                        {"hooks": [{"command": "x/check-domain.sh"}]},
+                        {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                        {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                        {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}
+        local = {"hooks": {"PreToolUse": [{"hooks": [{"command": "some/other-project-hook.sh"}]}]}}
+        with open(os.path.join(cl, "settings.json"), "w") as f:
+            json.dump(base, f)
+        with open(os.path.join(cl, "settings.local.json"), "w") as f:
+            json.dump(local, f)
+        code, out = run(tmp)
+        bad = [h for h in ("check-domain", "dispatch-guard", "validate-digest",
+                           "branch-create-gate", "bash-write-guard", "SubagentStart")
+               if h in out and "No " in out]
+        ok = not bad
+        print(("ok   " if ok else "FAIL ") +
+              "case (d): settings.local.json does not hide settings.json's hooks")
+        if not ok:
+            for l in out.strip().splitlines():
+                if "VIOLATION" in l:
+                    print(f"       | {l.strip()}")
+        return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
     ok_c, _code_c = case_c()
+    ok_d = case_d()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -96,7 +140,7 @@ def main():
         f"(a: {code_a}, b: {code_b})"
     )
 
-    if ok_a and ok_b and ok_c and ok_exit_unchanged:
+    if ok_a and ok_b and ok_c and ok_d and ok_exit_unchanged:
         sys.exit(0)
     sys.exit(1)
 

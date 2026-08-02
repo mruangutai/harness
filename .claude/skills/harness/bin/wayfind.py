@@ -269,9 +269,12 @@ def main():
         url = gh_json(["issue", "create", "-R", repo, "--label", f"wayfinder:{ttype}",
                        "--title", title, "--body", "## Question\n\n<the decision this resolves>\n"])
         num = str(url).rstrip("/").split("/")[-1]
-        # THE TRAP: sub_issues takes the child's internal id, never its number.
-        cid = issue(repo, num, "id")["id"] if isinstance(issue(repo, num, "id"), dict) else None
-        cid = cid or gh_json(ghi.internal_id_args(repo, num))
+        # THE TRAP, and it has TWO layers. sub_issues takes the child's internal id,
+        # never its number -- and `gh issue view --json id` returns the GraphQL NODE
+        # id (`I_kwDO...`), not the REST integer the endpoint wants. The node id is
+        # truthy, so an `or` fallback after it never runs and every attach 422s.
+        # Only the REST route is correct here (review of PR #4).
+        cid = gh_json(ghi.internal_id_args(repo, num))
         do([ghi.attach_sub_issue_args(repo, mapnum, cid)], True)
         print(f"  ticket #{num} [{ttype}] attached to map #{mapnum}")
         return 0

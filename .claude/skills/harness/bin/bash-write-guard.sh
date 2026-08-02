@@ -183,7 +183,9 @@ for name, paths in findings:
         if rel.startswith(".."):
             continue  # outside repo — not this hook's problem
         # tmp/cache noise is not a domain question
-        if re.match(r"^(/|\.pytest_cache|node_modules|__pycache__|\.venv)", rel):
+        # NB: no `^/` alternative -- relpath means an out-of-repo absolute target
+        # already hit the `..` continue above, so it was dead (review of PR #4).
+        if re.match(r"^(\.pytest_cache|node_modules|__pycache__|\.venv)", rel):
             continue
         if not any(matches(r, g) for r in cands for g in allowed):
             deny(f"{agent}: `{name}` targets {rel}, outside your domain.")
