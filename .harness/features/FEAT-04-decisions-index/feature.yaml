@@ -133,6 +133,15 @@ skipped_segments:
       segment 3 retires the post-build audit (Expertise O-01)
   - segment: ship-refresh
     reason: no `.harness/codebase/` on disk, so no map to intersect (verified by me at 363b539)
+  - segment: feature-close-distillation
+    reason: DEFERRED to feature close post-acceptance, not skipped. The ship gate is still ahead, and
+      the four validate-phase members (validator-lead, code-reviewer, security-reviewer, qa) hold NO
+      observations log yet, so distilling now would distill the build phase twice and validate zero
+  - segment: briefing-three-lead-report-round
+    reason: SKIPPED and disclosed in the briefing itself. The round exists so the briefing is not the
+      orchestrator narrating work it did not see; I hosted all three validate runs and cite every
+      digest by path. eng-lead had zero activity this phase. Three lead spawns at ~20 USD each to
+      re-narrate digests I hold is spend with nothing to surface it
 github:
   parent: none            # github.sync false, repo null — all three mirror points SKIP (DEC-138)
   milestone: none
