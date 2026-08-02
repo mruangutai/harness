@@ -62,8 +62,36 @@ REVIEWERS = {"harness-code-reviewer", "harness-security-reviewer", "harness-ui-r
 # --- detect write patterns and extract candidate target paths where parseable ---
 findings = []   # (pattern-name, [paths])
 
+def mask_quoted(text):
+    """Blank the CONTENTS of quoted spans, preserving length and the quotes.
+
+    The redirect scan below is a regex over the raw command, so a `>` inside a
+    quoted string was read as an operator. That blocked the MANDATED
+    `Co-Authored-By: … <noreply@anthropic.com>` trailer on every agent commit, an
+    arrow in a printed string, and an HTML comment in prose (Task #5).
+
+    Masking rather than deleting keeps offsets and lengths intact, so a QUOTED
+    redirect target still yields a capturable token: `> "src/x.py"` becomes
+    `> "xxxxxxxxx"`, which still finds the redirect and still blocks. The guard
+    fails safe — a masked span can only hide `>` characters that bash itself
+    would treat as literal text, never an operator.
+    """
+    out, q = [], None
+    for ch in text:
+        if q:
+            if ch == q:
+                q = None; out.append(ch)
+            else:
+                out.append("x")
+            continue
+        if ch in "\"'":
+            q = ch
+        out.append(ch)
+    return "".join(out)
+
 # redirections:  > path   >> path   (not 2>/dev/null, >&2, >(...) etc.)
-for m in re.finditer(r"(?<![0-9&<])>{1,2}\s*([^\s;&|)]+)", cmd):
+# Scanned over the MASKED command so quoted text cannot pose as an operator.
+for m in re.finditer(r"(?<![0-9&<])>{1,2}\s*([^\s;&|)]+)", mask_quoted(cmd)):
     p = m.group(1)
     if p.startswith(("&", "(", "/dev/")):
         continue
