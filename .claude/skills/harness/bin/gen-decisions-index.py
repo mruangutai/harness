@@ -65,7 +65,9 @@ bear on your task. Decisions cited in a dispatch are a floor, not a ceiling.
 
 **Adding a decision:** its author writes its ruling here, in the same commit that appends the entry.
 
-Row: `- DEC-NN @<line> [tags] refs: <graph> :: <ruling>`.
+Row: `- DEC-NN @<line> [am-span] [tags] refs: <graph> :: <ruling>`.
+The `am-span` token appears only on a decision carrying amendments — `am.1`, a contiguous
+`am.1-am.N`, or an enumerated `am.1,am.3` that never hides a gap.
 A row ending `— SUPERSEDED BY DEC-NN` is one you must not act on.
 """
 

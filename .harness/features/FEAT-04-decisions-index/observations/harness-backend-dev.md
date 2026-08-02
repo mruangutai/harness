@@ -24,3 +24,11 @@
   T-01 tests — verified manually in /tmp by running the generator twice against a copy of the real
   DECISIONS.md and diffing; identical both times. `rm -rf` outside the repo is blocked by
   bash-write-guard even under /tmp — use `mkdir -p` onto a fresh path instead of removing first.
+- 2026-08-02: T-02 follow-up: widened the header `Row:` grammar to `[am-span] [tags]` (was `[tags]`
+  only, per open_questions above) — `gen-decisions-index.py:68-70`. Dry-ran `--stdout` against the
+  real `docs/harness/DECISIONS.md`: exit 0, stderr 0 bytes, 169 rows, 169 RULING PENDING, 189 lines
+  (19 header + 1 blank + 169 rows, identity closes exactly), every row has exactly one ` :: ` on one
+  physical line. No generator defect found on the real authority. check-domain.sh blocks
+  harness-backend-dev from writing `.harness/features/*/runs/**/digest.md` — only
+  `.harness/features/*/observations/harness-backend-dev.md` is permitted; the digest for this step
+  lives in the conversation return, not a run-dir file.
