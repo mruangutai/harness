@@ -33,16 +33,21 @@ dependency: no `.planning/` root, no `agent_skills`, no `<files_to_read>` blocks
 | The org, as data | `.harness/team-config.yaml` |
 | Rule skills | `.claude/skills/harness-<name>/` — **flat**, one level under `.claude/skills/` |
 | Agents | `.claude/agents/harness-*.md` |
-| Design docs | `docs/harness/SPEC.md` (what it is) · `DECISIONS.md` (why — **the authority**) · `BUILD.md` (what is left) |
+| Design docs | `docs/harness/SPEC.md` (what it is) · `DECISIONS-INDEX.md` (**the entry point** — one row per decision) · `DECISIONS.md` (why — **the authority**) · `BUILD.md` (what is left) |
 
 **The org is 16 agents in four tiers:** main session (layer 0, the only user channel) →
 `harness-orchestrator` (layer 1, one per in-flight feature) → three domain leads (layer 2) →
 members (layer 3, always leaves). Rules reach agents by native `skills:` preload, and Expertise by
 a `SubagentStart` hook — nothing needs to be told to go read a file.
 
-**Before changing any harness doc, read `docs/harness/DECISIONS.md`** and run
-`.claude/skills/harness/bin/check-docs.sh`. It is the propagation checker, and its registry is
-DECISIONS.md itself.
+**Before changing any harness doc, read `docs/harness/DECISIONS-INDEX.md`**, grep it for the
+surface you are touching, and open the two or three entries it names. The authority
+`docs/harness/DECISIONS.md` is never read in its entirety (DEC-150) — the index exists so that it
+need not be. Cited decisions are a floor, not a ceiling: go broader via the index when a cited entry
+points at one nobody named. A row is an open-or-skip filter, so open the entry before acting on it.
+
+Then run `.claude/skills/harness/bin/check-docs.sh`. It is the propagation checker, and its registry
+is DECISIONS.md itself.
 
 ## Conventions
 

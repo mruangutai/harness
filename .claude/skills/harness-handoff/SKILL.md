@@ -61,6 +61,22 @@ DIGEST, so anything the routing decision depends on must be in the DIGEST, not b
 You are not blocked while a question is outstanding: raise it, do what you can, and return. A member
 never waits on a human — questions travel up and answers come back down.
 
+## Consulting decisions — cited is a floor, never a ceiling
+
+Decisions named in your dispatch are the **minimum**, not the set. The same framing the qa gate uses
+for the test matrix: you may add what the work clearly warrants, never drop below.
+
+**Never read an authority file whole.** Read its index, then open only the entries that bear on your
+task — a row is an open-or-skip filter, so open the entry before acting on it.
+
+**Go broader when any of these fires:** (1) a cited decision references an uncited one — the
+reference graph is dense, so following it is a lookup, not a judgement call; (2) you are about to
+judge something the citations do not cover; (3) your own Expertise implies a rule they omit;
+(4) "surely this was decided already" fires.
+
+Nobody who dispatched you can be sure they named every decision that bears on your work — their
+framing is a hypothesis, and it is the input most likely to be wrong.
+
 ## Red flags
 
 | Thought | Reality |
