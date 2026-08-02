@@ -6,7 +6,7 @@ status: in_progress
 review_sha: 71a2043        # HEAD at build open; re-pin at build HEAD before any validator run (INV-6)
 cycles_used: 4             # 2 plan; +1 eng-lead's T-01 test-3 send-back; +1 run 08, header fix I routed back
 max_total_cycles: 10       # harness.json budgets.max_total_cycles
-cost_usd: 157              # OVER the 120 budget by ~31% at T-02. DEC-134: informational, never a gate
+cost_usd: 213              # 1.8x the 120 budget, and a FLOOR (advisor calls are unmetered). DEC-134: never a gate
 max_cost_usd: 120          # mirrors harness.json per_feature_usd
 runs:
   - id: 2026-08-01-01-product
@@ -41,6 +41,10 @@ runs:
     squad: eng
     verdict: PASS
     cost_usd: 4.5
+  - id: 2026-08-02-09-product
+    squad: product
+    verdict: PASS
+    cost_usd: 45.5
 pre_ship_steps:
   - T-09 — CLAUDE.md:43, owner main-session. No agent domain covers CLAUDE.md. SC-09 verified by
     grep at the ship gate
