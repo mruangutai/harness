@@ -3,7 +3,7 @@ set -uo pipefail
 cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 BIN_DIR=".claude/skills/harness/bin"
-SCRIPTS=("test-validate-digest.py" "test-gh-sync.py" "test-check-state.py" "test-check-expertise.py")
+SCRIPTS=("test-validate-digest.py" "test-gh-sync.py" "test-check-state.py" "test-check-expertise.py" "test-gen-decisions-index.py" "test-bash-write-guard.py")
 
 # Drift detector: any test-*.py under BIN_DIR not in the explicit list is misconfigured.
 for f in "$BIN_DIR"/test-*.py; do

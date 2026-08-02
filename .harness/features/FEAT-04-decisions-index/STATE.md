@@ -3,52 +3,41 @@
 ## Current
 
 - feature: FEAT-04-decisions-index
-- run: .harness/features/FEAT-04-decisions-index/runs/2026-08-01-06-product/state.yaml (last complete)
-- squad: none — nothing is dispatchable until the user signs
-- status: awaiting-user
-- phase: **plan**, at its exit predicate. Seam handoff written: `notes/handoff-plan.md` (49 lines).
-- note: **BRIEF.md AND PLAN.md ARE WRITTEN AND PENDING THE USER'S SIGNATURE** — `## Approval:
-  status: pending` at `BRIEF.md:186` and `PLAN.md:586`. No agent wrote an approval and none may.
-  Twelve SCs, eight decisions, ten tasks. Six runs: 01 pm drafts (PASS) → 02 eng-lead scoped
-  architecture review (**FAIL**, six must_fix) → 03 fix cycle 1 (PASS) → 04 fix cycle 2, the
-  check-docs regression (PASS) → 05 eng-lead scoped re-verification (**PASS, must_fix []**, all nine
-  items confirmed at source) → 06 the three advisories landed (PASS).
-- **THE ONE THING THE USER MUST DECIDE BESIDES SIGNING: T-09 and T-10 are executable by no agent in
-  the org.** `team-config.yaml:116/154/193` grants `docs/**` to documentor but grants nobody
-  `CLAUDE.md` or `.claude/skills/harness-*/SKILL.md`. Both tasks carry `owner: main-session`, and
-  SC-09/SC-10 cannot go green until the main session acts. This is the wall FEAT-03 hit at ship,
-  surfaced here at signature time instead.
-- **The plan's own text broke the propagation gate twice, and that is now the feature's best
-  evidence.** SC-08 pinned a plant phrase (`DECISIONS.md:2479`, owner DEC-120) and writing it
-  literally into BRIEF and PLAN made `check-docs.sh` exit 1 — the scan globs `.harness/**/*.md`, so
-  BRIEF, PLAN, this file, `notes/` and pm's observations log are all live targets; only `/runs/**` is
-  exempt. My own first draft of this file then re-broke it by quoting a superseded path. Both fixed
-  by the per-line `<!-- ok-stale -->` escape (`check-docs.sh:133`) or by rephrasing — the same
-  mechanism D-01 prices per row, demonstrated three times before a single index row exists.
-  **GATE RE-VERIFIED BY ME AFTER EVERY WRITE, INCLUDING THE LAST: exit 0, 45 patterns, 95 files.**
-- Measurements I made rather than inherited: 169 LIVE decisions not 170 (the duplicate `## DEC-83` at
-  `:1583` is inside a fence); the `DEC-N am.N` form appears **0** times, so D-02's amendment span
-  provably never emitted; DEC-83's title names two targets and DEC-19 is targeted twice, which is why
-  MF-4 needed both halves. The grilling's "49 stale markers" was wrong three ways — 48 raw lines,
-  45 harvested patterns, and 45 is what the tool prints and what SC-07 pins.
-- Nothing is committed. The tree also carries dirt predating this phase (`.harness/logs/2026-08-01.md`).
-- budgets: cost **~$115 of $120** and my own tier is partly estimated, so treat it as at-budget and
-  expect the final figure to cross. Cost never gates (DEC-134). `cycles_used` **2 of 10**.
+- phase: **build**, just opened. Exit predicate: T-01..T-08 each carry a PASS run in feature.yaml.
+- status: in_progress
+- squad: eng first (T-01, T-02), then product (T-03..T-08)
+- branch: `feat/decisions-index`, HEAD `71a2043`. Nothing of this feature is committed yet.
+- **APPROVAL GATE PASSED.** `BRIEF.md:186` and `PLAN.md:586` both read `status: approved`
+  (Mike Ruangutai, 2026-08-02). BRIEF's approval NOTE still says PLAN is pending — PLAN's own
+  block overrides it and records Q0 accepted. Read the `status:` line, not the note.
+- **Q0 accepted: T-09 and T-10 leave the build entirely.** Both carry `owner: main-session`, no
+  agent domain covers `CLAUDE.md` or `.claude/skills/harness-*/SKILL.md`, and they ride up to the
+  user as named pre-ship steps (`feature.yaml pre_ship_steps`). SC-09/SC-10 stay unmet until then.
+- **Q4 accepted: the unit gate is DELIBERATELY red between T-03 and T-07.** T-01's own PASS state is
+  also red (exit 1). Neither is a failing gate. `PLAN.md ## Ordering` is the contract.
+- ordering: T-01 → T-02 → T-03 → T-04 → T-05 → T-06 → T-07 → T-08, strictly serial. T-03..T-08 all
+  mutate one file and their burn-down counts chain (169 → 81 → 54 → 31 → 0 → marker pass), so
+  concurrency loses writes and makes every count meaningless. D-06's four batches are a cost
+  device, not a concurrency device.
+- gates are mine, not the leads' — leads hold no Bash. I run `run-unit-tests.sh`, `check-docs.sh`
+  and `check-state.sh` after every lead return and record the result here.
+- measured by me at build open: `check-docs.sh` exit 0, 45 patterns across **96** files (95 at plan
+  exit; the count moves as artifacts land — SC-07 pins the 45, never the file count).
+  `check-state.sh` exit 0. `docs/harness/DECISIONS-INDEX.md` and
+  `.claude/skills/harness/bin/gen-decisions-index.py` both absent, as expected.
+- budgets: cost **$118 of $120 — at budget before build begins**, and the plan tier is partly
+  estimated, so the final figure will cross. DEC-134: informational, never a gate.
+  `cycles_used` **2 of 10**.
 
 ## Open Questions
 
-- **BLOCKING — T-09/T-10 have no agent owner.** Does the user accept executing them personally? Two
-  of ten tasks and two of twelve SCs depend on it.
-- **Q1 (non-blocking; due before T-09 runs, NOT before approval)** — declare a stale marker for the
-  whole-read wording T-09 removes? It makes the absence permanent but re-pins the emitted pattern
-  count from 45 to 46 and reverses D-08. pm declined to move a pinned baseline on its own authority.
+- **Q1 (non-blocking; the main session's, not mine)** — declare a stale marker for the whole-read
+  wording T-09 removes? Only decidable when T-09 runs, and T-09 is a pre-ship step. Riding up.
 - **Q2 (non-blocking, for the user at ship)** — post-ship, any feature appending a decision must
-  regenerate the index AND write that row's ruling in the same commit or the unit gate fails. Held as
-  a PLAN note under REQ-09; making it a DEC is above the product squad.
-- **Q4 (non-blocking, carry into build)** — the unit gate is DELIBERATELY red between T-03 and T-07
-  by design, the price of REQ-09's mechanical teeth. Recorded at PLAN.md `## Ordering`.
+  regenerate the index AND write that row's ruling in the same commit or the unit gate fails. A new
+  standing obligation on every future feature; making it a DEC is above the product squad.
 - **Q5/Q6 harness defects, for the harness owner** — (a) the orchestrator playbook mandates
-  `cost-report.py --yaml >> <run_dir>/state.yaml` while `harness-team` has the lead pre-write
-  `cost: pending_orchestrator`; the append then violates INV-16. Hit on all six runs; I repaired all
-  six by hand. (b) Every per-feature `.harness/**/*.md` artifact is a `check-docs.sh` target, which
-  is documented nowhere an agent writing one would see it — it cost two cycles here.
+  appending cost-report output to the run state file while `harness-team` has the lead pre-write
+  `cost: pending_orchestrator`; the duplicate top-level key trips INV-16, hit on all six plan runs.
+  (b) Every per-feature `.harness/**/*.md` artifact is a `check-docs.sh` scan target, documented
+  nowhere an agent writing one would see it — it cost two cycles in the plan phase.
