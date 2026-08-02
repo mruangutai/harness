@@ -102,9 +102,12 @@ Baseline pinned at `f723194`, recorded in `feature.yaml` under `baseline:` — c
   measured heading line numbers. See `## Ordering` below: T-03..T-08 all mutate one file and are
   strictly serial.
 - **D-07: rulings are written affirmatively — present tense, what the rule *is*, never a description
-  of what it replaced.** Load-bearing for D-01: a ruling that paraphrases what a superseding decision
+  of what it replaced — and are at most 30 words.** Load-bearing for D-01: a ruling that paraphrases
+  what a superseding decision
   overturned will reach for the old wording and trip the checker. "Skills live flat one level under
   `.claude/skills/`" is in register; a sentence describing the arrangement that preceded it is not.
+  The 30-word bound is mechanical, not advisory: count only the text right of ` :: `, excluding any
+  generated `— SUPERSEDED BY DEC-NN` suffix and excluding any `<!-- ok-stale -->` marker.
 - **D-08: this feature declares no new `<!-- stale: ... -->` marker.** The disciplined instinct is to
   declare one for the whole-read wording T-09 removes, so its return is caught forever. But every
   marker moves the emitted pattern count, and the pinned baseline this feature must hold is 45. SC-09's

@@ -88,3 +88,30 @@
   the sentinel before replacing and count `>= 20` non-whitespace characters per new ruling — both
   assertions inside the script, so a mis-keyed id fails loudly instead of silently editing a row
   belonging to another batch.
+- 2026-08-02 (s2, DEC-170): the dispatch's step 4 asked me to `rm
+  .harness/notes/pending-dec-advisor-disclosure.md`; `bash-write-guard.sh` BLOCKED it.
+  `team-config.yaml:115-123` grants documentor `docs/**`, `README.md`, `.harness/README.md`, two
+  `.harness/codebase/` files, its own expertise and its observations log — `.harness/notes/**` is in
+  no member's write domain. A staged-note deletion assigned to a docs member is unexecutable by
+  construction; it has to be the orchestrator's. Raised as an open_question, not worked around.
+- 2026-08-02 (s2, DEC-170): appending an entry at EOF shifted no existing `@line` anchor, so
+  regeneration produced exactly one added row. `git diff --numstat` is the decisive check for "no
+  existing ruling moved" — it read `1  0` both before and after the new row's ruling was written,
+  where `--stat` alone cannot distinguish an added line from a rewritten one.
+- 2026-08-02 (s2): `test-gen-decisions-index.py` is not executable — invoking it directly gives
+  `permission denied` / exit 126. Run `python3 .claude/skills/harness/bin/test-gen-decisions-index.py`.
+  Its first test early-returns at the hardcoded raw-count literal (`:115`), so once the authority's
+  DEC count moves, that test's later sub-assertions (fence-guarded distinct, generator exit,
+  rows == distinct) never execute and cannot be reported as passing.
+- 2026-08-02 (s1 re-compression): what made 83 mechanical ruling rewrites safe was two byte-level
+  diffs, not the unit test — (a) dump left-of-` :: ` for all rows before/after and require an empty
+  diff, which enforces "never edit left of ` :: `", 190 lines and 170 rows in one check; (b) count
+  `SUPERSEDED BY DEC-\d+` occurrences before/after (10 -> 10), because the assertion strips those
+  suffixes before counting, so dropping one stays green while destroying the row's do-not-act signal.
+- 2026-08-02 (s1): rewording DEC-104 to describe the escape without naming its token put that row in
+  `check-docs.sh` scope for the first time and the checker stayed exit 0 / 45 patterns / 101 files —
+  the accidental exemption was hiding nothing.
+- 2026-08-02 (s1): a ruling under the cap can still be false. Keeping modality (warns vs DENIES vs
+  best-effort vs advisory) and scope (which agents, which paths) while dropping enumerations,
+  rationale and second conjuncts got all 170 rows inside 30 words with zero truth exceptions —
+  DEC-85 fits in 28 words with its `isolation: worktree` clause intact.

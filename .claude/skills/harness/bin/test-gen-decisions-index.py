@@ -112,11 +112,11 @@ def test_row_per_distinct_dec_matches_authority():
         # Documented divergence (D-04): ## DEC-83 appears a second time inside a
         # code fence at DECISIONS.md:1583. The raw regex harvests it; the
         # fence-guarded parse the generator must use does not.
-        if len(raw) != 170:
-            print(f"FAIL - {name}: expected raw regex match count 170, got {len(raw)}")
+        if len(raw) != 171:
+            print(f"FAIL - {name}: expected raw regex match count 171, got {len(raw)}")
             return False
-        if len(distinct) != 169:
-            print(f"FAIL - {name}: expected fence-guarded distinct count 169, got {len(distinct)}")
+        if len(distinct) != 170:
+            print(f"FAIL - {name}: expected fence-guarded distinct count 170, got {len(distinct)}")
             return False
 
         if not os.path.exists(GEN):
@@ -368,6 +368,7 @@ def test_committed_index_is_complete_and_within_budget():
             return False
 
         thin = []
+        over_cap = []
         for l in lines:
             m = re.match(r"^- (DEC-\d+).*?::\s*(.*)$", l)
             if not m:
@@ -377,11 +378,23 @@ def test_committed_index_is_complete_and_within_budget():
             non_ws = re.sub(r"\s+", "", stripped)
             if len(non_ws) < 20:
                 thin.append(dec_id)
-        if thin:
-            print(
-                f"FAIL - {name}: {len(thin)} row(s) below the 20-non-whitespace-character prose "
-                f"floor after stripping SUPERSEDED/ok-stale clauses: {', '.join(thin)}"
-            )
+            word_count = len(stripped.split())
+            if word_count > 30:
+                over_cap.append((dec_id, word_count))
+        if thin or over_cap:
+            if thin:
+                print(
+                    f"FAIL - {name}: {len(thin)} row(s) below the 20-non-whitespace-character prose "
+                    f"floor after stripping SUPERSEDED/ok-stale clauses: {', '.join(thin)}"
+                )
+            if over_cap:
+                over_cap.sort(key=lambda pair: pair[1], reverse=True)
+                offenders = ", ".join(f"{dec_id} ({wc})" for dec_id, wc in over_cap)
+                print(
+                    f"FAIL - {name}: {len(over_cap)} row(s) in {REAL_INDEX} exceed the 30-word "
+                    f"ruling cap after stripping SUPERSEDED/ok-stale clauses — shorten the ruling "
+                    f"after ' :: ' on each listed row: {offenders}"
+                )
             return False
 
         print(f"ok - {name}")
