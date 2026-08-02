@@ -2,7 +2,7 @@ feature_id: FEAT-03-subissue-mirror
 phase: ship                     # validate EXITED at panel PASS, must_fix []; goal-check 12 of 12 in-scope SCs met
 branch: feat/harness-native-foundation
 pr: none
-status: in_review              # briefing written, awaiting the user's ship/fix/re-scope/stop
+status: shipped                # ACCEPTED by Mike Ruangutai 2026-08-02. gh-sync ship SKIPPED (github.sync false here). Merge/PR remain user-gated and NOT done.
 review_sha: e68ba00             # re-pinned at build HEAD for the validator panel (INV-6); 1ce886a was the PLAN baseline
 cycles_used: 6                # DEC-157 rework only: 3 plan fix cycles + 1 send-back (run 09) + 2 prose-only (run 10)
 max_total_cycles: 10          # harness.json budgets.max_total_cycles
