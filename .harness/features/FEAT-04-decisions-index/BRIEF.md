@@ -196,4 +196,10 @@ could never be met. Every `automated` SC above therefore pins to `unit`.
 status: approved
 approved-by: Mike Ruangutai
 date: 2026-08-02
-note: BRIEF only. PLAN remains pending — Q0 (T-09/T-10 executable by no agent) is unanswered.
+note: RE-SIGNED after a mid-build amendment made at the user's instruction — the 30-word
+ruling cap. BRIEF SC-11's change is a REVERSAL, not a tightening: it previously recorded the
+length-cap question as closed WITHOUT a count rule, and the cap is exactly that rule. PLAN
+D-07 gained the bound it never had. The earlier signature is deliberately NOT reused across
+changed content. Also standing from the first signature: Q0 (T-09/T-10 are main-session
+pre-ship steps) and Q4 (the unit gate is red by design between T-03 and T-07). No lower bound
+on ruling length — a floor would reward padding.
