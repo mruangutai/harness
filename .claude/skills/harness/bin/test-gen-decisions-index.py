@@ -130,11 +130,18 @@ def test_row_per_distinct_dec_matches_authority():
         # Documented divergence (D-04): ## DEC-83 appears a second time inside a
         # code fence at DECISIONS.md:1583. The raw regex harvests it; the
         # fence-guarded parse the generator must use does not.
-        if len(raw) != 171:
-            print(f"FAIL - {name}: expected raw regex match count 171, got {len(raw)}")
+        # Assert the RELATIONSHIP, never frozen totals (issue #5): a literal count
+        # reddens this gate on the next appended decision, which punishes writing a
+        # decision rather than catching a parser defect. What D-04 actually claims is
+        # that the raw regex over-harvests by exactly the fenced duplicates.
+        fenced_dupes = len(raw) - len(distinct)
+        if fenced_dupes != 1:
+            print(f"FAIL - {name}: raw regex should over-harvest fence-guarded by exactly 1 "
+                  f"(the DEC-83 duplicate inside a code fence), got {fenced_dupes} "
+                  f"(raw={len(raw)}, distinct={len(distinct)})")
             return False
-        if len(distinct) != 170:
-            print(f"FAIL - {name}: expected fence-guarded distinct count 170, got {len(distinct)}")
+        if len(distinct) != len(set(distinct)):
+            print(f"FAIL - {name}: fence-guarded parse yielded duplicate ids")
             return False
 
         if not os.path.exists(GEN):

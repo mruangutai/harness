@@ -14,8 +14,12 @@ to global installation and a distributable package.
 
 ### Constraints
 
-- **Files-only, no dependencies** — no CLI, no build step, nothing to `pip install`. This one is
-  load-bearing: it has decided real questions (no YAML parser dependency, no template generator).
+- **Files-only** — no CLI, no build step. Still load-bearing: it decided no template generator.
+  **The no-dependency clause is reversed (DEC-171 + am.1):** PyYAML is **required**, and a real
+  `safe_load` replaces hand-rolled regex wherever the harness reads YAML. There is no line-scan
+  fallback — a fallback would keep the brittle parser in the tree, which is the point of removing it.
+  A missing PyYAML is a loud error: `harness-init`'s prerequisite gate stops, and the two
+  `PreToolUse` hooks fail CLOSED with a one-session bootstrap escape.
 - **Context budget** — the harness must not bloat context: selective loading, never everything-at-once.
 
 (TDD scope lives in `harness.json` `test_matrix` + the `tdd-enforcement` skill — enforced there, not

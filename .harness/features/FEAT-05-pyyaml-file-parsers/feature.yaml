@@ -1,0 +1,62 @@
+feature_id: FEAT-05-pyyaml-file-parsers
+phase: plan
+branch: worktree-fix-harness-tooling-backlog
+pr: none
+status: awaiting_user
+review_sha: none
+cycles_used: 1
+max_total_cycles: 10
+cost_usd: 92
+max_cost_usd: 120
+runs:
+  - id: 2026-08-02-01-product
+    squad: product
+    verdict: PASS
+    cost_usd: 12.6
+  - id: 2026-08-02-02-eng
+    squad: eng
+    verdict: PASS
+    cost_usd: 34.6
+  - id: 2026-08-02-03-product
+    squad: product
+    verdict: PASS
+    cost_usd: 45.1
+github:
+  parent: none
+  milestone: none
+  issues: {}
+baseline:
+  check_docs_at_plan_exit: exit 0, 45 patterns across 113 files, no stale statements
+  hook_interpreter: bare python3 resolves to /opt/homebrew/bin/python3, import yaml FAILS
+  python3_on_path: 4 — homebrew, python.org 3.12, /usr/local, /usr/bin
+  governed_hook_path_ms: 80.63 measured by dev-ops, NOT the 23.7 the grilling recorded
+  plan_shape: 17 tasks, 13 decisions, helper-first spine ending at the two hooks
+  brief_shape: 7 REQs, 13 SCs
+  cost_note: run 01 attributed by depth cohort; runs 02-03 by cumulative delta. Floor, not ceiling
+resolved:
+  - E2 ONE shared bin/harness_yaml.py, helper first, hard edge to all six conversions. Imported via
+    PYTHONPATH on the existing heredoc invocations, zero extra processes. Decided on divergence risk
+  - E3 ordered session-identity chain, marker .harness/.pyyaml-bootstrap, fail CLOSED on no identity
+  - E1 no universal install string. Two lines gated on the PEP 668 error TEXT, not exit status
+  - E4/D-06 check-state.sh gets NO bootstrap escape, deliberately, consequence written into the plan
+  - DEC-172 carries a Correction at DECISIONS.md:4566-4580 reversing both halves of its same-ship
+    clause. 13 files not 16, templates may ship FIRST. Affects FEAT-06 only. The grilling artifact is
+    STALE on this point and must be corrected before FEAT-06 is briefed
+  - prototype_required false. bin/ scripts and hooks, no end-user surface. Overridable at signature
+pending:
+  - BRIEF AMENDMENTS Q1-Q3, rule at signature. REQ-01 names cost-report.py which reads no YAML at
+    all. SC-03's parenthetical undercounts the survivors: 7 of 17 calls in check-state.sh legitimately
+    stay, six parsing MARKDOWN. SC-02's exit-0 baseline is stale — check-state.sh exits 1 today on
+    this feature's own unsigned BRIEF
+  - Q7 ROUTING WALL, third recurrence. dev-ops is granted neither .gitignore nor
+    templates/** nor harness-init/SKILL.md, so PLAN T-10 and T-11 are MAIN-SESSION steps inside the
+    build spine, and T-12 blocks on T-10. FEAT-03 Q13 and FEAT-04 T-09 are the same wall
+  - Q4 session identity in a PreToolUse hook subprocess is UNCONFIRMED. T-09 probes it and carries a
+    stop-and-report ESCALATE branch. If nothing resolves, SC-08 and REQ-05 are unsatisfiable as
+    written and the escape needs redesign
+  - HARNESS DEFECT the SubagentStop validator resolves a DIFFERENT validate-digest.py than the
+    worktree's, so every digest checked inside a worktree is judged by the main checkout's rules
+  - SC-09 is verify uat and harness.json:244 is blocking_when_uat_criteria_exist, so ship gates on a
+    hand-run of the bootstrap-escape expiry
+  - COST 92 of 120 spent in the PLAN PHASE ALONE. Build, validate and ship inherit ~28. This feature
+    will overrun. Never a gate (DEC-134), but the user should see it before signing
