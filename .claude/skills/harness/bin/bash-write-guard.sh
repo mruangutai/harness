@@ -45,10 +45,15 @@ fi
 manifest="$root/.harness/team-config.yaml"
 [ -r "$manifest" ] || exit 0   # not onboarded — fail open like check-domain
 
-HOOK_PAYLOAD="$payload" python3 - "$agent" "$manifest" "$root" <<'PY'
+HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
+  python3 - "$agent" "$manifest" "$root" <<'PY'
 import sys, os, re, json, shlex
 
+import harness_yaml
+
 agent, manifest, root = sys.argv[1:4]
+
+harness_yaml.require_or_bootstrap(root)
 try:
     d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
 except Exception:
@@ -245,22 +250,33 @@ if agent in REVIEWERS:
          f"Report the finding; never fix.")
 
 # --- non-reviewers: check extractable paths against the agent's domain ---
-lines = open(manifest, encoding="utf-8").read().splitlines()
-mine, shared, cur = [], [], None
-for ln in lines:
-    s = ln.strip()
-    m = re.match(r"^-?\s*(?:name|- name):\s*(\S+)", s)
-    if m:
-        cur = m.group(1).strip("\"'"); continue
-    if s.startswith("shared:"):
-        cur = "__shared__"; continue
-    pm = re.search(r"path:\s*([^,}\s]+)", s)
-    if pm:
-        p = pm.group(1).strip("\"'")
-        if cur == agent and "read: true" not in s:
-            mine.append(p)
-        elif cur == "__shared__":
-            shared.append(p)
+# T-14, and this is the SECURITY-RELEVANT half of D-03. This file used to carry its
+# own copy of check-domain.sh's manifest skimmer — two hand-maintained walks over the
+# same rulebook, which is one edit away from the two write surfaces disagreeing about
+# what an agent may write. That is not a theoretical risk here: this hook exists
+# BECAUSE an agent routed around check-domain.sh (DEC-151), so a divergence between
+# them is a bypass by construction. Both now call one function; they cannot drift.
+try:
+    mine, shared = harness_yaml.manifest_domains(manifest, agent)
+except harness_yaml.DuplicateKeyError as e:
+    print(f"bash-write-guard: BLOCKED — the manifest has a duplicate key {e.key!r}.",
+          file=sys.stderr)
+    print(f"  {manifest}", file=sys.stderr)
+    print("  The second occurrence silently shadows the first, so which domain "
+          "applies is ambiguous. Enforcement cannot be trusted until it is fixed.",
+          file=sys.stderr)
+    sys.exit(2)
+except harness_yaml.YamlParseError as e:
+    # FAIL CLOSED, matching check-domain.sh. Distinct from the absent-manifest case
+    # at :46, which still exits 0: an unconfigured project has nothing to enforce,
+    # whereas here the project IS configured and exactly one action fixes it.
+    print("bash-write-guard: BLOCKED — the manifest does not parse, so no domain can "
+          "be checked.", file=sys.stderr)
+    print(f"  {e.original}", file=sys.stderr)
+    print("  Enforcement is CLOSED rather than partial: a rulebook that cannot be "
+          "read cannot be half-applied. Fix the file (the main session owns it), "
+          "then retry.", file=sys.stderr)
+    sys.exit(2)
 
 def glob_to_re(pat):
     out, i = [], 0
