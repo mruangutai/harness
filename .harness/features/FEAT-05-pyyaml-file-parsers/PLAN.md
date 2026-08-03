@@ -1169,3 +1169,37 @@ ever sets it the hooks fail closed on a machine that *does* have PyYAML. **That 
 simulation mechanism BRIEF's "Note for whoever builds SC-08's harness" says will be needed** — no
 uninstall, no container, no PATH surgery: set `PYTHONNOUSERSITE=1` to make PyYAML absent for exactly
 one invocation. Use it for SC-08 and SC-09.
+
+### Amendment 2 — Q6 is DISPROVEN by measurement; DEC-173 IS in force (2026-08-03)
+
+**Amendment 1's Q6 paragraph above is WRONG and is retracted.** It states that the
+`SubagentStop` validator resolves the main checkout's `validate-digest.py`, that digests
+produced in this worktree are judged by the main checkout's rules, and that DEC-173's
+widened schema "is NOT in force for agents until this branch merges." A reviewer must not
+act on any of that.
+
+Measured instead, receipt at `notes/receipt-main-session-hook-resolution-probe.md`: a
+probe line in the **worktree's** `check-domain.sh` fired **11 times, identically**, with
+`BASH_SOURCE`, `CLAUDE_PROJECT_DIR` and `pwd` all resolving to the **worktree**. Hooks
+resolve through the same `${CLAUDE_PROJECT_DIR}` in `settings.json`, so:
+
+- **The worktree's copy of every hook executes**, and `root` is the worktree.
+- **DEC-173's schema IS in force** for agents spawned here. Digests should be encoded
+  against the CURRENT contract, not the old one. Amendment 1's instruction to the
+  contrary is void.
+- **SC-05, SC-06 and SC-08 are exercisable BEFORE merge.** No `verify: after-merge`
+  reclassification is needed; the panel can review observed behaviour.
+- **T-10's `.gitignore` rule covers the right repository** — the marker resolves to
+  `<worktree>/.harness/.pyyaml-bootstrap`.
+
+**How the error happened, recorded because the shape matters more than the fact:** I
+verified that the two copies of `validate-digest.py` DIFFER (main has 0 `GATE_FIELDS`,
+the worktree has 2) and then asserted which one *runs*. Those are different claims. A
+file-difference check cannot answer a resolution question. The correct move — one probe —
+took five minutes and was available the whole time.
+
+**Q4 is NOT answered by this.** Its proposed explanation is eliminated: the orchestrator
+reasoned that T-09's append raised into `except Exception: pass` because the main checkout
+lacks a `FEAT-05-pyyaml-file-parsers` directory, but `root` is the worktree, which has
+one. So the append had a writable target and that theory is dead — while T-09's probe
+still did not execute, for an unidentified reason. It remains a verify-method defect.

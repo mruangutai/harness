@@ -50,3 +50,12 @@ The main session appended `## Approval` to both artifacts, as it must. No agent 
 
 B-13 (`lead` `members: []` with `steps_run > 0`) and the `stop_hook_active` pass-through are open
 harness defects recorded in DEC-173. Neither blocks this feature.
+
+## CORRECTION, 2026-08-03 — the Q6 paragraph above is DISPROVEN
+
+This file told you DEC-173 was "NOT in force" here and to "encode digests against the OLD
+contract until the branch merges." **That was wrong.** Measured by probe (receipt at
+`notes/receipt-main-session-hook-resolution-probe.md`): the WORKTREE's hook copies execute and
+`CLAUDE_PROJECT_DIR` is the worktree, so DEC-173 IS in force and the fenced return templates are
+live. I had verified only that the two `validate-digest.py` copies differ, then asserted which one
+runs — a different claim, and the wrong one.
