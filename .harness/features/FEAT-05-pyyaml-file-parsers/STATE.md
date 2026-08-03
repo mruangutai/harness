@@ -79,7 +79,17 @@ carved out of self-hosting.
   can be exercised before merge. All-or-nothing, so a wrong assumption is **loud rather than silently
   corrupting**. Two options: probe it, or mark those three `verify: after-merge` and review code rather
   than behaviour.
-- **B4 — stands, unsoftened, and it is B3 seen twice.** T-09's probe **never executed** on a genuine
+- **B4 — RESOLVED 2026-08-03 by measurement.** Session identity IS reachable in a genuine
+  `PreToolUse` subprocess: 21 fires show the payload carries only `agent_type`/`tool_input`/
+  `tool_name` (so `_resolve_identity`'s first two entries are dead here) while
+  **`CLAUDE_CODE_SESSION_ID` is present at 36 chars** — the chain's third entry, verified
+  end-to-end against the module. **The bootstrap escape is implementable as designed; SC-08
+  and REQ-05 need no redesign.** Receipt: `notes/receipt-main-session-q4-session-identity.md`.
+  T-09's "extra question" is resolved with it — the env var is read straight from `os.environ`,
+  so the `:97` call site needs no `HOOK_PAYLOAD` addition. The verify-method defect in T-09
+  stands as a finding (`RESOLVED VIA: mechanism-unknown` satisfied its greps while the
+  criterion was unmet) even though the underlying question is now answered.
+- **B4, superseded text kept for provenance —** it read: T-09's probe **never executed** on a genuine
   hook fire. That is **not** the plan's ESCALATE branch, which requires positive proof the block ran.
   All three of T-09's verify greps pass while its criterion is unmet — `RESOLVED VIA:
   mechanism-unknown` satisfies the grep. **Read the receipt, not the greps: this is a verify-method
