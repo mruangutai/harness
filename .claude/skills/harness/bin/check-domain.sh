@@ -94,38 +94,48 @@ if [ ! -r "$manifest" ]; then
 fi
 
 domain_check() {
-python3 - "$agent" "$target" "$manifest" "$root" <<'PY'
+PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 - "$agent" "$target" "$manifest" "$root" <<'PY'
 import sys, os, re
+
+import harness_yaml
 
 agent, target, manifest, root = sys.argv[1:5]
 
-# Deliberately not using a YAML lib: this must run with zero dependencies on any
-# machine. We read only two things per member — its name and its domain/shared
-# path lists — so a narrow line scanner is sufficient and predictable.
-lines = open(manifest, encoding="utf-8").read().splitlines()
+harness_yaml.require_or_bootstrap(root)
 
-def collect(section_owner):
-    """Paths under the entry whose `name:` matches section_owner, plus shared."""
-    mine, shared, cur = [], [], None
-    for ln in lines:
-        s = ln.strip()
-        m = re.match(r"^-?\s*(?:name|- name):\s*(\S+)", s)
-        if m:
-            cur = m.group(1).strip('"\'')
-            continue
-        if s.startswith("shared:"):
-            cur = "__shared__"
-            continue
-        pm = re.search(r"path:\s*([^,}\s]+)", s)
-        if pm:
-            p = pm.group(1).strip('"\'')
-            if cur == section_owner and "read: true" not in s:
-                mine.append(p)
-            elif cur == "__shared__":
-                shared.append(p)
-    return mine, shared
-
-globs, shared = collect(agent)
+# T-12: the manifest is PARSED, not skimmed. The scanner this replaced matched the
+# literal text `name:`/`path:` line by line, so it never had to close a bracket or
+# resolve a key — which is how one unquoted `#` at team-config.yaml:18 made every
+# key from `orchestrator:` onward unreachable to a real reader while this hook went
+# on enforcing the fragments it still recognised. It reported nothing. A guard that
+# silently sees less than it should is worse than one that stops.
+try:
+    globs, shared = harness_yaml.manifest_domains(manifest, agent)
+except harness_yaml.DuplicateKeyError as e:
+    # A repeated key in the MANIFEST silently shadows the first (DEC-156's shape,
+    # here in the rulebook itself). Which of two conflicting domain lists wins is
+    # not something to guess at while holding a write guard.
+    print(f"check-domain: BLOCKED — the manifest has a duplicate key {e.key!r}.",
+          file=sys.stderr)
+    print(f"  {manifest}", file=sys.stderr)
+    print("  The second occurrence silently shadows the first, so which domain "
+          "applies is ambiguous. Enforcement cannot be trusted until it is fixed.",
+          file=sys.stderr)
+    sys.exit(2)
+except harness_yaml.YamlParseError as e:
+    # FAIL CLOSED, by the user's ruling and DEC-171 am.1's logic. This is NOT the
+    # absent-manifest case below, which fails open because an unconfigured project
+    # has nothing to enforce: here the project IS configured, the file exists, the
+    # hook has no bug, and exactly one action fixes it. No deadlock — the manifest
+    # is in no agent's domain and the main session is exempt (`:48`), so the only
+    # party who can repair it is the one this guard never governs.
+    print("check-domain: BLOCKED — the manifest does not parse, so no domain can be "
+          "checked.", file=sys.stderr)
+    print(f"  {e.original}", file=sys.stderr)
+    print("  Enforcement is CLOSED rather than partial: a rulebook that cannot be "
+          "read cannot be half-applied. Fix the file (the main session owns it), "
+          "then retry.", file=sys.stderr)
+    sys.exit(2)
 
 # Compare repo-relative, so an absolute tool path and a relative glob still meet.
 rel = os.path.relpath(os.path.abspath(target), os.path.abspath(root))
@@ -232,10 +242,14 @@ domain_check; rc=$?
 # Payload rides an env var: `python3 -` takes its PROGRAM from stdin, so piping
 # the payload alongside a heredoc silently loses it (the gate's first draft did
 # exactly that and passed everything).
-HOOK_PAYLOAD="$payload" python3 - "$target" "$root" <<'PY'
+HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 - "$target" "$root" <<'PY'
 import sys, os, re, json
 
+import harness_yaml
+
 target, root = sys.argv[1:3]
+
+harness_yaml.require_or_bootstrap(root)
 try:
     d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
 except Exception:
@@ -277,24 +291,46 @@ if re.match(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$", rel):
     # INV-16 sweeps this at entry; this denies it at write, while the author can
     # fix it — the first post-deploy run (FEAT-03 plan) violated within hours of
     # the sweep landing, so entry-time alone demonstrably does not deter.
-    # KEEP IN SYNC with CHECKPOINT_KEYS in check-state.sh.
+    # KEY VOCABULARY stays in sync with CHECKPOINT_KEYS in check-state.sh; the
+    # MECHANISM deliberately does not (D-02). check-state.sh sweeps existing files
+    # and reports; this denies at write. Since T-12 the duplicate here is caught by
+    # the LOADER RAISING, while check-state.sh still scans — same vocabulary, two
+    # mechanisms. Do not "resync" them by reverting this to a regex scan: the scan
+    # is what let a malformed file pass with its keys silently unread.
     ALLOWED = {"schema_version", "run_id", "feature", "squad", "host", "status", "steps",
                "cycles_used", "cost", "flow", "task", "team", "branch", "worktree",
                "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
                "verdict", "severity_max", "digest"}
-    keys = re.findall(r"^([A-Za-z_][A-Za-z0-9_-]*):", content, re.M)
-    unknown = sorted({k for k in keys if k not in ALLOWED})
-    dups = sorted({k for k in keys if keys.count(k) > 1})
-    if unknown or dups:
+    try:
+        doc = harness_yaml.load_str(content, rel)
+    except harness_yaml.DuplicateKeyError as e:
+        # D-02: the DEC-156 denial SURVIVES, now raised by the loader rather than
+        # counted by a regex — which also catches a duplicate at any nesting depth,
+        # not merely at column 0.
         print("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook (DEC-154).",
               file=sys.stderr)
-        if unknown:
-            print(f"  non-checkpoint top-level key(s) {unknown} — findings and assessment prose "
-                  f"belong in this run's digest.md; a one-line note: per STEP entry is the "
-                  f"prose ceiling.", file=sys.stderr)
-        if dups:
-            print(f"  duplicate top-level key(s) {dups} — the second silently shadows the first; "
-                  f"replace the placeholder, never append a copy (DEC-156).", file=sys.stderr)
+        print(f"  duplicate key {e.key!r} — the second silently shadows the first; "
+              f"replace the placeholder, never append a copy (DEC-156).", file=sys.stderr)
+        sys.exit(2)
+    except harness_yaml.YamlParseError as e:
+        # NEW blocking outcome, deliberate (D-02 consequence #2). The regex this
+        # replaced found no keys in a malformed file and therefore reported nothing
+        # wrong — it wrote a broken checkpoint and said it was fine.
+        print("check-domain: BLOCKED — this state.yaml is not valid YAML.", file=sys.stderr)
+        print(f"  {e.original}", file=sys.stderr)
+        print("  A checkpoint that cannot be parsed is unreadable to every gate that "
+              "consumes it later; the write is refused while you can still fix it.",
+              file=sys.stderr)
+        sys.exit(2)
+
+    keys = list(doc) if isinstance(doc, dict) else []
+    unknown = sorted({str(k) for k in keys if str(k) not in ALLOWED})
+    if unknown:
+        print("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook (DEC-154).",
+              file=sys.stderr)
+        print(f"  non-checkpoint top-level key(s) {unknown} — findings and assessment prose "
+              f"belong in this run's digest.md; a one-line note: per STEP entry is the "
+              f"prose ceiling.", file=sys.stderr)
         sys.exit(2)
 
 if re.match(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$", rel):
