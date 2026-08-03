@@ -25,6 +25,39 @@ set -uo pipefail
 
 payload=$(cat)
 
+# Locate the project root WITHOUT depending on cwd. A hook's working directory is
+# not guaranteed, and deriving root from pwd made this script fail OPEN whenever it
+# ran from anywhere else — silently disabling enforcement rather than reporting it.
+# This script lives at <root>/.claude/skills/harness/bin/, so walk up four levels.
+# BASH_SOURCE is the one thing only bash can answer, which is why any bash remains.
+_self="${BASH_SOURCE[0]:-$0}"
+_selfdir="$(cd "$(dirname "$_self")" && pwd)"
+_derived="$(cd "$_selfdir/../../../.." && pwd)"
+
+# T-13: ONE interpreter launch, not four. This hook runs on EVERY agent write, and
+# four launches cost four Python start-ups per write — measured at 104.7ms for the
+# full governed path, of which the interpreter is most. Behaviour is unchanged:
+# every early exit, every exit code and every stderr message is identical, and the
+# unchanged test suite is the equivalence proof (D-10, REQ-07).
+HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
+  python3 - "$_derived" "${1:-}" <<'PY'
+import sys, os, re, json
+
+# harness_yaml is imported LAZILY, below, after the manifest check — NOT here.
+# Ordering is behaviour: the four-launch version reached the DEC-101 "no manifest,
+# enforcement OFF" fail-open in BASH, before any interpreter that needed the module.
+# Importing at the top made a hook whose module is missing crash with exit 1 before
+# it could print that message. Caught by test-check-domain.py's isolated-copy case.
+_derived, argv_agent = sys.argv[1:3]
+
+# One parse of the payload, reused by every check below. A failure here is OUR
+# problem, not the agent's: fall back to the same empty-payload behaviour the four
+# separate launches had, each of which printed "" and let the caller decide.
+try:
+    d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
+except Exception:
+    d = {}
+
 # Agent identity: prefer `agent_type` from the hook payload, fall back to $1.
 #
 # WHY BOTH: agent-frontmatter PreToolUse hooks DO NOT FIRE for spawned subagents in
@@ -32,224 +65,175 @@ payload=$(cat)
 # (DEC-110). So the hook is registered in settings.json instead, where it does fire,
 # and identity has to come from the payload because one global registration serves
 # every agent.
-agent="$(printf '%s' "$payload" | python3 -c '
-import sys, json
-try:
-    print(json.load(sys.stdin).get("agent_type", "") or "")
-except Exception:
-    print("")
-' 2>/dev/null)"
-[ -n "$agent" ] || agent="${1:-}"
+agent = (d.get("agent_type") or "") or argv_agent
 
 # NO agent identity = the MAIN SESSION, not a subagent. Since DEC-120 the orchestrator
 # is a spawned agent and IS governed like any other; this carve-out now protects only
 # the main session, which writes little: `## Approval` blocks and the cross-flow log.
 # Never govern it — blocking it would make the harness unable to record your decisions.
-[ -n "$agent" ] || exit 0
+if not agent:
+    sys.exit(0)
 
 # Only harness agents are subject to domains.
-case "$agent" in
-  harness-*) ;;
-  *) exit 0 ;;
-esac
+if not agent.startswith("harness-"):
+    sys.exit(0)
 
-# Locate the project root WITHOUT depending on cwd. A hook's working directory is
-# not guaranteed, and deriving root from pwd made this script fail OPEN whenever it
-# ran from anywhere else — silently disabling enforcement rather than reporting it.
-# This script lives at <root>/.claude/skills/harness/bin/, so walk up five levels.
-_self="${BASH_SOURCE[0]:-$0}"
-_selfdir="$(cd "$(dirname "$_self")" && pwd)"
-_derived="$(cd "$_selfdir/../../../.." && pwd)"
+root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
+    if os.access(os.path.join(_derived, ".harness", "team-config.yaml"), os.R_OK):
+        root = _derived
+    else:
+        root = root or os.getcwd()
+manifest = os.path.join(root, ".harness", "team-config.yaml")
 
-root="${CLAUDE_PROJECT_DIR:-}"
-if [ -z "$root" ] || [ ! -r "$root/.harness/team-config.yaml" ]; then
-  if [ -r "$_derived/.harness/team-config.yaml" ]; then
-    root="$_derived"
-  else
-    root="${root:-$(pwd)}"
-  fi
-fi
-manifest="$root/.harness/team-config.yaml"
-
-target=$(printf '%s' "$payload" | python3 -c '
-import sys, json
-try:
-    d = json.load(sys.stdin)
-except Exception:
-    print(""); raise SystemExit
 ti = d.get("tool_input", {}) or {}
 # Write/Edit use file_path; NotebookEdit uses notebook_path.
-print(ti.get("file_path") or ti.get("notebook_path") or "")
-' 2>/dev/null)
+target = ti.get("file_path") or ti.get("notebook_path") or ""
 
 # No parseable path -> do not block. A hook that blocks on its own parse failure
 # would break every write the moment the payload shape changes.
-[ -n "$target" ] || exit 0
+if not target:
+    sys.exit(0)
 
 # No manifest -> fail OPEN, loudly. Blocking every write in a project that has
 # not run /harness-init would be worse than not enforcing.
-if [ ! -r "$manifest" ]; then
-  echo "check-domain: no $manifest — enforcement OFF (run /harness-init)." >&2
-  exit 0
-fi
-
-domain_check() {
-PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 - "$agent" "$target" "$manifest" "$root" <<'PY'
-import sys, os, re
+if not os.access(manifest, os.R_OK):
+    print(f"check-domain: no {manifest} — enforcement OFF (run /harness-init).", file=sys.stderr)
+    sys.exit(0)
 
 import harness_yaml
 
-agent, target, manifest, root = sys.argv[1:5]
-
 harness_yaml.require_or_bootstrap(root)
 
-# T-12: the manifest is PARSED, not skimmed. The scanner this replaced matched the
-# literal text `name:`/`path:` line by line, so it never had to close a bracket or
-# resolve a key — which is how one unquoted `#` at team-config.yaml:18 made every
-# key from `orchestrator:` onward unreachable to a real reader while this hook went
-# on enforcing the fragments it still recognised. It reported nothing. A guard that
-# silently sees less than it should is worse than one that stops.
-try:
-    globs, shared = harness_yaml.manifest_domains(manifest, agent)
-except harness_yaml.DuplicateKeyError as e:
-    # A repeated key in the MANIFEST silently shadows the first (DEC-156's shape,
-    # here in the rulebook itself). Which of two conflicting domain lists wins is
-    # not something to guess at while holding a write guard.
-    print(f"check-domain: BLOCKED — the manifest has a duplicate key {e.key!r}.",
-          file=sys.stderr)
-    print(f"  {manifest}", file=sys.stderr)
-    print("  The second occurrence silently shadows the first, so which domain "
-          "applies is ambiguous. Enforcement cannot be trusted until it is fixed.",
-          file=sys.stderr)
+
+def domain_check():
+    # T-12: the manifest is PARSED, not skimmed. The scanner this replaced matched the
+    # literal text `name:`/`path:` line by line, so it never had to close a bracket or
+    # resolve a key — which is how one unquoted `#` at team-config.yaml:18 made every
+    # key from `orchestrator:` onward unreachable to a real reader while this hook went
+    # on enforcing the fragments it still recognised. It reported nothing. A guard that
+    # silently sees less than it should is worse than one that stops.
+    try:
+        globs, shared = harness_yaml.manifest_domains(manifest, agent)
+    except harness_yaml.DuplicateKeyError as e:
+        # A repeated key in the MANIFEST silently shadows the first (DEC-156's shape,
+        # here in the rulebook itself). Which of two conflicting domain lists wins is
+        # not something to guess at while holding a write guard.
+        print(f"check-domain: BLOCKED — the manifest has a duplicate key {e.key!r}.",
+              file=sys.stderr)
+        print(f"  {manifest}", file=sys.stderr)
+        print("  The second occurrence silently shadows the first, so which domain "
+              "applies is ambiguous. Enforcement cannot be trusted until it is fixed.",
+              file=sys.stderr)
+        sys.exit(2)
+    except harness_yaml.YamlParseError as e:
+        # FAIL CLOSED, by the user's ruling and DEC-171 am.1's logic. This is NOT the
+        # absent-manifest case below, which fails open because an unconfigured project
+        # has nothing to enforce: here the project IS configured, the file exists, the
+        # hook has no bug, and exactly one action fixes it. No deadlock — the manifest
+        # is in no agent's domain and the main session is exempt (`:48`), so the only
+        # party who can repair it is the one this guard never governs.
+        print("check-domain: BLOCKED — the manifest does not parse, so no domain can be "
+              "checked.", file=sys.stderr)
+        print(f"  {e.original}", file=sys.stderr)
+        print("  Enforcement is CLOSED rather than partial: a rulebook that cannot be "
+              "read cannot be half-applied. Fix the file (the main session owns it), "
+              "then retry.", file=sys.stderr)
+        sys.exit(2)
+
+    # Compare repo-relative, so an absolute tool path and a relative glob still meet.
+    rel = os.path.relpath(os.path.abspath(target), os.path.abspath(root))
+
+    # OUTSIDE THE REPO IS NOT A DOMAIN QUESTION. bash-write-guard.sh:211 already says
+    # so ("outside repo — not this hook's problem"), and this hook did not: a scratch
+    # script at /tmp/x.py was legal via Bash and blocked via Write, so an agent
+    # learned to route around a hook whose own message says not to. Domain control
+    # exists for REPO writes; /tmp is not the repo, is not deployed, and is not state.
+    #
+    # Keyed on the RESOLVED path escaping the root, never on the string ".." — a repo
+    # path reached via docs/../src/main.py resolves back inside and must still block.
+    if os.path.commonpath([os.path.abspath(target), os.path.abspath(root)]) != os.path.abspath(root):
+        return
+
+    # WORKTREES (DEC-143). A git worktree under .claude/worktrees/<name>/ is a full
+    # checkout, but to this hook it was just a subdirectory: the same repo-relative
+    # path that globs ALLOW in the main checkout arrived as
+    # .claude/worktrees/t01-83/src/... and matched nothing — so in a
+    # worktree-per-session project, NO doer could write source at all. Found in
+    # kaya-ai at the first build dispatch after plan approval, the most expensive
+    # possible place.
+    #
+    # Fix: match the RAW path first (so a glob that deliberately targets
+    # .claude/worktrees/** still works — none exist today, but the edge is real),
+    # then strip the worktree prefix and match the in-worktree path against the same
+    # globs. This is NOT a widen: identical globs, anchored to the checkout the
+    # agent is standing in.
+    _wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
+    rel_candidates = [rel] + ([_wt.group(1)] if _wt else [])
+
+    def glob_to_re(pat):
+        """Translate a glob to a regex. `**` crosses separators, `*` does not.
+
+        fnmatch cannot do this: its `*` matches `/` too, so `web/*/x` would match
+        `web/a/b/x`. And a literal prefix comparison cannot do it either — the bug
+        this replaced used str.startswith on the text before `/**`, which silently
+        failed for any pattern with a wildcard earlier in the path, e.g.
+        `features/*/runs/*-eng/**`. That blocked every lead from its own run dir.
+        """
+        out, i = [], 0
+        while i < len(pat):
+            c = pat[i]
+            if pat.startswith("**", i):
+                out.append(".*"); i += 2
+                if pat.startswith("/", i):      # `**/` also matches zero segments
+                    out.append("/?"); i += 1
+            elif c == "*":
+                out.append("[^/]*"); i += 1
+            elif c == "?":
+                out.append("[^/]"); i += 1
+            else:
+                out.append(re.escape(c)); i += 1
+        return re.compile("^" + "".join(out) + "$")
+
+
+    def matches(path, pat):
+        pat = pat.rstrip("/")
+        if pat in (".", ""):            # "." means read-anything; never a write grant
+            return False
+        if pat.endswith("/**"):
+            # the directory itself, or anything beneath it
+            base = pat[:-3]
+            return bool(glob_to_re(base).match(path) or glob_to_re(base + "/**").match(path))
+        if glob_to_re(pat).match(path):
+            return True
+        # a bare dir pattern grants everything under it
+        return bool(glob_to_re(pat + "/**").match(path))
+
+    if any(matches(r, g) for r in rel_candidates for g in globs):
+        return
+
+    if any(matches(r, g) for r in rel_candidates for g in shared):
+        # Shared paths are owned by nobody and always serialized (DEC-85). Allow the
+        # write, but say so — an unnoticed shared-file edit is how two agents collide.
+        print(f"check-domain: {agent} is writing SHARED path {rel} "
+              f"(owned by nobody, must be serialized).", file=sys.stderr)
+        return
+
+    # ACTIONABLE REJECTION (DEC-100b). A probe confirmed that naming only the
+    # rejected path leaves an agent with no basis for choosing a valid alternative,
+    # so always print what it MAY write.
+    permitted = ", ".join(globs) if globs else "(no writable domain declared)"
+    print(f"check-domain: BLOCKED — {agent} may not write {rel}", file=sys.stderr)
+    print(f"  Permitted for you: {permitted}", file=sys.stderr)
+    if shared:
+        print(f"  Shared (allowed, serialized): {', '.join(shared)}", file=sys.stderr)
+    print(f"  If this path should be yours, it belongs in {os.path.relpath(manifest, root)} "
+          f"— do not work around this hook.", file=sys.stderr)
     sys.exit(2)
-except harness_yaml.YamlParseError as e:
-    # FAIL CLOSED, by the user's ruling and DEC-171 am.1's logic. This is NOT the
-    # absent-manifest case below, which fails open because an unconfigured project
-    # has nothing to enforce: here the project IS configured, the file exists, the
-    # hook has no bug, and exactly one action fixes it. No deadlock — the manifest
-    # is in no agent's domain and the main session is exempt (`:48`), so the only
-    # party who can repair it is the one this guard never governs.
-    print("check-domain: BLOCKED — the manifest does not parse, so no domain can be "
-          "checked.", file=sys.stderr)
-    print(f"  {e.original}", file=sys.stderr)
-    print("  Enforcement is CLOSED rather than partial: a rulebook that cannot be "
-          "read cannot be half-applied. Fix the file (the main session owns it), "
-          "then retry.", file=sys.stderr)
-    sys.exit(2)
-
-# Compare repo-relative, so an absolute tool path and a relative glob still meet.
-rel = os.path.relpath(os.path.abspath(target), os.path.abspath(root))
-
-# OUTSIDE THE REPO IS NOT A DOMAIN QUESTION. bash-write-guard.sh:211 already says
-# so ("outside repo — not this hook's problem"), and this hook did not: a scratch
-# script at /tmp/x.py was legal via Bash and blocked via Write, so an agent
-# learned to route around a hook whose own message says not to. Domain control
-# exists for REPO writes; /tmp is not the repo, is not deployed, and is not state.
-#
-# Keyed on the RESOLVED path escaping the root, never on the string ".." — a repo
-# path reached via docs/../src/main.py resolves back inside and must still block.
-if os.path.commonpath([os.path.abspath(target), os.path.abspath(root)]) != os.path.abspath(root):
-    sys.exit(0)
-
-# WORKTREES (DEC-143). A git worktree under .claude/worktrees/<name>/ is a full
-# checkout, but to this hook it was just a subdirectory: the same repo-relative
-# path that globs ALLOW in the main checkout arrived as
-# .claude/worktrees/t01-83/src/... and matched nothing — so in a
-# worktree-per-session project, NO doer could write source at all. Found in
-# kaya-ai at the first build dispatch after plan approval, the most expensive
-# possible place.
-#
-# Fix: match the RAW path first (so a glob that deliberately targets
-# .claude/worktrees/** still works — none exist today, but the edge is real),
-# then strip the worktree prefix and match the in-worktree path against the same
-# globs. This is NOT a widen: identical globs, anchored to the checkout the
-# agent is standing in.
-_wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
-rel_candidates = [rel] + ([_wt.group(1)] if _wt else [])
-
-def glob_to_re(pat):
-    """Translate a glob to a regex. `**` crosses separators, `*` does not.
-
-    fnmatch cannot do this: its `*` matches `/` too, so `web/*/x` would match
-    `web/a/b/x`. And a literal prefix comparison cannot do it either — the bug
-    this replaced used str.startswith on the text before `/**`, which silently
-    failed for any pattern with a wildcard earlier in the path, e.g.
-    `features/*/runs/*-eng/**`. That blocked every lead from its own run dir.
-    """
-    out, i = [], 0
-    while i < len(pat):
-        c = pat[i]
-        if pat.startswith("**", i):
-            out.append(".*"); i += 2
-            if pat.startswith("/", i):      # `**/` also matches zero segments
-                out.append("/?"); i += 1
-        elif c == "*":
-            out.append("[^/]*"); i += 1
-        elif c == "?":
-            out.append("[^/]"); i += 1
-        else:
-            out.append(re.escape(c)); i += 1
-    return re.compile("^" + "".join(out) + "$")
 
 
-def matches(path, pat):
-    pat = pat.rstrip("/")
-    if pat in (".", ""):            # "." means read-anything; never a write grant
-        return False
-    if pat.endswith("/**"):
-        # the directory itself, or anything beneath it
-        base = pat[:-3]
-        return bool(glob_to_re(base).match(path) or glob_to_re(base + "/**").match(path))
-    if glob_to_re(pat).match(path):
-        return True
-    # a bare dir pattern grants everything under it
-    return bool(glob_to_re(pat + "/**").match(path))
+domain_check()
 
-if any(matches(r, g) for r in rel_candidates for g in globs):
-    sys.exit(0)
-
-if any(matches(r, g) for r in rel_candidates for g in shared):
-    # Shared paths are owned by nobody and always serialized (DEC-85). Allow the
-    # write, but say so — an unnoticed shared-file edit is how two agents collide.
-    print(f"check-domain: {agent} is writing SHARED path {rel} "
-          f"(owned by nobody, must be serialized).", file=sys.stderr)
-    sys.exit(0)
-
-# ACTIONABLE REJECTION (DEC-100b). A probe confirmed that naming only the
-# rejected path leaves an agent with no basis for choosing a valid alternative,
-# so always print what it MAY write.
-permitted = ", ".join(globs) if globs else "(no writable domain declared)"
-print(f"check-domain: BLOCKED — {agent} may not write {rel}", file=sys.stderr)
-print(f"  Permitted for you: {permitted}", file=sys.stderr)
-if shared:
-    print(f"  Shared (allowed, serialized): {', '.join(shared)}", file=sys.stderr)
-print(f"  If this path should be yours, it belongs in {os.path.relpath(manifest, root)} "
-      f"— do not work around this hook.", file=sys.stderr)
-sys.exit(2)
-PY
-}
-
-domain_check; rc=$?
-[ "$rc" -eq 0 ] || exit "$rc"
-
-# ---- STATE-FILE SHAPE GATE (DEC-150) ------------------------------------------------
-# feature.yaml and STATE.md are read at every cycle/spawn, so they must stay
-# index-sized. This gate denies the Write that starts the accretion — the 141KB
-# feature.yaml observed in the field was built one read-modify-write at a time,
-# and every increment passes the full content through this hook. Write only:
-# the governed writers (orchestrator, leads) hold no Edit, and an Edit payload
-# cannot be sized without reading the target.
-# Payload rides an env var: `python3 -` takes its PROGRAM from stdin, so piping
-# the payload alongside a heredoc silently loses it (the gate's first draft did
-# exactly that and passed everything).
-HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 - "$target" "$root" <<'PY'
-import sys, os, re, json
-
-import harness_yaml
-
-target, root = sys.argv[1:3]
-
-harness_yaml.require_or_bootstrap(root)
 try:
     d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
 except Exception:
