@@ -141,6 +141,7 @@ teams:
         domain:
           - { path: web/src/**, upsert: true }            # seeded by /harness-init
           - { path: .harness/codebase/ui-surface.md, upsert: true }       # its map lens (DEC-137)
+          - { path: .harness/features/*/notes/receipt-harness-frontend-dev-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-frontend-dev.md, upsert: true }
           - { path: .harness/features/*/observations/harness-frontend-dev.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
@@ -154,6 +155,7 @@ teams:
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
           - { path: .harness/codebase/api-surface.md, upsert: true }      # its map lens (DEC-137)
           - { path: .harness/codebase/domains/**, upsert: true }        # module grouping
+          - { path: .harness/features/*/notes/receipt-harness-backend-dev-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
           - { path: .harness/features/*/observations/harness-backend-dev.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
@@ -166,6 +168,7 @@ teams:
           - { path: src/**/prompts/**, upsert: true }     # seeded by /harness-init
           - { path: evals/**, upsert: true }
           - { path: .harness/codebase/llm-patterns.md, upsert: true }     # its map lens (DEC-137)
+          - { path: .harness/features/*/notes/receipt-harness-ai-dev-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-ai-dev.md, upsert: true }
           - { path: .harness/features/*/observations/harness-ai-dev.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
@@ -178,6 +181,7 @@ teams:
           - { path: supabase/migrations/**, upsert: true }
           - { path: src/**/schema*, upsert: true }        # seeded by /harness-init
           - { path: .harness/codebase/data-flows.md, upsert: true }       # its map lens (DEC-137)
+          - { path: .harness/features/*/notes/receipt-harness-data-engineer-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-data-engineer.md, upsert: true }
           - { path: .harness/features/*/observations/harness-data-engineer.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }
@@ -192,6 +196,7 @@ teams:
           - { path: .harness/harness.json, upsert: true }
           - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
           - { path: .harness/codebase/stack.md, upsert: true }            # its map lens (DEC-137)
+          - { path: .harness/features/*/notes/receipt-harness-dev-ops-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-dev-ops.md, upsert: true }
           - { path: .harness/features/*/observations/harness-dev-ops.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }

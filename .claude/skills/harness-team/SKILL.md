@@ -203,8 +203,10 @@ stops them metering their own run (DEC-116). Set `cost: pending_orchestrator` an
 orchestrator fill it after you return:
 
 ```bash
-# ORCHESTRATOR ONLY, after the lead returns:
-.claude/skills/harness/bin/cost-report.py --yaml >> <run_dir>/state.yaml
+# ORCHESTRATOR ONLY, after the lead returns. --into REPLACES the placeholder;
+# `>> state.yaml` would leave a SECOND cost: key, silently shadowed by the last
+# occurrence in any YAML parser and rejected by INV-16 (DEC-156).
+.claude/skills/harness/bin/cost-report.py --yaml --into <run_dir>/state.yaml
 ```
 
 A complete run left without a `cost:` block is an INV-11 violation — an unmetered run is

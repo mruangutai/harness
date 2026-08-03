@@ -2,10 +2,14 @@
 """Measure what a harness run actually cost, attributed per agent.
 
   cost-report.py [--project <dir>] [--session <id>] [--since <ISO date>]
-                 [--yaml] [--cross-check]
+                 [--yaml [--into <state.yaml>]] [--cross-check]
 
   (default)      human-readable breakdown per agent, per depth, per model
   --yaml         emit the `cost:` block for a run's state.yaml
+  --into <path>  with --yaml, REPLACE that state.yaml's cost: block in place —
+                 the correct way to fill a lead's `cost: pending_orchestrator`
+                 placeholder. Never `>>` append: a second `cost:` key is silently
+                 shadowed by the last one and violates INV-16 (DEC-156).
   --cross-check  compare the computed total against ccusage, if installed
 
 WHY THIS EXISTS AND WHAT IT IS NOT
@@ -162,6 +166,64 @@ def price(tokens, rate):
     return sum(tokens.get(c, 0) * rate[c] / 1_000_000 for c in CLASSES)
 
 
+def splice_cost(path, block):
+    """REPLACE the `cost:` block in a run's state.yaml; never append a second one (B-4).
+
+    The docs used to say `--yaml >> state.yaml`. A lead sets `cost: pending_orchestrator`
+    as its placeholder, so appending produced a SECOND top-level `cost:` key — which every
+    YAML parser resolves to the last occurrence, silently shadowing the first, and which
+    INV-16/DEC-156 rejects. The FEAT-02 audit found `cost:` twice in 12 of 15 state files.
+    Making the splice mechanical removes the footgun instead of warning about it.
+    """
+    if not os.path.isfile(path):
+        print(f"cost-report: no such state file: {path}", file=sys.stderr)
+        return 1
+    try:
+        src = open(path, encoding="utf-8").read().splitlines()
+    except OSError as e:
+        print(f"cost-report: cannot read {path}: {e}", file=sys.stderr)
+        return 1
+
+    out, i, replaced = [], 0, 0
+    while i < len(src):
+        if re.match(r"^cost:", src[i]):
+            replaced += 1
+            i += 1
+            # Consume the old block's indented continuation lines, so a placeholder and a
+            # previously-written full block are both swallowed whole.
+            while i < len(src) and (not src[i].strip() or src[i][:1] in (" ", "\t")):
+                if not src[i].strip() and not any(
+                        j < len(src) and src[j][:1] in (" ", "\t") and src[j].strip()
+                        for j in range(i + 1, min(i + 3, len(src)))):
+                    break          # a blank line ending the block, not one inside it
+                i += 1
+            # Emit at the FIRST occurrence only. Emitting per occurrence is how the first
+            # version of this function left two cost: keys behind while reporting that it
+            # had collapsed them — the exact defect it exists to remove.
+            if replaced == 1:
+                out.extend(block)
+            continue
+        out.append(src[i])
+        i += 1
+
+    if replaced == 0:
+        # No placeholder to replace: append once, which is correct precisely because
+        # there is no existing key to shadow.
+        if out and out[-1].strip():
+            out.append("")
+        out.extend(block)
+    elif replaced > 1:
+        print(f"cost-report: {path} had {replaced} cost: keys — collapsed to one. "
+              f"A repeated key was silently shadowing the others (INV-16).", file=sys.stderr)
+
+    try:
+        open(path, "w", encoding="utf-8").write("\n".join(out).rstrip("\n") + "\n")
+    except OSError as e:
+        print(f"cost-report: cannot write {path}: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def main():
     args = list(sys.argv[1:])
     as_yaml = "--yaml" in args
@@ -176,6 +238,7 @@ def main():
             return v
         return default
 
+    into = opt("--into")
     project = os.path.abspath(opt("--project", os.getcwd()))
     only_session = opt("--session")
     since = opt("--since", "0000-00-00")
@@ -276,28 +339,36 @@ def main():
     watchdog.sort(reverse=True)
 
     if as_yaml:
-        print("cost:")
-        print(f"  currency: usd")
-        print(f"  total: {round(total, 4)}")
-        print(f"  priced_on: {latest}")
-        print(f"  rates_verified_on: {cm.get('verified_on', 'unknown')}")
-        print(f"  spawns: {sum(spawns.values())}")
-        print("  by_agent:")
+        out = ["cost:",
+               "  currency: usd",
+               f"  total: {round(total, 4)}",
+               f"  priced_on: {latest}",
+               f"  rates_verified_on: {cm.get('verified_on', 'unknown')}",
+               f"  spawns: {sum(spawns.values())}",
+               "  by_agent:"]
         for c, agent, depth, model, n, t in lines:
-            print(f"    - {{ agent: {agent}, depth: {depth}, spawns: {n}, "
-                  f"model: {model}, usd: {round(c, 4)}, "
-                  f"in: {t.get('input',0)}, out: {t.get('output',0)}, "
-                  f"cw5m: {t.get('cache_write_5m',0)}, cw1h: {t.get('cache_write_1h',0)}, "
-                  f"cr: {t.get('cache_read',0)} }}")
+            out.append(f"    - {{ agent: {agent}, depth: {depth}, spawns: {n}, "
+                       f"model: {model}, usd: {round(c, 4)}, "
+                       f"in: {t.get('input',0)}, out: {t.get('output',0)}, "
+                       f"cw5m: {t.get('cache_write_5m',0)}, cw1h: {t.get('cache_write_1h',0)}, "
+                       f"cr: {t.get('cache_read',0)} }}")
         if watchdog:
-            print(f"  context_watchdog:   # avg cache-read/turn over {cpt_threshold:,} tokens — relay to a fresh spawn (DEC-148)")
+            out.append(f"  context_watchdog:   # avg cache-read/turn over {cpt_threshold:,} tokens — relay to a fresh spawn (DEC-148)")
             for cpt, agent, depth, model, turns in watchdog:
-                print(f"    - {{ agent: {agent}, depth: {depth}, model: {model}, "
-                      f"turns: {turns}, context_per_turn: {cpt} }}")
+                out.append(f"    - {{ agent: {agent}, depth: {depth}, model: {model}, "
+                           f"turns: {turns}, context_per_turn: {cpt} }}")
         if unpriced:
-            print("  unpriced:")
+            out.append("  unpriced:")
             for a, m in unpriced:
-                print(f"    - {{ agent: {a}, model: {m} }}")
+                out.append(f"    - {{ agent: {a}, model: {m} }}")
+
+        if into:
+            rc = splice_cost(into, out)
+            if rc:
+                return rc
+            print(f"cost-report: wrote the cost: block into {into}", file=sys.stderr)
+            return 1 if unpriced else 0
+        print("\n".join(out))
         return 1 if unpriced else 0
 
     print(f"\nharness cost — {project}")
