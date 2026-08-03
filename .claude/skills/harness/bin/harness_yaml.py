@@ -251,18 +251,44 @@ def require_or_bootstrap(root, payload=None):
         sys.stderr.write(INSTALL_COMMAND + "\n")
         return False
 
+    # D-14a: EVERY block says why. Found by the SC-09 hand-run — these three branches
+    # returned False silently, and both callers assume the callee already printed (they
+    # say so in comments). That assumption held only for the no-identity path above, so
+    # a user whose grant had expired got every Write AND every Bash command refused with
+    # zero bytes of explanation: the agent saw only "PreToolUse:Write hook error: No
+    # stderr output". Recoverable only by reading this source. A guard that blocks
+    # without a reason is DEC-100b's "actionable rejection" inverted.
     if os.path.exists(marker):
         try:
             with open(marker, encoding="utf-8") as f:
                 recorded = f.read().strip()
-        except OSError:
+        except OSError as e:
+            sys.stderr.write(
+                f"PyYAML is not importable and the bootstrap marker at {marker} could "
+                f"not be read ({e}) — failing closed.\n"
+            )
+            sys.stderr.write(INSTALL_COMMAND + "\n")
             return False
-        return recorded == identity
+        if recorded == identity:
+            return True
+        sys.stderr.write(
+            "PyYAML is not importable, and this session's one-time bootstrap grant was "
+            "already used by an EARLIER session — failing closed. Install PyYAML to "
+            "restore normal operation:\n"
+        )
+        sys.stderr.write(INSTALL_COMMAND + "\n")
+        return False
 
     try:
         with open(marker, "w", encoding="utf-8") as f:
             f.write(identity)
-    except OSError:
+    except OSError as e:
+        sys.stderr.write(
+            f"PyYAML is not importable and the bootstrap marker at {marker} could not "
+            f"be written ({e}), so a one-time grant cannot be recorded — failing "
+            f"closed rather than granting one that never expires.\n"
+        )
+        sys.stderr.write(INSTALL_COMMAND + "\n")
         return False
 
     sys.stderr.write(
@@ -270,4 +296,25 @@ def require_or_bootstrap(root, payload=None):
         "session once.\n"
     )
     sys.stderr.write(INSTALL_COMMAND + "\n")
+
+    # D-14b: stderr ALONE does not satisfy SC-08. BRIEF:106 requires the install
+    # command on "a channel the user sees", and the 2026-08-03 hand-run measured that
+    # Claude Code surfaces hook stderr only on a BLOCK — on this allow path (exit 0) the
+    # tester saw nothing, and grepping all three session transcripts for the command
+    # returned 0. The grant is the one moment the user CAN still fix the machine, so a
+    # message they never see is the same as no message.
+    #
+    # `systemMessage` on stdout is the PreToolUse contract's user-visible channel, and
+    # it is proven live in this repo rather than assumed: branch-create-gate.sh:82,111
+    # already emits exactly this shape on its own allow path, and it is registered in
+    # .claude/settings.json. Emitted LAST so that a failure here cannot lose the stderr
+    # copy, which is what reaches the agent.
+    try:
+        sys.stdout.write(json.dumps({"systemMessage":
+            "[harness] PyYAML is missing, so the write guards cannot read the domain "
+            "manifest. This session is granted ONE bootstrap pass and later sessions "
+            "will be blocked. Install it now:\n" + INSTALL_COMMAND}) + "\n")
+    except Exception:
+        # Never let the courtesy channel break the grant it is announcing.
+        pass
     return True

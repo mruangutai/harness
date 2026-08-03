@@ -237,9 +237,31 @@ def run_t12():
     r1 = fire_noyaml(root, "allowed/a.md", "sess-A")
     t12("SC-08: with PyYAML missing, the FIRST hook invocation PERMITS the write",
         r1.returncode == 0, f"exit {r1.returncode}: {r1.stderr.strip()[:200]}")
-    t12("SC-08: ...and emits the install command where the agent sees it",
+    # NOT SC-08's full clause, and the name says so. SC-08 requires the command on "a
+    # channel the user sees" (BRIEF:106); this asserts only that it reaches stderr.
+    # The 2026-08-03 hand-run proved those are different things — Claude Code does not
+    # surface hook stderr when the hook ALLOWS (exit 0), so this assertion passed while
+    # the criterion it traces to FAILED, and the tester saw nothing. That is the
+    # verify-method defect this feature keeps finding, here in my own test. D-14b tracks
+    # the real fix; renamed so nobody reads a green tick as SC-08 being met.
+    t12("[partial SC-08] the install command reaches stderr (NOT proof the user sees it — D-14b)",
         "pip install" in r1.stderr and "pyyaml" in r1.stderr.lower(),
         f"stderr: {r1.stderr.strip()[:200]}")
+
+    # SC-08's ACTUAL clause: "a channel the user sees". stderr is not that on an allow —
+    # measured, not assumed. `systemMessage` on stdout is the PreToolUse contract's
+    # user-visible channel, already live in this repo via branch-create-gate.sh:82,111.
+    # Parsed rather than substring-matched: malformed JSON on a hook's stdout is worse
+    # than none, so this fails if the payload is not loadable.
+    def _sysmsg(res):
+        try:
+            return json.loads(res.stdout.strip()).get("systemMessage", "")
+        except Exception:
+            return None
+    msg = _sysmsg(r1)
+    t12("SC-08: the install command reaches a channel the user SEES (systemMessage)",
+        isinstance(msg, str) and "pip install" in msg,
+        f"stdout was {r1.stdout.strip()[:200]!r}")
     t12("SC-08: ...and records the marker",
         os.path.exists(marker), f"no marker at {marker}")
 
@@ -254,6 +276,18 @@ def run_t12():
     r3 = fire_noyaml(root, "allowed/c.md", "sess-B")
     t12("SC-09 mechanism: a DIFFERENT session is BLOCKED while PyYAML is missing",
         r3.returncode == 2, f"exit {r3.returncode}: {r3.stderr.strip()[:200]}")
+
+    # D-14a, found by the SC-09 hand-run: the block was SILENT. require_or_bootstrap
+    # returned False without writing anything on three branches while both callers
+    # assumed it had printed, so an expired grant refused every Write AND every Bash
+    # command with zero bytes of explanation — the agent saw "PreToolUse:Write hook
+    # error: No stderr output" and had no way to learn why. Unlike the grant path
+    # (D-14b), stderr on a BLOCK does reach the agent, because exit 2 surfaces it
+    # (DEC-100) — so this channel is the right one here and the fix is complete.
+    t12("D-14a: the block SAYS WHY and carries the install command",
+        r3.stderr.strip() != "" and "pip install" in r3.stderr
+        and "EARLIER session" in r3.stderr,
+        f"stderr was {len(r3.stderr)} bytes: {r3.stderr.strip()[:200]}")
 
     # Self-cleaning: once yaml imports again the marker is removed, so a machine that
     # gets fixed does not carry a spent grant forever.
