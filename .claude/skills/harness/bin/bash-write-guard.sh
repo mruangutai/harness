@@ -72,7 +72,18 @@ if not os.access(manifest, os.R_OK):
 
 import harness_yaml
 
-harness_yaml.require_or_bootstrap(root)
+# The RETURN VALUE IS THE DECISION — see check-domain.sh's note. A bare call leaves
+# REQ-04's fail-closed and SC-09's expiry inert: the function prints, and the write
+# proceeds anyway because only exit 2 blocks (DEC-100).
+if not harness_yaml.require_or_bootstrap(root):
+    sys.exit(2)
+
+# GRANTED, and there is no parser — see check-domain.sh's note. Falling through would
+# call manifest_domains with `yaml = None` and die with exit 1, which is NON-blocking,
+# so the write would proceed via a crash while printing a traceback. Allow it on
+# purpose instead.
+if harness_yaml.yaml is None:
+    sys.exit(0)
 
 cmd = ((d.get("tool_input") or {}).get("command") or "")
 if not cmd:

@@ -103,7 +103,24 @@ if not os.access(manifest, os.R_OK):
 
 import harness_yaml
 
-harness_yaml.require_or_bootstrap(root)
+# The RETURN VALUE IS THE DECISION — discarding it makes the whole escape inert.
+# False means "PyYAML is missing and this session's one grant is spent (or no identity
+# resolved)", and only exit 2 blocks (DEC-100), so a bare call would let every write
+# through while the function dutifully printed an install command nobody had to obey.
+# require_or_bootstrap already wrote the reason to stderr; do not restate it.
+if not harness_yaml.require_or_bootstrap(root):
+    sys.exit(2)
+
+# GRANTED, and there is no parser. Stop here — do not fall through into a domain check
+# that cannot be performed. Without this the hook calls manifest_domains anyway and
+# dies with `AttributeError: 'NoneType' object has no attribute 'YAMLError'`, which
+# exits 1; exit 1 is NON-blocking (DEC-100), so the write proceeds and SC-08 looks
+# satisfied while every invocation prints a traceback and enforcement is silently off.
+# Allowing by crash is not allowing. The escape's whole purpose is to let writes
+# through so the machine can be fixed, so allow them deliberately and say nothing more
+# — require_or_bootstrap already printed the install command.
+if harness_yaml.yaml is None:
+    sys.exit(0)
 
 
 def domain_check():

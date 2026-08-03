@@ -201,6 +201,67 @@ def run_t12():
         "UNQUOTED key" in r.stderr and "YAML 1.1" in r.stderr,
         f"stderr lacked the cause hint: {r.stderr.strip()[:200]}")
 
+    # --- SC-08: the bootstrap escape, driven through the REAL HOOK -------------
+    #
+    # SC-08 says "the first HOOK INVOCATION permits the write and emits the install
+    # command". test-harness-yaml.py already covers require_or_bootstrap's state
+    # machine, but at MODULE level and via payload={"session_id": ...} — which the
+    # resolution probe showed is a DEAD entry in production, where identity comes from
+    # the CLAUDE_CODE_SESSION_ID environment variable. A module test cannot see whether
+    # the hook acts on the return value at all.
+    #
+    # It could not, and this caught it: both hooks called require_or_bootstrap(root)
+    # and DISCARDED the result, so the escape printed an install command and then let
+    # every write through — REQ-04's fail-closed and SC-09's expiry were inert.
+    #
+    # PyYAML is hidden portably: a fake yaml.py that raises ImportError, on a PYTHONPATH
+    # entry the hook appends after its own bin/. harness_yaml.py:18-20 is the single
+    # `try: import yaml / except ImportError: yaml = None` in the tree (D-12), so this
+    # reproduces a machine that genuinely lacks the package without uninstalling it.
+    fake = tempfile.mkdtemp()
+    with open(os.path.join(fake, "yaml.py"), "w") as f:
+        f.write('raise ImportError("simulated: no PyYAML")\n')
+
+    def fire_noyaml(root, path, session):
+        payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+                   "tool_input": {"file_path": os.path.join(root, path), "content": "x"}}
+        env = dict(os.environ, CLAUDE_PROJECT_DIR=root, PYTHONPATH=fake,
+                   CLAUDE_CODE_SESSION_ID=session)
+        env.pop("CLAUDE_CODE_BRIDGE_SESSION_ID", None)
+        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                              text=True, env=env)
+
+    root = fixture(FIXTURE_MANIFEST)
+    marker = os.path.join(root, ".harness", ".pyyaml-bootstrap")
+
+    r1 = fire_noyaml(root, "allowed/a.md", "sess-A")
+    t12("SC-08: with PyYAML missing, the FIRST hook invocation PERMITS the write",
+        r1.returncode == 0, f"exit {r1.returncode}: {r1.stderr.strip()[:200]}")
+    t12("SC-08: ...and emits the install command where the agent sees it",
+        "pip install" in r1.stderr and "pyyaml" in r1.stderr.lower(),
+        f"stderr: {r1.stderr.strip()[:200]}")
+    t12("SC-08: ...and records the marker",
+        os.path.exists(marker), f"no marker at {marker}")
+
+    r2 = fire_noyaml(root, "allowed/b.md", "sess-A")
+    t12("SC-08: a SECOND write in the SAME session is permitted, silently",
+        r2.returncode == 0 and "pip install" not in r2.stderr,
+        f"exit {r2.returncode}: {r2.stderr.strip()[:200]}")
+
+    # The SC-09 MECHANISM. The criterion itself is verify: uat, because only a real
+    # session boundary proves it honestly — but the identity comparison the boundary
+    # relies on is testable here, and without it SC-09 could not pass in principle.
+    r3 = fire_noyaml(root, "allowed/c.md", "sess-B")
+    t12("SC-09 mechanism: a DIFFERENT session is BLOCKED while PyYAML is missing",
+        r3.returncode == 2, f"exit {r3.returncode}: {r3.stderr.strip()[:200]}")
+
+    # Self-cleaning: once yaml imports again the marker is removed, so a machine that
+    # gets fixed does not carry a spent grant forever.
+    r4 = fire(root, "allowed/d.md")
+    t12("the marker self-unlinks once PyYAML imports again",
+        r4.returncode == 0 and not os.path.exists(marker),
+        f"exit {r4.returncode}, marker present: {os.path.exists(marker)}")
+
     fails = 0
     for name, ok, detail in T12:
         if ok:
