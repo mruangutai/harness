@@ -1,0 +1,128 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — FEAT-03-subissue-mirror</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-feat-03-subissue-mirror">Ship review — FEAT-03-subissue-mirror</h1>
+<p><strong>For: Mike Ruangutai. Written by: harness-orchestrator, 2026-07-31, at <code>e68ba00</code>.</strong> <strong>You decide: ship / fix / re-scope / stop. I have not merged, opened a PR, or written <code>## Approval</code>.</strong></p>
+<hr>
+<h2 id="the-conclusion-first">The conclusion first</h2>
+<p><strong>The feature is built, tested, reviewed and verified against its own success criteria. It is ready to ship, with one edit that only you can make and one judgement call that is genuinely yours.</strong></p>
+<p>Twelve of the thirteen success criteria are <strong>met</strong>. The reviewer panel and the blocking QA gate both returned PASS with <strong>zero</strong> blocking findings. Nothing is outstanding in the code.</p>
+<p><strong>The thirteenth criterion (SC-13) is a two-line edit to <code>.claude/skills/harness/SKILL.md</code> that no agent in the org is permitted to make.</strong> It is not an oversight — the plan you approved names it as your step. Details below, with the exact text to check. Until it lands, one file the org reads at every dispatch still describes the old, now-wrong behaviour.</p>
+<p><strong>Two numbers you should hear plainly: the feature cost ~$341 against a $120 budget (2.8x), and used 6 of its 10 rework cycles.</strong> Neither stopped the work — by design, cost never gates. But 2.8x is not a rounding error and it deserves your attention more than any technical finding in this document.</p>
+<hr>
+<h2 id="what-the-feature-actually-does-now">What the feature actually does now</h2>
+<p>Harness mirrors each feature&#x27;s plan into GitHub Issues. Before this feature, that mirror was wrong in three ways that would have quietly corrupted your issue tracker the first time you turned it on.</p>
+<p><strong>1. Absorbed issues were being closed.</strong> When a task &quot;absorbs&quot; an existing backlog issue, it means the task is <em>part of</em> that issue — not a replacement for it. The old code closed the absorbed issue when the task finished, which would have closed live backlog items that were only partly done. Now <code>absorbs:</code> is a <strong>citation and nothing more</strong>. It closes nothing.</p>
+<p><strong>2. There was no way to abandon a feature.</strong> If you dropped a feature, its GitHub issues stayed open forever, or you closed them as though the work had shipped. There is now an <code>abandon</code> path that closes the feature&#x27;s own issues as <code>not_planned</code> — the state that says &quot;we decided not to&quot;, not &quot;we finished&quot;.</p>
+<p><strong>3. Shipping or abandoning could close an issue that was never ours.</strong> This is the subtle one, and it is the reason this feature went through three rounds of revision before you signed it. A feature&#x27;s &quot;parent&quot; issue is sometimes one <em>harness created</em> to hold the feature&#x27;s tasks, and sometimes one <strong>you already had</strong> in your backlog that the feature adopted. Closing the first kind is correct. Closing the second kind asserts something false about your own live work — and <code>completed</code> is exactly as false as <code>not_planned</code> when the thing isn&#x27;t yours.</p>
+<p>So the parent&#x27;s fate now follows its <strong>recorded origin</strong>: harness closes what it created, and leaves alone what it adopted or cannot prove it created. When in doubt, it leaves your issue open. The milestone closes either way, because that one is always harness&#x27;s own.</p>
+<p>There is also housekeeping worth one line: the project&#x27;s <code>unit</code> test gate <strong>was not running the tests that matter</strong>. Its file pattern matched zero files in this repo, so eight criteria claiming &quot;verified by unit tests&quot; rested on a gate that did nothing. That is fixed and the gate now runs three test scripts.</p>
+<hr>
+<h2 id="your-one-required-step-before-ship-sc-13">Your one required step before ship (SC-13)</h2>
+<p><code>.claude/skills/harness/SKILL.md</code> is documentation the org reads at dispatch time. Two lines in it still describe the behaviour this feature reversed. <strong>No agent domain covers that file</strong>, which is why it comes to you.</p>
+<p>Check with:</p>
+<pre><code>grep -c &#x27;closes its issue and everything it absorbs&#x27; .claude/skills/harness/SKILL.md</code></pre>
+<p>This reads <strong>1</strong> today and must read <strong>0</strong>.</p>
+<ul><li><strong>Line 137</strong> says <code>close-task</code> &quot;closes its issue and everything it absorbs&quot;. It no longer closes what it absorbs.</li><li><strong>Line 144</strong>&#x27;s <code>ship</code> row mentions only the milestone. It must also name the <strong>parent</strong>, and must name it as <strong>conditional on the parent&#x27;s recorded origin</strong>. A row saying ship closes the parent unconditionally does <strong>not</strong> satisfy this criterion — that was the exact defect the third round of revision removed from six other places.</li></ul>
+<p><strong>Nothing mechanical will catch this, deliberately.</strong> The doc checker&#x27;s only tool is a &quot;this text is stale&quot; marker, and declaring one for wording that is still present turns the checker <strong>red</strong> — which would block every <code>/harness</code> command in this repo on an edit only you can make. So the amendment declared no marker, the checker stays green, and this criterion is carried by the grep above.</p>
+<hr>
+<h2 id="your-one-judgement-call-not-a-defect">Your one judgement call (not a defect)</h2>
+<p><strong>An abandonment can stop halfway through and still report success.</strong></p>
+<p>If the network or GitHub fails partway through <code>abandon</code> — specifically while posting the reason comment — the tool exits <strong>0</strong> having closed no issues and no milestone. Nothing records that it half-happened.</p>
+<p>This is not a bug against anything you approved: the rule is &quot;an environmental failure exits 0 with a SKIP line&quot;, and this obeys it literally. But the <em>spirit</em> is that a skip means &quot;did nothing&quot;, and here it can mean &quot;did some of it&quot;.</p>
+<p>Product&#x27;s recommendation, which I endorse: <strong>do not fix it inside this feature.</strong> It is a new requirement, not a missed one — making a terminal state atomic is real design work, and it belongs with the follow-on feature already sketched. <strong>Your call</strong>: accept it as a known limitation, or scope it now.</p>
+<hr>
+<h2 id="what-the-assurance-is-worth-and-where-it-stops">What the assurance is worth, and where it stops</h2>
+<p>I want you to have the honest version of &quot;PASS&quot;, because the reviewers were explicit about their own limits.</p>
+<ul><li><strong>No test touches a real GitHub.</strong> <code>github.sync</code> is <code>false</code> and no repo is pinned in this project, so every assertion runs against a <strong>fake</strong> <code>gh</code> command. The behaviour is proven; the integration is not. <strong>The first time you enable sync on a real project is a genuine moment of risk</strong> — that is a user-gated step, not something this feature could have tested away.</li><li><strong>One criterion (SC-08, the state checker) does not depend on the fake</strong> and is proven outright.</li><li><strong>The security review could not execute <code>gh</code></strong> — the sandbox denied it — so its argument-handling analysis is reasoned from upstream source rather than demonstrated. It found no injection path; the code passes arguments as lists, never as shell strings.</li><li><strong>Test-first ordering cannot be audited</strong> at task granularity, because each run&#x27;s source and test changes share one commit.</li><li><strong>UAT does not apply.</strong> All thirteen criteria are automated or inspection; there are no user-acceptance criteria to run. Naming that explicitly rather than omitting it.</li></ul>
+<p>One finding is worth telling you because it is a lesson rather than a bug: <strong>a test in this repo carried a label that lied about what it measured</strong> — it said &quot;for the new subcommand&quot; while testing an old one. That false label travelled through two review tiers as though it were a measurement and produced a report of a gap that does not exist. I caught it by checking the claim against the commit you signed. It cost analysis time, no defect shipped, and it is now a written rule in two agents&#x27; expertise.</p>
+<hr>
+<h2 id="cost-and-cycles-stated-against-budget">Cost and cycles, stated against budget</h2>
+<div class="scroll"><table><thead><tr><th></th><th>Actual</th><th>Budget</th><th></th></tr></thead><tbody><tr><td>Cost</td><td><strong>~$341</strong></td><td>$120</td><td><strong>2.8x over</strong></td></tr><tr><td>Rework cycles</td><td><strong>6</strong></td><td>10</td><td>4 remaining</td></tr></tbody></table></div>
+<p><strong>Cost never gates work in this system</strong> — that is a deliberate decision, taken after a $9 overrun once killed a flow one step from done. So this is reported, not an apology, and it never slowed anything.</p>
+<p>Where it went: <strong>~$162 was spent before the build even started</strong> — planning plus three rounds of revision on the brief and plan. The build itself was ~$74, validation ~$53, and close-out ~$49. The single most expensive run was the six-task build at <strong>~$54 against a per-run budget of $15</strong>.</p>
+<p><strong>The 6 cycles read worse than they are.</strong> Three were the planning revisions you authorised. The other three were send-backs <em>inside</em> runs — and all three were about <strong>prose, not defects</strong>: a stale comment above a test, an incomplete usage string, an unnamed invocation form. No implementation was rejected once. A cycle counts rework of any kind, which is why the number looks heavier than the work was.</p>
+<p><strong>Worth your attention for next time:</strong> this repo is unusually expensive per unit of work, because the code being changed <em>is</em> the documentation every agent must read to be correct. The budget note in <code>harness.json</code> says to lower the $120 once the decisions index lands and that mandatory-reading floor drops. On this evidence, $120 is still too low for a feature of this size in this repo, not too high.</p>
+<hr>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p><strong>Disposition recorded 2026-08-02</strong>, when <code>github.sync</code> was enabled for this repo — until then <code>gh-sync ship</code> skipped and none of these rows were filed anywhere.</p>
+<div class="scroll"><table><thead><tr><th>Row</th><th>Outcome</th></tr></thead><tbody><tr><td>B-1</td><td><strong>fixed</strong> (29dc0bd) — <code>post_body_path</code> now catches <code>UnicodeDecodeError</code>. Enabling sync was the trigger this briefing named</td></tr><tr><td>B-5</td><td><strong>fixed</strong> — quoted spans, then heredoc bodies and compound <code>;</code> (0fa57d5)</td></tr><tr><td>B-10, B-11, B-12</td><td><strong>fixed</strong> earlier on 2026-08-02</td></tr><tr><td>B-7</td><td><strong>issues #8 and #9</strong> — split, because its two halves differ in kind: the omitted QA step is a defect (a blocking gate never runs), the missing <code>build</code> team is a chore</td></tr><tr><td>B-9</td><td><strong>issue #10</strong></td></tr><tr><td>B-6</td><td><strong>issue #11</strong> — re-checked and NOT reproduced; filed as unverified rather than closed on a guess</td></tr><tr><td>B-2</td><td><strong>issue #12</strong> — same, unverified</td></tr><tr><td>B-3</td><td><strong>issue #13</strong></td></tr><tr><td>B-4</td><td><strong>issue #14</strong></td></tr></tbody></table></div>
+<p>Nothing was struck. Every row is now either fixed or tracked.</p>
+<p><strong>These become issues only if you accept the ship. Anything you strike here dies silently — so this is the complete list, not a curated one.</strong> Nothing below gates the ship.</p>
+<h3 id="real-defects-in-shipped-code-1">Real defects in shipped code (1)</h3>
+<div class="scroll"><table><thead><tr><th></th><th>Item</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td><strong><code>post_body_path</code> catches only <code>OSError</code></strong> when reading the file it posts. A different failure class would escape. <strong>Its exposure is entirely future</strong> — the function never runs against a live repo until you enable sync, which makes &quot;fix before the first live <code>open</code>&quot; the actionable form. Ranked first not on severity but on <strong>irreversibility: a wrong file posted to a public tracker cannot be un-posted.</strong> Not fixed in flight because the approved plan pins <code>OSError</code> literally.</td><td>bug</td></tr></tbody></table></div>
+<h3 id="test-and-coverage-gaps-3">Test and coverage gaps (3)</h3>
+<div class="scroll"><table><thead><tr><th></th><th>Item</th><th>Nature</th></tr></thead><tbody><tr><td>B-2</td><td><strong>A test label lies about what it tests</strong> — it claims &quot;the new subcommand&quot; while invoking an old one. Cheapest item here and it already cost two review tiers real analysis.</td><td>chore</td></tr><tr><td>B-3</td><td><strong>No test covers <code>abandon</code> against a failing API call.</strong> This is what the false label was hiding. Explicitly <em>not</em> reopening SC-13 or SC-12.</td><td>chore</td></tr><tr><td>B-4</td><td><strong><code>wayfind.py</code> has no test coverage at all</strong>, and this feature made it depend on a new shared module. Raised independently by <strong>four</strong> reporters. Adding <code>test-wayfind.py</code> also requires adding it to the runner&#x27;s explicit list, or the drift detector fails.</td><td>enhancement</td></tr></tbody></table></div>
+<h3 id="harness-defects-the-tooling-not-this-feature-6">Harness defects — the tooling, not this feature (6)</h3>
+<div class="scroll"><table><thead><tr><th></th><th>Item</th><th>Nature</th></tr></thead><tbody><tr><td>B-5</td><td><strong>The bash write-guard reads any <code>&gt;</code> inside quoted text and heredocs as a file redirect</strong> and blocks the command. It blocked the <em>mandated</em> commit trailer, an arrow inside a print statement, and an HTML comment in prose — five distinct times this run. Every commit here had to route through a message file.</td><td>bug</td></tr><tr><td>B-6</td><td><strong>The state checker&#x27;s run parser silently drops a run</strong> if its <code>squad:</code> line carries a trailing comment. The run then reports as unrecorded work. I hit this and traced it to <code>check-state.sh:109</code>.</td><td>bug</td></tr><tr><td>B-7</td><td><strong>No <code>build</code> team definition exists</strong>, so all four build runs were dispatched with hand-written step lists. <strong>And the <code>review</code> team omits the QA step</strong> even though QA is the project&#x27;s one <em>blocking</em> gate — running it as shipped would pass validation with that gate never run. I added the step by hand. Both reach every future feature.</td><td>chore</td></tr><tr><td>B-8</td><td><strong>The cost reporter has no per-run mode</strong> and its documented usage produces a file the state checker rejects. Every one of the sixteen runs needed hand-correction.</td><td>bug</td></tr><tr><td>B-9</td><td><strong><code>validate-digest.py</code>&#x27;s change-type vocabulary lacks <code>logic</code></strong>, a value the plans legitimately use — two different vocabularies wearing one field name.</td><td>bug</td></tr><tr><td>B-10</td><td><strong>The expertise checker misses two things:</strong> it does not check the required file title, and it had been <strong>passing a file that its own rules reject</strong> — one agent&#x27;s memory file carried four rule violations and was being injected at every spawn regardless. Repaired this run. Also: <code>gh</code> execution is blocked by the sandbox, which structurally limits security review of any tool that shells out.</td><td>bug</td></tr></tbody></table></div>
+<h3 id="documentation-drift-2">Documentation drift (2)</h3>
+<div class="scroll"><table><thead><tr><th></th><th>Item</th><th>Nature</th></tr></thead><tbody><tr><td>B-11</td><td><strong>Plan references cite line numbers in a file the orchestrator rewrites every run</strong>, so four citations were stale before the build began. The fix is to cite field names, not lines. Nothing false was asserted.</td><td>chore</td></tr><tr><td>B-12</td><td><strong>Two recorded baselines in the brief and plan drifted harmlessly</strong> (a file count, and a checker&#x27;s exit code that changed when you signed the approval). No criterion depends on either. Also: two criteria are loosely worded — one says &quot;subcommands&quot; plural where exactly one is new, one says &quot;both test scripts&quot; where there are now three. <strong>Both are met as written</strong>; these are wording chores, not defects.</td><td>chore</td></tr></tbody></table></div>
+<hr>
+<h2 id="two-small-things-i-decided-for-the-record">Two small things I decided, for the record</h2>
+<p>You can overturn either.</p>
+<ol><li><strong>I skipped the UI review and the map refresh.</strong> No user-visible surface, no design document, and no architecture map exists in this repo to refresh. Both are recorded as skips with reasons rather than silently omitted.</li><li><strong>I let three prose corrections stand.</strong> During the build, members completed comments and usage strings adjacent to behaviour their own task changed. On the strictest reading of the plan, two of the three exceed the task&#x27;s letter. I judged them completion rather than scope creep, and the review panel passed them. Overturning it now would mean changing a passing test suite after the gate.</li></ol>
+<hr>
+<h2 id="what-happens-on-your-word">What happens on your word</h2>
+<ul><li><strong>Ship</strong> — I record your acceptance, and the unstruck backlog items above become issues. (The GitHub mirror itself posts nothing: sync is off in this project, so all three sync points skip.)</li><li><strong>Fix</strong> — name the item and I route it. Four rework cycles remain.</li><li><strong>Re-scope or stop</strong> — the plan goes back to product under your approval.</li></ul>
+<p>The code is committed on <code>feat/harness-native-foundation</code> in four commits (<code>2897b09</code>, <code>ae728e8</code>, <code>e68ba00</code>, <code>4d4c3af</code>). <strong>Nothing is merged and no PR is open</strong> — both remain yours.</p><p class='derived'>Derived from <code>ship-review-2026-07-31-16.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
