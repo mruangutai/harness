@@ -75,29 +75,36 @@ you want either round run properly.
 Nothing here gates the ship. Anything you do not strike becomes a backlog item; anything not listed
 dies silently, so this is the full list.
 
+**`Status` added 2026-08-02, after this briefing was written.** Six of these were fixed before the
+merge, on this branch, each with a regression test: B-2 and B-3 in the generator, B-4, B-5 and B-7 in
+the rule surfaces, B-6 in the write guard. Only the rows marked `open` still need a backlog issue.
+One correction to the row text itself: **B-4 is not a disagreement about *who* writes the cost figure**
+— both documents agree the orchestrator does. The defect was that both said `>>`, which appends a
+second `cost:` key instead of replacing the lead's placeholder.
+
 **Engineering — the generator (3)**
 
-| Nature | Item |
-|---|---|
-| `chore` | The generator's tests freeze the authority's decision counts as literal constants. They pass today, but **the next feature that appends a decision reddens the unit gate until someone bumps them.** The remedy is documentation, not code: the plan records the write-the-ruling duty on every future feature and omits the bump-the-constants duty beside it |
-| `bug` | The generator and its row test use **two different grammars for one row format.** A malformed row is treated as "no prior row" and passes silently in the generator, then fails loudly at the gate. Recoverable from git, but silent where it should be loud |
-| `bug` | `DEC-102`'s row states a conclusion that has since been superseded, with no superseded-by marker, so a reader can act on a dead ruling. The marker is harvested from the superseding decision's title, and `DEC-120` declares the supersession in its body prose instead |
+| ID | Nature | Status | Item |
+|---|---|---|---|
+| B-1 | `chore` | open | The generator's tests freeze the authority's decision counts as literal constants. They pass today, but **the next feature that appends a decision reddens the unit gate until someone bumps them.** The remedy is documentation, not code: the plan records the write-the-ruling duty on every future feature and omits the bump-the-constants duty beside it |
+| B-2 | `bug` | **fixed** | The generator and its row test use **two different grammars for one row format.** A malformed row is treated as "no prior row" and passes silently in the generator, then fails loudly at the gate. Recoverable from git, but silent where it should be loud |
+| B-3 | `bug` | **fixed** | `DEC-102`'s row states a conclusion that has since been superseded, with no superseded-by marker, so a reader can act on a dead ruling. The marker is harvested from the superseding decision's title, and `DEC-120` declares the supersession in its body prose instead |
 
 **Harness itself (4, plus one small one)**
 
-| Nature | Item |
-|---|---|
-| `bug` | Two of the harness's own rule documents contradict each other on who writes the cost figure into a run's state file. The collision trips an invariant check and was hand-repaired on every run of this feature until I suppressed it by dispatch. Unfixed at source |
-| `bug` | Every per-feature `.harness/**/*.md` artifact is itself a scan target for the docs checker — documented nowhere an agent writing one would see it. It cost this feature three trips. The checker also prints the offending pattern on two separate lines, so escaping one occurrence is not enough |
-| `bug` | The shell write guard reads `>` and `<` inside heredoc bodies, and operands across a compound `;` line, as file redirects. Every occurrence this phase refused a legitimate command. The earlier quoted-string fix does not cover these two shapes |
-| `bug` | A member whose deliverable is code or a verification receipt has no writable per-feature artifact path except its observations log — which by design is never injected anywhere, so it gets overloaded as a handoff channel |
-| `chore` | The QA note invented a verify-method label (`audit-only`) that the BRIEF does not define. Small, but it is the kind of drift that makes a criterion's method unauditable |
+| ID | Nature | Status | Item |
+|---|---|---|---|
+| B-4 | `bug` | **fixed** | Two of the harness's own rule documents contradict each other on who writes the cost figure into a run's state file. The collision trips an invariant check and was hand-repaired on every run of this feature until I suppressed it by dispatch. Unfixed at source |
+| B-5 | `bug` | **fixed** | Every per-feature `.harness/**/*.md` artifact is itself a scan target for the docs checker — documented nowhere an agent writing one would see it. It cost this feature three trips. The checker also prints the offending pattern on two separate lines, so escaping one occurrence is not enough |
+| B-6 | `bug` | **fixed** | The shell write guard reads `>` and `<` inside heredoc bodies, and operands across a compound `;` line, as file redirects. Every occurrence this phase refused a legitimate command. The earlier quoted-string fix does not cover these two shapes |
+| B-7 | `bug` | **fixed** | A member whose deliverable is code or a verification receipt has no writable per-feature artifact path except its observations log — which by design is never injected anywhere, so it gets overloaded as a handoff channel |
+| B-8 | `chore` | open | The QA note invented a verify-method label (`audit-only`) that the BRIEF does not define. Small, but it is the kind of drift that makes a criterion's method unauditable |
 
 **Process (1)**
 
-| Nature | Item |
-|---|---|
-| enhancement | All three panel members re-derived gate results they were explicitly told to audit rather than reproduce. The receipts came out independent, which is a genuine gain — but the instruction did not hold, and that is worth pricing deliberately rather than rediscovering |
+| ID | Nature | Status | Item |
+|---|---|---|---|
+| B-9 | enhancement | open | All three panel members re-derived gate results they were explicitly told to audit rather than reproduce. The receipts came out independent, which is a genuine gain — but the instruction did not hold, and that is worth pricing deliberately rather than rediscovering |
 
 **One standing obligation, not a backlog item — a new rule of the road.** From now on, any feature that
 appends a decision to `DECISIONS.md` must regenerate the index **and** write that row's ruling in the

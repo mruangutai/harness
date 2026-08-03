@@ -240,11 +240,15 @@ wholesale sweep (DEC-150).
    "no activity this run" is a valid report.
 2. Assemble one document: each lead's summary, all open questions, resolved escalations, the
    goal-check result, the UAT if required, the **cost line** against the feature budget — and a
-   **proposed backlog**: the residual findings that survived collation but do not gate, each with
-   its nature (`bug`/`chore`/enhancement). On the user's ship acceptance the unstruck ones become
-   backlog issues (DEC-138 am.4); anything not listed here dies silently, so list them all.
+   **proposed backlog** as a markdown table with an `ID` column (`B-1`, `B-2`, … unique within the
+   briefing), one row per residual finding that survived collation but does not gate, each with its
+   nature (`bug`/`chore`/enhancement). The ID exists so the user can strike rows by name rather than
+   by quoting them. On the user's ship acceptance the unstruck ones become backlog issues
+   (DEC-138 am.4); anything not listed here dies silently, so list them all.
 3. Write it to `.harness/features/<FEAT>/notes/ship-review-<runid>.md` — plain English, bounded length,
-   conclusions first. It is the one artifact addressed to a human.
+   conclusions first. It is the one artifact addressed to a human. Then render the reading view:
+   `python3 .claude/skills/harness/bin/render-brief.py <that path>` writes the `.html` sibling. The
+   markdown stays the record; **never hand-author the HTML** — same law as `render-map.py` (DEC-141).
 4. Return it as `briefing:` in your digest. You wrote it; the main session presents it. Ship, fix,
    re-scope, stop — that instruction comes back down to you.
 
