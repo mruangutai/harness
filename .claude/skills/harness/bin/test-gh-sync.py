@@ -493,6 +493,18 @@ with tempfile.TemporaryDirectory() as tmpD:
     else:
         check("abandon with an unreadable reason file exits 1", unreadable_result == 1, str(unreadable_result))
 
+    # FEAT-03 B-1: a BINARY reason file. UnicodeDecodeError is a ValueError, not an
+    # OSError, so it escaped post_body_path's handler and surfaced as a traceback
+    # rather than a clean caller error. Unlike the chmod case above this needs no
+    # euid guard, so it holds as a regression test even when the suite runs as root.
+    open(os.path.join(tmpD, "calls.log"), "w").close()
+    binaryD = os.path.join(tmpD, "binary-reason.md")
+    open(binaryD, "wb").write(b"\x80\x81\xfe\xff not utf-8")
+    r = run(["abandon", featD, "--reason-file", binaryD], tmpD)
+    check("abandon with a BINARY reason file exits 1, not a traceback",
+          r.returncode == 1 and "Traceback" not in (r.stdout + r.stderr),
+          f"rc={r.returncode} {(r.stdout + r.stderr)[:120]!r}")
+
 # --- abandon: no recorded milestone still closes subs, and never builds milestones/None
 with tempfile.TemporaryDirectory() as tmpE:
     install_gh(tmpE)
