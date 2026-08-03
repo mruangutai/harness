@@ -89,13 +89,104 @@ def mask_quoted(text):
         out.append(ch)
     return "".join(out)
 
+SHELL_FEEDERS = {"bash", "sh", "zsh", "dash", "ksh"}
+
+
+def strip_heredoc_bodies(text):
+    """Drop heredoc BODIES, keeping the command line that opens them.
+
+    A heredoc body is DATA, not shell syntax: `python3 - <<PY ... if a > b: ... PY`
+    feeds a script to an interpreter, and reading that `>` as a redirect refused every
+    inline script this repo runs (B-6). The `<<TAG` line itself is kept, so a real
+    redirect on it — `cat <<EOF > src/main.py` — is still scanned and still blocks.
+
+    EXCEPTION, and it is the whole reason this is safe: when the heredoc feeds a SHELL
+    (`bash <<EOF`), the body IS code and its redirects are real. Those bodies are kept.
+    An unrecognised feeder is treated as a shell too — the guard fails toward scanning.
+    """
+    lines, out, i = text.splitlines(), [], 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        # Only an UNQUOTED << opens a heredoc; mask first so `echo "a <<b"` does not.
+        m = re.search(r"<<-?\s*([\"']?)([A-Za-z_][A-Za-z0-9_]*)\1", mask_quoted(line))
+        i += 1
+        if not m:
+            continue
+        tag, dash = m.group(2), "<<-" in line
+        try:
+            words = [os.path.basename(w) for w in shlex.split(line)]
+        except ValueError:
+            # An unbalanced quote must not raise: this is a PreToolUse hook, and only
+            # exit 2 blocks (DEC-100), so an uncaught exception fails OPEN. Keep the body.
+            words = []
+            keep_body = True
+        else:
+            # A shell ANYWHERE in the pipeline means the body is code, not data:
+            # `cat <<EOF | bash` routes it to a shell just as surely as `bash <<EOF`,
+            # and looking only at the first word let that shape through (a fail-open
+            # this function introduced and this line closes).
+            keep_body = (any(w in SHELL_FEEDERS for w in words)
+                         or not words
+                         or words[0] not in KNOWN_DATA_FEEDERS)
+        while i < len(lines):
+            body = lines[i]
+            i += 1
+            if (body.strip() if dash else body) == tag:
+                out.append(body)
+                break
+            if keep_body:
+                out.append(body)
+    return "\n".join(out)
+
+
+# Feeders whose heredoc body is inert DATA. Anything not listed keeps its body scanned,
+# so a novel or obfuscated feeder cannot smuggle a redirect past the guard.
+KNOWN_DATA_FEEDERS = {"cat", "python", "python3", "git", "tee", "jq", "sed", "awk",
+                      "grep", "node", "ruby", "perl", "psql", "sqlite3", "mail", "ssh"}
+
+
+def segments(text):
+    """Split a compound command into its parts at UNQUOTED shell separators.
+
+    `shlex.split` leaves `;` attached to the preceding token ('docs/a.md;'), so the
+    guard's `if a in (";", "&&", ...)` break never fired and the NEXT command's name was
+    collected as an operand — `rm -f docs/a.md; echo ok` was refused for "rm targets
+    echo" (B-6). Splitting first makes each command's operand list actually end.
+    """
+    parts, cur, q, i = [], [], None, 0
+    while i < len(text):
+        ch = text[i]
+        if q:
+            cur.append(ch)
+            if ch == q:
+                q = None
+            i += 1
+            continue
+        if ch in "\"'":
+            q = ch; cur.append(ch); i += 1; continue
+        two = text[i:i + 2]
+        if two in ("&&", "||"):
+            parts.append("".join(cur)); cur = []; i += 2; continue
+        if ch in ";\n|&":
+            parts.append("".join(cur)); cur = []; i += 1; continue
+        cur.append(ch)
+        i += 1
+    parts.append("".join(cur))
+    return [p for p in (s.strip() for s in parts) if p]
+
+
+scan_text = strip_heredoc_bodies(cmd)
+SEGMENTS = segments(scan_text)
+
 # redirections:  > path   >> path   (not 2>/dev/null, >&2, >(...) etc.)
-# Scanned over the MASKED command so quoted text cannot pose as an operator.
-for m in re.finditer(r"(?<![0-9&<])>{1,2}\s*([^\s;&|)]+)", mask_quoted(cmd)):
-    p = m.group(1)
-    if p.startswith(("&", "(", "/dev/")):
-        continue
-    findings.append(("redirect", [p]))
+# Scanned over the MASKED text so quoted text cannot pose as an operator.
+for _seg in SEGMENTS:
+    for m in re.finditer(r"(?<![0-9&<])>{1,2}\s*([^\s;&|)]+)", mask_quoted(_seg)):
+        p = m.group(1)
+        if p.startswith(("&", "(", "/dev/")):
+            continue
+        findings.append(("redirect", [p]))
 
 def trailing_files(args, drop_first_script=False):
     out, skip, saw_expr = [], False, False
@@ -111,32 +202,31 @@ def trailing_files(args, drop_first_script=False):
         out = out[1:]                      # bare `sed -i 's/a/b/' file`: first arg is the script
     return out
 
-try:
-    tokens = shlex.split(cmd, posix=True)
-except ValueError:
-    tokens = cmd.split()
+tokens = []
+for _seg in SEGMENTS:
+    try:
+        tokens.append(shlex.split(_seg, posix=True))
+    except ValueError:
+        tokens.append(_seg.split())
 
-for i, t in enumerate(tokens):
-    base = os.path.basename(t)
-    rest = tokens[i + 1:]
-    # stop this command's args at a separator
-    args = []
-    for a in rest:
-        if a in (";", "&&", "||", "|"):
-            break
-        args.append(a)
-    if base in ("sed", "perl") and any(a.startswith(("-i", "-pi", "-ni")) or a == "-p" and "-i" in args for a in args):
-        findings.append((f"{base} in-place", trailing_files(args, drop_first_script=(base == "sed"))))
-    elif base == "tee":
-        findings.append(("tee", [a for a in trailing_files(args) if a != "-"]))
-    elif base in ("mv", "cp") and len(trailing_files(args)) >= 2:
-        findings.append((base, trailing_files(args)[-1:]))
-    elif base == "rm":
-        findings.append(("rm", trailing_files(args)))
-    elif base == "sponge":
-        findings.append(("sponge", trailing_files(args)))
-    elif base == "awk" and any(a == "-i" or a.startswith("inplace") for a in args):
-        findings.append(("awk inplace", trailing_files(args)))
+# Each segment is one command, so its operand list ends at the segment boundary — no
+# in-list separator hunting, which is what silently failed before (B-6).
+for seg_tokens in tokens:
+    for i, t in enumerate(seg_tokens):
+        base = os.path.basename(t)
+        args = seg_tokens[i + 1:]
+        if base in ("sed", "perl") and any(a.startswith(("-i", "-pi", "-ni")) or a == "-p" and "-i" in args for a in args):
+            findings.append((f"{base} in-place", trailing_files(args, drop_first_script=(base == "sed"))))
+        elif base == "tee":
+            findings.append(("tee", [a for a in trailing_files(args) if a != "-"]))
+        elif base in ("mv", "cp") and len(trailing_files(args)) >= 2:
+            findings.append((base, trailing_files(args)[-1:]))
+        elif base == "rm":
+            findings.append(("rm", trailing_files(args)))
+        elif base == "sponge":
+            findings.append(("sponge", trailing_files(args)))
+        elif base == "awk" and any(a == "-i" or a.startswith("inplace") for a in args):
+            findings.append(("awk inplace", trailing_files(args)))
 
 if not findings:
     sys.exit(0)
