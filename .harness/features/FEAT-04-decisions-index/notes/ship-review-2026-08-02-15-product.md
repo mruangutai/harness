@@ -77,7 +77,7 @@ dies silently, so this is the full list.
 
 **`Status` added 2026-08-02, after this briefing was written.** Six of these were fixed before the
 merge, on this branch, each with a regression test: B-2 and B-3 in the generator, B-4, B-5 and B-7 in
-the rule surfaces, B-6 in the write guard. Only the rows marked `open` still need a backlog issue.
+the rule surfaces, B-6 in the write guard. The three rows marked `open` became GitHub issues on acceptance: B-1 -> #5, B-8 -> #6, B-9 -> #7 (`github.sync` was enabled for this repo at the same time, and the `chore` and `harness` labels had to be created first — neither existed).
 One correction to the row text itself: **B-4 is not a disagreement about *who* writes the cost figure**
 — both documents agree the orchestrator does. The defect was that both said `>>`, which appends a
 second `cost:` key instead of replacing the lead's placeholder.

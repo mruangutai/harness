@@ -245,7 +245,7 @@
     "merge": "user_gated"
   },
   "github": {
-    "sync": false,
-    "repo": null
+    "sync": true,
+    "repo": "mruangutai/harness"
   }
 }

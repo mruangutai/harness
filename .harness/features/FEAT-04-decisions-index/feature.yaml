@@ -1,8 +1,11 @@
 feature_id: FEAT-04-decisions-index
 phase: ship                # validate CLOSED at b621be6; seam note notes/handoff-validate.md
 branch: feat/decisions-index
-pr: none
-status: in_review
+pr: none                     # merged directly on the user's call; no PR opened
+status: shipped               # ACCEPTED by Mike Ruangutai 2026-08-02 ("let's merge it").
+                             # Merged to feat/harness-native-foundation (ff, bff3e8a). Residuals
+                             # B-1/B-8/B-9 -> issues #5/#6/#7. No milestone existed: github.sync
+                             # was false when this feature opened, so `gh-sync open` never ran.
 review_sha: 363b539        # RE-PINNED from bdfa3ab: that pin holds neither T-09's nor T-10's edit
 cycles_used: 6             # 2 plan; +1 run 07; +1 run 08; +1 run 12 cap remediation; +1 run 12 send-back
 max_total_cycles: 10       # validate added ZERO — every run passed first pass (DEC-157)
