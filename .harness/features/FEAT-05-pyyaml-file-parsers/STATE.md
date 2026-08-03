@@ -3,28 +3,23 @@
 ## Current
 
 - feature: FEAT-05-pyyaml-file-parsers
-- run: .harness/features/FEAT-05-pyyaml-file-parsers/runs/2026-08-03-04-eng/state.yaml
-- squad: eng
-- status: handed-off
+- squad: main-session (DEC-174 carve-out — the harness does not EXECUTE changes to its own
+  enforcement layer through a team run whose gates are the thing being changed)
+- status: build-complete, awaiting review
 
-**HANDED OFF to the main session, 2026-08-03, under DEC-174** — self-hosting stops at the enforcement
-layer: the harness plans its own work but does not execute changes to its own hooks, validators or gate
-scripts. T-04, T-06, T-07, T-08, T-10 through T-17 and SC-14 are the main session's directly. No
-orchestrator or squad resumes this feature. `review_sha` PINNED to `225cc98`. Four runs, one build run.
+Phase `build` COMPLETE 2026-08-03. **All 17 tasks landed.** `review_sha` should be RE-PINNED
+before the panel runs — `225cc98` was the baseline when the orchestrator was stood down, and
+twelve commits have landed since.
 
-**T-01, T-02, T-03, T-05 landed. T-09 ran but did not resolve** (see B4). **T-04, T-06, T-07, T-08 were
-never dispatched. T-10..T-17 not started.**
+**All four gates green:** `run-unit-tests.sh` 0 (11 suites), `check-docs.sh` 0,
+`check-state.sh` 0, `gen-decisions-index.py --check` 0. Every `.harness/**/*.yaml` parses.
 
-**THE TREE IS FULLY GREEN.** Re-measured after `team-config.yaml:18` was applied: `run-unit-tests.sh`
-exit **0**, `check-state.sh` **0**, `check-docs.sh` **0**, `gen-decisions-index.py --check` **0**, and
-**all 10 `.harness/**/*.yaml` parse, 0 unparseable**.
+**Every open question is measured, none inferred.** Q3 (which hook copy fires), Q4 (session
+identity), Q6 (which validate-digest.py governs) were all settled by probe, and two of my own
+claims were disproven in the process — recorded in the receipts rather than quietly corrected.
 
-**What this feature found, and it is the reason DEC-174 exists.** This repo's own state files were never
-valid YAML. Three of five `feature.yaml` files and `.harness/team-config.yaml` all failed
-`yaml.safe_load`; six hand-rolled regex parsers read them happily for months, and the first real parser
-refused them. Every gate was green throughout. A system whose self-checks pass while its own manifest is
-unparseable is not checking itself — that is structural, and it is why the enforcement layer is now
-carved out of self-hosting.
+**One criterion cannot be met by me:** SC-09 is `verify: uat` and stays `not_met` until the user
+runs `notes/uat-bootstrap-escape-expiry.md`. Ship gates on it (`harness.json:244`).
 
 ## Landed
 

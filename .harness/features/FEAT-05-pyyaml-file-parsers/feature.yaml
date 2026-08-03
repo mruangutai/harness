@@ -1,5 +1,5 @@
 feature_id: FEAT-05-pyyaml-file-parsers
-phase: build
+phase: validate
 branch: worktree-fix-harness-tooling-backlog
 pr: none
 status: awaiting_user
