@@ -11,12 +11,14 @@ THE ASYMMETRY IS DELIBERATE:
   harness.json    is JSON -> merged deterministically, here.
   team-config.yaml is YAML -> REPORTED ONLY, never rewritten.
 
-Every script in bin/ runs with zero third-party dependencies on any machine, so
-there is no YAML library available. Hand-rolling a YAML *writer* to edit a file
-whose `domain` globs must never be clobbered would put the harness's only
-write-scope guarantee behind a line-based regex. So this prints the specific new
-entries and the user adds them — a manual step is an acceptable price for not
-silently corrupting the manifest.
+The asymmetry SURVIVES DEC-171, but the reason changed. PyYAML is now required, so
+READING the manifest is a real parse (T-04) rather than a line scan. WRITING it is
+still refused, for a reason a parser does not fix: `yaml.safe_dump` does not preserve
+comments, and `team-config.yaml` is more comment than data — every `domain` glob is
+justified in prose beside it. Round-tripping the manifest through a parser would
+silently delete the reasoning that makes the harness's only write-scope guarantee
+auditable. So this still prints the specific new entries and the user adds them; a
+manual step is an acceptable price for not stripping the file's explanations.
 
 THE PROJECT ALWAYS WINS on a value it already has. `test_kinds.*.cmd` above all:
 those are commands dev-ops verified by running, and re-imposing the template's
@@ -80,23 +82,53 @@ def merge(project, template, path=(), added=None):
 
 
 def yaml_names(text):
-    """Every `name:` value in a manifest, in order. Line-scanned, not parsed.
+    """Every `name:` value in a manifest, at ANY nesting depth (T-04).
 
-    Same technique and same reason as check-domain.sh: no YAML library exists here,
-    and we need exactly one field. Read-only, so a miss under-reports a new agent
-    rather than corrupting anything.
+    Was a line scan, on the stated grounds that "no YAML library exists here".
+    DEC-171 reversed that, and the scan had two defects a real parse removes:
+
+    - `^\\s*-?\\s*(?:name|- name):` matched the LITERAL TEXT `name:` anywhere at any
+      indent, so a `name:` nested under some unrelated key counted as an agent, and a
+      quoted value containing `name:` could too.
+    - It could not distinguish a real entry from one inside a comment or a folded
+      block scalar — the same class of bug that made `team-config.yaml` unparseable
+      while six line scanners read it happily.
+
+    Still read-only: a miss under-reports a new agent rather than corrupting anything.
     """
+    doc = harness_yaml.load_str(text, "<manifest>")
     out = []
-    for ln in text.splitlines():
-        m = re.match(r"^\s*-?\s*(?:name|- name):\s*(\S+)", ln)
-        if m:
-            out.append(m.group(1).strip("\"'"))
+
+    def walk(node):
+        if isinstance(node, dict):
+            n = node.get("name")
+            if isinstance(n, str) and n.strip():
+                out.append(n.strip())
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(doc)
     return out
 
 
 def yaml_version(text):
-    m = re.search(r"^schema_version:\s*(\d+)", text, re.M)
-    return int(m.group(1)) if m else None
+    """`schema_version` as an int, or None.
+
+    safe_load returns it TYPED, so this no longer needs `int(m.group(1))` — but it
+    must still tolerate a project that wrote it as a quoted string, which the old
+    `(\\d+)` regex silently rejected (it required bare digits, so `schema_version: "2"`
+    read as absent and the upgrade path reported no gap at all)."""
+    doc = harness_yaml.load_str(text, "<manifest>")
+    v = doc.get("schema_version") if isinstance(doc, dict) else None
+    if isinstance(v, bool) or v is None:
+        return None
+    if isinstance(v, int):
+        return v
+    s = str(v).strip()
+    return int(s) if s.isdigit() else None
 
 
 def main():

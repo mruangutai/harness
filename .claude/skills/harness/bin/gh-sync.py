@@ -45,6 +45,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from gh_issues import internal_id_args, attach_sub_issue_args
 
+import harness_yaml
+
 GH = os.environ.get("GH_SYNC_GH", "gh")
 
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
@@ -175,22 +177,72 @@ def type_label(change_type):
 
 # ---------- feature.yaml github block (text ops — no yaml dependency) ----------
 
+def _opt_int(v):
+    """A recorded issue/milestone number as int, or None for `none`/absent/junk.
+
+    Tolerates the quoted form the old `(\\d+)` regex silently read as ABSENT — and
+    "absent" here meant `gh-sync` believed nothing was recorded and would create a
+    duplicate parent or milestone. bool is excluded explicitly: it is an int subclass
+    in Python, so `parent: true` would otherwise become 1."""
+    if v is None or isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v
+    s = str(v).strip()
+    return int(s) if s.isdigit() else None
+
+
 def load_recorded(feat_dir):
-    t = read(os.path.join(feat_dir, "feature.yaml"))
+    """Read the `github:` block with a real parser (T-06).
+
+    Four defects the previous line/block regexes carried, each the same shape — one
+    hand-listed serialisation standing in for a format that has several:
+
+    - `^\\s{4}(T-\\d+):\\s*(\\d+)` hardcoded a FOUR-SPACE indent for issue entries. Any
+      other nesting and every recorded task issue vanished, which reads as "nothing is
+      mirrored" and re-creates issues that already exist.
+    - `parent:\\s*(\\d+)` accepted only bare digits, so a quoted `parent: "40"` read as
+      absent — the duplicate-parent path.
+    - `attached:\\s*\\[([^\\]]*)\\]` handled the inline flow list ONLY; a block list
+      (`- x` on following lines) returned []. Same single-format bug as DEC-123,
+      DEC-129 and issue #11.
+    - `^github:\\s*$(.*?)(?=^\\S|\\Z)` sliced the block by indentation, so a comment at
+      column 0 inside it truncated everything after.
+    """
+    path = os.path.join(feat_dir, "feature.yaml")
     rec = {"milestone": None, "parent": None, "parent_origin": None, "attached": [], "issues": {}}
-    m = re.search(r"^github:\s*$(.*?)(?=^\S|\Z)", t, re.M | re.S)
-    if m:
-        blk = m.group(1)
-        n = re.search(r"^\s*milestone:\s*(\d+)", blk, re.M)
-        rec["milestone"] = int(n.group(1)) if n else None
-        p = re.search(r"^\s*parent:\s*(\d+)", blk, re.M)
-        rec["parent"] = int(p.group(1)) if p else None
-        po = re.search(r"^\s*parent_origin:\s*(created|adopted)\b", blk, re.M)
-        rec["parent_origin"] = po.group(1) if po else None
-        a = re.search(r"^\s*attached:\s*\[([^\]]*)\]", blk, re.M)
-        if a:
-            rec["attached"] = [x.strip() for x in a.group(1).split(",") if x.strip()]
-        rec["issues"] = {k: int(v) for k, v in re.findall(r"^\s{4}(T-\d+):\s*(\d+)", blk, re.M)}
+    try:
+        doc = harness_yaml.load_file(path)
+    except FileNotFoundError:
+        return rec
+    except harness_yaml.YamlParseError as e:
+        # Loud, and NOT treated as "nothing recorded" — that mistake would re-create
+        # a parent and a milestone that already exist on GitHub. DEC-171 am.1: a
+        # missing parse is an error, never a quieter mode.
+        raise SystemExit(f"gh-sync: {path} does not parse, so what is already mirrored "
+                         f"cannot be known. Refusing to sync rather than risk duplicate "
+                         f"issues.\n  {e}")
+    gh = (doc or {}).get("github")
+    if not isinstance(gh, dict):
+        return rec
+
+    rec["milestone"] = _opt_int(gh.get("milestone"))
+    rec["parent"] = _opt_int(gh.get("parent"))
+    po = gh.get("parent_origin")
+    rec["parent_origin"] = po if po in ("created", "adopted") else None
+
+    attached = gh.get("attached")
+    if isinstance(attached, list):
+        rec["attached"] = [str(x).strip() for x in attached if str(x).strip()]
+    elif isinstance(attached, str) and attached.strip():
+        rec["attached"] = [x.strip() for x in attached.split(",") if x.strip()]
+
+    issues = gh.get("issues")
+    if isinstance(issues, dict):
+        for k, v in issues.items():
+            n = _opt_int(v)
+            if n is not None and re.fullmatch(r"T-\d+", str(k).strip()):
+                rec["issues"][str(k).strip()] = n
     return rec
 
 
