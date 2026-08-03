@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — FEAT-04-decisions-index</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-feat-04-decisions-index">Ship review — FEAT-04-decisions-index</h1>
+<p><strong>For Mike. Written at <code>fff5591</code> on branch <code>feat/decisions-index</code>. Validate phase complete.</strong></p>
+<h2 id="the-conclusion">The conclusion</h2>
+<p><strong>The feature is done and I recommend shipping it.</strong> All 12 success criteria are met, verified at <code>363b539</code> against the methods your own signed BRIEF declared for each one. The reviewer panel passed with nothing on its must-fix list. The validate phase needed no rework at all — three runs, three first-pass passes.</p>
+<p><strong>What you are shipping.</strong> <code>docs/harness/DECISIONS-INDEX.md</code>: one row per live decision, 170 of them, 190 lines total. Each row is a hand-written one-sentence ruling of what that decision decided, capped at 30 words. An agent greps the index, opens the two or three entries that bear on its task, and skips the rest — instead of reading a 4,400-line authority file whole. <code>CLAUDE.md</code> and the <code>harness-handoff</code> skill now point agents at it, and the skill is the surface that travels to every deployed project.</p>
+<p><strong>One number to be aware of, because it looks like a discrepancy and is not.</strong> The BRIEF&#x27;s prose says 169 rows; the index has 170. <code>DEC-170</code> was appended to the authority during the build, and the criterion&#x27;s operative words are &quot;counted at run time rather than against a frozen number.&quot; 170 is correct. I chose not to amend the BRIEF for it — the criterion as written is satisfied, and a third signature round-trip to correct a stale example is not worth your time. Same for a second stale figure in SC-11, which cites the pre-remediation over-cap count.</p>
+<p><strong>A correction to my own dispatch.</strong> I was told this feature had 13 success criteria. It has 12, SC-01 through SC-12. I checked (<code>grep -cE &#x27;^- SC-[0-9]+&#x27;</code> returns 12). Nothing was dropped; the count I was handed was simply wrong, and I am flagging it so no later reader reads a gap into it.</p>
+<h2 id="cost-over-budget-and-the-figure-is-a-floor">Cost — over budget, and the figure is a floor</h2>
+<p><strong>$324 against a $120 budget. 2.7x.</strong> It never gated anything and was never meant to (DEC-134 makes cost informational), but you should see it plainly:</p>
+<ul><li>The validate phase itself was <strong>~$49</strong> across three runs — the cheap part.</li><li>The single largest line in the feature&#x27;s history is run 09 at <strong>$45.5</strong>: six documentor spawns, each reading a ~1,100-line slice of the authority to write its rulings by hand. <strong>That is exactly the mandatory-reading cost this index exists to remove.</strong> The feature paid the toll once so that every future feature does not.</li><li><strong>The $324 is a floor, not a total.</strong> Advisor-model spend appears in no row of the cost reporter, so it is unmetered. This is the same measurement gap <code>DEC-170</code> leaves open, and this feature is its first live exercise.</li></ul>
+<p>The honest read: the budget was set at $120 with an explicit note that it should come down &quot;once the DECISIONS.md index lands and the mandatory-reading floor drops.&quot; This feature is that landing. Whether $324 was worth it is your call, and the answer depends on how much cheaper the next feature is — which is measurable, and is the post-ship outcome measure the BRIEF already names.</p>
+<p><code>cycles_used</code> stands at <strong>6 of 10</strong>. The validate phase added zero, because a cycle counts rework and there was none.</p>
+<h2 id="what-was-verified-and-how">What was verified, and how</h2>
+<div class="scroll"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Success criteria</td><td><strong>12 of 12 met.</strong> Seven by automated test, five by inspection. Evidence per criterion in <code>notes/research-goal-check-c1.md</code></td></tr><tr><td>Reviewer panel</td><td><strong>PASS.</strong> Code review, security review and the QA gate, dispatched in one turn at the pinned SHA. Nothing blocking; worst severity <code>med</code>, and the review gate blocks only on <code>high</code>. <code>runs/2026-08-02-14-validator/digest.md</code></td></tr><tr><td>The live receipt build skipped</td><td><strong>PASS.</strong> The one criterion that needed a real mutation of this repo to prove: a declared-stale phrase planted bare into <code>docs/harness/SPEC.md</code> drove the docs checker from clean to a single correct failure and back to clean, tree byte-verified afterwards. <code>runs/2026-08-02-13-product/digest.md</code></td></tr><tr><td>Repo gates</td><td><code>check-docs.sh</code> clean at 45 patterns · unit suite green with the generator&#x27;s six tests all passing · state invariants hold. All run by me, not taken on report</td></tr></tbody></table></div>
+<p><strong>Two panel steps I cut, with reasons.</strong> The UI review was skipped — this is a markdown-and-Python change with no user-facing surface and no design contract to audit. And I <em>added</em> a QA step the shipped review team does not have, because your config marks the QA gate blocking and the team file would have exited the phase with that gate never run.</p>
+<p><strong>Two steps I deferred rather than ran.</strong> The feature-close Expertise distillation belongs after your acceptance, not before it: the four members who did the validate work have written no observation logs yet, so distilling now would distill the build phase twice and this phase not at all. And I wrote this briefing myself instead of spawning all three domain leads to report — I hosted every validate run and cite each digest by path, one lead had no activity at all, and three spawns to re-narrate documents I already hold is spend with nothing to surface it. Both are recorded in <code>feature.yaml</code>. Say the word if you want either round run properly.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Nothing here gates the ship. Anything you do not strike becomes a backlog item; anything not listed dies silently, so this is the full list.</p>
+<p><strong><code>Status</code> added 2026-08-02, after this briefing was written.</strong> Six of these were fixed before the merge, on this branch, each with a regression test: B-2 and B-3 in the generator, B-4, B-5 and B-7 in the rule surfaces, B-6 in the write guard. The three rows marked <code>open</code> became GitHub issues on acceptance: B-1 -&gt; #5, B-8 -&gt; #6, B-9 -&gt; #7 (<code>github.sync</code> was enabled for this repo at the same time, and the <code>chore</code> and <code>harness</code> labels had to be created first — neither existed). One correction to the row text itself: <strong>B-4 is not a disagreement about <em>who</em> writes the cost figure</strong> — both documents agree the orchestrator does. The defect was that both said <code>&gt;&gt;</code>, which appends a second <code>cost:</code> key instead of replacing the lead&#x27;s placeholder.</p>
+<p><strong>Engineering — the generator (3)</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Status</th><th>Item</th></tr></thead><tbody><tr><td>B-1</td><td><code>chore</code></td><td>open</td><td>The generator&#x27;s tests freeze the authority&#x27;s decision counts as literal constants. They pass today, but <strong>the next feature that appends a decision reddens the unit gate until someone bumps them.</strong> The remedy is documentation, not code: the plan records the write-the-ruling duty on every future feature and omits the bump-the-constants duty beside it</td></tr><tr><td>B-2</td><td><code>bug</code></td><td><strong>fixed</strong></td><td>The generator and its row test use <strong>two different grammars for one row format.</strong> A malformed row is treated as &quot;no prior row&quot; and passes silently in the generator, then fails loudly at the gate. Recoverable from git, but silent where it should be loud</td></tr><tr><td>B-3</td><td><code>bug</code></td><td><strong>fixed</strong></td><td><code>DEC-102</code>&#x27;s row states a conclusion that has since been superseded, with no superseded-by marker, so a reader can act on a dead ruling. The marker is harvested from the superseding decision&#x27;s title, and <code>DEC-120</code> declares the supersession in its body prose instead</td></tr></tbody></table></div>
+<p><strong>Harness itself (4, plus one small one)</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Status</th><th>Item</th></tr></thead><tbody><tr><td>B-4</td><td><code>bug</code></td><td><strong>fixed</strong></td><td>Two of the harness&#x27;s own rule documents contradict each other on who writes the cost figure into a run&#x27;s state file. The collision trips an invariant check and was hand-repaired on every run of this feature until I suppressed it by dispatch. Unfixed at source</td></tr><tr><td>B-5</td><td><code>bug</code></td><td><strong>fixed</strong></td><td>Every per-feature <code>.harness/**/*.md</code> artifact is itself a scan target for the docs checker — documented nowhere an agent writing one would see it. It cost this feature three trips. The checker also prints the offending pattern on two separate lines, so escaping one occurrence is not enough</td></tr><tr><td>B-6</td><td><code>bug</code></td><td><strong>fixed</strong></td><td>The shell write guard reads <code>&gt;</code> and <code>&lt;</code> inside heredoc bodies, and operands across a compound <code>;</code> line, as file redirects. Every occurrence this phase refused a legitimate command. The earlier quoted-string fix does not cover these two shapes</td></tr><tr><td>B-7</td><td><code>bug</code></td><td><strong>fixed</strong></td><td>A member whose deliverable is code or a verification receipt has no writable per-feature artifact path except its observations log — which by design is never injected anywhere, so it gets overloaded as a handoff channel</td></tr><tr><td>B-8</td><td><code>chore</code></td><td>open</td><td>The QA note invented a verify-method label (<code>audit-only</code>) that the BRIEF does not define. Small, but it is the kind of drift that makes a criterion&#x27;s method unauditable</td></tr></tbody></table></div>
+<p><strong>Process (1)</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Status</th><th>Item</th></tr></thead><tbody><tr><td>B-9</td><td>enhancement</td><td>open</td><td>All three panel members re-derived gate results they were explicitly told to audit rather than reproduce. The receipts came out independent, which is a genuine gain — but the instruction did not hold, and that is worth pricing deliberately rather than rediscovering</td></tr></tbody></table></div>
+<p><strong>One standing obligation, not a backlog item — a new rule of the road.</strong> From now on, any feature that appends a decision to <code>DECISIONS.md</code> must regenerate the index <strong>and</strong> write that row&#x27;s ruling in the same commit, or the unit gate fails. <code>DEC-170</code> was the first exercise of it and it worked.</p>
+<h2 id="disclosure-advisor-influence-on-this-run">Disclosure — advisor influence on this run</h2>
+<p><code>DEC-170</code> requires me to say where a stronger reviewer changed a decision of mine. It changed seven, and this is the decision&#x27;s first live run:</p>
+<ol><li>SC-08&#x27;s live receipt was run as its own step <strong>before</strong> the panel rather than alongside it — the plant is a live mutation of a reviewed file, and a reviewer reading mid-plant sees a tree that does not match the pinned SHA.</li><li>The panel was told to <strong>audit</strong> that receipt rather than attempt it — no reviewer can write the file in question, so a reviewer would have reported the criterion unmet for being unable to run it.</li><li>The documentor was warned not to reproduce the pinned phrase bare in its own report, which would have left the phrase live in a second scanned file and defeated the revert.</li><li>QA&#x27;s dispatch was scoped to matrix conformance plus an anchored check, with the false-failure trap named — the runner&#x27;s output contains test <em>names</em> that look like skip lines.</li><li>Expertise distillation was not folded into the briefing spawns to save cost: the two are a write protocol and a read-only summary, and merging them makes a rejected candidate indistinguishable from an unmentioned one.</li><li>Distillation was then <strong>deferred entirely</strong>, on the ground that validate-phase members hold no logs yet — I had been about to run it early.</li><li>The three-lead briefing round was <strong>dropped</strong> and disclosed rather than run.</li></ol>
+<p>Items 6 and 7 are the two that saved real money — roughly $100 of lead spawns on a feature already at 2.7x budget. Items 1 through 4 each prevented a specific false result.</p>
+<h2 id="what-i-did-not-do">What I did not do</h2>
+<p>I never wrote an <code>## Approval</code> block, never merged, never opened a PR. The ship decision is yours. The GitHub mirror is off in this project&#x27;s config, so all three sync points skipped.</p><p class='derived'>Derived from <code>ship-review-2026-08-02-15-product.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

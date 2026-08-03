@@ -48,11 +48,13 @@ you may write. Leads report cycles spent in their team digest; **you** increment
 returns, run:
 
 ```bash
-.claude/skills/harness/bin/cost-report.py --yaml >> <run_dir>/state.yaml
+.claude/skills/harness/bin/cost-report.py --yaml --into <run_dir>/state.yaml
 ```
 
 — the lead cannot (no Bash, DEC-116), and a complete run without a `cost:` block is an INV-11
-violation. **Cycles are a hard bound** — exhausting `max_total_cycles` means stop and go up as
+violation. Use `--into`, never `>>`: the lead left `cost: pending_orchestrator` there, so
+appending writes a second `cost:` key that every YAML parser silently shadows and INV-16
+rejects (DEC-156). `--into` replaces the placeholder in place. **Cycles are a hard bound** — exhausting `max_total_cycles` means stop and go up as
 `BLOCKED`. **Cost is informational** (DEC-134): crossing `max_cost_usd` never stops work — flag it
 in your headline, carry actual-vs-budget in every return, and never fabricate a figure to stay
 under it.

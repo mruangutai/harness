@@ -130,6 +130,17 @@ globs, shared = collect(agent)
 # Compare repo-relative, so an absolute tool path and a relative glob still meet.
 rel = os.path.relpath(os.path.abspath(target), os.path.abspath(root))
 
+# OUTSIDE THE REPO IS NOT A DOMAIN QUESTION. bash-write-guard.sh:211 already says
+# so ("outside repo — not this hook's problem"), and this hook did not: a scratch
+# script at /tmp/x.py was legal via Bash and blocked via Write, so an agent
+# learned to route around a hook whose own message says not to. Domain control
+# exists for REPO writes; /tmp is not the repo, is not deployed, and is not state.
+#
+# Keyed on the RESOLVED path escaping the root, never on the string ".." — a repo
+# path reached via docs/../src/main.py resolves back inside and must still block.
+if os.path.commonpath([os.path.abspath(target), os.path.abspath(root)]) != os.path.abspath(root):
+    sys.exit(0)
+
 # WORKTREES (DEC-143). A git worktree under .claude/worktrees/<name>/ is a full
 # checkout, but to this hook it was just a subdirectory: the same repo-relative
 # path that globs ALLOW in the main checkout arrived as

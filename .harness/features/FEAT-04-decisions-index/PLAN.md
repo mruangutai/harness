@@ -102,9 +102,12 @@ Baseline pinned at `f723194`, recorded in `feature.yaml` under `baseline:` — c
   measured heading line numbers. See `## Ordering` below: T-03..T-08 all mutate one file and are
   strictly serial.
 - **D-07: rulings are written affirmatively — present tense, what the rule *is*, never a description
-  of what it replaced.** Load-bearing for D-01: a ruling that paraphrases what a superseding decision
+  of what it replaced — and are at most 30 words.** Load-bearing for D-01: a ruling that paraphrases
+  what a superseding decision
   overturned will reach for the old wording and trip the checker. "Skills live flat one level under
   `.claude/skills/`" is in register; a sentence describing the arrangement that preceded it is not.
+  The 30-word bound is mechanical, not advisory: count only the text right of ` :: `, excluding any
+  generated `— SUPERSEDED BY DEC-NN` suffix and excluding any `<!-- ok-stale -->` marker.
 - **D-08: this feature declares no new `<!-- stale: ... -->` marker.** The disciplined instinct is to
   declare one for the whole-read wording T-09 removes, so its return is caught forever. But every
   marker moves the emitted pattern count, and the pinned baseline this feature must hold is 45. SC-09's
@@ -586,6 +589,10 @@ T-09/T-10's `owner: main-session`, and the SC-06/SC-08 pairing stand as approved
 status: approved
 approved-by: Mike Ruangutai
 date: 2026-08-02
-note: Q0 accepted — T-09 (CLAUDE.md:43) and T-10 (harness-handoff) are main-session
-pre-ship steps, same arrangement as FEAT-03 SC-13. Also accepted: Q4, the unit gate is
-deliberately red between T-03 and T-07 by design.
+note: RE-SIGNED after a mid-build amendment made at the user's instruction — the 30-word
+ruling cap. BRIEF SC-11's change is a REVERSAL, not a tightening: it previously recorded the
+length-cap question as closed WITHOUT a count rule, and the cap is exactly that rule. PLAN
+D-07 gained the bound it never had. The earlier signature is deliberately NOT reused across
+changed content. Also standing from the first signature: Q0 (T-09/T-10 are main-session
+pre-ship steps) and Q4 (the unit gate is red by design between T-03 and T-07). No lower bound
+on ruling length — a floor would reward padding.

@@ -122,6 +122,7 @@ if "--audit" in sys.argv:
     sys.exit(1 if dead else 0)
 
 hits = 0
+found = {}   # (dec_id, pattern) -> [(file, lineno, snippet), ...]
 for t in targets:
     lines = open(t, encoding="utf-8").read().splitlines()
     for i, line in enumerate(lines, 1):
@@ -139,13 +140,25 @@ for t in targets:
         for dec_id, pat in pats:
             if pat.lower() in low:
                 hits += 1
-                print(f"  STALE  {t}:{i}")
-                print(f"         matches {pat!r}, invalidated by {dec_id}")
-                print(f"         > {line.strip()[:100]}")
+                found.setdefault((dec_id, pat), []).append((t, i, line.strip()[:100]))
+
+# Grouped by PATTERN, with every location listed together. Reporting one location at a
+# time made a phrase occurring twice take two round-trips: the reader fixed the line the
+# checker named, re-ran, and got another failure for the same pattern. FEAT-04 spent
+# three trips on exactly that. The full set has to be visible in one pass.
+for (dec_id, pat), locs in sorted(found.items(), key=lambda kv: kv[0][1]):
+    print(f"  STALE  {pat!r} — invalidated by {dec_id} — "
+          f"{len(locs)} location(s), ALL must be fixed or escaped:")
+    for t, i, snippet in locs:
+        print(f"         {t}:{i}")
+        print(f"         > {snippet}")
 
 print(f"\nchecked {len(pats)} superseded pattern(s) across {len(targets)} file(s).")
 if hits:
-    print(f"{hits} stale statement(s) — a decision was recorded but never propagated.")
+    print(f"{hits} stale statement(s) across {len(found)} pattern(s) — a decision was "
+          f"recorded but never propagated.")
+    print("Fix every location listed above in one pass. A line that legitimately QUOTES "
+          "stale wording marks itself with <!-- ok-stale --> (per line, not per file).")
     sys.exit(1)
 print("no stale statements found.")
 PY

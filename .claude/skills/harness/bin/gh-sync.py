@@ -75,7 +75,12 @@ def post_body_path(path, flag):
         die(f"{path} is empty")
     try:
         open(path, encoding="utf-8").read()
-    except OSError as e:
+    except (OSError, UnicodeDecodeError) as e:
+        # UnicodeDecodeError is a ValueError, NOT an OSError, so a binary or
+        # mis-encoded file escaped this handler and surfaced as a traceback instead
+        # of a clean caller error (FEAT-03 B-1). It was ranked first in that
+        # briefing on irreversibility, not severity: this path feeds `gh issue
+        # comment`, and a wrong file posted to a tracker cannot be un-posted.
         die(f"{path} is unreadable ({e})")
     return path
 

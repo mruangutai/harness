@@ -128,10 +128,20 @@ and `check-docs.sh` keeps harvesting stale markers from it. Scope is that one fi
   framing and all four go-broad triggers, numbered. `grep -c` on the four trigger markers → 4;
   `grep -n 'floor'` → at least one hit (currently 0 for both — discriminating).
   verify: inspection
-- SC-11: The index is bounded: at most 260 lines, and one physical line per decision row — the
-  structural cap on ruling length, which closes the grilling's open "does the ruling need a length
-  cap" item without adding a character-count rule.
+- SC-11: The index is bounded on two axes. **Structurally:** at most 260 lines, one physical line per
+  decision row. **Per ruling:** at most **30 words** — counting only the text right of ` :: `,
+  excluding any generated `— SUPERSEDED BY DEC-NN` suffix and excluding any `<!-- ok-stale -->`
+  marker.
   verify: automated      evidence: unit
+
+  **Amended 2026-08-02 on a user decision. This OVERRIDES a prior deliberate closure and needs the
+  user's re-signature.** The wording signed on 2026-08-02 closed the grilling's open item
+  **"does the ruling need a length cap"** on the structural cap alone, saying so explicitly:
+  "the structural cap on ruling length … without adding a character-count rule" <!-- ok-stale -->
+  That grilling item is hereby **reopened and answered yes, at 30 words** — the user's decision adds
+  exactly the per-ruling length rule the signed sentence said was deliberately *not* being added, so
+  the old rationale is now false, not merely narrower. Measured at `ce2cd17`: 82 of 169 rows exceed
+  the cap (max 165 words), so this is remedial work on the shipped index, not a no-op tightening.
 - SC-12: `.claude/skills/harness/bin/run-unit-tests.sh` exits 0, prints
   `PASS test-gen-decisions-index.py`, and prints no `MISCONFIGURED` line — the generator's tests are
   registered in the explicit script list rather than tripping the drift detector.
@@ -186,4 +196,10 @@ could never be met. Every `automated` SC above therefore pins to `unit`.
 status: approved
 approved-by: Mike Ruangutai
 date: 2026-08-02
-note: BRIEF only. PLAN remains pending — Q0 (T-09/T-10 executable by no agent) is unanswered.
+note: RE-SIGNED after a mid-build amendment made at the user's instruction — the 30-word
+ruling cap. BRIEF SC-11's change is a REVERSAL, not a tightening: it previously recorded the
+length-cap question as closed WITHOUT a count rule, and the cap is exactly that rule. PLAN
+D-07 gained the bound it never had. The earlier signature is deliberately NOT reused across
+changed content. Also standing from the first signature: Q0 (T-09/T-10 are main-session
+pre-ship steps) and Q4 (the unit gate is red by design between T-03 and T-07). No lower bound
+on ruling length — a floor would reward padding.

@@ -50,6 +50,22 @@ violation becomes `BLOCKED (contract violation)`.
 Your artifact is read by the *consumer* of your work. The orchestrator reads only your VERDICT and
 DIGEST, so anything the routing decision depends on must be in the DIGEST, not buried in the artifact.
 
+**Your artifact is gated too.** `check-docs.sh` scans **every `.md` file under `.harness/`** — not
+just the project's docs — so a superseded phrase you write into a brief, plan, note or digest fails
+the gate exactly like one in `SPEC.md`. Two consequences worth knowing before you write:
+
+- **Quoting stale wording is legitimate; it just has to mark itself.** Put `<!-- ok-stale -->` on
+  that line. The escape is **per line, not per file** — a phrase you quote three times needs it three
+  times, and the checker now lists every location of a pattern in one report so you can fix them all
+  in one pass.
+- **Run dirs are exempt** — `runs/**` is history and is never scanned. Live feature docs are not.
+
+**Where your artifact goes.** If your deliverable is code or a verification result and you have no
+other per-feature path, write the receipt to
+`.harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`. **Not your observations log.**
+That log is the Expertise hot layer — it is never injected into any spawn, so anything a successor
+must read is lost there. Use it only for lessons about *how you work*.
+
 ## Decide or ask — scoped by reversibility
 
 | The decision is | Do this |
@@ -60,6 +76,22 @@ DIGEST, so anything the routing decision depends on must be in the DIGEST, not b
 
 You are not blocked while a question is outstanding: raise it, do what you can, and return. A member
 never waits on a human — questions travel up and answers come back down.
+
+## Consulting decisions — cited is a floor, never a ceiling
+
+Decisions named in your dispatch are the **minimum**, not the set. The same framing the qa gate uses
+for the test matrix: you may add what the work clearly warrants, never drop below.
+
+**Never read an authority file whole.** Read its index, then open only the entries that bear on your
+task — a row is an open-or-skip filter, so open the entry before acting on it.
+
+**Go broader when any of these fires:** (1) a cited decision references an uncited one — the
+reference graph is dense, so following it is a lookup, not a judgement call; (2) you are about to
+judge something the citations do not cover; (3) your own Expertise implies a rule they omit;
+(4) "surely this was decided already" fires.
+
+Nobody who dispatched you can be sure they named every decision that bears on your work — their
+framing is a hypothesis, and it is the input most likely to be wrong.
 
 ## Red flags
 

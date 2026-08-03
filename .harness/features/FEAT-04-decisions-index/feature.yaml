@@ -1,94 +1,161 @@
 feature_id: FEAT-04-decisions-index
-phase: plan                # EXITS at the user's signature on BRIEF + PLAN; handoff-plan.md written
-branch: feat/harness-native-foundation
-pr: none
-status: awaiting_user
-review_sha: f723194        # HEAD at plan open; re-pin at build HEAD before any validator run (INV-6)
-cycles_used: 2            # DEC-157 rework only: run 02's FAIL -> run 03; check-docs regression -> run 04
-max_total_cycles: 10      # harness.json budgets.max_total_cycles
-cost_usd: 118             # 80 metered by per-agent delta + ~38 orchestrator tier, partly estimated
-max_cost_usd: 120         # mirrors harness.json per_feature_usd — plan phase alone landed near it
+phase: ship                # validate CLOSED at b621be6; seam note notes/handoff-validate.md
+branch: feat/decisions-index
+pr: none                     # merged directly on the user's call; no PR opened
+status: shipped               # ACCEPTED by Mike Ruangutai 2026-08-02 ("let's merge it").
+                             # Merged to feat/harness-native-foundation (ff, bff3e8a). Residuals
+                             # B-1/B-8/B-9 -> issues #5/#6/#7. No milestone existed: github.sync
+                             # was false when this feature opened, so `gh-sync open` never ran.
+review_sha: 363b539        # RE-PINNED from bdfa3ab: that pin holds neither T-09's nor T-10's edit
+cycles_used: 6             # 2 plan; +1 run 07; +1 run 08; +1 run 12 cap remediation; +1 run 12 send-back
+max_total_cycles: 10       # validate added ZERO — every run passed first pass (DEC-157)
+cost_usd: 324              # 2.7x the 120 budget, and a FLOOR (advisor spend unmetered). DEC-134: never a gate
+max_cost_usd: 120          # mirrors harness.json per_feature_usd
 runs:
   - id: 2026-08-01-01-product
     squad: product
     verdict: PASS
-    cost_usd: 18  # snapshot delta: product-lead opus 93.62 to 102.79, pm opus 46.27 to 54.63
+    cost_usd: 18
   - id: 2026-08-01-02-eng
     squad: eng
     verdict: FAIL
-    cost_usd: 9   # snapshot delta: eng-lead opus 93.58 to 102.15, no member spawn
+    cost_usd: 9
   - id: 2026-08-01-03-product
     squad: product
     verdict: PASS
-    cost_usd: 18  # snapshot delta: product-lead 102.79 to 110.71, pm 54.63 to 64.42
+    cost_usd: 18
   - id: 2026-08-01-04-product
     squad: product
     verdict: PASS
-    cost_usd: 13  # snapshot delta: product-lead 110.71 to 119.55, pm 64.42 to 68.67
+    cost_usd: 13
   - id: 2026-08-01-05-eng
     squad: eng
     verdict: PASS
-    cost_usd: 10  # snapshot delta: eng-lead 102.15 to 112.02, no member spawn
+    cost_usd: 10
   - id: 2026-08-01-06-product
     squad: product
     verdict: PASS
-    cost_usd: 12  # snapshot delta: product-lead 119.55 to 127.51, pm 68.67 to 72.48
+    cost_usd: 12
+  - id: 2026-08-02-07-eng
+    squad: eng
+    verdict: PASS
+    cost_usd: 17
+  - id: 2026-08-02-08-eng
+    squad: eng
+    verdict: PASS
+    cost_usd: 4.5
+  - id: 2026-08-02-09-product
+    squad: product
+    verdict: PASS
+    cost_usd: 45.5
+  - id: 2026-08-02-10-product
+    squad: product
+    verdict: ESCALATE
+    cost_usd: 16
+  - id: 2026-08-02-11-eng
+    squad: eng
+    verdict: PASS
+    cost_usd: 5.7
+  - id: 2026-08-02-12-product
+    squad: product
+    verdict: PASS
+    cost_usd: 20
+  - id: 2026-08-02-13-product
+    squad: product
+    verdict: PASS
+    cost_usd: 10
+  - id: 2026-08-02-14-validator
+    squad: validator
+    verdict: PASS
+    cost_usd: 20
+  - id: 2026-08-02-15-product
+    squad: product
+    verdict: PASS
+    cost_usd: 19.3
+pre_ship_steps:
+  - T-09 — DONE at 363b539 by main-session. SC-09 re-verified by me: presence 2, absence-1 0,
+    absence-2 0
+  - T-10 — DONE at 363b539 by main-session. SC-10 re-verified by me: trigger markers 4, 'floor' 1
+sc_status:
+  - all 12 of 12 met at 363b539, pm goal-check run 15. Seven `automated`, five `inspection`, each
+    against BRIEF's own declared `verify:` field. Evidence in notes/research-goal-check-c1.md
+  - SC-01's PROSE pins 169 rows at f723194; the committed index carries 170 because DEC-170 landed
+    mid-build. SC-01's operative clause is "counted at run time rather than against a frozen number",
+    so 170 is CORRECT and no BRIEF amendment is warranted. Verified by me: 170 index rows, 171 raw
+    authority headings, one fenced at DECISIONS.md:1583, so 170 live
+  - SC-11's PROSE cites "82 of 169 over the cap, max 165" — the pre-remediation ce2cd17 figure.
+    At 363b539 it is 0 of 170 over, max 30
 pending:
-  - USER SIGNATURE on BRIEF.md and PLAN.md — both `## Approval: status: pending`. Nothing dispatches
-    until both read approved; mission ship is gated on it
-  - BLOCKING QUESTION for the user — T-09 and T-10 are executable by NO agent in the org, and
-    SC-09/SC-10 cannot go green without them. team-config.yaml:116/154/193 grants neither `CLAUDE.md`
-    nor `.claude/skills/harness-*/SKILL.md`. Both carry `owner: main-session`. Same wall FEAT-03 hit
-    at ship, surfaced here at signature time instead
-  - Q1 (non-blocking, due before T-09 runs, NOT before approval) — declare a stale marker for the
-    whole-read wording T-09 removes? Yes re-pins the emitted pattern count 45 -> 46 and reverses D-08
-  - Q2 (non-blocking, for the user at ship) — post-ship, a feature appending a decision must
-    regenerate the index AND write the row's ruling in the same commit or the unit gate fails.
-    pm held it as a PLAN note under REQ-09; making it a DEC is above the product squad
-  - Q4 (non-blocking, carry into build) — MF-2's fix leaves the unit gate deliberately RED between
-    T-03 and T-07. Recorded at PLAN.md `## Ordering`; build must not read that red as failure
-  - Q5 HARNESS DEFECT, for the harness owner — the orchestrator playbook mandates
-    `cost-report.py --yaml >> <run_dir>/state.yaml` while `harness-team` has the lead pre-write
-    `cost: pending_orchestrator`. The append creates a duplicate top-level key, which check-state.sh
-    INV-16 reports as a VIOLATION. Hit on all six runs; I repaired all six. The two skills
-    contradict each other and one of them must change
-  - Q6 HARNESS DEFECT, for the harness owner — every per-feature `.harness/**/*.md` artifact is a
-    check-docs.sh scan target, documented nowhere an agent writing one would see it. It cost two
-    cycles here, once in pm's artifacts and once in my own STATE.md
+  - `test-gen-decisions-index.py:115,:120` FREEZE the authority's DEC counts at raw 171 / distinct 170.
+    Both pass at 363b539, all six cases `ok`. Brittleness, not a defect: the next feature to append a
+    decision reddens the unit gate until the constants are bumped — backlog, eng
+  - `ROW_RE` in the generator and test 5's row regex at `test-gen-decisions-index.py:373` are TWO
+    grammars for one row format. A `^- DEC-` line failing ROW_RE is treated as "no prior row" rather
+    than a hard error, unlike the orphan case. Silent in the generator, loud at the gate — backlog, eng
+  - DEC-102's index row states its superseded conclusion with NO `— SUPERSEDED BY` clause. The clause
+    is harvested from the superseding decision's TITLE and DEC-120 declares it in body prose instead.
+    GENERATOR gap — backlog, eng, not a FEAT-04 fix
+  - Post-ship standing obligation — a feature appending a decision must regenerate the index AND write
+    the row's ruling in the same commit, or the unit gate fails. DEC-170 was its first exercise
+  - COST is 2.7x the budget and the figure is a FLOOR — advisor spend appears in no cost-report.py row,
+    which is the very gap DEC-170 leaves open. Never a gate (DEC-134), but the user should see it
+  - HARNESS DEFECT — the orchestrator playbook mandates appending cost-report output to the run state
+    file while harness-team has the lead pre-write `cost: pending_orchestrator`; the duplicate
+    top-level key trips INV-16. Suppressed by dispatch on runs 13-15; unfixed at source
+  - HARNESS DEFECT — every per-feature `.harness/**/*.md` artifact is a check-docs.sh scan target,
+    documented nowhere an agent writing one would see it. check-docs.sh prints the pattern on TWO
+    physical lines (:143 and :144), so escaping one occurrence is not enough
+  - HARNESS DEFECT — bash-write-guard.sh reads `>` and `<` inside an unquoted heredoc body, and
+    operands across a compound `;` line, as shell redirects. The 3a989a0 fix does not cover these
+  - HARNESS DEFECT — a member whose deliverable is a verification receipt has no writable per-feature
+    artifact path but its observations log, overloading DEC-145's never-injected hot layer
+  - CALIBRATION — 3/3 panel members re-derived the tier-level gate results the dispatch told them to
+    audit rather than reproduce. Receipts came out independent, but the instruction did not hold
+  - qa's note at notes/qa-matrix-c1.md:106 invents `audit-only` as SC-08's verify method where
+    BRIEF.md:103 says `inspection`. pm's split of seven/five is the authority
 resolved:
-  - Q3 CLOSED by me — baseline DEC count corrected 170 to 169. `## DEC-83` matches at
-    DECISIONS.md:1001 and :1583, and :1583 sits inside the fence opened at :1582. PLAN D-04 agrees
-  - MF-1..MF-6 REPAIRED at run 03 and INDEPENDENTLY RE-VERIFIED at run 05 — all nine items confirm
-    at source, resolved by content rather than by cited line number, including the two-site pairs
-    MF-2 and MF-4 where a one-sided fix would have been the defect returning. must_fix []
-  - CHECK-DOCS REGRESSION CLOSED at run 04, RE-VERIFIED BY ME after every later write — exit 0,
-    45 patterns. Cause: SC-08's plant phrase written literally into two scanned artifacts. Fixed with
-    the per-line ok-stale escape; citing by line anchor was proven unavailable because
-    DECISIONS.md:2479 and :2480 declare two near-identical phrases one line apart
-  - D-01's residual pricing UPHELD at run 05 — the three planning-phase trips were deliberate literal
-    quotation, the register D-07 forbids in rulings, so they sample the mechanism and not the rate.
-    T-08's escalate-above-20-rows threshold stands. The `titles_flagged: 1` figure counts TITLES,
-    which D-03 omits from rows, so it never was the priced population
-  - A-1 A-2 A-4 LANDED at run 06 — DEC-168's body boundary named for T-07's doer; T-06's extra read
-    made contiguous at DECISIONS.md:4244-4375 (132 lines against the region's ~1,104, corrected from
-    a stale "18"); the five-vs-six test-count contradiction fixed at two rationale sites, not one
-  - INV-16 duplicate `cost:` key repaired by me on all six run state files
-  - SEAM HANDOFF WRITTEN — notes/handoff-plan.md, 49 lines against the 60 cap
+  - APPROVAL GATE PASSED — BRIEF.md and PLAN.md both `status: approved`, Mike Ruangutai, 2026-08-02,
+    RE-SIGNED after the mid-build cap amendment. Verified by me at 363b539
+  - Q0 ACCEPTED — T-09 and T-10 were main-session pre-ship steps; both landed at 363b539
+  - Q4 ACCEPTED — the unit gate is deliberately RED between T-03 and T-07, by design
+  - NO LOWER BOUND on ruling length — user decision, in both `## Approval` notes
+  - `.harness/notes/pending-dec-advisor-disclosure.md` DELETED by the main session; verified absent
+  - SC-08 LIVE RECEIPT — run 13. Bare plant at docs/harness/SPEC.md:2162 drove check-docs.sh 0 -> 1 -> 0,
+    exactly one hit attributed to DEC-120, tree byte-clean after revert, --audit exit 0
+  - REVIEWER PANEL PASS — run 14 at 363b539. must_fix [], severity_max med, `review:
+    advisory_unless_high` so not blocking. ui step SKIPPED, qa step ADDED to cover the blocking gate
+  - GOAL-CHECK PASS — run 15, 12/12
+  - Q3, MF-1..MF-6, the check-docs regression, D-01's pricing, A-1/A-2/A-4 — closed in the plan phase
 skipped_segments:
   - segment: 1b-visual-designer-design-pass
-    reason: surface is docs/harness/DECISIONS-INDEX.md, a bin/ generator and skill prose — no end-user visual surface, no DESIGN.md
+    reason: no end-user visual surface, no DESIGN.md
   - segment: 3-ui-reviewer-contract-check
     reason: no DESIGN.md contract exists to review (Expertise O-01)
+  - segment: review-team-step-ui
+    reason: markdown-and-python diff, no user-facing surface, no DESIGN.md — the same rationale as
+      segment 3 retires the post-build audit (Expertise O-01)
+  - segment: ship-refresh
+    reason: no `.harness/codebase/` on disk, so no map to intersect (verified by me at 363b539)
+  - segment: feature-close-distillation
+    reason: DEFERRED to feature close post-acceptance, not skipped. The ship gate is still ahead, and
+      the four validate-phase members (validator-lead, code-reviewer, security-reviewer, qa) hold NO
+      observations log yet, so distilling now would distill the build phase twice and validate zero
+  - segment: briefing-three-lead-report-round
+    reason: SKIPPED and disclosed in the briefing itself. The round exists so the briefing is not the
+      orchestrator narrating work it did not see; I hosted all three validate runs and cite every
+      digest by path. eng-lead had zero activity this phase. Three lead spawns at ~20 USD each to
+      re-narrate digests I hold is spend with nothing to surface it
 github:
   parent: none            # github.sync false, repo null — all three mirror points SKIP (DEC-138)
   milestone: none
   issues: {}
-baseline:                 # all measured by the orchestrator at f723194
-  check_docs_at_open: exit 0, "checked 45 superseded pattern(s) across 90 file(s)"
-  check_docs_now: exit 0, 45 patterns across 95 files — this feature's own artifacts are scanned
-  stale_marker_lines: 48  # raw stale-marker lines; 3 dropped by the len<4 guard -> 45 patterns
-  decisions_md: 4413 lines, 169 LIVE DECs (170 raw matches, one fenced at :1583), 426 in-body refs
-  titles_flagged_by_check_docs: 1   # of 169 DEC TITLES, not rulings; DEC-39's, by a DEC-120 marker
-  amendment_headings: 9   # `^### DEC-NNN amendment[ N]`; the `DEC-NNN am.N` form appears 0 times
-  amendments_inline: 2    # bold-paragraph Amendment form at :3530 and :3536, not headings
-  orchestrator_cost_cumulative: opus 233.8115, fable 40.7239   # the next delta baseline, at phase exit
+baseline:
+  check_docs_at_plan_exit: exit 0, 45 patterns across 95 files
+  check_docs_at_validate_open: exit 0, 45 patterns across 101 files
+  check_docs_after_goal_check: exit 0, 45 patterns across 105 files
+  index_at_363b539: 170 rows, 190 lines, 0 RULING PENDING, 0 rows over the 30-word cap
+  stale_marker_lines: 48
+  decisions_md: 171 raw / 170 live DEC headings at 363b539, one fenced at :1583
+  amendment_headings: 9
+  sc_count: 12
+  cost_total_at_run15: 6735.1706
