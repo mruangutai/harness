@@ -21,43 +21,59 @@ set -uo pipefail
 
 payload=$(cat)
 
-agent="$(printf '%s' "$payload" | python3 -c '
-import sys, json
-try:
-    print(json.load(sys.stdin).get("agent_type", "") or "")
-except Exception:
-    print("")
-' 2>/dev/null)"
-[ -n "$agent" ] || exit 0
-case "$agent" in
-  harness-dev-ops) exit 0 ;;
-  harness-*) ;;
-  *) exit 0 ;;
-esac
-
+# BASH_SOURCE is the one question only bash can answer, which is why any bash remains.
 _self="${BASH_SOURCE[0]:-$0}"
 _selfdir="$(cd "$(dirname "$_self")" && pwd)"
 _derived="$(cd "$_selfdir/../../../.." && pwd)"
-root="${CLAUDE_PROJECT_DIR:-}"
-if [ -z "$root" ] || [ ! -r "$root/.harness/team-config.yaml" ]; then
-  [ -r "$_derived/.harness/team-config.yaml" ] && root="$_derived" || root="${root:-$(pwd)}"
-fi
-manifest="$root/.harness/team-config.yaml"
-[ -r "$manifest" ] || exit 0   # not onboarded — fail open like check-domain
 
+# T-15: ONE interpreter launch, not two. Same reasoning as T-13 on the sibling hook —
+# this fires on every Bash tool call, and a Python start-up per launch is the bulk of
+# it. Behaviour is unchanged: the dev-ops exemption, the harness-* prefix filter, the
+# absent-manifest fail-open and every exit-2 message are identical, and the unchanged
+# test suite is the equivalence proof (D-10, REQ-07).
 HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
-  python3 - "$agent" "$manifest" "$root" <<'PY'
+  python3 - "$_derived" <<'PY'
 import sys, os, re, json, shlex
 
-import harness_yaml
+# harness_yaml is imported LAZILY, after the manifest check — NOT here. Ordering is
+# behaviour: the two-launch version reached the absent-manifest fail-open in BASH,
+# before any interpreter needed the module, so a guard whose module is missing must
+# still exit 0 there rather than crash. (T-13 shipped this bug on the sibling hook and
+# a test caught it.)
+_derived = sys.argv[1]
 
-agent, manifest, root = sys.argv[1:4]
-
-harness_yaml.require_or_bootstrap(root)
 try:
     d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
 except Exception:
     sys.exit(0)
+
+agent = d.get("agent_type") or ""
+if not agent:
+    sys.exit(0)
+
+# harness-dev-ops is EXEMPT: it owns the tooling this guard is made of, and blocking
+# it would remove the one recovery path when the guard itself is broken.
+if agent == "harness-dev-ops":
+    sys.exit(0)
+if not agent.startswith("harness-"):
+    sys.exit(0)
+
+root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
+    if os.access(os.path.join(_derived, ".harness", "team-config.yaml"), os.R_OK):
+        root = _derived
+    else:
+        root = root or os.getcwd()
+manifest = os.path.join(root, ".harness", "team-config.yaml")
+
+# not onboarded — fail open like check-domain
+if not os.access(manifest, os.R_OK):
+    sys.exit(0)
+
+import harness_yaml
+
+harness_yaml.require_or_bootstrap(root)
+
 cmd = ((d.get("tool_input") or {}).get("command") or "")
 if not cmd:
     sys.exit(0)
