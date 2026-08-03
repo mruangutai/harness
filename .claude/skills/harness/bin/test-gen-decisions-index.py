@@ -30,6 +30,18 @@ GEN = os.environ.get("GEN_DECISIONS_INDEX_BIN") or os.path.join(
     BIN_DIR, "gen-decisions-index.py"
 )
 
+# The row grammar is IMPORTED, never restated (B-2). This test used to carry two of its
+# own variants — `^- (DEC-\d+)\b(.*)$` and `^- (DEC-\d+).*?::\s*(.*)$` — and both were
+# looser than the generator's about the ' :: ' separator, so a row the test happily
+# parsed was one the generator silently treated as absent. Same importlib-by-path
+# mechanism test-render-brief.py uses for a hyphenated module.
+import importlib.util   # noqa: E402 — must follow BIN_DIR
+
+_spec = importlib.util.spec_from_file_location("gen_decisions_index", GEN)
+gdi = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(gdi)
+ROW_RE = gdi.ROW_RE
+
 
 def fence_guarded_dec_headings(text):
     """Mirror check-docs.sh's fence toggle (:44-48) exactly: a '## DEC-N'
@@ -72,13 +84,19 @@ def run_gen(tree, extra_env=None):
     )
 
 
-def make_authority(tmp, decisions):
-    """decisions: list of (number:int, title:str). Writes docs/harness/DECISIONS.md."""
+def make_authority(tmp, decisions, bodies=None):
+    """decisions: list of (number:int, title:str). Writes docs/harness/DECISIONS.md.
+
+    bodies: optional {number: body_text} to override a decision's placeholder body,
+    for the cases where the BODY is what is under test (supersession prose, B-3).
+    """
+    bodies = bodies or {}
     docs_dir = os.path.join(tmp, "docs", "harness")
     os.makedirs(docs_dir, exist_ok=True)
     body = []
     for n, title in decisions:
-        body.append(f"## DEC-{n} — {title}\n\n**Chose:** placeholder body text for DEC-{n}.\n")
+        text = bodies.get(n, f"**Chose:** placeholder body text for DEC-{n}.")
+        body.append(f"## DEC-{n} — {title}\n\n{text}\n")
     with open(os.path.join(docs_dir, "DECISIONS.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(body))
     return docs_dir
@@ -186,7 +204,7 @@ def test_preserves_hand_written_rulings_by_dec_number():
 
             by_dec = {}
             for row in new_rows:
-                m = re.match(r"^- (DEC-\d+)\b(.*)$", row)
+                m = ROW_RE.match(row)
                 if m:
                     by_dec[m.group(1)] = m.group(2)
 
@@ -370,7 +388,7 @@ def test_committed_index_is_complete_and_within_budget():
         thin = []
         over_cap = []
         for l in lines:
-            m = re.match(r"^- (DEC-\d+).*?::\s*(.*)$", l)
+            m = ROW_RE.match(l)
             if not m:
                 continue
             dec_id, ruling = m.groups()
@@ -451,8 +469,97 @@ def test_orphaned_ruling_is_reported_not_silently_dropped():
         return False
 
 
+def test_malformed_row_is_reported_not_silently_dropped():
+    """B-2: a line meant as a row but not matching the grammar must be a LOUD error.
+
+    The old behaviour treated it as 'no prior row', so the DEC's hand-written ruling was
+    replaced by the RULING PENDING sentinel and the index was rewritten — data loss
+    recoverable only from git, and invisible in the exit code.
+    """
+    name = "test_malformed_row_is_reported_not_silently_dropped"
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            decisions = [(1, "First"), (2, "Second")]
+            docs_dir = make_authority(tmp, decisions)
+            r0 = run_gen(tmp)
+            if r0.returncode != 0:
+                print(f"FAIL - {name}: baseline run exited {r0.returncode}")
+                return False
+            rows = read_index_rows(docs_dir)
+            good = next(r for r in rows if r.startswith("- DEC-2 "))
+            left, _ = good.split(" :: ", 1)
+            # A single missing space around the separator is the whole defect.
+            broken = f"{left} ::A ruling a human wrote and must not lose."
+            write_index(docs_dir, [rows[0], broken])
+            before = open(os.path.join(docs_dir, "DECISIONS-INDEX.md"), encoding="utf-8").read()
+
+            r = run_gen(tmp)
+            if r.returncode == 0:
+                print(f"FAIL - {name}: generator exited 0 on a malformed row")
+                return False
+            after = open(os.path.join(docs_dir, "DECISIONS-INDEX.md"), encoding="utf-8").read()
+            if after != before:
+                print(f"FAIL - {name}: index was rewritten despite the error — "
+                      f"the hand-written ruling must survive a refusal")
+                return False
+            err = r.stderr
+            # The message must quote the line (so the fix is local) and must NOT tell the
+            # reader to regenerate — regenerating is what destroys the other rulings.
+            if "::A ruling a human wrote" not in err:
+                print(f"FAIL - {name}: stderr does not quote the offending line: {err[:300]}")
+                return False
+            if "Repair" not in err:
+                print(f"FAIL - {name}: stderr does not say to repair the line: {err[:300]}")
+                return False
+        print(f"ok - {name}")
+        return True
+    except Exception as e:
+        print(f"FAIL - {name}: {type(e).__name__}: {e}")
+        return False
+
+
+def test_supersession_declared_in_body_prose_is_harvested():
+    """B-3: DEC-120 supersedes DEC-102 in BODY prose, not in its title, so DEC-102's row
+    carried no marker and a reader could act on a dead ruling.
+
+    The negative half matters as much: a false marker tells a reader to ignore a LIVE
+    decision, so a mid-sentence mention must not mark anything.
+    """
+    name = "test_supersession_declared_in_body_prose_is_harvested"
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            decisions = [(1, "First"), (2, "Second"), (3, "Third")]
+            bodies = {
+                2: "**Supersedes DEC-1's conclusion** that the old shape was right.",
+                # Narrative, not a declaration: must NOT mark DEC-2.
+                3: "This one supersedes DEC-2 in spirit only, and refines DEC-1.",
+            }
+            docs_dir = make_authority(tmp, decisions, bodies)
+            r = run_gen(tmp)
+            if r.returncode != 0:
+                print(f"FAIL - {name}: generator exited {r.returncode}: {r.stderr[:200]}")
+                return False
+            rows = {ROW_RE.match(l).group(1): l
+                    for l in read_index_rows(docs_dir) if ROW_RE.match(l)}
+            if "SUPERSEDED BY DEC-2" not in rows.get("DEC-1", ""):
+                print(f"FAIL - {name}: DEC-1 lacks its body-declared marker: "
+                      f"{rows.get('DEC-1')}")
+                return False
+            if "SUPERSEDED BY" in rows.get("DEC-2", ""):
+                print(f"FAIL - {name}: DEC-2 was marked from a mid-sentence mention — "
+                      f"a false marker hides a LIVE decision: {rows.get('DEC-2')}")
+                return False
+        print(f"ok - {name}")
+        return True
+    except Exception as e:
+        print(f"FAIL - {name}: {type(e).__name__}: {e}")
+        return False
+
+
 TESTS = [
     test_row_per_distinct_dec_matches_authority,
+    test_malformed_row_is_reported_not_silently_dropped,
+    test_supersession_declared_in_body_prose_is_harvested,
     test_preserves_hand_written_rulings_by_dec_number,
     test_preserves_inline_ok_stale_marker_on_a_row,
     test_checker_flags_planted_stale_phrase_in_index,

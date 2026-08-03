@@ -22,6 +22,18 @@ AMEND_HEADING_RE = re.compile(r"^###\s+DEC-(\d+)\s+amendment(?:\s+(\d+))?\b")
 AMEND_BOLD_RE = re.compile(r"^\*\*Amendment(?:\s+(\d+))?\b")
 DEC_REF_RE = re.compile(r"DEC-(\d+)")
 SUPERSESSION_VERB_RE = re.compile(r"^(SUPERSEDES|CORRECTS|INVERTS)\s+(DEC-\d+)")
+# A supersession declared in BODY PROSE rather than in the title (B-3). DEC-120 supersedes
+# DEC-102 this way, and DEC-102's row carried no marker — so a reader could act on a dead
+# ruling, which is the one failure the marker exists to prevent.
+#
+# Anchored deliberately hard: line-start, inside the bold run that opens the paragraph, and
+# the verb must govern the DEC directly. Narrative mentions ("this supersedes nothing",
+# "DEC-99 supersedes an earlier draft" mid-sentence) must NOT mark a row, because a false
+# marker tells a reader to ignore a LIVE decision — worse than the missing marker it fixes.
+BODY_SUPERSESSION_RE = re.compile(
+    r"^\*\*(Supersedes|Corrects|Inverts|SUPERSEDES|CORRECTS|INVERTS)\s+(DEC-\d+)",
+    re.M,
+)
 
 TOPIC_VOCAB = {
     "org": ("org",),
@@ -71,7 +83,17 @@ The `am-span` token appears only on a decision carrying amendments — `am.1`, a
 A row ending `— SUPERSEDED BY DEC-NN` is one you must not act on.
 """
 
+                                       # THE row grammar, single-sourced. The unit test
+                                       # imports these two by path rather than restating
+                                       # them: a test carrying its own copy of the grammar
+                                       # agreed with nothing, and the disagreement surfaced
+                                       # only as a silently-dropped ruling (B-2).
 ROW_RE = re.compile(r"^- (DEC-\d+) .*? :: (.*)$")
+# Deliberately looser than ROW_RE: anything a human or agent MEANT as a row. A line that
+# looks like a row but does not parse as one is an error, never a non-row — treating it as
+# "no prior row" is what silently discarded a hand-written ruling and replaced it with
+# RULING PENDING, a data loss recoverable only from git.
+ROW_LOOKALIKE_RE = re.compile(r"^\s*-\s*(DEC-\d+)\b")
 
 
 def defenced_lines(text):
@@ -253,10 +275,19 @@ def build_index(text, existing_rows):
     # target's row gains a trailing '-- SUPERSEDED BY DEC-<owner>'.
     superseded_by = {}  # target_num (int) -> list of owner keys, ascending by owner num
     for key, dec in sorted(decisions.items(), key=lambda kv: kv[1]["num"]):
-        target = compute_supersession_target(dec["title"])
-        if target:
+        # Title first, then body prose (B-3). A decision may declare both; dedupe, and
+        # never let a decision supersede itself (a body line quoting its own number).
+        targets = []
+        t = compute_supersession_target(dec["title"])
+        if t:
+            targets.append(t)
+        targets += [m.group(2) for m in BODY_SUPERSESSION_RE.finditer(dec["body"])]
+        for target in dict.fromkeys(targets):
             target_num = int(DEC_REF_RE.search(target).group(1))
-            superseded_by.setdefault(target_num, []).append(key)
+            if target_num == dec["num"]:
+                continue
+            if key not in superseded_by.setdefault(target_num, []):
+                superseded_by[target_num].append(key)
 
     # Orphan detection: existing rows with non-sentinel ruling text whose DEC
     # number has no live heading. Hard error, never a silent drop.
@@ -315,12 +346,25 @@ def build_index(text, existing_rows):
 
 
 def parse_existing_index(text):
-    rows = {}
-    for line in text.splitlines():
+    """{'DEC-NN': ruling}. Raises MalformedRow rather than skipping a broken row."""
+    rows, malformed = {}, []
+    for n, line in enumerate(text.splitlines(), 1):
         m = ROW_RE.match(line)
         if m:
             rows[m.group(1)] = m.group(2)
+        elif ROW_LOOKALIKE_RE.match(line):
+            malformed.append((n, line))
+    if malformed:
+        raise MalformedRow(malformed)
     return rows
+
+
+class MalformedRow(Exception):
+    """A line in the index means to be a row but does not parse as one."""
+
+    def __init__(self, rows):
+        self.rows = rows
+        super().__init__(f"{len(rows)} malformed row(s)")
 
 
 def main():
@@ -338,7 +382,23 @@ def main():
     existing_rows = {}
     if os.path.isfile(INDEX_PATH):
         existing_text = open(INDEX_PATH, encoding="utf-8").read()
-        existing_rows = parse_existing_index(existing_text)
+        try:
+            existing_rows = parse_existing_index(existing_text)
+        except MalformedRow as e:
+            # REPAIR, never regenerate: this script is the only thing that can rebuild the
+            # index, so telling the reader to regenerate would tell them to destroy the
+            # hand-written rulings on every other row. Quote the line so the fix is local.
+            print(f"gen-decisions-index: {INDEX_PATH} has "
+                  f"{len(e.rows)} malformed row(s). Wrote nothing.", file=sys.stderr)
+            for n, line in e.rows:
+                print(f"  {INDEX_PATH}:{n}: {line}", file=sys.stderr)
+            print("\nEach line above is meant to be a row but does not match the grammar:\n"
+                  "  - DEC-NN @<line> [am-span] [tags] refs: <graph> :: <ruling>\n"
+                  "Repair those lines in place — the ' :: ' separator, with a single space on "
+                  "each side, is what carries the hand-written ruling. Do NOT regenerate to "
+                  "fix this; regenerating cannot recover a ruling it could not read.",
+                  file=sys.stderr)
+            sys.exit(1)
 
     rows = build_index(text, existing_rows)
     if rows is None:
