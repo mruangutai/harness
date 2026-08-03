@@ -181,6 +181,26 @@ def run_t12():
         r.returncode == 2 and "non-checkpoint" in r.stderr,
         f"exit {r.returncode}: {r.stderr.strip()[:160]}")
 
+    # T-17 / D-08: test_yaml_truthy_top_level_key_is_reported_by_name.
+    #
+    # `on:` is NOT the string "on" after parsing — YAML 1.1 resolves it to True. Without
+    # str() on both sides, `k not in ALLOWED` compares a bool against a set of strings
+    # and the resulting `sorted()` gets a MIXED set.
+    #
+    # THE FIXTURE NEEDS TWO UNKNOWN KEYS, one bool-resolved and one string, and that is
+    # not incidental: a first draft used `on:` alone, whose unknown set is the single
+    # element {True}, which sorts fine. It passed against a deliberately un-coerced copy
+    # — a non-discriminating test that looked like proof. Mixed types are what raise
+    # TypeError, and in a fail-closed hook a raise is a BLOCK ON EVERY WRITE, not a
+    # wrong answer.
+    r = fire(root, sp, "run_id: r1\non: something\nfindings: prose\n")
+    t12("a YAML-truthy key (`on:`) beside a string key denies cleanly, no raise",
+        r.returncode == 2 and "non-checkpoint" in r.stderr and "Traceback" not in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+    t12("...and the denial explains the unquoted-key cause, not just 'True'",
+        "UNQUOTED key" in r.stderr and "YAML 1.1" in r.stderr,
+        f"stderr lacked the cause hint: {r.stderr.strip()[:200]}")
+
     fails = 0
     for name, ok, detail in T12:
         if ok:

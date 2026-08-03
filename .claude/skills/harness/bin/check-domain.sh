@@ -307,6 +307,11 @@ if re.match(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$", rel):
               file=sys.stderr)
         sys.exit(2)
 
+    # T-17 / D-08: str() BOTH sides. A parsed key is not necessarily a string —
+    # YAML 1.1 resolves `on:`, `off:`, `yes:`, `no:` to booleans and `01:` to an int —
+    # so an un-coerced comparison against a set of strings silently reports a real key
+    # as unknown, and `sorted()` over mixed types raises outright. In a fail-closed
+    # hook a raise is a block on every write, not a wrong answer.
     keys = list(doc) if isinstance(doc, dict) else []
     unknown = sorted({str(k) for k in keys if str(k) not in ALLOWED})
     if unknown:
@@ -315,6 +320,15 @@ if re.match(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$", rel):
         print(f"  non-checkpoint top-level key(s) {unknown} — findings and assessment prose "
               f"belong in this run's digest.md; a one-line note: per STEP entry is the "
               f"prose ceiling.", file=sys.stderr)
+        # Naming the key is required (DEC-100b), but naming it `True` when the author
+        # typed `on:` is not actionable — the reader cannot find `True` in their file.
+        # Say what happened instead of leaving them to guess.
+        if any(not isinstance(k, str) for k in keys):
+            odd = sorted(f"{k!r} ({type(k).__name__})" for k in keys if not isinstance(k, str))
+            print(f"  NOTE — {', '.join(odd)} came from an UNQUOTED key that YAML resolved to a "
+                  f"non-string: `on`/`off`/`yes`/`no`/`true`/`false` become booleans and `01` "
+                  f"becomes an int (YAML 1.1). Quote the key to keep it a string.",
+                  file=sys.stderr)
         sys.exit(2)
 
 if re.match(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$", rel):
