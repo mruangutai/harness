@@ -32,7 +32,40 @@ UNIVERSAL = {"open_questions": list, "files_touched": list, "expertise_update": 
 
 # Scalars where "not applicable" is a real answer. The key is still required; the
 # value may be `none`/`null`, which asserts inapplicability rather than omitting it.
-NULLABLE = {"branch", "blocked_on", "briefing"}
+#
+# DEC-173 widened this. An audit of every persona's did-nothing state found 6 of 7
+# could not report it truthfully: the honest value was REJECTED while a false one
+# was ACCEPTED. A dev refusing an under-specified task had to claim `suite: pass`;
+# QA unable to run the suite at all had to claim `matrix_ok: true` — the project's
+# only blocking gate, recorded as passed because "did not run" had no spelling.
+# That is the fail-open shape this whole file exists to prevent.
+#
+# `dev-ops`'s `suite` already carried an `n/a` member (below): the vocabulary was
+# extended once, where someone hit the wall, and never propagated. This generalises
+# it through the mechanism that was already here rather than inventing a second one.
+NULLABLE = {"branch", "blocked_on", "briefing",
+            # DEC-173 additions — enum scalars whose personas have a legitimate
+            # did-nothing state: refusing a task, being unable to run, or scoping
+            # out of a diff that has nothing for this role to judge.
+            "suite", "matrix_ok", "severity_max", "contract", "surface", "risk"}
+
+# ...but declining to REPORT a gate is not the same as passing it. This is keyed by
+# PERSONA as well as field, because the same field means different things by role
+# and a field-only rule gets it wrong:
+#
+#   dev      suite: n/a + PASS  -> REJECTED. It refused or could not run the tests;
+#                                  the Iron Law says no production code without a
+#                                  passing test, so PASS is unearned.
+#   qa       suite/matrix_ok n/a + PASS -> REJECTED. The project's only blocking
+#                                  gate did not run. This is the audit's worst row.
+#   dev-ops  suite: n/a + PASS  -> ALLOWED. `test_matrix` maps config/scaffolding/
+#                                  docs to [] (DEC-100), so "no tests apply" is the
+#                                  correct outcome, not a dodge.
+#   reviewer severity_max n/a + PASS -> ALLOWED. A ui-reviewer on a non-UI diff
+#                                  reviewed nothing and blocks nothing.
+#
+# So: only the roles whose PASS is *earned by the gate* are bound by it.
+GATE_FIELDS = {"dev": {"suite"}, "qa": {"suite", "matrix_ok"}}
 
 # field -> (allowed values | type). Enums are EXACT; near-misses are the whole point.
 SCHEMAS = {
@@ -45,8 +78,12 @@ SCHEMAS = {
     "reviewer": {"severity_max": set(SEV), "findings": int, "must_fix": list},
     "visual-designer": {"contract": {"written","updated"}, "mockups": list, "direction_choices": list},
     "documentor": {"docs_updated": list, "gaps": list},
+    # `suite` was {"pass","fail","n/a"} here and {"pass","fail"} everywhere else —
+    # the local fix that DEC-173 generalised. The `n/a` member is now redundant
+    # (NULLABLE short-circuits before the enum check) and is removed so there is one
+    # mechanism for "did not happen", not two that can drift apart.
     "dev-ops": {"change_type": {"config","scaffolding","infra","ci"},
-                "applied": list, "suite": {"pass","fail","n/a"}},
+                "applied": list, "suite": {"pass","fail"}},
     # SPEC 10.4 in full. `sc_status` is pm's field (11.6) riding up as a passthrough,
     # surfaced at team level so the orchestrator can read goal-check status without
     # opening member entries; `[]` when this team ran no goal-check.
@@ -433,6 +470,13 @@ def validate(persona, text):
                        f"balanced. Fix the YAML rather than resubmitting as-is.")
             continue
         if field in NULLABLE and isinstance(val, str) and val.lower() in ("none", "null", "n/a"):
+            # DEC-173: declining a GATE while claiming PASS is the fail-open the
+            # widened NULLABLE would otherwise have created. Reported here rather
+            # than as a separate pass so the message lands next to the field.
+            if field in GATE_FIELDS.get(persona, ()) and m and m.group(1) == "PASS":
+                err.append(f"{field}={val!r} declines to report a gate, but VERDICT is "
+                           f"PASS — a gate that did not run cannot have passed. Return "
+                           f"BLOCKED or FAIL, or report the real result.")
             continue
         if isinstance(allowed, set):
             # F: fail-open crash. `val` can be a LIST (`severity_max: [low, med]`

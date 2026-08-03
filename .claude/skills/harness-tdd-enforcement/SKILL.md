@@ -62,12 +62,27 @@ Before executing a task, scan it. **Refuse it** if it contains:
 
 Do **not** infer the intent. Return:
 
-```
+````
+```yaml
 VERDICT: BLOCKED
 DIGEST:
   headline: task T-NN is under-specified and cannot be executed as written
+  tests_added: 0
+  suite: n/a
   blocked_on: "T-NN contains a placeholder at <location>; needs pm revision"
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: none
 ```
+
+**Every field, including the ones that are empty.** This return used to be written with only
+`headline` and `blocked_on`, and the `SubagentStop` hook rejected it with exit 2 — so the guard
+against under-specified tasks was told it had committed a contract violation at the exact moment it
+fired, and the forced retry shipped unvalidated. `suite: n/a` is what makes it truthful: you ran no
+tests, and DEC-173 gives that a spelling. Do not write `suite: pass` here — it is the only value the
+schema used to accept, and it is a lie.
+````
 
 ## Exemptions
 

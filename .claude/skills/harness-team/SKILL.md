@@ -223,7 +223,8 @@ Report per-step verdicts and the run dir path. Not the artifacts' contents — t
 **Every field is required** (DEC-121) — `[]` for an empty list, `none` for a scalar that is
 genuinely inapplicable. The `SubagentStop` hook will not let you stop without them.
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE     # worst member verdict: BLOCKED > ESCALATE > FAIL > PASS
 DIGEST:
   headline: <one line — what the team achieved, not what it did>
@@ -242,6 +243,7 @@ DIGEST:
   sc_status: [{ id, verdict, method, evidence }]   # passthrough from pm's goal-check; [] if none ran
 artifact: <run_dir>/digest.md                # your collated report — NOT state.yaml
 ```
+````
 
 ## Red flags
 

@@ -67,11 +67,14 @@ inherit **no** earlier review and their paths are in scope for you now.
 
 ## Output
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL
 DIGEST:
   headline: <one line>
-  severity_max: info|low|med|high|critical
+  severity_max: info|low|med|high|critical|n/a
+                              # n/a = scoped OUT; nothing in this diff for this
+                              # role to judge. PASS with n/a is legitimate (DEC-173)
   findings: <n>
   must_fix: [<item>]
   spec_violations: [{ kind: scope_creep|omission|mismatch, path: ..., ref: D-NN }]
@@ -83,3 +86,4 @@ DIGEST:
   expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: .harness/notes/review-harness-code-reviewer-<runid>.md
 ```
+````

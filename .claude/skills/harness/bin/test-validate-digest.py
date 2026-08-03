@@ -30,12 +30,21 @@ TEMPLATES = [
 
 
 def extract_fenced_block(path, anchor):
-    text = open(path).read()
-    idx = text.index(anchor)
-    start = text.index("```", idx)
-    nl = text.index("\n", start)
-    end = text.index("```", nl)
-    return text[nl + 1:end]
+    """Pull the normative return template out of a doc, after `anchor`.
+
+    Line-based on purpose. DEC-172 wrapped every template in a ```yaml fence, and
+    that fence is itself DISPLAYED inside a four-backtick fence so the doc can show
+    the backticks an agent must emit. Substring-scanning for "```" matches the first
+    three characters of the outer ```` and captures nothing — which is exactly how
+    this broke. Target the inner ```yaml line and stop at the next bare ```.
+    """
+    lines = open(path).read().split("\n")
+    start = next(i for i, l in enumerate(lines) if anchor in l)
+    open_at = next(i for i in range(start, len(lines))
+                   if lines[i].strip() in ("```yaml", "```"))
+    close_at = next(i for i in range(open_at + 1, len(lines))
+                    if lines[i].strip() == "```")
+    return "\n".join(lines[open_at + 1:close_at]) + "\n"
 
 
 def fill_placeholders(text):
@@ -918,6 +927,132 @@ def run_hook_cases():
             print(f"ok    [hook] {name}")
     print(f"\n{len(HOOK_CASES) - fails}/{len(HOOK_CASES)} hook cases passed.")
     return fails
+
+
+# --- DEC-173: "nothing happened" must have a truthful encoding -----------------
+# The audit found 6 of 7 personas could not report a did-nothing state honestly:
+# the truthful value was REJECTED while a false one was ACCEPTED, which is the
+# fail-open shape (`matrix_ok: true` recorded QA's inability to run the suite as
+# the blocking gate having passed). These pin BOTH directions — the honest value
+# is accepted, AND the near-miss junk that DEC-121 rejects still fails.
+
+DEV_NA = """
+VERDICT: BLOCKED
+DIGEST:
+  headline: T-01 is under-specified and was not executed
+  tests_added: 0
+  suite: n/a
+  blocked_on: "T-01 contains a placeholder at line 4; needs pm revision"
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: none
+"""
+case("dev refusing an under-specified task can say suite: n/a", "harness-backend-dev",
+     DEV_NA, True)
+
+case("suite: n/a with VERDICT PASS is a fail-open and is REJECTED", "harness-backend-dev",
+     DEV_NA.replace("VERDICT: BLOCKED", "VERDICT: PASS"), False, "pass")
+
+QA_NA = """
+VERDICT: BLOCKED
+DIGEST:
+  headline: the suite could not be run; no runner resolves in this project
+  suite: n/a
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: n/a
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: .harness/features/FEAT-01/notes/qa.md
+"""
+case("qa that cannot run the suite can say matrix_ok: n/a", "harness-qa", QA_NA, True)
+
+case("matrix_ok: n/a with VERDICT PASS is REJECTED — the gate did not run",
+     "harness-qa", QA_NA.replace("VERDICT: BLOCKED", "VERDICT: PASS"), False, "pass")
+
+# Scope-out is a LEGITIMATE pass: ui-reviewer on a non-UI diff reviewed nothing and
+# blocks nothing. This is why the gate rule is scoped to suite/matrix_ok and not
+# applied to every nullable field.
+case("reviewer scoping out of a non-UI diff may PASS with severity_max: n/a",
+     "harness-ui-reviewer", """
+VERDICT: PASS
+DIGEST:
+  headline: diff touches no user-facing surface; nothing to review
+  severity_max: n/a
+  findings: 0
+  must_fix: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: .harness/features/FEAT-01/notes/ui-review.md
+""", True)
+
+case("visual-designer deciding no DESIGN.md is needed may say contract: n/a",
+     "harness-visual-designer", """
+VERDICT: PASS
+DIGEST:
+  headline: surface is bin/ scripts and config; no end-user visual surface
+  contract: n/a
+  mockups: []
+  direction_choices: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: .harness/features/FEAT-01/notes/design-scope.md
+""", True)
+
+case("pm blocked before sizing may say surface: n/a and risk: n/a", "harness-pm", """
+VERDICT: BLOCKED
+DIGEST:
+  headline: cannot scope — the brief's destination contradicts the codebase map
+  feasibility: blocked
+  surface: n/a
+  recommend: halt
+  risk: n/a
+  tasks: 0
+  decisions: 0
+  needs_approval: false
+  flags: []
+  sc_status: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: .harness/features/FEAT-01/notes/pm-block.md
+""", True)
+
+# REGRESSIONS — the near-miss vocabulary DEC-121 exists to catch must still fail.
+case("matrix_ok: mostly is STILL rejected after n/a became legal", "harness-qa",
+     QA_NA.replace("matrix_ok: n/a", 'matrix_ok: "mostly"'), False, "bool")
+
+case("severity_max: medium is STILL rejected after n/a became legal",
+     "harness-ui-reviewer", """
+VERDICT: PASS
+DIGEST:
+  headline: reviewed
+  severity_max: medium
+  findings: 1
+  must_fix: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: notes/x.md
+""", False, "med")
+
+case("dev-ops suite: n/a still accepted (it had the value before DEC-173)",
+     "harness-dev-ops", """
+VERDICT: PASS
+DIGEST:
+  headline: gitignore merged; nothing to test
+  change_type: config
+  applied: [.gitignore]
+  suite: n/a
+  open_questions: []
+  files_touched: [.gitignore]
+  expertise_update: []
+artifact: notes/devops.md
+""", True)
 
 
 def main():

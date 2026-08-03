@@ -65,18 +65,19 @@ cannot manufacture evidence — do not soften a `not_met`.
 
 ## Output
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line>
   feasibility: clear|risky|blocked
-  surface: S|M|L
+  surface: S|M|L|n/a          # n/a ONLY if blocked before sizing was possible
   flags: [security, migration, external-api, ...]
   recommend: proceed|spike|reframe|halt
   tasks: <n>
   decisions: <n>
   needs_approval: <bool>
-  risk: low|med|high
+  risk: low|med|high|n/a      # n/a ONLY if blocked before assessment was possible
   sc_status: [{ id: SC-01, verdict: met, method: automated, evidence: "<pointer>" }]
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
@@ -84,3 +85,4 @@ DIGEST:
   expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: <path>
 ```
+````

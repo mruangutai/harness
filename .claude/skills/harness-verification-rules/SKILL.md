@@ -82,10 +82,12 @@ to the user.
 ## Your DIGEST
 
 ```yaml
-suite: pass|fail
+suite: pass|fail|n/a           # n/a ONLY if the suite could not be run at all
 failures: <n>
 coverage_gaps: [<area>]        # incl. any Phase 1 expectation with no test
-matrix_ok: <bool>              # a BOOL. "mostly" is a contract violation
+matrix_ok: <bool>|n/a          # a BOOL. "mostly" is a contract violation.
+                               # n/a ONLY if the matrix could not be evaluated;
+                               # n/a with VERDICT: PASS is rejected — DEC-173
 ```
 
 ## Red flags

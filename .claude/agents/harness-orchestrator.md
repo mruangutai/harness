@@ -64,7 +64,8 @@ under it.
 Your return contract (validated by the `SubagentStop` hook — every field required, `[]` for empty,
 `none` for inapplicable):
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line — where the feature stands, not what you did>
@@ -81,6 +82,7 @@ DIGEST:
   expertise_update: [<ops>]       # [] if nothing durable
 artifact: .harness/features/<FEAT>/feature.yaml
 ```
+````
 
 `status: awaiting_user` + non-empty `open_questions` is the question round-trip: the main session
 asks, writes `.harness/features/<FEAT>/notes/answers-<runid>.md`, and re-delegates you with that path.
