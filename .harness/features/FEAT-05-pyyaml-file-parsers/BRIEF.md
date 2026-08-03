@@ -216,3 +216,46 @@ note: |
   The real number is expected in the ship briefing.
 
   PROTOTYPE: not required. `bin/` scripts and hooks, no end-user surface.
+
+### Amendment 1 — a corpus-validity gate, added at the user's instruction, 2026-08-03
+
+**New scope on a signed artifact, authorised by the user in-session.** Recorded here rather than
+carried as an informal note, because a signed BRIEF is the thing reviewers judge against.
+
+**What forced it.** The build's own T-02 RED gate surfaced that **four `.harness` YAML files do not
+parse** under PyYAML: `team-config.yaml:18` (a space-`#` inside a flow sequence, which silently made
+**every key from `orchestrator:` onward unreachable** — the whole manifest, not one line),
+`FEAT-03/feature.yaml:97` (a backtick, a YAML reserved indicator), and `FEAT-04:77` plus `FEAT-05:55`
+(`: ` in prose read as a mapping key). `FEAT-01`, `FEAT-02` and `harness.json` were fine.
+
+One root cause: **unquoted prose in plain scalars.** Every hand-rolled line scanner tolerated it for
+the entire life of the project — which is the strongest evidence for this feature's thesis, and also
+a blocker the signed plan did not anticipate.
+
+**Why a repair alone is insufficient.** `FEAT-05/feature.yaml` was written **today**, by this
+feature's own orchestrator. So this is live, ongoing production of invalid YAML by agents, not
+historical debt. Repair without a gate means the next run reintroduces it, and the next real-parser
+conversion fails the same way.
+
+**REQ-08 (new).** The `.harness` YAML corpus stays parseable by a real parser. A change that makes any
+`.harness/**/*.yaml` unloadable fails the unit gate rather than being discovered by a downstream
+conversion.
+
+**SC-14 (new).** `verify: unit`. A test under `.claude/skills/harness/bin/` walks every
+`.harness/**/*.yaml`, calls `yaml.safe_load` on each, and fails naming file, line and column for any
+that does not load. It is listed in `run-unit-tests.sh`'s `SCRIPTS` array — otherwise it gates
+nothing, which was issue #5's exact failure mode. Proof it is a real gate: it must be shown RED
+against a deliberately malformed fixture, then GREEN on the repaired corpus.
+
+**Deliberately NOT required:** a `PreToolUse` hook. The unit runner is sufficient and adds no
+mechanism, no `harness.json` change, and no per-write latency. Rejected as over-engineering.
+
+**Scope ruling the user made alongside this (recorded so a reviewer does not read it as drift):** the
+orchestrator's repair of **FEAT-03's and FEAT-04's** `feature.yaml` — shipped features' records,
+touched under its `.harness/features/**` grant and disclosed rather than hidden — **STANDS**. Its
+reasoning holds: SC-02 and SC-13 read the whole `.harness/features/*/` tree, so those files sit inside
+this feature's evidence path. Verified independently: all five `feature.yaml` now parse, and
+top-level keys are identical before and after in both files. Note the honest limit — the pre-repair
+files **cannot parse**, so a data-level equality proof is impossible by construction; the load-bearing
+evidence is that the T-01 run-inventory receipt diffs to zero rows, which is what keeps SC-13's
+baseline valid rather than silently stale.

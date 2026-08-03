@@ -3436,6 +3436,38 @@ org, and it should read as one chain.
 
 ---
 
+### DEC-142 amendment — the agent NAME is the title the user actually sees, and it cannot hold `·`
+
+DEC-142 was written when a spawn had a free-text title and nothing else. Agents are now addressable
+by `name` for `SendMessage`, and that name is what surfaces in the spawn tree and on every relayed
+message. The name field is constrained to `^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$`, so **the convention's
+`·` separator and its spaces are illegal there** — DEC-142's literal format cannot be used as a name.
+
+Observed defect, main session, 2026-08-03: FEAT-05's ship orchestrator was named
+`yaml-sweep-f1-ship`. Its `description` did carry the flow id ("Ship FEAT-05 pyyaml file parsers"),
+but the NAME is what rendered, so the user watching the tree could not trace the running agent to its
+flow, saw `harness-eng-lead` conducting a run, and reasonably asked why a lead had been spawned
+directly instead of an orchestrator. Nothing was wrong with the org — main had spawned only the
+orchestrator, which had dispatched the lead correctly at layer 2 — but the tree could not show that.
+**That is exactly the kaya-ai failure DEC-142 was written to prevent, reproduced through the one field
+the decision did not know about.**
+
+The rule, unchanged in spirit: **a spawn the user cannot trace to its flow is a dispatch defect.**
+Mechanically, when a spawn carries a `name`:
+
+- **The `name` is a flow-traceable slug** — `<flow-id>-<step>`, e.g. `FEAT-05-ship`, `FEAT-05-T01`.
+  Hyphens for the separator, since `·` and spaces are rejected. The flow id comes first so the tree
+  sorts and reads as one chain.
+- **The dispatch description keeps the full form** — `FEAT-05 · ship · build validate and ship`.
+- **A name that omits the flow id is the defect**, however good the description is. Naming an agent
+  for addressability must not silently displace the convention.
+
+**One genuine gap this does not close.** A NEW feature's id is coined by pm at BRIEF time (DEC-133),
+so the very first `plan` spawn has no flow id to carry — the door cannot comply on that one dispatch.
+Options are a provisional slug renamed on return, or accepting one untraceable spawn per feature.
+Unresolved, and deliberately not decided here; it affects exactly one spawn per feature and the
+orchestrator's own name can be corrected on the next dispatch.
+
 ## DEC-143 — check-domain.sh sees through worktrees; the unsplittable-task gap is task 25
 
 Field report from kaya-ai, at the most expensive possible place — the first build dispatch after
@@ -4638,3 +4670,61 @@ It now reads `suite: n/a` and validates in both CLI and hook mode.
 2. **The `stop_hook_active` pass-through.** A blocked agent's second attempt is accepted with no
    validation whatsoever. That is how a wrong correction escapes, and it is why defect 1 above was
    survivable rather than visible.
+
+## DEC-174 — Self-hosting stops at the enforcement layer: the harness plans its own work, it does not execute changes to its own guards
+
+Raised by the user after a day of building FEAT-05 through the harness: *"my sense is that we shouldn't
+be using harness to build harness."* Substantially accepted, with the boundary drawn narrower than the
+full claim.
+
+**The evidence, all from 2026-08-03 and all on this repo.** Every gate was green —
+`run-unit-tests.sh`, `check-docs.sh`, `check-state.sh`, `gen-decisions-index.py --check` — while:
+
+- four `.harness` YAML files did not parse, `team-config.yaml` among them, its `[` unclosed since a
+  space-`#` opens a comment inside a flow sequence, so **every key from `orchestrator:` onward was
+  unreachable to a real parser** — the entire team roster;
+- `harness-tdd-enforcement`'s normative refusal template was **rejected by the harness's own
+  `SubagentStop` validator**, six contract violations, so the guard against under-specified tasks was
+  told it had violated the contract at the moment it fired;
+- six of seven personas could not report a did-nothing state truthfully, and in five the schema
+  **accepted the false value and rejected the honest one** (DEC-173).
+
+**Self-hosting caught none of these.** They were found by hand, and the largest by chasing a red unit
+test that could reasonably have been dismissed as an expected RED gate. A system whose self-checks pass
+while its own manifest is unparseable is not checking itself.
+
+**The circularity is not uniform, which is why the answer is a carve-out and not a repeal.**
+
+| layer | self-hosted? | why |
+|---|---|---|
+| grilling, BRIEF, PLAN, review panel, goal-check | **yes, keep it** | none of it depends on the code being changed; FEAT-05's grilling and plan were good work and caused none of the day's trouble |
+| agent roles, digests, expertise | yes | drift risk, not circularity |
+| **hooks, validators, gate scripts** (`check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh`, `check-docs.sh`) | **NO** | the artifact under change is the artifact doing the checking |
+
+Everything painful on 2026-08-03 sits in the third row: which copy of `check-domain.sh` a hook fires,
+whether DEC-173 governs any agent, whether 13 edited agent templates are even live, and a fail-closed
+conversion that can block the write that would fix it.
+
+**The ruling.** A change to the enforcement layer is made **directly** — ordinary edits, tests run
+explicitly, a human reading the diff — not dispatched through a team run whose gates are the thing
+being changed. Planning such a change through the harness remains fine and useful; **executing** it
+through the harness is not.
+
+**Two structural smells that justify the line, recorded because they generalise:**
+
+1. **The bootstrap escape.** FEAT-05 had to design a one-session escape so a fail-closed hook could not
+   brick the write that fixes it. Needing an escape hatch *from yourself* is the signature of
+   circularity, not a missing feature.
+2. **Cost shape.** $92 went to planning before a single line of code, on a change whose core is roughly
+   fifty lines of Python. The ceremony is calibrated for product features, not for editing the ceremony.
+
+**What this costs, stated honestly rather than argued away.** Dogfooding is real pressure and it worked:
+this one day produced DEC-142's name-vs-title gap, DEC-173's schema class, and the invalid-corpus
+finding — all because the harness was actually run. Removing the enforcement layer from self-hosting
+removes some of that pressure, and it weakens the claim that a CTO can ship reliably through this thing.
+The trade is accepted anyway: **finding bugs by running a $240 team flow is a worse deal than finding
+them with a test.**
+
+**Not decided here:** whether harness development should use the ceremony at all for non-enforcement
+work. The user considered stopping self-hosting entirely and chose the carve-out; the stronger position
+stays available and is a stage question, not a correctness one.

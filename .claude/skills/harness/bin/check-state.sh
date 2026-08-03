@@ -14,8 +14,13 @@ set -uo pipefail
 root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 cd "$root"
 
-python3 - "$root" <<'PY'
+# The heredoc needs `harness_yaml` on sys.path (E2). Resolved from THIS script's own
+# location, never cwd — same reason as check-domain.sh's root derivation.
+_selfdir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 - "$root" <<'PY'
 import sys, os, re, glob, json
+
+import harness_yaml
 
 root = sys.argv[1]
 H = os.path.join(root, ".harness")
@@ -93,29 +98,55 @@ for feat, plan in plans.items():
 # --- INV-6..8: per-feature execution facts.
 for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
     feat = os.path.basename(os.path.dirname(fy))
-    txt = read(fy) or ""
-    def val(k):
-        m = re.search(rf"^{k}:\s*(\S+)", txt, re.M)
-        return m.group(1) if m else None
+    # T-07 / issue #11 — a REAL parser, not a regex over two hand-listed shapes.
+    #
+    # What the regexes could not do: the block form required `\s*\n` after the `id:`
+    # and `squad:` captures, so a trailing `# comment` on either line — legal YAML,
+    # and the house style on 45 lines of FEAT-03's feature.yaml — silently dropped the
+    # ENTIRE run, failing INV-6, INV-7 and INV-8 open at exit 0. Reproduced before the
+    # fix. It had never fired only because those two lines happened to carry no
+    # comments, and one author who hit it wrote a warning into the data file
+    # (feature.yaml:63-64) instead of fixing the parser. Same defect class as DEC-123
+    # and DEC-129; DEC-171 reverses the no-dependency clause that forced it.
+    try:
+        doc = harness_yaml.load_file(fy) or {}
+    except Exception as e:
+        # A file that does not parse is a VIOLATION, never a silent skip — the whole
+        # point of DEC-171 am.1 is that there is no quieter mode. Report and move on
+        # so one broken feature cannot hide every other feature's invariants.
+        bad.append(f"{feat}/feature.yaml does not parse, so INV-6..8 and INV-12 "
+                   f"cannot be checked for it: {e}")
+        continue
+    if not isinstance(doc, dict):
+        bad.append(f"{feat}/feature.yaml is not a YAML mapping.")
+        continue
 
-    # BOTH YAML list forms — inline `{ id: X, squad: Y, verdict: Z }` and block
-    #   - id: X
-    #     squad: Y
-    #     verdict: Z
-    # The inline-only regex made INV-12 false-positive on a fully-recorded feature.yaml
-    # the first time a real orchestrator wrote one (it used block form, legitimately).
-    # Same single-format bug as the digest parser (DEC-123) and INV-4 (DEC-129).
-    runs = re.findall(r"\{\s*id:\s*([^,]+),\s*squad:\s*([^,]+),\s*verdict:\s*([^\s},]+)", txt)
-    runs += re.findall(r"^\s*-\s*id:\s*(\S+)\s*\n\s*squad:\s*(\S+)\s*\n\s*verdict:\s*(\S+)",
-                       txt, re.M)
+    def val(k):
+        """A scalar field as a string, or None. safe_load returns TYPED values, so
+        every consumer below would otherwise break on an int: `cycles_used: 6` is an
+        int and the old code called `.isdigit()` on it."""
+        v = doc.get(k)
+        return None if v is None else str(v)
+
+    # `runs:` entries, whatever YAML shape the author used — inline flow mapping,
+    # block mapping, comments anywhere. The parser handles all of it; we only assert
+    # the three fields the invariants need.
+    runs = []
+    for entry in (doc.get("runs") or []):
+        if not isinstance(entry, dict):
+            bad.append(f"{feat}: a runs: entry is not a mapping ({entry!r}).")
+            continue
+        runs.append((str(entry.get("id", "")).strip(),
+                     str(entry.get("squad", "")).strip(),
+                     str(entry.get("verdict", "")).strip()))
 
     # INV-6: reviewers must diff a pinned SHA, never a moving HEAD (DEC-50).
-    if any(sq.strip() == "validator" for _, sq, _ in runs) and not val("review_sha"):
+    if any(sq == "validator" for _, sq, _ in runs) and not val("review_sha"):
         bad.append(f"{feat}: a validator run exists but review_sha is not pinned "
                    f"— reviewers would diff HEAD (the GAP-7 failure).")
 
     # INV-7: the fix-loop bound must actually count the failures it bounds.
-    fails = sum(1 for _, _, v in runs if v.strip().upper() == "FAIL")
+    fails = sum(1 for _, _, v in runs if v.upper() == "FAIL")
     cu = val("cycles_used")
     if cu is not None and cu.isdigit() and int(cu) < fails:
         bad.append(f"{feat}: cycles_used={cu} but {fails} FAIL run(s) recorded "
@@ -124,7 +155,7 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
     # INV-8: a referenced run dir must exist, or resume has nothing to read.
     recorded = set()
     for rid, _, _ in runs:
-        rid = rid.strip(); recorded.add(rid)
+        recorded.add(rid)
         d = os.path.join(os.path.dirname(fy), "runs", rid)
         if not os.path.isdir(d):
             warn.append(f"{feat}: run {rid} is referenced but its dir is absent "

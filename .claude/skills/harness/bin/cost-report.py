@@ -109,6 +109,8 @@ def rate_for(model, speed, geo, cm, on_date):
 
 def transcript_dir(project_dir):
     """Claude Code's per-project transcript dir: the path with / and . as dashes."""
+    # D-04: this is a path-munge (filesystem naming convention), not a YAML read —
+    # nothing here parses or produces YAML, so no parser dependency belongs nearby.
     munged = re.sub(r"[/.]", "-", os.path.abspath(project_dir))
     return os.path.join(os.path.expanduser("~/.claude/projects"), munged)
 
@@ -166,6 +168,11 @@ def price(tokens, rate):
     return sum(tokens.get(c, 0) * rate[c] / 1_000_000 for c in CLASSES)
 
 
+# D-04: this splice is a deliberate line-preserving writer, not a YAML round-trip.
+# Running the file through a parser's safe-dump would strip its comments and
+# reorder its keys; check-domain.sh:275-298 validates state.yaml by top-level
+# key on Write, which this line-preserving approach satisfies without needing
+# a parser at all. Do not "finish the job" by routing this through one (D-04).
 def splice_cost(path, block):
     """REPLACE the `cost:` block in a run's state.yaml; never append a second one (B-4).
 

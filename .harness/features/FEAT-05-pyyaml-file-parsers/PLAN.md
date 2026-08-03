@@ -1134,3 +1134,38 @@ note: |
   2. So every digest produced in this worktree is judged by the main checkout's rules, and
   DEC-173's widened schema is NOT in force for agents until this branch merges. Do not diagnose
   a rejected-but-correct digest as an agent error.
+
+### Amendment 1 — D-07 gains `--user`, at the user's instruction, mid-build 2026-08-03
+
+D-07's command was `python3 -m pip install --break-system-packages pyyaml`. Executed as
+`python3 -m pip install --user --break-system-packages pyyaml`. The user directed the change after
+being shown the difference; this note records it rather than silently deviating from a signed plan.
+
+**Why.** Without `--user`, pip writes into `/opt/homebrew/lib/python3.14/site-packages` — a directory
+Homebrew manages, where pip-installed files and `brew`'s own metadata do not know about each other.
+Homebrew's PEP 668 message says so itself: *"we STRONGLY recommend that you additionally pass the
+`--user` flag... Failure to do this can result in a broken Homebrew installation."* D-07 omitting it
+was a defect, not a decision. `--break-system-packages` is still required — PEP 668 refuses pip
+either way; `--user` only redirects where it writes.
+
+**The user's goal, stated explicitly, and why it is satisfied:** one install serving every project
+downstream, NOT repo-local isolation. A vendored/`--target` design was raised and REJECTED for that
+reason — and it would also have voided REQ-03, REQ-05, SC-07, SC-08 and SC-09.
+
+**Verified after the install (all at `225cc98` + this amendment):**
+
+- `python3 -c 'import yaml'` → PyYAML **6.0.3**, at
+  `~/Library/Python/3.14/lib/python/site-packages/yaml/__init__.py`. Outside the Homebrew tree.
+- The heredoc invocation form the hooks actually use resolves it.
+- A **scrubbed environment** (`env -i PATH=... HOME=...`) still resolves it — user site depends on
+  `HOME`, which a hook subprocess has.
+- All four `python3` on PATH now import yaml. Only Homebrew 3.14 was ever missing it: python.org
+  3.12 (and the `/usr/local` symlink to it) had 6.0.3 in its own site-packages, and Apple's 3.9 had
+  6.0.1 in a 3.9 user site. Both pre-existing.
+
+**A hazard this created, and the gift inside it.** `PYTHONNOUSERSITE=1 python3 -c 'import yaml'` →
+`ModuleNotFoundError`. A user-site install is defeated by that variable, so if any hook environment
+ever sets it the hooks fail closed on a machine that *does* have PyYAML. **That is also the clean
+simulation mechanism BRIEF's "Note for whoever builds SC-08's harness" says will be needed** — no
+uninstall, no container, no PATH surgery: set `PYTHONNOUSERSITE=1` to make PyYAML absent for exactly
+one invocation. Use it for SC-08 and SC-09.

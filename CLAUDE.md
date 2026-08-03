@@ -27,8 +27,19 @@ restated here.)
 
 ## Harness
 
-Harness is active and **self-hosted** — this repo builds it and runs on it. There is no GSD
-dependency: no `.planning/` root, no `agent_skills`, no `<files_to_read>` blocks.
+Harness is active and **self-hosted, with one carve-out** — this repo builds it and runs on it. There
+is no GSD dependency: no `.planning/` root, no `agent_skills`, no `<files_to_read>` blocks.
+
+**The carve-out (DEC-174): the harness PLANS its own work but does not EXECUTE changes to its own
+enforcement layer.** Changes to `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
+`check-state.sh` or `check-docs.sh` are made **directly** — ordinary edits, tests run explicitly, a
+human reading the diff — never dispatched through a team run whose gates are the thing being changed.
+Green gates cannot vouch for the code that produces them: on 2026-08-03 all four gates passed while
+four `.harness` YAML files did not parse and the validator rejected its own normative template.
+Grilling, BRIEF, PLAN and the review panel remain self-hosted and are unaffected.
+
+**Working in a worktree, run everything from the worktree.** `main` is behind by construction while
+harness code is being changed, so a stale copy silently tests the wrong logic.
 
 | What | Where |
 |---|---|

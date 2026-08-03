@@ -128,11 +128,79 @@ def case_d():
         return ok
 
 
+RUNS_WITH_TRAILING_COMMENTS = """feature_id: FEAT-TEST
+cycles_used: 0
+runs:
+  - id: 2026-08-03-01-validator   # panel run
+    squad: validator              # issue #11: a comment HERE dropped the whole entry
+    verdict: FAIL
+github:
+  parent: 40
+  parent_origin: none
+  issues:
+    T-01: 41
+"""
+
+
+def case_e():
+    """Issue #11, behavioural: a trailing `#` comment on a run's `id:` or `squad:`
+    line must not make the run invisible.
+
+    The pre-T-07 block-form regex required `\\s*\\n` immediately after those two
+    captures, so a comment — legal YAML, and the house style on 45 lines of FEAT-03's
+    feature.yaml — matched nothing and dropped the ENTIRE entry. Three invariants then
+    failed OPEN at exit 0: INV-6 (no validator run seen, so an unpinned review_sha was
+    not reported), INV-7 (0 FAILs counted) and INV-8.
+
+    Asserted through the invariant rather than the parser: this fixture has a validator
+    run and NO `review_sha`, so a correct parse MUST report INV-6. Pre-fix the run
+    vanished and check-state.sh said nothing at all — which is why a parser-level
+    assertion would be the weaker test.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        h = os.path.join(tmp, ".harness")
+        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write(HARNESS_JSON_SYNC_OFF)
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+            f.write(RUNS_WITH_TRAILING_COMMENTS)
+        code, out = run(tmp)
+        ok = "review_sha is not pinned" in out
+        print(f"{'ok' if ok else 'FAIL'} - case (e): issue #11 — a commented squad:/id: "
+              f"line still yields the run, so INV-6 fires")
+        if not ok:
+            print("        INV-6 was silent: the run was dropped and the gate failed OPEN")
+        return ok
+
+
+def case_f():
+    """A feature.yaml that does not parse is a VIOLATION, never a silent skip.
+
+    DEC-171 am.1 removed the fallback deliberately: there is no quieter mode. Before
+    T-07 an unparseable file was indistinguishable from one with no runs, which is the
+    same fail-open with a different cause.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        h = os.path.join(tmp, ".harness")
+        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write(HARNESS_JSON_SYNC_OFF)
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+            f.write("runs: [ {id: a, squad: b ## eaten\nnext_key: 1\n")
+        code, out = run(tmp)
+        ok = "does not parse" in out and code == 1
+        print(f"{'ok' if ok else 'FAIL'} - case (f): an unparseable feature.yaml is "
+              f"reported and exits 1 (got exit {code})")
+        return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
     ok_c, _code_c = case_c()
     ok_d = case_d()
+    ok_e = case_e()
+    ok_f = case_f()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -140,7 +208,7 @@ def main():
         f"(a: {code_a}, b: {code_b})"
     )
 
-    if ok_a and ok_b and ok_c and ok_d and ok_exit_unchanged:
+    if ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_exit_unchanged:
         sys.exit(0)
     sys.exit(1)
 
