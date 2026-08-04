@@ -259,3 +259,36 @@ top-level keys are identical before and after in both files. Note the honest lim
 files **cannot parse**, so a data-level equality proof is impossible by construction; the load-bearing
 evidence is that the T-01 run-inventory receipt diffs to zero rows, which is what keeps SC-13's
 baseline valid rather than silently stale.
+
+### Amendment 2 — Q2: 225cc98 rides the review range by a PINNING ERROR, not a scope change
+
+The review panel found commit `225cc98` (DEC-172's ```yaml fence across 13 return templates, and
+DEC-173's `n/a` schema widening in `validate-digest.py`) inside the pinned `37a8a66..340e18a`
+range — while the Non-goal line above fences exactly that work out as **Feature 2**, blocked on
+this feature and not planned here.
+
+**Ruled by the user: this is a pinning error. The non-goal stands and FEAT-05 does not absorb the
+work.**
+
+What happened: that work was done by the main session EARLIER in the same session, before FEAT-05's
+build began. `review_sha` was then pinned to `37a8a66`, which predates it, so it was swept into the
+diff the panel was asked to judge.
+
+**Consequences, stated so a later reader does not have to reconstruct them:**
+
+- **FEAT-05's criteria do not cover it.** No SC in this BRIEF traces to the fence or the schema
+  widening; a green FEAT-05 is not evidence for either.
+- **It has nonetheless had independent eyes.** The panel reviewed the full range and raised nothing
+  against those files, which is worth something — but a review with no criteria to judge against is
+  weaker than one with them.
+- **It is not "shipped" in this feature's sense.** Feature 2 still needs its own BRIEF and PLAN
+  before that word applies, and it inherits the open question already recorded in the grilling
+  artifact: no agent may write `.claude/agents/**` (`team-config.yaml:35`), so whoever plans Feature 2
+  must answer who edits those templates.
+- **The code is live and in use regardless** — the fenced templates and the widened schema have been
+  governing this session's agents since `225cc98`, as the hook-resolution receipt measured.
+
+**The process lesson, which is the reusable part:** `review_sha` was pinned to the branch point
+rather than to the feature's first commit. A range that starts before the feature starts will sweep
+in whatever else happened to land there. Pin to the first commit OF THE FEATURE, or state the range
+explicitly.
