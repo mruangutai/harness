@@ -216,10 +216,20 @@ def load_recorded(feat_dir):
     """
     path = os.path.join(feat_dir, "feature.yaml")
     rec = {"milestone": None, "parent": None, "parent_origin": None, "attached": [], "issues": {}}
+    # ABSENCE is checked before parsing, not caught after it (review finding 4). The
+    # old `except FileNotFoundError: return rec` was UNREACHABLE — load_file wraps
+    # OSError into YamlParseError, so a missing feature.yaml reported as "does not
+    # parse", blaming the file's contents for a file that does not exist. The dead
+    # branch also documented an intent that could never occur, which is the more
+    # expensive half: a later reader trusts it.
+    if not os.path.exists(path):
+        return rec
     try:
         doc = harness_yaml.load_file(path)
-    except FileNotFoundError:
-        return rec
+    except harness_yaml.MissingDependency as e:
+        # Distinct from a parse failure and worth its own message: nothing is wrong
+        # with the file. Ordered FIRST — it subclasses YamlParseError.
+        raise SystemExit(f"gh-sync: {e}")
     except harness_yaml.YamlParseError as e:
         # Loud, and NOT treated as "nothing recorded" — that mistake would re-create
         # a parent and a milestone that already exist on GitHub. DEC-171 am.1: a
@@ -478,6 +488,10 @@ def cmd_ship(feat_dir, repo, body_file=None):
 
 
 def main():
+    # Review finding 1: the module's documented gate had ZERO production callers,
+    # so a missing PyYAML surfaced as a raw traceback instead of INSTALL_COMMAND.
+    # First statement, before any parse can be attempted.
+    harness_yaml.require_or_die()
     argv = sys.argv[1:]
     parent_arg = None
     if "--parent" in argv:

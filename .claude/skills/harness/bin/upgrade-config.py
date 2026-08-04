@@ -153,6 +153,10 @@ def yaml_version(text):
 
 
 def main():
+    # Review finding 1: the module's documented gate had ZERO production callers,
+    # so a missing PyYAML surfaced as a raw traceback instead of INSTALL_COMMAND.
+    # First statement, before any parse can be attempted.
+    harness_yaml.require_or_die()
     args = list(sys.argv[1:])
     check_only = "--check" in args
     args = [a for a in args if a != "--check"]

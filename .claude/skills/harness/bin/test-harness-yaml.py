@@ -319,7 +319,70 @@ def test_exactly_one_guarded_import_in_the_tree():
     assert set(hits) == {"harness_yaml.py"}, f"expected only harness_yaml.py, got {hits!r}"
 
 
+def test_missing_pyyaml_is_reportable_not_a_second_crash():
+    """Review finding 1: with PyYAML absent, load_str could not report its own
+    premise failing.
+
+    `yaml.load(...)` raised `AttributeError: 'NoneType' has no attribute 'load'`, and
+    Python then evaluated `except yaml.YAMLError` — raising a SECOND AttributeError
+    that escaped uncaught. So on a machine with no PyYAML, check-state reported every
+    file as "does not parse: 'NoneType' object has no attribute 'YAMLError'" and the
+    plain scripts died with a raw traceback. The user never saw INSTALL_COMMAND, in
+    the one scenario this feature exists for.
+
+    `require_or_die` was written as the gate for exactly this and had ZERO production
+    callers, so nothing intercepted it upstream either.
+    """
+    import harness_yaml as hy
+    saved = hy.yaml
+    try:
+        hy.yaml = None
+        try:
+            hy.load_str("a: 1", "probe")
+            return False, "no exception raised at all"
+        except hy.MissingDependency as e:
+            if "pip install" not in str(e):
+                return False, f"message lacks the install command: {e}"
+        except Exception as e:
+            return False, f"raised {type(e).__name__}, not MissingDependency: {e}"
+    finally:
+        hy.yaml = saved
+    # And it must be catchable by a caller that only knows about YamlParseError.
+    if not issubclass(hy.MissingDependency, hy.YamlParseError):
+        return False, "MissingDependency does not subclass YamlParseError"
+    return True, ""
+
+
+def test_duplicate_key_is_catchable_as_a_parse_error():
+    """Review findings 2, 3 and 5.
+
+    DuplicateKeyError was a bare Exception, so `except YamlParseError` did NOT catch
+    it — and gh-sync.py and upgrade-config.py both wrote exactly that, believing they
+    had covered "the file is unreadable". A duplicated key made each die with a raw
+    traceback reading "the tool is broken" when the truth was "your file is",
+    defeating the very handler each had just added.
+
+    Finding 5: the message must also carry DEC-156's guidance, because removing
+    check-state.sh's dedicated scan dropped that wording from the codebase entirely
+    while a comment claimed it was preserved.
+    """
+    import harness_yaml as hy
+    if not issubclass(hy.DuplicateKeyError, hy.YamlParseError):
+        return False, "DuplicateKeyError does not subclass YamlParseError"
+    try:
+        hy.load_str("cost: 1\ncost: 2\n", "probe")
+        return False, "a duplicate key did not raise"
+    except hy.YamlParseError as e:          # the caller's generic handler
+        if "DEC-156" not in str(e):
+            return False, f"message lacks DEC-156 guidance: {e}"
+        if not isinstance(e, hy.DuplicateKeyError):
+            return False, "caught as YamlParseError but is not a DuplicateKeyError"
+    return True, ""
+
+
 TESTS = [
+    test_missing_pyyaml_is_reportable_not_a_second_crash,
+    test_duplicate_key_is_catchable_as_a_parse_error,
     test_duplicate_key_raises,
     test_nested_duplicate_key_raises,
     test_bare_date_scalar_stays_str,

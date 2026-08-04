@@ -26,19 +26,6 @@ except ImportError:
 # the duplicate case renders the existing DEC-156 denial verbatim, the parse
 # case renders a new parse-error denial. Merging them forces a rework there.
 
-class DuplicateKeyError(Exception):
-    """Raised by the loader on a repeated mapping key, at any nesting depth
-    (D-02). Carries the offending key so a caller can render it."""
-
-    def __init__(self, key, where=None):
-        self.key = key
-        self.where = where
-        msg = f"duplicate key {key!r}"
-        if where:
-            msg += f" in {where}"
-        super().__init__(msg)
-
-
 class YamlParseError(Exception):
     """Raised on any other malformed-YAML failure. Carries the path/label
     so a caller can render it (D-02 consequence #2 — this is a NEW blocking
@@ -48,6 +35,54 @@ class YamlParseError(Exception):
         self.where = where
         self.original = original
         super().__init__(f"failed to parse YAML in {where}: {original}")
+
+
+class MissingDependency(YamlParseError):
+    """PyYAML is not importable. Carries INSTALL_COMMAND in its message.
+
+    A SUBCLASS OF YamlParseError (see below), so a caller that handles "this file
+    cannot be read" also handles "no parser exists to read it with" — the two are
+    the same outcome from the caller's seat, and a caller that distinguishes them
+    can still do so by type.
+    """
+
+    def __init__(self):
+        # INSTALL_COMMAND is defined further down the module. That is fine — this
+        # body runs at RAISE time, long after import — but it is a forward reference,
+        # so do not "tidy" this into a class attribute or a default argument, either
+        # of which evaluates at class-creation time and would NameError on import.
+        Exception.__init__(
+            self,
+            "PyYAML is not importable by this python3 interpreter, so no YAML can "
+            "be read. It is REQUIRED, not optional (DEC-171 am.1):\n" + INSTALL_COMMAND)
+
+
+class DuplicateKeyError(YamlParseError):
+    """Raised by the loader on a repeated mapping key, at any nesting depth
+    (D-02). Carries the offending key so a caller can render it.
+
+    NOW A SUBCLASS OF YamlParseError, found by the third review pass. It was a bare
+    Exception, so `except YamlParseError` did NOT catch it — and two callers wrote
+    exactly that, believing they had covered "the file is unreadable". A duplicated
+    key made gh-sync.py and upgrade-config.py die with a raw traceback reading
+    "the tool is broken" when the truth was "your file is", defeating the very
+    handler each had just added. Callers that need the DEC-156 wording still catch
+    DuplicateKeyError FIRST; the ordering is what distinguishes them.
+    """
+
+    def __init__(self, key, where=None):
+        self.key = key
+        self.where = where
+        msg = f"duplicate key {key!r}"
+        if where:
+            msg += f" in {where}"
+        # DEC-156's guidance travels WITH the error, so every caller reports it
+        # whether or not it has a dedicated handler (review finding 5).
+        msg += (" — a repeated key is silently shadowed by its last occurrence. "
+                "Replace the placeholder when filling it in; never append a second "
+                "copy (DEC-156).")
+        Exception.__init__(self, msg)
+
 
 
 # --- The loader ---------------------------------------------------------
@@ -93,6 +128,19 @@ def load_str(text, where):
     """Parse in-memory YAML content. `where` is a label used in error
     messages. Raises DuplicateKeyError on a repeated key at any nesting
     depth, YamlParseError on ANY other failure to produce a document."""
+    # THE MISSING-DEPENDENCY CASE MUST BE CHECKED FIRST, before any `yaml.` attribute
+    # is evaluated. Without this the function could not report its own premise failing:
+    # `yaml.load(...)` raised `AttributeError: 'NoneType' has no attribute 'load'`, and
+    # Python then evaluated the `except yaml.YAMLError` clause — which raised a SECOND
+    # AttributeError that escaped uncaught. So on a machine with no PyYAML, check-state
+    # reported every file as "does not parse: 'NoneType' object has no attribute
+    # 'YAMLError'" and exited 1, and the plain scripts died with a raw traceback. The
+    # user never saw INSTALL_COMMAND — in the one scenario this whole feature exists
+    # for. `require_or_die` was written as the gate for exactly this and has ZERO
+    # production callers, so nothing intercepted it upstream either.
+    if yaml is None:
+        raise MissingDependency()
+
     try:
         return yaml.load(text, Loader=_StrictSafeLoader)
     except DuplicateKeyError:

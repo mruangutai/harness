@@ -26,6 +26,14 @@ import sys, os, re, glob, json
 
 import harness_yaml
 
+# Review finding 1: `require_or_die` is the module's documented gate for exactly
+# this script and had ZERO production callers, so a missing PyYAML surfaced as
+# every file "does not parse" and exit 1 — /harness entry reporting "violations
+# found" for an absent dependency. It gates the ORCHESTRATOR, not a write, so a
+# hard block here costs no recovery path (D-06); the bootstrap escape is for the
+# two hooks only.
+harness_yaml.require_or_die()
+
 root = sys.argv[1]
 H = os.path.join(root, ".harness")
 bad, warn = [], []
@@ -372,9 +380,18 @@ for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml"))
     # trusts the comment.
     #
     # Removed, because the loader's raise is strictly better — it catches a duplicate at
-    # ANY nesting depth, where the column-0 scan saw only top-level ones. The DEC-156
-    # wording is preserved at the raise site above so the message an author sees is
-    # unchanged.
+    # ANY nesting depth, where the column-0 scan saw only top-level ones.
+    #
+    # CORRECTED (review finding 5): this comment used to claim the DEC-156 wording was
+    # "preserved at the raise site", and it was NOT — DuplicateKeyError's message was
+    # a bare `duplicate key 'x'`, so the guidance an author actually needs ("replace the
+    # placeholder; never append a second copy") vanished from this file entirely. A
+    # comment asserting a preserved message that was in fact dropped is worse than no
+    # comment, in a repo whose convention is that comments are load-bearing.
+    #
+    # It is true NOW because the guidance was moved INTO the exception's message
+    # (harness_yaml.py's DuplicateKeyError.__init__), so every caller renders it whether
+    # or not it has a dedicated handler.
     # The UNKNOWN half reads the PARSED keys (F-02): a quoted key is a real key the
     # text scan misses, a `#`-commented line is not a key at all, and YAML 1.1 resolves
     # `on:`/`no:` to booleans — so str() both sides, as T-17 does in check-domain.sh.
