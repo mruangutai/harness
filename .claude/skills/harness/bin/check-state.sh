@@ -346,7 +346,6 @@ CHECKPOINT_KEYS = {
 }
 vd = os.path.join(root, ".claude/skills/harness/bin/validate-digest.py")
 for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml")):
-    txt = read(sy) or ""
     rel = os.path.relpath(sy, H)
     rundir = os.path.dirname(sy)
     # F-02, and this one had a LIVE fail-open the panel reproduced: `status: "complete"`

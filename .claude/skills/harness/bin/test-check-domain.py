@@ -268,9 +268,9 @@ def run_t12():
     with open(os.path.join(fake, "yaml.py"), "w") as f:
         f.write('raise ImportError("simulated: no PyYAML")\n')
 
-    def fire_noyaml(root, path, session):
+    def fire_noyaml(root, path, session, content="x"):
         payload = {"agent_type": "harness-documentor", "tool_name": "Write",
-                   "tool_input": {"file_path": os.path.join(root, path), "content": "x"}}
+                   "tool_input": {"file_path": os.path.join(root, path), "content": content}}
         env = dict(os.environ, CLAUDE_PROJECT_DIR=root, PYTHONPATH=fake,
                    CLAUDE_CODE_SESSION_ID=session)
         env.pop("CLAUDE_CODE_BRIDGE_SESSION_ID", None)
@@ -334,6 +334,32 @@ def run_t12():
         r3.stderr.strip() != "" and "pip install" in r3.stderr
         and "EARLIER session" in r3.stderr,
         f"stderr was {len(r3.stderr)} bytes: {r3.stderr.strip()[:200]}")
+
+    # Review finding 1, a regression the T-13 single-interpreter merge introduced. The
+    # bootstrap grant's `sys.exit(0)` skipped the DEC-154 state.yaml shape gate as well
+    # as the domain check — but before the merge those were separate launches and the
+    # shape gate ran regardless of the parser situation. So a session with no PyYAML
+    # could write an unbounded state.yaml full of prose with no denial.
+    #
+    # The grant is supposed to let writes through so the machine can be FIXED; it is not
+    # a licence to write malformed state. The gate now falls back to the column-0 scan
+    # this branch used before T-12 — weaker than the parser (no nested duplicates, a
+    # quoted key reads as a non-key) but "weaker" beats "absent". Not the DEC-171 am.1
+    # fallback that is forbidden: that rules out a line scan for READING the harness's
+    # YAML in normal operation; this runs only while PyYAML is missing.
+    grant = fixture(FIXTURE_MANIFEST)
+    sp2 = ".harness/features/FEAT-01/runs/r1/state.yaml"
+    rbad = fire_noyaml(grant, sp2, "sess-shape",
+                       content="run_id: r1\nfindings: a notebook of prose\n")
+    t12("finding 1: a bootstrap-grant session STILL cannot write a malformed state.yaml",
+        rbad.returncode == 2 and "DEC-154" in rbad.stderr,
+        f"exit {rbad.returncode}: {rbad.stderr.strip()[:200]}")
+
+    grant_ok = fixture(FIXTURE_MANIFEST)
+    rok = fire_noyaml(grant_ok, sp2, "sess-shape-ok",
+                      content="run_id: r1\nstatus: complete\n")
+    t12("finding 1: ...but a WELL-FORMED state.yaml is still granted",
+        rok.returncode == 0, f"exit {rok.returncode}: {rok.stderr.strip()[:200]}")
 
     # Self-cleaning: once yaml imports again the marker is removed, so a machine that
     # gets fixed does not carry a spent grant forever.

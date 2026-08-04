@@ -29,7 +29,6 @@ Exit 0 = up to date, or merged. Exit 1 = --check found a gap, or an error.
 """
 import json
 import os
-import re
 import shutil
 import sys
 

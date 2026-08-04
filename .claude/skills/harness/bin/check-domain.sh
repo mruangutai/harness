@@ -119,8 +119,7 @@ if not harness_yaml.require_or_bootstrap(root):
 # Allowing by crash is not allowing. The escape's whole purpose is to let writes
 # through so the machine can be fixed, so allow them deliberately and say nothing more
 # — require_or_bootstrap already printed the install command.
-if harness_yaml.yaml is None:
-    sys.exit(0)
+_no_parser = harness_yaml.yaml is None
 
 
 def domain_check():
@@ -249,12 +248,19 @@ def domain_check():
     sys.exit(2)
 
 
-domain_check()
+# The DOMAIN check needs a parser; the STATE-FILE SHAPE gate below mostly does not.
+# Review finding 1: the bootstrap-grant `sys.exit(0)` skipped BOTH, so a session with
+# no PyYAML could write an unbounded state.yaml with unknown or duplicate top-level
+# keys and no denial. Before the T-13 single-interpreter merge those were separate
+# launches and the shape gate ran regardless — so this was a regression introduced by
+# the merge, not an inherited gap. Skip only what actually needs the parser.
+if not _no_parser:
+    domain_check()
 
-try:
-    d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
-except Exception:
-    sys.exit(0)
+# `d` was parsed once at the top of this process (T-13). Re-parsing here was leftover
+# from the four-launch version — and inconsistent leftover: this copy exited 0 on a
+# failure the first one absorbed with `d = {}`, so the two disagreed about what a bad
+# payload means. Review finding 2.
 if (d.get("tool_name") or "") != "Write":
     sys.exit(0)
 content = (d.get("tool_input") or {}).get("content") or ""
@@ -302,6 +308,32 @@ if re.match(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$", rel):
                "cycles_used", "cost", "flow", "task", "team", "branch", "worktree",
                "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
                "verdict", "severity_max", "digest"}
+    # NO PARSER, in a bootstrap-grant session: fall back to the column-0 text scan this
+    # branch used before T-12. It is weaker — it cannot see a nested duplicate, and a
+    # quoted key reads as a non-key — but "weaker than the parser" beats "no check at
+    # all", which is what review finding 1 found here. This is NOT the line-scan
+    # fallback DEC-171 am.1 forbids: that rules out a fallback for READING the harness's
+    # own YAML in normal operation. This runs only when PyYAML is absent, only for the
+    # one session the escape grants, and it guards a shape budget rather than a domain.
+    if _no_parser:
+        _keys = re.findall(r"^([A-Za-z_][A-Za-z0-9_-]*):", content, re.M)
+        _dups = sorted({k for k in _keys if _keys.count(k) > 1})
+        _unknown = sorted({k for k in _keys if k not in ALLOWED})
+        if _dups or _unknown:
+            print("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook "
+                  "(DEC-154).", file=sys.stderr)
+            if _dups:
+                print(f"  duplicate top-level key(s) {_dups} — the second silently shadows "
+                      f"the first; replace the placeholder, never append a copy (DEC-156).",
+                      file=sys.stderr)
+            if _unknown:
+                print(f"  non-checkpoint top-level key(s) {_unknown} — findings and "
+                      f"assessment prose belong in this run's digest.md.", file=sys.stderr)
+            print("  (checked WITHOUT PyYAML, so this scan sees only column-0 keys — "
+                  "install PyYAML for the full check.)", file=sys.stderr)
+            sys.exit(2)
+        sys.exit(0)
+
     try:
         doc = harness_yaml.load_str(content, rel)
     except harness_yaml.DuplicateKeyError as e:
