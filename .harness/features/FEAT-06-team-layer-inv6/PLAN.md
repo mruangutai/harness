@@ -210,6 +210,47 @@ that DMF-1 added. That sweep is prose-enforced at execution and asserted by noth
 orchestrator declined to buy a third pm run for it and said so; the user signed with it open. If
 T-02's execution is the moment it can be closed cheaply, close it there.
 
+---
+
+## Re-signature — 2026-08-04, after the post-signature amendment
+
+status: approved
+approved-by: Mike Ruangutai
+date: 2026-08-04
+
+**"All 10 tasks approved as written" no longer holds for T-04, T-06 and D-03**, which were amended
+after the signature above on the user's ruling at the ship gate. Re-approved as amended.
+
+- **`personas:` and `filter: eng_squad_tasks` are both DELETED from `build.yaml`.** Neither was read
+  by any runtime: `personas` was a copy of a roster `team-config.yaml` owns, and `filter` was
+  explicitly a token no lead evaluates. Their only mechanical consumer was T-04's own `verify:`.
+- **T-04's `verify:` was RED on two keys in succession** — `KeyError: 'personas'`, then
+  `KeyError: 'filter'`. A signed check that crashes is the defect class this feature exists to
+  close, sitting inside this feature's own plan. It now **asserts their ABSENCE**
+  (`'personas' not in d and 'filter' not in sf`), so re-introduction reddens it. Executed at
+  re-signature: **exit 0**.
+- **EMF-2 is recorded as COMPLETED, not reversed.** The architecture review's finding was that
+  `filter: squad == eng` named a field PLAN tasks do not carry — the predicate was fake. The first
+  remedy made it an honest token; the user's ruling is that an honest token nobody evaluates is
+  still dead weight. Same finding, cleaner resolution.
+- **The lead's routing role is now stated as a real decision it owns.** The prior wording ("the lead
+  does not re-evaluate it") could be read as the lead doing no routing at all. WHICH tasks reach
+  `eng-lead` is the orchestrator's decision; WHICH specialist gets each one is the lead's, by
+  `consult-when`. Corrected in `harness/SKILL.md` and `harness-team/SKILL.md`.
+
+**Two things accepted WITHOUT change, so they are not re-litigated later:** the `build`-team
+dispatch has no mechanical way to select eng-squad task ids — that is issue **#20**, the routing
+wall, and not this feature's business; and `build.yaml` has never been dispatched, including by this
+feature, whose eng-squad task list was empty. Both were put to the user explicitly and accepted.
+
+**Site lists were short three times on this feature** — two `personas` sites handed over against
+five actually present, four `filter` sites against six, and an earlier comment sweep that named four
+sites against five. The layer a site list forgets is the verification criterion itself. Recorded
+here because it is a pattern, not an incident.
+
+**Cost at re-signature: $252.63 measured against the $100 build-and-validate allowance — 2.5x.**
+The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
+
 ## Features
 
 - FEAT-06: team layer and INV-6

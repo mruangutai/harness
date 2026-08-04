@@ -260,3 +260,46 @@ Approved after a FULL pre-signature architecture review (the user's explicit ove
 delta), which returned 6 blocking findings, plus a delta re-review that caught a 7th (DMF-1). Cost
 of the plan phase: $170.17 measured against a $160 ceiling. **Build re-authorised at $100** — a new
 allowance for the build and validate phases, not a raise of the $160 the plan phase consumed.
+
+---
+
+## Re-signature — 2026-08-04, after the post-signature amendment
+
+status: approved
+approved-by: Mike Ruangutai
+date: 2026-08-04
+
+**Two criteria were reworded AFTER the signature above, so "approved as written" no longer covers
+them and they are named here instead.** Both changes were forced by the user's own review at the
+ship gate, and both were the more expensive option, chosen deliberately.
+
+- **SC-07** — the second clause previously asserted a property of a `personas:` list inside
+  `build.yaml`. That field is deleted, so the old wording passed **vacuously**: an absent set is
+  trivially a subset. It now asserts that `build.yaml`'s lead's squad is Engineering in
+  `team-config.yaml`, so the team is single-squad **by construction** (DEC-118).
+- **SC-08** — previously "`build.yaml`'s declared persona set covers…", which became
+  **unsatisfiable** once the field was deleted. It now asserts that the Engineering squad in
+  `team-config.yaml` covers the recorded floor `{dev-ops, backend-dev}`, so the expansion can route
+  to them by `consult-when`.
+
+Both keep `verify: automated  evidence: unit`, neither was weakened to a presence assertion, and
+neither was renumbered. `bin/test-team-catalog.py` checks (3) and (4) were rewritten to prove the
+new wording and were shown to discriminate **independently**: a non-eng lead fails (3) and not (4);
+`backend-dev` renamed out of Engineering fails (4) and not (3).
+
+**Why the field was deleted at all:** the user asked why `build.yaml` re-listed a roster
+`team-config.yaml` already owned. Nothing read it at runtime, its only consumer was the test
+asserting it, and the guard pointed the wrong way — a sixth engineer joining the squad left
+`build.yaml` stale with the check still green.
+
+**SC-13 (`verify: uat`) is MET.** The user read `.claude/skills/harness/teams/build.yaml` and
+`.claude/skills/harness/SKILL.md:40-47` and ruled that they describe builds the way builds should be
+dispatched. The criterion did its job before the ruling: the same review deleted `filter:
+eng_squad_tasks` as dead weight and corrected wording that could be read as the lead doing no
+routing. **Ruling recorded honestly as a design read, not a run observed** — `build.yaml` has never
+been dispatched, including by this feature, whose eng-squad task list was empty. That limit is
+declared in `## Verification gaps` and stands.
+
+**Cost at re-signature: $252.63 measured against the $100 build-and-validate allowance — 2.5x, a
+multiple rather than a percentage.** The orchestrator's own session is $139.32 of it (55%), larger
+than every squad combined. Reported, not hidden (DEC-134); no work was stopped for it.
