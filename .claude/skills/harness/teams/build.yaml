@@ -1,0 +1,87 @@
+# build — the eng-squad build team. One step per PLAN task, expanded at dispatch.
+#
+# (a) ENG-SQUAD ONLY, by DEC-118. This team cannot reach documentor, pm, a reviewer
+#     or qa. That is a correct bound, not a gap: a team is hosted by ONE lead and a
+#     lead cannot dispatch outside its own squad. Work for another squad is not
+#     dropped — it stays for the ORCHESTRATOR to sequence as that squad's own segment.
+#
+# (b) THIS IS AN EXPANSION RULE, NOT A DAG. `review.yaml` can list its steps because
+#     the panel is the same every time. A build's step count belongs to the PLAN, not
+#     to this file — four tasks on one feature, twelve on the next — so what is
+#     written here is how to DERIVE the steps, and the host expands it at dispatch.
+#     `harness-team/SKILL.md` learns this form in T-09; without that it is prose only.
+#
+# (c) The persona set below was derived from FEAT-03's recorded eng build runs
+#     `2026-07-31-09-eng` (dev-ops) and `2026-07-31-10-eng` (backend-dev) —
+#     n = 2 eng runs on 1 feature. It is a FLOOR, not a closed set.
+#
+# (d) This file PRESCRIBES ONE RUN PER BUILD covering all eng tasks — a shape the
+#     recorded runs did NOT use. They used one lead-owned run per contiguous persona
+#     block. This is a deliberate prescription, not an observation of practice.
+#
+# (e) The receipt path convention below is INTRODUCED HERE and has no precedent to
+#     match. The two recorded eng `state.yaml` files record no artifact path at all
+#     (verified at 635ef14), so there is nothing to compare against. Do not read the
+#     shape as matching an existing one.
+
+name: build
+purpose: >
+  Run the approved PLAN's eng-squad tasks in dependency order, one step per T-NN. **The
+  `test_matrix` qa gate is NOT a step this team contains** — it runs as an orchestrator-sequenced
+  **validator-squad segment** after this team returns, because a team is single-squad (DEC-118).
+lead: eng-lead
+inputs: [feat, tasks]
+max_cost_usd: 60
+
+# The Engineering squad's full roster, read from team-config.yaml (teams[1].members),
+# in the SHORT form `review.yaml` already uses for `persona:`.
+personas: [frontend-dev, backend-dev, ai-dev, data-engineer, dev-ops]
+
+steps_from:
+  # The host reads `## Tasks` from the feature's PLAN.
+  source: plan_tasks
+
+  # A TOKEN, NOT A PREDICATE. It records that the ORCHESTRATOR already selected the
+  # task ids handed to eng-lead. The lead does not evaluate it and nobody should later
+  # write an evaluator for it. A non-eng task is not dropped by this filter — it was
+  # never in the set, and stays for the orchestrator to sequence as its own squad
+  # segment (DEC-118).
+  filter: eng_squad_tasks
+
+  # The lead routes each T-NN to a member by its `consult-when` — which is what
+  # `…-09-eng` and `…-10-eng` actually did.
+  persona: by_consult_when
+
+  # The PLAN task's `intent:` block IS the dispatch text. Without this the file retires
+  # the hand-composed step LIST while keeping the hand-composed step PROMPT — issue #9's
+  # defect moved down one level rather than closed.
+  prompt: from_task_intent
+
+  id: "{{task_id}}"
+
+  # BOTH reasons this exact shape is required; each is independently fatal.
+  # (i) The `harness-` prefix is what makes the rendered path match a receipt grant.
+  #     All five grants in team-config.yaml (:144, :158, :171, :184, :199) require
+  #     `receipt-harness-`, and check-domain.sh:242-248 BLOCKS an unmatched path at
+  #     exit 2 rather than warning. So `personas:` stays SHORT (`dev-ops`) while
+  #     `outputs:` renders FULL — the same mixed convention review.yaml already uses
+  #     (`persona: code-reviewer`, `outputs: review-harness-code-reviewer-c{{cycle}}.md`).
+  # (ii) `c{{cycle}}` preserves the loop-back record. This step carries
+  #     `on_fail: loop_back`, and harness-team/SKILL.md step 3.5 (DEC-117) requires
+  #     cycle-namespaced outputs on anything that re-runs: a PASS on cycle 2 would
+  #     otherwise overwrite the FAIL report that justified the cycle.
+  outputs: [".harness/features/{{feat}}/notes/receipt-harness-{{persona}}-{{task_id}}-c{{cycle}}.md"]
+
+  # Forces one-at-a-time dispatch even where the DAG would allow parallelism
+  # (harness-team/SKILL.md step (c), DEC-85).
+  mutates_repo: true
+
+  # Read each task's OWN `depends_on:` field, falling back to PLAN file order only for
+  # a task that declares none. PLAN file order is demonstrably not a topological order
+  # — on this very PLAN.
+  depends_on: from_task_depends_on
+
+  # Restates eng-lead's existing build fix-loop rule; it does not invent a new one.
+  # review.yaml's steps carry no `on_fail:` and are legal — but build is where it
+  # matters, and a future runner will look here.
+  on_fail: loop_back

@@ -296,6 +296,11 @@ INSTALL_COMMAND = (
     "python3 -m pip install --user --break-system-packages pyyaml"
 )
 
+# The single definition of "this field is declining to answer" (DEC-121). Every
+# consumer compares against THIS, lower-cased and stripped — a second copy is how
+# INV-6 came to accept `review_sha: none` as a pinned SHA (issue #16).
+PLACEHOLDER_UNSET = ("none", "null", "n/a")
+
 
 def _marker_path(root):
     return os.path.join(root, ".harness", ".pyyaml-bootstrap")

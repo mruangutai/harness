@@ -227,6 +227,99 @@ def case_g():
         return ok
 
 
+def case_h():
+    """Issue #16: `review_sha: none` is a truthy STRING, so INV-6 passed unpinned.
+
+    `val()` returns `str(v)`, so the literal `none` is truthy and `not val("review_sha")`
+    is False. Only an ABSENT key tripped the check — case (e) covers that axis and
+    passed throughout, which is exactly why this hole survived: the invariant had a
+    test, and the test agreed with it.
+
+    FEAT-05's own feature.yaml carried `review_sha: none` for its whole plan phase
+    while recording validator-squad runs, so this was live on a shipped feature, not
+    hypothetical.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        h = os.path.join(tmp, ".harness")
+        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write(HARNESS_JSON_SYNC_OFF)
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+            f.write("feature_id: FEAT-TEST\n"
+                    "review_sha: none\n"
+                    "runs:\n"
+                    "  - id: 2026-08-04-01-validator\n"
+                    "    squad: validator\n"
+                    "    verdict: PASS\n")
+        code, out = run(tmp)
+        ok = "review_sha is not pinned" in out
+        print(f"{'ok' if ok else 'FAIL'} - case (h): issue #16 — `review_sha: none` is a "
+              f"placeholder, not a pin, so INV-6 fires")
+        if not ok:
+            print("        INV-6 was silent: the string 'none' read as truthy and the "
+                  "gate failed OPEN on an unpinned feature")
+        return ok
+
+
+def case_i():
+    """The VALUE axis: a real SHA must NOT trip INV-6.
+
+    Guards the over-broad fix — a rewrite that fires whenever `review_sha` is a string
+    would turn every correctly pinned feature into a violation. `1ce886a` is a real
+    short SHA shape, not a placeholder.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        h = os.path.join(tmp, ".harness")
+        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write(HARNESS_JSON_SYNC_OFF)
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+            f.write("feature_id: FEAT-TEST\n"
+                    "review_sha: 1ce886a\n"
+                    "runs:\n"
+                    "  - id: 2026-08-04-01-validator\n"
+                    "    squad: validator\n"
+                    "    verdict: PASS\n")
+        code, out = run(tmp)
+        ok = "review_sha is not pinned" not in out
+        print(f"{'ok' if ok else 'FAIL'} - case (i): a pinned SHA does not trip INV-6")
+        if not ok:
+            print("        INV-6 fired on a correctly pinned feature — the fix is "
+                  "over-scoped and every pinned feature is now a violation")
+        return ok
+
+
+def case_j():
+    """The PRECONDITION axis: no validator run means no INV-6, placeholder or not.
+
+    INV-6 exists to stop a REVIEWER diffing a moving HEAD (DEC-50). A feature with no
+    validator run has nothing to pin for yet. This guards the `any(sq == "validator")`
+    conjunct against being dropped by a rewrite that only looks at the value — and it
+    is live, not theoretical: FEAT-06's own feature.yaml is exactly this shape
+    (placeholder review_sha, product/eng runs only) and must not self-report.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        h = os.path.join(tmp, ".harness")
+        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write(HARNESS_JSON_SYNC_OFF)
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+            f.write("feature_id: FEAT-TEST\n"
+                    "review_sha: none\n"
+                    "runs:\n"
+                    "  - id: 2026-08-04-01-product\n"
+                    "    squad: product\n"
+                    "    verdict: PASS\n")
+        code, out = run(tmp)
+        ok = "review_sha is not pinned" not in out
+        print(f"{'ok' if ok else 'FAIL'} - case (j): no validator run, so INV-6 stays "
+              f"silent even on a placeholder")
+        if not ok:
+            print("        INV-6 fired with no validator run — the "
+                  "any(squad == 'validator') conjunct was dropped")
+        return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -235,6 +328,9 @@ def main():
     ok_e = case_e()
     ok_f = case_f()
     ok_g = case_g()
+    ok_h = case_h()
+    ok_i = case_i()
+    ok_j = case_j()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -242,7 +338,8 @@ def main():
         f"(a: {code_a}, b: {code_b})"
     )
 
-    if ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g and ok_exit_unchanged:
+    if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
+            and ok_h and ok_i and ok_j and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
 

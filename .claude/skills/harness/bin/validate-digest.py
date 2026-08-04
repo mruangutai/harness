@@ -24,6 +24,11 @@ defines. Never guess a verdict — silent misrouting is worse than a halt.
 """
 import sys, re, os, json
 
+# Same directory as this script; sys.path[0] is that directory under `python3 <path>`.
+# The placeholder vocabulary lives there so INV-6 and this check cannot drift (issue #16).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import harness_yaml
+
 VERDICTS = {"PASS", "FAIL", "BLOCKED", "ESCALATE"}
 SEV      = ["info", "low", "med", "high", "critical"]
 
@@ -469,7 +474,7 @@ def validate(persona, text):
             err.append(f"{field!r} could not be parsed — its brackets/quotes never "
                        f"balanced. Fix the YAML rather than resubmitting as-is.")
             continue
-        if field in NULLABLE and isinstance(val, str) and val.lower() in ("none", "null", "n/a"):
+        if field in NULLABLE and isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
             # DEC-173: declining a GATE while claiming PASS is the fail-open the
             # widened NULLABLE would otherwise have created. Reported here rather
             # than as a separate pass so the message lands next to the field.
