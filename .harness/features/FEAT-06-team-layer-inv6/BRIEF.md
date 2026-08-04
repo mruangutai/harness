@@ -163,12 +163,21 @@ is. Issues **#8**, **#9**, **#16** and **#24** close as a consequence.
   `teams/` directory — i.e. the widened glob is load-bearing and not vacuous.
   verify: automated        evidence: unit
 - SC-07: `.claude/skills/harness/teams/build.yaml` exists, parses, declares `lead: eng-lead`, and
-  its declared personas are a subset of the eng squad's members in `team-config.yaml` (DEC-118:
-  a team is single-squad).
+  that lead's squad is Engineering in `team-config.yaml` — so the team is single-squad **by
+  construction** (DEC-118: a lead cannot dispatch outside its own squad). *(Amended 2026-08-04:
+  the second clause previously asserted a property of a `personas:` list inside `build.yaml`. That
+  field is deleted — nothing read it at runtime and the assertion pointed the wrong way — so the
+  old wording would now pass vacuously, which is this feature's own charter defect. The property
+  is asserted via the LEAD instead, of the only file that can be right about squad membership.)*
   verify: automated        evidence: unit
-- SC-08: `build.yaml`'s declared persona set covers the personas that FEAT-03's eng-squad build
-  runs actually used — `dev-ops` and `backend-dev`, read from `runs/2026-07-31-09-eng/state.yaml`
-  and `runs/2026-07-31-10-eng/state.yaml`.
+- SC-08: the Engineering squad in `team-config.yaml` covers the personas that FEAT-03's eng-squad
+  build runs actually used — the floor `{dev-ops, backend-dev}` recorded by
+  `runs/2026-07-31-09-eng/state.yaml` and `runs/2026-07-31-10-eng/state.yaml` — **so the expansion
+  can route to them by `consult-when`**. Squad membership, not a list in `build.yaml`, is what
+  makes a persona reachable at dispatch. *(Amended 2026-08-04: with `personas:` deleted, the old
+  wording — "`build.yaml`'s declared persona set covers…" — is unsatisfiable, since an absent set
+  covers nothing. The run files are cited as the SOURCE of the floor, not as a second conjunct;
+  the assertion itself is over `team-config.yaml`.)*
   verify: automated        evidence: unit
 - SC-09: `.claude/skills/harness/SKILL.md` **names** the `build` team as the build-phase
   resolution path, in a line that also names DEC-118. This is a **presence** assertion on purpose:

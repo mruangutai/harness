@@ -4,15 +4,15 @@ branch: main
 pr: none
 status: awaiting_user
 review_sha: 9f87c48
-cycles_used: 5   # 4 spent in planning; the 5th is the SC-05 remediation ROUTED in this return
+cycles_used: 5
 max_total_cycles: 10
-cost_usd: 176.0
+cost_usd: 252.63
 max_cost_usd: 100
 runs:
   - id: plan-product
     squad: product
     verdict: PASS
-    cost_usd: 0   # UNMEASURED, see cost_note; comparable runs put it in the 12-45 band
+    cost_usd: 0   # UNMEASURED and now unmeasurable; comparable runs put it in a 12-45 band
   - id: plan-eng
     squad: eng
     verdict: FAIL
@@ -48,11 +48,11 @@ runs:
   - id: t08-product
     squad: product
     verdict: PASS
-    cost_usd: 11.39   # by_agent delta: product-lead 7.25 + documentor 4.14. BUILD phase
+    cost_usd: 11.39   # product-lead 7.25 + documentor 4.14
   - id: qa-validator
     squad: validator
     verdict: PASS
-    cost_usd: 26.97   # upper bound; validator-lead d2 18.85 + qa d3 8.12
+    cost_usd: 26.97   # upper bound; validator-lead 18.85 + qa 8.12
   - id: panel-validator
     squad: validator
     verdict: PASS
@@ -60,117 +60,108 @@ runs:
   - id: goalcheck-product
     squad: product
     verdict: FAIL
-    cost_usd: 16.24   # product-lead 8.30 + pm 7.94. SC-05 unmet as declared
-tasks:
-  T-01: PASS
-  T-02: PASS
-  T-04: PASS
-  T-05: PASS
-  T-06: PASS
-  T-07: PASS
-  T-08: PASS
-  T-09: PASS
-  T-10: PASS
-  T-11: PASS
+    cost_usd: 16.24   # product-lead 8.30 + pm 7.94
+  - id: amend-product
+    squad: product
+    verdict: ESCALATE
+    cost_usd: 13.48   # 26.96 for the PAIR with amend2; metered after both, split NOT measurable
+  - id: amend2-product
+    squad: product
+    verdict: PASS
+    cost_usd: 13.48   # see amend-product; half of a jointly-measured 26.96, not an invented split
+tasks: { T-01: PASS, T-02: PASS, T-04: PASS, T-05: PASS, T-06: PASS,
+         T-07: PASS, T-08: PASS, T-09: PASS, T-10: PASS, T-11: PASS }
 gate_status:
   qa_gate: PASS — matrix_ok true at 9f87c48, re-verified at the orchestrator's tier
   review: PASS — severity_max low, must_fix empty; advisory_unless_high, so non-blocking
-  uat: PENDING — SC-13 is the only uat criterion and gates.uat is blocking_when_uat_criteria_exist
-  goal_check: FAIL — 13 of 14 non-uat SCs met; SC-05 unmet as declared; SC-13 pending_uat
+  uat: PENDING — SC-13 is the only uat criterion, and gates.uat is blocking when one exists
+  goal_check: >-
+    14 of 15 settled — SC-05 now MET after the main session's fix; SC-07 and SC-08 AMENDED to
+    assert substance; SC-13 pending_uat. Re-signing BRIEF and PLAN is the main session's.
 sc_summary:
-  met: 13
-  unmet: SC-05
+  met: 14
   pending_uat: SC-13
-  evidence: runs/goalcheck-product/digest.md carries all 15 with method and evidence
-files_touched_union: >-
-  git diff --name-only 635ef14..071e313, outside the feature dir — harness-team/SKILL.md,
-  harness/SKILL.md, bin/{check-state.sh,harness_yaml.py,run-unit-tests.sh,test-check-state.py,
-  test-harness-yaml-corpus.py,test-team-catalog.py,validate-digest.py},
-  teams/{build.yaml,gate-probe.yaml (deleted),review.yaml}, .harness/logs/2026-08-04.md,
-  docs/harness/{DECISIONS.md,SPEC.md}. 15 paths. Computed, not recalled.
+  amended: >-
+    SC-07 and SC-08 both presupposed the deleted `personas:` field, so SC-07 had begun passing
+    VACUOUSLY and SC-08 was UNSATISFIABLE. Reworded to the substance the shipped checks prove.
+    Awaiting the main session's re-signature; only it writes the approval block.
 baseline:
   base_sha: 635ef14
   closes_issues: "#8 #9 #16 #24"
   briefing: .harness/features/FEAT-06-team-layer-inv6/notes/ship-review-FEAT-06.md
-  commits: f45fd0f, 510b7ff, 9f87c48, 071e313 on main. Not pushed, not merged
+  answers: .harness/features/FEAT-06-team-layer-inv6/notes/answers-ship-gate.md
+  commits: f45fd0f, 510b7ff, 9f87c48, 071e313, 0c36c59 on main. Not pushed, not merged
   cost_note: >-
-    OVER BUDGET, REPORTED NOT HIDDEN (DEC-134). 176 is the midpoint of a MEASURED 154-199 range
-    against the 100 build+validate allowance — 1.5-2x over. The range exists because cost-report.py
-    is cumulative over a shared retained window: 154 counts only org-pinned opus rows, 199 counts
-    every attributable row. THE DOMINANT LINE IS THE ORCHESTRATOR'S OWN SESSION at ~88, 45-57% of
-    the total — DEC-148's square-of-session-length effect, measured. 9 of 10 tasks also ran at
-    depth-0 in the main session and are not separable, so the true total is HIGHER than any figure
-    here. The PLAN phase separately spent 170.17 of its own 160. NO FIGURE IS INVENTED.
+    OVER BY A MULTIPLE, REPORTED NOT HIDDEN (DEC-134). 252.63 is the MEASURED post-baseline delta
+    across org-pinned opus rows against the 100 build+validate allowance — 2.5x. Counting every
+    attributable harness row it is 403.15, but that ceiling shares a retained transcript window
+    with other work, so 252.63 is the defensible figure. THE ORCHESTRATOR'S OWN SESSION IS 139.32
+    OF IT — 55%, the largest single line by far, and DEC-148's square-of-session-length effect
+    measured rather than argued. 9 of 10 build tasks also ran at depth-0 in the main session and
+    are not separable, so the true total is HIGHER still. The PLAN phase separately spent 170.17
+    of its own 160. NO FIGURE IS INVENTED.
   not_run_with_reason: >-
-    (1) FEATURE-CLOSE DISTILLATION — its PRECONDITION IS UNMET, which is the reason; it runs after
-    the SCs pass and they have not (SC-05 unmet, SC-13 pending_uat). It becomes due once both
-    close. NOT a budget cut. Observation logs are on disk and lose nothing by waiting.
-    (2) THREE-LEAD PARALLEL BRIEFING REPORT — all their digests are already held, and eng-lead did
-    no build or validate work at all, so it would have returned "no activity" at real cost. An
-    execution-time call, disclosed in the briefing. (3) SHIP-REFRESH is a genuine no-op:
-    .harness/codebase/ does not exist, so there is no map to go stale.
-  anchor_note: >-
-    PLAN.md line anchors recorded before DMF-1 SHIFTED +8 through the T-02 middle and +9 below the
-    carve. Cite T-02 fields by NAME, not by line.
+    (1) FEATURE-CLOSE DISTILLATION — its PRECONDITION is unmet: it runs after the SCs pass, and
+    SC-13 is still pending_uat. NOT a budget cut. Logs are on disk and lose nothing by waiting.
+    (2) THREE-LEAD PARALLEL BRIEFING REPORT — all digests already held; eng-lead did no build or
+    validate work, so it would have returned "no activity" at real cost. (3) SHIP-REFRESH is a
+    genuine no-op: .harness/codebase/ does not exist, so there is no map to go stale.
   inv6_self_note: >-
-    review_sha PINNED to 9f87c48 BEFORE the first squad: validator run entry was written. FEAT-06's
-    own feature.yaml is INV-6's first real subject; case (j) in test-check-state.py is this shape.
-    HEAD MOVES PAST THE PIN when the SC-05 line lands — that is FINE. INV-6 requires pinned, not
-    equal-to-HEAD, and re-running an advisory panel for one assertion line would be waste.
+    review_sha PINNED to 9f87c48 BEFORE the first validator-squad run entry was written. HEAD has
+    since moved past the pin, which is FINE — INV-6 requires pinned, not equal-to-HEAD, and the
+    advisory panel is not re-run for amendment-only edits.
 approved:
-  brief: approved 2026-08-04 by Mike Ruangutai (BRIEF.md `## Approval`)
-  plan: approved 2026-08-04 by Mike Ruangutai (PLAN.md `## Approval`), 10 tasks, 8 decisions
+  brief: approved 2026-08-04 by Mike Ruangutai; SC-07 and SC-08 amended since — RE-SIGN PENDING
+  plan: approved 2026-08-04 by Mike Ruangutai; persona and filter sites amended — RE-SIGN PENDING
 resolved:
   - >-
     ROUTING WALL, MEASURED. NO agent domain grants write on .claude/skills/harness/teams/**,
     .claude/skills/harness/SKILL.md or harness-team/SKILL.md; the only .claude grant is
     .claude/skills/harness/bin/** (dev-ops, backend-dev). DEC-174's carve-out covers check-state.sh
-    and validate-digest.py, extended by the mission and D-05 to four bin/ test and runner scripts
-  - >-
-    RECURRENCE 7, MEASURED: harness-qa has NO writable test surface here. tests/ and web/ do not
-    exist; all 13 test scripts live in bin/. The qa segment's AUTHORING half is structurally
-    unavailable. Stated in the dispatch so qa reported the gap instead of hitting the guard
+    and validate-digest.py, extended by the mission and D-05 to four bin/ test and runner scripts.
+    RECURRENCE 7: harness-qa has NO writable test surface at all — tests/ and web/ do not exist and
+    all 13 test scripts live in bin/, so the qa segment's AUTHORING half is structurally unavailable
   - >-
     #24 CLOSED IN THE PLAYBOOK. SC-14 measured both ways: at 635ef14 test_matrix lines 0 and the
-    8-line window 0 hits; at 9f87c48 lines 2 and window 7 hits
+    8-line window 0 hits; now lines 2 and window 7 hits, re-measured after every later edit
   - >-
-    FOUR DEFECTS CAUGHT MID-EXECUTION, each would have shipped GREEN (detail in the briefing and
-    f45fd0f's message): T-05's glob scanned 0 files because Python glob skips DOTTED dirs, fixed
-    with os.walk; SC-06 proven discriminating against the pre-widening scan; T-07's ten checks
-    10-of-10 FAILING at 635ef14 and 10/10 at HEAD, re-run by the orchestrator through a detached
-    worktree; T-02's sweep found a 5th and created a 6th comment site, caught by its closing re-grep
+    FIVE DEFECTS CAUGHT MID-EXECUTION, each would have shipped GREEN (detail in the briefing):
+    T-05's glob scanned 0 files because Python glob skips DOTTED dirs, fixed with os.walk; SC-06
+    proven discriminating against the pre-widening scan; T-07's ten checks 10-of-10 FAILING at
+    635ef14 and 10/10 at HEAD, re-run via a detached worktree; T-02's sweep found a 5th and created
+    a 6th comment site; and T-04's signed verify was RED on two different keys in succession
   - >-
-    D-01 LANDED. PLACEHOLDER_UNSET defined once at harness_yaml.py:302 as an ordered tuple; both
-    consumers carry the token; the literal count under bin/ is 1 AND STILL 1 after T-07 added a
-    file there — the coupling conjunct was re-run post-T-07, which is what it was for
+    THE PERSONA LIST AND THE FILTER TOKEN ARE BOTH DELETED from build.yaml on the user's ruling.
+    The list was a roster copy nothing read, guarded in the wrong direction (listed within
+    Engineering, no converse), with a header comment contradicting its own contents. The filter was
+    an honest token no runtime evaluates. EMF-2 is COMPLETED, NOT REVERSED — the finding was that
+    the filter was not evaluable and the resolution is that it is not needed. T-04's verify now
+    asserts their ABSENCE, so it is strictly stronger than before and catches re-introduction.
+    Executed by the orchestrator against the shipped file: exit 0
   - >-
-    SC-15's THREE LEGS AGREE and T-07 check (9) parses unambiguously: SPEC.md:1978 carries 2 brace
-    groups and exactly ONE containing the parallel bar; :1980 carries 1
-  - >-
-    No ui-reviewer step was spawned in the panel — recorded skip, not a gap. visual-designer ruled
-    no end-user interaction and no prototype, and the diff is scripts, YAML and markdown
+    THE SITE LIST WAS SHORT THREE TIMES ON THIS FEATURE and the orchestrator's own re-grep found
+    the remainder each time — 4 named comment sites vs 6 real; 2 named persona sites vs 5, the
+    missed one being T-04's verify; 4 named filter sites vs 6, with 2 anchors already drifted. The
+    layer a site list forgets is the VERIFICATION CRITERION
 pending:
   - >-
-    SEGMENT 4, ROUTED IN THIS RETURN, main-session-direct (DEC-174 carve-out): SC-05's count
-    conjunct is unasserted — test-harness-yaml-corpus.py:180-181 asserts n > 0 per root and the "2"
-    at :174-175 is an f-string LABEL. pm ruled UNMET AS DECLARED; premise verified at source twice.
-    This is a FIX CYCLE, not a user decision — an unmet SC that CAN be met is not a plan change.
-    Waiving would be the EXPENSIVE option (a pm run plus a signature, since it amends an approved
-    BRIEF). TRAP: the line belongs in test-harness-yaml-corpus.py, NOT test-team-catalog.py, whose
-    signed verify requires exactly TEN checks
+    SC-13 IS THE ONLY THING LEFT AND IT IS THE USER'S ALONE. The uat gate blocks while a uat
+    criterion exists. The user reads teams/build.yaml and SKILL.md:40-47 and rules. Do NOT mark it,
+    assume it, or proceed to ship acceptance. BRIEF and PLAN also await the main session's RE-SIGN
   - >-
-    Q2 BLOCKING, THE USER'S ALONE: SC-13 is the only uat criterion and gates.uat is blocking. The
-    user reads teams/build.yaml and SKILL.md:40-53 and rules on whether they describe builds as
-    they want them dispatched. No test settles it
+    NOT PROVEN, declared in BRIEF Verification gaps and signed open — the user re-accepted this at
+    the gate: build.yaml has NEVER been dispatched, including by its own feature, because FEAT-06's
+    eng-squad task list was empty. Do not re-open and do not add an SC for it
   - >-
-    NOT PROVEN, declared in BRIEF and signed open: build.yaml is never executed by this feature —
-    the panel called it "prose with a passing shape-check"; no ship run exercises the new qa
-    segment; four SCs assert only that files CONTAIN text. build.yaml derives from n=2 eng runs
-  - >-
-    BACKLOG for ship acceptance, full list in the briefing: #36; DECISIONS.md:1634 and :630 still
-    three-wide; routing-wall recurrence 7; AQ-2 (panel qa gate-only is prompt-enforced only);
-    advisory 3 (T-09 line caps 1 over); code-reviewer under-reported its own severity_max; PLAN.md
-    :290-292 stale "3x slower"; #19
+    BACKLOG for ship acceptance, unfiled by the user's instruction until one pass at acceptance.
+    Full list in the briefing. Already filed: #36, #19, #37. Unfiled: DECISIONS.md:1634 and :630
+    three-wide panel; routing-wall recurrence 7 (its OWN issue, not a comment on #20 — #20 is
+    plan-time domain resolution, recurrence 7 is a permanent hole); AQ-2; advisory 3; code-reviewer
+    under-reported its own severity_max; PLAN.md stale "3x slower"; and TWO harness gaps found this
+    run — no gate reads team-file field CONTENT beyond test-team-catalog.py's ten named checks, so
+    the filter deletion passed every gate; and the SubagentStop hook does not reject a member
+    artifact path pointing at a non-digest file, MEASURED by the orchestrator (validate-digest.py
+    run on PLAN.md returns BLOCKED, so the validator catches it and the hook is not invoking it)
 github:
   milestone: 1
   parent: 25

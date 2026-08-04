@@ -11,9 +11,15 @@
 #     written here is how to DERIVE the steps, and the host expands it at dispatch.
 #     `harness-team/SKILL.md` learns this form in T-09; without that it is prose only.
 #
-# (c) The persona set below was derived from FEAT-03's recorded eng build runs
-#     `2026-07-31-09-eng` (dev-ops) and `2026-07-31-10-eng` (backend-dev) —
-#     n = 2 eng runs on 1 feature. It is a FLOOR, not a closed set.
+# (c) THIS FILE DOES NOT LIST ITS PERSONAS, deliberately. The Engineering roster lives
+#     in `.harness/team-config.yaml` and nothing here reads a copy of it: the expansion
+#     rule routes each task by `consult-when` at dispatch, so a second copy would be
+#     data no runtime consults, going stale the day a member is added. The evidence for
+#     what a build actually uses is FEAT-03's recorded eng runs `2026-07-31-09-eng`
+#     (dev-ops) and `2026-07-31-10-eng` (backend-dev) — n = 2 eng runs on 1 feature, a
+#     floor and not a closed set. `bin/test-team-catalog.py` asserts the DEC-118 bound
+#     and that floor against `team-config.yaml` directly, which is the only file that
+#     can be right about them.
 #
 # (d) This file PRESCRIBES ONE RUN PER BUILD covering all eng tasks — a shape the
 #     recorded runs did NOT use. They used one lead-owned run per contiguous persona
@@ -33,23 +39,19 @@ lead: eng-lead
 inputs: [feat, tasks]
 max_cost_usd: 60
 
-# The Engineering squad's full roster, read from team-config.yaml (teams[1].members),
-# in the SHORT form `review.yaml` already uses for `persona:`.
-personas: [frontend-dev, backend-dev, ai-dev, data-engineer, dev-ops]
-
 steps_from:
   # The host reads `## Tasks` from the feature's PLAN.
   source: plan_tasks
 
-  # A TOKEN, NOT A PREDICATE. It records that the ORCHESTRATOR already selected the
-  # task ids handed to eng-lead. The lead does not evaluate it and nobody should later
-  # write an evaluator for it. A non-eng task is not dropped by this filter — it was
-  # never in the set, and stays for the orchestrator to sequence as its own squad
-  # segment (DEC-118).
-  filter: eng_squad_tasks
-
-  # The lead routes each T-NN to a member by its `consult-when` — which is what
-  # `…-09-eng` and `…-10-eng` actually did.
+  # WHICH tasks arrive here is the ORCHESTRATOR's decision, made before dispatch and
+  # not restated as config: a field no runtime evaluates is dead weight, and one that
+  # merely records a decision made elsewhere is a comment wearing a key. A task that
+  # is not eng-squad was never in the set — it is not dropped here, it stays for the
+  # orchestrator to sequence as its own squad segment (DEC-118).
+  #
+  # WHICH SPECIALIST gets each task is the LEAD's decision, and it is a real one:
+  # the lead routes every T-NN to a member by that member's `consult-when`, which is
+  # what `…-09-eng` (dev-ops) and `…-10-eng` (backend-dev) actually did.
   persona: by_consult_when
 
   # The PLAN task's `intent:` block IS the dispatch text. Without this the file retires

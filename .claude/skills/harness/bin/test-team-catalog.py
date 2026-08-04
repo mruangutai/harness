@@ -90,28 +90,43 @@ try:
 except Exception as e:
     check("(2) build.yaml parses, name: build, lead: eng-lead — SC-07", False, e)
 
-# --- 3. every persona is Engineering squad — the DEC-118 assertion -----------
+# --- 3. the team is single-squad — the DEC-118 assertion ---------------------
+# READ FROM team-config.yaml, THE ONLY FILE THAT CAN BE RIGHT ABOUT THIS. build.yaml
+# used to carry a copied `personas:` roster and this check asserted the copy was a
+# subset of the real one — but nothing at runtime read that copy, and the assertion
+# pointed the wrong way: it caught a persona that should not be there and could NOT
+# catch a member added to the squad, which is the direction a copy actually rots.
+# The single-squad property is carried by the team's LEAD: build.yaml declares
+# `lead: eng-lead`, and team-config records which squad that lead owns. A lead cannot
+# dispatch outside its own squad (DEC-118), so a team hosted by an eng-squad lead is
+# eng-squad by construction — no roster copy required.
 try:
     tc = harness_yaml.load_file(os.path.join(REPO, ".harness", "team-config.yaml"))
+    lead_name = build["lead"]
+    lead_rec = next((l for l in tc["leads"]
+                     if l["name"] in (lead_name, f"harness-{lead_name}")), None)
     eng = next(t for t in tc["teams"] if t.get("team-name") == "Engineering")
     eng_members = {m["name"] for m in eng["members"]}
-    personas = list(build["personas"])
-    stray = [p for p in personas if f"harness-{p}" not in eng_members]
-    check("(3) every build.yaml persona is an Engineering squad member — SC-07, DEC-118",
-          not stray, f"not in Engineering: {stray}; squad={sorted(eng_members)}")
+    check("(3) build.yaml is hosted by a lead whose squad is Engineering, so the team "
+          "is single-squad by construction — SC-07, DEC-118",
+          lead_rec is not None and lead_rec.get("squad") == "eng",
+          f"lead={lead_name!r} record={lead_rec}")
 except Exception as e:
-    check("(3) every build.yaml persona is an Engineering squad member — SC-07, DEC-118",
-          False, e)
+    check("(3) build.yaml is hosted by a lead whose squad is Engineering, so the team "
+          "is single-squad by construction — SC-07, DEC-118", False, e)
 
-# --- 4. the recorded floor ---------------------------------------------------
+# --- 4. the recorded floor, asserted against the squad that will supply it ----
+# FEAT-03's eng build runs 2026-07-31-09-eng and -10-eng used dev-ops and backend-dev.
+# The expansion routes by `consult-when` at dispatch, so what makes those reachable is
+# their membership of the Engineering squad — not a list in build.yaml.
 try:
-    check("(4) build.yaml personas cover the recorded eng build runs "
-          "{dev-ops, backend-dev} — SC-08",
-          {"dev-ops", "backend-dev"} <= set(build["personas"]),
-          f"personas={build.get('personas')}")
+    check("(4) the Engineering squad covers the personas FEAT-03's eng build runs "
+          "actually used {dev-ops, backend-dev} — SC-08",
+          {"harness-dev-ops", "harness-backend-dev"} <= eng_members,
+          f"Engineering={sorted(eng_members)}")
 except Exception as e:
-    check("(4) build.yaml personas cover the recorded eng build runs "
-          "{dev-ops, backend-dev} — SC-08", False, e)
+    check("(4) the Engineering squad covers the personas FEAT-03's eng build runs "
+          "actually used {dev-ops, backend-dev} — SC-08", False, e)
 
 # --- 5. the playbook names the build team, with its bound -------------------
 try:

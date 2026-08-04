@@ -1,98 +1,81 @@
 # Ship review — FEAT-06, team layer and INV-6
 
-**Written for Mike, 2026-08-04, at `9f87c48`.**
+**Written for Mike, 2026-08-04. Updated after your gate rulings on SC-05, `personas:` and `filter:`.**
 
-## The decision you need to make
+## Where it stands
 
-**The feature is built, reviewed and green. One question is genuinely yours. The other item is just one more line of work.**
+**SC-05 is closed. `personas:` and `filter:` are deleted and the plan now describes what shipped. One thing is left, and it is yours: SC-13.**
 
-| # | What | Who | Cost |
-|---|---|---|---|
-| 1 | **SC-05 needs one assertion line.** Handed back as segment 4, exactly like segments 1–3 | main session executes | ~1 minute |
-| 2 | **SC-13 is a UAT — you read two things and rule** | **only you** | ~5 minutes |
-
-Everything else is done. **Please answer in one pass** — segment 4 and the UAT together.
+| | Status |
+|---|---|
+| 14 of 15 success criteria | met |
+| **SC-13 (UAT)** | **you are reading `build.yaml` and `SKILL.md:40-47` — nothing else blocks** |
+| BRIEF and PLAN | amended; **await your re-signature** (only the main session writes approval) |
 
 ## What you asked for, and whether you got it
 
-The feature closes four issues: **#8** (the review panel had no qa step), **#9** (build step lists were hand-composed at dispatch, with no team definition), **#16** (INV-6 read the string `"none"` as truthy, so the invariant failed open), and **#24** (the orchestrator's own playbook never mentioned `qa` or `test_matrix`, while the spec assigned qa sequencing to the orchestrator).
+Four issues closed: **#8** (the review panel had no qa step), **#9** (build step lists hand-composed at dispatch, no team definition), **#16** (INV-6 read `"none"` as truthy, so the invariant failed open), **#24** (the orchestrator's playbook never mentioned `qa` or `test_matrix`, while the spec assigned qa sequencing to it).
 
-**All four are closed and each closure is falsifiable.** The one to trust most is #24, the re-scope's centre of gravity: at the pre-feature commit, `SKILL.md` contained `test_matrix` **zero** times and `qa` zero times. It now contains `test_matrix` twice, and the tokens `qa`, `validator`, `loop_back` co-occur inside an 8-line window at seven positions. I measured both ends myself.
+**Each closure is falsifiable.** The one to trust most is #24: at the pre-feature commit `SKILL.md` contained `test_matrix` **zero** times and `qa` zero times. It now contains `test_matrix` twice, and `qa`/`validator`/`loop_back` co-occur inside an 8-line window at seven positions. I measured both ends, and re-measured after every later edit.
 
-**10 of 10 tasks passed on the first attempt. Zero rework during the build.**
+**10 of 10 tasks passed first time. Zero build rework.**
+
+## What your two gate rulings actually bought
+
+You were offered the cheap path on `personas:` — shrink the list, no BRIEF change — and took the expensive one. **It was the right call, and it exposed more than the field itself.**
+
+- **SC-07 had already started passing vacuously.** With `personas:` deleted, "its declared personas are a subset of the eng squad" is trivially true of an absent set. **SC-08 became unsatisfiable** — an absent set covers nothing. Both now assert the substance the shipped checks prove: single-squad *by construction* via the lead's squad, and the Engineering squad covering the recorded floor.
+- **`EMF-2` is completed, not reversed.** The architecture review's finding was that `filter: squad == eng` named a field PLAN tasks do not carry — a fake predicate. Making it an honest token was half a fix; your point was that an honest token no runtime evaluates is a comment wearing a key.
+- **T-04's signed `verify:` was red on two different keys in a row** — `KeyError: 'personas'`, then `KeyError: 'filter'`. A signed check that crashes is exactly "appears to exist, does nothing," sitting in this feature's own plan. It now runs green **and asserts their absence**, so it catches re-introduction. Strictly stronger than the original.
 
 ## What went right that you would not otherwise hear about
 
-**Four defects were caught mid-execution that would each have shipped green.** These matter more than the feature's own content, because they are precisely the failure mode the feature exists to remove:
+**Five defects caught mid-execution, each of which would have shipped green:**
 
-1. **The widened YAML gate would have scanned nothing, forever.** Python's `glob` does not descend into dotted directories, so `glob('**/*.yaml')` from the repo root matches **0** files while the tree holds 54. The gate would have passed vacuously for the rest of its life. Fixed with `os.walk`; I re-measured it independently.
-2. **The new team-catalog checker was proven to discriminate, not assumed.** I ran the finished ten-check script against a detached worktree of the pre-feature commit: **10 of 10 failing there, 10 of 10 passing now.** Not one check is green-on-both-sides. This repo already contains six tests that were green before *and* after their own change, so this was worth the minutes.
-3. **A comment broke a test by naming a constant** — T-01 counts occurrences of a literal, and a helpful comment took the count from 1 to 2.
-4. **The `review.yaml` comment sweep found a fifth site and created a sixth.** The plan specified a general *sweep* rather than a list, because enumerated lists had already missed sites twice here. The handoff named four; my re-grep found a fifth; the sweep introduced a sixth, caught by its own closing check. A sixth enumeration would have missed it too.
+1. **The widened YAML gate would have scanned nothing, forever.** Python's `glob` does not descend into dotted directories: `glob('**/*.yaml')` from the repo root matches **0** files while the tree holds 54. Fixed with `os.walk`; I re-measured it.
+2. **The team-catalog checker was proven to discriminate, not assumed** — 10 of 10 failing at the pre-feature commit, 10 of 10 passing now, run against a detached worktree. This repo already contains six tests that were green on both sides of their own change.
+3. **A comment broke a test by naming a constant.**
+4. **The `review.yaml` comment sweep found a fifth site and created a sixth**, caught by its own closing check.
+5. **T-04's verify**, above.
 
-## The two open items
-
-### 1. SC-05 — one assertion line. This is work, not really a decision.
-
-SC-05 says every YAML under `teams/` parses **and** the directory holds exactly two files, declared `verify: automated  evidence: unit`.
-
-The parse half is genuinely asserted. **The count half is asserted nowhere.** `test-harness-yaml-corpus.py:180-181` asserts only `n > 0` per root; the `2` in its output is an f-string **label** at `:174-175`, not a comparison. No `== 2` exists anywhere under `bin/`. qa raised it, pm ruled it unmet, and I verified the premise at source twice rather than relaying it.
-
-| | Fix it | Waive it |
-|---|---|---|
-| Cost | one `check()` line, main-session-direct | **a pm run plus your signature** — waiving edits an approved BRIEF, which is pm's under your approval |
-| Result | the SC is met as written | an SC marked `automated` where half has no assertion |
-
-**Fixing is both cheaper and more honest — waiving is the expensive option here, not the free one.** An unmet SC that *can* be met is a fix cycle, not a plan change. So I have handed this back as **segment 4**, and it needs no decision from you unless you want to override.
-
-**The trap, attached to the hand-back:** the assertion belongs in **`test-harness-yaml-corpus.py`**, *not* `test-team-catalog.py`. T-07's approved `verify:` requires that second script's output to name exactly **ten** checks — an eleventh would break a verify you already signed.
-
-### 2. SC-13 — the UAT. This one is genuinely yours.
-
-`gates.uat` is `blocking_when_uat_criteria_exist`, and SC-13 is the only such criterion. Read two things and confirm they describe builds the way you want them dispatched:
-
-- **`.claude/skills/harness/teams/build.yaml`** — the new build team. It is an *expansion rule*, not a step list, and it is eng-squad only by design.
-- **`.claude/skills/harness/SKILL.md:40-53`** — the amended orchestrator passage naming the build team and the blocking qa gate.
-
-These are judgements about how your org should work. No test settles them; that is why the SC exists.
+**One pattern is worth your attention because it recurred three times:** the site list handed down was short every time — 4 named comment sites against 6 real; 2 named `personas` sites against 5; 4 named `filter` sites against 6, with two anchors already stale. **The layer a site list forgets is the verification criterion.** My own re-grep caught the remainder each time, which is why nothing shipped wrong — but the cost of that is real.
 
 ## What is honestly NOT proven
 
-Declared in the BRIEF and signed open. Restating, not reporting as new:
+Declared in the BRIEF, signed, and re-accepted by you at this gate:
 
-- **`build.yaml` is never executed by this feature.** It is a definition with a passing shape-check and no executor — the review panel's words were "prose with a passing shape-check." Its design derives from **two** recorded eng build runs on **one** feature: a floor, not a generalisation.
-- **No ship run exercises the new qa segment.** The playbook now names the gate; nothing proves an orchestrator reading it actually sequences one.
+- **`build.yaml` has never been dispatched — including by its own feature.** FEAT-06's eng-squad task list was empty: nine of ten tasks were main-session-direct and the tenth was product-squad. Your words: "we'd have to test it on an actual feature."
+- **The `build` dispatch has no mechanism for selecting eng-squad task ids** — issue **#20**, the routing wall. Not this feature's business.
 - **Markdown behaviour has no runner.** Four SCs assert only that files *contain* certain text.
 
-## Cost — over budget, and the reason is me
+## Cost — over by a multiple, and the reason is me
 
-**$154–199 measured against the $100 build-and-validate allowance. Roughly 1.5–2x over.** The range exists because the cost reporter is cumulative over a shared transcript window: $154 counts only the models this org pins, $199 counts every attributable row. **No figure here is invented.**
+**$253 measured against the $100 build-and-validate allowance — 2.5x. The ceiling, counting every attributable row, is $403.** The lower figure counts only the models this org pins and is the defensible one. **No figure is invented.**
 
-Two things more useful than the number:
+**My own orchestrator session is $139 of the $253 — 55%, the largest single line by far.** This is the square-of-session-length effect the design predicts, measured rather than argued: one long orchestrator re-reads its whole history every turn. Nine of ten build tasks also ran in the main session, whose spend is not separable at all, so the true total is higher.
 
-- **The dominant line is my own orchestrator session — about $88, or 45–57% of the total.** Not the squads. This is the square-of-session-length effect the design predicts, showing up empirically: one long orchestrator re-reads its whole history every turn. If you want one lever for the next feature, that is it.
-- **Nine of the ten tasks ran in the main session**, whose spend is not separable to this feature at all. The true total is higher than any number above.
+**If you want one lever for the next feature, it is ending orchestrator sessions at phase seams instead of running one session across build, validate and ship.** That is what the design already says; this feature is the evidence.
 
-**Two things I did not do, with reasons — neither is a budget cut:**
-
-1. **Feature-close distillation has not run because its precondition is unmet**, not to save money. It runs after the SCs pass, and they have not: SC-05 is unmet and SC-13 awaits you. Once both close, it is due. The observation logs are on disk and lose nothing by waiting.
-2. **I did not spawn the three leads for parallel domain reports.** I already hold all their digests, and eng-lead did no build- or validate-phase work, so it would have returned "no activity" at real cost. Their digests are under `runs/` if you want any expanded.
+Two things not done, neither a budget cut: **feature-close distillation** has not run because its precondition is unmet — it runs after the SCs pass, and SC-13 has not. **The three-lead parallel briefing report** was skipped because I already hold every digest and eng-lead did no build- or validate-phase work.
 
 ## Proposed backlog
 
-Nothing here gates. On your ship acceptance these become issues; **anything you strike dies silently**, so this list is complete on purpose.
+Nothing here gates. On acceptance these become issues in one pass; **anything you strike dies silently**, so the list is complete.
 
 | # | Item | Nature |
 |---|---|---|
-| 1 | **#36** (filed) — `run-unit-tests.sh` exits 2 with a bogus `MISCONFIGURED` error outside the repo root; `BIN_DIR` is relative, `nullglob` unset. Pre-existing, fail-closed | bug |
-| 2 | `DECISIONS.md:1634` still shows the ship-feature validator panel as three-wide; `:630` quotes the old set. Historical record, but a reader of that table alone infers the old panel | chore |
-| 3 | **Routing wall, recurrence 7** — `harness-qa` has no writable test surface here. `tests/` and `web/` do not exist; all 13 test scripts live in `bin/`, which qa cannot write. The qa segment's *authoring* half is structurally unavailable | enhancement (#20) |
-| 4 | **AQ-2** — the panel's qa step is gate-only by *prompt only*. `harness-qa` holds `Edit`/`Write`; nothing mechanically stops it authoring | enhancement |
-| 5 | Arch-review advisory 3 — T-09's line caps measure one line over | chore |
-| 6 | `harness-code-reviewer` under-reported its own worst finding (`severity_max: info` in its return, `low` in its artifact) and returned a non-distillation `expertise_update`. Caught by validator-lead | bug |
-| 7 | `PLAN.md:290-292` quotes `review.yaml`'s "3× slower" as current state; now stale. Not shipped, so harmless | chore |
-| 8 | **#19** (filed) — no agent ever runs a PLAN task's `verify:` command | enhancement |
+| 1 | **#36** (filed) — `run-unit-tests.sh` exits 2 with a bogus `MISCONFIGURED` error outside the repo root | bug |
+| 2 | **#19** (filed) — no agent ever runs a PLAN task's `verify:` command | enhancement |
+| 3 | **#37** (filed) — `adequacy_notes` is load-bearing across tiers and absent from the digest schema | bug |
+| 4 | `DECISIONS.md:1634` and `:630` still show the ship-feature panel as three-wide | chore |
+| 5 | **Routing wall, recurrence 7 — its own issue, not a comment on #20.** #20 is plan-time domain resolution; this is a permanent hole: `harness-qa` has no writable test surface anywhere, since all 13 test scripts live in `bin/` | enhancement |
+| 6 | **AQ-2** — the panel's qa step is gate-only by *prompt only*; `harness-qa` holds `Edit`/`Write` | enhancement |
+| 7 | **No gate reads team-file field content** beyond `test-team-catalog.py`'s ten named checks — the `filter:` deletion passed every gate | bug |
+| 8 | **The `SubagentStop` hook does not reject a member `artifact:` pointing at a non-digest file.** Measured: `validate-digest.py` run on `PLAN.md` returns BLOCKED, so the validator catches it and the hook is not invoking it there | bug |
+| 9 | `harness-code-reviewer` under-reported its own worst finding (`info` in its return, `low` in its artifact) | bug |
+| 10 | Arch-review advisory 3 — T-09's line caps measure one line over | chore |
+| 11 | `PLAN.md` quotes `review.yaml`'s "3× slower" as current state; now stale. Not shipped, harmless | chore |
 
 ## Where things stand
 
-Four commits on `main`, not pushed, not merged — `f45fd0f`, `510b7ff`, `9f87c48`, `071e313`. All ten mirror issues closed under milestone #1. Merge and PR remain yours, as always.
+Five commits on `main`, not pushed, not merged. All ten mirror issues closed under milestone #1. Every gate green: unit 0, docs 0, state 0 violations — each re-run at my own tier rather than taken on report. Merge and PR remain yours.

@@ -108,7 +108,19 @@ def scan(root):
     return len(paths), bad
 
 
-ROOTS = [".harness", os.path.join(".claude", "skills", "harness", "teams")]
+TEAMS_ROOT = os.path.join(".claude", "skills", "harness", "teams")
+ROOTS = [".harness", TEAMS_ROOT]
+
+# SC-05's second conjunct. The criterion reads "the directory's contents at completion
+# are exactly TWO files — review.yaml (receiving the quoting fix) and build.yaml (born
+# valid); gate-probe.yaml is deleted, so the count is two, not three" — and declares
+# `verify: automated  evidence: unit`. Without this line only the PARSE half had an
+# assertion: the `2` appeared in an f-string LABEL, which reports a number without
+# asserting it. A criterion whose cited test does not cover what it claims is this
+# repo's own charter defect, so the count is asserted rather than displayed.
+# If a third team is legitimately added, this failing is the intended prompt to revisit
+# SC-05 rather than to silently widen the number.
+TEAMS_EXPECTED = 2
 
 
 def scan_roots(roots):
@@ -179,6 +191,11 @@ check(f"every shipped YAML parses ({total} files across {len(ROOTS)} roots: "
 for r, n in counts.items():
     check(f"the corpus under {r} is not empty (a scan that matches nothing passes vacuously)",
           n > 0, f"scanned {n} files under {os.path.join(REPO, r)}")
+# SC-05's count conjunct — ASSERTED, not merely reported in a label above.
+check(f"{TEAMS_ROOT} holds exactly {TEAMS_EXPECTED} team definitions (SC-05)",
+      counts.get(TEAMS_ROOT) == TEAMS_EXPECTED,
+      f"found {counts.get(TEAMS_ROOT)}: "
+      f"{sorted(os.listdir(os.path.join(REPO, TEAMS_ROOT))) if os.path.isdir(os.path.join(REPO, TEAMS_ROOT)) else 'directory missing'}")
 
 # --- 2..5. the detector must actually detect -------------------------------
 # Each fixture is a real defect class observed in this repo on 2026-08-03.

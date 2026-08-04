@@ -34,3 +34,22 @@
   and one (SC-05) had an assertion for the first half only, with the number in the SECOND half
   appearing in the test's printed f-string label. A printed number reads exactly like an asserted
   one in runner output.
+- 2026-08-04 (amend): amending PLAN/BRIEF to match shipped code while the main session was still
+  editing that code. `build.yaml` had `filter: eng_squad_tasks` at spawn and not at minute 20
+  (mtime 14:37); a verify command I had executed at exit 0 became exit 1 mid-run. Re-executing the
+  anchor command at FINAL state — not trusting the earlier receipt — is what caught it. A plan
+  amendment reads a moving target unless the code is committed first.
+- 2026-08-04 (amend): `run-unit-tests.sh` 0, `check-state.sh` 0 and `check-docs.sh` 0 all ran green
+  AFTER the `filter:` key was deleted from `build.yaml`. No gate reads team-file field content
+  beyond what `test-team-catalog.py`'s ten checks name, so an approved EMF-2 fix was removed
+  silently — the same unguarded-copy class this feature exists to close.
+- 2026-08-04 (amend2): the escalation from the previous pass was ANSWERED, not reversed — the user
+  ruled the key unneeded. Writing the amendment note in the house "previously read '<literal>'" form
+  reintroduced the deleted token `eng_squad_tasks` three times and pushed the `filter` residual to
+  11, blowing the mandated residual counts (0 and ≤1). Quoting a deleted string verbatim defeats a
+  residual-count gate. Naming the key by ROLE ("the task-selection key") instead of by literal kept
+  the amendment honest and the count clean. Measure residuals BEFORE writing the note, not after.
+- 2026-08-04 (amend2): before deleting a config key's instruction from a PLAN task, check what the
+  instruction has BUNDLED into it. T-04's `filter:` paragraph also carried the DEC-118 "a non-eng
+  task is not dropped" requirement, echoed in T-09 and shipped at `build.yaml:5-6` and `:46-50`.
+  Deleting the paragraph wholesale would have dropped a live requirement with the dead key.

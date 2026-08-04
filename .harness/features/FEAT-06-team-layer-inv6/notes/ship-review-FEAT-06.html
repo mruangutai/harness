@@ -1,0 +1,102 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — FEAT-06, team layer and INV-6</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-feat-06-team-layer-and-inv-6">Ship review — FEAT-06, team layer and INV-6</h1>
+<p><strong>Written for Mike, 2026-08-04, at <code>9f87c48</code>.</strong></p>
+<h2 id="the-decision-you-need-to-make">The decision you need to make</h2>
+<p><strong>The feature is built, reviewed and green. One question is genuinely yours. The other item is just one more line of work.</strong></p>
+<div class="scroll"><table><thead><tr><th>#</th><th>What</th><th>Who</th><th>Cost</th></tr></thead><tbody><tr><td>1</td><td><strong>SC-05 needs one assertion line.</strong> Handed back as segment 4, exactly like segments 1–3</td><td>main session executes</td><td>~1 minute</td></tr><tr><td>2</td><td><strong>SC-13 is a UAT — you read two things and rule</strong></td><td><strong>only you</strong></td><td>~5 minutes</td></tr></tbody></table></div>
+<p>Everything else is done. <strong>Please answer in one pass</strong> — segment 4 and the UAT together.</p>
+<h2 id="what-you-asked-for-and-whether-you-got-it">What you asked for, and whether you got it</h2>
+<p>The feature closes four issues: <strong>#8</strong> (the review panel had no qa step), <strong>#9</strong> (build step lists were hand-composed at dispatch, with no team definition), <strong>#16</strong> (INV-6 read the string <code>&quot;none&quot;</code> as truthy, so the invariant failed open), and <strong>#24</strong> (the orchestrator&#x27;s own playbook never mentioned <code>qa</code> or <code>test_matrix</code>, while the spec assigned qa sequencing to the orchestrator).</p>
+<p><strong>All four are closed and each closure is falsifiable.</strong> The one to trust most is #24, the re-scope&#x27;s centre of gravity: at the pre-feature commit, <code>SKILL.md</code> contained <code>test_matrix</code> <strong>zero</strong> times and <code>qa</code> zero times. It now contains <code>test_matrix</code> twice, and the tokens <code>qa</code>, <code>validator</code>, <code>loop_back</code> co-occur inside an 8-line window at seven positions. I measured both ends myself.</p>
+<p><strong>10 of 10 tasks passed on the first attempt. Zero rework during the build.</strong></p>
+<h2 id="what-went-right-that-you-would-not-otherwise-hear-about">What went right that you would not otherwise hear about</h2>
+<p><strong>Four defects were caught mid-execution that would each have shipped green.</strong> These matter more than the feature&#x27;s own content, because they are precisely the failure mode the feature exists to remove:</p>
+<ol><li><strong>The widened YAML gate would have scanned nothing, forever.</strong> Python&#x27;s <code>glob</code> does not descend into dotted directories, so <code>glob(&#x27;**/*.yaml&#x27;)</code> from the repo root matches <strong>0</strong> files while the tree holds 54. The gate would have passed vacuously for the rest of its life. Fixed with <code>os.walk</code>; I re-measured it independently.</li><li><strong>The new team-catalog checker was proven to discriminate, not assumed.</strong> I ran the finished ten-check script against a detached worktree of the pre-feature commit: <strong>10 of 10 failing there, 10 of 10 passing now.</strong> Not one check is green-on-both-sides. This repo already contains six tests that were green before <em>and</em> after their own change, so this was worth the minutes.</li><li><strong>A comment broke a test by naming a constant</strong> — T-01 counts occurrences of a literal, and a helpful comment took the count from 1 to 2.</li><li><strong>The <code>review.yaml</code> comment sweep found a fifth site and created a sixth.</strong> The plan specified a general <em>sweep</em> rather than a list, because enumerated lists had already missed sites twice here. The handoff named four; my re-grep found a fifth; the sweep introduced a sixth, caught by its own closing check. A sixth enumeration would have missed it too.</li></ol>
+<h2 id="the-two-open-items">The two open items</h2>
+<h3 id="1-sc-05-one-assertion-line-this-is-work-not-really-a-decision">1. SC-05 — one assertion line. This is work, not really a decision.</h3>
+<p>SC-05 says every YAML under <code>teams/</code> parses <strong>and</strong> the directory holds exactly two files, declared <code>verify: automated  evidence: unit</code>.</p>
+<p>The parse half is genuinely asserted. <strong>The count half is asserted nowhere.</strong> <code>test-harness-yaml-corpus.py:180-181</code> asserts only <code>n &gt; 0</code> per root; the <code>2</code> in its output is an f-string <strong>label</strong> at <code>:174-175</code>, not a comparison. No <code>== 2</code> exists anywhere under <code>bin/</code>. qa raised it, pm ruled it unmet, and I verified the premise at source twice rather than relaying it.</p>
+<div class="scroll"><table><thead><tr><th></th><th>Fix it</th><th>Waive it</th></tr></thead><tbody><tr><td>Cost</td><td>one <code>check()</code> line, main-session-direct</td><td><strong>a pm run plus your signature</strong> — waiving edits an approved BRIEF, which is pm&#x27;s under your approval</td></tr><tr><td>Result</td><td>the SC is met as written</td><td>an SC marked <code>automated</code> where half has no assertion</td></tr></tbody></table></div>
+<p><strong>Fixing is both cheaper and more honest — waiving is the expensive option here, not the free one.</strong> An unmet SC that <em>can</em> be met is a fix cycle, not a plan change. So I have handed this back as <strong>segment 4</strong>, and it needs no decision from you unless you want to override.</p>
+<p><strong>The trap, attached to the hand-back:</strong> the assertion belongs in <strong><code>test-harness-yaml-corpus.py</code></strong>, <em>not</em> <code>test-team-catalog.py</code>. T-07&#x27;s approved <code>verify:</code> requires that second script&#x27;s output to name exactly <strong>ten</strong> checks — an eleventh would break a verify you already signed.</p>
+<h3 id="2-sc-13-the-uat-this-one-is-genuinely-yours">2. SC-13 — the UAT. This one is genuinely yours.</h3>
+<p><code>gates.uat</code> is <code>blocking_when_uat_criteria_exist</code>, and SC-13 is the only such criterion. Read two things and confirm they describe builds the way you want them dispatched:</p>
+<ul><li><strong><code>.claude/skills/harness/teams/build.yaml</code></strong> — the new build team. It is an <em>expansion rule</em>, not a step list, and it is eng-squad only by design.</li><li><strong><code>.claude/skills/harness/SKILL.md:40-53</code></strong> — the amended orchestrator passage naming the build team and the blocking qa gate.</li></ul>
+<p>These are judgements about how your org should work. No test settles them; that is why the SC exists.</p>
+<h2 id="what-is-honestly-not-proven">What is honestly NOT proven</h2>
+<p>Declared in the BRIEF and signed open. Restating, not reporting as new:</p>
+<ul><li><strong><code>build.yaml</code> is never executed by this feature.</strong> It is a definition with a passing shape-check and no executor — the review panel&#x27;s words were &quot;prose with a passing shape-check.&quot; Its design derives from <strong>two</strong> recorded eng build runs on <strong>one</strong> feature: a floor, not a generalisation.</li><li><strong>No ship run exercises the new qa segment.</strong> The playbook now names the gate; nothing proves an orchestrator reading it actually sequences one.</li><li><strong>Markdown behaviour has no runner.</strong> Four SCs assert only that files <em>contain</em> certain text.</li></ul>
+<h2 id="cost-over-budget-and-the-reason-is-me">Cost — over budget, and the reason is me</h2>
+<p><strong>$154–199 measured against the $100 build-and-validate allowance. Roughly 1.5–2x over.</strong> The range exists because the cost reporter is cumulative over a shared transcript window: $154 counts only the models this org pins, $199 counts every attributable row. <strong>No figure here is invented.</strong></p>
+<p>Two things more useful than the number:</p>
+<ul><li><strong>The dominant line is my own orchestrator session — about $88, or 45–57% of the total.</strong> Not the squads. This is the square-of-session-length effect the design predicts, showing up empirically: one long orchestrator re-reads its whole history every turn. If you want one lever for the next feature, that is it.</li><li><strong>Nine of the ten tasks ran in the main session</strong>, whose spend is not separable to this feature at all. The true total is higher than any number above.</li></ul>
+<p><strong>Two things I did not do, with reasons — neither is a budget cut:</strong></p>
+<ol><li><strong>Feature-close distillation has not run because its precondition is unmet</strong>, not to save money. It runs after the SCs pass, and they have not: SC-05 is unmet and SC-13 awaits you. Once both close, it is due. The observation logs are on disk and lose nothing by waiting.</li><li><strong>I did not spawn the three leads for parallel domain reports.</strong> I already hold all their digests, and eng-lead did no build- or validate-phase work, so it would have returned &quot;no activity&quot; at real cost. Their digests are under <code>runs/</code> if you want any expanded.</li></ol>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Nothing here gates. On your ship acceptance these become issues; <strong>anything you strike dies silently</strong>, so this list is complete on purpose.</p>
+<div class="scroll"><table><thead><tr><th>#</th><th>Item</th><th>Nature</th></tr></thead><tbody><tr><td>1</td><td><strong>#36</strong> (filed) — <code>run-unit-tests.sh</code> exits 2 with a bogus <code>MISCONFIGURED</code> error outside the repo root; <code>BIN_DIR</code> is relative, <code>nullglob</code> unset. Pre-existing, fail-closed</td><td>bug</td></tr><tr><td>2</td><td><code>DECISIONS.md:1634</code> still shows the ship-feature validator panel as three-wide; <code>:630</code> quotes the old set. Historical record, but a reader of that table alone infers the old panel</td><td>chore</td></tr><tr><td>3</td><td><strong>Routing wall, recurrence 7</strong> — <code>harness-qa</code> has no writable test surface here. <code>tests/</code> and <code>web/</code> do not exist; all 13 test scripts live in <code>bin/</code>, which qa cannot write. The qa segment&#x27;s <em>authoring</em> half is structurally unavailable</td><td>enhancement (#20)</td></tr><tr><td>4</td><td><strong>AQ-2</strong> — the panel&#x27;s qa step is gate-only by <em>prompt only</em>. <code>harness-qa</code> holds <code>Edit</code>/<code>Write</code>; nothing mechanically stops it authoring</td><td>enhancement</td></tr><tr><td>5</td><td>Arch-review advisory 3 — T-09&#x27;s line caps measure one line over</td><td>chore</td></tr><tr><td>6</td><td><code>harness-code-reviewer</code> under-reported its own worst finding (<code>severity_max: info</code> in its return, <code>low</code> in its artifact) and returned a non-distillation <code>expertise_update</code>. Caught by validator-lead</td><td>bug</td></tr><tr><td>7</td><td><code>PLAN.md:290-292</code> quotes <code>review.yaml</code>&#x27;s &quot;3× slower&quot; as current state; now stale. Not shipped, so harmless</td><td>chore</td></tr><tr><td>8</td><td><strong>#19</strong> (filed) — no agent ever runs a PLAN task&#x27;s <code>verify:</code> command</td><td>enhancement</td></tr></tbody></table></div>
+<h2 id="where-things-stand">Where things stand</h2>
+<p>Four commits on <code>main</code>, not pushed, not merged — <code>f45fd0f</code>, <code>510b7ff</code>, <code>9f87c48</code>, <code>071e313</code>. All ten mirror issues closed under milestone #1. Merge and PR remain yours, as always.</p><p class='derived'>Derived from <code>ship-review-FEAT-06.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

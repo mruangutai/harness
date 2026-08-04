@@ -39,9 +39,10 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    validator run (INV-6).
    **In the build phase, dispatch the named `build` team — never compose a step list at dispatch.**
    Resolve it `.harness/teams/build.yaml` first, then `.claude/skills/harness/teams/build.yaml`
-   (`harness-team/SKILL.md` step 1). YOU select the eng-squad task ids and hand that list to
-   `eng-lead`: the file's `filter: eng_squad_tasks` records that the selection was yours, and the
-   lead does not re-evaluate it. Everything else in the phase — documentation, goal-check, review,
+   (`harness-team/SKILL.md` step 1). **You choose WHICH tasks go to `eng-lead`** and hand it that
+   list; **the lead then routes each one to the specialist that owns it** by `consult-when`. Those
+   are two different decisions — it routes, it does not revisit your selection. Everything else —
+   documentation, goal-check, review,
    **and the `test_matrix` qa gate** — stays an orchestrator-sequenced squad segment, because a
    `build` team is single-squad by construction (DEC-118). So `build` is not the whole build
    phase, only its eng segment.

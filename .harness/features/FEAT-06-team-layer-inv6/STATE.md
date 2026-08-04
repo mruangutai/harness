@@ -4,53 +4,53 @@
 
 - feature: FEAT-06-team-layer-inv6
 - phase: validate
-- run: runs/goalcheck-product/ (complete, FAIL — SC-05 unmet as declared)
+- run: runs/amend2-product/ (complete, PASS)
 - squad: product
 - status: awaiting_user
 
-**BUILD AND VALIDATE ARE COMPLETE. The feature is at the user's gate with TWO blocking questions,
-batched as one round trip.** The briefing is `notes/ship-review-FEAT-06.md`.
+**ONE THING IS LEFT AND IT IS THE USER'S: SC-13, the UAT.** 14 of 15 SCs are met. Every gate is
+green — unit 0, docs 0, `check-state.sh` zero violations — each re-run at the orchestrator's own
+tier, not taken on report. **BRIEF and PLAN also await the main session's RE-SIGNATURE** after the
+amendments; only it writes `## Approval`.
 
-- **Q1 — SC-05 unmet as declared.** Its count conjunct has no assertion:
-  `test-harness-yaml-corpus.py:180-181` asserts `n > 0` per root, and the `2` in its output is an
-  f-string LABEL at `:174-175`. pm ruled it; I verified the premise at source twice.
-  **Recommend FIXING (one `check()` line) over waiving** — waiving amends a signed BRIEF.
-  **TRAP: the line belongs in `test-harness-yaml-corpus.py`, NOT `test-team-catalog.py`**, whose
-  signed verify requires exactly TEN checks.
-- **Q2 — SC-13 is the only `uat` criterion** and `gates.uat` is blocking. The user reads
-  `teams/build.yaml` and `SKILL.md:40-53` and rules. No test settles it.
+**SC-05 is CLOSED** by the main session's one-line fix, and the trap held: the assertion went into
+`test-harness-yaml-corpus.py` (now 13 checks), not `test-team-catalog.py`, which still names exactly
+**10** as T-07's signed verify requires.
 
-**All gates green: qa `matrix_ok: true`, panel PASS (`severity_max: low`, `must_fix` empty),
-`run-unit-tests.sh` 0, `check-docs.sh` 0, `check-state.sh` zero violations.** Every one re-run at
-the orchestrator's own tier, not taken on report. **13 of 14 non-uat SCs met.**
+**`personas:` and `filter:` are both deleted from `build.yaml` on the user's rulings, and both were
+right.** SC-07 had begun passing **vacuously** (an absent set is trivially a subset) and SC-08 had
+become **unsatisfiable**; both are reworded to the substance the shipped checks prove. **EMF-2 is
+completed, not reversed** — the finding was that the filter was not evaluable; the resolution is
+that it is not needed. **T-04's signed `verify:` was RED on two different keys in succession**
+(`KeyError: 'personas'`, then `KeyError: 'filter'`) and now runs green **while asserting their
+absence**, so it is strictly stronger than the original. Executed here at exit 0, not asserted.
 
-**10 of 10 tasks passed first time; `cycles_used` is 5 of 10** — 4 spent in planning, 1 for the
-SC-05 fix now routed.
+**THE SITE LIST WAS SHORT THREE TIMES ON THIS FEATURE** — 4 named comment sites vs 6 real; 2 named
+persona sites vs 5, the missed one being T-04's verify; 4 named filter sites vs 6, with 2 anchors
+already drifted. The orchestrator's own re-grep caught the remainder each time. **The layer a site
+list forgets is the verification criterion.**
 
-**Four defects were caught mid-execution that would each have shipped green** — detail in the
-briefing. The load-bearing one: Python `glob` does not descend into dotted directories, so T-05's
-widened gate would have scanned **0** files forever while the tree holds 54. And T-07's ten checks
-were proven to discriminate — 10 of 10 FAILING at `635ef14`, 10/10 at HEAD — by re-running them
-against a detached worktree, not by trusting a green first run.
+**COST IS OVER BY A MULTIPLE: $253 measured of the $100 allowance (2.5x), ceiling $403.** The
+orchestrator's own session is **$139 of it — 55%**, the largest single line, and DEC-148's
+square-of-session-length effect measured rather than argued. Nine of ten build tasks also ran at
+depth-0 and are not separable, so the true total is higher. No figure is invented.
 
-**COST IS 1.5-2x OVER AND SAID PLAINLY: $154-199 measured against the $100 allowance.** The range is
-the reporter's shared window; no figure is invented. **The dominant line is the orchestrator's own
-session at ~$88, 45-57%** — DEC-148's square-of-session-length effect, measured. Nine of ten tasks
-also ran at depth-0 and are not separable, so the true total is higher.
+**Two things not run, neither a budget cut:** feature-close distillation — its **precondition is
+unmet**, since it runs after the SCs pass and SC-13 has not; and the three-lead parallel briefing
+report, because every digest is already held and eng-lead did no build or validate work.
 
-**Three steps skipped, each with a disclosed reason, none hidden:** feature-close distillation
-(would add ~$40-60 at this session's most expensive point — recommend a separate `/harness-curate`;
-logs are on disk); the three-lead parallel briefing report (all digests already held, and eng-lead
-did no build or validate work); ship-refresh (genuine no-op, `.harness/codebase/` does not exist).
+**Two harness gaps found this run, both for the backlog:** no gate reads team-file field content
+beyond `test-team-catalog.py`'s ten named checks, so the `filter:` deletion passed every gate; and
+the `SubagentStop` hook does not reject a member `artifact:` pointing at a non-digest file —
+**measured**, since `validate-digest.py` run on `PLAN.md` returns BLOCKED, so the validator catches
+it and the hook is not invoking it there.
 
-**Commits `f45fd0f`, `510b7ff`, `9f87c48` on `main` — not pushed, not merged.** All 10 mirror
-issues closed under milestone #1. `review_sha` is pinned to `9f87c48`, pinned BEFORE the first
-`squad: validator` run entry was written — this feature's own `feature.yaml` is INV-6's first
-real subject.
+**Five commits on `main`, not pushed, not merged.** `review_sha` is pinned at `9f87c48`; HEAD has
+moved past it, which is fine — INV-6 requires pinned, not equal-to-HEAD.
 
 ## Open Questions
 
-- **Q1 (BLOCKING, user):** SC-05 — fix with one line, or waive? Orchestrator recommends fixing.
-- **Q2 (BLOCKING, user):** SC-13 UAT — read `teams/build.yaml` and `SKILL.md:40-53` and rule.
-- Non-blocking, for ship acceptance: the eight-item proposed backlog in the briefing. Anything the
-  user strikes there dies silently, so the list is complete on purpose.
+- **SC-13 (BLOCKING, the user's alone):** read `teams/build.yaml` and `SKILL.md:40-47` and rule.
+- **Re-signature (BLOCKING, main session):** BRIEF and PLAN amended; both need `## Approval` rewritten.
+- Non-blocking: the 11-item proposed backlog in the briefing, filed in ONE pass at ship acceptance
+  per the user's instruction. Anything struck there dies silently, so the list is complete.

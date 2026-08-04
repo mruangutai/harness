@@ -51,8 +51,9 @@ and one `steps:` entry per team step with `status: pending`.
 **A team file carries EITHER a literal `steps:` DAG OR a `steps_from:` expansion rule.** With
 `steps_from:`, expand it into concrete steps FIRST, then seed exactly as above: read the source it
 names (`plan_tasks` = the `## Tasks` of `.harness/features/<feat>/PLAN.md`); take the task ids
-**the caller handed you** — `filter:` RECORDS the orchestrator's selection, it is not a predicate
-you evaluate; resolve `persona` by `consult-when`; take each step's prompt from the task's own
+**the caller handed you** — WHICH tasks arrive is the orchestrator's decision, already made, and
+no key in the file re-states it; **route each one to a member by `consult-when`, which IS your
+decision**; take each step's prompt from the task's own
 `intent:` block when `prompt: from_task_intent`; build `depends_on` from each task's own
 `depends_on:` field when `depends_on: from_task_depends_on`, falling back to PLAN file order only
 for tasks declaring none — **PLAN file order is not a topological order**; substitute

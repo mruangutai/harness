@@ -68,18 +68,28 @@ so direct tasks cannot all be run before the one dispatch.
   team reaches the eng half only. **This is a correct bound, not a shortfall** — the qa gate and
   the documentation step were never a build team's to contain. **(b) Variable step set** —
   `review.yaml` has three fixed steps; a build has as many steps as the PLAN has eng tasks.
-  Amended by the eng review, all three inside `steps_from:`:
+  Amended by the eng review, all three touching `steps_from:`:
   - **`prompt: from_task_intent` is added (EMF-3).** Without it the file retires the hand-composed
     step LIST while keeping the hand-composed step PROMPT — #9's defect moved down one level, not
     closed. The PLAN task's `intent:` block already *is* the fully specified dispatch text.
   - **`depends_on: from_task_depends_on` replaces `from_plan_order` (EMF-1).** PLAN order is
     demonstrably not a topological order — on this very PLAN. The token reads each task's own
     `depends_on:` and falls back to file order only where a task declares none.
-  - **`filter: eng_squad_tasks` replaces `filter: squad == eng` (EMF-2).** PLAN tasks carry no
-    `squad:` field, so the old value was a predicate over a field that does not exist. It is now a
-    **token, not a pseudo-expression**, and it is documentation of a selection the **orchestrator**
-    makes when it chooses which task ids to hand eng-lead — **not** a predicate the lead evaluates.
-    T-06 and T-09 are worded to agree on that tier.
+  - **The task-selection key is REMOVED from `steps_from:` — EMF-2, completed.** The finding was
+    that its value, `squad == eng`, named a `squad:` field PLAN tasks do not carry: a predicate over
+    a field that does not exist, so nothing could ever evaluate it. Renaming it to an honest token
+    was one way to close that; deleting it is the one taken. A key no runtime evaluates, whose only
+    content is a decision made elsewhere, is a comment wearing a key — so the selection is recorded
+    where it belongs, in a comment (`build.yaml:46-50`), and the key is gone. **This CLOSES the
+    finding, it does not reverse it:** the finding was that the predicate was not evaluable; the
+    resolution is that it is not needed. *(Amended 2026-08-04; this bullet previously prescribed
+    renaming the selection key rather than removing it.)*
+    The coordination obligation survives the deletion, re-anchored on the distinction that outlives
+    the key — **two different decisions, each owned by a different tier**: **WHICH tasks** go to
+    `eng-lead` is the **orchestrator's**, decided before dispatch and handed over as a list; **WHICH
+    specialist** owns each of those tasks is the **lead's**, a real decision it makes by
+    `consult-when`. The lead routes; it does not revisit the selection. T-06 and T-09 are worded to
+    agree on that split.
   Tradeoff accepted, load-bearing: **`build.yaml` is a different KIND of object from `review.yaml`**
   — a rule to expand rather than a DAG to walk. Any future runner must handle both forms. Recorded
   so a future scan does not re-suggest "just write literal steps" without knowing the task set is
@@ -375,13 +385,17 @@ T-02's execution is the moment it can be closed cheaply, close it there.
     Instead of a literal `steps:` list, declare an expansion rule (D-03) under a `steps_from:` key
     with these fields:
     `source: plan_tasks` (the host reads `## Tasks` from `.harness/features/{{feat}}/PLAN.md`);
-    `filter: eng_squad_tasks` — **a token, not a predicate** (EMF-2): it records that the
-    ORCHESTRATOR selected the task ids it handed eng-lead; the lead does not evaluate it, and
-    nobody should later write an evaluator for it. Add a comment saying exactly that, and that a
-    non-eng task is not dropped — it stays for the orchestrator to sequence as its own squad
-    segment (DEC-118);
-    `persona: by_consult_when` (the lead routes each T-NN to a member by its `consult-when`, which
-    is what `…-09-eng` and `…-10-eng` actually did);
+    **no task-selection key at all** (EMF-2): a key no runtime evaluates, recording a decision made
+    before dispatch, is a comment wearing a key — so write it as a comment and not as config.
+    *(Amended 2026-08-04; this instruction previously prescribed a selection key holding a token
+    rather than a predicate.)* Above `persona:`, carry a comment stating the two decisions and their two
+    owners: **WHICH tasks** arrive here is the ORCHESTRATOR's decision, made before dispatch and
+    handed over as a list; **WHICH specialist** gets each of them is the LEAD's decision, and a
+    real one. Same comment states that a non-eng task is not dropped here — it was never in the
+    set, and it stays for the orchestrator to sequence as its own squad segment (DEC-118);
+    `persona: by_consult_when` — the lead routes each T-NN to a member by that member's
+    `consult-when`, which is what `…-09-eng` and `…-10-eng` actually did; it routes, it does not
+    revisit the orchestrator's selection;
     `prompt: from_task_intent` — **required** (EMF-3): the PLAN task's `intent:` block IS the
     dispatch text. Without this the file retires the hand-composed step LIST while keeping the
     hand-composed step PROMPT, which is #9's defect moved down one level rather than closed;
@@ -391,9 +405,11 @@ T-02's execution is the moment it can be closed cheaply, close it there.
     fatal (AMF-1): (i) the `harness-` prefix is what makes the rendered path match a receipt grant —
     all five grants in `team-config.yaml` (`:144`, `:158`, `:171`, `:184`, `:199`) require
     `receipt-harness-`, and `check-domain.sh:242-248` **BLOCKS** an unmatched path at exit 2 rather
-    than warning, so `personas:` stays SHORT (`dev-ops`) while `outputs:` renders FULL, which is
-    exactly the mixed convention `review.yaml` already uses (`persona: code-reviewer`,
-    `outputs: review-harness-code-reviewer-c{{cycle}}.md`); (ii) `c{{cycle}}` is what preserves the
+    than warning. So the `harness-` prefix must be a LITERAL in the template while `{{persona}}`
+    substitutes the SHORT resolved name (`dev-ops`) that `persona: by_consult_when` yields — short
+    resolution, full rendered path. This is exactly the mixed convention `review.yaml` already uses
+    (`persona: code-reviewer` at `review.yaml:23`, `outputs:
+    review-harness-code-reviewer-c{{cycle}}.md` at `:26`); (ii) `c{{cycle}}` is what preserves the
     loop-back record — this step carries `on_fail: loop_back`, and `harness-team/SKILL.md` step 3.5
     (DEC-117) requires cycle-namespaced outputs on anything that re-runs, because a PASS on cycle 2
     otherwise overwrites the FAIL report that justified the cycle;
@@ -405,14 +421,23 @@ T-02's execution is the moment it can be closed cheaply, close it there.
     `on_fail: loop_back` with a one-line comment that this restates eng-lead's existing build
     fix-loop rule rather than inventing a new one (eng advisory 1 — `review.yaml`'s steps carry no
     `on_fail:` and are legal, but build is where it matters and a future runner will look here).
-    Add `personas: [frontend-dev, backend-dev, ai-dev, data-engineer, dev-ops]` — the Engineering
-    squad's full roster as read from `team-config.yaml` (`teams[1].members`), in the SHORT form
-    `review.yaml` already uses for `persona:`.
+    **Do NOT add a `personas:` key.** *(Amended 2026-08-04; this instruction previously read "Add
+    `personas: [frontend-dev, backend-dev, ai-dev, data-engineer, dev-ops]` — the Engineering
+    squad's full roster as read from `team-config.yaml`".)* The roster lives in
+    `.harness/team-config.yaml` and nothing here reads a copy of it: the expansion routes each task
+    by `consult-when` at dispatch, so a second copy is data no runtime consults, going stale the day
+    a member is added. `bin/test-team-catalog.py` asserts the DEC-118 bound and the recorded floor
+    against `team-config.yaml` directly, which is the only file that can be right about them.
     Add a header comment block stating, in prose a lead reads: (a) this team is **eng-squad only**
     by DEC-118 and cannot reach documentor, pm, reviewer or qa steps — a correct bound; (b) it is
-    an expansion rule, not a DAG, and why; (c) that its persona set was derived from FEAT-03's
-    recorded eng build runs `2026-07-31-09-eng` (dev-ops) and `2026-07-31-10-eng` (backend-dev),
-    n = **2 eng runs on 1 feature** (Q1), so it is a floor, not a closed set; (d) that this file
+    an expansion rule, not a DAG, and why; (c) that this file **deliberately does not list its
+    personas** and why — the roster lives in `team-config.yaml`, a second copy is data no runtime
+    consults — while stating that the evidence for what a build actually uses is FEAT-03's recorded
+    eng build runs `2026-07-31-09-eng` (dev-ops) and `2026-07-31-10-eng` (backend-dev),
+    n = **2 eng runs on 1 feature** (Q1), so that is a floor, not a closed set. *(Amended
+    2026-08-04: (c)'s first half previously read "that its persona set was derived from" those runs
+    — a property of a key that no longer exists. The floor-not-a-closed-set half is unchanged and
+    still required.)*; (d) that this file
     **prescribes one run per build covering all eng tasks, a shape the recorded runs did NOT use**
     — they used one lead-owned run per contiguous persona block. Say "prescribes a shape the
     recorded runs did not use", not "derived from" (eng-lead's Q2); (e) that the receipt path
@@ -427,11 +452,20 @@ T-02's execution is the moment it can be closed cheaply, close it there.
     d=harness_yaml.load_file('.claude/skills/harness/teams/build.yaml');
     sf=d['steps_from'];
     assert d['name']=='build' and d['lead']=='eng-lead';
-    assert sf['prompt']=='from_task_intent' and sf['depends_on']=='from_task_depends_on'
-    and sf['filter']=='eng_squad_tasks';
-    assert {'dev-ops','backend-dev'} <= set(d['personas'])"` exits 0.
-    (`load_file`, not `yaml.safe_load` — eng advisory 2. The three `steps_from` field assertions
-    are what make EMF-1/2/3 non-optional.)
+    assert sf['prompt']=='from_task_intent' and sf['depends_on']=='from_task_depends_on';
+    assert sf['persona']=='by_consult_when' and 'personas' not in d and 'filter' not in sf"`
+    exits 0. Executed against the shipped file on 2026-08-04: **exit 0**.
+    (`load_file`, not `yaml.safe_load` — eng advisory 2. The `steps_from` assertions are what make
+    EMF-1/2/3 non-optional: EMF-1 and EMF-3 as presence, EMF-2 as absence.
+    *(Amended 2026-08-04; the final assertion previously read `assert {'dev-ops','backend-dev'} <=
+    set(d['personas'])`, and a further clause asserted a task-selection key on `steps_from:`.)*
+    Both were red against the shipped file, each raising a `KeyError` on the key it named — i.e. a
+    signed `verify:` that appears to check something and cannot run, this feature's charter defect
+    inside its own PLAN. The roster clause is replaced by the mechanism that DISPLACED the roster
+    copy, `persona: by_consult_when`, plus a regression guard that the copy has not come back; the
+    selection clause is replaced by the same shape of guard, since EMF-2 now ships as a deletion.
+    Both absence guards are discriminating, not vacuous (P-01): each key was present and non-empty
+    before this change.)
   traces: REQ-03, D-03
   feature: FEAT-06
   status: pending
@@ -487,9 +521,11 @@ T-02's execution is the moment it can be closed cheaply, close it there.
     `consult-when`" and says nothing about a build team. Amend step 3 so that in the **build** phase
     the orchestrator (a) resolves the `build` team (`.harness/teams/build.yaml` first, then
     `.claude/skills/harness/teams/build.yaml`, per `harness-team/SKILL.md` step 1), (b) **selects
-    the eng-squad task ids itself** and hands that list to `eng-lead` — the selection is the
-    orchestrator's, which is what `filter: eng_squad_tasks` records (EMF-2; T-09 must say the same
-    and not contradict this tier) — instead of composing a step list at dispatch. State in the same
+    the eng-squad task ids itself** and hands that list to `eng-lead`, which then routes each one to
+    the specialist that owns it by `consult-when` — **two different decisions**: WHICH tasks is the
+    orchestrator's, WHICH specialist is the lead's; it routes, it does not revisit the selection
+    (EMF-2; T-09 must say the same and not contradict this split) — instead of composing a step list
+    at dispatch. State in the same
     passage that non-eng tasks (documentation, goal-check, review, **and the qa gate**) remain
     orchestrator-sequenced squad segments because a team is single-squad by construction (DEC-118)
     — so `build` is not the whole build phase, only its eng segment.
@@ -530,11 +566,20 @@ T-02's execution is the moment it can be closed cheaply, close it there.
     on D-08's recommended branch**; under the alternative branch this becomes
     `{code, security, ui}`;
     (2) `teams/build.yaml` parses, has `name: build` and `lead: eng-lead` — SC-07;
-    (3) every entry of `build.yaml`'s `personas:`, normalised by prefixing `harness-`, is a member
-    of the **Engineering** team as read from `.harness/team-config.yaml` (`d['teams']` → the entry
-    whose `team-name` is `Engineering` → `members[*].name`) — SC-07, the DEC-118 single-squad
-    assertion;
-    (4) `build.yaml`'s `personas:` is a superset of `{dev-ops, backend-dev}` — SC-08;
+    (3) `build.yaml`'s declared `lead:` is recorded in `.harness/team-config.yaml`'s `leads:` with
+    `squad: eng`, so the team is single-squad **by construction** — SC-07, the DEC-118 assertion.
+    Match the lead record on either the bare or the `harness-`-prefixed name;
+    (4) the **Engineering** team as read from `.harness/team-config.yaml` (`d['teams']` → the entry
+    whose `team-name` is `Engineering` → `members[*].name`) covers the recorded floor, i.e.
+    `{harness-dev-ops, harness-backend-dev}` is a subset of that member set — SC-08. Compare against
+    the full `harness-`-prefixed names as `team-config.yaml` records them, not a short form
+    normalised up from `build.yaml`;
+    *(Both amended 2026-08-04: (3) and (4) previously read `build.yaml`'s `personas:` key, which is
+    deleted. The old (3) — `listed ⊆ Engineering` — could catch a persona that should not be there
+    and structurally could NOT catch a member added to the squad, the direction a copy actually
+    rots. As shipped they read `team-config.yaml` directly: check (3) at
+    `bin/test-team-catalog.py:103-116`, check (4) at `:122-129`. Still exactly TEN checks, as this
+    task's signed `verify:` requires.)*
     (5) `.claude/skills/harness/SKILL.md` contains a line matching both `build` and `DEC-118`
     — SC-09, a PRESENCE assertion (D-04);
     (6) the literal `"none", "null", "n/a"` occurs exactly **once** across
@@ -656,9 +701,11 @@ T-02's execution is the moment it can be closed cheaply, close it there.
     expands it into concrete steps —
     read the source named by `steps_from.source` (for `plan_tasks`, the `## Tasks` of
     `.harness/features/<feat>/PLAN.md`);
-    take the task ids **the caller handed you** — `filter:` is a RECORD of the orchestrator's
-    selection, not a predicate the host evaluates (EMF-2; this must not contradict T-06's wording);
-    resolve `persona` by `consult-when`;
+    take the task ids **the caller handed you** — the expansion rule carries no selection key and
+    the host evaluates no predicate to choose tasks; WHICH tasks arrive is the orchestrator's
+    decision, already made (EMF-2; this must not contradict T-06's wording);
+    resolve `persona` by `consult-when` — WHICH specialist owns each task is the lead's own
+    decision, and the one real routing choice this expansion makes;
     take each step's prompt from the task's own `intent:` block when `prompt: from_task_intent`
     (EMF-3);
     build `depends_on` from each task's own `depends_on:` field when
