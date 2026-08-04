@@ -75,13 +75,16 @@ positives train people to ignore you.
 
 ## Output
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL
 DIGEST:
   headline: <one line>
   in_scope: <bool>
   scope_reason: "<why this diff has or lacks a surface>"
-  severity_max: info|low|med|high|critical
+  severity_max: info|low|med|high|critical|n/a
+                              # n/a = scoped OUT; nothing in this diff for this
+                              # role to judge. PASS with n/a is legitimate (DEC-173)
   findings: <n>
   must_fix: [<item>]
   threat_model: [{ boundary: ..., stride: T|I|E|..., mitigated: <bool> }]
@@ -91,3 +94,4 @@ DIGEST:
   expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: .harness/notes/review-harness-security-reviewer-<runid>.md
 ```
+````

@@ -59,13 +59,16 @@ tests `SC-03`, say so, and the gap returns to a dev.
 
 ## Output
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line>
-  suite: pass|fail
+  suite: pass|fail|n/a        # n/a ONLY if the suite could not be run at all
   failures: <n>
-  matrix_ok: <bool>           # a BOOL. "mostly" is a contract violation
+  matrix_ok: <bool>|n/a       # a BOOL. "mostly" is a contract violation.
+                              # n/a ONLY if the matrix could not be evaluated;
+                              # n/a with VERDICT: PASS is rejected — DEC-173
   kinds: [{ kind: unit, state: satisfied, cmd: "...", named_tests: <n> }]
   coverage_gaps: [<area>]     # include Phase 1 expectations with no test
   sc_evidence: [{ id: SC-01, test: "<path:line>" }]
@@ -75,3 +78,4 @@ DIGEST:
   expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: <path>
 ```
+````

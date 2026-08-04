@@ -41,7 +41,8 @@ matches the code, **fix it or flag it** — do not write around it.
 
 ## Output
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line>
@@ -54,3 +55,4 @@ DIGEST:
   expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: <.harness/notes/<doc-or-path-written>>
 ```
+````

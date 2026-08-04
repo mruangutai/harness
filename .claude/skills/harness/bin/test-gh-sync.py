@@ -695,5 +695,76 @@ with tempfile.TemporaryDirectory() as tmpL:
           r.returncode == 1 and all(l.startswith("auth") for l in logL),
           str(logL))
 
+# ---------- T-06 Part C: load_recorded reads the github: block with a PARSER ----------
+# Mandated by the plan and never written; found MISSING by the review panel (F-04) and
+# confirmed by grep before being fixed here. Both cases are read-only — they call the
+# function directly rather than driving a subcommand, because what is under test is the
+# PARSE, not the GitHub calls.
+
+import importlib.util as _ilu
+_spec = _ilu.spec_from_file_location(
+    "_ghs", os.path.join(os.path.dirname(os.path.abspath(__file__)), "gh-sync.py"))
+_ghs = _ilu.module_from_spec(_spec)
+_spec.loader.exec_module(_ghs)
+
+# 1. A trailing `#` comment on parent: and milestone: — the issue #11 defect class, in
+#    THIS file. The old regexes were `(\d+)`-anchored, so a commented value still
+#    matched; a QUOTED one did not. Both shapes are asserted so the case cannot pass by
+#    accident on the easy half.
+_d1 = tempfile.mkdtemp()
+open(os.path.join(_d1, "feature.yaml"), "w").write(
+    "feature_id: F1\n"
+    "github:\n"
+    "  parent: 40        # the container issue, adopted\n"
+    '  milestone: "7"    # quoted on purpose\n'
+    "  parent_origin: adopted\n"
+    "  attached: [T-01]\n"
+    "  issues:\n"
+    "    T-01: 41   # trailing comment here too\n"
+)
+_rec = _ghs.load_recorded(_d1)
+check("T-06C: a trailing # comment on parent:/milestone:/issues does not lose the value",
+      _rec["parent"] == 40 and _rec["milestone"] == 7
+      and _rec["issues"] == {"T-01": 41} and _rec["attached"] == ["T-01"],
+      str(_rec))
+
+# 2. No github: block at all -> the all-None default, never a raise. gh-sync would
+#    otherwise crash on any feature that has not been mirrored yet, which is most of
+#    them.
+_d2 = tempfile.mkdtemp()
+open(os.path.join(_d2, "feature.yaml"), "w").write("feature_id: F2\nphase: plan\n")
+_rec2 = _ghs.load_recorded(_d2)
+check("T-06C: a feature.yaml with no github: block returns the default, does not raise",
+      _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
+                "attached": [], "issues": {}},
+      str(_rec2))
+
+# ---------- review finding 2: save_recorded must not append a SECOND github: block ----------
+# The old `^github:\s*$...` regex missed `github:   # comment` — this repo's own house
+# style — so nothing was stripped and a second top-level key was appended. The strict
+# loader then raised DuplicateKeyError and load_recorded turned it into SystemExit, so
+# every later gh-sync died with "does not parse". Severe because save_recorded runs
+# IMMEDIATELY AFTER an irreversible GitHub mutation (DEC-131), so the record that rule
+# exists to preserve became unreadable.
+_REC = {"milestone": 9, "parent": 40, "parent_origin": "created",
+        "attached": ["T-01"], "issues": {"T-01": 41}}
+for _label, _body in (
+        ("bare", "feature_id: F1\ngithub:\n  parent: 40\nphase: ship\n"),
+        ("trailing comment", "feature_id: F1\ngithub:   # the mirror\n  parent: 40\nphase: ship\n"),
+        ("column-0 comment inside", "feature_id: F1\ngithub:\n  parent: 40\n# note\n  milestone: 9\nphase: ship\n"),
+        ("no block at all", "feature_id: F1\nphase: ship\n")):
+    _d = tempfile.mkdtemp()
+    open(os.path.join(_d, "feature.yaml"), "w").write(_body)
+    _ghs.save_recorded(_d, _REC)
+    _txt = open(os.path.join(_d, "feature.yaml")).read()
+    _n = sum(1 for l in _txt.split("\n") if l.split("#", 1)[0].rstrip() == "github:")
+    try:
+        _rt = _ghs.load_recorded(_d)
+        _ok = _n == 1 and _rt["parent"] == 40 and _rt["milestone"] == 9
+        _why = f"{_n} github: keys, round-trip {_rt}"
+    except SystemExit as e:
+        _ok, _why = False, f"load_recorded refused after save: {e}"
+    check(f"finding 2: save_recorded round-trips a feature.yaml with a {_label}", _ok, _why)
+
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

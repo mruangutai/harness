@@ -45,6 +45,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from gh_issues import internal_id_args, attach_sub_issue_args
 
+import harness_yaml
+
 GH = os.environ.get("GH_SYNC_GH", "gh")
 
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
@@ -173,31 +175,139 @@ def type_label(change_type):
     return None
 
 
-# ---------- feature.yaml github block (text ops — no yaml dependency) ----------
+# ---------- feature.yaml github block ----------
+# The header used to read "text ops — no yaml dependency", which T-06 made false and
+# F-04 caught still standing: load_recorded PARSES with harness_yaml (DEC-171).
+# save_recorded remains text ops, and deliberately so — safe_dump does not preserve
+# comments, and this block sits in a file whose other sections are heavily annotated.
+# So: the READER parses, the WRITER splices text. Do not "unify" them.
+
+def _opt_int(v):
+    """A recorded issue/milestone number as int, or None for `none`/absent/junk.
+
+    Tolerates the quoted form the old `(\\d+)` regex silently read as ABSENT — and
+    "absent" here meant `gh-sync` believed nothing was recorded and would create a
+    duplicate parent or milestone. bool is excluded explicitly: it is an int subclass
+    in Python, so `parent: true` would otherwise become 1."""
+    if v is None or isinstance(v, bool):
+        return None
+    if isinstance(v, int):
+        return v
+    s = str(v).strip()
+    return int(s) if s.isdigit() else None
+
 
 def load_recorded(feat_dir):
-    t = read(os.path.join(feat_dir, "feature.yaml"))
+    """Read the `github:` block with a real parser (T-06).
+
+    Four defects the previous line/block regexes carried, each the same shape — one
+    hand-listed serialisation standing in for a format that has several:
+
+    - `^\\s{4}(T-\\d+):\\s*(\\d+)` hardcoded a FOUR-SPACE indent for issue entries. Any
+      other nesting and every recorded task issue vanished, which reads as "nothing is
+      mirrored" and re-creates issues that already exist.
+    - `parent:\\s*(\\d+)` accepted only bare digits, so a quoted `parent: "40"` read as
+      absent — the duplicate-parent path.
+    - `attached:\\s*\\[([^\\]]*)\\]` handled the inline flow list ONLY; a block list
+      (`- x` on following lines) returned []. Same single-format bug as DEC-123,
+      DEC-129 and issue #11.
+    - `^github:\\s*$(.*?)(?=^\\S|\\Z)` sliced the block by indentation, so a comment at
+      column 0 inside it truncated everything after.
+    """
+    path = os.path.join(feat_dir, "feature.yaml")
     rec = {"milestone": None, "parent": None, "parent_origin": None, "attached": [], "issues": {}}
-    m = re.search(r"^github:\s*$(.*?)(?=^\S|\Z)", t, re.M | re.S)
-    if m:
-        blk = m.group(1)
-        n = re.search(r"^\s*milestone:\s*(\d+)", blk, re.M)
-        rec["milestone"] = int(n.group(1)) if n else None
-        p = re.search(r"^\s*parent:\s*(\d+)", blk, re.M)
-        rec["parent"] = int(p.group(1)) if p else None
-        po = re.search(r"^\s*parent_origin:\s*(created|adopted)\b", blk, re.M)
-        rec["parent_origin"] = po.group(1) if po else None
-        a = re.search(r"^\s*attached:\s*\[([^\]]*)\]", blk, re.M)
-        if a:
-            rec["attached"] = [x.strip() for x in a.group(1).split(",") if x.strip()]
-        rec["issues"] = {k: int(v) for k, v in re.findall(r"^\s{4}(T-\d+):\s*(\d+)", blk, re.M)}
+    # ABSENCE is checked before parsing, not caught after it (review finding 4). The
+    # old `except FileNotFoundError: return rec` was UNREACHABLE — load_file wraps
+    # OSError into YamlParseError, so a missing feature.yaml reported as "does not
+    # parse", blaming the file's contents for a file that does not exist. The dead
+    # branch also documented an intent that could never occur, which is the more
+    # expensive half: a later reader trusts it.
+    if not os.path.exists(path):
+        return rec
+    try:
+        doc = harness_yaml.load_file(path)
+    except harness_yaml.MissingDependency as e:
+        # Distinct from a parse failure and worth its own message: nothing is wrong
+        # with the file. Ordered FIRST — it subclasses YamlParseError.
+        raise SystemExit(f"gh-sync: {e}")
+    except harness_yaml.YamlParseError as e:
+        # Loud, and NOT treated as "nothing recorded" — that mistake would re-create
+        # a parent and a milestone that already exist on GitHub. DEC-171 am.1: a
+        # missing parse is an error, never a quieter mode.
+        raise SystemExit(f"gh-sync: {path} does not parse, so what is already mirrored "
+                         f"cannot be known. Refusing to sync rather than risk duplicate "
+                         f"issues.\n  {e}")
+    # M-02's shape, hardened here too. `(doc or {})` covers an empty file, but a bare
+    # scalar or list parses fine and has no .get — the panel found the identical
+    # pattern crashing manifest_domains. Same rule: parses-but-is-not-a-mapping is not
+    # an error the loader raises, so every consumer must guard the TYPE, not just the
+    # absence.
+    gh = doc.get("github") if isinstance(doc, dict) else None
+    if not isinstance(gh, dict):
+        return rec
+
+    rec["milestone"] = _opt_int(gh.get("milestone"))
+    rec["parent"] = _opt_int(gh.get("parent"))
+    po = gh.get("parent_origin")
+    rec["parent_origin"] = po if po in ("created", "adopted") else None
+
+    attached = gh.get("attached")
+    if isinstance(attached, list):
+        rec["attached"] = [str(x).strip() for x in attached if str(x).strip()]
+    elif isinstance(attached, str) and attached.strip():
+        rec["attached"] = [x.strip() for x in attached.split(",") if x.strip()]
+
+    issues = gh.get("issues")
+    if isinstance(issues, dict):
+        for k, v in issues.items():
+            n = _opt_int(v)
+            if n is not None and re.fullmatch(r"T-\d+", str(k).strip()):
+                rec["issues"][str(k).strip()] = n
     return rec
+
+
+def _strip_github_block(t):
+    """Remove an existing top-level `github:` block, however it is written.
+
+    LINE-BASED, not a regex over the whole file. The regex this replaces was
+    `^github:\\s*$...` — anchored to a bare `github:` with nothing after it — and it
+    missed `github:   # comment`, which is this repo's own house style (45 such
+    trailing comments in FEAT-03's feature.yaml alone). Nothing was removed, so
+    save_recorded APPENDED A SECOND top-level `github:` key; the strict loader then
+    raised DuplicateKeyError and load_recorded turned that into SystemExit, so every
+    later gh-sync command died with "does not parse — refusing to sync".
+
+    Worse with a column-0 comment INSIDE the block: the sub stripped the header and
+    left the indented body dangling, i.e. syntactically invalid YAML.
+
+    Why this is the severe one rather than a nuisance: save_recorded is called
+    IMMEDIATELY AFTER an irreversible GitHub mutation (DEC-131's record-after-every-
+    create rule). So the sequence was: milestone created on GitHub -> feature.yaml
+    corrupted -> the record DEC-131 exists to preserve becomes unreadable. Both cases
+    self-healed under the old regex READER, which is why converting only the reader
+    (T-06) armed this.
+    """
+    out, skipping = [], False
+    for line in t.split("\n"):
+        if skipping:
+            # The block ends at the next line that starts at column 0 and is not blank.
+            if line[:1] not in ("", " ", "\t", "#"):
+                skipping = False
+            else:
+                continue
+        # A top-level `github:` key — bare, or with a trailing comment, or quoted.
+        stripped = line.split("#", 1)[0].rstrip()
+        if stripped in ("github:", '"github":', "'github':"):
+            skipping = True
+            continue
+        out.append(line)
+    return "\n".join(out)
 
 
 def save_recorded(feat_dir, rec):
     p = os.path.join(feat_dir, "feature.yaml")
     t = read(p)
-    t = re.sub(r"^github:\s*$.*?(?=^\S|\Z)", "", t, flags=re.M | re.S).rstrip("\n") + "\n"
+    t = _strip_github_block(t).rstrip("\n") + "\n"
     lines = [
         "github:",
         f"  milestone: {rec['milestone']}",
@@ -416,6 +526,10 @@ def cmd_ship(feat_dir, repo, body_file=None):
 
 
 def main():
+    # Review finding 1: the module's documented gate had ZERO production callers,
+    # so a missing PyYAML surfaced as a raw traceback instead of INSTALL_COMMAND.
+    # First statement, before any parse can be attempted.
+    harness_yaml.require_or_die()
     argv = sys.argv[1:]
     parent_arg = None
     if "--parent" in argv:

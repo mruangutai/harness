@@ -15,7 +15,7 @@ cli_min_version: "2.1.217"        # floor for the spawn env vars (DEC-83)
 # It is not an agent and has no domain — check-domain exits 0 when a payload carries
 # no agent_type, which is what lets it maintain state at all.
 main_session:
-  writes: [.harness/features/*/BRIEF.md ## Approval, .harness/features/*/PLAN.md ## Approval, .harness/logs/**]
+  writes: [".harness/features/*/BRIEF.md ## Approval", ".harness/features/*/PLAN.md ## Approval", ".harness/logs/**"]
 
 # The ORCHESTRATOR is a spawned agent, one per in-flight feature, so N flows can run
 # at once (DEC-120). Being an agent means it IS governed by check-domain — hence the
@@ -216,7 +216,15 @@ teams:
         domain:
           - { path: tests/**, upsert: true }              # seeded by /harness-init
           - { path: web/src/**/*.test.*, upsert: true }
+          # Both spellings, because the panel's dispatch names the reviewer-style one
+          # (Q6): the other three members write notes/review-harness-<persona>-c0.md,
+          # so a lead composing a review run reasonably asks qa for the same shape and
+          # qa is denied. Fourth recurrence of the routing wall — qa correctly wrote to
+          # the permitted path and ESCALATED rather than working around the guard, which
+          # is the behaviour the guard is for. Widened to match the convention its own
+          # squad already follows rather than asking every future lead to remember.
           - { path: .harness/features/*/notes/qa-*.md, upsert: true }   # assessments; the 3 reviewers each own one, qa owned none
+          - { path: .harness/features/*/notes/review-harness-qa-*.md, upsert: true }   # Q6
           - { path: .harness/expertise/harness-qa.md, upsert: true }
           - { path: .harness/features/*/observations/harness-qa.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }

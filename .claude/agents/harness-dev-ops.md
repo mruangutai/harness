@@ -63,13 +63,15 @@ Judge by what the code does, not by which directory it sits in.
 
 ## Output
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line>
   change_type: config|scaffolding|infra|ci
   applied: [<paths>]
-  suite: pass|fail|n/a          # n/a for genuinely TDD-exempt work
+  suite: pass|fail|n/a          # n/a for genuinely TDD-exempt work (test_matrix -> []).
+                                # dev-ops MAY pass with n/a; dev and qa may not (DEC-173)
   test_kinds_written: [<kind: cmd>]   # when you ran detection
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
@@ -77,3 +79,4 @@ DIGEST:
   expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: <path>
 ```
+````

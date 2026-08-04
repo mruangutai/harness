@@ -85,13 +85,16 @@ false all-clear.
 
 ## Output
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL
 DIGEST:
   headline: <one line>
   mode: A|B                          # ONE KEY PER LINE — two on a line is not YAML,
   in_scope: <bool>                   # and the trailing one vanishes silently
-  severity_max: info|low|med|high|critical
+  severity_max: info|low|med|high|critical|n/a
+                              # n/a = scoped OUT; nothing in this diff for this
+                              # role to judge. PASS with n/a is legitimate (DEC-173)
   findings: <n>
   must_fix: [<item>]
   states_unspecified: [<state>]      # mode A
@@ -103,3 +106,4 @@ DIGEST:
   expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: .harness/notes/review-harness-ui-reviewer-<runid>.md
 ```
+````

@@ -21,38 +21,79 @@ set -uo pipefail
 
 payload=$(cat)
 
-agent="$(printf '%s' "$payload" | python3 -c '
-import sys, json
-try:
-    print(json.load(sys.stdin).get("agent_type", "") or "")
-except Exception:
-    print("")
-' 2>/dev/null)"
-[ -n "$agent" ] || exit 0
-case "$agent" in
-  harness-dev-ops) exit 0 ;;
-  harness-*) ;;
-  *) exit 0 ;;
-esac
-
+# BASH_SOURCE is the one question only bash can answer, which is why any bash remains.
 _self="${BASH_SOURCE[0]:-$0}"
 _selfdir="$(cd "$(dirname "$_self")" && pwd)"
 _derived="$(cd "$_selfdir/../../../.." && pwd)"
-root="${CLAUDE_PROJECT_DIR:-}"
-if [ -z "$root" ] || [ ! -r "$root/.harness/team-config.yaml" ]; then
-  [ -r "$_derived/.harness/team-config.yaml" ] && root="$_derived" || root="${root:-$(pwd)}"
-fi
-manifest="$root/.harness/team-config.yaml"
-[ -r "$manifest" ] || exit 0   # not onboarded — fail open like check-domain
 
-HOOK_PAYLOAD="$payload" python3 - "$agent" "$manifest" "$root" <<'PY'
+# T-15: ONE interpreter launch, not two. Same reasoning as T-13 on the sibling hook —
+# this fires on every Bash tool call, and a Python start-up per launch is the bulk of
+# it. Behaviour is unchanged: the dev-ops exemption, the harness-* prefix filter, the
+# absent-manifest fail-open and every exit-2 message are identical, and the unchanged
+# test suite is the equivalence proof (D-10, REQ-07).
+HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
+  python3 - "$_derived" <<'PY'
 import sys, os, re, json, shlex
 
-agent, manifest, root = sys.argv[1:4]
+# harness_yaml is imported LAZILY, after the manifest check — NOT here. Ordering is
+# behaviour: the two-launch version reached the absent-manifest fail-open in BASH,
+# before any interpreter needed the module, so a guard whose module is missing must
+# still exit 0 there rather than crash. (T-13 shipped this bug on the sibling hook and
+# a test caught it.)
+_derived = sys.argv[1]
+
 try:
     d = json.loads(os.environ.get("HOOK_PAYLOAD") or "")
 except Exception:
     sys.exit(0)
+
+agent = d.get("agent_type") or ""
+if not agent:
+    sys.exit(0)
+
+# harness-dev-ops is EXEMPT: it owns the tooling this guard is made of, and blocking
+# it would remove the one recovery path when the guard itself is broken.
+if agent == "harness-dev-ops":
+    sys.exit(0)
+if not agent.startswith("harness-"):
+    sys.exit(0)
+
+root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
+    if os.access(os.path.join(_derived, ".harness", "team-config.yaml"), os.R_OK):
+        root = _derived
+    else:
+        root = root or os.getcwd()
+manifest = os.path.join(root, ".harness", "team-config.yaml")
+
+# not onboarded — fail open like check-domain
+if not os.access(manifest, os.R_OK):
+    sys.exit(0)
+
+import harness_yaml
+
+# The RETURN VALUE IS THE DECISION — see check-domain.sh's note. A bare call leaves
+# REQ-04's fail-closed and SC-09's expiry inert: the function prints, and the write
+# proceeds anyway because only exit 2 blocks (DEC-100).
+if not harness_yaml.require_or_bootstrap(root):
+    sys.exit(2)
+
+# GRANTED, and there is no parser. Recorded, NOT acted on here — see below.
+#
+# This used to `sys.exit(0)` on the spot, which short-circuited the ENTIRE guard. But
+# only the DOMAIN check needs the manifest: the reviewer read-only rule and the
+# write-pattern detection need neither a manifest nor a parser. So a bootstrap-grant
+# session let `harness-code-reviewer` run `rm -rf src/main.py` — reproduced live, exit 0
+# where a PyYAML-present run exits 2. On `main` this guard had NO YAML dependency at
+# all, so reviewer read-only was unconditional; the short-circuit was a regression
+# introduced by this feature.
+#
+# It is also the exact defect the sibling hook was fixed for one commit earlier
+# ("Skip only what actually needs the parser", check-domain.sh) — fixed there and not
+# here, in a pair of files this same feature otherwise went to lengths to keep in step
+# (D-03). Two guards, one rule, and I changed one of them.
+_no_parser = harness_yaml.yaml is None
+
 cmd = ((d.get("tool_input") or {}).get("command") or "")
 if not cmd:
     sys.exit(0)
@@ -244,23 +285,41 @@ if agent in REVIEWERS:
     deny(f"{agent} is READ-ONLY and this command writes files ({pats}). "
          f"Report the finding; never fix.")
 
+# NO PARSER: everything above this line ran — the write-pattern detection and the
+# reviewer read-only denial, neither of which needs the manifest. Only the domain walk
+# below does, so only it is skipped. The grant exists to let a broken machine be fixed,
+# not to suspend the rules that do not depend on the thing that is broken.
+if _no_parser:
+    sys.exit(0)
+
 # --- non-reviewers: check extractable paths against the agent's domain ---
-lines = open(manifest, encoding="utf-8").read().splitlines()
-mine, shared, cur = [], [], None
-for ln in lines:
-    s = ln.strip()
-    m = re.match(r"^-?\s*(?:name|- name):\s*(\S+)", s)
-    if m:
-        cur = m.group(1).strip("\"'"); continue
-    if s.startswith("shared:"):
-        cur = "__shared__"; continue
-    pm = re.search(r"path:\s*([^,}\s]+)", s)
-    if pm:
-        p = pm.group(1).strip("\"'")
-        if cur == agent and "read: true" not in s:
-            mine.append(p)
-        elif cur == "__shared__":
-            shared.append(p)
+# T-14, and this is the SECURITY-RELEVANT half of D-03. This file used to carry its
+# own copy of check-domain.sh's manifest skimmer — two hand-maintained walks over the
+# same rulebook, which is one edit away from the two write surfaces disagreeing about
+# what an agent may write. That is not a theoretical risk here: this hook exists
+# BECAUSE an agent routed around check-domain.sh (DEC-151), so a divergence between
+# them is a bypass by construction. Both now call one function; they cannot drift.
+try:
+    mine, shared = harness_yaml.manifest_domains(manifest, agent)
+except harness_yaml.DuplicateKeyError as e:
+    print(f"bash-write-guard: BLOCKED — the manifest has a duplicate key {e.key!r}.",
+          file=sys.stderr)
+    print(f"  {manifest}", file=sys.stderr)
+    print("  The second occurrence silently shadows the first, so which domain "
+          "applies is ambiguous. Enforcement cannot be trusted until it is fixed.",
+          file=sys.stderr)
+    sys.exit(2)
+except harness_yaml.YamlParseError as e:
+    # FAIL CLOSED, matching check-domain.sh. Distinct from the absent-manifest case
+    # at :46, which still exits 0: an unconfigured project has nothing to enforce,
+    # whereas here the project IS configured and exactly one action fixes it.
+    print("bash-write-guard: BLOCKED — the manifest does not parse, so no domain can "
+          "be checked.", file=sys.stderr)
+    print(f"  {e.original}", file=sys.stderr)
+    print("  Enforcement is CLOSED rather than partial: a rulebook that cannot be "
+          "read cannot be half-applied. Fix the file (the main session owns it), "
+          "then retry.", file=sys.stderr)
+    sys.exit(2)
 
 def glob_to_re(pat):
     out, i = [], 0

@@ -11,12 +11,14 @@ THE ASYMMETRY IS DELIBERATE:
   harness.json    is JSON -> merged deterministically, here.
   team-config.yaml is YAML -> REPORTED ONLY, never rewritten.
 
-Every script in bin/ runs with zero third-party dependencies on any machine, so
-there is no YAML library available. Hand-rolling a YAML *writer* to edit a file
-whose `domain` globs must never be clobbered would put the harness's only
-write-scope guarantee behind a line-based regex. So this prints the specific new
-entries and the user adds them — a manual step is an acceptable price for not
-silently corrupting the manifest.
+The asymmetry SURVIVES DEC-171, but the reason changed. PyYAML is now required, so
+READING the manifest is a real parse (T-04) rather than a line scan. WRITING it is
+still refused, for a reason a parser does not fix: `yaml.safe_dump` does not preserve
+comments, and `team-config.yaml` is more comment than data — every `domain` glob is
+justified in prose beside it. Round-tripping the manifest through a parser would
+silently delete the reasoning that makes the harness's only write-scope guarantee
+auditable. So this still prints the specific new entries and the user adds them; a
+manual step is an acceptable price for not stripping the file's explanations.
 
 THE PROJECT ALWAYS WINS on a value it already has. `test_kinds.*.cmd` above all:
 those are commands dev-ops verified by running, and re-imposing the template's
@@ -27,9 +29,17 @@ Exit 0 = up to date, or merged. Exit 1 = --check found a gap, or an error.
 """
 import json
 import os
-import re
 import shutil
 import sys
+
+# F-03: this import was MISSING while `harness_yaml.load_str` was called at :99 and
+# :124, so every invocation died with NameError. It shipped because T-04's verify had
+# two halves and only one existed: the surviving half greps for ABSENCE OF REGEX, which
+# deleting the regexes satisfies exactly — with or without a working parser.
+#
+# This file runs as a script, so its own directory is already sys.path[0]; no
+# PYTHONPATH is needed, unlike the hooks' heredocs.
+import harness_yaml
 
 # Keys whose value is per-project by nature. Never overwritten once set, even if the
 # template's value changes. `cmd` above all: dev-ops verified it by running it, and
@@ -80,26 +90,72 @@ def merge(project, template, path=(), added=None):
 
 
 def yaml_names(text):
-    """Every `name:` value in a manifest, in order. Line-scanned, not parsed.
+    """Every `name:` value in a manifest, at ANY nesting depth (T-04).
 
-    Same technique and same reason as check-domain.sh: no YAML library exists here,
-    and we need exactly one field. Read-only, so a miss under-reports a new agent
-    rather than corrupting anything.
+    Was a line scan, on the stated grounds that "no YAML library exists here".
+    DEC-171 reversed that, and the scan had two defects a real parse removes:
+
+    - `^\\s*-?\\s*(?:name|- name):` matched the LITERAL TEXT `name:` anywhere at any
+      indent, so a `name:` nested under some unrelated key counted as an agent, and a
+      quoted value containing `name:` could too.
+    - It could not distinguish a real entry from one inside a comment or a folded
+      block scalar — the same class of bug that made `team-config.yaml` unparseable
+      while six line scanners read it happily.
+
+    Still read-only: a miss under-reports a new agent rather than corrupting anything.
     """
+    doc = harness_yaml.load_str(text, "<manifest>")
     out = []
-    for ln in text.splitlines():
-        m = re.match(r"^\s*-?\s*(?:name|- name):\s*(\S+)", ln)
-        if m:
-            out.append(m.group(1).strip("\"'"))
+
+    def walk(node):
+        if isinstance(node, dict):
+            n = node.get("name")
+            # Q2: this DROPPED a non-str name (`if isinstance(n, str)`), which reads as
+            # a type guard but is a silent filter — and it contradicts D-08, whose rule
+            # is coerce-at-the-consumer for anything used as an identifier. A name is an
+            # identifier. YAML 1.1 resolves an unquoted `no:`/`on:`/`01` to a bool or
+            # int, so `- name: no` vanished from the roster rather than being reported.
+            #
+            # Fixing F-03 made this REACHABLE for the first time, which is why the panel
+            # raised it from low to med: before the import landed, nothing here ran at
+            # all. bool is excluded from the numeric case for the usual reason — it is
+            # an int subclass.
+            if n is not None and not isinstance(n, (dict, list)):
+                s = str(n).strip()
+                if s:
+                    out.append(s)
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(doc)
     return out
 
 
 def yaml_version(text):
-    m = re.search(r"^schema_version:\s*(\d+)", text, re.M)
-    return int(m.group(1)) if m else None
+    """`schema_version` as an int, or None.
+
+    safe_load returns it TYPED, so this no longer needs `int(m.group(1))` — but it
+    must still tolerate a project that wrote it as a quoted string, which the old
+    `(\\d+)` regex silently rejected (it required bare digits, so `schema_version: "2"`
+    read as absent and the upgrade path reported no gap at all)."""
+    doc = harness_yaml.load_str(text, "<manifest>")
+    v = doc.get("schema_version") if isinstance(doc, dict) else None
+    if isinstance(v, bool) or v is None:
+        return None
+    if isinstance(v, int):
+        return v
+    s = str(v).strip()
+    return int(s) if s.isdigit() else None
 
 
 def main():
+    # Review finding 1: the module's documented gate had ZERO production callers,
+    # so a missing PyYAML surfaced as a raw traceback instead of INSTALL_COMMAND.
+    # First statement, before any parse can be attempted.
+    harness_yaml.require_or_die()
     args = list(sys.argv[1:])
     check_only = "--check" in args
     args = [a for a in args if a != "--check"]
@@ -173,8 +229,31 @@ def main():
         gaps.append("team-config.yaml")
     else:
         pt, tt = open(p_yaml, encoding="utf-8").read(), open(t_yaml, encoding="utf-8").read()
-        pver, tver = yaml_version(pt), yaml_version(tt)
-        pnames, tnames = set(yaml_names(pt)), yaml_names(tt)
+        # A manifest that does not parse is REPORTED, not raised. Found by this task's
+        # own test: the raw YamlParseError escaped as a traceback, which tells the user
+        # "the upgrade tool is broken" when the truth is "your manifest is". The gap is
+        # what SC-07's init gate exists to catch early — say so, and name the line.
+        # The PROJECT's file and the SHIPPED TEMPLATE are parsed separately (review
+        # finding 4). Both used to sit in one try whose handler said "fix the file
+        # first" — so a malformed shipped template sent the user off to edit a file of
+        # theirs that was perfectly fine. Two files, two different people's problem.
+        pver = tver = None
+        pnames, tnames = set(), []
+        try:
+            pver, pnames = yaml_version(pt), set(yaml_names(pt))
+        except harness_yaml.YamlParseError as e:
+            print(f"team-config.yaml: DOES NOT PARSE — {e}")
+            print("  The upgrade cannot compare a manifest it cannot read. Fix the file "
+                  "first; `check-domain.sh` is failing closed on it too (DEC-171 am.1).")
+            gaps.append("team-config.yaml")
+        try:
+            tver, tnames = yaml_version(tt), yaml_names(tt)
+        except harness_yaml.YamlParseError as e:
+            print(f"THE SHIPPED TEMPLATE at {t_yaml} does not parse — {e}")
+            print("  This is a harness bug, NOT your project. Your team-config.yaml is "
+                  "not the problem and editing it will not help. Re-run /harness-deploy "
+                  "to refresh the templates, and report it if that does not fix it.")
+            gaps.append("team-config.yaml")
         new_agents = [n for n in tnames if n.startswith("harness-") and n not in pnames]
         if pver != tver or new_agents:
             gaps.append("team-config.yaml")

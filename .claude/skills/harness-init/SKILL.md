@@ -1,6 +1,6 @@
 ---
 name: harness-init
-description: Onboard a project to the harness — interview the user, write .harness/, and install the six platform prerequisites. Use when a project has no .harness/, when check-state.sh reports "not onboarded", or when a schema_version gap calls for --upgrade.
+description: Onboard a project to the harness — interview the user, write .harness/, and install the seven platform prerequisites. Use when a project has no .harness/, when check-state.sh reports "not onboarded", or when a schema_version gap calls for --upgrade.
 ---
 
 # Harness: Init
@@ -35,18 +35,39 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
 
 ## Fresh init
 
-### 1. Install the six prerequisites — HARD GATE, do this first
+### 1. Install the seven prerequisites — HARD GATE, do this first
 
 ```bash
 .claude/skills/harness/bin/merge-settings.py . \
   --template .claude/skills/harness/templates/settings.snippet.json
 .claude/skills/harness/bin/merge-gitignore.sh .
 .claude/skills/harness/bin/merge-settings.py . --check   # must exit 0 before step 2
+python3 -c 'import yaml' 2>/dev/null && echo OK || echo MISSING   # the 7th prerequisite
 ```
 
+**If that last line prints `MISSING`, STOP.** PyYAML is REQUIRED, not optional (DEC-171 am.1): there
+is no line-scan fallback anywhere in `bin/`, deliberately, because a fallback leaves the hand-rolled
+parser it exists to remove. Print this for the user to run, then re-check:
+
+```
+python3 -m pip install pyyaml
+# if that fails with "externally-managed-environment" (PEP 668, e.g. Homebrew/Debian):
+python3 -m pip install --user --break-system-packages pyyaml
+```
+
+That is the content of `harness_yaml.INSTALL_COMMAND`. **Quote it from there rather than
+re-typing it** — D-07 makes the module the single source of truth, and two hand-maintained copies of
+an install command is exactly the divergence class this prerequisite exists to prevent.
+
+**This check is the LOUD EARLY warning; `check-domain.sh` is the AUTHORITATIVE one.** It runs in the
+user's interactive shell, whose `PATH` is not proven identical to a hook subprocess's — so the write
+hooks additionally self-report `MISSING` from inside their own environment on first invocation, which
+is the same code path the one-session bootstrap escape already needs. Treat a green check here as
+"probably fine", never as proof.
+
 **Use the scripts. Do not hand-edit `.claude/settings.json`, and do not hand-replicate a script that
-was denied.** All six entries degrade *silently* — no error, no warning — and a project that already
-has its own hooks is exactly where one of the six goes missing during a hand-merge. Both scripts
+was denied.** All seven entries degrade *silently* — no error, no warning — and a project that already
+has its own hooks is exactly where one of the seven goes missing during a hand-merge. Both scripts
 preserve what is there and are safe to re-run.
 
 **If either script cannot run, STOP HERE and tell the user what to approve.** Do not proceed to
@@ -223,9 +244,18 @@ For a project that is already initialised, after a newer harness has been deploy
 - `harness.json` is **merged** — new template entries added, every project value kept. `test_kinds.*.cmd`
   above all: dev-ops verified those by running them, and re-imposing the template's `null` would turn a
   working gate back into a soft skip.
-- `team-config.yaml` is **reported, never rewritten.** These scripts carry no YAML library by design, and
-  putting the manifest's `domain` globs behind a line-based regex writer is not a trade worth making.
-  `upgrade-config.py` prints the exact new entries and **exits 1** — relay them and add them by hand.
+- `team-config.yaml` is **reported, never rewritten.** It is now READ with a real parser (DEC-171), but
+  writing it stays refused for a reason a parser does not fix: `safe_dump` does not preserve comments,
+  and the manifest is more comment than data — every `domain` glob is justified in prose beside it.
+  Round-tripping it would silently delete the reasoning that makes the harness's only write-scope
+  guarantee auditable. `upgrade-config.py` prints the exact new entries and **exits 1** — relay them and
+  add them by hand.
+- **An existing checkout that pulls the PyYAML change must re-run `merge-gitignore.sh .`** (it is in the
+  block above). The snippet gained `.harness/.pyyaml-bootstrap`, and `merge-gitignore.sh --check` reads
+  its rule list from that snippet — so `--check` correctly goes **red on every already-initialised
+  project** until it is re-run. The script is idempotent and preserves the project's own rules. Skipping
+  it means the write hooks' bootstrap marker lands untracked, dirtying the tree, and a dirty tree halts
+  the next team run with `BLOCKED` on the harness's own artifact.
 - **`BRIEF.md`, `PLAN.md` and `DESIGN.md` are never touched by an upgrade.** They are the project's
   content, not its schema.
 
@@ -233,7 +263,7 @@ For a project that is already initialised, after a newer harness has been deploy
 
 | Thought | Reality |
 |---|---|
-| "I'll just add the hook to settings.json myself" | That is how one of the six goes missing. Run the script; it preserves the project's own hooks |
+| "I'll just add the hook to settings.json myself" | That is how one of the seven goes missing. Run the script; it preserves the project's own hooks |
 | "The script was denied, I'll replicate what it does" | Stop instead. A half-installed init looks finished and has no domain enforcement — observed in testing |
 | "dev-ops filled the cmd, the `_reason` is harmless" | It says "unset — dev-ops has not run detection yet" next to a working command. Delete it |
 | "They must restart before anything works" | The hooks are live now. Only newly-written agent files need the restart |

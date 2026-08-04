@@ -1,0 +1,47 @@
+.harness/features/FEAT-01/feature.yaml  parsed=1  declared=1
+    2026-07-27-01-validator  validator  FAIL
+.harness/features/FEAT-02/feature.yaml  parsed=4  declared=4
+    2026-07-27-01-product  product  PASS
+    2026-07-27-02-eng  eng  PASS
+    2026-07-27-03-eng  eng  PASS
+    2026-07-27-04-validator  validator  PASS
+.harness/features/FEAT-03-subissue-mirror/feature.yaml  parsed=19  declared=19
+    2026-07-31-01-product  product  PASS
+    2026-07-31-02-eng  eng  FAIL
+    2026-07-31-03-product  product  PASS
+    2026-07-31-04-eng  eng  PASS
+    2026-07-31-05-product  product  PASS
+    2026-07-31-06-eng  eng  PASS
+    2026-07-31-07-product  product  PASS
+    2026-07-31-08-eng  eng  PASS
+    2026-07-31-09-eng  eng  PASS
+    2026-07-31-10-eng  eng  PASS
+    2026-07-31-11-product  product  PASS
+    2026-07-31-12-validator  validator  PASS
+    2026-07-31-13-product  product  PASS
+    2026-07-31-14-eng  eng  PASS
+    2026-07-31-15-product  product  PASS
+    2026-07-31-16-validator  validator  PASS
+    2026-08-01-17-eng  eng  PASS
+    2026-08-01-18-product  product  PASS
+    2026-08-01-19-validator  validator  PASS
+.harness/features/FEAT-04-decisions-index/feature.yaml  parsed=15  declared=15
+    2026-08-01-01-product  product  PASS
+    2026-08-01-02-eng  eng  FAIL
+    2026-08-01-03-product  product  PASS
+    2026-08-01-04-product  product  PASS
+    2026-08-01-05-eng  eng  PASS
+    2026-08-01-06-product  product  PASS
+    2026-08-02-07-eng  eng  PASS
+    2026-08-02-08-eng  eng  PASS
+    2026-08-02-09-product  product  PASS
+    2026-08-02-10-product  product  ESCALATE
+    2026-08-02-11-eng  eng  PASS
+    2026-08-02-12-product  product  PASS
+    2026-08-02-13-product  product  PASS
+    2026-08-02-14-validator  validator  PASS
+    2026-08-02-15-product  product  PASS
+.harness/features/FEAT-05-pyyaml-file-parsers/feature.yaml  parsed=3  declared=3
+    2026-08-02-01-product  product  PASS
+    2026-08-02-02-eng  eng  PASS
+    2026-08-02-03-product  product  PASS

@@ -1,0 +1,460 @@
+#!/usr/bin/env python3
+"""Tests for harness_yaml.py (T-03, not yet written when this lands).
+
+RED by design (T-02): every test below imports `harness_yaml` from this same
+`bin/` directory. Until T-03 creates that module, every test fails on import
+and the suite is red. Plain `assert`, python3, stdlib only, shaped after
+test-check-state.py's main()-returns-0/1 convention.
+
+Nine tests, named to match PLAN.md T-02 exactly, in that order.
+"""
+import os
+import subprocess
+import sys
+import tempfile
+
+BIN_DIR = os.path.dirname(os.path.realpath(__file__))
+if BIN_DIR not in sys.path:
+    sys.path.insert(0, BIN_DIR)
+
+# Repo root: four levels above .claude/skills/harness/bin. CLAUDE_PROJECT_DIR
+# overrides when the caller has already resolved it (run-unit-tests.sh does).
+REPO_ROOT = os.environ.get("CLAUDE_PROJECT_DIR") or os.path.abspath(
+    os.path.join(BIN_DIR, "..", "..", "..", "..")
+)
+MANIFEST_PATH = os.path.join(REPO_ROOT, ".harness", "team-config.yaml")
+
+# D-03 equivalence fixture: the PRE-change collect() output from
+# check-domain.sh:105-126, run against this repo's real .harness/team-config.yaml
+# and inlined here as literals (not derived from harness_yaml — that would prove
+# nothing). manifest_domains() must return exactly these tuples for these agents.
+COLLECT_FIXTURE = {
+    "harness-backend-dev": (
+        [
+            "src/**",
+            ".claude/skills/harness/bin/**",
+            ".harness/codebase/api-surface.md",
+            ".harness/codebase/domains/**",
+            ".harness/features/*/notes/receipt-harness-backend-dev-*.md",
+            ".harness/expertise/harness-backend-dev.md",
+            ".harness/features/*/observations/harness-backend-dev.md",
+        ],
+        [
+            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
+        ],
+    ),
+    "harness-dev-ops": (
+        [
+            ".github/**",
+            "Dockerfile",
+            ".harness/harness.json",
+            ".claude/skills/harness/bin/**",
+            ".harness/codebase/stack.md",
+            ".harness/features/*/notes/receipt-harness-dev-ops-*.md",
+            ".harness/expertise/harness-dev-ops.md",
+            ".harness/features/*/observations/harness-dev-ops.md",
+        ],
+        [
+            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
+        ],
+    ),
+    "harness-pm": (
+        [
+            ".harness/features/*/BRIEF.md",
+            ".harness/features/*/PLAN.md",
+            ".harness/features/*/notes/research-*.md",
+            ".harness/notes/research-*.md",
+            ".harness/features/*/notes/uat-*.md",
+            ".harness/codebase/product-surface.md",
+            ".harness/codebase/glossary.md",
+            ".harness/expertise/harness-pm.md",
+            ".harness/features/*/observations/harness-pm.md",
+        ],
+        [
+            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
+        ],
+    ),
+    "harness-documentor": (
+        [
+            "docs/**",
+            "README.md",
+            ".harness/README.md",
+            ".harness/codebase/INDEX.md",
+            ".harness/codebase/architecture.md",
+            ".harness/expertise/harness-documentor.md",
+            ".harness/features/*/observations/harness-documentor.md",
+        ],
+        [
+            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
+        ],
+    ),
+    # These two live OUTSIDE teams[].members[] — bare top-level `orchestrator:`
+    # and `leads:` — so a manifest_domains() that walks only teams[].members[]
+    # would pass the four rows above while returning empty `mine` for both of
+    # these, which turns into a silent exit-2-on-every-write once the hooks
+    # convert. The pre-change collect() is a flat line scan and does not care
+    # about nesting, so it must not either.
+    "harness-eng-lead": (
+        [
+            ".harness/features/*/runs/*-eng/**",
+            ".harness/expertise/harness-eng-lead.md",
+            ".harness/features/*/observations/harness-eng-lead.md",
+        ],
+        [
+            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
+        ],
+    ),
+    "harness-orchestrator": (
+        [
+            ".harness/features/**",
+            ".harness/features/*/notes/answers-*.md",
+            ".harness/features/*/notes/ship-review-*.md",
+            ".harness/expertise/harness-orchestrator.md",
+            ".harness/features/*/observations/harness-orchestrator.md",
+        ],
+        [
+            "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+            "pyproject.toml", "uv.lock", "requirements.txt", "tsconfig.json",
+        ],
+    ),
+}
+
+
+def test_duplicate_key_raises():
+    """D-02, both directions: a repeated top-level key raises the module's
+    own duplicate-key error, and a normal mapping is unaffected."""
+    import harness_yaml as hy
+
+    raised = False
+    try:
+        hy.load_str("id: first\nid: second\n", "t")
+    except hy.DuplicateKeyError:
+        raised = True
+    assert raised, "expected hy.DuplicateKeyError on a repeated top-level key"
+
+    result = hy.load_str("a: 1\nb: two\n", "t")
+    assert result == {"a": 1, "b": "two"}, f"normal mapping came back wrong: {result!r}"
+
+
+def test_nested_duplicate_key_raises():
+    """The regex this replaces saw only column-0 duplicates; the loader must
+    also raise on a repeat nested inside a mapping."""
+    import harness_yaml as hy
+
+    raised = False
+    try:
+        hy.load_str("outer:\n  id: first\n  id: second\n", "t")
+    except hy.DuplicateKeyError:
+        raised = True
+    assert raised, "expected hy.DuplicateKeyError on a nested repeated key"
+
+
+def test_bare_date_scalar_stays_str():
+    """D-08: the timestamp resolver is stripped, so a bare date scalar stays str."""
+    import harness_yaml as hy
+
+    result = hy.load_str("d: 2026-07-31\n", "t")
+    assert result["d"] == "2026-07-31", f"got {result['d']!r}"
+    assert isinstance(result["d"], str), f"expected str, got {type(result['d'])}"
+
+
+def test_int_and_bool_resolvers_are_not_stripped():
+    """D-08 negative half: the strip is surgical (timestamp only), not blanket."""
+    import harness_yaml as hy
+
+    result = hy.load_str("cycles_used: 3\nschema_version: 2\nx: yes\n", "t")
+    assert result["cycles_used"] == 3 and isinstance(result["cycles_used"], int)
+    assert result["schema_version"] == 2 and isinstance(result["schema_version"], int)
+    assert result["x"] is True, f"expected True, got {result['x']!r}"
+
+
+def test_manifest_domains_matches_the_regex_walk_on_the_real_manifest():
+    """D-03 equivalence proof: manifest_domains() must equal the pre-change
+    collect() logic for every agent in this repo's real manifest."""
+    import harness_yaml as hy
+
+    for agent, (expected_mine, expected_shared) in COLLECT_FIXTURE.items():
+        mine, shared = hy.manifest_domains(MANIFEST_PATH, agent)
+        assert list(mine) == expected_mine, (
+            f"{agent}: mine mismatch\n  got:      {list(mine)!r}\n  expected: {expected_mine!r}"
+        )
+        assert list(shared) == expected_shared, (
+            f"{agent}: shared mismatch\n  got:      {list(shared)!r}\n  expected: {expected_shared!r}"
+        )
+
+
+def test_manifest_domains_excludes_non_canonical_read_true():
+    """D-13: read: yes / read: True resolve truthy under safe_load and must be
+    excluded from `mine`, same as the canonical read: true. read: no entries
+    at otherwise-identical paths must still land in `mine`."""
+    import harness_yaml as hy
+
+    manifest = """
+teams:
+  - team-name: T
+    members:
+      - name: agentX
+        domain:
+          - { path: p-yes, read: yes }
+          - { path: p-true, read: True }
+          - { path: p-yes-off, read: no }
+          - { path: p-true-off, read: no }
+"""
+    with tempfile.TemporaryDirectory() as tmp:
+        manifest_path = os.path.join(tmp, "team-config.yaml")
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            f.write(manifest)
+        mine, shared = hy.manifest_domains(manifest_path, "agentX")
+        assert "p-yes" not in mine, f"read: yes leaked into mine: {mine!r}"
+        assert "p-true" not in mine, f"read: True leaked into mine: {mine!r}"
+        assert "p-yes-off" in mine, f"read: no wrongly excluded: {mine!r}"
+        assert "p-true-off" in mine, f"read: no wrongly excluded: {mine!r}"
+
+
+def test_bootstrap_marker_lifecycle():
+    """E3, four cases: absent -> writes marker, grants. present + same identity
+    -> grants silently. present + different identity -> blocks. marker write
+    fails (read-only dir) -> blocks. Forces the "yaml missing" branch by setting
+    the module's own `yaml` binding to None rather than introducing new
+    module-level state (PLAN.md:382 forbids that) or uninstalling real PyYAML —
+    the single `try: import yaml / except ImportError: yaml = None` is the
+    binding every "is yaml available" branch must route through."""
+    import harness_yaml as hy
+
+    with tempfile.TemporaryDirectory() as tmp:
+        harness_dir = os.path.join(tmp, ".harness")
+        os.makedirs(harness_dir, exist_ok=True)
+        marker = os.path.join(harness_dir, ".pyyaml-bootstrap")
+
+        orig_yaml = hy.yaml
+        hy.yaml = None
+        try:
+            # case 1: absent -> writes marker, allows
+            allowed_1 = hy.require_or_bootstrap(tmp, payload={"session_id": "sess-A"})
+            assert allowed_1 is True, "expected allow on first (absent-marker) call"
+            assert os.path.exists(marker), "expected the marker to be written"
+
+            # case 2: present, same identity -> allows silently
+            allowed_2 = hy.require_or_bootstrap(tmp, payload={"session_id": "sess-A"})
+            assert allowed_2 is True, "expected silent allow when identity matches"
+
+            # case 3: present, different identity -> blocks
+            allowed_3 = hy.require_or_bootstrap(tmp, payload={"session_id": "sess-B"})
+            assert allowed_3 is False, "expected block when identity differs"
+
+            # case 4: marker write fails (read-only dir) -> blocks
+            os.remove(marker)
+            os.chmod(harness_dir, 0o500)
+            try:
+                allowed_4 = hy.require_or_bootstrap(tmp, payload={"session_id": "sess-C"})
+                assert allowed_4 is False, "expected block when the marker write fails"
+            finally:
+                os.chmod(harness_dir, 0o700)
+        finally:
+            hy.yaml = orig_yaml
+
+
+def test_marker_self_unlinks_when_yaml_imports():
+    """require_or_die() unlinks an existing marker and returns normally when
+    yaml is importable. A bare `import harness_yaml` must NOT touch the marker
+    — the module's only import-time behaviour is the single `import yaml`."""
+    import harness_yaml as hy
+
+    with tempfile.TemporaryDirectory() as tmp:
+        harness_dir = os.path.join(tmp, ".harness")
+        os.makedirs(harness_dir, exist_ok=True)
+        marker = os.path.join(harness_dir, ".pyyaml-bootstrap")
+
+        with open(marker, "w", encoding="utf-8") as f:
+            f.write("sess-A")
+
+        orig_project_dir = os.environ.get("CLAUDE_PROJECT_DIR")
+        os.environ["CLAUDE_PROJECT_DIR"] = tmp
+        try:
+            hy.require_or_die()  # yaml is importable in this environment (T-01)
+        finally:
+            if orig_project_dir is None:
+                os.environ.pop("CLAUDE_PROJECT_DIR", None)
+            else:
+                os.environ["CLAUDE_PROJECT_DIR"] = orig_project_dir
+        assert not os.path.exists(marker), "require_or_die() must unlink the marker"
+
+        # Recreate the marker; a bare import (no require_or_die/require_or_bootstrap
+        # call) must leave it untouched.
+        with open(marker, "w", encoding="utf-8") as f:
+            f.write("sess-A")
+        env = dict(os.environ)
+        env["CLAUDE_PROJECT_DIR"] = tmp
+        subprocess.run(
+            [sys.executable, "-c", "import harness_yaml"],
+            cwd=BIN_DIR, env=env, check=True,
+        )
+        assert os.path.exists(marker), "a bare import must not unlink the marker"
+
+
+def test_exactly_one_guarded_import_in_the_tree():
+    """D-12's receipt as a standing test: exactly one `except ImportError` in
+    the whole bin/ tree, and it lives in harness_yaml.py. The needle is
+    assembled at runtime and test-*.py files are excluded from the scan, so
+    this test file can never self-match (it lives in bin/ too)."""
+    needle = "except" + " " + "ImportError"
+    hits = []
+    for name in sorted(os.listdir(BIN_DIR)):
+        if name.startswith("test-"):
+            continue
+        if not (name.endswith(".py") or name.endswith(".sh")):
+            continue
+        path = os.path.join(BIN_DIR, name)
+        try:
+            text = open(path, encoding="utf-8").read()
+        except (OSError, UnicodeDecodeError):
+            continue
+        if needle in text:
+            hits.append(name)
+    assert set(hits) == {"harness_yaml.py"}, f"expected only harness_yaml.py, got {hits!r}"
+
+
+def test_missing_pyyaml_is_reportable_not_a_second_crash():
+    """Review finding 1: with PyYAML absent, load_str could not report its own
+    premise failing.
+
+    `yaml.load(...)` raised `AttributeError: 'NoneType' has no attribute 'load'`, and
+    Python then evaluated `except yaml.YAMLError` — raising a SECOND AttributeError
+    that escaped uncaught. So on a machine with no PyYAML, check-state reported every
+    file as "does not parse: 'NoneType' object has no attribute 'YAMLError'" and the
+    plain scripts died with a raw traceback. The user never saw INSTALL_COMMAND, in
+    the one scenario this feature exists for.
+
+    `require_or_die` was written as the gate for exactly this and had ZERO production
+    callers, so nothing intercepted it upstream either.
+    """
+    import harness_yaml as hy
+    saved = hy.yaml
+    try:
+        hy.yaml = None
+        try:
+            hy.load_str("a: 1", "probe")
+            return False, "no exception raised at all"
+        except hy.MissingDependency as e:
+            if "pip install" not in str(e):
+                return False, f"message lacks the install command: {e}"
+        except Exception as e:
+            return False, f"raised {type(e).__name__}, not MissingDependency: {e}"
+    finally:
+        hy.yaml = saved
+    # And it must be catchable by a caller that only knows about YamlParseError.
+    if not issubclass(hy.MissingDependency, hy.YamlParseError):
+        return False, "MissingDependency does not subclass YamlParseError"
+    return True, ""
+
+
+def test_duplicate_key_is_catchable_as_a_parse_error():
+    """Review findings 2, 3 and 5.
+
+    DuplicateKeyError was a bare Exception, so `except YamlParseError` did NOT catch
+    it — and gh-sync.py and upgrade-config.py both wrote exactly that, believing they
+    had covered "the file is unreadable". A duplicated key made each die with a raw
+    traceback reading "the tool is broken" when the truth was "your file is",
+    defeating the very handler each had just added.
+
+    Finding 5: the message must also carry DEC-156's guidance, because removing
+    check-state.sh's dedicated scan dropped that wording from the codebase entirely
+    while a comment claimed it was preserved.
+    """
+    import harness_yaml as hy
+    if not issubclass(hy.DuplicateKeyError, hy.YamlParseError):
+        return False, "DuplicateKeyError does not subclass YamlParseError"
+    # The position must be the DUPLICATE's own line, not merely "a" position. A first
+    # version of the mark fix passed the loop's last key_node, so the number was right
+    # only when the duplicate happened to be last — which it was, in the fixture I
+    # tested with. Asserting a SPECIFIC line is what makes this discriminating.
+    try:
+        hy.load_str("a: 1\nb: 2\nc: 3\na: 4\n", "probe")
+        return False, "a duplicate key on line 4 did not raise"
+    except hy.DuplicateKeyError as e:
+        if "line 4" not in str(e):
+            return False, f"reported the wrong line for a line-4 duplicate: {e}"
+    try:
+        hy.load_str("cost: 1\ncost: 2\n", "probe")
+        return False, "a duplicate key did not raise"
+    except hy.YamlParseError as e:          # the caller's generic handler
+        if "DEC-156" not in str(e):
+            return False, f"message lacks DEC-156 guidance: {e}"
+        if not isinstance(e, hy.DuplicateKeyError):
+            return False, "caught as YamlParseError but is not a DuplicateKeyError"
+    return True, ""
+
+
+def test_merge_key_override_is_not_a_duplicate():
+    """Review finding 3: `flatten_mapping` ran BEFORE the duplicate scan.
+
+    It splices merge-key (`<<: *anchor`) entries into node.value, so an explicit
+    override of an inherited key counted as a duplicate — which it is not.
+    `{<<: *base, b: 3}` is legal YAML with well-defined override semantics and stdlib
+    safe_load returns `b: 3`.
+
+    Not reachable from this repo's files (no anchors), but harness is a portable
+    framework: a downstream project that DRYs its domain lists with `<<:` would have
+    BOTH write hooks fail closed on every write, blaming the user for a duplicate key
+    in valid YAML. A guard wrong about the rulebook is this feature's own failure mode,
+    and being wrong in the strict direction is no better.
+    """
+    import harness_yaml as hy
+    import yaml as _y
+    DOC = "base: &b {a: 1, b: 2}\nchild: {<<: *b, b: 3}\n"
+    try:
+        got = hy.load_str(DOC, "probe")["child"]
+    except hy.DuplicateKeyError:
+        return False, "a legal merge-key override raised DuplicateKeyError"
+    want = _y.safe_load(DOC)["child"]
+    if got != want:
+        return False, f"merge semantics differ from stdlib: {got} != {want}"
+    # ...and real duplicates must STILL raise, at both depths.
+    for label, doc in (("top-level", "cost: 1\ncost: 2\n"),
+                       ("nested", "steps:\n  - id: s\n    cost: 1\n    cost: 2\n")):
+        try:
+            hy.load_str(doc, "probe")
+            return False, f"a {label} duplicate stopped raising"
+        except hy.DuplicateKeyError:
+            pass
+    return True, ""
+
+
+TESTS = [
+    test_merge_key_override_is_not_a_duplicate,
+    test_missing_pyyaml_is_reportable_not_a_second_crash,
+    test_duplicate_key_is_catchable_as_a_parse_error,
+    test_duplicate_key_raises,
+    test_nested_duplicate_key_raises,
+    test_bare_date_scalar_stays_str,
+    test_int_and_bool_resolvers_are_not_stripped,
+    test_manifest_domains_matches_the_regex_walk_on_the_real_manifest,
+    test_manifest_domains_excludes_non_canonical_read_true,
+    test_bootstrap_marker_lifecycle,
+    test_marker_self_unlinks_when_yaml_imports,
+    test_exactly_one_guarded_import_in_the_tree,
+]
+
+
+def main():
+    failures = 0
+    for t in TESTS:
+        try:
+            t()
+        except Exception as e:  # noqa: BLE001 - a test failing for any reason is a FAIL
+            failures += 1
+            print(f"FAIL {t.__name__}: {e}")
+        else:
+            print(f"ok   {t.__name__}")
+    if failures:
+        sys.exit(1)
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

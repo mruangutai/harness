@@ -98,6 +98,117 @@ case("rm of an out-of-domain path", 'rm src/main.py', 2)
 case("mv onto an out-of-domain path", 'mv a.py src/main.py', 2)
 
 
+# ============== T-14: SC-06's paired assertion, on a fixture manifest ==============
+# The cases above run against the REAL repo manifest. These use a fixture so a
+# malformed rulebook can be exercised without touching the one governing this session.
+
+import shutil
+import tempfile
+
+FIXTURE_MANIFEST = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-backend-dev
+        domain:
+          - { path: allowed/**, upsert: true }
+          - { path: ".", read: true }
+"""
+
+T14 = []
+
+
+def fixture(text):
+    d = tempfile.mkdtemp()
+    os.makedirs(os.path.join(d, ".harness"))
+    with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
+        f.write(text)
+    return d
+
+
+def fire(root, cmd, agent="harness-backend-dev"):
+    payload = {"agent_type": agent, "tool_name": "Bash", "tool_input": {"command": cmd}}
+    return subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
+                          text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+
+def run_t14():
+    # SC-06's PAIRED assertion. Either half alone is ALSO what a broken guard
+    # produces — an allow-all escape passes the permitted write, a block-all
+    # fail-closed blocks the forbidden one. Only a manifest that actually parsed
+    # yields both from one fixture.
+    root = fixture(FIXTURE_MANIFEST)
+    ok = fire(root, f"echo hi > {os.path.join(root, 'allowed', 'x.txt')}")
+    no = fire(root, f"echo hi > {os.path.join(root, 'forbidden', 'x.txt')}")
+    T14.append(("SC-06 pair: permitted bash write allowed AND forbidden blocked",
+                ok.returncode == 0 and no.returncode == 2,
+                f"permitted got {ok.returncode} (want 0), forbidden got {no.returncode} (want 2)"))
+
+    # Both write surfaces must fail closed the SAME way on a broken rulebook. Before
+    # T-14 this file carried its own copy of the skimmer, so the two hooks could
+    # disagree about what an agent may write — and this hook exists BECAUSE an agent
+    # routed around the other one (DEC-151), which makes a divergence a bypass.
+    # The MESSAGE is asserted, not just the exit code, and that is the whole point
+    # here. The pre-T-14 skimmer also exited 2 on this fixture — but ACCIDENTALLY: it
+    # found no name/path lines in the broken file, so `mine` was empty and every path
+    # was "outside your domain". An agent was told it lacked permission when the truth
+    # was that the rulebook was unreadable, so the rational response — try a different
+    # path — fails identically and teaches nothing. Blocking for the wrong reason is
+    # not the same as blocking.
+    bad = fixture('teams: [ {name: x ## eaten\nnext_key: 1\n')
+    r = fire(bad, f"echo hi > {os.path.join(bad, 'allowed', 'x.txt')}")
+    T14.append(("a MALFORMED manifest blocks the bash write (fail closed)",
+                r.returncode == 2 and "does not parse" in r.stderr,
+                f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
+
+    dup = fixture(FIXTURE_MANIFEST + "\nschema_version: 2\n")
+    r = fire(dup, f"echo hi > {os.path.join(dup, 'allowed', 'x.txt')}")
+    T14.append(("a DUPLICATE key in the manifest blocks the bash write",
+                r.returncode == 2 and "duplicate key" in r.stderr,
+                f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
+
+    # DEC-151's carve-out is unchanged: an absent manifest still fails OPEN. Needs an
+    # isolated copy, not merely an empty CLAUDE_PROJECT_DIR — root falls back to
+    # _derived, so a guard running from the real bin/ finds the real manifest whatever
+    # the env var says. (The same trap made this case vacuous in test-check-domain.py.)
+    iso = tempfile.mkdtemp()
+    isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
+    os.makedirs(isobin)
+    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.sh"))
+    payload = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
+               "tool_input": {"command": f"echo hi > {os.path.join(iso, 'x.txt')}"}}
+    r = subprocess.run([os.path.join(isobin, "bash-write-guard.sh")],
+                       input=json.dumps(payload), capture_output=True, text=True,
+                       env=dict(os.environ, CLAUDE_PROJECT_DIR=iso))
+    T14.append(("an ABSENT manifest still fails OPEN (DEC-151 carve-out intact)",
+                r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
+
+    # D-03's point: both hooks now compute domains from ONE function, so the same
+    # agent and path must get the same verdict from either write surface.
+    root = fixture(FIXTURE_MANIFEST)
+    cd = os.path.join(HERE, "check-domain.sh")
+    for rel, want in (("allowed/x.txt", 0), ("forbidden/x.txt", 2)):
+        tgt = os.path.join(root, rel)
+        b = fire(root, f"echo hi > {tgt}")
+        w = subprocess.run([cd], input=json.dumps(
+            {"agent_type": "harness-backend-dev", "tool_name": "Write",
+             "tool_input": {"file_path": tgt, "content": "x"}}),
+            capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+        T14.append((f"both write surfaces agree on {rel} (D-03, one shared walk)",
+                    b.returncode == want and w.returncode == want,
+                    f"bash got {b.returncode}, write got {w.returncode}, want {want}"))
+
+    fails = 0
+    for name, ok_, detail in T14:
+        if ok_:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(T14) - fails}/{len(T14)} T-14 cases passed.")
+    return fails
+
+
 def main():
     fails = 0
     for name, cmd, want, agent in CASES:
@@ -112,7 +223,8 @@ def main():
                 print(f"      | {l}")
         else:
             print(f"ok    {name}")
-    print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.")
+    print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
+    fails += run_t14()
     return fails
 
 

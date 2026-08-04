@@ -11,11 +11,28 @@
 # This gates the ORCHESTRATOR, not a tool call, so exit 1 is correct here;
 # the exit-2 rule applies only to PreToolUse hooks.
 set -uo pipefail
+# _selfdir is resolved BEFORE the cd. BASH_SOURCE may be relative to the ORIGINAL
+# working directory, so computing it after `cd "$root"` resolves it against the wrong
+# base and the heredoc dies with ModuleNotFoundError. That is a crash, and this script
+# exits 1 on crash exactly as it does on a real violation — so /harness entry would
+# report "violations found" for a missing module. Found while fixing F-02; the original
+# ordering passed every check I ran only because I always ran from the repo root.
+_selfdir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+
 root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 cd "$root"
-
-python3 - "$root" <<'PY'
+PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 - "$root" <<'PY'
 import sys, os, re, glob, json
+
+import harness_yaml
+
+# Review finding 1: `require_or_die` is the module's documented gate for exactly
+# this script and had ZERO production callers, so a missing PyYAML surfaced as
+# every file "does not parse" and exit 1 — /harness entry reporting "violations
+# found" for an absent dependency. It gates the ORCHESTRATOR, not a write, so a
+# hard block here costs no recovery path (D-06); the bootstrap escape is for the
+# two hooks only.
+harness_yaml.require_or_die()
 
 root = sys.argv[1]
 H = os.path.join(root, ".harness")
@@ -93,29 +110,55 @@ for feat, plan in plans.items():
 # --- INV-6..8: per-feature execution facts.
 for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
     feat = os.path.basename(os.path.dirname(fy))
-    txt = read(fy) or ""
-    def val(k):
-        m = re.search(rf"^{k}:\s*(\S+)", txt, re.M)
-        return m.group(1) if m else None
+    # T-07 / issue #11 — a REAL parser, not a regex over two hand-listed shapes.
+    #
+    # What the regexes could not do: the block form required `\s*\n` after the `id:`
+    # and `squad:` captures, so a trailing `# comment` on either line — legal YAML,
+    # and the house style on 45 lines of FEAT-03's feature.yaml — silently dropped the
+    # ENTIRE run, failing INV-6, INV-7 and INV-8 open at exit 0. Reproduced before the
+    # fix. It had never fired only because those two lines happened to carry no
+    # comments, and one author who hit it wrote a warning into the data file
+    # (feature.yaml:63-64) instead of fixing the parser. Same defect class as DEC-123
+    # and DEC-129; DEC-171 reverses the no-dependency clause that forced it.
+    try:
+        doc = harness_yaml.load_file(fy) or {}
+    except Exception as e:
+        # A file that does not parse is a VIOLATION, never a silent skip — the whole
+        # point of DEC-171 am.1 is that there is no quieter mode. Report and move on
+        # so one broken feature cannot hide every other feature's invariants.
+        bad.append(f"{feat}/feature.yaml does not parse, so INV-6..8 and INV-12 "
+                   f"cannot be checked for it: {e}")
+        continue
+    if not isinstance(doc, dict):
+        bad.append(f"{feat}/feature.yaml is not a YAML mapping.")
+        continue
 
-    # BOTH YAML list forms — inline `{ id: X, squad: Y, verdict: Z }` and block
-    #   - id: X
-    #     squad: Y
-    #     verdict: Z
-    # The inline-only regex made INV-12 false-positive on a fully-recorded feature.yaml
-    # the first time a real orchestrator wrote one (it used block form, legitimately).
-    # Same single-format bug as the digest parser (DEC-123) and INV-4 (DEC-129).
-    runs = re.findall(r"\{\s*id:\s*([^,]+),\s*squad:\s*([^,]+),\s*verdict:\s*([^\s},]+)", txt)
-    runs += re.findall(r"^\s*-\s*id:\s*(\S+)\s*\n\s*squad:\s*(\S+)\s*\n\s*verdict:\s*(\S+)",
-                       txt, re.M)
+    def val(k):
+        """A scalar field as a string, or None. safe_load returns TYPED values, so
+        every consumer below would otherwise break on an int: `cycles_used: 6` is an
+        int and the old code called `.isdigit()` on it."""
+        v = doc.get(k)
+        return None if v is None else str(v)
+
+    # `runs:` entries, whatever YAML shape the author used — inline flow mapping,
+    # block mapping, comments anywhere. The parser handles all of it; we only assert
+    # the three fields the invariants need.
+    runs = []
+    for entry in (doc.get("runs") or []):
+        if not isinstance(entry, dict):
+            bad.append(f"{feat}: a runs: entry is not a mapping ({entry!r}).")
+            continue
+        runs.append((str(entry.get("id", "")).strip(),
+                     str(entry.get("squad", "")).strip(),
+                     str(entry.get("verdict", "")).strip()))
 
     # INV-6: reviewers must diff a pinned SHA, never a moving HEAD (DEC-50).
-    if any(sq.strip() == "validator" for _, sq, _ in runs) and not val("review_sha"):
+    if any(sq == "validator" for _, sq, _ in runs) and not val("review_sha"):
         bad.append(f"{feat}: a validator run exists but review_sha is not pinned "
                    f"— reviewers would diff HEAD (the GAP-7 failure).")
 
     # INV-7: the fix-loop bound must actually count the failures it bounds.
-    fails = sum(1 for _, _, v in runs if v.strip().upper() == "FAIL")
+    fails = sum(1 for _, _, v in runs if v.upper() == "FAIL")
     cu = val("cycles_used")
     if cu is not None and cu.isdigit() and int(cu) < fails:
         bad.append(f"{feat}: cycles_used={cu} but {fails} FAIL run(s) recorded "
@@ -124,7 +167,7 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
     # INV-8: a referenced run dir must exist, or resume has nothing to read.
     recorded = set()
     for rid, _, _ in runs:
-        rid = rid.strip(); recorded.add(rid)
+        recorded.add(rid)
         d = os.path.join(os.path.dirname(fy), "runs", rid)
         if not os.path.isdir(d):
             warn.append(f"{feat}: run {rid} is referenced but its dir is absent "
@@ -233,15 +276,31 @@ PHASE_ORDER = ["plan", "build", "validate", "ship"]
 HANDOFF_HEADINGS = ["## next", "## trust", "## dead ends", "## working set"]
 for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
     feat = os.path.basename(os.path.dirname(fy))
-    txt = read(fy) or ""
-    pm_ = re.search(r"^phase:\s*(\S+)", txt, re.M)
-    if not pm_ or pm_.group(1) not in PHASE_ORDER:
+    # F-02: parsed, not regex-scanned. `^phase:\s*(\S+)` misses a quoted value and a
+    # block scalar, both legal YAML — and a miss here is silent: the feature is skipped
+    # entirely by `continue`, so the invariant never runs and never says why.
+    try:
+        _doc = harness_yaml.load_file(fy) or {}
+    except Exception as e:
+        bad.append(f"{feat}/feature.yaml does not parse, so its phase invariants "
+                   f"cannot be checked: {e}")
         continue
-    idx = PHASE_ORDER.index(pm_.group(1))
+    _phase = str(_doc.get("phase", "")).strip() if isinstance(_doc, dict) else ""
+    if _phase not in PHASE_ORDER:
+        continue
+    idx = PHASE_ORDER.index(_phase)
     for prev in PHASE_ORDER[:idx]:
         hp = os.path.join(os.path.dirname(fy), "notes", f"handoff-{prev}.md")
         if not os.path.isfile(hp):
-            bad.append(f"{feat}: phase is '{pm_.group(1)}' but notes/handoff-{prev}.md is "
+            # M-01: this said `pm_.group(1)` — a leftover from the regex the F-02
+            # conversion deleted when it renamed the parsed value to `_phase`. Used
+            # once, assigned nowhere, so it raised NameError on the ONE condition
+            # INV-17 exists to detect, aborting INV-11/13/15/16/18/21 and INV-10 with
+            # no "could not run" message. A crash exits 1, which is what a real
+            # violation exits, so /harness entry reported "violations found" for a
+            # typo. Introduced by the fix for F-02 and caught by the re-review, not by
+            # any gate.
+            bad.append(f"{feat}: phase is '{_phase}' but notes/handoff-{prev}.md is "
                        f"missing — the {prev} seam was crossed without a handoff; the "
                        f"successor is on the disk-only path (DEC-159).")
             continue
@@ -287,25 +346,55 @@ CHECKPOINT_KEYS = {
 }
 vd = os.path.join(root, ".claude/skills/harness/bin/validate-digest.py")
 for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml")):
-    txt = read(sy) or ""
     rel = os.path.relpath(sy, H)
     rundir = os.path.dirname(sy)
-    complete = bool(re.search(r"^status:\s*complete", txt, re.M))
+    # F-02, and this one had a LIVE fail-open the panel reproduced: `status: "complete"`
+    # — quoted, legal YAML — does not match `^status:\s*complete`, so `complete` was
+    # False and INV-11 (an unmetered completed run) silently never fired.
+    try:
+        sdoc = harness_yaml.load_file(sy) or {}
+    except Exception as e:
+        bad.append(f"{rel}: state.yaml does not parse, so INV-11/15/16 cannot be "
+                   f"checked for this run: {e}")
+        continue
+    if not isinstance(sdoc, dict):
+        bad.append(f"{rel}: state.yaml is not a YAML mapping.")
+        continue
+    complete = str(sdoc.get("status", "")).strip() == "complete"
 
     # INV-11: cost is the post-build signal (DEC-99) — an unmetered completed run is a
     # hole in the only evidence SC-1 is judged on, and looks exactly like a free one.
-    if complete and not re.search(r"^cost:", txt, re.M):
+    if complete and "cost" not in sdoc:
         bad.append(f"{rel}: run is complete but has no cost: block — "
                    f"run bin/cost-report.py --yaml and record it.")
 
     # INV-16: shape.
-    keys = re.findall(r"^([A-Za-z_][A-Za-z0-9_-]*):", txt, re.M)
-    dups = sorted({k for k in keys if keys.count(k) > 1})
-    if dups:
-        bad.append(f"{rel}: duplicate top-level key(s) {dups} — a repeated key is silently "
-                   f"shadowed by its last occurrence. Replace the placeholder when filling "
-                   f"it in; never append a second copy (DEC-156).")
-    unknown = sorted({k for k in keys if k not in CHECKPOINT_KEYS})
+    #
+    # Q3, found by the re-review: the duplicate-key TEXT SCAN that used to live here was
+    # DEAD CODE, and its comment told future readers to preserve it for a property it no
+    # longer had. `load_file` above uses the strict loader, which RAISES DuplicateKeyError
+    # before control ever reaches this point — and that path `continue`s, so INV-16's own
+    # DEC-156 message never fired. Keeping a scan that cannot run, guarded by a comment
+    # forbidding its removal, is worse than either fixing or deleting it: the next reader
+    # trusts the comment.
+    #
+    # Removed, because the loader's raise is strictly better — it catches a duplicate at
+    # ANY nesting depth, where the column-0 scan saw only top-level ones.
+    #
+    # CORRECTED (review finding 5): this comment used to claim the DEC-156 wording was
+    # "preserved at the raise site", and it was NOT — DuplicateKeyError's message was
+    # a bare `duplicate key 'x'`, so the guidance an author actually needs ("replace the
+    # placeholder; never append a second copy") vanished from this file entirely. A
+    # comment asserting a preserved message that was in fact dropped is worse than no
+    # comment, in a repo whose convention is that comments are load-bearing.
+    #
+    # It is true NOW because the guidance was moved INTO the exception's message
+    # (harness_yaml.py's DuplicateKeyError.__init__), so every caller renders it whether
+    # or not it has a dedicated handler.
+    # The UNKNOWN half reads the PARSED keys (F-02): a quoted key is a real key the
+    # text scan misses, a `#`-commented line is not a key at all, and YAML 1.1 resolves
+    # `on:`/`no:` to booleans — so str() both sides, as T-17 does in check-domain.sh.
+    unknown = sorted({str(k) for k in sdoc if str(k) not in CHECKPOINT_KEYS})
     if unknown:
         bad.append(f"{rel}: non-checkpoint top-level key(s) {unknown} — state.yaml carries "
                    f"only identifiers, enums, counters, paths and sequence markers "
@@ -313,8 +402,8 @@ for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml"))
                    f"digest.md; a one-line note: per step entry is the ceiling.")
 
     # INV-15: the durable digest.
-    hm = re.search(r"^host:\s*(\S+)", txt, re.M)
-    if complete and hm and hm.group(1) in LEADS:
+    _host = str(sdoc.get("host", "")).strip()
+    if complete and _host in LEADS:
         dg = os.path.join(rundir, "digest.md")
         if not os.path.isfile(dg):
             bad.append(f"{os.path.relpath(rundir, H)}: run is complete but digest.md is "
@@ -390,13 +479,28 @@ if cj:
 if cj and (cj.get("github") or {}).get("sync"):
     for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
         feat = os.path.basename(os.path.dirname(fy))
-        txt = read(fy) or ""
-        m = re.search(r"^github:\s*$(.*?)(?=^\S|\Z)", txt, re.M | re.S)
-        if not m:
+        # F-02: the last of the seven. This carried the SAME four defects gh-sync.py's
+        # reader did, and T-06 fixed them there while leaving the twin here — which is
+        # the divergence D-03 exists to prevent, in a second pair of files:
+        #   - `^\s{4}T-\d+:\s*\d+` hardcoded a four-space indent
+        #   - `parent:\s*\d+` accepted only bare digits, so `parent: "40"` read as absent
+        #   - `^github:\s*$(.*?)(?=^\S|\Z)` sliced by indentation, so a comment at
+        #     column 0 inside the block truncated the rest
+        # A miss here is silent by construction: `continue` skips the feature entirely.
+        try:
+            gdoc = harness_yaml.load_file(fy) or {}
+        except Exception as e:
+            bad.append(f"{feat}/feature.yaml does not parse, so INV-21 cannot be "
+                       f"checked for it: {e}")
             continue
-        blk = m.group(1)
-        has_issue = re.search(r"^\s{4}T-\d+:\s*\d+", blk, re.M)
-        has_parent = re.search(r"^\s*parent:\s*\d+", blk, re.M)
+        gblk = gdoc.get("github") if isinstance(gdoc, dict) else None
+        if not isinstance(gblk, dict):
+            continue
+        _issues = gblk.get("issues")
+        has_issue = bool(isinstance(_issues, dict) and any(
+            re.fullmatch(r"T-\d+", str(k).strip()) and str(v).strip().isdigit()
+            for k, v in _issues.items()))
+        has_parent = str(gblk.get("parent", "")).strip().isdigit()
         if has_issue and not has_parent:
             warn.append(f"INV-21: {feat} has recorded task issues but no numeric "
                         f"parent — ship/abandon cannot close the container and open "

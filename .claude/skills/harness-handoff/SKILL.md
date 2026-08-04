@@ -11,7 +11,8 @@ too. Write a durable artifact, return a compact signal.
 
 ## Your return — three parts, always
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line, the conclusion — not what you did>
@@ -22,6 +23,13 @@ DIGEST:
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
 artifact: <path to what you wrote>
 ```
+````
+
+**The ```` ```yaml ```` fence is part of the return, not documentation formatting.** Emit it, and emit
+the closing fence. Your return is a YAML document — `VERDICT:` a scalar, `DIGEST:` a mapping,
+`artifact:` a scalar — and the fence is what tells the validator where it starts and stops instead of
+making it guess from indentation in your prose. You may write prose before or after the fence; the
+fenced block is what gets parsed (DEC-172).
 
 | VERDICT | Means |
 |---|---|

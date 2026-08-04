@@ -94,10 +94,12 @@ runs:
 pending:
   - USER DECISION on notes/ship-review-2026-07-31-16.md — ship / fix / re-scope / stop
   - SC-13 — main-session SKILL.md edit, pre-ship, no agent domain covers it (Q13)
-  - B-13 CANDIDATE, new at run 17-19 — validate-digest.py:493-497 rejects `members: []` with a non-zero
+  - >-
+    B-13 CANDIDATE, new at run 17-19 — validate-digest.py:493-497 rejects `members: []` with a non-zero
     steps_run, so a lead's self-executed step has no truthful encoding. Raised by both product-lead and
     validator-lead independently. Not in the signed briefing; reaches the user via the run digest only
-  - GOAL-CHECK PASSED — SC-01..SC-12 all met (run 13). SC-12's reported gap rested on a false premise:
+  - >-
+    GOAL-CHECK PASSED — SC-01..SC-12 all met (run 13). SC-12's reported gap rested on a false premise:
     ship pre-existed at 4d00dbc, abandon is the only new verb, covered at test-gh-sync.py:529
 resolved:
   - MF-1..MF-6 all resolved; eng-lead re-verified by id at run 2026-07-31-04-eng

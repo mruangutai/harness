@@ -58,11 +58,13 @@ needs no approval. The prototype is the gate; mockups are how you get there.
 
 ## Output
 
-```
+````
+```yaml
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line>
-  contract: written|updated        # ONLY these two — the validator rejects anything else
+  contract: written|updated|n/a    # ONLY these three — the validator rejects anything else.
+                                   # n/a = this feature needs no DESIGN.md (DEC-173)
   needs_prototype: <bool>
   why: "<one line — the user reads this>"
   mockups: [<paths>]
@@ -74,3 +76,4 @@ DIGEST:
   expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
 artifact: <.harness/features/<FEAT>/DESIGN.md>
 ```
+````

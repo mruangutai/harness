@@ -3436,6 +3436,38 @@ org, and it should read as one chain.
 
 ---
 
+### DEC-142 amendment — the agent NAME is the title the user actually sees, and it cannot hold `·`
+
+DEC-142 was written when a spawn had a free-text title and nothing else. Agents are now addressable
+by `name` for `SendMessage`, and that name is what surfaces in the spawn tree and on every relayed
+message. The name field is constrained to `^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$`, so **the convention's
+`·` separator and its spaces are illegal there** — DEC-142's literal format cannot be used as a name.
+
+Observed defect, main session, 2026-08-03: FEAT-05's ship orchestrator was named
+`yaml-sweep-f1-ship`. Its `description` did carry the flow id ("Ship FEAT-05 pyyaml file parsers"),
+but the NAME is what rendered, so the user watching the tree could not trace the running agent to its
+flow, saw `harness-eng-lead` conducting a run, and reasonably asked why a lead had been spawned
+directly instead of an orchestrator. Nothing was wrong with the org — main had spawned only the
+orchestrator, which had dispatched the lead correctly at layer 2 — but the tree could not show that.
+**That is exactly the kaya-ai failure DEC-142 was written to prevent, reproduced through the one field
+the decision did not know about.**
+
+The rule, unchanged in spirit: **a spawn the user cannot trace to its flow is a dispatch defect.**
+Mechanically, when a spawn carries a `name`:
+
+- **The `name` is a flow-traceable slug** — `<flow-id>-<step>`, e.g. `FEAT-05-ship`, `FEAT-05-T01`.
+  Hyphens for the separator, since `·` and spaces are rejected. The flow id comes first so the tree
+  sorts and reads as one chain.
+- **The dispatch description keeps the full form** — `FEAT-05 · ship · build validate and ship`.
+- **A name that omits the flow id is the defect**, however good the description is. Naming an agent
+  for addressability must not silently displace the convention.
+
+**One genuine gap this does not close.** A NEW feature's id is coined by pm at BRIEF time (DEC-133),
+so the very first `plan` spawn has no flow id to carry — the door cannot comply on that one dispatch.
+Options are a provisional slug renamed on return, or accepting one untraceable spawn per feature.
+Unresolved, and deliberately not decided here; it affects exactly one spawn per feature and the
+orchestrator's own name can be corrected on the next dispatch.
+
 ## DEC-143 — check-domain.sh sees through worktrees; the unsplittable-task gap is task 25
 
 Field report from kaya-ai, at the most expensive possible place — the first build dispatch after
@@ -4456,3 +4488,243 @@ reviewer from invisible into auditable.
 is blind. Open questions for whoever picks this up: can `advisorModel` be scoped to the main session
 only, and what does one call actually cost? Answer those before trading away catches that have
 provably worked.
+
+## DEC-171 — The no-dependency clause is reversed: PyYAML is permitted, and hand-rolled YAML regex goes
+
+**Supersedes the "Zero dependencies" bullet of DEC-101.** That bullet ruled: *"No YAML library — the
+manifest reader is a narrow line scanner, because these must run on any machine without an install
+step."* Everything else in DEC-101 stands; only the dependency clause is reversed. The wider
+files-only constraint in CLAUDE.md also stands — no CLI, no build step, no template generator.
+
+**What forced it.** Issue #11: `check-state.sh`'s run parser is a three-line regex,
+`id:\s*(\S+)\s*\n\s*squad:\s*(\S+)\s*\n\s*verdict:\s*(\S+)`. Because `\s*\n` admits only whitespace
+after the `id:` and `squad:` captures, a trailing `# comment` — legal YAML, and the house style on
+45 lines of `FEAT-03-subissue-mirror/feature.yaml` — makes the match fail and drops the **entire
+run** from `runs`. That silently fails open on three invariants at once: INV-6 (`review_sha` pinned
+when a validator run exists), INV-7 (`cycles_used` >= FAIL count), INV-8 (run dir exists). Exit 0,
+no message. It has not fired only because the two vulnerable lines happen to carry no comments, and
+one author who hit it wrote a warning into the data file (`feature.yaml:63-64`) instead of fixing
+the parser.
+
+**Why the line scanner was always going to lose.** This defect shape is documented repeatedly in-tree,
+and #11 is not its first appearance. `check-state.sh:105-107` names two priors in its own comment —
+the digest parser (DEC-123) and INV-4 (DEC-129), both single-format bugs — alongside DEC-101's own
+INV-12 false positive the first time a real orchestrator wrote block-form YAML. Separately,
+`validate-digest.py:247-272` documents **five** hand-patches of the same class, one of which (F4) is
+a trailing-`#`-comment fix identical to #11, found and fixed independently. A regex encodes
+one serialization of a format that has many; every legal variant an author later uses is a silent
+failure. The cost of the constraint stopped being "no install step" and became a recurring class of
+fail-open bugs in the code whose entire job is to catch fail-open bugs.
+
+**What replaces it.** A real `yaml.safe_load` wherever the harness reads YAML. The reversal *permits*
+the dependency; it does not mandate the rewrite happen everywhere at once — but the direction is
+settled, and new code does not hand-roll a YAML parser.
+
+**Graceful degradation is mandatory, and it mirrors DEC-101's own rule** that `check-domain.sh` fails
+open loudly rather than blocking every write. A bare `import yaml` would convert a latent fail-open
+into a guaranteed fail-closed: no PyYAML, traceback, non-zero exit, every `/harness` entry gate
+reporting failure on a machine that merely lacks a package. So: guard the import, fall back to the
+comment-tolerant line scan, and print one loud line naming the install command. The parse gets
+better where PyYAML is present and gets no worse where it is not.
+
+**Two hazards for the implementer, both real:**
+
+- **`safe_load` returns typed values; the regex returned strings.** `check-state.sh:120` is
+  `cu.isdigit()` on `cycles_used` — an `int` under `safe_load`, and `.isdigit()` on an `int` raises.
+  Every consumer of a parsed value must be walked for str-assumptions.
+- **A bare date-shaped scalar becomes a `datetime.date`.** Run ids like `2026-07-31-01-product` carry
+  trailing text and stay strings, but an id that is exactly `2026-07-31` would silently become a date
+  object and break the run-dir path join.
+
+**Do not pin `/usr/bin/python3`.** Apple's system Python ships PyYAML 6.0.1, which makes pinning it
+look free. It is macOS-only and deprecated for scripting; it would make the harness unrunnable on
+Linux, in CI, and in the distributable package this repo is aiming at.
+
+### DEC-171 amendment — the fallback is removed: PyYAML is REQUIRED, and the hooks fail CLOSED
+
+Two reversals of DEC-171 as first written, both the user's call at the `/harness-plan` grilling the
+same day.
+
+**1. No graceful degradation. PyYAML is required.** DEC-171 mandated a loud fallback to a
+comment-tolerant line scan when the library is absent. The user rejected it on the ground that
+settles it: a fallback keeps a hand-rolled YAML parser at every call site, and removing exactly that
+is the entire point of the effort. Two code paths also means the fragile one is the one that never
+gets exercised, so its bugs are found in production or not at all. **A missing PyYAML is an error,
+stated loudly, not a quieter mode of operation.**
+
+**Where the requirement is enforced:** a seventh entry in `harness-init`'s existing six-prerequisite
+HARD GATE — check the import, and if it fails STOP and print the install command, exactly as that
+gate already does for a script it cannot run. Not a `requirements.txt`: nothing in the harness would
+read it, and it would be the first dependency manifest in a repo that is still files-only.
+
+**2. `check-domain.sh` and `bash-write-guard.sh` fail CLOSED on a missing PyYAML.** This is a
+deliberate exception to DEC-101's fail-open rule, and the distinction is what the failure means.
+DEC-101 fails open on a *missing manifest* because an unconfigured project has nothing to enforce,
+and on an *unparseable payload* because that is the hook's own bug — blocking on either would wedge
+every write over a condition the hook cannot fix. A missing PyYAML is neither: the project IS
+configured, the hook has no bug, and there is exactly one action that resolves it. Failing open
+there means domain enforcement is silently off precisely when the environment is wrong.
+
+**The bootstrap escape, and why it is not a loophole.** Fail-closed plus an install-time prerequisite
+would brick any existing project that pulls the update without re-running init: every agent write
+blocked, including the writes that would fix it. So the first session that hits a missing PyYAML
+prints the install command and **permits writes for that session only**, blocking from the next
+session onward. The steady state is closed; the escape exists so the failure is recoverable from
+inside the tool, and it expires by construction rather than by anyone remembering to remove it.
+
+## DEC-172 — the agent return gets a `yaml` fence, and unfenced returns are blocked
+
+`validate-digest.py` carries five hand-patches (`:247-272`) for one root cause: the three-part return
+is **already a well-formed YAML mapping** — `VERDICT:` scalar, `DIGEST:` mapping, `artifact:` scalar
+— floating in free prose with no delimiter (`harness-handoff/SKILL.md:14-22`). Every patch is
+boundary detection: where the block starts, what the base indent is, when a dedent ends it, whether
+`DIGEST:` may carry a trailing comment (F4 — the same bug as issue #11, fixed independently in a
+second file). None of them are YAML bugs.
+
+**The return is wrapped in a ```` ```yaml ```` fence.** Extraction becomes one unambiguous match and
+`safe_load` does everything else, which deletes all five patch classes at once.
+
+**Rejected: DIGEST as a real `.yaml` file** with the return carrying its path. It looks like
+"pointers not payloads" but is not. The hook validates `last_assistant_message` (`:645`), so a path
+would still have to be located in prose — the parse moves rather than disappears. The DIGEST is the
+compact routing signal that rule deliberately keeps inline; `artifact:` is already the pointer. And
+it would change the return contract for all 16 agents plus DEC-122 — a larger feature, orthogonal to
+removing regex, and available later at no extra cost if it is ever wanted.
+
+**Unfenced returns are BLOCKED, with no deprecation window.** Consistent with the fail-closed posture
+above, and safe here because `validate-digest.py` already returns 0 when `stop_hook_active` is set,
+so a blocked agent retries once and cannot loop.
+
+**Correction to this entry as first written.** It claimed "the 16 agent templates and the parser must
+land in the same ship, or every agent breaks at `SubagentStop`." Both halves were wrong, and the
+error mattered because it made the template work look blocked when it is not.
+
+- **The count is 13 files, not 16** — nine `.claude/agents/harness-*.md` plus four skills
+  (`harness-handoff`, `harness-digest-dev`, `harness-team`, `harness-tdd-enforcement`). Counted with
+  `grep -rln '^DIGEST:'`. Seven of the sixteen agents carry no return template of their own; they
+  inherit `harness-handoff`'s.
+- **The ordering constraint only binds in one direction.** The CURRENT parser already accepts a
+  fenced return — verified directly against `validate-digest.py` at this SHA with a fenced digest,
+  and with a fenced digest surrounded by prose: both `digest ok`, exit 0. The `artifact:` key at
+  column 0 already ends the block, so a closing ``` fence at column 0 is an ordinary dedent it
+  handles. **Templates may therefore ship FIRST, independently and safely.** What must not ship first
+  is the parser's *rejection* of unfenced returns — that is the half that breaks every
+  not-yet-updated agent.
+
+The practical sequencing: fence the 13 templates whenever convenient, then make rejection the
+parser's behavior once no unfenced returns remain. Agent files are read at spawn, so the
+`harness-init` step 9 restart caveat still applies to the template change.
+
+## DEC-173 — "nothing happened" gets a spelling: `n/a`, and declining a gate is not passing it
+
+An audit of every persona's did-nothing state (`.harness/notes/audit-digest-schema-nothing-happened-2026-08-02.md`,
+reproducer beside it) found **6 of 7 could not report it truthfully**. In five, the honest value was
+REJECTED while a false one was ACCEPTED — the schema actively selected for the lie:
+
+| persona | honest | was rejected in favour of |
+|---|---|---|
+| `dev` | `suite: n/a` | `suite: pass` — the suite passed, when nothing ran |
+| `qa` | `suite`/`matrix_ok: n/a` | `pass` + `matrix_ok: true` — **the only blocking gate, recorded as passed because the suite could not run** |
+| `reviewer` | `severity_max: n/a` | `info` — indistinguishable from "reviewed it, found info-level issues" |
+| `visual-designer` | `contract: n/a` | `written` — asserts a DESIGN.md exists |
+| `pm` | `surface`/`risk: n/a` | `S` + `low` — asserts a small, low-risk feature |
+| `lead` | `members: []` + `steps_run: 1` | *(nothing accepted — see below)* |
+
+**This is the fail-open shape the file exists to prevent**, turned inward. The accepted value does not
+merely lose information; it collapses *this did not happen* into *this happened, benign result*. The
+orchestrator routes on four of these fields.
+
+**The fix reuses the mechanism that was already here.** `NULLABLE` gains `suite`, `matrix_ok`,
+`severity_max`, `contract`, `surface`, `risk`; the existing short-circuit already accepts
+`none`/`null`/`n/a` for a nullable scalar. **`n/a` is the spelling to use** — all three parse, but one
+vocabulary across sixteen agents is the entire point of DEC-121, and three synonyms is how the
+near-miss problem gets reinvented.
+
+`dev-ops`'s `suite` already carried `n/a` and every other occurrence did not: the vocabulary was
+extended once, locally, where someone hit the wall, and never propagated. That member is now removed
+as redundant — one mechanism for "did not happen", not two that drift.
+
+**Declining a gate is not passing it — and the rule is keyed by PERSONA, not by field.** Widening
+`NULLABLE` alone would have created a new fail-open: `matrix_ok: n/a` with `VERDICT: PASS` is the same
+unearned pass in new clothes. But a field-only rule is wrong, and testing proved it — it rejected
+`dev-ops`'s legitimate `suite: n/a` + `PASS`, where `test_matrix` maps `config`/`scaffolding`/`docs`
+to `[]` (DEC-100) and "no tests apply" is the correct outcome. So `GATE_FIELDS` is
+`{"dev": {"suite"}, "qa": {"suite","matrix_ok"}}` — only the roles whose PASS is *earned by the gate*
+are bound by it. A `reviewer` scoping out of a diff with nothing for its role to judge passes with
+`severity_max: n/a`, legitimately.
+
+**What triggered the audit.** `harness-tdd-enforcement`'s under-specified-task refusal was written
+with two DIGEST fields and no `artifact:`. The `SubagentStop` hook rejected it with **exit 2**, so the
+guard against under-specified tasks was told it had committed a contract violation at the moment it
+fired; the forced retry sets `stop_hook_active` and exits 0, shipping **unvalidated**. Completing that
+example without fixing `suite` would have enshrined `suite: pass` — a lie — in a normative template.
+It now reads `suite: n/a` and validates in both CLI and hook mode.
+
+**NOT fixed here, and both need a decision rather than a patch:**
+
+1. **B-13, the `lead` row** (`FEAT-03-subissue-mirror/feature.yaml:97`, raised independently by
+   product-lead and validator-lead). `members: []` with `steps_run > 0` is rejected as "never
+   legitimate", but a lead applying its own Expertise ops genuinely self-executes a step. This is
+   doctrinal — *may a lead execute work at all?* `harness-zero-micro-management` says route, never do;
+   the distillation dispatch says otherwise in practice. Resolve the doctrine, then the encoding.
+2. **The `stop_hook_active` pass-through.** A blocked agent's second attempt is accepted with no
+   validation whatsoever. That is how a wrong correction escapes, and it is why defect 1 above was
+   survivable rather than visible.
+
+## DEC-174 — Self-hosting stops at the enforcement layer: the harness plans its own work, it does not execute changes to its own guards
+
+Raised by the user after a day of building FEAT-05 through the harness: *"my sense is that we shouldn't
+be using harness to build harness."* Substantially accepted, with the boundary drawn narrower than the
+full claim.
+
+**The evidence, all from 2026-08-03 and all on this repo.** Every gate was green —
+`run-unit-tests.sh`, `check-docs.sh`, `check-state.sh`, `gen-decisions-index.py --check` — while:
+
+- four `.harness` YAML files did not parse, `team-config.yaml` among them, its `[` unclosed since a
+  space-`#` opens a comment inside a flow sequence, so **every key from `orchestrator:` onward was
+  unreachable to a real parser** — the entire team roster;
+- `harness-tdd-enforcement`'s normative refusal template was **rejected by the harness's own
+  `SubagentStop` validator**, six contract violations, so the guard against under-specified tasks was
+  told it had violated the contract at the moment it fired;
+- six of seven personas could not report a did-nothing state truthfully, and in five the schema
+  **accepted the false value and rejected the honest one** (DEC-173).
+
+**Self-hosting caught none of these.** They were found by hand, and the largest by chasing a red unit
+test that could reasonably have been dismissed as an expected RED gate. A system whose self-checks pass
+while its own manifest is unparseable is not checking itself.
+
+**The circularity is not uniform, which is why the answer is a carve-out and not a repeal.**
+
+| layer | self-hosted? | why |
+|---|---|---|
+| grilling, BRIEF, PLAN, review panel, goal-check | **yes, keep it** | none of it depends on the code being changed; FEAT-05's grilling and plan were good work and caused none of the day's trouble |
+| agent roles, digests, expertise | yes | drift risk, not circularity |
+| **hooks, validators, gate scripts** (`check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh`, `check-docs.sh`) | **NO** | the artifact under change is the artifact doing the checking |
+
+Everything painful on 2026-08-03 sits in the third row: which copy of `check-domain.sh` a hook fires,
+whether DEC-173 governs any agent, whether 13 edited agent templates are even live, and a fail-closed
+conversion that can block the write that would fix it.
+
+**The ruling.** A change to the enforcement layer is made **directly** — ordinary edits, tests run
+explicitly, a human reading the diff — not dispatched through a team run whose gates are the thing
+being changed. Planning such a change through the harness remains fine and useful; **executing** it
+through the harness is not.
+
+**Two structural smells that justify the line, recorded because they generalise:**
+
+1. **The bootstrap escape.** FEAT-05 had to design a one-session escape so a fail-closed hook could not
+   brick the write that fixes it. Needing an escape hatch *from yourself* is the signature of
+   circularity, not a missing feature.
+2. **Cost shape.** $92 went to planning before a single line of code, on a change whose core is roughly
+   fifty lines of Python. The ceremony is calibrated for product features, not for editing the ceremony.
+
+**What this costs, stated honestly rather than argued away.** Dogfooding is real pressure and it worked:
+this one day produced DEC-142's name-vs-title gap, DEC-173's schema class, and the invalid-corpus
+finding — all because the harness was actually run. Removing the enforcement layer from self-hosting
+removes some of that pressure, and it weakens the claim that a CTO can ship reliably through this thing.
+The trade is accepted anyway: **finding bugs by running a $240 team flow is a worse deal than finding
+them with a test.**
+
+**Not decided here:** whether harness development should use the ceremony at all for non-enforcement
+work. The user considered stopping self-hosting entirely and chose the carve-out; the stronger position
+stays available and is a stage question, not a correctness one.
