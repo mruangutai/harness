@@ -32,8 +32,15 @@ import os
 import sys
 import tempfile
 
+# THE GATE MUST USE THE HARNESS'S OWN LOADER, not a more forgiving one.
+#
+# It used `yaml.safe_load`, which ACCEPTS a duplicated top-level key (last one wins)
+# while `harness_yaml.load_str` REJECTS it. So a .harness file could pass this gate
+# green and then break check-state.sh and both write hooks — a gate more permissive
+# than the thing it protects is not a gate. Found by the goal-check.
 try:
     import yaml
+    import harness_yaml
 except ModuleNotFoundError:
     print("test-harness-yaml-corpus: PyYAML is not importable from this interpreter "
           f"({sys.executable}).\n"
@@ -53,9 +60,11 @@ def scan(root):
     bad = []
     for p in paths:
         try:
-            with open(p, encoding="utf-8") as fh:
-                yaml.safe_load(fh)
-        except yaml.YAMLError as e:
+            harness_yaml.load_file(p)
+        except harness_yaml.DuplicateKeyError as e:
+            bad.append((os.path.relpath(p, root), str(e)))
+        except harness_yaml.YamlParseError as e:
+            e = e.original if getattr(e, "original", None) is not None else e
             # Name file, line and column — the diagnostics are the whole point. The
             # 2026-08-03 hunt was tractable ONLY because PyYAML reports a mark; a
             # bare "invalid YAML" would have cost hours across 10 files.
@@ -113,8 +122,16 @@ NEGATIVE = [
      "pending:\n  - a note that says by me: presence 2\n    and continues here\n"),
     ("detects a sequence item opening with a backtick (the FEAT-03 bug)",
      "pending:\n  - `members: []` is rejected\n"),
-    ("detects a duplicated top-level key colliding under a real parser",
+    # Was labelled "duplicated top-level key" while feeding an UNCLOSED FLOW SEQUENCE —
+    # so it tested a different defect entirely and the duplicate case was never covered.
+    # That is why the loader mismatch above survived: the fixture agreed with the label,
+    # not with the code.
+    ("detects an unclosed flow sequence",
      "cost: 1\nfoo: [unclosed\n"),
+    ("detects a DUPLICATED top-level key (safe_load accepts these; the harness does not)",
+     "cost: 1\ncost: 2\n"),
+    ("detects a duplicated key NESTED in a block (column-0 scans cannot see these)",
+     "steps:\n  - id: s1\n    cost: 1\n    cost: 2\n"),
 ]
 for name, body in NEGATIVE:
     d = _fixture(body)

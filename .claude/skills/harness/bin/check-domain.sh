@@ -308,30 +308,23 @@ if re.match(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$", rel):
                "cycles_used", "cost", "flow", "task", "team", "branch", "worktree",
                "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
                "verdict", "severity_max", "digest"}
-    # NO PARSER, in a bootstrap-grant session: fall back to the column-0 text scan this
-    # branch used before T-12. It is weaker — it cannot see a nested duplicate, and a
-    # quoted key reads as a non-key — but "weaker than the parser" beats "no check at
-    # all", which is what review finding 1 found here. This is NOT the line-scan
-    # fallback DEC-171 am.1 forbids: that rules out a fallback for READING the harness's
-    # own YAML in normal operation. This runs only when PyYAML is absent, only for the
-    # one session the escape grants, and it guards a shape budget rather than a domain.
+    # NO PARSER, in a bootstrap-grant session: the shape gate does not run.
+    #
+    # A line-scan fallback lived here briefly and was REMOVED at the user's ruling. The
+    # signed BRIEF forbids it outright — Goal :20-21 "no second code path anywhere, so
+    # the brittle regex leaves the tree instead of living on as a fallback nobody
+    # exercises", Constraint :48-49 "no line-scan alternative, no degraded mode in any
+    # converted script". A branch that runs ONLY when PyYAML is missing is by
+    # construction the least-exercised code in this file, which is precisely the rot
+    # the constraint is aimed at. I argued the exception in a comment in the same commit
+    # that introduced it, with no D-NN and no signature; the goal-check caught it.
+    #
+    # What is given up is EARLIER detection, not correctness — measured, not assumed: a
+    # malformed state.yaml written during a grant is still refused by check-state.sh at
+    # the next /harness entry, naming the same offending keys, by a session that can
+    # actually read it. One bad file to delete, against a crude reader living on forever
+    # in a write guard.
     if _no_parser:
-        _keys = re.findall(r"^([A-Za-z_][A-Za-z0-9_-]*):", content, re.M)
-        _dups = sorted({k for k in _keys if _keys.count(k) > 1})
-        _unknown = sorted({k for k in _keys if k not in ALLOWED})
-        if _dups or _unknown:
-            print("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook "
-                  "(DEC-154).", file=sys.stderr)
-            if _dups:
-                print(f"  duplicate top-level key(s) {_dups} — the second silently shadows "
-                      f"the first; replace the placeholder, never append a copy (DEC-156).",
-                      file=sys.stderr)
-            if _unknown:
-                print(f"  non-checkpoint top-level key(s) {_unknown} — findings and "
-                      f"assessment prose belong in this run's digest.md.", file=sys.stderr)
-            print("  (checked WITHOUT PyYAML, so this scan sees only column-0 keys — "
-                  "install PyYAML for the full check.)", file=sys.stderr)
-            sys.exit(2)
         sys.exit(0)
 
     try:

@@ -335,31 +335,44 @@ def run_t12():
         and "EARLIER session" in r3.stderr,
         f"stderr was {len(r3.stderr)} bytes: {r3.stderr.strip()[:200]}")
 
-    # Review finding 1, a regression the T-13 single-interpreter merge introduced. The
-    # bootstrap grant's `sys.exit(0)` skipped the DEC-154 state.yaml shape gate as well
-    # as the domain check — but before the merge those were separate launches and the
-    # shape gate ran regardless of the parser situation. So a session with no PyYAML
-    # could write an unbounded state.yaml full of prose with no denial.
+    # THE SHAPE GATE DOES NOT RUN DURING A BOOTSTRAP GRANT, and that is the ruling,
+    # not an oversight.
     #
-    # The grant is supposed to let writes through so the machine can be FIXED; it is not
-    # a licence to write malformed state. The gate now falls back to the column-0 scan
-    # this branch used before T-12 — weaker than the parser (no nested duplicates, a
-    # quoted key reads as a non-key) but "weaker" beats "absent". Not the DEC-171 am.1
-    # fallback that is forbidden: that rules out a line scan for READING the harness's
-    # YAML in normal operation; this runs only while PyYAML is missing.
+    # Review finding 1 (5th pass) said the grant skipped the DEC-154 shape gate, and I
+    # closed it with a line-scan fallback. The GOAL-CHECK then found that fallback
+    # violates the signed BRIEF outright — Goal :20-21 "no second code path anywhere,
+    # so the brittle regex leaves the tree instead of living on as a fallback nobody
+    # exercises", Constraint :48-49 "no line-scan alternative, no degraded mode in any
+    # converted script". The user ruled: REMOVE IT, honour the signature.
+    #
+    # What that costs is EARLIER detection, not correctness — measured before deciding:
+    # a malformed state.yaml written during a grant is still refused by check-state.sh
+    # at the next /harness entry, naming the same keys, by a session that can read it.
+    # One bad file to delete, against a crude reader living on forever in a write guard.
+    #
+    # These two cases pin the RULED behaviour so nobody "fixes" it back: during a grant
+    # the write is allowed, and the entry gate is the backstop.
     grant = fixture(FIXTURE_MANIFEST)
     sp2 = ".harness/features/FEAT-01/runs/r1/state.yaml"
     rbad = fire_noyaml(grant, sp2, "sess-shape",
                        content="run_id: r1\nfindings: a notebook of prose\n")
-    t12("finding 1: a bootstrap-grant session STILL cannot write a malformed state.yaml",
-        rbad.returncode == 2 and "DEC-154" in rbad.stderr,
+    t12("grant: a malformed state.yaml is ALLOWED (no fallback — BRIEF Goal :20-21)",
+        rbad.returncode == 0,
         f"exit {rbad.returncode}: {rbad.stderr.strip()[:200]}")
 
     grant_ok = fixture(FIXTURE_MANIFEST)
     rok = fire_noyaml(grant_ok, sp2, "sess-shape-ok",
                       content="run_id: r1\nstatus: complete\n")
-    t12("finding 1: ...but a WELL-FORMED state.yaml is still granted",
+    t12("grant: a well-formed state.yaml is allowed too (the grant is not selective)",
         rok.returncode == 0, f"exit {rok.returncode}: {rok.stderr.strip()[:200]}")
+
+    # And WITH a parser the gate is unchanged — this is what makes the pair meaningful
+    # rather than "the hook allows everything".
+    withyaml = fixture(FIXTURE_MANIFEST)
+    rgated = fire(withyaml, sp2, content="run_id: r1\nfindings: prose\n")
+    t12("with a parser, the shape gate still BLOCKS the same content",
+        rgated.returncode == 2 and "DEC-154" in rgated.stderr,
+        f"exit {rgated.returncode}: {rgated.stderr.strip()[:200]}")
 
     # Self-cleaning: once yaml imports again the marker is removed, so a machine that
     # gets fixed does not carry a spent grant forever.
