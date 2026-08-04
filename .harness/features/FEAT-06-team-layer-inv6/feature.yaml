@@ -4,7 +4,7 @@ branch: main
 pr: none
 status: awaiting_user
 review_sha: 9f87c48
-cycles_used: 5
+cycles_used: 5   # 4 spent in planning; the 5th is the SC-05 remediation ROUTED in this return
 max_total_cycles: 10
 cost_usd: 176.0
 max_cost_usd: 100
@@ -82,11 +82,17 @@ sc_summary:
   unmet: SC-05
   pending_uat: SC-13
   evidence: runs/goalcheck-product/digest.md carries all 15 with method and evidence
+files_touched_union: >-
+  git diff --name-only 635ef14..071e313, outside the feature dir — harness-team/SKILL.md,
+  harness/SKILL.md, bin/{check-state.sh,harness_yaml.py,run-unit-tests.sh,test-check-state.py,
+  test-harness-yaml-corpus.py,test-team-catalog.py,validate-digest.py},
+  teams/{build.yaml,gate-probe.yaml (deleted),review.yaml}, .harness/logs/2026-08-04.md,
+  docs/harness/{DECISIONS.md,SPEC.md}. 15 paths. Computed, not recalled.
 baseline:
   base_sha: 635ef14
   closes_issues: "#8 #9 #16 #24"
   briefing: .harness/features/FEAT-06-team-layer-inv6/notes/ship-review-FEAT-06.md
-  commits: f45fd0f (8 tasks), 510b7ff (T-08), 9f87c48 (T-07). Not pushed, not merged
+  commits: f45fd0f, 510b7ff, 9f87c48, 071e313 on main. Not pushed, not merged
   cost_note: >-
     OVER BUDGET, REPORTED NOT HIDDEN (DEC-134). 176 is the midpoint of a MEASURED 154-199 range
     against the 100 build+validate allowance — 1.5-2x over. The range exists because cost-report.py
@@ -95,13 +101,13 @@ baseline:
     the total — DEC-148's square-of-session-length effect, measured. 9 of 10 tasks also ran at
     depth-0 in the main session and are not separable, so the true total is HIGHER than any figure
     here. The PLAN phase separately spent 170.17 of its own 160. NO FIGURE IS INVENTED.
-  skipped_with_reason: >-
-    (1) FEATURE-CLOSE DISTILLATION NOT RUN — would add ~40-60 at the most expensive point of this
-    session, on a budget already 1.5-2x over. Observation logs are on disk and lose nothing by
-    waiting; recommend a separate /harness-curate. (2) THREE-LEAD PARALLEL BRIEFING REPORT NOT
-    SPAWNED — all their digests are already held, and eng-lead did no build or validate work at
-    all, so it would have returned "no activity" at real cost. Both are execution-time calls,
-    disclosed in the briefing rather than hidden. (3) SHIP-REFRESH is a genuine no-op:
+  not_run_with_reason: >-
+    (1) FEATURE-CLOSE DISTILLATION — its PRECONDITION IS UNMET, which is the reason; it runs after
+    the SCs pass and they have not (SC-05 unmet, SC-13 pending_uat). It becomes due once both
+    close. NOT a budget cut. Observation logs are on disk and lose nothing by waiting.
+    (2) THREE-LEAD PARALLEL BRIEFING REPORT — all their digests are already held, and eng-lead did
+    no build or validate work at all, so it would have returned "no activity" at real cost. An
+    execution-time call, disclosed in the briefing. (3) SHIP-REFRESH is a genuine no-op:
     .harness/codebase/ does not exist, so there is no map to go stale.
   anchor_note: >-
     PLAN.md line anchors recorded before DMF-1 SHIFTED +8 through the T-02 middle and +9 below the
@@ -109,6 +115,8 @@ baseline:
   inv6_self_note: >-
     review_sha PINNED to 9f87c48 BEFORE the first squad: validator run entry was written. FEAT-06's
     own feature.yaml is INV-6's first real subject; case (j) in test-check-state.py is this shape.
+    HEAD MOVES PAST THE PIN when the SC-05 line lands — that is FINE. INV-6 requires pinned, not
+    equal-to-HEAD, and re-running an advisory panel for one assertion line would be waste.
 approved:
   brief: approved 2026-08-04 by Mike Ruangutai (BRIEF.md `## Approval`)
   plan: approved 2026-08-04 by Mike Ruangutai (PLAN.md `## Approval`), 10 tasks, 8 decisions
@@ -143,15 +151,17 @@ resolved:
     no end-user interaction and no prototype, and the diff is scripts, YAML and markdown
 pending:
   - >-
-    Q1 BLOCKING, USER: SC-05's count conjunct is unasserted. test-harness-yaml-corpus.py:180-181
-    asserts n > 0 per root; the "2" in its output is an f-string LABEL at :174-175. pm ruled UNMET
-    AS DECLARED. ORCHESTRATOR RECOMMENDS FIXING (one check() line) over waiving, since waiving
-    amends a signed BRIEF. TRAP: the line belongs in test-harness-yaml-corpus.py, NOT
-    test-team-catalog.py, whose signed verify requires exactly TEN checks
+    SEGMENT 4, ROUTED IN THIS RETURN, main-session-direct (DEC-174 carve-out): SC-05's count
+    conjunct is unasserted — test-harness-yaml-corpus.py:180-181 asserts n > 0 per root and the "2"
+    at :174-175 is an f-string LABEL. pm ruled UNMET AS DECLARED; premise verified at source twice.
+    This is a FIX CYCLE, not a user decision — an unmet SC that CAN be met is not a plan change.
+    Waiving would be the EXPENSIVE option (a pm run plus a signature, since it amends an approved
+    BRIEF). TRAP: the line belongs in test-harness-yaml-corpus.py, NOT test-team-catalog.py, whose
+    signed verify requires exactly TEN checks
   - >-
-    Q2 BLOCKING, USER: SC-13 is the only uat criterion and gates.uat is blocking. The user must
-    read teams/build.yaml and SKILL.md:40-53 and agree they describe builds as they want them
-    dispatched. No test settles it
+    Q2 BLOCKING, THE USER'S ALONE: SC-13 is the only uat criterion and gates.uat is blocking. The
+    user reads teams/build.yaml and SKILL.md:40-53 and rules on whether they describe builds as
+    they want them dispatched. No test settles it
   - >-
     NOT PROVEN, declared in BRIEF and signed open: build.yaml is never executed by this feature —
     the panel called it "prose with a passing shape-check"; no ship run exercises the new qa
