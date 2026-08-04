@@ -71,6 +71,18 @@ def project(harness_json='{"schema_version": 1}', manifest="schema_version: 1\n"
     return d
 
 
+def ran_clean(r):
+    """A result that reflects the script's LOGIC, not a crash.
+
+    The re-review panel found cases 3-6 below passing against the known-broken script:
+    a NameError satisfies `returncode != 0`, makes two crash exit codes EQUAL, prints
+    no agent names, and writes no file. Every assertion those cases make is satisfied
+    by a script that never ran. So each now gates on this first — a crash is not
+    evidence of anything.
+    """
+    return "Traceback" not in r.stderr and "NameError" not in r.stderr
+
+
 def run(root, *args):
     return subprocess.run(
         [sys.executable, SCRIPT, root, "--templates", os.path.join(root, "_templates"), *args],
@@ -101,7 +113,7 @@ check("it reads a real manifest without raising",
 # broken file, which is indistinguishable from "nothing new to add".
 r = run(project(manifest="teams: [ {name: x ## eaten\nnext: 1\n"), "--check")
 check("a malformed manifest does not pass silently",
-      r.returncode != 0 or "parse" in (r.stdout + r.stderr).lower(),
+      ran_clean(r) and (r.returncode != 0 or "parse" in (r.stdout + r.stderr).lower()),
       f"exit {r.returncode}: {(r.stdout + r.stderr).strip()[-300:]}")
 
 # --- 4. the two defects T-04 fixed, asserted through the script ---
@@ -112,7 +124,8 @@ r_quoted = run(quoted, "--check")
 bare = project(manifest="schema_version: 1\n")
 r_bare = run(bare, "--check")
 check("a QUOTED schema_version behaves like a bare one (was read as absent)",
-      r_quoted.returncode == r_bare.returncode,
+      ran_clean(r_quoted) and ran_clean(r_bare)
+      and r_quoted.returncode == r_bare.returncode,
       f"quoted exit {r_quoted.returncode} vs bare exit {r_bare.returncode}")
 
 # yaml_names matched the literal text `name:` at any indent, so it harvested names out
@@ -127,16 +140,34 @@ teams:
 """
 r = run(project(manifest=NOISY), "--check")
 check("prose containing `name:` is not harvested as an agent",
-      "not-an-agent" not in (r.stdout + r.stderr),
+      ran_clean(r) and "not-an-agent" not in (r.stdout + r.stderr),
       f"output named a phantom agent: {(r.stdout + r.stderr).strip()[-300:]}")
+
+# --- Q2: a YAML-truthy agent name is REPORTED, not silently dropped (D-08) ---
+# `- name: no` resolves to the bool False under YAML 1.1. The old `isinstance(n, str)`
+# guard dropped it, so an agent literally disappeared from the roster comparison rather
+# than being surfaced. Fixing F-03 made this path reachable for the first time.
+TRUTHY = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-real-agent
+        domain: [{ path: "a/**" }]
+      - name: no
+        domain: [{ path: "b/**" }]
+"""
+r = run(project(manifest=TRUTHY), "--check")
+check("Q2: a YAML-truthy name (`- name: no`) does not vanish from the roster",
+      ran_clean(r), f"exit {r.returncode}: {r.stderr.strip()[-300:]}")
 
 # --- 5. --check writes nothing ---
 p = project()
 before = open(os.path.join(p, ".harness", "team-config.yaml")).read()
 run(p, "--check")
 after = open(os.path.join(p, ".harness", "team-config.yaml")).read()
+_r = run(p, "--check")
 check("--check never rewrites team-config.yaml (safe_dump would strip its comments)",
-      before == after, "the manifest changed under --check")
+      ran_clean(_r) and before == after, "the manifest changed under --check")
 
 
 def main():

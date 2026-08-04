@@ -227,7 +227,12 @@ def load_recorded(feat_dir):
         raise SystemExit(f"gh-sync: {path} does not parse, so what is already mirrored "
                          f"cannot be known. Refusing to sync rather than risk duplicate "
                          f"issues.\n  {e}")
-    gh = (doc or {}).get("github")
+    # M-02's shape, hardened here too. `(doc or {})` covers an empty file, but a bare
+    # scalar or list parses fine and has no .get — the panel found the identical
+    # pattern crashing manifest_domains. Same rule: parses-but-is-not-a-mapping is not
+    # an error the loader raises, so every consumer must guard the TYPE, not just the
+    # absence.
+    gh = doc.get("github") if isinstance(doc, dict) else None
     if not isinstance(gh, dict):
         return rec
 

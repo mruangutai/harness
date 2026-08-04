@@ -111,8 +111,20 @@ def yaml_names(text):
     def walk(node):
         if isinstance(node, dict):
             n = node.get("name")
-            if isinstance(n, str) and n.strip():
-                out.append(n.strip())
+            # Q2: this DROPPED a non-str name (`if isinstance(n, str)`), which reads as
+            # a type guard but is a silent filter — and it contradicts D-08, whose rule
+            # is coerce-at-the-consumer for anything used as an identifier. A name is an
+            # identifier. YAML 1.1 resolves an unquoted `no:`/`on:`/`01` to a bool or
+            # int, so `- name: no` vanished from the roster rather than being reported.
+            #
+            # Fixing F-03 made this REACHABLE for the first time, which is why the panel
+            # raised it from low to med: before the import landed, nothing here ran at
+            # all. bool is excluded from the numeric case for the usual reason — it is
+            # an int subclass.
+            if n is not None and not isinstance(n, (dict, list)):
+                s = str(n).strip()
+                if s:
+                    out.append(s)
             for v in node.values():
                 walk(v)
         elif isinstance(node, list):
@@ -214,8 +226,20 @@ def main():
         gaps.append("team-config.yaml")
     else:
         pt, tt = open(p_yaml, encoding="utf-8").read(), open(t_yaml, encoding="utf-8").read()
-        pver, tver = yaml_version(pt), yaml_version(tt)
-        pnames, tnames = set(yaml_names(pt)), yaml_names(tt)
+        # A manifest that does not parse is REPORTED, not raised. Found by this task's
+        # own test: the raw YamlParseError escaped as a traceback, which tells the user
+        # "the upgrade tool is broken" when the truth is "your manifest is". The gap is
+        # what SC-07's init gate exists to catch early — say so, and name the line.
+        try:
+            pver, tver = yaml_version(pt), yaml_version(tt)
+            pnames, tnames = set(yaml_names(pt)), yaml_names(tt)
+        except harness_yaml.YamlParseError as e:
+            print(f"team-config.yaml: DOES NOT PARSE — {e}")
+            print("  The upgrade cannot compare a manifest it cannot read. Fix the file "
+                  "first; `check-domain.sh` is failing closed on it too (DEC-171 am.1).")
+            gaps.append("team-config.yaml")
+            pver = tver = None
+            pnames, tnames = set(), []
         new_agents = [n for n in tnames if n.startswith("harness-") and n not in pnames]
         if pver != tver or new_agents:
             gaps.append("team-config.yaml")

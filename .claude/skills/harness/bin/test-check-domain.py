@@ -165,6 +165,26 @@ def run_t12():
         r.returncode == 2 and "does not parse" in r.stderr,
         f"exit {r.returncode} (2 blocks, 1 fails OPEN): {r.stderr.strip()[:200]}")
 
+    # M-02, found by the re-review panel and PRE-EXISTING at both SHAs. F-01 widened
+    # load_str's except, but these inputs PARSE SUCCESSFULLY — an empty file yields
+    # None, a bare scalar a str, a bare list a list — so no exception is ever raised
+    # and manifest_domains' `parsed.get("shared")` raised AttributeError straight past
+    # both hooks' `except YamlParseError`. Exit 1, non-blocking (DEC-100), write
+    # allowed. An EMPTY team-config.yaml was enough to disable both write guards.
+    #
+    # The shape is worth remembering: walk() immediately above guards every branch with
+    # isinstance and the very next statement did not. F-01's fix was scoped to the two
+    # shapes cycle 0 happened to name; this was a third route to the same fail-open.
+    for label, body in (("empty", ""), ("bare scalar", "just text\n"), ("bare list", "- a\n- b\n")):
+        m2 = tempfile.mkdtemp()
+        os.makedirs(os.path.join(m2, ".harness"))
+        with open(os.path.join(m2, ".harness", "team-config.yaml"), "w") as f:
+            f.write(body)
+        r = fire(m2, "allowed/thing.md")
+        t12(f"M-02: a manifest that parses to a non-mapping ({label}) BLOCKS, not crashes",
+            r.returncode == 2 and "Traceback" not in r.stderr,
+            f"exit {r.returncode} (2 blocks, 1 fails OPEN): {r.stderr.strip()[:180]}")
+
     as_dir = tempfile.mkdtemp()
     os.makedirs(os.path.join(as_dir, ".harness", "team-config.yaml"))
     r = fire(as_dir, "allowed/thing.md")

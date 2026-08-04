@@ -163,6 +163,28 @@ def manifest_domains(manifest_path, agent):
 
     walk(parsed)
 
+    # M-02: `parsed.get("shared")` assumed a dict and sat OUTSIDE the widened try, so
+    # it raised AttributeError past every caller's `except YamlParseError`. Note the
+    # shape of the bug — `walk()` immediately above guards every branch with
+    # isinstance, and the very next statement did not.
+    #
+    # WHY THE F-01 FIX DID NOT COVER IT: an empty file, a bare scalar and a bare list
+    # all PARSE SUCCESSFULLY. They yield None / str / list, never an error, so the
+    # widened `except` never engages. F-01 was scoped to the two shapes cycle 0 named
+    # (bad UTF-8, manifest-as-directory) and this is a third route to the same
+    # exit-1 fail-open — which is non-blocking (DEC-100), so both write hooks let the
+    # write through. An EMPTY team-config.yaml was enough.
+    #
+    # Raised as YamlParseError rather than returning empty: callers already treat that
+    # as "cannot read the rulebook, block", and a manifest that is not a mapping is
+    # exactly that. Returning ([], []) would read as "this agent owns nothing" — a
+    # silent, total loss of enforcement dressed as a legitimate answer.
+    if not isinstance(parsed, dict):
+        raise YamlParseError(
+            manifest_path,
+            f"manifest is not a YAML mapping (parsed as {type(parsed).__name__}); "
+            f"an empty or malformed file cannot declare any domain")
+
     shared = []
     for entry in (parsed.get("shared") or []):
         if isinstance(entry, dict) and "path" in entry:

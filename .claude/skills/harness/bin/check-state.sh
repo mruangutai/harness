@@ -284,7 +284,15 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
     for prev in PHASE_ORDER[:idx]:
         hp = os.path.join(os.path.dirname(fy), "notes", f"handoff-{prev}.md")
         if not os.path.isfile(hp):
-            bad.append(f"{feat}: phase is '{pm_.group(1)}' but notes/handoff-{prev}.md is "
+            # M-01: this said `pm_.group(1)` — a leftover from the regex the F-02
+            # conversion deleted when it renamed the parsed value to `_phase`. Used
+            # once, assigned nowhere, so it raised NameError on the ONE condition
+            # INV-17 exists to detect, aborting INV-11/13/15/16/18/21 and INV-10 with
+            # no "could not run" message. A crash exits 1, which is what a real
+            # violation exits, so /harness entry reported "violations found" for a
+            # typo. Introduced by the fix for F-02 and caught by the re-review, not by
+            # any gate.
+            bad.append(f"{feat}: phase is '{_phase}' but notes/handoff-{prev}.md is "
                        f"missing — the {prev} seam was crossed without a handoff; the "
                        f"successor is on the disk-only path (DEC-159).")
             continue
@@ -353,19 +361,20 @@ for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml"))
         bad.append(f"{rel}: run is complete but has no cost: block — "
                    f"run bin/cost-report.py --yaml and record it.")
 
-    # INV-16: shape. The DUPLICATE half stays a TEXT SCAN on purpose — by the time a
-    # duplicate reaches `sdoc` the later key has already replaced the earlier one, so a
-    # parsed mapping can never show a repeat. That silent shadowing IS the defect
-    # DEC-156 names, so it must be detected against the raw text. `load_file` above
-    # uses the strict loader and would raise on a duplicate first; this scan is kept as
-    # the belt, because it names EVERY duplicate rather than only the first and it
-    # survives a future loader swap. Do not "simplify" it to iterate `sdoc`.
-    keys = re.findall(r"^([A-Za-z_][A-Za-z0-9_-]*):", txt, re.M)
-    dups = sorted({k for k in keys if keys.count(k) > 1})
-    if dups:
-        bad.append(f"{rel}: duplicate top-level key(s) {dups} — a repeated key is silently "
-                   f"shadowed by its last occurrence. Replace the placeholder when filling "
-                   f"it in; never append a second copy (DEC-156).")
+    # INV-16: shape.
+    #
+    # Q3, found by the re-review: the duplicate-key TEXT SCAN that used to live here was
+    # DEAD CODE, and its comment told future readers to preserve it for a property it no
+    # longer had. `load_file` above uses the strict loader, which RAISES DuplicateKeyError
+    # before control ever reaches this point — and that path `continue`s, so INV-16's own
+    # DEC-156 message never fired. Keeping a scan that cannot run, guarded by a comment
+    # forbidding its removal, is worse than either fixing or deleting it: the next reader
+    # trusts the comment.
+    #
+    # Removed, because the loader's raise is strictly better — it catches a duplicate at
+    # ANY nesting depth, where the column-0 scan saw only top-level ones. The DEC-156
+    # wording is preserved at the raise site above so the message an author sees is
+    # unchanged.
     # The UNKNOWN half reads the PARSED keys (F-02): a quoted key is a real key the
     # text scan misses, a `#`-commented line is not a key at all, and YAML 1.1 resolves
     # `on:`/`no:` to booleans — so str() both sides, as T-17 does in check-domain.sh.

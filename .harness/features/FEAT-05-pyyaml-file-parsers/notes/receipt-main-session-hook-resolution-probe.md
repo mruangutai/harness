@@ -123,3 +123,22 @@ their environment, which is plausibly what the ui-reviewer noticed and mis-attri
 **The lesson worth keeping: an environment measured on ONE hook event does not generalise to
 another.** I called Q3 settled and it was — for `PreToolUse`. The panel's contradiction was
 resolvable only because the two copies still differ.
+
+### Panel Q4 — recorded in TWO halves, at the re-review's insistence
+
+The re-review asked that this be split, and it is right. My earlier text ran the two together.
+
+**Half 1 — MECHANISM: SETTLED.** The worktree's `validate-digest.py` executes, and DEC-173's
+schema is in force for agents spawned here. Established three ways: 15 probe fires with `file=`
+the worktree every time; the hook invokes the script on its shebang with no `python3` prefix, so
+`__file__` IS the invoked-binary identity; and the panel's own ui-reviewer ran `validate()` from
+both checkouts against a `severity_max: n/a` digest — worktree accepts, main rejects.
+
+**Half 2 — CAUSAL ATTRIBUTION: UNCONFIRMED, and unfalsifiable from any record.** I wrote that the
+sometimes-unset `CLAUDE_PROJECT_DIR` in a `SubagentStop` hook is "plausibly what the ui-reviewer
+noticed and mis-attributed". That is a guess about why another agent concluded what it did, and no
+artifact can settle it. It stays labelled as a guess. The unset-variable OBSERVATION is measured
+and stands on its own; only the explanation of someone else's reasoning is speculative.
+
+The distinction matters because this receipt is cited as evidence, and a measured fact sitting
+beside an unmarked guess degrades the fact.

@@ -194,6 +194,39 @@ def case_f():
         return ok
 
 
+def case_g():
+    """M-01: INV-17 must REPORT a missing handoff, not crash on it.
+
+    The F-02 conversion renamed the parsed phase value to `_phase` and left one
+    reference to the deleted regex match object `pm_`. Used once, assigned nowhere —
+    so the moment INV-17's condition was TRUE (a feature past `plan` with no
+    `handoff-<prev>.md`), check-state.sh raised NameError and exited 1.
+
+    Two reasons that is worse than it looks. Exit 1 is what a real violation exits, so
+    /harness entry reported "violations found" for a typo. And the crash aborted every
+    invariant AFTER it — INV-11/13/15/16/18/21 and INV-10 — with no "could not run"
+    message, so a whole tail of the gate silently stopped checking.
+
+    Introduced by a fix and caught by review, not by any gate: no test covered INV-17's
+    firing path at all.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        h = os.path.join(tmp, ".harness")
+        os.makedirs(os.path.join(h, "features", "FEAT-TEST", "notes"), exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write(HARNESS_JSON_SYNC_OFF)
+        # phase: validate with NO handoff-plan.md / handoff-build.md -> INV-17 fires.
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+            f.write("feature_id: FEAT-TEST\nphase: validate\n")
+        code, out = run(tmp)
+        ok = "handoff-plan.md" in out and "Traceback" not in out
+        print(f"{'ok' if ok else 'FAIL'} - case (g): M-01 — INV-17 reports the missing "
+              f"handoff instead of raising NameError")
+        if not ok:
+            print(f"        exit {code}; output: {out.strip()[:200]}")
+        return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -201,6 +234,7 @@ def main():
     ok_d = case_d()
     ok_e = case_e()
     ok_f = case_f()
+    ok_g = case_g()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -208,7 +242,7 @@ def main():
         f"(a: {code_a}, b: {code_b})"
     )
 
-    if ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_exit_unchanged:
+    if ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g and ok_exit_unchanged:
         sys.exit(0)
     sys.exit(1)
 
