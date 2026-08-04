@@ -146,6 +146,32 @@ def run_t12():
         r.returncode == 0 and "enforcement OFF" in r.stderr,
         f"exit {r.returncode}: {r.stderr.strip()[:160]}")
 
+    # F-01, found by the review panel and reproduced live before the fix. load_str
+    # caught only yaml.YAMLError and load_file's open()/read() sat outside any try, so
+    # a manifest that is not valid UTF-8 — or a directory where a file was expected —
+    # raised past every caller's `except YamlParseError`, killed the subprocess with
+    # exit 1, and exit 1 is NON-BLOCKING (DEC-100). The write then proceeded UNGOVERNED.
+    #
+    # This is the ONE way a fail-closed guard fails open, it is the same crash pattern
+    # T-17's receipt documents, and it was fixed once in the escape path and missed here
+    # in the module both hooks call. Asserted at HOOK level, not module level: the panel
+    # showed module tests can exercise a path production never takes.
+    bad_utf8 = tempfile.mkdtemp()
+    os.makedirs(os.path.join(bad_utf8, ".harness"))
+    with open(os.path.join(bad_utf8, ".harness", "team-config.yaml"), "wb") as f:
+        f.write(b"schema_version: 1\nteams: [{name: b}]\n\xff\xfe not utf-8\n")
+    r = fire(bad_utf8, "allowed/thing.md")
+    t12("F-01: a manifest that is not valid UTF-8 BLOCKS (was exit 1 = fail open)",
+        r.returncode == 2 and "does not parse" in r.stderr,
+        f"exit {r.returncode} (2 blocks, 1 fails OPEN): {r.stderr.strip()[:200]}")
+
+    as_dir = tempfile.mkdtemp()
+    os.makedirs(os.path.join(as_dir, ".harness", "team-config.yaml"))
+    r = fire(as_dir, "allowed/thing.md")
+    t12("F-01: a manifest that is a DIRECTORY does not crash the guard",
+        r.returncode in (0, 2) and "Traceback" not in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
     # --- the state.yaml shape gate, now loader-driven (D-02) ---
     root = fixture(FIXTURE_MANIFEST)
     sp = ".harness/features/FEAT-01/runs/r1/state.yaml"

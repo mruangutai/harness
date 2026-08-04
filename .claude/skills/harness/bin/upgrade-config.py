@@ -33,6 +33,15 @@ import re
 import shutil
 import sys
 
+# F-03: this import was MISSING while `harness_yaml.load_str` was called at :99 and
+# :124, so every invocation died with NameError. It shipped because T-04's verify had
+# two halves and only one existed: the surviving half greps for ABSENCE OF REGEX, which
+# deleting the regexes satisfies exactly — with or without a working parser.
+#
+# This file runs as a script, so its own directory is already sys.path[0]; no
+# PYTHONPATH is needed, unlike the hooks' heredocs.
+import harness_yaml
+
 # Keys whose value is per-project by nature. Never overwritten once set, even if the
 # template's value changes. `cmd` above all: dev-ops verified it by running it, and
 # re-imposing the template's null would turn a working gate back into a soft skip.

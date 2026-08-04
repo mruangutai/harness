@@ -11,12 +11,16 @@
 # This gates the ORCHESTRATOR, not a tool call, so exit 1 is correct here;
 # the exit-2 rule applies only to PreToolUse hooks.
 set -uo pipefail
+# _selfdir is resolved BEFORE the cd. BASH_SOURCE may be relative to the ORIGINAL
+# working directory, so computing it after `cd "$root"` resolves it against the wrong
+# base and the heredoc dies with ModuleNotFoundError. That is a crash, and this script
+# exits 1 on crash exactly as it does on a real violation — so /harness entry would
+# report "violations found" for a missing module. Found while fixing F-02; the original
+# ordering passed every check I ran only because I always ran from the repo root.
+_selfdir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+
 root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 cd "$root"
-
-# The heredoc needs `harness_yaml` on sys.path (E2). Resolved from THIS script's own
-# location, never cwd — same reason as check-domain.sh's root derivation.
-_selfdir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" python3 - "$root" <<'PY'
 import sys, os, re, glob, json
 
@@ -264,11 +268,19 @@ PHASE_ORDER = ["plan", "build", "validate", "ship"]
 HANDOFF_HEADINGS = ["## next", "## trust", "## dead ends", "## working set"]
 for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
     feat = os.path.basename(os.path.dirname(fy))
-    txt = read(fy) or ""
-    pm_ = re.search(r"^phase:\s*(\S+)", txt, re.M)
-    if not pm_ or pm_.group(1) not in PHASE_ORDER:
+    # F-02: parsed, not regex-scanned. `^phase:\s*(\S+)` misses a quoted value and a
+    # block scalar, both legal YAML — and a miss here is silent: the feature is skipped
+    # entirely by `continue`, so the invariant never runs and never says why.
+    try:
+        _doc = harness_yaml.load_file(fy) or {}
+    except Exception as e:
+        bad.append(f"{feat}/feature.yaml does not parse, so its phase invariants "
+                   f"cannot be checked: {e}")
         continue
-    idx = PHASE_ORDER.index(pm_.group(1))
+    _phase = str(_doc.get("phase", "")).strip() if isinstance(_doc, dict) else ""
+    if _phase not in PHASE_ORDER:
+        continue
+    idx = PHASE_ORDER.index(_phase)
     for prev in PHASE_ORDER[:idx]:
         hp = os.path.join(os.path.dirname(fy), "notes", f"handoff-{prev}.md")
         if not os.path.isfile(hp):
@@ -321,22 +333,43 @@ for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml"))
     txt = read(sy) or ""
     rel = os.path.relpath(sy, H)
     rundir = os.path.dirname(sy)
-    complete = bool(re.search(r"^status:\s*complete", txt, re.M))
+    # F-02, and this one had a LIVE fail-open the panel reproduced: `status: "complete"`
+    # — quoted, legal YAML — does not match `^status:\s*complete`, so `complete` was
+    # False and INV-11 (an unmetered completed run) silently never fired.
+    try:
+        sdoc = harness_yaml.load_file(sy) or {}
+    except Exception as e:
+        bad.append(f"{rel}: state.yaml does not parse, so INV-11/15/16 cannot be "
+                   f"checked for this run: {e}")
+        continue
+    if not isinstance(sdoc, dict):
+        bad.append(f"{rel}: state.yaml is not a YAML mapping.")
+        continue
+    complete = str(sdoc.get("status", "")).strip() == "complete"
 
     # INV-11: cost is the post-build signal (DEC-99) — an unmetered completed run is a
     # hole in the only evidence SC-1 is judged on, and looks exactly like a free one.
-    if complete and not re.search(r"^cost:", txt, re.M):
+    if complete and "cost" not in sdoc:
         bad.append(f"{rel}: run is complete but has no cost: block — "
                    f"run bin/cost-report.py --yaml and record it.")
 
-    # INV-16: shape.
+    # INV-16: shape. The DUPLICATE half stays a TEXT SCAN on purpose — by the time a
+    # duplicate reaches `sdoc` the later key has already replaced the earlier one, so a
+    # parsed mapping can never show a repeat. That silent shadowing IS the defect
+    # DEC-156 names, so it must be detected against the raw text. `load_file` above
+    # uses the strict loader and would raise on a duplicate first; this scan is kept as
+    # the belt, because it names EVERY duplicate rather than only the first and it
+    # survives a future loader swap. Do not "simplify" it to iterate `sdoc`.
     keys = re.findall(r"^([A-Za-z_][A-Za-z0-9_-]*):", txt, re.M)
     dups = sorted({k for k in keys if keys.count(k) > 1})
     if dups:
         bad.append(f"{rel}: duplicate top-level key(s) {dups} — a repeated key is silently "
                    f"shadowed by its last occurrence. Replace the placeholder when filling "
                    f"it in; never append a second copy (DEC-156).")
-    unknown = sorted({k for k in keys if k not in CHECKPOINT_KEYS})
+    # The UNKNOWN half reads the PARSED keys (F-02): a quoted key is a real key the
+    # text scan misses, a `#`-commented line is not a key at all, and YAML 1.1 resolves
+    # `on:`/`no:` to booleans — so str() both sides, as T-17 does in check-domain.sh.
+    unknown = sorted({str(k) for k in sdoc if str(k) not in CHECKPOINT_KEYS})
     if unknown:
         bad.append(f"{rel}: non-checkpoint top-level key(s) {unknown} — state.yaml carries "
                    f"only identifiers, enums, counters, paths and sequence markers "
@@ -344,8 +377,8 @@ for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml"))
                    f"digest.md; a one-line note: per step entry is the ceiling.")
 
     # INV-15: the durable digest.
-    hm = re.search(r"^host:\s*(\S+)", txt, re.M)
-    if complete and hm and hm.group(1) in LEADS:
+    _host = str(sdoc.get("host", "")).strip()
+    if complete and _host in LEADS:
         dg = os.path.join(rundir, "digest.md")
         if not os.path.isfile(dg):
             bad.append(f"{os.path.relpath(rundir, H)}: run is complete but digest.md is "
@@ -421,13 +454,28 @@ if cj:
 if cj and (cj.get("github") or {}).get("sync"):
     for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
         feat = os.path.basename(os.path.dirname(fy))
-        txt = read(fy) or ""
-        m = re.search(r"^github:\s*$(.*?)(?=^\S|\Z)", txt, re.M | re.S)
-        if not m:
+        # F-02: the last of the seven. This carried the SAME four defects gh-sync.py's
+        # reader did, and T-06 fixed them there while leaving the twin here — which is
+        # the divergence D-03 exists to prevent, in a second pair of files:
+        #   - `^\s{4}T-\d+:\s*\d+` hardcoded a four-space indent
+        #   - `parent:\s*\d+` accepted only bare digits, so `parent: "40"` read as absent
+        #   - `^github:\s*$(.*?)(?=^\S|\Z)` sliced by indentation, so a comment at
+        #     column 0 inside the block truncated the rest
+        # A miss here is silent by construction: `continue` skips the feature entirely.
+        try:
+            gdoc = harness_yaml.load_file(fy) or {}
+        except Exception as e:
+            bad.append(f"{feat}/feature.yaml does not parse, so INV-21 cannot be "
+                       f"checked for it: {e}")
             continue
-        blk = m.group(1)
-        has_issue = re.search(r"^\s{4}T-\d+:\s*\d+", blk, re.M)
-        has_parent = re.search(r"^\s*parent:\s*\d+", blk, re.M)
+        gblk = gdoc.get("github") if isinstance(gdoc, dict) else None
+        if not isinstance(gblk, dict):
+            continue
+        _issues = gblk.get("issues")
+        has_issue = bool(isinstance(_issues, dict) and any(
+            re.fullmatch(r"T-\d+", str(k).strip()) and str(v).strip().isdigit()
+            for k, v in _issues.items()))
+        has_parent = str(gblk.get("parent", "")).strip().isdigit()
         if has_issue and not has_parent:
             warn.append(f"INV-21: {feat} has recorded task issues but no numeric "
                         f"parent — ship/abandon cannot close the container and open "

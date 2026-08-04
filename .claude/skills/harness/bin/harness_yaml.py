@@ -92,19 +92,46 @@ if yaml is not None:
 def load_str(text, where):
     """Parse in-memory YAML content. `where` is a label used in error
     messages. Raises DuplicateKeyError on a repeated key at any nesting
-    depth, YamlParseError on any other malformed YAML."""
+    depth, YamlParseError on ANY other failure to produce a document."""
     try:
         return yaml.load(text, Loader=_StrictSafeLoader)
     except DuplicateKeyError:
         raise
     except yaml.YAMLError as e:
         raise YamlParseError(where, e) from e
+    except Exception as e:
+        # F-01, found by the review panel and reproduced live. Catching only
+        # yaml.YAMLError left every other failure to propagate uncaught through
+        # both write hooks, killing the subprocess with exit 1 — and exit 1 is
+        # NON-BLOCKING (DEC-100), so the write proceeded UNGOVERNED. A crash is
+        # the one way this fail-closed guard could fail open, and it is exactly
+        # the pattern T-17's receipt documents; it was fixed once in the escape
+        # path and missed here, in the module both hooks call.
+        #
+        # Deliberately broad: the callers already treat YamlParseError as "cannot
+        # read the rulebook, block". Any unanticipated failure must land there
+        # too, because the alternative is not a wrong answer, it is no guard.
+        raise YamlParseError(where, e) from e
 
 
 def load_file(path):
-    """Read and parse a `.yaml` file with the module's loader."""
-    with open(path, encoding="utf-8") as f:
-        text = f.read()
+    """Read and parse a `.yaml` file with the module's loader.
+
+    The READ is inside the try (F-01). It used to sit outside, so a manifest
+    that is not valid UTF-8, or a directory where a file was expected, or an
+    unreadable file, raised straight past every caller's `except YamlParseError`
+    — verified live against both hook binaries with a `\\xff` byte in the
+    manifest: exit 1, write allowed, enforcement silently off.
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except OSError as e:
+        raise YamlParseError(path, e) from e
+    except UnicodeDecodeError as e:
+        # NOT an OSError. Named separately so the next reader does not "simplify"
+        # the pair into `except OSError` and quietly restore the fail-open.
+        raise YamlParseError(path, e) from e
     return load_str(text, path)
 
 
