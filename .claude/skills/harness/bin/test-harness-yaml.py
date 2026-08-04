@@ -380,7 +380,43 @@ def test_duplicate_key_is_catchable_as_a_parse_error():
     return True, ""
 
 
+def test_merge_key_override_is_not_a_duplicate():
+    """Review finding 3: `flatten_mapping` ran BEFORE the duplicate scan.
+
+    It splices merge-key (`<<: *anchor`) entries into node.value, so an explicit
+    override of an inherited key counted as a duplicate — which it is not.
+    `{<<: *base, b: 3}` is legal YAML with well-defined override semantics and stdlib
+    safe_load returns `b: 3`.
+
+    Not reachable from this repo's files (no anchors), but harness is a portable
+    framework: a downstream project that DRYs its domain lists with `<<:` would have
+    BOTH write hooks fail closed on every write, blaming the user for a duplicate key
+    in valid YAML. A guard wrong about the rulebook is this feature's own failure mode,
+    and being wrong in the strict direction is no better.
+    """
+    import harness_yaml as hy
+    import yaml as _y
+    DOC = "base: &b {a: 1, b: 2}\nchild: {<<: *b, b: 3}\n"
+    try:
+        got = hy.load_str(DOC, "probe")["child"]
+    except hy.DuplicateKeyError:
+        return False, "a legal merge-key override raised DuplicateKeyError"
+    want = _y.safe_load(DOC)["child"]
+    if got != want:
+        return False, f"merge semantics differ from stdlib: {got} != {want}"
+    # ...and real duplicates must STILL raise, at both depths.
+    for label, doc in (("top-level", "cost: 1\ncost: 2\n"),
+                       ("nested", "steps:\n  - id: s\n    cost: 1\n    cost: 2\n")):
+        try:
+            hy.load_str(doc, "probe")
+            return False, f"a {label} duplicate stopped raising"
+        except hy.DuplicateKeyError:
+            pass
+    return True, ""
+
+
 TESTS = [
+    test_merge_key_override_is_not_a_duplicate,
     test_missing_pyyaml_is_reportable_not_a_second_crash,
     test_duplicate_key_is_catchable_as_a_parse_error,
     test_duplicate_key_raises,

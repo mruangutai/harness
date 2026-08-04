@@ -739,5 +739,32 @@ check("T-06C: a feature.yaml with no github: block returns the default, does not
                 "attached": [], "issues": {}},
       str(_rec2))
 
+# ---------- review finding 2: save_recorded must not append a SECOND github: block ----------
+# The old `^github:\s*$...` regex missed `github:   # comment` — this repo's own house
+# style — so nothing was stripped and a second top-level key was appended. The strict
+# loader then raised DuplicateKeyError and load_recorded turned it into SystemExit, so
+# every later gh-sync died with "does not parse". Severe because save_recorded runs
+# IMMEDIATELY AFTER an irreversible GitHub mutation (DEC-131), so the record that rule
+# exists to preserve became unreadable.
+_REC = {"milestone": 9, "parent": 40, "parent_origin": "created",
+        "attached": ["T-01"], "issues": {"T-01": 41}}
+for _label, _body in (
+        ("bare", "feature_id: F1\ngithub:\n  parent: 40\nphase: ship\n"),
+        ("trailing comment", "feature_id: F1\ngithub:   # the mirror\n  parent: 40\nphase: ship\n"),
+        ("column-0 comment inside", "feature_id: F1\ngithub:\n  parent: 40\n# note\n  milestone: 9\nphase: ship\n"),
+        ("no block at all", "feature_id: F1\nphase: ship\n")):
+    _d = tempfile.mkdtemp()
+    open(os.path.join(_d, "feature.yaml"), "w").write(_body)
+    _ghs.save_recorded(_d, _REC)
+    _txt = open(os.path.join(_d, "feature.yaml")).read()
+    _n = sum(1 for l in _txt.split("\n") if l.split("#", 1)[0].rstrip() == "github:")
+    try:
+        _rt = _ghs.load_recorded(_d)
+        _ok = _n == 1 and _rt["parent"] == 40 and _rt["milestone"] == 9
+        _why = f"{_n} github: keys, round-trip {_rt}"
+    except SystemExit as e:
+        _ok, _why = False, f"load_recorded refused after save: {e}"
+    check(f"finding 2: save_recorded round-trips a feature.yaml with a {_label}", _ok, _why)
+
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

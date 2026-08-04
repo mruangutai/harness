@@ -78,12 +78,21 @@ import harness_yaml
 if not harness_yaml.require_or_bootstrap(root):
     sys.exit(2)
 
-# GRANTED, and there is no parser — see check-domain.sh's note. Falling through would
-# call manifest_domains with `yaml = None` and die with exit 1, which is NON-blocking,
-# so the write would proceed via a crash while printing a traceback. Allow it on
-# purpose instead.
-if harness_yaml.yaml is None:
-    sys.exit(0)
+# GRANTED, and there is no parser. Recorded, NOT acted on here — see below.
+#
+# This used to `sys.exit(0)` on the spot, which short-circuited the ENTIRE guard. But
+# only the DOMAIN check needs the manifest: the reviewer read-only rule and the
+# write-pattern detection need neither a manifest nor a parser. So a bootstrap-grant
+# session let `harness-code-reviewer` run `rm -rf src/main.py` — reproduced live, exit 0
+# where a PyYAML-present run exits 2. On `main` this guard had NO YAML dependency at
+# all, so reviewer read-only was unconditional; the short-circuit was a regression
+# introduced by this feature.
+#
+# It is also the exact defect the sibling hook was fixed for one commit earlier
+# ("Skip only what actually needs the parser", check-domain.sh) — fixed there and not
+# here, in a pair of files this same feature otherwise went to lengths to keep in step
+# (D-03). Two guards, one rule, and I changed one of them.
+_no_parser = harness_yaml.yaml is None
 
 cmd = ((d.get("tool_input") or {}).get("command") or "")
 if not cmd:
@@ -275,6 +284,13 @@ if agent in REVIEWERS:
     pats = ", ".join(sorted({f[0] for f in findings}))
     deny(f"{agent} is READ-ONLY and this command writes files ({pats}). "
          f"Report the finding; never fix.")
+
+# NO PARSER: everything above this line ran — the write-pattern detection and the
+# reviewer read-only denial, neither of which needs the manifest. Only the domain walk
+# below does, so only it is skipped. The grant exists to let a broken machine be fixed,
+# not to suspend the rules that do not depend on the thing that is broken.
+if _no_parser:
+    sys.exit(0)
 
 # --- non-reviewers: check extractable paths against the agent's domain ---
 # T-14, and this is the SECURITY-RELEVANT half of D-03. This file used to carry its

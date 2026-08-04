@@ -233,16 +233,27 @@ def main():
         # own test: the raw YamlParseError escaped as a traceback, which tells the user
         # "the upgrade tool is broken" when the truth is "your manifest is". The gap is
         # what SC-07's init gate exists to catch early — say so, and name the line.
+        # The PROJECT's file and the SHIPPED TEMPLATE are parsed separately (review
+        # finding 4). Both used to sit in one try whose handler said "fix the file
+        # first" — so a malformed shipped template sent the user off to edit a file of
+        # theirs that was perfectly fine. Two files, two different people's problem.
+        pver = tver = None
+        pnames, tnames = set(), []
         try:
-            pver, tver = yaml_version(pt), yaml_version(tt)
-            pnames, tnames = set(yaml_names(pt)), yaml_names(tt)
+            pver, pnames = yaml_version(pt), set(yaml_names(pt))
         except harness_yaml.YamlParseError as e:
             print(f"team-config.yaml: DOES NOT PARSE — {e}")
             print("  The upgrade cannot compare a manifest it cannot read. Fix the file "
                   "first; `check-domain.sh` is failing closed on it too (DEC-171 am.1).")
             gaps.append("team-config.yaml")
-            pver = tver = None
-            pnames, tnames = set(), []
+        try:
+            tver, tnames = yaml_version(tt), yaml_names(tt)
+        except harness_yaml.YamlParseError as e:
+            print(f"THE SHIPPED TEMPLATE at {t_yaml} does not parse — {e}")
+            print("  This is a harness bug, NOT your project. Your team-config.yaml is "
+                  "not the problem and editing it will not help. Re-run /harness-deploy "
+                  "to refresh the templates, and report it if that does not fix it.")
+            gaps.append("team-config.yaml")
         new_agents = [n for n in tnames if n.startswith("harness-") and n not in pnames]
         if pver != tver or new_agents:
             gaps.append("team-config.yaml")

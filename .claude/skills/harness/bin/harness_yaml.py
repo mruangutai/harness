@@ -111,14 +111,42 @@ if yaml is not None:
                 "expected a mapping node, but found %s" % node.id,
                 node.start_mark,
             )
+        # THE DUPLICATE SCAN MUST SEE THIS NODE'S OWN KEYS ONLY, before flattening.
+        #
+        # `flatten_mapping` splices merge-key (`<<: *anchor`) entries INTO node.value,
+        # so scanning afterwards counts an inherited key and an explicit override of it
+        # as a duplicate — which it is not: `{<<: *base, b: 3}` is legal YAML with
+        # well-defined override semantics, and stdlib safe_load returns `b: 3`. Scanning
+        # after the flatten made it raise instead.
+        #
+        # Not reachable from this repo's own files, which use no anchors — but harness
+        # is a portable framework with an onboarding path, and a downstream project that
+        # DRYs its domain lists with `<<:` would have BOTH write hooks fail closed on
+        # every write, blaming the user for a "duplicate key" in valid YAML. A guard
+        # that is wrong about the rulebook is the failure mode this whole feature exists
+        # to remove; being wrong in the strict direction is no better.
+        own_keys = []
+        for key_node, _ in node.value:
+            if key_node.tag == "tag:yaml.org,2002:merge":
+                continue          # `<<` is the merge indicator, never a data key
+            own_keys.append(self.construct_object(key_node, deep=deep))
+        seen = set()
+        for key in own_keys:
+            try:
+                if key in seen:
+                    raise DuplicateKeyError(key)
+                seen.add(key)
+            except TypeError:
+                # An unhashable key (a list or dict used as a key) cannot collide by
+                # identity here; PyYAML rejects it downstream on its own terms.
+                pass
+
         self.flatten_mapping(node)
         mapping = {}
         for key_node, value_node in node.value:
             key = self.construct_object(key_node, deep=deep)
-            if key in mapping:
-                raise DuplicateKeyError(key)
             value = self.construct_object(value_node, deep=deep)
-            mapping[key] = value
+            mapping[key] = value      # a later merge-key entry legitimately overrides
         return mapping
 
     _StrictSafeLoader.construct_mapping = _construct_mapping

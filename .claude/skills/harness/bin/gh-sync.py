@@ -266,10 +266,48 @@ def load_recorded(feat_dir):
     return rec
 
 
+def _strip_github_block(t):
+    """Remove an existing top-level `github:` block, however it is written.
+
+    LINE-BASED, not a regex over the whole file. The regex this replaces was
+    `^github:\\s*$...` — anchored to a bare `github:` with nothing after it — and it
+    missed `github:   # comment`, which is this repo's own house style (45 such
+    trailing comments in FEAT-03's feature.yaml alone). Nothing was removed, so
+    save_recorded APPENDED A SECOND top-level `github:` key; the strict loader then
+    raised DuplicateKeyError and load_recorded turned that into SystemExit, so every
+    later gh-sync command died with "does not parse — refusing to sync".
+
+    Worse with a column-0 comment INSIDE the block: the sub stripped the header and
+    left the indented body dangling, i.e. syntactically invalid YAML.
+
+    Why this is the severe one rather than a nuisance: save_recorded is called
+    IMMEDIATELY AFTER an irreversible GitHub mutation (DEC-131's record-after-every-
+    create rule). So the sequence was: milestone created on GitHub -> feature.yaml
+    corrupted -> the record DEC-131 exists to preserve becomes unreadable. Both cases
+    self-healed under the old regex READER, which is why converting only the reader
+    (T-06) armed this.
+    """
+    out, skipping = [], False
+    for line in t.split("\n"):
+        if skipping:
+            # The block ends at the next line that starts at column 0 and is not blank.
+            if line[:1] not in ("", " ", "\t", "#"):
+                skipping = False
+            else:
+                continue
+        # A top-level `github:` key — bare, or with a trailing comment, or quoted.
+        stripped = line.split("#", 1)[0].rstrip()
+        if stripped in ("github:", '"github":', "'github':"):
+            skipping = True
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
 def save_recorded(feat_dir, rec):
     p = os.path.join(feat_dir, "feature.yaml")
     t = read(p)
-    t = re.sub(r"^github:\s*$.*?(?=^\S|\Z)", "", t, flags=re.M | re.S).rstrip("\n") + "\n"
+    t = _strip_github_block(t).rstrip("\n") + "\n"
     lines = [
         "github:",
         f"  milestone: {rec['milestone']}",
