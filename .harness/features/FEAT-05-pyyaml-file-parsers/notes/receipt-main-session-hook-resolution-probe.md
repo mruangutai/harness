@@ -79,3 +79,47 @@ overhead. Recorded so the number is not rediscovered from scratch.
 Whether **skills** (`SKILL.md` preloads) resolve the same way. The probe covers hooks and,
 by the shared `CLAUDE_PROJECT_DIR`, agent definitions under `.claude/agents/`. Skill
 preloading is a different mechanism and was not exercised. No claim is made about it.
+
+---
+
+## Q4 (panel) — SubagentStop measured too, 2026-08-03
+
+The review panel raised a contradiction: PLAN Amendment 2 says the worktree's hook copies
+execute, but `harness-ui-reviewer` reported that the `SubagentStop` validator judging its digest
+was the MAIN checkout's `validate-digest.py`. Both concern the same `${CLAUDE_PROJECT_DIR}`
+resolution — and this is the claim Amendment 2 already retracted once, so it was measured rather
+than argued.
+
+**Method.** Same technique: a probe line inside `hook_mode()` recording `__file__` and
+`CLAUDE_PROJECT_DIR`, one throwaway `harness-documentor` spawned to return a well-formed digest,
+then reverted byte-identical to HEAD with `test-validate-digest.py` green before and after.
+
+**Result — 15 fires:**
+
+```
+file = <worktree>/.claude/skills/harness/bin/validate-digest.py     (every fire)
+cpd  = <worktree>        ... on some fires
+cpd  = <unset>           ... on others
+```
+
+**The worktree's copy runs.** Amendment 2 holds for `SubagentStop` as well as `PreToolUse`, and
+the ui-reviewer's inference is wrong. Its digest was judged by the worktree's validator, which
+carries DEC-173's schema.
+
+**But it found something neither observation named, and this is why the contradiction was worth
+chasing: `CLAUDE_PROJECT_DIR` is sometimes UNSET in a `SubagentStop` hook.** Both earlier probes
+covered `PreToolUse` only, where it was always set. So the two hook events genuinely differ in
+their environment, which is plausibly what the ui-reviewer noticed and mis-attributed.
+
+**Harmless, checked rather than assumed:**
+
+- `validate-digest.py:597,621` already anticipates it by name — it resolves root through
+  `payload.cwd` → env → `os.getcwd()`, with a comment reading "drifts (worktrees, unset
+  `CLAUDE_PROJECT_DIR`) must not block a legitimate return".
+- `check-domain.sh`, `bash-write-guard.sh` and `check-state.sh` all self-locate via
+  `_derived`/`_selfdir` from `BASH_SOURCE`, so an unset variable falls back to the script's own
+  repo.
+
+**The lesson worth keeping: an environment measured on ONE hook event does not generalise to
+another.** I called Q3 settled and it was — for `PreToolUse`. The panel's contradiction was
+resolvable only because the two copies still differ.

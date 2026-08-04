@@ -1,6 +1,9 @@
 # UAT — FEAT-05 the PyYAML bootstrap escape expires
 status: passed             # draft | ready | passed | failed — SC-09 (the only uat criterion) PASSED
-sc_08: not_met             # U-02 failed; SC-08 is verify:automated, re-verify at unit level
+sc_08: met                 # CORRECTED (panel Q3). Was not_met when U-02 failed; D-14b then
+                           # added the systemMessage channel and a test that PARSES it, so the
+                           # criterion's "channel the user sees" clause is now covered at unit
+                           # level, which is where SC-08's verify: automated puts it.
 sc_09: met                 # U-05 passed against a genuine session boundary
 run_on: 2026-08-03 by Mike Ruangutai, scratch clone /tmp/uat-pyyaml at fd42409
 run_note: >-

@@ -175,7 +175,12 @@ def type_label(change_type):
     return None
 
 
-# ---------- feature.yaml github block (text ops — no yaml dependency) ----------
+# ---------- feature.yaml github block ----------
+# The header used to read "text ops — no yaml dependency", which T-06 made false and
+# F-04 caught still standing: load_recorded PARSES with harness_yaml (DEC-171).
+# save_recorded remains text ops, and deliberately so — safe_dump does not preserve
+# comments, and this block sits in a file whose other sections are heavily annotated.
+# So: the READER parses, the WRITER splices text. Do not "unify" them.
 
 def _opt_int(v):
     """A recorded issue/milestone number as int, or None for `none`/absent/junk.
