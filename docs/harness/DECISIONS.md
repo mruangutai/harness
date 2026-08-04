@@ -2308,6 +2308,12 @@ Task 10 continues: concrete `on_fail` semantics in the runner, plus two crews �
 (mechanism) and `review-team` (the first real v1 crew). Remaining: `plan-feature`, `ship-feature`,
 `debug`.
 
+**Status note (FEAT-06, 2026-08-04): the `gate-probe.yaml` team file was deleted from the repo; this
+entry is retained as the historical record of loop-back semantics, which remain in force** — the
+probe was a mechanism check that had already produced its evidence, and the rulings it settled
+(`{{cycle}}` in the output path of anything that re-runs, `feed: [self]` delivering the report) bind
+every team that loops back.
+
 ### Gating — converged in exactly one cycle
 
 `gate-probe` is built so the producer's behaviour is a pure function of whether a review report was

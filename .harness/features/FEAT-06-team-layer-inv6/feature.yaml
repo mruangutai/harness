@@ -6,7 +6,7 @@ status: in_progress
 review_sha: none
 cycles_used: 4
 max_total_cycles: 10
-cost_usd: 0.0
+cost_usd: 42.89
 max_cost_usd: 100
 runs:
   - id: plan-product
@@ -45,22 +45,26 @@ runs:
     squad: product
     verdict: PASS
     cost_usd: 13.95
+  - id: t08-product
+    squad: product
+    verdict: PASS
+    cost_usd: 11.39   # by_agent delta: product-lead 7.25 + documentor 4.14. BUILD phase
 tasks:
   T-01: PASS
   T-02: PASS
   T-04: PASS
   T-05: PASS
   T-06: PASS
+  T-08: PASS
   T-09: PASS
   T-10: PASS
   T-11: PASS
-  T-08: pending
   T-07: pending
 tasks_note: >-
-  Segment 1 (the eight main-session-direct tasks) executed by the main session, 8 of 8 PASS with
-  zero send-backs, so cycles_used is unchanged at 4 (DEC-157: a first pass is work, not rework).
-  They produce no run entry because a main-session-direct task returns no digest and opens no run
-  dir. Every verify re-run independently by the orchestrator at source before this was written.
+  Segment 1 (eight main-session-direct tasks) and T-08 all PASS with zero send-backs, so
+  cycles_used is unchanged at 4 (DEC-157). Main-session-direct tasks open no run dir and return no
+  digest. Every verify was re-run by the orchestrator at source. Segment 1 committed at f45fd0f
+  with its eight issues closed on the mirror.
 baseline:
   base_sha: 635ef14
   closes_issues: "#8 #9 #16 #24"
@@ -69,25 +73,24 @@ baseline:
   exec_order: T-01 T-02 T-04 T-10 T-05 T-06 T-09 T-11 T-08 T-07 — topological, PLAN.md is not
   exec_shape: 9 of 10 main-session-direct (carve-out or domain-ungranted); T-08 alone is squad
   cost_note: >-
-    TWO SEPARATE ALLOWANCES. The PLAN phase spent 170.17 MEASURED against a 160 ceiling — OVER BY
-    10.17, reported not hidden (DEC-134); band-inclusive with the unmeasurable plan-product segment
-    it was 182-215 of 160. cost_usd/max_cost_usd above are the BUILD+VALIDATE allowance of 100,
-    re-authorised by the user on 2026-08-04 in both approval blocks. It is a NEW allowance, not a
-    raise. STRUCTURAL LIMIT: 9 of 10 tasks execute in the main session at depth-0, which works
-    across everything and is not separable to this feature — only the T-08 dispatch and the
-    validate-phase spawns can be metered. A near-zero build figure does NOT mean the build was
-    free. NO FIGURE HERE IS INVENTED.
+    TWO SEPARATE ALLOWANCES. The PLAN phase spent 170.17 MEASURED of a 160 ceiling — over by 10.17,
+    reported not hidden (DEC-134); 182-215 band-inclusive with the unmeasurable plan-product
+    segment. cost_usd above is the BUILD+VALIDATE allowance of 100, re-authorised 2026-08-04 in
+    both approval blocks — a NEW allowance, not a raise. 42.89 measured = orchestrator by_agent
+    delta 31.50 + the t08-product run 11.39. STRUCTURAL LIMIT: 9 of 10 tasks execute at depth-0 in
+    the main session, which works across everything and is not separable to this feature. A
+    near-zero build figure would NOT mean the build was free. NO FIGURE HERE IS INVENTED.
   cost_baseline_at_build_open: >-
-    cumulative TOTAL 4677.4103 at 2026-08-04, taken at the plan-phase user gate. Per-agent:
+    by_agent at the plan-phase user gate, diff from here and never from the top line (P-01):
     harness-orchestrator d1/opus 73.80; harness-eng-lead d2/opus 43.5527; harness-product-lead
-    d2/opus 46.7519; harness-pm d3/opus 37.7422. Diff by_agent from here, never the top line.
+    d2/opus 46.7519; harness-pm d3/opus 37.7422. No documentor row existed, so its 4.14 is all new.
   anchor_note: >-
     PLAN.md line anchors recorded before DMF-1 SHIFTED +8 through the T-02 middle and +9 below the
     carve. Cite T-02 fields by NAME, not by line.
   inv6_self_note: >-
-    PLAN Q6: this feature's own feature.yaml is INV-6's first subject, and T-01 has now closed the
-    truthy hole. review_sha MUST be pinned before the first `squad: validator` run entry is
-    written — the qa segment IS validator squad — or the fix fires on FEAT-06 itself.
+    PLAN Q6: this feature's own feature.yaml is INV-6's first subject and T-01 has now closed the
+    truthy hole. review_sha MUST be pinned before the first `squad: validator` run entry is written
+    — the qa segment IS validator squad — or the fix fires on FEAT-06 itself.
 user_answers:
   files:
     - .harness/features/FEAT-06-team-layer-inv6/notes/answers-plan-eng.md
@@ -124,52 +127,58 @@ resolved:
     check-state.sh and validate-digest.py each carry the token once; the literal count under bin/
     is 1. The any(sq == "validator") precondition conjunct survived the rewrite
   - >-
-    THE UNOWNED QA GATE (#24) IS CLOSED IN THE PLAYBOOK. SC-14 measured both ways by the
-    orchestrator: at 635ef14 test_matrix lines 0 and the 8-line window has 0 hits; now
-    test_matrix lines 2 and the window has 7 hits. It is the one criterion review.yaml alone
-    cannot satisfy, and it is what makes the re-scope falsifiable
+    #24 IS CLOSED IN THE PLAYBOOK. SC-14 measured both ways by the orchestrator: at 635ef14
+    test_matrix lines 0 and the 8-line window 0 hits; now lines 2 and window 7 hits
   - >-
     T-05's WIDENED GATE WOULD HAVE SCANNED NOTHING. Python glob does not descend into DOTTED
     directories: glob("**/*.yaml", recursive=True) from the repo root returns 0 while os.walk over
-    .harness finds 54. Caught mid-execution, switched to os.walk, independently re-measured by the
-    orchestrator. The corpus now reports 56 files across 2 roots and the per-root non-empty
-    assertions are what would have caught it
-  - >-
-    SC-06 PROVEN DISCRIMINATING, not merely green: the new teams/ fixture was run against the
-    PRE-widening scan() in a clean worktree at 635ef14 and reported 0 files, 0 findings
+    .harness finds 54. Caught mid-execution, switched to os.walk, independently re-measured. The
+    corpus now reports 56 across 2 roots; the per-root non-empty assertions are the catcher.
+    SC-06 also PROVEN discriminating — the new fixture reported 0 files against the pre-widening
+    scan at 635ef14, so it is not merely green on both sides
   - >-
     T-02's PREDICATED SWEEP VINDICATED THREE TIMES. The handoff named four count-bearing comments;
-    the orchestrator's own re-grep found a fifth (review.yaml:5, "a fourth dispatched step"); the
-    sweep itself then created a sixth, caught by the closing re-grep. A sixth enumeration would
-    have missed it. Only section numbers survive the completeness check
+    the orchestrator's re-grep found a fifth (review.yaml:5); the sweep itself created a sixth,
+    caught by its closing re-grep. A sixth enumeration would have missed it
   - >-
-    MF-1 CLOSED THE CHEAP WAY, as the approval block authorised — the case-insensitive re-grep ran
-    as an execution-time check and its result is recorded. PLAN.md's approved verify: was NOT
-    edited; an approved artifact stays pm's
+    MF-1 CLOSED THE CHEAP WAY, as the approval block authorised — the re-grep ran as an
+    execution-time check. PLAN.md's approved verify: was NOT edited; an approved artifact is pm's
   - >-
-    No ui-reviewer segment. visual-designer ruled no end-user interaction and no prototype, on
-    review.yaml's own ui-step self-scope rule
+    T-08's Q1 RESOLVED BY THE ORCHESTRATOR, no user call needed. documentor declared NO stale
+    marker; premise verified at source: `{code ∥ security ∥ ui}` also occurs at BRIEF.md:28 and
+    PLAN.md:139/:156/:161, all approval-gated, so declaring the marker would red-line four files
+    nobody here may edit. check-docs.sh:10-19 makes declaration a mechanism a decision opts into,
+    not an obligation on every superseding edit. Gate is clean at exit 0
+  - >-
+    T-07 CHECK (9)'s AMBIGUITY RULE HELD. SPEC.md:1978 carries 2 brace groups and exactly ONE
+    containing the parallel bar; :1980 carries 1. Both now read {code / qa / security / ui}, and
+    review.yaml parses to the same set — SC-15's three legs agree
+  - >-
+    No ui-reviewer segment in the build. visual-designer ruled no end-user interaction and no
+    prototype, on review.yaml's own ui-step self-scope rule
 pending:
   - >-
-    TEN ADVISORIES from arch-review-eng, none blocking, deliberately NOT fixed. Advisory 1 (check
-    (9)'s ambiguity rule constrains T-08's added clause) and advisory 3 (T-09's line caps measure 1
-    line over) are the two worth the user's eye. Plus AQ-2: the panel qa step's gate-only mode is
-    prompt-enforced only, since harness-qa holds Edit/Write. All are backlog candidates
+    TEN ADVISORIES from arch-review-eng, none blocking, deliberately NOT fixed. Advisory 1 (T-07
+    check (9)'s ambiguity rule constrains T-08's clause — HELD, see resolved) and advisory 3 (T-09's
+    line caps measure 1 line over) are the two worth the user's eye. Plus AQ-2: the panel qa step's
+    gate-only mode is prompt-enforced only, since harness-qa holds Edit/Write. Backlog candidates
   - >-
     T-01's `grep '"none", "null", "n/a"' bin/ | wc -l == 1` conjunct MUST BE RE-RUN AFTER T-07
     lands a new file in bin/. Passing now proves nothing about the coupling it was written for
   - >-
     ISSUE #36, filed by the user during segment 1, OUT OF SCOPE. run-unit-tests.sh aborts with a
     bogus MISCONFIGURED error naming a literal test-*.py when run from any directory but the repo
-    root — BIN_DIR is relative and nullglob is unset, so an unmatched glob stays literal.
-    Pre-existing at 635ef14, fail-closed so nothing is silently skipped
+    root — BIN_DIR is relative and nullglob is unset. Pre-existing at 635ef14, fail-closed
+  - >-
+    DECISIONS.md:1634 still shows the ship-feature validator panel as three-wide, and :630 quotes
+    the old set. Historical record, outside SC-15's asserted set, blocks nothing — but a reader of
+    that table alone infers the old panel. Raised by product-lead. Backlog candidate
   - >-
     PLAN.md:290-292 quotes review.yaml's "3x slower" as a citation of current state and is now
     stale, T-02 having executed. NOT a REQ-08 issue (PLAN.md is not shipped). No cycle warranted
   - ROUTING WALL RECURRENCES 5 and 6, for issue #20 not for this feature
   - >-
-    #19 every PLAN task declares a verify: command and no agent runs it. FEAT-06's own PLAN carries
-    such lines. Known and filed. NOT in scope
+    #19 every PLAN task declares a verify: command and no agent runs it. Known, filed, NOT in scope
   - >-
     FORWARD-REFERENCE COLLISION, non-blocking. FEAT-05's feature.yaml says DEC-172's correction
     "Affects FEAT-06 only", but DEC-172 has no file overlap with this scope
