@@ -3,7 +3,7 @@ phase: validate
 branch: worktree-fix-harness-tooling-backlog
 pr: none
 status: in_review
-review_sha: 340e18a
+review_sha: 9da3986
 cycles_used: 1
 max_total_cycles: 10
 cost_usd: 240.82
