@@ -37,6 +37,21 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    routes it by `consult-when`. Cross-squad work is **one run per squad, sequenced by you** — a lead
    cannot dispatch another squad (DEC-118). Pass paths, never content; pin `review_sha` before any
    validator run (INV-6).
+   **In the build phase, dispatch the named `build` team — never compose a step list at dispatch.**
+   Resolve it `.harness/teams/build.yaml` first, then `.claude/skills/harness/teams/build.yaml`
+   (`harness-team/SKILL.md` step 1). **You choose WHICH tasks go to `eng-lead`** and hand it that
+   list; **the lead then routes each one to the specialist that owns it** by `consult-when`. Those
+   are two different decisions — it routes, it does not revisit your selection. Everything else —
+   documentation, goal-check, review,
+   **and the `test_matrix` qa gate** — stays an orchestrator-sequenced squad segment, because a
+   `build` team is single-squad by construction (DEC-118). So `build` is not the whole build
+   phase, only its eng segment.
+   **After the build team returns, sequence the qa segment.** It is a **validator-squad** segment
+   you sequence yourself — `harness-qa` writes and runs the tests and enforces the `test_matrix`
+   hard gate (`harness.json` `gates.qa_gate: blocking`, the project's only blocking gate). On
+   failure, `loop_back` to the dev that owns the task; the build is not done until the matrix
+   passes. It is not a step the `build` team contains, because a team is single-squad (DEC-118).
+   The INV-6 pin above applies unchanged: `review_sha` is pinned before any validator run.
 4. **Receive the team digest.** The `SubagentStop` hook has checked its shape and roll-up at source,
    but shape is not truth: spot-check `files_touched` against the artifacts when a claim matters.
 5. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now (it holds no

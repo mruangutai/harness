@@ -52,17 +52,46 @@ except ModuleNotFoundError:
 REPO = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
 
 
+def _rel(p, root):
+    """Report from the REPO root where possible, so a failure names which tree it
+    came from — `.claude/skills/harness/teams/build.yaml`, not a bare `build.yaml`.
+    Falls back to `root` for the throwaway fixture roots, which live outside REPO."""
+    ap = os.path.abspath(p)
+    try:
+        if os.path.commonpath([ap, REPO]) == REPO:
+            return os.path.relpath(ap, REPO)
+    except ValueError:      # different drive / no common path
+        pass
+    return os.path.relpath(p, root)
+
+
 def scan(root):
-    """-> (files_checked, [(relpath, message)]) for every *.yaml under <root>/.harness."""
-    base = os.path.join(root, ".harness")
-    paths = sorted(glob.glob(os.path.join(base, "**", "*.yaml"), recursive=True))
-    paths += sorted(glob.glob(os.path.join(base, "**", "*.yml"), recursive=True))
+    """-> (files_checked, [(relpath, message)]) for every *.yaml under <root>, recursively.
+
+    SIGNATURE AND RETURN SHAPE ARE FIXED — six call sites below unpack `_, nb = scan(d)`.
+    `root` is the tree to scan. It used to have `.harness` hard-coded onto it; that moved
+    to the caller so a SECOND tree (the shipped team definitions) can be scanned by the
+    same code path rather than by a parallel copy of it. A fixture root still works
+    unchanged: the glob is recursive, so `<d>/.harness/probe.yaml` is still found.
+    For per-root counts use `scan_roots`, which calls this once per root.
+
+    WALK, NOT GLOB. `glob('<root>/**/*.yaml', recursive=True)` skips DOTTED directories,
+    so it returns ZERO files for `.harness` and `.claude` alike — measured, not assumed:
+    the recursive glob from this repo root matches 0 files while the tree holds 54.
+    A gate that scans nothing passes vacuously, which is the exact failure the
+    corpus-is-not-empty assertion below exists to catch."""
+    paths = []
+    for dirpath, _dirnames, filenames in os.walk(root):
+        for fn in filenames:
+            if fn.endswith((".yaml", ".yml")):
+                paths.append(os.path.join(dirpath, fn))
+    paths.sort()
     bad = []
     for p in paths:
         try:
             harness_yaml.load_file(p)
         except harness_yaml.DuplicateKeyError as e:
-            bad.append((os.path.relpath(p, root), str(e)))
+            bad.append((_rel(p, root), str(e)))
         except harness_yaml.YamlParseError as e:
             e = e.original if getattr(e, "original", None) is not None else e
             # Name file, line and column — the diagnostics are the whole point. The
@@ -73,10 +102,39 @@ def scan(root):
             problem = getattr(e, "problem", None) or str(e).splitlines()[0]
             context = getattr(e, "context", None)
             detail = f"{context}, {problem}" if context else problem
-            bad.append((os.path.relpath(p, root) + where, detail))
+            bad.append((_rel(p, root) + where, detail))
         except OSError as e:
-            bad.append((os.path.relpath(p, root), f"unreadable: {e}"))
+            bad.append((_rel(p, root), f"unreadable: {e}"))
     return len(paths), bad
+
+
+TEAMS_ROOT = os.path.join(".claude", "skills", "harness", "teams")
+ROOTS = [".harness", TEAMS_ROOT]
+
+# SC-05's second conjunct. The criterion reads "the directory's contents at completion
+# are exactly TWO files — review.yaml (receiving the quoting fix) and build.yaml (born
+# valid); gate-probe.yaml is deleted, so the count is two, not three" — and declares
+# `verify: automated  evidence: unit`. Without this line only the PARSE half had an
+# assertion: the `2` appeared in an f-string LABEL, which reports a number without
+# asserting it. A criterion whose cited test does not cover what it claims is this
+# repo's own charter defect, so the count is asserted rather than displayed.
+# If a third team is legitimately added, this failing is the intended prompt to revisit
+# SC-05 rather than to silently widen the number.
+TEAMS_EXPECTED = 2
+
+
+def scan_roots(roots):
+    """-> ([(relpath, message)], {root: files_checked}) — `scan` once per root.
+
+    Separate from `scan` so the per-root counts survive: a SECOND root that matches
+    zero files must fail the not-empty assertion rather than hide behind the first
+    root's total. `scan`'s own signature and two-value shape are unchanged."""
+    bad, counts = [], {}
+    for r in roots:
+        n, b = scan(os.path.join(REPO, r))
+        counts[r] = n
+        bad.extend(b)
+    return bad, counts
 
 
 def _fixture(body):
@@ -84,6 +142,20 @@ def _fixture(body):
     d = tempfile.mkdtemp()
     os.makedirs(os.path.join(d, ".harness"))
     with open(os.path.join(d, ".harness", "probe.yaml"), "w", encoding="utf-8") as fh:
+        fh.write(body)
+    return d
+
+
+def _fixture_teams(body):
+    """A throwaway repo root containing a shipped-team-definition tree (SC-06).
+
+    Deliberately NOT written into the real `.claude/skills/harness/teams/` — a gate
+    proved by mutating the tree it guards is a gate that has been switched off for
+    the duration of its own test."""
+    d = tempfile.mkdtemp()
+    sub = os.path.join(d, ".claude", "skills", "harness", "teams")
+    os.makedirs(sub)
+    with open(os.path.join(sub, "broken.yaml"), "w", encoding="utf-8") as fh:
         fh.write(body)
     return d
 
@@ -106,12 +178,24 @@ def check(name, ok, detail=""):
             print(f"      | {line}")
 
 
-# --- 1. the real corpus ------------------------------------------------------
-n, bad = scan(REPO)
-check(f"every .harness YAML parses ({n} files scanned)", not bad,
+# --- 1. the real corpus, across BOTH shipped trees ---------------------------
+# `.claude/skills/harness/teams` is here because it was outside this gate's reach
+# while both files in it failed to parse — the gate's own blind spot, not a new tree.
+bad, counts = scan_roots(ROOTS)
+total = sum(counts.values())
+check(f"every shipped YAML parses ({total} files across {len(ROOTS)} roots: "
+      + ", ".join(f"{r}={n}" for r, n in counts.items()) + ")", not bad,
       "\n".join(f"{p} — {m}" for p, m in bad))
-check("the corpus is not empty (a glob that matches nothing passes vacuously)", n > 0,
-      f"scanned {n} files under {os.path.join(REPO, '.harness')}")
+# PER ROOT, not on the total: a second root matching zero files would otherwise pass
+# vacuously behind the first root's count, which is the whole reason this exists.
+for r, n in counts.items():
+    check(f"the corpus under {r} is not empty (a scan that matches nothing passes vacuously)",
+          n > 0, f"scanned {n} files under {os.path.join(REPO, r)}")
+# SC-05's count conjunct — ASSERTED, not merely reported in a label above.
+check(f"{TEAMS_ROOT} holds exactly {TEAMS_EXPECTED} team definitions (SC-05)",
+      counts.get(TEAMS_ROOT) == TEAMS_EXPECTED,
+      f"found {counts.get(TEAMS_ROOT)}: "
+      f"{sorted(os.listdir(os.path.join(REPO, TEAMS_ROOT))) if os.path.isdir(os.path.join(REPO, TEAMS_ROOT)) else 'directory missing'}")
 
 # --- 2..5. the detector must actually detect -------------------------------
 # Each fixture is a real defect class observed in this repo on 2026-08-03.
@@ -143,6 +227,15 @@ d = _fixture('writes: [".harness/features/*/BRIEF.md ## Approval", "x/**"]\n'
              'pending:\n  - >-\n    prose with a colon: and a `backtick`, safely folded\n')
 _, nb = scan(d)
 check("a correctly quoted/folded file is NOT flagged", not nb, nb)
+
+# --- 6b. SC-06: the WIDENED root is really scanned, not just declared --------
+# The defect this whole widening exists for: an unquoted `{{template}}` opening a flow
+# sequence. Both shipped team files failed exactly this way at 635ef14 while this gate
+# reported green, because it could not see the directory at all.
+d = _fixture_teams("outputs: [a/{{x}}/b]\nnext_key: 1\n")
+_, nb = scan(d)
+check("detects a broken team definition under .claude/skills/harness/teams (SC-06)",
+      len(nb) == 1, f"expected exactly 1 finding, got {len(nb)}: {nb}")
 
 # --- 7. the message has to be actionable ------------------------------------
 d = _fixture("writes: [a ## b, c]\nnext: 1\n")

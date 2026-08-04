@@ -2,11 +2,11 @@
 #
 # THE FAN-IN IS NOT A STEP. validator-lead hosts this DAG and does the assessment
 # itself in its consolidated DIGEST (SPEC §10.4): it is the independence layer over
-# qa, and adding a fourth dispatched step to "synthesize" would just be the lead
+# qa, and adding a separate dispatched step to "synthesize" would just be the lead
 # paying a spawn to do its own job.
 #
-# Three independent reviewers dispatch in ONE turn — serial dispatch looks correct
-# while running 3× slower. review_sha IS PINNED BY THE CALLER, never read from
+# Four independent reviewers dispatch in ONE turn — serial dispatch looks correct
+# while running 4× slower. review_sha IS PINNED BY THE CALLER, never read from
 # HEAD (DEC-50; INV-6 fails an unpinned validator run).
 
 name: review
@@ -16,14 +16,14 @@ inputs: [feat, review_sha]
 max_cost_usd: 20
 
 steps:
-  # All three have depends_on: [] and do not depend on each other, so the runner
+  # All four have depends_on: [] and do not depend on each other, so the runner
   # dispatches them in a single turn. Each writes to its own namespaced note path,
   # which is what makes parallel writes safe here (SPEC §2.3).
   - id: code
     persona: code-reviewer
     depends_on: []
     inputs: []
-    outputs: [.harness/features/{{feat}}/notes/review-harness-code-reviewer-c{{cycle}}.md]
+    outputs: [".harness/features/{{feat}}/notes/review-harness-code-reviewer-c{{cycle}}.md"]
     mutates_repo: false
     prompt: >
       Review the diff at {{review_sha}} for {{feat}}. Two stages, in order: spec
@@ -33,11 +33,39 @@ steps:
       failure scenario for each; findings without one are not actionable. Do not fix
       anything: you have no Edit tool and source is not your domain.
 
+  # qa in GATE-ONLY mode (D-08). This step re-runs the existing test_matrix over the
+  # pinned SHA and authors NOTHING — hence mutates_repo: false. Test AUTHORING belongs
+  # to the orchestrator-sequenced qa SEGMENT that runs before this panel
+  # (SPEC.md:1978), which is the same persona doing the other of D-08's two jobs.
+  #
+  # THE TWO JOBS MUST NOT COLLIDE ON DISK. The segment keeps the historical name
+  # `notes/qa-c{{cycle}}.md` (see FEAT-05/notes/qa-c0.md, qa-c1.md); this panel step
+  # takes the reviewer-style `notes/review-harness-qa-c{{cycle}}.md`, matching the
+  # other reviewer steps and the grant team-config.yaml:227 already carries for exactly
+  # that spelling. Reuse the segment's filename here and, at cycle N of a full ship,
+  # the gate-only note silently overwrites the segment's test-authoring receipt —
+  # same persona, same domain, same path.
+  - id: qa
+    persona: qa
+    depends_on: []
+    inputs: []
+    outputs: [".harness/features/{{feat}}/notes/review-harness-qa-c{{cycle}}.md"]
+    mutates_repo: false
+    prompt: >
+      GATE-ONLY. Re-run the `test_matrix` gate over the diff at {{review_sha}} for
+      {{feat}} and write the result to your output path: `matrix_ok`, plus the
+      per-kind results and which kinds the change type required. You are auditing a
+      pinned SHA, not building on it — **author nothing**: no tests, no fixtures, no
+      source. If a required kind has no test, that is a finding, not a gap for you to
+      fill; the fix belongs to the qa segment and the dev that owns the task. If the
+      matrix cannot be run at all, say so and return the honest state — a gate that
+      did not run has not passed.
+
   - id: security
     persona: security-reviewer
     depends_on: []
     inputs: []
-    outputs: [.harness/features/{{feat}}/notes/review-harness-security-reviewer-c{{cycle}}.md]
+    outputs: [".harness/features/{{feat}}/notes/review-harness-security-reviewer-c{{cycle}}.md"]
     mutates_repo: false
     prompt: >
       Self-scoping OWASP Top 10 and STRIDE audit of the diff at {{review_sha}} for
@@ -50,7 +78,7 @@ steps:
     persona: ui-reviewer
     depends_on: []
     inputs: []
-    outputs: [.harness/features/{{feat}}/notes/review-harness-ui-reviewer-c{{cycle}}.md]
+    outputs: [".harness/features/{{feat}}/notes/review-harness-ui-reviewer-c{{cycle}}.md"]
     mutates_repo: false
     prompt: >
       Mode B — audit the built UI in the diff at {{review_sha}} against DESIGN.md,
@@ -59,7 +87,7 @@ steps:
       PASS. Do not manufacture findings to justify the spawn.
 
 # The lead's consolidated DIGEST is the deliverable. It must:
-#   - merge the three panels into ONE actionable set, de-duplicated
+#   - merge the four panels into ONE actionable set, de-duplicated
 #   - carry severity_max across the panel, since the gate reads that
 #   - name which reviewer raised each surviving finding, so it can be traced back
 #   - drop nothing silently: a finding the lead judges not worth acting on is

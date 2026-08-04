@@ -1,0 +1,30 @@
+invocation: .claude/skills/harness/bin/check-state.sh
+HEAD: 635ef147e9a003fbea6745443311fafb1d5f1970
+  note       FEAT-05-pyyaml-file-parsers: run 2026-08-02-01-product is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-05-pyyaml-file-parsers: run 2026-08-02-02-eng is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-05-pyyaml-file-parsers: run 2026-08-02-03-product is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-05-pyyaml-file-parsers: run 2026-08-03-01-validator is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-05-pyyaml-file-parsers: run 2026-08-03-04-eng is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-05-pyyaml-file-parsers: run 2026-08-03-05-validator is referenced but its dir is absent (pruned, or never created).
+  note       FEAT-06-team-layer-inv6: run inter-gate-q1q2 is referenced but its dir is absent (pruned, or never created).
+exit: 0
+
+## red-first receipt
+
+invocation: python3 .claude/skills/harness/bin/test-check-state.py
+HEAD: 635ef147e9a003fbea6745443311fafb1d5f1970
+check-state.sh: UNMODIFIED at this point (steps 2-4 not yet applied)
+
+ok - case (a): INV-21 note appears when parent is unrecorded
+ok - case (b): no INV-21 note when parent is recorded
+ok - case (c): no INV-21 note when github.sync is false
+ok   case (d): settings.local.json does not hide settings.json's hooks
+ok - case (e): issue #11 — a commented squad:/id: line still yields the run, so INV-6 fires
+ok - case (f): an unparseable feature.yaml is reported and exits 1 (got exit 1)
+ok - case (g): M-01 — INV-17 reports the missing handoff instead of raising NameError
+FAIL - case (h): issue #16 — `review_sha: none` is a placeholder, not a pin, so INV-6 fires
+        INV-6 was silent: the string 'none' read as truthy and the gate failed OPEN on an unpinned feature
+ok - case (i): a pinned SHA does not trip INV-6
+ok - case (j): no validator run, so INV-6 stays silent even on a placeholder
+ok - exit code unchanged by INV-21 (a: 1, b: 1)
+exit: 1

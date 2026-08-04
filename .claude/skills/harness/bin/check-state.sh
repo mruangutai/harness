@@ -153,7 +153,11 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
                      str(entry.get("verdict", "")).strip()))
 
     # INV-6: reviewers must diff a pinned SHA, never a moving HEAD (DEC-50).
-    if any(sq == "validator" for _, sq, _ in runs) and not val("review_sha"):
+    # A placeholder is not a pin: val() returns str(v), so `review_sha: none` is a
+    # truthy string and only an ABSENT key used to trip this (issue #16).
+    _sha = (val("review_sha") or "").strip().lower()
+    if any(sq == "validator" for _, sq, _ in runs) and (
+            _sha == "" or _sha in harness_yaml.PLACEHOLDER_UNSET):
         bad.append(f"{feat}: a validator run exists but review_sha is not pinned "
                    f"— reviewers would diff HEAD (the GAP-7 failure).")
 

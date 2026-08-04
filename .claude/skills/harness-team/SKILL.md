@@ -48,6 +48,19 @@ create per-step directories for members — they write into their own domains.
 Seed `state.yaml` with `schema_version`, `run_id`, `feature`, `squad`, `host`, `status: running`,
 and one `steps:` entry per team step with `status: pending`.
 
+**A team file carries EITHER a literal `steps:` DAG OR a `steps_from:` expansion rule.** With
+`steps_from:`, expand it into concrete steps FIRST, then seed exactly as above: read the source it
+names (`plan_tasks` = the `## Tasks` of `.harness/features/<feat>/PLAN.md`); take the task ids
+**the caller handed you** — WHICH tasks arrive is the orchestrator's decision, already made, and
+no key in the file re-states it; **route each one to a member by `consult-when`, which IS your
+decision**; take each step's prompt from the task's own
+`intent:` block when `prompt: from_task_intent`; build `depends_on` from each task's own
+`depends_on:` field when `depends_on: from_task_depends_on`, falling back to PLAN file order only
+for tasks declaring none — **PLAN file order is not a topological order**; substitute
+`{{task_id}}`/`{{persona}}` into the `id` and `outputs` templates. From there the algorithm is
+unchanged. A task the caller did not hand you is **not** silently dropped: it stays for the
+orchestrator to sequence as its own squad segment (DEC-118).
+
 **`state.yaml` is a checkpoint, not a notebook (DEC-154).** Every value in it is an identifier, an
 enum, a counter, a path, or a sequence marker — something a fresh context can act on without
 reading it. Findings, code citations, assessment reasoning, and anything else written in sentences
