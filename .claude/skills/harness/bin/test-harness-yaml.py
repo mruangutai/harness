@@ -369,6 +369,16 @@ def test_duplicate_key_is_catchable_as_a_parse_error():
     import harness_yaml as hy
     if not issubclass(hy.DuplicateKeyError, hy.YamlParseError):
         return False, "DuplicateKeyError does not subclass YamlParseError"
+    # The position must be the DUPLICATE's own line, not merely "a" position. A first
+    # version of the mark fix passed the loop's last key_node, so the number was right
+    # only when the duplicate happened to be last — which it was, in the fixture I
+    # tested with. Asserting a SPECIFIC line is what makes this discriminating.
+    try:
+        hy.load_str("a: 1\nb: 2\nc: 3\na: 4\n", "probe")
+        return False, "a duplicate key on line 4 did not raise"
+    except hy.DuplicateKeyError as e:
+        if "line 4" not in str(e):
+            return False, f"reported the wrong line for a line-4 duplicate: {e}"
     try:
         hy.load_str("cost: 1\ncost: 2\n", "probe")
         return False, "a duplicate key did not raise"

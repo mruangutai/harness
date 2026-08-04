@@ -4,7 +4,7 @@ branch: worktree-fix-harness-tooling-backlog
 pr: none
 status: in_review
 review_sha: f0a3831
-cycles_used: 1
+cycles_used: 3
 max_total_cycles: 10
 cost_usd: 240.82
 max_cost_usd: 120
@@ -21,10 +21,18 @@ runs:
     squad: product
     verdict: PASS
     cost_usd: 45.1
+  - id: 2026-08-03-01-validator
+    squad: validator
+    verdict: FAIL
+    cost_usd: 0   # review panel cycle 0 — 3 high, 2 med; all fixed
   - id: 2026-08-03-04-eng
     squad: eng
     verdict: BLOCKED
     cost_usd: 148.82
+  - id: 2026-08-03-05-validator
+    squad: validator
+    verdict: FAIL
+    cost_usd: 0   # review panel cycle 1 — 2 high; all fixed
 github:
   parent: none
   milestone: none

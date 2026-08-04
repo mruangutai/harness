@@ -70,10 +70,17 @@ class DuplicateKeyError(YamlParseError):
     DuplicateKeyError FIRST; the ordering is what distinguishes them.
     """
 
-    def __init__(self, key, where=None):
+    def __init__(self, key, where=None, mark=None):
         self.key = key
         self.where = where
+        # `mark` is the offending key node's position. SC-14 asks findings to name
+        # file, LINE and COLUMN; without it a duplicate-key finding named only the file
+        # and the key, so the one defect class the corpus gate newly covers was the one
+        # it diagnosed worst. Goal-check c1, Q2.
+        self.mark = mark
         msg = f"duplicate key {key!r}"
+        if mark is not None:
+            msg += f" at line {mark.line + 1}, column {mark.column + 1}"
         if where:
             msg += f" in {where}"
         # DEC-156's guidance travels WITH the error, so every caller reports it
@@ -125,16 +132,21 @@ if yaml is not None:
         # every write, blaming the user for a "duplicate key" in valid YAML. A guard
         # that is wrong about the rulebook is the failure mode this whole feature exists
         # to remove; being wrong in the strict direction is no better.
-        own_keys = []
+        # (key, its own node's mark) — the mark must travel WITH its key. A first
+        # version passed `key_node` from the loop above, which by then held the LAST
+        # node, so the reported position was right only when the duplicate happened to
+        # be last. It was, in the fixture I tested. Caught by re-reading rather than by
+        # the test, which asserted only that A position was present.
+        own = []
         for key_node, _ in node.value:
             if key_node.tag == "tag:yaml.org,2002:merge":
                 continue          # `<<` is the merge indicator, never a data key
-            own_keys.append(self.construct_object(key_node, deep=deep))
+            own.append((self.construct_object(key_node, deep=deep), key_node.start_mark))
         seen = set()
-        for key in own_keys:
+        for key, mark in own:
             try:
                 if key in seen:
-                    raise DuplicateKeyError(key)
+                    raise DuplicateKeyError(key, mark=mark)
                 seen.add(key)
             except TypeError:
                 # An unhashable key (a list or dict used as a key) cannot collide by
