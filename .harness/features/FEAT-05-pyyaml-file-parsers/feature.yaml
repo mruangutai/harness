@@ -1,8 +1,8 @@
 feature_id: FEAT-05-pyyaml-file-parsers
-phase: validate
+phase: ship
 branch: worktree-fix-harness-tooling-backlog
 pr: none
-status: in_review
+status: shipped                # ACCEPTED by Mike Ruangutai 2026-08-04
 review_sha: f0a3831
 cycles_used: 3
 max_total_cycles: 10
