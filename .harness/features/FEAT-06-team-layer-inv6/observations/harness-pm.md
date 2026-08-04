@@ -22,3 +22,15 @@
   acceptance test that mattered was different: does any SC go RED if the newly-named file is never
   touched? T-11 without SC-14 would have shipped the fix with nothing asserting it. A new issue in
   scope means new REQ coverage and a new SC, not just a new task.
+- 2026-08-04 (goal-check): SC-03 read as VIOLATED on a literal before/after diff — two non-INV-6
+  lines appeared vs `notes/before-check-state-635ef14.txt`. The diff could not separate a code
+  effect from a tree effect. Running the PRE-change `check-state.sh` (from `git show 635ef14:`)
+  over the CURRENT tree and diffing against the post-change run on the same tree came back
+  byte-identical, which settles it: tree state, not code. One of the two new lines was the
+  goal-check's own run dir. When a before/after capture spans time as well as a change, hold one
+  variable and re-run the old code — a stale capture cannot do it.
+- 2026-08-04 (goal-check): the multi-conjunct SC is where evidence quietly goes missing. Seven of
+  FEAT-06's twelve automated SCs were conjunctions; eleven of twelve had per-conjunct assertions
+  and one (SC-05) had an assertion for the first half only, with the number in the SECOND half
+  appearing in the test's printed f-string label. A printed number reads exactly like an asserted
+  one in runner output.

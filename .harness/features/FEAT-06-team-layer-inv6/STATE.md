@@ -3,51 +3,54 @@
 ## Current
 
 - feature: FEAT-06-team-layer-inv6
-- phase: build
-- run: runs/t08-product/ (complete, PASS, metered 11.39)
+- phase: validate
+- run: runs/goalcheck-product/ (complete, FAIL — SC-05 unmet as declared)
 - squad: product
-- status: in_progress
+- status: awaiting_user
 
-**9 of 10 tasks are done and PASS. Only T-07 remains, and it is main-session-direct.** Segment 1
-(T-01, T-02, T-04, T-10, T-05, T-06, T-09, T-11) landed 8 of 8 and is committed at `f45fd0f` with
-its eight mirror issues closed. T-08 landed clean on the first pass. **Zero send-backs across the
-whole build, so `cycles_used` stays 4 of 10** (DEC-157: a first pass is work, not rework).
+**BUILD AND VALIDATE ARE COMPLETE. The feature is at the user's gate with TWO blocking questions,
+batched as one round trip.** The briefing is `notes/ship-review-FEAT-06.md`.
 
-**Every gate re-run at the orchestrator's own tier after T-08:** `check-docs.sh` exit 0,
-`check-state.sh` zero VIOLATION lines, `run-unit-tests.sh` exit 0. The lead holds no `Bash`, so its
-gate claims were reported, not measured — they are now measured.
+- **Q1 — SC-05 unmet as declared.** Its count conjunct has no assertion:
+  `test-harness-yaml-corpus.py:180-181` asserts `n > 0` per root, and the `2` in its output is an
+  f-string LABEL at `:174-175`. pm ruled it; I verified the premise at source twice.
+  **Recommend FIXING (one `check()` line) over waiving** — waiving amends a signed BRIEF.
+  **TRAP: the line belongs in `test-harness-yaml-corpus.py`, NOT `test-team-catalog.py`**, whose
+  signed verify requires exactly TEN checks.
+- **Q2 — SC-13 is the only `uat` criterion** and `gates.uat` is blocking. The user reads
+  `teams/build.yaml` and `SKILL.md:40-53` and rules. No test settles it.
 
-**T-07's downstream gate is safe, checked not assumed.** T-07 check (9) fails loudly if a §13 DAG
-row carries zero or more than one `∥`-bearing brace group. Measured after T-08: `SPEC.md:1978` has
-2 brace groups and exactly **1** with `∥`; `:1980` has 1. Both now read `{code ∥ qa ∥ security ∥ ui}`
-and `review.yaml` parses to the same set — SC-15's three legs already agree.
+**All gates green: qa `matrix_ok: true`, panel PASS (`severity_max: low`, `must_fix` empty),
+`run-unit-tests.sh` 0, `check-docs.sh` 0, `check-state.sh` zero violations.** Every one re-run at
+the orchestrator's own tier, not taken on report. **13 of 14 non-uat SCs met.**
 
-**SC-14 measured both ways.** At `635ef14`: `test_matrix` lines 0, 8-line window 0 hits. Now: lines
-2, window 7 hits. Line budgets held with room — `SKILL.md` +14 of 20, `harness-team/SKILL.md` +12 of
-14, **zero deletions on either**, so no reflow inflated the count.
+**10 of 10 tasks passed first time; `cycles_used` is 5 of 10** — 4 spent in planning, 1 for the
+SC-05 fix now routed.
 
-**Four defects caught mid-execution that would each have shipped green.** (1) T-05's widened gate
-would have scanned NOTHING — Python `glob` does not descend into dotted directories, so
-`glob('**/*.yaml')` from the repo root returns 0 while `os.walk('.harness')` finds 54; re-measured
-here. (2) SC-06 proven to discriminate against the pre-widening `scan()`: 0 files, 0 findings.
-(3) A comment naming `PLACEHOLDER_UNSET` broke T-01's own `== 1` verify. (4) T-02's sweep created a
-sixth count-bearing comment, caught by its own closing re-grep — the handoff named four, the
-orchestrator's re-grep found a fifth, the sweep made a sixth. Enumeration would have missed it.
+**Four defects were caught mid-execution that would each have shipped green** — detail in the
+briefing. The load-bearing one: Python `glob` does not descend into dotted directories, so T-05's
+widened gate would have scanned **0** files forever while the tree holds 54. And T-07's ten checks
+were proven to discriminate — 10 of 10 FAILING at `635ef14`, 10/10 at HEAD — by re-running them
+against a detached worktree, not by trusting a green first run.
 
-**T-08's Q1 resolved here, no user call needed.** documentor declared no stale marker; its premise
-verified at source — `{code ∥ security ∥ ui}` also occurs at `BRIEF.md:28` and `PLAN.md:139/:156/:161`,
-all approval-gated, so declaring the marker would red-line four files nobody here may edit.
+**COST IS 1.5-2x OVER AND SAID PLAINLY: $154-199 measured against the $100 allowance.** The range is
+the reporter's shared window; no figure is invented. **The dominant line is the orchestrator's own
+session at ~$88, 45-57%** — DEC-148's square-of-session-length effect, measured. Nine of ten tasks
+also ran at depth-0 and are not separable, so the true total is higher.
 
-**Cost: 42.89 measured of the $100 build allowance** — orchestrator by_agent delta 31.50 plus the
-t08-product run 11.39. It understates reality: 9 of 10 tasks ran at depth-0 in the main session,
-which is not separable to this feature.
+**Three steps skipped, each with a disclosed reason, none hidden:** feature-close distillation
+(would add ~$40-60 at this session's most expensive point — recommend a separate `/harness-curate`;
+logs are on disk); the three-lead parallel briefing report (all digests already held, and eng-lead
+did no build or validate work); ship-refresh (genuine no-op, `.harness/codebase/` does not exist).
 
-**Two carries.** T-01's `wc -l == 1` conjunct must be re-run AFTER T-07 lands a new file in `bin/`.
-**`feature.yaml` is at exactly 200 of its 200-line cap** — the next write must trim in the same pass
-or the shape gate blocks it.
+**Commits `f45fd0f`, `510b7ff`, `9f87c48` on `main` — not pushed, not merged.** All 10 mirror
+issues closed under milestone #1. `review_sha` is pinned to `9f87c48`, pinned BEFORE the first
+`squad: validator` run entry was written — this feature's own `feature.yaml` is INV-6's first
+real subject.
 
 ## Open Questions
 
-- none blocking. Issue #36 (`run-unit-tests.sh` misconfigured-error outside the repo root,
-  pre-existing at `635ef14`, fail-closed) is filed and out of scope. The ten advisories, AQ-2 and
-  `DECISIONS.md:1634`'s stale three-wide panel row are backlog for the user's ship acceptance.
+- **Q1 (BLOCKING, user):** SC-05 — fix with one line, or waive? Orchestrator recommends fixing.
+- **Q2 (BLOCKING, user):** SC-13 UAT — read `teams/build.yaml` and `SKILL.md:40-53` and rule.
+- Non-blocking, for ship acceptance: the eight-item proposed backlog in the briefing. Anything the
+  user strikes there dies silently, so the list is complete on purpose.
