@@ -1420,9 +1420,7 @@ How it runs:
    which guarantees a complete cross-team picture with a consistent shape every time.
 3. Orchestrator assembles one briefing: each lead's summary, all open questions across teams,
    resolved escalations, proposed next steps, the goal-check result (REQ coverage + SC outcomes), the
-   **UAT** if one is required, the **Expertise curation** block, and the **cost line** — spend so far
-   against the feature budget, from `bin/cost-report.py` (§11.3). Cost is the post-build signal
-   (DEC-99), and a signal the operator never sees is not being monitored.
+   **UAT** if one is required, and the **Expertise curation** block.
 4. Writes it to `.harness/features/<FEAT>/notes/ship-review-<runid>.md`.
 5. **Returns it to the main session, which presents it to you and requests instructions.** The
    orchestrator writes the briefing but cannot deliver it — it has no user channel (§10). You
@@ -1705,23 +1703,16 @@ phase: plan | build | validate | ship   # the CURRENT phase; one orchestrator pe
 review_sha: def5678            # pinned per review cycle; branch is feature-level, so this is too
 cycles_used: 2                 # fix-loop budget SPANS runs
 max_total_cycles: 10
-cost_usd: 12.83                # rolled up from each run's state.yaml cost.total
-max_cost_usd: 50               # from harness.json budgets.per_feature_usd — this IS SC-1
 runs:
-  - { id: 2026-07-27-01-validator, squad: validator, verdict: FAIL, cost_usd: 7.39 }
-  - { id: 2026-07-27-02-eng,       squad: eng,       verdict: PASS, cost_usd: 5.44 }
+  - { id: 2026-07-27-01-validator, squad: validator, verdict: FAIL }
+  - { id: 2026-07-27-02-eng,       squad: eng,       verdict: PASS }
 ```
 
-**The two budgets have different teeth (DEC-134).** `max_total_cycles` bounds *retries* and is
+**The cycle budget has teeth (DEC-157).** `max_total_cycles` bounds *retries* and is
 **hard**: exhaustion stops the flow as `BLOCKED`, because a runaway fix loop is a real failure mode
 with no natural end. It counts **rework only** — a first-pass run is bounded by the PLAN's task
 list and adds nothing (DEC-157); the default (10) lives in harness.json `budgets.max_total_cycles`
-and per-feature raises are user decisions recorded in feature.yaml. `max_cost_usd` is **informational**: it is the visibility threshold the cost
-line is judged against — surfaced in every orchestrator return and every briefing, flagged loudly
-when crossed — but crossing it never stops work. The first live flow proved the blocking version
-wrong: a ~$9 overrun killed a run one $5 step from done, protecting nothing. Wild divergence
-(multiples of budget, not percents) is raised as a non-blocking question; the user, seeing every
-cost line, decides.
+and per-feature raises are user decisions recorded in feature.yaml.
 
 ### 11.4 `state.yaml` — that squad's lead owns it
 
@@ -1748,29 +1739,7 @@ promoted:
   - { file: .harness/features/<FEAT>/PLAN.md, sha: 9f8e7d6, at: <ts> }
 open_questions:
   - { id: Q1, step: build, question: "...", blocking: true }
-cost:                                   # written by bin/cost-report.py --yaml
-  currency: usd
-  total: 5.44
-  priced_on: 2026-07-27
-  rates_verified_on: 2026-07-26         # stale rates are a silent mis-report; surface the date
-  spawns: 2
-  by_agent:
-    - { agent: harness-dev-ops, depth: 1, spawns: 2, model: claude-fable-5, usd: 5.437,
-        in: 158, out: 29986, cw5m: 176828, cw1h: 0, cr: 1725806 }
 ```
-
-**The five token classes are recorded separately, never summed.** A cache read is
-0.1× base input and a 1h cache write is 2×, so a single `input_tokens` field cannot represent
-them — and cache reads are typically the largest class by volume and the smallest by cost. The
-measured example above is 1.7M cache-read tokens costing $1.73 of a $5.44 run; priced at base
-input rate they would read as $17.26 (DEC-114).
-
-**Claude Code computes cost natively** — `claude_code.cost.usage` over OpenTelemetry, and
-`ccusage` reads it from these same transcripts. Those are the better source of a *total*.
-What they cannot give is **cost per harness agent**: OTel's `agent.name` documents that
-"Other user-defined agent names are replaced with `custom`", and all 16 harness agents are
-user-defined. `cost-report.py` exists for the attribution, and `--cross-check` compares its
-total against `ccusage` so a stale rate table is detected rather than silent.
 
 ### 11.5 Properties this model guarantees
 
@@ -1897,11 +1866,6 @@ name: ship-feature
 purpose: One-line description (shown in listings).
 lead: eng-lead                     # REQUIRED — which domain lead hosts this DAG (§10)
 inputs: [goal]                     # team-level args, injected as {{goal}}
-max_cost_usd: 15                   # OPTIONAL team-level spend cap; defaults to harness.json
-                                   # budgets.per_run_usd. Bounds SPEND the way max_cycles bounds
-                                   # RETRIES — a team that stays under its cycle cap can still burn
-                                   # the feature budget. Exhausting it takes the same path as an
-                                   # exhausted cycle budget: stop, BLOCKED, escalate to the user.
 steps:
   - id: plan
     persona: pm                    # -> subagent_type harness-pm
@@ -1961,12 +1925,9 @@ subagent (hierarchical) or the orchestrator agent (flat); the algorithm is ident
    consumer step dispatches.
 6. Report per-step verdicts + run dir.
 
-**A lead host cannot meter or timestamp its own run.** Leads hold `Read, Glob, Grep, Agent` and no
-`Bash` (§3.4/§4.1) — deliberately, so they cannot do a member's work — which also means no
-`cost-report.py` and no clock. The lead sets `cost: pending_orchestrator` and monotonic ordering
-markers; **the orchestrator runs the cost report after the lead returns** and owns the rollup into
-`feature.yaml` anyway (§11.3). Verified the hard way: the first real team run returned
-`cost: unavailable` and tripped INV-11 (DEC-116).
+**A lead host cannot timestamp its own run.** Leads hold `Read, Glob, Grep, Agent` and no
+`Bash` (§3.4/§4.1) — deliberately, so they cannot do a member's work — which also means no clock.
+The lead therefore records monotonic ordering markers rather than wall-clock times (DEC-116).
 
 **Invocation UX:** the primary entry is the team skill (triggers on "run the X team" / "assemble a
 team to…", taking team name + goal). No team name → the runner scans `teams/*.yaml` and lists
@@ -2165,6 +2126,6 @@ Recorded as known-absent rather than left to be discovered:
   nothing would tell you it had become uneconomic.
 
 **This no longer gates whether the org in §3 should exist** (DEC-99). Cost moved to post-build
-monitoring: `bin/cost-report.py` computes per-agent spend, `harness.json` carries `budgets`, and the
-CEO briefing carries a cost line (§10.3, §11.3). See BUILD.md § "Build the org; monitor cost in
+monitoring: `bin/cost-report.py` (removed — DEC-178) computed per-agent spend, `harness.json` carried
+`budgets`, and the CEO briefing carried a cost line. See BUILD.md § "Build the org; monitor cost in
 practice."
