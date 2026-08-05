@@ -1,9 +1,9 @@
 feature_id: FEAT-08-remove-cost-tracking
-phase: build
+phase: validate
 branch: feat/FEAT-08-remove-cost-tracking
 pr: none
-status: awaiting_user
-review_sha: f20838b
+status: in_progress
+review_sha: 942505e   # INV-6 — pinned BEFORE the panel, never read from HEAD
 cycles_used: 2
 max_total_cycles: 10
 cost_usd: "370.53 at 3503d1d — final measurable figure; T-03 deleted the meter"
@@ -13,164 +13,135 @@ runs:
   - { id: s2-eng, squad: eng, verdict: BLOCKED, note: lane defect, resolved by user ruling }
   - { id: s4-product, squad: product, verdict: ESCALATE, note: one send-back, T-10 partial }
   - { id: a4-product, squad: product, verdict: ESCALATE, note: SC-01 redraft after ruling }
-tasks: { T-01: DONE_PENDING_AMENDMENT, T-02: DONE_PENDING_AMENDMENT, T-03: DONE, T-04: DONE,
+  - { id: t10r-product, squad: product, verdict: PASS, note: A-3 rows 10 and 11, zero send-backs }
+tasks: { T-01: DONE, T-02: DONE, T-03: DONE, T-04: DONE,
          T-05: DONE, T-06: DONE, T-07: DONE, T-08: DONE,
-         T-09: DONE, T-10: PARTIAL, T-11: DONE, T-12: DONE }
+         T-09: DONE, T-10: DONE, T-11: DONE, T-12: DONE }
 gate_status:
-  qa_gate: NOT_RUN — build phase ends here
+  qa_gate: NOT_RUN — panel step, blocking per harness.json
   review: NOT_RUN — the panel is FOUR-WIDE by user ruling, see validate_panel
   uat: NOT_REQUIRED — BRIEF states no uat criterion
-  goal_check: NOT_RUN — blocked on the re-signature, not on evidence
+  goal_check: NOT_RUN — runs after the panel
   security: NOT_RUN — NOT a skip; the ruling forbids pre-emptive skips
   ui: NOT_RUN — NOT a skip; the ruling forbids pre-emptive skips
   ship_refresh: NOT_RUN — .harness/codebase/ does not exist, decided at ship
-  unit: PASS — re-run by me at f20838b, exit 0, twelve scripts
-  docs: PASS — check-docs.sh re-run by me at f20838b, exit 0
-  state: PASS — after I repaired the two defects the amendment commit introduced
-blocking_the_phase:
-  re_signature: >-
-    BRIEF.md and PLAN.md carry THREE unsigned amendments — A-1 (T-04's lane split),
-    A-3 (two SPEC sites T-10's table never enumerated) and A-4 (SC-01 and SC-04,
-    replacing the superseded A-2). Approved text is left verbatim with a pointer;
-    both `## Approval` blocks are untouched. Only the main session writes those.
-  main_session_batch: >-
-    FIVE edits across two DEC-174 carve-out files, specified by A-4 and returned
-    for layer-0 execution. test-validate-digest.py: delete the pin case at :749-753
-    AND reword the SURVIVING fixture's comment at :769, which also carries the
-    literal token — deleting the pin alone leaves the file in SC-01's sweep and
-    re-creates the defect. test-check-state.py: reword the INV-11 prose at :205 and
-    :326 without naming the dead invariant, keeping why case_k exists.
-  t10_remainder: >-
-    Issue 95 is deliberately STILL OPEN. Signing A-3 makes T-10's table eleven rows;
-    rows 10 and 11 are unexecuted. Needs one documentor dispatch post-signature,
-    re-running all five verify clauses. Every other task issue is closed.
+  unit: PASS — re-run by me at 942505e, exit 0
+  docs: PASS — check-docs.sh re-run by me at 942505e, exit 0
+  state: PASS — check-state.sh re-run by me at 942505e, exit 0, zero violations
+signed:
+  at: 00f3e03 — A-1, A-3 and A-4 all signed; both artifacts read status approved
+  batch: >-
+    A-4's five-edit main-session-direct batch is EXECUTED and committed at 00f3e03.
+    Verified by me at that sha, not relayed: cost_usd 0 hits in test-validate-digest.py,
+    INV-11 0 hits in test-check-state.py, all three gates exit 0.
 sc01_status:
-  verdict: REACHABLE, NOT YET PASSING — and the difference is the whole point
-  measured_at_f20838b: >-
-    The sweep returns 6 with --exclude-dir=worktrees and 78 without it. Four are the
-    amended expected set: DECISIONS.md, DECISIONS-INDEX.md, SPEC.md, BUILD.md. The
-    other two are exactly the files the main-session batch edits. It was 18 at
-    ae2443d, so the criterion stays discriminating.
-  worktree_flag: >-
-    --exclude-dir=worktrees is NOT cosmetic. FEAT-09's worktree moved under
-    .claude/worktrees/, putting a second full repo inside SC-01's search path.
-    harness.json's test_kinds.unit.exclude already carries the same glob. The flag
-    is a no-op at ae2443d, so the 18-file base measurement stands.
-  survivors_justified: >-
-    Verified by me: zero SPEC or BUILD hits lack the DEC-178 marker, so SC-14 holds
-    and those two files survive for the reason SC-14 itself states.
+  verdict: PASS — verified by me at 00f3e03, superset-prohibited and satisfied
+  evidence: >-
+    The amended sweep over .claude/, docs/, .harness/harness.json, team-config.yaml
+    and README.md with --exclude-dir=worktrees returns EXACTLY the four survivors A-4
+    enumerates — BUILD.md, SPEC.md, DECISIONS.md, DECISIONS-INDEX.md. It returned 18 at
+    ae2443d and 6 before the batch, so it stays discriminating. Both test files left it.
+sc04_status:
+  verdict: PASS — surviving half re-verified by me at 00f3e03
+  evidence: >-
+    An orchestrator DIGEST omitting the money field is accepted by validate-digest.py,
+    exit 0, prints digest ok. Run directly, not inferred from the suite.
+t10_remainder:
+  status: DONE at 942505e — issue 95 closed by gh-sync
+  what: >-
+    A-3 makes T-10's disposition table ELEVEN rows. Rows 10 and 11 are unexecuted and
+    documentor's existing receipt proves the nine it was written against. Both sites are
+    live, confirmed by me at 00f3e03 — SPEC.md :1448 (the worked briefing example still
+    renders the row the step no longer asks for) and :1574 (the dead cost analogy).
+  result: >-
+    All five verify clauses re-run BY ME at 942505e, not relayed - the compound-token sweep
+    leaves one hit and it carries the DEC-178 marker; the unchanged-count clause is 8 before
+    and 8 after, matching the member's own captured baseline and my 00f3e03 cross-check; the
+    plain-word sweep printed exactly the two defect lines mid-flight and prints nothing now;
+    run-unit-tests.sh 0; check-docs.sh 0. The diff is two hunks and nothing else.
+  gaps_raised: >-
+    Two, neither blocking. The fifth clause exits 1 while its stdout is empty, because grep -v
+    exits 1 when it filters everything out - correct as written, but a wrapper treating nonzero
+    as failure misreads a pass. And no T-10 clause can prove the stays-verbatim neighbours did
+    not move; discharged by reading the diff. Both are backlog candidates.
 validate_panel:
   ruling: >-
-    USER RULING, binds the validate phase: run ALL FOUR steps of teams/review.yaml —
-    code, qa, security, ui. NO pre-emptive skips. FEAT-07 ran two of four on the
+    USER RULING, binds the validate phase - run ALL FOUR steps of teams/review.yaml,
+    code, qa, security and ui. NO pre-emptive skips. FEAT-07 ran two of four on the
     ORCHESTRATOR'S OWN judgment. That is the thing being corrected.
   why: >-
-    Both reviewers are DESIGNED to self-scope out on an inapplicable diff. Looking
-    and declining IS the job; a decline from a reviewer that looked is a reviewed
-    finding. Two spawns may return nothing — CORRECT, not waste. Any skipped step
-    means returning awaiting_user; the call is the user's.
+    Both reviewers are DESIGNED to self-scope out on an inapplicable diff. Looking and
+    declining IS the job; a decline from a reviewer that looked is a reviewed finding.
+    Two spawns may return nothing - CORRECT, not waste. Any skipped step means returning
+    awaiting_user; the call is the user's.
+  team_verified: >-
+    I read teams/review.yaml at 00f3e03 - it declares four steps, code/qa/security/ui,
+    all with depends_on empty, so the panel width is a fact and not an inherited claim.
   overrides_expertise: >-
     My Expertise O-01 says skip the ui-reviewer with no design contract. THE RULING
     OUTRANKS IT. O-01 is a revision candidate at distillation.
 findings:
   routing_wall: >-
-    T-04's lane defect is the routing wall's FOURTH recurrence, inside the feature
-    running concurrently with FEAT-09, which exists to prevent it. The lane was
-    resolved at plan time by READING team-config.yaml rather than ASKING it.
-    eng-lead returned BLOCKED rather than routing around check-domain.sh when a
-    python3 -c rewrite would have passed bash-write-guard.sh unseen. Briefing
-    evidence, not an embarrassment.
+    T-04's lane defect is the routing wall's FOURTH recurrence, inside the feature running
+    concurrently with FEAT-09, which exists to prevent it. The lane was resolved at plan
+    time by READING team-config.yaml rather than ASKING it. eng-lead returned BLOCKED
+    rather than routing around check-domain.sh when a python3 -c rewrite would have passed
+    bash-write-guard.sh unseen. Briefing evidence, not an embarrassment.
   intent_vs_verify: >-
-    FOUR instances now of one shape: a task intent PRESCRIBING prose containing a
-    token its own verify: forbids or counts. T-01 and T-02 in S1, both reconciled
-    at execution; T-01 again at A-4. Every one was caught by RUNNING the clause,
-    never by reading it. This is FEAT-07's lesson recurring inside the feature that
-    inherited it, and it is the strongest candidate for a plan-time check.
+    FOUR instances of one shape - a task intent PRESCRIBING prose containing a token its
+    own verify: forbids or counts. T-01 and T-02 in S1, both reconciled at execution; T-01
+    again at A-4. Every one caught by RUNNING the clause, never by reading it. FEAT-07's
+    lesson recurring inside the feature that inherited it, and the strongest candidate for
+    a plan-time check.
   verify_blind_spot: >-
-    T-10 passed all four clauses and STILL left two live cost sites, because every
-    clause in this feature matches compound tokens and both sites use only the
-    plain word. One renders a worked briefing example showing a cost line
-    twenty-five lines below the step that no longer asks for one. An all-green
-    verify is not an absent defect.
+    T-10 passed all four of its clauses and STILL left two live cost sites, because every
+    clause in this feature matches compound tokens and both sites use only the plain word.
+    An all-green verify is not an absent defect. The sharpest finding of the feature.
   premises_i_relayed_unverified: >-
-    I passed pm a claim that unknown-key tolerance is already asserted generically
-    at test-validate-digest.py:1213 and :1233. pm checked: both are COMMENTS, and
-    the second names that shape as the BAD one its detector rules out. pm also
-    found the token occurs THREE times in that file, not once. I had verified the
-    zero-producers half of the ruling and not this half. The ruling still stands on
-    the half that holds; the coverage claim does not.
+    My predecessor passed pm a claim that unknown-key tolerance is asserted generically at
+    test-validate-digest.py:1213 and :1233. pm checked - both are COMMENTS, and the second
+    names that shape as the BAD one its detector rules out. pm also found the token
+    occurred THREE times in that file, not once. Half the ruling was verified, half was not.
   design_validated: >-
-    D-02's ordering proved itself on the first unmetered run: s2-eng carries no cost
-    key and check-state.sh exits 0, because T-02 removed INV-11 before T-03 removed
-    the meter. The one-directional hazard was real and sequencing around it worked.
-  my_own_errors: >-
-    Three, all mine, all caught and corrected before the branch tip. A git add on an
-    already-deleted path failed and the commit proceeded without the unstaged file,
-    producing a t-03 tree that deleted both scripts while run-unit-tests.sh still
-    listed the missing one; the --amend that fixed it swallowed the already-staged
-    T-04 configs; split with reset --soft. And I relayed an unverified premise, above.
+    D-02's ordering proved itself on the first unmetered run - s2-eng carries no cost key
+    and check-state.sh exits 0, because T-02 removed INV-11 before T-03 removed the meter.
+  predecessor_errors: >-
+    Three, all caught and corrected before the branch tip - a git add on an already-deleted
+    path that let a commit proceed without the unstaged file, the --amend that fixed it
+    swallowing already-staged T-04 configs, split back out with reset --soft; and the
+    unverified premise above.
 open_q:
-  - >-
-    IDS ARE NOT REUSED across phases. Q2 and Q4 were answered in planning.
-  - >-
-    Q1 CARRIED, PARTIALLY ANSWERED: the briefing loses its only size signal.
-    perf-review row 10 is now FILED AS ISSUE 79. Still unscheduled, so the gap is
-    real and tracked rather than only noted. Answer before the briefing, not in it.
-  - >-
-    Q3 CARRIED, harness defect: a send-back gives the returning member a FRESH
-    context, so open_questions it raised in its own previous DIGEST are unrecoverable.
-  - >-
-    Q5 SC-06's glob over-captures; restricted to FEAT-01..07 its numbers are pm's 89
-    and 67-of-67 exactly. Recommend the goal-check restrict it and record both.
-  - >-
-    Q6 SC-03 is repo-wide; a concurrent flow can fail it. FEAT-09 moved to a
-    worktree, so the hazard is dormant, not gone.
-  - >-
-    Q7 for the PANEL: both comments reworded around the S1 defect justify themselves
-    with "this task's verify:", which will not exist after ship.
-  - >-
-    Q9 from eng-lead: nothing detects live/template config divergence — the suite
-    exited 0 on a half-stripped pair. Follow-up, or in scope?
-  - >-
-    Q18 from pm, for the USER: deleting the pin removes the ONLY deliberate assertion
-    of unknown-key tolerance. pm measured it with a strict-unknown-key mutant through
-    the real suite — exactly 2 cases redden. Behaviour stays safe; coverage becomes
-    incidental. Add one generic bogus_extra_key fixture as a non-cost-shaped
-    replacement? pm deliberately did NOT add it: that is new mandate beyond the ruling.
-  - >-
-    Q19 HARNESS DEFECT I HIT MYSELF: INV-4's task regex cannot tell a task DEFINITION
-    from a REFERENCE. pm's amendment headings "#### T-01 — ..." parsed as task blocks
-    with no change_type:, so check-state went to 1 on a correct amendment. I repaired
-    it by prefixing both headings, a formatting change with zero semantic content,
-    diffed to prove exactly two lines moved. Any PLAN amending a task by heading trips
-    this. The regex is the defect, not the amendment.
+  - "Q1 CARRIED - the briefing loses its only size signal. perf-review row 10 is filed as issue 79, still unscheduled."
+  - "Q3 CARRIED harness defect - a send-back gives the returning member a FRESH context, so open_questions it raised in its own previous DIGEST are unrecoverable."
+  - "Q5 - SC-06's glob over-captures; restricted to FEAT-01..07 its numbers are pm's 89 and 67-of-67 exactly. The goal-check must record BOTH."
+  - "Q6 - SC-03 is repo-wide; a concurrent flow can fail it. FEAT-09 moved to a worktree, so the hazard is dormant, not gone. Re-rooting via CLAUDE_PROJECT_DIR is FORBIDDEN by user ruling."
+  - "Q7 for the PANEL - three comments reworded around the S1 defect justify themselves with this task's verify:, which will not exist after ship. The batch just created the third."
+  - "Q9 from eng-lead - nothing detects live/template config divergence; the suite exited 0 on a half-stripped pair. Backlog candidate."
+  - "Q18 RULED by the user - add nothing. A fixture asserting unknown-key tolerance would cement the opposite of the strict-schema direction. Filed as issue 104 with the measurement."
+  - "Q19 harness defect - INV-4's task regex cannot tell a task DEFINITION from a REFERENCE, so amendment headings parse as task blocks. The regex is the defect."
 pending:
-  - >-
-    OUT OF SCOPE BY RULING: cycle counting and max_total_cycles (DEC-157), and
-    rewriting any historical DECISIONS entry.
-  - >-
-    THE METER IS GONE as of 1a69d9d. Every figure from here is an honest string,
-    never a number, and no run owes a cost block — INV-11 came out in T-02.
+  - "OUT OF SCOPE BY RULING - cycle counting and max_total_cycles (DEC-157), and rewriting any historical DECISIONS entry."
+  - "THE METER IS GONE as of 1a69d9d. Every figure from here is an honest string, never a number, and no run owes a cost block."
 baseline:
   base_sha: ae2443d
   closes_issues: "#58"
-  briefing: none — the ship terminus is the successor's, after validation
+  briefing: none — the validate terminus
   answers: none
   cost_note: >-
-    370.53 was the last measurable figure, at 3503d1d before T-03 deleted the meter:
-    237.73 plan + 53.81 my depth-1 delta + 78.99 the depth-0 delta that executed the
-    six-task batch. Both deltas are SHARED with the concurrent FEAT-09 flow and are
-    attributed here IN FULL because overstating is the safe direction. Everything
-    after 1a69d9d is unmeasurable BY DESIGN and nothing for it is invented. Over the
-    120 budget, reported not hidden (DEC-134).
-approved:
-  brief: approved 2026-08-05 — RE-SIGNATURE PENDING for A-2 superseded, A-4
-  plan: approved 2026-08-05 — RE-SIGNATURE PENDING for A-1, A-3, A-4
+    370.53 was the last measurable figure, at 3503d1d before T-03 deleted the meter -
+    237.73 plan plus 53.81 and 78.99 depth deltas, both SHARED with the concurrent FEAT-09
+    flow and attributed here IN FULL because overstating is the safe direction. Everything
+    after 1a69d9d is unmeasurable BY DESIGN and nothing for it is invented. Over the 120
+    budget, reported not hidden (DEC-134).
+  cycles_note: >-
+    T-10's re-dispatch is forward work created by a SIGNED amendment, not a send-back, so
+    it adds zero under DEC-157. cycles_used stays 2 unless the panel routes a FAIL back.
 github:
   milestone: 3
   parent: 85
   closed: [T-01, T-02, T-03, T-04, T-05, T-06, T-07, T-08, T-09, T-11, T-12]
   open_deliberately: [T-10]
   perf_row_10: 79
+  q18_ruled: 104
   issues: { T-01: 86, T-02: 87, T-03: 88, T-04: 89, T-05: 90, T-06: 91,
             T-07: 92, T-08: 93, T-09: 94, T-10: 95, T-11: 96, T-12: 97 }

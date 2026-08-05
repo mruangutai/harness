@@ -3,50 +3,38 @@
 ## Current
 
 - feature: FEAT-08-remove-cost-tracking
-- run: dispatching S4 to product-lead — runs/s4-product
-- squad: product
+- run: dispatching the four-wide review panel to validator-lead — runs/panel-validator
+- squad: validator
 - status: in_progress
 
-**Eight of twelve tasks are DONE and committed**, issues #86-#93 all closed. Branch tip `95c1c38`.
-Gates green at that SHA: unit exit 0 (now **twelve** scripts, not thirteen), check-docs exit 0,
-check-state exit 0 with zero violations.
+**Phase is `validate`. Branch tip `942505e`, and `review_sha` is PINNED to it (INV-6).**
 
-**The meter is gone as of `1a69d9d`.** Last measurable figure, taken at `3503d1d` just before the
-deletion: **$370.53** against a $120 budget. Everything after that is unmeasurable by design and no
-figure for it will be invented. D-02's ordering proved itself on the first unmetered run — `s2-eng`
-carries no `cost:` key and `check-state.sh` still exits 0, because T-02 removed INV-11 before T-03
-removed the meter.
+**All twelve tasks are DONE and every task issue is closed.** T-10's remainder — signed amendment
+A-3's rows 10 and 11 — landed at `942505e`; issue #95 is closed. **All five of T-10's `verify:`
+clauses were re-run by me at that SHA rather than relayed:** the compound-token sweep leaves one hit
+and it carries the `DEC-178` marker; the unchanged-count clause is 8 before and 8 after, matching the
+member's own captured baseline; the new plain-word sweep printed exactly the two defect lines
+mid-flight and prints nothing now; unit 0; docs 0. The diff is two hunks and nothing else.
 
-**SC-01 IS UNREACHABLE AS WRITTEN and blocks the goal-check.** The sweep is down from 18 files to
-6, but SC-01 demands only two remain. Three approved requirements make four files unavoidable — see
-`feature.yaml` `sc01_blocker`. Routed to pm to draft the amendment; the ruling and the signature
-are the user's, never mine.
+**A-1, A-3 and A-4 are SIGNED** — both artifacts read `status: approved`,
+`amendments-signed: A-1, A-3, A-4` — and A-4's five-edit main-session-direct batch across the two
+DEC-174 carve-out files is committed at `00f3e03`.
 
-**The T-04 lane defect is the routing wall's fourth recurrence**, landing inside the feature running
-concurrently with FEAT-09, which exists to prevent it. eng-lead returned BLOCKED rather than routing
-around `check-domain.sh` when a `python3 -c` rewrite would have passed `bash-write-guard.sh` unseen.
-User ruling received: T-04 splits, no domain widened.
+**SC-01 and SC-04 both verified directly by me, not relayed.** SC-01's amended sweep returns exactly
+the four survivors it enumerates — `BUILD.md`, `SPEC.md`, `DECISIONS.md`, `DECISIONS-INDEX.md`. It
+returned 18 at `ae2443d` and 6 before the batch, so it stays discriminating in both directions.
+SC-04's surviving half returns `digest ok`, exit 0. Gates at `942505e`: unit 0, docs 0, state 0 with
+zero violations.
 
-Next: S4 (T-09..T-12, documentor) plus pm's two amendments, as ONE product-squad run. Then the
-user re-signs, then the four-wide panel, then the goal-check.
+Next: **the four-wide panel, all four steps, no pre-emptive skips (standing user ruling)** → pm's
+goal-check → distillation → the CEO briefing, which is this phase's terminus.
 
 ## Open Questions
 
-IDs are not reused. Q1 and Q3 carried from plan; Q5-Q9 new. Q2 and Q4 were answered in planning.
+IDs are not reused. Q2, Q4 and Q8 are answered; Q18 is ruled.
 
-- **Q8 (BLOCKING the goal-check, the user's call): SC-01 cannot be met as written.** It requires the
-  sweep to return only `DECISIONS.md` and `DECISIONS-INDEX.md`. Four files cannot leave it:
-  `test-validate-digest.py` because T-01's intent mandates the `cost_usd` backward-compat fixture
-  that proves SC-04's second half; `BUILD.md` and `SPEC.md` because T-10/T-11 mandate inline
-  `(cost-report.py removed — DEC-178)` markers and SC-14 blesses them; `test-check-state.py` because
-  two comments explain what the deleted INV-11 used to do. SC-01 contradicts SC-04, SC-14 and D-07
-  at once. Options: (a) widen SC-01's expected file set with each reason named, or (b) narrow its
-  pattern to exclude fixture and marker contexts. pm drafts; the user signs.
-  Blocked on: the user.
-
-- Q1 (carried, **partially answered**): the briefing loses its only size signal. perf-review row 10
-  is now filed as **issue #79** (count and budget RUNS). Still unscheduled, so the gap is real and
-  now tracked rather than only noted.
+- Q1 (carried, partially answered): the briefing loses its only size signal. perf-review row 10 is
+  filed as **issue #79**. Still unscheduled, so the gap is real and tracked rather than only noted.
   Blocked on: the user, at the briefing.
 
 - Q3 (carried, harness defect): a send-back gives the returning member a FRESH context, so
@@ -54,17 +42,29 @@ IDs are not reused. Q1 and Q3 carried from plan; Q5-Q9 new. Q2 and Q4 were answe
   Blocked on: nobody — routed to the harness owner.
 
 - Q5: SC-06's glob over-captures; restricted to FEAT-01..07 its numbers are exactly pm's 89 and
-  67-of-67. Recommend the goal-check use the restricted glob and record both.
+  67-of-67. The goal-check must record BOTH the restricted and unrestricted results.
   Blocked on: nobody.
 
 - Q6: SC-03 is repo-wide and a concurrent flow can fail it. FEAT-09 has moved to its own worktree,
-  so the hazard is dormant, not gone.
+  so the hazard is dormant, not gone. Re-rooting `check-state.sh` via `CLAUDE_PROJECT_DIR` to make it
+  pass is **forbidden by user ruling** — that is the re-baselining the user refused.
   Blocked on: nobody.
 
-- Q7 (for the panel, not the user): both comments reworded around the S1 plan defect justify
-  themselves with "this task's `verify:`", which will not exist after ship.
+- Q7 (for the panel, not the user): **three** comments reworded around the S1 plan defect justify
+  themselves with "this task's `verify:`", which will not exist after ship. The A-4 batch created the
+  third, at `test-check-state.py:326`.
   Blocked on: nobody — the code-reviewer rules.
 
-- Q9 (from eng-lead, non-blocking): nothing detects live/template config divergence — the unit
-  suite exited 0 on a half-stripped pair. In scope for FEAT-08, or a follow-up?
+- Q9 (from eng-lead, non-blocking): nothing detects live/template config divergence — the unit suite
+  exited 0 on a half-stripped pair. Backlog candidate.
   Blocked on: the user, at the briefing.
+
+- Q18 (**RULED by the user: add nothing**): deleting the pin removed the only deliberate assertion of
+  unknown-key tolerance. The user's mandate is a **strict** schema — unknown keys should be rejected,
+  not tolerated — so a fixture asserting tolerance would cement the opposite direction. Filed as
+  **issue #104** with the measurement: 51 of 71 real digests on disk carry keys outside their schema.
+  Blocked on: nobody — closed.
+
+- Q19 (harness defect): INV-4's task regex cannot tell a task DEFINITION from a REFERENCE, so a PLAN
+  amending a task by heading trips `check-state.sh`. The regex is the defect, not the amendment.
+  Blocked on: nobody — routed to the harness owner.
