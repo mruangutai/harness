@@ -210,20 +210,9 @@ malformed return, because the file — not your transcript — is what a success
 Prose assessment goes below the block, never instead of it. **The `members:` block is not optional** — it is what preserves per-member
 granularity in `STATE.md` under hierarchy, and without it the orchestrator cannot log who did what.
 
-**Do not try to run `cost-report.py` if you are a lead — you have no `Bash`.** Leads hold
-`Read, Glob, Grep, Agent` deliberately, so they cannot do a member's work; the same grant also
-stops them metering their own run (DEC-116). Set `cost: pending_orchestrator` and let the
-orchestrator fill it after you return:
-
-```bash
-# ORCHESTRATOR ONLY, after the lead returns. --into REPLACES the placeholder;
-# `>> state.yaml` would leave a SECOND cost: key, silently shadowed by the last
-# occurrence in any YAML parser and rejected by INV-16 (DEC-156).
-.claude/skills/harness/bin/cost-report.py --yaml --into <run_dir>/state.yaml
-```
-
-A complete run left without a `cost:` block is an INV-11 violation — an unmetered run is
-indistinguishable from a free one (DEC-99, DEC-116).
+**You cannot run a script — you have no `Bash`.** Leads hold `Read, Glob, Grep, Agent`
+deliberately, so they cannot do a member's work (DEC-116). Anything that needs a shell belongs to
+the orchestrator, which has one.
 
 **Timestamps, same cause.** No `Bash` means no clock, so use monotonic ordering markers
 (`seq-1`, `seq-2`, …) rather than inventing wall-clock times. The checkpoint property does not need
