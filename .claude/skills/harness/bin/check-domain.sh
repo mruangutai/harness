@@ -33,10 +33,23 @@ set -uo pipefail
 # printing NOTHING — a fail-open answer indistinguishable from a clean resolve.
 # So this branch must never read stdin: not with a timeout, not non-blockingly,
 # not at all.
+#
+# THE UNSET IN THE ELSE BRANCH IS LOAD-BEARING (VF-1). Mode is selected further down by
+# `os.environ.get("HARNESS_RESOLVE_PATH") is not None`, so the variable INHERITED FROM THE
+# ENVIRONMENT chose the mode, not argv. Measured before the fix, with payload files:
+# harness-documentor writing bin/ exited 2 on a clean env, and 0 with the variable set —
+# including set to the EMPTY STRING, because `is not None` accepts it. That is the whole
+# guard off: exit 0, no stderr, nothing logged, and an audit afterwards cannot tell
+# "permitted" from "disabled". Unset here so the hook path can never be talked out of
+# enforcing by its own caller's environment.
+#
+# Do NOT "fix" this by branching on argv instead: `sys.argv[2]` is already consumed below
+# as the agent identity, so argv-branching would touch the hook path's identity contract.
 if [ "${1:-}" = "--resolve" ]; then
   payload=""
   export HARNESS_RESOLVE_PATH="${2:-}"
 else
+  unset HARNESS_RESOLVE_PATH
   payload=$(cat)
 fi
 

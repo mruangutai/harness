@@ -468,7 +468,27 @@ def run_resolve():
     check("(h) no --resolve: an in-domain Write still exits 0",
           r.returncode == 0, f"got {r.returncode}")
 
-    print(f"\n{8 - fails}/8 --resolve cases passed.\n")
+    # (i)+(j) VF-1 REGRESSION. (g) and (h) above assert the right thing and CANNOT SEE this:
+    # they inherit the runner's environment, which happens to be clean. Mode was selected by
+    # os.environ, not argv, so a HARNESS_RESOLVE_PATH inherited from the caller turned the
+    # whole guard off — exit 0, no stderr, nothing logged. These two set it EXPLICITLY in the
+    # subprocess env, which is the only way to reach the branch that was broken.
+    # (j) uses the EMPTY STRING on purpose: the selector is `is not None`, so "" qualified.
+    def hook_env(path, agent, resolve_value):
+        payload = {"agent_type": agent, "tool_name": "Write",
+                   "tool_input": {"file_path": path, "content": "x"}}
+        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                              text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT,
+                                                  HARNESS_RESOLVE_PATH=resolve_value))
+    r = hook_env(".claude/skills/harness/bin/check-domain.sh", "harness-documentor",
+                 ".harness/harness.json")
+    check("(i) VF-1: HARNESS_RESOLVE_PATH set in the env does NOT disable the hook",
+          r.returncode == 2, f"got {r.returncode}, stdout={r.stdout!r}")
+    r = hook_env(".claude/skills/harness/bin/check-domain.sh", "harness-documentor", "")
+    check("(j) VF-1: an EMPTY HARNESS_RESOLVE_PATH does NOT disable the hook",
+          r.returncode == 2, f"got {r.returncode}, stdout={r.stdout!r}")
+
+    print(f"\n{10 - fails}/10 --resolve cases passed.\n")
     return fails
 
 
