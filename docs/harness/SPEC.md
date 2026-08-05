@@ -1052,7 +1052,11 @@ and enums may not drift per persona.
   `flags: [security, migration, external-api, …]`, `recommend: proceed|spike|reframe|halt`,
   `tasks: <n>`, `decisions: <n>`, `needs_approval: bool`, `risk: low|med|high`
 - **eng devs** (frontend / backend / ai / data): `tests_added: <n>`, `suite: pass|fail`,
-  `blocked_on: <text|none>`, `task: T-NN|none`, `task_verify: pass|fail|n/a`
+  `blocked_on: <text|none>`, `task: T-NN|none`, `task_verify: pass|fail|n/a` (binds only when
+  `task` names a real `T-NN`: `n/a` means the task's `verify:` was refused or never ran, and both
+  `fail` and `n/a` are REJECTED alongside `VERDICT: PASS` — every PLAN task carries a `verify:`,
+  so "not applicable" is never the honest answer. The one exception is `task: none`, a dispatch
+  carrying no PLAN task, which may omit `task_verify` or report it `n/a` and still return PASS)
 - **qa:** `suite: pass|fail`, `failures: <n>`, `coverage_gaps: [<area>]`, `matrix_ok: bool`
 - **reviewers** (code / security / ui): `severity_max: info|low|med|high|critical`, `findings: <n>`,
   `must_fix: [<item>]`
@@ -1061,8 +1065,8 @@ and enums may not drift per persona.
 - **documentor:** `docs_updated: [<paths>]`, `gaps: [<…>]`
 - **dev-ops:** `change_type: config|scaffolding|infra|ci`, `applied: [<paths>]`,
   `suite: pass|fail|n/a` (TDD-exempt work reports `n/a`), `task: T-NN|none`,
-  `task_verify: pass|fail|n/a` (asymmetric to `suite`: here `n/a` means the task's
-  `verify:` was refused or never ran, and is REJECTED alongside `VERDICT: PASS` — every
+  `task_verify: pass|fail|n/a` (asymmetric to `suite`: here `n/a` means the task's `verify:` was
+  refused or never ran, and both `fail` and `n/a` are REJECTED alongside `VERDICT: PASS` — every
   PLAN task carries a `verify:`, so "not applicable" is never the honest answer. The one
   exception is `task: none`, a dispatch carrying no PLAN task, which may omit
   `task_verify` or report it `n/a` and still return PASS)
