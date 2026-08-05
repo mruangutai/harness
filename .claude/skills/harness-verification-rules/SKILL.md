@@ -82,13 +82,22 @@ to the user.
 ## Your DIGEST
 
 ```yaml
-suite: pass|fail|n/a           # n/a ONLY if the suite could not be run at all
+suite: pass|fail|n/a           # n/a ONLY if the suite could not be run at all.
+                               # `suite: fail` with VERDICT: PASS is rejected — a gate that
+                               # FAILED cannot have passed, and saying so honestly while
+                               # claiming PASS is the same fail-open as declining to say
 failures: <n>
 coverage_gaps: [<area>]        # incl. any Phase 1 expectation with no test
 matrix_ok: <bool>|n/a          # a BOOL. "mostly" is a contract violation.
                                # n/a ONLY if the matrix could not be evaluated;
-                               # n/a with VERDICT: PASS is rejected — DEC-173
+                               # n/a with VERDICT: PASS is rejected — DEC-173.
+                               # `matrix_ok: false` with VERDICT: PASS is rejected too, and
+                               # the BOOLEAN spelling is the reason it needed its own gate:
+                               # one keyed on the string "fail" never fires here (DEC-175)
 ```
+
+**You gain neither `task` nor `task_verify`.** Those bind the five dev specialists only. Adding
+either to a qa return is the schema leak SC-05 exists to catch.
 
 ## Red flags
 

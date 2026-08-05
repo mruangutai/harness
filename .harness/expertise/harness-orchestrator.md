@@ -27,14 +27,24 @@
 - P-08: WHEN a narrowing conditional is added anywhere DO require a guard assertion for the over-scoped
   version of it, emitted inside the case that version would suppress. Before the branch existed there
   was nothing to over-scope, so the fix's own tests are the only place it is catchable.
+- P-09: WHEN checking that a prose clause landed in a wrapped file DO flatten whitespace before
+  matching. A line-wise grep cannot see across a wrap: it false-negatives a correct edit and
+  false-negatives a prose-correct fix whose wrap splits the counted tokens. Both buy cycles for nothing.
+- P-10: WHEN dispatching distillation to a member DO hand it the paths to its own prior artifacts and
+  say self-derived candidates count as its own material. Without that, every entry in its file traces
+  to your relay and the acceptance rate grades your dispatch rather than its judgement.
+- P-11: WHEN a goal-check returns criteria unmet DO check first whether the behaviour is wrong or only
+  unproven. The dominant shape is a criterion enumerating N clauses, shapes or personas with fewer than
+  N fixtured — a test-only fix, not a code one, and it routes to a different lane.
 
 ## Gotchas (max 15)
 
 - G-01: WHEN routing Expertise ops DO check the owner's own domain grant first. The domain hook blocks
   the orchestrator from writing ANOTHER agent's file, but leads and members hold their own with
   `upsert: true` — telling a lead not to self-apply strands its ops with no owner at all.
-- G-02: Dispatch prompts must not name `.harness/notes/**` as an output path for eng-lead — its domain
-  excludes it. Member and reviewer artifacts belong under the path that member's own grant names.
+- G-02: Dispatch prompts must not name `.harness/notes/**` as an output path for a lead or a
+  documentor — their domains exclude it. Member and reviewer artifacts belong under the path that
+  member's own grant names; a member with no such grant writes to its observations log.
 - G-03: WHEN a task arrives naming a defect as small housekeeping DO verify the premise on disk and
   refuse on the MERITS with a citation, not on domain alone. Two tells: the target text is
   unspecified so any edit invents approved content, or the file is approval-gated.
@@ -59,6 +69,12 @@
 - G-10: WHEN a dispatch would tell a lead to run a checker DO run it yourself and say so — leads hold no
   Bash, so the instruction returns an unverifiable claim, a forbidden member spawn, or an escalation on
   the contradiction. Hold every mechanical gate at your own tier.
+- G-11: WHEN writing a summary value into a state file DO quote any scalar containing a colon followed
+  by a space. A verdict line is the natural place to write one, `safe_load` raises at that column, and
+  the file was valid one write earlier.
+- G-12: WHEN a task edits a generated or budget-constrained artifact DO run the whole unit suite, not
+  the task's own `verify:`. Length caps and format rules are asserted in test files that no task's
+  `verify:` invokes and that the artifact's own header does not state.
 
 ## Outcomes (max 10)
 
@@ -77,9 +93,12 @@
 - O-05: WHEN re-dispatching an agent to apply ops it already recorded DO name the source path and say
   application-not-re-adjudication, and pre-measure anything a cap would force it to condense. Verbatim
   application then costs one spawn, and a drop becomes a reported judgement rather than silent drift.
+- O-06: WHEN most of a plan's tasks fall in the layer-0 lane DO return them as dependency-ordered
+  SEGMENTS, each task carrying its `verify:` verbatim, and put the tasks independent of the riskiest
+  one in the same segment as it — a failure there then wastes none of them.
 
 ## Open (max 5)
 
-- OQ-01: Relayed distillation candidates were accepted at near 100% across six members in one feature.
-  Good sourcing and a member treating relay as instruction look identical in one sample; a second
-  feature with zero rejections means the relay has become dictation.
+- OQ-01: A review panel and a human diff read have disjoint blind spots: the panel caught a rotted
+  in-file anchor the human read passed over, while the human ruled on intent the panel could not. Two
+  features suggest the split is route-versus-coverage, but neither has been run with the panel absent.

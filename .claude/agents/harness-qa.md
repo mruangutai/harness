@@ -64,11 +64,17 @@ tests `SC-03`, say so, and the gap returns to a dev.
 VERDICT: PASS | FAIL | BLOCKED | ESCALATE
 DIGEST:
   headline: <one line>
-  suite: pass|fail|n/a        # n/a ONLY if the suite could not be run at all
+  suite: pass|fail|n/a        # n/a ONLY if the suite could not be run at all.
+                              # `suite: fail` with VERDICT: PASS is rejected — a gate that
+                              # FAILED cannot have passed, and reporting the failure honestly
+                              # while claiming PASS is the same fail-open as declining it
   failures: <n>
   matrix_ok: <bool>|n/a       # a BOOL. "mostly" is a contract violation.
                               # n/a ONLY if the matrix could not be evaluated;
-                              # n/a with VERDICT: PASS is rejected — DEC-173
+                              # n/a with VERDICT: PASS is rejected — DEC-173.
+                              # `matrix_ok: false` with VERDICT: PASS is rejected too, and the
+                              # BOOLEAN spelling is why: a gate keyed on the string "fail"
+                              # would silently never fire on this field (DEC-175)
   kinds: [{ kind: unit, state: satisfied, cmd: "...", named_tests: <n> }]
   coverage_gaps: [<area>]     # include Phase 1 expectations with no test
   sc_evidence: [{ id: SC-01, test: "<path:line>" }]

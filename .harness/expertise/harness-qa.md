@@ -9,6 +9,12 @@
   can pass vacuously if unrelated output happens to contain the same text.
 - P-03: WHEN a fixture's premise is "this code path is never reached" DO grep the function body
   directly for the call in question rather than trusting the fixture's own comment or name.
+- P-04: WHEN a gate reports a single boolean like `matrix_ok: true` DO also state what fraction of
+  the diff's tasks the matrix actually required a kind for — a gate can be matrix-correct while
+  binding one task and asserting nothing about the rest; the denominator is the finding.
+- P-05: WHEN crediting a test as coverage for a change DO confirm the test file is itself part of
+  the diff, not pre-existing — only a test added or changed alongside the code demonstrates it
+  exercises this change rather than merely happening to exist nearby.
 
 ## Gotchas (max 15)
 - G-01: WHEN proving a test runner's MISCONFIGURED exit path live by creating a stray

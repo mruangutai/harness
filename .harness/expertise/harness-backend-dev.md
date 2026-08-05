@@ -11,6 +11,15 @@
 - P-04: WHEN a task claims a change is byte-identical to a previously deployed file DO diff against
   the copy under `~/.claude/skills/harness/bin/` as the pre-change reference, rather than trusting
   the claim from context alone.
+- P-05: WHEN a new gate binds every persona sharing a return contract DO check whether your own
+  review's return would satisfy it — a PASS accepted only because the change hasn't landed yet is
+  itself proof of the gap it is reviewing.
+- P-06: WHEN raising a review finding about a structural gap DO phrase it as the gap itself, not a
+  proposed fix — a finding named this way survived a later redirect that changed the whole fix
+  mechanism, while a fix-shaped finding would not have.
+- P-07: WHEN a task extracts text via an awk/sed line-range or tail-anchored match DO verify the
+  anchor pattern occurs exactly once in the target file — a second match silently shifts the
+  extracted range with no error.
 
 ## Gotchas (max 15)
 - G-01: The harness repo has no application source; src/** is empty here.
@@ -20,6 +29,12 @@
 - G-03: WHEN writing fixtures against the fake-gh test harness DO read its logging and
   issue-numbering behavior in `.claude/skills/harness/bin/test-gh-sync.py` first — assumptions
   about counters, log format, or which calls get logged fail loudly but still cost a debug cycle.
+- G-04: WHEN a task's stated intent and its verify command assert opposite rules DO treat the
+  verify command as what binds downstream behavior, not the intent prose — the executor acts on
+  verify, so a contradiction there is a live defect even if the intent reads correctly.
+- G-05: WHEN verifying a "clean on arrival"/no-pre-existing-drift claim DO diff against a fresh
+  checkout of the cited commit, not the current working tree — a working tree already touched by
+  later runs can launder a false baseline claim as true.
 
 ## Outcomes (max 10)
 

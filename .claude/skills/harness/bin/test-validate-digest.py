@@ -191,6 +191,8 @@ DIGEST:
   tests_added: 4
   suite: pass
   blocked_on: none
+  task: T-01
+  task_verify: pass
   files_touched: [src/auth.ts]
   open_questions: []
   expertise_update: []
@@ -294,6 +296,8 @@ DIGEST:
   tests_added: 2
   suite: pass
   blocked_on: none
+  task: T-01
+  task_verify: pass
   files_touched: [src/a.ts]
   open_questions: []
   expertise_update: []
@@ -560,6 +564,7 @@ _dec156_case("DEC-156: file check governs leads only — a dev's artifact is not
 _n, _p, _e, _m = HOOK_CASES.pop()
 _p["last_assistant_message"] = (
     "VERDICT: PASS\nDIGEST:\n  headline: built\n  tests_added: 2\n  suite: pass\n"
+    "  task: T-01\n  task_verify: pass\n"
     "  blocked_on: none\n  branch: none\n  files_touched: []\n  open_questions: []\n"
     "  expertise_update: []\nartifact: runs/r1/notes.md\n")
 HOOK_CASES.append((_n, _p, _e, _m))
@@ -586,6 +591,8 @@ DIGEST:                             # routing — orchestrator reads THIS
   tests_added: 4
   suite: pass
   blocked_on: none
+  task: T-01
+  task_verify: pass
   files_touched: [src/auth.ts]
   open_questions: []
   expertise_update: []
@@ -721,6 +728,8 @@ DIGEST:
   tests_added: 4
   suite: pass
   blocked_on: none
+  task: T-01
+  task_verify: pass
   files-touched: [src/auth.ts]
   open_questions: []
   expertise_update: []
@@ -885,8 +894,19 @@ def run_cli_cases():
         if got_ok != want_ok:
             bad.append(f"expected {'PASS' if want_ok else 'REJECT'}, "
                        f"got {'PASS' if got_ok else 'REJECT'}")
-        if mentions and mentions.lower() not in r.stdout.lower():
-            bad.append(f"reason should mention {mentions!r}")
+        # `mentions` is a plain substring (the original contract) OR a list of
+        # them, where a leading "!" means MUST NOT appear. REQ-11's hint fixtures
+        # need both polarities: a hint is wrong not only for omitting the right
+        # words but for carrying the wrong ones — `task_verify`'s hint naming
+        # "genuinely not applicable" would route an agent into a second rejection.
+        for want in ([mentions] if isinstance(mentions, str) else (mentions or [])):
+            neg = want.startswith("!")
+            needle = want[1:] if neg else want
+            present = needle.lower() in r.stdout.lower()
+            if neg and present:
+                bad.append(f"reason must NOT mention {needle!r}")
+            elif not neg and not present:
+                bad.append(f"reason should mention {needle!r}")
         if bad:
             fails += 1
             print(f"FAIL  {name}")
@@ -943,6 +963,8 @@ DIGEST:
   tests_added: 0
   suite: n/a
   blocked_on: "T-01 contains a placeholder at line 4; needs pm revision"
+  task: T-01
+  task_verify: n/a
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -1048,6 +1070,8 @@ DIGEST:
   change_type: config
   applied: [.gitignore]
   suite: n/a
+  task: T-01
+  task_verify: pass
   open_questions: []
   files_touched: [.gitignore]
   expertise_update: []
@@ -1055,8 +1079,311 @@ artifact: notes/devops.md
 """, True)
 
 
+# --- FEAT-07: the `task`/`task_verify` pair, the conditional behind it, and the
+# fail-value gate. Every case below returned `digest ok` exit 0 at 4091b36, so each
+# labelled DETECTOR can only go green once the change lands; the ones labelled
+# REGRESSION were green then and must stay green.
+_DEV = """
+VERDICT: {v}
+DIGEST:
+  headline: x
+  tests_added: 1
+  suite: {suite}
+  blocked_on: none
+{task}{tv}  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+"""
+
+
+def _dev(v="PASS", suite="pass", task="T-01", tv="pass"):
+    return _DEV.format(v=v, suite=suite,
+                       task=f"  task: {task}\n" if task is not None else "",
+                       tv=f"  task_verify: {tv}\n" if tv is not None else "")
+
+
+# (a) DETECTOR — the requirement binds only because `task` names a real id.
+case("dev missing task_verify under a real task is rejected",
+     "harness-backend-dev", _dev(tv=None), False, "task_verify")
+# (b) DETECTOR — REQ-01's whole point.
+case("dev task_verify: fail + PASS is rejected",
+     "harness-backend-dev", _dev(tv="fail"), False, "task_verify")
+# (c) DETECTOR.
+case("dev task_verify: n/a + PASS is rejected",
+     "harness-backend-dev", _dev(tv="n/a"), False, "task_verify")
+# (d) DETECTOR — the no-carve-out ruling. dev-ops is NOT exempt from this field,
+# though it stays exempt from `suite` (D-03, proven by the case further above).
+# (d, second half) DETECTOR — SC-03 says BOTH rejections hold for dev-ops, and only
+# the `n/a` one was fixtured. `fail` travels the GATE_FAIL_VALUES path, `n/a` the
+# GATE_FIELDS path: two different mechanisms, so one case cannot vouch for the other.
+case("dev-ops task_verify: fail + PASS is rejected — no carve-out on this value either",
+     "harness-dev-ops", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  change_type: config
+  applied: []
+  suite: n/a
+  task: T-01
+  task_verify: fail
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", False, "task_verify")
+case("dev-ops task_verify: n/a + PASS is rejected — no carve-out",
+     "harness-dev-ops", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  change_type: config
+  applied: []
+  suite: n/a
+  task: T-01
+  task_verify: n/a
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", False, "task_verify")
+# (e) REGRESSION — REQ-03/SC-06. A task that EXISTED and was refused. SC-06 names
+# FOUR accepted shapes, not one: dev and dev-ops, each with BLOCKED and with FAIL.
+# It is `verify: automated  evidence: unit`, so hand-reasoning satisfies it neither
+# way — all four are fixtured. `task` keeps the REAL id in every one: a refusal HAD
+# a task, and `task: none` would silently move these onto the conditional branch and
+# leave REQ-03 unproven.
+case("dev task_verify: n/a + BLOCKED is the honest refusal, accepted",
+     "harness-backend-dev", _dev(v="BLOCKED", tv="n/a"), True)
+case("dev task_verify: n/a + FAIL is accepted — the same refusal, other verdict",
+     "harness-backend-dev", _dev(v="FAIL", tv="n/a"), True)
+case("dev-ops task_verify: n/a + BLOCKED is accepted — refusal, not the carve-out",
+     "harness-dev-ops", """
+VERDICT: BLOCKED
+DIGEST:
+  headline: x
+  change_type: config
+  applied: []
+  suite: n/a
+  task: T-01
+  task_verify: n/a
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", True)
+case("dev-ops task_verify: n/a + FAIL is accepted",
+     "harness-dev-ops", """
+VERDICT: FAIL
+DIGEST:
+  headline: x
+  change_type: config
+  applied: []
+  suite: n/a
+  task: T-01
+  task_verify: n/a
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", True)
+# (f) REGRESSION — the leak check. Neither field belongs to qa or a reviewer, and a
+# leak is invisible otherwise: an extra required field only ever makes returns FAIL.
+case("qa carries neither new field and is still accepted",
+     "harness-qa", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  suite: pass
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: true
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", True)
+# (g2) REGRESSION by construction — `task` is in no schema at 4091b36 and unknown
+# keys are ignored, so this was green then too. It cannot show the field was ADDED;
+# (h2) is what can. Kept because an acceptance clause with no rejection partner is
+# the vacuous shape this feature exists to remove.
+case("dev task: none with task_verify omitted is accepted — D-07's escape hatch",
+     "harness-backend-dev", _dev(task="none", tv=None), True)
+case("dev-ops task: none with task_verify omitted is accepted",
+     "harness-dev-ops", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  change_type: config
+  applied: []
+  suite: n/a
+  task: none
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", True)
+# (h2) DETECTOR PAIR. The first shows `task` is CONSTRAINED, the second that it is
+# REQUIRED. A field that is required but unconstrained is precisely the "unknown key
+# ignored" shape — measured: a re.Pattern falls through every other branch in silence.
+case("dev task: bogus is rejected — the field is constrained",
+     "harness-backend-dev", _dev(task="bogus"), False, "task")
+case("dev omitting task entirely is rejected — the field is required",
+     "harness-backend-dev", _dev(task=None), False, "task")
+# (j2-i) DETECTOR — the contradiction gate (D-08c). One error, naming the actionable
+# field, rather than two that disagree.
+case("dev task: none + task_verify: fail is rejected as a contradiction",
+     "harness-backend-dev", _dev(task="none", tv="fail"), False, "task")
+# (j2-i, second half) REGRESSION — this is what proves the rejection above is about
+# the CONTRADICTION and not about `task: none` refusing every value (D-08b).
+case("dev task: none + task_verify: n/a is accepted — the honest DEC-121 spelling",
+     "harness-backend-dev", _dev(task="none", tv="n/a"), True)
+# (g) DETECTOR — the Q2 fold. Carries `task`/`task_verify` deliberately: without them
+# this would be rejected by the missing-field check ALONE and would pass even if the
+# fail gate were never written, which is the vacuous shape again.
+case("dev suite: fail + PASS is rejected — the fail-value gate",
+     "harness-backend-dev", _dev(suite="fail"), False, "suite")
+# (h) DETECTOR PAIR — different value TYPES. A string-keyed gate would catch the
+# first and silently miss the second, because parse_scalar renders `false` as the
+# BOOLEAN False.
+case("qa suite: fail + PASS is rejected",
+     "harness-qa", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  suite: fail
+  failures: 1
+  coverage_gaps: []
+  matrix_ok: true
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", False, "suite")
+case("qa matrix_ok: false + PASS is rejected — the BOOLEAN half",
+     "harness-qa", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  suite: pass
+  failures: 0
+  coverage_gaps: []
+  matrix_ok: false
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", False, "matrix_ok")
+# (i) THE RESIDUE GUARD. dev-ops `suite: fail` + PASS stays accepted — that is the
+# D-03 ruling, NOT a claim it is correct. Recorded in BRIEF `## Verification gaps`.
+# This case goes red if a later edit tidies dev-ops into symmetry with dev.
+case("dev-ops suite: fail + PASS stays accepted — D-03 ruling, not a claim it is right",
+     "harness-dev-ops", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  change_type: config
+  applied: []
+  suite: fail
+  task: T-01
+  task_verify: pass
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", True)
+# (11)(f) reviewer half — the leak check is not complete with qa alone. Neither new
+# field belongs to a reviewer either, and an extra required field only ever makes
+# returns FAIL, so nothing else would notice a leak into this schema.
+# (f, documentor half) REGRESSION — SC-05 names five persona families and documentor
+# was the one with no accepted case at any commit. Completes the leak check.
+case("a documentor digest carries neither new field and is still accepted",
+     "harness-documentor", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  docs_updated: [docs/harness/SPEC.md]
+  gaps: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", True)
+case("a reviewer digest carries neither new field and is still accepted",
+     "harness-code-reviewer", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  severity_max: low
+  findings: 0
+  must_fix: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", True)
+# (11)(i2) — the hint CONTENT, both fields, both polarities. Exit code alone cannot
+# see these: before REQ-11, `task_verify`'s hint said "write `none`", which the gate
+# then rejects, and `task` would have inherited "write `[]`", which its regex rejects.
+# The "no other NULLABLE field omitted" condition is load-bearing — another missing
+# NULLABLE field emits the old hint into the same error list and false-reds the
+# negative assertion.
+case("task_verify's missing-field hint names its real values, not the none wording",
+     "harness-backend-dev", _dev(tv=None), False,
+     # SC-18a: the hint must say what is rejected is a placeholder ALONGSIDE
+     # `VERDICT: PASS` — never that placeholders are disallowed. That distinction is
+     # what keeps `suite: n/a` + BLOCKED legal (REQ-03/SC-06), and the hint already
+     # said it while nothing asserted it.
+     ["task_verify", "pass", "fail", "alongside", "VERDICT: PASS",
+      "!genuinely not applicable"])
+case("task's missing-field hint names a task id, not the list wording",
+     "harness-backend-dev", _dev(task=None), False,
+     ["task", "T-NN", "none", "!if there are none"])
+
+
+# (11)(j2-ii) JOINT HINT FOLLOWABILITY. Not expressible as independent cases: the
+# point is that the two hints emitted TOGETHER license two repairs that both
+# validate. Two individually-correct hints can still contradict each other — an
+# agent following both literally would write `task: none` + `task_verify: pass`,
+# which the conditional then rejects. That is REQ-11's own defect class re-created
+# by REQ-11's fix, and the re-prompted return is NOT re-validated (validate-digest
+# passes through on `stop_hook_active`), so the second attempt would ship unchecked.
+def run_joint_hint_case():
+    def run(text):
+        r = subprocess.run([VALIDATE, "harness-backend-dev"], input=text.strip() + "\n",
+                           capture_output=True, text=True)
+        return r.returncode, r.stdout
+
+    name = "joint hint followability — both licensed repairs validate"
+    bad = []
+    rc, out = run(_dev(task=None, tv=None))
+    if rc == 0:
+        bad.append("omitting BOTH fields should be rejected, was accepted")
+    low = out.lower()
+    # The hints must LICENSE the two repairs, or the repairs below prove nothing
+    # about the hints — they would just be two more acceptance cases.
+    if "none" not in low:
+        bad.append("task's hint must license `none`")
+    if "omit this field entirely" not in low:
+        bad.append("task_verify's hint must license omitting it under task: none")
+    for label, text in (("task: none + task_verify omitted", _dev(task="none", tv=None)),
+                        ("task: T-01 + task_verify: pass", _dev(task="T-01", tv="pass"))):
+        rc2, out2 = run(text)
+        if rc2 != 0:
+            bad.append(f"licensed repair ({label}) must validate, was rejected: "
+                       f"{out2.strip().splitlines()[-1] if out2.strip() else 'no output'}")
+    if bad:
+        print(f"FAIL  {name}")
+        for b in bad:
+            print(f"        {b}")
+        return 1
+    print(f"ok    {name}")
+    return 0
+
+
 def main():
     fails = run_cli_cases()
+    fails += run_joint_hint_case()
     fails += run_hook_cases()
     fails += run_template_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")

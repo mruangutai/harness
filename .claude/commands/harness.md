@@ -42,6 +42,13 @@ If BRIEF.md or PLAN.md is `status: pending`, present it, `AskUserQuestion` for t
 write the `## Approval` block yourself. pm never self-approves; the orchestrator cannot ask
 (DEC-120). No spawn until what the mission needs is approved.
 
+**Let the user read to exhaustion FIRST, then dispatch exactly one consolidated fix.** Collect every
+change request they raise in that **one review pass** — into one answers file — and send it down as a
+single revision. Do not send a fix out while the user is still reading. The cost, and it is real: the
+first fix goes out later than it otherwise would. What it buys: FEAT-03's plan phase spent seven
+serialized runs and ~$95 on a product-fix → re-verify ping-pong in which **no reviewer found
+anything** — every cycle was a new ruling arriving separately.
+
 ## 3. Spawn the orchestrator
 
 **Dispatch titles follow one convention at every layer** (DEC-142): `<flow-id> · <step or task id> · <what, 3–6 words>` — e.g. `FEAT-02 · plan · draft brief and plan`. The flow id appears in EVERY spawn title all the way down, so the user watching the agent tree sees one chain, not three unrelated tasks.
@@ -66,6 +73,13 @@ authoring the criteria. Wording, numbering and verify methods stay pm's — and 
 | `blocked` | tell the user what blocked and what was spent; the decision is theirs |
 | `shipped` / `PASS` | report it, log it, and if `github.sync` is on run `bin/gh-sync.py ship <feature-dir>` (closes the milestone), and offer the briefing's residual-findings list as proposed backlog — entries the user does not strike become plain backlog issues via `gh-sync.py backlog` (labeled by nature, no milestone; DEC-138 am.4). PR and merge remain the user's call — never automatic |
 
+**Probe a bounded environment question before any claim about it reaches the user.** When what you
+are about to relay rests on how the runtime *resolves* something — which copy of a file executes,
+which cwd a hook sees, which binary is on PATH — and the probe is bounded (a single additive line, a
+byte-identical revert, one suite re-run), run it first. A file-difference check cannot answer a
+resolution question: inferring one such question cost a working day and two retracted claims, and
+the measurement, when it was finally taken, **disproved** the inference.
+
 Log every return (one line: feature, verdict, status, cost) to `.harness/logs/<date>.md`.
 
 ## Red flags
@@ -73,6 +87,8 @@ Log every return (one line: feature, verdict, status, cost) to `.harness/logs/<d
 | Thought | Reality |
 |---|---|
 | "I'll answer the agent's question myself, it's obvious" | Blocking questions exist because the call is the user's. Ask |
+| "They've given me one change, I'll start the fix now" | A second request while a fix is in flight is a second run. Collect the set, then dispatch once |
+| "The evidence points one way, I'll relay it" | Adjacent evidence is not a measurement. If a five-minute probe settles it, it is not optional |
 | "I'll dispatch the lead directly, the orchestrator is overhead" | The orchestrator owns feature.yaml and the budgets; bypassing it orphans both |
 | "I'll paste PLAN.md into the spawn prompt" | Paths, not payloads. The orchestrator reads its own state |
 | "The flow is done, I'll merge the PR" | The merge is the user's, always |

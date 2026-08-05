@@ -10,6 +10,9 @@
 - P-03: WHEN the member who owns a gate decision was skipped DO make that call yourself and report
   it as overridable in either direction — a gate nobody fired is indistinguishable in the record
   from a gate that passed.
+- P-04: WHEN relaying a distillation candidate DO read the member's own observations log first and
+  drop anything already in it — a duplicate candidate measures nothing about relay and inflates the
+  acceptance rate that judges it.
 
 ## Gotchas (max 15)
 - G-01: WHEN a test name or label is offered as evidence DO read the invocation it wraps — labels

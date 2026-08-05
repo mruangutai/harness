@@ -4734,3 +4734,144 @@ them with a test.**
 **Not decided here:** whether harness development should use the ceremony at all for non-enforcement
 work. The user considered stopping self-hosting entirely and chose the carve-out; the stronger position
 stays available and is a stage question, not a correctness one.
+
+## DEC-175 — The engineering return declares which task it is answering: `task: T-NN|none` gates `task_verify`, and a self-reported gate FAILURE stops being a pass
+
+Three things ship together and each is unintelligible without the others: the `task_verify` field, the
+`task` field that governs it, and a second gate structure that catches a *reported failure* rather
+than a declined report. All three live in `.claude/skills/harness/bin/validate-digest.py`, under the
+DEC-174 carve-out — edited directly, tests run explicitly, a human reading the diff.
+
+**1. `task_verify`, and it binds all five dev specialists.** A `dev` or `dev-ops` return must state
+whether its PLAN task's `verify:` command actually passed — `pass` or `fail`, the enum at
+`validate-digest.py:149` and `:160`. There is no dev-ops carve-out: `GATE_FIELDS` (`:92-93`) gains
+`"dev-ops": {"task_verify"}`, so `task_verify: n/a` + `VERDICT: PASS` is rejected for dev-ops as it
+is for the four `dev` specialists. This is *per field*, not per persona — dev-ops's `suite: n/a` +
+PASS stays legal, because `test_matrix` maps config/scaffolding/docs to `[]` (DEC-100) and "no tests
+apply" is the honest outcome there. Every PLAN task carries a `verify:`, so "no verify applies" is
+never honest, and `n/a` there means refused or blocked.
+
+**2. `task: T-NN|none`, and the conditional.** A return that carries no PLAN task — an architecture
+review, an Expertise distillation, a debug or research pass, any lead-issued investigation — had no
+legal value to write: omission rejected, `n/a` + PASS rejected, `fail` + PASS rejected, and `pass` a
+lie about a command that never ran. So `dev` and `dev-ops` gain a REQUIRED `task` field matching
+`T-\d+|none` (`TASK_ID_RE`, `:136`, `fullmatch` — the placeholder spelling `T-NN` is rejected), and
+`CONDITIONAL = {"task_verify": "task"}` (`:117`) switches `task_verify`'s obligation off exactly when
+`task` says `none`.
+
+**The cheaper option was recommended, and the user rejected it — recorded so a future scan does not
+re-suggest it.** The alternative was a fourth `task_verify` value, `no-task`: one string in two
+schema sets, no new required field, no new validator logic. It was rejected because it reinstates a
+**self-declared bypass carrying no receipt obligation**. REQ-08 makes a `pass` show its command and
+that command's verbatim output; `no-task` obliges nothing, because there is no command it could ever
+be asked to show. It was therefore *cheaper to abuse than lying* — the shape an earlier ruling in the
+same feature had already rejected.
+
+**`task: none` is still self-declared, and this entry says so plainly.** Nothing in
+`validate-digest.py` reads the dispatch. What the ruling buys is not proof but *auditability*: a
+task-id-shaped string in the same vocabulary the dispatch prompt is now required to carry verbatim
+(`.claude/skills/harness-zero-micro-management/SKILL.md`, commit `0a34989`). The audit becomes a
+string equality between two durable artifacts instead of a presence question with nothing on the
+other side.
+
+**3. The `task: none` branch is pinned, because that is where a conditional fails open.** Three
+sub-rulings, each with its reason:
+
+| when `task: none` | ruling | reason |
+|---|---|---|
+| `task_verify` omitted | legal | this is the branch the conditional exists to create |
+| `task_verify: n/a` (or `none`/`null`) | legal, and the `n/a`-with-PASS gate does not bind | DEC-121 and `harness-handoff` tell every agent a field is never said with silence, so `n/a` is the spelling it was preloaded to write. Rejecting it would order an agent to violate its own contract. The explicit assertion has MOVED, not vanished — `task: none` is itself "I looked; there is no task", and it is required |
+| `task_verify: pass` or `fail` | REJECTED, whatever the VERDICT | self-contradictory: the return denies there is a task's `verify:` command and then reports that command's result. Accepting it hands a PASS to a dev that carried a task, mis-wrote `task: none`, and reported `fail` |
+
+**The interpreter fact that makes it fail closed, and it is load-bearing:** `str(None).lower()` is
+`"none"` in Python. A helper written `seen.get("task")` instead of `seen.get("task", "")` would let a
+*missing* governor switch the requirement off for every return that omits `task` — the conditional
+failing open in its own first line. `_unbound` (`:119-130`) carries the `""` default and a comment
+saying why; no governor value, or any value but `none`, means the requirement BINDS.
+
+**4. The fail-value gate — a SECOND structure, distinguished by mechanism, not by field.** The
+diagnosis, re-measured at `4091b36` by running each case through the validator rather than by reading
+it: `GATE_FIELDS` was consulted only INSIDE the `field in NULLABLE and val in PLACEHOLDER_UNSET`
+branch, so it could only ever see a placeholder. DEC-173 gave "did not run" a spelling and gated it;
+**"ran and failed" was never gated at all.** `GATE_FAIL_VALUES` (`:108-110`) is consulted OUTSIDE
+that branch (`:613-620`) and answers the other question, and it is additive — it appends rather than
+`continue`s, so a value that is both a gate failure and a schema violation reports both. (`GATE_FIELDS`
+now has a second consultation of its own at `:548`, in the missing-field message path, so that a
+rejection message never names a value the validator will then reject — REQ-11.) It covers `suite` for `dev` and `qa`,
+`matrix_ok` for `qa`, and `task_verify` for `dev` and `dev-ops`.
+
+Its table is keyed persona → field → **the failing VALUE**, not a set of field names, because the
+failing values differ in TYPE: `suite` and `task_verify` fail as the string `fail` while `matrix_ok`
+fails as the boolean `False`. A string-keyed set would have silently never fired on `matrix_ok` —
+the project's only blocking gate. The comparison is type-strict for the mirror-image reason:
+`0 == False` is `True` in Python, so a naive equality would reject `matrix_ok: 0`-shaped values by
+accident.
+
+**5. `dev-ops` is deliberately EXCLUDED from both structures for `suite`, and the consequence is
+residue, not an oversight.** DEC-100 justifies the `n/a` half and says nothing about `fail`, so
+`dev-ops` `suite: fail` + `VERDICT: PASS` remains ACCEPTED — a real instance of the defect class this
+entry closes, left open one persona over by the user's ruling. It is recorded in FEAT-07's BRIEF
+under `## Verification gaps` and pinned by a fixture in `test-validate-digest.py` (`:1214`), so the
+next edit to it is deliberate rather than accidental.
+
+**The behaviour change, stated plainly.** Of four persona/field combinations that reported a gate as
+FAILED alongside `VERDICT: PASS` and returned `digest ok`, exit 0, **three now fail closed** — `dev`
+`suite: fail`, `qa` `suite: fail`, `qa` `matrix_ok: false`. The fourth is the `dev-ops` residue
+above. Separately, `task` is a new REQUIRED field for both dev personas: a return written to the
+previous contract does not validate until its dispatch and its author know about both fields.
+
+**6. Where the receipt clause landed, and the rule it generalises to.** REQ-08's clause — a dev's
+verification claim must leave the command and that command's own output in a durable file — went into
+`.claude/skills/harness-tdd-enforcement/SKILL.md`, one copy. This is recorded here rather than in a
+per-feature plan because a plan is not a durable record and this is a textbook re-litigation target:
+the obvious home is `harness-digest-dev`, with the rest of the dev return contract.
+
+**The rule, which is about preload coverage and not about this feature:** *the topical home of a rule
+is not necessarily the file that reaches everyone the rule binds — verify the preload set before
+choosing.* `harness-digest-dev` is preloaded by FOUR agents (`harness-frontend-dev`,
+`harness-backend-dev`, `harness-ai-dev`, `harness-data-engineer`); `harness-tdd-enforcement` is
+preloaded by exactly FIVE, those four plus `harness-dev-ops`. The obvious home would have silently
+missed the one persona the ruling had just brought into scope. The same arithmetic runs the other
+way for a rule 11 agents cannot act on: it does not belong in a file all 16 preload.
+
+## DEC-176 — The signature gate is BATCHED: one review pass produces one consolidated fix, dispatched after the user has read to exhaustion
+
+At the BRIEF/PLAN signature gate the main session now collects **every** change request the user
+raises in that one review pass into a single answers file and dispatches **exactly one** consolidated
+revision. No fix goes out while the user is still reading. The rule is in
+`.claude/commands/harness.md:45-50` (section 2, where the signature is taken) and in the Red flags
+row below it (`:90`); commit `7da58c6`.
+
+**The evidence, and it is the reason this is a rule rather than a preference.** FEAT-03's plan phase
+spent **seven serialized runs and roughly $95** on a product-fix → re-verify ping-pong in which **no
+reviewer found anything**. Every cycle existed because a new ruling arrived separately. The cost is
+not review; it is arrival order.
+
+**The cost, named rather than argued away:** the first fix goes out later than it otherwise would.
+That is accepted. A revision pass is cheap to widen and expensive to repeat.
+
+**A deliberate omission, recorded so it is not read as an oversight: there is no escape hatch for an
+urgent, independent change request.** Grilling established that nobody has hit that case, so its
+shape cannot be stated sharply enough to write. Writing a hatch for a hypothetical would give the
+batching rule a bypass before it had a single instance of pressure against it. When the case occurs,
+it will describe itself.
+
+## DEC-177 — A bounded runtime-environment question is MEASURED before any claim about it is relayed
+
+When what is about to be relayed rests on how the runtime *resolves* something — which copy of a file
+executes, which cwd a hook sees, which binary is on PATH — and the probe is bounded (a single
+additive line, a byte-identical revert, one suite re-run), the measurement is taken first. Inferring
+one such question cost a working day and two retracted claims, and the probe, when it was finally
+taken, **disproved** the inference. A file-difference check cannot answer a resolution question.
+
+**Scope is two surfaces and only two**, both landed in `7da58c6`: `.claude/commands/harness.md:76-81`
+(section 4, where returns are relayed to the user) and `.claude/skills/harness/SKILL.md:123-128` (the
+orchestrator's question round-trip, where `awaiting_user` is returned). These are the two tiers that
+relay claims to the user, and the two that over-claimed.
+
+**It is deliberately NOT in `harness-handoff`, and that is the load-bearing reason — recorded so a
+future scan does not re-suggest the obvious home.** `harness-handoff` is preloaded by all 16 harness
+agents, so a rule placed there is paid for at all 16 spawns. "Probe before you relay" is meaningless
+to an agent that relays nothing to the user; charging every agent for a rule only the relaying tiers can act on is the
+context-budget failure the constraint in `CLAUDE.md` exists to prevent. Placement follows *who can
+act on the rule*, not *where rules of this kind usually live*.

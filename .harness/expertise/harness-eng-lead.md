@@ -11,11 +11,23 @@
 - P-03: WHEN a task's verify list is greps plus a test suite DO ask which changed module the
   suite actually executes — a module the runner never imports is left unproven by a green gate,
   not proven by it.
+- P-04: WHEN a member kept no observations log DO hand it the paths to its own prior artifacts
+  and say self-derived candidates count as its own material — otherwise every entry in its file
+  traces to your relay, and the acceptance rate grades your dispatch, not its judgement.
+- P-05: WHEN a member reports entry or finding counts in its headline DO count its own ops list
+  and open the file before repeating the number — self-reported totals have disagreed with the
+  file in successive runs, and yours is the tier where a count becomes a measurement.
+- P-06: WHEN a review of an unapproved artifact finds a blocking design gap DO check the
+  artifact's own status field before grading — a draft still pending signature routes the
+  finding to the planner and returns PASS; halting it breaks the revision flow it was written for.
 
 ## Gotchas (max 15)
 - G-01: `.claude/skills/harness/bin/**` sits in both backend-dev's and dev-ops's domain in
   team-config.yaml, so the domain hook cannot keep their writes disjoint there — serialize any
   two tasks touching one file under it and attribute each write.
+- G-02: WHEN two specialists' domains both grant the path a task touches DO route by consult-when
+  semantics — what kind of logic the change is — and record the reason; the grant cannot
+  discriminate, so an unrecorded choice looks arbitrary to the next lead.
 
 ## Outcomes (max 10)
 
