@@ -22,7 +22,8 @@ DIGEST:
                                # this dispatch carries no PLAN task at all (DEC-175)
   task_verify: pass|fail|n/a   # your TASK's declared verify: command — NOT your test suite.
                                # n/a ONLY if you refused or were blocked. fail or n/a with
-                               # VERDICT: PASS is rejected, dev-ops included — no carve-out
+                               # VERDICT: PASS is rejected, dev-ops included — no carve-out.
+                               # Omit this field entirely when task: none — there is no command
   blocked_on: <text|none>
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none

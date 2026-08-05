@@ -88,9 +88,12 @@ schema used to accept, and it is a lie.
 **`task_verify: n/a` is the same truth about a different question.** You ran no verify command
 because you refused the task, and `n/a` is its spelling. The accompanying VERDICT is `BLOCKED`,
 never `PASS` — `task_verify: n/a` alongside `PASS` is rejected for every dev persona, `dev-ops`
-included. Note `task:` still names the task's real id: you were dispatched for one and refused it.
-`task: none` means something else entirely — a dispatch that carried no PLAN task at all — and
-writing it here would misreport a refusal as a non-task run.
+included. `task_verify: fail` with `VERDICT: PASS` is rejected on the same principle: a check you
+watched fail cannot have passed. Note `task:` still names the task's real id: you were dispatched for one and refused it.
+`task: none` means something else entirely — a dispatch that carried no PLAN task at all, such as
+a distillation or an investigation — and it **releases the requirement**: write `task: none`, omit
+`task_verify`, and `PASS` is accepted, because there was no command to run. Writing `task: none`
+here, for a task you were given and refused, would misreport a refusal as a non-task run.
 
 **The id is a concrete `T-12`, not `T-NN`.** `TASK_ID_RE` is `T-\d+|none`, so the placeholder
 spelling is rejected by the validator — the same zero-placeholder discipline this skill already

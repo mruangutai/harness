@@ -1114,6 +1114,24 @@ case("dev task_verify: n/a + PASS is rejected",
      "harness-backend-dev", _dev(tv="n/a"), False, "task_verify")
 # (d) DETECTOR — the no-carve-out ruling. dev-ops is NOT exempt from this field,
 # though it stays exempt from `suite` (D-03, proven by the case further above).
+# (d, second half) DETECTOR — SC-03 says BOTH rejections hold for dev-ops, and only
+# the `n/a` one was fixtured. `fail` travels the GATE_FAIL_VALUES path, `n/a` the
+# GATE_FIELDS path: two different mechanisms, so one case cannot vouch for the other.
+case("dev-ops task_verify: fail + PASS is rejected — no carve-out on this value either",
+     "harness-dev-ops", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  change_type: config
+  applied: []
+  suite: n/a
+  task: T-01
+  task_verify: fail
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", False, "task_verify")
 case("dev-ops task_verify: n/a + PASS is rejected — no carve-out",
      "harness-dev-ops", """
 VERDICT: PASS
@@ -1277,6 +1295,20 @@ artifact: a.md
 # (11)(f) reviewer half — the leak check is not complete with qa alone. Neither new
 # field belongs to a reviewer either, and an extra required field only ever makes
 # returns FAIL, so nothing else would notice a leak into this schema.
+# (f, documentor half) REGRESSION — SC-05 names five persona families and documentor
+# was the one with no accepted case at any commit. Completes the leak check.
+case("a documentor digest carries neither new field and is still accepted",
+     "harness-documentor", """
+VERDICT: PASS
+DIGEST:
+  headline: x
+  docs_updated: [docs/harness/SPEC.md]
+  gaps: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", True)
 case("a reviewer digest carries neither new field and is still accepted",
      "harness-code-reviewer", """
 VERDICT: PASS
@@ -1298,7 +1330,12 @@ artifact: a.md
 # negative assertion.
 case("task_verify's missing-field hint names its real values, not the none wording",
      "harness-backend-dev", _dev(tv=None), False,
-     ["task_verify", "pass", "fail", "!genuinely not applicable"])
+     # SC-18a: the hint must say what is rejected is a placeholder ALONGSIDE
+     # `VERDICT: PASS` — never that placeholders are disallowed. That distinction is
+     # what keeps `suite: n/a` + BLOCKED legal (REQ-03/SC-06), and the hint already
+     # said it while nothing asserted it.
+     ["task_verify", "pass", "fail", "alongside", "VERDICT: PASS",
+      "!genuinely not applicable"])
 case("task's missing-field hint names a task id, not the list wording",
      "harness-backend-dev", _dev(task=None), False,
      ["task", "T-NN", "none", "!if there are none"])
