@@ -14,7 +14,7 @@ touches anything here; init writes it once. That split is what lets deploy run u
 | `PLAN.md` | Active plan: `## Decisions` (`D-NN`), `## Approval`, `## Features` (`FEAT-NN`), `## Tasks` (`T-NN`, each with `change_type:`) | `pm` — except `## Approval` |
 | `DESIGN.md` | The visual design contract: palette in both themes, type scale, spacing, component direction | `visual-designer` |
 | `team-config.yaml` | **The org as data** — membership, `consult-when` routing, and each agent's writable `domain`. Read by `check-domain.sh` on every write | `/harness-init`, seeded from detection |
-| `harness.json` | `test_matrix`, `test_kinds`, `gates`, `cost_model`, `budgets`, `log_retention_days` | `/harness-init` · `dev-ops` fills `test_kinds` |
+| `harness.json` | `test_matrix`, `test_kinds`, `gates`, `budgets`, `log_retention_days` | `/harness-init` · `dev-ops` fills `test_kinds` |
 | `expertise/<agent>.md` | Per-agent durable knowledge, injected at every spawn by the `SubagentStart` hook | each agent, its own file only |
 | `efforts/<slug>/` | A pre-feature **wayfinding map** (`MAP.md` + `tickets/`): a vague idea being taken to plannable clarity across sittings. Local markdown, never the issue tracker (DEC-165). Retired or archived once its effort hands off to `/harness-plan` | the **main session** |
 | `notes/grilling-*.md` | A single-sitting dialog-to-clarity record: destination, settled decisions, fog, out-of-scope, facts verified — pm's BRIEF input (DEC-164) | the **main session** |
@@ -23,7 +23,7 @@ touches anything here; init writes it once. That split is what lets deploy run u
 | `notes/` | **Project-scoped** durable artifacts only (cross-feature research, docs sweeps). Anything belonging to a FEAT lives in that feature's `notes/` | the owning agent |
 | `logs/<date>.md` | Append-only **cross-flow** stream: flow started, escalation, briefing. Never loaded at spawn | **main session only** |
 | `features/<FEAT>/STATE.md` | That flow's live pointer: `## Current` + `## Open Questions`. **No history** — `logs/` is for that. One per feature, so concurrent flows never share a writer | that feature's **orchestrator** |
-| `features/<FEAT>/feature.yaml` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, cost, run list | that feature's **orchestrator** |
+| `features/<FEAT>/feature.yaml` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, run list | that feature's **orchestrator** |
 | `features/<FEAT>/runs/<run>/` | One team run: `state.yaml` + the lead's `digest.md` | that run's **lead** |
 | `teams/*.yaml` | *Optional.* Project overrides for shipped team definitions | you |
 | `.claude/agents/*.md` | The org's own definitions. **Deliberately unowned by every agent** — an agent editing these is self-modification, so changing what the org *is* stays with the tier that has a user channel. Agents raise `open_questions` instead | **you** (main session) |
@@ -43,7 +43,7 @@ Three rules explain most of the table:
 - **`## Approval` is written by the main session.** `pm` owns `BRIEF.md` and `PLAN.md` but never
   signs them, because signing means asking you and only the main session has a user channel.
 - **An orchestrator owns its whole feature** — that flow's `STATE.md`, `feature.yaml`, and the
-  feature-wide cycle and cost budgets. Leads own one run each; the main session owns only the
+  feature-wide cycle budget. Leads own one run each; the main session owns only the
   cross-flow log and your approvals.
 
 ## How work flows
@@ -82,8 +82,7 @@ lead, so multi-squad lifecycles are sequenced by the orchestrator as one run per
 `BRIEF.md` missing means the project is not onboarded — run `/harness-init`.
 
 Run `bin/check-state.sh` any time; it checks the invariants that fail silently, including the five
-`settings.json` prerequisites, an unapproved brief, tasks missing `change_type`, and runs completed
-without a cost block.
+`settings.json` prerequisites, an unapproved brief, and tasks missing `change_type`.
 
 > **Schemas live in `.claude/skills/harness/templates/`** — `BRIEF.md`, `PLAN.md`, `STATE.md`,
 > `DESIGN.md`, `harness.json`, `team-config.yaml`. Copy from there, not from examples in prose: an
