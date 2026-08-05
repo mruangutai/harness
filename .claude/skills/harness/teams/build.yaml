@@ -37,7 +37,6 @@ purpose: >
   **validator-squad segment** after this team returns, because a team is single-squad (DEC-118).
 lead: eng-lead
 inputs: [feat, tasks]
-max_cost_usd: 60
 
 steps_from:
   # The host reads `## Tasks` from the feature's PLAN.
