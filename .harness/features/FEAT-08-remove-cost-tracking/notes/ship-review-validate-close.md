@@ -18,7 +18,8 @@ is itself a criterion.
 Twelve of twelve tasks are done and every task issue is closed. Three amendments you signed this
 morning are landed. The blocking test gate passed 12 of 12. The four-wide review panel ran in full.
 The goal-check verified all fifteen criteria by their own declared methods, and one was re-graded
-after its blocker was fixed. 21 commits, 33 files.
+after its blocker was fixed. The reviewed range is 21 commits and 33 files; the branch now carries 26,
+the last five being state, evidence and this document.
 
 **What is waiting on you, in order of what it costs you to decide:**
 

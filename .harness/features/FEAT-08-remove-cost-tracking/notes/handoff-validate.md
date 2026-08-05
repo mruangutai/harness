@@ -31,9 +31,9 @@ Then: `gh-sync.py ship` on acceptance, `/harness-deploy` **before** the queued p
   measured
 - `cycles_used: 4` of 10. T-10's re-dispatch added ZERO: forward work from a SIGNED amendment is not
   rework — DEC-157
-- **UNVERIFIED:** two lead digest files failed the contract and were sent back for repair as this
-  phase closed. **Re-run `check-state.sh` before doing anything** — if it is non-zero, those two
-  files are why
+- ALL FOURTEEN run digests pass `validate-digest.py lead` EXCEPT `s2-eng`, which is `status: blocked`
+  and therefore exempt — do not "fix" it. Two failed and were sent back to their OWNERS, not patched
+  here — verified-at `b496e68`
 
 ## Dead ends
 
