@@ -3,63 +3,107 @@ phase: build
 branch: feat/FEAT-09-plan-time-route-check
 pr: none
 status: awaiting_user
+posture: PARKED — wait for the merge-and-rebase signal; dispatch nothing until then
 review_sha: 1185d7f
 review_sha_note: >-
-  MUST BE RE-PINNED AFTER THE REBASE, BEFORE ANY VALIDATOR RUNS (INV-6). The rebase
-  rewrites all four commit hashes, so this SHA will not exist in the branch afterwards
-  and every reviewer's "pinned diff" claim would be unfalsifiable.
+  STALE BY DESIGN. RE-PIN TO POST-REBASE HEAD BEFORE ANY REVIEWER IS DISPATCHED (INV-6,
+  user ruling). The rebase rewrites all four commit hashes, so this SHA will not exist in
+  the branch afterwards and every reviewer's pinned-diff claim would be unfalsifiable.
+  The briefing must say the pin was re-taken and why.
 cycles_used: 1
 max_total_cycles: 10
-cost_usd: 214.93
-max_cost_usd: 120
+cost_usd: "214.93 — final, unreproducible, contaminated upward. See cost_note."
 tasks: { T-01: DONE, T-02: HELD, T-03: DONE, T-04: DONE }
 runs:
   - id: plan-product
     squad: product
     verdict: ESCALATE
-    cost_usd: 56.27
   - id: seg1-main-session
     squad: none
     verdict: PASS
-    cost_usd: 99.22
 gate_status:
   unit: "PASS — 13/13 exit 0, re-run by ME after the segment, not relayed"
   docs: "PASS — check-docs.sh exit 0, re-run by me"
   state: "PASS — check-state.sh exit 0, zero violations, re-run by me"
-  qa_gate: NOT_RUN — validate phase
-  review: NOT_RUN — the panel is FOUR-WIDE by user ruling, see validate_panel
+  qa_gate: NOT_RUN — deferred by ruling to one post-rebase pass
+  review: NOT_RUN — FOUR-WIDE by ruling; deferred to one post-rebase pass
   security: NOT_RUN — NOT a skip; the ruling forbids pre-emptive skips
   ui: NOT_RUN — NOT a skip; the ruling forbids pre-emptive skips
   uat: NOT_REQUIRED — nothing here is operated by hand
-  goal_check: NOT_RUN — cannot run until T-02 lands; SC-05..SC-10 and SC-12 rest on it
+  goal_check: NOT_RUN — blocked until T-02 lands; SC-05..SC-10 and SC-12 rest on it
   ship_refresh: "SKIP — .harness/codebase/ does not exist in this tree"
 validate_panel:
   ruling: >-
-    USER RULING, binds the validate phase: run ALL FOUR steps of teams/review.yaml —
-    code, qa, security, ui. NO pre-emptive skips. A reviewer that looks and declines is a
-    reviewed finding; an orchestrator predicting there is nothing to find is an inference
-    standing in for a measurement.
+    USER RULING: run ALL FOUR steps of teams/review.yaml — code, qa, security, ui. NO
+    pre-emptive skips. A reviewer that looks and declines is a reviewed finding; an
+    orchestrator predicting there is nothing to find is an inference standing in for a
+    measurement. Any skipped step means returning awaiting_user with the reason.
   why_here_especially: >-
     This feature adds a resolve mode to check-domain.sh — the guard deciding which agent
     may write which path. Diff size does not argue a security review away.
-  if_skipping: >-
-    Any skipped step means returning awaiting_user with the reason. The call is the user's.
+  timing: >-
+    USER RULING: ONE pass, AFTER the rebase and after T-02 — not now. The panel must run
+    again after T-02 regardless, and a pin taken now goes stale at the rebase. One pass
+    against a complete diff, with a valid pin and a goal-check that can actually run.
+accepted_risks:
+  unreviewed_guard_window: >-
+    ON THE RECORD, AS A WINDOW THAT EXISTED — NOT AS A THING THAT DID NOT HAPPEN.
+    check-domain.sh, the guard deciding which agent may write which path, stays committed
+    with ZERO independent review until FEAT-08 merges. The user considered reviewing the
+    committed content now and chose to wait. This must be named in the briefing.
+  rebase_replay_basis: >-
+    The wait is safe because FEAT-08 touches NONE of the four committed files. The rebase
+    therefore replays the three task commits byte-identical, changing only hashes. RELAYED
+    by the coordinator, not re-derived by me — re-check it at the rebase.
+rulings:
+  q1_t02_held: >-
+    T-02 is HELD until FEAT-08 merges AND this worktree is rebased. After that merge,
+    FEAT-08's removal of test-cost-report.py means an array written from this tree would
+    list a script that no longer exists. Rebase first, then append to the corrected array.
+  q2_decisions_entry: >-
+    This flow writes the DECISIONS.md entry AFTER FEAT-08 merges. Substance: task routing
+    is resolved at plan time by check-plan-routes.py calling check-domain.sh --resolve,
+    and an ungranted surface becomes a DECLARED main-session step, never a discovered one.
+    The index is GENERATED — write the entry, run gen-decisions-index.py, never hand-edit
+    generated fields, and gen-decisions-index.py --stdout | diff - must exit 0 after.
+  q2_brief_override: >-
+    BRIEF.md:106-109 forbids any task here writing under docs/harness/. The q2 ruling
+    OVERRIDES that for the single DECISIONS.md entry plus the regenerated index, on the
+    user's authority. Recorded so the goal-check does not flag it as a breach.
+  q2_route: >-
+    docs/** is granted to harness-documentor at team-config.yaml:116 — verified, not
+    recalled. The entry routes product-lead to documentor as a team task.
+  qE_no_cost_line: >-
+    ANSWERED AND VERIFIED, NOT ACCEPTED ON TRUST. There is NO cost line, because the
+    mandate itself is gone: grep for 'cost line|cost_usd|max_cost' in the MAIN checkout's
+    harness/SKILL.md returns NOTHING (exit 1, checked by me read-only). So: write no cost
+    line, invent no figure, carry no budget field — max_cost_usd is REMOVED accordingly.
+    State once in the briefing that the harness no longer meters spend (DEC-178) and that
+    this feature's figures are unreproducible for the documented reason.
+  qE_seam_caveat: >-
+    MY worktree's playbook STILL carries the mandate — 2 matches for the same grep. Until
+    the rebase I am governed by the old text and the new rule is inherited, not in force.
+  q345_open: >-
+    Q3 (promote the checker to a check-state.sh invariant), Q4 (consolidate the copied
+    task-block regex), Q5 (normalise squad-dispatched in historical plans) stay open and
+    NON-BLOCKING. They ride into the briefing as residual backlog.
+  t04_window: >-
+    ACCEPTED BY THE USER. Between T-04 landing and T-02 landing, harness-spec-driven
+    instructs a planner to run a script that does not exist. Nothing is being planned then.
 segment_1_receipts:
   verified_by: >-
-    ME, re-running every verify: in the worktree after the segment returned. The
-    coordinator's report is corroborated, not relayed. One of my own probes was malformed
-    — escaped quotes made the hook payload invalid JSON, which read as a false exit 0;
-    re-run from a real payload file it gave the expected exit 2.
+    ME, re-running every verify: after the segment returned — corroborated, not relayed.
+    One of my own probes was malformed: escaped quotes made the hook payload invalid JSON,
+    reading as a false exit 0; re-run from a real payload file it gave the expected exit 2.
   t01: >-
     PASS. Resolve probe prints OK; test-check-domain.py exit 0; unit suite exit 0. My
     independent open-pipe probe answered in 0.21s with harness-dev-ops — the pre-change
     tree hung past 10s on that exact call.
   t01_one_matcher: >-
     THE LOAD-BEARING CLAIM, VERIFIED NOT TRUSTED. glob_to_re and matches hash IDENTICALLY
-    between ae2443d and the landed tree (dedented, blank-stripped: 2025f71963fd and
-    59e448ad0fdb on both sides). Exactly one definition of each remains. fnmatch appears
-    once, inside the comment explaining why it is wrong. REQ-04 and SC-08 clauses 2 and 3
-    hold.
+    between ae2443d and the landed tree (dedented: 2025f71963fd and 59e448ad0fdb on both
+    sides). Exactly one definition of each remains. fnmatch appears once, in the comment
+    explaining why it is wrong. REQ-04 and SC-08 clauses 2-3 hold.
   t01_stdin: >-
     payload=$(cat) is in the ELSE branch at :40; the --resolve branch at :36 sets an env
     var and never reads stdin. The structure is right, not merely the timing.
@@ -72,79 +116,50 @@ segment_1_receipts:
   deferred: >-
     STATED, NOT HIDDEN. The suite is 13 PASS, not 14. SC-10's registered-test clause is NOT
     exercised by anything in segment 1, and T-03's and T-04's durable evidence (cases
-    10-12) does not exist yet either — their land-time greps are the only gate they have
-    passed. All of it rests on the held task.
-rulings:
-  q1_t02_held: >-
-    USER RULING 2026-08-05. T-02 is HELD until FEAT-08 merges to main AND this worktree is
-    rebased onto it. After that merge, FEAT-08's removal of test-cost-report.py means an
-    array written from this tree would list a script that no longer exists. Rebase first,
-    then append to the corrected 12-entry array.
-  q2_decisions_entry: >-
-    USER RULING 2026-08-05. This flow writes the DECISIONS.md entry AFTER FEAT-08 merges.
-    Substance: task routing is resolved at plan time by check-plan-routes.py calling
-    check-domain.sh --resolve, and an ungranted surface becomes a DECLARED main-session
-    step, never a discovered one. The index is GENERATED — write the entry, run
-    gen-decisions-index.py, never hand-edit generated fields, and
-    gen-decisions-index.py --stdout | diff - must exit 0 after.
-  q2_brief_override: >-
-    RECORDED SO THE GOAL-CHECK DOES NOT FLAG IT. BRIEF.md:106-109 forbids any task here
-    writing under docs/harness/. The q2 ruling OVERRIDES that for the single DECISIONS.md
-    entry plus the regenerated index, on the user's authority, 2026-08-05.
-  q2_route: >-
-    docs/** is granted to harness-documentor at team-config.yaml:116 — verified, not
-    recalled. The entry routes product-lead to documentor as a team task.
-  q345_open: >-
-    Q3 (promote the checker to a check-state.sh invariant), Q4 (consolidate the copied
-    task-block regex), Q5 (normalise squad-dispatched in historical plans) stay open and
-    NON-BLOCKING. They ride into the briefing as residual backlog.
-  t04_window: >-
-    ACCEPTED BY THE USER, DISCLOSED HERE. Between T-04 landing and T-02 landing,
-    harness-spec-driven instructs a planner to run a script that does not exist. No feature
-    is being planned in that window.
+    10-12) does not exist yet either — their land-time greps are the only gate they passed.
 next_steps:
-  s1: "FEAT-08 merges to main; this worktree rebases onto it — the user's signal, not mine"
-  s2: "RE-PIN review_sha to the post-rebase HEAD before anything else (INV-6)"
-  s3: "T-02 via eng-lead: append to the ALREADY-CORRECTED 12-entry array, re-read :6 first"
-  s4: "The DECISIONS.md entry + regenerated index via product-lead to documentor"
-  s5: "Validate: FOUR-WIDE panel, all of teams/review.yaml, no pre-emptive skips"
-  s6: "pm goal-check on all 12 SCs, then distillation, then the CEO briefing"
+  s1: "WAIT. The coordinator sends one signal when FEAT-08 has merged and this tree is rebased"
+  s2: "RE-PIN review_sha to post-rebase HEAD — before anything else (INV-6)"
+  s3: "Re-check the replay claim: the three task commits should replay byte-identical"
+  s4: "T-02 via eng-lead: re-read run-unit-tests.sh:6 first, append to the corrected array"
+  s5: "DECISIONS.md entry + regenerated index via product-lead to documentor"
+  s6: "FOUR-WIDE panel — code, qa, security, ui — against the re-pinned SHA"
+  s7: "pm goal-check on all 12 SCs, then distillation, then the CEO briefing"
+briefing_must_carry:
+  verbatim_finding: >-
+    KEEP THIS WORDING, DO NOT SOFTEN IT (user instruction): this collision is exactly the
+    failure FEAT-09 exists to prevent — and the checker this feature builds would not have
+    caught it, because the collision is in a tool the plan uses, not a path a task writes.
+  also: >-
+    The unreviewed-guard window; that the review pin was re-taken and why; that the harness
+    no longer meters spend so there is no cost line; Q3, Q4, Q5 as residual backlog.
 cost_note: >-
-  A SNAPSHOT THAT CAN NO LONGER BE REPRODUCED, AND THE REASON MATTERS. 214.93 against a
-  120 budget (1.79x) is honestly obtained but is the LAST figure this feature will ever
-  get. Reported, never hidden, and never a gate (DEC-134). It is contaminated upward and
-  provably so — harness-eng-lead moved +4.2588 with its spawn count going 18 to 20 in a
-  window where I dispatched no eng-lead, which is FEAT-08's flow metering into the same
-  project-cumulative reporter. That is evidence for the contamination, not an assertion of
-  it. The true FEAT-09 share is materially lower; no figure is invented and none is
-  adjusted downward to flatter it.
-cost_metering_is_being_deleted: >-
-  DISCOVERED WHILE RE-METERING, AND IT RETIRES THE RECONCILIATION QUESTION RATHER THAN
-  ANSWERING IT. The concurrent feature is FEAT-08-REMOVE-COST-TRACKING. In the main repo it
-  has cost-report.py staged for DELETION and has already stripped cost_model from
-  harness.json, so the reporter now exits 1 with "harness.json has no cost_model.rates"
-  where it succeeded minutes earlier. My figures were computed via --project against that
-  same main-repo config while it still had rates, so they are a valid snapshot of a moving
-  target and are unreproducible now. I did NOT chase the 0.54 residual further: spending
-  cycles auditing a subsystem that is being deleted on purpose is the wrong call, and the
-  residual was in any case measured across two differently-shaped samples of mine.
-  AFTER THE REBASE THIS FLOW CANNOT METER AT ALL — cost-report.py will not exist in this
-  tree, so the playbook's INV-11 cost block and the CEO briefing's mandated cost line have
-  no source. That needs the user's instruction and is raised as a question.
+  FINAL AND UNREPRODUCIBLE, AND THE REASON MATTERS MORE THAN THE NUMBER. 214.93 is honestly
+  obtained and is the last figure this feature will get. It is contaminated upward and
+  provably so — harness-eng-lead moved +4.2588 with spawns going 18 to 20 in a window where
+  I dispatched no eng-lead, which is FEAT-08's flow metering into the same
+  project-cumulative reporter. Evidence, not assertion. The true share is materially lower;
+  the figure is NOT adjusted downward to flatter it, per ruling. The budget field is removed
+  because the harness no longer carries one.
+cost_metering_deleted: >-
+  DISCOVERED WHILE RE-METERING; IT RETIRED THE RECONCILIATION QUESTION RATHER THAN ANSWERING
+  IT. FEAT-08 is FEAT-08-REMOVE-COST-TRACKING: cost-report.py is staged for DELETION and
+  cost_model is stripped from harness.json, so the reporter now exits 1 where it succeeded
+  minutes earlier. I did NOT chase the 0.54 residual: auditing a subsystem being deleted on
+  purpose is the wrong place to spend cycles, and the residual was measured across two
+  differently-shaped samples of my own.
 baseline:
   base_sha: ae2443d
-  head_sha: 1185d7f
+  head_sha: 2a242df
   closes_issues: "#20"
   grilling: .harness/notes/grilling-routing-wall-2026-08-05.md
   briefing: none — not yet written
   worktree: /Users/molchairuangutai/GitHub/harness-FEAT-09
   commits:
-    - "06a680f — approved BRIEF/PLAN + build state"
     - "685901d — [harness:t-01] check-domain.sh --resolve + 8 cases"
     - "92d254b — [harness:t-03] templates/PLAN.md Lanes + execution_mode"
     - "1185d7f — [harness:t-04] harness-spec-driven routing rule"
-    - "abddb28 — segment receipts and held-task state"
-  design_pass: "No DESIGN.md, no visual-designer spawn. Nothing here is operated by a human."
+    - "06a680f, abddb28, 2a242df — state and receipts, no source"
 approved:
   brief: "approved — Mike Ruangutai, 2026-08-05, BRIEF.md:115-117"
   plan: "approved — Mike Ruangutai, 2026-08-05, PLAN.md:118-120"
@@ -152,24 +167,17 @@ resolved:
   - >-
     THE BUILDER HIT THE EXACT FAIL-OPEN THE PLAN PREDICTED, BY ACCIDENT. Its first
     insertion put the resolve branch below the identity early-exit and reproduced exit 0
-    with empty stdout — the hazard the receipts table documented, produced unintentionally
-    and caught by running rather than reading. The second attempt hit NameError on the
-    hoisted matcher. Two wrong placements, both caught by execution. That is the strongest
-    evidence this feature's premise was correct.
+    with empty stdout — the documented hazard, produced unintentionally and caught by
+    running rather than reading. The second attempt hit NameError on the hoisted matcher.
+    Two wrong placements, both caught by execution.
   - >-
     A DELIBERATE DIVERGENCE FROM THE HOOK, AND IT IS RIGHT. The hook fails OPEN on a
     missing manifest; the resolver exits 2. An unanswerable route reported as NOBODY would
-    put a task in the main-session lane on the strength of a broken config. This sits
-    inside T-01's approved intent, not outside it.
+    put a task in the main-session lane on a broken config. Inside T-01's approved intent.
   - >-
-    MY OWN PROBE LIED BEFORE THE CODE DID. Escaped quotes made a hook payload invalid JSON
-    and returned a false exit 0 that looked like a regression. The tool under test was fine;
-    the measurement was not. Re-run from a payload file it gave exit 2 as designed.
-  - >-
-    THE WRITE GUARD BLOCKED ME AND WAS RIGHT TO. A shell redirect to a scratchpad path
-    outside my domain was denied by bash-write-guard as guardrail evasion (DEC-151). I
-    re-did the work through a pipe with no file write rather than looking for a way around
-    it. Worth recording because the denial was correct and the workaround was not needed.
+    MY OWN PROBE LIED BEFORE THE CODE DID, and the write guard blocked me and was right to.
+    An escaped-quote payload gave a false exit 0 that looked like a regression; a shell
+    redirect outside my domain was denied as guardrail evasion. I re-did both properly.
 github:
   milestone: 4
   parent: 98
