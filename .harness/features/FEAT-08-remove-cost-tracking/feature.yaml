@@ -3,15 +3,15 @@ phase: build
 branch: feat/FEAT-08-remove-cost-tracking
 pr: none
 status: in_progress
-review_sha: ae2443d
+review_sha: 3503d1d
 cycles_used: 1
 max_total_cycles: 10
-cost_usd: 252.85
+cost_usd: 370.53
 max_cost_usd: 120
 runs:
   - { id: plan-product, squad: product, verdict: PASS, cost_usd: 237.73 }
-tasks: { T-01: PLANNED, T-02: PLANNED, T-03: PLANNED, T-04: PLANNED,
-         T-05: PLANNED, T-06: PLANNED, T-07: PLANNED, T-08: PLANNED,
+tasks: { T-01: DONE, T-02: DONE, T-03: PLANNED, T-04: PLANNED,
+         T-05: DONE, T-06: DONE, T-07: DONE, T-08: DONE,
          T-09: PLANNED, T-10: PLANNED, T-11: PLANNED, T-12: PLANNED }
 gate_status:
   qa_gate: NOT_RUN — build phase
@@ -21,10 +21,38 @@ gate_status:
   security: NOT_RUN — NOT a skip; the ruling forbids pre-emptive skips
   ui: NOT_RUN — NOT a skip; the ruling forbids pre-emptive skips
   ship_refresh: NOT_RUN — .harness/codebase/ does not exist, decided at ship
-  unit: PASS — re-measured by me this session, exit 0, 13/13 scripts
-  docs: PASS — check-docs.sh re-measured by me this session, exit 0
-  state: PASS — check-state.sh exit 0, zero violations, re-measured after my writes.
-    It read exit 1 EARLIER IN THE SAME SESSION on FEAT-09's unsigned BRIEF; see repairs
+  unit: PASS — re-run by me at 3503d1d after the batch, exit 0, 13/13 scripts
+  docs: PASS — check-docs.sh re-run by me at 3503d1d, exit 0
+  state: PASS — check-state.sh re-run by me at 3503d1d, exit 0, zero violations
+batch_result:
+  segment: S1 + S3 — T-01, T-02, T-05, T-06, T-07, T-08 in one main-session batch
+  commits: ba9a243 t-01, aaa315f t-02, f9869d1 t-05, 32d23d3 t-06, 89cd01a t-07, 3503d1d t-08
+  mirror: issues 86, 87, 90, 91, 92, 93 closed by gh-sync close-task
+  verified_by_me: >-
+    Every clause re-run at my own tier, not relayed. All green, including both
+    over-removal guards (3 of 3, 2 of 2) and both unchanged-value clauses
+    (SKILL.md 8 against pre-edit 8; agent file 2 against pre-edit 2).
+  sc04_proven: >-
+    SC-04's discriminating pair probed against BOTH validators. Pre-change: the
+    omitting payload returned BLOCKED (contract violation), missing the field, at
+    exit 1; the carrying payload digest ok. Post-change: both digest ok. The first
+    flipped and the second did not, which is exactly what SC-04 requires.
+  plan_defect: >-
+    TWICE, SAME SHAPE, AND IT IS A REAL PLAN BUG. T-01 intent (2) mandates a comment
+    clause naming the money field while its own verify: requires that literal token
+    to appear ZERO times in the file; T-02 intent (h) supplies verbatim comment text
+    containing the quoted key while its own verify: counts that spelling and requires
+    exactly 1. Each intent falsifies its own verify. Both reconciled by writing the
+    same meaning without the literal spelling, so intent and verify both hold, and
+    both deviations are recorded in their commit messages. Pattern for distillation:
+    an intent that PRESCRIBES prose containing token X against a verify: asserting
+    X's absence or exact count. Caught by RUNNING the clause, never by reading it.
+  residual: >-
+    NOT FIXED, routed to the panel rather than pre-judged by me: both reworded
+    comments end by explaining the spelling was avoided because "this task's verify:"
+    counts it. After this ships there is no task and no verify:, and the BRIEF states
+    nothing re-runs these greps. A permanent comment justifying itself by an
+    ephemeral clause. The code-reviewer's call, not mine.
 validate_panel:
   ruling: >-
     USER RULING, binds the validate phase: run ALL FOUR steps of teams/review.yaml —
@@ -34,134 +62,99 @@ validate_panel:
   why: >-
     ui-reviewer and security-reviewer are DESIGNED to self-scope out on an
     inapplicable diff. Looking and declining IS the job, and a decline from a reviewer
-    that looked is a reviewed finding. An orchestrator deciding in advance that there
-    is nothing to find is an inference standing in for a measurement — the exact shape
-    issue #22 forbids, which FEAT-07 itself shipped as the probe-don't-infer rule.
-  expect: >-
-    Two spawns may return nothing. That is the CORRECT outcome, not waste.
-    validate-digest.py already accepts severity_max: n/a with PASS for this case.
-    Record the reviewer's own verdict, never the orchestrator's prediction. Any
-    skipped step means returning awaiting_user — the call is the user's, not mine.
+    that looked is a reviewed finding. Deciding in advance that there is nothing to
+    find is an inference standing in for a measurement. Two spawns may return
+    nothing — that is the CORRECT outcome, not waste; validate-digest.py accepts
+    severity_max: n/a with PASS for exactly this case. Any skipped step means
+    returning awaiting_user; the call is the user's, not mine.
   overrides_expertise: >-
     My own Expertise O-01 says skip the ui-reviewer when no design contract exists.
     THE RULING OUTRANKS IT. O-01 is a revision candidate at feature-close distillation.
 build_lanes:
-  main_session_direct: T-01, T-02 (DEC-174 carve-out) and T-05, T-06, T-07, T-08 (granted to nobody)
+  main_session_direct: T-01, T-02 (DEC-174 carve-out) and T-05, T-06, T-07, T-08 — ALL DONE
   squad_dispatched: T-03, T-04 eng/dev-ops; T-09, T-10, T-11, T-12 product/documentor
-  segment_1: T-01, T-02 — loosen the gates first
-  segment_2: T-03, T-04 — remove the machinery
-  segment_3: T-05, T-06, T-07, T-08 — unowned rule surfaces, all depend only on T-01
-  segment_4: T-09, T-10, T-11, T-12 — the record, describes shipped state
-  batched: >-
-    S1 and S3 are returned to the main session as ONE batch of six dependency-satisfied
-    tasks — notes/batch-main-session-s1s3.md, with pre-edit baselines and four traps.
-    Serialising per task is the ~95 USD shape FEAT-03 measured. S2 and S4 dispatch
-    through their leads once the batch lands and I have written its commits.
+  segment_2: T-03, T-04 — remove the machinery. Depends on T-02 only, now satisfied
+  segment_4: T-09, T-10, T-11, T-12 — the record. Needs S2 first, so strictly serial
+  next: dispatch S2 to eng-lead, then S4 to product-lead, then the four-wide panel
 repairs:
   - >-
-    APPROVAL BLOCKS: BRIEF.md:216 and PLAN.md:703 both carry status approved,
-    approved-by Mike Ruangutai, date 2026-08-05 — verified by me on disk. This file's
-    approved block still read pending for both, written before the signature. Fixed,
-    along with phase, branch and status, all of which were stale rather than truncated.
+    APPROVAL BLOCKS were stale: BRIEF.md:216 and PLAN.md:703 both carry approved,
+    Mike Ruangutai, 2026-08-05, but this file read pending for both. Fixed with
+    phase, branch and status. Nothing on disk was truncated by the crash.
   - >-
-    A TRUST CLAIM IN notes/handoff-plan.md:19 WAS FALSE WHEN I ARRIVED AND IS TRUE
-    AGAIN. It asserts check-state.sh zero violations at ae2443d. Re-run at the same SHA
-    at session start: exit 1, one violation, FEAT-09's unsigned BRIEF. Re-run forty
-    minutes later, nothing of FEAT-08 having changed: exit 0, zero violations — the
-    concurrent flow was signed meanwhile. The claim was never about FEAT-08 and the
-    gate is repo-wide, so it can flip again. Re-measure, never inherit (DEC-159).
-  - >-
-    NO TRUNCATION FOUND ANYWHERE. runs/plan-product/state.yaml is status complete with
-    a full cost block and both step entries terminal; digest.md, BRIEF.md, PLAN.md and
-    both observation logs end on complete sentences. The crash cost bookkeeping, not
-    content.
-  - >-
-    BOOKKEEPING COMMITTED as b5f20af before handing over the batch, so the six task
-    diffs land clean for the human read DEC-174 requires as its compensating control.
+    A TRUST CLAIM IN notes/handoff-plan.md:19 WAS FALSE ON ARRIVAL AND TRUE LATER.
+    It asserts check-state.sh zero violations at ae2443d. At session start: exit 1
+    on FEAT-09's unsigned BRIEF. Later, nothing of FEAT-08 changed: exit 0. A
+    repo-wide gate's verdict is not a property of a SHA. Re-measure, never inherit.
 sc_summary:
   planned: 15
   note: >-
-    SC-01..SC-15, 12 tasks, 9 decisions D-01..D-09. Twelve SCs are verify: automated;
-    SC-09, SC-12 and SC-15 are inspection by design. SC-12 is an OVER-removal guard
-    naming protected non-money prose that must survive verbatim.
+    SC-01..SC-15. Twelve are verify: automated; SC-09, SC-12 and SC-15 are
+    inspection by design. SC-12 is an OVER-removal guard naming protected non-money
+    prose that must survive verbatim — both its guards passed in S3.
   measured_this_session: >-
-    SC-01's sweep returns 18 files, as the BRIEF states. SC-03's command exits 0 with
-    zero violations. SC-06's pinned 89 and 67-of-67 RECONCILE EXACTLY over
-    FEAT-01..FEAT-07, the seven features the BRIEF names at :81; the bare glob reads 96
-    and 69-of-69 only because two in-flight features exist. pm's numbers are right.
+    SC-01's sweep returns 18 files at ae2443d, as the BRIEF states. SC-03's command
+    exits 0. SC-06's pinned 89 and 67-of-67 RECONCILE EXACTLY over FEAT-01..FEAT-07,
+    the seven features the BRIEF names at :81; the bare glob reads higher only
+    because two in-flight features exist. pm's numbers are right.
 open_q:
   - >-
-    IDS ARE NOT REUSED. Q1 and Q3 are carried from the plan phase with their original
-    numbers; Q5 and Q6 are new. Q2 and Q4 were answered during planning — see resolved.
+    IDS ARE NOT REUSED. Q1 and Q3 are carried from the plan phase; Q5 and Q6 are new.
+    Q2 and Q4 were answered during planning — see resolved.
   - >-
-    Q1 CARRIED, non-blocking, AND IT WAS SIGNED PAST WITHOUT AN ANSWER: after this
-    ships the briefing has no size signal but cycles_used, which counts REWORK only.
-    D-06 replaces nothing on purpose; perf-review row 10 is the lever and is unfiled.
-    It needs answering BEFORE the briefing — by then it cannot be acted on.
+    Q1 CARRIED, non-blocking, AND SIGNED PAST WITHOUT AN ANSWER: after this ships the
+    briefing has no size signal but cycles_used, which counts REWORK only. D-06
+    replaces nothing on purpose; perf-review row 10 is the lever and is unfiled. It
+    needs answering BEFORE the briefing — by then it cannot be acted on.
   - >-
     Q3 CARRIED, non-blocking, harness defect: a send-back gives the returning member a
     FRESH context, so open_questions it raised in its own previous DIGEST are
     unrecoverable to it. loop_back's feed: [self] passes the FAILING step's artifact
-    path, which does not cover a member's own prior questions. Decided above this tier.
+    path, which does not cover a member's own prior questions.
   - >-
-    Q5 NEW, non-blocking. SC-06'S GLOB OVER-CAPTURES; ITS NUMBERS ARE SOUND. Restricted
-    to FEAT-01..07 — the seven files SC-03 names — it measures 89 lines and 67-of-67,
-    pm's figures to the line, verified at ae2443d. The bare glob catches FEAT-08 and
-    FEAT-09 too, and after T-03 no new run can carry a cost block at all. Recommend the
-    goal-check run the restricted glob and record both numbers. Overrulable.
+    Q5 NEW, non-blocking. SC-06's glob over-captures; its numbers are sound. Recommend
+    the goal-check restrict it to FEAT-01..07 and record both numbers.
   - >-
-    Q6 NEW, non-blocking, but it can cost a wasted fix cycle. SC-03 IS REPO-WIDE AND A
-    CONCURRENT FLOW CAN FAIL IT. It did at session start, purely because FEAT-09's
-    BRIEF was unsigned; it passes now. If it fails at goal-check on a line naming
-    another feature, that is not FEAT-08 regressing. Re-rooting via CLAUDE_PROJECT_DIR
-    would hide it and is the re-baselining the ruling forbids.
+    Q6 NEW, non-blocking, but it can cost a wasted fix cycle. SC-03 is repo-wide and a
+    concurrent flow can fail it. FEAT-09 has since moved to its own worktree, so this
+    checkout no longer sees it — the hazard is dormant, not gone.
 resolved:
+  - Q2 answered in plan by the orchestrator, not the user — D-01 stands as written.
+  - The third coordinator correction VALIDATED pm rather than falsifying it. No cycle.
   - >-
-    Q2 was ANSWERED BY THE PLAN ORCHESTRATOR, not the user: its dispatch presupposed
-    cost_usd survives in the schema with a declared literal; pm removed it instead and
-    was right — issue #58 lists the field under surfaces-to-remove. D-01 stands.
+    THE SEND-BACK EARNED THE RUN: product-lead caught T-08 editing teams/*.yaml,
+    which test-harness-yaml-corpus.py scans LIVE, with no clause invoking it; the
+    re-audit found the same defect in T-06, T-07 and T-10. The one cycle counted.
   - >-
-    THE THIRD COORDINATOR CORRECTION VALIDATED pm rather than falsifying it. The
-    supersession marker IS generated, but pm avoided triggering it deliberately: the
-    false sentence is the ruling prose, which the marker never touches. No cycle spent.
-  - >-
-    THE SEND-BACK EARNED THE RUN. product-lead rejected pm's first return on T-08
-    editing teams/*.yaml, which test-harness-yaml-corpus.py scans LIVE with no clause
-    invoking it; the re-audit found the same defect in T-06, T-07 and T-10. FEAT-07's
-    reddened-build defect reproduced four times, caught by one member spawn. One cycle.
-  - >-
-    pm CONTRADICTED THE DISPATCH ON DEC-148 AND WAS RIGHT, and found a second
-    one-directional hazard nobody named: check-state.sh:258-259 hard-fails with no
-    cost_model.rates, so D-02 sequences three removals out of check-state.sh first.
+    pm CONTRADICTED THE DISPATCH ON DEC-148 AND WAS RIGHT, and found the
+    check-state.sh:258-259 hazard nobody named, which D-02 sequences around.
 pending:
   - >-
     OUT OF SCOPE BY RULING, do not re-open: cycle counting and max_total_cycles
-    (DEC-157), perf-review row 10 (count and budget RUNS — still unfiled, and after
-    this it is the ONLY remaining lever for noticing a feature going long), and
-    rewriting any historical DECISIONS entry.
+    (DEC-157), perf-review row 10 (count and budget RUNS — unfiled, and after this the
+    ONLY remaining lever for noticing a feature going long), and rewriting any
+    historical DECISIONS entry.
   - >-
-    SUPERSEDED INDEX ROWS ARE NOT DELETED and the user asked. They are derived state:
-    the generator regenerates them and test-gen-decisions-index.py:551-555 asserts the
-    marker. Measured: 8 rows, 1,951 bytes, 4.9% of the index, and all 8 are cited by
-    live rows' refs graphs — 26 citations, 13 to DEC-19 alone.
+    SUPERSEDED INDEX ROWS ARE NOT DELETED and the user asked. Derived state: the
+    generator regenerates them and test-gen-decisions-index.py:551-555 asserts the
+    marker. 8 rows, 4.9% of the index, all 8 cited by live rows' refs graphs.
   - >-
-    THE METER DIES AT T-03. cost-report.py is deleted mid-feature, so every run after
-    segment 2 is unmeterable and the figure becomes an honest string, never a number.
-    Metered while it still exists; nothing after that point is invented.
+    THE METER DIES AT T-03, WHICH IS THE VERY NEXT DISPATCH. Metered one last time at
+    3503d1d. Every figure after that point is an honest string, never a number, and no
+    run dir from S2 onward owes a cost block — INV-11 came out in T-02.
 baseline:
   base_sha: ae2443d
   closes_issues: "#58"
   briefing: none — written at the ship terminus, not before
   answers: none
-  commits: b5f20af, bookkeeping only — the six task edits return UNCOMMITTED (DEC-153)
+  commits: b5f20af and 88ead69 bookkeeping; ba9a243..3503d1d the six S1+S3 tasks
   cost_note: >-
-    252.85 is 237.73 from the plan phase plus 15.12, the harness-orchestrator depth-1
-    by_agent DELTA between runs/plan-product/state.yaml (553.3808) and this session
-    (568.5013). The whole delta is attributed here though it is SHARED with the
-    concurrent FEAT-09 orchestrator, because overstating is the safe direction. Never a
-    top-line: the reporter is project-cumulative, 6057.3353 to 6115.2354. Over the 120
-    budget and reported, not hidden (DEC-134) — a raise is the user's call, and the
-    four-wide panel adds two spawns the old two-wide shape never priced.
+    370.53 = 237.73 plan phase + 53.81 my depth-1 by_agent delta this session
+    (553.3808 to 607.1899) + 78.99 the depth-0 main-session delta that executed the
+    six-task batch (2257.8025 to 2336.7917). Both deltas are SHARED with the
+    concurrent FEAT-09 flow and are attributed here IN FULL because overstating is the
+    safe direction. Never a top-line — the reporter is project-cumulative. Over the
+    120 budget, reported not hidden (DEC-134); a raise is the user's call.
 approved:
   brief: approved — Mike Ruangutai, 2026-08-05, BRIEF.md `## Approval`
   plan: approved — Mike Ruangutai, 2026-08-05, PLAN.md `## Approval`
@@ -170,5 +163,6 @@ github:
   parent: 85
   parent_origin: created
   attached: [T-01, T-02, T-03, T-04, T-05, T-06, T-07, T-08, T-09, T-10, T-11, T-12]
+  closed: [T-01, T-02, T-05, T-06, T-07, T-08]
   issues: { T-01: 86, T-02: 87, T-03: 88, T-04: 89, T-05: 90, T-06: 91,
             T-07: 92, T-08: 93, T-09: 94, T-10: 95, T-11: 96, T-12: 97 }
