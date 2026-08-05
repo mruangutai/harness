@@ -17,14 +17,12 @@ SCRIPT = os.environ.get("CHECK_STATE_BIN") or os.path.join(
 )
 
 HARNESS_JSON_SYNC_ON = """{
-  "github": {"sync": true, "repo": "org/repo"},
-  "cost_model": {"rates": {"sonnet": 1}}
+  "github": {"sync": true, "repo": "org/repo"}
 }
 """
 
 HARNESS_JSON_SYNC_OFF = """{
-  "github": {"sync": false, "repo": null},
-  "cost_model": {"rates": {"sonnet": 1}}
+  "github": {"sync": false, "repo": null}
 }
 """
 
@@ -97,7 +95,7 @@ def case_d():
     must stay silent about the hooks it can still see.
     """
     with tempfile.TemporaryDirectory() as tmp:
-        make_fixture(tmp, '{"cost_model": {"rates": {}}}', "  parent: 40")
+        make_fixture(tmp, '{}', "  parent: 40")
         cl = os.path.join(tmp, ".claude")
         os.makedirs(cl, exist_ok=True)
         base = {"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
@@ -320,6 +318,51 @@ def case_j():
         return ok
 
 
+def case_k():
+    """FEAT-08 / DEC-178, BOTH directions in one case — the two halves are only
+    meaningful together.
+
+    (1) A run that is `status: complete` and carries NO `cost:` block is CLEAN.
+        INV-11 used to make exactly this a violation ("run is complete but has no
+        cost: block"). This half is the DETECTOR: it fails before the removal.
+    (2) A run that DOES carry a `cost:` block is ALSO clean. `cost` stays in
+        CHECKPOINT_KEYS (D-03) because all 67 pre-FEAT-08 run state.yaml files have
+        one and :401 flags any key outside that set. Drop it from the whitelist and
+        every historical run becomes a violation. This half is a REGRESSION guard —
+        green before and after — and it is what stops a later tidy-up removing the
+        entry as dead.
+    """
+    results = []
+    for label, cost_block in (("no cost: block", ""), ("with a cost: block", "cost:\n  usd: 12.83\n")):
+        with tempfile.TemporaryDirectory() as tmp:
+            h = os.path.join(tmp, ".harness")
+            rundir = os.path.join(h, "features", "FEAT-TEST", "runs", "2026-08-05-01-product")
+            os.makedirs(rundir, exist_ok=True)
+            with open(os.path.join(h, "harness.json"), "w") as f:
+                f.write(HARNESS_JSON_SYNC_OFF)
+            with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+                f.write("feature_id: FEAT-TEST\nreview_sha: none\nruns: []\n")
+            with open(os.path.join(rundir, "state.yaml"), "w") as f:
+                f.write("schema_version: 1\n"
+                        "run_id: 2026-08-05-01-product\n"
+                        "feature: FEAT-TEST\n"
+                        "squad: product\n"
+                        "host: harness-product-lead\n"
+                        "status: complete\n"
+                        "steps: []\n" + cost_block)
+            with open(os.path.join(rundir, "digest.md"), "w") as f:
+                f.write("# digest\n")
+            code, out = run(tmp)
+            # Assert on the SPECIFIC message, not the exit code: this fixture is
+            # minimal and unrelated invariants may legitimately warn.
+            hit = "has no cost: block" in out or "unknown top-level key" in out
+            results.append(not hit)
+            print(f"{'ok' if not hit else 'FAIL'} - case (k) {label}: no cost violation")
+            if hit:
+                print(f"        output was: {out.strip()[:200]}")
+    return all(results)
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -331,6 +374,7 @@ def main():
     ok_h = case_h()
     ok_i = case_i()
     ok_j = case_j()
+    ok_k = case_k()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -339,7 +383,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_exit_unchanged):
+            and ok_h and ok_i and ok_j and ok_k and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
 
