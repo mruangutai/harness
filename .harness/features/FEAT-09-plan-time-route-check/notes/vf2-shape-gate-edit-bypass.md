@@ -9,13 +9,20 @@ four of its own drafts at 217/208/206/205. Both observations are true. The diffe
 
 ## What happens
 
-| | Outcome |
-|---|---|
-| **Write** to `feature.yaml` | Shape gate runs. Over-budget file is refused, exit 2, with routing advice. |
-| **Edit** to the same file | Gate never runs. Any size, any comment count, exit 0, silently. |
+**The gate covers ONE of the THREE routes a state file can be written by.** This was wider than my
+first write-up said — that version named only `Edit`, and the `Bash` route was found on a follow-up
+check rather than assumed either way.
 
-The DEC-150 budget is therefore **enforced against one tool and not the other**, and the agents most
-likely to use `Edit` are the ones doing incremental state updates — the exact bloat path.
+| Route | Outcome |
+|---|---|
+| **Write** | Shape gate runs. Over-budget file refused, exit 2, with routing advice. |
+| **Edit** | Gate never runs. Any size, any comment count, exit 0, silently. |
+| **Bash** (`python3 -c`, `cat >`, `sed -i`, …) | Gate never runs. `bash-write-guard.sh` checks the DOMAIN only — it has no shape logic at all. Exit 0. |
+
+The agents most likely to use `Edit` are the ones doing incremental state updates — the exact bloat
+path. And `bash-write-guard.sh`'s own header states that unparseable commands pass by design
+(DEC-85/DEC-151): it converts casual bypass into deliberate obfuscation. That is a reasonable
+posture for the *domain* question and simply leaves the *shape* question unasked.
 
 ## The measurement
 
@@ -23,9 +30,10 @@ Payload files, 400 lines (double the cap), `agent_type: harness-orchestrator`, s
 `.harness/features/FEAT-09-plan-time-route-check/feature.yaml`:
 
 ```
-write  -> exit 2   check-domain: BLOCKED — state-file shape (DEC-150).
-                     feature.yaml is 400 lines — budget is 200.
-edit   -> exit 0
+Write -> exit 2   check-domain: BLOCKED — state-file shape (DEC-150).
+                    feature.yaml is 400 lines — budget is 200.
+Edit  -> exit 0
+Bash  -> exit 0   (bash-write-guard.sh, no output)
 ```
 
 ## The mechanism
@@ -63,15 +71,24 @@ reconstruct the result: read the file from disk and apply `old_string`→`new_st
 but carries real edge cases — `replace_all`, a string occurring more than once, and a file changing
 between the check and the write. Options, none free:
 
-1. **Reconstruct and check.** Closes the gap properly; adds file I/O and replacement semantics to a
-   `PreToolUse` hook, and can disagree with what the tool actually does.
-2. **Check the file's CURRENT size on Edit** and refuse to edit an already-over-budget file. Cheap
-   and has no reconstruction risk, but cannot stop the edit that *crosses* the budget, and would
-   block the very edits that trim a bloated file — likely unacceptable without a shrink exemption.
-3. **Move the shape check to `PostToolUse`.** Sees real content with no reconstruction; detects
-   rather than prevents, so the over-budget write has already landed.
+1. **Reconstruct and check the Edit result.** Adds file I/O and replacement semantics to a
+   `PreToolUse` hook, and can disagree with what the tool actually does. **Closes Edit only — the
+   Bash route stays open**, so it buys two of three.
+2. **Check the file's CURRENT size on Edit** and refuse to edit an already-over-budget file. Cheap,
+   no reconstruction risk. But it cannot stop the edit that *crosses* the budget, it would block the
+   very edits that trim a bloated file (needs a shrink exemption), and it also leaves Bash open.
+3. **Move the shape check to `PostToolUse`.** **The only option that covers all three routes** — it
+   sees the file as it actually landed, with no reconstruction and no per-tool special-casing. The
+   trade is real: it detects rather than prevents, so the over-budget write has already happened and
+   the gate's job becomes "tell the agent to fix it" rather than "refuse it".
 4. **Accept and document.** Cheapest, and the honest cost is that DEC-150's budget is advisory for
-   `Edit` — prose-only enforcement, which is the shape this repo keeps filing tickets against.
+   two of three routes — prose-only enforcement, which is the shape this repo keeps filing tickets
+   against.
+
+**Given the Bash route, option 3 is the only one that actually closes VF-2.** Options 1 and 2 narrow
+it. That is a genuine trade rather than a free win: 3 gives up prevention to gain coverage, and
+whether a state file that is briefly over-budget matters is a judgment about what the budget is
+*for* — a context bound, which a post-check still enforces before the next reader loads it.
 
 `check-domain.sh` is a **DEC-174 carve-out**, so whichever option wins is a declared main-session
 step, applied directly with the tests run explicitly and a human reading the diff.

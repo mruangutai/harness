@@ -76,13 +76,15 @@ must_fix_resolved:
     Gates at 7218d63: unit 0 (32 PASS), docs 0, state 0, index 0. Full record:
     notes/vf1-guard-bypass.md.
 must_fix_new:
-  vf2_shape_gate_edit_bypass: >-
-    FOUND BY THE MAIN SESSION AFTER THE PANEL CLOSED, and NOT YET FIXED — it needs a user ruling,
-    not a line. The DEC-150 state-file shape gate is registered for Write|Edit but returns at
-    check-domain.sh:376 unless tool_name == "Write", so EVERY budget below it is unreachable via
-    Edit. Measured, 400-line feature.yaml: Write exits 2, Edit exits 0. Same class as VF-1 — the
-    logic is correct, the REACHABILITY is not. The domain check is unaffected. Four options with
-    costs, and why it is a ruling: notes/vf2-shape-gate-edit-bypass.md.
+  vf2_shape_gate_covers_1_of_3_write_routes: >-
+    FOUND BY THE MAIN SESSION AFTER THE PANEL CLOSED, NOT YET FIXED — a ruling, not a line. The
+    DEC-150 shape gate returns at check-domain.sh:376 unless tool_name == "Write", and
+    bash-write-guard.sh has NO shape logic at all, only domain. Measured on a 400-line
+    feature.yaml: Write exits 2, Edit exits 0, BASH exits 0. WIDER THAN MY FIRST WRITE-UP, which
+    named Edit only — the Bash route was checked rather than assumed. Same class as VF-1: the
+    logic is correct, the REACHABILITY is not. Domain enforcement is unaffected on all routes.
+    Only option 3 (PostToolUse) closes all three; 1 and 2 narrow it. Costs:
+    notes/vf2-shape-gate-edit-bypass.md.
 review_delta_unreviewed:
   what: >-
     OPEN USER DECISION. The panel reviewed 47ed11f..4918d06; the VF-1 fix at 7218d63 is a NEW

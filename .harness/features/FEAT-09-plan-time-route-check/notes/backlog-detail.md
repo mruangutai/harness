@@ -81,3 +81,14 @@ main session then found the real shape of it — the cap is enforced against **`
 `Edit` bypasses it entirely**. Both earlier observations were true and neither was the whole
 picture. See `notes/vf2-shape-gate-edit-bypass.md`; that one is a live must-fix, not backlog.
 `STATE.md` has no mechanical cap at all.
+
+## B-14 — strict-schema debt from this session's own edits
+
+Issue #104 records a user ruling that `feature.yaml` should move to a **strict schema with unknown
+keys REJECTED**. This session added three top-level keys that no schema declares yet —
+`must_fix_resolved`, `must_fix_new`, `review_delta_unreviewed` — plus `base_sha_note`,
+`commits_note`, `source_diff` and `cycles_note` under existing parents. They pass today because the
+shape gate checks size and comment count, not key names (verified: a Write of the 198-line file
+exits 0). **Named here so the strict-schema work inherits a list rather than discovering them.**
+Same triage-before-enforcement posture FEAT-08 established when it measured that 51 of 71 real run
+digests carried at least one out-of-schema key.
