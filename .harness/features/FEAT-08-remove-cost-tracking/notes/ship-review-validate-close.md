@@ -195,7 +195,8 @@ survivors become issues.
 | B-18 | **A lead's returned digest and its digest FILE can diverge silently.** When the stop hook rejects a return and the agent re-returns, nothing re-checks the file — and the file is what a successor context reads. It happened twice this feature and I caught both by running the validator myself | bug |
 | B-19 | **A dispatcher can name a run-dir path its callee provably cannot write.** I did exactly that: the squad suffix must come last for the domain glob to match, and my dispatch inverted it. The lead chose the compliant name rather than working around the guard | chore |
 | B-20 | **Issue #79 is filed and unscheduled** — count and budget *runs*, not only cycles. With the meter gone this is the only remaining signal that a feature is running long | enhancement |
-| B-21 | **Issue #104 is filed** — the strict-schema question you already ruled on. Recorded so it is not re-opened by accident | chore |
+| B-21 | **Question IDs are treated as a feature-wide namespace but nothing allocates them.** Concurrent runs collide, and both failure modes fired this feature: one id carrying two different questions, and one question filed under two ids | bug |
+| B-22 | **Issue #104 is filed** — the strict-schema question you already ruled on. Recorded so it is not re-opened by accident | chore |
 
 ---
 

@@ -22,6 +22,7 @@ runs:
   - { id: distill-eng, squad: eng, verdict: PASS, note: dev-ops and lead, 4 ops }
   - { id: distill-apply-validator, squad: validator, verdict: PASS, note: stranded lead ops applied }
   - { id: sc15-product, squad: product, verdict: PASS, note: SC-15 re-grade, flips to met }
+  - { id: distill-apply-product, squad: product, verdict: PASS, note: lead self-distillation, 4 ops }
 tasks: { T-01: DONE, T-02: DONE, T-03: DONE, T-04: DONE,
          T-05: DONE, T-06: DONE, T-07: DONE, T-08: DONE,
          T-09: DONE, T-10: DONE, T-11: DONE, T-12: DONE }
@@ -84,9 +85,9 @@ panel_result:
 distillation:
   result: >-
     Twelve Expertise files exist and ALL TWELVE pass check-expertise.sh, re-run by me at my own tier
-    because no lead holds Bash. Ten were written this round; harness-backend-dev did not run and
-    harness-product-lead is being distilled now. No entry names a feature, task or issue id.
-  by_squad: product 25 ops; validator 16 plus 2 stranded lead ops re-applied; eng 4
+    because no lead holds Bash. ELEVEN were written this round; only harness-backend-dev is
+    untouched, and it never ran this feature. No entry names a feature, task or issue id.
+  by_squad: product 25 member ops plus 4 lead self-ops; validator 16 plus 2 re-applied; eng 4
   finding: >-
     The relay's value is NOT recall. Validator measured pure-recall relays contributing zero because
     members derived them first; eng measured the inverse, 2 relayed and 0 self, and named the likely

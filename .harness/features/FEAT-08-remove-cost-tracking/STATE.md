@@ -7,7 +7,7 @@
 - squad: none
 - status: awaiting_user
 
-**Phase `validate` is at its terminus.** Thirteen runs, `cycles_used: 4` of 10. `review_sha` pinned
+**Phase `validate` is at its terminus.** Fourteen runs, `cycles_used: 4` of 10. `review_sha` pinned
 to `942505e` before the panel (INV-6); `8958840` is the last source-bearing commit.
 
 **All twelve tasks DONE, every task issue closed.** T-10's remainder — signed amendment A-3's rows
@@ -30,7 +30,7 @@ cycle. Three criteria are met by methods that cannot detect the failure they exi
 that judgement was asked for explicitly and is recorded.
 
 **Distillation done.** Twelve Expertise files, all `check-expertise.sh` clean, re-run by me because
-no lead holds `Bash`. Product 25 ops, validator 16 plus 2 stranded lead ops re-applied, eng 4.
+no lead holds `Bash`. Product 25 member ops plus 4 lead self-ops, validator 16 plus 2 re-applied, eng 4.
 
 Briefing: `notes/ship-review-validate-close.md`. Handoff: `notes/handoff-validate.md`.
 
@@ -82,4 +82,4 @@ IDs are not reused. Q2, Q4, Q5, Q7, Q8, Q18 are answered or ruled.
   source. That is my judgement, not a rule, and it is reversible for three spawns.
   Blocked on: the user, if they want it done properly.
 
-- The full backlog is **nineteen items** in the briefing. Anything not listed there dies silently.
+- The full backlog is **twenty-two items** in the briefing. Anything not listed there dies silently.
