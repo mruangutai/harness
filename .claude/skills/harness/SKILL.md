@@ -1,6 +1,6 @@
 ---
 name: harness
-description: The orchestrator playbook — the loop one harness-orchestrator runs to take ONE feature from plan to ship: delegate to leads, assess team digests, own the budgets, route questions, brief the CEO. Preloaded by harness-orchestrator; the main session reads it only to know what to expect back.
+description: The orchestrator playbook — the loop one harness-orchestrator runs to take ONE feature from plan to ship: delegate to leads, assess team digests, own the cycle budget, route questions, brief the CEO. Preloaded by harness-orchestrator; the main session reads it only to know what to expect back.
 user-invocable: false
 ---
 
@@ -57,7 +57,7 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
 5. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now (it holds no
    history; the per-run detail already lives in that run's digest), update `feature.yaml`'s DATA
    (runs list, `cycles_used` from the lead's reported SEND-BACKS — a clean first-pass run adds
-   ZERO cycles; only rework counts (DEC-157) — cost — values, never narrative: the
+   ZERO cycles; only rework counts (DEC-157) — values, never narrative: the
    shape gate denies a feature.yaml over 200 lines or 20 comment lines, DEC-150), then route
    (below).
 6. **Loop until DONE — and done means the success criteria are met, not the tasks exhausted.**
@@ -68,7 +68,7 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    - any unmet → that is a **fix cycle, not a shrug**: route the gap to the owning lead with pm's
      evidence, increment `cycles_used`, and loop again. Repeat until the SCs pass **or the cycle budget
      exhausts** — `max_total_cycles` outranks "until done"; exhaustion is `BLOCKED` to the user
-     with the unmet SCs named, never a quiet stop and never a redefinition of done. Cost does not
+     with the unmet SCs named, never a quiet stop and never a redefinition of done.
      stop the loop — it is reported, not enforced (DEC-134).
    - an SC that *cannot* be met as written (wrong premise, changed scope) is a plan-level problem:
      pm re-plans under the user's approval. You never mark an SC met, waived, or edited yourself.
@@ -92,16 +92,13 @@ escalate). Plan-level changes are pm's — delegate re-planning, never edit `PLA
 | `ESCALATE`, only the user can decide | return `awaiting_user` with it in `open_questions` |
 | non-empty `open_questions` | union them; blocking ones make the whole return `awaiting_user` |
 
-## The two budgets — one hard, one informational (DEC-134)
+## The cycle budget
 
-Both live in `feature.yaml`, maintained only by you, from the lead's report and from
-`bin/cost-report.py --yaml` after every run (a complete run with no `cost:` block is an INV-11
-violation).
+It lives in `feature.yaml`, maintained only by you, from the lead's report.
 
 | | Teeth | On crossing |
 |---|---|---|
 | `cycles_used` / `max_total_cycles` | **HARD** — it kills runaway fix loops | stop the branch, preserve everything, `status: blocked`, return `BLOCKED`. Never silently continue |
-| `cost_usd` / `max_cost_usd` | **INFORMATIONAL** — a visibility line, never a gate | flag it in your next headline, carry actual-vs-budget in every return and in the briefing, and raise a non-blocking `open_question` only if spend diverges by *multiples* |
 
 **A cycle is REWORK ONLY (DEC-157)** — a FAIL routed back, an unmet-SC re-dispatch, or a send-back a
 lead reports from inside a run. A first-pass run contributes **zero**, however many steps it has: the
@@ -109,8 +106,6 @@ PLAN's task list already bounds forward work, and counting runs as cycles is how
 feature goes BLOCKED with nothing wrong. The default (10) lives in harness.json
 `budgets.max_total_cycles`.
 
-**Cost never stops work** — observed: a $9 overrun killed a flow one $5 step from done. And **never
-fabricate a figure to stay under it**: honest-approximate beats precise-invented, always.
 
 ## The question round-trip (SPEC §2.1 — you are the middle of it)
 
@@ -261,7 +256,7 @@ wholesale sweep (DEC-150).
 1. Spawn **all three leads in parallel** — "report on your domain." All three always report;
    "no activity this run" is a valid report.
 2. Assemble one document: each lead's summary, all open questions, resolved escalations, the
-   goal-check result, the UAT if required, the **cost line** against the feature budget — and a
+   goal-check result, the UAT if required — and a
    **proposed backlog** as a markdown table with an `ID` column (`B-1`, `B-2`, … unique within the
    briefing), one row per residual finding that survived collation but does not gate, each with its
    nature (`bug`/`chore`/enhancement). The ID exists so the user can strike rows by name rather than
@@ -282,6 +277,5 @@ wholesale sweep (DEC-150).
 | "I'll dispatch the specialist directly, it's one small task" | Through its lead. No orchestrator→member path, no exceptions |
 | "The plan is obviously wrong here, I'll fix it" | pm re-plans, under the user's approval. You conduct |
 | "One more retry past max_cycles will land it" | The bound is the feature. `BLOCKED`, with the evidence |
-| "We are over the cost budget, better stop/hide it" | Cost never stops work and is never hidden — report the overrun and continue (DEC-134) |
 | "I'll keep the counters in my head this cycle" | `feature.yaml`, every cycle. Your context may not survive to the next one |
 | "The digest passed the hook, so the work is fine" | The hook checks shape. Assessing substance is your job |
