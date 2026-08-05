@@ -18,6 +18,11 @@ DIGEST:
   tests_added: <n>
   suite: pass|fail|n/a         # n/a ONLY if no tests ran at all (refused/blocked task).
                                # n/a with VERDICT: PASS is rejected — DEC-173
+  task: T-NN|none              # your task's id, verbatim from your dispatch. `none` ONLY when
+                               # this dispatch carries no PLAN task at all (DEC-175)
+  task_verify: pass|fail|n/a   # your TASK's declared verify: command — NOT your test suite.
+                               # n/a ONLY if you refused or were blocked. fail or n/a with
+                               # VERDICT: PASS is rejected, dev-ops included — no carve-out
   blocked_on: <text|none>
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
@@ -29,6 +34,25 @@ artifact: <path>
 
 **Every field is required** (DEC-121) — `[]` for an empty list, `none` for an inapplicable scalar.
 The `SubagentStop` hook rejects a return missing any of them.
+
+## Run your task's `verify:` before you return
+
+Your dispatch carries two strings verbatim: your task's `T-NN` id and its `verify:` command. Run
+that command. Cross-check it against the same task in `.harness/features/<FEAT>/PLAN.md` — you hold
+repo-wide read — and if your dispatch and PLAN.md disagree, return `BLOCKED` naming both strings
+rather than picking one; a paraphrased command verifies something nobody planned.
+
+`suite` and `task_verify` answer different questions and a passing suite never substitutes for a
+passing verify. `suite` is your own tests; `task_verify` is the check the plan declared for this
+task, which is why it is the cheapest gate in the system and why it used to be authored and then run
+by nobody.
+
+**Your B-7 receipt carries the command and its verbatim output.** Paste both into
+`.harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`. Reporting `task_verify: pass`
+is a claim; the receipt is what a reviewer can check it against. The honest limit, so nobody
+oversells this: output can be fabricated, so this is an audit trail rather than a gate — it makes
+skipping leave evidence in a file qa and the code reviewer already open. The alternative, having
+your lead re-run the command, is structurally impossible: leads hold no `Bash`.
 
 ## Reaching a boundary (shared by the same four)
 

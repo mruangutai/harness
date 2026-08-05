@@ -66,10 +66,12 @@ Do **not** infer the intent. Return:
 ```yaml
 VERDICT: BLOCKED
 DIGEST:
-  headline: task T-NN is under-specified and cannot be executed as written
+  headline: task T-12 is under-specified and cannot be executed as written
   tests_added: 0
   suite: n/a
-  blocked_on: "T-NN contains a placeholder at <location>; needs pm revision"
+  task: T-12
+  task_verify: n/a
+  blocked_on: "T-12 contains a placeholder at <location>; needs pm revision"
   open_questions: []
   files_touched: []
   expertise_update: []
@@ -82,6 +84,18 @@ against under-specified tasks was told it had committed a contract violation at 
 fired, and the forced retry shipped unvalidated. `suite: n/a` is what makes it truthful: you ran no
 tests, and DEC-173 gives that a spelling. Do not write `suite: pass` here — it is the only value the
 schema used to accept, and it is a lie.
+
+**`task_verify: n/a` is the same truth about a different question.** You ran no verify command
+because you refused the task, and `n/a` is its spelling. The accompanying VERDICT is `BLOCKED`,
+never `PASS` — `task_verify: n/a` alongside `PASS` is rejected for every dev persona, `dev-ops`
+included. Note `task:` still names the task's real id: you were dispatched for one and refused it.
+`task: none` means something else entirely — a dispatch that carried no PLAN task at all — and
+writing it here would misreport a refusal as a non-task run.
+
+**The id is a concrete `T-12`, not `T-NN`.** `TASK_ID_RE` is `T-\d+|none`, so the placeholder
+spelling is rejected by the validator — the same zero-placeholder discipline this skill already
+enforces on tasks. This block is piped through `validate-digest.py` by T-04's own verify, so a
+placeholder here would fail for a reason that has nothing to do with what the example teaches.
 ````
 
 ## Exemptions
@@ -92,3 +106,18 @@ Read `test_matrix` in `.harness/harness.json`. Change types mapping to `[]` — 
 **The zero-placeholder gate is never exempt.** It applies to every task of every type.
 
 A behavioural change is never exempt because it is small. Size is not a change type.
+
+## Your task's `verify:` and its receipt
+
+The Iron Law governs your tests. It says nothing about the check the PLAN declared for your task,
+and those are different questions — a green suite has never meant a green `verify:`.
+
+Your dispatch carries the task's `T-NN` id and its `verify:` command **verbatim** (the lead is
+required to quote both). Run the command before you return, report the result as `task_verify`, and
+paste the command together with its **verbatim** output into your B-7 receipt at
+`.harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`.
+
+Why the receipt and not just the field: `task_verify: pass` is a claim, and a claim with nothing
+behind it converts a skipped check into an unfalsifiable one. The receipt is what a reviewer checks
+it against. It does not make skipping impossible — output can be fabricated — so treat it as an
+audit trail, not a gate.
