@@ -120,6 +120,13 @@ anything. When the main session re-delegates you with an answers file
 (`.harness/features/<FEAT>/notes/answers-<runid>.md`), pass its **path** into the re-dispatched run —
 `resume_from` semantics: the run picks up from its checkpointed `state.yaml`, not from scratch.
 
+**A question a measurement can close is not a question for the user.** Before you return
+`awaiting_user` with a runtime-environment question — which copy of a file executes, which cwd a hook
+sees, which binary is on PATH — or answer one from context you hold, probe it if the probe is bounded:
+a single additive line, a byte-identical revert, one suite re-run. Take that measurement
+before any claim about it travels up. Inferring one such question cost a working day and two retracted claims,
+and the probe that settled it disproved the inference.
+
 ## Mission: debug — investigate first, then it becomes a plan (DEC-139)
 
 For *symptom known, cause unknown*. When the cause is already known there is nothing to
