@@ -2,14 +2,20 @@ feature_id: FEAT-09-plan-time-route-check
 phase: build
 branch: feat/FEAT-09-plan-time-route-check
 pr: none
-status: awaiting_user
-posture: PARKED — wait for the merge-and-rebase signal; dispatch nothing until then
-review_sha: 1185d7f
+status: in_progress
+posture: >-
+  UNPARKED 2026-08-05. The merge-and-rebase signal ARRIVED: FEAT-08 merged (PR #131, main at
+  47ed11f) and this worktree is rebased onto it, tree clean. Segment 2 is running.
+review_sha: NOT_PINNED — see review_sha_note
 review_sha_note: >-
-  STALE BY DESIGN. RE-PIN TO POST-REBASE HEAD BEFORE ANY REVIEWER IS DISPATCHED (INV-6,
-  user ruling). The rebase rewrites all four commit hashes, so this SHA will not exist in
-  the branch afterwards and every reviewer's pinned-diff claim would be unfalsifiable.
-  The briefing must say the pin was re-taken and why.
+  THE OLD PIN 1185d7f IS DANGLING AND WAS REMOVED, NOT CARRIED. Verified, not assumed:
+  `git merge-base --is-ancestor 1185d7f HEAD` returns NO, so every "verified-at 1185d7f"
+  claim in notes/handoff-build.md is currently unfalsifiable against the branch.
+  DO NOT RE-PIN YET. USER RULING 2026-08-05 on the timing conflict: INV-6 binds at
+  REVIEWER DISPATCH, not "before anything else", and validate_panel.timing requires ONE
+  pass against a COMPLETE diff. T-02 still lands a source commit, so a pin taken now goes
+  stale again. PIN AFTER T-02 AND THE DECISIONS ENTRY, IMMEDIATELY BEFORE THE PANEL —
+  one pin, taken once. The briefing must say the pin was re-taken and why.
 cycles_used: 1
 max_total_cycles: 10
 cost_usd: "214.93 — final, unreproducible, contaminated upward. See cost_note."
@@ -112,7 +118,10 @@ segment_1_receipts:
     writing docs/ exits 0. The hook path is unchanged.
   t03: "PASS. Full chained verify exit 0. 68 lines of an 80 cap."
   t04: "PASS. Full chained verify exit 0. 134 lines of a 140 cap — 6 spare."
-  sc11: "git diff ae2443d -- .claude/agents/harness-pm.md is 0 bytes. Re-checked post-segment."
+  sc11: >-
+    HOLDS AGAINST BOTH BASES, re-checked at the rebase rather than carried:
+    `git diff 47ed11f -- .claude/agents/harness-pm.md` is 0 bytes, and the original
+    `git diff ae2443d -- ...` is also 0 bytes. The base re-pin does not disturb this receipt.
   deferred: >-
     STATED, NOT HIDDEN. The suite is 13 PASS, not 14. SC-10's registered-test clause is NOT
     exercised by anything in segment 1, and T-03's and T-04's durable evidence (cases
@@ -149,17 +158,29 @@ cost_metering_deleted: >-
   purpose is the wrong place to spend cycles, and the residual was measured across two
   differently-shaped samples of my own.
 baseline:
-  base_sha: ae2443d
-  head_sha: 2a242df
+  base_sha: 47ed11f
+  base_sha_note: >-
+    RE-PINNED AT THE REBASE. Was ae2443d, a PRE-FEAT-08 main commit; it still resolves and
+    still produces a clean diff, so nothing errored — `git diff ae2443d..HEAD` just returns
+    71 files where the true FEAT-09 diff is 14. 47ed11f is `git merge-base main HEAD`,
+    measured. Scope every reviewer and every diff-based verify: clause from THIS sha.
+  head_sha: f823426
   closes_issues: "#20"
   grilling: .harness/notes/grilling-routing-wall-2026-08-05.md
   briefing: none — not yet written
-  worktree: /Users/molchairuangutai/GitHub/harness-FEAT-09
+  worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/FEAT-09
   commits:
-    - "685901d — [harness:t-01] check-domain.sh --resolve + 8 cases"
-    - "92d254b — [harness:t-03] templates/PLAN.md Lanes + execution_mode"
-    - "1185d7f — [harness:t-04] harness-spec-driven routing rule"
-    - "06a680f, abddb28, 2a242df — state and receipts, no source"
+    - "6792331 — [harness:t-01] check-domain.sh --resolve + 8 cases"
+    - "e355401 — [harness:t-03] templates/PLAN.md Lanes + execution_mode"
+    - "358fd36 — [harness:t-04] harness-spec-driven routing rule"
+    - "7bd5cbd, ec2941e, f823426 — state and receipts, no source"
+  commits_note: >-
+    ALL SEVEN IDS REWRITTEN BY THE REBASE. The pre-rebase ids (685901d, 92d254b, 1185d7f,
+    06a680f, abddb28, 2a242df) are dangling and must not be cited. Replay verified
+    byte-identical on all four committed source files.
+  source_diff: >-
+    4 files from 47ed11f: check-domain.sh, test-check-domain.py, templates/PLAN.md,
+    harness-spec-driven/SKILL.md. The other 10 are .harness state and notes.
 approved:
   brief: "approved — Mike Ruangutai, 2026-08-05, BRIEF.md:115-117"
   plan: "approved — Mike Ruangutai, 2026-08-05, PLAN.md:118-120"
