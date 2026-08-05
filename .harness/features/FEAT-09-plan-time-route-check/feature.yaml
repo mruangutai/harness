@@ -9,9 +9,9 @@ posture: >-
   SC-04 is now TRUE as written. Both open decisions are RULED: a DELTA review of 4918d06..HEAD
   (pin re-taken first, INV-6), and VF-2 FILED as issue #132 rather than fixed here. Remaining:
   delta review, goal-check on 12 SCs, distillation, briefing.
-review_sha: 9af84ac
+review_sha: 7a1bff8
 review_sha_note: >-
-  RE-PINNED 2026-08-05 to HEAD, BEFORE the delta reviewer was dispatched (INV-6). THE PIN HAS
+  RE-PINNED 2026-08-05 to 7a1bff8, BEFORE the delta reviewer was dispatched (INV-6). The source delta from 4918d06 is UNCHANGED — the commits since 9af84ac are .harness state only. THE PIN HAS
   MOVED TWICE AND THE BRIEFING MUST SAY SO. (1) 1185d7f was DANGLING after the rebase and was
   removed, not carried. (2) 4918d06 was taken once after T-02 and DEC-179, per the user ruling
   that INV-6 binds at reviewer dispatch — the FOUR-WIDE panel scoped 47ed11f..4918d06 against
