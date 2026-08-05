@@ -3,28 +3,32 @@ phase: build
 branch: feat/FEAT-09-plan-time-route-check
 pr: none
 status: awaiting_user
-review_sha: ae2443d
+review_sha: 1185d7f
 cycles_used: 1
 max_total_cycles: 10
-cost_usd: 115.71
+cost_usd: 214.93
 max_cost_usd: 120
 runs:
   - id: plan-product
     squad: product
     verdict: ESCALATE
     cost_usd: 56.27
-tasks: { T-01: PENDING, T-02: HELD, T-03: PENDING, T-04: PENDING }
+  - id: seg1-main-session
+    squad: none
+    verdict: PASS
+    cost_usd: 99.22
+tasks: { T-01: DONE, T-02: HELD, T-03: DONE, T-04: DONE }
 gate_status:
-  unit: "PASS — 13/13, re-run by me in the worktree at ae2443d before the build segment"
-  qa_gate: NOT_RUN — build phase not yet executed
+  unit: "PASS — 13/13 exit 0, re-run by ME after the segment, not relayed"
+  docs: "PASS — check-docs.sh exit 0, re-run by me"
+  state: "PASS — check-state.sh exit 0, zero violations, re-run by me"
+  qa_gate: NOT_RUN — validate phase
   review: NOT_RUN — the panel is FOUR-WIDE by user ruling, see validate_panel
   security: NOT_RUN — NOT a skip; the ruling forbids pre-emptive skips
   ui: NOT_RUN — NOT a skip; the ruling forbids pre-emptive skips
   uat: NOT_REQUIRED — nothing here is operated by hand
-  goal_check: NOT_RUN — build phase not yet executed
+  goal_check: NOT_RUN — cannot run until T-02 lands; SC-05..SC-10 and SC-12 rest on it
   ship_refresh: "SKIP — .harness/codebase/ does not exist in this tree"
-  docs: "PASS — check-docs.sh exit 0, re-run by me in the worktree"
-  state: "PASS — check-state.sh exit 0, zero violations, re-run by me in the worktree"
 validate_panel:
   ruling: >-
     USER RULING, binds the validate phase: run ALL FOUR steps of teams/review.yaml —
@@ -39,128 +43,126 @@ validate_panel:
     validate-digest.py already accepts that pair for a reviewer that scoped out.
   if_skipping: >-
     Any skipped step means returning awaiting_user with the reason. The call is the user's.
+segment_1_receipts:
+  verified_by: >-
+    ME, re-running every verify: in the worktree after the segment returned. The
+    coordinator's report is corroborated, not relayed. One of my own probes was
+    malformed — escaped quotes made the hook payload invalid JSON, which read as a
+    false exit 0; re-run from a real payload file it gave the expected exit 2.
+  t01: >-
+    PASS. Resolve probe prints OK; test-check-domain.py exit 0; unit suite exit 0. My
+    independent open-pipe probe answered in 0.21s with harness-dev-ops — the pre-change
+    tree hung past 10s on that exact call.
+  t01_one_matcher: >-
+    THE LOAD-BEARING CLAIM, VERIFIED NOT TRUSTED. glob_to_re and matches hash IDENTICALLY
+    between ae2443d and the landed tree (dedented, blank-stripped: 2025f71963fd and
+    59e448ad0fdb on both sides). Exactly one definition of each remains. fnmatch appears
+    once, inside the comment explaining why it is wrong. REQ-04 and SC-08 clauses 2 and 3
+    hold.
+  t01_stdin: >-
+    payload=$(cat) is in the ELSE branch at :40; the --resolve branch at :36 sets an env
+    var and never reads stdin. The structure is right, not merely the timing.
+  t01_hook_path: >-
+    SC-04 confirmed with my own payload files: documentor writing bin/ exits 2, documentor
+    writing docs/ exits 0. The hook path is unchanged.
+  t03: "PASS. Full chained verify exit 0. 68 lines of an 80 cap."
+  t04: "PASS. Full chained verify exit 0. 134 lines of a 140 cap — 6 spare."
+  sc11: "git diff ae2443d -- .claude/agents/harness-pm.md is 0 bytes. Re-checked post-segment."
+  deferred: >-
+    STATED, NOT HIDDEN. The suite is 13 PASS, not 14. SC-10's registered-test clause is
+    NOT exercised by anything in segment 1, and T-03's and T-04's durable evidence
+    (cases 10-12) does not exist yet either — their land-time greps are the only gate
+    they have passed. All of it rests on the held task.
 rulings:
   q1_t02_held: >-
-    USER RULING 2026-08-05. T-02 is HELD. Build T-01, T-03, T-04 now; do NOT touch
-    run-unit-tests.sh:6 until FEAT-08 has merged to main AND this worktree is rebased
-    onto it. Second-order reason the predecessor could not see: after FEAT-08 merges,
-    its removal of test-cost-report.py means an array written from this tree would list
-    a script that no longer exists, and the runner fails on a listed-but-deleted entry.
-    Rebase first, then append to the corrected 12-entry array. Option (c) — one feature
-    owning both edits — is BROKEN, not merely inelegant: FEAT-08's tree has no
-    test-check-plan-routes.py, so listing it fails FEAT-08's own drift detector.
-  q1_consequence: >-
-    Every verify: riding run-unit-tests.sh as its whole-suite check runs in a tree where
-    test-check-plan-routes.py is not yet listed. Expect 13 PASS, not 14. The 14th-PASS
-    clause of SC-10 is DEFERRED to T-02, stated per receipt, never reported as green.
+    USER RULING 2026-08-05. T-02 is HELD until FEAT-08 merges to main AND this worktree
+    is rebased onto it. After that merge, FEAT-08's removal of test-cost-report.py means
+    an array written from this tree would list a script that no longer exists. Rebase
+    first, then append to the corrected 12-entry array. Option (c) — one feature owning
+    both edits — is BROKEN: FEAT-08's tree has no test-check-plan-routes.py, so listing
+    it fails FEAT-08's own drift detector.
   q2_decisions_entry: >-
-    USER RULING 2026-08-05. The DECISIONS.md entry is written by THIS flow, AFTER FEAT-08
-    merges — DECISIONS.md and DECISIONS-INDEX.md are FEAT-08's files until it lands.
+    USER RULING 2026-08-05. This flow writes the DECISIONS.md entry AFTER FEAT-08 merges.
     Substance: task routing is resolved at plan time by check-plan-routes.py calling
     check-domain.sh --resolve, and an ungranted surface becomes a DECLARED main-session
-    step, never a discovered one. The index is GENERATED — write the entry in
-    DECISIONS.md, run gen-decisions-index.py, never hand-edit generated fields, and
+    step, never a discovered one. The index is GENERATED — write the entry, run
+    gen-decisions-index.py, never hand-edit generated fields, and
     gen-decisions-index.py --stdout | diff - must exit 0 after.
   q2_brief_override: >-
     RECORDED SO THE GOAL-CHECK DOES NOT FLAG IT. BRIEF.md:106-109 forbids any task here
-    writing under docs/harness/. The q2 ruling OVERRIDES that constraint for the single
-    DECISIONS.md entry plus the regenerated DECISIONS-INDEX.md, on the user's authority,
-    2026-08-05. Nothing else under docs/harness/ is in scope.
+    writing under docs/harness/. The q2 ruling OVERRIDES that for the single DECISIONS.md
+    entry plus the regenerated index, on the user's authority, 2026-08-05.
   q2_route: >-
-    docs/** is granted to harness-documentor at team-config.yaml:116 — verified by me,
-    not recalled. The entry therefore routes product-lead to documentor as a team task;
-    my own domain excludes docs/**, so "you write it" means this flow writes it.
+    docs/** is granted to harness-documentor at team-config.yaml:116 — verified, not
+    recalled. The entry routes product-lead to documentor as a team task.
   q345_open: >-
     Q3 (promote the checker to a check-state.sh invariant), Q4 (consolidate the copied
-    task-block regex), Q5 (normalise squad-dispatched in historical plans) are
-    NON-BLOCKING and stay open. They are carried into the briefing as residual backlog,
-    not resolved here.
-build_lanes:
-  main_session_direct: T-01 (DEC-174 carve-out), T-03, T-04 (granted to nobody)
-  team: T-02 only — bin/** to backend-dev or dev-ops (team-config.yaml:155, :197)
-  segment_1: T-01, T-03, T-04 — ONE consolidated main-session segment, dependency-ordered
-  segment_2: T-02 — held until the FEAT-08 merge and rebase; then eng-lead
-  segment_3: the DECISIONS.md entry — product-lead to documentor, after the rebase
-  t04_ordering_note: >-
-    PLAN.md gives T-04 depends_on T-02, and the user's ruling puts T-04 in segment 1.
-    Mechanically safe — T-04's verify greps SKILL.md for the STRING check-plan-routes.py
-    and never executes it. One disclosed consequence, non-blocking: between T-04 landing
-    and T-02 landing, harness-spec-driven is preloaded by harness-pm and instructs a
-    planner to run a script that does not exist yet. No feature is being planned in that
-    window. The user owns the sequencing.
-preflight:
-  ran_by: me, in the worktree, before handing the segment over
-  resolve_open_pipe: "HANG past 10s — reproduces the plan's receipt at :307"
-  resolve_stdin_closed: "exit 0, stdout EMPTY — the fail-OPEN half, reproduces :308"
-  grant_harness_json: "exactly one grant, team-config.yaml:196, harness-dev-ops — T-01's verify assertion is correct"
-  grant_bin: "two grants, :155 backend-dev and :197 dev-ops — matches the PLAN citation exactly"
-  grant_skills_templates: >-
-    Only bin/** is granted anywhere under .claude/skills/; nothing grants templates/**
-    or harness-*/SKILL.md. The lanes table's two ungranted rows are correct.
-  check_docs_registry: >-
-    check-docs.sh's registry is stale-STRING markers in DECISIONS.md, not file:line
-    anchors. Grep for harness-spec-driven/SKILL.md:NN and templates/PLAN.md:NN across
-    all four docs returns nothing, so T-03's and T-04's insertions shift no cited line.
-  sc11_pinned: "git diff ae2443d -- .claude/agents/harness-pm.md is 0 bytes today; re-check before the briefing"
-  gh_sync_open: "SKIPPED — mirror already open, ids recorded below; gh-sync open is idempotent but had nothing to add"
-sc_summary:
-  planned: 12
-  reqs: 6
-  decisions: 8
-  note: >-
-    SC-01..SC-12; every SC's clause count equals its fixture count. SC-11 is the only SC
-    with no runner (verify: inspection) and is the one most likely to be hand-waved.
+    task-block regex), Q5 (normalise squad-dispatched in historical plans) stay open and
+    NON-BLOCKING. They ride into the briefing as residual backlog.
+  t04_window: >-
+    ACCEPTED BY THE USER, DISCLOSED HERE. Between T-04 landing and T-02 landing,
+    harness-spec-driven instructs a planner to run a script that does not exist. No
+    feature is being planned in that window.
+next_steps:
+  s1: "FEAT-08 merges to main; this worktree rebases onto it — the user's signal, not mine"
+  s2: "T-02 via eng-lead: append to the ALREADY-CORRECTED 12-entry array, re-read :6 first"
+  s3: "The DECISIONS.md entry + regenerated index via product-lead to documentor"
+  s4: "Validate: FOUR-WIDE panel, all of teams/review.yaml, no pre-emptive skips"
+  s5: "pm goal-check on all 12 SCs, then distillation, then the CEO briefing"
+cost_note: >-
+  OVER BUDGET AND REPORTED, NEVER HIDDEN (DEC-134 — cost is informational, never a gate).
+  Project cumulative 6173.0448 to 6272.2639, a delta of 99.2191 for the segment. Feature
+  total 214.93 against a 120 budget: 1.79x. CONTAMINATED UPWARD AND PROVABLY SO —
+  harness-eng-lead moved +4.2588 and its spawn count went 18 to 20 in this window, and I
+  dispatched no eng-lead at all. That row is FEAT-08's flow metering into the same
+  project-cumulative reporter, which is direct EVIDENCE for the contamination rather than
+  an assertion of it. The true FEAT-09 share is materially lower than 214.93; no figure is
+  invented and none is adjusted downward to flatter it.
+cost_reconciliation_caveat: >-
+  HONEST LIMIT, AND A POSSIBLE HARNESS DEFECT. Last stretch the delta reconciled exactly
+  against the rows that moved. This one does NOT: the three rows I sampled sum to 99.7568
+  against a total delta of 99.2191, a 0.5377 shortfall. Cumulative counters cannot
+  decrease, so either a row I did not sample fell, or a session aged out of the 30-day
+  transcript retention window and took its spend with it. I have not established which
+  and am not guessing. Raised as a non-blocking question because it bears on whether any
+  cost figure in this repo is stable over time.
 baseline:
   base_sha: ae2443d
+  head_sha: 1185d7f
   closes_issues: "#20"
   grilling: .harness/notes/grilling-routing-wall-2026-08-05.md
   briefing: none — not yet written
-  answers: none
-  commits: none by this flow
   worktree: /Users/molchairuangutai/GitHub/harness-FEAT-09
-  cost_note: >-
-    UPPER BOUND, NOT AN ATTRIBUTION, and no figure is invented. Project cumulative moved
-    6113.6083 (the plan-product block) to 6173.0448, a delta of 59.4365 for this
-    build-orientation stretch. Only two by_agent rows moved and they sum to exactly that
-    delta: orchestrator depth-0 opus-5 +35.0731 and harness-orchestrator depth-1 opus-5
-    +24.3634 — no lead spawned, which is consistent with zero runs opened. BOTH rows are
-    CONTAMINATED: FEAT-08's orchestrator is the same agent_type at the same depth and
-    shares the same depth-0 main session, so its spend is inside both figures. Feature
-    cumulative 56.27 + 59.44 = 115.71 against a 120 budget. Metered with --project
-    against the real transcript dir because the reporter munges cwd and the worktree has
-    no transcripts of its own; that call is read-only.
-  cost_flag: >-
-    THE BUDGET WILL BE CROSSED AND THAT DOES NOT STOP WORK (DEC-134). 115.71 of 120 is
-    spent with T-02, the FOUR-WIDE validate panel, the goal-check, feature-close
-    distillation, the DECISIONS entry and the briefing still to run. Raised as a
-    non-blocking question, reported in every return, never hidden and never a gate.
-  design_pass: >-
-    No DESIGN.md and no visual-designer spawn. Nothing here is operated by a human.
+  cost_cumulative_for_next_delta: 6272.2639
+  commits:
+    - "06a680f — approved BRIEF/PLAN + build state"
+    - "685901d — [harness:t-01] check-domain.sh --resolve + 8 cases"
+    - "92d254b — [harness:t-03] templates/PLAN.md Lanes + execution_mode"
+    - "1185d7f — [harness:t-04] harness-spec-driven routing rule"
+  design_pass: "No DESIGN.md, no visual-designer spawn. Nothing here is operated by a human."
 approved:
-  brief: "approved — Mike Ruangutai, 2026-08-05, BRIEF.md:115-117, read by me in the worktree"
-  plan: "approved — Mike Ruangutai, 2026-08-05, PLAN.md:118-120, read by me in the worktree"
+  brief: "approved — Mike Ruangutai, 2026-08-05, BRIEF.md:115-117"
+  plan: "approved — Mike Ruangutai, 2026-08-05, PLAN.md:118-120"
 resolved:
   - >-
-    THE PLAN-PHASE SEND-BACK EARNED THE RUN. product-lead rejected pm's first return:
-    SC-08 asserted two matcher prohibitions while T-02's intent forbade three, the third
-    a str.startswith prefix comparison that would have passed both source greps and
-    landed a SECOND matcher. SC-08 is now 4 clauses, 4 fixtures, the fourth behavioural.
-    That is the one cycle counted.
+    THE BUILDER HIT THE EXACT FAIL-OPEN THE PLAN PREDICTED, BY ACCIDENT. Its first
+    insertion put the resolve branch below the identity early-exit and reproduced exit 0
+    with empty stdout — the hazard the receipts table documented, produced unintentionally
+    and caught by running rather than reading. The second attempt hit NameError on the
+    hoisted matcher. Two wrong placements, both caught by execution. That is the strongest
+    evidence this feature's premise was correct.
   - >-
-    THE STDIN HAZARD IS REAL AND I RE-MEASURED IT MYSELF, not on trust. Open pipe hangs
-    past 10s; stdin closed exits 0 printing nothing. D-02 makes NOBODY a literal emitted
-    token because a caller cannot otherwise tell "no agent" from "did not run".
+    A DELIBERATE DIVERGENCE FROM THE HOOK, AND IT IS RIGHT. The hook fails OPEN on a
+    missing manifest; the resolver exits 2. An unanswerable route reported as NOBODY would
+    put a task in the main-session lane on the strength of a broken config. This sits
+    inside T-01's approved intent, not outside it.
   - >-
-    THE CHECKER MUST NOT SWALLOW ITS OWN CARVE-OUT. T-01's paths ARE granted, so a
-    checker asking only "does anyone grant this?" passes T-01 and never reads its
-    main-session-direct declaration. T-02 emits a non-failing DEVIATION line (SC-12).
+    MY OWN PROBE LIED BEFORE THE CODE DID. Escaped quotes made a hook payload invalid JSON
+    and returned a false exit 0 that looked like a regression. The tool under test was
+    fine; the measurement was not. Re-run from a payload file it gave exit 2 as designed.
 github:
   milestone: 4
   parent: 98
-  parent_origin: created
   attached: [T-01, T-02, T-03, T-04]
-  issues:
-    T-01: 99
-    T-02: 100
-    T-03: 101
-    T-04: 102
+  closed: ["T-01 -> 99", "T-03 -> 101", "T-04 -> 102"]
+  open: ["T-02 -> 100"]
