@@ -116,7 +116,8 @@ run 10 — a historical figure about the problem, not this feature's spend.
 ## State, verified by running
 
 Unit suite exit 0 (32 PASS, 0 FAIL) · `check-docs` 0 · `check-state` 0 · decisions-index drift 0 ·
-`git diff 7354ad0 HEAD` touches only `feature.yaml`, so **no unreviewed source is in the tree**.
+**no source file has changed since the review pin** — `git diff --name-only 7354ad0 HEAD`
+returns 16 files, all of them `.harness/` bookkeeping, zero source.
 All four tasks DONE. Distillation ran across ten agents; every Expertise file passes its checker.
 
 ## Residual backlog — nothing here gates the ship

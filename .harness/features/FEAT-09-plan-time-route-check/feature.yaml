@@ -12,8 +12,9 @@ review_sha_note: >-
   THE PIN MOVED THREE TIMES; the briefing carries why. (1) 1185d7f DANGLING after the rebase,
   removed not carried. (2) 4918d06 for the four-wide panel. (3) 7a1bff8 for the delta review after
   the VF-1 fix made it stale. (4) 7354ad0 now, applying that reviewer's own findings.
-  RE-VERIFIED AT THIS LEG: git diff --name-only 7354ad0 HEAD returns feature.yaml ONLY, so no
-  unreviewed source sits in the tree and the goal-check rests on a reviewed diff.
+  RE-VERIFIED AT THIS LEG: no SOURCE file has changed since the pin — git diff --name-only
+  7354ad0 HEAD returns 16 files, ALL under .harness/ bookkeeping, ZERO source. So the goal-check
+  rests on a fully reviewed source diff.
 cycles_used: 2
 max_total_cycles: 10
 cycles_note: >-
@@ -50,10 +51,10 @@ runs:
     squad: product
     verdict: ESCALATE   # SC-08 ruling, deliberately not masked inside a PASS
 gate_status:
-  unit: "PASS — re-run by ME at HEAD 3a5a245: exit 0, 32 PASS, 0 FAIL, 13 scripts"
-  docs: "PASS — check-docs.sh exit 0, re-run by me at HEAD"
-  state: "PASS — check-state.sh exit 0, re-run by me at HEAD"
-  index: "PASS — gen-decisions-index.py --stdout | diff - exits 0, re-run by me at HEAD"
+  unit: "PASS — re-run by ME: exit 0, 32 PASS, 0 FAIL, 13 scripts"
+  docs: "PASS — check-docs.sh exit 0, re-run by me"
+  state: "PASS — check-state.sh exit 0, re-run by me"
+  index: "PASS — gen-decisions-index.py --stdout | diff - exits 0, re-run by me"
   review: >-
     PASS. Four-wide at 4918d06 FAILED with one HIGH (VF-1), fixed at 7218d63. Delta at 7a1bff8
     PASSED, severity_max low, no must_fix; its two findings were APPLIED at 7354ad0, not carried.
@@ -62,9 +63,9 @@ gate_status:
   ui: "PASS — self-scoped out ON MEASUREMENT, not prediction. No rendered surface"
   uat: NOT_REQUIRED — nothing here is operated by hand
   goal_check: >-
-    RAN at HEAD 3a5a245 via product-lead/pm. 11 of 12 SCs MET. SC-08 UNMET-AS-UNPROVEN. pm's
-    premise was re-verified BY ME and is stronger than reported. Digest:
-    runs/goalcheck-product/digest.md
+    RAN via product-lead/pm. 11 of 12 SCs MET. SC-08 UNMET-AS-UNPROVEN. pm's premise was
+    re-verified BY ME and is stronger than reported. Digest: runs/goalcheck-product/digest.md
+    (GITIGNORED, local-only — the durable copy of the result is sc_status below).
   ship_refresh: "SKIP — .harness/codebase/ does not exist in this tree, so no map to refresh"
   distillation: >-
     DONE across 10 agents. All 12 expertise files pass check-expertise.sh exit 0, RE-RUN BY ME
@@ -138,7 +139,8 @@ baseline:
     errors — git diff ae2443d just returns the WRONG SCOPE. MEASURED AGAIN THIS LEG: 71 files
     against a true 14 at 3c245c3 where it was caught, and 84 against 30 at HEAD today. A wrong
     answer with exit 0. 47ed11f is git merge-base main HEAD, measured.
-  head_sha: 3a5a245
+  head_sha: 2d26c2f
+  head_sha_note: "State BODY was measured at 3a5a245; committing it produced 2d26c2f, which is bookkeeping-only. The mismatch is the usual self-reference lag, not drift."
   closes_issues: "#20"
   briefing: notes/ship-review-close.md
   worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/FEAT-09

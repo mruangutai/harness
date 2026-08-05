@@ -1,4 +1,4 @@
-# Handoff — FEAT-09, validate → ship — written at 3a5a245, seq-5
+# Handoff — FEAT-09, validate → ship — state written at 3a5a245, committed as 2d26c2f, seq-5
 
 ## Next
 
@@ -24,12 +24,12 @@ become issues.
   rather than relayed — verified-at 3a5a245
 - SC-08's fixture provably cannot fail: live `--resolve` on the case-17 path returns TWO agents and
   a prefix-only implementation would grant SIX — **my own measurement, not pm's** — verified-at 3a5a245
-- Nothing unreviewed is in the tree: `git diff --name-only 7354ad0 HEAD` is `feature.yaml` only —
-  my own re-run — verified-at 3a5a245
-- Gates at HEAD: unit exit 0 (32 PASS, 0 FAIL, 13 scripts), docs 0, state 0, index drift 0 — my own
-  re-runs — verified-at 3a5a245
+- No SOURCE file has changed since the review pin: `git diff --name-only 7354ad0 HEAD` returns 16
+  files, ALL under `.harness/`, zero source — my own re-run — verified-at 2d26c2f
+- Gates: unit exit 0 (32 PASS, 0 FAIL, 13 scripts), docs 0, state 0, index drift 0 — my own
+  re-runs — verified-at 2d26c2f
 - All 12 Expertise files pass `check-expertise.sh` exit 0, including the two lead files their owners
-  flagged as unverified — my own run — verified-at 3a5a245
+  flagged as unverified — my own run — verified-at 2d26c2f
 - SC-04 is TRUE AS WRITTEN; the "FALSE" wording in older notes is superseded history — verified-at 3a5a245
 - GitHub #100 (T-02) is still OPEN: its close condition is met but `gh-sync.py close-task` was
   BLOCKED by the permission classifier — my own attempt — verified-at 3a5a245
@@ -51,6 +51,6 @@ become issues.
 
 - `notes/ship-review-close.md` — the briefing, addressed to the user
 - `feature.yaml` — pin, gates, `sc_status`, `must_fix_open`, backlog
-- `runs/goalcheck-product/digest.md` — the 12-entry `sc_status` with evidence
+- `feature.yaml` `sc_status` — the goal-check result; its run digest is GITIGNORED and local-only
 - `notes/backlog-detail.md` — the 14 residual items, rationale
 - `BRIEF.md` — the 12 SCs as approved
