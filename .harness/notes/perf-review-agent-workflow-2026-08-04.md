@@ -32,7 +32,7 @@ only, which is why 19-runs-against-6-cycles never tripped anything.
 | 4 | **Run qa phase 1 concurrently with the build** (it has no source access by design) | **High** | **Low** (arguably a gain) | Med | Med |
 | 5 | **Probe bounded environment questions immediately** instead of inferring them | Med | **Negative** (quality improves) | Low | Low |
 | 6 | **Collapse the close-out rounds** — dispatch the three leads concurrently, merge ship-refresh with distillation, drop the report-only half | Med | **Med** | Low | Low |
-| 7 | **Chase the 11–21× PreToolUse hook-fire multiplier** (dedup only, never "fire less") | Med | None if dedup; **Med** if it becomes weaker enforcement | **High** (DEC-174 carve-out) | Med |
+| ~~7~~ | ~~**Chase the 11–21× PreToolUse hook-fire multiplier**~~ — **WITHDRAWN 2026-08-05: NOT REPRODUCIBLE.** Probed in isolation: one Write tool call fires the hook exactly ONCE, allow path and deny path alike. The `~0.9s per call` claim was `21 × 43.5ms`; the real cost is **43.5ms**. See §7. Issue #81 closed. | n/a | n/a | n/a | n/a |
 | 8 | **Drop `harness-team` from the orchestrator's preload** — flat mode is dead | Low wall-clock / Med cost | Low | Low–Med | Low |
 | 9 | **Split `harness-expertise`'s distillation half** out of the universal preload | Low wall-clock / Med cost | Low–Med | Med | Low |
 | 10 | **Count and budget runs, not just cycles** — observability so rows 1 and 6 get noticed live | Low (indirect) | None | Low | Low |
@@ -110,6 +110,16 @@ dispatch does both less carefully; distillation is explicitly a *cold, stepping-
 disclosure requirement: the round exists so the orchestrator is not narrating work it did not see.
 
 ### 7 — The hook-fire multiplier (perf Med / qual None-if-dedup / risk High / effort Med)
+
+> **WITHDRAWN 2026-08-05 — the premise does not reproduce.** A bounded probe (one additive line,
+> byte-identical revert, suite re-run) measured **1 hook fire per 1 Write tool call**, on both the
+> allow and the deny path, with `settings.json` carrying exactly one matching `PreToolUse` entry.
+> The two figures below were incidental observations inside probes of unrelated questions and the
+> log said so — *"INCIDENTAL, not chased"* and *"multiplier is not constant, not chased"*. The
+> 11-fire note also predates T-13, when the hook still launched four `python3` processes per
+> invocation. **Everything in the paragraph below that depends on the multiplier is wrong**, including
+> the ~0.9s figure; the guard costs 43.5ms per governed call. Issue #81 closed as not reproducible.
+> Kept rather than deleted, because how it got ranked second is the more useful finding.
 
 Two independent probes on 2026-08-03 measured **11 fires for one reported write**
 (`2026-08-03.md:24`) and **21 fires for one write** (`:27` — "multiplier is not constant, not
