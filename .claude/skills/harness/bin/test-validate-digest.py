@@ -746,6 +746,10 @@ DIGEST:
   status: shipped
   runs: [r1, r2]
   cycles_used: 2
+  # BACKWARD-COMPATIBILITY PIN (SC-04, second half). `cost_usd` is no longer in the
+  # orchestrator schema, and a return written to the OLD contract must still validate
+  # — unknown keys are ignored. This fixture goes RED if a later edit re-adds the
+  # field to a required set, or introduces an unknown-key rejection.
   cost_usd: "12.83"
   briefing: .harness/notes/ship-review-FEAT-01-r2.md
   files_touched: []
@@ -762,7 +766,9 @@ DIGEST:
   status: in_progress
   runs: [r1]
   cycles_used: 1
-  cost_usd: "4.10"
+  # THE NEW CONTRACT (SC-04, first half): no `cost_usd` at all. This case is the
+  # DETECTOR — at ae2443d it was REJECTED for a missing required field, so it can
+  # only go green once the schema entry is gone.
   briefing: none
   files_touched: []
   open_questions: []
