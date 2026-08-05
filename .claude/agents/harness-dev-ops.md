@@ -72,6 +72,13 @@ DIGEST:
   applied: [<paths>]
   suite: pass|fail|n/a          # n/a for genuinely TDD-exempt work (test_matrix -> []).
                                 # dev-ops MAY pass with n/a; dev and qa may not (DEC-173)
+  task: T-NN|none               # your task's id, verbatim from your dispatch. `none` ONLY when
+                                # this dispatch carries no PLAN task at all (DEC-175)
+  task_verify: pass|fail|n/a    # THE ASYMMETRY, and it is easy to get backwards: your `suite`
+                                # carve-out above does NOT extend here. `task_verify: n/a` with
+                                # VERDICT: PASS is REJECTED for dev-ops too — no carve-out.
+                                # `n/a` here means you refused the task or were blocked, and it
+                                # pairs with VERDICT: BLOCKED or FAIL — never with PASS
   test_kinds_written: [<kind: cmd>]   # when you ran detection
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
