@@ -918,7 +918,7 @@ no domain is widened. D-01 through D-10 are unamended** — in particular **D-01
 ("the measured extra-key tolerance is what makes removal safe") is UNCHANGED**, because the tolerance
 is still true and still what makes removal safe; only the *fixture that pinned it* goes.
 
-#### T-01 — the pin is DELETED, not kept
+#### Amendment to T-01 — the pin is DELETED, not kept
 
 T-01's approved intent mandates keeping one fixture carrying `cost_usd: "12.83"` as the
 backward-compatibility pin. **That mandate is what created the SC-01/SC-04 collision A-2 reported.**
@@ -953,7 +953,7 @@ site (the DEC-156 hook case, whose dev payload carries `branch: none` — a lead
 A-4 does not add a test — that is new mandate beyond the ruling — and raises it as an open question
 instead.
 
-#### T-02 — the INV-11 prose must be reworded
+#### Amendment to T-02 — the INV-11 prose must be reworded
 
 T-02's approved intent covers `check-state.sh` thoroughly and the `test-check-state.py` fixtures, but
 **never mentions the two prose sites**. Replacement requirement for the follow-up edit:
