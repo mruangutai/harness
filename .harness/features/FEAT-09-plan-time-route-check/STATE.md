@@ -3,65 +3,62 @@
 ## Current
 
 - feature: FEAT-09-plan-time-route-check
-- phase: build
+- phase: validate
 - worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/FEAT-09 (branch feat/FEAT-09-plan-time-route-check)
-- head: f823426
-- base: 47ed11f (`git merge-base main HEAD`) — re-pinned at the rebase, was ae2443d
-- run: none open — no lead dispatched this phase
-- status: UNPARKED, in_progress — segment 2
+- head: 4918d06 — also the pinned `review_sha`
+- base: 47ed11f (`git merge-base main HEAD`)
+- run: none open
+- status: **awaiting_user** — one BLOCKING finding, in a lane no agent here may enter
 
-**UNPARKED 2026-08-05. The signal arrived.** FEAT-08 merged (PR #131, main at 47ed11f) and this
-worktree is rebased onto it — 7 commits ahead, tree clean, replay verified byte-identical on all
-four committed source files. **All seven commit ids were rewritten**; the pre-rebase ids
-(685901d, 92d254b, 1185d7f, 06a680f, abddb28, 2a242df) are dangling and must not be cited.
+**Segment 2 delivered everything it was asked to, and the panel then found a HIGH.** T-02 landed
+clean at `ae28daf` — `check-plan-routes.py`, a 17-case test, and one appended `SCRIPTS` element.
+DEC-179 landed at `4918d06` with the index regenerated. `review_sha` was pinned ONCE, after both,
+against a complete diff. The four-wide panel ran with no skips.
 
-**Both SHA pins were stale, and they failed differently.** `review_sha 1185d7f` is dangling —
-`git merge-base --is-ancestor 1185d7f HEAD` returns NO — so it errors loudly and every handoff
-claim tagged "verified-at 1185d7f" is unfalsifiable against the branch until re-taken. `base_sha
-ae2443d` was the quieter one: a pre-FEAT-08 main commit that still resolves, so `git diff
-ae2443d..HEAD` succeeds and simply returns 71 files where the true diff is 14. It is corrected to
-47ed11f. SC-11 was re-checked against both and holds at 0 bytes either way.
+**The blocking finding — VF-1.** If `HARNESS_RESOLVE_PATH` is present in the environment, every
+agent can write every path: exit 0, no stderr, nothing logged. `check-domain.sh:38` exports it in
+the `--resolve` branch and the `else` branch at `:39-41` never unsets it; `:133-134` selects mode on
+`is not None`, so even an empty string qualifies. **I reproduced this myself with payload FILES,**
+not inline: the same documentor-writes-`bin/` payload exits 2 on a clean env and exits 0 with the
+variable set. Full write-up at `notes/vf1-guard-bypass.md`.
 
-**review_sha is deliberately NOT_PINNED right now.** User ruling on the timing conflict: INV-6
-binds at REVIEWER DISPATCH, not "before anything else", and `validate_panel.timing` requires one
-pass against a COMPLETE diff. T-02 still lands a source commit, so pinning now guarantees a second
-stale pin. Pin AFTER T-02 and the DECISIONS entry, immediately before the panel.
+**SC-04 is false as written, not under-tested.** `BRIEF.md:48-49` states it in argv terms — "no
+`--resolve` in argv → still exits 2" — and the implementation does not branch on argv at all. The
+existing cases (g)/(h) pass only because the environment happens to be clean. That is what makes
+this gate rather than sit as a `med`.
 
-Three of four tasks are DONE and committed. I verified every `verify:` myself rather than
-relaying the report: the resolve probe prints `OK`, the domain test exits 0, the unit suite is
-13/13, `check-docs.sh` and `check-state.sh` both exit 0. The load-bearing claim holds — both
-matcher functions hash IDENTICALLY either side of the change, so exactly one matcher survives.
-The stdin read now sits in the `else` branch; an open pipe that hung past 10s answers in 0.21s.
-The hook path is unchanged, checked with my own payload files.
+**It is a DECLARED main-session step, which is this feature's own thesis applied to itself.** The
+manifest grants `check-domain.sh` to backend-dev and dev-ops — measured, not assumed — but DEC-174
+forbids dispatching a change to it through a team run whose gates are the thing being changed, and
+the domain hook separately blocks me. I may neither perform this fix nor delegate it. It is exactly
+the `DEVIATION` shape `check-plan-routes.py` was built to surface.
 
-**Three rulings received and recorded.** The review panel waits for ONE post-rebase pass rather
-than running now — the panel must re-run after the last task regardless, and a pin taken now
-goes stale at the rebase. The accepted cost is on the record: the write-permission guard stays
-committed with zero independent review until the concurrent feature merges. That is a window
-that existed, and the briefing must name it as such.
+**The no-pre-emptive-skips ruling earned its keep.** No single reviewer could have produced this.
+Security found the mechanism without checking it against SC-04; code checked SC-04 correctly, under
+a clean environment. The defect lived in the *union* of the scopes. The ui reviewer declined on
+measurement, not prediction — a reviewed finding.
 
-**There is no cost line any more.** I verified the mandate is gone from the main checkout's
-playbook (grep returns nothing) rather than accepting it. The budget field is removed here. My
-own copy of the playbook still carries the old mandate, so until the rebase I am governed by
-text that is already superseded — a seam worth naming rather than assuming.
-
-**Segment 2, in this order — the pin has MOVED, do not re-derive from the old note:** T-02 via
-eng-lead (APPEND to the 12-entry SCRIPTS array, re-read `run-unit-tests.sh:6` first) → the
-DECISIONS entry via product-lead → documentor → **re-pin review_sha to the then-HEAD** → the
-four-wide panel → goal-check → distillation → briefing.
+**Goal-check, distillation and the briefing are deliberately NOT run.** SC-04 is already known
+false, and the fix changes the guard, so a goal-check now would be invalidated by the fix and a
+briefing would be addressed to a decision the user has not yet made.
 
 ## Open Questions
 
-- ~~Q-B BLOCKING — the merge-and-rebase signal.~~ **RESOLVED 2026-08-05.** FEAT-08 merged, this
-  tree is rebased, replay verified byte-identical. Unparked.
-- Q-G NON-BLOCKING, HARNESS DEFECT — the documented 200-line cap on this file is **not
-  mechanically enforced**. A 205-line write succeeded, no registered hook implements a
-  state-file shape gate, and the invariant checker has no such check. The rule is prose-only,
-  which is the exact enforcement shape this feature's own brief rejected. I trimmed to 186 by
-  hand; the next agent may not know to.
-- Q3 NON-BLOCKING — promote the route checker to a state-check invariant once the concurrent
-  feature releases that file?
-- Q4 NON-BLOCKING — the checker copies the state checker's task-block regex rather than sharing
-  it. Consolidate later, or accept two copies?
-- Q5 NON-BLOCKING — two historical plans use a token this feature retires. Leave them as
-  history, or normalise them?
+- **Q-VF1 BLOCKING** — apply the one-line `unset` plus the env-explicit test case to
+  `check-domain.sh`? It is main-session-direct by DEC-174. Nothing else in the feature is
+  outstanding. See `notes/vf1-guard-bypass.md`.
+- Q-VF2 NON-BLOCKING — a task naming a `shared:` file (package.json, pyproject.toml) is falsely
+  REJECTED by the checker. It fails closed, not open. Ruling on it amends DEC-179.
+- Q-SC08 NON-BLOCKING — three of SC-08's four clauses are respellable source greps, and case 17's
+  mid-pattern `*` never crosses a `/`, so an `fnmatch` reimplementation would pass it. The design
+  rule is weaker than its clause count suggests.
+- Q3 NON-BLOCKING — promote the route checker to a `check-state.sh` invariant?
+- Q4 NON-BLOCKING — the checker copies the state checker's task-block regex. Consolidate?
+- Q5 NON-BLOCKING — two historical plans use a token this feature retires. Normalise?
+- Q-INV17 NON-BLOCKING, HARNESS DEFECT — `check-state.sh` shape-checks a handoff note only once
+  `phase:` moves PAST the seam, so an over-cap note sits unflagged for the whole phase it
+  describes — exactly when a successor reads it. `handoff-build.md` was 63 lines against a 60 cap
+  and went undetected until I advanced the phase.
+- Q-STATECAP NON-BLOCKING — corrected against myself: `feature.yaml`'s 200-line cap IS
+  mechanically enforced (it blocked me three times and routed the rationale to `notes/`). The
+  unenforced one is this file, where a 205-line write once succeeded.
