@@ -160,3 +160,93 @@ A-3 or from the mid-flight capture below is one revision behind the current file
 - 2026-08-05 (T-10/A-3): `BUILD.md:545` ("## Build the org; monitor cost in practice") is ruled by
   A-3 as deliberately preserved — dated historical heading under D-07, plus the target of SPEC's
   cross-file anchor. It answers the Q17 note above; not re-opened, not a finding.
+
+## 2026-08-05 — MF-2 fix cycle · receipt for `docs/harness/org.html`
+
+**Verdict: PASS.** All three MF-2 sites closed in `docs/harness/org.html`, one file, three hunks.
+Branch `feat/FEAT-08-remove-cost-tracking`. No BRIEF/PLAN edit, no amendment, no removal marker.
+
+### The edits — three hunks, and the dirty-tree bound is measured, not inferred (P-03)
+
+`git diff -U0 -- docs/harness/org.html` is exactly three hunks: `@@ -167 +167 @@`,
+`@@ -286 +286 @@`, `@@ -307,4 +307,2 @@`. Nothing else in the file moved. The tree was already
+dirty at spawn: `feature.yaml` and `.harness/notes/perf-review-agent-workflow-2026-08-04.md` also
+show modified. I read their hunks — `feature.yaml` gains the `panel-validator` run row, the four
+gate-status flips and the `panel_result:` block; the perf note gains a `:35` rewrite and ten lines
+at `:114`. Both are the orchestrator's/panel's, none of it mine. My write set is two paths.
+
+- `:167` — "feature-wide cycle and cost budgets" → "feature-wide cycle budget". Clause dropped AND
+  made singular; a plural left behind is the grammar residue a token grep passes over.
+- `:286` — `feature.yaml` ownership row: dropped `, cost` including the preceding comma. `branch`,
+  `pinned review SHA`, `cycles used` survive verbatim.
+- `:307-310` → `:307-308` — rule card RETITLED and TRIMMED, never deleted.
+  **New title (my call, recorded here): `Cycles bound the work`** — parallel in shape with its two
+  siblings ("Paths, not payloads", "One writer per path") and describes ONE budget. The cycle half
+  survives verbatim: "Retry cycles are a hard cap — exhausting them stops the branch, preserves the
+  work, and brings you the decision." The cost sentence is gone. `class="rule-card stop"` kept — the
+  `.stop` styling is defined at `:129-131`.
+
+### Why the card could not be deleted — checked, not assumed
+
+`:299` is `<h2>Three rules that hold it together</h2>` and is the only count claim in the file.
+Post-edit `grep -n '<div class="rule-card'` returns exactly `:301`, `:304`, `:307` — count 3, so the
+heading still holds. (A bare `grep -c 'rule-card'` returns **6**, because `:129-131` are the CSS
+selectors — counting the class name rather than the div would have read as a spurious surplus.)
+
+### A · plain-word sweep, POST-EDIT, worktrees excluded
+
+    $ grep -rn -i --exclude-dir=worktrees 'cost' docs/harness/org.html
+    (no output)   exit 1
+
+Zero hits, so there is nothing left to classify. Wide sweep, re-run by me rather than inherited:
+
+    $ grep -rnE -i --exclude-dir=worktrees 'budget|usd|\$|spend|meter|INV-11|dollar|price|money' \
+        docs/harness/org.html
+    167:              feature-wide cycle budget. Sequences squads, routes questions between leads,
+    302:        file and the next step is told where it is. Pasting content forward burns the context budget
+
+Both hits accounted for and both legitimate: `:167` is the **cycle** budget (preserved by design —
+`max_total_cycles` is not touched by this feature), `:302` is the **context** budget the org exists
+to protect. Neither is money. Line numbers are post-edit: the card collapsed 4 lines to 2, so
+everything below `:308` shifted up by 2 — `:167`, `:286`, `:299-307` are unaffected.
+
+### B · structural HTML check, sensitivity PROVEN before the pass
+
+`html.parser` is lenient and accepts unclosed/mis-nested `div`s, so "it parsed" is not evidence.
+Checker at `scratchpad/tagstack.py` tracks an explicit tag stack, asserts LIFO closure and asserts
+the stack EMPTIES at EOF. It is run first against a copy of the post-edit file with the `</div>`
+closing **the card I edited** removed:
+
+    FAIL  BROKEN copy (rule-card's </div> dropped)
+            line 310: </section> closes <div> opened at line 300
+            line 136: <div> never closed (stack did not empty)
+            line 298: <section> never closed (stack did not empty)
+    OK    REAL docs/harness/org.html: tag stack empty, nesting balanced
+    sensitivity: PROVEN (broken rejected, real accepted)          exit=0
+
+The broken variant is held **in memory**, not on disk: `bash-write-guard.sh` blocks `cp` and shell
+redirect to the scratchpad (outside my domain), so the mutation is applied to the file's bytes after
+reading. Same bytes checked either way.
+
+### C · gates, run by me after the edit
+
+    .claude/skills/harness/bin/check-docs.sh        exit 0   "checked 45 superseded pattern(s)
+                                                              across 207 file(s). no stale
+                                                              statements found."
+    .claude/skills/harness/bin/run-unit-tests.sh    exit 0   12 PASS lines, zero FAIL
+
+### Observations
+
+- 2026-08-05 (MF-2): `bash-write-guard.sh` denies `cp` and shell redirect to the SCRATCHPAD, not just
+  to repo paths — a fixture for a sensitivity demo cannot be staged with `cp`. Either author it with
+  the `Write` tool or, better, mutate the bytes in memory inside the checker so the demo needs no
+  file at all.
+- 2026-08-05 (MF-2): when a heading counts its children ("Three rules…"), the deletion remedy a
+  finding recommends can itself introduce a new inaccuracy. Grep the heading's count claim BEFORE
+  deleting any block it governs; retitle-and-trim keeps the count true.
+- 2026-08-05 (MF-2): `grep -c '<class-name>'` over an HTML file with inline `<style>` counts the CSS
+  selectors too. Count the opening tag (`<div class="x"`), never the bare class token.
+- 2026-08-05 (MF-2): fifth plain-word site this feature, and the first in a non-Markdown file. Every
+  earlier sweep scoped to `*.md` by habit; `org.html` is hand-maintained (no generator or template
+  exists for it) and is a LIVE description, so its claims are not covered by D-07's historical-prose
+  marker carve-out.
