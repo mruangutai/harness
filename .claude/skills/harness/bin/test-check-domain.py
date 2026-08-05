@@ -480,13 +480,21 @@ def run_resolve():
         return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
                               text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT,
                                                   HARNESS_RESOLVE_PATH=resolve_value))
+    # EXIT 2 ALONE IS NOT ENOUGH, and the delta review caught this. There are five distinct
+    # exit-2 sites in this script and FOUR of them are inside the resolve branch (missing
+    # manifest, duplicate key, parse error, unreadable root). A reimplementation that still
+    # leaked the env var but happened to exit 2 from one of those would pass a returncode-only
+    # assertion while VF-1 was wide open. Assert the DENIAL TEXT, which only the hook path
+    # emits — the same convention cases (c)/(d) already use.
+    def denied(r):
+        return r.returncode == 2 and "may not write" in (r.stderr or "")
     r = hook_env(".claude/skills/harness/bin/check-domain.sh", "harness-documentor",
                  ".harness/harness.json")
     check("(i) VF-1: HARNESS_RESOLVE_PATH set in the env does NOT disable the hook",
-          r.returncode == 2, f"got {r.returncode}, stdout={r.stdout!r}")
+          denied(r), f"got {r.returncode}, stderr={r.stderr!r}")
     r = hook_env(".claude/skills/harness/bin/check-domain.sh", "harness-documentor", "")
     check("(j) VF-1: an EMPTY HARNESS_RESOLVE_PATH does NOT disable the hook",
-          r.returncode == 2, f"got {r.returncode}, stdout={r.stdout!r}")
+          denied(r), f"got {r.returncode}, stderr={r.stderr!r}")
 
     print(f"\n{10 - fails}/10 --resolve cases passed.\n")
     return fails

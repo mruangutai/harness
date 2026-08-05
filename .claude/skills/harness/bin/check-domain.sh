@@ -43,8 +43,14 @@ set -uo pipefail
 # "permitted" from "disabled". Unset here so the hook path can never be talked out of
 # enforcing by its own caller's environment.
 #
-# Do NOT "fix" this by branching on argv instead: `sys.argv[2]` is already consumed below
-# as the agent identity, so argv-branching would touch the hook path's identity contract.
+# On why this is an unset rather than an argv check: the hook is registered in
+# settings.json with NO arguments, so argv carries nothing to branch on in a real hook
+# invocation. Mode selection is env-driven by design (the bash half exports, the Python
+# half reads), and unsetting at the one place the two halves meet is the whole fix.
+# An earlier draft of this comment claimed argv-branching would collide with `sys.argv[2]`
+# as the agent identity; that is NOT true at the hook path — argv[2] is empty there. The
+# claim was corrected rather than left standing, because a wrong reason in a comment is
+# what the next person edits against.
 if [ "${1:-}" = "--resolve" ]; then
   payload=""
   export HARNESS_RESOLVE_PATH="${2:-}"
