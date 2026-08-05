@@ -98,12 +98,20 @@ else answers it either.
   rejected `BLOCKED (contract violation) — missing 'cost_usd'` at exit 1, and the carrying payload is
   accepted; after the change the first must flip and the second must not.
   verify: automated        evidence: unit
-- SC-05: `budgets.max_total_cycles` and `_max_total_cycles_rationale` are present and unchanged in
+- SC-05: **UNDER AMENDMENT A-5 — see `## Amendments`. The approved text below is left in place and
+  has deliberately NOT been overwritten. A-5 restates clause 1 as (a) and (b), and RESTORES clause 2
+  as (c) — narrowed to admit exactly one named, measured diff line (the money key split onto its own
+  line) and to fail on any other. (c) also resolves the approved text's undisambiguated `SKILL.md`
+  to three literal files; a SKILL.md outside those three is not covered — see A-5 §4.**
+  `budgets.max_total_cycles` and `_max_total_cycles_rationale` are present and unchanged in
   BOTH `.harness/harness.json` and `.claude/skills/harness/templates/harness.json`, and
   `git diff` shows no change to any line of `check-state.sh` or `SKILL.md` that mentions
   `cycles_used`, `max_cycles` or `max_total_cycles`.
   verify: automated        evidence: command
-- SC-06: The historical record is byte-identical. `grep -h -e cost_usd -e max_cost_usd
+- SC-06: **UNDER AMENDMENT A-5 — see `## Amendments`. The approved text below is left in place and
+  has deliberately NOT been overwritten; A-5 SCOPES it to the seven feature directories that existed
+  at `ae2443d` and adds a third clause. Both signed figures are unchanged.**
+  The historical record is byte-identical. `grep -h -e cost_usd -e max_cost_usd
   .harness/features/*/feature.yaml | wc -l` returns **89** (its value at `ae2443d`), and
   `grep -l '^cost:' .harness/features/*/runs/*/state.yaml | wc -l` returns **67 of 67**.
   verify: automated        evidence: command
@@ -552,6 +560,293 @@ fifth (or sixth) file and fails.
   18). Survives verbatim; no edit.
 - **No `cost:` block is recorded for this amendment** — `cost-report.py` was deleted by T-03 and
   INV-11 by T-02.
+
+### A-5 — SC-05 and SC-06 rotted; the delivery behind them is correct (2026-08-05, drafted by `harness-pm`)
+
+**This BRIEF is amended by A-5 and awaits the user's re-signature FOR A-5 ONLY.** The `## Approval`
+block below already records `amendments-signed: A-1, A-3, A-4` and is **left untouched** — only the
+main session may write it. Nothing here re-opens A-1, A-3 or A-4. **A-5 is BRIEF-side only**: it
+changes no task, so `PLAN.md` gets no counterpart section. **`harness-pm` recommends but does not
+choose.**
+
+Both criteria were returned `not_met` by the goal-check on **their own wording, with correct code
+behind them** (goal-check Q21). Every figure below was measured for this amendment, never relayed;
+the command that produced each is stated with it. Measurement tree: `HEAD` = `93e4a17`, working tree
+dirty in `.claude/commands/harness.md`, `.harness/notes/perf-review-agent-workflow-2026-08-04.md`,
+this BRIEF and this agent's observations log, plus two untracked files under `.harness/logs/` and
+`.harness/notes/` (`git status --porcelain`) — none of them on any surface either criterion reads, so
+no figure here is affected. Nothing in the repo was mutated: all probes ran on scratch copies and on
+a throwaway `git clone --local --no-hardlinks` under the session scratchpad.
+
+#### 1. SC-05 — clause 2 measures a formatting change, not the cycle budget
+
+The approved clause 2 forbids any `git diff` line in `check-state.sh` or `SKILL.md` mentioning
+`cycles_used`, `max_cycles` or `max_total_cycles`. Exactly one line matches, and only because the
+historical-only money key was split onto its own line:
+`-    "cycles_used", "cost",` → `+    "cycles_used",`. The cycle key is untouched; its neighbour
+moved. **The property SC-05 exists to prove is that the cycle budget — the only budget with teeth,
+kept by constraint `## Constraints` bullet 1 — survived intact.** A diff-line prohibition proxies
+that property through something any reformat trips.
+
+**Clause 2 is REPAIRED, not deleted — it returns as clause (c) with a named tolerance**, the same
+device clause (b) uses. An earlier draft of this amendment dropped it, which would have left
+`check-state.sh` and `SKILL.md` — the surfaces constraint bullet 1 protects — guarded by no criterion
+at all. The delivered state is exactly one diff line, known and characterised, so the clause is
+written as "this one line and no other".
+
+**The approved text says `SKILL.md` without disambiguating, and this repo has 20 of them
+(`git ls-files -- '*SKILL.md' | wc -l` → 20).** Resolved by measurement, not by choice: exactly three
+carry any of the three cycle tokens, identically at base and tip —
+`git grep -l -E 'cycles_used|max_cycles|max_total_cycles' ae2443d -- '*SKILL.md'` and the same at
+`HEAD` both return `.claude/skills/harness-code-review/SKILL.md`,
+`.claude/skills/harness-team/SKILL.md`, `.claude/skills/harness/SKILL.md`. Those three are named
+literally in (c). Running (c) over the 20-file pathspec `'*SKILL.md'` instead returns the **identical**
+residual (empty, exit 1), so the superset buys no coverage — and it would manufacture a false-FAIL,
+since any SKILL.md written later that legitimately documents the cycle budget adds a `+` line to that
+diff. The residual gap is named in §4.
+
+**A correction made here rather than pasted forward, following A-4 §4's precedent.** The claim
+reaching this amendment was that the key and its rationale are *byte-identical* in both configs.
+**That is FALSE**, and the falsehood is in the template:
+
+Measured with the two literal commands written into clause (b) below, run with `ROOT=.`:
+
+| File | Result |
+|---|---|
+| `.harness/harness.json` | **empty** — byte-identical |
+| `.claude/skills/harness/templates/harness.json` | **one differing line**: base carries the six-character JSON escape for U+2014 (backslash, `u2014`), HEAD carries the literal em dash it decodes to |
+
+Characterised exactly, not by eye: the U+2014 escape occurs **1** time in the base line, the literal
+em dash occurs **1** time in the HEAD line, and replacing the escape with the literal in the base
+line makes it **equal** to the HEAD line (`True`). A re-serialization, not a semantic change. Decoded values are equal in both files for both keys — all four comparisons `True`,
+`max_total_cycles == 10` — measured with the literal command written into clause (a) below, which
+compares `json.loads` of `git show ae2443d:` each config against `json.load` of the working file.
+
+**Replacement text — SC-05:**
+
+> - SC-05: The cycle budget survived this feature intact. **Three clauses, all three required.**
+>   `ROOT` roots the working-file side ONLY and defaults to `.`; every other path below is literal
+>   and every command is run verbatim.
+>   **(a) Decoded-value equality.** `budgets.max_total_cycles` and
+>   `budgets._max_total_cycles_rationale` are PRESENT in both configs and each decoded value equals
+>   its `ae2443d` value. Prints `PASS`, exit 0; on failure prints the offending
+>   `(path, key, MISSING|CHANGED)` tuples and exits 1. **Deliberately one physical line** so that
+>   leading whitespace, from this block quote or from any paste, cannot change its meaning:
+>   ```sh
+>   python3 -c 'import json,os,subprocess,sys;R=os.environ.get("ROOT",".");P=[".harness/harness.json",".claude/skills/harness/templates/harness.json"];K=["max_total_cycles","_max_total_cycles_rationale"];B={p:json.loads(subprocess.run(["git","show","ae2443d:"+p],capture_output=True,text=True).stdout)["budgets"] for p in P};H={p:json.load(open(os.path.join(R,p)))["budgets"] for p in P};bad=[(p,k,"MISSING" if k not in H[p] else "CHANGED") for p in P for k in K if k not in H[p] or H[p][k]!=B[p][k]];print(bad or "PASS");sys.exit(1 if bad else 0)'
+>   ```
+>   Measured at `93e4a17`: `PASS`, exit 0 — four of four equal, `max_total_cycles == 10`.
+>   **(b) Byte-level, with one named tolerance.** Both commands, verbatim:
+>   ```sh
+>   diff <(git show ae2443d:.harness/harness.json | grep max_total_cycles) <(grep max_total_cycles "$ROOT/.harness/harness.json")
+>   diff <(git show ae2443d:.claude/skills/harness/templates/harness.json | grep max_total_cycles) <(grep max_total_cycles "$ROOT/.claude/skills/harness/templates/harness.json")
+>   ```
+>   Each is either EMPTY, **or** differs solely by the six-character JSON escape for U+2014 (backslash,
+>   `u2014`) standing where the literal em dash it decodes to stands, in either direction.
+>   **Any other textual difference on those lines is a FAILURE.**
+>   The escape/literal difference is a **tolerance, not a requirement**: it is a re-serialization with
+>   no semantic content, so a criterion that DEMANDED it would go red on a null reformat that clause
+>   (a) blesses. As measured at `93e4a17`, `.harness/harness.json` is empty and the template exercises
+>   the tolerance on exactly one line — but either file may legitimately be in either state.
+>   **(c) The rule surfaces — `check-state.sh` and `SKILL.md`, restored from the approved clause 2.**
+>   Over `.claude/skills/harness/bin/check-state.sh` and the **three** SKILL.md files that carry any
+>   of the three cycle tokens at both `ae2443d` and `HEAD` — `.claude/skills/harness/SKILL.md`,
+>   `.claude/skills/harness-team/SKILL.md`, `.claude/skills/harness-code-review/SKILL.md` — the ONLY
+>   `git diff ae2443d..HEAD` line mentioning `cycles_used`, `max_cycles` or `max_total_cycles` is the
+>   split of the historical-only money key onto its own line: the `-` side carries
+>   `    "cycles_used", "cost",` and the `+` side carries `    "cycles_used",`.
+>   **Any other such line is a FAILURE.** The tolerance is **sign-anchored, deliberately**: the
+>   reverse pair — the money key REAPPEARING at `HEAD` — is NOT tolerated and correctly fails, because
+>   SC-07 owns money-key absence and tolerating it would weaken this criterion.
+>   The command prints NOTHING and exits 1 (no residual line):
+>   ```sh
+>   git diff ae2443d..HEAD -- .claude/skills/harness/bin/check-state.sh .claude/skills/harness/SKILL.md .claude/skills/harness-team/SKILL.md .claude/skills/harness-code-review/SKILL.md \
+>     | grep -E '^[-+].*(cycles_used|max_cycles|max_total_cycles)' \
+>     | grep -v -e '^-    "cycles_used", "cost",$' -e '^+    "cycles_used",$'
+>   ```
+>   The tolerated pair is a **tolerance, not a requirement**: reverting the split entirely — restoring
+>   `check-state.sh` to its `ae2443d` text — produces no token-bearing diff line at all and also leaves
+>   the residual empty (probed, §3). Measured at `93e4a17`: residual EMPTY, exit 1; the unfiltered
+>   pipeline emits exactly the two tolerated lines and nothing else.
+>   **Precondition.** All three clauses read the `ae2443d` side from this repository's git object
+>   store, so the criterion must be run from a working copy of this repository in which `ae2443d`
+>   resolves. (a) and (b) honour `ROOT`; **(c) reads committed history only, so `ROOT` does not apply
+>   to it** — to run (c) against a mutated tree, clone and commit there.
+>   verify: automated        evidence: command
+
+#### 2. SC-06 — the glob sweeps the feature's own artifacts, and the denominator is not a constant
+
+**The input conflict, resolved by measurement: NEITHER input was wrong.** Both were correct at the
+instant they were taken, and that is the defect.
+
+`.harness/features/*/runs/**` is **gitignored** (`.gitignore:7`), so run `state.yaml` files are
+untracked and the denominator is a **working-tree figure that grows monotonically as this feature
+creates its own run directories**. Measured by directory birth time
+(`stat -f '%SB %N' -t '%F %T' .harness/features/FEAT-08-remove-cost-tracking/runs/*/`):
+
+| Instant | FEAT-08 run dirs | Denominator | Matches |
+|---|---|---|---|
+| goal-check (`goalcheck-product` born 10:36:26, its `state.yaml` written 10:48:55) | **8** | 67 + 8 = **75** | goal-check digest SC-06 / Q5 |
+| before this run's own dir existed | **14** | 67 + 14 = **81** | the pre-measurement handed down |
+| now (`a5-product` born 12:06:28 added) | **15** | 67 + 15 = **82** | measured here |
+
+Not `--exclude-dir=worktrees`, and not FEAT-09 — FEAT-09 lives in `.claude/worktrees/` and is outside
+`.harness/features/` entirely. The whole delta is FEAT-08's own untracked run dirs, including
+`a5-product`, created for this amendment.
+
+**Restricted to the seven directories that existed at `ae2443d`, both signed figures return exactly
+as signed: 89, and 67 of 67.** The criterion's own text pins both to `ae2443d`, before FEAT-08's
+directory existed, so that is what it always meant.
+
+**The seven are named literally, not globbed.** The glob is the construct that rotted, and a
+character-class glob (`FEAT-0[1-7]*`) is hostage to the next feature's naming — but the stronger
+reason is that a glob over an untracked, growing tree cannot express "as of `ae2443d`" at all. A
+literal list can, and it is auditable at a glance.
+
+**Two shell hazards, measured rather than assumed.** `.harness/features/FEAT-05-pyyaml-file-parsers`
+has **no `runs/` directory at all** (run-dir counts: 1, 4, 19, 15, **0**, 14, 14 = 67), and under
+`zsh` an unmatched glob aborts the whole command. The state-file clause therefore uses `find` over
+the seven **directories**, not a `runs/*/` glob.
+
+**A correction made here rather than pasted forward, again following A-4 §4.** The empty-diff
+assertion was handed down as covering these directories' `feature.yaml` **and** `runs/` paths.
+Over `runs/` it is **vacuous**: `git ls-tree -r --name-only ae2443d -- .harness/features/ | grep -c
+'runs/'` returns **0**. An already-empty diff proves nothing — the exact defect this feature has hit
+five times. The clause is therefore written over the seven **tracked** `feature.yaml` files only.
+
+**Replacement text — SC-06:**
+
+> - SC-06: The historical record is byte-identical, measured over the **seven feature directories
+>   that existed at `ae2443d`**, named literally and not globbed: `.harness/features/FEAT-01`,
+>   `FEAT-02`, `FEAT-03-subissue-mirror`, `FEAT-04-decisions-index`, `FEAT-05-pyyaml-file-parsers`,
+>   `FEAT-06-team-layer-inv6`, `FEAT-07-verify-teeth-batch-probe`. Three clauses, all three required.
+>   Every path below is literal; there is nothing to reconstruct.
+>   **(a)** returns **89**:
+>   ```sh
+>   grep -h -e cost_usd -e max_cost_usd .harness/features/FEAT-01/feature.yaml .harness/features/FEAT-02/feature.yaml .harness/features/FEAT-03-subissue-mirror/feature.yaml .harness/features/FEAT-04-decisions-index/feature.yaml .harness/features/FEAT-05-pyyaml-file-parsers/feature.yaml .harness/features/FEAT-06-team-layer-inv6/feature.yaml .harness/features/FEAT-07-verify-teeth-batch-probe/feature.yaml | wc -l
+>   ```
+>   **(b)** both return **67** — 67 of 67:
+>   ```sh
+>   find .harness/features/FEAT-01 .harness/features/FEAT-02 .harness/features/FEAT-03-subissue-mirror .harness/features/FEAT-04-decisions-index .harness/features/FEAT-05-pyyaml-file-parsers .harness/features/FEAT-06-team-layer-inv6 .harness/features/FEAT-07-verify-teeth-batch-probe -path '*/runs/*/state.yaml' | wc -l
+>   find .harness/features/FEAT-01 .harness/features/FEAT-02 .harness/features/FEAT-03-subissue-mirror .harness/features/FEAT-04-decisions-index .harness/features/FEAT-05-pyyaml-file-parsers .harness/features/FEAT-06-team-layer-inv6 .harness/features/FEAT-07-verify-teeth-batch-probe -path '*/runs/*/state.yaml' -exec grep -l '^cost:' {} + | wc -l
+>   ```
+>   `find` over directories, not a `runs/*/` glob: `FEAT-05-pyyaml-file-parsers` has no `runs/`
+>   directory and an unmatched glob aborts under `zsh`.
+>   **(c)** is **EMPTY**:
+>   ```sh
+>   git diff --name-only ae2443d..HEAD -- .harness/features/FEAT-01/feature.yaml .harness/features/FEAT-02/feature.yaml .harness/features/FEAT-03-subissue-mirror/feature.yaml .harness/features/FEAT-04-decisions-index/feature.yaml .harness/features/FEAT-05-pyyaml-file-parsers/feature.yaml .harness/features/FEAT-06-team-layer-inv6/feature.yaml .harness/features/FEAT-07-verify-teeth-batch-probe/feature.yaml
+>   ```
+>   This is the discriminator (a) and (b) lack: counts are blind to a value that changes while its token stays.
+>   `HEAD` is deliberately not pinned — the clause is evaluated at ship time against whatever the tip
+>   then is, which is what "still byte-identical" means. Measured EMPTY at `93e4a17`.
+>   **Scope is part of the criterion.** Any directory created after `ae2443d` — FEAT-08's own
+>   included — is out of scope by construction, because both figures were taken at `ae2443d`.
+>   verify: automated        evidence: command
+
+#### 3. Discrimination — measured for each, in both senses
+
+Two questions get conflated; they are separated here.
+
+**"Would it have failed at `ae2443d`?" — NO, for both, and that is correct for the class.** Both are
+preservation / over-removal guards: nothing had been removed at the base commit, so both are green
+there by construction. No base-commit discriminator is manufactured for either. **`SC-12` is the
+in-BRIEF precedent** — it is a signed over-removal guard with no base-commit discriminator.
+
+**"Can it fail against the DELIVERED tree?" — YES for both, measured on mutants, not argued.**
+
+| Mutant (scratch only) | Criterion command returns |
+|---|---|
+| SC-05 (a): `_max_total_cycles_rationale` deleted from both scratch configs | **FAIL**, exit 1, `MISSING` on both files |
+| SC-05 (a): `max_total_cycles` flipped `10` → `9` in both | **FAIL**, exit 1, `CHANGED` on both files |
+| SC-05 (b): one literal space in `.harness/harness.json`'s rationale re-encoded as the JSON escape for U+0020 (decodes identically) | **byte clause FAILS** while the decoded clause still passes — this is (b)'s marginal teeth, and why both clauses exist |
+| SC-06 (a): `cost_usd: 240.82` → `999.99` in FEAT-05's `feature.yaml` | **89, unchanged — the counts clause is BLIND.** This is the negative case, and it is why (c) exists |
+| SC-06 (c): the same perturbation, committed in a throwaway clone | **FAILS** — the emptiness test emits `.harness/features/FEAT-05-pyyaml-file-parsers/feature.yaml` |
+| SC-05 (c): `` `budgets.max_total_cycles` `` → `` `budgets.max_cycles` `` in `.claude/skills/harness/SKILL.md`, committed in a clone | **FAILS** — residual `-`/`+` pair, exit 0 |
+| SC-05 (c): `cu = val("cycles_used")` → `… or 0` in `check-state.sh`, committed in a clone | **FAILS** — residual `-`/`+` pair, exit 0 |
+| SC-05 (c): a prose edit to the `max_cycles` line of `.claude/skills/harness-code-review/SKILL.md`, committed in a clone | **FAILS** — residual `-`/`+` pair, exit 0 |
+| SC-05 (c): `cycles_used: <n>` → `cycles_used: <count>` in `.claude/skills/harness-team/SKILL.md`, committed in a clone | **FAILS** — residual `-`/`+` pair, exit 0 |
+| SC-05 (c): the split REVERTED — `    "cycles_used", "cost",` restored in `check-state.sh`, committed in a clone | **PASSES**, residual empty, exit 1 — no token-bearing diff line exists at all, which is why the tolerated pair is a tolerance and not a requirement |
+
+**Every row above was re-run against the FINAL literal command text now written into the criteria**,
+not against the earlier metavariable drafts — the commands in the criteria are the commands that
+produced these results. SC-05 (a) was additionally run twice, once from the repo with `ROOT` at its
+default and once with `ROOT` pointing at the scratch clone, confirming `ROOT` is the sole difference
+between a real and a scratch run for that clause. **SC-05 (c) is probed on four mutants covering all
+four of its files** — `check-state.sh`, `harness/SKILL.md`, `harness-code-review/SKILL.md`,
+`harness-team/SKILL.md` — each unrelated to the money-key split, plus the revert case; the
+unperturbed clone returns the empty residual before and after every one.
+
+The SC-05 (b) row was re-run against the **tolerance** wording and the literal `diff` commands
+actually written above, not an earlier exception-is-mandatory draft. On the delivered tree the two
+commands return, respectively, an empty diff and the single tolerated em-dash line — PASS. On the
+U+0020 mutant (`ROOT` pointed at the scratch clone) the first command emits a differing line whose
+only change is `REWORK loops` → `REWORK` + the U+0020 escape + `loops`, exit 1 — an untolerated
+difference, so FAIL, while clause (a) still prints `PASS`, exit 0, on the same tree. Making the escape a tolerance rather than a
+requirement therefore costs no teeth — and it stops the criterion going red on a null reformat that
+clause (a) blesses, which is the same rot A-5 exists to remove.
+
+**SC-06's probe used option (a): a throwaway `git clone --local --no-hardlinks` under the session
+scratchpad**, perturbed and committed there, with the criterion's own command run against that clone.
+`git diff ae2443d..HEAD` compares two commits, so perturbing a working copy would have returned green
+and invited an argument in place of a measurement. All three SC-06 clauses are probed; none is
+asserted-but-unprobed.
+
+Unperturbed control: both criteria's commands return PASS/exit 0 against the delivered tree and
+against an unmutated scratch copy.
+
+#### 4. What each rewritten criterion still cannot see — stated, not left implicit
+
+- **SC-06 (b) cannot prove byte-identity of the 67 run `state.yaml` files.** They are gitignored, so
+  **no baseline for them exists anywhere in the repository** and no diff can be taken. (b) proves the
+  67 files exist and still carry a `cost:` block; their *contents* rest on nothing stronger. The
+  signed criterion had the same limit; A-5 names it instead of implying otherwise. A local mtime
+  check (`find … -newermt` → 0 of 67 modified since `ae2443d`'s commit time
+  `2026-08-05T06:06:25-07:00`) supports the claim but is **deliberately not a clause**: mtimes reset
+  on any fresh clone, so it would be a criterion that passes here and fails everywhere else.
+- **SC-06 (a) greps compound tokens** (`cost_usd`, `max_cost_usd`). A figure reworded to the plain
+  English word, or a value edited in place, is invisible to it — measured above. (c) covers that for
+  `feature.yaml`; nothing covers it for the untracked `state.yaml` files. This is the same
+  compound-token gap that A-3 and the goal-check's SC-01 finding both named.
+- **SC-06 (b)'s `67` can go red for a reason that has nothing to do with this feature — a false
+  FAIL.** `.gitignore:4` reads, verbatim, `# Harness run state — ephemeral scratch, pruned on
+  log_retention_days.` and `.harness/harness.json:135` sets `"log_retention_days": 30`. Pruning is
+  therefore a sanctioned, expected operation that legitimately *reduces* the run-dir count, and both
+  of (b)'s figures are hard-coded `67`. A prune before this criterion is evaluated reddens it with
+  nothing wrong. Named, deliberately not fixed: a "67 or fewer" clause would stop detecting the
+  deletion it exists to detect. This is the mirror of the SC-03 hazard raised as goal-check Q6, and
+  it is a second limit on top of the byte-identity limit above (Q24).
+- **SC-05 (c) covers four named files and no others.** The three SKILL.md files are the three that
+  carry a cycle token at `ae2443d` and at `HEAD`, measured — but a SKILL.md written *after*
+  `ae2443d`, or one that starts mentioning the cycle budget later, is outside the clause. The
+  approved text's bare `SKILL.md` was ambiguous in the other direction; this is the residual cost of
+  resolving it to the smallest set that is not a false-FAIL generator (§1).
+- **SC-05 (a) is key-scoped by design.** It says nothing about any other budget key. That is
+  intentional: SC-05's job is the cycle budget, and SC-07 owns orphaned-key absence.
+- **Neither criterion carries a line-number anchor.** Both are anchored on content strings and key
+  names, per the goal-check's SC-12 finding (4 of 12 anchors dead in ~21 commits).
+
+#### 5. Untouched, and checked rather than assumed
+
+- **No other criterion, requirement, decision or task is amended.** A-1, A-3 and A-4 are untouched
+  and nothing is renumbered; `## Approval` is untouched.
+- **SC-05: BOTH approved clauses survive; one is narrowed, and the narrowing is stated here rather
+  than implied.** Clause 1 (the two keys present and unchanged in both configs) is restated as (a)
+  and (b) in a form that measures it directly. Clause 2 (no `cycles_used` / `max_cycles` /
+  `max_total_cycles` diff line in `check-state.sh` or `SKILL.md`) is **restored as (c)**, not
+  deleted — an earlier draft of this amendment dropped it, which would have left the surfaces that
+  `## Constraints` bullet 1 protects guarded by nothing. **Two things about (c) are narrower than the
+  text the user first signed, and both are deliberate:** it admits exactly one diff line (the
+  money-key split, `-    "cycles_used", "cost",` → `+    "cycles_used",`) where the approved text
+  admitted none, and it resolves the approved text's undisambiguated `SKILL.md` to three literal
+  files out of this repo's 20, leaving any other SKILL.md uncovered (§4). Everything else about
+  clause 2 is unchanged, including its verdict: **any other such line is a FAILURE**, probed on four
+  mutants (§3).
+- **SC-06's two signed figures survive verbatim**: 89, and 67 of 67. A-5 scopes them and adds a
+  clause; it removes neither.
+- **`## Constraints` bullet 1** (cycles out of scope) and **bullet 3** (`cost` stays in
+  `CHECKPOINT_KEYS`, 67 of 67) are re-measured here and unchanged; no edit.
+- **No `cost:` block is recorded for this amendment** — `cost-report.py` was deleted by T-03 and
+  INV-11 by T-02 (DEC-178).
 
 ## Approval
 

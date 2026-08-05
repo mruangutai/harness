@@ -3,54 +3,60 @@
 ## Current
 
 - feature: FEAT-08-remove-cost-tracking
-- run: validate phase complete — briefing written, returning to the main session
-- squad: none
+- run: ship phase, step 1 of 1 — A-5 written; returning for the user's re-signature
+- squad: product
 - status: awaiting_user
 
-**Phase `validate` is at its terminus.** Fourteen runs, `cycles_used: 4` of 10. `review_sha` pinned
-to `942505e` before the panel (INV-6); `8958840` is the last source-bearing commit.
+**Phase `ship` opened; `validate` closed at `notes/handoff-validate.md`.** Fifteen runs,
+`cycles_used: 5` of 10. The fifth is the A-5 send-back, which product-lead reported against itself.
 
-**All twelve tasks DONE, every task issue closed.** T-10's remainder — signed amendment A-3's rows
-10 and 11 — landed, and I re-ran all five of its `verify:` clauses at my own tier rather than
-relaying them.
+**The user ruled AMEND AND RE-SIGN on SC-05 and SC-06.** pm drafted **A-5** in `BRIEF.md` through
+product-lead; the approved text of both criteria is left in place with a pointer, exactly as A-2 and
+A-4 did, and the `## Approval` block is untouched — 297 insertions to `BRIEF.md`, none inside it.
+**Both criteria now assert the property they were meant to test:** SC-05 in three clauses
+(decoded-value equality, byte-level with the em-dash re-serialization named as a tolerance, and the
+restored rule-surface diff clause over four literal files); SC-06 in three clauses scoped to the
+seven feature directories that existed at `ae2443d`, returning the signed **89** and **67 of 67**
+plus an empty-diff discriminator the counts lack.
 
-**The four-wide panel ran in full**, under the standing user ruling: code, qa, security, ui, no
-pre-emptive skips. **All four members returned PASS; their lead found three REQ-08 violations they
-had all missed**, every one in a file no member's scope reached and all three invisible to the
-compound-token sweeps this feature is built on. MF-2 (`org.html`) and MF-3 (my own Expertise, the
-highest blast radius — a dead metering procedure injected into every orchestrator spawn) are FIXED.
-**MF-1 is open and only layer 0 can close it:** `.claude/commands/harness.md:18` and `:83` still
-instruct the main session to render a spend column and log a cost field. I confirmed no agent may
-write that file by running `check-domain.sh` against four personas — all BLOCKED.
+**I re-ran all six clauses verbatim at my own tier.** SC-05: PASS/exit 0; live config EMPTY and the
+template differing solely by the `—` escape; residual EMPTY/exit 1. SC-06: 89; 67 and 67; EMPTY.
 
-**Goal-check: 13 of 15 met.** SC-15 was genuinely not met, was fixed, and pm re-graded it to met —
-I did not mark it myself. **SC-05 and SC-06 are red on their own signed wording with correct delivery
-behind them**; correcting either edits text the user signed, so both go up rather than into a fix
-cycle. Three criteria are met by methods that cannot detect the failure they exist to detect, and
-that judgement was asked for explicitly and is recorded.
+**A-5 falsified three claims handed down as fact rather than pasting them forward — two were mine.**
+Byte-identity does not hold for the template; my empty-diff-over-`runs/` suggestion is vacuous
+(`git ls-tree` at `ae2443d` returns **0** tracked paths under any `runs/`), which I confirmed
+independently; and product-lead's own cycle-0 sign-off missed that the draft had silently dropped
+`check-state.sh` and `SKILL.md` from SC-05. That send-back is the fifth cycle.
 
-**Distillation done.** Twelve Expertise files, all `check-expertise.sh` clean, re-run by me because
-no lead holds `Bash`. Product 25 member ops plus 4 lead self-ops, validator 16 plus 2 re-applied, eng 4.
+**Discrimination, stated plainly: neither rewritten criterion would have failed at `ae2443d`** — both
+are over-removal guards and SC-12 is the signed in-BRIEF precedent for the class. **Both CAN fail
+against the delivered tree**, measured on ten scratch-only mutants. Nothing that cannot fail shipped.
 
-Briefing: `notes/ship-review-validate-close.md`. Handoff: `notes/handoff-validate.md`.
+**MF-1 is FIXED** (main-session-direct; no agent domain covers `.claude/commands/harness.md`) and is
+committed here with A-5. Gates at the A-5 tip: unit 0, docs 0, state 0.
+
+**SC-05 and SC-06 remain `not_met` and the goal-check remains FAIL.** I do not re-grade a criterion,
+and the replacement text is not signed yet.
 
 ## Open Questions
 
-IDs are not reused. Q2, Q4, Q5, Q7, Q8, Q18 are answered or ruled.
+IDs are not reused. Q2, Q4, Q5, Q7, Q8, Q18 are answered or ruled. **MF-1 is resolved.**
 
-- **MF-1 (BLOCKING, the user's, and nobody else can): two prose deletions in
-  `.claude/commands/harness.md`.** `:18` renders a `cost vs budget` column for in-flight features;
-  `:83` logs a `cost` field on every return. Both instruct the main session to produce figures from a
-  deleted meter. Found independently by the panel and by the goal-check. A third line, `:49`, names a
-  dollar figure in a historical anecdote — history, not an instruction; the user's call either way.
+- **A-5 awaits the user's re-signature.** Until it lands, SC-05 and SC-06 stay `not_met`. On
+  re-signature the goal-check re-grades them — pm, not me.
   Blocked on: the user.
 
-- **SC-05 and SC-06 are not met on their own wording, with correct delivery behind them.** SC-05's
-  second clause forbids any diff line mentioning the cycle counter, and one matched because the cost
-  entry shared a line with it. SC-06 pins two numbers measured before this feature's own directory
-  existed; restricted to the features it was measured against it returns 89 and 67-of-67 exactly.
-  Correcting either edits a signed criterion. A fix aimed at the code would be aimed at nothing.
-  Blocked on: the user.
+- **Q27 (new)**: SC-06's hard-coded **67** can false-FAIL on a sanctioned `log_retention_days` prune
+  of a historical run dir. pm asks the user to confirm the narrowing at signature.
+  Blocked on: the user, at signature.
+
+- **Q28 (new)**: SC-05 (c) resolves the signed text's undisambiguated `SKILL.md` to **three** literal
+  files out of this repo's 20; a future `SKILL.md` documenting the cycle budget sits outside it.
+  Blocked on: the user, at signature.
+
+- **Q23 (new, cosmetic)**: A-4's "AWAITING RE-SIGNATURE" preamble is stale — `## Approval` already
+  records A-4 as signed. Left unfixed; it is signed text and not worth a spawn.
+  Blocked on: nobody.
 
 - Q1 (carried): the briefing loses its only size signal. Issue **#79** filed, still unscheduled.
   Blocked on: the user, at the briefing.
@@ -65,21 +71,20 @@ IDs are not reused. Q2, Q4, Q5, Q7, Q8, Q18 are answered or ruled.
   Blocked on: nobody.
 
 - Q9 (from eng-lead, raised twice): nothing detects live/template config divergence — the unit suite
-  exited 0 on a half-stripped pair.
+  exited 0 on a half-stripped pair. **A-5 supplies partial cover** for the one key it guards.
   Blocked on: nobody — in the backlog.
 
 - Q19 (harness defect): INV-4's task regex cannot tell a task DEFINITION from a REFERENCE.
   Blocked on: nobody — in the backlog.
 
 - Q20 (raised independently by three agents): the **deployed global** rules still instruct every lead
-  to run the deleted meter and write a `cost:` key. One earlier run of this feature complied, so the
-  placeholder is on disk in a run dir. `/harness-deploy` after merge, **before** the queued
-  preload-trimming batch.
+  to run the deleted meter and write a `cost:` key. `/harness-deploy` after merge, **before** the
+  queued preload-trimming batch.
   Blocked on: nobody — in the backlog, near-term.
 
-- **My one substitution, named rather than buried:** the three leads were not re-spawned to file
-  domain reports for the briefing. All three ran inside this phase and their own digests are its
-  source. That is my judgement, not a rule, and it is reversible for three spawns.
+- **My one substitution, still named rather than buried:** the three leads were not re-spawned to
+  file domain reports for the briefing. All three ran inside the validate phase and their own digests
+  are its source. Reversible for three spawns.
   Blocked on: the user, if they want it done properly.
 
-- The full backlog is **twenty-two items** in the briefing. Anything not listed there dies silently.
+- The full backlog is in the briefing. Anything not listed there dies silently.

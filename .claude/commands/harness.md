@@ -15,7 +15,7 @@ BRIEF/PLAN, which routes to step 1.
 
 - **Argument names a flow** (`FEAT-NN-<slug>` / `BUG-NN-<slug>`, a bare prefix, or a goal in words) → that flow. New features get their id coined by pm at BRIEF time — number plus kebab slug (DEC-133).
 - **No argument** → list in-flight features from `.harness/features/*/feature.yaml` (id, status,
-  cost vs budget, last run) and ask which — or whether to start a new one.
+  cycles used, last run) and ask which — or whether to start a new one.
 - **New feature** → clarity before planning, always (DEC-164/165). Fits one conversation →
   `/harness-grill`; the destination itself is fuzzy or decisions wait on facts/prototypes →
   `/harness-wayfind` (a persistent map under `.harness/efforts/`). Then `pm` plans it:
@@ -80,7 +80,7 @@ byte-identical revert, one suite re-run), run it first. A file-difference check 
 resolution question: inferring one such question cost a working day and two retracted claims, and
 the measurement, when it was finally taken, **disproved** the inference.
 
-Log every return (one line: feature, verdict, status, cost) to `.harness/logs/<date>.md`.
+Log every return (one line: feature, verdict, status) to `.harness/logs/<date>.md`.
 
 ## Red flags
 
