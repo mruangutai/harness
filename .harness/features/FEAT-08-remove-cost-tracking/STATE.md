@@ -3,61 +3,68 @@
 ## Current
 
 - feature: FEAT-08-remove-cost-tracking
-- run: dispatching S2 to eng-lead — runs/s2-eng
-- squad: eng
+- run: dispatching S4 to product-lead — runs/s4-product
+- squad: product
 - status: in_progress
 
-**Six of twelve tasks are DONE and committed.** T-01, T-02, T-05, T-06, T-07, T-08 landed as one
-main-session batch (`ba9a243`, `aaa315f`, `f9869d1`, `32d23d3`, `89cd01a`, `3503d1d`); issues #86,
-#87, #90, #91, #92, #93 closed. I re-ran every `verify:` clause at my own tier rather than trusting
-the report — all green, both over-removal guards intact, both unchanged-value clauses matching
-their captured pre-edit numbers.
+**Eight of twelve tasks are DONE and committed**, issues #86-#93 all closed. Branch tip `95c1c38`.
+Gates green at that SHA: unit exit 0 (now **twelve** scripts, not thirteen), check-docs exit 0,
+check-state exit 0 with zero violations.
 
-**SC-04 is proven, both halves, and it discriminates.** Against the pre-change validator the
-omitting payload returned `BLOCKED (contract violation) — missing 'cost_usd'` at exit 1 and the
-carrying payload was accepted; against the post-change validator both are accepted. The first
-flipped, the second did not.
+**The meter is gone as of `1a69d9d`.** Last measurable figure, taken at `3503d1d` just before the
+deletion: **$370.53** against a $120 budget. Everything after that is unmeasurable by design and no
+figure for it will be invented. D-02's ordering proved itself on the first unmetered run — `s2-eng`
+carries no `cost:` key and `check-state.sh` still exits 0, because T-02 removed INV-11 before T-03
+removed the meter.
 
-**Two PLAN defects of the same shape**, each an `intent:` that falsifies its own `verify:` by
-mandating prose containing a token that same `verify:` counts or forbids. Both reconciled in the
-batch by writing the same meaning without the literal spelling; both deviations recorded in their
-commit messages. See `feature.yaml` `batch_result.plan_defect`.
+**SC-01 IS UNREACHABLE AS WRITTEN and blocks the goal-check.** The sweep is down from 18 files to
+6, but SC-01 demands only two remain. Three approved requirements make four files unavoidable — see
+`feature.yaml` `sc01_blocker`. Routed to pm to draft the amendment; the ruling and the signature
+are the user's, never mine.
 
-Next: S2 (T-03, T-04) to eng-lead — both `depends_on: T-02`, now satisfied, both mutate the repo, so
-serialized. Then S4 (T-09..T-12) to product-lead, which needs S2 first. Then the four-wide panel.
+**The T-04 lane defect is the routing wall's fourth recurrence**, landing inside the feature running
+concurrently with FEAT-09, which exists to prevent it. eng-lead returned BLOCKED rather than routing
+around `check-domain.sh` when a `python3 -c` rewrite would have passed `bash-write-guard.sh` unseen.
+User ruling received: T-04 splits, no domain widened.
 
-**The meter dies in the very next dispatch.** T-03 deletes `cost-report.py`. Metered one last time
-at `3503d1d`: $370.53 against a $120 budget. Every figure after this is an honest string.
+Next: S4 (T-09..T-12, documentor) plus pm's two amendments, as ONE product-squad run. Then the
+user re-signs, then the four-wide panel, then the goal-check.
 
 ## Open Questions
 
-IDs are not reused. Q1 and Q3 are carried from the plan phase; Q5, Q6 and Q7 are new. Q2 and Q4
-were answered during planning.
+IDs are not reused. Q1 and Q3 carried from plan; Q5-Q9 new. Q2 and Q4 were answered in planning.
 
-- Q1 (carried, non-blocking — **raised at the signature gate and signed past without an answer**):
-  after this ships the briefing carries no size signal except `cycles_used`, which counts REWORK
-  only. D-06 replaces nothing on purpose; perf-review row 10 is the lever and is unfiled. It needs
-  answering BEFORE the briefing — by then it cannot be acted on.
+- **Q8 (BLOCKING the goal-check, the user's call): SC-01 cannot be met as written.** It requires the
+  sweep to return only `DECISIONS.md` and `DECISIONS-INDEX.md`. Four files cannot leave it:
+  `test-validate-digest.py` because T-01's intent mandates the `cost_usd` backward-compat fixture
+  that proves SC-04's second half; `BUILD.md` and `SPEC.md` because T-10/T-11 mandate inline
+  `(cost-report.py removed — DEC-178)` markers and SC-14 blesses them; `test-check-state.py` because
+  two comments explain what the deleted INV-11 used to do. SC-01 contradicts SC-04, SC-14 and D-07
+  at once. Options: (a) widen SC-01's expected file set with each reason named, or (b) narrow its
+  pattern to exclude fixture and marker contexts. pm drafts; the user signs.
   Blocked on: the user.
 
-- Q3 (carried, non-blocking, harness defect): a send-back gives the returning member a FRESH
-  context, so `open_questions` it raised in its own previous DIGEST are unrecoverable to it.
-  `loop_back`'s `feed: [self]` passes the FAILING step's artifact path, which does not cover a
-  member's own prior questions.
+- Q1 (carried, **partially answered**): the briefing loses its only size signal. perf-review row 10
+  is now filed as **issue #79** (count and budget RUNS). Still unscheduled, so the gap is real and
+  now tracked rather than only noted.
+  Blocked on: the user, at the briefing.
+
+- Q3 (carried, harness defect): a send-back gives the returning member a FRESH context, so
+  `open_questions` it raised in its own previous DIGEST are unrecoverable to it.
   Blocked on: nobody — routed to the harness owner.
 
-- Q5 (non-blocking): SC-06's glob over-captures. Restricted to FEAT-01..FEAT-07 — the seven files
-  the BRIEF names at `:81` — it measures **89** cost lines and **67 of 67** run `state.yaml`, pm's
-  pinned figures exactly. Recommend the goal-check use the restricted glob and record both numbers.
+- Q5: SC-06's glob over-captures; restricted to FEAT-01..07 its numbers are exactly pm's 89 and
+  67-of-67. Recommend the goal-check use the restricted glob and record both.
   Blocked on: nobody.
 
-- Q6 (non-blocking, but it can cost a wasted fix cycle): SC-03 is repo-wide and a concurrent flow
-  can fail it. It did at session start on FEAT-09's unsigned BRIEF. FEAT-09 has since moved to its
-  own worktree, so this checkout no longer sees its state — the hazard is dormant, not gone.
+- Q6: SC-03 is repo-wide and a concurrent flow can fail it. FEAT-09 has moved to its own worktree,
+  so the hazard is dormant, not gone.
   Blocked on: nobody.
 
-- Q7 (new, non-blocking, for the review panel and not the user): both comments reworded around the
-  plan defect end by justifying themselves with "this task's `verify:`". After this ships there is
-  no task and no `verify:`, and the BRIEF states nothing re-runs those greps. Routed to the
-  code-reviewer rather than pre-judged by me.
-  Blocked on: nobody — the panel rules.
+- Q7 (for the panel, not the user): both comments reworded around the S1 plan defect justify
+  themselves with "this task's `verify:`", which will not exist after ship.
+  Blocked on: nobody — the code-reviewer rules.
+
+- Q9 (from eng-lead, non-blocking): nothing detects live/template config divergence — the unit
+  suite exited 0 on a half-stripped pair. In scope for FEAT-08, or a follow-up?
+  Blocked on: the user, at the briefing.
