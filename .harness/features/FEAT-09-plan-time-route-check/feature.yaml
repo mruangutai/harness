@@ -10,13 +10,16 @@ posture: >-
   the re-review scope for the 34-line fix the panel has not seen, and the ruling on VF-2, a
   SECOND reachability gap found after the panel closed (the shape gate is bypassed by Edit).
   Goal-check, distillation and briefing all wait on the re-review scope call.
-review_sha: 4918d06
+review_sha: 9af84ac
 review_sha_note: >-
-  PINNED 2026-08-05, ONCE, AFTER T-02 AND DEC-179, per the user ruling on the timing conflict.
-  INV-6 binds at REVIEWER DISPATCH and validate_panel.timing requires one pass against a
-  COMPLETE diff. The prior pin 1185d7f was DANGLING after the rebase and was removed, not
-  carried; a pin taken before T-02 would have gone stale a second time. All four reviewers
-  scoped 47ed11f..4918d06. The briefing must say the pin was re-taken and why.
+  RE-PINNED 2026-08-05 to HEAD, BEFORE the delta reviewer was dispatched (INV-6). THE PIN HAS
+  MOVED TWICE AND THE BRIEFING MUST SAY SO. (1) 1185d7f was DANGLING after the rebase and was
+  removed, not carried. (2) 4918d06 was taken once after T-02 and DEC-179, per the user ruling
+  that INV-6 binds at reviewer dispatch — the FOUR-WIDE panel scoped 47ed11f..4918d06 against
+  it. (3) The VF-1 fix at 7218d63 then made it stale AGAIN: a source commit on the very file
+  the panel's HIGH was about. USER RULING: a DELTA review of 4918d06..HEAD, not a second
+  four-wide pass — 2 source files and 34 lines, and the fix already carries a pre-fix-fails
+  proof, which is stronger evidence than a reviewer's read. This pin scopes that delta review.
 cycles_used: 2
 max_total_cycles: 10
 cycles_note: >-
@@ -75,9 +78,10 @@ must_fix_resolved:
     files. Test-first and proven non-vacuous: cases (i)/(j) FAIL against the pre-fix guard.
     Gates at 7218d63: unit 0 (32 PASS), docs 0, state 0, index 0. Full record:
     notes/vf1-guard-bypass.md.
-must_fix_new:
+filed_not_fixed:
   vf2_shape_gate_covers_1_of_3_write_routes: >-
-    FOUND BY THE MAIN SESSION AFTER THE PANEL CLOSED, NOT YET FIXED — a ruling, not a line. The
+    FILED AS ISSUE #132 BY USER RULING — a budget/context-hygiene gap, NOT an authorization hole,
+    which is why VF-1 was fixed inline and this was not. Out of FEAT-09's scope. The
     DEC-150 shape gate returns at check-domain.sh:376 unless tool_name == "Write", and
     bash-write-guard.sh has NO shape logic at all, only domain. Measured on a 400-line
     feature.yaml: Write exits 2, Edit exits 0, BASH exits 0. WIDER THAN MY FIRST WRITE-UP, which
