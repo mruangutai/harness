@@ -46,7 +46,9 @@ else answers it either.
   invariant fails a run for a missing, stale, or excessive cost figure.
 - REQ-03: No rule surface asks an agent to produce, carry, or report a cost figure. An agent that
   reads its own rules end to end finds no instruction that would make it emit one.
-- REQ-04: The return contract neither requires nor rejects a cost field. A return written to the new
+- REQ-04: **UNDER AMENDMENT A-4 — see `## Amendments`. The approved text below is left in place and
+  has deliberately NOT been overwritten; its SECOND clause is retired by the user's ruling.**
+  The return contract neither requires nor rejects a cost field. A return written to the new
   contract validates, and a return still carrying the old field also validates, so no in-flight run
   is broken by the transition.
 - REQ-05: The rework budget is unaffected. `cycles_used`/`max_total_cycles` still bound fix loops and
@@ -66,7 +68,11 @@ else answers it either.
 
 ## Success Criteria
 
-- SC-01: `grep -rln -e cost_usd -e cost-report -e max_cost -e per_feature_usd -e INV-11` over
+- SC-01: **UNDER AMENDMENT A-4 — see `## Amendments`. (A-2 amended this criterion first and is
+  SUPERSEDED BY A-4; read A-4, not A-2.) The text below is the approved text and is UNREACHABLE as
+  written; it has deliberately NOT been overwritten.** A single replacement text and its
+  measurements are in A-4; the user re-signs.
+  `grep -rln -e cost_usd -e cost-report -e max_cost -e per_feature_usd -e INV-11` over
   `.claude/`, `docs/`, `.harness/harness.json`, `.harness/team-config.yaml` and `.harness/README.md`
   returns **only** `docs/harness/DECISIONS.md` and `docs/harness/DECISIONS-INDEX.md` (which keep the
   historical entries and rows by REQ-06/constraint 3). **Discriminating:** the same command returns
@@ -84,7 +90,9 @@ else answers it either.
   unknown-key violations, and the `cost_model.rates` check no longer fails a config that has no
   `cost_model`.
   verify: automated        evidence: command
-- SC-04: An `orchestrator` DIGEST that **omits** `cost_usd` is accepted by
+- SC-04: **UNDER AMENDMENT A-4 — see `## Amendments`. The approved text below is left in place and
+  has deliberately NOT been overwritten; A-4 NARROWS it to its first half.**
+  An `orchestrator` DIGEST that **omits** `cost_usd` is accepted by
   `.claude/skills/harness/bin/validate-digest.py` (exit 0, `digest ok`), and one that **still carries**
   `cost_usd` is also accepted. **Discriminating on both halves:** at `ae2443d` the omitting payload is
   rejected `BLOCKED (contract violation) — missing 'cost_usd'` at exit 1, and the carrying payload is
@@ -210,6 +218,340 @@ resolves to a soft skip.
 - **Unknown DIGEST keys are ignored by `validate-digest.py`** (probed: a payload carrying
   `bogus_extra_key` returned `digest ok`, exit 0). This is what makes SC-04's second half achievable
   and makes removing the schema field safe for in-flight returns.
+  **AMENDED BY A-4 — see `## Amendments`.** The behaviour is unchanged and re-verified structurally;
+  what changes is its referent (SC-04's second half is dropped) and its evidential status (the
+  committed suite asserts the property only incidentally). A-4 §4 carries the replacement text.
+
+## Amendments
+
+### A-2 — SC-01 is unreachable as written (2026-08-05, drafted by `harness-pm`) — **SUPERSEDED BY A-4**
+
+> **SUPERSEDED BY A-4 (2026-08-05).** The user chose NEITHER of the two options below. A-2 is kept
+> verbatim, not deleted, because the record of the two rejected options is why A-4's wording is what
+> it is — and because A-2's `ae2443d` and `95c1c38` measurements are still the discriminating
+> baseline A-4 builds on. **Do not implement anything in this section.** The live replacement text
+> for SC-01 is in A-4.
+
+**This BRIEF is AMENDED and AWAITING THE USER'S RE-SIGNATURE.** The `## Approval` block below still
+carries the signature taken against the pre-amendment text and has been left untouched — only the
+main session may write it. SC-01's approved text at `:69` is **also** left in place, with a pointer
+added; overwriting a signed criterion with an unsigned one is the thing this section exists to
+avoid. **`harness-pm` recommends but does not choose.**
+
+#### The problem
+
+SC-01 requires the sweep to return **only** `DECISIONS.md` and `DECISIONS-INDEX.md`. Four other
+files cannot leave it, and **three already-approved requirements are why**. SC-01 is the feature's
+headline criterion, so this is not a wording tidy-up.
+
+| File | Why it cannot leave | Mandated by |
+|---|---|---|
+| `bin/test-validate-digest.py` | carries `cost_usd: "12.83"` as the backward-compatibility pin (`:753`, comment at `:749`) | **T-01's intent**, proving **SC-04**'s second half. Strictly unavoidable — SC-04 requires the fixture SC-01 forbids |
+| `docs/harness/BUILD.md` | retains `(cost-report.py removed — DEC-178)` markers | **T-11** + **D-07**, blessed by **SC-14** |
+| `docs/harness/SPEC.md` | same marker at the §15.5 retrospective | **T-10** + **D-07**, blessed by **SC-14** |
+| `bin/test-check-state.py` | `:205`, `:326` name INV-11 in prose explaining what the deleted invariant used to do | nothing. **Avoidable by rewording**, at the cost of deleting the explanation of why the new case exists |
+
+SC-14 is the sharpest conflict: *"every remaining `cost-report.py` mention carries an inline removed
+marker"* **presupposes mentions remain**. SC-01 forbids exactly those mentions. **Three requirements
+agreeing against one is evidence about which one is wrong** — SC-04, SC-14 and D-07 are therefore
+NOT amended, and no amendment below touches them.
+
+#### Measurement — pinned to SHAs, because S4 is running now
+
+`harness-documentor` is mutating `SPEC.md` and `BUILD.md` concurrently, so a working-tree grep
+returns a set that is neither the base nor the final. Every figure below is `git grep` against a
+commit.
+
+```
+git grep -ln -e cost_usd -e cost-report -e max_cost -e per_feature_usd -e INV-11 <SHA> \
+  -- .claude/ docs/ .harness/harness.json .harness/team-config.yaml .harness/README.md
+```
+
+| SHA | Files | Which |
+|---|---|---|
+| `ae2443d` (base) | **18** | the ten `.claude/` surfaces, both `harness.json`, both `teams/*.yaml`, `BUILD.md`, `SPEC.md`, `DECISIONS.md`, `DECISIONS-INDEX.md` |
+| `95c1c38` (S2 complete) | **6** | `test-check-state.py`, `test-validate-digest.py`, `BUILD.md`, `DECISIONS-INDEX.md`, `DECISIONS.md`, `SPEC.md` |
+
+**The `6 == 6` coincidence is not confirmation, and must not be read as one.** At `95c1c38`
+`BUILD.md` (5 raw hits) and `SPEC.md` (12) are in the sweep for **pre-T-10/T-11** reasons; post-S4
+they will be in it for **marker** reasons. Same file set, different cause. The four-survivor set is
+**verified at `95c1c38` only for the two test files**, and is a **projection** for `BUILD.md` and
+`SPEC.md` that S4's actual output must confirm. If S4 lands and either file leaves the sweep
+entirely, see the superset wording below — that is a pass, not a failure.
+
+#### Option (a) — widen the expected set, each survivor with its reason named  · **RECOMMENDED**
+
+> - SC-01: `grep -rln -e cost_usd -e cost-report -e max_cost -e per_feature_usd -e INV-11` over
+>   `.claude/`, `docs/`, `.harness/harness.json`, `.harness/team-config.yaml` and `.harness/README.md`
+>   returns **no file outside** this set of six, each of which survives for a named, already-approved
+>   reason:
+>   `docs/harness/DECISIONS.md` and `docs/harness/DECISIONS-INDEX.md` — the historical entries and
+>   rows, kept by REQ-06 / constraint 3;
+>   `docs/harness/BUILD.md` and `docs/harness/SPEC.md` — the inline `(cost-report.py removed —
+>   DEC-178)` markers mandated by T-11/T-10 under D-07 and required by SC-14, which presupposes that
+>   mentions remain;
+>   `.claude/skills/harness/bin/test-validate-digest.py` — the `cost_usd: "12.83"` backward-
+>   compatibility pin (`:753`) mandated by T-01 and required by SC-04's second half;
+>   `.claude/skills/harness/bin/test-check-state.py` — prose at `:205`/`:326` explaining what the
+>   deleted INV-11 used to do, which is why the new test case exists.
+>   **Superset, not exact set:** a file leaving is a pass; a seventh file appearing is a failure.
+>   Presence of the four survivors is already carried by SC-04 (the pin) and SC-14 (the markers);
+>   SC-01's job is the absence half.
+>   **Discriminating:** the same command returns **18 files at `ae2443d`**, of which **12 are outside
+>   this set** — so this is not an already-empty absence-grep and would NOT have passed at the base
+>   commit. It returns **6 at `95c1c38`**, all six inside the set.
+>   verify: automated        evidence: command
+
+#### Option (b) — narrow the pattern to exclude fixture and marker contexts
+
+Excluding marker lines alone is insufficient: measured, dropping every line containing `DEC-178`
+leaves **6 files at `95c1c38`** and **18 at `ae2443d`** — a no-op at base, and it does not reach the
+two test fixtures. (b) therefore needs **two** exclusions: drop `DEC-178`-marked lines *and* exclude
+`.claude/skills/harness/bin/test-*.py` from the file scope. Measured with both:
+
+```
+git grep -n -e cost_usd -e cost-report -e max_cost -e per_feature_usd -e INV-11 <SHA> \
+  -- .claude/ docs/ .harness/harness.json .harness/team-config.yaml .harness/README.md \
+     ':!.claude/skills/harness/bin/test-*.py' | grep -v 'DEC-178' | cut -d: -f2 | sort -u
+```
+→ **15 files at `ae2443d`**, **4 at `95c1c38`**. Expected set would be the two `DECISIONS` files.
+
+> - SC-01: the command above returns **only** `docs/harness/DECISIONS.md` and
+>   `docs/harness/DECISIONS-INDEX.md`. Fixture files under `bin/test-*.py` and lines carrying the
+>   `DEC-178` removal marker are excluded, because SC-04 and SC-14 respectively require them.
+>   **Discriminating:** the same command returns **15 files at `ae2443d`**, so it would not have
+>   passed at the base commit.
+>   verify: automated        evidence: command
+
+**Neither option is a deletion.** (a) fails at `ae2443d` with 12 out-of-set files; (b) fails with 15.
+Both figures are stated so the check is on the record for the option that is rejected as well as the
+one recommended.
+
+#### Recommendation: **(a)**, one reason
+
+**(b) buys its cleaner expected set by creating two permanent escape hatches from the sweep, and the
+worse of the two is real, not theoretical:** excluding `bin/test-*.py` wholesale means SC-01 stops
+watching `test-cost-report.py` — the deleted meter's own test — so a future reinstatement of the
+meter's test would not register, and any file can be removed from the sweep thereafter by adding a
+`DEC-178` marker line. (a) names each survivor and its mandating requirement inside the criterion, so
+the criterion audits itself: a seventh file, or a survivor whose stated reason no longer holds, fails
+it. (b)'s marker clause also duplicates SC-14, which already checks exactly that.
+
+#### One sub-choice inside (a) — the user's call at signature
+
+`test-check-state.py:205`/`:326` is the **only** one of the four that is avoidable: the INV-11
+references are historical prose, not a fixture, and could be reworded out. **Recommendation: keep
+them.** Deleting the explanation of why a test case exists in order to satisfy a grep is the tail
+wagging the dog, and the grep is meant to find live instructions, not history. If the user prefers
+the rewording, **SC-01 needs no re-amendment** — the superset wording in (a) makes a file leaving the
+set a pass. The choice can therefore be deferred past signature.
+
+#### Untouched, and checked rather than assumed
+
+- **SC-04, SC-14 and D-07 are not amended.** Nothing in A-2 edits them.
+- **`## Problem`, line `:29`** — "That the sweep grep returns 18 and not 0 is what makes SC-01
+  discriminating" — re-read for this amendment. It survives both options verbatim (18 at `ae2443d`
+  is confirmed above) and needs no edit.
+- **SC-05's cycle surfaces** are not in scope of A-2.
+
+### A-4 — the user ruled: delete the pin, not the criterion (2026-08-05, drafted by `harness-pm`)
+
+**This BRIEF is AMENDED and AWAITING THE USER'S RE-SIGNATURE.** The `## Approval` block below still
+carries the signature taken against the pre-amendment text and has been left untouched — only the
+main session may write it. A-4 is bundled into the same pending re-signature as A-1 and A-3. Nothing
+downstream should treat that signature as covering A-1, A-3 or A-4 until the user re-signs.
+**A-4 supersedes A-2 in full**; A-2 is marked in place, not deleted.
+**A-4's counterpart section is `PLAN.md ## Amendments` → A-4** (amendment numbering is feature-wide
+across both signed artifacts). This section carries the BRIEF-side changes; the PLAN-side changes to
+T-01 and T-02 are there.
+
+#### 0. The ruling
+
+A-2 offered two options for the unreachable SC-01 — widen the expected set, or narrow the pattern.
+The user chose neither: *"why can't we remove it outright? i don't care about backwards
+compatibility and any extra code to maintain it is a waste."* The ruling is to **delete the thing
+the exception existed to protect** — the `cost_usd: "12.83"` backward-compatibility pin in
+`test-validate-digest.py` — and to reword the two INV-11 prose sites in `test-check-state.py`.
+Both edits are **main-session-direct** (DEC-174 carve-out surfaces) and are **follow-up work, not
+yet done**.
+
+Two premises of the ruling, re-verified here rather than relayed:
+
+- **Zero producers.** `grep -rn --exclude-dir=worktrees cost_usd .claude/agents
+  .claude/skills/harness/SKILL.md .claude/skills/harness-team/SKILL.md` → **no output, exit 1**
+  (working tree at `5ce3b13`; `bin/` is clean against `5ce3b13` — `git diff --quiet 5ce3b13 --
+  .claude/skills/harness/bin/` exits 0). T-05/T-06 removed the last instruction to emit the field,
+  so the guarantee protects a transition window with no inhabitants.
+- **The pin's replacement coverage is NOT what the dispatch claimed.** See §3 — this is the one
+  place A-4 contradicts its own brief, and it does not change the ruling.
+
+#### 1. The sweep at `5ce3b13`, decomposed — 6 today, 4 after
+
+```
+git grep -ln -e cost_usd -e cost-report -e max_cost -e per_feature_usd -e INV-11 5ce3b13 \
+  -- .claude/ docs/ .harness/harness.json .harness/team-config.yaml .harness/README.md
+```
+→ **6 files**, pasted verbatim:
+
+```
+5ce3b13:.claude/skills/harness/bin/test-check-state.py
+5ce3b13:.claude/skills/harness/bin/test-validate-digest.py
+5ce3b13:docs/harness/BUILD.md
+5ce3b13:docs/harness/DECISIONS-INDEX.md
+5ce3b13:docs/harness/DECISIONS.md
+5ce3b13:docs/harness/SPEC.md
+```
+
+**6 = the 4 survivors + the 2 the follow-up edits remove → 4 after.**
+
+| File | Disposition | Why |
+|---|---|---|
+| `docs/harness/DECISIONS.md` | **survivor** | historical entries, kept by REQ-06 / constraint 3 |
+| `docs/harness/DECISIONS-INDEX.md` | **survivor** | historical rows, same |
+| `docs/harness/BUILD.md` | **survivor** | inline `(cost-report.py removed — DEC-178)` markers (T-11, D-07), **blessed by SC-14** |
+| `docs/harness/SPEC.md` | **survivor** | same marker at SPEC `:2129` (T-10, D-07), blessed by SC-14 |
+| `bin/test-validate-digest.py` | **leaves** | **all three** of its hits go: the pin payload at `:753` and its comment at `:749` are deleted, and the surviving fixture's comment at `:769` is reworded off the literal spelling (PLAN A-4 §T-01) |
+| `bin/test-check-state.py` | **leaves** | **both** of its hits go: the INV-11 prose at `:205` and `:326` is reworded (PLAN A-4 §T-02) |
+
+**The departures are verified by enumeration, not by arithmetic.** Every hit in the two leaving
+files was listed with the full five-token pattern at `5ce3b13` and confirmed to sit inside text the
+follow-up edit removes or rewords:
+`test-validate-digest.py` → `:749`, `:753`, `:769`; `test-check-state.py` → `:205`, `:326`.
+**`:769` is the trap**: it is the comment on the fixture that SURVIVES, and it carries the literal
+spelling. Deleting the pin alone would leave the file in the sweep and re-create A-2's defect.
+
+Every BUILD.md and SPEC.md hit at `5ce3b13` was re-read and **every one carries the removal marker**
+(`git grep -n <tokens> 5ce3b13 -- docs/harness/SPEC.md docs/harness/BUILD.md` → BUILD `:191`, `:224`,
+`:225`, `:333`, `:578`; SPEC `:2129`). That is exactly the state SC-14 mandates, which is why these
+two are survivors and not defects: **SC-14's "every remaining mention carries an inline removed
+marker" presupposes mentions remain.** No criterion-contradicts-criterion paragraph is needed any
+more — that was the cost of the option the user rejected.
+
+**SC-01 is therefore REACHABLE, conditional on the two main-session-direct follow-up edits landing.
+Reachable is not the same as passing now: at `5ce3b13` the sweep returns 6, and 2 of them are
+outside the amended expected set.**
+
+#### 2. Why `--exclude-dir=worktrees` joins the command — and why it is a no-op at the base
+
+FEAT-09's worktree now lives at `.claude/worktrees/FEAT-09/`, a second full copy of the repo inside
+SC-01's search path. Working tree at `5ce3b13`:
+
+| Command | Files |
+|---|---|
+| `grep -rln <tokens> .claude/ docs/ …` | **78** |
+| `grep -rln --exclude-dir=worktrees <tokens> .claude/ docs/ …` | **6** |
+
+**78 cannot be pinned to a SHA and is not claimed to be**: `.claude/worktrees/` is gitignored
+(`.gitignore:21`), so it is a working-tree figure by construction. The **6** is confirmed by two
+independent methods — `git grep` at `5ce3b13` (§1) and the flagged working-tree grep above — and
+they return the same six paths. That agreement is a cross-check of one tree, and is **not** the
+`6 == 6` coincidence A-2 warned about (which compared two different SHAs).
+
+**The flag is a no-op at `ae2443d`, verified as a fact about the disk rather than inferred from grep
+semantics:** `git log -1 --format=%cI ae2443d` → `2026-08-05T06:06:25-07:00`;
+`stat -f '%SB' .claude/worktrees/FEAT-09` → `Aug  5 07:02:15 2026`. The worktree postdates the base
+commit by 56 minutes, so no worktree existed when the discriminating **18-file** base measurement was
+taken. **That measurement stands unchanged.** (Independently: A-2's 18 came from `git grep` at a SHA,
+which cannot see an untracked path — re-run for this amendment, still 18.) The flag also aligns the
+criterion with `.harness/harness.json`, whose `test_kinds` `exclude` strings carry
+`.claude/worktrees/**` at `:85`, `:90`, `:96`, `:102`, `:108`, `:114`, `:120` and `:133`.
+
+#### 3. Replacement text — SC-01
+
+> - SC-01: `grep -rln --exclude-dir=worktrees -e cost_usd -e cost-report -e max_cost
+>   -e per_feature_usd -e INV-11` over `.claude/`, `docs/`, `.harness/harness.json`,
+>   `.harness/team-config.yaml` and `.harness/README.md` returns **no file outside** this set of
+>   four, each surviving for a named, already-approved reason:
+>   `docs/harness/DECISIONS.md` and `docs/harness/DECISIONS-INDEX.md` — the historical entries and
+>   rows, kept by REQ-06 / constraint 3;
+>   `docs/harness/BUILD.md` and `docs/harness/SPEC.md` — the inline `(cost-report.py removed —
+>   DEC-178)` markers mandated by T-11/T-10 under D-07 and **required by SC-14**, which presupposes
+>   that mentions remain.
+>   **Superset prohibited, subset allowed:** a fifth file is a FAILURE; a file leaving the set is a
+>   pass. `--exclude-dir=worktrees` excludes `.claude/worktrees/**`, a second checkout of this repo,
+>   matching `harness.json`'s `test_kinds` exclusions.
+>   **Discriminating:** the same command returns **18 files at `ae2443d`**, of which **14 are
+>   outside this set** — so this is not an already-empty absence-grep and would NOT have passed at
+>   the base commit. At `5ce3b13` it returns **6**, of which **2** are outside the set: the two files
+>   the main-session-direct follow-up edits remove.
+>   verify: automated        evidence: command
+
+#### 4. Replacement text — SC-04, and the REQ-04 disposition
+
+> - SC-04: An `orchestrator` DIGEST that **omits** `cost_usd` is accepted by
+>   `.claude/skills/harness/bin/validate-digest.py` (exit 0, `digest ok`).
+>   **Discriminating:** at `ae2443d` that same payload is rejected
+>   `BLOCKED (contract violation) — missing 'cost_usd'` at exit 1, so it can only go green once the
+>   schema entry is gone.
+>   verify: automated        evidence: unit
+
+The second half — *"and one that still carries it is also accepted"* — is **dropped**, and its
+fixture with it. SC-04 remains discriminating on the surviving half.
+
+**REQ-04 moves with it, and this is a ruling on a REQUIREMENT, not only on a criterion.** REQ-04's
+second clause — *"and a return still carrying the old field also validates, so no in-flight run is
+broken by the transition"* — is exactly what SC-04's second half and the pin existed to verify.
+It is **RETIRED by the user's ruling**: with zero producers (§0) there is no in-flight run to break,
+and the user ruled that code maintained for backward compatibility is waste. A pointer has been added
+at REQ-04; its approved text is left in place, unoverwritten.
+
+What still covers the mechanism: **unknown-key tolerance is generic and structural**, not
+cost-specific. `validate-digest.py`'s field loop iterates `{**schema, **UNIVERSAL}` and there is no
+branch anywhere that rejects a key present in the payload but absent from that set. Behaviour is
+unchanged, and **`PLAN.md` D-01's safety rationale ("the measured extra-key tolerance is what makes
+removal safe") is therefore UNCHANGED and is not amended** — the tolerance is still true and still
+what makes removal safe.
+
+**The dispatch's replacement-coverage anchor does not hold, and is corrected here rather than pasted
+forward.** `test-validate-digest.py:1213` and `:1233` were opened at `5ce3b13`: both are **comment
+lines, not assertions**. `:1212-1215` explains that case (g2) was green at SHA `4091b36` *because*
+`task` was then an unknown key — `task` is in the dev schema today (`vd` field loop), so the case no
+longer exercises tolerance. `:1232-1234` uses "unknown key ignored" as the name of the **bad** shape
+its detector pair exists to rule out — the opposite property.
+
+Measured instead of argued. A strict-unknown-key **mutant** of `validate-digest.py` (built from
+`git show 5ce3b13:`, one added rejection of any payload key outside `{**schema, **UNIVERSAL}`,
+allowing the two separately-checked keys `headline` and `artifact`) was run through the real suite
+via its `VALIDATE_DIGEST_BIN` override. Result: **2 FAILING**, and they are:
+
+- `orchestrator digest with the reconciled schema` — the pin fixture at `:753`. **The only
+  deliberate assertion of unknown-key tolerance in the suite.**
+- `[hook] DEC-156: file check governs leads only — a dev's artifact is not read` — whose dev payload
+  carries `branch: none`, a field in the **lead** schema only (`validate-digest.py:165`). Incidental,
+  not an assertion about tolerance.
+
+**Residual, stated rather than softened: once the pin is deleted, the committed suite asserts
+unknown-key tolerance only incidentally.** The behaviour is safe; the *coverage* is thin. A-4 does
+NOT add a test to close this — that would be new mandate beyond the ruling. It is raised as an open
+question (see the DIGEST), with a concrete cheap shape: one orchestrator fixture carrying
+`bogus_extra_key`, asserted accepted. That is the user's call.
+
+The settled fact at `## Settled facts` (the `bogus_extra_key` probe) is amended by pointer, not
+overwritten. Its replacement reading: **unknown DIGEST keys are ignored — structural, verified at
+`5ce3b13` by the mutant run above; this is what makes removing the schema field safe for any return
+still carrying it, and after the pin is deleted the committed suite covers it only incidentally.**
+
+#### 5. Falsifiability closure — why SC-01 is the falsifier for both follow-up edits
+
+T-02's `verify:` clauses check `check-state.sh`, not `test-check-state.py`, so **nothing in T-02
+catches the INV-11 prose rewording**. That is the unfalsifiable-site failure A-3 named, and it would
+recur here. **The amended SC-01's four-file set closes it:** `test-check-state.py` and
+`test-validate-digest.py` are each in the sweep today and each leaves it only if its follow-up edit
+lands. Superset-prohibited is what gives this teeth — if either edit is skipped, SC-01 returns a
+fifth (or sixth) file and fails.
+
+#### 6. Untouched, and checked rather than assumed
+
+- **SC-14, D-07, T-10 and T-11 are NOT amended.** The markers are correct and required; SC-01 is the
+  criterion that was wrong.
+- **D-01 is NOT amended** (§4): its rationale rests on tolerance, which is unchanged.
+- **A-1 and A-3 are NOT touched, and nothing is renumbered.** A-3's "Cross-reference to A-2 — no
+  effect" (`PLAN.md:879-883`) says SPEC.md is "already among the six": **the set of six becomes four,
+  and A-3's conclusion still holds because `docs/harness/SPEC.md` remains in it.** A-3 is not edited.
+- **`## Problem`, the "18 and not 0" sentence** — re-verified at `ae2443d` for this amendment (still
+  18). Survives verbatim; no edit.
+- **No `cost:` block is recorded for this amendment** — `cost-report.py` was deleted by T-03 and
+  INV-11 by T-02.
 
 ## Approval
 

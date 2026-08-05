@@ -29,7 +29,9 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
 | Surface | Lane | Authority |
 |---|---|---|
 | `check-state.sh`, `validate-digest.py` and their tests | **main-session-direct** (DEC-174 carve-out) | `CLAUDE.md` — overrides the grants below |
-| `cost-report.py`, `test-cost-report.py`, `run-unit-tests.sh`, both `harness.json` | `harness-backend-dev` / `harness-dev-ops` | `team-config.yaml:155`, `:197` |
+| `cost-report.py`, `test-cost-report.py`, `run-unit-tests.sh` | `harness-backend-dev` / `harness-dev-ops` | `team-config.yaml:155`, `:197` — both are `{ path: .claude/skills/harness/bin/**, upsert: true }` |
+| `.harness/harness.json` | `harness-dev-ops` | `team-config.yaml:196` — `{ path: .harness/harness.json, upsert: true }`, in the `harness-dev-ops` domain block opened at `:189`. **Not** `:155`/`:197`, which are `bin/**` and do not reach it |
+| `.claude/skills/harness/templates/harness.json` | **main-session-direct** (declared step, D-10) | granted to **nobody**. `grep -n templates .harness/team-config.yaml` returns no line, and the only two `.claude/…` grants in the file are `:155` and `:197`, both `bin/**`. No glob in the file covers `templates/` |
 | `docs/**` and `.harness/README.md` | `harness-documentor` | `team-config.yaml:116`, `:118` |
 | `.claude/agents/*.md`, `.claude/skills/harness/SKILL.md`, `.claude/skills/harness-team/SKILL.md`, `.claude/skills/harness/teams/*.yaml` | **main-session-direct** (declared step) | granted to nobody; `.claude/agents/**` deliberately unowned (`team-config.yaml:35-40`) |
 
@@ -135,6 +137,36 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
   `verify:` for an unrelated reason. Trade-off: the main session does work `team-config.yaml:155`
   grants to a member; the deviation is recorded here because the PLAN template requires it.
 
+- D-10: **T-04 SPLITS by lane. `harness-dev-ops` keeps `.harness/harness.json`; the template half
+  is a declared main-session step. No domain is widened and `team-config.yaml` is untouched.**
+  *(Added by amendment A-1 after the S2 run returned BLOCKED. Recorded, not decided, here — the
+  user ruled.)*
+  **The defect this fixes.** The `## Lanes` row for the two config files named them as ONE surface
+  and cited `team-config.yaml:155`/`:197`. Re-read for this amendment: **both** of those lines are
+  `{ path: .claude/skills/harness/bin/**, upsert: true }` — `:155` under `harness-backend-dev`
+  (`:149`), `:197` under `harness-dev-ops` (`:189`). Neither covers either config file. The
+  citation was wrong for the live config too, not only for the template: `.harness/harness.json`
+  is granted at **`:196`**, a line the plan never named. And `templates/` is granted to nobody —
+  `grep -n templates .harness/team-config.yaml` returns nothing, and `:155`/`:197` are the file's
+  only two `.claude/…` grants.
+  **The evidence, measured against the live hook, not reasoned from the file.** `harness-dev-ops`
+  writes `.harness/harness.json` at **exit 0** and is **BLOCKED at exit 2** on
+  `.claude/skills/harness/templates/harness.json`. The lane was resolved at plan time by READING
+  `team-config.yaml` rather than by ASKING it; asking is what produced the correct answer.
+  **The refusal is the load-bearing half.** `harness-eng-lead` returned `BLOCKED` rather than
+  routing around `check-domain.sh`. A silent PASS was available: rewriting the same edit as a
+  `python3 -c` JSON round-trip would have passed `bash-write-guard.sh` unseen and landed the file
+  with no domain check ever firing. It was refused. Record this so a future reader does not read
+  the BLOCKED as a failure — it is the gate working, and the alternative was an undetectable
+  domain breach.
+  **Trade-off, named.** Splitting one task across two lanes means one task's receipt comes from
+  two executors and the whole-suite `verify:` clause runs twice. The alternative — widening a
+  member's domain to cover `templates/**` so the task stays whole — buys tidiness by granting a
+  standing write on the shipped template to fix one task, and a domain widened for convenience is
+  not narrowed back. Both files were in fact edited and committed at `95c1c38`; this decision
+  describes what was done and why, and the split shape is what any future task touching both
+  configs must use until a grant exists.
+
 ## Tasks
 
 - T-01: Remove `cost_usd` from the orchestrator digest schema, and its fixtures
@@ -162,6 +194,9 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
         `blocked_on`, `cost_usd`, `briefing`)". Remove `cost_usd` from that list. Leave the rest of
         the sentence and the `NULLABLE` guidance untouched — this is a comment accuracy fix, not a
         behaviour change.
+    **THE PARAGRAPH BELOW IS AMENDED BY A-4 — see `## Amendments`. It is the approved text and has
+    deliberately NOT been overwritten; A-4 carries the replacement, which DELETES the
+    backward-compatibility pin instead of mandating it.**
     In `test-validate-digest.py`, the two orchestrator fixtures at `:749` and `:765` carry
     `cost_usd: "12.83"` and `cost_usd: "4.10"`. Do NOT simply delete both lines. Make them prove
     BOTH halves of SC-04: one fixture drops the field entirely (the new contract — must be ACCEPTED,
@@ -215,6 +250,9 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
     (i) Every `cycles_used`, `max_cycles` and `max_total_cycles` path — untouched (SC-05).
     (j) `:33` and `:482` — the words "costs no recovery path" and "the check costs nothing" are
         English, not money. Untouched.
+    **THE PARAGRAPH BELOW IS AMENDED BY A-4 — see `## Amendments`. It is the approved text and has
+    deliberately NOT been overwritten; A-4 ADDS a required rewording of the INV-11 prose at
+    `test-check-state.py:205` and `:326`, which this paragraph never mentions.**
     In `test-check-state.py`: `:21` and `:27` are shared fixture strings carrying
     `"cost_model": {"rates": {"sonnet": 1}}` purely to satisfy the check being deleted; `:100` uses
     `'{"cost_model": {"rates": {}}}'` for case_d (an INV-9 hooks test, unrelated to cost, whose
@@ -265,7 +303,12 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
 
 - T-04: Strip the `cost_model` block and the two USD budgets from both configs
   segment: S2
-  execution_mode: team — `harness-dev-ops` (`team-config.yaml:197`)
+  execution_mode: **SPLIT (D-10, amended after the S2 BLOCKED).** `.harness/harness.json` →
+    team, `harness-dev-ops` (`team-config.yaml:196`, the grant that actually covers it).
+    `.claude/skills/harness/templates/harness.json` → **main-session-direct**, a declared step:
+    no member is granted `templates/`. The original single `team — harness-dev-ops
+    (team-config.yaml:197)` line miscited a `bin/**` grant for both paths and is what the eng
+    squad hit at exit 2. The intent, files and verify below are unchanged and span both halves.
   change_type: config
   depends_on: T-02
   traces: REQ-02, REQ-09, D-02, D-04
@@ -560,6 +603,36 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
       the operator never sees is not being monitored." | REMOVE the cost-line clause and both
       sentences. Keep every other item in the step: lead summaries, open questions, escalations,
       proposed next steps, goal-check, UAT, Expertise curation (D-06) |
+    | **(A-3)** `:1450-1451` — the WORKED BRIEFING EXAMPLE inside the same §10.3, 25 lines below the
+      row above, still renders a `Cost` row: `Cost        $12.83 of the $50 budget (26%), across 9
+      spawns and 2 fix cycles.` / `            Most of it — $7.40 — was the validator run that came
+      back FAIL.` | REMOVE the two-line `Cost` row **and the single blank line that follows it**,
+      leaving exactly one blank line between the `Goal check` block and the `UAT` block. Delete
+      NOTHING else from the example: the `Product`, `Engineering`, `Validation`, `Goal check`, `UAT`
+      and `Expertise` rows and the `FEAT-01 · SSO login with Google` header line all stay verbatim.
+      **Identify the row by its content, not by its line number** — the first disposition in this
+      table shifts everything below it. Why it matters more than the other ten: the first disposition
+      deletes the INSTRUCTION to produce a cost line and this example is the COPYABLE ARTIFACT, so
+      until both land SPEC tells the orchestrator not to emit the row and then shows it emitting one.
+      The contradiction is a direct product of a mandated edit. The deletion sits inside a fenced
+      block, but `test-validate-digest.py`'s extractor is anchored at `### 10.4 The team digest`, not
+      §10.3 — T-10's existing whole-suite clause already covers the fence and no new clause is needed
+      for it |
+    | **(A-3)** `:1576` — the cycle-counter ownership section: `that. Same shape as cost (DEC-116) —
+      the tier that can see across runs is the tier that bounds them. Exhausting either terminates
+      the loop, and the sequence is:` | EDIT → delete the dead analogy clause `Same shape as cost
+      (DEC-116) — ` only, and keep the principle it introduced as a standalone sentence: `The tier
+      that can see across runs is the tier that bounds them.` The rest of the line, including
+      `Exhausting either terminates the loop, and the sequence is:`, is untouched. **This line is
+      inside cycle territory and nothing about the counters may move**: the counter-ownership table
+      at `:1568-1571` (whose `cycles_used`/`max_total_cycles` row cites DEC-157) and the
+      domain-hook paragraph at `:1573-1575` stay verbatim. Two checks were run before choosing this
+      wording — SC-05's literal text scopes its `git diff` clause to `check-state.sh` and `SKILL.md`,
+      naming SPEC nowhere, and the line carries none of `cycles_used`, `max_cycles`,
+      `max_total_cycles` or `DEC-157`, so T-10's existing unchanged-count clause is unaffected in
+      both directions. Dropping `DEC-116` here is safe: its live no-`Bash` content survives in SPEC
+      at `:1878` and `:1930` (working tree), and T-07 keeps the tier rule itself. Lower severity than
+      the row above — a comparison, not an instruction |
     | `:1708-1709` the `feature.yaml` example block, `cost_usd: 12.83` and `max_cost_usd: 50` | REMOVE
       both lines. Keep `cycles_used: 2` and `max_total_cycles: 10` |
     | `:1711-1712` the `runs:` example rows carrying `cost_usd: 7.39` / `cost_usd: 5.44` | EDIT →
@@ -591,7 +664,23 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
     `grep -n -e cost-report -e max_cost_usd -e 'INV-11' docs/harness/SPEC.md` — every remaining hit,
     if any, is on a line also containing `DEC-178` (the D-07 removal marker); zero hits is also a
     pass; AND `grep -c -e max_total_cycles -e 'DEC-157' docs/harness/SPEC.md` is unchanged from its
-    pre-edit value (capture before editing, state both in the receipt); AND the WHOLE unit suite
+    pre-edit value (capture before editing, state both in the receipt); AND
+    **(A-3)** `grep -n -i 'cost' docs/harness/SPEC.md | grep -v -F -e '| Cost |' -e 'unmodelled
+    costs' -e 'size costs harness' -e 'at the cost of one cheap spawn' -e 'costs a worktree per
+    agent' -e 'traps that cost time' -e 'no extra spawn cost' -e 'rule costs its' -e 'dominant cost
+    line' -e 'Cost accepted:' -e 'Costs that are not yet modelled' -e 'A feature costs 19' -e 'Cost
+    moved to post-build' -e 'computed per-agent spend' -e 'monitor cost in'` returns NOTHING. It is
+    ONE line at a uniform indent — it folds to a single runnable command, the same idiom T-04 and
+    T-08 use; do not re-add a fence or backslash continuations, which would fold into a half-joined
+    hybrid that runs as neither.
+    The fifteen `-F` patterns are the enumerated SURVIVORS — every legitimate non-money use of the
+    word in SPEC, each an anchored content substring rather than a line number or a category
+    exclusion. Run mid-flight before the two A-3 rows land it prints exactly the two defect lines and
+    nothing else, which is what makes it discriminating in both directions: it fails on the defect and
+    does not fail on correct text. **If a future run surfaces a hit not on this list, investigate it —
+    and if it is legitimate non-money prose, ADD it to this allow-list; never delete it from SPEC.**
+    Deleting a survivor to make the clause pass is the over-removal failure SC-12 exists to catch;
+    AND the WHOLE unit suite
     `.claude/skills/harness/bin/run-unit-tests.sh` exits 0; AND
     `.claude/skills/harness/bin/check-docs.sh` exits 0.
     **Why the whole suite here:** TWO unit tests read this live file. `test-team-catalog.py:45` sets
@@ -697,6 +786,210 @@ Every task's receipt names its `verify:` command **verbatim** and pastes that co
 not a self-reported verdict. Three tasks (T-06, T-10, T-11) carry an "unchanged from its pre-edit
 value" clause; those receipts must state **both** numbers, captured before and after, because an
 unchanged count is only evidence if the baseline was measured rather than recalled.
+
+## Amendments
+
+### A-1 — T-04's lane splits (2026-08-05, drafted by `harness-pm`)
+
+**This PLAN is AMENDED and AWAITING THE USER'S RE-SIGNATURE.** The `## Approval` block below still
+carries the signature taken against the pre-amendment text; it has been left untouched because only
+the main session may write it. Nothing downstream should treat the signature below as covering A-1
+until the user re-signs.
+
+What changed, exhaustively — three edits, no others:
+
+1. **`## Lanes`**: the single row naming `cost-report.py`, `test-cost-report.py`,
+   `run-unit-tests.sh` and "both `harness.json`" as one surface is replaced by **three** rows. The
+   `bin/**` files keep their real grant (`:155`/`:197`); `.harness/harness.json` gains its real
+   grant (`:196`); `templates/harness.json` becomes a main-session declared step. The `bin/**` files
+   were split out rather than dropped — they were in the same row and are genuinely granted.
+2. **`## Decisions`**: new **D-10** records the split, the miscitation, the exit-0/exit-2
+   measurement and the eng-lead's refusal to route around `check-domain.sh`.
+3. **T-04's `execution_mode:`** line, which repeated the identical `:197` miscitation in the line an
+   executor actually reads. Fixed to the split. T-04's `intent:`, `files:` and `verify:` are
+   unchanged.
+
+**No task was added, removed or re-scoped, no domain was widened, and `team-config.yaml` was not
+touched.** Both config files were already edited and committed at `95c1c38`; A-1 makes the PLAN
+describe what was done and why it took that shape.
+
+*(A-2 is not missing. Amendment numbering is feature-wide across both signed artifacts, and A-2 —
+SC-01 is unreachable as written — amends `BRIEF.md`, whose `## Amendments` section carries it.)*
+
+### A-3 — two SPEC cost sites T-10's table never enumerated (2026-08-05, drafted by `harness-pm`)
+
+**This PLAN is AMENDED and AWAITING THE USER'S RE-SIGNATURE.** The `## Approval` block below still
+carries the signature taken against the pre-amendment text; it has been left untouched because only
+the main session may write it. A-3 is bundled into the same pending re-signature as A-1. Nothing
+downstream should treat the signature below as covering A-1 or A-3 until the user re-signs.
+
+**T-10 is executed and its four `verify:` clauses passed — and A-3 reopens it.** T-10's disposition
+table now has **eleven** rows; **rows 10 and 11 are outstanding work**, and the receipt
+`harness-documentor` filed proves the **nine rows it was written against**, not the table as
+amended. T-10's status is therefore **not done**: it needs a re-dispatch that lands the two
+dispositions and re-runs all five clauses. This PLAN cannot carry that signal into
+`runs/*/state.yaml`, so it also travels in the DIGEST.
+
+What changed, exhaustively — three edits, no others:
+
+1. **T-10 `intent:`** gains two disposition rows, tagged `(A-3)`, inserted **in ascending file
+   order** immediately after the `:1422-1425` row so a top-down walk hits them where they occur.
+2. **T-10 `verify:`** gains a fifth clause: a plain-word `grep -n -i 'cost'` sweep with a
+   fifteen-entry enumerated allow-list, which must return nothing.
+3. This section.
+
+**The baseline for T-10's "unchanged from its pre-edit value" clause, on re-dispatch.** It is now
+ambiguous — pre-edit relative to `ae2443d`, or to the post-T-10 tree the re-dispatch starts from?
+**Ruling: the re-dispatch captures its own baseline immediately before it edits**, i.e. against the
+current post-T-10 tree, and states both numbers as the clause already requires. The `ae2443d` figure
+is not the reference: the two A-3 rows must not change the count from where T-10 left it, and that
+is the property worth proving. Neither disposition touches `max_total_cycles` or `DEC-157`, so both
+numbers must be equal.
+
+**T-10's four existing `verify:` clauses, its `files:`, `traces:`, `depends_on:`, `segment:` and
+`execution_mode:` are unchanged. No task was added, removed or re-scoped. No other task was touched
+— T-09, T-11 and T-12 are untouched. SC-04, SC-14, D-06 and D-07 are untouched, and A-2's SC-01
+options are not re-opened.**
+
+#### Why the two sites were missed — the durable half
+
+**The survey's grep defined the search space.** T-10's table was built by enumerating hits of the
+compound tokens `cost_usd`, `cost-report`, `max_cost`, `per_feature_usd` and `INV-11`. Both sites use
+only the plain English word "cost" and carry no compound token, so they were invisible to the survey
+that wrote the table **and to every `verify:` clause in the entire feature** — each of which counts
+the same compound tokens. A site outside the token set is not merely unlisted; it is unfalsifiable.
+The new clause is plain-word by construction for exactly that reason, and its allow-list is
+enumerated rather than pattern-based because SPEC uses "cost" legitimately fifteen times.
+
+Site A is the more serious of the two, and its severity is **caused by** a mandated edit: T-10's
+first disposition removed the cost line from the §10.3 briefing step, and the worked briefing example
+25 lines below — the artifact an orchestrator copies — still renders the row the step now forbids.
+
+#### Anchors — pinned to `ae2443d`, the SHA the other nine rows use
+
+`git grep -n <text> ae2443d -- docs/harness/SPEC.md`: Site A at **`:1450`**, Site B at **`:1576`**.
+Both predate this feature; neither was created by T-10. `harness-documentor` is editing SPEC.md
+concurrently, so the working tree shows them two lines higher (`:1448`, `:1574`) — **mid-flight and
+non-authoritative**. Both dispositions are therefore written to identify their target by **content**,
+not by line number.
+
+#### Ruled, not open: `docs/harness/BUILD.md:545`
+
+The heading `## Build the org; monitor cost in practice — SUPERSEDES the pilot gate` (verified at
+`ae2443d`) was examined and is **deliberately left alone**. It is a dated historical section heading,
+which is precisely what D-07 preserves, and it is the target of a cross-file anchor at SPEC.md
+`:2130-2131` (`See BUILD.md § "Build the org; monitor cost in practice."`), so a rename would need a
+paired edit in a file this feature is already rewriting. Recorded here so a later plain-word scan
+does not re-open it as a finding.
+
+#### Cross-reference to A-2 — no effect
+
+Neither site carries any of SC-01's five tokens, so **the amended SC-01's expected file set is
+unchanged**; `docs/harness/SPEC.md` is already among the six for the marker reason (`(cost-report.py
+removed — DEC-178)` at SPEC `:2129`). A-2 is not edited.
+
+### A-4 — the user ruled: delete the pin, not the criterion (2026-08-05, drafted by `harness-pm`)
+
+**This PLAN is AMENDED and AWAITING THE USER'S RE-SIGNATURE.** The `## Approval` block below still
+carries the signature taken against the pre-amendment text; it has been left untouched because only
+the main session may write it. A-4 is bundled into the same pending re-signature as A-1 and A-3.
+Nothing downstream should treat that signature as covering A-1, A-3 or A-4 until the user re-signs.
+
+**A-4's counterpart section is `BRIEF.md ## Amendments` → A-4** (amendment numbering is feature-wide
+across both signed artifacts — the same convention A-1's closing parenthetical states). The BRIEF
+side carries the ruling, the 6→4 sweep decomposition, the amended SC-01 and SC-04, the REQ-04
+disposition and the corrected coverage evidence. **This side carries only the two task amendments.**
+**A-4 supersedes A-2**, which is marked in place in `BRIEF.md` and not deleted.
+
+**Both tasks are already committed. These amendments make the PLAN describe what the FOLLOW-UP EDIT
+must do.** Both files are DEC-174 carve-out surfaces, so both edits are **main-session-direct** —
+ordinary edits, tests run explicitly, a human reading the diff. `harness-pm` does not attempt them.
+
+What changed, exhaustively — three edits, no others:
+
+1. **T-01 `intent:`** gains a pointer above its `test-validate-digest.py` paragraph. The approved
+   text is left in place.
+2. **T-02 `intent:`** gains a pointer above its `test-check-state.py` paragraph. Same discipline.
+3. This section.
+
+**No task was added, removed or re-scoped. No `files:`, `traces:`, `depends_on:`, `segment:`,
+`change_type:`, `execution_mode:` or `verify:` line was touched. `team-config.yaml` is untouched and
+no domain is widened. D-01 through D-10 are unamended** — in particular **D-01's safety rationale
+("the measured extra-key tolerance is what makes removal safe") is UNCHANGED**, because the tolerance
+is still true and still what makes removal safe; only the *fixture that pinned it* goes.
+
+#### T-01 — the pin is DELETED, not kept
+
+T-01's approved intent mandates keeping one fixture carrying `cost_usd: "12.83"` as the
+backward-compatibility pin. **That mandate is what created the SC-01/SC-04 collision A-2 reported.**
+Replacement requirement for the follow-up edit:
+
+> **TWO edits, not one.** The file carries **three** sweep hits at `5ce3b13`, enumerated rather than
+> assumed (`git grep -n -e cost_usd -e cost-report -e max_cost -e per_feature_usd -e INV-11 5ce3b13
+> -- .claude/skills/harness/bin/test-validate-digest.py` → `:749`, `:753`, `:769`). Deleting the pin
+> alone leaves `:769` and the file stays in the sweep — which would re-create the A-2 defect and make
+> SC-01 unreachable again.
+> (1) **Delete** the orchestrator fixture that carries `cost_usd: "12.83"` — the payload at `:753`,
+>     its `BACKWARD-COMPATIBILITY PIN` comment block at `:749-752`, and **the whole `case(...)` call
+>     they belong to**.
+> (2) **Keep** the fixture that OMITS the field — the new contract, SC-04's surviving half — but
+>     **reword its comment at `:769` so it does not carry the literal spelling**: "no money field at
+>     all" rather than "no `cost_usd` at all". The rest of that comment (it is the DETECTOR; it was
+>     REJECTED at `ae2443d`) stays. **This is the repo's existing house style, applied to a second
+>     site:** `check-state.sh:331-334` says "Named without its quoted spelling because this task's
+>     verify: counts that spelling", and `validate-digest.py`'s orchestrator schema comment says
+>     "Named without its literal spelling on purpose".
+> Anchors verified at `5ce3b13`; `bin/` is clean against `5ce3b13`
+> (`git diff --quiet 5ce3b13 -- .claude/skills/harness/bin/` exits 0). After the edit,
+> `grep -c cost_usd .claude/skills/harness/bin/test-validate-digest.py` returns **0**, and
+> `.claude/skills/harness/bin/run-unit-tests.sh` exits 0.
+
+**Known consequence, recorded rather than discovered later.** Measured for this amendment with a
+strict-unknown-key mutant of `validate-digest.py` run through the real suite via its
+`VALIDATE_DIGEST_BIN` override (method and full result in `BRIEF.md` A-4 §4): the pin is the **only
+deliberate** assertion of unknown-key tolerance in the suite. Deleting it leaves one **incidental**
+site (the DEC-156 hook case, whose dev payload carries `branch: none` — a lead-only field,
+`validate-digest.py:165`). The *behaviour* is structural and unaffected; the *coverage* becomes thin.
+A-4 does not add a test — that is new mandate beyond the ruling — and raises it as an open question
+instead.
+
+#### T-02 — the INV-11 prose must be reworded
+
+T-02's approved intent covers `check-state.sh` thoroughly and the `test-check-state.py` fixtures, but
+**never mentions the two prose sites**. Replacement requirement for the follow-up edit:
+
+> In `test-check-state.py`, reword both sites so **neither names the dead invariant**, keeping the
+> explanation of why `case_k` exists. Verified at `5ce3b13`:
+> - **`:205`** — `invariant AFTER it — INV-11/13/15/16/18/21 and INV-10 — with no "could not run"`.
+>   Drop `11` from the list. `check-state.sh` **already did exactly this**: its parallel comment at
+>   `:288` now reads `aborting INV-13/15/16/18/21 and INV-10`. Match it.
+> - **`:326`** — `INV-11 used to make exactly this a violation ("run is complete but has no cost:
+>   block")`. Describe what the removed completed-run check did **without naming it** — e.g. "a
+>   removed check (DEC-178) used to make exactly this a violation: a run marked complete with no
+>   `cost:` block." `check-state.sh:331-334` is the house style for this, describing the historical
+>   reason for `cost` in `CHECKPOINT_KEYS` without naming the invariant.
+> `grep -n 'INV-11' .claude/skills/harness/bin/test-check-state.py` must then return nothing, and
+> `run-unit-tests.sh` must exit 0.
+
+#### The falsifier — why this loop is closed
+
+**T-02's `verify:` clauses check `check-state.sh`, not `test-check-state.py`, so nothing in T-02
+catches the prose rewording.** That is the unfalsifiable-site failure A-3 named, recurring. **The
+amended SC-01's four-file set IS the falsifier for both follow-up edits:** at `5ce3b13` the sweep
+returns 6 files, and `test-check-state.py` and `test-validate-digest.py` are the 2 outside the
+amended expected set. Each leaves the sweep only if its edit lands, and SC-01 is
+superset-prohibited — a fifth file fails it. **SC-01 is therefore reachable, conditional on both
+follow-up edits landing; reachable is not the same as passing now.**
+
+#### Cross-reference to A-3 — no edit, conclusion unchanged
+
+A-3's "Cross-reference to A-2 — no effect" says `docs/harness/SPEC.md` is "already among the six".
+**The set of six becomes four, and A-3's conclusion still holds because SPEC.md remains in it** (it
+survives for the `(cost-report.py removed — DEC-178)` marker at SPEC `:2129`, blessed by SC-14).
+**A-3 is not edited. A-1 is not edited. Nothing is renumbered.**
+
+**No `cost:` block is recorded for this amendment** — `cost-report.py` was deleted by T-03 and
+INV-11 by T-02.
 
 ## Approval
 
