@@ -4,6 +4,17 @@
 
 # PLAN — <milestone or feature set>
 
+## Lanes
+
+<Resolve every task's lane HERE, against `.harness/team-config.yaml` at a named SHA —
+never at build time. The Grant column cites the granting line, or records that nothing
+grants the surface, which is a legitimate answer and becomes a declared main-session step.>
+
+| Surface | Lane | Grant |
+|---|---|---|
+| <path or glob> | <harness-agent-name> | `team-config.yaml:NN` |
+| <path or glob> | **main session** (declared step) | unowned — nothing grants it |
+
 ## Decisions
 
 <Technical choices and their cost. A decision that deviates from a team convention
@@ -38,12 +49,19 @@ differently from you.
 `change_type:` is MANDATORY on every task — qa reads it to apply the test matrix,
 and a task without one BLOCKS the gate. One of:
   logic | api | cross_module | frontend | feature | bugfix | ai_behavior
-  | config | scaffolding | docs>
+  | config | scaffolding | docs
+
+`execution_mode:` is MANDATORY too, and has exactly two legal forms:
+  execution_mode: team — <agent> (team-config.yaml:NN)
+  execution_mode: main-session-direct — reason: <why>
+`check-plan-routes.py` reads `execution_mode:` and the task's `files:`. A task whose
+paths resolve to no agent, without `main-session-direct`, FAILS it.>
 
 - T-01: <imperative title>
   files: <exact paths, not directories>
   intent: <complete description of the change — what the code must do afterwards>
   change_type: <see list above>
+  execution_mode: <see the two forms above>
   verify: <command returning pass/fail in <60s>
   traces: REQ-01, D-01
   feature: FEAT-01
