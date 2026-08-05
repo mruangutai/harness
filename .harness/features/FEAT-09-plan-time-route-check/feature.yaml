@@ -4,11 +4,12 @@ branch: feat/FEAT-09-plan-time-route-check
 pr: none
 status: awaiting_user
 posture: >-
-  Source COMPLETE and the four-wide panel RAN, no skips. It found a HIGH that I reproduced
-  myself: an environment variable silently disables the whole PreToolUse guard, making SC-04
-  FALSE AS WRITTEN, not merely under-tested. The fix is one line plus one test case on
-  check-domain.sh — a DEC-174 carve-out — so it is a DECLARED main-session step I may neither
-  perform nor dispatch. Escalated with the fix fully specified.
+  Source COMPLETE, the four-wide panel RAN with no skips, and its HIGH (VF-1) is FIXED at
+  7218d63 — applied by the MAIN SESSION under DEC-174, the lane the orchestrator identified and
+  could not enter. SC-04 is now TRUE as written. TWO DECISIONS ARE OPEN and both are the user's:
+  the re-review scope for the 34-line fix the panel has not seen, and the ruling on VF-2, a
+  SECOND reachability gap found after the panel closed (the shape gate is bypassed by Edit).
+  Goal-check, distillation and briefing all wait on the re-review scope call.
 review_sha: 4918d06
 review_sha_note: >-
   PINNED 2026-08-05, ONCE, AFTER T-02 AND DEC-179, per the user ruling on the timing conflict.
@@ -19,9 +20,13 @@ review_sha_note: >-
 cycles_used: 2
 max_total_cycles: 10
 cycles_note: >-
-  1 to 2 for the panel FAIL — rework is open. The increment is PRE-EMPTIVE: no fix cycle has
-  been dispatched, so do not count it again on re-delegation. Both team runs this segment were
-  CLEAN first passes reporting 0 send-backs, which correctly adds nothing.
+  RESOLVED — the increment is now EARNED, not pre-emptive, and STAYS AT 2. It was recorded
+  pre-emptively for a fix cycle nobody had dispatched; the rework then actually happened, as
+  VF-1 at 7218d63. DEC-157 counts rework, and this was rework — the fact that it ran
+  main-session-direct under DEC-174 rather than through a team run changes the LANE, not
+  whether rework occurred. DO NOT INCREMENT AGAIN for VF-1 on any re-delegation; it is spent.
+  Both team runs this segment were CLEAN first passes reporting 0 send-backs, which correctly
+  adds nothing.
 tasks: { T-01: DONE, T-02: DONE, T-03: DONE, T-04: DONE }
 runs:
   - id: plan-product
@@ -44,29 +49,59 @@ gate_status:
   docs: "PASS — check-docs.sh exit 0, re-run by me"
   state: "PASS — check-state.sh exit 0, after I trimmed handoff-build.md to shape"
   index: "PASS — gen-decisions-index.py --stdout | diff - exits 0, re-run by me"
-  review: "FAIL — one HIGH, reproduced independently by me. See must_fix_open"
-  qa_gate: "PASS — matrix_ok true, 13/13 scripts, 32 named checks, non-vacuous"
+  review: >-
+    FAIL AT 4918d06 — one HIGH. The HIGH (VF-1) is now FIXED at 7218d63, but this verdict is
+    NOT flipped to PASS by the fixer: the panel has not seen the fix. Re-review scope is an
+    OPEN USER DECISION — see review_delta_unreviewed.
+  qa_gate: >-
+    PASS — RE-RUN BY THE MAIN SESSION AT 7218d63, not carried from 4918d06. The prior PASS was
+    pinned before VF-1's two new cases existed. change_type logic/bugfix both require `unit`;
+    test-check-domain.py matches the unit detect pattern; cmd run-unit-tests.sh exits 0 with
+    32 PASS. NON-VACUOUS AND PROVEN SO: cases (i)/(j) FAIL against the pre-fix guard (suite
+    exit 1) and pass with it (10/10 --resolve cases) — the bug-class test the matrix asks for.
   security: "RAN. Graded the env-var defect med on reachability; the lead overruled to high"
   ui: "PASS — self-scoped out ON MEASUREMENT, not prediction. No rendered surface"
   uat: NOT_REQUIRED — nothing here is operated by hand
-  goal_check: NOT_RUN — deferred; SC-04 is already known false, see sc04_status
+  goal_check: >-
+    NOT_RUN — no longer blocked by SC-04 (now TRUE, see sc04_status). Outstanding only on the
+    re-review scope decision, since a goal-check citing an unreviewed source commit would rest
+    on an unpinned diff.
   ship_refresh: "SKIP — .harness/codebase/ does not exist in this tree"
-must_fix_open:
+must_fix_open: {}
+must_fix_resolved:
   vf1_env_var_disables_the_guard: >-
-    HIGH, BLOCKING, AND I REPRODUCED IT RATHER THAN RELAYING IT. If HARNESS_RESOLVE_PATH is
-    present in the environment, EVERY agent can write EVERY path: exit 0, no stderr, nothing
-    logged. Mechanism, measurement, fix and routing are written up in full at
-    notes/vf1-guard-bypass.md — read that, not this line.
-  vf1_routing_summary: >-
-    A DECLARED MAIN-SESSION STEP. Measured: the MANIFEST grants check-domain.sh to
-    harness-backend-dev and harness-dev-ops, but DEC-174 forbids dispatching a change to it
-    through a team run whose gates are the thing being changed, and the domain hook separately
-    BLOCKS me. I may neither perform this fix nor delegate it.
+    FIXED AND VERIFIED AT 7218d63 by the MAIN SESSION under DEC-174 — the lane the orchestrator
+    identified and could not enter. Reproduced before fixing and re-measured after, with payload
+    files. Test-first and proven non-vacuous: cases (i)/(j) FAIL against the pre-fix guard.
+    Gates at 7218d63: unit 0 (32 PASS), docs 0, state 0, index 0. Full record:
+    notes/vf1-guard-bypass.md.
+must_fix_new:
+  vf2_shape_gate_edit_bypass: >-
+    FOUND BY THE MAIN SESSION AFTER THE PANEL CLOSED, and NOT YET FIXED — it needs a user ruling,
+    not a line. The DEC-150 state-file shape gate is registered for Write|Edit but returns at
+    check-domain.sh:376 unless tool_name == "Write", so EVERY budget below it is unreachable via
+    Edit. Measured, 400-line feature.yaml: Write exits 2, Edit exits 0. Same class as VF-1 — the
+    logic is correct, the REACHABILITY is not. The domain check is unaffected. Four options with
+    costs, and why it is a ruling: notes/vf2-shape-gate-edit-bypass.md.
+review_delta_unreviewed:
+  what: >-
+    OPEN USER DECISION. The panel reviewed 47ed11f..4918d06; the VF-1 fix at 7218d63 is a NEW
+    SOURCE COMMIT it has not seen, on check-domain.sh — the file its HIGH was about. review_sha
+    no longer describes the tree.
+  size: >-
+    MEASURED so the scope call rests on a number: `git diff 4918d06..HEAD` is 2 source files,
+    34 lines — check-domain.sh +13 (one functional line plus comment), test-check-domain.py +22
+    (two cases). The rest of that range is .harness state.
 sc04_status: >-
-  SC-04 IS FALSE AS WRITTEN, NOT UNDER-TESTED — that distinction is what makes VF-1 gate.
-  BRIEF.md:48-49 states it in ARGV terms; my test was exactly that shape and exited 0, and the
-  implementation does not branch on argv at all. NOT a re-plan: the one-line fix MAKES the
-  approved criterion true, so this is approved-but-unmet — a fix cycle in DEC-174's lane.
+  NOW TRUE AS WRITTEN, at 7218d63. THE GOAL-CHECK MUST NOT READ THE OLD LINE — pm would score a
+  met criterion as failed. History, kept because the sequence is the finding: SC-04 was FALSE AS
+  WRITTEN at 4918d06, not merely under-tested. BRIEF.md:48-49 states it in ARGV terms and the
+  implementation did not branch on argv at all, so a payload with no --resolve in argv exited 0
+  whenever the environment carried HARNESS_RESOLVE_PATH. It was approved-but-unmet rather than a
+  re-plan, and the one-line fix made the approved criterion true rather than rewriting it.
+  Now measured directly in BRIEF.md's own terms: an out-of-domain Write with no --resolve in
+  argv exits 2 on a clean env, with the var set, and with it set to empty. Cases (i)/(j) are the
+  durable evidence and they FAIL against the pre-fix guard, so they can fail.
 validate_panel:
   ruling_vindicated: >-
     The user ruling — all four steps, NO pre-emptive skips — is now VINDICATED rather than
@@ -79,47 +114,20 @@ validate_panel:
     each lens to infer, because a prior panel's gap was a property of self-chosen scopes.
   digest: .harness/features/FEAT-09-plan-time-route-check/runs/panel-validator/digest.md
 backlog:
-  vf2_shared_files_rejected: >-
-    NEEDS A USER RULING EVENTUALLY. A task naming a `shared:` file (package.json, pyproject.toml)
-    is FALSELY REJECTED by check-plan-routes.py. The dispatch predicted a fail-OPEN here; the
-    truth is the opposite, it fails CLOSED at :64. Top of the non-gating list because dependency
-    work hits it immediately. Answering it amends DEC-179.
-  sc08_weaker_than_it_reads: >-
-    Three of SC-08's four clauses are SOURCE GREPS and therefore respellable, and case 17's
-    mid-pattern `*` never crosses a `/`, so an fnmatch reimplementation would PASS it. The
-    design rule is about a third as guarded as the clause count suggests.
-  matcher_unverified: >-
-    matches()/glob_to_re() are UNMODIFIED, so the panel established only that the matcher was
-    not RE-implemented, never that it is correct. Separately the two modes do NOT share input
-    normalisation: hook uses os.path.abspath (cwd-relative), --resolve uses os.path.join(root).
-  checker_never_observed_in_use: >-
-    No reviewer could tell whether a planning agent actually RUNS the checker; BRIEF.md:91-93
-    names this itself. Exercised against synthetic fixtures and FEAT-09's own PLAN only, so the
-    false-positive rate on the tree's other live PLANs is UNMEASURED.
-  q1_stale_anchor: >-
-    NOT A BUILDER DEFECT. check-plan-routes.py:16 and test-check-plan-routes.py:142 cite
-    check-domain.sh:190-197 for the prefix-comparison bug; the real record is at :61-69.
-    PLAN.md:210 CARRIES THE SAME WRONG ANCHOR — the approved plan is the origin.
-  q2_team_token_unvalidated: >-
-    WITHIN THE APPROVED INTENT. LEGAL_TOKENS at :42 is display-only. PLAN.md:177-181 specifies
-    that a granting agent means OK regardless of token — a design limit, not a defect.
-  q3_promote_invariant: "Promote the route checker to a check-state.sh invariant?"
-  q4_shared_regex: "The checker copies check-state.sh's task-block regex (D-08). Consolidate?"
-  q5_squad_dispatched: "Two historical plans use a token this feature retires. Normalise?"
-  q6_argvless_glob: >-
-    check-plan-routes.py with no argv globs relative to CWD, so from a non-repo-root cwd it
-    prints 0 violations across 0 plans and exits 0 — a clean answer from a run that checked
-    nothing. Not reachable via the documented invocation. Becomes BLOCKING if q3 lands.
-  q7_blank_files_field: "Code reviewer's new MED: a blank `files:` field is mishandled"
-  q8_inv17_late_enforcement: >-
-    FOUND BY ME, AND NARROWED. The handoff cap IS enforced at WRITE time — it blocked four of
-    my own drafts. But check-state.sh INV-17 re-checks the note only once phase: moves PAST the
-    seam, so a note that got onto disk over-cap sits unflagged for the whole phase it describes.
-    handoff-build.md was 63 lines against a 60 cap and surfaced only when I advanced the phase.
-  q9_state_cap: >-
-    CORRECTED AGAINST MYSELF. feature.yaml's 200-line cap IS mechanically enforced — it rejected
-    four successive drafts of mine, at 217, 208, 206 and 205 lines, and routed the rationale to
-    notes/. The unenforced one is STATE.md, where a 205-line write once succeeded.
+  detail: notes/backlog-detail.md — one line each here, rationale there (DEC-150 routing)
+  b1_shared_files_rejected: "NEEDS A RULING. A `shared:` file is falsely REJECTED — fails CLOSED, not open. Amends DEC-179"
+  b2_sc08_weaker_than_it_reads: "3 of 4 clauses are respellable greps; case 17's `*` never crosses a `/`. Issue #74 mode 3, live"
+  b3_matcher_unverified: "matches()/glob_to_re() proven not RE-implemented, never proven CORRECT. Modes differ on normalisation"
+  b4_checker_never_observed: "Never observed actually RUN by a planner. False-positive rate on other live PLANs UNMEASURED"
+  b5_stale_anchor: "Cites check-domain.sh:190-197; real record :61-69. PLAN.md:210 is the origin — a PLANNING defect"
+  b6_team_token_unvalidated: "LEGAL_TOKENS is display-only. Within the approved intent — a design limit, not a defect"
+  b7_argvless_glob: "No argv globs relative to CWD: 0 violations across 0 plans, exit 0. BECOMES BLOCKING if b8 lands"
+  b8_promote_invariant: "Promote the route checker to a check-state.sh invariant?"
+  b9_shared_regex: "The checker copies check-state.sh's task-block regex (D-08). Consolidate?"
+  b10_squad_dispatched: "Two historical plans use a token this feature retires. Normalise?"
+  b11_blank_files_field: "Code reviewer MED, unresolved: a blank `files:` field is mishandled"
+  b12_inv17_late: "INV-17 re-checks a handoff only after phase: advances — unflagged during the phase it describes"
+  b13_state_cap_story: "The cap is Write-only; Edit bypasses it. See must_fix_new.vf2 — that part is NOT backlog"
 declined:
   dec126_ref: >-
     The product lead proposed adding a DEC-126 reference to DEC-179's refs. DECLINED with

@@ -5,10 +5,10 @@
 - feature: FEAT-09-plan-time-route-check
 - phase: validate
 - worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/FEAT-09 (branch feat/FEAT-09-plan-time-route-check)
-- head: 4918d06 — also the pinned `review_sha`
+- head: 7218d63 — **`review_sha` 4918d06 no longer describes the tree**, see below
 - base: 47ed11f (`git merge-base main HEAD`)
 - run: none open
-- status: **awaiting_user** — one BLOCKING finding, in a lane no agent here may enter
+- status: **awaiting_user** — VF-1 is FIXED; two decisions open, both the user's
 
 **Segment 2 delivered everything it was asked to, and the panel then found a HIGH.** T-02 landed
 clean at `ae28daf` — `check-plan-routes.py`, a 17-case test, and one appended `SCRIPTS` element.
@@ -38,15 +38,35 @@ Security found the mechanism without checking it against SC-04; code checked SC-
 a clean environment. The defect lived in the *union* of the scopes. The ui reviewer declined on
 measurement, not prediction — a reviewed finding.
 
-**Goal-check, distillation and the briefing are deliberately NOT run.** SC-04 is already known
-false, and the fix changes the guard, so a goal-check now would be invalidated by the fix and a
-briefing would be addressed to a decision the user has not yet made.
+**VF-1 IS FIXED at `7218d63`, by the main session under DEC-174** — the lane the orchestrator
+correctly identified and could not itself enter. One line: `unset HARNESS_RESOLVE_PATH` in the
+else branch, deliberately NOT restructured to branch on argv. I reproduced the bypass with payload
+files before touching it and re-measured after: all three environments now exit 2, and `--resolve`
+still resolves and exits 0. **Test-first and proven non-vacuous** — new cases (i)/(j) FAIL against
+the pre-fix guard (suite exit 1) and pass with it. **SC-04 is now TRUE as written.**
+
+**VF-2, a SECOND reachability gap, found after the panel closed.** The DEC-150 shape gate is
+registered for `Write|Edit` but returns at `check-domain.sh:376` unless `tool_name == "Write"`, so
+**every state-file budget below it is unreachable via `Edit`.** Measured with a 400-line
+`feature.yaml`: Write exits 2, Edit exits 0. It surfaced because I wrote this feature's
+`feature.yaml` to 226 lines against its 200 budget and nothing stopped me, while the orchestrator
+had been blocked four times — both true, different tools. Trimmed to 198 by hand; rationale routed
+to `notes/`. **Not fixed** — the fix is a design ruling, four options costed in
+`notes/vf2-shape-gate-edit-bypass.md`. Same class as VF-1: the logic is right, the reachability is
+not, and an all-green run is not an absent defect.
+
+**Goal-check, distillation and the briefing are still NOT run** — now waiting only on the
+re-review scope call, since a goal-check citing an unreviewed source commit rests on an unpinned
+diff.
 
 ## Open Questions
 
-- **Q-VF1 BLOCKING** — apply the one-line `unset` plus the env-explicit test case to
-  `check-domain.sh`? It is main-session-direct by DEC-174. Nothing else in the feature is
-  outstanding. See `notes/vf1-guard-bypass.md`.
+- **Q-RESCOPE BLOCKING** — the panel reviewed `47ed11f..4918d06`; the VF-1 fix at `7218d63` is a
+  new source commit it has not seen, on the very file its HIGH was about. Measured so the call
+  rests on a number: **2 source files, 34 lines.** Full four-wide re-run, delta review, or accept?
+- **Q-VF2 BLOCKING for the fix, not for the feature** — which of the four options closes the
+  `Edit` bypass? `check-domain.sh` is a DEC-174 carve-out, so whichever wins is main-session-direct.
+- ~~Q-VF1~~ **RESOLVED at 7218d63.** See above.
 - Q-VF2 NON-BLOCKING — a task naming a `shared:` file (package.json, pyproject.toml) is falsely
   REJECTED by the checker. It fails closed, not open. Ruling on it amends DEC-179.
 - Q-SC08 NON-BLOCKING — three of SC-08's four clauses are respellable source greps, and case 17's
