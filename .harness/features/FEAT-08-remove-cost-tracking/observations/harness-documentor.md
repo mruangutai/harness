@@ -82,3 +82,81 @@
   (the `SPEC.md:2130` cross-file anchor) is outside T-11's five sites and is unchanged. But it is a
   plain-word `cost` site invisible to every compound-token sweep in this feature, same shape as
   Q15/Q16. Reported, not renamed.
+
+## 2026-08-05 — T-10 REOPENED under A-3 · receipt for the two added dispositions (rows 10 and 11)
+
+**Verdict: PASS.** Both A-3 rows landed in `docs/harness/SPEC.md`. All five `verify:` clauses re-run
+with output pasted below. Working root `/Users/molchairuangutai/GitHub/harness`, branch
+`feat/FEAT-08-remove-cost-tracking`, pre-edit tip `00f3e03`.
+
+### The two edits — identified by content, not line number
+
+- **Site A** (§10.3 worked briefing example): removed the two-line `Cost` row and the single blank
+  line following it. Now exactly one blank line between the `Goal check` block and `UAT`. Every
+  other row verbatim.
+- **Site B** (cycle-counter ownership prose): deleted `Same shape as cost (DEC-116) — ` and
+  recapitalised, giving `that. The tier that can see across runs is the tier that bounds them.`
+  The line was NOT re-wrapped — reflowing a ~140-char line in cycle territory would be diff noise
+  beyond the ruled edit.
+
+### Unchanged-count clause — baseline, captured BEFORE any edit (A-3 ruling: own baseline, current tree)
+
+    $ grep -c -e max_total_cycles -e 'DEC-157' docs/harness/SPEC.md
+    8            # PRE-EDIT
+    8            # POST-EDIT
+
+Equal, as A-3 predicted — neither disposition touches `max_total_cycles` or `DEC-157`. Matches the
+independent cross-check of 8 at `00f3e03`.
+
+### A-3 plain-word sweep — MID-FLIGHT, before the edits. Exactly two lines:
+
+    1448:Cost        $12.83 of the $50 budget (26%), across 9 spawns and 2 fix cycles.
+    1574:that. Same shape as cost (DEC-116) — the tier that can see across runs is the tier that bounds them. Exhausting either terminates the loop, and the sequence is:
+
+Not two-plus, not fewer. This pair can never be recaptured and is the only evidence the clause is
+discriminating in the failing direction. (The `Most of it — $7.40 —` continuation line carries no
+`cost` token, so a two-line defect surfaces as one grep hit.)
+
+### A-3 plain-word sweep — POST-EDIT. Empty:
+
+    $ grep -n -i 'cost' docs/harness/SPEC.md | grep -v -F -e '| Cost |' ... (15 survivors)
+    (no output)   exit 1
+
+**Exit 1 with empty stdout IS the pass** — `grep -v` returns 1 when it prints nothing. No hit
+surfaced off the allow-list, so the SC-12 / ESCALATE branch stayed dormant; the allow-list was not
+touched and no SPEC survivor was deleted.
+
+### Compound-token clause — one hit, and it carries the D-07 marker:
+
+    2126:monitoring: `bin/cost-report.py` (removed — DEC-178) computed per-agent spend, ...
+
+### Whole unit suite:  `SUITE_EXIT=0`, 12 `PASS` lines, zero `FAIL`.
+### `check-docs.sh`:  `DOCS_EXIT=0`, "checked 45 superseded pattern(s) across 203 file(s). no stale statements found."
+
+Both were run by me, after the edits and after this receipt was written (the receipt is itself in
+`check-docs.sh`'s scan glob — G-04).
+
+### Diff scope — the bound no clause covers
+
+`git diff -U1 docs/harness/SPEC.md` shows **exactly two hunks**, at `@@ -1447,5 +1447,2 @@` and
+`@@ -1573,3 +1570,3 @@`. Nothing else moved. This is the only receipt line discharging A-3's
+"counter-ownership table and domain-hook paragraph stay verbatim" bound — the absence clauses cannot
+see collateral damage and the count clause survives most of it. The table's `cycles_used` /
+`max_total_cycles` row was `:1569` pre-edit and is `:1566` now; Site A's three deleted lines shifted
+everything below it up by 3 (Site B likewise moved `:1574` → `:1571`), so any anchor quoted from
+A-3 or from the mid-flight capture below is one revision behind the current file.
+
+### Observations
+
+- 2026-08-05 (T-10/A-3): the three verify clauses that guard SPEC are all absence-or-count checks.
+  None of them can see collateral damage to text that never contained the banned token. On a task
+  whose bounds say "these neighbouring lines stay verbatim", the hunk-count diff is the receipt, not
+  the greps.
+- 2026-08-05 (T-10/A-3): a `grep -v` allow-list sweep passes with exit **1**. A run that treats
+  non-zero exit as failure would report a green clause as red.
+- 2026-08-05 (T-10/A-3): deleting a mid-sentence clause after a period is a delete PLUS a
+  recapitalisation. No absence check catches the orphaned lowercase word — fold both into a single
+  `Edit` whose `old_string` spans the sentence boundary.
+- 2026-08-05 (T-10/A-3): `BUILD.md:545` ("## Build the org; monitor cost in practice") is ruled by
+  A-3 as deliberately preserved — dated historical heading under D-07, plus the target of SPEC's
+  cross-file anchor. It answers the Q17 note above; not re-opened, not a finding.

@@ -1445,9 +1445,6 @@ Goal check  REQ-02 covered. SC-02 met (sign-in flow test passes).
             SC-07 met (no credentials in logs — checked).
             SC-05 needs you: it's a judgement about how the screen feels.
 
-Cost        $12.83 of the $50 budget (26%), across 9 spawns and 2 fix cycles.
-            Most of it — $7.40 — was the validator run that came back FAIL.
-
 UAT         Ready — 1 step, ~2 minutes.                      << BLOCKING
             Sign in with Google from a signed-out browser and tell me
             whether the screen feels consistent with the rest of the product.
@@ -1571,7 +1568,7 @@ things, and **they have different owners** (DEC-119):
 The split follows the file ownership that already exists (§11.3/§11.4) and is enforced by the domain
 hook: a lead is **blocked** from writing `feature.yaml`, so it cannot increment the feature counter
 even if told to. The lead reports cycles spent in its team digest; the orchestrator increments from
-that. Same shape as cost (DEC-116) — the tier that can see across runs is the tier that bounds them. Exhausting either terminates the loop, and the sequence is:
+that. The tier that can see across runs is the tier that bounds them. Exhausting either terminates the loop, and the sequence is:
 
 1. **Stop that branch.** No further retry of the failing step. Other independent branches of the DAG
    are allowed to finish — exhaustion fails a branch, not necessarily the whole team.
