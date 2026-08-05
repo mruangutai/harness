@@ -52,7 +52,12 @@ NULLABLE = {"branch", "blocked_on", "briefing",
             # DEC-173 additions — enum scalars whose personas have a legitimate
             # did-nothing state: refusing a task, being unable to run, or scoping
             # out of a diff that has nothing for this role to judge.
-            "suite", "matrix_ok", "severity_max", "contract", "surface", "risk"}
+            "suite", "matrix_ok", "severity_max", "contract", "surface", "risk",
+            # FEAT-07: a dev that refused or was blocked ran no verify command, and
+            # `n/a` is its spelling (REQ-03). `task` is deliberately NOT here — its
+            # `none` is a DECLARED answer, not a declined one, and NULLABLE would
+            # route it into the placeholder branch and out of its own regex check.
+            "task_verify"}
 
 # ...but declining to REPORT a gate is not the same as passing it. This is keyed by
 # PERSONA as well as field, because the same field means different things by role
@@ -70,15 +75,78 @@ NULLABLE = {"branch", "blocked_on", "briefing",
 #                                  reviewed nothing and blocks nothing.
 #
 # So: only the roles whose PASS is *earned by the gate* are bound by it.
-GATE_FIELDS = {"dev": {"suite"}, "qa": {"suite", "matrix_ok"}}
+#
+# FEAT-07 added `task_verify` and with it a SECOND axis, so the exemption is no
+# longer "this persona is exempt" but "this persona is exempt from THIS field by
+# THIS mechanism". Both axes, stated rather than left to be rediscovered:
+#
+#   PER FIELD.     dev-ops `suite: n/a` + PASS stays ALLOWED (above), while
+#                  dev-ops `task_verify: n/a` + PASS is REJECTED. Every PLAN task
+#                  carries a `verify:`, so where a return DECLARES a task, `n/a`
+#                  means refused or blocked. No task declared is CONDITIONAL, below.
+#   PER MECHANISM. This dict gates only the DECLINED value (`n/a`). Reporting an
+#                  outright FAILURE is the separate GATE_FAIL_VALUES table below.
+#                  `dev-ops` is absent from `suite` in BOTH, so dev-ops
+#                  `suite: fail` + PASS stays accepted — deliberate (D-03), and
+#                  recorded as a residue in BRIEF `## Verification gaps`.
+GATE_FIELDS = {"dev": {"suite", "task_verify"}, "qa": {"suite", "matrix_ok"},
+               "dev-ops": {"task_verify"}}
 
-# field -> (allowed values | type). Enums are EXACT; near-misses are the whole point.
+# ...and declining to report is not the same as REPORTING A FAILURE. Measured at
+# 3bfedc9, four rows were accepted that should not have been: dev `suite: fail`,
+# qa `suite: fail` and qa `matrix_ok: false`, each alongside `VERDICT: PASS`, all
+# returning `digest ok` exit 0. Cause: the GATE_FIELDS check below is nested INSIDE
+# the `val in PLACEHOLDER_UNSET` branch, so it can only ever see a placeholder.
+#
+# Keyed persona -> field -> the value that counts as FAILURE for that field, NOT a
+# set of field names, because the failing values differ in TYPE: `suite`/`task_verify`
+# fail as the STRING "fail" while `matrix_ok` fails as the BOOLEAN False. A
+# string-keyed table would silently never fire on matrix_ok.
+#
+# The fourth row stays open on purpose: `dev-ops` carries `task_verify` only and must
+# NOT gain `suite` (D-03), so dev-ops `suite: fail` + PASS remains accepted.
+GATE_FAIL_VALUES = {"dev": {"suite": "fail", "task_verify": "fail"},
+                    "qa": {"suite": "fail", "matrix_ok": False},
+                    "dev-ops": {"task_verify": "fail"}}
+
+# A field whose obligation is GOVERNED by another field. A dispatch carrying no PLAN
+# task has no `verify:` command, so `task_verify` cannot be required of it; `task` is
+# what declares which case a return is. Chosen over a bare `no-task` enum value
+# (D-07) because `task: none` is a task-id-shaped string that the lead's
+# dispatch-carries-the-T-NN-id rule (T-05) gives a cross-reference to.
+CONDITIONAL = {"task_verify": "task"}
+
+def _unbound(field, seen):
+    """True when `field`'s governor declares this dispatch carries no PLAN task.
+
+    The `""` default is LOAD-BEARING: `str(None).lower()` is `"none"` in Python, so
+    `seen.get(gov)` written without it would make a MISSING `task` switch the
+    requirement off — the conditional mechanism failing open in its own first line.
+    Fail closed: no governor value, or any value other than `none`, means it BINDS.
+    """
+    gov = CONDITIONAL.get(field)
+    if gov is None:
+        return False
+    return str(seen.get(gov, "")).strip().lower() == "none"
+
+# A task id, or the literal `none` for a dispatch that carries no PLAN task. The
+# placeholder spelling `T-NN` is REJECTED on purpose — the same zero-placeholder
+# discipline harness-tdd-enforcement already applies to task ids. `fullmatch`, never
+# `search`: `search` would accept `not-T-01-really`.
+TASK_ID_RE = re.compile(r"T-\d+|none")
+
+# field -> (allowed values | type | compiled pattern). Enums are EXACT; near-misses
+# are the whole point.
 SCHEMAS = {
     "pm": {"feasibility": {"clear","risky","blocked"}, "surface": {"S","M","L"},
            "recommend": {"proceed","spike","reframe","halt"}, "risk": {"low","med","high"},
            "tasks": int, "decisions": int, "needs_approval": bool, "flags": list,
            "sc_status": list},
-    "dev": {"tests_added": int, "suite": {"pass","fail"}, "blocked_on": str},
+    # `task_verify` has no `n/a` member on purpose: NULLABLE short-circuits it before
+    # the enum check, which is the one mechanism DEC-173 established for "did not
+    # happen". There is no fourth member — D-07 rejected the `no-task` spelling.
+    "dev": {"tests_added": int, "suite": {"pass","fail"}, "blocked_on": str,
+            "task": TASK_ID_RE, "task_verify": {"pass","fail"}},
     "qa": {"suite": {"pass","fail"}, "failures": int, "coverage_gaps": list, "matrix_ok": bool},
     "reviewer": {"severity_max": set(SEV), "findings": int, "must_fix": list},
     "visual-designer": {"contract": {"written","updated"}, "mockups": list, "direction_choices": list},
@@ -88,7 +156,8 @@ SCHEMAS = {
     # (NULLABLE short-circuits before the enum check) and is removed so there is one
     # mechanism for "did not happen", not two that can drift apart.
     "dev-ops": {"change_type": {"config","scaffolding","infra","ci"},
-                "applied": list, "suite": {"pass","fail"}},
+                "applied": list, "suite": {"pass","fail"},
+                "task": TASK_ID_RE, "task_verify": {"pass","fail"}},
     # SPEC 10.4 in full. `sc_status` is pm's field (11.6) riding up as a passthrough,
     # surfaced at team level so the orchestrator can read goal-check status without
     # opening member entries; `[]` when this team ran no goal-check.
@@ -465,7 +534,46 @@ def validate(persona, text):
 
     for field, allowed in all_fields.items():
         if field not in seen:
-            hint = "`none` if genuinely not applicable" if field in NULLABLE else "`[]` if there are none"
+            # D-08(a): with `task: none` this dispatch carries no PLAN task, so a
+            # governed field is not required of it at all.
+            if _unbound(field, seen):
+                continue
+            # REQ-11: a hint must name a value that will actually VALIDATE. Before
+            # this, `task_verify` inherited "write `none`" — which the gate above
+            # then rejects alongside PASS — and `task` would have inherited "write
+            # `[]`", which its own regex rejects. Four branches, most specific first.
+            if isinstance(allowed, re.Pattern):
+                hint = ("your task's `T-NN` id exactly as your dispatch carries it "
+                        "(T-05), or `none` if this dispatch carries no PLAN task")
+            elif field in GATE_FIELDS.get(persona, ()) and isinstance(allowed, set):
+                # The isinstance guard is not decoration: qa's `matrix_ok` is in
+                # GATE_FIELDS with `allowed is bool`, and sorted() over a type raises.
+                #
+                # WORDING: do NOT say a placeholder is disallowed. This branch also
+                # fires on a missing `suite` for dev, and `suite: n/a` with BLOCKED is
+                # LEGAL (REQ-03/SC-06). The gate is on the PAIRING, so the hint says so.
+                vals = sorted(a for a in allowed if isinstance(a, str))
+                hint = (f"one of {vals} — what gets rejected for this role is a "
+                        f"placeholder ALONGSIDE `VERDICT: PASS`, never the placeholder "
+                        f"itself (`n/a` with FAIL or BLOCKED is the honest refusal)")
+                # JOINTLY FOLLOWABLE (SC-18c). Without this clause a return omitting
+                # both fields gets hint (8a) offering `task: none` and this hint
+                # demanding a real value — and `task: none` + `task_verify: pass` is
+                # then rejected by the conditional. A hint routing an agent into a
+                # second rejection is REQ-11's own defect class, re-created by its fix,
+                # and the re-prompted return is NOT re-validated (see below).
+                if field in CONDITIONAL:
+                    hint += (f", or omit this field entirely if this dispatch carries "
+                             f"no PLAN task and you wrote `{CONDITIONAL[field]}: none`")
+            elif field in NULLABLE:
+                hint = "`none` if genuinely not applicable"
+            else:
+                hint = "`[]` if there are none"
+            # HONEST LIMIT: a re-prompted return is not re-validated — `:691-692` is
+            # `if d.get("stop_hook_active"): return 0` — so a hint naming a rejectable
+            # value ships the second attempt unvalidated. That passthrough is
+            # pre-existing and deliberate; this edit stops the hint POINTING at it and
+            # does not close it.
             err.append(f"missing {field!r} — every field is required; write {hint}. "
                        f"An absent field is ambiguous; an explicit empty one asserts you looked.")
             continue
@@ -473,6 +581,22 @@ def validate(persona, text):
         if val is _UNPARSED:
             err.append(f"{field!r} could not be parsed — its brackets/quotes never "
                        f"balanced. Fix the YAML rather than resubmitting as-is.")
+            continue
+        # D-08(b)/(c). Placed BEFORE the NULLABLE branch on purpose: after it,
+        # D-08(b) would be unreachable for a placeholder value.
+        if _unbound(field, seen):
+            if isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
+                # D-08(b): `n/a` is the honest DEC-121 spelling for a field with no
+                # answer, and the n/a-with-PASS gate does NOT bind here — there was no
+                # gate to decline.
+                continue
+            # D-08(c): the `continue` below short-circuits both the enum check and the
+            # fail gate, so this produces exactly ONE error, naming the actionable
+            # field, rather than two that disagree about what is wrong.
+            err.append(f"{field}={val!r} but {CONDITIONAL[field]}=none — a dispatch "
+                       f"carrying no PLAN task has no verify: command to report on. "
+                       f"Omit {field} or write `n/a`, or name the task's T-NN id in "
+                       f"`{CONDITIONAL[field]}`.")
             continue
         if field in NULLABLE and isinstance(val, str) and val.lower() in harness_yaml.PLACEHOLDER_UNSET:
             # DEC-173: declining a GATE while claiming PASS is the fail-open the
@@ -483,6 +607,20 @@ def validate(persona, text):
                            f"PASS — a gate that did not run cannot have passed. Return "
                            f"BLOCKED or FAIL, or report the real result.")
             continue
+        # THE FAIL-VALUE GATE. Deliberately OUTSIDE the placeholder branch above —
+        # nesting it inside is exactly why `suite: fail` + PASS was accepted for five
+        # features. ADDITIVE: it appends and does not `continue`, so a value that is
+        # both a gate failure and a schema violation still reports both.
+        expected = GATE_FAIL_VALUES.get(persona, {})
+        if field in expected and m and m.group(1) == "PASS":
+            want = expected[field]
+            # TYPE-STRICT, and the reason is not stylistic: `0 == False` is True in
+            # Python, so a bare equality would fire on `matrix_ok: 0`.
+            # `isinstance(0, bool)` is False, which is what makes this correct.
+            if val == want and isinstance(val, type(want)):
+                err.append(f"{field}={val!r} reports a gate as FAILED, but VERDICT is "
+                           f"PASS — a gate that failed cannot have passed. Fix until it "
+                           f"passes, or return FAIL or BLOCKED.")
         if isinstance(allowed, set):
             # F: fail-open crash. `val` can be a LIST (`severity_max: [low, med]`
             # parses via parse_scalar's `[...]` branch) while `allowed` is a set —
@@ -501,6 +639,15 @@ def validate(persona, text):
                             and (a.startswith(val[:3]) or val.startswith(a[:3]))]
                     if near: extra = f" (did you mean {near[0]!r}?)"
                 err.append(f"{field}={val!r} is not in {sorted(allowed)}{extra}.")
+        elif isinstance(allowed, re.Pattern):
+            # LOAD-BEARING, not stylistic. Measured in the interpreter: a re.Pattern
+            # is not a set and is none of bool/int/list/str, so WITHOUT this branch it
+            # falls through the whole chain in SILENCE and `task: bogus` is ACCEPTED —
+            # the "unknown key ignored" shape this file exists to remove.
+            if not (isinstance(val, str) and allowed.fullmatch(val)):
+                err.append(f"{field}={val!r} is not a task id — write your task's "
+                           f"`T-NN` id exactly as your dispatch carries it (T-05), or "
+                           f"`none` if this dispatch carries no PLAN task.")
         elif allowed is bool and not isinstance(val, bool):
             err.append(f"{field}={val!r} must be a bool, not {type(val).__name__} "
                        f"— a string like \"mostly\" silently soft-fails a hard gate.")
