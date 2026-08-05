@@ -4,12 +4,11 @@ branch: feat/FEAT-09-plan-time-route-check
 pr: none
 status: awaiting_user
 posture: >-
-  Source COMPLETE, the four-wide panel RAN with no skips, and its HIGH (VF-1) is FIXED at
-  7218d63 — applied by the MAIN SESSION under DEC-174, the lane the orchestrator identified and
-  could not enter. SC-04 is now TRUE as written. TWO DECISIONS ARE OPEN and both are the user's:
-  the re-review scope for the 34-line fix the panel has not seen, and the ruling on VF-2, a
-  SECOND reachability gap found after the panel closed (the shape gate is bypassed by Edit).
-  Goal-check, distillation and briefing all wait on the re-review scope call.
+  Source COMPLETE. The four-wide panel ran with no skips and its HIGH (VF-1) is FIXED at 7218d63
+  by the MAIN SESSION under DEC-174 — the lane the orchestrator identified and could not enter.
+  SC-04 is now TRUE as written. Both open decisions are RULED: a DELTA review of 4918d06..HEAD
+  (pin re-taken first, INV-6), and VF-2 FILED as issue #132 rather than fixed here. Remaining:
+  delta review, goal-check on 12 SCs, distillation, briefing.
 review_sha: 9af84ac
 review_sha_note: >-
   RE-PINNED 2026-08-05 to HEAD, BEFORE the delta reviewer was dispatched (INV-6). THE PIN HAS
@@ -89,15 +88,6 @@ filed_not_fixed:
     logic is correct, the REACHABILITY is not. Domain enforcement is unaffected on all routes.
     Only option 3 (PostToolUse) closes all three; 1 and 2 narrow it. Costs:
     notes/vf2-shape-gate-edit-bypass.md.
-review_delta_unreviewed:
-  what: >-
-    OPEN USER DECISION. The panel reviewed 47ed11f..4918d06; the VF-1 fix at 7218d63 is a NEW
-    SOURCE COMMIT it has not seen, on check-domain.sh — the file its HIGH was about. review_sha
-    no longer describes the tree.
-  size: >-
-    MEASURED so the scope call rests on a number: `git diff 4918d06..HEAD` is 2 source files,
-    34 lines — check-domain.sh +13 (one functional line plus comment), test-check-domain.py +22
-    (two cases). The rest of that range is .harness state.
 sc04_status: >-
   NOW TRUE AS WRITTEN, at 7218d63. THE GOAL-CHECK MUST NOT READ THE OLD LINE — pm would score a
   met criterion as failed. History, kept because the sequence is the finding: SC-04 was FALSE AS
@@ -133,7 +123,7 @@ backlog:
   b10_squad_dispatched: "Two historical plans use a token this feature retires. Normalise?"
   b11_blank_files_field: "Code reviewer MED, unresolved: a blank `files:` field is mishandled"
   b12_inv17_late: "INV-17 re-checks a handoff only after phase: advances — unflagged during the phase it describes"
-  b13_state_cap_story: "The cap is Write-only; Edit bypasses it. See must_fix_new.vf2 — that part is NOT backlog"
+  b13_state_cap_story: "The cap is Write-only; Edit bypasses it. Bash bypasses it too. Filed as #132 — NOT backlog"
 declined:
   dec126_ref: >-
     The product lead proposed adding a DEC-126 reference to DEC-179's refs. DECLINED with
