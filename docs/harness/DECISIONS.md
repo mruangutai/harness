@@ -4875,3 +4875,49 @@ agents, so a rule placed there is paid for at all 16 spawns. "Probe before you r
 to an agent that relays nothing to the user; charging every agent for a rule only the relaying tiers can act on is the
 context-budget failure the constraint in `CLAUDE.md` exists to prevent. Placement follows *who can
 act on the rule*, not *where rules of this kind usually live*.
+
+---
+
+## DEC-178 — Cost tracking is removed entirely: the meter, the budgets, the invariant and every reporting surface
+
+The money meter measured a shrinking minority of the work and fed a budget that was already forbidden
+to stop anything. `cost-report.py` attributed spend from transcript snapshots and could not separate a
+task run at depth 0 in the main session from the session total: FEAT-06 ran 9 of 10 build tasks in that
+shape and records its own figure as an understatement; FEAT-07 ran 8 of 10 the same way and finished at
+$702.82 against a $550 budget the orchestrator had computed for itself. DEC-134 had already made
+`max_cost_usd` informational — a crossing is a headline, never a stop. A measurement nobody can trust,
+feeding a limit nobody can enforce, is not instrumentation; it is 439 lines of script plus a dated
+per-model rate table to re-verify. It goes: the meter, the `cost_model` and `budgets` config blocks,
+INV-11, the digest field, and every rule surface that told an agent to produce a number.
+
+**The DEC-148 context watchdog is knowingly DROPPED with the file it lived in** — not preserved as a
+standalone script, not folded into `check-state.sh`, not deferred. Its reason: the watchdog's only
+behavioural consequence was to argue for ending an orchestrator's run at a phase boundary, and DEC-159
+now makes one-phase-per-orchestrator mandatory regardless of any measurement. The diagnostic no longer
+decides anything, so keeping it would cost maintenance to produce advice already hard-coded. This
+clause exists so a future scan does not re-propose the watchdog on the strength of DEC-148's prose.
+
+**DEC-148 is only PARTIALLY superseded here.** It made two changes. The watchdog dies with this
+feature; its OTHER half, the relay rule, was superseded by DEC-159 independently and before it — which
+is why no blanket supersession marker is declared against DEC-148 anywhere in this entry, and why the
+correction lands as a rewrite of DEC-148's hand-written ruling in `DECISIONS-INDEX.md` instead.
+
+**Historical figures are LEFT IN PLACE as the only surviving record.** `cost_usd`/`max_cost_usd` in
+already-shipped `feature.yaml` files and the `cost:` block in every run `state.yaml` are not scrubbed:
+deleting them would rewrite what was measured. The mechanical consequence is that `cost` stays in
+`check-state.sh`'s `CHECKPOINT_KEYS` — allowed, never required. Measured: all 67 run `state.yaml` files
+in this repo carry the block, and the checker flags any top-level key not in that set, so removing the
+entry would convert 67 historical runs into 67 violations in a single edit. The entry looks dead after
+this feature and is not; a comment beside it says so.
+
+**Nothing replaces the ship-review briefing's cost line.** Every candidate — a run count, a wall-clock
+duration — is a NEW measurement this feature has not built, and inventing one inside a removal is how
+removals grow. The 2026-08-04 agent-workflow performance review's row 10 (count and budget RUNS) is the
+remaining lever on that ground, and it is filed to the backlog rather than built here.
+
+**`cost_usd` came OUT of the orchestrator digest schema rather than being kept as a declared literal.**
+Probed first: a payload omitting the key while the schema still required it is rejected
+`BLOCKED (contract violation)`, whereas a payload carrying an unknown extra key validates clean. The
+hazard is one-directional, so the schema drops the key first and in-flight returns that still emit one
+keep validating — including this feature's own build, which was running under the live hook while the
+change landed.
