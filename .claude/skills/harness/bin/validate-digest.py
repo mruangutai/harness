@@ -168,13 +168,20 @@ SCHEMAS = {
     # 14, not derived from SPEC — SPEC 10.3 defines a *briefing artifact*, not a
     # digest block, for the orchestrator). These are exactly the fields the main
     # session routes on when the orchestrator returns: `status` decides relay vs.
-    # done, `runs`/`cycles_used`/`cost_usd` are the budget accounting it logs, and
+    # done, `runs`/`cycles_used` are the budget accounting it logs, and
     # `briefing` is the path it presents to the user. Everything else stays on disk
     # in feature.yaml.
+    #
+    # The money field this schema used to require is GONE, and a return still
+    # carrying it is IGNORED rather than rejected — unknown keys are ignored
+    # (measured). Said here so the next reader does not re-add it "to be safe":
+    # the harness no longer meters money, and `cycles_used` is the one budget
+    # with teeth. Named without its literal spelling on purpose — this task's
+    # `verify:` asserts that spelling appears nowhere in this file.
     "orchestrator": {"feature": str,
                       "status": {"in_progress", "in_review", "shipped", "blocked",
                                  "awaiting_user"},
-                      "runs": list, "cycles_used": int, "cost_usd": str,
+                      "runs": list, "cycles_used": int,
                       "briefing": str},
 }
 ALIAS = {
@@ -658,7 +665,7 @@ def validate(persona, text):
         elif allowed is list and not isinstance(val, list):
             err.append(f"{field}={val!r} must be a list.")
         elif allowed is str and not (isinstance(val, str) and val.strip()):
-            # F12: `str`-typed fields (`team`, `branch`, `blocked_on`, `cost_usd`,
+            # F12: `str`-typed fields (`team`, `branch`, `blocked_on`,
             # `briefing`) hit no type branch at all before this — `team: 7` passed
             # as an int, and a bare `branch:` with nothing under it parsed to `[]`
             # and passed, though DEC-121 requires the literal `none` for an

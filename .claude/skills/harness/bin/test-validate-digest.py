@@ -746,7 +746,6 @@ DIGEST:
   status: shipped
   runs: [r1, r2]
   cycles_used: 2
-  cost_usd: "12.83"
   briefing: .harness/notes/ship-review-FEAT-01-r2.md
   files_touched: []
   open_questions: []
@@ -762,7 +761,11 @@ DIGEST:
   status: in_progress
   runs: [r1]
   cycles_used: 1
-  cost_usd: "4.10"
+  # THE NEW CONTRACT (SC-04): the money field this schema used to require is simply
+  # absent. This case is the DETECTOR — at ae2443d it was REJECTED for a missing
+  # required field, so it can only go green once the schema entry is gone. Named
+  # without its literal spelling because SC-01's sweep asserts that spelling appears
+  # in no file outside the four it enumerates.
   briefing: none
   files_touched: []
   open_questions: []

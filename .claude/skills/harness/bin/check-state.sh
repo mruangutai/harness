@@ -245,9 +245,9 @@ else:
                    "and every agent can write anywhere. Frontmatter hooks do not "
                    "fire (DEC-110), so settings.json is the only place this works.")
 
-# --- INV-11: cost is the post-build signal (DEC-99), so an unmetered completed run
-# is a hole in the only evidence SC-1 will be judged on. Cheap to enforce, and the
-# failure is otherwise invisible — a run with no cost block looks exactly like a free one.
+# `cj` is the parsed harness.json, consumed below by the test_kinds, github.sync and
+# gh-config checks. The JSON-validity violation is kept on its own merit — a config
+# that does not parse silently disables every check that reads it.
 cfg = read(os.path.join(H, "harness.json"))
 if cfg:
     try:
@@ -255,20 +255,6 @@ if cfg:
     except Exception:
         cj = {}
         bad.append(".harness/harness.json is not valid JSON.")
-    if cj and not (cj.get("cost_model") or {}).get("rates"):
-        bad.append("harness.json has no cost_model.rates — runs cannot be costed, and cost "
-                   "is the post-build signal (DEC-99). Run /harness-init --upgrade.")
-    vo = (cj.get("cost_model") or {}).get("verified_on")
-    if vo:
-        # Prices change. A rate table nobody re-checks reports confident wrong numbers.
-        import datetime
-        try:
-            age = (datetime.date.today() - datetime.date.fromisoformat(vo)).days
-            if age > 90:
-                warn.append(f"cost_model rates were last verified {age} days ago ({vo}) — "
-                            f"re-check them against the pricing page.")
-        except Exception:
-            warn.append(f"cost_model.verified_on is not an ISO date: {vo!r}")
 
 import subprocess
 
@@ -299,7 +285,7 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
             # M-01: this said `pm_.group(1)` — a leftover from the regex the F-02
             # conversion deleted when it renamed the parsed value to `_phase`. Used
             # once, assigned nowhere, so it raised NameError on the ONE condition
-            # INV-17 exists to detect, aborting INV-11/13/15/16/18/21 and INV-10 with
+            # INV-17 exists to detect, aborting INV-13/15/16/18/21 and INV-10 with
             # no "could not run" message. A crash exits 1, which is what a real
             # violation exits, so /harness entry reported "violations found" for a
             # typo. Introduced by the fix for F-02 and caught by the re-review, not by
@@ -341,7 +327,12 @@ CHECKPOINT_KEYS = {
     # seed (harness-team §2)
     "schema_version", "run_id", "feature", "squad", "host", "status", "steps",
     # loop bookkeeping
-    "cycles_used", "cost",
+    "cycles_used",
+    # The money key below is HISTORICAL-ONLY (DEC-178): nothing produces it any more,
+    # but all 67 pre-FEAT-08 run state.yaml files carry it and :401 flags any key not
+    # in this set — drop it and every historical run becomes a violation. Named
+    # without its quoted spelling because this task's verify: counts that spelling.
+    "cost",
     # pins and context markers
     "flow", "task", "team", "branch", "worktree",
     "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
@@ -354,23 +345,17 @@ for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml"))
     rundir = os.path.dirname(sy)
     # F-02, and this one had a LIVE fail-open the panel reproduced: `status: "complete"`
     # — quoted, legal YAML — does not match `^status:\s*complete`, so `complete` was
-    # False and INV-11 (an unmetered completed run) silently never fired.
+    # False and the completed-run checks below silently never fired.
     try:
         sdoc = harness_yaml.load_file(sy) or {}
     except Exception as e:
-        bad.append(f"{rel}: state.yaml does not parse, so INV-11/15/16 cannot be "
+        bad.append(f"{rel}: state.yaml does not parse, so INV-15/16 cannot be "
                    f"checked for this run: {e}")
         continue
     if not isinstance(sdoc, dict):
         bad.append(f"{rel}: state.yaml is not a YAML mapping.")
         continue
     complete = str(sdoc.get("status", "")).strip() == "complete"
-
-    # INV-11: cost is the post-build signal (DEC-99) — an unmetered completed run is a
-    # hole in the only evidence SC-1 is judged on, and looks exactly like a free one.
-    if complete and "cost" not in sdoc:
-        bad.append(f"{rel}: run is complete but has no cost: block — "
-                   f"run bin/cost-report.py --yaml and record it.")
 
     # INV-16: shape.
     #

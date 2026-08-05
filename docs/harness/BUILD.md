@@ -188,7 +188,7 @@ the time of writing; the live list is authoritative if the two disagree.
 |---|---|---|
 | 1 | Verify the four remaining platform unknowns | **done** (DEC-100) |
 | 2 | settings.json prerequisites + `inject-expertise.sh` | **done** (DEC-101) |
-| 3 | Cost instrumentation before the first real run | **done** (DEC-114) — `bin/cost-report.py` + `cost_model` + INV-11. First numbers: one dev-ops spawn **$2.72**; probe traffic already at **78% of the $50/feature** SC-1 threshold, and **~80% of it is the orchestrator**, not the fan-out |
+| 3 | Cost instrumentation before the first real run | **done** (DEC-114) — `bin/cost-report.py` + `cost_model` + INV-11. First numbers: one dev-ops spawn **$2.72**; probe traffic already at **78% of the $50/feature** SC-1 threshold, and **~80% of it is the orchestrator**, not the fan-out (cost-report.py removed — DEC-178) |
 | 4 | `bin/check-state.sh` — orchestrator invariants | **done**, 10 invariants incl. the propagation check |
 | 5 | DIGEST schema validator | **done** (DEC-101) |
 | 6 | The eight rules as flat skills | **done** (DEC-63, DEC-100) |
@@ -221,8 +221,8 @@ All numbers measured in the field (kaya-ai, FEAT-01 era, old rules), not estimat
 | Expertise checker pass rate | 9 of 15 files FAILING within 24h of a clean distillation | 15/15 stays green across a feature | `bin/check-expertise.sh .harness/expertise/` |
 | Expertise corpus size | 1,422 lines / 23,145 words at peak; worst file 383 lines | ≤150 lines/file by physics; corpus roughly flat per feature | `wc -lw .harness/expertise/*.md` |
 | Per-spawn injection tax | worst file ~7k tokens, uncapped, growing | ≤150 lines hard-capped, truncation warning never seen | grep the warning string in spawn contexts |
-| Context per turn | map-orchestrator 310k cache-read/turn × 1,360 turns; cumulative main line 304k/turn × 11,449 turns | orchestrator lines under the 200k watchdog threshold; watchdog section empty for new runs | `bin/cost-report.py --since <feature start>` |
-| Cost per feature | cumulative $1,338 vs $50/feature budget (per-feature cut unavailable pre-DEC-148) | first clean per-feature number via `--since`; the $50 SC-1 budget is the stated bar | `bin/cost-report.py --yaml --since <date>` |
+| Context per turn | map-orchestrator 310k cache-read/turn × 1,360 turns; cumulative main line 304k/turn × 11,449 turns | orchestrator lines under the 200k watchdog threshold; watchdog section empty for new runs | `bin/cost-report.py --since <feature start>` (cost-report.py removed — DEC-178) |
+| Cost per feature | cumulative $1,338 vs $50/feature budget (per-feature cut unavailable pre-DEC-148) | first clean per-feature number via `--since`; the $50 SC-1 budget is the stated bar | `bin/cost-report.py --yaml --since <date>` (cost-report.py removed — DEC-178) |
 | Mid-run Expertise writes | routine (the bloat vector) | zero — `expertise_update: []` on every non-distillation DIGEST | grep DIGESTs in run dirs |
 | Digest-skim yield | dry-run: 2 accepted + 1 reasoned rejection + 2 stale-entry catches from 11 digests | non-zero accepted count per feature, else sunset it (DEC-145 am.2) | per-source counts in distillation digests |
 | Flat-roster spawn error | recurred ≥4 times across 3 agents' independent lessons | zero recurrences (now constitutional, DEC-147) | grep session logs for the rejection string |
@@ -330,7 +330,7 @@ probes first: each is one spawn and gates whether the expensive flow test is wor
 |---|---|---|
 | B1 | Reads every team digest; appends per-member roll-up to `STATE.md` | `STATE.md` diff contains the members block from the lead's return **[✅ per-run roll-ups appended to STATE.md across all three flows]** |
 | B2 | Tracks cycles per team: increments `feature.yaml cycles_used` from the lead's report, never lets the lead do it | `feature.yaml` diff authored in the orchestrator's turn; INV-7 passes **[✅ cycles_used: 4, including the honestly-counted wasted re-route cycle]** |
-| B3 | Runs `cost-report.py` after each run (INV-11) — **never invents a number** | `state.yaml` `cost:` block matches the script's output rerun by hand; a fabricated figure is the fail **[✅ never invented a number: "approximate" with reasons, refined its own attribution mid-flight, reported the overrun against itself]** |
+| B3 | Runs `cost-report.py` after each run (INV-11) — **never invents a number** (cost-report.py removed — DEC-178) | `state.yaml` `cost:` block matches the script's output rerun by hand; a fabricated figure is the fail **[✅ never invented a number: "approximate" with reasons, refined its own attribution mid-flight, reported the overrun against itself]** |
 | B4 | Routes a question laterally lead→lead, records the resolution in `escalations`, promotes plan-changing answers to pm as a `D-NN` | the `escalations` entry carries `resolution` + `decided_by`; `PLAN.md ## Decisions` gains the entry via pm, not via the orchestrator **[❌ no lateral lead→lead escalation occurred in any flow yet]** |
 | B5 | Escalates to the user: returns `awaiting_user` + `open_questions`; **how** = its return, **when** = blocking question, `BLOCKED` lead, or exhausted budget — never mid-run | its transcript contains no `AskUserQuestion` attempt; the main session's relay fires **[✅ awaiting_user round-trip (plan approval) and BLOCKED (budget) both relayed correctly; no AskUserQuestion attempt in any transcript]** |
 | B6 | Feature progress tracking: `feature.yaml` runs list + status reflect reality after every cycle | compare `feature.yaml` to the run dirs on disk **[✅ feature.yaml matched disk in every flow (after the INV-12 block-form fix, acb8db4)]** |
@@ -575,11 +575,13 @@ build requirement, and it must exist *before* the first real `kaya-ai` run, not 
 
 1. ~~**Cost instrumentation — do this first.**~~ **DONE (DEC-114).** Tokens and spawn count logged per
    run in `state.yaml`; per-team budgets alongside `max_cycles`; a cost line in the CEO briefing.
-   Built as `bin/cost-report.py` because **no existing tool can do it**: the transcripts carry no cost
+   Built as `bin/cost-report.py` (removed — DEC-178) because **no existing tool can do it**: the transcripts carry no cost
    field (so `ccusage` is an estimator too, not an oracle), and Claude Code's native OTel — which does
    know the dollars — collapses every user-defined agent into `agent.name: "custom"`, losing the
    per-agent axis this exists to measure. `--cross-check` compares our total against `ccusage` so a
-   stale rate table is detected rather than silent.
+   stale rate table is detected rather than silent. **DEC-178 has since removed the meter**, its
+   budgets and the briefing cost line: the per-agent attribution it produced was an estimate that
+   never changed a decision, and the machinery to keep it honest cost more than the number was worth.
 2. `bin/check-state.sh` — deterministic orchestrator-invariant checker (`review_sha` pinned before a
    validator run dispatches, `cycles_used` ≥ FAIL count, approval reset after re-plan, every run dir
    referenced from STATE).

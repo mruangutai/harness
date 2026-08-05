@@ -164,7 +164,7 @@
           <div class="node orch">
             <div class="top"><span class="name">harness-orchestrator</span><span class="role">one per feature — several run at once</span></div>
             <p>Owns its feature end to end: <code>STATE.md</code>, <code>feature.yaml</code>, the
-              feature-wide cycle and cost budgets. Sequences squads, routes questions between leads,
+              feature-wide cycle budget. Sequences squads, routes questions between leads,
               decides the next segment. Cannot ask you — questions go up.</p>
           </div>
         </div>
@@ -283,7 +283,7 @@
           <tr><td><code>features/&lt;F&gt;/DESIGN.md</code></td><td>The visual contract: palette in both themes, type scale, spacing, component direction</td><td class="owner o-prod">visual-designer</td></tr>
           <tr><td><code>team-config.yaml</code></td><td>The org as data — membership, routing, and every agent's writable domain</td><td class="owner o-you">/harness-init</td></tr>
           <tr><td><code>features/&lt;F&gt;/STATE.md</code></td><td>That flow's live pointer and open questions. One per feature, so concurrent flows never share a writer</td><td class="owner o-orch">orchestrator</td></tr>
-          <tr><td><code>features/&lt;F&gt;/feature.yaml</code></td><td>Execution facts: branch, pinned review SHA, cycles used, cost</td><td class="owner o-orch">orchestrator</td></tr>
+          <tr><td><code>features/&lt;F&gt;/feature.yaml</code></td><td>Execution facts: branch, pinned review SHA, cycles used</td><td class="owner o-orch">orchestrator</td></tr>
           <tr><td><code>…/runs/&lt;r&gt;/state.yaml</code></td><td>One team run: per-step checkpoints, verdicts, retries</td><td class="owner o-eng">that run's lead</td></tr>
           <tr><td><code>…/runs/&lt;r&gt;/digest.md</code></td><td>The lead's collated report — the team digest, on disk</td><td class="owner o-eng">that run's lead</td></tr>
           <tr><td><code>features/&lt;F&gt;/notes/…</code></td><td>That flow's durable artifacts — research, reviewer findings (per reviewer, per cycle), answers, ship-review, UAT. The path carries the flow id, namespaced per reviewer and per cycle so a loop-back can't erase the report that caused it</td><td class="owner o-val">each reviewer</td></tr>
@@ -304,10 +304,8 @@
       <div class="rule-card"><b>One writer per path</b><span>Every domain is declared in
         <code>team-config.yaml</code> and enforced on every write. An agent reaching outside its own
         paths is blocked and told which are its own.</span></div>
-      <div class="rule-card stop"><b>Cycles bound; cost informs</b><span>Retry cycles are a hard cap —
-        exhausting them stops the branch, preserves the work, and brings you the decision. The cost
-        budget never stops work: overruns are flagged loudly in every return and briefing, and never
-        fabricated under.</span></div>
+      <div class="rule-card stop"><b>Cycles bound the work</b><span>Retry cycles are a hard cap —
+        exhausting them stops the branch, preserves the work, and brings you the decision.</span></div>
     </div>
   </section>
 

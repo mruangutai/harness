@@ -20,6 +20,9 @@
 - P-06: WHEN a review of an unapproved artifact finds a blocking design gap DO check the
   artifact's own status field before grading — a draft still pending signature routes the
   finding to the planner and returns PASS; halting it breaks the revision flow it was written for.
+- P-07: WHEN a task's write path is unowned by your own manifest reading DO split it so the
+  bankable phase dispatches first — the guard's denial names the permitted set and routes,
+  where halting on your reading alone banks nothing.
 
 ## Gotchas (max 15)
 - G-01: `.claude/skills/harness/bin/**` sits in both backend-dev's and dev-ops's domain in
@@ -28,6 +31,9 @@
 - G-02: WHEN two specialists' domains both grant the path a task touches DO route by consult-when
   semantics — what kind of logic the change is — and record the reason; the grant cannot
   discriminate, so an unrecorded choice looks arbitrary to the next lead.
+- G-03: A path in no agent's `domain:` and absent from `shared:` is writable by no agent —
+  `manifest_domains` does no widening or inheritance. Re-dispatching to another specialist
+  reproduces the denial; the fix is a manifest grant or main-session-direct, neither a lead's call.
 
 ## Outcomes (max 10)
 

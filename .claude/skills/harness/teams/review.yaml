@@ -13,7 +13,6 @@ name: review
 purpose: Run the reviewer panel in parallel against a pinned SHA; the lead synthesizes one actionable set.
 lead: validator-lead
 inputs: [feat, review_sha]
-max_cost_usd: 20
 
 steps:
   # All four have depends_on: [] and do not depend on each other, so the runner

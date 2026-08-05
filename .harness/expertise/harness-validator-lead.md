@@ -13,6 +13,10 @@
 - P-04: WHEN a member reports one stale anchor or one duplicated statement DO grep for the whole
   class before ranking it — one grep decides whether you hold a single bounded line or a systemic
   defect, and that changes the fix cost, not just the severity.
+- P-05: WHEN relaying candidates into a member's distillation DO carry only cross-member and
+  lead-tier findings — a member independently derives everything its own note already holds
+  before it reads the relay, so recalling that back contributes nothing and wastes half the
+  relay.
 
 ## Gotchas (max 15)
 - G-01: WHEN the blocking gate passes and an advisory gate carries the only defect DO headline
@@ -25,6 +29,7 @@
 ## Outcomes (max 10)
 
 ## Open (max 5)
-- OQ-01: WHEN reporting relay calibration DO split accepted entries by source and report the
-  member's own-material share — a member with no observations log can accept most relays honestly
-  while every entry in its file still traces to the lead, which an acceptance rate alone hides.
+- OQ-01: WHEN reporting relay calibration DO fix the source convention first — a member's own
+  note is its material; anything living only in the lead's digest is lead-derived whoever hands
+  it over. Without that rule two members tag identical content oppositely and the split is not
+  comparable across runs.
