@@ -23,6 +23,15 @@
 - P-07: WHEN a task's write path is unowned by your own manifest reading DO split it so the
   bankable phase dispatches first — the guard's denial names the permitted set and routes,
   where halting on your reading alone banks nothing.
+- P-08: WHEN a clause count is offered as evidence a design rule is guarded DO count only the
+  behavioural clauses — grep clauses die to a rename, and an assertion coarser than the property
+  it names is green under the bug.
+- P-09: WHEN a dispatch carries a line anchor taken from the approved plan DO open the cited
+  lines before relaying it — a wrong anchor in a plan is copied verbatim into source and tests
+  and survives every gate green.
+- P-10: WHEN a feature's value depends on an agent choosing to invoke a checker DO say at review
+  that no code gate verifies it — inspecting the rule text proves the rule exists, never that
+  it fires.
 
 ## Gotchas (max 15)
 - G-01: `.claude/skills/harness/bin/**` sits in both backend-dev's and dev-ops's domain in

@@ -17,6 +17,12 @@
   lead-tier findings — a member independently derives everything its own note already holds
   before it reads the relay, so recalling that back contributes nothing and wastes half the
   relay.
+- P-06: WHEN two reviewers each return PASS on adjacent mechanisms DO check each one's mechanism
+  against the criteria the other verified — the gating defect lives in the union of the scopes,
+  and no member is positioned to call it from inside its own lens.
+- P-07: WHEN dispatching a review panel DO hand the file set down explicitly rather than let each
+  reviewer self-scope — self-chosen scopes leave the seams between them uncovered, and the seam
+  is where the gating defect sits.
 
 ## Gotchas (max 15)
 - G-01: WHEN the blocking gate passes and an advisory gate carries the only defect DO headline
@@ -25,11 +31,13 @@
 - G-02: WHEN recording a run metric or a verified fact DO put it in the digest and a one-line step
   note — the run state's top-level allowlist is closed and rejects an invented key even when its
   value is a bare integer, not prose.
+- G-03: WHEN every gate returns green DO establish which routes actually reach each gate and
+  whether each fixture can fail — logic can be correct while reachability is wrong, and neither
+  is visible to anyone reading the gate's own code.
 
 ## Outcomes (max 10)
 
 ## Open (max 5)
-- OQ-01: WHEN reporting relay calibration DO fix the source convention first — a member's own
-  note is its material; anything living only in the lead's digest is lead-derived whoever hands
-  it over. Without that rule two members tag identical content oppositely and the split is not
-  comparable across runs.
+- OQ-01: WHEN judging relay quality DO record each member's accept/reject split, not merely that
+  ops came back — a member accepting every relayed candidate and a member rejecting one with a
+  stated reason are not yet distinguishable as good relay versus weak filtering.

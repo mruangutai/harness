@@ -20,6 +20,10 @@
 - P-07: WHEN a task extracts text via an awk/sed line-range or tail-anchored match DO verify the
   anchor pattern occurs exactly once in the target file — a second match silently shifts the
   extracted range with no error.
+- P-08: WHEN adding an assertion to close a vacuous-pass gap DO verify it actually distinguishes a
+  broken implementation from a correct one — an "OK-line present" check is weak if a broken
+  implementation also emits an OK-prefixed line; the assertion that flips (e.g. VIOLATION absence)
+  carries the real signal.
 
 ## Gotchas (max 15)
 - G-01: The harness repo has no application source; src/** is empty here.
@@ -35,6 +39,15 @@
 - G-05: WHEN verifying a "clean on arrival"/no-pre-existing-drift claim DO diff against a fresh
   checkout of the cited commit, not the current working tree — a working tree already touched by
   later runs can launder a false baseline claim as true.
+- G-06: WHEN a script's own source is grep-scanned for forbidden identifiers as a verify receipt DO
+  avoid spelling those identifiers anywhere in the file, including comments or docstrings that
+  explain the prohibition — the explanation text itself counts as a hit.
+- G-07: WHEN a receipt requires zero grep hits for a banned pattern (e.g. `startswith`) DO expect it
+  to fire on legitimate unrelated uses too (e.g. parsing subprocess output, not path matching) — the
+  check is textual not semantic; rewrite to satisfy it even when the change is cosmetic.
+- G-08: WHEN building a negative-path ("ungranted") fixture against the domain manifest DO check
+  team-config.yaml for broad top-level globs (e.g. `docs/harness/**`) before assuming a path
+  resolves to NOBODY — pick a path outside every domain prefix instead.
 
 ## Outcomes (max 10)
 

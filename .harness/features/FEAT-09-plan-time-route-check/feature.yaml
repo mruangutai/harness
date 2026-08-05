@@ -1,29 +1,25 @@
 feature_id: FEAT-09-plan-time-route-check
-phase: validate
+phase: ship
 branch: feat/FEAT-09-plan-time-route-check
 pr: none
 status: awaiting_user
 posture: >-
-  SOURCE COMPLETE AND REVIEWED. The four-wide panel ran with no skips and found VF-1, a HIGH,
-  fixed at 7218d63 by the MAIN SESSION under DEC-174 — the lane the orchestrator identified and
-  could not enter. SC-04 is TRUE as written. The delta review PASSED and its two findings are
-  applied. VF-2 filed as issue #132 by ruling, not fixed here. REMAINING: goal-check on 12 SCs,
-  distillation, briefing.
+  SOURCE COMPLETE, REVIEWED, DISTILLED, BRIEFING WRITTEN. Goal-check ran on all 12 SCs: 11 MET,
+  SC-08 UNMET-AS-UNPROVEN (behaviour correct, its clause-4 fixture cannot fail). Three remedies,
+  the choice is the user's — see briefing. Nothing else is open. Awaiting the ship ruling.
 review_sha: 7354ad0
 review_sha_note: >-
-  THE PIN MOVED THREE TIMES AND THE BRIEFING MUST SAY SO. (1) 1185d7f was DANGLING after the
-  rebase — removed, not carried. (2) 4918d06, taken ONCE after T-02 and DEC-179 per the ruling
-  that INV-6 binds at reviewer dispatch; the four-wide panel scoped 47ed11f..4918d06. (3) The
-  VF-1 fix made it stale again, so 7a1bff8 was pinned before the DELTA reviewer (user ruling:
-  delta, not a second four-wide — 2 files, 34 lines, already carrying a pre-fix-fails proof).
-  (4) 7354ad0 now, applying that reviewer's OWN two findings. Not re-reviewed, deliberately:
-  a reviewer's accepted findings applied by the fixer, with the test-first property RE-PROVEN
-  (the strengthened cases still fail against the pre-fix guard).
+  THE PIN MOVED THREE TIMES; the briefing carries why. (1) 1185d7f DANGLING after the rebase,
+  removed not carried. (2) 4918d06 for the four-wide panel. (3) 7a1bff8 for the delta review after
+  the VF-1 fix made it stale. (4) 7354ad0 now, applying that reviewer's own findings.
+  RE-VERIFIED AT THIS LEG: git diff --name-only 7354ad0 HEAD returns feature.yaml ONLY, so no
+  unreviewed source sits in the tree and the goal-check rests on a reviewed diff.
 cycles_used: 2
 max_total_cycles: 10
 cycles_note: >-
-  EARNED, not pre-emptive, and STAYS AT 2 — the rework happened (VF-1). Running
-  main-session-direct changes the LANE, not the fact. Do not increment again for VF-1.
+  STAYS AT 2. The goal-check and the three distillation runs were first-pass and clean, and a
+  first pass is work not rework (DEC-157). SC-08 returning unmet added ZERO because no send-back
+  was dispatched — it is a user decision, not a fix cycle.
 tasks: { T-01: DONE, T-02: DONE, T-03: DONE, T-04: DONE }
 runs:
   - id: plan-product
@@ -41,82 +37,65 @@ runs:
   - id: panel-validator
     squad: validator
     verdict: FAIL
+  - id: goalcheck-product
+    squad: product
+    verdict: FAIL   # 11/12 SCs met; SC-08 unmet-as-unproven
+  - id: distill-eng
+    squad: eng
+    verdict: PASS
+  - id: distill-validator
+    squad: validator
+    verdict: PASS
+  - id: distill-product
+    squad: product
+    verdict: ESCALATE   # SC-08 ruling, deliberately not masked inside a PASS
 gate_status:
-  unit: "PASS — 13/13 scripts exit 0, re-run by ME at 4918d06, not relayed"
-  docs: "PASS — check-docs.sh exit 0, re-run by me"
-  state: "PASS — check-state.sh exit 0, after I trimmed handoff-build.md to shape"
-  index: "PASS — gen-decisions-index.py --stdout | diff - exits 0, re-run by me"
+  unit: "PASS — re-run by ME at HEAD 3a5a245: exit 0, 32 PASS, 0 FAIL, 13 scripts"
+  docs: "PASS — check-docs.sh exit 0, re-run by me at HEAD"
+  state: "PASS — check-state.sh exit 0, re-run by me at HEAD"
+  index: "PASS — gen-decisions-index.py --stdout | diff - exits 0, re-run by me at HEAD"
   review: >-
-    PASS. Two passes, both on the record. (1) FOUR-WIDE at 4918d06 — FAIL, one HIGH (VF-1),
-    now fixed at 7218d63. (2) DELTA at 7a1bff8 by user ruling — PASS, severity_max low, no
-    spec violations, no must_fix; the reviewer reproduced the pre-fix exploit itself and
-    re-ran all four gates rather than reading the claim. Its two non-gating findings were
-    APPLIED, not carried: see delta_review_findings.
-  qa_gate: >-
-    PASS — RE-RUN BY THE MAIN SESSION AT 7218d63, not carried from 4918d06. The prior PASS was
-    pinned before VF-1's two new cases existed. change_type logic/bugfix both require `unit`;
-    test-check-domain.py matches the unit detect pattern; cmd run-unit-tests.sh exits 0 with
-    32 PASS. NON-VACUOUS AND PROVEN SO: cases (i)/(j) FAIL against the pre-fix guard (suite
-    exit 1) and pass with it (10/10 --resolve cases) — the bug-class test the matrix asks for.
+    PASS. Four-wide at 4918d06 FAILED with one HIGH (VF-1), fixed at 7218d63. Delta at 7a1bff8
+    PASSED, severity_max low, no must_fix; its two findings were APPLIED at 7354ad0, not carried.
+  qa_gate: "PASS — re-run at 7218d63; cases (i)/(j) PROVEN to fail against the pre-fix guard"
   security: "RAN. Graded the env-var defect med on reachability; the lead overruled to high"
   ui: "PASS — self-scoped out ON MEASUREMENT, not prediction. No rendered surface"
   uat: NOT_REQUIRED — nothing here is operated by hand
   goal_check: >-
-    NOT_RUN — no longer blocked by SC-04 (now TRUE, see sc04_status). Outstanding only on the
-    re-review scope decision, since a goal-check citing an unreviewed source commit would rest
-    on an unpinned diff.
-  ship_refresh: "SKIP — .harness/codebase/ does not exist in this tree"
-must_fix_open: {}
+    RAN at HEAD 3a5a245 via product-lead/pm. 11 of 12 SCs MET. SC-08 UNMET-AS-UNPROVEN. pm's
+    premise was re-verified BY ME and is stronger than reported. Digest:
+    runs/goalcheck-product/digest.md
+  ship_refresh: "SKIP — .harness/codebase/ does not exist in this tree, so no map to refresh"
+  distillation: >-
+    DONE across 10 agents. All 12 expertise files pass check-expertise.sh exit 0, RE-RUN BY ME
+    because leads hold no Bash and two flagged their own files unverified.
+sc_status:
+  met: "SC-01..SC-07, SC-09..SC-12 — 11 of 12, each re-derived at HEAD, not relayed"
+  sc08_unmet: >-
+    UNPROVEN, NOT BROKEN, and it is the open decision. check-plan-routes.py implements no matcher
+    at all, so clause 4's PROPERTY holds by construction. Its fixture cannot fail: the case-17 path
+    is granted TWICE and the second grant is prefix-shaped, while the test asserts only no-VIOLATION
+    plus some-OK and the OK line emits no agent name. MEASURED BY ME: live --resolve returns 2
+    agents, a prefix-only implementation would grant 6. Remedies (a)/(b)/(c) in the briefing.
+must_fix_open:
+  mf1_sc08_fixture: >-
+    MED, lane UNPROVEN — a TEST question, not a code one. Remedy is a USER DECISION first: (a)
+    change shipped checker output, (b) amend SC-08 (approval-gated), (c) accept and file. Not
+    routed to a lead: (a)/(b) are eng changes that no lane may pick unilaterally.
 must_fix_resolved:
   vf1_env_var_disables_the_guard: >-
     FIXED AND VERIFIED AT 7218d63 by the MAIN SESSION under DEC-174 — the lane the orchestrator
-    identified and could not enter. Reproduced before fixing and re-measured after, with payload
-    files. Test-first and proven non-vacuous: cases (i)/(j) FAIL against the pre-fix guard.
-    Gates at 7218d63: unit 0 (32 PASS), docs 0, state 0, index 0. Full record:
-    notes/vf1-guard-bypass.md.
+    identified and could not enter. Reproduced with payload FILES before and after. Test-first and
+    proven non-vacuous. SC-04 is now TRUE AS WRITTEN. Record: notes/vf1-guard-bypass.md.
 filed_not_fixed:
   vf2_shape_gate_covers_1_of_3_write_routes: >-
     FILED AS ISSUE #132 BY USER RULING — a budget/context-hygiene gap, NOT an authorization hole,
-    which is why VF-1 was fixed inline and this was not. Out of FEAT-09's scope. The
-    DEC-150 shape gate returns at check-domain.sh:376 unless tool_name == "Write", and
-    bash-write-guard.sh has NO shape logic at all, only domain. Measured on a 400-line
-    feature.yaml: Write exits 2, Edit exits 0, BASH exits 0. WIDER THAN MY FIRST WRITE-UP, which
-    named Edit only — the Bash route was checked rather than assumed. Same class as VF-1: the
-    logic is correct, the REACHABILITY is not. Domain enforcement is unaffected on all routes.
-    Only option 3 (PostToolUse) closes all three; 1 and 2 narrow it. Costs:
-    notes/vf2-shape-gate-edit-bypass.md.
-delta_review_findings:
-  q3_applied: >-
-    THE ISSUE #74 MODE-3 QUESTION, ANSWERED AGAINST OUR OWN TEST. Cases (i)/(j) asserted only
-    returncode == 2, but four of this script's five exit-2 sites are INSIDE the resolve branch,
-    so a reimplementation that still leaked the env var could exit 2 for another reason and pass
-    green — two clauses, one blind spot. Now assert the denial TEXT, which only the hook path
-    emits. Re-proven: the strengthened cases STILL fail against the pre-fix guard.
-  q5_applied: >-
-    A COMMENT WRITTEN BY THE MAIN SESSION WAS WRONG AND IS CORRECTED, NOT SOFTENED. It claimed
-    argv-branching would collide with sys.argv[2] as the agent identity; settings.json registers
-    this hook with ZERO arguments, so argv[2] is empty at the hook path. The conclusion holds for
-    a simpler stated reason. A wrong reason in a comment is what the next person edits against.
-sc04_status: >-
-  NOW TRUE AS WRITTEN, at 7218d63 — THE GOAL-CHECK MUST NOT READ THE OLD "FALSE" LINE, pm would
-  score a met criterion as failed. It was FALSE AS WRITTEN at 4918d06, not under-tested: the
-  BRIEF states SC-04 in argv terms and the code never branched on argv. Approved-but-unmet, so
-  the fix made the approved criterion true rather than rewriting it. Detail: notes/vf1-guard-bypass.md.
-validate_panel:
-  ruling_vindicated: >-
-    The user ruling — all four steps, NO pre-emptive skips — is now VINDICATED rather than
-    merely obeyed. No single reviewer could have produced the gating finding: security found
-    the mechanism without checking it against SC-04, and code verified SC-04 correctly but
-    under a CLEAN environment. The defect lived in the UNION of the scopes, and the lead's
-    collation is what surfaced it. The ui reviewer declined ON MEASUREMENT — a reviewed finding.
-  scope: >-
-    47ed11f..4918d06, NINE source files named EXPLICITLY to the reviewers rather than left to
-    each lens to infer, because a prior panel's gap was a property of self-chosen scopes.
-  digest: .harness/features/FEAT-09-plan-time-route-check/runs/panel-validator/digest.md
+    which is why VF-1 was fixed inline and this was not. Write exits 2; Edit and Bash exit 0.
+    Domain enforcement is unaffected on all three routes. Costs: notes/vf2-shape-gate-edit-bypass.md.
 backlog:
   detail: notes/backlog-detail.md — one line each here, rationale there (DEC-150 routing)
-  b1_shared_files_rejected: "NEEDS A RULING. A `shared:` file is falsely REJECTED — fails CLOSED, not open. Amends DEC-179"
-  b2_sc08_weaker_than_it_reads: "3 of 4 clauses are respellable greps; case 17's `*` never crosses a `/`. Issue #74 mode 3, live"
+  b1_shared_files_rejected: "FLAGGED. A `shared:` file is falsely REJECTED — fails CLOSED, not open. Answering it amends DEC-179"
+  b2_sc08_weaker_than_it_reads: "FLAGGED. 3 of 4 clauses are respellable greps. Issue #74 mode 3, live — same root as mf1"
   b3_matcher_unverified: "matches()/glob_to_re() proven not RE-implemented, never proven CORRECT. Modes differ on normalisation"
   b4_checker_never_observed: "Never observed actually RUN by a planner. False-positive rate on other live PLANs UNMEASURED"
   b5_stale_anchor: "Cites check-domain.sh:190-197; real record :61-69. PLAN.md:210 is the origin — a PLANNING defect"
@@ -127,48 +106,41 @@ backlog:
   b10_squad_dispatched: "Two historical plans use a token this feature retires. Normalise?"
   b11_blank_files_field: "Code reviewer MED, unresolved: a blank `files:` field is mishandled"
   b12_inv17_late: "INV-17 re-checks a handoff only after phase: advances — unflagged during the phase it describes"
-  b13_state_cap_story: "The cap is Write-only; Edit bypasses it. Bash bypasses it too. Filed as #132 — NOT backlog"
-declined:
-  dec126_ref: >-
-    The product lead proposed adding a DEC-126 reference to DEC-179's refs. DECLINED with
-    reason: DEC-126 governs digest-schema centralization and has no bearing on plan-time route
-    resolution. A false edge in the refs graph costs more than a missing one.
+  b13_state_cap_story: "The cap is Write-only; Edit and Bash bypass it. Filed as #132 — NOT backlog"
+  b14_strict_schema_debt: "Keys this session added that no schema declares yet, listed for issue #104's strict-schema work"
+  b15_team_rule_narrower_than_guard: >-
+    NEW, non-blocking, raised by product-lead. The harness-team rule text names the state.yaml
+    violation as top-level keys holding PROSE LISTS; the guard rejects ANY unrecognised top-level
+    key including a bare integer counter. Doc narrower than enforcement — a lead reading only the
+    rule keeps tripping it. Harness-doc defect, deliberately not worked around.
 rulings:
   q2_brief_override: >-
     BRIEF.md:106-109 forbids any task here writing under docs/harness/. The user OVERRODE that
-    for the single DECISIONS.md entry plus the regenerated index — nothing else. Recorded so
-    the goal-check does not read it as a breach. Verified honoured: the commit touched exactly
-    those two files.
+    for the single DECISIONS.md entry plus the regenerated index — nothing else. Verified honoured
+    and CONFIRMED NOT A BREACH by the goal-check: the commit touched exactly those two files.
   qE_no_cost_line: >-
     Write NO cost line, invent NO figure, carry NO budget field. The mandate itself is gone:
-    cost-report.py is deleted and cost_model stripped from harness.json by FEAT-08. State once
-    in the briefing that the harness no longer meters spend (DEC-178).
+    cost-report.py is deleted and cost_model stripped from harness.json by FEAT-08. The briefing
+    states once that the harness no longer meters spend (DEC-178). HONOURED.
 receipts:
   method: >-
     ME, re-running every verify: after each run returned — corroborated, never relayed. Task
     detail lives in the run digests and in notes/handoff-build.md ## Trust, not here.
-  t02: >-
-    Re-run by me at ae28daf. 17 distinct case numbers (16 and 17 separate), 19 PASS lines since
-    case 17 asserts thrice. Suite 13/13. On FEAT-09's own PLAN: zero violations, exit 0,
-    exactly ONE DEVIATION naming T-01.
-  t02_scripts_array: >-
-    THE SHARED-ARRAY HAZARD DID NOT FIRE. git diff 47ed11f on run-unit-tests.sh is exactly one
-    added element, 12 to 13. test-cost-report.py appears NOWHERE. FEAT-08's removal preserved.
-  t02_no_reimplementation: >-
-    Verified STRUCTURALLY, not by grep, because a grep is respellable. No entry-versus-grant
-    comparison exists in check-plan-routes.py: every literal entry goes to the check-domain.sh
-    subprocess at :52-57, and :64 parses that subprocess's OUTPUT.
-  dec179: "Entry at DECISIONS.md:4927, 41 lines. Index regenerates byte-identical"
-  sc11: "HOLDS: git diff 47ed11f -- .claude/agents/harness-pm.md is 0 bytes"
+  t02: "Re-run by me. 17 distinct cases, 19 PASS lines. On FEAT-09's own PLAN: 0 violations, exit 0, exactly ONE DEVIATION naming T-01"
+  t02_scripts_array: "THE SHARED-ARRAY HAZARD DID NOT FIRE. SCRIPTS is 13 elements; test-cost-report.py appears NOWHERE. FEAT-08's removal preserved"
+  t02_no_reimplementation: "Verified STRUCTURALLY, not by grep: every literal entry goes to the check-domain.sh subprocess and :64 parses its OUTPUT"
+  dec179: "Entry at DECISIONS.md, indexed at DECISIONS-INDEX.md:199. Index regenerates byte-identical"
+  sc11: "HOLDS, re-run at HEAD: git diff 47ed11f -- .claude/agents/harness-pm.md is 0 bytes"
 baseline:
   base_sha: 47ed11f
   base_sha_note: >-
-    RE-PINNED AT THE REBASE. Was ae2443d, a PRE-FEAT-08 main commit that STILL RESOLVES, so
-    nothing errors — git diff ae2443d..HEAD just returns the WRONG SCOPE, 71 files against a
-    true 14. 47ed11f is git merge-base main HEAD, measured.
-  head_sha: 4918d06
+    RE-PINNED AT THE REBASE. Was ae2443d, a PRE-FEAT-08 main commit that STILL RESOLVES, so nothing
+    errors — git diff ae2443d just returns the WRONG SCOPE. MEASURED AGAIN THIS LEG: 71 files
+    against a true 14 at 3c245c3 where it was caught, and 84 against 30 at HEAD today. A wrong
+    answer with exit 0. 47ed11f is git merge-base main HEAD, measured.
+  head_sha: 3a5a245
   closes_issues: "#20"
-  briefing: none — not yet written; the feature is not shippable
+  briefing: notes/ship-review-close.md
   worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/FEAT-09
   commits:
     - "6792331 — [harness:t-01] check-domain.sh --resolve + 8 cases"
@@ -176,6 +148,7 @@ baseline:
     - "358fd36 — [harness:t-04] harness-spec-driven routing rule"
     - "ae28daf — [harness:t-02] check-plan-routes.py + 17-case test + runner registration"
     - "4918d06 — DEC-179 + regenerated index"
+    - "7218d63 — VF-1 fix, main-session-direct under DEC-174"
   commits_note: >-
     The PRE-REBASE ids (685901d, 92d254b, 1185d7f, 06a680f, abddb28, 2a242df) are DANGLING and
     must never be cited. Replay verified byte-identical on all four source files.
@@ -186,13 +159,5 @@ github:
   milestone: 4
   parent: 98
   closed: ["T-01 -> 99", "T-03 -> 101", "T-04 -> 102"]
-  open: ["T-02 -> 100 — close after VF-1 is resolved"]
-briefing_must_carry:
-  verbatim_finding: >-
-    KEEP THIS WORDING, DO NOT SOFTEN IT (user instruction): this collision is exactly the
-    failure FEAT-09 exists to prevent — and the checker this feature builds would not have
-    caught it, because the collision is in a tool the plan uses, not a path a task writes.
-  also: >-
-    The unreviewed-guard window as a window that EXISTED — and that the panel closing it is
-    what found VF-1; that the review pin was re-taken and why; that the harness no longer
-    meters spend so there is NO cost line and no figure; the backlog above.
+  open: ["T-02 -> 100 — close CONDITION MET (VF-1 resolved) but gh-sync BLOCKED by the permission classifier; still open, carried in the briefing"]
+  filed: ["#132 — VF-2, the shape gate covers 1 of 3 write routes"]

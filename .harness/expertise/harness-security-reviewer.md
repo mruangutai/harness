@@ -17,6 +17,16 @@
   now-dead import or removed branch) DO run the relevant fixture test suite rather
   than trusting a static grep or read alone — execution catches a NameError or
   non-2 exit reading cannot.
+- P-05: WHEN grading severity by reachability DO also check the mechanism against
+  any approved success criterion's literal wording it touches — an SC stated in
+  one frame (e.g. argv) but violated via another (e.g. an inherited env var) is
+  FALSE as written, which reclassifies the defect to must-fix regardless of
+  exploitability.
+- P-06: WHEN auditing a PreToolUse/PostToolUse guard DO check which tool_name
+  values its dispatch actually covers, not only the logic once triggered — a
+  locally-correct early-exit for one tool (e.g. Write) can leave other routes
+  (Edit, Bash) silently unchecked, invisible from reading the triggered logic
+  alone.
 
 ## Gotchas (max 15)
 - G-01: Only `exit 2` blocks a hook (DEC-100); any other exit — including an
@@ -31,6 +41,14 @@
   backward-compat DO check whether it only re-admits a spelling already legal
   pre-change — if so, grade not-a-finding; only a genuinely new accepted shape is
   a gap.
+- G-04: WHEN a guard bypass fails open silently (exit 0, no stderr, no log line)
+  DO treat the unauditability itself as an aggravating severity factor,
+  independent of blast radius — an audit afterward cannot distinguish "the guard
+  allowed this" from "the guard was off".
+- G-05: WHEN a reachability argument requires proving no trigger exists (e.g.
+  across arbitrary shell) DO weigh it against fix cost — an unprovable negative
+  paired with a one-line fix means the reachability investigation is the wrong
+  expenditure; grade on blast radius and auditability instead.
 
 ## Outcomes (max 10)
 

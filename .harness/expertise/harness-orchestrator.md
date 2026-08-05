@@ -38,6 +38,15 @@
 - P-13: WHEN a criterion pins a measured COUNT or a line ANCHOR taken at the base commit DO expect it
   red at the goal-check with correct delivery behind it. New directories inflate globs and edits move
   lines inside one feature's lifetime. Anchor on content strings instead.
+- P-14: WHEN two features are in flight DO derive the collision surface from the peer's PLAN `files:`
+  union, never from its grilling artifact — the artifact predates the plan by definition, and the file
+  it omits is the shared one every task's verify rides on.
+- P-15: WHEN a gate, a gate's test or a fixture reports green DO check that it CAN report red.
+  Reachability and assertion strength are separate from logic and neither is visible in the code you
+  are reading, so an all-green verify is not an absent defect.
+- P-16: WHEN dispatching a review panel DO name the exact file set to every reviewer and refuse every
+  pre-emptive skip — the gating defect lives in the UNION of two lenses' scopes, where each reviewer is
+  individually correct and no single one of them can see it.
 
 ## Gotchas (max 15)
 
@@ -80,6 +89,12 @@
 - G-13: WHEN deciding which lane may write a path DO run the domain hook on it, once per candidate
   agent type, and read its answer. Reading the org config gives the wrong lane where running the guard
   gives the right one; a path no grant covers routes to layer 0.
+- G-14: WHEN your own probe contradicts a suite that just passed DO suspect the probe first. An
+  escaped-quote payload inside a shell echo makes a hook's JSON invalid, and a hook that exits 0 on
+  unparseable input reads exactly like a broken guard. Build hook payloads as FILES.
+- G-15: WHEN a ruling or a handed-down claim quotes a shared file DO re-run the check in the tree you
+  are standing in. A worktree sits on the far side of an unmerged seam, so one path gives two answers
+  and only one of them governs you.
 
 ## Outcomes (max 10)
 
@@ -110,6 +125,3 @@
 - OQ-01: A review panel and a human diff read have disjoint blind spots: the panel caught a rotted
   in-file anchor the human read passed over, while the human ruled on intent the panel could not. Two
   features suggest the split is route-versus-coverage, but neither has been run with the panel absent.
-- OQ-02: Every reviewer followed its instructions and scoped its sweep to files the diff touches; every
-  surviving violation lived in files it does not. The gap was a property of the UNION of the scopes,
-  not of any one lens. Unclear whether widening a scope or adding a lens closes it.

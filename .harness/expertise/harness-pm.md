@@ -34,6 +34,18 @@
 - P-10: WHEN an inspection criterion says where to look DO anchor it on content strings, never line
   numbers. Anchors taken at the base commit rot inside a single feature's lifetime, leaving the
   criterion unverifiable as written while the content it protects is intact.
+- P-11: WHEN a criterion names the mechanism behind a behaviour DO confirm the code uses that
+  mechanism before signature, or state the observable outcome instead. A criterion false only in
+  its mechanism routes as a fix cycle against working code, never as a re-signature.
+- P-12: WHEN a criterion presupposes a case exists in the data, such as a path granted by only one
+  pattern, DO enumerate that data for an unshadowed instance first. If every candidate is shadowed
+  by a broader entry, no fixture discriminates and the criterion is unprovable as written.
+- P-13: WHEN a criterion's clauses are verified DO count techniques, not clauses. Several source
+  greps share one blind spot, and a single idiom change defeats them together. Balanced clause and
+  fixture counts hide this. Give at least one clause a behavioural check.
+- P-14: WHEN a brief names a hazard DO probe the opposite input condition as well before planning
+  against it. The named half is the half someone already noticed; the unnamed half often fails
+  open, exiting clean where the named one fails loudly.
 
 ## Gotchas (max 15)
 - G-01: WHEN citing or counting anything in a file another agent may be editing DO pin the figure
@@ -57,6 +69,9 @@
 - G-07: A sibling feature's worktree under `.claude/worktrees/` is a second full copy of the repo
   inside the search path. `.gitignore` hides it from `git grep` but not from `grep -r`, so exclude
   it or a working-tree figure and a pinned one disagree by an order of magnitude.
+- G-08: WHEN a task adds a file to a suite that keeps an explicit registration list DO register it
+  in that same task. A drift detector fails the WHOLE run on an unregistered file, reddening every
+  other task's verify. Exemplar: the SCRIPTS array in this repo's unit-test runner.
 
 ## Outcomes (max 10)
 
