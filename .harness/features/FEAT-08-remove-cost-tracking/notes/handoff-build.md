@@ -1,4 +1,4 @@
-# Handoff — FEAT-08-remove-cost-tracking, build → validate — written at f20838b, seq-2
+# Handoff — FEAT-08-remove-cost-tracking, build → validate — written at c14ed96, seq-2
 
 ## Next
 
@@ -18,20 +18,20 @@ goal-check, then ship-refresh and distillation, then the briefing.
 ## Trust
 
 - Eleven of twelve tasks are committed and I re-ran **every** `verify:` clause at my own tier rather
-  than relaying it — `feature.yaml` `batch_result`, commits `ba9a243`..`5ce3b13` — verified-at f20838b
+  than relaying it — `feature.yaml` `batch_result`, commits `ba9a243`..`5ce3b13` — verified-at c14ed96
 - SC-04's discriminating pair: the omitting payload was rejected `missing 'cost_usd'` exit 1 by the
   pre-change validator and is accepted by the current one; the carrying payload was accepted by both
   — I ran both binaries against both payloads — verified-at 3503d1d
 - SC-01 is **reachable, not passing**: the sweep returns 6 with `--exclude-dir=worktrees` and 78
-  without; 4 are the amended expected set and 2 are exactly what the batch edits — verified-at f20838b
+  without; 4 are the amended expected set and 2 are exactly what the batch edits — verified-at c14ed96
 - Every remaining SPEC and BUILD hit carries the `DEC-178` marker, so SC-14 holds and those two files
-  survive for the reason SC-14 itself states — verified-at f20838b
-- Gates at the branch tip: `run-unit-tests.sh` 0 (**twelve** scripts now), `check-docs.sh` 0,
-  `check-state.sh` 0 with zero violations — verified-at the tip of this branch
+  survive for the reason SC-14 itself states — verified-at c14ed96
+- Gates green: `run-unit-tests.sh` 0 (**twelve** scripts now), `check-docs.sh` 0, `check-state.sh` 0
+  with zero violations — all three re-run by me — verified-at c14ed96
 - **$370.53 is the last measurable figure**, taken at `3503d1d` immediately before T-03 deleted
   `cost-report.py`. Everything after is unmeasurable BY DESIGN — verified-at 3503d1d
 - The four-wide panel is a **USER RULING**, not a preference — `feature.yaml` `validate_panel`.
-  Your own Expertise O-01 says to skip the ui-reviewer; **the ruling outranks it** — verified-at f20838b
+  Your own Expertise O-01 says to skip the ui-reviewer; **the ruling outranks it** — verified-at c14ed96
 
 ## Dead ends
 
@@ -41,6 +41,10 @@ goal-check, then ship-refresh and distillation, then the briefing.
   T-10/T-11 mandate them and SC-14 blesses them; SC-01 was the criterion that was wrong — `BRIEF.md` A-4
 - Do NOT widen `team-config.yaml` to grant `templates/**`. The user ruled T-04 splits by lane
   instead; no domain was widened — `PLAN.md` D-10
+- Do NOT re-litigate the template's em-dash escape normalization. `templates/harness.json` was
+  rewritten through a JSON round-trip, so ~20 unrelated lines re-escaped. Already adjudicated:
+  measured semantically identical by parsing both revisions and comparing objects, and
+  `_max_total_cycles_rationale` is string-identical, so SC-05 holds — `feature.yaml` `lane_defect`
 - Do NOT re-open cycle counting, `max_total_cycles`, or any historical DECISIONS entry — out of
   scope by standing ruling — `feature.yaml` `pending`
 - Do NOT trust an all-green `verify:` as proof of absence. T-10 passed all four clauses and still
