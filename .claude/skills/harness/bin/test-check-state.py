@@ -202,7 +202,7 @@ def case_g():
 
     Two reasons that is worse than it looks. Exit 1 is what a real violation exits, so
     /harness entry reported "violations found" for a typo. And the crash aborted every
-    invariant AFTER it — INV-11/13/15/16/18/21 and INV-10 — with no "could not run"
+    invariant AFTER it — INV-13/15/16/18/21 and INV-10 — with no "could not run"
     message, so a whole tail of the gate silently stopped checking.
 
     Introduced by a fix and caught by review, not by any gate: no test covered INV-17's
@@ -323,8 +323,11 @@ def case_k():
     meaningful together.
 
     (1) A run that is `status: complete` and carries NO `cost:` block is CLEAN.
-        INV-11 used to make exactly this a violation ("run is complete but has no
-        cost: block"). This half is the DETECTOR: it fails before the removal.
+        The removed completed-run invariant made exactly this a violation, on the
+        grounds that an unmetered run looked identical to a free one. This half is
+        the DETECTOR: it fails before the removal, which is why the case exists at
+        all — without it, nothing proves the invariant is gone rather than merely
+        unreached.
     (2) A run that DOES carry a `cost:` block is ALSO clean. `cost` stays in
         CHECKPOINT_KEYS (D-03) because all 67 pre-FEAT-08 run state.yaml files have
         one and :401 flags any key outside that set. Drop it from the whitelist and
