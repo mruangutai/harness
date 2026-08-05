@@ -4,31 +4,26 @@ branch: feat/FEAT-09-plan-time-route-check
 pr: none
 status: awaiting_user
 posture: >-
-  Source COMPLETE. The four-wide panel ran with no skips and its HIGH (VF-1) is FIXED at 7218d63
-  by the MAIN SESSION under DEC-174 — the lane the orchestrator identified and could not enter.
-  SC-04 is now TRUE as written. Both open decisions are RULED: a DELTA review of 4918d06..HEAD
-  (pin re-taken first, INV-6), and VF-2 FILED as issue #132 rather than fixed here. Remaining:
-  delta review, goal-check on 12 SCs, distillation, briefing.
-review_sha: 7a1bff8
+  SOURCE COMPLETE AND REVIEWED. The four-wide panel ran with no skips and found VF-1, a HIGH,
+  fixed at 7218d63 by the MAIN SESSION under DEC-174 — the lane the orchestrator identified and
+  could not enter. SC-04 is TRUE as written. The delta review PASSED and its two findings are
+  applied. VF-2 filed as issue #132 by ruling, not fixed here. REMAINING: goal-check on 12 SCs,
+  distillation, briefing.
+review_sha: 7354ad0
 review_sha_note: >-
-  RE-PINNED 2026-08-05 to 7a1bff8, BEFORE the delta reviewer was dispatched (INV-6). The source delta from 4918d06 is UNCHANGED — the commits since 9af84ac are .harness state only. THE PIN HAS
-  MOVED TWICE AND THE BRIEFING MUST SAY SO. (1) 1185d7f was DANGLING after the rebase and was
-  removed, not carried. (2) 4918d06 was taken once after T-02 and DEC-179, per the user ruling
-  that INV-6 binds at reviewer dispatch — the FOUR-WIDE panel scoped 47ed11f..4918d06 against
-  it. (3) The VF-1 fix at 7218d63 then made it stale AGAIN: a source commit on the very file
-  the panel's HIGH was about. USER RULING: a DELTA review of 4918d06..HEAD, not a second
-  four-wide pass — 2 source files and 34 lines, and the fix already carries a pre-fix-fails
-  proof, which is stronger evidence than a reviewer's read. This pin scopes that delta review.
+  THE PIN MOVED THREE TIMES AND THE BRIEFING MUST SAY SO. (1) 1185d7f was DANGLING after the
+  rebase — removed, not carried. (2) 4918d06, taken ONCE after T-02 and DEC-179 per the ruling
+  that INV-6 binds at reviewer dispatch; the four-wide panel scoped 47ed11f..4918d06. (3) The
+  VF-1 fix made it stale again, so 7a1bff8 was pinned before the DELTA reviewer (user ruling:
+  delta, not a second four-wide — 2 files, 34 lines, already carrying a pre-fix-fails proof).
+  (4) 7354ad0 now, applying that reviewer's OWN two findings. Not re-reviewed, deliberately:
+  a reviewer's accepted findings applied by the fixer, with the test-first property RE-PROVEN
+  (the strengthened cases still fail against the pre-fix guard).
 cycles_used: 2
 max_total_cycles: 10
 cycles_note: >-
-  RESOLVED — the increment is now EARNED, not pre-emptive, and STAYS AT 2. It was recorded
-  pre-emptively for a fix cycle nobody had dispatched; the rework then actually happened, as
-  VF-1 at 7218d63. DEC-157 counts rework, and this was rework — the fact that it ran
-  main-session-direct under DEC-174 rather than through a team run changes the LANE, not
-  whether rework occurred. DO NOT INCREMENT AGAIN for VF-1 on any re-delegation; it is spent.
-  Both team runs this segment were CLEAN first passes reporting 0 send-backs, which correctly
-  adds nothing.
+  EARNED, not pre-emptive, and STAYS AT 2 — the rework happened (VF-1). Running
+  main-session-direct changes the LANE, not the fact. Do not increment again for VF-1.
 tasks: { T-01: DONE, T-02: DONE, T-03: DONE, T-04: DONE }
 runs:
   - id: plan-product
@@ -52,9 +47,11 @@ gate_status:
   state: "PASS — check-state.sh exit 0, after I trimmed handoff-build.md to shape"
   index: "PASS — gen-decisions-index.py --stdout | diff - exits 0, re-run by me"
   review: >-
-    FAIL AT 4918d06 — one HIGH. The HIGH (VF-1) is now FIXED at 7218d63, but this verdict is
-    NOT flipped to PASS by the fixer: the panel has not seen the fix. Re-review scope is an
-    OPEN USER DECISION — see review_delta_unreviewed.
+    PASS. Two passes, both on the record. (1) FOUR-WIDE at 4918d06 — FAIL, one HIGH (VF-1),
+    now fixed at 7218d63. (2) DELTA at 7a1bff8 by user ruling — PASS, severity_max low, no
+    spec violations, no must_fix; the reviewer reproduced the pre-fix exploit itself and
+    re-ran all four gates rather than reading the claim. Its two non-gating findings were
+    APPLIED, not carried: see delta_review_findings.
   qa_gate: >-
     PASS — RE-RUN BY THE MAIN SESSION AT 7218d63, not carried from 4918d06. The prior PASS was
     pinned before VF-1's two new cases existed. change_type logic/bugfix both require `unit`;
@@ -88,16 +85,23 @@ filed_not_fixed:
     logic is correct, the REACHABILITY is not. Domain enforcement is unaffected on all routes.
     Only option 3 (PostToolUse) closes all three; 1 and 2 narrow it. Costs:
     notes/vf2-shape-gate-edit-bypass.md.
+delta_review_findings:
+  q3_applied: >-
+    THE ISSUE #74 MODE-3 QUESTION, ANSWERED AGAINST OUR OWN TEST. Cases (i)/(j) asserted only
+    returncode == 2, but four of this script's five exit-2 sites are INSIDE the resolve branch,
+    so a reimplementation that still leaked the env var could exit 2 for another reason and pass
+    green — two clauses, one blind spot. Now assert the denial TEXT, which only the hook path
+    emits. Re-proven: the strengthened cases STILL fail against the pre-fix guard.
+  q5_applied: >-
+    A COMMENT WRITTEN BY THE MAIN SESSION WAS WRONG AND IS CORRECTED, NOT SOFTENED. It claimed
+    argv-branching would collide with sys.argv[2] as the agent identity; settings.json registers
+    this hook with ZERO arguments, so argv[2] is empty at the hook path. The conclusion holds for
+    a simpler stated reason. A wrong reason in a comment is what the next person edits against.
 sc04_status: >-
-  NOW TRUE AS WRITTEN, at 7218d63. THE GOAL-CHECK MUST NOT READ THE OLD LINE — pm would score a
-  met criterion as failed. History, kept because the sequence is the finding: SC-04 was FALSE AS
-  WRITTEN at 4918d06, not merely under-tested. BRIEF.md:48-49 states it in ARGV terms and the
-  implementation did not branch on argv at all, so a payload with no --resolve in argv exited 0
-  whenever the environment carried HARNESS_RESOLVE_PATH. It was approved-but-unmet rather than a
-  re-plan, and the one-line fix made the approved criterion true rather than rewriting it.
-  Now measured directly in BRIEF.md's own terms: an out-of-domain Write with no --resolve in
-  argv exits 2 on a clean env, with the var set, and with it set to empty. Cases (i)/(j) are the
-  durable evidence and they FAIL against the pre-fix guard, so they can fail.
+  NOW TRUE AS WRITTEN, at 7218d63 — THE GOAL-CHECK MUST NOT READ THE OLD "FALSE" LINE, pm would
+  score a met criterion as failed. It was FALSE AS WRITTEN at 4918d06, not under-tested: the
+  BRIEF states SC-04 in argv terms and the code never branched on argv. Approved-but-unmet, so
+  the fix made the approved criterion true rather than rewriting it. Detail: notes/vf1-guard-bypass.md.
 validate_panel:
   ruling_vindicated: >-
     The user ruling — all four steps, NO pre-emptive skips — is now VINDICATED rather than
