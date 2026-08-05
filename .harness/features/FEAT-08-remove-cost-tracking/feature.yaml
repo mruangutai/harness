@@ -2,9 +2,9 @@ feature_id: FEAT-08-remove-cost-tracking
 phase: validate
 branch: feat/FEAT-08-remove-cost-tracking
 pr: none
-status: in_progress
+status: awaiting_user
 review_sha: 942505e   # INV-6 — pinned BEFORE the panel, never read from HEAD
-cycles_used: 3
+cycles_used: 4
 max_total_cycles: 10
 cost_usd: "370.53 at 3503d1d — final measurable figure; T-03 deleted the meter"
 max_cost_usd: 120
@@ -13,107 +13,105 @@ runs:
   - { id: s2-eng, squad: eng, verdict: BLOCKED, note: lane defect, resolved by user ruling }
   - { id: s4-product, squad: product, verdict: ESCALATE, note: one send-back, T-10 partial }
   - { id: a4-product, squad: product, verdict: ESCALATE, note: SC-01 redraft after ruling }
-  - { id: t10r-product, squad: product, verdict: PASS, note: A-3 rows 10 and 11, zero send-backs }
+  - { id: t10r-product, squad: product, verdict: PASS, note: A-3 rows 10 and 11 }
   - { id: panel-validator, squad: validator, verdict: FAIL, note: four-wide, 3 must_fix at med }
   - { id: mf2-product, squad: product, verdict: PASS, note: MF-2 org.html fix cycle }
+  - { id: goalcheck-product, squad: product, verdict: FAIL, note: 12 met, 3 not_met }
+  - { id: distill-product, squad: product, verdict: PASS, note: pm and documentor, 25 ops }
+  - { id: distill-validator, squad: validator, verdict: PASS, note: four reviewers, 16 ops }
+  - { id: distill-eng, squad: eng, verdict: PASS, note: dev-ops and lead, 4 ops }
+  - { id: distill-apply-validator, squad: validator, verdict: PASS, note: stranded lead ops applied }
+  - { id: sc15-product, squad: product, verdict: PASS, note: SC-15 re-grade, flips to met }
 tasks: { T-01: DONE, T-02: DONE, T-03: DONE, T-04: DONE,
          T-05: DONE, T-06: DONE, T-07: DONE, T-08: DONE,
          T-09: DONE, T-10: DONE, T-11: DONE, T-12: DONE }
 gate_status:
   qa_gate: PASS — 12/12 scripts, matrix_ok true, qa authored nothing (D-08)
-  review: FAIL — 3 must_fix at med; MF-2 fixed, MF-3 at distillation, MF-1 goes up
+  review: FAIL — 3 must_fix at med; MF-2 and MF-3 FIXED, MF-1 goes up
   uat: NOT_REQUIRED — BRIEF states no uat criterion
-  goal_check: NOT_RUN — dispatched after the MF-2 fix commit
+  goal_check: FAIL — 13 met, SC-05 and SC-06 red on their own wording
   security: PASS — reviewer declared IN SCOPE and executed both suites; 0 findings
   ui: PASS — reviewer LOOKED and declined with a file-extension census; DESIGN.md absent
   ship_refresh: NOT_RUN — .harness/codebase/ does not exist, decided at ship
-  unit: PASS — re-run by me at 8958840, exit 0
-  docs: PASS — check-docs.sh re-run by me at 8958840, exit 0
-  state: PASS — check-state.sh re-run by me at 8958840, exit 0, zero violations
+  distillation: PASS — 12 Expertise files, all check-expertise.sh clean, re-run by me
+  unit: PASS — re-run by me, exit 0, 12 scripts
+  docs: PASS — check-docs.sh re-run by me, exit 0
+  state: PASS — check-state.sh re-run by me, exit 0, zero violations
+sc_status:
+  - { id: SC-01, verdict: met, method: automated, evidence: sweep returns exactly the 4 amended survivors; 18 at ae2443d }
+  - { id: SC-02, verdict: met, method: automated, evidence: both scripts absent; drift detector satisfied }
+  - { id: SC-03, verdict: met, method: automated, evidence: check-state.sh exit 0, 8 note lines, zero violations }
+  - { id: SC-04, verdict: met, method: automated, evidence: omitting payload accepted; rejected at ae2443d }
+  - { id: SC-05, verdict: not_met, method: automated, evidence: clause 1 met; clause 2 red on WORDING, delivery correct }
+  - { id: SC-06, verdict: not_met, method: automated, evidence: glob rotted; restricted to FEAT-01..07 it is 89 and 67-of-67 exactly }
+  - { id: SC-07, verdict: met, method: automated, evidence: all 8 keys count 0 in both configs; both parse }
+  - { id: SC-08, verdict: met, method: automated, evidence: DEC-148 row correct; generator diff exit 0 }
+  - { id: SC-09, verdict: met, method: inspection, evidence: DEC-178 carries all three mandated parts; index row has a real ruling }
+  - { id: SC-10, verdict: met, method: automated, evidence: check-docs.sh exit 0, 45 patterns across 207 files }
+  - { id: SC-11, verdict: met, method: automated, evidence: whole suite exit 0, 12 scripts PASS }
+  - { id: SC-12, verdict: met, method: inspection, evidence: verified BY CONTENT; 4 of 12 line anchors dead, all protected prose intact }
+  - { id: SC-13, verdict: met, method: automated, evidence: plain-word grep over README returns nothing }
+  - { id: SC-14, verdict: met, method: automated, evidence: all 6 hits carry the marker on the same line }
+  - { id: SC-15, verdict: met, method: inspection, evidence: RE-GRADED after MF-3 fixed; 57 hits over all 12 rule files plus agents, skills, team YAML - zero money }
 verified_by_me:
-  signed: 00f3e03 — A-1, A-3, A-4 all signed; both artifacts read status approved
-  sc01: >-
-    PASS. The amended sweep returns EXACTLY the four survivors A-4 enumerates - BUILD.md,
-    SPEC.md, DECISIONS.md, DECISIONS-INDEX.md. It returned 18 at ae2443d and 6 before the
-    A-4 batch, so it stays discriminating in both directions.
-  sc04: >-
-    PASS. An orchestrator DIGEST omitting the money field returns digest ok, exit 0. Run
-    directly against the binary, not inferred from the suite.
   t10: >-
-    All five verify clauses re-run by me at 942505e - the compound sweep leaves one hit and
-    it carries the DEC-178 marker; the unchanged-count clause is 8 before and 8 after; the
-    new plain-word sweep printed exactly the two defect lines mid-flight and prints nothing
-    now; unit 0; docs 0. The diff is two hunks. Issue 95 closed.
+    All five verify clauses re-run at 942505e - compound sweep leaves one hit carrying the DEC-178
+    marker; unchanged-count 8 before and 8 after; the new plain-word sweep printed exactly the two
+    defect lines mid-flight and prints nothing now; unit 0; docs 0. Issue 95 closed.
   mf2: >-
-    The plain word is now absent from org.html entirely; the money sweep leaves two hits and
-    both are the CONTEXT budget this feature preserves; three rule cards under a heading
-    claiming three; the document parses to 310 start tags. Diff is three hunks.
-  mf1_domain: >-
-    Ran check-domain.sh itself against four personas at .claude/commands/harness.md -
-    documentor, orchestrator, dev-ops and pm are ALL BLOCKED. No agent may write it. This is
-    a measurement of the arbiter, not a reading of team-config.yaml.
-  commit_count: 21 in ae2443d..942505e — measured; the panel dispatch said 22 and was wrong
-panel_result:
-  verdict: FAIL — four-wide, all four reviewers PASS, the LEAD found three the members missed
-  what: >-
-    Three surviving REQ-08 violations that SC-01 structurally CANNOT see, because its sweep
-    matches compound tokens while all three use only the plain English word. The verify blind
-    spot's THIRD appearance in one feature.
-  mf1: >-
-    OPEN, BLOCKING, MAIN-SESSION-DIRECT. .claude/commands/harness.md :18 renders a cost vs
-    budget column for in-flight features and :83 logs a cost field on every return. In NO
-    agent domain - confirmed by running the arbiter. Two prose deletions. Only layer 0 can.
-  mf2: DONE at 8958840 — org.html no longer advertises the deleted subsystem
+    The plain word is absent from org.html entirely; the money sweep leaves two hits and both are the
+    CONTEXT budget this feature preserves; three rule cards under a heading claiming three.
   mf3: >-
-    OPEN, mine alone. .harness/expertise/harness-orchestrator.md P-01 is an operating
-    procedure for the deleted meter, INJECTED INTO EVERY ORCHESTRATOR SPAWN - the highest
-    blast radius of the three. Distillation is the only sanctioned write window; applied there.
+    DONE. The dead metering procedure is dropped from my own Expertise and two stale clauses replaced.
+    check-expertise.sh clean at 115 of 150 lines. Independently re-graded by pm, which flipped SC-15.
+  mf1_domain: >-
+    Ran check-domain.sh itself against four personas at .claude/commands/harness.md - documentor,
+    orchestrator, dev-ops and pm are ALL BLOCKED. A measurement of the arbiter, not a config reading.
+  numbers: 21 commits and 33 files in ae2443d..942505e; 12 unit scripts — all measured, not relayed
+panel_result:
+  verdict: FAIL — four-wide, all four reviewers PASS, the LEAD found three they all missed
+  what: >-
+    Three surviving REQ-08 violations that SC-01 structurally CANNOT see, because its sweep matches
+    compound tokens while all three use only the plain English word. The blind spot's THIRD appearance.
+  mf1: >-
+    OPEN, BLOCKING, MAIN-SESSION-DIRECT. .claude/commands/harness.md :18 renders a cost vs budget
+    column and :83 logs a cost field on every return. In NO agent domain. Two prose deletions.
+  mf2: FIXED at 8958840 — org.html no longer advertises the deleted subsystem
+  mf3: FIXED — the stale orchestrator rule is gone; pm's re-grade flipped SC-15 to met
   scope_ruling_i_made: >-
-    All three are REQ-08 violations - "no surviving document, index row or RULE SURFACE
-    advertises a script, key or invariant this change deleted." Approved text, unmet. So they
-    are fix cycles, NOT scope expansion, and no amendment or re-signature is needed.
-  panel_paid_for_itself: >-
-    security did NOT scope out - it declared in scope on a pure-deletion diff, reasoning that
-    a guard which LOST a constraint is a Tampering question, then executed both fixture suites.
-    Under FEAT-07's practice that spawn would have been skipped on inference. ui DID scope out,
-    with a file-extension census and a confirmed-absent DESIGN.md. Both are reviewed findings.
-findings_for_briefing: >-
-  Full text in notes/handoff-build.md and runs/panel-validator/digest.md. The four that carry -
-  the routing wall's FOURTH recurrence landing inside the feature running concurrently with the
-  one built to prevent it; FOUR instances of a task intent prescribing prose containing a token
-  its own verify forbids; T-10 passing all four clauses while leaving two live sites; and the
-  panel then finding three MORE of the same shape, which is the same lesson at a wider radius.
+    All three are REQ-08 violations of ALREADY-APPROVED text, so they are fix cycles, NOT scope
+    expansion, and no amendment or re-signature is needed. On the record so the user can overturn it.
+distillation:
+  result: >-
+    Twelve Expertise files exist and ALL TWELVE pass check-expertise.sh, re-run by me at my own tier
+    because no lead holds Bash. Ten were written this round; harness-backend-dev did not run and
+    harness-product-lead is being distilled now. No entry names a feature, task or issue id.
+  by_squad: product 25 ops; validator 16 plus 2 stranded lead ops re-applied; eng 4
+  finding: >-
+    The relay's value is NOT recall. Validator measured pure-recall relays contributing zero because
+    members derived them first; eng measured the inverse, 2 relayed and 0 self, and named the likely
+    discriminator - the member had no observations log, only receipts. Both leads reported the split
+    plainly including the zero, which is what makes the comparison usable.
 open_q:
-  - "Q1 CARRIED - the briefing loses its only size signal. perf-review row 10 is filed as issue 79, still unscheduled."
-  - "Q3 CARRIED harness defect - a send-back gives the returning member a FRESH context, so open_questions it raised in its own previous DIGEST are unrecoverable."
-  - "Q5 - SC-06's glob over-captures; restricted to FEAT-01..07 its numbers are pm's 89 and 67-of-67 exactly. The goal-check must record BOTH."
-  - "Q6 - SC-03 is repo-wide; a concurrent flow can fail it. Re-rooting via CLAUDE_PROJECT_DIR is FORBIDDEN by user ruling."
-  - "Q7 RULED low by the code-reviewer - three comments justify themselves with this task's verify:, which will not exist after ship."
-  - "Q9 from eng-lead - nothing detects live/template config divergence; the suite exited 0 on a half-stripped pair."
-  - "Q18 RULED by the user - add nothing. Filed as issue 104 with the measurement."
-  - "Q19 harness defect - INV-4's task regex cannot tell a task DEFINITION from a REFERENCE."
-  - "Q20 NEW, from BOTH leads independently - the DEPLOYED GLOBAL harness-team skill still tells every lead to run the deleted script and set cost pending_orchestrator. It propagated into my own panel dispatch. Run harness-deploy after merge, BEFORE the preload-trimming batch."
-  - "Q21 NEW, from the panel - should .harness/expertise/ join SC-01's sweep scope? It is excluded today, and MF-3 is exactly that miss. Harness-design call."
-  - "Q22 NEW - check-domain.sh:308 carries cost in its allowlist with no explanatory comment, unlike check-state.sh:335. FEAT-09 is LIVE on that file; the next editor removes it as cleanup and all 67 historical runs become violations."
-  - "Q23 NEW - T-10's fifth clause passes with EXIT 1 while its stdout is empty, because grep -v exits 1 when it filters everything out. A wrapper treating nonzero as failure misreads a pass."
-pending:
-  - "OUT OF SCOPE BY RULING - cycle counting and max_total_cycles (DEC-157), and rewriting any historical DECISIONS entry."
-  - "THE METER IS GONE as of 1a69d9d. Every figure from here is an honest string, never a number, and no run owes a cost block."
+  - "MF-1 BLOCKING, for the user - two prose deletions in .claude/commands/harness.md. No agent may write that file."
+  - "SC-05 and SC-06 are red on their own SIGNED wording with correct delivery behind them. Correcting either edits signed text; the user's call, not a fix cycle."
+  - "Q1 CARRIED - the briefing loses its only size signal. Issue 79 filed, unscheduled."
+  - "Q6 - SC-03 is repo-wide and passes only because FEAT-09 sits in a worktree. Dormant, not gone. Re-rooting is FORBIDDEN."
+  - "The three leads were not re-spawned to file domain reports for the briefing; their in-phase digests are its source. My judgement, named in the briefing, reversible for three spawns."
+  - "Full backlog of 19 items is in the briefing. Anything unlisted there dies silently."
 baseline:
   base_sha: ae2443d
   closes_issues: "#58"
-  briefing: pending — the validate terminus
+  briefing: .harness/features/FEAT-08-remove-cost-tracking/notes/ship-review-validate-close.md
   answers: none
   cost_note: >-
-    370.53 was the last measurable figure, at 3503d1d before T-03 deleted the meter - 237.73
-    plan plus 53.81 and 78.99 depth deltas, both SHARED with the concurrent FEAT-09 flow and
-    attributed here IN FULL because overstating is the safe direction. Everything after
-    1a69d9d is unmeasurable BY DESIGN and nothing for it is invented. Over the 120 budget,
-    reported not hidden. The harness no longer meters spend (DEC-178).
+    370.53 was the last measurable figure, at 3503d1d before T-03 deleted the meter. Everything after
+    1a69d9d is unmeasurable BY DESIGN and nothing for it is invented. Over the 120 budget, reported
+    not hidden. The harness no longer meters spend (DEC-178).
   cycles_note: >-
-    3 of 10. Two from build. The third is MF-2 - a real send-back against approved-but-unmet
-    REQ-08. T-10's re-dispatch added ZERO - it was forward work created by a SIGNED amendment,
-    not rejected work, which is what DEC-157 distinguishes.
+    4 of 10. Two from build; one for the panel's fix round; one for the SC-15 re-dispatch, which is a
+    re-run against an unmet criterion and is what the counter exists for. T-10's re-dispatch added
+    ZERO - forward work created by a SIGNED amendment is not rework, which is DEC-157's distinction.
 github:
   milestone: 3
   parent: 85

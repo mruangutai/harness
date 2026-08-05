@@ -3,68 +3,83 @@
 ## Current
 
 - feature: FEAT-08-remove-cost-tracking
-- run: dispatching the four-wide review panel to validator-lead — runs/panel-validator
-- squad: validator
-- status: in_progress
+- run: validate phase complete — briefing written, returning to the main session
+- squad: none
+- status: awaiting_user
 
-**Phase is `validate`. Branch tip `942505e`, and `review_sha` is PINNED to it (INV-6).**
+**Phase `validate` is at its terminus.** Thirteen runs, `cycles_used: 4` of 10. `review_sha` pinned
+to `942505e` before the panel (INV-6); `8958840` is the last source-bearing commit.
 
-**All twelve tasks are DONE and every task issue is closed.** T-10's remainder — signed amendment
-A-3's rows 10 and 11 — landed at `942505e`; issue #95 is closed. **All five of T-10's `verify:`
-clauses were re-run by me at that SHA rather than relayed:** the compound-token sweep leaves one hit
-and it carries the `DEC-178` marker; the unchanged-count clause is 8 before and 8 after, matching the
-member's own captured baseline; the new plain-word sweep printed exactly the two defect lines
-mid-flight and prints nothing now; unit 0; docs 0. The diff is two hunks and nothing else.
+**All twelve tasks DONE, every task issue closed.** T-10's remainder — signed amendment A-3's rows
+10 and 11 — landed, and I re-ran all five of its `verify:` clauses at my own tier rather than
+relaying them.
 
-**A-1, A-3 and A-4 are SIGNED** — both artifacts read `status: approved`,
-`amendments-signed: A-1, A-3, A-4` — and A-4's five-edit main-session-direct batch across the two
-DEC-174 carve-out files is committed at `00f3e03`.
+**The four-wide panel ran in full**, under the standing user ruling: code, qa, security, ui, no
+pre-emptive skips. **All four members returned PASS; their lead found three REQ-08 violations they
+had all missed**, every one in a file no member's scope reached and all three invisible to the
+compound-token sweeps this feature is built on. MF-2 (`org.html`) and MF-3 (my own Expertise, the
+highest blast radius — a dead metering procedure injected into every orchestrator spawn) are FIXED.
+**MF-1 is open and only layer 0 can close it:** `.claude/commands/harness.md:18` and `:83` still
+instruct the main session to render a spend column and log a cost field. I confirmed no agent may
+write that file by running `check-domain.sh` against four personas — all BLOCKED.
 
-**SC-01 and SC-04 both verified directly by me, not relayed.** SC-01's amended sweep returns exactly
-the four survivors it enumerates — `BUILD.md`, `SPEC.md`, `DECISIONS.md`, `DECISIONS-INDEX.md`. It
-returned 18 at `ae2443d` and 6 before the batch, so it stays discriminating in both directions.
-SC-04's surviving half returns `digest ok`, exit 0. Gates at `942505e`: unit 0, docs 0, state 0 with
-zero violations.
+**Goal-check: 13 of 15 met.** SC-15 was genuinely not met, was fixed, and pm re-graded it to met —
+I did not mark it myself. **SC-05 and SC-06 are red on their own signed wording with correct delivery
+behind them**; correcting either edits text the user signed, so both go up rather than into a fix
+cycle. Three criteria are met by methods that cannot detect the failure they exist to detect, and
+that judgement was asked for explicitly and is recorded.
 
-Next: **the four-wide panel, all four steps, no pre-emptive skips (standing user ruling)** → pm's
-goal-check → distillation → the CEO briefing, which is this phase's terminus.
+**Distillation done.** Twelve Expertise files, all `check-expertise.sh` clean, re-run by me because
+no lead holds `Bash`. Product 25 ops, validator 16 plus 2 stranded lead ops re-applied, eng 4.
+
+Briefing: `notes/ship-review-validate-close.md`. Handoff: `notes/handoff-validate.md`.
 
 ## Open Questions
 
-IDs are not reused. Q2, Q4 and Q8 are answered; Q18 is ruled.
+IDs are not reused. Q2, Q4, Q5, Q7, Q8, Q18 are answered or ruled.
 
-- Q1 (carried, partially answered): the briefing loses its only size signal. perf-review row 10 is
-  filed as **issue #79**. Still unscheduled, so the gap is real and tracked rather than only noted.
+- **MF-1 (BLOCKING, the user's, and nobody else can): two prose deletions in
+  `.claude/commands/harness.md`.** `:18` renders a `cost vs budget` column for in-flight features;
+  `:83` logs a `cost` field on every return. Both instruct the main session to produce figures from a
+  deleted meter. Found independently by the panel and by the goal-check. A third line, `:49`, names a
+  dollar figure in a historical anecdote — history, not an instruction; the user's call either way.
+  Blocked on: the user.
+
+- **SC-05 and SC-06 are not met on their own wording, with correct delivery behind them.** SC-05's
+  second clause forbids any diff line mentioning the cycle counter, and one matched because the cost
+  entry shared a line with it. SC-06 pins two numbers measured before this feature's own directory
+  existed; restricted to the features it was measured against it returns 89 and 67-of-67 exactly.
+  Correcting either edits a signed criterion. A fix aimed at the code would be aimed at nothing.
+  Blocked on: the user.
+
+- Q1 (carried): the briefing loses its only size signal. Issue **#79** filed, still unscheduled.
   Blocked on: the user, at the briefing.
 
 - Q3 (carried, harness defect): a send-back gives the returning member a FRESH context, so
-  `open_questions` it raised in its own previous DIGEST are unrecoverable to it.
-  Blocked on: nobody — routed to the harness owner.
+  `open_questions` it raised in its own previous DIGEST are unrecoverable to it. Raised twice more.
+  Blocked on: nobody — in the briefing's backlog.
 
-- Q5: SC-06's glob over-captures; restricted to FEAT-01..07 its numbers are exactly pm's 89 and
-  67-of-67. The goal-check must record BOTH the restricted and unrestricted results.
+- Q6: SC-03 is repo-wide and passes today only because FEAT-09 sits in its own worktree — the hazard
+  is dormant, not gone. Re-rooting `check-state.sh` via `CLAUDE_PROJECT_DIR` is **forbidden by user
+  ruling** and was not proposed.
   Blocked on: nobody.
 
-- Q6: SC-03 is repo-wide and a concurrent flow can fail it. FEAT-09 has moved to its own worktree,
-  so the hazard is dormant, not gone. Re-rooting `check-state.sh` via `CLAUDE_PROJECT_DIR` to make it
-  pass is **forbidden by user ruling** — that is the re-baselining the user refused.
-  Blocked on: nobody.
+- Q9 (from eng-lead, raised twice): nothing detects live/template config divergence — the unit suite
+  exited 0 on a half-stripped pair.
+  Blocked on: nobody — in the backlog.
 
-- Q7 (for the panel, not the user): **three** comments reworded around the S1 plan defect justify
-  themselves with "this task's `verify:`", which will not exist after ship. The A-4 batch created the
-  third, at `test-check-state.py:326`.
-  Blocked on: nobody — the code-reviewer rules.
+- Q19 (harness defect): INV-4's task regex cannot tell a task DEFINITION from a REFERENCE.
+  Blocked on: nobody — in the backlog.
 
-- Q9 (from eng-lead, non-blocking): nothing detects live/template config divergence — the unit suite
-  exited 0 on a half-stripped pair. Backlog candidate.
-  Blocked on: the user, at the briefing.
+- Q20 (raised independently by three agents): the **deployed global** rules still instruct every lead
+  to run the deleted meter and write a `cost:` key. One earlier run of this feature complied, so the
+  placeholder is on disk in a run dir. `/harness-deploy` after merge, **before** the queued
+  preload-trimming batch.
+  Blocked on: nobody — in the backlog, near-term.
 
-- Q18 (**RULED by the user: add nothing**): deleting the pin removed the only deliberate assertion of
-  unknown-key tolerance. The user's mandate is a **strict** schema — unknown keys should be rejected,
-  not tolerated — so a fixture asserting tolerance would cement the opposite direction. Filed as
-  **issue #104** with the measurement: 51 of 71 real digests on disk carry keys outside their schema.
-  Blocked on: nobody — closed.
+- **My one substitution, named rather than buried:** the three leads were not re-spawned to file
+  domain reports for the briefing. All three ran inside this phase and their own digests are its
+  source. That is my judgement, not a rule, and it is reversible for three spawns.
+  Blocked on: the user, if they want it done properly.
 
-- Q19 (harness defect): INV-4's task regex cannot tell a task DEFINITION from a REFERENCE, so a PLAN
-  amending a task by heading trips `check-state.sh`. The regex is the defect, not the amendment.
-  Blocked on: nobody — routed to the harness owner.
+- The full backlog is **nineteen items** in the briefing. Anything not listed there dies silently.

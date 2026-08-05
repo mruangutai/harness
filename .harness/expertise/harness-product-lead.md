@@ -13,6 +13,15 @@
 - P-04: WHEN relaying a distillation candidate DO read the member's own observations log first and
   drop anything already in it — a duplicate candidate measures nothing about relay and inflates the
   acceptance rate that judges it.
+- P-05: WHEN a dispatch hands you an enumerated set of sites DO re-run the enumeration yourself with
+  a wider pattern before dispatching — until it is re-run wide the set is a sample, and a
+  pre-measured baseline makes the post-edit check sound by construction rather than by report.
+- P-06: WHEN a task offers the member a choice between two remedies DO check at your own tier
+  whether one is already foreclosed and encode the survivor as a hard constraint — a member spawn
+  spent discovering the option was never available buys nothing.
+- P-07: WHEN a member reaches your own verdict by a different route DO adopt the more durable route
+  as the record and say the two differed — agreement on the verdict hides that one footing is
+  disputable and the other is structural.
 
 ## Gotchas (max 15)
 - G-01: WHEN a test name or label is offered as evidence DO read the invocation it wraps — labels
@@ -26,5 +35,8 @@
 - O-01: WHEN a cosmetic defect sits in a file a human is already about to open DO fold it into that
   pass rather than spending a member spawn — rework at this tier costs one spawn, the same rework
   after routing costs a cycle.
+- O-02: WHEN a member's receipt disagrees with the artifact it wrote and the artifact is correct DO
+  rebuild the receipt from the file and state in your digest that you did — a re-spawn over a
+  report-only defect is waste, and normalising it silently is the worse error.
 
 ## Open (max 5)

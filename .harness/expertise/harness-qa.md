@@ -15,12 +15,22 @@
 - P-05: WHEN crediting a test as coverage for a change DO confirm the test file is itself part of
   the diff, not pre-existing — only a test added or changed alongside the code demonstrates it
   exercises this change rather than merely happening to exist nearby.
+- P-06: WHEN a change's deliverable is a removal DO re-run the same payload through the pre-change
+  and post-change binaries, not just diff the source — a green suite proves only that nothing
+  broke; re-running it over the same tree is reproducibility, not independent derivation of the
+  deletion.
 
 ## Gotchas (max 15)
 - G-01: WHEN proving a test runner's MISCONFIGURED exit path live by creating a stray
   `test-*.py` probe DO delete it and confirm with `git status --porcelain` before finishing — an
   explicit-list-plus-glob drift detector makes any leftover probe file exit 2 for every run after.
+- G-02: WHEN raw test output contains alarming lines like "X is not importable... failing closed"
+  DO check whether they're the suite's own deliberate simulation-case output (confirm the real
+  dependency imports in the environment) before treating it as a live gap.
 
 ## Outcomes (max 10)
+- O-01: WHEN an amendment deletes a fixture that was the sole source of some coverage and the loss
+  is already ruled closed elsewhere DO still name it explicitly as a coverage gap in your gate
+  note — visibility costs nothing and keeps a future reviewer from assuming coverage exists.
 
 ## Open (max 5)

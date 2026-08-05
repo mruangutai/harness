@@ -2,13 +2,9 @@
 
 ## Patterns (max 15)
 
-- P-01: WHEN metering a run DO diff per-agent `by_agent` cumulatives against the previous run's block,
-  never the top-line total, and record the post-run cumulative beside the delta as the next baseline.
-  The reporter is project-cumulative and exits 1 on unpriceable models while still emitting.
 - P-02: WHEN a resumed feature's runs look complete DO check whether they were PLANTED rather than
   executed before diagnosing anything — the dated log under `.harness/logs/` records fixture staging by
-  defect id. Staged runs owe no cost append, and an off-contract digest is then a fixture property,
-  not a hook gap.
+  defect id. An off-contract digest is then a fixture property, not a hook gap.
 - P-03: WHEN a plan cites a line number inside `feature.yaml` DO treat the anchor as already rotten and
   cite the FIELD instead — the orchestrator rewrites that file every run, so nobody can keep the
   reference true.
@@ -36,6 +32,12 @@
 - P-11: WHEN a goal-check returns criteria unmet DO check first whether the behaviour is wrong or only
   unproven. The dominant shape is a criterion enumerating N clauses, shapes or personas with fewer than
   N fixtured — a test-only fix, not a code one, and it routes to a different lane.
+- P-12: WHEN a criterion or a `verify:` clause sweeps for a removed concept DO grep the plain English
+  word too, over every file type in scope. Compound-token patterns are blind to prose that names the
+  thing without spelling it, so an all-green clause is not an absent defect.
+- P-13: WHEN a criterion pins a measured COUNT or a line ANCHOR taken at the base commit DO expect it
+  red at the goal-check with correct delivery behind it. New directories inflate globs and edits move
+  lines inside one feature's lifetime. Anchor on content strings instead.
 
 ## Gotchas (max 15)
 
@@ -59,7 +61,7 @@
   VIOLATION, not as advice.
 - G-07: A run dir's squad suffix must match the owning lead's domain glob exactly, and a trailing
   comment on a run entry's `squad:` line silently drops that run from the invariant checker's
-  block-form parse. Put comments on the verdict or cost line instead.
+  block-form parse. Put comments on the verdict line instead.
 - G-08: WHEN a guard rejects a shell command for a redirect you did not write DO look for `>` inside
   quoted or heredoc PROSE — the scan does not respect quoting. Pass commit messages by file, and write
   any prose containing angle brackets with the file-write tool rather than a heredoc.
@@ -75,12 +77,15 @@
 - G-12: WHEN a task edits a generated or budget-constrained artifact DO run the whole unit suite, not
   the task's own `verify:`. Length caps and format rules are asserted in test files that no task's
   `verify:` invokes and that the artifact's own header does not state.
+- G-13: WHEN deciding which lane may write a path DO run the domain hook on it, once per candidate
+  agent type, and read its answer. Reading the org config gives the wrong lane where running the guard
+  gives the right one; a path no grant covers routes to layer 0.
 
 ## Outcomes (max 10)
 
-- O-01: WHEN the design pass rules no end-user interaction and no design contract exists DO skip the
-  ui-reviewer step and record the skip with its rationale — there is nothing to review and the reviewer
-  self-scopes out at the cost of a spawn. The same rationale retires the post-build ui audit.
+- O-01: WHEN you believe a reviewer step has nothing to find DO dispatch it anyway and record the
+  reviewer's OWN verdict. Both self-scoping reviewers are built to look and decline, and a decline from
+  one that looked is a reviewed finding; your prediction of one is not.
 - O-02: WHEN an interrupted dispatch left member artifacts on disk while every step still reads
   `pending` DO verify the artifacts' key claims yourself, then re-dispatch the SAME lead with explicit
   assess-not-redo instructions. Never redo the work, never mark another agent's steps complete.
@@ -96,9 +101,15 @@
 - O-06: WHEN most of a plan's tasks fall in the layer-0 lane DO return them as dependency-ordered
   SEGMENTS, each task carrying its `verify:` verbatim, and put the tasks independent of the riskiest
   one in the same segment as it — a failure there then wastes none of them.
+- O-07: WHEN a panel finds a surface violating an ALREADY-APPROVED requirement DO route it as a fix
+  cycle, not as a plan amendment. Approved-but-unmet needs no re-signature; only a criterion that
+  cannot be met as written does. Naming which it is settles the routing in one step.
 
 ## Open (max 5)
 
 - OQ-01: A review panel and a human diff read have disjoint blind spots: the panel caught a rotted
   in-file anchor the human read passed over, while the human ruled on intent the panel could not. Two
   features suggest the split is route-versus-coverage, but neither has been run with the panel absent.
+- OQ-02: Every reviewer followed its instructions and scoped its sweep to files the diff touches; every
+  surviving violation lived in files it does not. The gap was a property of the UNION of the scopes,
+  not of any one lens. Unclear whether widening a scope or adding a lens closes it.
