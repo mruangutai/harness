@@ -21,8 +21,8 @@ gate_status:
   security: NOT_RUN — NOT a skip; the ruling forbids pre-emptive skips
   ui: NOT_RUN — NOT a skip; the ruling forbids pre-emptive skips
   ship_refresh: NOT_RUN — .harness/codebase/ does not exist, decided at ship
-  unit: PASS — re-measured by me at ae2443d this session, exit 0, 13/13 scripts
-  docs: PASS — check-docs.sh re-measured by me at ae2443d this session, exit 0
+  unit: PASS — re-measured by me this session, exit 0, 13/13 scripts
+  docs: PASS — check-docs.sh re-measured by me this session, exit 0
   state: PASS — check-state.sh exit 0, zero violations, re-measured after my writes.
     It read exit 1 EARLIER IN THE SAME SESSION on FEAT-09's unsigned BRIEF; see repairs
 validate_panel:
@@ -75,6 +75,9 @@ repairs:
     a full cost block and both step entries terminal; digest.md, BRIEF.md, PLAN.md and
     both observation logs end on complete sentences. The crash cost bookkeeping, not
     content.
+  - >-
+    BOOKKEEPING COMMITTED as b5f20af before handing over the batch, so the six task
+    diffs land clean for the human read DEC-174 requires as its compensating control.
 sc_summary:
   planned: 15
   note: >-
@@ -88,22 +91,30 @@ sc_summary:
     and 69-of-69 only because two in-flight features exist. pm's numbers are right.
 open_q:
   - >-
-    Q1 SC-06'S GLOB OVER-CAPTURES; ITS NUMBERS ARE SOUND. Restricted to FEAT-01..07 —
-    the seven files SC-03 names — it measures 89 lines and 67-of-67, pm's figures to
-    the line, verified at ae2443d. The bare glob catches FEAT-08 and FEAT-09 too, and
-    after T-03 no new run can carry a cost block at all. Recommend the goal-check run
-    the restricted glob and record both numbers. Non-blocking; overrulable.
+    IDS ARE NOT REUSED. Q1 and Q3 are carried from the plan phase with their original
+    numbers; Q5 and Q6 are new. Q2 and Q4 were answered during planning — see resolved.
   - >-
-    Q2 SC-03 IS REPO-WIDE AND A CONCURRENT FLOW CAN FAIL IT. It demands check-state.sh
-    report zero violations across the whole repo; it did NOT at session start, purely
-    because FEAT-09's BRIEF was unsigned. It passes now. If it fails at goal-check on a
-    line naming another feature, that is not FEAT-08 regressing. Re-rooting via
-    CLAUDE_PROJECT_DIR would hide it and is the re-baselining the ruling forbids.
-    Non-blocking today; flagged so nobody spends a fix cycle on another flow's state.
+    Q1 CARRIED, non-blocking, AND IT WAS SIGNED PAST WITHOUT AN ANSWER: after this
+    ships the briefing has no size signal but cycles_used, which counts REWORK only.
+    D-06 replaces nothing on purpose; perf-review row 10 is the lever and is unfiled.
+    It needs answering BEFORE the briefing — by then it cannot be acted on.
   - >-
-    Q3 carried from plan, non-blocking: after this ships the briefing has no size
-    signal but cycles_used, which counts REWORK only. D-06 replaces nothing on
-    purpose; perf-review row 10 is the lever and is unfiled.
+    Q3 CARRIED, non-blocking, harness defect: a send-back gives the returning member a
+    FRESH context, so open_questions it raised in its own previous DIGEST are
+    unrecoverable to it. loop_back's feed: [self] passes the FAILING step's artifact
+    path, which does not cover a member's own prior questions. Decided above this tier.
+  - >-
+    Q5 NEW, non-blocking. SC-06'S GLOB OVER-CAPTURES; ITS NUMBERS ARE SOUND. Restricted
+    to FEAT-01..07 — the seven files SC-03 names — it measures 89 lines and 67-of-67,
+    pm's figures to the line, verified at ae2443d. The bare glob catches FEAT-08 and
+    FEAT-09 too, and after T-03 no new run can carry a cost block at all. Recommend the
+    goal-check run the restricted glob and record both numbers. Overrulable.
+  - >-
+    Q6 NEW, non-blocking, but it can cost a wasted fix cycle. SC-03 IS REPO-WIDE AND A
+    CONCURRENT FLOW CAN FAIL IT. It did at session start, purely because FEAT-09's
+    BRIEF was unsigned; it passes now. If it fails at goal-check on a line naming
+    another feature, that is not FEAT-08 regressing. Re-rooting via CLAUDE_PROJECT_DIR
+    would hide it and is the re-baselining the ruling forbids.
 resolved:
   - >-
     Q2 was ANSWERED BY THE PLAN ORCHESTRATOR, not the user: its dispatch presupposed
@@ -142,7 +153,7 @@ baseline:
   closes_issues: "#58"
   briefing: none — written at the ship terminus, not before
   answers: none
-  commits: none yet — the batch returns UNCOMMITTED, the pen is mine (DEC-153)
+  commits: b5f20af, bookkeeping only — the six task edits return UNCOMMITTED (DEC-153)
   cost_note: >-
     252.85 is 237.73 from the plan phase plus 15.12, the harness-orchestrator depth-1
     by_agent DELTA between runs/plan-product/state.yaml (553.3808) and this session

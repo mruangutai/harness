@@ -33,9 +33,10 @@ value" clause. These were measured before any edit:
 | T-07 | `grep -c 'DEC-116' .claude/skills/harness-team/SKILL.md` | `3` |
 | T-07 | `grep -c -e 'context budget the org exists to protect' -e 'Timestamps, same cause' .claude/skills/harness-team/SKILL.md` | `2` |
 
-Gate baselines at `ae2443d`: `run-unit-tests.sh` exit 0 (`10/10 checks passed`, all 13 scripts PASS);
-`check-docs.sh` exit 0; `check-state.sh` exit 0, **zero violations** — but see trap 2, that value
-changed under me during this session.
+**Gate baselines, at the working tree as of commit `b5f20af`** — deliberately not stated as "at
+`ae2443d`", because one of the three is not a property of the SHA: `run-unit-tests.sh` exit 0
+(`10/10 checks passed`, all 13 scripts PASS); `check-docs.sh` exit 0; `check-state.sh` exit 0 with
+zero violations — see trap 2 for why that last one carries two readings and not one.
 
 ## Four traps — a naive run reports these as failures
 
@@ -56,8 +57,9 @@ forbids. The `note` lines about pruned FEAT-05/FEAT-06 run dirs are pre-existing
 violations.
 
 **Trap 3 — every task here runs the WHOLE unit suite, not just its own test.** T-05 is the only
-exception (no unit test reads `.claude/agents/`). This is the FEAT-07 defect: T-06, T-07 and T-08
-each edit a file a `bin/test-*.py` reads LIVE, reached by no grep clause.
+exception, and its absence is a measured finding, not an oversight — see the note under T-05 below.
+This is the FEAT-07 defect: T-06, T-07 and T-08 each edit a file a `bin/test-*.py` reads LIVE,
+reached by no grep clause.
 
 **Trap 4 — the over-removal guard is the point of T-06 and T-07.** Both `verify:` clauses contain a
 POSITIVE count that must still match. A pure absence-grep passes on a file that was gutted.
@@ -83,6 +85,11 @@ returns 1; AND the WHOLE unit suite `run-unit-tests.sh` exits 0 (touches `bin/`,
 `grep -c max_total_cycles .claude/agents/harness-orchestrator.md` returns at least 2 (the
 surviving hard-bound sentence and the `feature.yaml` reference); AND
 `.claude/skills/harness/bin/check-docs.sh` exits 0.
+
+*(Three clauses is the complete set — this task deliberately has NO whole-suite clause. The PLAN's
+coverage audit at `PLAN.md:678` establishes the absence by measurement: no `bin/test-*.py` reads
+`.claude/agents/`, and the only `agents` hits in `test-harness-yaml.py` and `test-validate-digest.py`
+are the word in comments. Do not add a suite run here on the assumption the clause was dropped.)*
 
 **T-06** — `grep -n -e cost_usd -e max_cost -e cost-report -e 'INV-11' .claude/skills/harness/SKILL.md`
 returns nothing; AND `grep -c -e 'costs ~100k tokens' -e 'cost a working day' -e 'Cost grows with
