@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+"""Tests for check-plan-routes.py (D-01, D-02, D-04, D-07, D-08).
+
+Fixtures are written under tempfile.mkdtemp() so no repo state is touched.
+Each case invokes the real script as a subprocess against a fixture PLAN.md,
+and against the repo's own templates/PLAN.md, run-unit-tests.sh and source
+for the static/textual checks (cases 8-13, 16).
+"""
+import os
+import subprocess
+import sys
+import tempfile
+
+BIN_DIR = os.path.dirname(os.path.abspath(__file__))
+SCRIPT = os.path.join(BIN_DIR, "check-plan-routes.py")
+REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
+
+GRANTED_PATH = ".claude/skills/harness/bin/check-domain.sh"  # granted to two agents
+UNGRANTED_PATH = "some/totally/nonexistent/zzz-surface.md"  # granted to nobody
+CASE17_PATH = ".harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.md"
+
+failures = []
+
+
+def run(*args, cwd=None):
+    return subprocess.run(
+        [sys.executable, SCRIPT, *args],
+        cwd=cwd or REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+
+def write_plan(tmpdir, body, name="PLAN.md"):
+    path = os.path.join(tmpdir, name)
+    with open(path, "w") as f:
+        f.write(body)
+    return path
+
+
+def task_block(tid, files, execution_mode):
+    return (
+        f"- {tid}: fixture task\n"
+        f"  files: {files}\n"
+        f"  change_type: logic\n"
+        f"  execution_mode: {execution_mode}\n\n"
+    )
+
+
+def check(name, cond, detail=""):
+    if cond:
+        print(f"PASS {name}")
+    else:
+        print(f"FAIL {name} {detail}")
+        failures.append(name)
+
+
+def case_01_02_03():
+    """(1)(2)(3): ungranted-and-undeclared task exits non-zero, output has task id + path."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = write_plan(td, "# PLAN\n\n" + task_block("T-01", UNGRANTED_PATH, "team"))
+        r = run(plan)
+        check("case_01_ungranted_undeclared_exits_nonzero", r.returncode != 0, r.stdout + r.stderr)
+        check("case_02_output_has_task_id", "T-01" in r.stdout, r.stdout)
+        check("case_03_output_has_offending_path", UNGRANTED_PATH in r.stdout, r.stdout)
+
+
+def case_04():
+    """(4): a plan whose every task resolves to a granting agent exits 0."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = write_plan(td, "# PLAN\n\n" + task_block("T-01", GRANTED_PATH, "team"))
+        r = run(plan)
+        check("case_04_all_granted_exits_0", r.returncode == 0, r.stdout + r.stderr)
+
+
+def case_05():
+    """(5): a plan whose every ungranted task declares main-session-direct exits 0."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = write_plan(td, "# PLAN\n\n" + task_block("T-01", UNGRANTED_PATH, "main-session-direct"))
+        r = run(plan)
+        check("case_05_ungranted_declared_main_session_exits_0", r.returncode == 0, r.stdout + r.stderr)
+
+
+def case_06_07():
+    """(6): a wildcard entry produces UNRESOLVED-GLOB. (7): exit status matches the wildcard task removed."""
+    with tempfile.TemporaryDirectory() as td:
+        wildcard_body = "# PLAN\n\n" + task_block("T-01", "docs/harness/*.md", "team")
+        plan_wild = write_plan(td, wildcard_body, name="WILD.md")
+        r_wild = run(plan_wild)
+        check("case_06_wildcard_produces_unresolved_glob", "UNRESOLVED-GLOB" in r_wild.stdout, r_wild.stdout)
+
+        plan_removed = write_plan(td, "# PLAN\n\n", name="REMOVED.md")
+        r_removed = run(plan_removed)
+        check(
+            "case_07_wildcard_exit_status_matches_task_removed",
+            r_wild.returncode == r_removed.returncode,
+            f"wild={r_wild.returncode} removed={r_removed.returncode}",
+        )
+
+
+def case_08_09_16():
+    """(8) source mentions check-domain.sh. (9) no fnmatch. (16) no glob_to_re — separate case from 9."""
+    with open(SCRIPT) as f:
+        src = f.read()
+    check("case_08_source_mentions_check_domain_sh", "check-domain.sh" in src)
+    check("case_09_source_has_no_fnmatch", "fnmatch" not in src)
+    check("case_16_source_has_no_glob_to_re", "glob_to_re" not in src)
+
+
+def case_10_11_12():
+    """(10)(11)(12): templates/PLAN.md carries the ## Lanes section and both execution_mode tokens."""
+    tpl = os.path.join(REPO_ROOT, ".claude", "skills", "harness", "templates", "PLAN.md")
+    with open(tpl) as f:
+        src = f.read()
+    check("case_10_template_has_lanes_section", "## Lanes" in src)
+    check("case_11_template_has_team_token", "execution_mode: team" in src)
+    check("case_12_template_has_main_session_direct_token", "execution_mode: main-session-direct" in src)
+
+
+def case_13():
+    """(13): run-unit-tests.sh's SCRIPTS array lists test-check-plan-routes.py."""
+    runner = os.path.join(BIN_DIR, "run-unit-tests.sh")
+    with open(runner) as f:
+        src = f.read()
+    check("case_13_runner_lists_this_test", '"test-check-plan-routes.py"' in src)
+
+
+def case_14_15():
+    """(14): a task with granted paths declaring main-session-direct produces DEVIATION.
+    (15): that same plan still exits 0."""
+    with tempfile.TemporaryDirectory() as td:
+        plan = write_plan(td, "# PLAN\n\n" + task_block("T-01", GRANTED_PATH, "main-session-direct"))
+        r = run(plan)
+        check("case_14_granted_but_main_session_produces_deviation", "DEVIATION" in r.stdout, r.stdout)
+        check("case_15_deviation_plan_still_exits_0", r.returncode == 0, r.stdout + r.stderr)
+
+
+def case_17():
+    """(17): the mid-pattern-wildcard grant path must resolve OK, no VIOLATION naming its task.
+
+    This is the exact bug check-domain.sh:190-197 records: a hand-rolled prefix
+    comparison on the text before `/**` answers False for a pattern with an earlier
+    wildcard segment. The path string below is granted ONLY through
+    `.harness/features/*/runs/*-eng/**` (team-config.yaml:278) and must stay verbatim.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        plan = write_plan(td, "# PLAN\n\n" + task_block("T-01", CASE17_PATH, "team"))
+        r = run(plan)
+        lines = r.stdout.splitlines()
+        has_violation_for_t01 = any(
+            line.startswith("VIOLATION") and "T-01" in line for line in lines
+        )
+        has_ok_for_t01 = any(
+            line.startswith("OK") and "T-01" in line for line in lines
+        )
+        check("case_17_midpattern_wildcard_grant_no_violation", not has_violation_for_t01, r.stdout)
+        check("case_17_midpattern_wildcard_grant_reports_ok", has_ok_for_t01, r.stdout)
+        check("case_17_midpattern_wildcard_grant_exits_0", r.returncode == 0, r.stdout + r.stderr)
+
+
+def main():
+    case_01_02_03()
+    case_04()
+    case_05()
+    case_06_07()
+    case_08_09_16()
+    case_10_11_12()
+    case_13()
+    case_14_15()
+    case_17()
+
+    if failures:
+        print(f"\n{len(failures)} FAILURE(S): {failures}")
+        sys.exit(1)
+    print("\nALL PASS")
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
