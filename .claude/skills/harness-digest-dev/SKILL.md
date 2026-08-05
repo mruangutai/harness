@@ -47,13 +47,6 @@ passing verify. `suite` is your own tests; `task_verify` is the check the plan d
 task, which is why it is the cheapest gate in the system and why it used to be authored and then run
 by nobody.
 
-**Your B-7 receipt carries the command and its verbatim output.** Paste both into
-`.harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`. Reporting `task_verify: pass`
-is a claim; the receipt is what a reviewer can check it against. The honest limit, so nobody
-oversells this: output can be fabricated, so this is an audit trail rather than a gate — it makes
-skipping leave evidence in a file qa and the code reviewer already open. The alternative, having
-your lead re-run the command, is structurally impossible: leads hold no `Bash`.
-
 ## Reaching a boundary (shared by the same four)
 
 You cannot write outside your domain; the hook names what you may write. **Never work around it** —

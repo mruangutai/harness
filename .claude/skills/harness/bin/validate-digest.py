@@ -569,7 +569,7 @@ def validate(persona, text):
                 hint = "`none` if genuinely not applicable"
             else:
                 hint = "`[]` if there are none"
-            # HONEST LIMIT: a re-prompted return is not re-validated — `:691-692` is
+            # HONEST LIMIT: a re-prompted return is not re-validated — `:838` is
             # `if d.get("stop_hook_active"): return 0` — so a hint naming a rejectable
             # value ships the second attempt unvalidated. That passthrough is
             # pre-existing and deliberate; this edit stops the hint POINTING at it and

@@ -1129,9 +1129,46 @@ DIGEST:
   expertise_update: []
 artifact: a.md
 """, False, "task_verify")
-# (e) REGRESSION — REQ-03/SC-06. A task that EXISTED and was refused.
+# (e) REGRESSION — REQ-03/SC-06. A task that EXISTED and was refused. SC-06 names
+# FOUR accepted shapes, not one: dev and dev-ops, each with BLOCKED and with FAIL.
+# It is `verify: automated  evidence: unit`, so hand-reasoning satisfies it neither
+# way — all four are fixtured. `task` keeps the REAL id in every one: a refusal HAD
+# a task, and `task: none` would silently move these onto the conditional branch and
+# leave REQ-03 unproven.
 case("dev task_verify: n/a + BLOCKED is the honest refusal, accepted",
      "harness-backend-dev", _dev(v="BLOCKED", tv="n/a"), True)
+case("dev task_verify: n/a + FAIL is accepted — the same refusal, other verdict",
+     "harness-backend-dev", _dev(v="FAIL", tv="n/a"), True)
+case("dev-ops task_verify: n/a + BLOCKED is accepted — refusal, not the carve-out",
+     "harness-dev-ops", """
+VERDICT: BLOCKED
+DIGEST:
+  headline: x
+  change_type: config
+  applied: []
+  suite: n/a
+  task: T-01
+  task_verify: n/a
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", True)
+case("dev-ops task_verify: n/a + FAIL is accepted",
+     "harness-dev-ops", """
+VERDICT: FAIL
+DIGEST:
+  headline: x
+  change_type: config
+  applied: []
+  suite: n/a
+  task: T-01
+  task_verify: n/a
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: a.md
+""", True)
 # (f) REGRESSION — the leak check. Neither field belongs to qa or a reviewer, and a
 # leak is invisible otherwise: an extra required field only ever makes returns FAIL.
 case("qa carries neither new field and is still accepted",
