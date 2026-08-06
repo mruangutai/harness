@@ -4,6 +4,10 @@
 Usage:
     gen-decisions-index.py            write docs/harness/DECISIONS-INDEX.md in place
     gen-decisions-index.py --stdout   write the index to stdout, touch nothing
+    gen-decisions-index.py --help     print this and exit, touch nothing (also -h)
+
+There is no --check: to check for drift without writing, pipe the read-only mode into
+diff — `gen-decisions-index.py --stdout | diff - docs/harness/DECISIONS-INDEX.md`.
 
 See FEAT-04-decisions-index PLAN.md T-02 for the full contract. Everything left
 of ' :: ' on a row is generated; everything right of it is hand-written and
@@ -367,8 +371,30 @@ class MalformedRow(Exception):
         super().__init__(f"{len(rows)} malformed row(s)")
 
 
+def parse_argv(argv):
+    """Return True for stdout mode, False for the write path — or exit.
+
+    Unvalidated argv used to mean every unrecognized flag, `--help` first among them,
+    fell through to the WRITE path (#140): the one command a reader runs to learn what
+    this script does was the command that rewrote the repo, and it fired mid-review on
+    PR #138. An unknown flag must therefore refuse LOUDLY rather than default to the
+    only branch that touches the tree — silence here is indistinguishable from a
+    legitimate regeneration, because the file is generated.
+    """
+    if "--help" in argv or "-h" in argv:
+        print(__doc__.strip())
+        sys.exit(0)
+    unknown = [a for a in argv if a != "--stdout"]
+    if unknown:
+        print(f"gen-decisions-index: unrecognized argument(s): {' '.join(unknown)}. "
+              f"Wrote nothing.", file=sys.stderr)
+        print(f"\n{__doc__.strip()}", file=sys.stderr)
+        sys.exit(2)
+    return "--stdout" in argv
+
+
 def main():
-    stdout_mode = "--stdout" in sys.argv[1:]
+    stdout_mode = parse_argv(sys.argv[1:])
 
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
     os.chdir(project_dir)

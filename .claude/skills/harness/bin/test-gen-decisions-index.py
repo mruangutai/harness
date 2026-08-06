@@ -74,13 +74,14 @@ def strip_ruling_prose(s):
     return cur
 
 
-def run_gen(tree, extra_env=None):
+def run_gen(tree, extra_env=None, args=None):
     env = dict(os.environ)
     env["CLAUDE_PROJECT_DIR"] = tree
     if extra_env:
         env.update(extra_env)
     return subprocess.run(
-        [sys.executable, GEN], cwd=tree, capture_output=True, text=True, env=env
+        [sys.executable, GEN] + list(args or []),
+        cwd=tree, capture_output=True, text=True, env=env
     )
 
 
@@ -563,8 +564,99 @@ def test_supersession_declared_in_body_prose_is_harvested():
         return False
 
 
+def test_argv_is_validated_and_only_the_write_path_writes():
+    """#140: every unrecognized flag — `--help` included — fell through to the WRITE path.
+
+    The one command a reader runs to learn what the script does was the command that
+    rewrote the repo. It fired during a review of PR #138 and mutated the reviewer's
+    working tree, and because the index is generated the damage reads as a legitimate
+    regeneration rather than an accident.
+
+    Asserted on the file's BYTES, never on the exit code: pre-fix `--help` already exits
+    0, so an exit-code assertion passes against the defect and proves nothing. The
+    fixture's on-disk index is deliberately NOT what the generator emits (valid rows,
+    but written without the HEADER) — against a byte-identical file the write path is
+    indistinguishable from the read-only one and the test would be vacuous.
+    """
+    name = "test_argv_is_validated_and_only_the_write_path_writes"
+
+    def fixture(tmp):
+        docs_dir = make_authority(tmp, [(1, "First"), (2, "Second")])
+        r0 = run_gen(tmp)
+        assert r0.returncode == 0, f"baseline run exited {r0.returncode}: {r0.stderr[:200]}"
+        # Rewrite the index in a form that still PARSES (so no run dies on MalformedRow
+        # for the wrong reason) but that the generator would not reproduce.
+        write_index(docs_dir, read_index_rows(docs_dir))
+        path = os.path.join(docs_dir, "DECISIONS-INDEX.md")
+        return path, open(path, encoding="utf-8").read()
+
+    try:
+        # (a) --help must print usage and touch nothing. THE red case.
+        with tempfile.TemporaryDirectory() as tmp:
+            path, before = fixture(tmp)
+            r = run_gen(tmp, args=["--help"])
+            if open(path, encoding="utf-8").read() != before:
+                print(f"FAIL - {name} (a): --help REWROTE the index")
+                return False
+            if r.returncode != 0:
+                print(f"FAIL - {name} (a): --help exited {r.returncode}")
+                return False
+            if "--stdout" not in r.stdout or "--help" not in r.stdout:
+                print(f"FAIL - {name} (a): usage on stdout does not document both "
+                      f"flags: {r.stdout[:300]!r}")
+                return False
+
+        # (b) An unknown flag must refuse loudly, not fall through to the write.
+        with tempfile.TemporaryDirectory() as tmp:
+            path, before = fixture(tmp)
+            r = run_gen(tmp, args=["--check"])
+            if open(path, encoding="utf-8").read() != before:
+                print(f"FAIL - {name} (b): --check REWROTE the index")
+                return False
+            if r.returncode == 0:
+                print(f"FAIL - {name} (b): unknown flag exited 0")
+                return False
+            if "--check" not in r.stderr:
+                print(f"FAIL - {name} (b): stderr does not name the rejected flag: "
+                      f"{r.stderr[:300]!r}")
+                return False
+
+        # (c) Regression guard: --stdout still prints the index and still writes nothing.
+        with tempfile.TemporaryDirectory() as tmp:
+            path, before = fixture(tmp)
+            r = run_gen(tmp, args=["--stdout"])
+            if r.returncode != 0:
+                print(f"FAIL - {name} (c): --stdout exited {r.returncode}: {r.stderr[:200]}")
+                return False
+            if "- DEC-1 " not in r.stdout:
+                print(f"FAIL - {name} (c): --stdout printed no rows: {r.stdout[:200]!r}")
+                return False
+            if open(path, encoding="utf-8").read() != before:
+                print(f"FAIL - {name} (c): --stdout wrote the index")
+                return False
+
+        # (d) Regression guard: no arguments still WRITES. Without this the whole fix
+        # could be "never write", which passes (a)-(c) and breaks the only real caller.
+        with tempfile.TemporaryDirectory() as tmp:
+            path, before = fixture(tmp)
+            r = run_gen(tmp)
+            if r.returncode != 0:
+                print(f"FAIL - {name} (d): no-args exited {r.returncode}: {r.stderr[:200]}")
+                return False
+            after = open(path, encoding="utf-8").read()
+            if after == before or "# DECISIONS — index" not in after:
+                print(f"FAIL - {name} (d): no-args did not regenerate the index")
+                return False
+        print(f"ok - {name}")
+        return True
+    except Exception as e:
+        print(f"FAIL - {name}: {type(e).__name__}: {e}")
+        return False
+
+
 TESTS = [
     test_row_per_distinct_dec_matches_authority,
+    test_argv_is_validated_and_only_the_write_path_writes,
     test_malformed_row_is_reported_not_silently_dropped,
     test_supersession_declared_in_body_prose_is_harvested,
     test_preserves_hand_written_rulings_by_dec_number,
