@@ -19,6 +19,21 @@ FEAT-08-remove-cost-tracking         close-out  11 /  34 spawns   32%
 TOTAL                                close-out  23 /  91 spawns   25%
 ```
 
+**Which runs counted, so this is auditable rather than trusted.** PR #141's reviewer ran their own
+parser and got 7 / 29 / 40%, so the classification is written out here in full — a later
+measurement must use the same rule or it is comparing different things:
+
+| Feature | close-out runs counted (spawns) |
+|---|---|
+| FEAT-06 | `goalcheck-product`(2) |
+| FEAT-07 | `close-eng`(2), `close-product`(3), `close-validator`(3), `goalcheck-product`(2) |
+| FEAT-08 | `distill-apply-product`(2), `distill-apply-validator`(1), `distill-eng`(2), `distill-product`(3), `distill-validator`(1), `goalcheck-product`(2) |
+
+Spawns per run = 1 lead + `len(DIGEST.members)`. The divergence is almost certainly the
+classification rule, not the arithmetic: FEAT-06 has exactly one close-out run under this rule, and
+whether `goalcheck` counts as close-out at all is a judgment a different parser may make
+differently. **That is itself a reason to prefer the binary measure below.**
+
 ## The caveat that decides how to read a follow-up measurement
 
 **The variance is larger than the effect being chased.** FEAT-06's close-out was 8% and FEAT-07's
