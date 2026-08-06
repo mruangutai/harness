@@ -23,13 +23,23 @@ CASE17_PATH = ".harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.
 failures = []
 
 
-def run(*args, cwd=None):
+def run(*args, cwd=None, project_dir=None, script=None):
+    """Invoke the checker. `project_dir` sets CLAUDE_PROJECT_DIR; None UNSETS it.
+
+    Unsetting is not cosmetic (case 19). Under a hook-invoked suite run the variable
+    IS set to the repo, at which point a wrong-directory test would pass through the
+    env var and prove nothing about the from-__file__ derivation it exists to check.
+    """
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}
+    if project_dir is not None:
+        env["CLAUDE_PROJECT_DIR"] = project_dir
     return subprocess.run(
-        [sys.executable, SCRIPT, *args],
+        [sys.executable, script or SCRIPT, *args],
         cwd=cwd or REPO_ROOT,
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=60,
+        env=env,
     )
 
 
@@ -267,6 +277,81 @@ def case_18():
     return ok
 
 
+def case_19():
+    """(19) issue #133 B-7: an ARGV-LESS run must never mistake 'wrong directory' for 'clean'.
+
+    Measured on main at a5edb13, with CLAUDE_PROJECT_DIR unset:
+      cd /tmp && python3 <repo>/.claude/skills/harness/bin/check-plan-routes.py
+      -> `0 violation(s) across 0 plan(s)`, EXIT 0
+    The glob was cwd-relative, so a checker that found nothing because it was looking
+    in the wrong place was byte-identical to a clean tree — the VF-1/VF-2 failure class.
+
+    Four assertions, because no one of them alone pins the behaviour:
+      (a) cwd PARITY — argv-less from /tmp and from the repo root give identical output.
+          Deliberately not a plan count: counts drift as features land, and
+          `returncode != 0` cannot tell exit 1 (violations) from exit 2 (could not run).
+      (b) an unresolvable root is LOUD (exit 2), not an empty scan.
+      (c) a freshly-onboarded project with a manifest and ZERO features still exits 0 —
+          zero plans is not itself an error, and turning it into one is a false alarm.
+      (d) the explicit-path form is untouched by the root guard, even when
+          CLAUDE_PROJECT_DIR points somewhere with no manifest at all.
+    """
+    r_root = run(cwd=REPO_ROOT)
+    r_tmp = run(cwd="/tmp")
+    check("case_19a_argvless_output_is_independent_of_cwd",
+          r_tmp.stdout == r_root.stdout and r_tmp.returncode == r_root.returncode,
+          f"root(exit {r_root.returncode}) last={r_root.stdout.strip().splitlines()[-1:]!r} "
+          f"tmp(exit {r_tmp.returncode}) last={r_tmp.stdout.strip().splitlines()[-1:]!r}")
+    check("case_19a2_argvless_names_the_root_it_scanned",
+          r_tmp.stdout.startswith("scanning ") and REPO_ROOT in r_tmp.stdout.splitlines()[0],
+          r_tmp.stdout[:200])
+
+    # (b) Neutralise BOTH root sources: a copy of the script four levels under a bare
+    # tmpdir makes the from-__file__ derivation land on a directory with no manifest,
+    # and CLAUDE_PROJECT_DIR points at another one. Copying honours
+    # CHECK_PLAN_ROUTES_BIN, so a mutated implementation is what gets tested here too.
+    with tempfile.TemporaryDirectory() as td:
+        fake_bin = os.path.join(td, "root", "a", "b", "bin")
+        os.makedirs(fake_bin)
+        copy = os.path.join(fake_bin, "check-plan-routes.py")
+        with open(SCRIPT) as src, open(copy, "w") as dst:
+            dst.write(src.read())
+        r = run(cwd=td, project_dir=td, script=copy)
+        check("case_19b_unresolvable_root_exits_2_not_0", r.returncode == 2,
+              f"exit {r.returncode} stdout={r.stdout[:200]!r} stderr={r.stderr[:200]!r}")
+        check("case_19b2_unresolvable_root_says_why_on_stderr",
+              "check-plan-routes:" in r.stderr and "0 violation(s)" not in r.stdout,
+              f"stderr={r.stderr[:300]!r} stdout={r.stdout[:200]!r}")
+
+    # (c) The other direction. A manifest is present, so the root IS known; there simply
+    # are no features yet. Must be exit 0 and must scan the FIXTURE, not the real repo —
+    # which is also what fails if the env-var/derived precedence is ever flipped.
+    with tempfile.TemporaryDirectory() as td:
+        os.makedirs(os.path.join(td, ".harness", "features"))
+        with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
+            f.write("agents: {}\n")
+        r = run(project_dir=td)
+        check("case_19c_zero_feature_project_is_not_an_error", r.returncode == 0,
+              f"exit {r.returncode} stdout={r.stdout[:300]!r} stderr={r.stderr[:200]!r}")
+        check("case_19c2_zero_feature_project_scans_the_declared_root",
+              td in r.stdout and "0 violation(s) across 0 plan(s)" in r.stdout,
+              r.stdout[:300])
+
+    # (d) The explicit-path form, from a cwd with no .harness and an env root with no
+    # manifest. A guard applied outside the argv-less branch turns this into exit 2.
+    with tempfile.TemporaryDirectory() as td:
+        plan = write_plan(td, "# PLAN\n\n" + task_block("T-01", GRANTED_PATH, "team"))
+        r = run(plan, cwd=td, project_dir=td)
+        check("case_19d_explicit_path_unaffected_by_the_root_guard",
+              r.returncode == 0 and "OK T-01 granted to" in r.stdout,
+              f"exit {r.returncode} stdout={r.stdout[:300]!r} stderr={r.stderr[:200]!r}")
+        empty = write_plan(td, "# PLAN\n\nno tasks here\n", name="EMPTY.md")
+        r2 = run(empty, cwd=td, project_dir=td)
+        check("case_19d2_explicit_path_with_no_tasks_still_exits_0",
+              r2.returncode == 0 and "scanning " not in r2.stdout,
+              f"exit {r2.returncode} stdout={r2.stdout[:300]!r}")
+
+
 def main():
     case_01_02_03()
     case_04()
@@ -279,6 +364,7 @@ def main():
     case_17()
     if not case_18():
         failures.append('case_18')
+    case_19()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

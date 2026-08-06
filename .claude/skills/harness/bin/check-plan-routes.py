@@ -247,8 +247,57 @@ def process_plan(path, findings):
     return violations
 
 
+def discover_plans():
+    """Argv-less discovery: every PLAN.md under the PROJECT ROOT, not under the cwd.
+
+    The glob used to be `.harness/features/*/PLAN.md` relative to the cwd, so running
+    this from anywhere but the repo root printed `0 violation(s) across 0 plan(s)` and
+    EXITED 0 — a checker that found nothing because it was looking in the wrong place
+    was byte-identical to a clean tree (issue #133, B-7). Measured before this fix:
+    `cd /tmp && python3 <repo>/.claude/skills/harness/bin/check-plan-routes.py` exited 0.
+
+    Root precedence follows check-domain.sh (`:178-180`, and again at `:276-281` for
+    its hook path — two call sites, one rule), because a third derivation is a third
+    thing to drift: CLAUDE_PROJECT_DIR if it holds a readable manifest, else the root
+    DERIVED from this file's location (bin/ is four levels down).
+
+    ONE BRANCH DIFFERS, DELIBERATELY. check-domain.sh's third branch is
+    `root = root or os.getcwd()`; this one is `""` and exits 2. A cwd fallback IS the
+    B-7 fail-open — it is how a checker ends up scanning wherever it happens to be
+    standing. check-domain.sh can afford it because it demands a readable manifest one
+    line later and exits 2 anyway; here the glob would simply come back empty and
+    report success. Exit 2 means "the checker could not run", which is also what
+    distinguishes this from a freshly-onboarded project: that project HAS a manifest
+    and legitimately has zero features, and it still exits 0. Zero plans is not an error.
+    """
+    derived = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
+    root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+    if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
+        root = derived if os.access(
+            os.path.join(derived, ".harness", "team-config.yaml"), os.R_OK) else ""
+    if not root:
+        print(
+            "check-plan-routes: no readable .harness/team-config.yaml under "
+            f"CLAUDE_PROJECT_DIR ({os.environ.get('CLAUDE_PROJECT_DIR') or 'unset'}) "
+            f"or {derived} — I do not know where to look, so 'no plans' would be a "
+            "lie. Set CLAUDE_PROJECT_DIR, or pass PLAN.md paths explicitly.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    return root, sorted(glob.glob(os.path.join(root, ".harness/features/*/PLAN.md")))
+
+
 def main(argv):
-    paths = argv[1:] if len(argv) > 1 else sorted(glob.glob(".harness/features/*/PLAN.md"))
+    # The root guard is ARGV-LESS ONLY. `check-plan-routes.py <path>` must keep working
+    # from a directory with no .harness/ anywhere — the caller named the file, so there
+    # is nothing to discover and nothing to be wrong about.
+    if len(argv) > 1:
+        paths = argv[1:]
+    else:
+        root, paths = discover_plans()
+        # Naming the root is the whole distinction. Without it a legitimate zero-feature
+        # project and the wrong-directory defect print the same line.
+        print(f"scanning {root}/.harness/features/*/PLAN.md")
 
     findings = []
     total_violations = 0
