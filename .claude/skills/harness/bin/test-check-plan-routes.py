@@ -7,6 +7,7 @@ and against the repo's own templates/PLAN.md, run-unit-tests.sh and source
 for the static/textual checks (cases 8-13, 16).
 """
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -302,6 +303,24 @@ def case_19():
           r_tmp.stdout == r_root.stdout and r_tmp.returncode == r_root.returncode,
           f"root(exit {r_root.returncode}) last={r_root.stdout.strip().splitlines()[-1:]!r} "
           f"tmp(exit {r_tmp.returncode}) last={r_tmp.stdout.strip().splitlines()[-1:]!r}")
+    # (a3) THE ASSERTION THE OTHER SIX DO NOT MAKE: discovery must actually FIND the
+    # plans. Every case here was satisfiable by a discover_plans() that resolves the
+    # right root and returns an EMPTY list — measured, `return root, []` printed
+    # `scanning <correct root>` then `0 violation(s) across 0 plan(s)`, exited 0 on a
+    # tree holding 8 plans and 36 violations, and the whole suite stayed green. That is
+    # B-7 itself, moved from the glob's BASE to the glob's RESULT.
+    #
+    # The other cases avoid a plan count on the stated grounds that counts drift. True,
+    # and it is why this asserts NON-ZERO rather than a number: "at least one" does not
+    # drift while this repo has any feature at all, and it is the whole difference
+    # between looking and reporting.
+    _m = re.search(r"across (\d+) plan\(s\)", r_root.stdout)
+    check("case_19a3_argvless_actually_finds_the_plans",
+          bool(_m) and int(_m.group(1)) > 0,
+          f"argv-less from the repo root reported {_m.group(1) if _m else '??'} plans — "
+          f"resolving the root and finding nothing is the same fail-open as scanning "
+          f"the wrong directory. stdout tail={r_root.stdout.strip().splitlines()[-1:]!r}")
+
     check("case_19a2_argvless_names_the_root_it_scanned",
           r_tmp.stdout.startswith("scanning ") and REPO_ROOT in r_tmp.stdout.splitlines()[0],
           r_tmp.stdout[:200])
