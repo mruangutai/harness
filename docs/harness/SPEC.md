@@ -1716,6 +1716,7 @@ phase: plan | build | validate | ship   # the CURRENT phase; one orchestrator pe
 review_sha: def5678            # pinned per review cycle; branch is feature-level, so this is too
 cycles_used: 2                 # fix-loop budget SPANS runs
 max_total_cycles: 10
+max_total_runs: 20             # INFORMATIONAL (issue #79); omit to inherit harness.json
 runs:
   - { id: 2026-07-27-01-validator, squad: validator, verdict: FAIL }
   - { id: 2026-07-27-02-eng,       squad: eng,       verdict: PASS }

@@ -377,12 +377,12 @@ def case_l():
       (3) a feature declaring max_total_runs: 30 silences it,
       (4) and the exit code is UNCHANGED, because this must never gate.
     """
-    def build(tmp, n, declared=""):
+    def build(tmp, n, declared="", budget='"budgets": {"max_total_runs": 20}'):
         h = os.path.join(tmp, ".harness")
         os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
-            f.write('{\n  "github": {"sync": false, "repo": null},\n'
-                    '  "budgets": {"max_total_runs": 20}\n}\n')
+            f.write('{\n  "github": {"sync": false, "repo": null}'
+                    + (",\n  " + budget if budget else "") + "\n}\n")
         runs = "\n".join(f"  - {{ id: r{i}, squad: eng, verdict: PASS }}"
                          for i in range(n))
         with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
@@ -397,6 +397,21 @@ def case_l():
         code_at, out_at = build(tmp, 20)
     with tempfile.TemporaryDirectory() as tmp:
         _code_raised, out_raised = build(tmp, 21, "max_total_runs: 30\n")
+    # (l5-l8) THE CONFIGURED VALUE MUST ACTUALLY BE READ, and a budget this check
+    # cannot resolve must SAY SO. The first version of case (l) asserted neither:
+    # a mutant hardcoding `_budget = 20` and never opening harness.json passed all
+    # four assertions, exit 0 (PR #142 review, HIGH 2). Reproduced before fixing.
+    # (l5) uses a DIFFERENT budget so a hardcoded 20 gives the wrong number in the
+    # message; (l6)-(l8) cover the shapes that used to disable the check in silence,
+    # including the one shipped in templates/examples/harness.kaya-ai.json.
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, out_b5 = build(tmp, 7, budget='"budgets": {"max_total_runs": 5}')
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, out_nokey = build(tmp, 21, budget='"budgets": {}')
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, out_noblock = build(tmp, 21, budget="")
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, out_bool = build(tmp, 21, budget='"budgets": {"max_total_runs": true}')
 
     for name, ok, detail in (
         ("(l1) 21 runs against a 20 budget is NOTED",
@@ -407,6 +422,14 @@ def case_l():
          "runs recorded against" not in out_raised, out_raised),
         ("(l4) INV-22 NEVER gates — exit code identical over and under budget",
          code_over == code_at, f"over={code_over} at={code_at}"),
+        ("(l5) the CONFIGURED value is read — budget 5 with 7 runs names 5, not 20",
+         "7 runs recorded against a 5-run budget" in out_b5, out_b5),
+        ("(l6) budgets present but key missing is REPORTED INACTIVE, never silent",
+         "run counting is INACTIVE" in out_nokey, out_nokey),
+        ("(l7) no budgets block at all (the shipped kaya example) is REPORTED INACTIVE",
+         "run counting is INACTIVE" in out_noblock, out_noblock),
+        ("(l8) a boolean budget is REJECTED, not treated as an int (bool subclasses int)",
+         "run counting is INACTIVE" in out_bool, out_bool),
     ):
         print(f"{'ok' if ok else 'FAIL'} - case {name}")
         if not ok:

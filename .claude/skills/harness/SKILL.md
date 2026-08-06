@@ -108,6 +108,12 @@ nothing notices at all. It is informational on purpose — **a long feature is f
 efficient, resolves issues and advances the SCs**, and those are the three questions the note asks.
 The count is a **floor**: a main-session-direct segment is not a run and never appears in `runs:`.
 
+**Surface a crossing where a human sees it, not only at `/harness` entry (#79).** `check-state.sh`
+runs on entry, which is retrospective — the feature is already long by then. So when `len(runs)`
+passes `max_total_runs`, **say so in your return and in the CEO briefing**: the count, the budget,
+and your one-line read on whether the runs are still earning their place. Never as an apology for
+the number.
+
 **A cycle is REWORK ONLY (DEC-157)** — a FAIL routed back, an unmet-SC re-dispatch, or a send-back a
 lead reports from inside a run. A first-pass run contributes **zero**, however many steps it has: the
 PLAN's task list already bounds forward work, and counting runs as cycles is how a healthy 16-run
