@@ -22,7 +22,13 @@ touch files FEAT-08 is editing.
   preload (~36%), paid 3–4× per feature under DEC-159. Flat mode is dead (`SPEC.md:1309`).
 - **#84** split `harness-expertise`'s distillation half out of the 16-agent universal preload —
   lines 51–113 of 125 govern a once-per-agent-per-feature event; ~29k tokens/feature.
-- **#43** the line budget on `harness-team/SKILL.md`, read by all three leads at every spawn.
+- ~~**#43** the line budget on `harness-team/SKILL.md`~~ — **STRUCK 2026-08-05, MISCHARACTERISED HERE.**
+  #43 is *"Two FEAT-06 residuals: T-09's line-cap estimate and a stale 3x quote in PLAN.md"* — a
+  low-severity bookkeeping pair, and it states the shipped file was **within budget**: "this is a
+  discrepancy between the advisory's estimate and the cap, not a violation." It was never a trimming
+  task. The row was read as one and ranked #1 on that basis before anyone opened the issue.
+  **The trim itself was still worth doing and was done** (18,533 -> 15,584 B, ~47,200 B/feature) as
+  unticketed work at `712b070`. #43 remains open as the two residuals it actually is.
 
 **Waiting makes #83 cheaper, not just safer:** its first required rider — *"move the
 ORCHESTRATOR-ONLY `cost-report.py` paragraph or INV-11's metering instruction is lost"* — evaporates
