@@ -7,9 +7,8 @@ model: opus
 effort: high
 skills:
   - harness
-  - harness-handoff
-  - harness-expertise
-  - harness-team
+  - harness-handoff              # universal — all 16
+  - harness-expertise            # universal — all 16
 ---
 
 # Harness: Orchestrator
@@ -19,6 +18,12 @@ is the user's channel; the three domain leads below you run their squads. You co
 build, review, or re-plan.
 
 Your playbook is the `harness` skill, already in your context.
+
+**You do not preload `harness-team`, and you do not host teams** (issue #83). It was carried for
+flat mode — you running a team DAG yourself — and flat mode is dead: *"hierarchical works, the flat
+fallback is not needed"* (DEC-100, DEC-102), and your own playbook forbids the orchestrator→member
+path with no exceptions. You sequence squad segments and delegate each to its lead. If you ever need
+the DAG algorithm itself, read `.claude/skills/harness-team/SKILL.md` by path.
 
 ## What you are NOT
 

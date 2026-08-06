@@ -154,8 +154,8 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
   session writes (it alone has the user channel). **pm never self-approves, and neither does the
   orchestrator** — as a spawned agent it cannot call `AskUserQuestion`.
 - **Each feature's `STATE.md` is owned by that feature's orchestrator (single writer).** One
-  orchestrator per feature is what keeps it single-writer under concurrent flows (DEC-120). In **flat** mode members return their DIGEST
-  to the orchestrator, which appends it. In **hierarchical** mode members return to the lead; the
+  orchestrator per feature is what keeps it single-writer under concurrent flows (DEC-120). Members
+  return to the lead; the
   lead's consolidated DIGEST carries a **per-member log block**, and the orchestrator appends those
   — so per-member granularity survives without a second writer.
 - **Persistent files are written in place; the run dir is for *transient* step outputs.** A persona
@@ -1349,7 +1349,7 @@ review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) 
     uniform stream of consolidated DIGESTs, and no work is ever unassessed.
 - **Three domain leads** — `product-lead`, `eng-lead`, `validator-lead`. Each is granted the spawn
   tool. **The team's `lead:` field selects which one hosts that team's DAG** — there is no generic
-  lead parametrized per team. The host reads the `harness-team` skill, spawns its squad members, runs the DAG
+  lead parametrized per team. The host lead preloads the `harness-team` skill, spawns its squad members, runs the DAG
   (gating and loop-backs within the team), and returns a **consolidated DIGEST** up.
 - **Members** (doer and reviewer personas): spawned by the host lead. **Always leaves.**
 
@@ -1381,10 +1381,13 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
   `plan-feature` (hosted by `product-lead`) has `eng-lead` as an architecture-review step. **In that
   role a lead never routes or spawns** — it behaves as an ordinary leaf reviewer. This keeps exactly
   one spawning tier inside a team run: only the *host* lead spawns.
-- **All three leads exist as spawnable personas in BOTH hosting modes.** The hosting mode decides only
-  *who hosts the DAG*, never whether leads exist. In flat mode the orchestrator hosts, and
-  `eng-lead` (architecture review) and `validator-lead` (panel assessment) are still spawned as leaf
-  steps.
+- **All three leads exist as spawnable personas, spawned by the orchestrator as squad segments.**
+  Within a team a lead **hosts** — it is never also dispatched as a step of the DAG it runs. That is
+  explicit for the panel: *"THE FAN-IN IS NOT A STEP. `validator-lead` hosts this DAG and does the
+  assessment itself in its consolidated DIGEST"* (`teams/review.yaml:3-6`) — a synthesis step would
+  be the lead paying a spawn to do its own job. `eng-lead`'s architecture review works the same way.
+  The flat variant — the orchestrator hosting a DAG itself — is dead (DEC-100, DEC-102), and since
+  issue #83 the orchestrator does not even preload `harness-team`.
 - **Keep user-approval steps at team boundaries, not mid-DAG inside a lead.** A subagent cannot call
   `AskUserQuestion`, so a lead can never pause to ask you. Questions ride up via `open_questions`
   to the orchestrator, which surfaces them to the **main session** — the only tier that can ask.
@@ -1395,8 +1398,10 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
   nested and background spawns both counting.
 
 **Where the team-runner logic lives.** The algorithm is single-sourced in the `harness-team` skill
-(`.claude/skills/harness-team/SKILL.md`) and hosted by whoever conducts the team: the team's named
-lead (hierarchical), or the orchestrator agent itself (flat). Same algorithm; only the host differs.
+(`.claude/skills/harness-team/SKILL.md`) and hosted by **the team's named lead**. The flat variant —
+the orchestrator hosting a DAG itself — is dead (§below, DEC-100/DEC-102), and since issue #83 the
+orchestrator **no longer preloads this skill**; it reads it by path in the rare case it needs the
+algorithm.
 In hierarchical mode the orchestrator's context stays
 tiny — member spawns and DIGESTs live in the lead's context, and the orchestrator sees one
 consolidated DIGEST per team.
@@ -1906,7 +1911,7 @@ The runner is a **skill** at `.claude/skills/harness-team/SKILL.md` with the alg
 project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable
 (DEC-100). Team *data* still lives under `.claude/skills/harness/teams/*.yaml` — that is a data
 directory, not a skill, and is found by path rather than by discovery. Its host is the team's named `lead:`
-subagent (hierarchical) or the orchestrator agent (flat); the algorithm is identical either way.
+subagent — the flat variant (the orchestrator hosting) is dead, DEC-100/DEC-102.
 
 1. Resolve team YAML.
 2. Create the run workspace `.harness/features/<feat>/runs/<date>-<seq>-<squad>/` + `state.yaml`
@@ -1982,7 +1987,7 @@ and would let a plan lock while its own user experience was still unsettled.
 
 **`validator-lead` assessment is the synthesis step.** Panels need no `harness-synthesizer` and no
 generic lead to consolidate — running the panel and assessing its feedback is the validator lead's
-defining job. This holds in flat mode too, so synthesis has a named owner by construction.
+defining job, so synthesis has a named owner by construction.
 
 **Lead-to-lead escalation.** A lead that hits a question outside its domain returns it via
 `open_questions`; the orchestrator routes it **laterally to the right lead** rather than to you:
