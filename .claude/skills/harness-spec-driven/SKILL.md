@@ -23,6 +23,29 @@ A task missing any of them is **not written**. Identify the gap and return it ra
 Plus **`change_type:`** on every task. The qa gate reads it to determine required tests, and a task
 without one **blocks that gate** — `check-state.sh` fails the state check on it.
 
+## Routing is resolved at plan time
+
+Every task carries `execution_mode:`, in one of exactly two forms:
+
+```
+execution_mode: team — <agent> (team-config.yaml:NN)
+execution_mode: main-session-direct — reason: <why>
+```
+
+And every PLAN opens with a `## Lanes` table, resolved against
+`.harness/team-config.yaml` at a named SHA.
+
+**Before handing a plan back, run
+`python3 .claude/skills/harness/bin/check-plan-routes.py <plan path>` and fix every
+violation. A non-zero exit is not a plan that is ready for signature.**
+
+What it prevents: a task dispatched to an agent whose domain denies the write,
+discovered mid-build with the build spine already open — three features running.
+
+**An ungranted surface is legitimate.** It becomes a declared main-session step with
+its ordering constraint written down — not a task that silently fails when someone
+tries to dispatch it.
+
 ## Reject placeholders
 
 `TBD`, `TODO`, vague verbs without targets, "similar to above", "follow the existing pattern",
@@ -103,6 +126,7 @@ pending. A stale signature must never carry onto a changed plan.
 | Thought | Reality |
 |---|---|
 | "I'll specify this task loosely, the dev will figure it out" | Then you moved planning into execution, unreviewed |
+| "I'll sort out who executes this at build time" | Then the build discovers it, three features running. The checker answers it now |
 | "The user described it to me, so it's approved" | Describing is not approving. You cannot approve either |
 | "Postgres is a requirement, they said so" | It is a decision. Apply the swap test |
 | "I'll skip change_type on the trivial ones" | The qa gate blocks. `check-state.sh` will catch it |

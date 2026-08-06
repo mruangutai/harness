@@ -4921,3 +4921,47 @@ Probed first: a payload omitting the key while the schema still required it is r
 hazard is one-directional, so the schema drops the key first and in-flight returns that still emit one
 keep validating — including this feature's own build, which was running under the live hook while the
 change landed.
+
+---
+
+## DEC-179 — Task routing is resolved at PLAN TIME: an ungranted surface becomes a DECLARED main-session step, never a discovered one
+
+A PLAN task naming a path no agent is granted to write used to be found at dispatch time, mid-run, by
+`bash-write-guard.sh` or `check-domain.sh` rejecting the write — after the plan had been signed and the
+run was underway. `.claude/skills/harness/bin/check-plan-routes.py` moves that discovery to the plan
+phase: it reads each task's `files:` and `execution_mode:` and asks `check-domain.sh --resolve <path>`
+who may write each one. The ungranted surface is still allowed; what changes is that it is now
+**declared in the plan** as a main-session step, priced and visible before approval, instead of
+surfacing as a rejected write halfway through a build.
+
+**The checker MUST NOT reimplement path matching, and the test enforces it behaviourally, not by
+inspection.** No `fnmatch`, no glob-to-regex translator, no prefix comparison on the text before `/**`
+— every resolution is a subprocess call with stdin closed (`check-plan-routes.py:52-57`). A second
+matcher that drifts from the guard is the failure mode, and it does not drift visibly: a bare prefix
+comparison answers *False* for a pattern with an earlier wildcard segment, such as
+`.harness/features/*/runs/*-eng/**` — the exact bug recorded in the `glob_to_re()` docstring of
+`check-domain.sh` (`:61-69`), where it blocked every lead from its own run dir. The
+17th case of `test-check-plan-routes.py` runs a path granted *only* through that mid-pattern grant and
+requires an `OK` line; the source-string cases (9, 16) alone would pass against a hand-rolled matcher
+that named its helper something else.
+
+**Two tokens are legal — `team` and `main-session-direct` — but only one of them is compared.** The
+declaration lives in `.claude/skills/harness/templates/PLAN.md`; the code branches solely on
+`mode_token == "main-session-direct"`. So: an ungranted path plus `main-session-direct` prints `OK` as
+a declared carve-out; an ungranted path with any other token, a missing token or an unrecognised one is
+a `VIOLATION` and the run exits 1. When every literal path resolves to a granting agent, an
+unrecognised token is *not* flagged — `team` is validated nowhere. The entry says so rather than
+implying an enforcement that does not exist.
+
+**The inverse case is surfaced, never silenced, and never fatal.** A task whose literal paths all
+resolve to a granting agent but which declares `main-session-direct` prints a `DEVIATION` line and
+leaves the exit status alone (`check-plan-routes.py:120-128`). That is the DEC-174 shape — the harness
+plans its own work but does not execute changes to its own enforcement layer — and it is deliberately
+legal. Making it a violation would forbid the carve-out; making it silent would let a hand-executed
+task read as an ordinary team task in the one artifact a reviewer scans.
+
+**Scope, stated so it is not over-read.** This is a plan-phase CLI, not a `PreToolUse` hook and not a
+gate: `.claude/skills/harness-spec-driven/SKILL.md:39` tells the plan author to run it and fix every
+violation, and nothing executes it automatically. Only *literal* `files:` entries are resolved; an
+entry containing `*` or `?` prints `UNRESOLVED-GLOB` and contributes nothing to the violation count, so
+a task whose paths are all globs is reported and passed over rather than guessed at.

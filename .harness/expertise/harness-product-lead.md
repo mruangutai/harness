@@ -22,6 +22,12 @@
 - P-07: WHEN a member reaches your own verdict by a different route DO adopt the more durable route
   as the record and say the two differed — agreement on the verdict hides that one footing is
   disputable and the other is structural.
+- P-08: WHEN a dispatch hands you an exclusion list or a disjoint-file-set claim DO re-derive it
+  from the other artifact it describes, not from the list itself — it is a claim about a document
+  only this tier opens, and a member honouring it exactly still collides.
+- P-09: WHEN a member reports N clauses balanced against N fixtures DO recount the clauses against
+  the task's own intent prose, not against the fixture map — a count taken from the criterion's own
+  wording is self-consistent and still short of what the task forbids.
 
 ## Gotchas (max 15)
 - G-01: WHEN a test name or label is offered as evidence DO read the invocation it wraps — labels
@@ -30,6 +36,9 @@
 - G-02: WHEN two agents contradict each other about repo state and settling it needs a clock or git
   history DO name both possibilities and route it to the tier holding the commit pen — without a
   shell this tier cannot tell stale from wrong.
+- G-03: WHEN writing your run state.yaml DO put every value inside a step entry and add nothing new
+  at top level — the guard rejects any unrecognised top-level key, including a bare counter, not
+  merely the prose the rule text names.
 
 ## Outcomes (max 10)
 - O-01: WHEN a cosmetic defect sits in a file a human is already about to open DO fold it into that

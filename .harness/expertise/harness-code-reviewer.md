@@ -9,9 +9,12 @@
 - P-06: WHEN a diff's deliverable is removal DO treat repo-wide sweep/grep evidence as the removal proof, not the test suite — a green suite only shows nothing broke, not that the target is gone.
 - P-07: WHEN landed code deviates from signed amendment or plan text DO report the deviation regardless of whether it happens to be beneficial — ruling on the merits is a separate judgment from the duty to flag drift from what was signed.
 - P-08: WHEN a reproduced count or figure disagrees with a plan's stated number DO check the feature's own disclosed caveats before reporting it as a novel finding — a discrepancy already disclosed is confirmation, not news.
+- P-09: WHEN a success criterion states a precondition in argv/flag terms DO verify the code's mode-selection actually branches on that condition, not just that behavior matches under one representative environment — a criterion can pass every test yet be false as written if the mechanism reads a different signal.
+- P-10: WHEN reviewing a guard that gates on tool_name, argv or an env var DO enumerate every OTHER route (different tool, inherited variable, alternate invocation) that reaches the same protected action, and check each is separately gated — correct logic on the tested route does not prove reachability-completeness.
 
 ## Gotchas (max 15)
 - G-01: WHEN a file you need to cite shows dirty in git status DO read it at the pinned SHA via `git show <sha>:<path>` and state which you read — a diff reviewed against pinned bytes can differ from the same path's working-tree state.
+- G-02: WHEN a test asserts only a return/exit code DO check whether other code paths in the same function can produce that same code — a regression or reimplementation that satisfies the code via an unintended site still passes; assert a distinguishing message or output too.
 
 ## Outcomes (max 10)
 

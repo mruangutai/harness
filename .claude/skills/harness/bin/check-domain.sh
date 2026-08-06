@@ -23,7 +23,41 @@
 #     fan-out safe. Do not treat a passing hook as proof of parallel safety.
 set -uo pipefail
 
-payload=$(cat)
+# `--resolve <path>` — plan-time route resolution (DEC-179). It answers "which agent
+# may write this path, or nobody" and is NOT the hook path.
+#
+# THE STDIN RULE IS THE WHOLE POINT OF THIS BRANCH, and both failure modes were
+# measured on the pre-change tree: with stdin an open pipe `payload=$(cat)` blocks
+# forever (a plan-time check that looks slow, not broken); with stdin closed it
+# reaches the Python body with an empty payload, resolves no agent, and exits 0
+# printing NOTHING — a fail-open answer indistinguishable from a clean resolve.
+# So this branch must never read stdin: not with a timeout, not non-blockingly,
+# not at all.
+#
+# THE UNSET IN THE ELSE BRANCH IS LOAD-BEARING (VF-1). Mode is selected further down by
+# `os.environ.get("HARNESS_RESOLVE_PATH") is not None`, so the variable INHERITED FROM THE
+# ENVIRONMENT chose the mode, not argv. Measured before the fix, with payload files:
+# harness-documentor writing bin/ exited 2 on a clean env, and 0 with the variable set —
+# including set to the EMPTY STRING, because `is not None` accepts it. That is the whole
+# guard off: exit 0, no stderr, nothing logged, and an audit afterwards cannot tell
+# "permitted" from "disabled". Unset here so the hook path can never be talked out of
+# enforcing by its own caller's environment.
+#
+# On why this is an unset rather than an argv check: the hook is registered in
+# settings.json with NO arguments, so argv carries nothing to branch on in a real hook
+# invocation. Mode selection is env-driven by design (the bash half exports, the Python
+# half reads), and unsetting at the one place the two halves meet is the whole fix.
+# An earlier draft of this comment claimed argv-branching would collide with `sys.argv[2]`
+# as the agent identity; that is NOT true at the hook path — argv[2] is empty there. The
+# claim was corrected rather than left standing, because a wrong reason in a comment is
+# what the next person edits against.
+if [ "${1:-}" = "--resolve" ]; then
+  payload=""
+  export HARNESS_RESOLVE_PATH="${2:-}"
+else
+  unset HARNESS_RESOLVE_PATH
+  payload=$(cat)
+fi
 
 # Locate the project root WITHOUT depending on cwd. A hook's working directory is
 # not guaranteed, and deriving root from pwd made this script fail OPEN whenever it
@@ -42,6 +76,45 @@ _derived="$(cd "$_selfdir/../../../.." && pwd)"
 HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
   python3 - "$_derived" "${1:-}" <<'PY'
 import sys, os, re, json
+
+def glob_to_re(pat):
+    """Translate a glob to a regex. `**` crosses separators, `*` does not.
+
+    fnmatch cannot do this: its `*` matches `/` too, so `web/*/x` would match
+    `web/a/b/x`. And a literal prefix comparison cannot do it either — the bug
+    this replaced used str.startswith on the text before `/**`, which silently
+    failed for any pattern with a wildcard earlier in the path, e.g.
+    `features/*/runs/*-eng/**`. That blocked every lead from its own run dir.
+    """
+    out, i = [], 0
+    while i < len(pat):
+        c = pat[i]
+        if pat.startswith("**", i):
+            out.append(".*"); i += 2
+            if pat.startswith("/", i):      # `**/` also matches zero segments
+                out.append("/?"); i += 1
+        elif c == "*":
+            out.append("[^/]*"); i += 1
+        elif c == "?":
+            out.append("[^/]"); i += 1
+        else:
+            out.append(re.escape(c)); i += 1
+    return re.compile("^" + "".join(out) + "$")
+
+
+def matches(path, pat):
+    pat = pat.rstrip("/")
+    if pat in (".", ""):            # "." means read-anything; never a write grant
+        return False
+    if pat.endswith("/**"):
+        # the directory itself, or anything beneath it
+        base = pat[:-3]
+        return bool(glob_to_re(base).match(path) or glob_to_re(base + "/**").match(path))
+    if glob_to_re(pat).match(path):
+        return True
+    # a bare dir pattern grants everything under it
+    return bool(glob_to_re(pat + "/**").match(path))
+
 
 # harness_yaml is imported LAZILY, below, after the manifest check — NOT here.
 # Ordering is behaviour: the four-launch version reached the DEC-101 "no manifest,
@@ -67,6 +140,86 @@ except Exception:
 # every agent.
 agent = (d.get("agent_type") or "") or argv_agent
 
+# --- `--resolve <path>` (DEC-179): plan-time route resolution. Answers WHICH AGENT
+# may write a path, so a PLAN task can declare its lane instead of a build phase
+# discovering it. Exits BEFORE any payload handling — there is no payload here.
+#
+# Failure semantics differ from the hook deliberately. The hook fails OPEN on a
+# missing manifest (blocking every write in an un-onboarded project is worse than
+# not enforcing). A resolver cannot: an unanswerable route silently reported as
+# "NOBODY" would put a task in the main-session lane on the strength of a broken
+# config. So this path exits 2 and says why.
+_resolve_target = os.environ.get("HARNESS_RESOLVE_PATH")
+if _resolve_target is not None:
+    # Root is derived here rather than reusing the block below, because that block
+    # sits AFTER the agent-identity early exits and this path has no agent identity
+    # to satisfy — reaching it would mean exiting 0 in silence, which is the exact
+    # fail-open this mode exists to remove. Same derivation, same precedence.
+    root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+    if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
+        root = _derived if os.access(os.path.join(_derived, ".harness", "team-config.yaml"), os.R_OK) else (root or os.getcwd())
+    manifest = os.path.join(root, ".harness", "team-config.yaml")
+    if not os.access(manifest, os.R_OK):
+        print(f"check-domain: no {manifest} — cannot resolve routes.", file=sys.stderr)
+        sys.exit(2)
+    import harness_yaml
+    try:
+        parsed = harness_yaml.load_file(manifest)
+    except harness_yaml.DuplicateKeyError as e:
+        print(f"check-domain: BLOCKED — the manifest has a duplicate key {e.key!r}.",
+              file=sys.stderr)
+        print(f"  {manifest}", file=sys.stderr)
+        sys.exit(2)
+    except Exception as e:
+        print("check-domain: BLOCKED — the manifest does not parse, so no domain can be "
+              f"resolved: {e}", file=sys.stderr)
+        sys.exit(2)
+
+    # Normalise exactly as the hook does, including the worktree strip — a path given
+    # from inside .claude/worktrees/<id>/ must resolve against the checkout the agent
+    # is standing in, not against a glob nobody wrote.
+    _abs = _resolve_target if os.path.isabs(_resolve_target) else os.path.join(root, _resolve_target)
+    _rel = os.path.relpath(os.path.normpath(_abs), root)
+    _wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", _rel)
+    _cands = [_rel] + ([_wt.group(1)] if _wt else [])
+
+    # Every agent carrying a `domain:` list, at EVERY nesting level — members sit
+    # under teams[].members[], leads under `leads:`, and harness-orchestrator is a
+    # bare top-level key. manifest_domains() already walks all three; this only needs
+    # the roster of names to ask it about.
+    _names = []
+    def _roster(node):
+        if isinstance(node, dict):
+            if isinstance(node.get("domain"), list) and node.get("name"):
+                _names.append(str(node["name"]))
+            for v in node.values():
+                _roster(v)
+        elif isinstance(node, list):
+            for i in node:
+                _roster(i)
+    _roster(parsed)
+
+    _granting = set()
+    _shared_hits = []
+    for _n in _names:
+        _globs, _shared = harness_yaml.manifest_domains(manifest, _n)
+        if any(matches(c, g) for c in _cands for g in _globs):
+            _granting.add(_n)
+        for g in _shared:
+            if any(matches(c, g) for c in _cands) and g not in _shared_hits:
+                _shared_hits.append(g)
+
+    # NOBODY is a LITERAL EMITTED TOKEN, never silence. Empty stdout is the fail-open
+    # this branch exists to make impossible: a caller cannot tell "no agent grants
+    # this" from "the resolver did not run".
+    for _n in sorted(_granting):
+        print(_n)
+    if not _granting:
+        print("NOBODY")
+    for g in _shared_hits:
+        print(f"SHARED {g}")
+    sys.exit(0)
+
 # NO agent identity = the MAIN SESSION, not a subagent. Since DEC-120 the orchestrator
 # is a spawned agent and IS governed like any other; this carve-out now protects only
 # the main session, which writes little: `## Approval` blocks and the cross-flow log.
@@ -85,6 +238,7 @@ if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"),
     else:
         root = root or os.getcwd()
 manifest = os.path.join(root, ".harness", "team-config.yaml")
+
 
 ti = d.get("tool_input", {}) or {}
 # Write/Edit use file_path; NotebookEdit uses notebook_path.
@@ -187,44 +341,8 @@ def domain_check():
     _wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
     rel_candidates = [rel] + ([_wt.group(1)] if _wt else [])
 
-    def glob_to_re(pat):
-        """Translate a glob to a regex. `**` crosses separators, `*` does not.
-
-        fnmatch cannot do this: its `*` matches `/` too, so `web/*/x` would match
-        `web/a/b/x`. And a literal prefix comparison cannot do it either — the bug
-        this replaced used str.startswith on the text before `/**`, which silently
-        failed for any pattern with a wildcard earlier in the path, e.g.
-        `features/*/runs/*-eng/**`. That blocked every lead from its own run dir.
-        """
-        out, i = [], 0
-        while i < len(pat):
-            c = pat[i]
-            if pat.startswith("**", i):
-                out.append(".*"); i += 2
-                if pat.startswith("/", i):      # `**/` also matches zero segments
-                    out.append("/?"); i += 1
-            elif c == "*":
-                out.append("[^/]*"); i += 1
-            elif c == "?":
-                out.append("[^/]"); i += 1
-            else:
-                out.append(re.escape(c)); i += 1
-        return re.compile("^" + "".join(out) + "$")
-
-
-    def matches(path, pat):
-        pat = pat.rstrip("/")
-        if pat in (".", ""):            # "." means read-anything; never a write grant
-            return False
-        if pat.endswith("/**"):
-            # the directory itself, or anything beneath it
-            base = pat[:-3]
-            return bool(glob_to_re(base).match(path) or glob_to_re(base + "/**").match(path))
-        if glob_to_re(pat).match(path):
-            return True
-        # a bare dir pattern grants everything under it
-        return bool(glob_to_re(pat + "/**").match(path))
-
+    # glob_to_re/matches are defined at module scope (above `def domain_check`) so the
+    # --resolve path reaches the SAME matcher. Not modified — only moved (D-02).
     if any(matches(r, g) for r in rel_candidates for g in globs):
         return
 

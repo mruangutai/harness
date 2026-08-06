@@ -392,6 +392,114 @@ def run_t12():
     return fails
 
 
+# --- FEAT-09 / DEC-179: `--resolve <path>`. Eight cases, one per clause of T-01's
+# intent. The two stdin cases are the reason this mode exists at all: both were
+# MEASURED on the pre-change tree — an open pipe blocked indefinitely, and closed
+# stdin exited 0 printing nothing, which is a fail-open answer indistinguishable
+# from a clean resolve.
+def run_resolve():
+    fails = 0
+
+    def resolve(path, stdin_mode="closed", timeout=10):
+        kw = {"stdin": subprocess.DEVNULL} if stdin_mode == "closed" else {"stdin": os.pipe()[0]}
+        r = subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
+                           timeout=timeout, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT), **kw)
+        return r
+
+    def check(name, ok, detail=""):
+        nonlocal fails
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
+
+    # (a) a singly-granted path resolves to exactly one name
+    r = resolve(".harness/harness.json")
+    check("(a) --resolve: a singly-granted path returns exactly one agent",
+          r.stdout.split() == ["harness-dev-ops"], f"got {r.stdout.split()!r}")
+
+    # (b) a doubly-granted path returns BOTH, sorted
+    r = resolve(".claude/skills/harness/bin/run-unit-tests.sh")
+    check("(b) --resolve: a doubly-granted path returns both grantees",
+          sorted(r.stdout.split()) == ["harness-backend-dev", "harness-dev-ops"],
+          f"got {r.stdout.split()!r}")
+
+    # (c) NOBODY is a LITERAL EMITTED TOKEN, not silence
+    r_nobody = resolve(".claude/skills/harness-spec-driven/SKILL.md")
+    check("(c) --resolve: an ungranted path prints the literal NOBODY",
+          r_nobody.stdout.split() == ["NOBODY"], f"got {r_nobody.stdout!r}")
+
+    # (d) ...and that same call exits 0 with NON-EMPTY stdout. Separate from (c) on
+    # purpose: an exit-0-with-empty-stdout resolver passes any check that only reads
+    # the exit code, and that is precisely the fail-open shape.
+    check("(d) --resolve: the ungranted call exits 0 and stdout is not empty",
+          r_nobody.returncode == 0 and r_nobody.stdout.strip() != "",
+          f"exit={r_nobody.returncode} stdout={r_nobody.stdout!r}")
+
+    # (e) an OPEN PIPE nobody writes to must not hang. Pre-change this blocked forever.
+    try:
+        r_pipe = resolve(".harness/harness.json", stdin_mode="pipe", timeout=10)
+        ok_e = r_pipe.stdout.split() == ["harness-dev-ops"]
+        detail_e = f"got {r_pipe.stdout.split()!r}"
+    except subprocess.TimeoutExpired:
+        r_pipe, ok_e, detail_e = None, False, "TIMED OUT — the branch read stdin"
+    check("(e) --resolve: an open pipe on stdin still answers within 10s", ok_e, detail_e)
+
+    # (f) closed stdin gives the BYTE-IDENTICAL answer. The two stdin shapes failed
+    # differently before (hang vs silent exit 0), so equality across them is the
+    # assertion that matters, not either one alone.
+    r_closed = resolve(".harness/harness.json", stdin_mode="closed")
+    check("(f) --resolve: closed stdin is byte-identical to an open pipe",
+          r_pipe is not None and r_closed.stdout == r_pipe.stdout,
+          f"closed={r_closed.stdout!r} pipe={(r_pipe.stdout if r_pipe else None)!r}")
+
+    # (g)+(h) THE HOOK PATH IS UNCHANGED. Without these two the whole mode could have
+    # been added by breaking enforcement and nothing here would notice.
+    def hook(path, agent):
+        payload = {"agent_type": agent, "tool_name": "Write",
+                   "tool_input": {"file_path": path, "content": "x"}}
+        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                              text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT))
+    r = hook(".claude/skills/harness/bin/check-domain.sh", "harness-documentor")
+    check("(g) no --resolve: an out-of-domain Write still exits 2",
+          r.returncode == 2, f"got {r.returncode}")
+    r = hook("docs/harness/SPEC.md", "harness-documentor")
+    check("(h) no --resolve: an in-domain Write still exits 0",
+          r.returncode == 0, f"got {r.returncode}")
+
+    # (i)+(j) VF-1 REGRESSION. (g) and (h) above assert the right thing and CANNOT SEE this:
+    # they inherit the runner's environment, which happens to be clean. Mode was selected by
+    # os.environ, not argv, so a HARNESS_RESOLVE_PATH inherited from the caller turned the
+    # whole guard off — exit 0, no stderr, nothing logged. These two set it EXPLICITLY in the
+    # subprocess env, which is the only way to reach the branch that was broken.
+    # (j) uses the EMPTY STRING on purpose: the selector is `is not None`, so "" qualified.
+    def hook_env(path, agent, resolve_value):
+        payload = {"agent_type": agent, "tool_name": "Write",
+                   "tool_input": {"file_path": path, "content": "x"}}
+        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                              text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT,
+                                                  HARNESS_RESOLVE_PATH=resolve_value))
+    # EXIT 2 ALONE IS NOT ENOUGH, and the delta review caught this. There are five distinct
+    # exit-2 sites in this script and FOUR of them are inside the resolve branch (missing
+    # manifest, duplicate key, parse error, unreadable root). A reimplementation that still
+    # leaked the env var but happened to exit 2 from one of those would pass a returncode-only
+    # assertion while VF-1 was wide open. Assert the DENIAL TEXT, which only the hook path
+    # emits — the same convention cases (c)/(d) already use.
+    def denied(r):
+        return r.returncode == 2 and "may not write" in (r.stderr or "")
+    r = hook_env(".claude/skills/harness/bin/check-domain.sh", "harness-documentor",
+                 ".harness/harness.json")
+    check("(i) VF-1: HARNESS_RESOLVE_PATH set in the env does NOT disable the hook",
+          denied(r), f"got {r.returncode}, stderr={r.stderr!r}")
+    r = hook_env(".claude/skills/harness/bin/check-domain.sh", "harness-documentor", "")
+    check("(j) VF-1: an EMPTY HARNESS_RESOLVE_PATH does NOT disable the hook",
+          denied(r), f"got {r.returncode}, stderr={r.stderr!r}")
+
+    print(f"\n{10 - fails}/10 --resolve cases passed.\n")
+    return fails
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -410,6 +518,7 @@ def main():
             print(f"ok    {name}")
     print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
     fails += run_t12()
+    fails += run_resolve()
     return fails
 
 
