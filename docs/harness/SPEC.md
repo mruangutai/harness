@@ -1908,7 +1908,7 @@ The runner is a **skill** at `.claude/skills/harness-team/SKILL.md` with the alg
 project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable
 (DEC-100). Team *data* still lives under `.claude/skills/harness/teams/*.yaml` — that is a data
 directory, not a skill, and is found by path rather than by discovery. Its host is the team's named `lead:`
-subagent (hierarchical) or the orchestrator agent (flat); the algorithm is identical either way.
+subagent — the flat variant (the orchestrator hosting) is dead, DEC-100/DEC-102.
 
 1. Resolve team YAML.
 2. Create the run workspace `.harness/features/<feat>/runs/<date>-<seq>-<squad>/` + `state.yaml`
@@ -1984,7 +1984,7 @@ and would let a plan lock while its own user experience was still unsettled.
 
 **`validator-lead` assessment is the synthesis step.** Panels need no `harness-synthesizer` and no
 generic lead to consolidate — running the panel and assessing its feedback is the validator lead's
-defining job. This holds in flat mode too, so synthesis has a named owner by construction.
+defining job, so synthesis has a named owner by construction.
 
 **Lead-to-lead escalation.** A lead that hits a question outside its domain returns it via
 `open_questions`; the orchestrator routes it **laterally to the right lead** rather than to you:
