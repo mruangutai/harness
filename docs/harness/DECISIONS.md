@@ -5035,35 +5035,37 @@ violation, and nothing executes it automatically. Only *literal* `files:` entrie
 entry containing `*` or `?` prints `UNRESOLVED-GLOB` and contributes nothing to the violation count, so
 a task whose paths are all globs is reported and passed over rather than guessed at.
 
-## DEC-180 — qa phase 1 runs concurrently with the build, and its expectations become an artifact
+## DEC-180 — qa's two phases are two dispatches, and phase 1's expectations are an artifact
 
 **Chose:** split qa's two phases into two dispatches. **Phase 1** — derive expected coverage from
-`BRIEF.md` and `PLAN.md` with no source access — is dispatched **in the same message as the build
-team**, and writes its list to `.harness/features/<FEAT>/notes/qa-expected-coverage.md`. **Phase 2**
-runs where qa runs today and receives that path as **fixed input**.
-**Over:** (a) leaving both phases in one post-build dispatch (the status quo); (b) running phase 1
-concurrently but keeping its output in the return only; (c) moving qa earlier wholesale, which
-phase 2 cannot do — it needs the diff.
-**Because:** phase 1's entire input set — an approved BRIEF and PLAN — is frozen before the first
-dev spawns (`SKILL.md`: mission ship requires both `approved`), so it sat on the critical path for
-no data-dependency reason.
+`BRIEF.md` and `PLAN.md` with no source access — writes its list to
+`.harness/features/<FEAT>/notes/qa-expected-coverage.md`. **Phase 2** receives that path as **fixed
+input** and returns `BLOCKED` if it is missing or empty. One dispatch carrying both is a defect.
+**Over:** (a) leaving both phases in one dispatch (the status quo); (b) issue #21's actual proposal,
+running phase 1 **concurrently with the build** — see below; (c) keeping phase 1's output in the
+return only, where nothing fixes it.
+**Because:** the anti-bias property exists because a suite written after reading the implementation
+tests what the code does rather than what was asked for — how two measured fail-open defects shipped
+green. One spawn doing both phases *in order* can quietly revise its phase-1 list once it has read
+the code: the same bias, invisible because it happens inside one context. On disk before any source
+is read, and consumed by path, the list is fixed, and a gap against it is a finding qa cannot close
+by editing its own expectations.
 
-**It hardens the anti-bias property rather than trading against it, and that is the real argument.**
-The property exists because a suite written after reading the implementation tests what the code
-does rather than what was asked for — how two measured fail-open defects shipped green. Today one
-spawn does both phases *in order*, so nothing prevents it quietly revising its phase-1 list once it
-has read the code: the exact bias, invisible because it happens inside one context. On disk before
-any source is read, and consumed by path, the list is fixed and a gap against it is a finding qa
-cannot close by editing its own expectations.
+**The concurrency was REJECTED, and that is the substance of this entry.** Issue #21 asks for phase
+1 to run alongside the build, rated **perf High**. That rating has **no measurement behind it** —
+the perf review's sibling rows cite dollars (row 1: $95; row 6: $49 apiece, $129.10), row 4 cites
+only design facts. What it buys is one spawn's wall-clock, unmeasured. What it costs is concrete:
+phase 1 is a `squad: validator` run, INV-6 fires the moment one exists without a pin, so dispatching
+it at build start forces a `review_sha` pin **before any dev commit exists** — and a panel later
+diffing that stale pin reviews a range containing none of the feature's code and returns clean at
+exit 0, the GAP-7/DEC-50 fail-open INV-6 exists to prevent. The re-pin that would fix it is
+prose-only; every feature that has re-pinned did so by hand (FEAT-03, FEAT-04, FEAT-08, FEAT-09).
+**The quality gain and the concurrency are separable, and only the concurrency carries the risk.**
 
-**No phase seam is crossed.** The qa segment is already build-phase work sequenced by the
-build-phase orchestrator, so DEC-159's predicate is untouched — build still exits when every
-planned T-NN has a PASS run. Issue #21 predicted a build/validate overlap needing a companion
-clause; that premise was wrong, and the change is correspondingly lower-risk than the issue rates it.
+**Tradeoff accepted:** one extra dispatch per feature, and a handoff by path where there was none.
+No wall-clock is saved and none is claimed.
 
-**Tradeoff accepted:** one extra spawn per feature, and a handoff by path where there was none. The
-issue rates the row **High** perf with quality cost **"Low, arguably a gain"**; on the reading above
-it is a gain outright, paid for with a spawn.
-
-<!-- stale: "sequenced strictly after the entire build segment" -->
-<!-- stale: "After the build team returns, sequence the qa segment.** It is a" -->
+**No `stale:` markers, deliberately.** This change ADDS an artifact contract and retires no wording:
+the qa segment still runs after the build, and the playbook and SPEC sentences describing that are
+unchanged. A marker here would guard a phrase that is still correct. Declaring one anyway is how a
+registry fills with patterns that can never legitimately fire.

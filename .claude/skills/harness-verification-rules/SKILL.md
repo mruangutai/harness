@@ -12,14 +12,16 @@ There is no separate verifier downstream of you. If you do not catch it, it ship
 
 ## Two phases, in order — the first is anti-bias
 
-**The two phases are usually TWO DISPATCHES, and your dispatch tells you which one you are in.**
-Phase 1 runs concurrently with the build (issue #21); phase 2 runs after it. If a single dispatch
-asks for both, do them in order in one pass — the rules below are identical either way.
+**The two phases are TWO DISPATCHES, and your dispatch tells you which one you are in.** Phase 1 derives, phase 2 verifies (issue #21). **One dispatch asking for both
+is a defect, not a shortcut** — report it and do phase 1 only. The separation IS the mechanism: in a
+single context nothing stops phase 1's list being revised once the code has been read, which is the
+bias this whole protocol exists to remove.
 
 **Phase 1 — derive expected coverage with NO source access.** Read `BRIEF.md` and `PLAN.md` only. From
 the requirements and success criteria alone, write down what tests *should* exist. **Write the list to
-`.harness/features/<FEAT>/notes/qa-expected-coverage.md` before you finish** — on disk, not only in
-your return.
+`.harness/features/<FEAT>/notes/qa-expected-coverage.md` BEFORE YOU READ ANY SOURCE** — not merely
+before you finish. On disk, not only in your return. Writing it afterwards satisfies the words and
+defeats the purpose.
 
 Do this first because once you have read the implementation you will unconsciously test what the code
 does rather than what was asked for — and a test suite that mirrors the implementation cannot detect that
@@ -32,6 +34,14 @@ Then write and run tests, enforce the matrix, and report gaps against that list.
 is a finding, not an oversight to quietly close — and **you do not edit the phase-1 list to close one**.
 If phase 1 got something genuinely wrong, say so in your return as a finding against phase 1; leave the
 artifact as written.
+
+**If the artifact is MISSING or EMPTY, return `BLOCKED` — do not proceed.** That is the one failure
+mode this contract must not paper over: carrying on without it silently restores the pre-#21
+behaviour, where expectations are derived after the code has been read, and the tree stays green
+while the anti-bias property is gone. Missing means the concurrent dispatch did not happen or did not
+write; either way the orchestrator must know. Do NOT reconstruct the list yourself from BRIEF and
+PLAN at this point — you have or are about to have source access, so a list you write now is exactly
+the biased artifact phase 1 exists to prevent.
 
 ## The matrix is a floor
 

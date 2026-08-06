@@ -29,13 +29,13 @@ the code is wrong or the test is wrong, and if it is the code, that is a dev's f
 
 ## Two phases, and the order is the anti-bias mechanism
 
-**Usually two dispatches — your prompt says which phase you are in.** Phase 1 runs concurrently with
-the build (issue #21); phase 2 runs after it. One dispatch asking for both is legal; the rules do not
-change.
+**TWO dispatches — your prompt says which phase you are in.** Phase 1 derives, phase 2 verifies (issue #21). **One dispatch asking for both is a defect** — report it
+and do phase 1 only. The separation is the mechanism, not packaging.
 
 **Phase 1 — no source access.** Read `BRIEF.md` and `PLAN.md` only. From the requirements and success
 criteria alone, write down the tests that *should* exist, and **write them to
-`.harness/features/<FEAT>/notes/qa-expected-coverage.md` before you finish.**
+`.harness/features/<FEAT>/notes/qa-expected-coverage.md` BEFORE YOU READ ANY SOURCE** — not merely
+before you finish.
 
 Do this first because once you have read the implementation you will test what the code does rather than
 what was asked for — and a suite that mirrors the implementation cannot detect that the implementation
@@ -46,6 +46,8 @@ would show it.
 **Phase 2 — read the code.** **Read the phase-1 artifact first; it is fixed input.** Write and run
 tests, enforce the matrix, and report the delta against that list. A gap is a **finding**, not something
 to quietly close — and never something to fix by editing the phase-1 list.
+**Missing or empty artifact → return `BLOCKED`.** Never rebuild it yourself here: with source access
+in hand, any list you write is the biased one phase 1 exists to prevent.
 
 ## The gate
 
