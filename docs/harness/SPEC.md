@@ -1381,10 +1381,13 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
   `plan-feature` (hosted by `product-lead`) has `eng-lead` as an architecture-review step. **In that
   role a lead never routes or spawns** — it behaves as an ordinary leaf reviewer. This keeps exactly
   one spawning tier inside a team run: only the *host* lead spawns.
-- **All three leads exist as spawnable personas.** A team's named lead hosts its DAG;
-  `eng-lead` (architecture review) and `validator-lead` (panel assessment) are also spawned as leaf
-  steps. The flat variant — the orchestrator hosting a DAG itself — is dead (DEC-100, DEC-102), and
-  since issue #83 the orchestrator does not even preload `harness-team`.
+- **All three leads exist as spawnable personas, spawned by the orchestrator as squad segments.**
+  Within a team a lead **hosts** — it is never also dispatched as a step of the DAG it runs. That is
+  explicit for the panel: *"THE FAN-IN IS NOT A STEP. `validator-lead` hosts this DAG and does the
+  assessment itself in its consolidated DIGEST"* (`teams/review.yaml:3-6`) — a synthesis step would
+  be the lead paying a spawn to do its own job. `eng-lead`'s architecture review works the same way.
+  The flat variant — the orchestrator hosting a DAG itself — is dead (DEC-100, DEC-102), and since
+  issue #83 the orchestrator does not even preload `harness-team`.
 - **Keep user-approval steps at team boundaries, not mid-DAG inside a lead.** A subagent cannot call
   `AskUserQuestion`, so a lead can never pause to ask you. Questions ride up via `open_questions`
   to the orchestrator, which surfaces them to the **main session** — the only tier that can ask.

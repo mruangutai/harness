@@ -81,7 +81,13 @@ targets = []
 for base, pats_ in ((D, ("*.md", "*.html")),
                     (".harness", ("*.md",)),
                     (".claude/skills", ("*.md",)),
-                    (".claude/commands", ("*.md",))):
+                    (".claude/commands", ("*.md",)),
+                    # Agent files were missing, and they are the same argument as skills: an
+                    # agent file is read at every spawn of that agent, so a stale claim in one
+                    # propagates FURTHER than one in SPEC.md. Found by the #138 review, where
+                    # this PR's own central rule ("you do not preload harness-team") landed in
+                    # a file the checker could not see.
+                    (".claude/agents", ("*.md",))):
     for pat in pats_:
         targets += glob.glob(os.path.join(base, "**", pat), recursive=True)
 # DECISIONS.md is the registry, not a target: it QUOTES stale wording by design, in

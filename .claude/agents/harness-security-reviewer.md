@@ -91,7 +91,7 @@ DIGEST:
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
-  expertise_update: [<ops>]       # [] if you learned nothing durable — the usual case
+  expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
 artifact: .harness/notes/review-harness-security-reviewer-<runid>.md
 ```
 ````
