@@ -190,11 +190,16 @@ In mission ship, after the SCs pass and before the briefing:
 
 In mission ship, after the SCs pass and before the briefing (alongside ship-refresh):
 
-1. Dispatch **each lead that ran this feature** once: "distill — read your members' observation
-   logs under `.harness/features/<FEAT>/observations/`, **and skim the feature's run digests for
+1. Dispatch **each lead that ran this feature** once: "distill — **read
+   `.claude/skills/harness-distill/SKILL.md` first (NOT preloaded, DEC-158) and tell each member to
+   read it too**, read your members' observation logs under
+   `.harness/features/<FEAT>/observations/`, **and skim the feature's run digests for
    lessons the member never logged**, then have each member distill what passes the six-spawns
-   test into its Expertise file per `harness-expertise`, run
+   test into its Expertise file, run
    `bin/check-expertise.sh .harness/expertise/`, report per-section counts before and after."
+   **The read instruction is not optional boilerplate** — the format, caps and ops schema are no
+   longer in anyone's context, and writing the file from new entries alone deletes every earlier
+   one (DEC-125). `check-expertise.sh` catches the format violations; it cannot catch a wipe.
    Members who hold `Write` apply their own ops under the lead's dispatch; for the write-less
    reviewers the lead returns the ops and **you** apply them verbatim.
 2. **The digest-skim is recall, not judgment** (dry-run-proven, DEC-145 am.2). The lead relays at

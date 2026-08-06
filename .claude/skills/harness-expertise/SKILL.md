@@ -1,6 +1,6 @@
 ---
 name: harness-expertise
-description: The two-layer memory — append granular observations to the per-feature log mid-run, and write the injected Expertise file only under a distillation dispatch, in rule form, mechanically capped. Loaded by all 16 agents at every spawn.
+description: The two-layer memory — append granular observations to the per-feature log mid-run, and never touch the injected Expertise file outside a distillation dispatch. Loaded by all 16 agents at every spawn; the rules for actually WRITING Expertise live in `harness-distill`, which is not preloaded.
 user-invocable: false
 ---
 
@@ -48,78 +48,23 @@ its own record.
 Cross this boundary and the log becomes a shadow decision log that bypasses your CEO's approval.
 When unsure: if a human would want to *sign off* on it, it is a decision.
 
-## Distillation: the only time Expertise is written
+## Distillation — not here, and not now
 
-You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch explicitly says
-"distill"** — at feature close, under a curation note, or via `/harness-curate`. Then:
+Writing your Expertise file happens **only under a dispatch that says "distill"**, once per feature.
+Those rules — the procedure, the entry format, the ops schema, the caps — are **not preloaded**
+(DEC-158): they governed ~33 spawns per feature that never write the file.
 
-1. Read your observations log(s) and your current Expertise (already in context).
-2. Extract what passes the test: *six spawns from now, would knowing this change what I do?*
-   Most observations fail it — that is normal. Lead-relayed candidates: you are the sole judge;
-   rejecting with a reason is a valid outcome. At a full section a new entry enters only by
-   **displacing** one you judge weaker — never by merging into a survivor; nothing weaker, it dies.
-3. Write the file — create it if absent, read-modify-write if not. **Never write it from your new
-   entries alone; that silently deletes every earlier one** (DEC-125). Report the ops in your
-   DIGEST's `expertise_update` as the receipt.
-4. Run `.claude/skills/harness/bin/check-expertise.sh <file>` and fix every violation before
-   returning. Report per-section entry counts before and after.
-
-## The entry format — rules, not stories
-
-Every entry is **WHEN <situation> DO <action>**, at most **50 words**, and names **no feature or
-task IDs** — no `FEAT-NN`, `T-NN`, issue `#NN`. Durable repo facts ("`tests/` is not type-checked
-here") qualify without the WHEN/DO shape, but the caps still hold.
-
-A **recipe** (setup steps, config values, field names) rots with the code — it qualifies only as a
-pointer to a living in-repo exemplar, never as inlined values recalled from an old run.
-
-An entry citing more than one incident is a distillation smell: keep the rule, drop the cases.
-A `merge` result is **no longer than the longer input**; instance lists are banned.
-
-```markdown
-# Expertise — <your-agent-name>
-
-## Patterns (max 15)
-- P-01: WHEN a brief hands down facts or anchors DO grep the discriminating anchor yourself
-  before dispatch — brief framing and counts are the least trustworthy input you receive.
-
-## Gotchas (max 15)
-
-## Outcomes (max 10)
-
-## Open (max 5)
-```
-
-These four section names are the only legal ones, the file budget is **150 lines**, and
-`check-expertise.sh` enforces all of it. The spawn hook hard-truncates at 150 lines, so an
-over-budget file silently loses its tail — the budget is physics, not advice.
-
-Updates are **ops**, each naming its target:
-
-```yaml
-expertise_update:
-  - op: replace              # add | replace | merge | drop
-    target: P-01             # the exact existing entry ID; omit only for `add`
-    section: Patterns
-    entry: "WHEN running migrations DO run the seed script first — they fail on a clean DB."
-    why: "three observations this feature, same root cause"
-```
-
-An op naming a nonexistent target is a contract violation — it is rejected, not guessed at.
-
-At a section cap during distillation, condense until you are under it — distillation IS the
-curation step, so the old flag-and-stop rule does not apply to you here. If you genuinely cannot
-condense below a cap without losing durable rules, set `expertise_full: true` in your DIGEST and
-let the tier above decide.
+**When your dispatch says "distill", read
+`.claude/skills/harness-distill/SKILL.md` first.** Until then the only thing you need to know is
+that you do not touch `.harness/expertise/<your-agent-name>.md`.
 
 ## Red flags
 
 | Thought | Reality |
 |---|---|
 | "This is durable, straight into Expertise" | Mid-run, nothing goes into Expertise. Observe now, distill cold |
-| "I'll add the new instance to the matching entry" | That is a story, not a rule. The rule either already covers it or gets *replaced* by a sharper one, same length |
 | "This decision was important, into the log it goes" | Decisions are approval-gated. Wrong home |
 | "The entry needs the feature context to make sense" | Then it is not durable yet. Leave it in observations |
 | "I learned a lot today" | Almost certainly none of it passes the six-spawns test. `expertise_update: []` is the usual return |
 | "The harness misbehaved, I'll record the workaround" | That is a bug report. Raise it as an `open_question`; a workaround in Expertise outlives the fix |
-| "My Expertise block is missing, nothing to do" | The file may not exist yet. During distillation, create it (DEC-125) |
+| "I'm distilling, I know the format" | Read `harness-distill` anyway. It is not in your context, and writing from your new entries alone deletes every earlier one (DEC-125) |
