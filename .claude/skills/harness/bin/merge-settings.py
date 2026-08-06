@@ -24,6 +24,7 @@ path is recognised rather than duplicated.
 """
 import json
 import os
+import re
 import shutil
 import sys
 
@@ -125,37 +126,87 @@ DEPTH_WHY = ("Pins nesting to main-session -> orchestrator -> lead -> member (DE
 CMD = "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/%s"
 
 
+# The matcher values that are literal TOOL alternations, as opposed to agent-name regexes
+# like `harness-.*`. Only these can be checked for tool coverage; for the others a matcher
+# is not a list of anything and presence is the whole question.
+_TOOL_NAMES = {"Write", "Edit", "NotebookEdit", "Bash", "Task", "Agent", "Read", "Glob", "Grep"}
+
+
+def _runs_script(cmd, script):
+    """Does this command actually invoke `script`, as opposed to merely mentioning it?
+
+    SUBSTRING MATCHING WAS THE HOLE (review W1/W2). `check-domain.sh.disabled` contains
+    `check-domain.sh`, so a decoy entry naming a disabled copy widened the coverage set and
+    let the real registration be narrowed back to `Write` with every gate green. The token
+    must BE the script, not contain it. This does not resolve the path or check the file
+    exists — a registration pointing at a deleted file still reads as present, and that
+    residual is recorded rather than papered over.
+    """
+    for tok in str(cmd).split():
+        if os.path.basename(tok) == script:
+            return True
+    return False
+
+
+def _matcher_covers(raw, tool):
+    """Does a settings.json matcher select `tool`? The matcher is a REGEX, not a list.
+
+    THIS IS THE WHOLE LESSON OF PR #149's FIRST FIX. Binding the matcher was right — an
+    unbound one let `Write|Edit|Bash` be narrowed to `Write` with every gate green. But the
+    first attempt compared `set(raw.split("|"))` to a required set, which treats a regex as
+    a literal alternation and rejects six legitimate registrations a reviewer enumerated:
+    an ABSENT matcher (which matches every tool, and is the common real-world shape),
+    `".*"`, `"(Write|Edit|Bash)"`, `"^(Write|Edit|Bash)$"`, spaced alternations, and — worst
+    — three separate per-tool entries that together cover the requirement.
+
+    A false negative here is not a missed warning. `hook_present` decides whether to ADD a
+    registration, so rejecting a valid one DUPLICATES it: proven in write mode, 3 entries
+    became 4 with byte-identical commands, and every Write then fired the hook twice. The
+    same fixture made `--check` report the hook MISSING, which harness-init treats as a
+    HARD GATE. Over-strictness broke the thing it was protecting.
+    """
+    if raw is None or str(raw).strip() in ("", "*"):
+        return True                      # no matcher selects every tool
+    try:
+        rx = re.compile(str(raw))
+    except re.error:
+        # An unparseable matcher is the project's problem, not evidence of absence. Claiming
+        # "missing" here would duplicate the hook on a config we simply cannot read.
+        return True
+    return bool(rx.search(tool))
+
+
 def hook_present(entries, script, matcher=None, args=None):
-    """True if any registration on this event runs `script` WITH the required shape.
+    """True if this event ALREADY runs `script` across every tool the spec requires.
 
     Matched on basename, not the full command string: a project may legitimately have
     registered the same hook via an absolute path or a different variable. Matching
     the literal string would add a second, duplicate registration that fires twice.
 
-    `matcher` AND `args` ARE PART OF THE PREREQUISITE, and leaving them out was a
-    reviewer-demonstrated hole (PR #149 F-01), not a theoretical one. Basename-only,
-    the PostToolUse registration's matcher could be narrowed `Write|Edit|Bash` -> `Write`
-    in all three copies — settings.json, the snippet, and HOOK_SPECS — and EVERY gate
-    stayed green: `run-unit-tests.sh` exit 0, this script printing "all 8 prerequisites
-    present", INV-9 silent. That reverts the whole of issue #132 in production while the
-    tree reports itself correct. A hook registered on the wrong tools is not the hook.
-
-    Both are compared only when the spec asks for them, so a project that has widened a
-    matcher of its own beyond ours still matches — we require ours to be a SUBSET of
-    what is registered, never an exact string.
+    COVERAGE IS UNIONED ACROSS ENTRIES, because a project may split one requirement over
+    several registrations and each is as valid as our single combined one. The question is
+    "is every required tool covered by some entry running this script", never "does one
+    entry look like ours".
     """
-    want_tools = set((matcher or "").split("|")) - {""}
+    want = set(str(matcher or "").split("|")) & _TOOL_NAMES
+    covered, found = set(), False
     for entry in entries or []:
         for h in (entry.get("hooks") or []):
             cmd = str(h.get("command", ""))
-            if script not in cmd:
+            if not _runs_script(cmd, script):
                 continue
-            if args is not None and args.strip() not in cmd:
+            # TOKEN comparison, not substring: `args.strip() in cmd` made `--post` match a
+            # command containing `--posture`, so a hook registered with an unrelated flag
+            # would read as ours. Reviewer finding.
+            if args is not None and args.strip() not in cmd.split():
                 continue
-            if want_tools and not want_tools <= (set(str(entry.get("matcher", "")).split("|"))):
-                continue
-            return True
-    return False
+            found = True
+            covered |= {t for t in want if _matcher_covers(entry.get("matcher"), t)}
+    if not found:
+        return False
+    # `want` is empty for the agent-name specs (`harness-.*`), where a matcher enumerates
+    # no tools and presence is the entire prerequisite — exactly the pre-#149 behaviour.
+    return want <= covered
 
 
 def main():

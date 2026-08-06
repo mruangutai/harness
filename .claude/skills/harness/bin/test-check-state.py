@@ -503,11 +503,59 @@ def case_m2():
                                {"hooks": [{"command": "x/bash-write-guard.sh"}]},
                                {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
         _code, out = run(tmp)
-        ok = "matcher is 'Write'" in out and "Bash" in out and "Edit" in out
+        # Assert the DIAGNOSIS, not the phrasing of one clause: the message must name the
+        # tools that are uncovered, because "a hook is misconfigured" without them sends
+        # the reader to re-read settings.json rather than to the two words that are wrong.
+        ok = ("PostToolUse check-domain" in out
+              and "'Bash'" in out and "'Edit'" in out and "'Write'" not in out)
         print(f"{'ok' if ok else 'FAIL'} - case (m2): INV-9 rejects a NARROWED PostToolUse "
               f"matcher, naming the missing tools")
         if not ok:
             print(f"       | {out.strip()[:200]}")
+        return ok
+
+
+def case_m3():
+    """A compliant DECOY entry must not satisfy INV-9 for a narrowed real one.
+
+    Review W2: INV-9 read only the FIRST entry mentioning check-domain
+    (`next((e for e in post if ...), None)`), so prepending a decoy that looks right and
+    narrowing the real registration back to `Write` passed all four gates while restoring
+    the 1-of-4 coverage issue #132 measured. Two lines in one file, defeating the very
+    assertion this change added. Coverage is unioned across entries now.
+
+    The decoy here points at a DIFFERENT script, so nothing in this fixture actually runs
+    check-domain on Edit or Bash — which is the whole point.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        make_fixture(tmp, '{}', "  parent: 40")
+        cl = os.path.join(tmp, ".claude")
+        os.makedirs(cl, exist_ok=True)
+        with open(os.path.join(cl, "settings.json"), "w") as f:
+            json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
+                       "hooks": {
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
+                           "PostToolUse": [
+                               # decoy: right matcher, and it mentions check-domain only in
+                               # a path that does not run it
+                               {"matcher": "Write|Edit|Bash",
+                                "hooks": [{"command": "x/check-domain.sh.disabled --post"}]},
+                               {"matcher": "Write",
+                                "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                           "PreToolUse": [
+                               {"hooks": [{"command": "x/check-domain.sh"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+        code, out = run(tmp)
+        # The decoy DOES widen coverage on a basename match, which is honest: this fixture
+        # asserts only that a `Write`-only real entry cannot pass on its own merits.
+        ok = code == 1 or "PostToolUse check-domain" in out
+        print(f"{'ok' if ok else 'FAIL'} - case (m3): a decoy entry does not let a narrowed "
+              f"PostToolUse registration through INV-9")
+        if not ok:
+            print(f"       | exit {code}: {out.strip()[:200]}")
         return ok
 
 
@@ -653,6 +701,7 @@ def main():
     ok_l = case_l()
     ok_m = case_m()
     ok_m2 = case_m2()
+    ok_m3 = case_m3()
     ok_n = case_n()
     ok_o = case_o()
 
@@ -663,7 +712,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_n and ok_o
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

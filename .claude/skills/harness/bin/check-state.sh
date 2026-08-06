@@ -312,21 +312,44 @@ else:
     # registration to `Write` in all three copies and every gate stayed green, which
     # reverts issue #132 entirely while the tree reports itself correct: `Write` alone is
     # the ONE route that already worked. So name the tools and check for them.
+    # EXISTENTIAL, NOT FIRST-MATCH. `next(...)` read only the FIRST entry mentioning
+    # check-domain, so prepending a compliant decoy and narrowing the real registration
+    # back to `Write` passed all four gates while restoring the 1-of-4 coverage issue #132
+    # measured — two lines in one file, defeating the assertion this change added. Coverage
+    # is unioned across every entry that runs the script, the same shape merge-settings.py's
+    # hook_present uses, because a project may legitimately split one requirement in two.
     post = hooks.get("PostToolUse") or []
-    _pt = next((e for e in post if "check-domain" in str(e)), None)
-    _have = set(str((_pt or {}).get("matcher", "")).split("|"))
+    def _runs_cd(entry):
+        # TOKEN, not substring — `check-domain.sh.disabled` contains the name and runs
+        # nothing. A decoy entry naming a disabled copy widened this check's coverage set
+        # and let the real registration be narrowed to `Write` with all four gates green.
+        for _h in (entry.get("hooks") or []):
+            for _tok in str(_h.get("command", "")).split():
+                if os.path.basename(_tok) == "check-domain.sh":
+                    return True
+        return False
+
+    _pts = [e for e in post if _runs_cd(e)]
     _want = {"Write", "Edit", "Bash"}
+    _have = set()
+    for _e in _pts:
+        _m = str(_e.get("matcher", "")).strip()
+        if _m in ("", "*", ".*"):
+            _have |= _want
+        else:
+            _have |= {t for t in _want if re.search(_m, t)}
+    _pt = _pts[0] if _pts else None
     if _pt is None:
         bad.append("No PostToolUse check-domain hook — the DEC-150 state-file SHAPE "
                    "budgets bind only a `Write` by a harness agent (1 of 4 routes); "
                    "Edit, Bash and the main session write over budget in silence "
                    "(issue #132). INV-23 below still sweeps, one entry late.")
     elif not _want <= _have:
-        bad.append(f"PostToolUse check-domain is registered but its matcher is "
-                   f"{(_pt or {}).get('matcher')!r} — missing {sorted(_want - _have)}. "
+        bad.append(f"PostToolUse check-domain is registered across {len(_pts)} entry/entries "
+                   f"but nothing matches {sorted(_want - _have)}. "
                    f"The shape gate only reaches the tools it matches, so a narrowed "
                    f"matcher restores the 1-of-4 coverage issue #132 measured, silently.")
-    elif " --post" not in str(_pt):
+    elif not any(" --post" in str(_e) for _e in _pts):
         bad.append("PostToolUse check-domain is registered without ` --post`. Mode also "
                    "resolves from hook_event_name, so this is not fatal — but the flag is "
                    "the half we control, and a registration missing it degrades to "

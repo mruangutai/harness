@@ -425,6 +425,35 @@ def test_merge_key_override_is_not_a_duplicate():
     return True, ""
 
 
+def test_c_loader_is_used_when_libyaml_is_available():
+    """The LOADER CHOICE is pinned, because reverting it is invisible (PR #149 LOW-5).
+
+    Forcing the pure-Python SafeLoader back left 13/13 and 12/12 green while costing 7.3x
+    on this tree's corpus — a performance decision with no assertion behind it is a default
+    waiting to be restored by the next person who tidies the class statement.
+
+    Conditional on the build: a source install of PyYAML without libyaml is legal, and this
+    must not fail there. That is the point of asserting AGREEMENT with the build rather than
+    asserting the C loader unconditionally.
+    """
+    import yaml
+    import harness_yaml as hy
+
+    has_c = getattr(yaml, "__with_libyaml__", False) and hasattr(yaml, "CSafeLoader")
+    assert hy._LOADER_IS_C == bool(has_c), (
+        f"libyaml available={has_c} but _LOADER_IS_C={hy._LOADER_IS_C} — "
+        f"the loader choice drifted from the build")
+    # And the two overrides survive whichever base was chosen. Duplicate detection is the
+    # one that would vanish silently if a future base bypassed the Python constructor: the
+    # 92-file equivalence corpus contains NO duplicate keys, so it could never have caught it.
+    try:
+        hy.load_str("a: 1\nb:\n  c: 1\n  c: 2\n", "dup-fixture")
+        raise AssertionError("a nested duplicate key did not raise under the active loader")
+    except hy.DuplicateKeyError as e:
+        assert e.key == "c", f"wrong key reported: {e.key!r}"
+        assert e.mark is not None and e.mark.line >= 0, "line/column lost under this loader"
+
+
 TESTS = [
     test_merge_key_override_is_not_a_duplicate,
     test_missing_pyyaml_is_reportable_not_a_second_crash,
@@ -438,6 +467,11 @@ TESTS = [
     test_bootstrap_marker_lifecycle,
     test_marker_self_unlinks_when_yaml_imports,
     test_exactly_one_guarded_import_in_the_tree,
+    # REGISTERED, and the first attempt was not. This file collects from an
+    # explicit list, so a test appended after it is defined and never run —
+    # which is issue #133's own theme ("logic correct, nothing calls it")
+    # landing inside the change that cites it. Caught by mutation, not by review.
+    test_c_loader_is_used_when_libyaml_is_available,
 ]
 
 

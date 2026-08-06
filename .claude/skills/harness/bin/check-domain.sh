@@ -579,8 +579,18 @@ def shape_problems(rel, content):
     lines = content.splitlines()
     out = []
 
+    # THE PATH GOES IN THE HEADER, and its absence was a live review finding rather than a
+    # style note. The pre route names one file the agent just named itself; the SWEEP walks
+    # up to 234 candidates across a main checkout and every worktree, and named NONE of
+    # them. Measured consequence: one logical file present in main plus four worktrees
+    # produced five byte-identical findings, 20 lines of stderr, zero paths — and a
+    # reviewer received another agent's transient fixture, unattributable, in their own
+    # session. check-state.sh already does this correctly.
+    def _head(text):
+        return f"check-domain: {VERB} — {rel}: {text}"
+
     def deny(msgs):
-        out.append(f"check-domain: {VERB} — state-file shape (DEC-150).")
+        out.append(_head("state-file shape (DEC-150)."))
         out.extend(f"  {m}" for m in msgs)
         out.append(f"  {ROUTING}")
 
@@ -641,7 +651,7 @@ def shape_problems(rel, content):
             # D-02: the DEC-156 denial SURVIVES, now raised by the loader rather than
             # counted by a regex — which also catches a duplicate at any nesting depth,
             # not merely at column 0.
-            out.append(f"check-domain: {VERB} — state.yaml is a checkpoint, not a notebook (DEC-154).")
+            out.append(_head("state.yaml is a checkpoint, not a notebook (DEC-154)."))
             out.append(f"  duplicate key {e.key!r} — the second silently shadows the first; "
                        f"replace the placeholder, never append a copy (DEC-156).")
             return out
@@ -649,7 +659,7 @@ def shape_problems(rel, content):
             # NEW blocking outcome, deliberate (D-02 consequence #2). The regex this
             # replaced found no keys in a malformed file and therefore reported nothing
             # wrong — it wrote a broken checkpoint and said it was fine.
-            out.append(f"check-domain: {VERB} — this state.yaml is not valid YAML.")
+            out.append(_head("this state.yaml is not valid YAML."))
             out.append(f"  {e.original}")
             out.append("  A checkpoint that cannot be parsed is unreadable to every gate that "
                        "consumes it later; the write is refused while you can still fix it.")
@@ -663,7 +673,7 @@ def shape_problems(rel, content):
         keys = list(doc) if isinstance(doc, dict) else []
         unknown = sorted({str(k) for k in keys if str(k) not in ALLOWED})
         if unknown:
-            out.append(f"check-domain: {VERB} — state.yaml is a checkpoint, not a notebook (DEC-154).")
+            out.append(_head("state.yaml is a checkpoint, not a notebook (DEC-154)."))
             out.append(f"  non-checkpoint top-level key(s) {unknown} — findings and assessment prose "
                        f"belong in this run's digest.md; a one-line note: per STEP entry is the "
                        f"prose ceiling.")
@@ -693,7 +703,7 @@ def shape_problems(rel, content):
                             f" contract (templates/HANDOFF.md); a freeform handoff drifts like an"
                             f" unvalidated digest did (DEC-156).")
         if problems:
-            out.append(f"check-domain: {VERB} — handoff shape (DEC-159).")
+            out.append(_head("handoff shape (DEC-159)."))
             out.extend(f"  {m}" for m in problems)
 
     if RE_STATE_MD.match(rel):
@@ -758,6 +768,13 @@ else:
         # window. Reading everything instead would put the 515 ms figure on the very
         # first Bash call of every session.
         _since = _now - SWEEP_WINDOW_S
+    # CLAMP A MARK FROM THE FUTURE. `chmod 444` a future-dated stamp and the sweep is dead
+    # permanently — no code edit, gitignored, `git status` clean, no gate reads it. Clock
+    # skew across a VM boundary reaches the same state by accident. A mark ahead of now
+    # cannot be a record of a sweep that has happened, so it is not trusted as one.
+    if _since > _now:
+        _since = _now - SWEEP_WINDOW_S
+    _unreadable = False
     for _pat in SWEEP_GLOBS:
         for _p in _glob.glob(os.path.join(root, _pat)):
             try:
@@ -766,18 +783,37 @@ else:
                 with open(_p, encoding="utf-8", errors="replace") as _f:
                     targets.append((_norm(_p), _f.read()))
             except OSError:
-                continue
+                _unreadable = True
     # ADVANCE THE MARK WHETHER OR NOT ANYTHING WAS FOUND, and whether or not the report
     # below exits 2 — the mark records "the sweep has seen the tree up to here", not
-    # "the tree was clean". Tying it to a clean result is what would reintroduce the
-    # repeat-report loop for exactly the files that need fixing.
-    try:
-        os.makedirs(os.path.dirname(_stamp), exist_ok=True)
-        with open(_stamp, "w") as _f:
-            _f.write("mtime is the whole record; this text is never read.\n")
-    except OSError:
-        # An unwritable stamp degrades to the fixed window — noisier, never wrong.
-        pass
+    # "the tree was clean". Tying it to a clean result would reintroduce the repeat-report
+    # loop for exactly the files that need fixing.
+    #
+    # THE MARK IS `_now`, THE MOMENT THIS SWEEP STARTED — never the moment it finished.
+    # That one difference is a correctness fix, not tidiness. Writing "now" at the end
+    # covers the whole walk, so a file written by ANOTHER agent while this process was
+    # walking lands before the new mark and is never reported by anyone: agent A's write
+    # falls into the gap between B stat-ing that path and B advancing the stamp. A reviewer
+    # reproduced it 40 times out of 40 at a 40 ms offset, and — because the stamp is
+    # global and shared — the miss was PERMANENT, surviving five further sweeps until an
+    # unrelated touch resurfaced the file. Round 2 had turned a transient miss into a
+    # permanent one. Stamping the START instead leaves any write during the walk strictly
+    # newer than the mark, so the next sweep picks it up. The cost is that files written
+    # during the walk are reported twice at worst; a duplicate report is noise, a
+    # permanent miss is the failure this whole change exists to prevent.
+    #
+    # NOT ADVANCED AT ALL IF ANY CANDIDATE COULD NOT BE READ. An OSError skips that file,
+    # and advancing past it would make a transient unreadable state a permanent blind spot
+    # by the same mechanism.
+    if not _unreadable:
+        try:
+            os.makedirs(os.path.dirname(_stamp), exist_ok=True)
+            with open(_stamp, "w"):
+                pass
+            os.utime(_stamp, (_now, _now))
+        except OSError:
+            # An unwritable stamp degrades to the fixed window: noisier, never a miss.
+            pass
 
 _problems = []
 for _rel, _text in targets:

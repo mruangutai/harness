@@ -5094,6 +5094,36 @@ dragging the whole tree into a fixed window at once. A stamp file under `.harnes
 window with "changed since this sweep last ran", which fixes the second and third with less logic than
 either would need alone. The window survives only as the first-run bound, where no mark exists yet.
 
+**Round 2's own fix was worse than the bug for one round, and that is recorded rather than smoothed
+over.** The stamp advanced to the moment the sweep FINISHED, so a file another agent wrote *during* the
+walk landed before the new mark and was reported by nobody — reproduced 40 times out of 40 at a 40 ms
+offset, and PERMANENT, because the stamp is global and shared. The repeat-reporting it replaced was
+merely noisy. The mark now records the moment the sweep STARTED, so a write during the walk is strictly
+newer than it; the cost is that such a file may be reported twice, and a duplicate report is the right
+side of that trade. An unreadable candidate leaves the mark unadvanced for the same reason.
+
+**Two gates were EXISTENTIAL where they had to be UNIVERSAL, and both were closed only after a reviewer
+walked through them.** `hook_present()` and INV-9 each matched the FIRST registration mentioning
+`check-domain`, so prepending a compliant decoy and narrowing the real entry back to `Write` passed all
+four gates while restoring the 1-of-4 coverage. Both now union coverage across every entry. And both
+matched the script by SUBSTRING, so `check-domain.sh.disabled` — a name that runs nothing — counted as
+the hook; the match is now a whitespace token whose basename IS the script. A registration pointing at
+a deleted file still reads as present, which is a residual this entry names rather than hides.
+
+**The first fix for the matcher hole broke the thing it protected, which is why the test file exists.**
+Binding the matcher was right; comparing `set(matcher.split("|"))` against a required set was not,
+because a matcher is a REGEX. Six legitimate registrations were then reported missing — an absent
+matcher key (which matches every tool), `".*"`, `"(Write|Edit|Bash)"`, anchored forms, and three
+per-tool entries that together cover the requirement. "Missing" makes the installer write a SECOND
+copy: measured, three entries became four and every `Write` fired the hook twice, while `--check`
+failed a gate `harness-init` calls HARD. `test-merge-settings.py` now asserts both directions in one
+table, because a fix for either alone is what produced the other.
+
+**Findings name their file.** The sweep walks up to 234 candidates across the main checkout and every
+worktree and named none of them: one logical file present in five checkouts produced five
+byte-identical findings, and a reviewer received another agent's transient fixture, unattributable, in
+their own session.
+
 **PyYAML's C loader, folded in on measurement.** `harness_yaml.py` subclassed the pure-Python
 `SafeLoader` while `yaml.__with_libyaml__` was True — a default, not a decision. Re-measured here:
 528.2 ms against 69.8 ms across this tree's 92 YAML files, with **zero** differences in parsed output.

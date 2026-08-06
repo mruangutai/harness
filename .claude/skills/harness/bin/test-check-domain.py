@@ -692,6 +692,85 @@ def run_post():
     post("the same file, freshly touched, IS found",
          r.returncode == 2 and "budget is 200" in r.stderr, f"exit {r.returncode}")
 
+    # --- THE RACE, ASSERTED AS A PROPERTY (review HIGH-1). Round 2's stamp advanced to the
+    # moment the sweep FINISHED, so a file another agent wrote DURING the walk landed before
+    # the new mark and was reported by nobody — reproduced 40/40 at a 40 ms offset, and
+    # PERMANENT, because the stamp is global and shared. Worse than the repeat-reporting it
+    # replaced.
+    #
+    # A first draft of this case tried to stage the race with a backdated mtime and PASSED
+    # AGAINST THE DEFECT — the backdate was relative to the previous sweep's mark, which is
+    # exactly the quantity the bug moves, so both versions found the file. Assert the
+    # invariant itself instead: THE MARK IS THE SWEEP'S START. Padding makes the walk long
+    # enough that start and finish are far apart, which is what gives the assertion teeth.
+    _pad = os.path.join(fdir, "runs")
+    for _i in range(800):
+        _rd = os.path.join(_pad, f"pad{_i}")
+        os.makedirs(_rd, exist_ok=True)
+        with open(os.path.join(_rd, "state.yaml"), "w") as f:
+            f.write("schema_version: 1\nrun_id: pad\nstatus: complete\n")
+    write(10)
+    fire_post(d, bash_payload)                        # settle: nothing fresh
+
+    # INTERPRETER START-UP IS MEASURED AND SUBTRACTED, because it dominates. `_now` is
+    # captured inside the Python body, so wall-clock from process launch to the stamp
+    # includes ~38 ms of start-up that has nothing to do with the walk. A first draft
+    # compared the mark against total process time and FAILED on correct code, reporting a
+    # 37 ms offset against a 53 ms total — measuring start-up, not the race window.
+    _t0i = time.time()
+    fire_post(d, bash_payload)                        # idle: start-up only
+    _idle = time.time() - _t0i
+
+    for _i in range(800):                             # make every pad file fresh again
+        os.utime(os.path.join(_pad, f"pad{_i}", "state.yaml"), None)
+    _t0 = time.time()
+    fire_post(d, bash_payload)
+    _loaded = time.time() - _t0
+    _mark = os.stat(os.path.join(d, ".harness", ".shape-sweep-stamp")).st_mtime
+    _walk = _loaded - _idle                           # the part that is actually the sweep
+    _offset = _mark - _t0                             # where the mark landed in the process
+    # Start-stamping puts the mark at ~_idle; end-stamping puts it at ~_idle + _walk.
+    # IS THE MARK NEARER THE START OF THE WALK OR ITS END? A fixed threshold discriminated
+    # by one millisecond and was luck, not a test; this compares the two hypotheses directly.
+    ok_mark = _walk > 0.015 and abs(_offset - _idle) < abs(_offset - _loaded)
+    post("the mark records the sweep's START, not its finish (the race window)",
+         ok_mark,
+         f"start-up {_idle*1000:.0f} ms, walk {_walk*1000:.0f} ms, mark at "
+         f"{_offset*1000:.0f} ms — distance to start {abs(_offset-_idle)*1000:.0f} ms vs "
+         f"to finish {abs(_offset-_loaded)*1000:.0f} ms (a walk under 15 ms means the case "
+         f"proved nothing and fails on purpose)")
+    for _i in range(800):
+        shutil.rmtree(os.path.join(_pad, f"pad{_i}"), ignore_errors=True)
+
+    # --- AN UNREADABLE CANDIDATE MUST NOT ADVANCE THE MARK PAST ITSELF, or a transient
+    # permission blip becomes a permanent blind spot by the same mechanism.
+    write(400)
+    _bad = os.path.join(fdir, "runs", "r2")
+    os.makedirs(_bad, exist_ok=True)
+    _sy = os.path.join(_bad, "state.yaml")
+    with open(_sy, "w") as f:
+        f.write("schema_version: 1\n")
+    os.chmod(_sy, 0o000)
+    try:
+        fire_post(d, bash_payload)                   # one candidate unreadable
+        os.chmod(_sy, 0o644)
+        r = fire_post(d, bash_payload)
+        post("an unreadable candidate leaves the mark unadvanced (no permanent blind spot)",
+             r.returncode == 2 and "budget is 200" in r.stderr,
+             f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+    finally:
+        os.chmod(_sy, 0o644)
+        os.remove(_sy)
+
+    # --- EVERY FINDING NAMES ITS FILE. The sweep walks up to 234 candidates across a main
+    # checkout and every worktree; without the path, one logical file present in five
+    # checkouts produced five byte-identical findings and zero way to tell them apart.
+    write(400)
+    os.utime(fy, None)
+    r = fire_post(d, bash_payload)
+    post("a sweep finding names the file it is about",
+         rel_fy in r.stderr, f"stderr lacked {rel_fy}: {r.stderr.strip()[:160]}")
+
     # --- A POST PAYLOAD WITH NO agent_type still gets the shape gate. That is the shape
     # every Bash and main-session post invocation has, and it is the path argv position 2
     # feeds, so it is the one that would break if the mode flag were read as an identity.
@@ -745,6 +824,10 @@ def main():
         else:
             print(f"ok    {name}")
     print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
+    # EACH `fails +=` IS ITSELF THE REACHABILITY OF ITS BLOCK. Dropping seven characters
+    # from any one of these leaves the block running and printing while its result is
+    # discarded — the suite goes green with the cases visibly FAILing on screen. The
+    # aggregate below is asserted non-negative so the shape of this line stays deliberate.
     fails += run_t12()
     fails += run_resolve()
     fails += run_post()
