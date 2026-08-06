@@ -14,7 +14,9 @@ asks for a cleanup.
 
 1. **Audit:** run `.claude/skills/harness/bin/check-expertise.sh .harness/expertise/`. Files
    reported `OK` are done — do not touch them.
-2. **Distill each failing file.** For each, apply the `harness-expertise` contract:
+2. **Distill each failing file.** The contract lives in `.claude/skills/harness-distill/SKILL.md`
+   — **read it first; it is NOT preloaded** (DEC-158). The summary below is a checklist, not the
+   contract, and the ops schema and read-modify-write rule are only in that file. For each:
    - Every entry becomes **WHEN <situation> DO <action>**, ≤50 words, or a durable repo fact.
    - Strip feature/task/issue IDs (`FEAT-NN`, `T-NN`, `#NN`) and per-incident case histories —
      an entry citing multiple incidents keeps the rule and drops the cases.

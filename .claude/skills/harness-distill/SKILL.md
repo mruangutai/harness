@@ -1,6 +1,6 @@
 ---
 name: harness-distill
-description: How to write an Expertise file — the distillation procedure, the entry format, the ops schema and the caps. NOT preloaded (DEC-158, DEC-84 split); read it when your dispatch says "distill". Mid-run observation logging is `harness-expertise`, which every agent carries.
+description: How to write an Expertise file — the distillation procedure, the entry format, the ops schema and the caps. NOT preloaded (DEC-158 move 2); read it when your dispatch says "distill". Mid-run observation logging is `harness-expertise`, which every agent carries.
 user-invocable: false
 ---
 
@@ -10,6 +10,12 @@ user-invocable: false
 event that happens once per agent per feature, and carrying them on every spawn taxed ~33 spawns
 that never write an Expertise file. Recording observations mid-run is `harness-expertise`, which you
 already have.
+
+This is **DEC-158 move 2** (conditionally-relevant skills load on demand), the same shape as
+`harness-systematic-debugging`. It does **not** contradict DEC-158 move 3's *"feature-close
+distillation stays inline"* — that governs the ORCHESTRATOR's dispatch procedure in
+`harness/SKILL.md`, which still runs every ship and is still inline. What moved is the MEMBER's
+write-rules, which fire once per agent per feature. Different tier, different frequency.
 
 You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch explicitly says
 "distill"** — at feature close, under a curation note, or via `/harness-curate`. Then:
