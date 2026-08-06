@@ -813,7 +813,7 @@ The orchestrator's own session is 55% of it. Reported, not hidden (DEC-134).
     Add to `## The loop` — immediately after step 3's build-team passage from T-06, so the two read
     as one sequence — a passage of **at most 8 added lines** stating, in the SAME vocabulary
     `build.yaml`'s `purpose:` uses (EMF-4; the two are one fix seen from two sides):
-    "**After the build team returns, sequence the qa segment.** It is a **validator-squad** segment
+    "**After the build team returns, sequence the qa segment.** It is a **validator-squad** segment <!-- ok-stale --> historical: quotes the pre-DEC-180 playbook
     you sequence yourself — `harness-qa` writes and runs the tests and enforces the `test_matrix`
     hard gate (`harness.json` `gates.qa_gate: blocking`, the project's only blocking gate). On
     failure, `loop_back` to the dev that owns the task; the build is not done until the matrix

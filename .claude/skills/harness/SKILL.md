@@ -46,8 +46,23 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    **and the `test_matrix` qa gate** — stays an orchestrator-sequenced squad segment, because a
    `build` team is single-squad by construction (DEC-118). So `build` is not the whole build
    phase, only its eng segment.
-   **After the build team returns, sequence the qa segment.** It is a **validator-squad** segment
-   you sequence yourself — `harness-qa` writes and runs the tests and enforces the `test_matrix`
+   **Dispatch qa PHASE 1 in the SAME message as the build team (issue #21) — not after it.**
+   Phase 1 derives expected coverage from BRIEF and PLAN with **no source access**, both are
+   approved before you exist, so it depends on nothing the build produces and has no reason to sit
+   on the critical path. Two dispatches, one message: `eng-lead` for the build, `validator-lead`
+   for qa phase 1. It writes its expectations to
+   `.harness/features/<FEAT>/notes/qa-expected-coverage.md`.
+   **This HARDENS the anti-bias property rather than trading against it.** Today one spawn does
+   both phases in order, so nothing stops it quietly revising its phase-1 list once it has read the
+   code — the exact bias phase 1 exists to prevent, invisible because it happens inside one
+   context. As a separate dispatch the list is on disk before any source is read, and phase 2
+   receives it **by path**, as a fixed input it must report gaps against.
+   Both phases are **build**-phase work, so this overlaps nothing across a phase seam: DEC-159's
+   predicate is unchanged — build still exits when every planned T-NN has a PASS run.
+
+   **After the build team returns, sequence the qa segment — PHASE 2.** It is a **validator-squad**
+   segment you sequence yourself, and its dispatch **must name the phase-1 artifact path**;
+   `harness-qa` reads that list, then writes and runs the tests and enforces the `test_matrix`
    hard gate (`harness.json` `gates.qa_gate: blocking`, the project's only blocking gate). On
    failure, `loop_back` to the dev that owns the task; the build is not done until the matrix
    passes. It is not a step the `build` team contains, because a team is single-squad (DEC-118).

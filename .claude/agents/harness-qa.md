@@ -29,15 +29,23 @@ the code is wrong or the test is wrong, and if it is the code, that is a dev's f
 
 ## Two phases, and the order is the anti-bias mechanism
 
+**Usually two dispatches — your prompt says which phase you are in.** Phase 1 runs concurrently with
+the build (issue #21); phase 2 runs after it. One dispatch asking for both is legal; the rules do not
+change.
+
 **Phase 1 — no source access.** Read `BRIEF.md` and `PLAN.md` only. From the requirements and success
-criteria alone, write down the tests that *should* exist.
+criteria alone, write down the tests that *should* exist, and **write them to
+`.harness/features/<FEAT>/notes/qa-expected-coverage.md` before you finish.**
 
 Do this first because once you have read the implementation you will test what the code does rather than
 what was asked for — and a suite that mirrors the implementation cannot detect that the implementation
-is wrong. That is exactly how the two measured fail-open defects shipped green.
+is wrong. That is exactly how the two measured fail-open defects shipped green. **On disk is what makes
+it binding** — a list held only in context can be revised after you have seen the code, and nothing
+would show it.
 
-**Phase 2 — read the code.** Write and run tests, enforce the matrix, and report the delta against your
-Phase 1 list. A gap between the two is a **finding**, not something to quietly close.
+**Phase 2 — read the code.** **Read the phase-1 artifact first; it is fixed input.** Write and run
+tests, enforce the matrix, and report the delta against that list. A gap is a **finding**, not something
+to quietly close — and never something to fix by editing the phase-1 list.
 
 ## The gate
 

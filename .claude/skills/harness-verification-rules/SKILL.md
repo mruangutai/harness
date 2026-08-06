@@ -12,15 +12,26 @@ There is no separate verifier downstream of you. If you do not catch it, it ship
 
 ## Two phases, in order — the first is anti-bias
 
+**The two phases are usually TWO DISPATCHES, and your dispatch tells you which one you are in.**
+Phase 1 runs concurrently with the build (issue #21); phase 2 runs after it. If a single dispatch
+asks for both, do them in order in one pass — the rules below are identical either way.
+
 **Phase 1 — derive expected coverage with NO source access.** Read `BRIEF.md` and `PLAN.md` only. From
-the requirements and success criteria alone, write down what tests *should* exist.
+the requirements and success criteria alone, write down what tests *should* exist. **Write the list to
+`.harness/features/<FEAT>/notes/qa-expected-coverage.md` before you finish** — on disk, not only in
+your return.
 
 Do this first because once you have read the implementation you will unconsciously test what the code
 does rather than what was asked for — and a test suite that mirrors the implementation cannot detect that
-the implementation is wrong.
+the implementation is wrong. **Committing the list to disk first is what makes that more than an
+intention:** a list still only in context can be quietly revised once you have seen the code, and
+nothing would show it happened.
 
-**Phase 2 — read the code.** Write and run tests, enforce the matrix, report gaps against your Phase 1
-list. A gap between the two is a finding, not an oversight to quietly close.
+**Phase 2 — read the code.** **Read the phase-1 artifact first; it is a FIXED input, not a draft.**
+Then write and run tests, enforce the matrix, and report gaps against that list. A gap between the two
+is a finding, not an oversight to quietly close — and **you do not edit the phase-1 list to close one**.
+If phase 1 got something genuinely wrong, say so in your return as a finding against phase 1; leave the
+artifact as written.
 
 ## The matrix is a floor
 
