@@ -3945,6 +3945,26 @@ compliance. The real kaya token sink — orchestrators at 258–310k cache-read/
 longevity — is DEC-148/150's problem, not the skills'; this pass buys latency and instruction
 signal, not a cost order-of-magnitude.
 
+**Applications of move 2, and the wording each one falsified.** Move 2 is applied repeatedly, and
+each application invalidates statements elsewhere in the tree. Declaring them here rather than
+opening a new decision per application keeps DECISIONS.md the single registry without growing an
+entry for something that is not a new decision:
+
+- **`harness-distill` split out of `harness-expertise`** (issue #84). The write-rules left the
+  universal preload; anything describing `harness-expertise` as carrying them is stale.
+- **`harness-team` dropped from the orchestrator's preload** (issue #83). Flat mode — the
+  orchestrator hosting a team DAG itself — is dead per DEC-100/DEC-102, so anything describing the
+  orchestrator as a team host, or offering flat as a live hosting mode, is stale.
+
+<!-- stale: "you are running it flat" -->
+<!-- stale: "or the orchestrator agent itself (flat)" -->
+<!-- stale: "or the orchestrator agent (flat)" -->
+<!-- stale: "In flat mode the orchestrator hosts" -->
+<!-- stale: "This holds in flat mode too" -->
+<!-- stale: "In **flat** mode members return their DIGEST" -->
+<!-- stale: "apply the `harness-expertise` contract" -->
+<!-- stale: "distill what passes the six-spawns test into its Expertise file per `harness-expertise`" -->
+
 ## DEC-159 — Orchestrators are per-phase; the handoff note carries intent, trust, and dead ends
 
 The measured cost lever after DEC-158: kaya's context watchdog showed orchestrators at 258–310k

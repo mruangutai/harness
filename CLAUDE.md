@@ -64,6 +64,19 @@ points at one nobody named. A row is an open-or-skip filter, so open the entry b
 Then run `.claude/skills/harness/bin/check-docs.sh`. It is the propagation checker, and its registry
 is DECISIONS.md itself.
 
+**Running it is not enough — you must REGISTER what you invalidated.** The checker only knows the
+wording a `<!-- stale: "..." -->` marker declares, so a change that makes a statement false and
+declares nothing propagates to nothing, and the checker passes green while the tree contradicts
+itself. Two PRs in a row failed exactly this way (a skill de-preloaded, a mode retired) and each
+needed three manual passes to find every site.
+
+So: **when your change makes existing wording false, add a `stale:` marker for that wording.** If
+the change is a new decision, the marker goes in its entry. If it is an APPLICATION of a decision
+that already exists — the common case — add the marker to that entry rather than opening a new one;
+DECISIONS.md stays the single registry and does not grow a record for something that is not a new
+decision. A line that legitimately quotes retired wording (history, a migration map, a log) escapes
+with `<!-- ok-stale -->` **per line**.
+
 ## Conventions
 
 - Every claim in prose that a command can check gets checked before it is written.
