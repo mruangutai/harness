@@ -607,6 +607,47 @@ def case_n():
     return all(results)
 
 
+def case_p():
+    """INV-23's CLAUDE.md budget, bound BEHAVIOURALLY at its boundary — and at warn level.
+
+    Review of PR #152, and it is case (n)'s lesson repeating one file over. Case (o)
+    compares SOURCE TEXT, so mutating the comparison `len(_cml) > 80` -> `> 999` while
+    leaving the `budget is 80` message alone survived all three suites with case (o)
+    printing ok. The PR body listed "CLAUDE.md budget drifted between the two files" under
+    mutants caught, which was true of the mutation actually run — one that changed the
+    MESSAGE — and overstated what the case covers. Case (o) binds the two files to each
+    other; only a boundary fixture binds either of them to reality.
+
+    WARN LEVEL IS ASSERTED TOO. INV-23 must report and NOT change the exit code, exactly as
+    for the four state files: an over-budget CLAUDE.md predating the gate must not halt
+    /harness entry, which is the same reasoning that kept FEAT-05/STATE.md from doing so.
+    """
+    results, codes = [], {}
+    for label, n, want in (("over", 81, True), ("at the budget", 80, False)):
+        with tempfile.TemporaryDirectory() as tmp:
+            make_fixture(tmp, '{}', "  parent: 40")
+            with open(os.path.join(tmp, "CLAUDE.md"), "w") as f:
+                f.write("\n".join(f"line {i}" for i in range(n)) + "\n")
+            code, out = run(tmp)
+            codes[label] = code
+            got = "INV-23 CLAUDE.md is" in out
+            ok = got == want
+            results.append(ok)
+            print(f"{'ok' if ok else 'FAIL'} - case (p/{label}): CLAUDE.md at {n} lines -> "
+                  f"INV-23 {'fires' if got else 'silent'} (want "
+                  f"{'fires' if want else 'silent'})")
+    # WARN LEVEL, asserted the way case (a)/(b) assert INV-21's: the two fixtures differ
+    # ONLY in CLAUDE.md's length, so an equal exit code is the whole claim. Comparing
+    # against a literal 0 was a first draft and it was wrong — this fixture is a bare
+    # .harness with no BRIEF, so check-state legitimately exits 1 for unrelated reasons and
+    # the case failed on correct code.
+    same = codes["over"] == codes["at the budget"]
+    results.append(same)
+    print(f"{'ok' if same else 'FAIL'} - case (p/warn): an over-budget CLAUDE.md does not "
+          f"change the exit code ({codes['at the budget']} -> {codes['over']})")
+    return all(results)
+
+
 def case_o():
     """The two enforcement scripts must AGREE on every number and key they both carry.
 
@@ -708,6 +749,7 @@ def main():
     ok_m3 = case_m3()
     ok_n = case_n()
     ok_o = case_o()
+    ok_p = case_p()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -716,7 +758,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

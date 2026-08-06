@@ -5072,7 +5072,7 @@ bootstrap grant on a question whose answer can no longer change anything. Measur
 post-mode payload for an ungranted path exited 2 with the domain message, after the file was written.
 
 **The Bash sweep is bounded by a HIGH-WATER MARK, and the fixed window it replaced was broken in two
-ways review measured.** A `Bash` payload names no file, so the only honest answer is to sweep the four state-file
+ways review measured.** A `Bash` payload names no file, so the only honest answer is to sweep the state-file
 globs. Measured on this tree — 120 matching files, 82 of them `state.yaml` the gate YAML-parses:
 read-and-parse all 120 costs **515 ms**, `stat` on all 120 costs **0.2 ms**. 515 ms on the harness's
 most-used tool would make the guard the slowest thing in the session. `PostToolUse` fires immediately
@@ -5186,12 +5186,18 @@ could not see the file every agent reads first.
 `node_modules` and `.claude/worktrees/` — scanning every file of every other checkout as though it
 were this one. The test plants a decoy one level down and fails if it is reached.
 
-**80 is derived from the file's own history, which is what the ticket asked for.** It was 50–51 lines
-through 2026-07-28, 56 on 08-02, 71 on 08-04, then **84** — at which point a human trimmed it twice, to
-78 and then 74. 80 is the only number with evidence behind it: it FIRES on the 84-line version somebody
-judged excessive, and leaves headroom above the 74 that survived that judgement. A budget at today's
-size bans all growth; a generous one bans nothing. The ticket said explicitly that picking a number
-without measuring was out of scope.
+**80 is derived from the file's own history, and that history STARTS AT A CLEANUP.** The file was
+208-214 lines from April through 2026-07-27; DEC-135 then cut it to 50. That blow-out is why issue #139
+exists — it says so, and an earlier draft of this entry began the table after the cleanup and read as
+though the file had always been small. Since the cleanup: 50-51 through 07-28, 56 on 08-02, 71 on 08-04,
+then **84**, at which point a human trimmed it twice, to 78 and then 74.
+
+**The evidence constrains the number to roughly 75-83; it does not fix it at one.** Above 84 discards
+the only judgement anyone actually made about this file's size, and 74 bans all growth. 80 sits inside
+that band with six lines of headroom, which is thin deliberately: the file is preloaded into every
+session, and two trims in one day say the right response to pressure here is to cut rather than to raise
+the ceiling. An earlier draft called 80 "the only number with evidence" — that overstated it, and a
+reviewer said so.
 
 **Issue #139 ruled out `check-domain.sh`'s shape gate, and DEC-180 made that reason obsolete.** The
 ticket says "it fires on `Write` only (see #132 — `Edit` and `Bash` bypass it) and the main session,
@@ -5201,6 +5207,14 @@ four-route machinery already is, rather than in a fifth gate. `Edit` matters mor
 file, and a `Write`-only gate would have bound the one route nobody uses on it.
 
 **No `<!-- stale: -->` marker is declared for the ruling this supersedes, and that is checked, not assumed.** The phrase issue #139 uses to rule out the shape gate lives in the ISSUE BODY, which `check-docs.sh` does not scan and should not — GitHub issues are a record of what was believed then. `--audit` reported the marker INERT, which is exactly what that flag exists to catch, so it was removed rather than left as decoration that reads like enforcement. The same audit removed DEC-180's `all six prerequisites present` marker: that string had already been replaced by the derived count in the same commit that declared it stale, so it could never have matched anything.
+
+**Two residuals, measured and accepted rather than discovered later.** The SHRINK EXEMPTION applies:
+with the file at 200 lines, a `Write` payload of 150 is denied even though it improves things, because
+the pre gate measures the payload. `Edit` is never blocked pre-hoc, so the author trims with `Edit` and
+the post route reports until they are under — a working alternative, against a fix that would make the
+pre gate read the file it is about to overwrite, adding file I/O and a TOCTOU window to the hot path.
+And a `CLAUDE.md` nested in a subdirectory or a monorepo package is ungoverned on every route; the
+pattern is anchored `^CLAUDE\.md$` and this tree has exactly one.
 
 INV-23 sweeps it from disk at `/harness` entry as the backstop, at warn level, exactly as for the four
 state files. That makes `CLAUDE.md`'s budget the **fourth** number duplicated across `check-domain.sh`
