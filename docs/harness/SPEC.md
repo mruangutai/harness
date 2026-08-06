@@ -1349,7 +1349,7 @@ review, reorder, escalate); *plan-level* changes (new tasks, changed decisions) 
     uniform stream of consolidated DIGESTs, and no work is ever unassessed.
 - **Three domain leads** — `product-lead`, `eng-lead`, `validator-lead`. Each is granted the spawn
   tool. **The team's `lead:` field selects which one hosts that team's DAG** — there is no generic
-  lead parametrized per team. The host reads the `harness-team` skill, spawns its squad members, runs the DAG
+  lead parametrized per team. The host lead preloads the `harness-team` skill, spawns its squad members, runs the DAG
   (gating and loop-backs within the team), and returns a **consolidated DIGEST** up.
 - **Members** (doer and reviewer personas): spawned by the host lead. **Always leaves.**
 
@@ -1395,8 +1395,10 @@ risks and proposed next steps. That reporting feeds the CEO briefing.
   nested and background spawns both counting.
 
 **Where the team-runner logic lives.** The algorithm is single-sourced in the `harness-team` skill
-(`.claude/skills/harness-team/SKILL.md`) and hosted by whoever conducts the team: the team's named
-lead (hierarchical), or the orchestrator agent itself (flat). Same algorithm; only the host differs.
+(`.claude/skills/harness-team/SKILL.md`) and hosted by **the team's named lead**. The flat variant —
+the orchestrator hosting a DAG itself — is dead (§below, DEC-100/DEC-102), and since issue #83 the
+orchestrator **no longer preloads this skill**; it reads it by path in the rare case it needs the
+algorithm.
 In hierarchical mode the orchestrator's context stays
 tiny — member spawns and DIGESTs live in the lead's context, and the orchestrator sees one
 consolidated DIGEST per team.

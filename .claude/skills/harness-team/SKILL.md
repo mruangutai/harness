@@ -8,10 +8,15 @@ description: Run a harness team — a small DAG of agents hosted by a domain lea
 A team is a **DAG of steps, each dispatched to one agent**, hosted by a domain lead. This skill is
 the algorithm; the teams are data at `.claude/skills/harness/teams/*.yaml`.
 
-**You are the host.** If you are a lead, you are running your own squad's DAG. If you are the
-orchestrator, you are running it flat. The algorithm is identical either way — only who spawns
-differs. **The main session never hosts a team** — since DEC-120 it is the user channel and nothing
-else; it spawns an orchestrator per flow and that orchestrator hosts.
+**You are the host, and you are a lead.** You are running your own squad's DAG.
+
+**The orchestrator does not host teams and no longer preloads this skill** (issue #83). It was
+carried for flat mode — the orchestrator hosting a DAG itself — and flat mode is dead: `SPEC.md`
+records *"hierarchical works, the flat fallback is not needed"* (DEC-100, DEC-102), and
+`harness/SKILL.md` forbids the orchestrator→member path with no exceptions. The orchestrator
+sequences squad segments and delegates each to its lead; it reads this file by path only if it
+needs the algorithm. **The main session never hosts a team either** — since DEC-120 it is the user
+channel and nothing else.
 
 ## The two rules that make this safe
 

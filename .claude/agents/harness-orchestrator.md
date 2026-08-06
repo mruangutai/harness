@@ -9,7 +9,10 @@ skills:
   - harness
   - harness-handoff
   - harness-expertise
-  - harness-team
+# harness-team is deliberately NOT preloaded (DEC-158 move 2, issue #83): it was carried so the
+# orchestrator could host a team DAG itself — flat mode — and flat mode is dead (SPEC.md:1312,
+# "hierarchical works, the flat fallback is not needed"; harness/SKILL.md forbids the
+# orchestrator→member path outright). Read it by path if you ever need the algorithm.
 ---
 
 # Harness: Orchestrator
