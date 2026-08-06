@@ -468,35 +468,80 @@ def case_20():
     """
     here = os.path.dirname(os.path.abspath(__file__))
     MANIFEST = "team-config.yaml"
-    # AGREEMENT, NOT ARITHMETIC. A first draft asserted a COUNT of probes per file and was
-    # wrong on its first run — check-domain.sh has four, not two, because each of its two
-    # spellings probes twice (the env root, then the derived one). A count is also the
-    # brittleness a reviewer flagged in test-check-state.py case (o): it breaks on innocent
-    # edits and teaches people to bump the number. What must hold is that every copy agrees
-    # on WHICH FILE proves a directory is a harness root — if one probed harness.json they
-    # would resolve different roots on the same tree and no gate would notice.
-    ok = True
-    # HONOUR THE OVERRIDE. This case reads SOURCE rather than running it, so a hard-coded
-    # path keeps reading the REAL file while CHECK_PLAN_ROUTES_BIN points the rest of the
-    # suite at a mutant — the case then reports ok about a file it never opened. Measured:
-    # both drift mutants passed until this line existed. The identical defect was found in
-    # test-check-state.py case (o) earlier the same day, one line below a comment warning
-    # about it, which is how confidently it hides.
-    sources = {"check-plan-routes.py": SCRIPT,
-               "check-domain.sh": os.path.join(here, "check-domain.sh")}
-    for fname, path in sources.items():
-        body = open(path, encoding="utf-8").read()
-        probes = [l.strip() for l in body.splitlines()
-                  if "os.access(" in l and ".harness" in l]
-        disagree = [l for l in probes if MANIFEST not in l]
-        good = bool(probes) and not disagree
+    PREDICATES = ("os.access(", "os.path.isdir(", "os.path.isfile(", "os.path.exists(",
+                  "os.stat(", "Path(")
+
+    def logical_lines(text):
+        """Physical lines joined until brackets balance.
+
+        THE THIRD DRAFT OF THIS CASE WAS BLIND BECAUSE IT SKIPPED THIS. It filtered
+        PHYSICAL lines containing both `os.access(` and `.harness`, and this PR's own
+        derived-root probe is wrapped across two lines — so the detector saw one of the two
+        probes, and the invisible one was the one it was written for. Measured: replacing
+        that probe with `os.path.isdir(os.path.join(derived, ".harness"))` — the exact
+        simplification the implementation comment forbids AND cites this case as
+        preventing — passed the entire suite, and reproduced the global-install fail-open.
+        A detector that cannot see its own target is worse than none, because the comment
+        next to it tells the next reader they are covered.
+        """
+        out, buf, depth = [], "", 0
+        for raw in text.splitlines():
+            buf = (buf + " " + raw.strip()).strip() if buf else raw.strip()
+            depth += raw.count("(") + raw.count("[") - raw.count(")") - raw.count("]")
+            if depth <= 0:
+                out.append(buf)
+                buf, depth = "", 0
+        if buf:
+            out.append(buf)
+        return out
+
+    # EVERY bin/ SCRIPT, not a hardcoded pair. The previous draft listed two files, so a
+    # fifth copy of root resolution was undetectable by construction. check-state.sh is a
+    # CODED exception, not prose: it genuinely has no root probe (verified — 0 matches),
+    # which is issue #156, and encoding it here keeps this assertion honest rather than
+    # quietly passing on a file that has the very defect the case is about.
+    KNOWN_NO_PROBE = {"check-state.sh"}
+    # CODED EXCEPTIONS, each naming its issue — never a silent skip, and never prose.
+    # wayfind.py:46-54 probes the `.harness` DIRECTORY on purpose: it walks UP from the cwd
+    # so a session inside a feature dir still resolves. That upward walk is also why it is
+    # exposed — `$HOME/.harness/` exists wherever deploy.sh has run (it holds
+    # registry.json), so from anywhere under $HOME with no project of its own it resolves
+    # $HOME as the project root. Found by THIS case on its first full-tree run, filed as
+    # its own issue, and listed here rather than fixed inside PR #153, which is about a
+    # different script.
+    KNOWN_DIRECTORY_PROBE = {"wayfind.py"}
+    ok, seen_any = True, 0
+    for fname in sorted(os.listdir(here)):
+        if not (fname.endswith(".py") or fname.endswith(".sh")) or fname.startswith("test-"):
+            continue
+        path = SCRIPT if fname == "check-plan-routes.py" else os.path.join(here, fname)
+        try:
+            body = open(path, encoding="utf-8").read()
+        except OSError:
+            continue
+        # A ROOT PROBE is a filesystem test naming `.harness` inline. The limit is stated
+        # rather than hidden: a probe whose path was assembled into a variable on an
+        # earlier line is invisible to any source-text check, this one included.
+        probes = [l for l in logical_lines(body)
+                  if ".harness" in l and any(pr in l for pr in PREDICATES)]
+        if not probes:
+            continue
+        seen_any += 1
+        if fname in KNOWN_DIRECTORY_PROBE:
+            continue
+        disagree = [l.strip()[:90] for l in probes if MANIFEST not in l]
+        good = not disagree
         ok &= good
-        check(f"case_20_{fname.replace('.', '_').replace('-', '_')}_probes_the_same_manifest",
+        check(f"case_20_{fname.replace('.', '_').replace('-', '_')}_probes_the_manifest",
               good,
-              f"{fname}: {len(probes)} root probe(s), {len(disagree)} naming something "
-              f"other than {MANIFEST} -> {disagree[:2]}"
-              if probes else f"{fname}: NO root probe found — the resolver was renamed or "
-                             f"removed and this detector went blind")
+              f"{fname}: {len(disagree)} of {len(probes)} root probe(s) do not name "
+              f"{MANIFEST} -> {disagree[:2]}. A copy probing the .harness DIRECTORY "
+              f"resolves $HOME as a root in the global install, which is B-7 verbatim.")
+    check("case_20_the_detector_is_not_blind",
+          seen_any >= 2 and not (KNOWN_NO_PROBE & {"check-plan-routes.py"}),
+          f"only {seen_any} file(s) matched any root probe — the pattern went blind, which "
+          f"is how the previous draft passed while missing its own target")
+    ok &= seen_any >= 2
     return ok
 
 

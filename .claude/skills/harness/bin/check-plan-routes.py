@@ -308,6 +308,32 @@ def discover_plans():
             file=sys.stderr,
         )
         sys.exit(2)
+    # EVERY FEATURE DIRECTORY MUST BE READABLE, and this is the third place B-7 hid.
+    # `glob.glob` swallows OSError, so a directory it cannot enter looks exactly like one
+    # holding no PLAN.md. Measured on this repo with NO source change at all: `chmod 000`
+    # on the four feature dirs carrying all 36 violations produced
+    # `0 violation(s) across 4 plan(s)`, exit 0, a page of reassuring OK lines, and a green
+    # test suite — while `git status` stayed clean, because git does not track directory
+    # modes. A permission accident, not a code change, and the checker called the tree fine.
+    #
+    # So enumerate explicitly and refuse to guess. Exit 2 is right: this is "the checker
+    # could not run", the same verdict as an unresolvable root.
+    feats = os.path.join(root, ".harness", "features")
+    unreadable = []
+    if os.path.isdir(feats):
+        try:
+            for entry in os.scandir(feats):
+                if entry.is_dir() and not os.access(entry.path, os.R_OK | os.X_OK):
+                    unreadable.append(os.path.relpath(entry.path, root))
+        except OSError as e:
+            print(f"check-plan-routes: cannot list {feats}: {e}", file=sys.stderr)
+            sys.exit(2)
+    if unreadable:
+        print(f"check-plan-routes: {len(unreadable)} feature director(ies) cannot be read "
+              f"— {', '.join(sorted(unreadable))}. A directory I cannot enter is "
+              f"indistinguishable from one holding no PLAN.md, so reporting a total would "
+              f"be a lie about the tree.", file=sys.stderr)
+        sys.exit(2)
     return root, sorted(glob.glob(os.path.join(root, ".harness/features/*/PLAN.md")))
 
 
@@ -325,15 +351,22 @@ def main(argv):
 
     findings = []
     total_violations = 0
+    processed = 0
     for path in paths:
         count = process_plan(path, findings)
         if count is None:
             sys.exit(2)
         total_violations += count
+        processed += 1
 
     for line in findings:
         print(line)
-    print(f"{total_violations} violation(s) across {len(paths)} plan(s)")
+    # `processed`, NEVER `len(paths)`. The summary used the DISCOVERED count, so anything
+    # that dropped plans between discovery and the loop reported the full number while
+    # checking fewer: `for path in paths[:1]` printed `0 violation(s) across 8 plan(s)`,
+    # exit 0, both suites green — round 1's own `[:1]` defect relocated one line down.
+    # Counting what was actually checked makes the two numbers impossible to desynchronise.
+    print(f"{total_violations} violation(s) across {processed} plan(s)")
 
     sys.exit(1 if total_violations else 0)
 
