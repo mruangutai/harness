@@ -124,7 +124,7 @@
   .o-orch{color:var(--orch)} .o-prod{color:var(--prod)} .o-eng{color:var(--eng)}
   .o-val{color:var(--val)} .o-you{color:var(--ink)}
 
-  .rules{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+  .rules{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
   @media (max-width:800px){ .rules{grid-template-columns:1fr} }
   .rule-card{border:1px solid var(--rule); border-radius:3px; padding:12px 14px; background:var(--card)}
   .rule-card b{display:block; font-size:12.5px; margin-bottom:4px; color:var(--ink)}
@@ -261,13 +261,15 @@
   headline:       one line, conclusion first
   files_touched:  [ ... ]        doers only
   open_questions: [ ... ]        non-empty routes upward, toward you
+  expertise_update: [ ... ]      [] except under a distillation dispatch
 <b>artifact:</b> path to the real output — the pointer, not the payload</pre>
     </div>
-    <p class="sub" style="margin-top:10px"><b>Every field is required</b> — say &ldquo;nothing&rdquo;
+    <p class="sub" style="margin-top:10px"><b>Every field is required</b>, and each persona adds its own on top of these three universals (<code>qa</code> carries <code>suite</code> and <code>matrix_ok</code>, doers carry <code>task</code>) — say &ldquo;nothing&rdquo;
       with an explicit <code>[]</code>, never by leaving the key out. A lead's team digest is the same
       shape plus a per-member roll-up, written to <code>&lt;run&gt;/digest.md</code>.
-      <code>validate-digest.py</code> enforces this as a <code>SubagentStop</code> hook — one of the
-      four mandatory <code>settings.json</code> entries — so a malformed return is rejected at source
+      <code>validate-digest.py</code> enforces this as a <code>SubagentStop</code> hook — one of the eight
+      platform prerequisites <code>settings.json</code> must carry — seven hooks across four
+      events, plus the spawn-depth cap — so a malformed return is rejected at source
       and the agent must fix it before it can finish. Not advisory: a reader normalizes drift
       charitably and then one routing decision quietly goes the wrong way.</p>
   </section>
@@ -296,14 +298,22 @@
   </section>
 
   <section>
-    <h2>Three rules that hold it together</h2>
+    <h2>Four rules that hold it together</h2>
     <div class="rules">
       <div class="rule-card"><b>Paths, not payloads</b><span>A return is control flow. The artifact is a
         file and the next step is told where it is. Pasting content forward burns the context budget
         the org exists to protect.</span></div>
       <div class="rule-card"><b>One writer per path</b><span>Every domain is declared in
-        <code>team-config.yaml</code> and enforced on every write. An agent reaching outside its own
-        paths is blocked and told which are its own.</span></div>
+        <code>team-config.yaml</code>. An agent reaching outside its own paths is blocked and told
+        which are its own. <b>Scope, honestly:</b> <code>Write</code> and <code>Edit</code> are
+        governed before the fact and the common shell shapes by a sibling guard, but arbitrary shell
+        is not winnable and is caught after. The main session is never governed — it has to be
+        able to record your decisions.</span></div>
+      <div class="rule-card"><b>Shape is not permission</b><span>Who may write a file and how long
+        it may be are separate questions, and conflating them cost four write routes once. State
+        files and <code>CLAUDE.md</code> carry line budgets bound on <i>every</i> route —
+        refused before a <code>Write</code>, reported after an <code>Edit</code> or a shell command,
+        and binding on the main session, which authorization deliberately is not.</span></div>
       <div class="rule-card stop"><b>Cycles bound the work</b><span>Retry cycles are a hard cap —
         exhausting them stops the branch, preserves the work, and brings you the decision.</span></div>
     </div>
@@ -318,6 +328,8 @@
           <tr><td>"what should we do next?"</td><td><b>triage</b> — pm reads the backlog (GitHub Issues), the codebase map, shipped history</td><td>ranked candidates; you pick</td></tr>
           <tr><td><code>/harness-plan</code></td><td><b>plan</b> — pm authors BRIEF (<code>## Problem</code> first) + PLAN; eng architecture review; design pass</td><td>one signature: PLAN + prototype</td></tr>
           <tr><td><code>/harness-ship</code></td><td><b>ship</b> — build test-first → qa gate → review panel vs a pinned SHA → pm goal-check → the loop runs until the <em>success criteria</em> pass, not until tasks run out</td><td>the CEO briefing; ship / fix / stop is yours</td></tr>
+          <tr><td><code>/harness-wayfind</code></td><td><b>wayfinding</b> — charts a vague idea to plannable clarity, across sittings</td><td>a problem statement a plan can start from</td></tr>
+          <tr><td><code>/harness-deepen</code></td><td><b>deepen</b> — architecture-review scan between features; no flow of its own</td><td>findings you triage into the backlog</td></tr>
           <tr><td>a bug report</td><td><b>debug</b> — cause unknown: investigate first (reproduce → localize → root-cause, no fix), then it becomes a plan</td><td>a <code>BUG-NN</code> flow through the same gates</td></tr>
           <tr><td>"map the codebase"</td><td><b>map</b> — every specialist authors the view it will consume; documentor consolidates; runs at init on existing code</td><td><code>codebase/</code> + <code>map.html</code></td></tr>
         </tbody>
@@ -330,7 +342,7 @@
   </section>
 
   <footer>
-    Reference diagram · updated 2026-07-28 (through DEC-142) · generated from <code>SPEC.md</code> §2–§13 and <code>team-config.yaml</code>.
+    Reference diagram · updated 2026-08-06 (through DEC-181) · generated from <code>SPEC.md</code> §2–§13 and <code>team-config.yaml</code>.
     Squad colors are the ones the manifest already assigns.
   </footer>
 </div>

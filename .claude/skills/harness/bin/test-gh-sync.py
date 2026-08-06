@@ -21,7 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SYNC = os.path.join(HERE, "gh-sync.py")
 
 FAKE_GH = """#!/bin/bash
-echo "$*" | tr '\n' '§' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
 case "$*" in
   *"sub_issues -F sub_issue_id="*)
     echo '{}'
@@ -107,11 +107,23 @@ def run(args, tmp, env_extra=None):
 
 def calls(tmp):
     p = os.path.join(tmp, "calls.log")
-    return open(p).read().splitlines() if os.path.exists(p) else []
+    # ENCODING IS EXPLICIT, and the separator above is a SINGLE BYTE. CI on Linux found
+    # what macOS could not: `tr '\n' '§'` gives `tr` a TWO-byte SET2 (§ is U+00A7 =
+    # 0xC2 0xA7). BSD tr copies both bytes; GNU tr truncates SET2 to SET1's length and
+    # emits a lone 0xC2 — invalid UTF-8 — so this read died with
+    # "can't decode byte 0xc2 in position 11: invalid continuation byte" on the runner and
+    # passed on the author's machine. \001 (SOH) is one byte in every
+    # implementation and cannot appear in a gh argument. NOT \034 (FS): str.splitlines()
+    # treats \x1c, \x1d, \x1e and \x85 as LINE BOUNDARIES, so flattening newlines to FS
+    # and then calling splitlines() re-splits them and defeats the whole point — a first
+    # fix for this did exactly that and turned one green suite into seven failures. errors="replace" so a future mangling is a visible
+    # test failure rather than a crash inside the harness.
+    return (open(p, encoding="utf-8", errors="replace").read().splitlines()
+            if os.path.exists(p) else [])
 
 
 FAKE_GH_ATTACH_FAILS = """#!/bin/bash
-echo "$*" | tr '\n' '§' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
 case "$*" in
   *"sub_issues -F sub_issue_id="*)
     echo "simulated network failure" >&2
