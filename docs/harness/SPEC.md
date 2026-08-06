@@ -1422,14 +1422,17 @@ answers one thing, a **briefing** is the consolidated cross-team view plus an in
 
 How it runs:
 
-1. **No report round is spawned (#80).** The orchestrator already holds every lead's consolidated
-   DIGEST — one per run — so "report on your domain" buys a re-narration of what is already in its
-   context. DEC-69 assumes exactly this: the cross-lead view is held "at no extra spawn cost."
-   A lead is spawned here **only** when a specific question its digests do not answer needs one,
-   and then only that lead.
+1. **No report round is spawned (#80). The orchestrator reads every run's `digest.md` from disk**,
+   including runs from phases it did not host — under DEC-159 it is a per-phase successor and never
+   received those digests in context. `feature.yaml` `runs:` names them. A "report on your domain" <!-- ok-stale --> quotes the retired phrase to forbid it
+   spawn buys a re-narration of a file on disk; DEC-69 assumes exactly this in holding that the
+   cross-lead view costs no extra spawn. A lead is spawned here **only** when a specific question
+   its digest does not answer needs one, and then only that lead.
 2. The cross-team picture is assembled from those digests: progress · assessment · each squad's
-   `open_questions` · risks and proposed next steps. A squad with nothing to say simply
-   contributes nothing, rather than paying a spawn to say so.
+   `open_questions` · risks and proposed next steps. **Every squad that ran is represented, and the
+   briefing cites the digest path each summary came from** — so "this squad had nothing to say" and
+   "this orchestrator never saw that phase" stay distinguishable, which is the guarantee the report
+   round used to provide. A squad that genuinely did nothing is recorded as such, not omitted.
 3. Orchestrator assembles one briefing: each lead's summary, all open questions across teams,
    resolved escalations, proposed next steps, the goal-check result (REQ coverage + SC outcomes), the
    **UAT** if one is required, and the **Expertise curation** block.
