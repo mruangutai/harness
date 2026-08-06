@@ -64,15 +64,11 @@ points at one nobody named. A row is an open-or-skip filter, so open the entry b
 Then run `.claude/skills/harness/bin/check-docs.sh`. It is the propagation checker, and its registry
 is DECISIONS.md itself.
 
-**Running it is not enough — register what you invalidated.** It only knows the wording a
-`<!-- stale: "..." -->` marker declares, so a change that falsifies a statement and declares nothing
-passes green while the tree contradicts itself (PRs #137 and #138, both found by hand). **When your
-change makes existing wording false, add a `stale:` marker for it** — to the existing entry when the
-change merely APPLIES a decision, so DECISIONS.md does not grow a record for a non-decision.
-Historical quotes escape per line with `<!-- ok-stale -->`.
+**Declare what you invalidate**, or it passes green while the tree contradicts itself: a
+`<!-- stale: "…" -->` marker in the entry your change APPLIES — not a new entry. Format:
+`check-docs.sh`'s header.
 
 ## Conventions
 
 - Every claim in prose that a command can check gets checked before it is written.
 - Check `bin/check-docs.sh` BEFORE committing, never after.
-- The GSD-era stack analysis that once filled this file lives in git history only (removed at DEC-135).
