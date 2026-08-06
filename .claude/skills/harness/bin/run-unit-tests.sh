@@ -3,13 +3,46 @@ set -uo pipefail
 cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 BIN_DIR=".claude/skills/harness/bin"
-SCRIPTS=("test-validate-digest.py" "test-gh-sync.py" "test-check-state.py" "test-check-expertise.py" "test-gen-decisions-index.py" "test-bash-write-guard.py" "test-check-domain.py" "test-render-brief.py" "test-harness-yaml.py" "test-harness-yaml-corpus.py" "test-upgrade-config.py" "test-team-catalog.py" "test-check-plan-routes.py" "test-merge-settings.py")
+# THE SPLIT IS BY WHAT IS TESTED, NOT BY THE CLOCK (issue #160). A runtime threshold
+# drifts and teaches people to bump it; "does this drive a real script end to end?" does
+# not. Measured when this landed: 3 files never spawn a subprocess (~0.33s total), 11 do
+# (~15.6s). The spread does NOT track the fork line — test-check-state.py forks once and
+# takes 1.21s, test-merge-settings.py forks twice and takes 0.12s — which is exactly why
+# the principle is the discriminator and the timing is only evidence for it.
+#
+# Forking the real script is the RIGHT technique for testing a PreToolUse hook; a mocked
+# check-domain.sh would prove nothing. Nothing here is being called a bad test. The problem
+# #160 records is one populated kind doing two jobs while test_kinds.integration sat null,
+# so INV-20 could never see the hole and the qa matrix could not tell the two apart.
+UNIT_SCRIPTS=("test-harness-yaml-corpus.py" "test-render-brief.py" "test-team-catalog.py")
+INTEGRATION_SCRIPTS=("test-validate-digest.py" "test-gh-sync.py" "test-check-state.py" "test-check-expertise.py" "test-gen-decisions-index.py" "test-bash-write-guard.py" "test-check-domain.py" "test-harness-yaml.py" "test-upgrade-config.py" "test-check-plan-routes.py" "test-merge-settings.py")
+
+# --kind DEFAULTS TO all, so every existing caller — harness.json, a human, a QA agent —
+# keeps the behaviour it had before this split.
+KIND="all"
+if [ "${1:-}" = "--kind" ]; then
+  KIND="${2:-all}"
+elif [ -n "${1:-}" ]; then
+  echo "usage: run-unit-tests.sh [--kind unit|integration|all]" >&2
+  exit 2
+fi
+case "$KIND" in
+  unit)        SCRIPTS=("${UNIT_SCRIPTS[@]}") ;;
+  integration) SCRIPTS=("${INTEGRATION_SCRIPTS[@]}") ;;
+  all)         SCRIPTS=("${UNIT_SCRIPTS[@]}" "${INTEGRATION_SCRIPTS[@]}") ;;
+  *) echo "run-unit-tests.sh: unknown kind '$KIND' — use unit, integration or all" >&2; exit 2 ;;
+esac
+
+# The drift detector runs over the UNION, never the selected subset: a file missing from
+# both arrays must be caught whichever kind is being run, or `--kind unit` becomes a way to
+# skip the check that a new test file was registered at all.
+ALL_SCRIPTS=("${UNIT_SCRIPTS[@]}" "${INTEGRATION_SCRIPTS[@]}")
 
 # Drift detector: any test-*.py under BIN_DIR not in the explicit list is misconfigured.
 for f in "$BIN_DIR"/test-*.py; do
   base="$(basename "$f")"
   listed=0
-  for s in "${SCRIPTS[@]}"; do
+  for s in "${ALL_SCRIPTS[@]}"; do
     if [ "$s" = "$base" ]; then
       listed=1
       break
