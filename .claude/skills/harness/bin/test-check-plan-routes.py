@@ -445,6 +445,83 @@ def case_19():
               f"exit {r2.returncode} stdout={r2.stdout[:300]!r}")
 
 
+def case_22():
+    """(22) THE READABILITY GUARD, which had zero assertions across two designs.
+
+    Round 3 reported "the entire round-2 guard could be deleted with both suites green". I
+    responded by REWRITING the guard — better code, and it closed three other findings —
+    and added 124 test lines, NONE of them touching permissions. Round 4 ran the identical
+    mutation and got the identical result, because a finding about COVERAGE is closed only
+    by an assertion that fails when the code is removed. The guard's assertion count went
+    from zero to zero.
+
+    What made it feel done: I verified the new guard BY HAND in a shell — chmod 000, exit 2,
+    right message — and never asked whether anything here would notice if it vanished.
+
+    Four fixtures, one per branch of the guard, because a single one leaves the others as
+    unbound as they were. Modes are restored in a `finally`: `git status` does not show
+    directory modes, so a leaked chmod silently poisons every later run in the worktree.
+    """
+    def build(td):
+        feats = os.path.join(td, ".harness", "features", "FEAT-A")
+        os.makedirs(feats)
+        with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
+            f.write("agents: {}\n")
+        plan = os.path.join(feats, "PLAN.md")
+        with open(plan, "w") as f:
+            f.write("# PLAN\n\n" + task_block("T-01", GRANTED_PATH, "team"))
+        return feats, plan
+
+    # (a) a feature directory that cannot be entered
+    with tempfile.TemporaryDirectory() as td:
+        feats, _ = build(td)
+        try:
+            os.chmod(feats, 0o000)
+            r = run(project_dir=td)
+            check("case_22a_unreadable_feature_dir_exits_2",
+                  r.returncode == 2 and "FEAT-A" in r.stderr and "0 violation(s)" not in r.stdout,
+                  f"exit {r.returncode} stdout={r.stdout[:150]!r} stderr={r.stderr[:200]!r}")
+        finally:
+            os.chmod(feats, 0o755)
+
+    # (b) a PLAN.md that exists and cannot be read
+    with tempfile.TemporaryDirectory() as td:
+        _, plan = build(td)
+        try:
+            os.chmod(plan, 0o000)
+            r = run(project_dir=td)
+            check("case_22b_unreadable_plan_file_exits_2",
+                  r.returncode == 2 and "PLAN.md" in r.stderr,
+                  f"exit {r.returncode} stderr={r.stderr[:200]!r}")
+        finally:
+            os.chmod(plan, 0o644)
+
+    # (c) a PLAN.md that is present but will not resolve. `glob` used lexists; the
+    # single-walk rewrite used os.path.isfile, which SWALLOWS OSError — measured as a
+    # regression against the previous commit, exit 2 became exit 0 and silent.
+    with tempfile.TemporaryDirectory() as td:
+        feats, plan = build(td)
+        os.remove(plan)
+        os.symlink(os.path.join(td, "nowhere-at-all"), plan)
+        r = run(project_dir=td)
+        check("case_22c_broken_symlink_plan_is_reported_not_skipped",
+              r.returncode == 2 and "PLAN.md" in r.stderr,
+              f"exit {r.returncode} stdout={r.stdout[:150]!r} stderr={r.stderr[:200]!r}")
+
+    # (d) THE DISCRIMINATOR. Every case above passes against a guard that exits 2 always.
+    with tempfile.TemporaryDirectory() as td:
+        build(td)
+        r = run(project_dir=td)
+        # NOT `returncode == 0`: the fixture manifest is a stub, so GRANTED_PATH resolves
+        # to NOBODY and the run legitimately exits 1 with a routing VIOLATION. This case is
+        # about the READABILITY guard staying silent, so assert exactly that — the plan was
+        # processed and nothing was called unreadable. Asserting 0 failed on correct code.
+        check("case_22d_a_readable_tree_is_not_flagged",
+              r.returncode != 2 and "across 1 plan(s)" in r.stdout
+              and "cannot be read" not in r.stderr,
+              f"exit {r.returncode} stdout={r.stdout[:200]!r} stderr={r.stderr[:150]!r}")
+
+
 def case_21():
     """(21) THE BEHAVIOURAL TEST, which is what case_20 kept failing to be.
 
@@ -611,6 +688,7 @@ def main():
     case_19()
     case_20()
     case_21()
+    case_22()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

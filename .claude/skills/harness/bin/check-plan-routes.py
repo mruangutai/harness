@@ -19,7 +19,6 @@ Task blocks are found with the SAME regex check-state.sh uses (D-08), copied
 rather than shared because check-state.sh belongs to the in-flight FEAT-08 and
 PLAN.md is markdown, not YAML.
 """
-import glob
 import os
 import re
 import subprocess
@@ -336,6 +335,13 @@ def discover_plans():
             print(f"check-plan-routes: cannot list {feats}: {e}", file=sys.stderr)
             sys.exit(2)
         for entry in entries:
+            # DOTTED ENTRIES ARE NOT FEATURES, and this restores glob's semantics rather
+            # than reinterpreting them. `glob`'s `*` never matched a leading dot; `scandir`
+            # returns everything. Measured on a `.FEAT-HIDDEN/PLAN.md` fixture: the old
+            # mechanism found 0 plans, the rewrite found 1. The scan line still advertises
+            # `features/*/PLAN.md`, so the search must keep meaning what that says.
+            if entry.name.startswith("."):
+                continue
             try:
                 if not entry.is_dir():
                     continue
@@ -349,15 +355,24 @@ def discover_plans():
                 unreadable.append(os.path.relpath(entry.path, root))
                 continue
             plan = os.path.join(entry.path, "PLAN.md")
-            if not os.path.isfile(plan):
+            # LEXISTS DECIDES PRESENCE, isfile DECIDES USABILITY, and conflating them was a
+            # REGRESSION this rewrite introduced against the glob it replaced. `glob`
+            # resolved the literal trailing component with `lexists`; `os.path.isfile` calls
+            # stat and SWALLOWS OSError. Measured against the previous commit on identical
+            # fixtures: a `PLAN.md` that is a broken symlink went exit 2 -> exit 0 silent; a
+            # `PLAN.md` symlinked into a chmod-000 directory did the same, which also made
+            # the os.access check below UNREACHABLE — isfile had already eaten the EACCES.
+            # A path literally named PLAN.md that will not resolve is exactly what the error
+            # message below calls indistinguishable from nothing.
+            if not os.path.lexists(plan):
+                continue
+            if not os.path.isfile(plan) or not os.access(plan, os.R_OK):
+                unreadable.append(os.path.relpath(plan, root))
                 continue
             # A PLAN.md present but unreadable used to raise PermissionError out of
             # process_plan with EXIT 1 — the code meaning "violations found" — no summary
-            # line, and every later plan unprocessed. Exit 1 is also what this very guard
-            # was written to stop being the answer to a permission problem.
-            if not os.access(plan, os.R_OK):
-                unreadable.append(os.path.relpath(plan, root))
-                continue
+            # line, and every later plan unprocessed. Both the direct case (mode 000) and
+            # the indirect one (a symlink into an unreadable directory) land above.
             plans.append(plan)
     if unreadable:
         print(f"check-plan-routes: {len(unreadable)} path(s) under .harness/features/ cannot "
