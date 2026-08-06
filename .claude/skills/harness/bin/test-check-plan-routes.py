@@ -158,6 +158,21 @@ def case_17():
         check("case_17_midpattern_wildcard_grant_reports_ok", has_ok_for_t01, r.stdout)
         check("case_17_midpattern_wildcard_grant_exits_0", r.returncode == 0, r.stdout + r.stderr)
 
+        # (17b) THE CLAUSE THAT CAN ACTUALLY FAIL. The three assertions above pass under a
+        # hand-rolled prefix comparison too, because that comparison OVER-grants rather than
+        # under-granting: `.harness/features/` is a prefix of every feature file, so the path
+        # still resolves to somebody, still reports OK and still exits 0. Measured, this path
+        # resolves to exactly {harness-eng-lead, harness-orchestrator} through the mid-pattern
+        # grant `.harness/features/*/runs/*-eng/**`, while a prefix implementation grants it to
+        # most of the org. Asserting the EXACT set is what discriminates, and it fails on any
+        # reimplementation regardless of how its variables are spelled.
+        ok_line = next((l for l in lines if l.startswith("OK") and "T-01" in l), "")
+        granted = ok_line.split("granted to", 1)[-1].strip() if "granted to" in ok_line else ""
+        check("case_17b_ok_line_names_the_exact_granting_set",
+              granted == "harness-eng-lead, harness-orchestrator",
+              f"expected 'harness-eng-lead, harness-orchestrator', got {granted!r} "
+              f"from line {ok_line!r}")
+
 
 def main():
     case_01_02_03()

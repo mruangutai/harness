@@ -125,7 +125,15 @@ def process_task(tid, body, findings):
                 f"{', '.join(sorted(granted_agents))} but declared main-session-direct"
             )
         else:
-            findings.append(f"OK {tid}")
+            # The agent set is NAMED, not just counted, and that is load-bearing rather than
+            # cosmetic. This branch fires whenever every path resolved to somebody, so an
+            # `OK {tid}` that says only "somebody" cannot distinguish the real resolver from a
+            # hand-rolled prefix comparison — measured, the prefix version OVER-grants
+            # (`.harness/features/` prefixes every feature file), so it also lands here, also
+            # prints OK, and the checker silently becomes a no-op that never reports a
+            # violation. Naming the set is what lets the test tell the two apart. Same shape
+            # the DEVIATION line above already uses.
+            findings.append(f"OK {tid} granted to {', '.join(sorted(granted_agents))}")
 
     return violations
 
