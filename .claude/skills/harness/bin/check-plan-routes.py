@@ -270,6 +270,18 @@ def discover_plans():
     distinguishes this from a freshly-onboarded project: that project HAS a manifest
     and legitimately has zero features, and it still exits 0. Zero plans is not an error.
     """
+    # THE PROBE IS THE MANIFEST FILE, NEVER `isdir(".harness")`, and that distinction is
+    # the only thing standing between this fix and B-7 reappearing in the REAL global
+    # installation shape. `deploy.sh:44` installs to `$HOME/.claude/skills`, so a globally
+    # installed copy derives `$HOME` as its project root — and `$HOME/.harness/` EXISTS on
+    # a machine that has ever run deploy.sh: it holds `registry.json`, written by
+    # `deploy.sh:46`. Verified on this machine. A reviewer ran the counterfactual: swap the
+    # file probe for a directory test and a global `check-plan-routes.py` prints
+    # `0 violation(s) across 0 plan(s)` and exits 0 — the exact defect this function was
+    # written to remove, in the installation most users have.
+    #
+    # `test-check-plan-routes.py` case (20) pins every copy of this probe to the same
+    # filename for that reason. Do not "simplify" it to a directory check.
     derived = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
     asked = os.environ.get("CLAUDE_PROJECT_DIR") or ""
     root = asked

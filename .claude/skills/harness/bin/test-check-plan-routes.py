@@ -369,6 +369,52 @@ def case_19():
     check("case_19b5_an_unset_project_dir_is_not_warned_about",
           "IGNORING it" not in r_root.stderr, f"stderr={r_root.stderr[:300]!r}")
 
+    # (a4) THE PLAN SET, PINNED — "found the right things", not merely "found something".
+    #
+    # This is case_19a3's gap, and case_19a3 is itself the fix for an earlier gap. That one
+    # asserted only NON-ZERO, so three mutants walked past it against the real repo, which
+    # holds 8 plans and 36 violations:
+    #     glob only `FEAT-02/PLAN.md`  -> `0 violation(s) across 1 plan(s)`, exit 0
+    #     truncate the result `[:1]`   -> same
+    #     glob `*/*.md`                -> `across 24 plan(s)`
+    # 1 > 0, so the assertion was satisfied while discovery found an eighth of the tree.
+    # The PR's own title, one layer inward.
+    #
+    # A COUNT AGAINST THE REAL REPO CANNOT FIX THIS — it drifts as features land, which is
+    # why the earlier cases avoided one. A CONTROLLED FIXTURE can: two plans, and two
+    # decoys that a sloppier glob would swallow — a sibling BRIEF.md, and a PLAN.md nested
+    # under runs/ where `**` or `*/*.md` would reach it.
+    with tempfile.TemporaryDirectory() as td:
+        feats = os.path.join(td, ".harness", "features")
+        os.makedirs(feats)
+        with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
+            f.write("agents: {}\n")
+        for name in ("FEAT-A", "FEAT-B"):
+            os.makedirs(os.path.join(feats, name))
+            with open(os.path.join(feats, name, "PLAN.md"), "w") as f:
+                f.write("# PLAN\n\n" + task_block("T-01", GRANTED_PATH, "team"))
+            # decoy 1: a sibling markdown file that is not a plan
+            with open(os.path.join(feats, name, "BRIEF.md"), "w") as f:
+                f.write("# BRIEF\n\n" + task_block("T-99", GRANTED_PATH, "team"))
+        # decoy 2: a PLAN.md one level deeper, which `**` or `*/*.md` would swallow
+        os.makedirs(os.path.join(feats, "FEAT-A", "runs", "r1"))
+        with open(os.path.join(feats, "FEAT-A", "runs", "r1", "PLAN.md"), "w") as f:
+            f.write("# PLAN\n\n" + task_block("T-98", GRANTED_PATH, "team"))
+
+        r = run(project_dir=td)
+        check("case_19a4_discovery_finds_exactly_the_feature_plans",
+              "across 2 plan(s)" in r.stdout,
+              f"expected exactly 2 plans (2 features, 1 sibling BRIEF.md each, 1 nested "
+              f"decoy). stdout={r.stdout[:300]!r}")
+        # (a5) The scan line must describe the glob that actually ran. Changing ONLY the
+        # print to `.harness/plans/**/ANY.md` survived every other assertion: 19a2 checks
+        # `startswith("scanning ")` and that the root appears, 19c2 only that the root
+        # appears. The line is the entire mechanism for telling "nothing here" from "wrong
+        # place", so a line that describes a different search is worse than none.
+        check("case_19a5_the_scan_line_matches_the_glob_that_ran",
+              r.stdout.splitlines()[0] == f"scanning {td}/.harness/features/*/PLAN.md",
+              f"first line={r.stdout.splitlines()[:1]!r}")
+
     # (c) The other direction. A manifest is present, so the root IS known; there simply
     # are no features yet. Must be exit 0 and must scan the FIXTURE, not the real repo —
     # which is also what fails if the env-var/derived precedence is ever flipped.
@@ -398,6 +444,62 @@ def case_19():
               f"exit {r2.returncode} stdout={r2.stdout[:300]!r}")
 
 
+def case_20():
+    """(20) Root resolution is now the FOURTH copy in this tree. D-02 does not forbid
+    duplication — it forbids SILENT DRIFT, and case (o) in test-check-state.py is this
+    repo's pattern for catching it.
+
+    Case (o)'s own comment, written about the fourth duplicated NUMBER, says the detector
+    "joins the detector in the same commit that duplicates it — not in a later one nobody
+    writes." This is that commit for root resolution.
+
+    KEYED ON THE PROBE STRING, not on control flow. The two spellings inside
+    check-domain.sh are already textually different (a ternary and an if/else) and both
+    are correct, so asserting shared structure would fail on a difference nobody minds.
+    What every copy MUST agree on is WHICH FILE proves a directory is a harness root: if
+    one probes `.harness/team-config.yaml` and another probes something else, they resolve
+    different roots on the same tree and no gate notices.
+
+    check-state.sh is a NAMED EXCEPTION, not an oversight. Measured by review: it has no
+    derived fallback at all — `cd "$root"` with an invalid CLAUDE_PROJECT_DIR fails and it
+    silently reports on the cwd. That is a real defect, it is a DEC-174 carve-out file, and
+    it is unrelated to #133, so it is filed separately rather than fixed here. Encoding it
+    as an exception keeps this assertion honest instead of quietly passing.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    MANIFEST = "team-config.yaml"
+    # AGREEMENT, NOT ARITHMETIC. A first draft asserted a COUNT of probes per file and was
+    # wrong on its first run — check-domain.sh has four, not two, because each of its two
+    # spellings probes twice (the env root, then the derived one). A count is also the
+    # brittleness a reviewer flagged in test-check-state.py case (o): it breaks on innocent
+    # edits and teaches people to bump the number. What must hold is that every copy agrees
+    # on WHICH FILE proves a directory is a harness root — if one probed harness.json they
+    # would resolve different roots on the same tree and no gate would notice.
+    ok = True
+    # HONOUR THE OVERRIDE. This case reads SOURCE rather than running it, so a hard-coded
+    # path keeps reading the REAL file while CHECK_PLAN_ROUTES_BIN points the rest of the
+    # suite at a mutant — the case then reports ok about a file it never opened. Measured:
+    # both drift mutants passed until this line existed. The identical defect was found in
+    # test-check-state.py case (o) earlier the same day, one line below a comment warning
+    # about it, which is how confidently it hides.
+    sources = {"check-plan-routes.py": SCRIPT,
+               "check-domain.sh": os.path.join(here, "check-domain.sh")}
+    for fname, path in sources.items():
+        body = open(path, encoding="utf-8").read()
+        probes = [l.strip() for l in body.splitlines()
+                  if "os.access(" in l and ".harness" in l]
+        disagree = [l for l in probes if MANIFEST not in l]
+        good = bool(probes) and not disagree
+        ok &= good
+        check(f"case_20_{fname.replace('.', '_').replace('-', '_')}_probes_the_same_manifest",
+              good,
+              f"{fname}: {len(probes)} root probe(s), {len(disagree)} naming something "
+              f"other than {MANIFEST} -> {disagree[:2]}"
+              if probes else f"{fname}: NO root probe found — the resolver was renamed or "
+                             f"removed and this detector went blind")
+    return ok
+
+
 def main():
     case_01_02_03()
     case_04()
@@ -411,6 +513,7 @@ def main():
     if not case_18():
         failures.append('case_18')
     case_19()
+    case_20()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")
