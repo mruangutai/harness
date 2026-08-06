@@ -173,9 +173,27 @@ scan, DEC-149) run between features, never inside a build. When your dispatch na
 `.claude/skills/harness/references/missions.md` before acting — the full procedure lives there
 (DEC-158).
 
+## Close-out — ONE dispatch turn, not three rounds (#80)
+
+After the SCs pass and before the briefing there are two jobs — ship-refresh and distillation.
+**Issue them as TWO SEPARATE DISPATCHES IN ONE MESSAGE**, so they run concurrently. They share no
+data and neither reads the other's output, so running them as separate rounds costs a full lead
+round-trip for nothing. **There is no third round:** the briefing needs no report spawn (see below).
+
+**NEVER fold both jobs into one dispatch to a lead.** That is not the same saving and it has a real
+quality cost (#80): ship-refresh is hot, mechanical routing — intersect `files_touched`, spawn the
+owning specialist — while distillation is explicitly a **cold, stepping-back** judgment (DEC-145;
+`harness-expertise`: *"Mid-run you only observe; distillation happens later, cold"*). A lead handed
+both in one prompt does the second while still hot from the first, and its distillation degrades
+into summarising the run it just routed. That failure is invisible at ship time and surfaces as a
+worse next feature. **Concurrency is free; combining the prompts is not.**
+
+Sequencing them serially is the other way to be wrong here, because the result looks identical and
+nothing surfaces the wait — the same trap as serial dispatch inside a team.
+
 ## Ship-refresh — the map stays true (DEC-137 amendment)
 
-In mission ship, after the SCs pass and before the briefing:
+Dispatched in the close-out turn:
 
 1. Union the feature's `files_touched` across its team digests; intersect with the map's domains.
 2. No intersection → skip, note it, done. Intersection →
@@ -188,7 +206,7 @@ In mission ship, after the SCs pass and before the briefing:
 
 ## Feature-close distillation — observations become Expertise (DEC-145)
 
-In mission ship, after the SCs pass and before the briefing (alongside ship-refresh):
+Dispatched in the SAME turn as ship-refresh, never as a following round:
 
 1. Dispatch **each lead that ran this feature** once: "distill — **read
    `.claude/skills/harness-distill/SKILL.md` first (NOT preloaded, DEC-158) and tell each member to
@@ -258,9 +276,23 @@ wholesale sweep (DEC-150).
 
 `ship-feature` completes · a lead returns `BLOCKED` · the main session relays "where are we?".
 
-1. Spawn **all three leads in parallel** — "report on your domain." All three always report;
-   "no activity this run" is a valid report.
-2. Assemble one document: each lead's summary, all open questions, resolved escalations, the
+1. **Do NOT spawn a report round — READ THE DIGESTS FROM DISK INSTEAD.** Every run wrote one to
+   `runs/<run-dir>/digest.md` and `feature.yaml` `runs:` names them. A "report on your domain" <!-- ok-stale --> quotes the retired phrase to forbid it
+   spawn buys a re-narration of a file you can open (DEC-69: the cross-lead view is yours "at no
+   extra spawn cost"). A FEAT-04 orchestrator killed this round on its own judgement: *"three lead
+   spawns at ~20 USD each to re-narrate digests I hold is spend with nothing to surface it."*
+   **YOU ARE A PHASE, NOT THE FEATURE — so "digests I hold" is not enough.** As a ship-phase
+   successor you never received the plan and build digests; you inherit a ~60-line handoff note.
+   **Read every run's digest off disk, including phases you did not run.** A briefing assembled
+   only from what is in your context silently omits whole phases.
+   If a digest genuinely does not answer something the briefing needs, spawn **that one lead** with
+   the specific question — never all three on principle.
+2. **Disclose it (FEAT-04's own rule, and #80 requires keeping it).** The briefing states that no
+   report round was spawned and **names the digest paths it was assembled from**. Every
+   orchestrator that made this call volunteered that caveat — FEAT-04 *"SKIPPED and disclosed in
+   the briefing itself … I cite every digest by path"*, and FEAT-06 and FEAT-08 likewise. Without
+   it the reader cannot tell a complete briefing from one missing a phase. It costs zero spawns.
+3. Assemble one document: each lead's summary **drawn from its digest, cited by path**, all open questions, resolved escalations, the
    goal-check result, the UAT if required — and a
    **proposed backlog** as a markdown table with an `ID` column (`B-1`, `B-2`, … unique within the
    briefing), one row per residual finding that survived collation but does not gate, each with its

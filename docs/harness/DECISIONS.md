@@ -812,6 +812,20 @@ blocking review task.
 with light technical detail, not ID shorthand** — a curation block that reads as `merge P-04+P-09` has
 failed at being reviewable by a human.
 
+**Application (issue #80): the briefing's report round is dropped.** This entry's own premise —
+*"the orchestrator already receives all three consolidated DIGESTs at the briefing, so it has the
+cross-lead view at no extra spawn cost"* — is exactly why a *"report on your domain"* spawn buys
+nothing: it re-narrates context the orchestrator already holds. A FEAT-04 orchestrator reached the
+same conclusion unprompted (*"three lead spawns at ~20 USD each to re-narrate digests I hold is
+spend with nothing to surface it"*). The curation block DEC-69 mandates is unaffected — it was
+never sourced from the report round. A lead is still spawned here when a specific question its
+digests do not answer needs one, and then only that lead.
+
+<!-- stale: "All three always report" -->
+<!-- stale: "report on your domain" -->
+<!-- stale: "all three leads **in parallel**" -->
+<!-- stale: "all three leads in parallel" -->
+
 ## DEC-70 — `ai_behavior` becomes a real change type: ai-dev authors the eval, qa owns the gate — SUPERSEDES DEC-37
 
 **Chose:** add `change_type: ai_behavior` with `eval` as a required test kind. `ai-dev` **authors** the
@@ -3586,6 +3600,21 @@ covers it. Same test measured re-bloat velocity: 9 of 15 kaya files failed the c
 of distillation because kaya still ran the old rules — deploy is the gating control, not authoring
 discipline.
 
+
+**Amendment am.3 (issue #80): ship-refresh and distillation dispatch concurrently, and the cold
+property survives it.** They were two sequential close-out rounds; they share no data and neither
+reads the other's output, so the round-trip bought nothing. They are now **two separate dispatches
+issued in one message**.
+
+The distinction is load-bearing and is why this amendment exists rather than a bare sequencing
+note. **Concurrency is free; combining the prompts is not.** Ship-refresh is hot, mechanical
+routing work. Distillation is the cold, stepping-back judgment this entry created — *"mid-run you
+only observe; distillation happens later, cold"*. A lead handed both jobs in ONE dispatch performs
+the second while still hot from the first, and its distillation degrades into summarising the run
+it just routed — invisible at ship time, surfacing as a worse next feature. Two dispatches in one
+message preserve the cold framing; one dispatch carrying both does not, and is forbidden.
+
+<!-- stale: "alongside ship-refresh" -->
 ---
 
 ## DEC-146 — Board-flip lookup inverted: issue → projectItems, no item cap
