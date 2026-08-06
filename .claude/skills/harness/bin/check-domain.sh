@@ -292,19 +292,37 @@ target = ti.get("file_path") or ti.get("notebook_path") or ""
 # an answer to "may this file look like that", which needs no manifest, no parser and no
 # agent identity to decide.
 _no_parser = False
+_run_domain = _domain_phase
 if _domain_phase:
     # No parseable path -> do not block. A hook that blocks on its own parse failure
-    # would break every write the moment the payload shape changes.
+    # would break every write the moment the payload shape changes. This one stays an
+    # EXIT rather than joining the flags below: with no path there is no file to shape-
+    # check either, so both phases have nothing to say.
     if not target:
         sys.exit(0)
 
-    # No manifest -> fail OPEN, loudly. Blocking every write in a project that has
-    # not run /harness-init would be worse than not enforcing.
+    # No manifest -> the DOMAIN check fails OPEN, loudly. Blocking every write in a
+    # project that has not run /harness-init would be worse than not enforcing.
+    #
+    # A FLAG, NOT AN EXIT — review finding, and it is this PR's own argument one level
+    # down. As an exit it took the SHAPE phase with it, so on a tree with no manifest the
+    # same 400-line feature.yaml measured exit 0 as `harness-orchestrator` and exit 2 as
+    # the main session: the GOVERNED agent got LESS shape enforcement than the ungoverned
+    # one. A missing manifest says nothing about how long a file may be.
     if not os.access(manifest, os.R_OK):
         print(f"check-domain: no {manifest} — enforcement OFF (run /harness-init).",
               file=sys.stderr)
-        sys.exit(0)
+        _run_domain = False
 
+if _run_domain:
+    # THE IMPORT SITS UNDER `_run_domain`, NOT UNDER `_domain_phase`, and the difference
+    # is a real defect the existing suite caught within a minute. Moved up one level it
+    # runs even when the manifest is absent — the exact ordering the comment at the top of
+    # this file warns about (`harness_yaml is imported LAZILY, below, after the manifest
+    # check`). In the isolated-copy fixture, where the module is deliberately not present,
+    # that import raised and the process exited 1 INSTEAD of printing "enforcement OFF"
+    # and exiting 0. Exit 1 is non-blocking, so the write proceeded either way; what was
+    # lost was DEC-101's deliberate, loud fail-open becoming a silent crash.
     import harness_yaml
 
     # The RETURN VALUE IS THE DECISION — discarding it makes the whole escape inert.
@@ -326,10 +344,12 @@ if _domain_phase:
     _no_parser = harness_yaml.yaml is None
 
 else:
-    # UNGOVERNED — the main session, or a non-harness agent. It reaches the shape phase,
-    # whose state.yaml branch needs a parser but never the BOOTSTRAP GRANT: the grant is a
+    # NO DOMAIN PHASE — the main session, a non-harness agent, post mode, or a governed
+    # agent in a project with no manifest. All of them still reach the shape phase, whose
+    # state.yaml branch needs a parser but never the BOOTSTRAP GRANT: the grant is a
     # domain escape, spendable once per session, and spending it here would consume the
-    # main session's escape on a check that is not the one it exists for.
+    # main session's escape on a check that is not the one it exists for. A missing module
+    # is absorbed rather than raised, so a shape question is never answered by a crash.
     try:
         import harness_yaml
         _no_parser = harness_yaml.yaml is None
@@ -433,7 +453,7 @@ def domain_check():
 # keys and no denial. Before the T-13 single-interpreter merge those were separate
 # launches and the shape gate ran regardless — so this was a regression introduced by
 # the merge, not an inherited gap. Skip only what actually needs the parser.
-if _domain_phase and not _no_parser:
+if _run_domain and not _no_parser:
     domain_check()
 
 # ---------------------------------------------------------------------------
@@ -503,6 +523,31 @@ def _norm(path):
     return wt.group(1) if wt else rel
 
 
+# THE VERB IS MODE-DEPENDENT, and this was a review finding. In PRE the write is genuinely
+# refused. In POST it already LANDED — exit 2 there only carries stderr back to the agent —
+# so "BLOCKED" states something that did not happen, on every post route, not merely the
+# sweep. An agent told its write was blocked when the file is on disk will do the wrong
+# thing about it. Same messages, one honest verb.
+VERB = "OVER BUDGET (already written)" if _post else "BLOCKED"
+
+# THE FOUR STATE-FILE PATTERNS, named ONCE. They were four inline `re.match` calls, which
+# was fine while the only caller had already been handed the file's text. The post route
+# has not: it holds a path, and reading a file to discover it is not a state file costs the
+# whole file. Measured by review on a 200 MB non-state path: 228 ms, against 37 ms once the
+# pattern is consulted first. Two uses, one definition — duplicating them as a fast-path
+# guard would create exactly the silent drift `test-check-state.py` case (o) exists to catch.
+RE_FEATURE_YAML = re.compile(r"^\.harness/features/[^/]+/feature\.yaml$")
+RE_STATE_YAML   = re.compile(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$")
+RE_HANDOFF      = re.compile(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$")
+RE_STATE_MD     = re.compile(r"^\.harness/features/[^/]+/STATE\.md$")
+STATE_PATTERNS = (RE_FEATURE_YAML, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD)
+
+
+def is_state_file(rel):
+    """Cheap path-only predicate: could shape_problems have anything to say about `rel`?"""
+    return any(p.match(rel) for p in STATE_PATTERNS)
+
+
 def shape_problems(rel, content):
     """The stderr LINES for one file's text, or [] when it is clean. NEVER exits.
 
@@ -515,11 +560,11 @@ def shape_problems(rel, content):
     out = []
 
     def deny(msgs):
-        out.append("check-domain: BLOCKED — state-file shape (DEC-150).")
+        out.append(f"check-domain: {VERB} — state-file shape (DEC-150).")
         out.extend(f"  {m}" for m in msgs)
         out.append(f"  {ROUTING}")
 
-    if re.match(r"^\.harness/features/[^/]+/feature\.yaml$", rel):
+    if RE_FEATURE_YAML.match(rel):
         problems = []
         if len(lines) > 200:
             problems.append(f"feature.yaml is {len(lines)} lines — budget is 200. It is data a script "
@@ -531,7 +576,7 @@ def shape_problems(rel, content):
         if problems:
             deny(problems)
 
-    if re.match(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$", rel):
+    if RE_STATE_YAML.match(rel):
         # DEC-154/160: the run checkpoint carries only whitelisted top-level keys.
         # INV-16 sweeps this at entry; this denies it at write, while the author can
         # fix it — the first post-deploy run (FEAT-03 plan) violated within hours of
@@ -576,7 +621,7 @@ def shape_problems(rel, content):
             # D-02: the DEC-156 denial SURVIVES, now raised by the loader rather than
             # counted by a regex — which also catches a duplicate at any nesting depth,
             # not merely at column 0.
-            out.append("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook (DEC-154).")
+            out.append(f"check-domain: {VERB} — state.yaml is a checkpoint, not a notebook (DEC-154).")
             out.append(f"  duplicate key {e.key!r} — the second silently shadows the first; "
                        f"replace the placeholder, never append a copy (DEC-156).")
             return out
@@ -584,7 +629,7 @@ def shape_problems(rel, content):
             # NEW blocking outcome, deliberate (D-02 consequence #2). The regex this
             # replaced found no keys in a malformed file and therefore reported nothing
             # wrong — it wrote a broken checkpoint and said it was fine.
-            out.append("check-domain: BLOCKED — this state.yaml is not valid YAML.")
+            out.append(f"check-domain: {VERB} — this state.yaml is not valid YAML.")
             out.append(f"  {e.original}")
             out.append("  A checkpoint that cannot be parsed is unreadable to every gate that "
                        "consumes it later; the write is refused while you can still fix it.")
@@ -598,7 +643,7 @@ def shape_problems(rel, content):
         keys = list(doc) if isinstance(doc, dict) else []
         unknown = sorted({str(k) for k in keys if str(k) not in ALLOWED})
         if unknown:
-            out.append("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook (DEC-154).")
+            out.append(f"check-domain: {VERB} — state.yaml is a checkpoint, not a notebook (DEC-154).")
             out.append(f"  non-checkpoint top-level key(s) {unknown} — findings and assessment prose "
                        f"belong in this run's digest.md; a one-line note: per STEP entry is the "
                        f"prose ceiling.")
@@ -612,7 +657,7 @@ def shape_problems(rel, content):
                            f"becomes an int (YAML 1.1). Quote the key to keep it a string.")
             return out
 
-    if re.match(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$", rel):
+    if RE_HANDOFF.match(rel):
         # DEC-159: the handoff note is working memory for a successor — four fixed
         # sections, hard-capped, denied at write while the author can still fix it.
         # Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
@@ -628,10 +673,10 @@ def shape_problems(rel, content):
                             f" contract (templates/HANDOFF.md); a freeform handoff drifts like an"
                             f" unvalidated digest did (DEC-156).")
         if problems:
-            out.append("check-domain: BLOCKED — handoff shape (DEC-159).")
+            out.append(f"check-domain: {VERB} — handoff shape (DEC-159).")
             out.extend(f"  {m}" for m in problems)
 
-    if re.match(r"^\.harness/features/[^/]+/STATE\.md$", rel):
+    if RE_STATE_MD.match(rel):
         problems = []
         if len(lines) > 120:
             problems.append(f"STATE.md is {len(lines)} lines — budget is 120. It holds no history: "
@@ -666,9 +711,12 @@ elif target:
     # POST, with a named file: Write, Edit, NotebookEdit. Read what LANDED — no
     # reconstruction of `old_string`/`new_string`, no `replace_all` semantics, no TOCTOU
     # window, because the filesystem already holds the answer those would approximate.
+    _rel = _norm(target)
+    if not is_state_file(_rel):
+        sys.exit(0)
     try:
         with open(os.path.abspath(target), encoding="utf-8", errors="replace") as _f:
-            targets = [(_norm(target), _f.read())]
+            targets = [(_rel, _f.read())]
     except OSError:
         # The tool may have failed, or the path may be a directory or already gone. A
         # post-hoc reporter that raises on an unreadable path would turn every such write
