@@ -645,6 +645,10 @@ def case_o():
                                   r"comment lines — budget is (\d+)"),
         ("STATE.md lines",      r"STATE\.md is \{len\(lines\)\} lines — budget is (\d+)",
                                 r"STATE\.md is \{len\(sl\)\} lines — budget is (\d+)"),
+        # Issue #139 made this the fourth number in both files, so it joins the detector in
+        # the same commit that duplicates it — not in a later one nobody writes.
+        ("CLAUDE.md lines",     r"CLAUDE\.md is \{len\(lines\)\} lines — budget is (\d+)",
+                                r"CLAUDE\.md is \{len\(_cml\)\} lines — budget is (\d+)"),
     ):
         a, _ = budget(dom, what, dpat)
         b, _ = budget(sta, what, spat)

@@ -5159,7 +5159,6 @@ with the code is how a reader concludes an entry is spurious and deletes it.
 
 <!-- stale: "check-domain.sh` DENIES an over-budget `feature.yaml` or STATE.md Write" -->
 <!-- stale: "The six prerequisites" -->
-<!-- stale: "all six prerequisites present" -->
 
 **Carve-out compliance.** `check-domain.sh`, `check-state.sh` and their tests are DEC-174 files: this
 landed as direct main-session edits with tests run explicitly and a human reading the diff, never
@@ -5167,3 +5166,44 @@ through a team run whose gates are the thing being changed. Six mutants were run
 `check-state.sh` and six against `check-domain.sh`; five of the latter were caught and the sixth —
 removing the `--post` argv blanking — was **not**, which is recorded in the code as the line being
 defensive rather than load-bearing instead of being papered over with a test that cannot detect it.
+
+---
+
+## DEC-181 — CLAUDE.md gets a line budget of 80 and enters the propagation checker's scan roots
+
+`CLAUDE.md` is read at **every session start** — the widest blast radius of any file in this repo,
+wider than SPEC.md or any agent file. It was the only file of its class with neither a mechanical
+budget nor propagation coverage. Its peers all have the first: expertise 150, `feature.yaml` 200/20,
+handoff notes 60, STATE.md 120.
+
+**Both halves were re-derived at `a5edb13`, not inherited from issue #139.** Planting a live stale
+phrase in `CLAUDE.md` and running `check-docs.sh` produced **zero** hits: the scan roots were
+`docs/harness`, `.harness`, `.claude/skills`, `.claude/commands` and `.claude/agents`, and the repo
+root was not among them. The checker whose whole purpose is catching claims a decision invalidated
+could not see the file every agent reads first.
+
+**The root tier is NON-RECURSIVE, and that is not a detail.** Globbing `**` from `.` walks `.git`,
+`node_modules` and `.claude/worktrees/` — scanning every file of every other checkout as though it
+were this one. The test plants a decoy one level down and fails if it is reached.
+
+**80 is derived from the file's own history, which is what the ticket asked for.** It was 50–51 lines
+through 2026-07-28, 56 on 08-02, 71 on 08-04, then **84** — at which point a human trimmed it twice, to
+78 and then 74. 80 is the only number with evidence behind it: it FIRES on the 84-line version somebody
+judged excessive, and leaves headroom above the 74 that survived that judgement. A budget at today's
+size bans all growth; a generous one bans nothing. The ticket said explicitly that picking a number
+without measuring was out of scope.
+
+**Issue #139 ruled out `check-domain.sh`'s shape gate, and DEC-180 made that reason obsolete.** The
+ticket says "it fires on `Write` only (see #132 — `Edit` and `Bash` bypass it) and the main session,
+which is what actually edits `CLAUDE.md`, is ungoverned by it". Both clauses were true when written and
+neither is true now: the main session is bound on all four routes. So the budget lives where the
+four-route machinery already is, rather than in a fifth gate. `Edit` matters more than `Write` for this
+file, and a `Write`-only gate would have bound the one route nobody uses on it.
+
+**No `<!-- stale: -->` marker is declared for the ruling this supersedes, and that is checked, not assumed.** The phrase issue #139 uses to rule out the shape gate lives in the ISSUE BODY, which `check-docs.sh` does not scan and should not — GitHub issues are a record of what was believed then. `--audit` reported the marker INERT, which is exactly what that flag exists to catch, so it was removed rather than left as decoration that reads like enforcement. The same audit removed DEC-180's `all six prerequisites present` marker: that string had already been replaced by the derived count in the same commit that declared it stale, so it could never have matched anything.
+
+INV-23 sweeps it from disk at `/harness` entry as the backstop, at warn level, exactly as for the four
+state files. That makes `CLAUDE.md`'s budget the **fourth** number duplicated across `check-domain.sh`
+and `check-state.sh`, so it joins `test-check-state.py` case (o) — the drift detector — in the same
+commit that duplicates it, rather than in a later one nobody writes.
+

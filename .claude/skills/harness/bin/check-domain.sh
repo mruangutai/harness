@@ -502,6 +502,7 @@ ROUTING = ("Routing: current truth REPLACES STATE.md ## Current; per-run finding
 # blind to them is blind to the common case. The named-target route already handled this
 # via `_norm`; the sweep did not.
 _SWEEP_PATTERNS = (
+    "CLAUDE.md",
     ".harness/features/*/feature.yaml",
     ".harness/features/*/runs/*/state.yaml",
     ".harness/features/*/notes/handoff-*.md",
@@ -560,7 +561,10 @@ RE_FEATURE_YAML = re.compile(r"^\.harness/features/[^/]+/feature\.yaml$")
 RE_STATE_YAML   = re.compile(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$")
 RE_HANDOFF      = re.compile(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$")
 RE_STATE_MD     = re.compile(r"^\.harness/features/[^/]+/STATE\.md$")
-STATE_PATTERNS = (RE_FEATURE_YAML, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD)
+# CLAUDE.md (issue #139). Not a state file, and included here anyway because this is
+# where the four-route machinery already lives — the alternative was a fifth gate.
+RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$")
+STATE_PATTERNS = (RE_FEATURE_YAML, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD)
 
 
 def is_state_file(rel):
@@ -705,6 +709,29 @@ def shape_problems(rel, content):
         if problems:
             out.append(_head("handoff shape (DEC-159)."))
             out.extend(f"  {m}" for m in problems)
+
+    if RE_CLAUDE_MD.match(rel):
+        # ISSUE #139. CLAUDE.md is read at EVERY session start — the widest blast radius in
+        # the repo — and was the only file of its class with no mechanical budget. Its peers
+        # all have one: expertise 150, feature.yaml 200/20, handoff 60, STATE.md 120.
+        #
+        # 80 IS DERIVED, NOT PICKED, and the ticket asked for exactly that. Measured from
+        # this file's own history: 50-51 lines through 2026-07-28, 56 on 08-02, 71 on 08-04,
+        # then 84 — at which point a human trimmed it, twice, to 78 and then 74. 80 is the
+        # only number with evidence behind it: it FIRES on the 84-line version somebody
+        # judged excessive, and leaves headroom above the 74 that survived that judgement.
+        # A budget at today's size would ban all growth; a generous one would ban nothing.
+        #
+        # THE TICKET RULED THIS GATE OUT AND ISSUE #132 MADE THAT REASON OBSOLETE. #139 says
+        # "check-domain.sh's shape gate is the wrong home: it fires on Write only and the
+        # main session is ungoverned by it" — both true when written, neither true now. The
+        # main session is the thing that actually edits CLAUDE.md, and it is now bound on
+        # all four routes. Re-derived at a5edb13 rather than inherited from the ticket.
+        if len(lines) > 80:
+            out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80 (DEC-181)."))
+            out.append("  It is preloaded into EVERY session, so a line here costs more than "
+                       "a line anywhere else. Carry the rule and one clause of why, not the "
+                       "biography (DEC-158); rationale belongs in docs/harness/DECISIONS.md.")
 
     if RE_STATE_MD.match(rel):
         problems = []

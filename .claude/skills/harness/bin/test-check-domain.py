@@ -650,6 +650,42 @@ def run_post():
     post("a reported file is NOT re-reported on the next sweep",
          r_rep == [0, 0, 0, 0], f"got {r_rep} (want all 0 after the first report)")
 
+    # --- CLAUDE.md (issue #139), on the routes that matter for it. It is edited by the
+    # MAIN SESSION, which #132 had exempted entirely, and by Edit far more than by Write —
+    # so a Write-only gate would have bound the one route nobody uses for this file.
+    _cm = os.path.join(d, "CLAUDE.md")
+    for _n, _want in ((81, True), (80, False)):
+        with open(_cm, "w") as f:
+            f.write("\n".join(f"line {i}" for i in range(_n)) + "\n")
+        # route 1: main-session Write, measured on the payload
+        rw = subprocess.run([HOOK], input=json.dumps({
+            "tool_name": "Write",
+            "tool_input": {"file_path": _cm,
+                           "content": "\n".join(f"line {i}" for i in range(_n))}}),
+            capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
+        # route 2: main-session Edit, measured on disk
+        os.utime(_cm, None)
+        re_ = fire_post(d, {"tool_name": "Edit", "hook_event_name": "PostToolUse",
+                            "tool_input": {"file_path": _cm, "old_string": "a",
+                                           "new_string": "b"}})
+        hit_w = rw.returncode == 2 and "budget is 80" in rw.stderr
+        hit_e = re_.returncode == 2 and "budget is 80" in re_.stderr
+        post(f"CLAUDE.md at {_n} lines {'IS' if _want else 'is NOT'} over the 80 budget, "
+             f"on Write AND Edit",
+             hit_w == _want and hit_e == _want,
+             f"Write exit {rw.returncode}, Edit exit {re_.returncode}")
+
+    # route 3: Bash, via the sweep — the route that has no path in its payload at all.
+    with open(_cm, "w") as f:
+        f.write("\n".join(f"line {i}" for i in range(81)) + "\n")
+    fire_post(d, bash_payload)                       # settle
+    os.utime(_cm, None)
+    r = fire_post(d, bash_payload)
+    post("the SWEEP reaches CLAUDE.md (route 3)",
+         r.returncode == 2 and "budget is 80" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+    os.remove(_cm)
+
     # --- DISCRIMINATION. Every case above passes against a gate that exits 2 always.
     write(10)
     for label, payload in (("Edit", edit_payload()), ("Bash", bash_payload)):
