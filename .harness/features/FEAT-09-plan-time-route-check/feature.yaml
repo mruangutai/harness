@@ -4,9 +4,11 @@ branch: feat/FEAT-09-plan-time-route-check
 pr: none
 status: awaiting_user
 posture: >-
-  SOURCE COMPLETE, REVIEWED, DISTILLED, BRIEFING WRITTEN. Goal-check ran on all 12 SCs: 11 MET,
-  SC-08 UNMET-AS-UNPROVEN (behaviour correct, its clause-4 fixture cannot fail). Three remedies,
-  the choice is the user's — see briefing. Nothing else is open. Awaiting the ship ruling.
+  SHIP-READY. ALL 12 SCs MET — SC-08 was the last open item and is now PROVEN, not merely
+  accepted: its clause-4 fixture was rebuilt so it can fail, demonstrated by swapping a prefix
+  reimplementation in and watching case 17b catch it while the three original assertions passed.
+  One finding surfaced by the user during the ruling and filed rather than fixed: NOTHING
+  MECHANICAL RUNS THE CHECKER — see trigger_gap. Awaiting the ship decision only.
 review_sha: 7354ad0
 review_sha_note: >-
   THE PIN MOVED THREE TIMES; the briefing carries why. (1) 1185d7f DANGLING after the rebase,
@@ -71,18 +73,21 @@ gate_status:
     DONE across 10 agents. All 12 expertise files pass check-expertise.sh exit 0, RE-RUN BY ME
     because leads hold no Bash and two flagged their own files unverified.
 sc_status:
-  met: "SC-01..SC-07, SC-09..SC-12 — 11 of 12, each re-derived at HEAD, not relayed"
-  sc08_unmet: >-
-    UNPROVEN, NOT BROKEN, and it is the open decision. check-plan-routes.py implements no matcher
-    at all, so clause 4's PROPERTY holds by construction. Its fixture cannot fail: the case-17 path
-    is granted TWICE and the second grant is prefix-shaped, while the test asserts only no-VIOLATION
-    plus some-OK and the OK line emits no agent name. MEASURED BY ME: live --resolve returns 2
-    agents, a prefix-only implementation would grant 6. Remedies (a)/(b)/(c) in the briefing.
-must_fix_open:
-  mf1_sc08_fixture: >-
-    MED, lane UNPROVEN — a TEST question, not a code one. Remedy is a USER DECISION first: (a)
-    change shipped checker output, (b) amend SC-08 (approval-gated), (c) accept and file. Not
-    routed to a lead: (a)/(b) are eng changes that no lane may pick unilaterally.
+  met: "ALL 12 — SC-01..SC-12. SC-08 closed 2026-08-05; the other 11 re-derived at HEAD, not relayed"
+  sc08_closed: >-
+    WAS UNPROVEN-NOT-BROKEN; NOW PROVEN. The code was always correct (no matcher; it shells out).
+    The fixture could not fail, because a prefix reimplementation OVER-grants rather than
+    under-granting — `.harness/features/` prefixes every feature file — so it also resolved to
+    somebody, also printed OK and also exited 0. FIX: the OK line now names the granting set
+    (the convention the DEVIATION line already used) and case 17b asserts the EXACT set.
+    DISCRIMINATION PROVEN BY RUNNING: with a prefix reimplementation swapped in, all three
+    original case-17 assertions still PASS and 17b FAILS — expected 2 agents, got all 16.
+  sc08_residual_weakness: >-
+    SAID PLAINLY RATHER THAN CLOSED OVER. Clauses 8, 9 and 16 remain source greps for the literal
+    strings check-domain.sh, fnmatch and glob_to_re; a differently-spelled reimplementation passes
+    all three. SC-08's strength now rests on case 17b alone. This is issue #74 mode 3 and stays on
+    the backlog as B-2.
+must_fix_open: {}
 must_fix_resolved:
   vf1_env_var_disables_the_guard: >-
     FIXED AND VERIFIED AT 7218d63 by the MAIN SESSION under DEC-174 — the lane the orchestrator
@@ -93,6 +98,20 @@ filed_not_fixed:
     FILED AS ISSUE #132 BY USER RULING — a budget/context-hygiene gap, NOT an authorization hole,
     which is why VF-1 was fixed inline and this was not. Write exits 2; Edit and Bash exit 0.
     Domain enforcement is unaffected on all three routes. Costs: notes/vf2-shape-gate-edit-bypass.md.
+trigger_gap:
+  raised_by: >-
+    THE USER, during the SC-08 ruling, from first principles — and it is larger than SC-08 was.
+  finding: >-
+    NOTHING MECHANICAL INVOKES check-plan-routes.py. Verified by grep: check-state.sh 0 hits,
+    check-docs.sh 0, settings.json 0 hooks, and run-unit-tests.sh runs only the TEST. The sole
+    invocation is a SENTENCE — harness-spec-driven/SKILL.md:39 telling harness-pm to run it.
+    So FEAT-09 moves routing from build-time discovery to plan-time detection ONLY FOR PLANNERS
+    THAT RUN THE SCRIPT. That is prose-only enforcement — the shape this feature's own BRIEF
+    rejected. It is backlog items b4 and b8 converging.
+  ordering_trap: >-
+    b7 MUST land before b8. An argv-less invocation globs relative to CWD and returns "0
+    violations across 0 plans, exit 0", so wiring it into check-state.sh naively yields an
+    invariant that passes by checking nothing — the same failure class a third time.
 backlog:
   detail: notes/backlog-detail.md — one line each here, rationale there (DEC-150 routing)
   b1_shared_files_rejected: "FLAGGED. A `shared:` file is falsely REJECTED — fails CLOSED, not open. Answering it amends DEC-179"
