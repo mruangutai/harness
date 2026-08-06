@@ -12,7 +12,8 @@ import sys
 import tempfile
 
 BIN_DIR = os.path.dirname(os.path.abspath(__file__))
-SCRIPT = os.path.join(BIN_DIR, "check-plan-routes.py")
+SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
+    BIN_DIR, "check-plan-routes.py")
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
 
 GRANTED_PATH = ".claude/skills/harness/bin/check-domain.sh"  # granted to two agents
@@ -174,6 +175,52 @@ def case_17():
               f"from line {ok_line!r}")
 
 
+def case_18():
+    """(18) issue #134: a BLOCK-FORM `files:` is parsed in full, dash stripped.
+
+    The bug was `files:\\s*(.*)$` — `\\s` matches NEWLINES, so on a block-form list the
+    regex swallowed the line break and captured the FIRST ITEM ONLY, dash included.
+    That is a false positive AND a fail-open in one: the dash made a granted path look
+    ungranted, while every LATER entry went unchecked.
+
+    Three assertions, because a returncode-only test passes on either half alone:
+      (a) the granted first entry is NOT reported ungranted (the dash is stripped),
+      (b) a genuinely ungranted LATER entry IS reported (the fail-open half),
+      (c) the same-line form still works, so the fix did not trade one shape for another.
+    """
+    results = []
+    with tempfile.TemporaryDirectory() as td:
+        block = write_plan(td, "# PLAN\n\n" + (
+            "- T-01: block form\n"
+            "  files:\n"
+            "    - docs/harness/SPEC.md\n"
+            "    - .gitignore\n"
+            "  execution_mode: team\n"
+            "  status: pending\n"))
+        r = run(block)
+        out = r.stdout
+        results.append(("case_18a_block_form_first_entry_not_falsely_rejected",
+                        "- docs/harness/SPEC.md ungranted" not in out, out))
+        results.append(("case_18b_block_form_LATER_entry_is_checked_the_fail_open",
+                        ".gitignore ungranted" in out, out))
+    with tempfile.TemporaryDirectory() as td:
+        same = write_plan(td, "# PLAN\n\n" + (
+            "- T-01: same-line form\n"
+            "  files: `docs/harness/SPEC.md`, `.gitignore`\n"
+            "  execution_mode: team\n"
+            "  status: pending\n"))
+        r2 = run(same)
+        results.append(("case_18c_same_line_form_still_parsed",
+                        ".gitignore ungranted" in r2.stdout, r2.stdout))
+    ok = True
+    for name, passed, detail in results:
+        print(f"{'ok' if passed else 'FAIL'} {name}")
+        if not passed:
+            print(f"        {detail.strip()[:220]}")
+            ok = False
+    return ok
+
+
 def main():
     case_01_02_03()
     case_04()
@@ -184,6 +231,8 @@ def main():
     case_13()
     case_14_15()
     case_17()
+    if not case_18():
+        failures.append('case_18')
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

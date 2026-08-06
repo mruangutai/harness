@@ -35,7 +35,23 @@ TASK_RE = re.compile(
     re.M | re.S,
 )
 
-FILES_RE = re.compile(r"^\s*files:\s*(.*)$", re.M)
+# `[ \t]*`, NEVER `\s*`, after the colon (issue #134). `\s` matches NEWLINES, so the
+# original `files:\s*(.*)$` swallowed the line break on a list-form block and captured
+# the FIRST LIST ITEM — dash included — as if it were the whole files: value.
+#
+# That produced a false positive AND a fail-open at once, which is why this is worth
+# the comment. Measured on a three-path fixture before the fix:
+#   VIOLATION T-01: - docs/harness/SPEC.md ungranted   <- granted; the dash broke it
+#   ...and .gitignore, which genuinely resolves to NOBODY, was NEVER CHECKED.
+# One bogus violation masking one real one. The visible symptom was the false
+# rejection; the dangerous half was the four other entries nobody ever looked at.
+FILES_RE = re.compile(r"^[ \t]*files:[ \t]*(.*)$", re.M)
+# A list item under a `files:` block. Stops at the next `key:` line or a blank line.
+LIST_ITEM_RE = re.compile(r"^[ \t]*-[ \t]*(.+?)[ \t]*$")
+KEY_LINE_RE = re.compile(r"^[ \t]*[A-Za-z_][A-Za-z0-9_]*:")
+# The pre-FEAT-06 shape: `- files:` as a list item. Detected only to give a
+# better message; never parsed.
+LEGACY_FILES_RE = re.compile(r"^[ \t]*-[ \t]*files:[ \t]*$", re.M)
 MODE_RE = re.compile(r"^\s*execution_mode:\s*(\S+)", re.M)
 
 LEGAL_MAIN_SESSION_TOKEN = "main-session-direct"
@@ -67,22 +83,67 @@ def resolve_agents(path):
     return sorted(set(agents))
 
 
-def parse_files(files_line):
-    entries = [e.strip().strip("`").strip() for e in files_line.split(",")]
-    return [e for e in entries if e]
+def _clean(entry):
+    return entry.strip().strip("`").strip().rstrip(",").strip()
+
+
+def parse_files(body, files_match):
+    """Entries from a `files:` value, in EITHER shape the tree actually uses.
+
+    Same-line (`files: a, b, c`) is what templates/PLAN.md:61 prescribes. Block form —
+    `files:` alone, then `- path` lines — is what five of the eight PLANs in this repo
+    actually contain, and it was silently misread until issue #134.
+    """
+    same_line = files_match.group(1).strip()
+    if same_line:
+        return [c for c in (_clean(e) for e in same_line.split(",")) if c]
+
+    # Block form: consume `- item` lines following the `files:` line, stopping at the
+    # next `key:` or anything that is not a list item. Reading only the first one is
+    # the fail-open this replaces.
+    # `$` stops BEFORE the newline, so splitlines() yields an empty first element.
+    # Dropping it matters: without the [1:] the loop breaks on that empty string and
+    # parses nothing — which looks like "0 violations" and IS the fail-open, not a fix.
+    # Caught by case_18b failing against my own first attempt.
+    entries = []
+    for line in body[files_match.end():].splitlines()[1:]:
+        if not line.strip():
+            break
+        m = LIST_ITEM_RE.match(line)
+        if not m:
+            break                      # a `key:` line, or prose — the block ended
+        if KEY_LINE_RE.match(line):
+            break
+        c = _clean(m.group(1))
+        if c:
+            entries.append(c)
+    return entries
 
 
 def process_task(tid, body, findings):
     """Append findings for one task block. Returns the number of VIOLATIONs added."""
     files_match = FILES_RE.search(body)
     if not files_match:
-        findings.append(f"VIOLATION {tid}: no files: line")
+        # A `- files:` LIST-ITEM key (the pre-FEAT-06 shape, still in FEAT-03/04/05)
+        # is deliberately NOT parsed: its children are prose — "create `path`",
+        # "edit `path` (`key`)" — and extracting paths from prose would produce
+        # confident wrong answers, which is worse than declining. Say which case
+        # this is, because "no files: line" on a task that visibly HAS one reads as
+        # a checker bug and sent one reader looking for one.
+        if LEGACY_FILES_RE.search(body):
+            findings.append(
+                f"VIOLATION {tid}: files: is a `- files:` list item with prose "
+                f"children (pre-FEAT-06 shape) — not machine-readable. Rewrite it as "
+                f"`files: <path>, <path>` or a `- <path>` block to have it checked."
+            )
+        else:
+            findings.append(f"VIOLATION {tid}: no files: line")
         return 1
 
     mode_match = MODE_RE.search(body)
     mode_token = mode_match.group(1) if mode_match else None
 
-    entries = parse_files(files_match.group(1))
+    entries = parse_files(body, files_match)
 
     glob_entries = [e for e in entries if "*" in e or "?" in e]
     literal_entries = [e for e in entries if e not in glob_entries]
