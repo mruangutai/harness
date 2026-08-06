@@ -1578,6 +1578,7 @@ things, and **they have different owners** (DEC-119):
 | Counter | Lives in | Owned and written by | Bounds |
 |---|---|---|---|
 | step `cycles` | run `state.yaml` | **the lead** | retries of one step, within one run |
+| `len(runs)` / `max_total_runs` | `feature.yaml` | **the orchestrator** | TOTAL runs, informational only (issue #79). Cycles count rework, so nothing counted runs — FEAT-03 ran 19 against a 6-cycle count and tripped nothing, and DEC-178 deleted cost, the other long-feature signal. `check-state.sh` INV-22 NOTES a crossing and never gates: a long feature is fine when each run is efficient, resolves issues and advances the SCs. The count is a FLOOR — main-session-direct segments are not runs |
 | `cycles_used` / `max_total_cycles` | `feature.yaml` | **the orchestrator** | REWORK across every run of the feature — FAILs routed back, unmet-SC re-dispatches, lead-reported send-backs. A clean first-pass run contributes zero (DEC-157) |
 
 The split follows the file ownership that already exists (§11.3/§11.4) and is enforced by the domain

@@ -20,8 +20,8 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    when a specific digest is cited, NEVER as a startup sweep — a wholesale read of a mature
    feature dir costs ~100k tokens before the first decision (DEC-150).
    First cycle ever: instantiate `STATE.md` and `feature.yaml` from
-   `.claude/skills/harness/templates/` — `max_total_cycles` comes from harness.json
-   `budgets.max_total_cycles`, never your own guess; raising it later is a user decision
+   `.claude/skills/harness/templates/` — `max_total_cycles` and `max_total_runs` come from
+   harness.json `budgets.`, never your own guess; raising either later is a user decision
    recorded in feature.yaml (DEC-157). **The approval gate depends on your mission:**
    - mission **ship** (or resuming one): BRIEF *and* PLAN must both carry `status: approved` —
      an unapproved artifact stops you at step 0, `BLOCKED`.
@@ -99,12 +99,20 @@ It lives in `feature.yaml`, maintained only by you, from the lead's report.
 | | Teeth | On crossing |
 |---|---|---|
 | `cycles_used` / `max_total_cycles` | **HARD** — it kills runaway fix loops | stop the branch, preserve everything, `status: blocked`, return `BLOCKED`. Never silently continue |
+| `len(runs)` / `max_total_runs` | **INFORMATIONAL** — it notices a long feature, it never stops one | `check-state.sh` INV-22 emits a NOTE. Keep going; a high count is not a defect |
+
+**Why a second counter at all (issue #79).** Cycles count rework only, so a first-pass run adds
+zero and **nothing counted total runs**: FEAT-03 ran 19 times against a 6-cycle count and tripped
+nothing. Cost used to be the other long-feature signal and DEC-178 deleted it, so without this
+nothing notices at all. It is informational on purpose — **a long feature is fine when each run is
+efficient, resolves issues and advances the SCs**, and those are the three questions the note asks.
+The count is a **floor**: a main-session-direct segment is not a run and never appears in `runs:`.
 
 **A cycle is REWORK ONLY (DEC-157)** — a FAIL routed back, an unmet-SC re-dispatch, or a send-back a
 lead reports from inside a run. A first-pass run contributes **zero**, however many steps it has: the
 PLAN's task list already bounds forward work, and counting runs as cycles is how a healthy 16-run
-feature goes BLOCKED with nothing wrong. The default (10) lives in harness.json
-`budgets.max_total_cycles`.
+feature goes BLOCKED with nothing wrong. The defaults live in harness.json —
+`budgets.max_total_cycles` (10) and `budgets.max_total_runs` (20).
 
 
 ## The question round-trip (SPEC §2.1 — you are the middle of it)

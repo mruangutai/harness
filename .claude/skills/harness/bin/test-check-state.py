@@ -366,6 +366,55 @@ def case_k():
     return all(results)
 
 
+def case_l():
+    """INV-22 (issue #79): runs are counted, the budget is INFORMATIONAL, and a
+    per-feature raise outranks the default.
+
+    Three assertions, because a one-sided test would pass on a check that always fires
+    or never does:
+      (1) 21 runs against a 20 budget NOTES,
+      (2) exactly 20 does NOT — the boundary is `>`, not `>=`,
+      (3) a feature declaring max_total_runs: 30 silences it,
+      (4) and the exit code is UNCHANGED, because this must never gate.
+    """
+    def build(tmp, n, declared=""):
+        h = os.path.join(tmp, ".harness")
+        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write('{\n  "github": {"sync": false, "repo": null},\n'
+                    '  "budgets": {"max_total_runs": 20}\n}\n')
+        runs = "\n".join(f"  - {{ id: r{i}, squad: eng, verdict: PASS }}"
+                         for i in range(n))
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+            f.write(f"feature_id: FEAT-TEST\nphase: build\ncycles_used: 2\n"
+                    f"review_sha: abc1234\n{declared}runs:\n{runs}\n")
+        return run(tmp)
+
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        code_over, out_over = build(tmp, 21)
+    with tempfile.TemporaryDirectory() as tmp:
+        code_at, out_at = build(tmp, 20)
+    with tempfile.TemporaryDirectory() as tmp:
+        _code_raised, out_raised = build(tmp, 21, "max_total_runs: 30\n")
+
+    for name, ok, detail in (
+        ("(l1) 21 runs against a 20 budget is NOTED",
+         "21 runs recorded against a 20-run budget" in out_over, out_over),
+        ("(l2) exactly 20 does NOT fire — the boundary is >, not >=",
+         "runs recorded against" not in out_at, out_at),
+        ("(l3) a per-feature max_total_runs: 30 silences it",
+         "runs recorded against" not in out_raised, out_raised),
+        ("(l4) INV-22 NEVER gates — exit code identical over and under budget",
+         code_over == code_at, f"over={code_over} at={code_at}"),
+    ):
+        print(f"{'ok' if ok else 'FAIL'} - case {name}")
+        if not ok:
+            print(f"        {detail.strip()[:200]}")
+        results.append(ok)
+    return all(results)
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -378,6 +427,7 @@ def main():
     ok_i = case_i()
     ok_j = case_j()
     ok_k = case_k()
+    ok_l = case_l()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -386,7 +436,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_exit_unchanged):
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
 
