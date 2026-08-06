@@ -24,3 +24,6 @@
 __pycache__/
 *.pyc
 .claude/settings.json.harness-bak
+
+# harness: the post-sweep high-water mark (mtime only, never content)
+.harness/.shape-sweep-stamp

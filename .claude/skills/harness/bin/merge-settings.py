@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Merge the six harness prerequisites into a project's .claude/settings.json.
+"""Merge the harness hook prerequisites into a project's .claude/settings.json.
 
-WHY THIS IS A SCRIPT AND NOT AN INSTRUCTION: all six entries degrade SILENTLY if
+WHY THIS IS A SCRIPT AND NOT AN INSTRUCTION: every entry degrades SILENTLY if
 absent — no error, no warning, just a harness with memoryless agents that can write
 anywhere. Hand-merging JSON into a file that already has the project's own hooks is
-exactly where one of the six quietly goes missing. So the merge is deterministic
+exactly where one of them quietly goes missing. So the merge is deterministic
 and re-runnable, and `--check` can assert the result.
 
   merge-settings.py <project-root> [--check] [--template <path>]
@@ -24,10 +24,23 @@ path is recognised rather than duplicated.
 """
 import json
 import os
+import re
 import shutil
 import sys
 
-# The six prerequisites, each keyed by the script basename that identifies it.
+# The hook prerequisites, each keyed by the (event, script basename) pair that identifies
+# it — check-domain.sh appears on TWO events and they are two separate prerequisites.
+#
+# THE COUNT IS DERIVED FROM THIS LIST, never written as a word. At origin/main the word
+# "six" appeared on 5 lines of this file and 3 times in the snippet, and "seven" on 5
+# lines of harness-init/SKILL.md (counting the spawn-depth env var); adding the
+# PostToolUse entry for issue #132 made every one of them wrong at once. A prose count
+# that disagrees with the code is how a reader concludes an entry is spurious and
+# deletes it.
+#
+# The numbers above are `git show origin/main:<file> | grep -ci`. An earlier draft of
+# this comment said "three places and one" from memory and was wrong in both halves —
+# in the very comment arguing that unchecked counts rot. Caught by review.
 HOOK_SPECS = [
     {
         "event": "SubagentStart",
@@ -45,6 +58,21 @@ HOOK_SPECS = [
         "why": "Domain enforcement. Absent -> every agent can write anywhere, "
                "fail-open and silent. Agent-frontmatter PreToolUse hooks DO NOT FIRE "
                "(DEC-110), so settings.json is the only place this works.",
+    },
+    {
+        # SAME SCRIPT, DIFFERENT EVENT — and `hook_present` keys on (event, basename),
+        # so this is a genuinely separate prerequisite rather than a duplicate of the
+        # PreToolUse entry above. Registered on Bash too, which the PreToolUse entry
+        # deliberately is not: pre-Bash there is nothing to shape-check, post-Bash the
+        # file is on disk.
+        "event": "PostToolUse",
+        "script": "check-domain.sh",
+        "args": " --post",
+        "matcher": "Write|Edit|Bash",
+        "why": "State-file SHAPE enforcement on the routes PreToolUse cannot reach "
+               "(issue #132). Absent -> the DEC-150 line and comment budgets bind only "
+               "a `Write` by a harness agent, which is 1 of 4 routes; Edit, Bash and "
+               "the main session all write over budget in silence.",
     },
     {
         "event": "SubagentStop",
@@ -98,18 +126,87 @@ DEPTH_WHY = ("Pins nesting to main-session -> orchestrator -> lead -> member (DE
 CMD = "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/%s"
 
 
-def hook_present(entries, script):
-    """True if any registration on this event already runs `script`.
+# The matcher values that are literal TOOL alternations, as opposed to agent-name regexes
+# like `harness-.*`. Only these can be checked for tool coverage; for the others a matcher
+# is not a list of anything and presence is the whole question.
+_TOOL_NAMES = {"Write", "Edit", "NotebookEdit", "Bash", "Task", "Agent", "Read", "Glob", "Grep"}
+
+
+def _runs_script(cmd, script):
+    """Does this command actually invoke `script`, as opposed to merely mentioning it?
+
+    SUBSTRING MATCHING WAS THE HOLE (review W1/W2). `check-domain.sh.disabled` contains
+    `check-domain.sh`, so a decoy entry naming a disabled copy widened the coverage set and
+    let the real registration be narrowed back to `Write` with every gate green. The token
+    must BE the script, not contain it. This does not resolve the path or check the file
+    exists — a registration pointing at a deleted file still reads as present, and that
+    residual is recorded rather than papered over.
+    """
+    for tok in str(cmd).split():
+        if os.path.basename(tok) == script:
+            return True
+    return False
+
+
+def _matcher_covers(raw, tool):
+    """Does a settings.json matcher select `tool`? The matcher is a REGEX, not a list.
+
+    THIS IS THE WHOLE LESSON OF PR #149's FIRST FIX. Binding the matcher was right — an
+    unbound one let `Write|Edit|Bash` be narrowed to `Write` with every gate green. But the
+    first attempt compared `set(raw.split("|"))` to a required set, which treats a regex as
+    a literal alternation and rejects six legitimate registrations a reviewer enumerated:
+    an ABSENT matcher (which matches every tool, and is the common real-world shape),
+    `".*"`, `"(Write|Edit|Bash)"`, `"^(Write|Edit|Bash)$"`, spaced alternations, and — worst
+    — three separate per-tool entries that together cover the requirement.
+
+    A false negative here is not a missed warning. `hook_present` decides whether to ADD a
+    registration, so rejecting a valid one DUPLICATES it: proven in write mode, 3 entries
+    became 4 with byte-identical commands, and every Write then fired the hook twice. The
+    same fixture made `--check` report the hook MISSING, which harness-init treats as a
+    HARD GATE. Over-strictness broke the thing it was protecting.
+    """
+    if raw is None or str(raw).strip() in ("", "*"):
+        return True                      # no matcher selects every tool
+    try:
+        rx = re.compile(str(raw))
+    except re.error:
+        # An unparseable matcher is the project's problem, not evidence of absence. Claiming
+        # "missing" here would duplicate the hook on a config we simply cannot read.
+        return True
+    return bool(rx.search(tool))
+
+
+def hook_present(entries, script, matcher=None, args=None):
+    """True if this event ALREADY runs `script` across every tool the spec requires.
 
     Matched on basename, not the full command string: a project may legitimately have
     registered the same hook via an absolute path or a different variable. Matching
     the literal string would add a second, duplicate registration that fires twice.
+
+    COVERAGE IS UNIONED ACROSS ENTRIES, because a project may split one requirement over
+    several registrations and each is as valid as our single combined one. The question is
+    "is every required tool covered by some entry running this script", never "does one
+    entry look like ours".
     """
+    want = set(str(matcher or "").split("|")) & _TOOL_NAMES
+    covered, found = set(), False
     for entry in entries or []:
         for h in (entry.get("hooks") or []):
-            if script in str(h.get("command", "")):
-                return True
-    return False
+            cmd = str(h.get("command", ""))
+            if not _runs_script(cmd, script):
+                continue
+            # TOKEN comparison, not substring: `args.strip() in cmd` made `--post` match a
+            # command containing `--posture`, so a hook registered with an unrelated flag
+            # would read as ours. Reviewer finding.
+            if args is not None and args.strip() not in cmd.split():
+                continue
+            found = True
+            covered |= {t for t in want if _matcher_covers(entry.get("matcher"), t)}
+    if not found:
+        return False
+    # `want` is empty for the agent-name specs (`harness-.*`), where a matcher enumerates
+    # no tools and presence is the entire prerequisite — exactly the pre-#149 behaviour.
+    return want <= covered
 
 
 def main():
@@ -144,7 +241,8 @@ def main():
                       f"this script writes {DEPTH_VAL!r} — reconcile them.")
                 return 1
             for spec in HOOK_SPECS:
-                if not hook_present((t.get("hooks") or {}).get(spec["event"]), spec["script"]):
+                if not hook_present((t.get("hooks") or {}).get(spec["event"]), spec["script"],
+                                    spec.get("matcher"), spec.get("args")):
                     print(f"merge-settings: template is missing {spec['script']} on "
                           f"{spec['event']} — reconcile it with this script.")
                     return 1
@@ -197,7 +295,7 @@ def main():
             print(f"merge-settings: {path} hooks.{spec['event']} is not a list. "
                   f"Refusing to touch it.")
             return 1
-        if not hook_present(entries, spec["script"]):
+        if not hook_present(entries, spec["script"], spec.get("matcher"), spec.get("args")):
             missing.append(f"hooks.{spec['event']} -> {spec['script']}  — {spec['why']}")
             added.append(("hooks", spec["event"]))
             entries.append({
@@ -214,7 +312,8 @@ def main():
             for m in missing:
                 print(f"  - {m}")
             return 1
-        print("merge-settings: all six prerequisites present.")
+        print(f"merge-settings: all {len(HOOK_SPECS) + 1} prerequisites present "
+              f"({len(HOOK_SPECS)} hooks + {DEPTH_KEY}).")
         return 0
 
     if not missing:

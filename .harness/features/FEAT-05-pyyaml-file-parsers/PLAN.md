@@ -730,7 +730,7 @@ verify: `grep -c 'pyyaml-bootstrap' .claude/skills/harness/templates/gitignore.s
 
 Edit `.claude/skills/harness-init/SKILL.md`:
 
-1. `:38` — the heading `### 1. Install the six prerequisites — HARD GATE, do this first` becomes
+1. `:38` — the heading `### 1. Install the six prerequisites — HARD GATE, do this first` becomes  <!-- ok-stale -->
    **seven**. The word "six" also appears at `:3` (the frontmatter `description`), `:48`, `:49` and
    `:236`; update **all five** or the count contradicts itself in the file that enforces it.
 2. Inside step 1's bash block (`:40-44`), add the probe — a **check**, not an install:

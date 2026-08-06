@@ -304,6 +304,56 @@ else:
         bad.append("No PreToolUse check-domain hook — domain enforcement is ABSENT "
                    "and every agent can write anywhere. Frontmatter hooks do not "
                    "fire (DEC-110), so settings.json is the only place this works.")
+    # SEPARATE EVENT, SEPARATE ASSERTION (issue #132). The PreToolUse check above passes
+    # on a tree where the PostToolUse half was never installed — and that half is the
+    # only one covering Edit, Bash and the main session, so its absence restores the
+    # 1-of-4 coverage the issue measured while every other line here stays green.
+    # THE MATCHER IS PART OF THE ASSERTION, not decoration. A reviewer narrowed this
+    # registration to `Write` in all three copies and every gate stayed green, which
+    # reverts issue #132 entirely while the tree reports itself correct: `Write` alone is
+    # the ONE route that already worked. So name the tools and check for them.
+    # EXISTENTIAL, NOT FIRST-MATCH. `next(...)` read only the FIRST entry mentioning
+    # check-domain, so prepending a compliant decoy and narrowing the real registration
+    # back to `Write` passed all four gates while restoring the 1-of-4 coverage issue #132
+    # measured — two lines in one file, defeating the assertion this change added. Coverage
+    # is unioned across every entry that runs the script, the same shape merge-settings.py's
+    # hook_present uses, because a project may legitimately split one requirement in two.
+    post = hooks.get("PostToolUse") or []
+    def _runs_cd(entry):
+        # TOKEN, not substring — `check-domain.sh.disabled` contains the name and runs
+        # nothing. A decoy entry naming a disabled copy widened this check's coverage set
+        # and let the real registration be narrowed to `Write` with all four gates green.
+        for _h in (entry.get("hooks") or []):
+            for _tok in str(_h.get("command", "")).split():
+                if os.path.basename(_tok) == "check-domain.sh":
+                    return True
+        return False
+
+    _pts = [e for e in post if _runs_cd(e)]
+    _want = {"Write", "Edit", "Bash"}
+    _have = set()
+    for _e in _pts:
+        _m = str(_e.get("matcher", "")).strip()
+        if _m in ("", "*", ".*"):
+            _have |= _want
+        else:
+            _have |= {t for t in _want if re.search(_m, t)}
+    _pt = _pts[0] if _pts else None
+    if _pt is None:
+        bad.append("No PostToolUse check-domain hook — the DEC-150 state-file SHAPE "
+                   "budgets bind only a `Write` by a harness agent (1 of 4 routes); "
+                   "Edit, Bash and the main session write over budget in silence "
+                   "(issue #132). INV-23 below still sweeps, one entry late.")
+    elif not _want <= _have:
+        bad.append(f"PostToolUse check-domain is registered across {len(_pts)} entry/entries "
+                   f"but nothing matches {sorted(_want - _have)}. "
+                   f"The shape gate only reaches the tools it matches, so a narrowed "
+                   f"matcher restores the 1-of-4 coverage issue #132 measured, silently.")
+    elif not any(" --post" in str(_e) for _e in _pts):
+        bad.append("PostToolUse check-domain is registered without ` --post`. Mode also "
+                   "resolves from hook_event_name, so this is not fatal — but the flag is "
+                   "the half we control, and a registration missing it degrades to "
+                   "pre-mode the moment the platform field changes (issue #132).")
 
 # `cj` is the parsed harness.json, consumed below by the test_kinds, github.sync and
 # gh-config checks. The JSON-validity violation is kept on its own merit — a config
@@ -373,6 +423,44 @@ for rd in glob.glob(os.path.join(H, "features", "*", "runs")):
         bad.append(f"{os.path.basename(fdir)}: has runs/ but no feature.yaml — the feature is "
                    f"invisible to run reconciliation and phase checks; instantiate it from the "
                    f"template (the playbook's first-cycle duty).")
+
+# --- INV-23 (DEC-150, mechanized — issue #132): the feature.yaml and STATE.md budgets,
+# swept from DISK. check-domain.sh enforces the same numbers on a WRITE payload, which is
+# where they can still be prevented; this reads the file as it actually is, so no tool and
+# no author identity can route around it — including a session where the PostToolUse half
+# of that hook was never registered, which is the case INV-9 above reports.
+#
+# WARN, not bad, and the reason is measured rather than tidy: run against this tree the
+# day it landed, it found FEAT-05/STATE.md at 165 lines against a 120 budget and five
+# illegal sections, and FEAT-02/STATE.md with five more — both predating the gate. Making
+# them halt /harness entry would convert a reporting backstop into an unrelated cleanup
+# that has to land first. The write-time gate is the one with teeth; this one's job is
+# that the drift reaches a human.
+#
+# VOCABULARY stays in sync with check-domain.sh; the MECHANISM deliberately does not
+# (D-02) — that one measures a payload, this one measures a file.
+for fy in sorted(glob.glob(os.path.join(H, "features", "*", "feature.yaml"))):
+    fl = (read(fy) or "").splitlines()
+    feat = os.path.basename(os.path.dirname(fy))
+    if len(fl) > 200:
+        warn.append(f"INV-23 {feat}/feature.yaml is {len(fl)} lines — budget is 200. It is "
+                    f"data a script parses, not a journal (DEC-150).")
+    nc = sum(1 for l in fl if l.lstrip().startswith("#"))
+    if nc > 20:
+        warn.append(f"INV-23 {feat}/feature.yaml has {nc} comment lines — budget is 20. "
+                    f"Narrative commentary does not belong in feature.yaml (DEC-150).")
+
+for sm in sorted(glob.glob(os.path.join(H, "features", "*", "STATE.md"))):
+    sl = (read(sm) or "").splitlines()
+    feat = os.path.basename(os.path.dirname(sm))
+    if len(sl) > 120:
+        warn.append(f"INV-23 {feat}/STATE.md is {len(sl)} lines — budget is 120. It holds no "
+                    f"history: ## Current is replaced, never appended (DEC-150).")
+    illegal = [l.strip() for l in sl
+               if l.startswith("## ") and l.strip() not in ("## Current", "## Open Questions")]
+    if illegal:
+        warn.append(f"INV-23 {feat}/STATE.md has illegal section(s) {illegal} — STATE.md is "
+                    f"`## Current` + `## Open Questions` and nothing else (SPEC §2).")
 
 # --- INV-15 (DEC-156): a complete lead-hosted run's digest.md is the durable copy a
 # successor reads — it must exist and satisfy the lead digest contract. The SubagentStop

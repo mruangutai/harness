@@ -55,6 +55,7 @@ case("a repo path reached via a long .. chain still blocks",
 
 import shutil
 import tempfile
+import time
 
 FIXTURE_MANIFEST = """schema_version: 1
 teams:
@@ -500,6 +501,312 @@ def run_resolve():
     return fails
 
 
+# ============ #132: the shape gate on the routes PreToolUse cannot reach ============
+# Measured before the fix, ONE 400-line feature.yaml against a 200-line budget:
+#   Write/harness-orchestrator exit 2 · Edit exit 0 · Bash exit 0 · Write/MAIN exit 0.
+# One route of four. Each case below is one of those routes, run against a REAL file in a
+# fixture repo, because the whole point of the post mode is that it reads the disk rather
+# than a payload it could have been handed.
+
+POST = []
+
+
+def post(name, ok, detail=""):
+    POST.append((name, ok, detail))
+
+
+def fire_post(root, payload, flag="--post"):
+    argv = [HOOK] + ([flag] if flag else [])
+    return subprocess.run(argv, input=json.dumps(payload), capture_output=True,
+                          text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+
+def run_post():
+    d = fixture(FIXTURE_MANIFEST)
+    fdir = os.path.join(d, ".harness", "features", "FEAT-X")
+    os.makedirs(fdir)
+    fy = os.path.join(fdir, "feature.yaml")
+    rel_fy = ".harness/features/FEAT-X/feature.yaml"
+
+    def write(nlines):
+        with open(fy, "w") as f:
+            f.write("\n".join(f"k{i}: v" for i in range(nlines)) + "\n")
+
+    def edit_payload(agent="harness-orchestrator"):
+        p = {"tool_name": "Edit", "hook_event_name": "PostToolUse",
+             "tool_input": {"file_path": fy, "old_string": "a", "new_string": "b"}}
+        if agent:
+            p["agent_type"] = agent
+        return p
+
+    bash_payload = {"agent_type": "harness-orchestrator", "tool_name": "Bash",
+                    "hook_event_name": "PostToolUse",
+                    "tool_input": {"command": "sed -i '' s/a/b/ " + fy}}
+
+    # --- ROUTE 2: Edit. Its payload carries old_string/new_string and NO whole-file
+    # content, which is exactly why the pre hook cannot judge it and exits 0.
+    write(400)
+    r = fire_post(d, edit_payload())
+    post("route 2 — post Edit on an over-budget file exits 2",
+         r.returncode == 2 and "budget is 200" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
+
+    pre = subprocess.run([HOOK], input=json.dumps({
+        "agent_type": "harness-orchestrator", "tool_name": "Edit",
+        "tool_input": {"file_path": fy, "old_string": "a", "new_string": "b"}}),
+        capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
+    # The claim is about the SHAPE finding, not the exit code, and the difference is not
+    # pedantry: harness-orchestrator has no domain in FIXTURE_MANIFEST, so the pre hook
+    # exits 2 here for a DOMAIN reason. A first draft asserted `returncode == 0` and
+    # failed — reading, wrongly, as the pre hook having gained shape coverage on Edit.
+    post("route 2 — the PRE hook reports NO shape finding on that same Edit",
+         "budget is 200" not in pre.stderr,
+         f"exit {pre.returncode}: {pre.stderr.strip()[:120]}")
+
+    # --- ROUTE 3: Bash. No file_path in the payload at all, so this exercises the sweep.
+    r = fire_post(d, bash_payload)
+    post("route 3 — post Bash sweeps and finds the over-budget file",
+         r.returncode == 2 and "budget is 200" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
+
+    # --- ROUTE 4: the MAIN SESSION, which has no agent_type and was exempted from the
+    # shape gate by the DOMAIN carve-out sitting above it.
+    r = subprocess.run([HOOK], input=json.dumps({
+        "tool_name": "Write",
+        "tool_input": {"file_path": fy, "content": "\n".join(["x: 1"] * 400)}}),
+        capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
+    post("route 4 — the MAIN SESSION is no longer exempt from the shape gate",
+         r.returncode == 2 and "budget is 200" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
+
+    # --- THE ENFORCED BUDGET, AT ITS BOUNDARY (review F-02). 400-vs-10 passes against
+    # `> 250` and `> 350` and against every `>` flipped to `>=`, because nothing between
+    # 200 and 400 is ever probed. Cross each budget by exactly ONE line, in both
+    # directions, so the comparison itself is bound and not merely the message text.
+    for _n, _want in ((201, True), (200, False)):
+        write(_n)
+        r = fire_post(d, edit_payload())
+        post(f"feature.yaml at {_n} lines {'IS' if _want else 'is NOT'} over the 200 budget",
+             (r.returncode == 2 and "budget is 200" in r.stderr) == _want,
+             f"exit {r.returncode}: {r.stderr.strip()[:100]}")
+
+    # The COMMENT budget is a second, independent number in the same branch — a fixture
+    # that only ever crosses the line budget leaves it entirely unbound.
+    for _c, _want in ((21, True), (20, False)):
+        with open(fy, "w") as f:
+            f.write("\n".join(["# c"] * _c + ["k: v"] * 5) + "\n")
+        r = fire_post(d, edit_payload())
+        post(f"feature.yaml with {_c} comment lines {'IS' if _want else 'is NOT'} over 20",
+             (r.returncode == 2 and "budget is 20" in r.stderr) == _want,
+             f"exit {r.returncode}: {r.stderr.strip()[:100]}")
+
+    # --- THE OTHER THREE GATES, IN POST MODE (review F-03). The handoff branch and the
+    # state.yaml checkpoint branch could each be replaced with `if False:` and both suites
+    # stayed green; three of the four sweep globs could be deleted unnoticed. Each file
+    # below is written under a DIFFERENT glob and reached through the Bash SWEEP, so this
+    # binds the branch and its glob at once.
+    os.makedirs(os.path.join(fdir, "notes"), exist_ok=True)
+    os.makedirs(os.path.join(fdir, "runs", "r1"), exist_ok=True)
+    write(10)
+    for label, relpath, body, needle in (
+        ("handoff cap (DEC-159)", "notes/handoff-plan.md",
+         "\n".join(["## Next", "## Trust", "## Dead ends", "## Working set"] + ["x"] * 70),
+         "cap is 60"),
+        ("handoff missing sections", "notes/handoff-build.md", "## Next\nonly one\n",
+         "missing required section"),
+        ("state.yaml checkpoint keys (DEC-154)", "runs/r1/state.yaml",
+         "schema_version: 1\nfindings: a notebook entry\n", "non-checkpoint top-level key"),
+        ("STATE.md sections (SPEC 2)", "STATE.md", "## Current\n## Not A Section\n",
+         "illegal section"),
+    ):
+        _p = os.path.join(fdir, relpath)
+        with open(_p, "w") as f:
+            f.write(body)
+        r = fire_post(d, bash_payload)
+        post(f"the SWEEP reaches and enforces {label}",
+             r.returncode == 2 and needle in r.stderr,
+             f"exit {r.returncode}: {r.stderr.strip()[:140]}")
+        os.remove(_p)
+
+    # --- F-06: `_norm`'s worktree strip is load-bearing, and the sweep's worktree tier
+    # with it. A live agent worktree in this repo held 38 files matching the sweep globs
+    # and the sweep reached NONE of them before this. Every harness agent works in one.
+    wt = os.path.join(d, ".claude", "worktrees", "wt1", ".harness", "features", "FEAT-W")
+    os.makedirs(wt, exist_ok=True)
+    write(10)
+    fire_post(d, bash_payload)                      # advance the stamp past everything
+    r0 = fire_post(d, bash_payload)                 # nothing fresh -> silence
+    with open(os.path.join(wt, "feature.yaml"), "w") as f:
+        f.write("\n".join(f"k{i}: v" for i in range(400)) + "\n")
+    r1 = fire_post(d, bash_payload)
+    post("the sweep reaches a file inside .claude/worktrees/ (and was silent before it)",
+         r0.returncode == 0 and r1.returncode == 2 and "budget is 200" in r1.stderr,
+         f"baseline exit {r0.returncode}, after exit {r1.returncode}")
+
+    # --- THE HIGH-WATER MARK. Two review findings in one: no dedup (five unrelated Bash
+    # calls re-reported one bad file five times) and bulk mtime refresh (`git checkout --`
+    # resets mtime to now, dragging the whole tree into a fixed window at once).
+    r_rep = [fire_post(d, bash_payload).returncode for _ in range(4)]
+    post("a reported file is NOT re-reported on the next sweep",
+         r_rep == [0, 0, 0, 0], f"got {r_rep} (want all 0 after the first report)")
+
+    # --- DISCRIMINATION. Every case above passes against a gate that exits 2 always.
+    write(10)
+    for label, payload in (("Edit", edit_payload()), ("Bash", bash_payload)):
+        r = fire_post(d, payload)
+        post(f"a WITHIN-budget file exits 0 on post {label}",
+             r.returncode == 0 and not r.stderr.strip(),
+             f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+
+    # --- THE DOMAIN PHASE MUST NOT RUN POST-HOC. The write already landed, so a denial is
+    # noise duplicating the pre verdict — and require_or_bootstrap would SPEND the
+    # session's single bootstrap grant on a question whose answer can no longer matter.
+    # Measured before `_domain_phase` existed: this exited 2 with the domain message.
+    ungranted = os.path.join(d, "forbidden", "x.md")
+    os.makedirs(os.path.dirname(ungranted))
+    open(ungranted, "w").write("x\n")
+    r = fire_post(d, {"agent_type": "harness-documentor", "tool_name": "Write",
+                      "hook_event_name": "PostToolUse",
+                      "tool_input": {"file_path": ungranted}})
+    post("post mode does NOT re-run the domain check",
+         r.returncode == 0 and "may not write" not in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+    # ...and the PRE hook on that same path still blocks, or the line above is only
+    # measuring a manifest that grants everything.
+    r = fire(d, "forbidden/x.md")
+    post("the PRE hook still blocks that same ungranted path",
+         r.returncode == 2, f"exit {r.returncode}")
+
+    # --- THE MTIME WINDOW. It is what keeps the sweep off the 515 ms path, so a file
+    # older than the window must NOT be re-reported on every subsequent Bash call.
+    write(400)
+    old = time.time() - 7200
+    os.utime(fy, (old, old))
+    r = fire_post(d, bash_payload)
+    post("the sweep skips an over-budget file older than SWEEP_WINDOW_S",
+         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+    # ...and the SAME file, touched, is found again — so the line above is the window
+    # working, not the sweep being broken.
+    os.utime(fy, None)
+    r = fire_post(d, bash_payload)
+    post("the same file, freshly touched, IS found",
+         r.returncode == 2 and "budget is 200" in r.stderr, f"exit {r.returncode}")
+
+    # --- THE RACE, ASSERTED AS A PROPERTY (review HIGH-1). Round 2's stamp advanced to the
+    # moment the sweep FINISHED, so a file another agent wrote DURING the walk landed before
+    # the new mark and was reported by nobody — reproduced 40/40 at a 40 ms offset, and
+    # PERMANENT, because the stamp is global and shared. Worse than the repeat-reporting it
+    # replaced.
+    #
+    # A first draft of this case tried to stage the race with a backdated mtime and PASSED
+    # AGAINST THE DEFECT — the backdate was relative to the previous sweep's mark, which is
+    # exactly the quantity the bug moves, so both versions found the file. Assert the
+    # invariant itself instead: THE MARK IS THE SWEEP'S START. Padding makes the walk long
+    # enough that start and finish are far apart, which is what gives the assertion teeth.
+    _pad = os.path.join(fdir, "runs")
+    for _i in range(800):
+        _rd = os.path.join(_pad, f"pad{_i}")
+        os.makedirs(_rd, exist_ok=True)
+        with open(os.path.join(_rd, "state.yaml"), "w") as f:
+            f.write("schema_version: 1\nrun_id: pad\nstatus: complete\n")
+    write(10)
+    fire_post(d, bash_payload)                        # settle: nothing fresh
+
+    # INTERPRETER START-UP IS MEASURED AND SUBTRACTED, because it dominates. `_now` is
+    # captured inside the Python body, so wall-clock from process launch to the stamp
+    # includes ~38 ms of start-up that has nothing to do with the walk. A first draft
+    # compared the mark against total process time and FAILED on correct code, reporting a
+    # 37 ms offset against a 53 ms total — measuring start-up, not the race window.
+    _t0i = time.time()
+    fire_post(d, bash_payload)                        # idle: start-up only
+    _idle = time.time() - _t0i
+
+    for _i in range(800):                             # make every pad file fresh again
+        os.utime(os.path.join(_pad, f"pad{_i}", "state.yaml"), None)
+    _t0 = time.time()
+    fire_post(d, bash_payload)
+    _loaded = time.time() - _t0
+    _mark = os.stat(os.path.join(d, ".harness", ".shape-sweep-stamp")).st_mtime
+    _walk = _loaded - _idle                           # the part that is actually the sweep
+    _offset = _mark - _t0                             # where the mark landed in the process
+    # Start-stamping puts the mark at ~_idle; end-stamping puts it at ~_idle + _walk.
+    # IS THE MARK NEARER THE START OF THE WALK OR ITS END? A fixed threshold discriminated
+    # by one millisecond and was luck, not a test; this compares the two hypotheses directly.
+    ok_mark = _walk > 0.015 and abs(_offset - _idle) < abs(_offset - _loaded)
+    post("the mark records the sweep's START, not its finish (the race window)",
+         ok_mark,
+         f"start-up {_idle*1000:.0f} ms, walk {_walk*1000:.0f} ms, mark at "
+         f"{_offset*1000:.0f} ms — distance to start {abs(_offset-_idle)*1000:.0f} ms vs "
+         f"to finish {abs(_offset-_loaded)*1000:.0f} ms (a walk under 15 ms means the case "
+         f"proved nothing and fails on purpose)")
+    for _i in range(800):
+        shutil.rmtree(os.path.join(_pad, f"pad{_i}"), ignore_errors=True)
+
+    # --- AN UNREADABLE CANDIDATE MUST NOT ADVANCE THE MARK PAST ITSELF, or a transient
+    # permission blip becomes a permanent blind spot by the same mechanism.
+    write(400)
+    _bad = os.path.join(fdir, "runs", "r2")
+    os.makedirs(_bad, exist_ok=True)
+    _sy = os.path.join(_bad, "state.yaml")
+    with open(_sy, "w") as f:
+        f.write("schema_version: 1\n")
+    os.chmod(_sy, 0o000)
+    try:
+        fire_post(d, bash_payload)                   # one candidate unreadable
+        os.chmod(_sy, 0o644)
+        r = fire_post(d, bash_payload)
+        post("an unreadable candidate leaves the mark unadvanced (no permanent blind spot)",
+             r.returncode == 2 and "budget is 200" in r.stderr,
+             f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+    finally:
+        os.chmod(_sy, 0o644)
+        os.remove(_sy)
+
+    # --- EVERY FINDING NAMES ITS FILE. The sweep walks up to 234 candidates across a main
+    # checkout and every worktree; without the path, one logical file present in five
+    # checkouts produced five byte-identical findings and zero way to tell them apart.
+    write(400)
+    os.utime(fy, None)
+    r = fire_post(d, bash_payload)
+    post("a sweep finding names the file it is about",
+         rel_fy in r.stderr, f"stderr lacked {rel_fy}: {r.stderr.strip()[:160]}")
+
+    # --- A POST PAYLOAD WITH NO agent_type still gets the shape gate. That is the shape
+    # every Bash and main-session post invocation has, and it is the path argv position 2
+    # feeds, so it is the one that would break if the mode flag were read as an identity.
+    #
+    # NOT a test of the argv blanking itself: mutation showed the suite stays green with
+    # that line removed, because "--post" is not `harness-`-prefixed and lands on the same
+    # ungoverned branch. The blanking is defensive and this case does not pretend to cover
+    # it — a case named for something it cannot detect is worse than no case.
+    write(400)
+    r = fire_post(d, {"tool_name": "Edit", "tool_input": {"file_path": fy,
+                                                          "old_string": "a", "new_string": "b"}})
+    post("a post payload with NO agent_type still gets the shape gate",
+         r.returncode == 2 and "budget is 200" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+
+    # --- TWO SIGNALS, EITHER SUFFICIENT. The platform's hook_event_name alone must work,
+    # or a registration that omits the flag silently degrades to pre-mode.
+    r = fire_post(d, edit_payload(), flag=None)
+    post("hook_event_name alone selects post mode (no --post flag)",
+         r.returncode == 2 and "budget is 200" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+
+    shutil.rmtree(d, ignore_errors=True)
+
+    fails = 0
+    print("--- #132: shape coverage on all four write routes ---")
+    for name, ok, detail in POST:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(POST) - fails}/{len(POST)} post-mode cases passed.\n")
+    return fails
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -517,8 +824,13 @@ def main():
         else:
             print(f"ok    {name}")
     print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
+    # EACH `fails +=` IS ITSELF THE REACHABILITY OF ITS BLOCK. Dropping seven characters
+    # from any one of these leaves the block running and printing while its result is
+    # discarded — the suite goes green with the cases visibly FAILing on screen. The
+    # aggregate below is asserted non-negative so the shape of this line stays deliberate.
     fails += run_t12()
     fails += run_resolve()
+    fails += run_post()
     return fails
 
 

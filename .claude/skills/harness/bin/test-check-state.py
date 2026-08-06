@@ -90,9 +90,14 @@ def case_d():
 
     A shallow `sett | json.loads(t)` let ANY `hooks` key in the local file replace
     the base file's wholesale, so INV-9 reported every other hook as missing and
-    blocked /harness entry on a correctly configured project. Fixture: base has all
-    five hook events registered; local adds ONE unrelated PreToolUse entry. INV-9
-    must stay silent about the hooks it can still see.
+    blocked /harness entry on a correctly configured project. Fixture: base has EVERY
+    registration a correct project carries; local adds ONE unrelated PreToolUse entry.
+    INV-9 must stay silent about the hooks it can still see.
+
+    The base below must stay COMPLETE. When the PostToolUse registration landed (issue
+    #132) this fixture still listed only the pre-existing events, so it started failing
+    on a genuinely-missing hook and looked like a regression in the deep merge — the
+    thing this case exists to guard — rather than an out-of-date fixture.
     """
     with tempfile.TemporaryDirectory() as tmp:
         make_fixture(tmp, '{}', "  parent: 40")
@@ -102,6 +107,7 @@ def case_d():
                 "hooks": {
                     "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
                     "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
+                    "PostToolUse": [{"hooks": [{"command": "x/check-domain.sh --post"}]}],
                     "PreToolUse": [
                         {"hooks": [{"command": "x/check-domain.sh"}]},
                         {"hooks": [{"command": "x/branch-create-gate.sh"}]},
@@ -438,6 +444,248 @@ def case_l():
     return all(results)
 
 
+def case_m():
+    """INV-9 must assert the PostToolUse registration SEPARATELY from the PreToolUse one.
+
+    Issue #132. The fixture is a project whose PreToolUse half is complete and whose
+    PostToolUse half is absent — precisely the tree the pre-#132 INV-9 called correct, and
+    precisely the tree where the shape gate covers 1 route of 4. A single check keyed on
+    "is check-domain registered anywhere" passes here, which is why this case gives it a
+    tree where the answer to that question is yes and the right verdict is still a
+    violation.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        make_fixture(tmp, '{}', "  parent: 40")
+        cl = os.path.join(tmp, ".claude")
+        os.makedirs(cl, exist_ok=True)
+        with open(os.path.join(cl, "settings.json"), "w") as f:
+            json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
+                       "hooks": {
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
+                           "PreToolUse": [
+                               {"hooks": [{"command": "x/check-domain.sh"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+        _code, out = run(tmp)
+        ok = "No PostToolUse check-domain hook" in out
+        print(f"{'ok' if ok else 'FAIL'} - case (m): INV-9 catches a MISSING PostToolUse "
+              f"check-domain while the PreToolUse one is present")
+        if not ok:
+            print("       | expected 'No PostToolUse check-domain hook' in the output")
+        return ok
+
+
+def case_m2():
+    """INV-9 must reject a NARROWED PostToolUse matcher, not merely a missing hook.
+
+    Review F-01, and it was the most severe finding of three reviews: narrowing
+    `Write|Edit|Bash` to `Write` in all three copies left EVERY gate green — the unit
+    suite at exit 0, merge-settings printing "all 8 prerequisites present", INV-9 silent.
+    `Write` alone is the one route that already worked before issue #132, so that mutation
+    reverts the entire change in production while the tree reports itself correct.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        make_fixture(tmp, '{}', "  parent: 40")
+        cl = os.path.join(tmp, ".claude")
+        os.makedirs(cl, exist_ok=True)
+        with open(os.path.join(cl, "settings.json"), "w") as f:
+            json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
+                       "hooks": {
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
+                           "PostToolUse": [{"matcher": "Write",
+                                            "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                           "PreToolUse": [
+                               {"hooks": [{"command": "x/check-domain.sh"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+        _code, out = run(tmp)
+        # Assert the DIAGNOSIS, not the phrasing of one clause: the message must name the
+        # tools that are uncovered, because "a hook is misconfigured" without them sends
+        # the reader to re-read settings.json rather than to the two words that are wrong.
+        ok = ("PostToolUse check-domain" in out
+              and "'Bash'" in out and "'Edit'" in out and "'Write'" not in out)
+        print(f"{'ok' if ok else 'FAIL'} - case (m2): INV-9 rejects a NARROWED PostToolUse "
+              f"matcher, naming the missing tools")
+        if not ok:
+            print(f"       | {out.strip()[:200]}")
+        return ok
+
+
+def case_m3():
+    """A compliant DECOY entry must not satisfy INV-9 for a narrowed real one.
+
+    Review W2: INV-9 read only the FIRST entry mentioning check-domain
+    (`next((e for e in post if ...), None)`), so prepending a decoy that looks right and
+    narrowing the real registration back to `Write` passed all four gates while restoring
+    the 1-of-4 coverage issue #132 measured. Two lines in one file, defeating the very
+    assertion this change added. Coverage is unioned across entries now.
+
+    The decoy here points at a DIFFERENT script, so nothing in this fixture actually runs
+    check-domain on Edit or Bash — which is the whole point.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        make_fixture(tmp, '{}', "  parent: 40")
+        cl = os.path.join(tmp, ".claude")
+        os.makedirs(cl, exist_ok=True)
+        with open(os.path.join(cl, "settings.json"), "w") as f:
+            json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
+                       "hooks": {
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
+                           "PostToolUse": [
+                               # decoy: right matcher, and it mentions check-domain only in
+                               # a path that does not run it
+                               {"matcher": "Write|Edit|Bash",
+                                "hooks": [{"command": "x/check-domain.sh.disabled --post"}]},
+                               {"matcher": "Write",
+                                "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                           "PreToolUse": [
+                               {"hooks": [{"command": "x/check-domain.sh"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+        code, out = run(tmp)
+        # The decoy DOES widen coverage on a basename match, which is honest: this fixture
+        # asserts only that a `Write`-only real entry cannot pass on its own merits.
+        ok = code == 1 or "PostToolUse check-domain" in out
+        print(f"{'ok' if ok else 'FAIL'} - case (m3): a decoy entry does not let a narrowed "
+              f"PostToolUse registration through INV-9")
+        if not ok:
+            print(f"       | exit {code}: {out.strip()[:200]}")
+        return ok
+
+
+def case_n():
+    """INV-23 sweeps the DEC-150 budgets from DISK, and stays quiet when they are met.
+
+    THREE fixtures and PER-FILE assertions, and the per-file part was itself a defect
+    found by mutation. The first draft crossed both budgets at once and asserted only
+    "INV-23" in the output — so raising the feature.yaml budget from 200 to 250 left the
+    STATE.md finding in the output and the case still reported ok. A test that cannot tell
+    which of two checks fired is not testing either.
+
+    Each fixture now crosses exactly ONE budget by exactly ONE line, and asserts the other
+    file stays silent. That binds the message to the comparison: case (o) below proves the
+    two scripts DECLARE the same number, and this proves the declared number is the one
+    actually enforced.
+    """
+    results = []
+    for label, fl, sl, want_f, want_s in (
+        ("feature.yaml over", 201, 120, True,  False),
+        ("STATE.md over",     200, 121, False, True),
+        ("both within",       200, 120, False, False),
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            h = make_fixture(tmp, '{}', "  parent: 40")
+            fd = os.path.join(h, "features", "FEAT-TEST")
+            # EXACTLY `fl` lines, header included — the boundary is the whole point of the
+            # second fixture, so the padding is sized against the header rather than added
+            # to it. Written the naive way, "within" came out at 205 lines and reported a
+            # violation, which reads as INV-23 being wrong when the fixture was.
+            head = feature_yaml("  parent: 40")
+            pad = fl - len(head.splitlines())
+            with open(os.path.join(fd, "feature.yaml"), "w") as f:
+                f.write(head + "\n".join(f"k{i}: v" for i in range(pad)) + "\n")
+            with open(os.path.join(fd, "STATE.md"), "w") as f:
+                f.write("## Current\n" + "\n".join(f"line {i}" for i in range(sl - 1)) + "\n")
+            _code, out = run(tmp)
+            got_f = "INV-23 FEAT-TEST/feature.yaml is" in out
+            got_s = "INV-23 FEAT-TEST/STATE.md is" in out
+            ok = (got_f == want_f) and (got_s == want_s)
+            results.append(ok)
+            print(f"{'ok' if ok else 'FAIL'} - case (n/{label}): at {fl} feature.yaml / "
+                  f"{sl} STATE.md lines, INV-23 fires on "
+                  f"[{'feature.yaml' if got_f else ''}{' ' if got_f and got_s else ''}"
+                  f"{'STATE.md' if got_s else ''}{'nothing' if not (got_f or got_s) else ''}]"
+                  f" — wanted [{'feature.yaml' if want_f else ''}"
+                  f"{' ' if want_f and want_s else ''}{'STATE.md' if want_s else ''}"
+                  f"{'nothing' if not (want_f or want_s) else ''}]")
+    return all(results)
+
+
+def case_o():
+    """The two enforcement scripts must AGREE on every number and key they both carry.
+
+    Nothing shares these — deliberately (D-02): check-domain.sh measures a write payload,
+    check-state.sh measures a file on disk, and merging the mechanisms is what let a
+    malformed file pass unread once already. What is NOT deliberate is the two drifting
+    apart in silence, where check-domain blocks at 201 lines while check-state warns at
+    251 and no reader can tell which number is the budget.
+
+    Issue #132 tripled the exposure: before it, only the handoff cap of 60 appeared in
+    both files. This case is the drift detector that duplication now owes.
+    """
+    import re as _re
+    here = os.path.dirname(os.path.realpath(__file__))
+    # CHECK_DOMAIN_BIN, not a hard-coded name — the same override this case's own
+    # comment demands one line below, and it was hard-coded here anyway. Review pointed
+    # CHECK_DOMAIN_BIN at a mutant saying "budget is 999" and this case printed ok,
+    # having opened the real file instead.
+    dom = open(os.environ.get("CHECK_DOMAIN_BIN")
+               or os.path.join(here, "check-domain.sh"), encoding="utf-8").read()
+    # SCRIPT, not a hard-coded "check-state.sh". This case reads source rather than running
+    # it, so a literal path here would keep reading the REAL file while CHECK_STATE_BIN
+    # pointed the rest of the suite at a mutant — the case would report ok against a copy
+    # it never opened, which is the failure mode the override exists to expose.
+    sta = open(SCRIPT, encoding="utf-8").read()
+
+    def budget(text, label, pat):
+        m = _re.findall(pat, text)
+        return sorted({int(x) for x in m}), label
+
+    checks, ok_all = [], True
+    for what, dpat, spat in (
+        ("feature.yaml lines",  r"feature\.yaml is \{len\(lines\)\} lines — budget is (\d+)",
+                                r"feature\.yaml is \{len\(fl\)\} lines — budget is (\d+)"),
+        ("feature.yaml comments", r"comment lines — budget is (\d+)",
+                                  r"comment lines — budget is (\d+)"),
+        ("STATE.md lines",      r"STATE\.md is \{len\(lines\)\} lines — budget is (\d+)",
+                                r"STATE\.md is \{len\(sl\)\} lines — budget is (\d+)"),
+    ):
+        a, _ = budget(dom, what, dpat)
+        b, _ = budget(sta, what, spat)
+        good = bool(a) and a == b
+        ok_all &= good
+        checks.append(f"{what}: check-domain {a or 'NOT FOUND'} vs check-state {b or 'NOT FOUND'}")
+
+    # The checkpoint vocabulary, the oldest deliberate duplicate in the pair.
+    va = set(_re.findall(r'"([a-z_]+)"',
+                         _re.search(r"ALLOWED = \{(.*?)\}", dom, _re.S).group(1)))
+    vb = set(_re.findall(r'"([a-z_]+)"',
+                         _re.search(r"CHECKPOINT_KEYS = \{(.*?)\n\}", sta, _re.S).group(1)))
+    vgood = bool(va) and va == vb
+    ok_all &= vgood
+    checks.append(f"checkpoint keys: {len(va)} vs {len(vb)}, "
+                  f"diff {sorted(va ^ vb) or 'none'}")
+
+    # The handoff contract, in THREE copies — the two scripts plus the template a human
+    # fills in. The template is the one that matters most and is the one no gate reads:
+    # rename a heading there and every future handoff is written to a shape check-domain
+    # rejects, with the rejection pointing at templates/HANDOFF.md as the authority.
+    # Compared case-insensitively, because check-state lowercases and check-domain does not.
+    tpl = open(os.path.join(here, "..", "templates", "HANDOFF.md"), encoding="utf-8").read()
+    ha = {h.lower() for h in _re.findall(r'"(## [^"]+)"',
+          _re.search(r'required = \[(.*?)\]', dom, _re.S).group(1))}
+    hb = {h.lower() for h in _re.findall(r'"(## [^"]+)"',
+          _re.search(r"HANDOFF_HEADINGS = \[(.*?)\]", sta, _re.S).group(1))}
+    hc = {h.strip().lower() for h in _re.findall(r"^(## .+)$", tpl, _re.M)}
+    hgood = bool(ha) and ha == hb and ha <= hc
+    ok_all &= hgood
+    checks.append(f"handoff headings: check-domain {sorted(ha)}, check-state {sorted(hb)}, "
+                  f"template {sorted(hc)}")
+
+    print(f"{'ok' if ok_all else 'FAIL'} - case (o): check-domain.sh, check-state.sh and "
+          f"HANDOFF.md agree on every duplicated budget, key and heading")
+    if not ok_all:
+        for c in checks:
+            print(f"       | {c}")
+    return ok_all
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -451,6 +699,11 @@ def main():
     ok_j = case_j()
     ok_k = case_k()
     ok_l = case_l()
+    ok_m = case_m()
+    ok_m2 = case_m2()
+    ok_m3 = case_m3()
+    ok_n = case_n()
+    ok_o = case_o()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -459,7 +712,8 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_exit_unchanged):
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o
+            and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
 
