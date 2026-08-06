@@ -11,12 +11,17 @@ posture: >-
   MECHANICAL RUNS THE CHECKER — see trigger_gap. Awaiting the ship decision only.
 review_sha: 7354ad0
 review_sha_note: >-
-  THE PIN MOVED THREE TIMES; the briefing carries why. (1) 1185d7f DANGLING after the rebase,
-  removed not carried. (2) 4918d06 for the four-wide panel. (3) 7a1bff8 for the delta review after
-  the VF-1 fix made it stale. (4) 7354ad0 now, applying that reviewer's own findings.
-  RE-VERIFIED AT THIS LEG: no SOURCE file has changed since the pin — git diff --name-only
-  7354ad0 HEAD returns 16 files, ALL under .harness/ bookkeeping, ZERO source. So the goal-check
-  rests on a fully reviewed source diff.
+  THE PIN MOVED THREE TIMES AND THERE IS NOW UNREVIEWED SOURCE PAST IT — both go in the briefing.
+  (1) 1185d7f DANGLING after the rebase, removed not carried. (2) 4918d06 for the four-wide panel.
+  (3) 7a1bff8 for the delta review after the VF-1 fix made it stale. (4) 7354ad0, applying that
+  reviewer's own findings.
+  CORRECTION, CAUGHT RATHER THAN LEFT STANDING: an earlier version of this note claimed "ZERO
+  source has changed since the pin". THAT IS NO LONGER TRUE. The SC-08 fix (4769227) changed
+  check-plan-routes.py and test-check-plan-routes.py — measured, `git diff --name-only 7354ad0
+  HEAD -- .claude/ docs/` returns exactly those two. It is UNREVIEWED source, pending the user's
+  call at the ship decision. What it does carry instead of a reviewer: a discrimination proof —
+  swap a prefix reimplementation into resolve_agents and case 17b FAILS (2 agents expected, 16
+  returned) while all three original case-17 assertions still PASS.
 cycles_used: 2
 max_total_cycles: 10
 cycles_note: >-
@@ -42,7 +47,7 @@ runs:
     verdict: FAIL
   - id: goalcheck-product
     squad: product
-    verdict: FAIL   # 11/12 SCs met; SC-08 unmet-as-unproven
+    verdict: FAIL   # 11/12 at 7354ad0. NOT amended: SC-08 closed after, at 4769227
   - id: distill-eng
     squad: eng
     verdict: PASS
@@ -65,15 +70,20 @@ gate_status:
   ui: "PASS — self-scoped out ON MEASUREMENT, not prediction. No rendered surface"
   uat: NOT_REQUIRED — nothing here is operated by hand
   goal_check: >-
-    RAN via product-lead/pm. 11 of 12 SCs MET. SC-08 UNMET-AS-UNPROVEN. pm's premise was
-    re-verified BY ME and is stronger than reported. Digest: runs/goalcheck-product/digest.md
-    (GITIGNORED, local-only — the durable copy of the result is sc_status below).
+    RAN via product-lead/pm at 7354ad0: 11 of 12 SCs MET, SC-08 UNMET-AS-UNPROVEN. THAT VERDICT
+    IS NOT RETROACTIVELY EDITED — SC-08 was closed AFTERWARDS, at 4769227, by a main-session fix
+    carrying its own proof. So: the goal-check returned 11/12 against the tree it saw; the tree
+    now satisfies 12/12. Anyone re-reading should not infer pm returned 12. pm's premise was
+    re-verified by the main session and was stronger than reported.
+    Digest: runs/goalcheck-product/digest.md (GITIGNORED; the durable result is sc_status).
   ship_refresh: "SKIP — .harness/codebase/ does not exist in this tree, so no map to refresh"
   distillation: >-
     DONE across 10 agents. All 12 expertise files pass check-expertise.sh exit 0, RE-RUN BY ME
     because leads hold no Bash and two flagged their own files unverified.
 sc_status:
-  met: "ALL 12 — SC-01..SC-12. SC-08 closed 2026-08-05; the other 11 re-derived at HEAD, not relayed"
+  met: >-
+    ALL 12 AT HEAD. SC-01..SC-07 and SC-09..SC-12 were re-derived at 7354ad0 by the goal-check;
+    SC-08 closed separately at 4769227 — see sc08_closed. The goal-check itself returned 11/12.
   sc08_closed: >-
     WAS UNPROVEN-NOT-BROKEN; NOW PROVEN. The code was always correct (no matcher; it shells out).
     The fixture could not fail, because a prefix reimplementation OVER-grants rather than
@@ -82,6 +92,11 @@ sc_status:
     (the convention the DEVIATION line already used) and case 17b asserts the EXACT set.
     DISCRIMINATION PROVEN BY RUNNING: with a prefix reimplementation swapped in, all three
     original case-17 assertions still PASS and 17b FAILS — expected 2 agents, got all 16.
+  sc08_lane_note: >-
+    NAMED AS A DECLARED DEVIATION, not left looking routine. check-plan-routes.py is NOT on
+    DEC-174's carve-out list and T-02's execution_mode is `team`, so a main-session edit to it is
+    exactly the DEVIATION shape this feature's own checker exists to surface. The user ruled the
+    change directly, so it is authorised — but it is recorded as a deviation, not as a normal edit.
   sc08_residual_weakness: >-
     SAID PLAINLY RATHER THAN CLOSED OVER. Clauses 8, 9 and 16 remain source greps for the literal
     strings check-domain.sh, fnmatch and glob_to_re; a differently-spelled reimplementation passes
