@@ -2,13 +2,13 @@ feature_id: FEAT-09-plan-time-route-check
 phase: ship
 branch: feat/FEAT-09-plan-time-route-check
 pr: none
-status: awaiting_user
+status: shipping
 posture: >-
-  SHIP-READY. ALL 12 SCs MET — SC-08 was the last open item and is now PROVEN, not merely
-  accepted: its clause-4 fixture was rebuilt so it can fail, demonstrated by swapping a prefix
-  reimplementation in and watching case 17b catch it while the three original assertions passed.
-  One finding surfaced by the user during the ruling and filed rather than fixed: NOTHING
-  MECHANICAL RUNS THE CHECKER — see trigger_gap. Awaiting the ship decision only.
+  SHIPPING BY USER RULING 2026-08-05. All 12 SCs met, review PASS, gates green. The two limits
+  found while measuring payback are FILED, not fixed here: #134 (list-form files: misparse — the
+  one item that makes the checker COST time) and #135 (the tool-collision class the checker cannot
+  see by design). Queued next per the ruling: #134 and #133. The SC-08 diff (2 files past the pin)
+  is ACCEPTED on its discrimination proof rather than delta-reviewed — user ruling.
 review_sha: 7354ad0
 review_sha_note: >-
   THE PIN MOVED THREE TIMES AND THERE IS NOW UNREVIEWED SOURCE PAST IT — both go in the briefing.
@@ -139,7 +139,7 @@ backlog:
   b8_promote_invariant: "Promote the route checker to a check-state.sh invariant?"
   b9_shared_regex: "The checker copies check-state.sh's task-block regex (D-08). Consolidate?"
   b10_squad_dispatched: "Two historical plans use a token this feature retires. Normalise?"
-  b11_files_format_bug: "PROMOTED — a list-form `files:` block is misread INCLUDING the leading dash, producing false VIOLATIONs. Top of the list: it makes the checker COST time. notes/does-it-pay-back.md"
+  b11_files_format_bug_FILED_134: "PROMOTED — a list-form `files:` block is misread INCLUDING the leading dash, producing false VIOLATIONs. Top of the list: it makes the checker COST time. notes/does-it-pay-back.md"
   b12_inv17_late: "INV-17 re-checks a handoff only after phase: advances — unflagged during the phase it describes"
   b13_state_cap_story: "The cap is Write-only; Edit and Bash bypass it. Filed as #132 — NOT backlog"
   b14_strict_schema_debt: "Keys this session added that no schema declares yet, listed for issue #104's strict-schema work"
