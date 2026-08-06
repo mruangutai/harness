@@ -686,6 +686,61 @@ def run_post():
          f"exit {r.returncode}: {r.stderr.strip()[:120]}")
     os.remove(_cm)
 
+    # --- ATTRIBUTION ON EVERY ROUTE, not just the sweep (review of PR #152, round 2).
+    # The first fix threaded the display path through the Bash sweep alone and left the
+    # named-target routes printing a bare "CLAUDE.md". Measured: an agent told its file was
+    # 81 lines opened the 74-line root copy and concluded the gate was stale. All three
+    # mutations of the threading — `_head` using `rel`, the sweep back to 2-tuples, the
+    # call site forcing display=None — survived every gate, because NOTHING bound it.
+    #
+    # A state file is checked too. The comment justifying the original fix claimed the
+    # stripped form "still carries FEAT-NN, enough to tell two checkouts apart"; a reviewer
+    # falsified that against this repo the same day, with two live worktrees emitting
+    # findings naming identical FEAT strings. Stripping collapses every checkout onto one
+    # name for state files as much as for CLAUDE.md.
+    _wt = os.path.join(d, ".claude", "worktrees", "wt1")
+    os.makedirs(os.path.join(_wt, ".harness", "features", "FEAT-W"), exist_ok=True)
+    _wcm = os.path.join(_wt, "CLAUDE.md")
+    _wfy = os.path.join(_wt, ".harness", "features", "FEAT-W", "feature.yaml")
+    with open(_wcm, "w") as f:
+        f.write("\n".join(f"x{i}" for i in range(81)) + "\n")
+    with open(_wfy, "w") as f:
+        f.write("\n".join(f"k{i}: v" for i in range(400)) + "\n")
+
+    for label, path, payload_maker in (
+        ("post Edit", _wcm, lambda p: {"hook_event_name": "PostToolUse", "tool_name": "Edit",
+                                       "tool_input": {"file_path": p, "old_string": "a",
+                                                      "new_string": "b"}}),
+        ("post Edit (state file)", _wfy,
+         lambda p: {"hook_event_name": "PostToolUse", "tool_name": "Edit",
+                    "tool_input": {"file_path": p, "old_string": "a", "new_string": "b"}}),
+    ):
+        os.utime(path, None)
+        r = fire_post(d, payload_maker(path))
+        post(f"{label} on a worktree file names the WORKTREE it came from",
+             r.returncode == 2 and ".claude/worktrees/wt1" in r.stderr,
+             f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
+
+    # The PRE route too — it measures a payload, and it printed the same bare name.
+    rw = subprocess.run([HOOK], input=json.dumps({
+        "tool_name": "Write",
+        "tool_input": {"file_path": _wcm,
+                       "content": "\n".join(f"x{i}" for i in range(81))}}),
+        capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
+    post("pre Write on a worktree file names the WORKTREE it came from",
+         rw.returncode == 2 and ".claude/worktrees/wt1" in rw.stderr,
+         f"exit {rw.returncode}: {rw.stderr.strip().splitlines()[:1]}")
+
+    # And the SWEEP, which was the only route the first fix covered — kept so a regression
+    # there is caught too, not assumed.
+    fire_post(d, bash_payload)
+    os.utime(_wcm, None)
+    rs = fire_post(d, bash_payload)
+    post("the sweep still names the worktree it came from",
+         rs.returncode == 2 and ".claude/worktrees/wt1" in rs.stderr,
+         f"exit {rs.returncode}: {rs.stderr.strip().splitlines()[:1]}")
+    shutil.rmtree(_wt, ignore_errors=True)
+
     # --- DISCRIMINATION. Every case above passes against a gate that exits 2 always.
     write(10)
     for label, payload in (("Edit", edit_payload()), ("Bash", bash_payload)):

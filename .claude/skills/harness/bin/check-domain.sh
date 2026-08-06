@@ -537,6 +537,16 @@ SWEEP_WINDOW_S = 120
 STAMP = os.path.join(".harness", ".shape-sweep-stamp")
 
 
+def _show(path):
+    """Repo-relative WITHOUT the worktree strip — the path a human can act on.
+
+    Paired with `_norm` deliberately: `_norm` answers "which rules apply to this file"
+    and must strip, or a worktree write matches no pattern; `_show` answers "which file
+    am I talking about" and must NOT strip, or every checkout collapses onto one name.
+    """
+    return os.path.relpath(os.path.abspath(path), os.path.abspath(root))
+
+
 def _norm(path):
     """Repo-relative, worktree-stripped (DEC-143). The one path normalisation."""
     rel = os.path.relpath(os.path.abspath(path), os.path.abspath(root))
@@ -794,7 +804,8 @@ if not _post:
     # the two disagreed about what a bad payload means. Review finding 2.
     if _tool != "Write" or not target:
         sys.exit(0)
-    targets = [(_norm(target), (d.get("tool_input") or {}).get("content") or "")]
+    targets = [(_norm(target), (d.get("tool_input") or {}).get("content") or "",
+                _show(target))]
 
 elif target:
     # POST, with a named file: Write, Edit, NotebookEdit. Read what LANDED — no
@@ -805,7 +816,7 @@ elif target:
         sys.exit(0)
     try:
         with open(os.path.abspath(target), encoding="utf-8", errors="replace") as _f:
-            targets = [(_rel, _f.read())]
+            targets = [(_rel, _f.read(), _show(target))]
     except OSError:
         # The tool may have failed, or the path may be a directory or already gone. A
         # post-hoc reporter that raises on an unreadable path would turn every such write
@@ -842,9 +853,7 @@ else:
                 with open(_p, encoding="utf-8", errors="replace") as _f:
                     # Third element: the repo-relative path WITHOUT the worktree strip, so
                     # a finding names the checkout it came from.
-                    targets.append((_norm(_p), _f.read(),
-                                    os.path.relpath(os.path.abspath(_p),
-                                                    os.path.abspath(root))))
+                    targets.append((_norm(_p), _f.read(), _show(_p)))
             except OSError:
                 _unreadable = True
     # ADVANCE THE MARK WHETHER OR NOT ANYTHING WAS FOUND, and whether or not the report
@@ -879,9 +888,14 @@ else:
             pass
 
 _problems = []
-for _t in targets:
-    _rel, _text = _t[0], _t[1]
-    _problems.extend(shape_problems(_rel, _text, display=(_t[2] if len(_t) > 2 else None)))
+# UNIFORM 3-TUPLES. The first version threaded `display` through the SWEEP only and left
+# the other two routes as 2-tuples, read back with `_t[2] if len(_t) > 2 else None` — a
+# mixed arity that was itself the tell. Measured: a PostToolUse Edit naming
+# `.claude/worktrees/wt1/CLAUDE.md` printed a bare "CLAUDE.md", so an agent told its file
+# was 81 lines opened the 74-line root copy and concluded the gate was stale. I had fixed
+# the instance and not the class.
+for _rel, _text, _disp in targets:
+    _problems.extend(shape_problems(_rel, _text, display=_disp))
 
 if _problems:
     for _line in _problems:

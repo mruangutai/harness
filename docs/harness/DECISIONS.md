@@ -5119,7 +5119,26 @@ copy: measured, three entries became four and every `Write` fired the hook twice
 failed a gate `harness-init` calls HARD. `test-merge-settings.py` now asserts both directions in one
 table, because a fix for either alone is what produced the other.
 
-**Findings name their file.** The sweep walks up to 234 candidates across the main checkout and every
+**Findings name their file, ON EVERY ROUTE — and the first fix for that covered only one.** The sweep
+walks up to 234 candidates across the main checkout and every worktree and named none of them: one
+logical file present in five checkouts produced five byte-identical findings, and a reviewer received
+another agent's transient fixture, unattributable, in their own session. Threading a display path
+through the SWEEP alone left the named-target routes printing a bare `CLAUDE.md` — measured, an agent
+told its file was 81 lines opened the 74-line root copy and concluded the gate was stale. All three
+mutations of that threading survived every gate, because nothing bound it.
+
+`_norm` and `_show` are now a deliberate pair: `_norm` strips the worktree prefix and answers "which
+rules apply to this file"; `_show` does not strip and answers "which file am I talking about". All
+three routes pass both. The mixed tuple arity that made the gap easy to miss — 3-tuples from the sweep,
+2-tuples elsewhere, read back with `_t[2] if len(_t) > 2` — is gone.
+
+A comment justifying the original fix claimed the stripped form "still carries `FEAT-NN` — enough to
+tell two checkouts apart". A reviewer falsified that against this repo the same day: two live worktrees
+emitted findings naming the identical strings `FEAT-02/STATE.md` and
+`FEAT-05-pyyaml-file-parsers/STATE.md`. Stripping collapses every checkout onto one name for state
+files as much as for `CLAUDE.md`; the latter is only where it is most obvious.
+
+**Superseded:** The sweep walks up to 234 candidates across the main checkout and every
 worktree and named none of them: one logical file present in five checkouts produced five
 byte-identical findings, and a reviewer received another agent's transient fixture, unattributable, in
 their own session.
