@@ -271,8 +271,20 @@ def discover_plans():
     and legitimately has zero features, and it still exits 0. Zero plans is not an error.
     """
     derived = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
-    root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+    asked = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+    root = asked
     if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
+        # SAY SO WHEN THE CALLER'S ROOT IS DISCARDED. The fallback itself is right — it is
+        # check-domain.sh's precedence — but doing it in silence is the same family as the
+        # defect this function exists to remove: the caller asked about tree A, the checker
+        # answered about tree B, and exit 1 with real-looking violations is what came back.
+        # Measured before this line: CLAUDE_PROJECT_DIR pointing at a nonexistent path
+        # produced 36 violations from a completely different checkout, and the only clue
+        # was the `scanning` line, which reads as confirmation rather than as a correction.
+        if asked:
+            print(f"check-plan-routes: CLAUDE_PROJECT_DIR={asked!r} has no readable "
+                  f".harness/team-config.yaml — IGNORING it and using {derived}.",
+                  file=sys.stderr)
         root = derived if os.access(
             os.path.join(derived, ".harness", "team-config.yaml"), os.R_OK) else ""
     if not root:

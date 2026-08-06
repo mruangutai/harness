@@ -342,6 +342,33 @@ def case_19():
               "check-plan-routes:" in r.stderr and "0 violation(s)" not in r.stdout,
               f"stderr={r.stderr[:300]!r} stdout={r.stdout[:200]!r}")
 
+    # (b3) A CLAUDE_PROJECT_DIR THAT CANNOT BE USED MUST SAY SO. The fallback to the
+    # derived root is correct, but in silence it is the same family as B-7: the caller asks
+    # about tree A and gets an answer about tree B, with real-looking violations and exit 1.
+    # Measured before the warning: a nonexistent CLAUDE_PROJECT_DIR produced 36 violations
+    # from a different checkout, and the only clue was a `scanning` line that reads as
+    # confirmation rather than as a correction.
+    with tempfile.TemporaryDirectory() as td:
+        r = run(project_dir=os.path.join(td, "does-not-exist"))
+        check("case_19b3_unusable_project_dir_is_reported_not_silently_replaced",
+              "IGNORING it" in r.stderr and "does-not-exist" in r.stderr,
+              f"stderr={r.stderr[:300]!r}")
+        # ...and a VALID one is not warned about, or the message becomes noise on every run.
+        os.makedirs(os.path.join(td, ".harness", "features"))
+        with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
+            f.write("agents: {}\n")
+        r2 = run(project_dir=td)
+        check("case_19b4_a_valid_project_dir_is_not_warned_about",
+              "IGNORING it" not in r2.stderr, f"stderr={r2.stderr[:300]!r}")
+    # ...and neither is an UNSET one, which is the common case and the one a valid-dir
+    # fixture cannot reach: with the env var unset the discard branch IS entered (there is
+    # nothing to discard), so a warning keyed on entering the branch rather than on the
+    # caller having asked for something fires on every ordinary run. A first draft of
+    # 19b4 used only the valid-dir fixture and a `if asked:` -> `if True:` mutant walked
+    # straight past it.
+    check("case_19b5_an_unset_project_dir_is_not_warned_about",
+          "IGNORING it" not in r_root.stderr, f"stderr={r_root.stderr[:300]!r}")
+
     # (c) The other direction. A manifest is present, so the root IS known; there simply
     # are no features yet. Must be exit 0 and must scan the FIXTURE, not the real repo —
     # which is also what fails if the env-var/derived precedence is ever flipped.
