@@ -6,9 +6,27 @@ name: tests
 # across #149, #152 and #153 was dormant by default, which is issue #133's own shape
 # ("logic correct, nothing calls it") applied to the safety net itself.
 
+# TRIGGERS ARE DELIBERATELY ASYMMETRIC (issue #163). `on: push` + `on: pull_request` ran
+# the suite TWICE for every PR — same SHA, same result, ~15s each — because pushing a
+# branch and opening a PR from it are two events on ONE commit. The duplicate is what
+# BLOCKED the first merge attempt on PR #162 while the identical push run had already
+# passed: branch protection waits for EVERY matching check, so a green build refused a
+# merge. That reads like a failing gate at a glance, on a mechanism whose job is trust.
+#
+# pull_request covers every branch on its way to main; push covers ONLY main, for the
+# post-merge commit. A feature branch pushed without a PR gets no run — the intended
+# trade, since nothing merges without a PR under branch protection.
 on:
   push:
+    branches: [main]
   pull_request:
+
+concurrency:
+  # A re-push supersedes its own in-flight run rather than queueing behind it. NEVER
+  # cancel-in-progress on main: a cancelled run records no conclusion at all, and a
+  # required check with no conclusion sits pending forever.
+  group: tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   integration:
