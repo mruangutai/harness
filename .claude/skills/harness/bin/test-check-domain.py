@@ -579,6 +579,77 @@ def run_post():
          r.returncode == 2 and "budget is 200" in r.stderr,
          f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
 
+    # --- THE ENFORCED BUDGET, AT ITS BOUNDARY (review F-02). 400-vs-10 passes against
+    # `> 250` and `> 350` and against every `>` flipped to `>=`, because nothing between
+    # 200 and 400 is ever probed. Cross each budget by exactly ONE line, in both
+    # directions, so the comparison itself is bound and not merely the message text.
+    for _n, _want in ((201, True), (200, False)):
+        write(_n)
+        r = fire_post(d, edit_payload())
+        post(f"feature.yaml at {_n} lines {'IS' if _want else 'is NOT'} over the 200 budget",
+             (r.returncode == 2 and "budget is 200" in r.stderr) == _want,
+             f"exit {r.returncode}: {r.stderr.strip()[:100]}")
+
+    # The COMMENT budget is a second, independent number in the same branch — a fixture
+    # that only ever crosses the line budget leaves it entirely unbound.
+    for _c, _want in ((21, True), (20, False)):
+        with open(fy, "w") as f:
+            f.write("\n".join(["# c"] * _c + ["k: v"] * 5) + "\n")
+        r = fire_post(d, edit_payload())
+        post(f"feature.yaml with {_c} comment lines {'IS' if _want else 'is NOT'} over 20",
+             (r.returncode == 2 and "budget is 20" in r.stderr) == _want,
+             f"exit {r.returncode}: {r.stderr.strip()[:100]}")
+
+    # --- THE OTHER THREE GATES, IN POST MODE (review F-03). The handoff branch and the
+    # state.yaml checkpoint branch could each be replaced with `if False:` and both suites
+    # stayed green; three of the four sweep globs could be deleted unnoticed. Each file
+    # below is written under a DIFFERENT glob and reached through the Bash SWEEP, so this
+    # binds the branch and its glob at once.
+    os.makedirs(os.path.join(fdir, "notes"), exist_ok=True)
+    os.makedirs(os.path.join(fdir, "runs", "r1"), exist_ok=True)
+    write(10)
+    for label, relpath, body, needle in (
+        ("handoff cap (DEC-159)", "notes/handoff-plan.md",
+         "\n".join(["## Next", "## Trust", "## Dead ends", "## Working set"] + ["x"] * 70),
+         "cap is 60"),
+        ("handoff missing sections", "notes/handoff-build.md", "## Next\nonly one\n",
+         "missing required section"),
+        ("state.yaml checkpoint keys (DEC-154)", "runs/r1/state.yaml",
+         "schema_version: 1\nfindings: a notebook entry\n", "non-checkpoint top-level key"),
+        ("STATE.md sections (SPEC 2)", "STATE.md", "## Current\n## Not A Section\n",
+         "illegal section"),
+    ):
+        _p = os.path.join(fdir, relpath)
+        with open(_p, "w") as f:
+            f.write(body)
+        r = fire_post(d, bash_payload)
+        post(f"the SWEEP reaches and enforces {label}",
+             r.returncode == 2 and needle in r.stderr,
+             f"exit {r.returncode}: {r.stderr.strip()[:140]}")
+        os.remove(_p)
+
+    # --- F-06: `_norm`'s worktree strip is load-bearing, and the sweep's worktree tier
+    # with it. A live agent worktree in this repo held 38 files matching the sweep globs
+    # and the sweep reached NONE of them before this. Every harness agent works in one.
+    wt = os.path.join(d, ".claude", "worktrees", "wt1", ".harness", "features", "FEAT-W")
+    os.makedirs(wt, exist_ok=True)
+    write(10)
+    fire_post(d, bash_payload)                      # advance the stamp past everything
+    r0 = fire_post(d, bash_payload)                 # nothing fresh -> silence
+    with open(os.path.join(wt, "feature.yaml"), "w") as f:
+        f.write("\n".join(f"k{i}: v" for i in range(400)) + "\n")
+    r1 = fire_post(d, bash_payload)
+    post("the sweep reaches a file inside .claude/worktrees/ (and was silent before it)",
+         r0.returncode == 0 and r1.returncode == 2 and "budget is 200" in r1.stderr,
+         f"baseline exit {r0.returncode}, after exit {r1.returncode}")
+
+    # --- THE HIGH-WATER MARK. Two review findings in one: no dedup (five unrelated Bash
+    # calls re-reported one bad file five times) and bulk mtime refresh (`git checkout --`
+    # resets mtime to now, dragging the whole tree into a fixed window at once).
+    r_rep = [fire_post(d, bash_payload).returncode for _ in range(4)]
+    post("a reported file is NOT re-reported on the next sweep",
+         r_rep == [0, 0, 0, 0], f"got {r_rep} (want all 0 after the first report)")
+
     # --- DISCRIMINATION. Every case above passes against a gate that exits 2 always.
     write(10)
     for label, payload in (("Edit", edit_payload()), ("Bash", bash_payload)):

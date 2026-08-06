@@ -477,6 +477,40 @@ def case_m():
         return ok
 
 
+def case_m2():
+    """INV-9 must reject a NARROWED PostToolUse matcher, not merely a missing hook.
+
+    Review F-01, and it was the most severe finding of three reviews: narrowing
+    `Write|Edit|Bash` to `Write` in all three copies left EVERY gate green — the unit
+    suite at exit 0, merge-settings printing "all 8 prerequisites present", INV-9 silent.
+    `Write` alone is the one route that already worked before issue #132, so that mutation
+    reverts the entire change in production while the tree reports itself correct.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        make_fixture(tmp, '{}', "  parent: 40")
+        cl = os.path.join(tmp, ".claude")
+        os.makedirs(cl, exist_ok=True)
+        with open(os.path.join(cl, "settings.json"), "w") as f:
+            json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
+                       "hooks": {
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
+                           "PostToolUse": [{"matcher": "Write",
+                                            "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                           "PreToolUse": [
+                               {"hooks": [{"command": "x/check-domain.sh"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+        _code, out = run(tmp)
+        ok = "matcher is 'Write'" in out and "Bash" in out and "Edit" in out
+        print(f"{'ok' if ok else 'FAIL'} - case (m2): INV-9 rejects a NARROWED PostToolUse "
+              f"matcher, naming the missing tools")
+        if not ok:
+            print(f"       | {out.strip()[:200]}")
+        return ok
+
+
 def case_n():
     """INV-23 sweeps the DEC-150 budgets from DISK, and stays quiet when they are met.
 
@@ -539,7 +573,12 @@ def case_o():
     """
     import re as _re
     here = os.path.dirname(os.path.realpath(__file__))
-    dom = open(os.path.join(here, "check-domain.sh"), encoding="utf-8").read()
+    # CHECK_DOMAIN_BIN, not a hard-coded name — the same override this case's own
+    # comment demands one line below, and it was hard-coded here anyway. Review pointed
+    # CHECK_DOMAIN_BIN at a mutant saying "budget is 999" and this case printed ok,
+    # having opened the real file instead.
+    dom = open(os.environ.get("CHECK_DOMAIN_BIN")
+               or os.path.join(here, "check-domain.sh"), encoding="utf-8").read()
     # SCRIPT, not a hard-coded "check-state.sh". This case reads source rather than running
     # it, so a literal path here would keep reading the REAL file while CHECK_STATE_BIN
     # pointed the rest of the suite at a mutant — the case would report ok against a copy
@@ -613,6 +652,7 @@ def main():
     ok_k = case_k()
     ok_l = case_l()
     ok_m = case_m()
+    ok_m2 = case_m2()
     ok_n = case_n()
     ok_o = case_o()
 
@@ -623,7 +663,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_n and ok_o
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_n and ok_o
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

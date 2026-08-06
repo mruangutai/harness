@@ -494,26 +494,46 @@ ROUTING = ("Routing: current truth REPLACES STATE.md ## Current; per-run finding
 
 # The post sweep's candidates. Same four patterns the branches below match, because a
 # route that reaches a file the gate cannot name is not covered by it.
-SWEEP_GLOBS = (
+#
+# THE WORKTREE TIER IS NOT OPTIONAL, and it was a review finding measured on this repo:
+# a live agent worktree held 38 files matching these globs and the sweep reached NONE of
+# them, because the globs are joined to `root` and a worktree is a separate checkout
+# underneath it. Every harness agent works in a worktree (DEC-143), so a Bash-route sweep
+# blind to them is blind to the common case. The named-target route already handled this
+# via `_norm`; the sweep did not.
+_SWEEP_PATTERNS = (
     ".harness/features/*/feature.yaml",
     ".harness/features/*/runs/*/state.yaml",
     ".harness/features/*/notes/handoff-*.md",
     ".harness/features/*/STATE.md",
 )
-# MTIME WINDOW — a performance decision with a measured basis, not a guess. This repo
-# holds 120 files matching those globs, 82 of them state.yaml the gate YAML-PARSES.
-# Measured on this tree:
+SWEEP_GLOBS = tuple(_p for _p in _SWEEP_PATTERNS) + tuple(
+    os.path.join(".claude", "worktrees", "*", _p) for _p in _SWEEP_PATTERNS)
+# WHAT THE SWEEP READS, and why it is a HIGH-WATER MARK rather than a fixed window.
 #
-#   read + YAML-parse all 120 ....... 515 ms      <- what the sweep costs WITHOUT this
-#   stat all 120 .................... 0.2 ms      <- what it costs WITH it
-#   whole hook, post Bash, 10 runs ... 42.5 ms/call, against a 48.6 ms/call pre baseline
+# A fixed 120 s window was the first design and review broke it twice, both measured:
 #
-# 515 ms on the harness's most-used tool would make the guard the slowest thing in the
-# session. PostToolUse fires immediately after the command, so a file the command wrote
-# carries an mtime inside this window, and one outside it was not written by that command.
-# THE WINDOW IS THEREFORE LOAD-BEARING, not a tuning knob: widen it and the sweep
-# degrades toward the 515 ms figure; delete it and it lands there on every Bash call.
+#   1. NO DEDUP. One over-budget feature.yaml, then five unrelated `ls` calls produced
+#      five identical exit-2s with byte-identical stderr. A context-budget guard that
+#      spends context re-reporting the same file is working against its own purpose.
+#   2. BULK MTIME REFRESH. `git checkout --`, `git stash` and `git stash pop` all reset
+#      mtime to now — verified here: a file backdated to 2025 came back with age 0 s
+#      after `git checkout --`. Routine git usage therefore dragged EVERY state file into
+#      the window at once, at 541 ms per Bash call for the next two minutes, and exit 2 on
+#      pre-existing violations this change deliberately did not fix.
+#
+# The stamp fixes both with less logic, not more. A file is read only if it changed since
+# THIS SWEEP LAST RAN, so a repeat report is impossible and a bulk refresh costs one pass
+# rather than 120 seconds of them. The window survives only as the FIRST-RUN bound, where
+# there is no stamp to compare against and reading everything would be the alternative.
+#
+# Cost, measured on this tree — 120 files, 82 of them state.yaml the gate YAML-parses:
+#   read + YAML-parse all 120 ....... 515 ms   <- the sweep with no bound at all
+#   stat all 120 .................... 0.2 ms   <- the sweep with one
+# Interpreter start-up dominates what remains: ~38 ms of the ~42 ms per post-Bash call.
 SWEEP_WINDOW_S = 120
+# Git-ignored, one line, mtime-only — the file's CONTENT is never read, only its mtime.
+STAMP = os.path.join(".harness", ".shape-sweep-stamp")
 
 
 def _norm(path):
@@ -730,15 +750,34 @@ else:
     import glob as _glob
     import time as _time
     _now = _time.time()
+    _stamp = os.path.join(root, STAMP)
+    try:
+        _since = os.stat(_stamp).st_mtime
+    except OSError:
+        # FIRST RUN in this checkout: no high-water mark exists, so fall back to the
+        # window. Reading everything instead would put the 515 ms figure on the very
+        # first Bash call of every session.
+        _since = _now - SWEEP_WINDOW_S
     for _pat in SWEEP_GLOBS:
         for _p in _glob.glob(os.path.join(root, _pat)):
             try:
-                if _now - os.stat(_p).st_mtime > SWEEP_WINDOW_S:
+                if os.stat(_p).st_mtime <= _since:
                     continue
                 with open(_p, encoding="utf-8", errors="replace") as _f:
                     targets.append((_norm(_p), _f.read()))
             except OSError:
                 continue
+    # ADVANCE THE MARK WHETHER OR NOT ANYTHING WAS FOUND, and whether or not the report
+    # below exits 2 — the mark records "the sweep has seen the tree up to here", not
+    # "the tree was clean". Tying it to a clean result is what would reintroduce the
+    # repeat-report loop for exactly the files that need fixing.
+    try:
+        os.makedirs(os.path.dirname(_stamp), exist_ok=True)
+        with open(_stamp, "w") as _f:
+            _f.write("mtime is the whole record; this text is never read.\n")
+    except OSError:
+        # An unwritable stamp degrades to the fixed window — noisier, never wrong.
+        pass
 
 _problems = []
 for _rel, _text in targets:

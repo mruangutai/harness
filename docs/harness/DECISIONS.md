@@ -5071,13 +5071,36 @@ a verdict the pre hook already gave, and `require_or_bootstrap` would SPEND the 
 bootstrap grant on a question whose answer can no longer change anything. Measured before the fix: a
 post-mode payload for an ungranted path exited 2 with the domain message, after the file was written.
 
-**The Bash sweep is bounded by an mtime window, and that window is load-bearing rather than a tuning
-knob.** A `Bash` payload names no file, so the only honest answer is to sweep the four state-file
+**The Bash sweep is bounded by a HIGH-WATER MARK, and the fixed window it replaced was broken in two
+ways review measured.** A `Bash` payload names no file, so the only honest answer is to sweep the four state-file
 globs. Measured on this tree — 120 matching files, 82 of them `state.yaml` the gate YAML-parses:
 read-and-parse all 120 costs **515 ms**, `stat` on all 120 costs **0.2 ms**. 515 ms on the harness's
 most-used tool would make the guard the slowest thing in the session. `PostToolUse` fires immediately
 after the command, so a file that command wrote has an mtime inside the window. The whole hook measures
 42.5 ms/call in post-Bash mode against a 48.6 ms/call pre baseline.
+
+**Three review findings landed on the sweep and one on the registration, and the registration one was
+the worst.** Narrowing the `PostToolUse` matcher from `Write|Edit|Bash` to `Write` in all three copies
+left EVERY gate green — the unit suite at exit 0, `merge-settings.py` printing "all 8 prerequisites
+present", INV-9 silent. `Write` alone is the one route that already worked, so that single edit reverts
+this entire decision in production while the tree reports itself correct. `hook_present()` matched
+basename only, ignoring both `matcher` and `args`; it now requires ours to be a SUBSET of what is
+registered, INV-9 names the missing tools, and `test-check-state.py` case (m2) fails without it.
+
+On the sweep: it never reached `.claude/worktrees/` (a live agent worktree held 38 matching files and
+the sweep saw none — every harness agent works in one); it re-reported the same file on every
+subsequent Bash call; and `git checkout --`, `git stash` and `git stash pop` all reset mtime to now,
+dragging the whole tree into a fixed window at once. A stamp file under `.harness/` replaces the fixed
+window with "changed since this sweep last ran", which fixes the second and third with less logic than
+either would need alone. The window survives only as the first-run bound, where no mark exists yet.
+
+**PyYAML's C loader, folded in on measurement.** `harness_yaml.py` subclassed the pure-Python
+`SafeLoader` while `yaml.__with_libyaml__` was True — a default, not a decision. Re-measured here:
+528.2 ms against 69.8 ms across this tree's 92 YAML files, with **zero** differences in parsed output.
+Both overrides (D-08's timestamp strip, D-02's duplicate-key raise) apply to whichever base is chosen,
+and the resolver copy keys off that base rather than a hard-coded `SafeLoader` — otherwise picking the
+C loader would silently restore the timestamp resolution D-08 removed on purpose. This weakens the
+sweep's own performance argument by 7.7x, which is a reason to record it plainly rather than bury it.
 
 **INV-23 sweeps the same budgets from disk at `/harness` entry, at WARN level, and the level is
 measured rather than tidy.** It is the backstop for a session where the `PostToolUse` half was never
@@ -5099,8 +5122,9 @@ the `feature.yaml` budget from 200 to 250 left the STATE.md finding in the outpu
 reported ok. Each fixture now crosses exactly one budget by exactly one line.
 
 **The prerequisite count is now derived, because adding one hook made every written count wrong at
-once.** `merge-settings.py` said "six" in three places and `harness-init/SKILL.md` said "seven" in
-five. The script now prints `len(HOOK_SPECS) + 1`; the prose says eight. A prose count that disagrees
+once.** `merge-settings.py` carried "six" on five lines and the snippet three more, while
+`harness-init/SKILL.md` said "seven" on five — counts re-derived with `git show origin/main`
+after a first draft of this very paragraph asserted them from memory and got both wrong. The script now prints `len(HOOK_SPECS) + 1`; the prose says eight. A prose count that disagrees
 with the code is how a reader concludes an entry is spurious and deletes it.
 
 <!-- stale: "check-domain.sh` DENIES an over-budget `feature.yaml` or STATE.md Write" -->

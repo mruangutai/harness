@@ -308,12 +308,29 @@ else:
     # on a tree where the PostToolUse half was never installed — and that half is the
     # only one covering Edit, Bash and the main session, so its absence restores the
     # 1-of-4 coverage the issue measured while every other line here stays green.
+    # THE MATCHER IS PART OF THE ASSERTION, not decoration. A reviewer narrowed this
+    # registration to `Write` in all three copies and every gate stayed green, which
+    # reverts issue #132 entirely while the tree reports itself correct: `Write` alone is
+    # the ONE route that already worked. So name the tools and check for them.
     post = hooks.get("PostToolUse") or []
-    if not any("check-domain" in str(h) for h in post):
+    _pt = next((e for e in post if "check-domain" in str(e)), None)
+    _have = set(str((_pt or {}).get("matcher", "")).split("|"))
+    _want = {"Write", "Edit", "Bash"}
+    if _pt is None:
         bad.append("No PostToolUse check-domain hook — the DEC-150 state-file SHAPE "
                    "budgets bind only a `Write` by a harness agent (1 of 4 routes); "
                    "Edit, Bash and the main session write over budget in silence "
                    "(issue #132). INV-23 below still sweeps, one entry late.")
+    elif not _want <= _have:
+        bad.append(f"PostToolUse check-domain is registered but its matcher is "
+                   f"{(_pt or {}).get('matcher')!r} — missing {sorted(_want - _have)}. "
+                   f"The shape gate only reaches the tools it matches, so a narrowed "
+                   f"matcher restores the 1-of-4 coverage issue #132 measured, silently.")
+    elif " --post" not in str(_pt):
+        bad.append("PostToolUse check-domain is registered without ` --post`. Mode also "
+                   "resolves from hook_event_name, so this is not fatal — but the flag is "
+                   "the half we control, and a registration missing it degrades to "
+                   "pre-mode the moment the platform field changes (issue #132).")
 
 # `cj` is the parsed harness.json, consumed below by the test_kinds, github.sync and
 # gh-config checks. The JSON-validity violation is kept on its own merit — a config

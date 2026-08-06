@@ -30,10 +30,16 @@ import sys
 # The hook prerequisites, each keyed by the (event, script basename) pair that identifies
 # it — check-domain.sh appears on TWO events and they are two separate prerequisites.
 #
-# THE COUNT IS DERIVED FROM THIS LIST, never written as a word. Three places said "six"
-# and one said "seven" (counting the spawn-depth env var); adding the PostToolUse entry
-# for issue #132 made every one of them wrong at once, and a prose count that disagrees
-# with the code is how a reader concludes an entry is spurious and deletes it.
+# THE COUNT IS DERIVED FROM THIS LIST, never written as a word. At origin/main the word
+# "six" appeared on 5 lines of this file and 3 times in the snippet, and "seven" on 5
+# lines of harness-init/SKILL.md (counting the spawn-depth env var); adding the
+# PostToolUse entry for issue #132 made every one of them wrong at once. A prose count
+# that disagrees with the code is how a reader concludes an entry is spurious and
+# deletes it.
+#
+# The numbers above are `git show origin/main:<file> | grep -ci`. An earlier draft of
+# this comment said "three places and one" from memory and was wrong in both halves —
+# in the very comment arguing that unchecked counts rot. Caught by review.
 HOOK_SPECS = [
     {
         "event": "SubagentStart",
@@ -119,17 +125,36 @@ DEPTH_WHY = ("Pins nesting to main-session -> orchestrator -> lead -> member (DE
 CMD = "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/%s"
 
 
-def hook_present(entries, script):
-    """True if any registration on this event already runs `script`.
+def hook_present(entries, script, matcher=None, args=None):
+    """True if any registration on this event runs `script` WITH the required shape.
 
     Matched on basename, not the full command string: a project may legitimately have
     registered the same hook via an absolute path or a different variable. Matching
     the literal string would add a second, duplicate registration that fires twice.
+
+    `matcher` AND `args` ARE PART OF THE PREREQUISITE, and leaving them out was a
+    reviewer-demonstrated hole (PR #149 F-01), not a theoretical one. Basename-only,
+    the PostToolUse registration's matcher could be narrowed `Write|Edit|Bash` -> `Write`
+    in all three copies — settings.json, the snippet, and HOOK_SPECS — and EVERY gate
+    stayed green: `run-unit-tests.sh` exit 0, this script printing "all 8 prerequisites
+    present", INV-9 silent. That reverts the whole of issue #132 in production while the
+    tree reports itself correct. A hook registered on the wrong tools is not the hook.
+
+    Both are compared only when the spec asks for them, so a project that has widened a
+    matcher of its own beyond ours still matches — we require ours to be a SUBSET of
+    what is registered, never an exact string.
     """
+    want_tools = set((matcher or "").split("|")) - {""}
     for entry in entries or []:
         for h in (entry.get("hooks") or []):
-            if script in str(h.get("command", "")):
-                return True
+            cmd = str(h.get("command", ""))
+            if script not in cmd:
+                continue
+            if args is not None and args.strip() not in cmd:
+                continue
+            if want_tools and not want_tools <= (set(str(entry.get("matcher", "")).split("|"))):
+                continue
+            return True
     return False
 
 
@@ -165,7 +190,8 @@ def main():
                       f"this script writes {DEPTH_VAL!r} — reconcile them.")
                 return 1
             for spec in HOOK_SPECS:
-                if not hook_present((t.get("hooks") or {}).get(spec["event"]), spec["script"]):
+                if not hook_present((t.get("hooks") or {}).get(spec["event"]), spec["script"],
+                                    spec.get("matcher"), spec.get("args")):
                     print(f"merge-settings: template is missing {spec['script']} on "
                           f"{spec['event']} — reconcile it with this script.")
                     return 1
@@ -218,7 +244,7 @@ def main():
             print(f"merge-settings: {path} hooks.{spec['event']} is not a list. "
                   f"Refusing to touch it.")
             return 1
-        if not hook_present(entries, spec["script"]):
+        if not hook_present(entries, spec["script"], spec.get("matcher"), spec.get("args")):
             missing.append(f"hooks.{spec['event']} -> {spec['script']}  — {spec['why']}")
             added.append(("hooks", spec["event"]))
             entries.append({
