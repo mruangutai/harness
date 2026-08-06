@@ -8,6 +8,7 @@ for the static/textual checks (cases 8-13, 16).
 """
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -444,6 +445,52 @@ def case_19():
               f"exit {r2.returncode} stdout={r2.stdout[:300]!r}")
 
 
+def case_21():
+    """(21) THE BEHAVIOURAL TEST, which is what case_20 kept failing to be.
+
+    case_20 scans SOURCE TEXT and is now on its fourth draft; the first three were each
+    defeated, and review defeated the fourth twice more — a probe assembled into a variable
+    (`_marker = os.path.join(derived, ".harness")` then `os.path.isdir(_marker)`) matches no
+    predicate, and a file whose probes all vanish emits no assertion at all, because the
+    per-file check lives inside the loop. A source-text detector can always be walked around
+    by writing the same thing differently. That is not a bug in the fourth draft; it is the
+    ceiling of the technique.
+
+    So test the PROPERTY instead: a directory holding `.harness/` but NO `team-config.yaml`
+    must NOT be accepted as a project root. That is the whole reason the probe names the
+    manifest file, and it is the difference between working and B-7 in the real global
+    install — `deploy.sh` writes `$HOME/.harness/registry.json`, so `$HOME` has a `.harness/`
+    on every machine that has ever deployed. Any implementation that probes the directory
+    fails this, however it is spelled.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        # bin/ four levels down, so the from-__file__ derivation lands on `fake_root`.
+        fake_bin = os.path.join(td, "fake_root", ".claude", "skills", "harness", "bin")
+        os.makedirs(fake_bin)
+        for name in os.listdir(os.path.dirname(SCRIPT)):
+            src = os.path.join(os.path.dirname(SCRIPT), name)
+            if os.path.isfile(src) and (name.endswith(".py") or name.endswith(".sh")):
+                shutil.copy2(src, os.path.join(fake_bin, name))
+        # The trap: a .harness/ DIRECTORY with no manifest in it — exactly $HOME's shape.
+        os.makedirs(os.path.join(td, "fake_root", ".harness"))
+        with open(os.path.join(td, "fake_root", ".harness", "registry.json"), "w") as f:
+            f.write("{}\n")
+        # THE OVERRIDE MUST WIN. The loop above copies every bin/ file BY NAME from the
+        # real directory, so `check-plan-routes.py` in the fake tree was the real
+        # implementation and this case reported ok about a file the mutant never touched —
+        # the identical defect case_20's second draft had, reproduced here within minutes
+        # of writing a case whose whole purpose was to be harder to fool. Copy SCRIPT last,
+        # over the top, so CHECK_PLAN_ROUTES_BIN is what actually runs.
+        copy = os.path.join(fake_bin, "check-plan-routes.py")
+        shutil.copy2(SCRIPT, copy)
+        r = run(cwd=td, script=copy)
+        check("case_21_a_bare_harness_dir_is_not_a_project_root",
+              r.returncode == 2 and "0 violation(s)" not in r.stdout,
+              f"exit {r.returncode} (want 2) stdout={r.stdout[:200]!r} "
+              f"stderr={r.stderr[:200]!r} — a .harness/ directory with no manifest was "
+              f"accepted as a root, which is B-7 in the global install")
+
+
 def case_20():
     """(20) Root resolution is now the FOURTH copy in this tree. D-02 does not forbid
     duplication — it forbids SILENT DRIFT, and case (o) in test-check-state.py is this
@@ -495,12 +542,16 @@ def case_20():
             out.append(buf)
         return out
 
-    # EVERY bin/ SCRIPT, not a hardcoded pair. The previous draft listed two files, so a
+    # EVERY bin/ SCRIPT THAT PROBES IN PYTHON, which is narrower than it sounds and is
+    # stated rather than implied: a pure-shell probe (`[ -d "$root/.harness" ]`) matches
+    # none of these predicates and is invisible here. THIS CASE IS A CHEAP SMOKE CHECK, NOT
+    # THE GUARANTEE — case (21) is, because it tests the behaviour and cannot be walked
+    # around by spelling the probe differently. Four drafts of this case were each defeated
+    # by a rewrite; that is the ceiling of source-text scanning, not a bug in draft five. The previous draft listed two files, so a
     # fifth copy of root resolution was undetectable by construction. check-state.sh is a
     # CODED exception, not prose: it genuinely has no root probe (verified — 0 matches),
     # which is issue #156, and encoding it here keeps this assertion honest rather than
     # quietly passing on a file that has the very defect the case is about.
-    KNOWN_NO_PROBE = {"check-state.sh"}
     # CODED EXCEPTIONS, each naming its issue — never a silent skip, and never prose.
     # wayfind.py:46-54 probes the `.harness` DIRECTORY on purpose: it walks UP from the cwd
     # so a session inside a feature dir still resolves. That upward walk is also why it is
@@ -538,7 +589,7 @@ def case_20():
               f"{MANIFEST} -> {disagree[:2]}. A copy probing the .harness DIRECTORY "
               f"resolves $HOME as a root in the global install, which is B-7 verbatim.")
     check("case_20_the_detector_is_not_blind",
-          seen_any >= 2 and not (KNOWN_NO_PROBE & {"check-plan-routes.py"}),
+          seen_any >= 2,
           f"only {seen_any} file(s) matched any root probe — the pattern went blind, which "
           f"is how the previous draft passed while missing its own target")
     ok &= seen_any >= 2
@@ -559,6 +610,7 @@ def main():
         failures.append('case_18')
     case_19()
     case_20()
+    case_21()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

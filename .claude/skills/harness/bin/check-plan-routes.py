@@ -308,33 +308,64 @@ def discover_plans():
             file=sys.stderr,
         )
         sys.exit(2)
-    # EVERY FEATURE DIRECTORY MUST BE READABLE, and this is the third place B-7 hid.
-    # `glob.glob` swallows OSError, so a directory it cannot enter looks exactly like one
-    # holding no PLAN.md. Measured on this repo with NO source change at all: `chmod 000`
-    # on the four feature dirs carrying all 36 violations produced
-    # `0 violation(s) across 4 plan(s)`, exit 0, a page of reassuring OK lines, and a green
-    # test suite — while `git status` stayed clean, because git does not track directory
-    # modes. A permission accident, not a code change, and the checker called the tree fine.
+    # ONE WALK, AND THE PATHS COME OUT OF IT. `glob.glob` swallows OSError, so a directory
+    # it cannot enter is indistinguishable from one holding no PLAN.md — measured with NO
+    # code change at all, `chmod 000` on the four dirs carrying all 36 violations gave
+    # `0 violation(s) across 4 plan(s)`, exit 0, and a clean `git status`, because git does
+    # not track directory modes.
     #
-    # So enumerate explicitly and refuse to guess. Exit 2 is right: this is "the checker
-    # could not run", the same verdict as an unresolvable root.
+    # The first fix scanned for readability and THEN globbed separately. Review showed that
+    # leaves a window between the two walks: with a 2 s sleep injected, a `chmod 000` in
+    # the gap produced `0 violation(s) across 1 plan(s)`, exit 0, silent. Deriving the plan
+    # list from the same walk that checked it closes the window and drops a whole glob.
+    #
+    # X_OK, NOT R_OK|X_OK — and the reason is a coupling worth stating rather than a
+    # preference. Entering a directory to stat a KNOWN filename needs execute, not read;
+    # read is only needed to LIST it. The first fix demanded both and would have exited 2 on
+    # a mode-0311 or 0100 directory it could in fact have checked perfectly. That is a
+    # denial of service on a script issue #133 wants promoted to a gate. This holds ONLY
+    # because the filename below is a literal: switch it to a pattern like `PLAN*.md` and
+    # listing becomes necessary again — measured, `PLAN*.md` at 0311 silently loses a
+    # feature. If you ever generalise that name, R_OK comes back with it.
     feats = os.path.join(root, ".harness", "features")
-    unreadable = []
+    plans, unreadable = [], []
     if os.path.isdir(feats):
         try:
-            for entry in os.scandir(feats):
-                if entry.is_dir() and not os.access(entry.path, os.R_OK | os.X_OK):
-                    unreadable.append(os.path.relpath(entry.path, root))
+            entries = sorted(os.scandir(feats), key=lambda e: e.path)
         except OSError as e:
             print(f"check-plan-routes: cannot list {feats}: {e}", file=sys.stderr)
             sys.exit(2)
+        for entry in entries:
+            try:
+                if not entry.is_dir():
+                    continue
+            except OSError:
+                # DirEntry.is_dir() RAISES rather than swallowing — a symlink to an
+                # unreachable target lands here, and silently skipping it would be the
+                # same lie as the glob told.
+                unreadable.append(os.path.relpath(entry.path, root))
+                continue
+            if not os.access(entry.path, os.X_OK):
+                unreadable.append(os.path.relpath(entry.path, root))
+                continue
+            plan = os.path.join(entry.path, "PLAN.md")
+            if not os.path.isfile(plan):
+                continue
+            # A PLAN.md present but unreadable used to raise PermissionError out of
+            # process_plan with EXIT 1 — the code meaning "violations found" — no summary
+            # line, and every later plan unprocessed. Exit 1 is also what this very guard
+            # was written to stop being the answer to a permission problem.
+            if not os.access(plan, os.R_OK):
+                unreadable.append(os.path.relpath(plan, root))
+                continue
+            plans.append(plan)
     if unreadable:
-        print(f"check-plan-routes: {len(unreadable)} feature director(ies) cannot be read "
-              f"— {', '.join(sorted(unreadable))}. A directory I cannot enter is "
-              f"indistinguishable from one holding no PLAN.md, so reporting a total would "
+        print(f"check-plan-routes: {len(unreadable)} path(s) under .harness/features/ cannot "
+              f"be read — {', '.join(sorted(unreadable))}. A path I cannot read is "
+              f"indistinguishable from one that holds nothing, so reporting a total would "
               f"be a lie about the tree.", file=sys.stderr)
         sys.exit(2)
-    return root, sorted(glob.glob(os.path.join(root, ".harness/features/*/PLAN.md")))
+    return root, sorted(plans)
 
 
 def main(argv):
