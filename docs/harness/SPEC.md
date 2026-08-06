@@ -472,7 +472,9 @@ largely TDD-exempt. eng-lead routes each task to exactly one of the five.
 **Discipline coverage:** `tdd-enforcement` → the 4 feature-code devs (dev-ops largely exempt via
 `config` / `scaffolding` change types) · `systematic-debugging` → eng devs in debug mode ·
 `spec-driven` → pm · `verification-rules` → qa · `code-review` → code-reviewer · `expertise` and
-`handoff` → all 16 · `zero-micro-management` → the 3 leads.
+`handoff` → all 16 · `zero-micro-management` → the 3 leads · `distill` → any agent under a
+distillation dispatch, **read by path, not preloaded** (DEC-158 move 2, like
+`systematic-debugging`).
 
 ---
 
@@ -800,7 +802,7 @@ insight:
 
 | Layer | Where |
 |---|---|
-| The rule | the `harness-expertise` skill — preloaded by all 16 agents via `skills:` (§7): mid-run, observations only; at distillation, keep only what passes *"six spawns from now, would knowing this change what I do?"* Most observations fail it, and `expertise_update: []` is the usual DIGEST. |
+| The rule | the `harness-expertise` skill — preloaded by all 16 agents via `skills:` (§7): mid-run, observations only, and never touch the Expertise file outside a distillation dispatch. The rules for *writing* it — the six-spawns test, entry format, ops schema and caps — are in `harness-distill`, **read by path at distillation and not preloaded** (DEC-158 move 2). Most observations fail the test, and `expertise_update: []` is the usual DIGEST. |
 | Visibility | every update rides the DIGEST as an explicit op with a `why` — so it is observable before it lands, not discovered later |
 | Correction | curation (§5.4) catches what slipped through |
 
@@ -957,6 +959,7 @@ therefore *cannot* be agent-writable without breaking distribution.
 | `expertise` | **all 16** | when and how to update durable knowledge |
 | `tdd-enforcement` | 4 feature devs (+dev-ops, exempt on config/scaffolding) | test-first |
 | `systematic-debugging` | eng devs in debug mode | root cause before fix |
+| `distill` | any agent under a distillation dispatch | how to WRITE an Expertise file — procedure, entry format, ops schema, caps |
 | `spec-driven` | pm | requirements and decisions discipline |
 | `verification-rules` | qa | the test-matrix gate |
 | `code-review` | code-reviewer | two-stage review |
