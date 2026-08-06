@@ -502,6 +502,7 @@ ROUTING = ("Routing: current truth REPLACES STATE.md ## Current; per-run finding
 # blind to them is blind to the common case. The named-target route already handled this
 # via `_norm`; the sweep did not.
 _SWEEP_PATTERNS = (
+    "CLAUDE.md",
     ".harness/features/*/feature.yaml",
     ".harness/features/*/runs/*/state.yaml",
     ".harness/features/*/notes/handoff-*.md",
@@ -536,6 +537,16 @@ SWEEP_WINDOW_S = 120
 STAMP = os.path.join(".harness", ".shape-sweep-stamp")
 
 
+def _show(path):
+    """Repo-relative WITHOUT the worktree strip — the path a human can act on.
+
+    Paired with `_norm` deliberately: `_norm` answers "which rules apply to this file"
+    and must strip, or a worktree write matches no pattern; `_show` answers "which file
+    am I talking about" and must NOT strip, or every checkout collapses onto one name.
+    """
+    return os.path.relpath(os.path.abspath(path), os.path.abspath(root))
+
+
 def _norm(path):
     """Repo-relative, worktree-stripped (DEC-143). The one path normalisation."""
     rel = os.path.relpath(os.path.abspath(path), os.path.abspath(root))
@@ -550,7 +561,9 @@ def _norm(path):
 # thing about it. Same messages, one honest verb.
 VERB = "OVER BUDGET (already written)" if _post else "BLOCKED"
 
-# THE FOUR STATE-FILE PATTERNS, named ONCE. They were four inline `re.match` calls, which
+# THE SHAPE-GATE PATTERNS, named ONCE. Four state files plus CLAUDE.md (DEC-181) — the
+# count is deliberately not written into this sentence, because the last one that did
+# went stale in the same hunk that added the fifth entry. They were four inline `re.match` calls, which
 # was fine while the only caller had already been handed the file's text. The post route
 # has not: it holds a path, and reading a file to discover it is not a state file costs the
 # whole file. Measured by review on a 200 MB non-state path: 228 ms, against 37 ms once the
@@ -560,15 +573,24 @@ RE_FEATURE_YAML = re.compile(r"^\.harness/features/[^/]+/feature\.yaml$")
 RE_STATE_YAML   = re.compile(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$")
 RE_HANDOFF      = re.compile(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$")
 RE_STATE_MD     = re.compile(r"^\.harness/features/[^/]+/STATE\.md$")
-STATE_PATTERNS = (RE_FEATURE_YAML, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD)
+# CLAUDE.md (issue #139). Not a state file, and included here anyway because this is
+# where the four-route machinery already lives — the alternative was a fifth gate.
+RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$")
+SHAPE_PATTERNS = (RE_FEATURE_YAML, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD)
 
 
-def is_state_file(rel):
-    """Cheap path-only predicate: could shape_problems have anything to say about `rel`?"""
-    return any(p.match(rel) for p in STATE_PATTERNS)
+def has_shape_rules(rel):
+    """Cheap path-only predicate: could shape_problems have anything to say about `rel`?
+
+    RENAMED from is_state_file/STATE_PATTERNS. CLAUDE.md is not a state file, and a
+    predicate whose name says otherwise is the category error a reviewer flagged — the
+    next reader looking for "why is CLAUDE.md in the state-file set" finds no answer
+    because the premise is wrong. The gate is about SHAPE; state files are most of what
+    has a shape, not the definition of it."""
+    return any(p.match(rel) for p in SHAPE_PATTERNS)
 
 
-def shape_problems(rel, content):
+def shape_problems(rel, content, display=None):
     """The stderr LINES for one file's text, or [] when it is clean. NEVER exits.
 
     Returning rather than exiting is the whole reason this is a function: one call site
@@ -587,7 +609,14 @@ def shape_problems(rel, content):
     # reviewer received another agent's transient fixture, unattributable, in their own
     # session. check-state.sh already does this correctly.
     def _head(text):
-        return f"check-domain: {VERB} — {rel}: {text}"
+        # THE DISPLAY PATH IS NOT THE MATCH PATH (review of PR #152). `rel` is
+        # worktree-stripped so the patterns match, and for a state file the stripped form
+        # still carries `FEAT-NN` — enough to tell two checkouts apart. For CLAUDE.md it
+        # collapses to the constant string "CLAUDE.md", so a 114-line copy in ANOTHER
+        # agent's worktree told an agent whose own file is 74 lines that "CLAUDE.md is 114
+        # lines". That is the same unattributable-finding defect DEC-180 fixed for the
+        # sweep generally, surviving in the one path where stripping erases everything.
+        return f"check-domain: {VERB} — {display or rel}: {text}"
 
     def deny(msgs):
         out.append(_head("state-file shape (DEC-150)."))
@@ -706,6 +735,46 @@ def shape_problems(rel, content):
             out.append(_head("handoff shape (DEC-159)."))
             out.extend(f"  {m}" for m in problems)
 
+    if RE_CLAUDE_MD.match(rel):
+        # ISSUE #139. CLAUDE.md is read at EVERY session start — the widest blast radius in
+        # the repo — and was the only file of its class with no mechanical budget. Its peers
+        # all have one: expertise 150, feature.yaml 200/20, handoff 60, STATE.md 120.
+        #
+        # 80 IS DERIVED, NOT PICKED, and the ticket asked for exactly that. Measured from
+        # this file's own history, WHICH STARTS AT A CLEANUP: it was 208-214 lines from
+        # April through 2026-07-27, then DEC-135 cut it to 50 — that blow-out is why issue
+        # #139 exists at all. Since the cleanup: 50-51 through 07-28, 56 on 08-02, 71 on
+        # 08-04, then 84, at which point a human trimmed it twice, to 78 and then 74.
+        #
+        # The evidence CONSTRAINS the number to roughly 75-83 rather than fixing it at one:
+        # above 84 discards the only judgement anyone actually made, and at 74 it bans all
+        # growth. 80 sits inside that band with 6 lines of headroom, which is thin on
+        # purpose — this file is preloaded into every session, and the two trims say the
+        # right response to pressure here is to cut, not to raise the ceiling. An earlier
+        # draft called 80 "the only number with evidence"; that overstated it, and the band
+        # is stated instead.
+        #
+        # THE SHRINK EXEMPTION APPLIES HERE, MEASURED AND ACCEPTED. Issue #132 named this
+        # for a different option: with the file at 200 lines on disk, a `Write` payload of
+        # 150 is DENIED even though it is a large improvement, because the pre gate measures
+        # the payload against the budget and 150 > 80. A partial staged shrink is blocked;
+        # a full one is not. It is not a trap: `Edit` is never blocked pre-hoc, so the
+        # author trims with Edit and the post route reports until they are under. Recorded
+        # rather than fixed, because a "smaller than what is on disk" exemption means the
+        # pre gate must read the file it is about to overwrite — file I/O and a TOCTOU
+        # window in the hot path, to rescue a case with a working alternative.
+        #
+        # THE TICKET RULED THIS GATE OUT AND ISSUE #132 MADE THAT REASON OBSOLETE. #139 says
+        # "check-domain.sh's shape gate is the wrong home: it fires on Write only and the
+        # main session is ungoverned by it" — both true when written, neither true now. The
+        # main session is the thing that actually edits CLAUDE.md, and it is now bound on
+        # all four routes. Re-derived at a5edb13 rather than inherited from the ticket.
+        if len(lines) > 80:
+            out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80 (DEC-181)."))
+            out.append("  It is preloaded into EVERY session, so a line here costs more than "
+                       "a line anywhere else. Carry the rule and one clause of why, not the "
+                       "biography (DEC-158); rationale belongs in docs/harness/DECISIONS.md.")
+
     if RE_STATE_MD.match(rel):
         problems = []
         if len(lines) > 120:
@@ -735,18 +804,19 @@ if not _post:
     # the two disagreed about what a bad payload means. Review finding 2.
     if _tool != "Write" or not target:
         sys.exit(0)
-    targets = [(_norm(target), (d.get("tool_input") or {}).get("content") or "")]
+    targets = [(_norm(target), (d.get("tool_input") or {}).get("content") or "",
+                _show(target))]
 
 elif target:
     # POST, with a named file: Write, Edit, NotebookEdit. Read what LANDED — no
     # reconstruction of `old_string`/`new_string`, no `replace_all` semantics, no TOCTOU
     # window, because the filesystem already holds the answer those would approximate.
     _rel = _norm(target)
-    if not is_state_file(_rel):
+    if not has_shape_rules(_rel):
         sys.exit(0)
     try:
         with open(os.path.abspath(target), encoding="utf-8", errors="replace") as _f:
-            targets = [(_rel, _f.read())]
+            targets = [(_rel, _f.read(), _show(target))]
     except OSError:
         # The tool may have failed, or the path may be a directory or already gone. A
         # post-hoc reporter that raises on an unreadable path would turn every such write
@@ -781,7 +851,9 @@ else:
                 if os.stat(_p).st_mtime <= _since:
                     continue
                 with open(_p, encoding="utf-8", errors="replace") as _f:
-                    targets.append((_norm(_p), _f.read()))
+                    # Third element: the repo-relative path WITHOUT the worktree strip, so
+                    # a finding names the checkout it came from.
+                    targets.append((_norm(_p), _f.read(), _show(_p)))
             except OSError:
                 _unreadable = True
     # ADVANCE THE MARK WHETHER OR NOT ANYTHING WAS FOUND, and whether or not the report
@@ -816,8 +888,14 @@ else:
             pass
 
 _problems = []
-for _rel, _text in targets:
-    _problems.extend(shape_problems(_rel, _text))
+# UNIFORM 3-TUPLES. The first version threaded `display` through the SWEEP only and left
+# the other two routes as 2-tuples, read back with `_t[2] if len(_t) > 2 else None` — a
+# mixed arity that was itself the tell. Measured: a PostToolUse Edit naming
+# `.claude/worktrees/wt1/CLAUDE.md` printed a bare "CLAUDE.md", so an agent told its file
+# was 81 lines opened the 74-line root copy and concluded the gate was stale. I had fixed
+# the instance and not the class.
+for _rel, _text, _disp in targets:
+    _problems.extend(shape_problems(_rel, _text, display=_disp))
 
 if _problems:
     for _line in _problems:

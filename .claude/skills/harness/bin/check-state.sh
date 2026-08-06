@@ -450,6 +450,16 @@ for fy in sorted(glob.glob(os.path.join(H, "features", "*", "feature.yaml"))):
         warn.append(f"INV-23 {feat}/feature.yaml has {nc} comment lines — budget is 20. "
                     f"Narrative commentary does not belong in feature.yaml (DEC-150).")
 
+# CLAUDE.md (issue #139), swept from disk like its peers. The write-time gate in
+# check-domain.sh is the one with teeth; this is the backstop for a session where the
+# PostToolUse half was never registered, exactly as for the four state files below.
+_cm = os.path.join(root, "CLAUDE.md")
+_cml = (read(_cm) or "").splitlines()
+if _cml and len(_cml) > 80:
+    warn.append(f"INV-23 CLAUDE.md is {len(_cml)} lines — budget is 80 (DEC-181). It is "
+                f"preloaded into EVERY session, so a line here costs more than a line "
+                f"anywhere else; rationale belongs in docs/harness/DECISIONS.md.")
+
 for sm in sorted(glob.glob(os.path.join(H, "features", "*", "STATE.md"))):
     sl = (read(sm) or "").splitlines()
     feat = os.path.basename(os.path.dirname(sm))

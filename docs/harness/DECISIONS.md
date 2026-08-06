@@ -5072,7 +5072,7 @@ bootstrap grant on a question whose answer can no longer change anything. Measur
 post-mode payload for an ungranted path exited 2 with the domain message, after the file was written.
 
 **The Bash sweep is bounded by a HIGH-WATER MARK, and the fixed window it replaced was broken in two
-ways review measured.** A `Bash` payload names no file, so the only honest answer is to sweep the four state-file
+ways review measured.** A `Bash` payload names no file, so the only honest answer is to sweep the state-file
 globs. Measured on this tree — 120 matching files, 82 of them `state.yaml` the gate YAML-parses:
 read-and-parse all 120 costs **515 ms**, `stat` on all 120 costs **0.2 ms**. 515 ms on the harness's
 most-used tool would make the guard the slowest thing in the session. `PostToolUse` fires immediately
@@ -5119,7 +5119,26 @@ copy: measured, three entries became four and every `Write` fired the hook twice
 failed a gate `harness-init` calls HARD. `test-merge-settings.py` now asserts both directions in one
 table, because a fix for either alone is what produced the other.
 
-**Findings name their file.** The sweep walks up to 234 candidates across the main checkout and every
+**Findings name their file, ON EVERY ROUTE — and the first fix for that covered only one.** The sweep
+walks up to 234 candidates across the main checkout and every worktree and named none of them: one
+logical file present in five checkouts produced five byte-identical findings, and a reviewer received
+another agent's transient fixture, unattributable, in their own session. Threading a display path
+through the SWEEP alone left the named-target routes printing a bare `CLAUDE.md` — measured, an agent
+told its file was 81 lines opened the 74-line root copy and concluded the gate was stale. All three
+mutations of that threading survived every gate, because nothing bound it.
+
+`_norm` and `_show` are now a deliberate pair: `_norm` strips the worktree prefix and answers "which
+rules apply to this file"; `_show` does not strip and answers "which file am I talking about". All
+three routes pass both. The mixed tuple arity that made the gap easy to miss — 3-tuples from the sweep,
+2-tuples elsewhere, read back with `_t[2] if len(_t) > 2` — is gone.
+
+A comment justifying the original fix claimed the stripped form "still carries `FEAT-NN` — enough to
+tell two checkouts apart". A reviewer falsified that against this repo the same day: two live worktrees
+emitted findings naming the identical strings `FEAT-02/STATE.md` and
+`FEAT-05-pyyaml-file-parsers/STATE.md`. Stripping collapses every checkout onto one name for state
+files as much as for `CLAUDE.md`; the latter is only where it is most obvious.
+
+**Superseded:** The sweep walks up to 234 candidates across the main checkout and every
 worktree and named none of them: one logical file present in five checkouts produced five
 byte-identical findings, and a reviewer received another agent's transient fixture, unattributable, in
 their own session.
@@ -5159,7 +5178,6 @@ with the code is how a reader concludes an entry is spurious and deletes it.
 
 <!-- stale: "check-domain.sh` DENIES an over-budget `feature.yaml` or STATE.md Write" -->
 <!-- stale: "The six prerequisites" -->
-<!-- stale: "all six prerequisites present" -->
 
 **Carve-out compliance.** `check-domain.sh`, `check-state.sh` and their tests are DEC-174 files: this
 landed as direct main-session edits with tests run explicitly and a human reading the diff, never
@@ -5167,3 +5185,58 @@ through a team run whose gates are the thing being changed. Six mutants were run
 `check-state.sh` and six against `check-domain.sh`; five of the latter were caught and the sixth —
 removing the `--post` argv blanking — was **not**, which is recorded in the code as the line being
 defensive rather than load-bearing instead of being papered over with a test that cannot detect it.
+
+---
+
+## DEC-181 — CLAUDE.md gets a line budget of 80 and enters the propagation checker's scan roots
+
+`CLAUDE.md` is read at **every session start** — the widest blast radius of any file in this repo,
+wider than SPEC.md or any agent file. It was the only file of its class with neither a mechanical
+budget nor propagation coverage. Its peers all have the first: expertise 150, `feature.yaml` 200/20,
+handoff notes 60, STATE.md 120.
+
+**Both halves were re-derived at `a5edb13`, not inherited from issue #139.** Planting a live stale
+phrase in `CLAUDE.md` and running `check-docs.sh` produced **zero** hits: the scan roots were
+`docs/harness`, `.harness`, `.claude/skills`, `.claude/commands` and `.claude/agents`, and the repo
+root was not among them. The checker whose whole purpose is catching claims a decision invalidated
+could not see the file every agent reads first.
+
+**The root tier is NON-RECURSIVE, and that is not a detail.** Globbing `**` from `.` walks `.git`,
+`node_modules` and `.claude/worktrees/` — scanning every file of every other checkout as though it
+were this one. The test plants a decoy one level down and fails if it is reached.
+
+**80 is derived from the file's own history, and that history STARTS AT A CLEANUP.** The file was
+208-214 lines from April through 2026-07-27; DEC-135 then cut it to 50. That blow-out is why issue #139
+exists — it says so, and an earlier draft of this entry began the table after the cleanup and read as
+though the file had always been small. Since the cleanup: 50-51 through 07-28, 56 on 08-02, 71 on 08-04,
+then **84**, at which point a human trimmed it twice, to 78 and then 74.
+
+**The evidence constrains the number to roughly 75-83; it does not fix it at one.** Above 84 discards
+the only judgement anyone actually made about this file's size, and 74 bans all growth. 80 sits inside
+that band with six lines of headroom, which is thin deliberately: the file is preloaded into every
+session, and two trims in one day say the right response to pressure here is to cut rather than to raise
+the ceiling. An earlier draft called 80 "the only number with evidence" — that overstated it, and a
+reviewer said so.
+
+**Issue #139 ruled out `check-domain.sh`'s shape gate, and DEC-180 made that reason obsolete.** The
+ticket says "it fires on `Write` only (see #132 — `Edit` and `Bash` bypass it) and the main session,
+which is what actually edits `CLAUDE.md`, is ungoverned by it". Both clauses were true when written and
+neither is true now: the main session is bound on all four routes. So the budget lives where the
+four-route machinery already is, rather than in a fifth gate. `Edit` matters more than `Write` for this
+file, and a `Write`-only gate would have bound the one route nobody uses on it.
+
+**No `<!-- stale: -->` marker is declared for the ruling this supersedes, and that is checked, not assumed.** The phrase issue #139 uses to rule out the shape gate lives in the ISSUE BODY, which `check-docs.sh` does not scan and should not — GitHub issues are a record of what was believed then. `--audit` reported the marker INERT, which is exactly what that flag exists to catch, so it was removed rather than left as decoration that reads like enforcement. The same audit removed DEC-180's `all six prerequisites present` marker: that string had already been replaced by the derived count in the same commit that declared it stale, so it could never have matched anything.
+
+**Two residuals, measured and accepted rather than discovered later.** The SHRINK EXEMPTION applies:
+with the file at 200 lines, a `Write` payload of 150 is denied even though it improves things, because
+the pre gate measures the payload. `Edit` is never blocked pre-hoc, so the author trims with `Edit` and
+the post route reports until they are under — a working alternative, against a fix that would make the
+pre gate read the file it is about to overwrite, adding file I/O and a TOCTOU window to the hot path.
+And a `CLAUDE.md` nested in a subdirectory or a monorepo package is ungoverned on every route; the
+pattern is anchored `^CLAUDE\.md$` and this tree has exactly one.
+
+INV-23 sweeps it from disk at `/harness` entry as the backstop, at warn level, exactly as for the four
+state files. That makes `CLAUDE.md`'s budget the **fourth** number duplicated across `check-domain.sh`
+and `check-state.sh`, so it joins `test-check-state.py` case (o) — the drift detector — in the same
+commit that duplicates it, rather than in a later one nobody writes.
+

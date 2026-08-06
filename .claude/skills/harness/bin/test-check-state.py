@@ -607,6 +607,64 @@ def case_n():
     return all(results)
 
 
+def case_p():
+    """INV-23's CLAUDE.md budget, bound BEHAVIOURALLY at its boundary — and at warn level.
+
+    Review of PR #152, and it is case (n)'s lesson repeating one file over. Case (o)
+    compares SOURCE TEXT, so mutating the comparison `len(_cml) > 80` -> `> 999` while
+    leaving the `budget is 80` message alone survived all three suites with case (o)
+    printing ok. The PR body listed "CLAUDE.md budget drifted between the two files" under
+    mutants caught, which was true of the mutation actually run — one that changed the
+    MESSAGE — and overstated what the case covers. Case (o) binds the two files to each
+    other; only a boundary fixture binds either of them to reality.
+
+    WARN LEVEL IS ASSERTED TOO. INV-23 must report and NOT change the exit code, exactly as
+    for the four state files: an over-budget CLAUDE.md predating the gate must not halt
+    /harness entry, which is the same reasoning that kept FEAT-05/STATE.md from doing so.
+    """
+    results, codes, outs = [], {}, {}
+    for label, n, want in (("over", 81, True), ("at the budget", 80, False)):
+        with tempfile.TemporaryDirectory() as tmp:
+            make_fixture(tmp, '{}', "  parent: 40")
+            with open(os.path.join(tmp, "CLAUDE.md"), "w") as f:
+                f.write("\n".join(f"line {i}" for i in range(n)) + "\n")
+            code, out = run(tmp)
+            codes[label] = code
+            outs[label] = out
+            got = "INV-23 CLAUDE.md is" in out
+            ok = got == want
+            results.append(ok)
+            print(f"{'ok' if ok else 'FAIL'} - case (p/{label}): CLAUDE.md at {n} lines -> "
+                  f"INV-23 {'fires' if got else 'silent'} (want "
+                  f"{'fires' if want else 'silent'})")
+    # WARN LEVEL, ASSERTED ON THE LINE PREFIX — not on the exit code, which SATURATES.
+    #
+    # Two earlier drafts of this assertion were both wrong, and the second looked right.
+    # Draft 1 compared the exit code to a literal 0 and failed on correct code: the fixture
+    # is a bare .harness with no BRIEF, so check-state legitimately exits 1 for unrelated
+    # reasons. Draft 2 compared the two fixtures' exit codes to each other — and a reviewer
+    # showed that proves nothing, because `sys.exit(1 if bad else 0)` is already pinned at 1
+    # by an unrelated violation before CLAUDE.md is ever consulted. Changing INV-23's
+    # `warn.append` to `bad.append` left the ENTIRE SUITE GREEN with this case printing
+    # `ok ... (1 -> 1)`. It was comparing two constants.
+    #
+    # check-state.sh prints `  VIOLATION  ` for bad and `  note       ` for warn. That
+    # prefix flips under the mutation, on the fixture this case already has, and it cannot
+    # saturate. One line, no second fixture — and notably NOT the "build a clean fixture"
+    # fix, which would duplicate case (d)'s settings blob that case (d)'s own docstring
+    # records as having gone stale once already.
+    over_out = outs["over"]
+    warn_shaped = any(l.strip().startswith("note") and "INV-23 CLAUDE.md" in l
+                      for l in over_out.splitlines())
+    halting = any("VIOLATION" in l and "INV-23 CLAUDE.md" in l for l in over_out.splitlines())
+    ok_warn = warn_shaped and not halting
+    results.append(ok_warn)
+    print(f"{'ok' if ok_warn else 'FAIL'} - case (p/warn): the CLAUDE.md finding is a `note`, "
+          f"not a `VIOLATION` — warn level, so it cannot halt /harness entry"
+          + ("" if ok_warn else f" | got: {[l for l in over_out.splitlines() if 'INV-23 CLAUDE' in l]}"))
+    return all(results)
+
+
 def case_o():
     """The two enforcement scripts must AGREE on every number and key they both carry.
 
@@ -645,6 +703,10 @@ def case_o():
                                   r"comment lines — budget is (\d+)"),
         ("STATE.md lines",      r"STATE\.md is \{len\(lines\)\} lines — budget is (\d+)",
                                 r"STATE\.md is \{len\(sl\)\} lines — budget is (\d+)"),
+        # Issue #139 made this the fourth number in both files, so it joins the detector in
+        # the same commit that duplicates it — not in a later one nobody writes.
+        ("CLAUDE.md lines",     r"CLAUDE\.md is \{len\(lines\)\} lines — budget is (\d+)",
+                                r"CLAUDE\.md is \{len\(_cml\)\} lines — budget is (\d+)"),
     ):
         a, _ = budget(dom, what, dpat)
         b, _ = budget(sta, what, spat)
@@ -704,6 +766,7 @@ def main():
     ok_m3 = case_m3()
     ok_n = case_n()
     ok_o = case_o()
+    ok_p = case_p()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -712,7 +775,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

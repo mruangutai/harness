@@ -78,6 +78,13 @@ if not pats:
 # stale claim in either propagates FURTHER than one in SPEC.md, not less. Frontmatter
 # is the worst place of all for one, because it is the part nobody re-reads.
 targets = []
+# THE REPO ROOT, NON-RECURSIVELY (issue #139). CLAUDE.md is read at EVERY session start —
+# the widest blast radius of any file here, wider than SPEC.md or any agent file — and the
+# propagation checker could not see it. Verified before the fix by planting a live stale
+# phrase in it: zero hits. Root-level *.md only, at depth 0 and never `**`: recursing from
+# `.` would walk .git, node_modules and .claude/worktrees/, where every file in every other
+# checkout would be scanned as if it were this one.
+targets += glob.glob("*.md")
 for base, pats_ in ((D, ("*.md", "*.html")),
                     (".harness", ("*.md",)),
                     (".claude/skills", ("*.md",)),

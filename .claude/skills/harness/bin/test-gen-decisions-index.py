@@ -312,6 +312,51 @@ def test_preserves_inline_ok_stale_marker_on_a_row():
         return False
 
 
+def test_checker_scans_root_level_markdown():
+    """check-docs.sh must see CLAUDE.md — the file read at EVERY session start (issue #139).
+
+    Its scan roots were docs/harness, .harness, .claude/skills, .claude/commands and
+    .claude/agents. The REPO ROOT was not among them, so the propagation checker was blind
+    to the file with the widest blast radius in the tree. Verified before the fix by
+    planting a live stale phrase in the real CLAUDE.md: zero hits.
+
+    The second half of this case is as load-bearing as the first: the root tier must be
+    NON-RECURSIVE. Globbing `**` from `.` would walk .git, node_modules and
+    .claude/worktrees/, scanning every file of every other checkout as if it were this one.
+    """
+    name = "test_checker_scans_root_level_markdown"
+    try:
+        phrase = "another fabricated placeholder phrase"
+        with tempfile.TemporaryDirectory() as tmp:
+            docs_dir = os.path.join(tmp, "docs", "harness")
+            os.makedirs(docs_dir, exist_ok=True)
+            with open(os.path.join(docs_dir, "DECISIONS.md"), "w", encoding="utf-8") as f:
+                f.write("## DEC-01 — Single test decision\n\n"
+                        f'<!-- stale: "{phrase}" -->\n\n**Chose:** placeholder body.\n')
+            with open(os.path.join(tmp, "CLAUDE.md"), "w", encoding="utf-8") as f:
+                f.write(f"# Project\n\nThis file repeats the {phrase} on purpose.\n")
+            # A decoy one level down that the root tier must NOT reach, or the tier is
+            # recursive and the case above would pass for the wrong reason.
+            deep = os.path.join(tmp, "vendor", "someones-node-modules")
+            os.makedirs(deep, exist_ok=True)
+            with open(os.path.join(deep, "README.md"), "w", encoding="utf-8") as f:
+                f.write(f"Vendored text mentioning the {phrase}.\n")
+
+            env = dict(os.environ)
+            env["CLAUDE_PROJECT_DIR"] = tmp
+            r = subprocess.run([CHECK_DOCS], cwd=tmp, capture_output=True, text=True, env=env)
+            out = r.stdout + r.stderr
+            assert "CLAUDE.md" in out, f"root CLAUDE.md was not scanned:\n{out}"
+            assert r.returncode == 1, f"expected exit 1, got {r.returncode}:\n{out}"
+            assert "someones-node-modules" not in out, (
+                f"the root tier recursed into a subdirectory — it must be depth-0 only:\n{out}")
+        print(f"ok   {name}")
+        return True
+    except AssertionError as e:
+        print(f"FAIL {name}: {e}")
+        return False
+
+
 def test_checker_flags_planted_stale_phrase_in_index():
     name = "test_checker_flags_planted_stale_phrase_in_index"
     try:
@@ -704,6 +749,7 @@ TESTS = [
     test_supersession_declared_in_body_prose_is_harvested,
     test_preserves_hand_written_rulings_by_dec_number,
     test_preserves_inline_ok_stale_marker_on_a_row,
+    test_checker_scans_root_level_markdown,
     test_checker_flags_planted_stale_phrase_in_index,
     test_committed_index_is_complete_and_within_budget,
     test_orphaned_ruling_is_reported_not_silently_dropped,
