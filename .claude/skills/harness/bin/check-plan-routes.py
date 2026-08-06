@@ -88,31 +88,49 @@ def _clean(entry):
 
 
 def parse_files(body, files_match):
-    """Entries from a `files:` value, in EITHER shape the tree actually uses.
+    """Entries from a `files:` value, in EVERY shape the tree actually uses.
 
-    Same-line (`files: a, b, c`) is what templates/PLAN.md:61 prescribes. Block form —
-    `files:` alone, then `- path` lines — is what five of the eight PLANs in this repo
-    actually contain, and it was silently misread until issue #134.
+    Three shapes, and missing any of them is a FAIL-OPEN rather than a parse error —
+    unresolved entries simply are not checked, and the run still reports success:
+
+      1. same-line:            files: a, b, c
+      2. same-line WRAPPED:    files: a,          <- trailing comma, continues below
+                                 b
+      3. block:                files:
+                                 - a
+                                 - b
+
+    Shape 2 is live in FEAT-08 (3 tasks). Before this, its continuation lines were
+    dropped: T-01 declares two paths and the checker resolved one, reporting DEVIATION
+    on the single path it had seen. Shape 3 was the issue-#134 case.
     """
     same_line = files_match.group(1).strip()
-    if same_line:
-        return [c for c in (_clean(e) for e in same_line.split(",")) if c]
+    rest = body[files_match.end():].splitlines()[1:]
 
-    # Block form: consume `- item` lines following the `files:` line, stopping at the
-    # next `key:` or anything that is not a list item. Reading only the first one is
-    # the fail-open this replaces.
-    # `$` stops BEFORE the newline, so splitlines() yields an empty first element.
-    # Dropping it matters: without the [1:] the loop breaks on that empty string and
-    # parses nothing — which looks like "0 violations" and IS the fail-open, not a fix.
-    # Caught by case_18b failing against my own first attempt.
+    if same_line:
+        raw = [same_line]
+        # A trailing comma means the value continues. Keep taking indented, non-key
+        # lines while the previous one ends in a comma.
+        if same_line.rstrip().endswith(","):
+            for line in rest:
+                if not line.strip() or KEY_LINE_RE.match(line) or LIST_ITEM_RE.match(line):
+                    break
+                raw.append(line.strip())
+                if not line.strip().endswith(","):
+                    break
+        return [c for c in (_clean(e) for e in " ".join(raw).split(",")) if c]
+
+    # Block form. `$` stops BEFORE the newline, so splitlines() yields an empty first
+    # element — dropping it matters: without the [1:] above the loop breaks on that
+    # empty string and parses nothing, which prints "0 violations" and IS the fail-open.
     entries = []
-    for line in body[files_match.end():].splitlines()[1:]:
+    for line in rest:
         if not line.strip():
+            break
+        if KEY_LINE_RE.match(line):
             break
         m = LIST_ITEM_RE.match(line)
         if not m:
-            break                      # a `key:` line, or prose — the block ended
-        if KEY_LINE_RE.match(line):
             break
         c = _clean(m.group(1))
         if c:
@@ -152,6 +170,16 @@ def process_task(tid, body, findings):
         findings.append(f"UNRESOLVED-GLOB {tid} {entry}")
 
     if not literal_entries:
+        # SILENCE HERE IS THE FAIL-OPEN. An empty entry list is indistinguishable from
+        # "every path was granted", and both used to return 0 with no output — so a
+        # files: value this parser could not read looked exactly like a clean task.
+        # Say so instead. Not a VIOLATION: the plan may be fine and the parser wrong,
+        # which is precisely why a human has to look.
+        if not glob_entries:
+            findings.append(
+                f"UNPARSED {tid}: files: is present but no path could be read from it "
+                f"— NOT the same as 'all granted'. Nothing was checked for this task."
+            )
         return 0
 
     nobody_paths = []

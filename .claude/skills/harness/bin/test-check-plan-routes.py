@@ -203,6 +203,52 @@ def case_18():
                         "- docs/harness/SPEC.md ungranted" not in out, out))
         results.append(("case_18b_block_form_LATER_entry_is_checked_the_fail_open",
                         ".gitignore ungranted" in out, out))
+    # (18d) THE POSITIVE ASSERTION. 18a is NEGATIVE — "SPEC.md is not reported
+    # ungranted" is satisfied by never resolving SPEC.md at all, and a mutant returning
+    # entries[-1:] passed 18a/18b/18c together. Two paths with DIFFERENT granted sets,
+    # all granted, so the OK line must name the UNION; dropping either changes it.
+    with tempfile.TemporaryDirectory() as td:
+        allg = write_plan(td, "# PLAN\n\n" + (
+            "- T-01: block form, every path granted\n"
+            "  files:\n"
+            "    - docs/harness/SPEC.md\n"
+            "    - .claude/skills/harness/bin/check-domain.sh\n"
+            "  execution_mode: team\n"
+            "  status: pending\n"))
+        r4 = run(allg)
+        ok_line = next((l for l in r4.stdout.splitlines() if l.startswith("OK T-01")), "")
+        results.append(("case_18d_block_form_OK_line_names_the_UNION_of_granted_sets",
+                        "harness-documentor" in ok_line
+                        and "harness-backend-dev" in ok_line
+                        and "harness-dev-ops" in ok_line,
+                        f"OK line was {ok_line!r}"))
+
+    # (18e) The WRAPPED same-line shape — trailing comma, value continues on the next
+    # line. Live in FEAT-08 (3 tasks), where T-01 declared two paths and the checker
+    # resolved one: the continuation was dropped in silence. Same fail-open class.
+    with tempfile.TemporaryDirectory() as td:
+        wrapped = write_plan(td, "# PLAN\n\n" + (
+            "- T-01: wrapped same-line\n"
+            "  files: `docs/harness/SPEC.md`,\n"
+            "    `.gitignore`\n"
+            "  execution_mode: team\n"
+            "  status: pending\n"))
+        r5 = run(wrapped)
+        results.append(("case_18e_wrapped_same_line_continuation_is_read",
+                        ".gitignore ungranted" in r5.stdout, r5.stdout))
+
+    # (18f) A files: value this parser cannot read must SAY SO, never return silently —
+    # an empty entry list used to be indistinguishable from "every path granted".
+    with tempfile.TemporaryDirectory() as td:
+        empty = write_plan(td, "# PLAN\n\n" + (
+            "- T-01: files: present but unreadable\n"
+            "  files:\n"
+            "  execution_mode: team\n"
+            "  status: pending\n"))
+        r6 = run(empty)
+        results.append(("case_18f_unparseable_files_value_is_reported_not_silent",
+                        "UNPARSED T-01" in r6.stdout, r6.stdout))
+
     with tempfile.TemporaryDirectory() as td:
         same = write_plan(td, "# PLAN\n\n" + (
             "- T-01: same-line form\n"
