@@ -1,0 +1,50 @@
+name: tests
+
+# WHY THIS EXISTS (issue #161): nothing ran the suites mechanically. Not a git hook, not a
+# Claude Code hook, not check-state.sh at /harness entry — the only path was harness-qa
+# reading test_kinds during a team flow, or a human remembering. Every assertion added
+# across #149, #152 and #153 was dormant by default, which is issue #133's own shape
+# ("logic correct, nothing calls it") applied to the safety net itself.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  integration:
+    # NO `container:`, DELIBERATELY. GitHub-hosted runners execute as a non-root user;
+    # a container job runs as root, and root IGNORES file permissions. test-check-domain.py
+    # and test-gh-sync.py assert on `chmod 000` paths, so under root they would pass for
+    # the wrong reason — a green tick proving nothing, which is the exact defect class this
+    # repo keeps filing tickets about.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # PyYAML is REQUIRED, not optional (DEC-171 am.1). There is no line-scan fallback:
+      # a missing parser is a loud failure by design, so install it rather than letting
+      # the suite exercise a degraded path that does not exist.
+      - name: Install PyYAML
+        run: python3 -m pip install --upgrade pyyaml
+
+      # The INTEGRATION kind, not `all`. The unit kind is 3 files and 0.28s and would have
+      # caught none of the defects that motivated this; integration is 11 files and ~15s
+      # and is where the write-guard, digest and route-checking assertions live (#160).
+      - name: Integration suite
+        env:
+          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
+        run: .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+
+      # Proves the runner is not root, so the chmod-based assertions above mean what they
+      # say. If this ever fails, the suite result above is not trustworthy.
+      - name: Assert the runner is not root
+        run: |
+          if [ "$(id -u)" = "0" ]; then
+            echo "::error::running as root — chmod-based assertions cannot fail here" >&2
+            exit 1
+          fi
+          echo "uid=$(id -u) ($(id -un)) — permission assertions are meaningful"
