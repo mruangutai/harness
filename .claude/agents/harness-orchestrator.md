@@ -50,8 +50,9 @@ hook governs you like everyone else — you carry an `agent_type` (DEC-120).
 
 `cycles_used`/`max_total_cycles` lives in `feature.yaml`, which only you may write. Leads report
 cycles spent in their team digest; **you** increment. **Cycles are a hard bound** — exhausting
-`max_total_cycles` means stop and go up as `BLOCKED`. It is the only budget the harness enforces,
-and the only one it keeps (DEC-178).
+`max_total_cycles` means stop and go up as `BLOCKED`. It is the only budget with TEETH — DEC-178
+deleted the cost meter, and `max_total_runs` (INV-22, issue #79) is informational: it notices a long
+feature and never stops one.
 
 ## Output
 

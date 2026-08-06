@@ -168,6 +168,66 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
         bad.append(f"{feat}: cycles_used={cu} but {fails} FAIL run(s) recorded "
                    f"— the fix loop is no longer bounded.")
 
+    # INV-22: RUNS are counted, because cycles do not count them (issue #79).
+    # DEC-157 makes a cycle REWORK ONLY, so a first-pass run contributes zero however
+    # many steps it has. That is right for what the cycle budget guards, and it left
+    # total runs unbounded AND uncounted: FEAT-03 ran 19 times against a 6-cycle count
+    # and tripped nothing. Cost was the other long-feature signal and DEC-178 deleted
+    # it, so without this nothing at all notices a feature running long.
+    #
+    # DELIBERATELY A NOTE, NOT A VIOLATION. A high run count is not itself a defect —
+    # a long feature is fine when each run is efficient, resolves issues and advances
+    # the SCs. A third HARD budget that stops work needs a much stronger case than one
+    # that flags, so this one flags and names those three questions.
+    #
+    # THE COUNT IS A FLOOR, not a total: a main-session-direct segment is not a run and
+    # never appears in runs: — on FEAT-07 that hid eight of ten tasks. Said in the
+    # message so nobody reads the number as complete.
+    # A BUDGET THIS INVARIANT CANNOT RESOLVE IS REPORTED, NEVER SILENTLY DROPPED.
+    # First cut read the key and fell through on anything unexpected, so a harness.json
+    # that PARSES FINE but has no `budgets.max_total_runs` disabled INV-22 with no
+    # diagnostic — and the shipped templates/examples/harness.kaya-ai.json is exactly
+    # that shape, so a project onboarded from it got a check that never ran. DEC-160
+    # records the identical config lag for max_total_cycles. Worse, `true` satisfied
+    # isinstance(x, int) — bool subclasses int in Python — so it "worked" while "20"
+    # and 20.0 did not.
+    def _as_budget(v):
+        """int, or None with a reason. bool is rejected BEFORE the int check."""
+        if isinstance(v, bool):
+            return None, f"{v!r} is a boolean"
+        if isinstance(v, int):
+            return (v, None) if v >= 0 else (None, f"{v} is negative")
+        if isinstance(v, float):
+            return (int(v), None) if v.is_integer() and v >= 0 else (None, f"{v!r} is not a whole number")
+        if isinstance(v, str) and v.strip().isdigit():
+            return int(v.strip()), None
+        return None, ("absent" if v is None else f"{v!r} is not a number")
+
+    _budget, _why = None, "harness.json could not be read"
+    try:
+        _hj = json.load(open(os.path.join(H, "harness.json"), encoding="utf-8"))
+        _budget, _why = _as_budget((_hj.get("budgets") or {}).get("max_total_runs"))
+    except Exception as e:
+        _budget, _why = None, f"harness.json could not be read ({type(e).__name__})"
+    _declared = val("max_total_runs")
+    if _declared is not None:                 # a per-feature value outranks the default
+        _d, _dwhy = _as_budget(_declared.strip() if isinstance(_declared, str) else _declared)
+        if _d is None:
+            warn.append(f"INV-22 {feat}: its own max_total_runs is unusable ({_dwhy}) — "
+                        f"falling back to the harness.json default.")
+        else:
+            _budget, _why = _d, None
+    if _budget is None:
+        warn.append(f"INV-22 {feat}: run counting is INACTIVE — budgets.max_total_runs "
+                    f"{_why}. {len(runs)} runs recorded and nothing is watching them. "
+                    f"Set it in .harness/harness.json (default 20).")
+    elif len(runs) > _budget:
+        warn.append(f"INV-22 {feat}: {len(runs)} runs recorded against a {_budget}-run budget "
+                    f"(cycles_used={val('cycles_used')} counts REWORK only, DEC-157, so it "
+                    f"does not see this). Not a defect by itself — check each run is "
+                    f"efficient, is resolving issues, and is advancing the SCs. The count "
+                    f"is a FLOOR: main-session-direct segments are not runs.")
+
     # INV-8: a referenced run dir must exist, or resume has nothing to read.
     recorded = set()
     for rid, _, _ in runs:

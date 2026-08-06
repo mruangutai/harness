@@ -366,6 +366,78 @@ def case_k():
     return all(results)
 
 
+def case_l():
+    """INV-22 (issue #79): runs are counted, the budget is INFORMATIONAL, and a
+    per-feature raise outranks the default.
+
+    Three assertions, because a one-sided test would pass on a check that always fires
+    or never does:
+      (1) 21 runs against a 20 budget NOTES,
+      (2) exactly 20 does NOT — the boundary is `>`, not `>=`,
+      (3) a feature declaring max_total_runs: 30 silences it,
+      (4) and the exit code is UNCHANGED, because this must never gate.
+    """
+    def build(tmp, n, declared="", budget='"budgets": {"max_total_runs": 20}'):
+        h = os.path.join(tmp, ".harness")
+        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write('{\n  "github": {"sync": false, "repo": null}'
+                    + (",\n  " + budget if budget else "") + "\n}\n")
+        runs = "\n".join(f"  - {{ id: r{i}, squad: eng, verdict: PASS }}"
+                         for i in range(n))
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+            f.write(f"feature_id: FEAT-TEST\nphase: build\ncycles_used: 2\n"
+                    f"review_sha: abc1234\n{declared}runs:\n{runs}\n")
+        return run(tmp)
+
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        code_over, out_over = build(tmp, 21)
+    with tempfile.TemporaryDirectory() as tmp:
+        code_at, out_at = build(tmp, 20)
+    with tempfile.TemporaryDirectory() as tmp:
+        _code_raised, out_raised = build(tmp, 21, "max_total_runs: 30\n")
+    # (l5-l8) THE CONFIGURED VALUE MUST ACTUALLY BE READ, and a budget this check
+    # cannot resolve must SAY SO. The first version of case (l) asserted neither:
+    # a mutant hardcoding `_budget = 20` and never opening harness.json passed all
+    # four assertions, exit 0 (PR #142 review, HIGH 2). Reproduced before fixing.
+    # (l5) uses a DIFFERENT budget so a hardcoded 20 gives the wrong number in the
+    # message; (l6)-(l8) cover the shapes that used to disable the check in silence,
+    # including the one shipped in templates/examples/harness.kaya-ai.json.
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, out_b5 = build(tmp, 7, budget='"budgets": {"max_total_runs": 5}')
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, out_nokey = build(tmp, 21, budget='"budgets": {}')
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, out_noblock = build(tmp, 21, budget="")
+    with tempfile.TemporaryDirectory() as tmp:
+        _c, out_bool = build(tmp, 21, budget='"budgets": {"max_total_runs": true}')
+
+    for name, ok, detail in (
+        ("(l1) 21 runs against a 20 budget is NOTED",
+         "21 runs recorded against a 20-run budget" in out_over, out_over),
+        ("(l2) exactly 20 does NOT fire — the boundary is >, not >=",
+         "runs recorded against" not in out_at, out_at),
+        ("(l3) a per-feature max_total_runs: 30 silences it",
+         "runs recorded against" not in out_raised, out_raised),
+        ("(l4) INV-22 NEVER gates — exit code identical over and under budget",
+         code_over == code_at, f"over={code_over} at={code_at}"),
+        ("(l5) the CONFIGURED value is read — budget 5 with 7 runs names 5, not 20",
+         "7 runs recorded against a 5-run budget" in out_b5, out_b5),
+        ("(l6) budgets present but key missing is REPORTED INACTIVE, never silent",
+         "run counting is INACTIVE" in out_nokey, out_nokey),
+        ("(l7) no budgets block at all (the shipped kaya example) is REPORTED INACTIVE",
+         "run counting is INACTIVE" in out_noblock, out_noblock),
+        ("(l8) a boolean budget is REJECTED, not treated as an int (bool subclasses int)",
+         "run counting is INACTIVE" in out_bool, out_bool),
+    ):
+        print(f"{'ok' if ok else 'FAIL'} - case {name}")
+        if not ok:
+            print(f"        {detail.strip()[:200]}")
+        results.append(ok)
+    return all(results)
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -378,6 +450,7 @@ def main():
     ok_i = case_i()
     ok_j = case_j()
     ok_k = case_k()
+    ok_l = case_l()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -386,7 +459,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_exit_unchanged):
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
 

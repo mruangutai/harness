@@ -3940,6 +3940,26 @@ Not mechanized: nothing distinguishes a first-pass run from a rework run in stat
 checker cannot recount cycles independently; INV-7 (cycles_used ≥ recorded FAIL runs) remains
 the floor. Revisit if run records gain a `rework_of:` marker.
 
+**Amendment am.1 (issue #79): runs are COUNTED too, informationally — INV-22.** This entry's own
+consequence is that a first-pass run contributes zero, so nothing counted total runs at all:
+FEAT-03 ran **19 times against a 6-cycle count** and tripped nothing. Cost was the other
+long-feature signal and DEC-178 deleted it, leaving no signal whatever.
+
+`check-state.sh` INV-22 notes `len(runs)` against `budgets.max_total_runs` (default 20, from a
+measured range of 1-19 across nine features). **Informational, never a gate** — the exit code is
+identical over and under, and a fixture asserts that. A high run count is not a defect: a long
+feature is fine when each run is efficient, resolves issues and advances the SCs, which is what the
+note asks rather than demanding justification for the number.
+
+Two properties are load-bearing and each has a fixture, because the first cut had neither.
+**The count is a FLOOR** — a main-session-direct segment is not a run and never appears in `runs:`,
+which on FEAT-07 hid eight of ten tasks — so the message says so. **A budget it cannot resolve is
+REPORTED, not silently dropped**: a `harness.json` that parses but lacks the key used to disable
+the check with no diagnostic, and `templates/examples/harness.kaya-ai.json` ships in exactly that
+shape. DEC-160 records the identical config lag for `max_total_cycles`.
+
+<!-- stale: "the only one it keeps (DEC-178)" -->
+
 ## DEC-158 — Context-budget pass: skills carry the rule, DECISIONS carries the rule's history
 
 Measured per-spawn preload (agent file + `skills:` + injected Expertise): orchestrator ~12.3k
