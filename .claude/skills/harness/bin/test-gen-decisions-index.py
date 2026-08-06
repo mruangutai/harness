@@ -616,9 +616,52 @@ def test_argv_is_validated_and_only_the_write_path_writes():
             if r.returncode == 0:
                 print(f"FAIL - {name} (b): unknown flag exited 0")
                 return False
-            if "--check" not in r.stderr:
-                print(f"FAIL - {name} (b): stderr does not name the rejected flag: "
-                      f"{r.stderr[:300]!r}")
+            # NOT `"--check" in r.stderr`: parse_argv dumps the whole docstring to
+            # stderr and that docstring now contains the literal `--check`, so the
+            # assertion passed on the docstring rather than on the error line. A
+            # generic message naming no token satisfied it. Assert on the error LINE.
+            first = r.stderr.strip().splitlines()[0] if r.stderr.strip() else ""
+            if "--check" not in first:
+                print(f"FAIL - {name} (b): the error LINE does not name the rejected "
+                      f"flag: {first!r}")
+                return False
+
+        # (b2) A SINGLE-DASH unknown flag. THE GAP THE REVIEW FOUND: every unknown-flag
+        # case above uses a double-dashed token, so `[a for a in argv if
+        # a.startswith("--") and a != "--stdout"]` — a plausible wrong implementation —
+        # passed the entire suite while still rewriting the index on `-x`. Reproduced:
+        # mutant rc=0, index 45 -> 14914 bytes; shipped rc=2, untouched.
+        with tempfile.TemporaryDirectory() as tmp:
+            path, before = fixture(tmp)
+            r = run_gen(tmp, args=["-x"])
+            if open(path, encoding="utf-8").read() != before:
+                print(f"FAIL - {name} (b2): a single-dash unknown flag REWROTE the index")
+                return False
+            if r.returncode == 0:
+                print(f"FAIL - {name} (b2): single-dash unknown flag exited 0")
+                return False
+
+        # (b3) A POSITIONAL argument — no dash at all. Same class as (b2): a check
+        # keyed on a leading `--` never sees it.
+        with tempfile.TemporaryDirectory() as tmp:
+            path, before = fixture(tmp)
+            r = run_gen(tmp, args=["docs/harness/DECISIONS-INDEX.md"])
+            if open(path, encoding="utf-8").read() != before:
+                print(f"FAIL - {name} (b3): a positional argument REWROTE the index")
+                return False
+            if r.returncode == 0:
+                print(f"FAIL - {name} (b3): positional argument exited 0")
+                return False
+
+        # (b4) `-h` is documented as an alias and was never exercised.
+        with tempfile.TemporaryDirectory() as tmp:
+            path, before = fixture(tmp)
+            r = run_gen(tmp, args=["-h"])
+            if open(path, encoding="utf-8").read() != before:
+                print(f"FAIL - {name} (b4): -h REWROTE the index")
+                return False
+            if r.returncode != 0:
+                print(f"FAIL - {name} (b4): -h exited {r.returncode}")
                 return False
 
         # (c) Regression guard: --stdout still prints the index and still writes nothing.
