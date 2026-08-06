@@ -622,7 +622,7 @@ def case_p():
     for the four state files: an over-budget CLAUDE.md predating the gate must not halt
     /harness entry, which is the same reasoning that kept FEAT-05/STATE.md from doing so.
     """
-    results, codes = [], {}
+    results, codes, outs = [], {}, {}
     for label, n, want in (("over", 81, True), ("at the budget", 80, False)):
         with tempfile.TemporaryDirectory() as tmp:
             make_fixture(tmp, '{}', "  parent: 40")
@@ -630,21 +630,38 @@ def case_p():
                 f.write("\n".join(f"line {i}" for i in range(n)) + "\n")
             code, out = run(tmp)
             codes[label] = code
+            outs[label] = out
             got = "INV-23 CLAUDE.md is" in out
             ok = got == want
             results.append(ok)
             print(f"{'ok' if ok else 'FAIL'} - case (p/{label}): CLAUDE.md at {n} lines -> "
                   f"INV-23 {'fires' if got else 'silent'} (want "
                   f"{'fires' if want else 'silent'})")
-    # WARN LEVEL, asserted the way case (a)/(b) assert INV-21's: the two fixtures differ
-    # ONLY in CLAUDE.md's length, so an equal exit code is the whole claim. Comparing
-    # against a literal 0 was a first draft and it was wrong — this fixture is a bare
-    # .harness with no BRIEF, so check-state legitimately exits 1 for unrelated reasons and
-    # the case failed on correct code.
-    same = codes["over"] == codes["at the budget"]
-    results.append(same)
-    print(f"{'ok' if same else 'FAIL'} - case (p/warn): an over-budget CLAUDE.md does not "
-          f"change the exit code ({codes['at the budget']} -> {codes['over']})")
+    # WARN LEVEL, ASSERTED ON THE LINE PREFIX — not on the exit code, which SATURATES.
+    #
+    # Two earlier drafts of this assertion were both wrong, and the second looked right.
+    # Draft 1 compared the exit code to a literal 0 and failed on correct code: the fixture
+    # is a bare .harness with no BRIEF, so check-state legitimately exits 1 for unrelated
+    # reasons. Draft 2 compared the two fixtures' exit codes to each other — and a reviewer
+    # showed that proves nothing, because `sys.exit(1 if bad else 0)` is already pinned at 1
+    # by an unrelated violation before CLAUDE.md is ever consulted. Changing INV-23's
+    # `warn.append` to `bad.append` left the ENTIRE SUITE GREEN with this case printing
+    # `ok ... (1 -> 1)`. It was comparing two constants.
+    #
+    # check-state.sh prints `  VIOLATION  ` for bad and `  note       ` for warn. That
+    # prefix flips under the mutation, on the fixture this case already has, and it cannot
+    # saturate. One line, no second fixture — and notably NOT the "build a clean fixture"
+    # fix, which would duplicate case (d)'s settings blob that case (d)'s own docstring
+    # records as having gone stale once already.
+    over_out = outs["over"]
+    warn_shaped = any(l.strip().startswith("note") and "INV-23 CLAUDE.md" in l
+                      for l in over_out.splitlines())
+    halting = any("VIOLATION" in l and "INV-23 CLAUDE.md" in l for l in over_out.splitlines())
+    ok_warn = warn_shaped and not halting
+    results.append(ok_warn)
+    print(f"{'ok' if ok_warn else 'FAIL'} - case (p/warn): the CLAUDE.md finding is a `note`, "
+          f"not a `VIOLATION` — warn level, so it cannot halt /harness entry"
+          + ("" if ok_warn else f" | got: {[l for l in over_out.splitlines() if 'INV-23 CLAUDE' in l]}"))
     return all(results)
 
 
