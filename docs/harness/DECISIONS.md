@@ -5005,7 +5005,7 @@ surfacing as a rejected write halfway through a build.
 
 **The checker MUST NOT reimplement path matching, and the test enforces it behaviourally, not by
 inspection.** No `fnmatch`, no glob-to-regex translator, no prefix comparison on the text before `/**`
-— every resolution is a subprocess call with stdin closed (`check-plan-routes.py:52-57`). A second
+— every resolution is a subprocess call with stdin closed (`check-plan-routes.py:67-73`). A second
 matcher that drifts from the guard is the failure mode, and it does not drift visibly: a bare prefix
 comparison answers *False* for a pattern with an earlier wildcard segment, such as
 `.harness/features/*/runs/*-eng/**` — the exact bug recorded in the `glob_to_re()` docstring of
@@ -5024,7 +5024,7 @@ implying an enforcement that does not exist.
 
 **The inverse case is surfaced, never silenced, and never fatal.** A task whose literal paths all
 resolve to a granting agent but which declares `main-session-direct` prints a `DEVIATION` line and
-leaves the exit status alone (`check-plan-routes.py:120-128`). That is the DEC-174 shape — the harness
+leaves the exit status alone (`check-plan-routes.py:216-221`). That is the DEC-174 shape — the harness
 plans its own work but does not execute changes to its own enforcement layer — and it is deliberately
 legal. Making it a violation would forbid the carve-out; making it silent would let a hand-executed
 task read as an ordinary team task in the one artifact a reviewer scans.

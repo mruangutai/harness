@@ -51,7 +51,7 @@ LIST_ITEM_RE = re.compile(r"^[ \t]*-[ \t]*(.+?)[ \t]*$")
 KEY_LINE_RE = re.compile(r"^[ \t]*[A-Za-z_][A-Za-z0-9_]*:")
 # The pre-FEAT-06 shape: `- files:` as a list item. Detected only to give a
 # better message; never parsed.
-LEGACY_FILES_RE = re.compile(r"^[ \t]*-[ \t]*files:[ \t]*$", re.M)
+LEGACY_FILES_RE = re.compile(r"^[ \t]*-[ \t]*files:", re.M)
 MODE_RE = re.compile(r"^\s*execution_mode:\s*(\S+)", re.M)
 
 LEGAL_MAIN_SESSION_TOKEN = "main-session-direct"
@@ -124,13 +124,18 @@ def parse_files(body, files_match):
     # element — dropping it matters: without the [1:] above the loop breaks on that
     # empty string and parses nothing, which prints "0 violations" and IS the fail-open.
     entries = []
+    key_indent = len(files_match.group(0)) - len(files_match.group(0).lstrip())
     for line in rest:
         if not line.strip():
             break
-        if KEY_LINE_RE.match(line):
-            break
         m = LIST_ITEM_RE.match(line)
         if not m:
+            break                       # a `key:` line, or prose — the block ended
+        # A bullet DEDENTED past the `files:` key belongs to the enclosing list, not to
+        # this value. Without this the loop ate any following bullet as a path — the
+        # KEY_LINE_RE guard could never fire, because a line starting `-` never matches
+        # `[A-Za-z_]` at the same offset.
+        if (len(line) - len(line.lstrip())) <= key_indent:
             break
         c = _clean(m.group(1))
         if c:
