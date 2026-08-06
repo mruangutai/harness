@@ -35,7 +35,23 @@ TASK_RE = re.compile(
     re.M | re.S,
 )
 
-FILES_RE = re.compile(r"^\s*files:\s*(.*)$", re.M)
+# `[ \t]*`, NEVER `\s*`, after the colon (issue #134). `\s` matches NEWLINES, so the
+# original `files:\s*(.*)$` swallowed the line break on a list-form block and captured
+# the FIRST LIST ITEM — dash included — as if it were the whole files: value.
+#
+# That produced a false positive AND a fail-open at once, which is why this is worth
+# the comment. Measured on a three-path fixture before the fix:
+#   VIOLATION T-01: - docs/harness/SPEC.md ungranted   <- granted; the dash broke it
+#   ...and .gitignore, which genuinely resolves to NOBODY, was NEVER CHECKED.
+# One bogus violation masking one real one. The visible symptom was the false
+# rejection; the dangerous half was the four other entries nobody ever looked at.
+FILES_RE = re.compile(r"^[ \t]*files:[ \t]*(.*)$", re.M)
+# A list item under a `files:` block. Stops at the next `key:` line or a blank line.
+LIST_ITEM_RE = re.compile(r"^[ \t]*-[ \t]*(.+?)[ \t]*$")
+KEY_LINE_RE = re.compile(r"^[ \t]*[A-Za-z_][A-Za-z0-9_]*:")
+# The pre-FEAT-06 shape: `- files:` as a list item. Detected only to give a
+# better message; never parsed.
+LEGACY_FILES_RE = re.compile(r"^[ \t]*-[ \t]*files:", re.M)
 MODE_RE = re.compile(r"^\s*execution_mode:\s*(\S+)", re.M)
 
 LEGAL_MAIN_SESSION_TOKEN = "main-session-direct"
@@ -67,22 +83,90 @@ def resolve_agents(path):
     return sorted(set(agents))
 
 
-def parse_files(files_line):
-    entries = [e.strip().strip("`").strip() for e in files_line.split(",")]
-    return [e for e in entries if e]
+def _clean(entry):
+    return entry.strip().strip("`").strip().rstrip(",").strip()
+
+
+def parse_files(body, files_match):
+    """Entries from a `files:` value, in EVERY shape the tree actually uses.
+
+    Three shapes, and missing any of them is a FAIL-OPEN rather than a parse error —
+    unresolved entries simply are not checked, and the run still reports success:
+
+      1. same-line:            files: a, b, c
+      2. same-line WRAPPED:    files: a,          <- trailing comma, continues below
+                                 b
+      3. block:                files:
+                                 - a
+                                 - b
+
+    Shape 2 is live in FEAT-08 (3 tasks). Before this, its continuation lines were
+    dropped: T-01 declares two paths and the checker resolved one, reporting DEVIATION
+    on the single path it had seen. Shape 3 was the issue-#134 case.
+    """
+    same_line = files_match.group(1).strip()
+    rest = body[files_match.end():].splitlines()[1:]
+
+    if same_line:
+        raw = [same_line]
+        # A trailing comma means the value continues. Keep taking indented, non-key
+        # lines while the previous one ends in a comma.
+        if same_line.rstrip().endswith(","):
+            for line in rest:
+                if not line.strip() or KEY_LINE_RE.match(line) or LIST_ITEM_RE.match(line):
+                    break
+                raw.append(line.strip())
+                if not line.strip().endswith(","):
+                    break
+        return [c for c in (_clean(e) for e in " ".join(raw).split(",")) if c]
+
+    # Block form. `$` stops BEFORE the newline, so splitlines() yields an empty first
+    # element — dropping it matters: without the [1:] above the loop breaks on that
+    # empty string and parses nothing, which prints "0 violations" and IS the fail-open.
+    entries = []
+    key_indent = len(files_match.group(0)) - len(files_match.group(0).lstrip())
+    for line in rest:
+        if not line.strip():
+            break
+        m = LIST_ITEM_RE.match(line)
+        if not m:
+            break                       # a `key:` line, or prose — the block ended
+        # A bullet DEDENTED past the `files:` key belongs to the enclosing list, not to
+        # this value. Without this the loop ate any following bullet as a path — the
+        # KEY_LINE_RE guard could never fire, because a line starting `-` never matches
+        # `[A-Za-z_]` at the same offset.
+        if (len(line) - len(line.lstrip())) <= key_indent:
+            break
+        c = _clean(m.group(1))
+        if c:
+            entries.append(c)
+    return entries
 
 
 def process_task(tid, body, findings):
     """Append findings for one task block. Returns the number of VIOLATIONs added."""
     files_match = FILES_RE.search(body)
     if not files_match:
-        findings.append(f"VIOLATION {tid}: no files: line")
+        # A `- files:` LIST-ITEM key (the pre-FEAT-06 shape, still in FEAT-03/04/05)
+        # is deliberately NOT parsed: its children are prose — "create `path`",
+        # "edit `path` (`key`)" — and extracting paths from prose would produce
+        # confident wrong answers, which is worse than declining. Say which case
+        # this is, because "no files: line" on a task that visibly HAS one reads as
+        # a checker bug and sent one reader looking for one.
+        if LEGACY_FILES_RE.search(body):
+            findings.append(
+                f"VIOLATION {tid}: files: is a `- files:` list item with prose "
+                f"children (pre-FEAT-06 shape) — not machine-readable. Rewrite it as "
+                f"`files: <path>, <path>` or a `- <path>` block to have it checked."
+            )
+        else:
+            findings.append(f"VIOLATION {tid}: no files: line")
         return 1
 
     mode_match = MODE_RE.search(body)
     mode_token = mode_match.group(1) if mode_match else None
 
-    entries = parse_files(files_match.group(1))
+    entries = parse_files(body, files_match)
 
     glob_entries = [e for e in entries if "*" in e or "?" in e]
     literal_entries = [e for e in entries if e not in glob_entries]
@@ -91,6 +175,16 @@ def process_task(tid, body, findings):
         findings.append(f"UNRESOLVED-GLOB {tid} {entry}")
 
     if not literal_entries:
+        # SILENCE HERE IS THE FAIL-OPEN. An empty entry list is indistinguishable from
+        # "every path was granted", and both used to return 0 with no output — so a
+        # files: value this parser could not read looked exactly like a clean task.
+        # Say so instead. Not a VIOLATION: the plan may be fine and the parser wrong,
+        # which is precisely why a human has to look.
+        if not glob_entries:
+            findings.append(
+                f"UNPARSED {tid}: files: is present but no path could be read from it "
+                f"— NOT the same as 'all granted'. Nothing was checked for this task."
+            )
         return 0
 
     nobody_paths = []
