@@ -812,6 +812,19 @@ blocking review task.
 with light technical detail, not ID shorthand** — a curation block that reads as `merge P-04+P-09` has
 failed at being reviewable by a human.
 
+**Application (issue #80): the briefing's report round is dropped.** This entry's own premise —
+*"the orchestrator already receives all three consolidated DIGESTs at the briefing, so it has the
+cross-lead view at no extra spawn cost"* — is exactly why a *"report on your domain"* spawn buys
+nothing: it re-narrates context the orchestrator already holds. A FEAT-04 orchestrator reached the
+same conclusion unprompted (*"three lead spawns at ~20 USD each to re-narrate digests I hold is
+spend with nothing to surface it"*). The curation block DEC-69 mandates is unaffected — it was
+never sourced from the report round. A lead is still spawned here when a specific question its
+digests do not answer needs one, and then only that lead.
+
+<!-- stale: "All three always report" -->
+<!-- stale: "all three leads in parallel" -->
+<!-- stale: "alongside ship-refresh" -->
+
 ## DEC-70 — `ai_behavior` becomes a real change type: ai-dev authors the eval, qa owns the gate — SUPERSEDES DEC-37
 
 **Chose:** add `change_type: ai_behavior` with `eval` as a required test kind. `ai-dev` **authors** the

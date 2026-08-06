@@ -1422,10 +1422,14 @@ answers one thing, a **briefing** is the consolidated cross-team view plus an in
 
 How it runs:
 
-1. Orchestrator spawns **all three leads in parallel**: "report on your domain."
-2. Each returns progress · assessment · its squad's `open_questions` · risks and proposed next
-   steps. **All three always report** — a lead with nothing to say returns "no activity this run,"
-   which guarantees a complete cross-team picture with a consistent shape every time.
+1. **No report round is spawned (#80).** The orchestrator already holds every lead's consolidated
+   DIGEST — one per run — so "report on your domain" buys a re-narration of what is already in its
+   context. DEC-69 assumes exactly this: the cross-lead view is held "at no extra spawn cost."
+   A lead is spawned here **only** when a specific question its digests do not answer needs one,
+   and then only that lead.
+2. The cross-team picture is assembled from those digests: progress · assessment · each squad's
+   `open_questions` · risks and proposed next steps. A squad with nothing to say simply
+   contributes nothing, rather than paying a spawn to say so.
 3. Orchestrator assembles one briefing: each lead's summary, all open questions across teams,
    resolved escalations, proposed next steps, the goal-check result (REQ coverage + SC outcomes), the
    **UAT** if one is required, and the **Expertise curation** block.
