@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Merge the six harness prerequisites into a project's .claude/settings.json.
+"""Merge the harness hook prerequisites into a project's .claude/settings.json.
 
-WHY THIS IS A SCRIPT AND NOT AN INSTRUCTION: all six entries degrade SILENTLY if
+WHY THIS IS A SCRIPT AND NOT AN INSTRUCTION: every entry degrades SILENTLY if
 absent — no error, no warning, just a harness with memoryless agents that can write
 anywhere. Hand-merging JSON into a file that already has the project's own hooks is
-exactly where one of the six quietly goes missing. So the merge is deterministic
+exactly where one of them quietly goes missing. So the merge is deterministic
 and re-runnable, and `--check` can assert the result.
 
   merge-settings.py <project-root> [--check] [--template <path>]
@@ -27,7 +27,13 @@ import os
 import shutil
 import sys
 
-# The six prerequisites, each keyed by the script basename that identifies it.
+# The hook prerequisites, each keyed by the (event, script basename) pair that identifies
+# it — check-domain.sh appears on TWO events and they are two separate prerequisites.
+#
+# THE COUNT IS DERIVED FROM THIS LIST, never written as a word. Three places said "six"
+# and one said "seven" (counting the spawn-depth env var); adding the PostToolUse entry
+# for issue #132 made every one of them wrong at once, and a prose count that disagrees
+# with the code is how a reader concludes an entry is spurious and deletes it.
 HOOK_SPECS = [
     {
         "event": "SubagentStart",
@@ -45,6 +51,21 @@ HOOK_SPECS = [
         "why": "Domain enforcement. Absent -> every agent can write anywhere, "
                "fail-open and silent. Agent-frontmatter PreToolUse hooks DO NOT FIRE "
                "(DEC-110), so settings.json is the only place this works.",
+    },
+    {
+        # SAME SCRIPT, DIFFERENT EVENT — and `hook_present` keys on (event, basename),
+        # so this is a genuinely separate prerequisite rather than a duplicate of the
+        # PreToolUse entry above. Registered on Bash too, which the PreToolUse entry
+        # deliberately is not: pre-Bash there is nothing to shape-check, post-Bash the
+        # file is on disk.
+        "event": "PostToolUse",
+        "script": "check-domain.sh",
+        "args": " --post",
+        "matcher": "Write|Edit|Bash",
+        "why": "State-file SHAPE enforcement on the routes PreToolUse cannot reach "
+               "(issue #132). Absent -> the DEC-150 line and comment budgets bind only "
+               "a `Write` by a harness agent, which is 1 of 4 routes; Edit, Bash and "
+               "the main session all write over budget in silence.",
     },
     {
         "event": "SubagentStop",
@@ -214,7 +235,8 @@ def main():
             for m in missing:
                 print(f"  - {m}")
             return 1
-        print("merge-settings: all six prerequisites present.")
+        print(f"merge-settings: all {len(HOOK_SPECS) + 1} prerequisites present "
+              f"({len(HOOK_SPECS)} hooks + {DEPTH_KEY}).")
         return 0
 
     if not missing:

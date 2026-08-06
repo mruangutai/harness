@@ -304,6 +304,16 @@ else:
         bad.append("No PreToolUse check-domain hook — domain enforcement is ABSENT "
                    "and every agent can write anywhere. Frontmatter hooks do not "
                    "fire (DEC-110), so settings.json is the only place this works.")
+    # SEPARATE EVENT, SEPARATE ASSERTION (issue #132). The PreToolUse check above passes
+    # on a tree where the PostToolUse half was never installed — and that half is the
+    # only one covering Edit, Bash and the main session, so its absence restores the
+    # 1-of-4 coverage the issue measured while every other line here stays green.
+    post = hooks.get("PostToolUse") or []
+    if not any("check-domain" in str(h) for h in post):
+        bad.append("No PostToolUse check-domain hook — the DEC-150 state-file SHAPE "
+                   "budgets bind only a `Write` by a harness agent (1 of 4 routes); "
+                   "Edit, Bash and the main session write over budget in silence "
+                   "(issue #132). INV-23 below still sweeps, one entry late.")
 
 # `cj` is the parsed harness.json, consumed below by the test_kinds, github.sync and
 # gh-config checks. The JSON-validity violation is kept on its own merit — a config
@@ -373,6 +383,44 @@ for rd in glob.glob(os.path.join(H, "features", "*", "runs")):
         bad.append(f"{os.path.basename(fdir)}: has runs/ but no feature.yaml — the feature is "
                    f"invisible to run reconciliation and phase checks; instantiate it from the "
                    f"template (the playbook's first-cycle duty).")
+
+# --- INV-23 (DEC-150, mechanized — issue #132): the feature.yaml and STATE.md budgets,
+# swept from DISK. check-domain.sh enforces the same numbers on a WRITE payload, which is
+# where they can still be prevented; this reads the file as it actually is, so no tool and
+# no author identity can route around it — including a session where the PostToolUse half
+# of that hook was never registered, which is the case INV-9 above reports.
+#
+# WARN, not bad, and the reason is measured rather than tidy: run against this tree the
+# day it landed, it found FEAT-05/STATE.md at 165 lines against a 120 budget and five
+# illegal sections, and FEAT-02/STATE.md with five more — both predating the gate. Making
+# them halt /harness entry would convert a reporting backstop into an unrelated cleanup
+# that has to land first. The write-time gate is the one with teeth; this one's job is
+# that the drift reaches a human.
+#
+# VOCABULARY stays in sync with check-domain.sh; the MECHANISM deliberately does not
+# (D-02) — that one measures a payload, this one measures a file.
+for fy in sorted(glob.glob(os.path.join(H, "features", "*", "feature.yaml"))):
+    fl = (read(fy) or "").splitlines()
+    feat = os.path.basename(os.path.dirname(fy))
+    if len(fl) > 200:
+        warn.append(f"INV-23 {feat}/feature.yaml is {len(fl)} lines — budget is 200. It is "
+                    f"data a script parses, not a journal (DEC-150).")
+    nc = sum(1 for l in fl if l.lstrip().startswith("#"))
+    if nc > 20:
+        warn.append(f"INV-23 {feat}/feature.yaml has {nc} comment lines — budget is 20. "
+                    f"Narrative commentary does not belong in feature.yaml (DEC-150).")
+
+for sm in sorted(glob.glob(os.path.join(H, "features", "*", "STATE.md"))):
+    sl = (read(sm) or "").splitlines()
+    feat = os.path.basename(os.path.dirname(sm))
+    if len(sl) > 120:
+        warn.append(f"INV-23 {feat}/STATE.md is {len(sl)} lines — budget is 120. It holds no "
+                    f"history: ## Current is replaced, never appended (DEC-150).")
+    illegal = [l.strip() for l in sl
+               if l.startswith("## ") and l.strip() not in ("## Current", "## Open Questions")]
+    if illegal:
+        warn.append(f"INV-23 {feat}/STATE.md has illegal section(s) {illegal} — STATE.md is "
+                    f"`## Current` + `## Open Questions` and nothing else (SPEC §2).")
 
 # --- INV-15 (DEC-156): a complete lead-hosted run's digest.md is the durable copy a
 # successor reads — it must exist and satisfy the lead digest contract. The SubagentStop

@@ -51,13 +51,33 @@ set -uo pipefail
 # as the agent identity; that is NOT true at the hook path — argv[2] is empty there. The
 # claim was corrected rather than left standing, because a wrong reason in a comment is
 # what the next person edits against.
+#
+# `--post` selects the PostToolUse mode (issue #132). The mode travels as an ENVIRONMENT
+# VARIABLE and is blanked out of argv, because argv position 2 is the FALLBACK AGENT
+# IDENTITY — the real registration is `check-domain.sh --post`, so without this line every
+# post invocation of a payload lacking `agent_type` reports its agent as "--post".
+#
+# STATED HONESTLY, because a mutation test proved the stronger claim false: with the
+# blanking removed, every post-mode case still passes. "--post" is not `harness-`-prefixed,
+# so `_governed` is False and the ungoverned branch runs — which is the branch that payload
+# wanted anyway. The line is therefore DEFENSIVE, not load-bearing: it costs one statement
+# and it stops `agent` from holding a value that is not an agent, which becomes a live bug
+# the first time anything in the post path reads identity. An earlier version of this
+# comment claimed it prevented "a different branch than either real caller"; that was
+# wrong, and it is corrected here rather than left for the next reader to edit against.
+mode="pre"
 if [ "${1:-}" = "--resolve" ]; then
   payload=""
   export HARNESS_RESOLVE_PATH="${2:-}"
 else
   unset HARNESS_RESOLVE_PATH
   payload=$(cat)
+  if [ "${1:-}" = "--post" ]; then
+    mode="post"
+    set -- ""
+  fi
 fi
+export HARNESS_HOOK_MODE="$mode"
 
 # Locate the project root WITHOUT depending on cwd. A hook's working directory is
 # not guaranteed, and deriving root from pwd made this script fail OPEN whenever it
@@ -224,12 +244,34 @@ if _resolve_target is not None:
 # is a spawned agent and IS governed like any other; this carve-out now protects only
 # the main session, which writes little: `## Approval` blocks and the cross-flow log.
 # Never govern it — blocking it would make the harness unable to record your decisions.
-if not agent:
-    sys.exit(0)
+# Only `harness-*` agents are subject to domains at all.
+#
+# THIS IS A DOMAIN CARVE-OUT AND NOTHING ELSE. It used to be a bare `sys.exit(0)`, which
+# silently took the DEC-150 SHAPE gate below with it — a fourth bypass route issue #132
+# does not name, and the one that explains its own evidence: the 226-line feature.yaml
+# that ticket records was the MAIN SESSION's. Measured on the pre-change tree, one
+# 400-line feature.yaml payload: exit 2 as `harness-orchestrator`, exit 0 with no
+# `agent_type`. A context budget is not an authorization question — it binds whoever
+# writes the file — so this is a FLAG the domain phase reads, never an exit.
+_governed = bool(agent) and agent.startswith("harness-")
 
-# Only harness agents are subject to domains.
-if not agent.startswith("harness-"):
-    sys.exit(0)
+# TWO SIGNALS FOR ONE MODE, deliberately. `hook_event_name` comes from the platform;
+# `--post` comes from our own registration. Keying on the platform field alone means a
+# payload that ever stops carrying it downgrades the post hook to pre-mode SILENTLY —
+# `Write` would merely re-check the payload, `Edit` and `Bash` would exit 0, and the
+# sweep would vanish with no error anywhere. Keying on the flag alone breaks a
+# hand-registration that omits it. Either signal is sufficient; neither is required.
+_post = (os.environ.get("HARNESS_HOOK_MODE") == "post"
+         or (d.get("hook_event_name") or "") == "PostToolUse")
+_tool = d.get("tool_name") or ""
+
+# THE DOMAIN PHASE IS PRE-ONLY. Post-hoc it has nothing to offer and two ways to harm:
+# the write already landed, so denying it is noise duplicating a verdict the pre hook
+# already gave, and `require_or_bootstrap` below would SPEND the session's single
+# bootstrap grant on a check whose answer can no longer change anything. Measured before
+# this line existed: a post-mode payload for a path outside the agent's domain exited 2
+# with the domain message, after the file was already written.
+_domain_phase = _governed and not _post
 
 root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
 if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
@@ -244,36 +286,55 @@ ti = d.get("tool_input", {}) or {}
 # Write/Edit use file_path; NotebookEdit uses notebook_path.
 target = ti.get("file_path") or ti.get("notebook_path") or ""
 
-# No parseable path -> do not block. A hook that blocks on its own parse failure
-# would break every write the moment the payload shape changes.
-if not target:
-    sys.exit(0)
+# EVERY EXIT BELOW IS A DOMAIN VERDICT, so the block is gated on `_governed`. Hoisting
+# these to module level is exactly what used to disable the shape gate for the main
+# session: each one is correct as an answer to "may this agent write here" and wrong as
+# an answer to "may this file look like that", which needs no manifest, no parser and no
+# agent identity to decide.
+_no_parser = False
+if _domain_phase:
+    # No parseable path -> do not block. A hook that blocks on its own parse failure
+    # would break every write the moment the payload shape changes.
+    if not target:
+        sys.exit(0)
 
-# No manifest -> fail OPEN, loudly. Blocking every write in a project that has
-# not run /harness-init would be worse than not enforcing.
-if not os.access(manifest, os.R_OK):
-    print(f"check-domain: no {manifest} — enforcement OFF (run /harness-init).", file=sys.stderr)
-    sys.exit(0)
+    # No manifest -> fail OPEN, loudly. Blocking every write in a project that has
+    # not run /harness-init would be worse than not enforcing.
+    if not os.access(manifest, os.R_OK):
+        print(f"check-domain: no {manifest} — enforcement OFF (run /harness-init).",
+              file=sys.stderr)
+        sys.exit(0)
 
-import harness_yaml
+    import harness_yaml
 
-# The RETURN VALUE IS THE DECISION — discarding it makes the whole escape inert.
-# False means "PyYAML is missing and this session's one grant is spent (or no identity
-# resolved)", and only exit 2 blocks (DEC-100), so a bare call would let every write
-# through while the function dutifully printed an install command nobody had to obey.
-# require_or_bootstrap already wrote the reason to stderr; do not restate it.
-if not harness_yaml.require_or_bootstrap(root):
-    sys.exit(2)
+    # The RETURN VALUE IS THE DECISION — discarding it makes the whole escape inert.
+    # False means "PyYAML is missing and this session's one grant is spent (or no identity
+    # resolved)", and only exit 2 blocks (DEC-100), so a bare call would let every write
+    # through while the function dutifully printed an install command nobody had to obey.
+    # require_or_bootstrap already wrote the reason to stderr; do not restate it.
+    if not harness_yaml.require_or_bootstrap(root):
+        sys.exit(2)
 
-# GRANTED, and there is no parser. Stop here — do not fall through into a domain check
-# that cannot be performed. Without this the hook calls manifest_domains anyway and
-# dies with `AttributeError: 'NoneType' object has no attribute 'YAMLError'`, which
-# exits 1; exit 1 is NON-blocking (DEC-100), so the write proceeds and SC-08 looks
-# satisfied while every invocation prints a traceback and enforcement is silently off.
-# Allowing by crash is not allowing. The escape's whole purpose is to let writes
-# through so the machine can be fixed, so allow them deliberately and say nothing more
-# — require_or_bootstrap already printed the install command.
-_no_parser = harness_yaml.yaml is None
+    # GRANTED, and there is no parser. Stop here — do not fall through into a domain check
+    # that cannot be performed. Without this the hook calls manifest_domains anyway and
+    # dies with `AttributeError: 'NoneType' object has no attribute 'YAMLError'`, which
+    # exits 1; exit 1 is NON-blocking (DEC-100), so the write proceeds and SC-08 looks
+    # satisfied while every invocation prints a traceback and enforcement is silently off.
+    # Allowing by crash is not allowing. The escape's whole purpose is to let writes
+    # through so the machine can be fixed, so allow them deliberately and say nothing more
+    # — require_or_bootstrap already printed the install command.
+    _no_parser = harness_yaml.yaml is None
+
+else:
+    # UNGOVERNED — the main session, or a non-harness agent. It reaches the shape phase,
+    # whose state.yaml branch needs a parser but never the BOOTSTRAP GRANT: the grant is a
+    # domain escape, spendable once per session, and spending it here would consume the
+    # main session's escape on a check that is not the one it exists for.
+    try:
+        import harness_yaml
+        _no_parser = harness_yaml.yaml is None
+    except Exception:
+        _no_parser = True
 
 
 def domain_check():
@@ -372,158 +433,273 @@ def domain_check():
 # keys and no denial. Before the T-13 single-interpreter merge those were separate
 # launches and the shape gate ran regardless — so this was a regression introduced by
 # the merge, not an inherited gap. Skip only what actually needs the parser.
-if not _no_parser:
+if _domain_phase and not _no_parser:
     domain_check()
 
-# `d` was parsed once at the top of this process (T-13). Re-parsing here was leftover
-# from the four-launch version — and inconsistent leftover: this copy exited 0 on a
-# failure the first one absorbed with `d = {}`, so the two disagreed about what a bad
-# payload means. Review finding 2.
-if (d.get("tool_name") or "") != "Write":
-    sys.exit(0)
-content = (d.get("tool_input") or {}).get("content") or ""
+# ---------------------------------------------------------------------------
+# THE SHAPE PHASE (DEC-150/154/159) — issue #132.
+#
+# Domain asks WHO may write a path. Shape asks WHAT the file may contain. Those are
+# independent questions, and until now the second was answered only on the narrow
+# intersection where the first happened to be asked. Measured on the pre-change tree
+# with ONE 400-line feature.yaml payload against its 200-line budget:
+#
+#   Write, harness-orchestrator ........ exit 2   <- the only route that ever fired
+#   Edit,  harness-orchestrator ........ exit 0   <- no `content` in the payload
+#   Bash   (sed -i, cat >, python3 -c) . exit 0   <- bash-write-guard has no shape logic
+#   Write, MAIN SESSION ................ exit 0   <- exited at the domain carve-out above
+#
+# One route of four. The fourth is not in issue #132 and is the one that explains its
+# own evidence: the 226-line feature.yaml it records was the MAIN SESSION's, so the tool
+# was never the whole story.
+#
+# Two modes now:
+#
+#   PreToolUse  (Write) — unchanged. Measure the payload's `content` and BLOCK.
+#                 Prevention, kept, because it is the only mode that can prevent.
+#   PostToolUse (Write|Edit|Bash) — read what LANDED ON DISK and exit 2, whose stderr
+#                 reaches the agent. Detection, not prevention: an Edit payload carries
+#                 no whole-file content and arbitrary shell cannot be predicted, so
+#                 reconstructing either before the fact would be guessing at the answer
+#                 the filesystem is about to give for free. The budget is a CONTEXT
+#                 bound, and a report issued immediately after the write still lands
+#                 before the next reader loads the file.
+#
+# check-state.sh sweeps the same budgets at /harness entry — the backstop for a session
+# where this hook is not registered at all, which INV-9 now also asserts against.
+# ---------------------------------------------------------------------------
 
-rel = os.path.relpath(os.path.abspath(target), os.path.abspath(root))
-wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
-if wt:
-    rel = wt.group(1)
+ROUTING = ("Routing: current truth REPLACES STATE.md ## Current; per-run findings go in that "
+           "run's digest.md; rationale goes in notes/. State files carry no history.")
 
-lines = content.splitlines()
+# The post sweep's candidates. Same four patterns the branches below match, because a
+# route that reaches a file the gate cannot name is not covered by it.
+SWEEP_GLOBS = (
+    ".harness/features/*/feature.yaml",
+    ".harness/features/*/runs/*/state.yaml",
+    ".harness/features/*/notes/handoff-*.md",
+    ".harness/features/*/STATE.md",
+)
+# MTIME WINDOW — a performance decision with a measured basis, not a guess. This repo
+# holds 120 files matching those globs, 82 of them state.yaml the gate YAML-PARSES.
+# Measured on this tree:
+#
+#   read + YAML-parse all 120 ....... 515 ms      <- what the sweep costs WITHOUT this
+#   stat all 120 .................... 0.2 ms      <- what it costs WITH it
+#   whole hook, post Bash, 10 runs ... 42.5 ms/call, against a 48.6 ms/call pre baseline
+#
+# 515 ms on the harness's most-used tool would make the guard the slowest thing in the
+# session. PostToolUse fires immediately after the command, so a file the command wrote
+# carries an mtime inside this window, and one outside it was not written by that command.
+# THE WINDOW IS THEREFORE LOAD-BEARING, not a tuning knob: widen it and the sweep
+# degrades toward the 515 ms figure; delete it and it lands there on every Bash call.
+SWEEP_WINDOW_S = 120
 
-def deny(msgs):
-    print("check-domain: BLOCKED — state-file shape (DEC-150).", file=sys.stderr)
-    for m in msgs:
-        print(f"  {m}", file=sys.stderr)
-    print("  Routing: current truth REPLACES STATE.md ## Current; per-run findings go in that "
-          "run's digest.md; rationale goes in notes/. State files carry no history.",
-          file=sys.stderr)
-    sys.exit(2)
 
-if re.match(r"^\.harness/features/[^/]+/feature\.yaml$", rel):
-    problems = []
-    if len(lines) > 200:
-        problems.append(f"feature.yaml is {len(lines)} lines — budget is 200. It is data a script "
-                        f"parses, not a journal.")
-    comments = sum(1 for l in lines if l.lstrip().startswith("#"))
-    if comments > 20:
-        problems.append(f"{comments} comment lines — budget is 20. Narrative commentary does not "
-                        f"belong in feature.yaml.")
-    if problems:
-        deny(problems)
+def _norm(path):
+    """Repo-relative, worktree-stripped (DEC-143). The one path normalisation."""
+    rel = os.path.relpath(os.path.abspath(path), os.path.abspath(root))
+    wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
+    return wt.group(1) if wt else rel
 
-if re.match(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$", rel):
-    # DEC-154/160: the run checkpoint carries only whitelisted top-level keys.
-    # INV-16 sweeps this at entry; this denies it at write, while the author can
-    # fix it — the first post-deploy run (FEAT-03 plan) violated within hours of
-    # the sweep landing, so entry-time alone demonstrably does not deter.
-    # KEY VOCABULARY stays in sync with CHECKPOINT_KEYS in check-state.sh; the
-    # MECHANISM deliberately does not (D-02). check-state.sh sweeps existing files
-    # and reports; this denies at write. Since T-12 the duplicate here is caught by
-    # the LOADER RAISING, while check-state.sh still scans — same vocabulary, two
-    # mechanisms. Do not "resync" them by reverting this to a regex scan: the scan
-    # is what let a malformed file pass with its keys silently unread.
-    ALLOWED = {"schema_version", "run_id", "feature", "squad", "host", "status", "steps",
-               "cycles_used", "cost", "flow", "task", "team", "branch", "worktree",
-               "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
-               "verdict", "severity_max", "digest"}
-    # NO PARSER, in a bootstrap-grant session: the shape gate does not run.
-    #
-    # A line-scan fallback lived here briefly and was REMOVED at the user's ruling. The
-    # signed BRIEF forbids it outright — Goal :20-21 "no second code path anywhere, so
-    # the brittle regex leaves the tree instead of living on as a fallback nobody
-    # exercises", Constraint :48-49 "no line-scan alternative, no degraded mode in any
-    # converted script". A branch that runs ONLY when PyYAML is missing is by
-    # construction the least-exercised code in this file, which is precisely the rot
-    # the constraint is aimed at. I argued the exception in a comment in the same commit
-    # that introduced it, with no D-NN and no signature; the goal-check caught it.
-    #
-    # What is given up is EARLIER detection, not correctness — measured, not assumed: a
-    # malformed state.yaml written during a grant is still refused by check-state.sh at
-    # the next /harness entry, naming the same offending keys, by a session that can
-    # actually read it. One bad file to delete, against a crude reader living on forever
-    # in a write guard.
-    if _no_parser:
+
+def shape_problems(rel, content):
+    """The stderr LINES for one file's text, or [] when it is clean. NEVER exits.
+
+    Returning rather than exiting is the whole reason this is a function: one call site
+    blocks a single write, another reports across a sweep, and a third would have to
+    duplicate every message to do either. Every message below is byte-identical to the
+    inline version it replaces.
+    """
+    lines = content.splitlines()
+    out = []
+
+    def deny(msgs):
+        out.append("check-domain: BLOCKED — state-file shape (DEC-150).")
+        out.extend(f"  {m}" for m in msgs)
+        out.append(f"  {ROUTING}")
+
+    if re.match(r"^\.harness/features/[^/]+/feature\.yaml$", rel):
+        problems = []
+        if len(lines) > 200:
+            problems.append(f"feature.yaml is {len(lines)} lines — budget is 200. It is data a script "
+                            f"parses, not a journal.")
+        comments = sum(1 for l in lines if l.lstrip().startswith("#"))
+        if comments > 20:
+            problems.append(f"{comments} comment lines — budget is 20. Narrative commentary does not "
+                            f"belong in feature.yaml.")
+        if problems:
+            deny(problems)
+
+    if re.match(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$", rel):
+        # DEC-154/160: the run checkpoint carries only whitelisted top-level keys.
+        # INV-16 sweeps this at entry; this denies it at write, while the author can
+        # fix it — the first post-deploy run (FEAT-03 plan) violated within hours of
+        # the sweep landing, so entry-time alone demonstrably does not deter.
+        # KEY VOCABULARY stays in sync with CHECKPOINT_KEYS in check-state.sh; the
+        # MECHANISM deliberately does not (D-02). check-state.sh sweeps existing files
+        # and reports; this denies at write. Since T-12 the duplicate here is caught by
+        # the LOADER RAISING, while check-state.sh still scans — same vocabulary, two
+        # mechanisms. Do not "resync" them by reverting this to a regex scan: the scan
+        # is what let a malformed file pass with its keys silently unread.
+        ALLOWED = {"schema_version", "run_id", "feature", "squad", "host", "status", "steps",
+                   "cycles_used", "cost", "flow", "task", "team", "branch", "worktree",
+                   "review_sha", "pinned_sha", "base_sha", "head_sha", "tip_sha", "commits",
+                   "verdict", "severity_max", "digest"}
+        # NO PARSER, in a bootstrap-grant session: the shape gate does not run.
+        #
+        # A line-scan fallback lived here briefly and was REMOVED at the user's ruling. The
+        # signed BRIEF forbids it outright — Goal :20-21 "no second code path anywhere, so
+        # the brittle regex leaves the tree instead of living on as a fallback nobody
+        # exercises", Constraint :48-49 "no line-scan alternative, no degraded mode in any
+        # converted script". A branch that runs ONLY when PyYAML is missing is by
+        # construction the least-exercised code in this file, which is precisely the rot
+        # the constraint is aimed at. I argued the exception in a comment in the same commit
+        # that introduced it, with no D-NN and no signature; the goal-check caught it.
+        #
+        # What is given up is EARLIER detection, not correctness — measured, not assumed: a
+        # malformed state.yaml written during a grant is still refused by check-state.sh at
+        # the next /harness entry, naming the same offending keys, by a session that can
+        # actually read it. One bad file to delete, against a crude reader living on forever
+        # in a write guard.
+        #
+        # A BARE `return []`, not a `sys.exit(0)` as this was before the #132 refactor.
+        # Equivalent for a single write — no other branch can match a state.yaml path — but
+        # NOT equivalent under the post sweep, where exiting here would abandon every file
+        # after this one in the same pass.
+        if _no_parser:
+            return out
+
+        try:
+            doc = harness_yaml.load_str(content, rel)
+        except harness_yaml.DuplicateKeyError as e:
+            # D-02: the DEC-156 denial SURVIVES, now raised by the loader rather than
+            # counted by a regex — which also catches a duplicate at any nesting depth,
+            # not merely at column 0.
+            out.append("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook (DEC-154).")
+            out.append(f"  duplicate key {e.key!r} — the second silently shadows the first; "
+                       f"replace the placeholder, never append a copy (DEC-156).")
+            return out
+        except harness_yaml.YamlParseError as e:
+            # NEW blocking outcome, deliberate (D-02 consequence #2). The regex this
+            # replaced found no keys in a malformed file and therefore reported nothing
+            # wrong — it wrote a broken checkpoint and said it was fine.
+            out.append("check-domain: BLOCKED — this state.yaml is not valid YAML.")
+            out.append(f"  {e.original}")
+            out.append("  A checkpoint that cannot be parsed is unreadable to every gate that "
+                       "consumes it later; the write is refused while you can still fix it.")
+            return out
+
+        # T-17 / D-08: str() BOTH sides. A parsed key is not necessarily a string —
+        # YAML 1.1 resolves `on:`, `off:`, `yes:`, `no:` to booleans and `01:` to an int —
+        # so an un-coerced comparison against a set of strings silently reports a real key
+        # as unknown, and `sorted()` over mixed types raises outright. In a fail-closed
+        # hook a raise is a block on every write, not a wrong answer.
+        keys = list(doc) if isinstance(doc, dict) else []
+        unknown = sorted({str(k) for k in keys if str(k) not in ALLOWED})
+        if unknown:
+            out.append("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook (DEC-154).")
+            out.append(f"  non-checkpoint top-level key(s) {unknown} — findings and assessment prose "
+                       f"belong in this run's digest.md; a one-line note: per STEP entry is the "
+                       f"prose ceiling.")
+            # Naming the key is required (DEC-100b), but naming it `True` when the author
+            # typed `on:` is not actionable — the reader cannot find `True` in their file.
+            # Say what happened instead of leaving them to guess.
+            if any(not isinstance(k, str) for k in keys):
+                odd = sorted(f"{k!r} ({type(k).__name__})" for k in keys if not isinstance(k, str))
+                out.append(f"  NOTE — {', '.join(odd)} came from an UNQUOTED key that YAML resolved to a "
+                           f"non-string: `on`/`off`/`yes`/`no`/`true`/`false` become booleans and `01` "
+                           f"becomes an int (YAML 1.1). Quote the key to keep it a string.")
+            return out
+
+    if re.match(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$", rel):
+        # DEC-159: the handoff note is working memory for a successor — four fixed
+        # sections, hard-capped, denied at write while the author can still fix it.
+        # Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
+        problems = []
+        if len(lines) > 60:
+            problems.append(f"handoff note is {len(lines)} lines — cap is 60. It is intent, trust,"
+                            f" dead ends and a working set, not a narrative; history lives on disk.")
+        required = ["## Next", "## Trust", "## Dead ends", "## Working set"]
+        low = [l.strip().lower() for l in lines]
+        missing = [h for h in required if h.lower() not in low]
+        if missing:
+            problems.append(f"missing required section(s) {missing} — the four sections are the"
+                            f" contract (templates/HANDOFF.md); a freeform handoff drifts like an"
+                            f" unvalidated digest did (DEC-156).")
+        if problems:
+            out.append("check-domain: BLOCKED — handoff shape (DEC-159).")
+            out.extend(f"  {m}" for m in problems)
+
+    if re.match(r"^\.harness/features/[^/]+/STATE\.md$", rel):
+        problems = []
+        if len(lines) > 120:
+            problems.append(f"STATE.md is {len(lines)} lines — budget is 120. It holds no history: "
+                            f"## Current is replaced, never appended.")
+        h2 = [l.strip() for l in lines if l.startswith("## ")]
+        bad = [h for h in h2 if h not in ("## Current", "## Open Questions")]
+        if bad:
+            problems.append(f"illegal section(s) {bad} — STATE.md is `## Current` + "
+                            f"`## Open Questions` and nothing else (SPEC §2).")
+        if problems:
+            deny(problems)
+
+    return out
+
+
+# --- WHAT TO CHECK, by mode and route. -------------------------------------
+# `targets` is [(repo-relative path, file text)]. Building it is the ONLY thing the two
+# modes disagree about; the gate itself is one function above, run over whatever lands here.
+targets = []
+
+if not _post:
+    # PRE. Only `Write` carries a whole-file `content` to measure, so only `Write` can be
+    # blocked before the fact. `d` was parsed once at the top of this process (T-13);
+    # re-parsing here was leftover from the four-launch version — and inconsistent
+    # leftover: this copy exited 0 on a failure the first one absorbed with `d = {}`, so
+    # the two disagreed about what a bad payload means. Review finding 2.
+    if _tool != "Write" or not target:
+        sys.exit(0)
+    targets = [(_norm(target), (d.get("tool_input") or {}).get("content") or "")]
+
+elif target:
+    # POST, with a named file: Write, Edit, NotebookEdit. Read what LANDED — no
+    # reconstruction of `old_string`/`new_string`, no `replace_all` semantics, no TOCTOU
+    # window, because the filesystem already holds the answer those would approximate.
+    try:
+        with open(os.path.abspath(target), encoding="utf-8", errors="replace") as _f:
+            targets = [(_norm(target), _f.read())]
+    except OSError:
+        # The tool may have failed, or the path may be a directory or already gone. A
+        # post-hoc reporter that raises on an unreadable path would turn every such write
+        # into a spurious exit-2 the agent cannot act on.
         sys.exit(0)
 
-    try:
-        doc = harness_yaml.load_str(content, rel)
-    except harness_yaml.DuplicateKeyError as e:
-        # D-02: the DEC-156 denial SURVIVES, now raised by the loader rather than
-        # counted by a regex — which also catches a duplicate at any nesting depth,
-        # not merely at column 0.
-        print("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook (DEC-154).",
-              file=sys.stderr)
-        print(f"  duplicate key {e.key!r} — the second silently shadows the first; "
-              f"replace the placeholder, never append a copy (DEC-156).", file=sys.stderr)
-        sys.exit(2)
-    except harness_yaml.YamlParseError as e:
-        # NEW blocking outcome, deliberate (D-02 consequence #2). The regex this
-        # replaced found no keys in a malformed file and therefore reported nothing
-        # wrong — it wrote a broken checkpoint and said it was fine.
-        print("check-domain: BLOCKED — this state.yaml is not valid YAML.", file=sys.stderr)
-        print(f"  {e.original}", file=sys.stderr)
-        print("  A checkpoint that cannot be parsed is unreadable to every gate that "
-              "consumes it later; the write is refused while you can still fix it.",
-              file=sys.stderr)
-        sys.exit(2)
+else:
+    # POST, no named file: Bash, whose payload carries a command and not a path. Sweeping
+    # is the only honest answer — classifying arbitrary shell into "wrote a state file" or
+    # not is the prediction problem this mode exists to avoid.
+    import glob as _glob
+    import time as _time
+    _now = _time.time()
+    for _pat in SWEEP_GLOBS:
+        for _p in _glob.glob(os.path.join(root, _pat)):
+            try:
+                if _now - os.stat(_p).st_mtime > SWEEP_WINDOW_S:
+                    continue
+                with open(_p, encoding="utf-8", errors="replace") as _f:
+                    targets.append((_norm(_p), _f.read()))
+            except OSError:
+                continue
 
-    # T-17 / D-08: str() BOTH sides. A parsed key is not necessarily a string —
-    # YAML 1.1 resolves `on:`, `off:`, `yes:`, `no:` to booleans and `01:` to an int —
-    # so an un-coerced comparison against a set of strings silently reports a real key
-    # as unknown, and `sorted()` over mixed types raises outright. In a fail-closed
-    # hook a raise is a block on every write, not a wrong answer.
-    keys = list(doc) if isinstance(doc, dict) else []
-    unknown = sorted({str(k) for k in keys if str(k) not in ALLOWED})
-    if unknown:
-        print("check-domain: BLOCKED — state.yaml is a checkpoint, not a notebook (DEC-154).",
-              file=sys.stderr)
-        print(f"  non-checkpoint top-level key(s) {unknown} — findings and assessment prose "
-              f"belong in this run's digest.md; a one-line note: per STEP entry is the "
-              f"prose ceiling.", file=sys.stderr)
-        # Naming the key is required (DEC-100b), but naming it `True` when the author
-        # typed `on:` is not actionable — the reader cannot find `True` in their file.
-        # Say what happened instead of leaving them to guess.
-        if any(not isinstance(k, str) for k in keys):
-            odd = sorted(f"{k!r} ({type(k).__name__})" for k in keys if not isinstance(k, str))
-            print(f"  NOTE — {', '.join(odd)} came from an UNQUOTED key that YAML resolved to a "
-                  f"non-string: `on`/`off`/`yes`/`no`/`true`/`false` become booleans and `01` "
-                  f"becomes an int (YAML 1.1). Quote the key to keep it a string.",
-                  file=sys.stderr)
-        sys.exit(2)
+_problems = []
+for _rel, _text in targets:
+    _problems.extend(shape_problems(_rel, _text))
 
-if re.match(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$", rel):
-    # DEC-159: the handoff note is working memory for a successor — four fixed
-    # sections, hard-capped, denied at write while the author can still fix it.
-    # Cap 60 (DEC-160): the first live handoff was 49 lines with zero fat.
-    problems = []
-    if len(lines) > 60:
-        problems.append(f"handoff note is {len(lines)} lines — cap is 60. It is intent, trust,"
-                        f" dead ends and a working set, not a narrative; history lives on disk.")
-    required = ["## Next", "## Trust", "## Dead ends", "## Working set"]
-    low = [l.strip().lower() for l in lines]
-    missing = [h for h in required if h.lower() not in low]
-    if missing:
-        problems.append(f"missing required section(s) {missing} — the four sections are the"
-                        f" contract (templates/HANDOFF.md); a freeform handoff drifts like an"
-                        f" unvalidated digest did (DEC-156).")
-    if problems:
-        print("check-domain: BLOCKED — handoff shape (DEC-159).", file=sys.stderr)
-        for m in problems:
-            print(f"  {m}", file=sys.stderr)
-        sys.exit(2)
-
-if re.match(r"^\.harness/features/[^/]+/STATE\.md$", rel):
-    problems = []
-    if len(lines) > 120:
-        problems.append(f"STATE.md is {len(lines)} lines — budget is 120. It holds no history: "
-                        f"## Current is replaced, never appended.")
-    h2 = [l.strip() for l in lines if l.startswith("## ")]
-    bad = [h for h in h2 if h not in ("## Current", "## Open Questions")]
-    if bad:
-        problems.append(f"illegal section(s) {bad} — STATE.md is `## Current` + "
-                        f"`## Open Questions` and nothing else (SPEC §2).")
-    if problems:
-        deny(problems)
+if _problems:
+    for _line in _problems:
+        print(_line, file=sys.stderr)
+    sys.exit(2)
 
 sys.exit(0)
 PY

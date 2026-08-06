@@ -55,6 +55,7 @@ case("a repo path reached via a long .. chain still blocks",
 
 import shutil
 import tempfile
+import time
 
 FIXTURE_MANIFEST = """schema_version: 1
 teams:
@@ -500,6 +501,162 @@ def run_resolve():
     return fails
 
 
+# ============ #132: the shape gate on the routes PreToolUse cannot reach ============
+# Measured before the fix, ONE 400-line feature.yaml against a 200-line budget:
+#   Write/harness-orchestrator exit 2 · Edit exit 0 · Bash exit 0 · Write/MAIN exit 0.
+# One route of four. Each case below is one of those routes, run against a REAL file in a
+# fixture repo, because the whole point of the post mode is that it reads the disk rather
+# than a payload it could have been handed.
+
+POST = []
+
+
+def post(name, ok, detail=""):
+    POST.append((name, ok, detail))
+
+
+def fire_post(root, payload, flag="--post"):
+    argv = [HOOK] + ([flag] if flag else [])
+    return subprocess.run(argv, input=json.dumps(payload), capture_output=True,
+                          text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+
+def run_post():
+    d = fixture(FIXTURE_MANIFEST)
+    fdir = os.path.join(d, ".harness", "features", "FEAT-X")
+    os.makedirs(fdir)
+    fy = os.path.join(fdir, "feature.yaml")
+    rel_fy = ".harness/features/FEAT-X/feature.yaml"
+
+    def write(nlines):
+        with open(fy, "w") as f:
+            f.write("\n".join(f"k{i}: v" for i in range(nlines)) + "\n")
+
+    def edit_payload(agent="harness-orchestrator"):
+        p = {"tool_name": "Edit", "hook_event_name": "PostToolUse",
+             "tool_input": {"file_path": fy, "old_string": "a", "new_string": "b"}}
+        if agent:
+            p["agent_type"] = agent
+        return p
+
+    bash_payload = {"agent_type": "harness-orchestrator", "tool_name": "Bash",
+                    "hook_event_name": "PostToolUse",
+                    "tool_input": {"command": "sed -i '' s/a/b/ " + fy}}
+
+    # --- ROUTE 2: Edit. Its payload carries old_string/new_string and NO whole-file
+    # content, which is exactly why the pre hook cannot judge it and exits 0.
+    write(400)
+    r = fire_post(d, edit_payload())
+    post("route 2 — post Edit on an over-budget file exits 2",
+         r.returncode == 2 and "budget is 200" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
+
+    pre = subprocess.run([HOOK], input=json.dumps({
+        "agent_type": "harness-orchestrator", "tool_name": "Edit",
+        "tool_input": {"file_path": fy, "old_string": "a", "new_string": "b"}}),
+        capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
+    # The claim is about the SHAPE finding, not the exit code, and the difference is not
+    # pedantry: harness-orchestrator has no domain in FIXTURE_MANIFEST, so the pre hook
+    # exits 2 here for a DOMAIN reason. A first draft asserted `returncode == 0` and
+    # failed — reading, wrongly, as the pre hook having gained shape coverage on Edit.
+    post("route 2 — the PRE hook reports NO shape finding on that same Edit",
+         "budget is 200" not in pre.stderr,
+         f"exit {pre.returncode}: {pre.stderr.strip()[:120]}")
+
+    # --- ROUTE 3: Bash. No file_path in the payload at all, so this exercises the sweep.
+    r = fire_post(d, bash_payload)
+    post("route 3 — post Bash sweeps and finds the over-budget file",
+         r.returncode == 2 and "budget is 200" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
+
+    # --- ROUTE 4: the MAIN SESSION, which has no agent_type and was exempted from the
+    # shape gate by the DOMAIN carve-out sitting above it.
+    r = subprocess.run([HOOK], input=json.dumps({
+        "tool_name": "Write",
+        "tool_input": {"file_path": fy, "content": "\n".join(["x: 1"] * 400)}}),
+        capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
+    post("route 4 — the MAIN SESSION is no longer exempt from the shape gate",
+         r.returncode == 2 and "budget is 200" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
+
+    # --- DISCRIMINATION. Every case above passes against a gate that exits 2 always.
+    write(10)
+    for label, payload in (("Edit", edit_payload()), ("Bash", bash_payload)):
+        r = fire_post(d, payload)
+        post(f"a WITHIN-budget file exits 0 on post {label}",
+             r.returncode == 0 and not r.stderr.strip(),
+             f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+
+    # --- THE DOMAIN PHASE MUST NOT RUN POST-HOC. The write already landed, so a denial is
+    # noise duplicating the pre verdict — and require_or_bootstrap would SPEND the
+    # session's single bootstrap grant on a question whose answer can no longer matter.
+    # Measured before `_domain_phase` existed: this exited 2 with the domain message.
+    ungranted = os.path.join(d, "forbidden", "x.md")
+    os.makedirs(os.path.dirname(ungranted))
+    open(ungranted, "w").write("x\n")
+    r = fire_post(d, {"agent_type": "harness-documentor", "tool_name": "Write",
+                      "hook_event_name": "PostToolUse",
+                      "tool_input": {"file_path": ungranted}})
+    post("post mode does NOT re-run the domain check",
+         r.returncode == 0 and "may not write" not in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+    # ...and the PRE hook on that same path still blocks, or the line above is only
+    # measuring a manifest that grants everything.
+    r = fire(d, "forbidden/x.md")
+    post("the PRE hook still blocks that same ungranted path",
+         r.returncode == 2, f"exit {r.returncode}")
+
+    # --- THE MTIME WINDOW. It is what keeps the sweep off the 515 ms path, so a file
+    # older than the window must NOT be re-reported on every subsequent Bash call.
+    write(400)
+    old = time.time() - 7200
+    os.utime(fy, (old, old))
+    r = fire_post(d, bash_payload)
+    post("the sweep skips an over-budget file older than SWEEP_WINDOW_S",
+         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+    # ...and the SAME file, touched, is found again — so the line above is the window
+    # working, not the sweep being broken.
+    os.utime(fy, None)
+    r = fire_post(d, bash_payload)
+    post("the same file, freshly touched, IS found",
+         r.returncode == 2 and "budget is 200" in r.stderr, f"exit {r.returncode}")
+
+    # --- A POST PAYLOAD WITH NO agent_type still gets the shape gate. That is the shape
+    # every Bash and main-session post invocation has, and it is the path argv position 2
+    # feeds, so it is the one that would break if the mode flag were read as an identity.
+    #
+    # NOT a test of the argv blanking itself: mutation showed the suite stays green with
+    # that line removed, because "--post" is not `harness-`-prefixed and lands on the same
+    # ungoverned branch. The blanking is defensive and this case does not pretend to cover
+    # it — a case named for something it cannot detect is worse than no case.
+    write(400)
+    r = fire_post(d, {"tool_name": "Edit", "tool_input": {"file_path": fy,
+                                                          "old_string": "a", "new_string": "b"}})
+    post("a post payload with NO agent_type still gets the shape gate",
+         r.returncode == 2 and "budget is 200" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+
+    # --- TWO SIGNALS, EITHER SUFFICIENT. The platform's hook_event_name alone must work,
+    # or a registration that omits the flag silently degrades to pre-mode.
+    r = fire_post(d, edit_payload(), flag=None)
+    post("hook_event_name alone selects post mode (no --post flag)",
+         r.returncode == 2 and "budget is 200" in r.stderr,
+         f"exit {r.returncode}: {r.stderr.strip()[:120]}")
+
+    shutil.rmtree(d, ignore_errors=True)
+
+    fails = 0
+    print("--- #132: shape coverage on all four write routes ---")
+    for name, ok, detail in POST:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(POST) - fails}/{len(POST)} post-mode cases passed.\n")
+    return fails
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -519,6 +676,7 @@ def main():
     print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
     fails += run_t12()
     fails += run_resolve()
+    fails += run_post()
     return fails
 
 

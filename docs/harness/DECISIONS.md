@@ -5034,3 +5034,82 @@ gate: `.claude/skills/harness-spec-driven/SKILL.md:39` tells the plan author to 
 violation, and nothing executes it automatically. Only *literal* `files:` entries are resolved; an
 entry containing `*` or `?` prints `UNRESOLVED-GLOB` and contributes nothing to the violation count, so
 a task whose paths are all globs is reported and passed over rather than guessed at.
+
+---
+
+## DEC-180 — The state-file SHAPE gate is independent of the DOMAIN gate: it binds every write route and every author, and reports post-hoc where it cannot block
+
+DEC-150 made the state-file caps physics rather than advice. Measured at `ea24536`, they were physics
+on one route of four. One 400-line `feature.yaml` against its 200-line budget, same target, same
+payload otherwise:
+
+| Route | Before | After |
+|---|---|---|
+| `Write`, `harness-orchestrator` | exit 2 | exit 2 (unchanged, still PREVENTS) |
+| `Edit`, `harness-orchestrator` | **exit 0** | exit 2 post-hoc |
+| `Bash` (`sed -i`, `cat >`, `python3 -c`) | **exit 0** | exit 2 post-hoc, via a swept read |
+| `Write`, **the MAIN SESSION** | **exit 0** | exit 2 |
+
+**The fourth route is not in issue #132, and it is the one that explains the ticket's own evidence.**
+That ticket attributes a 226-line `feature.yaml` to `Edit`. The shape gate sat *below*
+`check-domain.sh`'s domain carve-out `if not agent: sys.exit(0)`, so the main session escaped it on
+every tool including `Write` — which accounts for the same observation without any appeal to `Edit`.
+Shape is a **context budget**, not an authorization question: it binds whoever writes the file. So the
+carve-out is now a `_governed` flag the DOMAIN phase reads, and the shape phase runs unconditionally.
+
+**Detection where prevention is impossible, and the honesty is the point.** An `Edit` payload carries
+`old_string`/`new_string` and no whole-file `content`; a `Bash` payload carries a command and no path.
+Reconstructing either before the fact — replacement semantics, `replace_all`, TOCTOU, shell parsing —
+is guessing at an answer the filesystem gives for free one moment later. So `check-domain.sh --post`
+registers on `PostToolUse` for `Write|Edit|Bash`, reads what LANDED, and exits 2, whose stderr reaches
+the agent. The budget is a context bound, and a report issued immediately after the write still lands
+before the next reader loads the file. `PreToolUse` on `Write` is unchanged and still blocks.
+
+**The domain phase is PRE-ONLY (`_domain_phase = _governed and not _post`), and this was a defect in
+the first draft of this change, caught by its own test.** Post-hoc a domain denial is noise duplicating
+a verdict the pre hook already gave, and `require_or_bootstrap` would SPEND the session's single
+bootstrap grant on a question whose answer can no longer change anything. Measured before the fix: a
+post-mode payload for an ungranted path exited 2 with the domain message, after the file was written.
+
+**The Bash sweep is bounded by an mtime window, and that window is load-bearing rather than a tuning
+knob.** A `Bash` payload names no file, so the only honest answer is to sweep the four state-file
+globs. Measured on this tree — 120 matching files, 82 of them `state.yaml` the gate YAML-parses:
+read-and-parse all 120 costs **515 ms**, `stat` on all 120 costs **0.2 ms**. 515 ms on the harness's
+most-used tool would make the guard the slowest thing in the session. `PostToolUse` fires immediately
+after the command, so a file that command wrote has an mtime inside the window. The whole hook measures
+42.5 ms/call in post-Bash mode against a 48.6 ms/call pre baseline.
+
+**INV-23 sweeps the same budgets from disk at `/harness` entry, at WARN level, and the level is
+measured rather than tidy.** It is the backstop for a session where the `PostToolUse` half was never
+registered — which INV-9 now asserts against separately, because the pre-existing check passes on a
+tree carrying only the `PreToolUse` half. Run against this tree the day it landed, INV-23 found
+`FEAT-05/STATE.md` at 165 lines against a 120 budget with five illegal sections, and `FEAT-02/STATE.md`
+with five more, both predating the gate. Making those halt `/harness` entry would convert a reporting
+backstop into an unrelated cleanup that has to land first. The write-time gate is the one with teeth.
+
+**The duplication this creates now has a drift detector, because it doubled.** Before this change one
+number — the handoff cap of 60 — appeared in both `check-domain.sh` and `check-state.sh`. Now 200, 120,
+20 and 60 do, alongside the checkpoint vocabulary and the four handoff headings. The mechanisms stay
+separate by D-02 (one measures a payload, the other a file); what is not deliberate is the two drifting
+apart in silence, where one blocks at 201 and the other warns at 251 and no reader can tell which is
+the budget. `test-check-state.py` case (o) reads both files plus `templates/HANDOFF.md` and asserts
+they agree. Case (n) is what binds the DECLARED number to the ENFORCED one, and it earned its shape by
+mutation: its first draft crossed both budgets at once and asserted only `"INV-23" in out`, so raising
+the `feature.yaml` budget from 200 to 250 left the STATE.md finding in the output and the case still
+reported ok. Each fixture now crosses exactly one budget by exactly one line.
+
+**The prerequisite count is now derived, because adding one hook made every written count wrong at
+once.** `merge-settings.py` said "six" in three places and `harness-init/SKILL.md` said "seven" in
+five. The script now prints `len(HOOK_SPECS) + 1`; the prose says eight. A prose count that disagrees
+with the code is how a reader concludes an entry is spurious and deletes it.
+
+<!-- stale: "check-domain.sh` DENIES an over-budget `feature.yaml` or STATE.md Write" -->
+<!-- stale: "The six prerequisites" -->
+<!-- stale: "all six prerequisites present" -->
+
+**Carve-out compliance.** `check-domain.sh`, `check-state.sh` and their tests are DEC-174 files: this
+landed as direct main-session edits with tests run explicitly and a human reading the diff, never
+through a team run whose gates are the thing being changed. Six mutants were run against
+`check-state.sh` and six against `check-domain.sh`; five of the latter were caught and the sixth —
+removing the `--post` argv blanking — was **not**, which is recorded in the code as the line being
+defensive rather than load-bearing instead of being papered over with a test that cannot detect it.

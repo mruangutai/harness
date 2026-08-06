@@ -1,6 +1,6 @@
 ---
 name: harness-init
-description: Onboard a project to the harness — interview the user, write .harness/, and install the seven platform prerequisites. Use when a project has no .harness/, when check-state.sh reports "not onboarded", or when a schema_version gap calls for --upgrade.
+description: Onboard a project to the harness — interview the user, write .harness/, and install the eight platform prerequisites. Use when a project has no .harness/, when check-state.sh reports "not onboarded", or when a schema_version gap calls for --upgrade.
 ---
 
 # Harness: Init
@@ -35,7 +35,7 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
 
 ## Fresh init
 
-### 1. Install the seven prerequisites — HARD GATE, do this first
+### 1. Install the eight prerequisites — HARD GATE, do this first
 
 ```bash
 .claude/skills/harness/bin/merge-settings.py . \
@@ -66,8 +66,8 @@ is the same code path the one-session bootstrap escape already needs. Treat a gr
 "probably fine", never as proof.
 
 **Use the scripts. Do not hand-edit `.claude/settings.json`, and do not hand-replicate a script that
-was denied.** All seven entries degrade *silently* — no error, no warning — and a project that already
-has its own hooks is exactly where one of the seven goes missing during a hand-merge. Both scripts
+was denied.** All eight entries degrade *silently* — no error, no warning — and a project that already
+has its own hooks is exactly where one of the eight goes missing during a hand-merge. Both scripts
 preserve what is there and are safe to re-run.
 
 **If either script cannot run, STOP HERE and tell the user what to approve.** Do not proceed to
@@ -263,7 +263,7 @@ For a project that is already initialised, after a newer harness has been deploy
 
 | Thought | Reality |
 |---|---|
-| "I'll just add the hook to settings.json myself" | That is how one of the seven goes missing. Run the script; it preserves the project's own hooks |
+| "I'll just add the hook to settings.json myself" | That is how one of the eight goes missing. Run the script; it preserves the project's own hooks |
 | "The script was denied, I'll replicate what it does" | Stop instead. A half-installed init looks finished and has no domain enforcement — observed in testing |
 | "dev-ops filled the cmd, the `_reason` is harmless" | It says "unset — dev-ops has not run detection yet" next to a working command. Delete it |
 | "They must restart before anything works" | The hooks are live now. Only newly-written agent files need the restart |
