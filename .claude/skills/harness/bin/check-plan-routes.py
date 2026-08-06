@@ -19,7 +19,6 @@ Task blocks are found with the SAME regex check-state.sh uses (D-08), copied
 rather than shared because check-state.sh belongs to the in-flight FEAT-08 and
 PLAN.md is markdown, not YAML.
 """
-import glob
 import os
 import re
 import subprocess
@@ -247,20 +246,173 @@ def process_plan(path, findings):
     return violations
 
 
+def discover_plans():
+    """Argv-less discovery: every PLAN.md under the PROJECT ROOT, not under the cwd.
+
+    The glob used to be `.harness/features/*/PLAN.md` relative to the cwd, so running
+    this from anywhere but the repo root printed `0 violation(s) across 0 plan(s)` and
+    EXITED 0 — a checker that found nothing because it was looking in the wrong place
+    was byte-identical to a clean tree (issue #133, B-7). Measured before this fix:
+    `cd /tmp && python3 <repo>/.claude/skills/harness/bin/check-plan-routes.py` exited 0.
+
+    Root precedence follows check-domain.sh (`:178-180`, and again at `:276-281` for
+    its hook path — two call sites, one rule), because a third derivation is a third
+    thing to drift: CLAUDE_PROJECT_DIR if it holds a readable manifest, else the root
+    DERIVED from this file's location (bin/ is four levels down).
+
+    ONE BRANCH DIFFERS, DELIBERATELY. check-domain.sh's third branch is
+    `root = root or os.getcwd()`; this one is `""` and exits 2. A cwd fallback IS the
+    B-7 fail-open — it is how a checker ends up scanning wherever it happens to be
+    standing. check-domain.sh can afford it because it demands a readable manifest one
+    line later and exits 2 anyway; here the glob would simply come back empty and
+    report success. Exit 2 means "the checker could not run", which is also what
+    distinguishes this from a freshly-onboarded project: that project HAS a manifest
+    and legitimately has zero features, and it still exits 0. Zero plans is not an error.
+    """
+    # THE PROBE IS THE MANIFEST FILE, NEVER `isdir(".harness")`, and that distinction is
+    # the only thing standing between this fix and B-7 reappearing in the REAL global
+    # installation shape. `deploy.sh:44` installs to `$HOME/.claude/skills`, so a globally
+    # installed copy derives `$HOME` as its project root — and `$HOME/.harness/` EXISTS on
+    # a machine that has ever run deploy.sh: it holds `registry.json`, written by
+    # `deploy.sh:46`. Verified on this machine. A reviewer ran the counterfactual: swap the
+    # file probe for a directory test and a global `check-plan-routes.py` prints
+    # `0 violation(s) across 0 plan(s)` and exits 0 — the exact defect this function was
+    # written to remove, in the installation most users have.
+    #
+    # `test-check-plan-routes.py` case (20) pins every copy of this probe to the same
+    # filename for that reason. Do not "simplify" it to a directory check.
+    derived = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
+    asked = os.environ.get("CLAUDE_PROJECT_DIR") or ""
+    root = asked
+    if not root or not os.access(os.path.join(root, ".harness", "team-config.yaml"), os.R_OK):
+        # SAY SO WHEN THE CALLER'S ROOT IS DISCARDED. The fallback itself is right — it is
+        # check-domain.sh's precedence — but doing it in silence is the same family as the
+        # defect this function exists to remove: the caller asked about tree A, the checker
+        # answered about tree B, and exit 1 with real-looking violations is what came back.
+        # Measured before this line: CLAUDE_PROJECT_DIR pointing at a nonexistent path
+        # produced 36 violations from a completely different checkout, and the only clue
+        # was the `scanning` line, which reads as confirmation rather than as a correction.
+        if asked:
+            print(f"check-plan-routes: CLAUDE_PROJECT_DIR={asked!r} has no readable "
+                  f".harness/team-config.yaml — IGNORING it and using {derived}.",
+                  file=sys.stderr)
+        root = derived if os.access(
+            os.path.join(derived, ".harness", "team-config.yaml"), os.R_OK) else ""
+    if not root:
+        print(
+            "check-plan-routes: no readable .harness/team-config.yaml under "
+            f"CLAUDE_PROJECT_DIR ({os.environ.get('CLAUDE_PROJECT_DIR') or 'unset'}) "
+            f"or {derived} — I do not know where to look, so 'no plans' would be a "
+            "lie. Set CLAUDE_PROJECT_DIR, or pass PLAN.md paths explicitly.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    # ONE WALK, AND THE PATHS COME OUT OF IT. `glob.glob` swallows OSError, so a directory
+    # it cannot enter is indistinguishable from one holding no PLAN.md — measured with NO
+    # code change at all, `chmod 000` on the four dirs carrying all 36 violations gave
+    # `0 violation(s) across 4 plan(s)`, exit 0, and a clean `git status`, because git does
+    # not track directory modes.
+    #
+    # The first fix scanned for readability and THEN globbed separately. Review showed that
+    # leaves a window between the two walks: with a 2 s sleep injected, a `chmod 000` in
+    # the gap produced `0 violation(s) across 1 plan(s)`, exit 0, silent. Deriving the plan
+    # list from the same walk that checked it closes the window and drops a whole glob.
+    #
+    # X_OK, NOT R_OK|X_OK — and the reason is a coupling worth stating rather than a
+    # preference. Entering a directory to stat a KNOWN filename needs execute, not read;
+    # read is only needed to LIST it. The first fix demanded both and would have exited 2 on
+    # a mode-0311 or 0100 directory it could in fact have checked perfectly. That is a
+    # denial of service on a script issue #133 wants promoted to a gate. This holds ONLY
+    # because the filename below is a literal: switch it to a pattern like `PLAN*.md` and
+    # listing becomes necessary again — measured, `PLAN*.md` at 0311 silently loses a
+    # feature. If you ever generalise that name, R_OK comes back with it.
+    feats = os.path.join(root, ".harness", "features")
+    plans, unreadable = [], []
+    if os.path.isdir(feats):
+        try:
+            entries = sorted(os.scandir(feats), key=lambda e: e.path)
+        except OSError as e:
+            print(f"check-plan-routes: cannot list {feats}: {e}", file=sys.stderr)
+            sys.exit(2)
+        for entry in entries:
+            # DOTTED ENTRIES ARE NOT FEATURES, and this restores glob's semantics rather
+            # than reinterpreting them. `glob`'s `*` never matched a leading dot; `scandir`
+            # returns everything. Measured on a `.FEAT-HIDDEN/PLAN.md` fixture: the old
+            # mechanism found 0 plans, the rewrite found 1. The scan line still advertises
+            # `features/*/PLAN.md`, so the search must keep meaning what that says.
+            if entry.name.startswith("."):
+                continue
+            try:
+                if not entry.is_dir():
+                    continue
+            except OSError:
+                # DirEntry.is_dir() RAISES rather than swallowing — a symlink to an
+                # unreachable target lands here, and silently skipping it would be the
+                # same lie as the glob told.
+                unreadable.append(os.path.relpath(entry.path, root))
+                continue
+            if not os.access(entry.path, os.X_OK):
+                unreadable.append(os.path.relpath(entry.path, root))
+                continue
+            plan = os.path.join(entry.path, "PLAN.md")
+            # LEXISTS DECIDES PRESENCE, isfile DECIDES USABILITY, and conflating them was a
+            # REGRESSION this rewrite introduced against the glob it replaced. `glob`
+            # resolved the literal trailing component with `lexists`; `os.path.isfile` calls
+            # stat and SWALLOWS OSError. Measured against the previous commit on identical
+            # fixtures: a `PLAN.md` that is a broken symlink went exit 2 -> exit 0 silent; a
+            # `PLAN.md` symlinked into a chmod-000 directory did the same, which also made
+            # the os.access check below UNREACHABLE — isfile had already eaten the EACCES.
+            # A path literally named PLAN.md that will not resolve is exactly what the error
+            # message below calls indistinguishable from nothing.
+            if not os.path.lexists(plan):
+                continue
+            if not os.path.isfile(plan) or not os.access(plan, os.R_OK):
+                unreadable.append(os.path.relpath(plan, root))
+                continue
+            # A PLAN.md present but unreadable used to raise PermissionError out of
+            # process_plan with EXIT 1 — the code meaning "violations found" — no summary
+            # line, and every later plan unprocessed. Both the direct case (mode 000) and
+            # the indirect one (a symlink into an unreadable directory) land above.
+            plans.append(plan)
+    if unreadable:
+        print(f"check-plan-routes: {len(unreadable)} path(s) under .harness/features/ cannot "
+              f"be read — {', '.join(sorted(unreadable))}. A path I cannot read is "
+              f"indistinguishable from one that holds nothing, so reporting a total would "
+              f"be a lie about the tree.", file=sys.stderr)
+        sys.exit(2)
+    return root, sorted(plans)
+
+
 def main(argv):
-    paths = argv[1:] if len(argv) > 1 else sorted(glob.glob(".harness/features/*/PLAN.md"))
+    # The root guard is ARGV-LESS ONLY. `check-plan-routes.py <path>` must keep working
+    # from a directory with no .harness/ anywhere — the caller named the file, so there
+    # is nothing to discover and nothing to be wrong about.
+    if len(argv) > 1:
+        paths = argv[1:]
+    else:
+        root, paths = discover_plans()
+        # Naming the root is the whole distinction. Without it a legitimate zero-feature
+        # project and the wrong-directory defect print the same line.
+        print(f"scanning {root}/.harness/features/*/PLAN.md")
 
     findings = []
     total_violations = 0
+    processed = 0
     for path in paths:
         count = process_plan(path, findings)
         if count is None:
             sys.exit(2)
         total_violations += count
+        processed += 1
 
     for line in findings:
         print(line)
-    print(f"{total_violations} violation(s) across {len(paths)} plan(s)")
+    # `processed`, NEVER `len(paths)`. The summary used the DISCOVERED count, so anything
+    # that dropped plans between discovery and the loop reported the full number while
+    # checking fewer: `for path in paths[:1]` printed `0 violation(s) across 8 plan(s)`,
+    # exit 0, both suites green — round 1's own `[:1]` defect relocated one line down.
+    # Counting what was actually checked makes the two numbers impossible to desynchronise.
+    print(f"{total_violations} violation(s) across {processed} plan(s)")
 
     sys.exit(1 if total_violations else 0)
 
