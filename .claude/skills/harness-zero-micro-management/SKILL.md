@@ -20,7 +20,8 @@ writing a deliverable is.
    **verbatim**: the task's `T-NN` id, and the task's `verify:` command exactly as the plan writes
    it. `verify:` is preloaded into no member's context, so an unquoted command is one the member
    cannot run — the same reason a debug dispatch quotes the skill path it is not preloaded with
-   (DEC-158). The member cross-checks your string against `PLAN.md` and returns `BLOCKED` on a
+   (DEC-158). The member cross-checks your string against the plan — `plan.yaml`, or `PLAN.md` for a
+   feature still on the pre-DEC-182 format — and returns `BLOCKED` on a
    mismatch, so a paraphrase stops the task rather than silently verifying something else.
 3. **Assess what comes back.** Read their artifact and DIGEST. You are the one tier permitted to read
    member artifacts, and assessing is the half of your job that is not routing.

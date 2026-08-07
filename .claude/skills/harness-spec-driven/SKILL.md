@@ -16,7 +16,9 @@ file. Measured on the format this replaced: `safe_load` over every task block in
 failed 43 of 44 times, 26 of them because `files:` began with a backtick. A value carrying
 decoration is either rejected by the loader or handed to a resolver as a path nobody wrote.
 
-Shipped `PLAN.md` files are never rewritten; their reader stays. You author `plan.yaml`.
+Existing `PLAN.md` files are never rewritten and never converted; their reader stays. You author
+`plan.yaml` for a NEW feature, and you re-plan a feature still on the pre-DEC-182 format in its own
+`PLAN.md`. Never both in one feature — `check-plan-routes.py` refuses a feature carrying two plans.
 
 ## Every task needs four things
 
@@ -100,7 +102,7 @@ tries to dispatch it.
 | It is | Where | Test |
 |---|---|---|
 | **REQ-NN** — what the product must do | `BRIEF.md` | survives changing your mind about implementation |
-| **D-NN** — how, architecturally | `PLAN.md ## Decisions` | changes if you swap the approach |
+| **D-NN** — how, architecturally | `plan.yaml`'s `decisions:` | changes if you swap the approach |
 
 *"Users can sign in with their Google account"* is a requirement. *"Use Supabase social login"* is a
 decision. Swap Supabase for Auth0: the requirement is untouched, the decision is not.
@@ -157,12 +159,13 @@ state the observation that would prove it false, it is not one.
 
 ## Approval is not yours
 
-You draft `BRIEF.md` and `PLAN.md`; you never mark them approved. Only the **main session** writes
-`## Approval` — it is the only tier with a user channel (the orchestrator cannot reach the user
+You draft `BRIEF.md` and the plan; you never mark them approved. Only the **main session** writes the
+signature — `plan.yaml`'s `approval:` mapping, `## Approval` in `BRIEF.md` and in a pre-DEC-182
+`PLAN.md`. It is the only tier with a user channel (the orchestrator cannot reach the user
 either; it returns `awaiting_user`).
 
-**Re-planning resets approval.** If you change the task set after approval, set `## Approval` back to
-pending. A stale signature must never carry onto a changed plan.
+**Re-planning resets approval.** If you change the task set after approval, set `approval.status`
+back to `pending`. A stale signature must never carry onto a changed plan.
 
 ## Red flags
 

@@ -55,7 +55,7 @@ and judge the architecture:
 - Does the approach fit what already exists, or fight it?
 - Are the module boundaries and data flow coherent?
 - What breaks at 10× the load or data?
-- Which decisions are hard to reverse, and is that acknowledged in `## Decisions`?
+- Which decisions are hard to reverse, and is that acknowledged in the plan's decisions?
 - What is missing that will surface as a fix cycle later?
 
 **You are reviewing your own squad's future work** — one of two acknowledged self-review points in the
