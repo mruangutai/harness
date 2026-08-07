@@ -231,11 +231,111 @@ def process_task(tid, body, findings):
     return violations
 
 
+# Machine-field lines allowed per task, on the plan.yaml path (DEC-182). DERIVED, not
+# picked, the way DEC-181 derived CLAUDE.md's 80: measured machine+verify lines per task
+# across the four live plans were 11.5 (FEAT-09), 21.2 (FEAT-06), 26.7 (FEAT-07) and 19.9
+# (FEAT-08). 30 leaves ~12% headroom over the worst.
+#
+# PER TASK, NOT PER FILE, and that asymmetry against every peer budget is deliberate. A
+# plan is a LIST — its length tracks how many tasks a feature has, not how much fat it
+# carries. feature.yaml (200), STATE.md (120), handoff (60) and CLAUDE.md (80) all govern
+# files whose content does not grow with task count. A flat cap here would be a cap on how
+# many tasks a feature may have, which is a scoping decision wearing a budget's clothes.
+MACHINE_LINES_PER_TASK = 30
+
+# Fields whose value is MATCHED rather than read, and therefore counted against the budget.
+# `intent:` is excluded on purpose: it is the literal dispatch prompt and it is READ, which
+# is DEC-154's test for which half a value belongs in.
+BUDGETED_FIELDS = ("files", "verify", "traces", "depends_on", "change_type",
+                   "execution_mode", "execution_agent", "execution_reason", "status", "id",
+                   "title")
+
+
+def process_plan_yaml(path, findings):
+    """The plan.yaml path (DEC-182): a real loader, no regexes.
+
+    Everything `_clean`, FILES_RE, LIST_ITEM_RE, KEY_LINE_RE, LEGACY_FILES_RE and MODE_RE
+    existed for is gone here — not because they were badly written, but because they were
+    reading markdown as if it were data. `files:` is a list because YAML says so; a bolted
+    annotation is part of the string because YAML says so; `execution_mode` is one of two
+    tokens because load_plan says so.
+    """
+    import harness_yaml
+    try:
+        doc = harness_yaml.load_plan(path)
+    except harness_yaml.YamlParseError as e:
+        # Exit 2, not a violation. "The plan does not parse" is the checker being unable to
+        # run, not the plan being wrong about routing — the same distinction B-7 turned on.
+        print(f"check-plan-routes: {path} does not load: {e}", file=sys.stderr)
+        return None
+
+    violations = 0
+    for t in doc["tasks"]:
+        tid = str(t["id"])
+        mode = t["execution_mode"]
+
+        budget_lines = 0
+        for f in BUDGETED_FIELDS:
+            v = t.get(f)
+            if isinstance(v, str):
+                budget_lines += len(v.splitlines()) or 1
+            elif isinstance(v, list):
+                budget_lines += len(v)
+            elif v is not None:
+                budget_lines += 1
+        if budget_lines > MACHINE_LINES_PER_TASK:
+            findings.append(
+                f"VIOLATION {tid}: {budget_lines} machine-field lines — budget is "
+                f"{MACHINE_LINES_PER_TASK} per task (DEC-182). Detail that only JUSTIFIES "
+                f"the instruction belongs in notes/, not in the contract.")
+            violations += 1
+
+        globs = [f for f in t["files"] if "*" in f or "?" in f]
+        literals = [f for f in t["files"] if f not in globs]
+        for g in globs:
+            findings.append(f"UNRESOLVED-GLOB {tid} {g}")
+
+        nobody, granted = [], set()
+        for entry in literals:
+            agents = resolve_agents(entry)
+            if agents:
+                granted.update(agents)
+            else:
+                nobody.append(entry)
+
+        if nobody:
+            if mode == LEGAL_MAIN_SESSION_TOKEN:
+                findings.append(
+                    f"OK {tid}: declared main-session-direct ({', '.join(nobody)} ungranted)")
+            else:
+                for path_ in nobody:
+                    findings.append(
+                        f"VIOLATION {tid}: {path_} ungranted (NOBODY); execution_mode is "
+                        f"{mode} — legal tokens: {LEGAL_TOKENS}")
+                    violations += 1
+        elif literals:
+            if mode == LEGAL_MAIN_SESSION_TOKEN:
+                findings.append(
+                    f"DEVIATION {tid} {', '.join(literals)} granted to "
+                    f"{', '.join(sorted(granted))} but declared main-session-direct")
+            else:
+                findings.append(f"OK {tid} granted to {', '.join(sorted(granted))}")
+    return violations
+
+
 def process_plan(path, findings):
-    """Returns the violation count for one PLAN.md, or None if the path exits 2."""
+    """Returns the violation count for one plan, or None if the path exits 2.
+
+    Routes on the FILENAME. plan.yaml gets the loader; PLAN.md keeps the regex reader,
+    permanently — the eight shipped plans are never rewritten and their reader is not
+    scheduled for removal.
+    """
     if not os.path.exists(path):
         print(f"ERROR: {path} does not exist", file=sys.stderr)
         return None
+
+    if os.path.basename(path) == "plan.yaml":
+        return process_plan_yaml(path, findings)
 
     with open(path) as f:
         text = f.read()
@@ -354,7 +454,20 @@ def discover_plans():
             if not os.access(entry.path, os.X_OK):
                 unreadable.append(os.path.relpath(entry.path, root))
                 continue
-            plan = os.path.join(entry.path, "PLAN.md")
+            # BOTH FILENAMES, plan.yaml first. DEC-182 replaced the markdown-that-looks-
+            # like-YAML format; shipped features keep their PLAN.md and its reader is
+            # PERMANENT, not deprecated — the eight already on disk are never rewritten.
+            # A feature carrying both is a half-finished migration and is refused below
+            # rather than silently preferred, because "which one is authoritative" is
+            # exactly the ambiguity issue #147 was filed about.
+            plan = None
+            both = [os.path.join(entry.path, n) for n in ("plan.yaml", "PLAN.md")]
+            present = [q for q in both if os.path.lexists(q)]
+            if len(present) > 1:
+                unreadable.append(
+                    f"{os.path.relpath(entry.path, root)} has BOTH plan.yaml and PLAN.md")
+                continue
+            plan = present[0] if present else both[1]
             # LEXISTS DECIDES PRESENCE, isfile DECIDES USABILITY, and conflating them was a
             # REGRESSION this rewrite introduced against the glob it replaced. `glob`
             # resolved the literal trailing component with `lexists`; `os.path.isfile` calls
@@ -393,7 +506,7 @@ def main(argv):
         root, paths = discover_plans()
         # Naming the root is the whole distinction. Without it a legitimate zero-feature
         # project and the wrong-directory defect print the same line.
-        print(f"scanning {root}/.harness/features/*/PLAN.md")
+        print(f"scanning {root}/.harness/features/*/{{plan.yaml,PLAN.md}}")
 
     findings = []
     total_violations = 0
