@@ -5306,9 +5306,19 @@ entry said permanent; that was wrong and untested. Four live features still carr
 INV-3/4/5 must keep working for them. Once they ship it can go, and shipped plans stop being parsed
 at all — verified: INV-3/4/5 report 0 findings across the five shipped features today.
 
-**The budget is PER TASK, 30 machine-field lines, and the asymmetry against every peer is
-deliberate.** Derived the way DEC-181 derived CLAUDE.md's 80: measured machine+verify lines per task
-are 11.5 (FEAT-09), 21.2 (FEAT-06), 26.7 (FEAT-07), 19.9 (FEAT-08), so 30 leaves ~12% headroom. A
+<!-- stale: "30 leaves ~12% headroom" -->
+<!-- stale: "The budget is PER TASK, 30 machine-field lines" -->
+
+**The budget is PER TASK, 50 machine-field lines, and the asymmetry against every peer is
+deliberate.** *Amended: this entry first said 30, derived from the per-PLAN MEANS 11.5 / 21.2 /
+26.7 / 19.9 with "~12% headroom". The budget is enforced per TASK, so a mean was the wrong
+statistic, and the distribution quoted to defend it was itself wrong — FEAT-08 T-12's `verify:`
+ends at a `## ` heading, not a `key:` line, so three independent extractors scanning for the next
+key reported 199, 246 and 251 for a five-line field. No distribution is quoted now. Two anchors
+survived independent check by four extractors: **48**, the largest task that is a task, and **89**,
+the smallest that is an inlined script. 50 sits between them. The caveat that matters more than the
+number: `find .harness -name plan.yaml` returns ZERO, so this cap has never been applied to a real
+file of the format it governs.* A
 plan is a LIST — its length tracks how many tasks a feature has, not how much fat it carries — so a
 flat file cap would be a cap on how many tasks a feature may have, a scoping decision wearing a
 budget's clothes. `intent:` is excluded from the count because it is READ. Enforced in

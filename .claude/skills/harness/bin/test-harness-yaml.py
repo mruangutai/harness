@@ -496,6 +496,48 @@ def test_load_plan_accepts_a_well_formed_plan():
         assert doc["tasks"][0]["verify"] == "python3 -m pytest\n", repr(doc["tasks"][0]["verify"])
 
 
+def test_every_required_task_field_is_actually_required():
+    """EVERY entry in REQUIRED_TASK_FIELDS, generated FROM the tuple.
+
+    Review found `intent:` had been added to REQUIRED_TASK_FIELDS with no test at all:
+    dropping it back out left all three suites green. A fixture that CARRIES a field
+    cannot assert the field is required — `case_23j`'s 12-line `intent:` pins that intent
+    stays OUT of the budget, which is a different claim.
+
+    Generated from the tuple rather than listed, so a field added to production and not
+    to a list here cannot go unexercised. There is no list to forget.
+    """
+    # Imported HERE, not at module scope: this file deliberately has no top-level
+    # `import yaml`, because test_missing_pyyaml_is_reportable_not_a_second_crash
+    # exercises the absent-parser path.
+    import yaml
+    import harness_yaml as hy
+
+    # PIN THE TUPLE'S CONTENTS FIRST. A loop generated from REQUIRED_TASK_FIELDS cannot
+    # notice a field being removed FROM it — the loop just stops testing that field and
+    # stays green. Measured: dropping "intent" back out left this test passing until this
+    # assertion existed. Generation protects against a field ADDED and untested; only an
+    # explicit set protects against one DELETED.
+    assert set(hy.REQUIRED_TASK_FIELDS) == {
+        "id", "title", "change_type", "execution_mode", "files", "verify", "intent"
+    }, (f"REQUIRED_TASK_FIELDS changed to {hy.REQUIRED_TASK_FIELDS}. If that is "
+        f"deliberate, update this set and say why in the commit — `intent:` in "
+        f"particular is what teams/build.yaml dispatches on.")
+    for field in hy.REQUIRED_TASK_FIELDS:
+        doc = yaml.safe_load(GOOD_PLAN)
+        del doc["tasks"][0][field]
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                hy.load_plan(_plan(tmp, yaml.safe_dump(doc)))
+            except hy.PlanSchemaError as e:
+                assert field in str(e), (
+                    f"omitting {field!r} raised, but the message does not name it: {e}")
+            else:
+                raise AssertionError(
+                    f"a plan with no {field!r} loaded CLEAN — it is in "
+                    f"REQUIRED_TASK_FIELDS but nothing enforces it")
+
+
 def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
     """The three failures issue #147 was filed about, now unrepresentable.
 
@@ -620,6 +662,7 @@ TESTS = [
     test_c_loader_is_used_when_libyaml_is_available,
     # issue #147 — plan.yaml replaces the markdown-that-looks-like-YAML format.
     test_load_plan_accepts_a_well_formed_plan,
+    test_every_required_task_field_is_actually_required,
     test_load_plan_rejects_the_shapes_that_broke_PLAN_md,
     test_load_plan_backticked_path_is_not_silently_cleaned,
     test_load_plan_reports_line_and_column_on_malformed_yaml,

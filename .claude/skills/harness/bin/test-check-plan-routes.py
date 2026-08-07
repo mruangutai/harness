@@ -858,11 +858,19 @@ def case_24():
     for label, body in (("a_sequence", "- a\n- b\n"),
                         ("a_bare_scalar", "shipped\n"),
                         ("status_is_a_list", "status:\n  - shipped\n"),
-                        # A MAPPING WITH NO `status:` KEY AT ALL. This is the only shape
-                        # that reaches `bool(token)` -- `"".split()` is `[]`, so without
-                        # the guard `token[0]` raises IndexError and the run dies with
-                        # empty stdout and exit 1, the code a real violation uses. The
-                        # four shapes above all fail earlier, at the isinstance check.
+                        # A MAPPING WITH NO `status:` KEY AT ALL. The only shape reaching
+                        # `bool(token)` -- `"".split()` is `[]`, so without the guard
+                        # `token[0]` raises IndexError and the run dies with empty stdout
+                        # and exit 1, the code a real violation uses.
+                        #
+                        # ONLY TWO of the shapes above stop at the isinstance check --
+                        # `a_sequence` and `a_bare_scalar`. An earlier version of this
+                        # comment said four, which libelled the one case that carries its
+                        # own weight: `status_is_a_list` IS a dict, reaches `bool(token)`
+                        # with a truthy `["['shipped']"]`, and is the SOLE case that
+                        # catches removal of the `str()` at check-plan-routes.py:422.
+                        # A comment telling the next reader a live case is a duplicate is
+                        # how a load-bearing assertion gets deleted as redundant.
                         ("a_mapping_with_no_status", "feature_id: FEAT-A\n")):
         with tempfile.TemporaryDirectory() as td:
             fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
