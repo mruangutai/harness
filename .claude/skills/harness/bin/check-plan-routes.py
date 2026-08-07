@@ -231,11 +231,148 @@ def process_task(tid, body, findings):
     return violations
 
 
+# Machine-field lines allowed per task, on the plan.yaml path (DEC-182).
+#
+# PER TASK, NOT PER FILE, and that asymmetry against every peer budget is deliberate. A
+# plan is a LIST — its length tracks how many tasks a feature has, not how much fat it
+# carries. feature.yaml (200), STATE.md (120), handoff (60) and CLAUDE.md (80) all govern
+# files whose content does not grow with task count. A flat cap here would be a cap on how
+# many tasks a feature may have, which is a scoping decision wearing a budget's clothes.
+# DERIVED PER TASK, and the first draft was not. That draft said 30, justified as "~12%
+# headroom over the worst", computed from the per-PLAN MEANS (11.5 / 21.2 / 26.7 / 19.9).
+# The budget is enforced PER TASK, so a mean was the wrong statistic and review caught it.
+#
+# WHAT IS ACTUALLY MEASURED, AND WHAT IS NOT. Three independent hand-conversions of the
+# 36 tasks in the four live plans agree on two anchors and on nothing else worth quoting:
+#
+#   48   the largest task that is a task
+#   89   the smallest task that is an inlined script
+#
+# An earlier draft of this comment cited "max 209" and "over 30: 5 tasks". Both were
+# wrong, and the cause is worth recording because it is a trap for the next person who
+# measures this. FEAT-08 T-12's `verify:` is five physical lines (748-752), terminated by
+# a `## ` heading at 753 — NOT a `key:` line. An extractor that scans for the next key
+# swallows the rest of the section and reports 199, 246 or 251 depending on where it gives
+# up. Two reviewers and I produced three different numbers from the same file.
+#
+# So no distribution of the ENFORCED metric is quoted here. A number nobody can reproduce
+# is not evidence, and citing one is how "derived, not picked" becomes a costume. The two
+# anchors are the only figures that survived independent check, and they are enough to
+# place the cap. The one measurement quoted below is of the REJECTED alternative, kept
+# because it is what disqualified that alternative -- not offered as a warrant for 50.
+#
+# THE HONEST CAVEAT: `find .harness -name plan.yaml` returns ZERO. This budget has never
+# been applied to a real file of the format it governs, and the anchors come from
+# converting a different format by hand. The first migrated plan is what will settle it.
+#
+# WHY 50, AND WHY `verify:` STAYS COUNTED. Excluding `verify:` was the tidier-looking fix,
+# because DEC-154's read-vs-match test does arguably reach it — the lead carries it
+# VERBATIM to the member. It was measured and rejected: without `verify:` the distribution
+# is median 11, max 21, and the per-field maxima across ALL eight plans sum to 23
+# (files 3, traces 12, depends_on 8) -- against ANY cap at or above 30, and this one is
+# 50. A task could not reach even 31 without ~25 list entries, a shape nobody has ever
+# written. That is not a budget, it is a cap
+# that cannot fire — and a threshold made unreachable is how a gate passes while the
+# behaviour it names is gone.
+#
+# So the cap sits between the two anchors: above 48, below 89. An inlined script belongs
+# in a file the plan NAMES, not in the contract, and at 50 the gate says so.
+MACHINE_LINES_PER_TASK = 50
+
+# Fields whose value is MATCHED rather than read, and therefore counted against the budget.
+# `intent:` is excluded on purpose: it is the literal dispatch prompt and it is READ, which
+# is DEC-154's test for which half a value belongs in.
+BUDGETED_FIELDS = ("files", "verify", "traces", "depends_on", "change_type",
+                   "execution_mode", "execution_agent", "execution_reason", "status", "id",
+                   "title")
+
+
+def process_plan_yaml(path, findings):
+    """The plan.yaml path (DEC-182): a real loader, no regexes.
+
+    Everything `_clean`, FILES_RE, LIST_ITEM_RE, KEY_LINE_RE, LEGACY_FILES_RE and MODE_RE
+    existed for is gone here — not because they were badly written, but because they were
+    reading markdown as if it were data. `files:` is a list because YAML says so; a bolted
+    annotation is part of the string because YAML says so; `execution_mode` is one of two
+    tokens because load_plan says so.
+    """
+    import harness_yaml
+    try:
+        doc = harness_yaml.load_plan(path)
+    except harness_yaml.YamlParseError as e:
+        # Exit 2, not a violation. "The plan does not parse" is the checker being unable to
+        # run, not the plan being wrong about routing — the same distinction B-7 turned on.
+        print(f"check-plan-routes: {path} does not load: {e}", file=sys.stderr)
+        return None
+
+    violations = 0
+    for t in doc["tasks"]:
+        tid = str(t["id"])
+        mode = t["execution_mode"]
+
+        budget_lines = 0
+        for f in BUDGETED_FIELDS:
+            v = t.get(f)
+            if isinstance(v, str):
+                budget_lines += len(v.splitlines()) or 1
+            elif isinstance(v, list):
+                budget_lines += len(v)
+            elif v is not None:
+                budget_lines += 1
+        if budget_lines > MACHINE_LINES_PER_TASK:
+            findings.append(
+                f"VIOLATION {tid}: {budget_lines} machine-field lines — budget is "
+                f"{MACHINE_LINES_PER_TASK} per task (DEC-182). Detail that only JUSTIFIES "
+                f"the instruction belongs in notes/, not in the contract.")
+            violations += 1
+
+        globs = [f for f in t["files"] if "*" in f or "?" in f]
+        literals = [f for f in t["files"] if f not in globs]
+        for g in globs:
+            findings.append(f"UNRESOLVED-GLOB {tid} {g}")
+
+        nobody, granted = [], set()
+        for entry in literals:
+            agents = resolve_agents(entry)
+            if agents:
+                granted.update(agents)
+            else:
+                nobody.append(entry)
+
+        if nobody:
+            if mode == LEGAL_MAIN_SESSION_TOKEN:
+                findings.append(
+                    f"OK {tid}: declared main-session-direct ({', '.join(nobody)} ungranted)")
+            else:
+                for path_ in nobody:
+                    findings.append(
+                        f"VIOLATION {tid}: {path_} ungranted (NOBODY); execution_mode is "
+                        f"{mode} — legal tokens: {LEGAL_TOKENS}")
+                    violations += 1
+        elif literals:
+            if mode == LEGAL_MAIN_SESSION_TOKEN:
+                findings.append(
+                    f"DEVIATION {tid} {', '.join(literals)} granted to "
+                    f"{', '.join(sorted(granted))} but declared main-session-direct")
+            else:
+                findings.append(f"OK {tid} granted to {', '.join(sorted(granted))}")
+    return violations
+
+
 def process_plan(path, findings):
-    """Returns the violation count for one PLAN.md, or None if the path exits 2."""
+    """Returns the violation count for one plan, or None if the path exits 2.
+
+    Routes on the FILENAME. plan.yaml gets the loader; PLAN.md keeps the regex reader for
+    the migration window (DEC-182) — existing plans are never rewritten or converted, so
+    the reader stays while any unshipped feature still carries a PLAN.md, and goes once
+    none does.
+    """
     if not os.path.exists(path):
         print(f"ERROR: {path} does not exist", file=sys.stderr)
         return None
+
+    if os.path.basename(path) == "plan.yaml":
+        return process_plan_yaml(path, findings)
 
     with open(path) as f:
         text = f.read()
@@ -244,6 +381,50 @@ def process_plan(path, findings):
     for tid, body in TASK_RE.findall(text):
         violations += process_task(tid, body, findings)
     return violations
+
+
+SHIPPED_STATUSES = ("shipped", "abandoned")
+
+
+def _is_shipped(feature_dir):
+    """True when this feature's work is delivered and its plan is a record, not a contract.
+
+    Reads `feature.yaml`'s `status:` with the real loader. An unreadable or absent
+    feature.yaml means NOT shipped — a feature we cannot classify is checked rather than
+    skipped, because the failure that matters is a live plan going unexamined, not an old
+    one being examined twice.
+
+    EVERY EXIT FROM THIS FUNCTION IS `False` OR A MEMBERSHIP TEST. It never raises, and
+    that is the whole point: the first draft put the `return` OUTSIDE its own `try:`, so a
+    feature.yaml holding a YAML sequence reached `doc.get` on a list and raised
+    AttributeError out of discover_plans(). The process then died with **exit 1 — the code
+    that means "violations found"** — after examining nothing, printing no summary, and
+    naming no feature. One malformed file anywhere under .harness/features/ silently
+    converted the whole checker into a liar.
+
+    That is the same defect this change fixes in passing for check-state.sh (`NameError:
+    cj`) and the same one harness_yaml.manifest_domains records as M-02. Three instances,
+    one shape: a crash exits 1, and 1 is already spoken for. check-state.sh:160-168 is the
+    model — `isinstance(doc, dict)` is checked before anything reads a key off it.
+    """
+    fy = os.path.join(feature_dir, "feature.yaml")
+    if not os.path.isfile(fy):
+        return False
+    try:
+        import harness_yaml
+        doc = harness_yaml.load_file(fy)
+    except Exception:
+        return False
+    # `or {}` is NOT enough here. load_file returns whatever the document is, and a
+    # non-empty list is truthy — it would survive `or {}` and then fail on `.get`.
+    if not isinstance(doc, dict):
+        return False
+    # `status: shipped  # with a trailing comment` is the live corpus's shape (FEAT-02,
+    # FEAT-03, FEAT-04, FEAT-05 all carry one), so take the first whitespace-delimited
+    # token. A status that is a list or a mapping stringifies to something that is not in
+    # SHIPPED_STATUSES, which is the fail-CHECKED direction.
+    token = str(doc.get("status", "")).split()
+    return bool(token) and token[0] in SHIPPED_STATUSES
 
 
 def discover_plans():
@@ -354,7 +535,39 @@ def discover_plans():
             if not os.access(entry.path, os.X_OK):
                 unreadable.append(os.path.relpath(entry.path, root))
                 continue
-            plan = os.path.join(entry.path, "PLAN.md")
+            # BOTH FILENAMES, plan.yaml first. DEC-182 replaced the markdown-that-looks-
+            # like-YAML format; shipped features keep their PLAN.md and its reader is
+            # PERMANENT, not deprecated — the eight already on disk are never rewritten.
+            # A feature carrying both is a half-finished migration and is refused below
+            # rather than silently preferred, because "which one is authoritative" is
+            # exactly the ambiguity issue #147 was filed about.
+            # SHIPPED FEATURES ARE NOT ROUTE-CHECKED, and this is a removal rather than a
+            # trade-off. Checking them was the default behaviour of a glob, never a
+            # decision: the work shipped, the routes were taken, and the plan will not be
+            # re-executed, so a finding on it is not actionable by anyone. Measured before
+            # this line: 36 violations across 8 plans, of which 27 were `no files: line`
+            # and 8 the pre-FEAT-06 prose shape, and 1 real routing defect. 35 of the 36
+            # were format noise in SHIPPED plans; the one real finding is in FEAT-08, which
+            # is awaiting_user and stays checked.
+            #
+            # That noise is the whole reason issue #133's gate could never be turned on:
+            # /harness entry would have failed every time with 35 findings nobody intended
+            # to fix. Skipping them takes the tree to 1 finding, on live work.
+            #
+            # `status:` is a BORROWED SIGNAL and the honest name for it is era. It means
+            # "how far along is this feature", not "which format does it use". It is the
+            # only marker on disk — no feature.yaml carries schema_version — so it is used
+            # deliberately rather than a new field being invented for one transition.
+            if _is_shipped(entry.path):
+                continue
+            plan = None
+            both = [os.path.join(entry.path, n) for n in ("plan.yaml", "PLAN.md")]
+            present = [q for q in both if os.path.lexists(q)]
+            if len(present) > 1:
+                unreadable.append(
+                    f"{os.path.relpath(entry.path, root)} has BOTH plan.yaml and PLAN.md")
+                continue
+            plan = present[0] if present else both[1]
             # LEXISTS DECIDES PRESENCE, isfile DECIDES USABILITY, and conflating them was a
             # REGRESSION this rewrite introduced against the glob it replaced. `glob`
             # resolved the literal trailing component with `lexists`; `os.path.isfile` calls
@@ -393,7 +606,7 @@ def main(argv):
         root, paths = discover_plans()
         # Naming the root is the whole distinction. Without it a legitimate zero-feature
         # project and the wrong-directory defect print the same line.
-        print(f"scanning {root}/.harness/features/*/PLAN.md")
+        print(f"scanning {root}/.harness/features/*/{{plan.yaml,PLAN.md}}")
 
     findings = []
     total_violations = 0

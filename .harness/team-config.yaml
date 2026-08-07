@@ -87,6 +87,7 @@ teams:
         domain:
           - { path: .harness/features/*/BRIEF.md, upsert: true }   # except ## Approval (DEC-129)
           - { path: .harness/features/*/PLAN.md, upsert: true }    # except ## Approval (DEC-129)
+          - { path: .harness/features/*/plan.yaml, upsert: true }  # DEC-182; except approval: (DEC-129)
           - { path: .harness/features/*/notes/research-*.md, upsert: true }   # the PATH carries the FEAT id (DEC-130)
           - { path: .harness/notes/research-*.md, upsert: true }            # project-scoped research only
           - { path: .harness/features/*/notes/uat-*.md, upsert: true }

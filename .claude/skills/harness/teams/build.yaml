@@ -39,7 +39,8 @@ lead: eng-lead
 inputs: [feat, tasks]
 
 steps_from:
-  # The host reads `## Tasks` from the feature's PLAN.
+  # The host reads the feature's plan: plan.yaml's `tasks:` via harness_yaml.load_plan
+  # (DEC-182), or PLAN.md's `## Tasks` for a feature still on the pre-DEC-182 format.
   source: plan_tasks
 
   # WHICH tasks arrive here is the ORCHESTRATOR's decision, made before dispatch and

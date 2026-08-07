@@ -36,5 +36,6 @@ asks for a cleanup.
 ## What this skill never does
 
 - Invent lessons not present in the source file.
-- Touch `PLAN.md ## Decisions` — decisions are approval-gated and are not Expertise.
+- Touch the plan's decisions — `plan.yaml`'s `decisions:` list, or `PLAN.md ## Decisions` for a
+  feature still on the pre-DEC-182 format. Decisions are approval-gated and are not Expertise.
 - Edit rule skills or agent files — curation is data maintenance, not constitution changes.

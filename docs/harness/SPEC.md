@@ -1683,24 +1683,61 @@ need several features. So **REQ coverage is computed, never tracked**: REQ-02 is
 FEAT tracing to it has shipped and its Success Criteria pass. No status field on a REQ that can
 drift.
 
-```markdown
-  # PLAN.md — pm-owned, approval-gated (the DECLARATION)
-  ## Features
-  - FEAT-01: SSO login with Google
-    traces: [REQ-02, REQ-07]        # 1..n requirements
-    tasks:  [T-04, T-05, T-09]
-                                    # NO status here — see 11.1
+```yaml
+# plan.yaml — pm-owned, approval-gated (the DECLARATION). REAL YAML (DEC-182).
+schema: plan/1
+feature: FEAT-01
 
-  ## Decisions
-  - D-03: Use Supabase social login rather than hand-rolled OAuth
-    rationale: auth is not our differentiator; Supabase is already our DB
-    tradeoffs: ties us to Supabase's provider roadmap
+approval:                          # orchestrator-only; reset to pending by any task-set change
+  status: approved
+  approved_by: <name>
+  date: 2026-08-06
 
-  ## Tasks
-  - T-04: Configure Supabase Google provider
-    feature: FEAT-01   traces: REQ-02, D-03   change_type: config
-    verify: <cmd>      status: done
+decisions:                         # pointers; reasoning lives in docs/harness/DECISIONS.md
+  - id: D-03
+    choice: Use Supabase social login rather than hand-rolled OAuth
+    because: auth is not our differentiator and Supabase is already our DB
+    dec: none                      # a plan-local choice that never became a repo ruling
+
+tasks:
+  - id: T-04
+    title: Configure Supabase Google provider
+    traces: [REQ-02]               # REQ only — D-NN lives in decisions:
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:                         # a list of plain strings; no backticks, no annotations
+      - supabase/config.toml
+    verify: |                      # literal `|`, never folded `>` — a byte-exact contract
+      supabase status
+    intent: |                      # the LITERAL dispatch prompt, not narrative
+      Enable the Google auth provider in supabase/config.toml, with client id and secret
+      read from the environment rather than committed.
 ```
+
+**Nothing in `plan.yaml` is prose for a human.** Human-facing intent lives in `BRIEF.md`. The one
+long field, `intent:`, is the literal dispatch prompt the doing agent receives.
+
+**Why not markdown, and why not a fenced block inside markdown.** The format this replaced was
+markdown containing `key: value` lines — parseable by no YAML library, so three scripts hand-rolled
+regexes and each invented its own rule for what a value may contain. `safe_load` over every task
+block in the four live plans fails on 35 of their 36 blocks. 26 fail because `files:` begins with a
+backtick, a reserved YAML indicator — four of those also carry a backticked `verify:`, and one is
+also `execution_mode: **SPLIT`, which reads as an alias; they are the same blocks, not disjoint
+sets. The other 9 fail because `execution_mode: <mode> — reason: …` puts a second `": "` inside a
+plain scalar, and that cause matters more: a backtick is visibly decoration, but a sentence
+containing a colon is just a sentence. A fenced `yaml` block was considered and refused — it is
+the same mixture with a border round it, and an author who decorates a value today decorates it
+inside a fence tomorrow.
+
+**Both formats are legal, and the migration is forward-only.** Existing `PLAN.md` files are never
+rewritten and never converted; a feature keeps the format it was planned on until it ships. Its
+reader is a MIGRATION-WINDOW reader: it stays while any unshipped feature still carries `PLAN.md`,
+and goes once none does. A feature carrying both plans is a half-finished migration and
+`check-plan-routes.py` refuses it. DEC-182 records that an earlier draft of this paragraph called
+that reader permanent, and that the claim was wrong and untested.
 
 ### 11.3 `feature.yaml` — orchestrator-owned, execution facts only
 

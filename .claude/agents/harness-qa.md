@@ -29,7 +29,8 @@ the code is wrong or the test is wrong, and if it is the code, that is a dev's f
 
 ## Two phases, and the order is the anti-bias mechanism
 
-**Phase 1 — no source access.** Read `BRIEF.md` and `PLAN.md` only. From the requirements and success
+**Phase 1 — no source access.** Read `BRIEF.md` and the plan only — `plan.yaml`, or `PLAN.md` for a
+feature still on the pre-DEC-182 format. From the requirements and success
 criteria alone, write down the tests that *should* exist.
 
 Do this first because once you have read the implementation you will test what the code does rather than

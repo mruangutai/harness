@@ -64,6 +64,7 @@ COLLECT_FIXTURE = {
         [
             ".harness/features/*/BRIEF.md",
             ".harness/features/*/PLAN.md",
+        ".harness/features/*/plan.yaml",
             ".harness/features/*/notes/research-*.md",
             ".harness/notes/research-*.md",
             ".harness/features/*/notes/uat-*.md",
@@ -454,6 +455,198 @@ def test_c_loader_is_used_when_libyaml_is_available():
         assert e.mark is not None and e.mark.line >= 0, "line/column lost under this loader"
 
 
+GOOD_PLAN = """schema: plan/1
+feature: FEAT-TEST
+approval:
+  status: approved
+tasks:
+  - id: T-01
+    title: do the thing
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: carve-out
+    traces: [REQ-01]
+    depends_on: []
+    status: pending
+    files:
+      - src/a.py
+      - src/b.py
+    verify: |
+      python3 -m pytest
+    intent: |
+      Do the thing, carefully.
+"""
+
+
+def _plan(tmp, text):
+    p = os.path.join(tmp, "plan.yaml")
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(text)
+    return p
+
+
+def test_load_plan_accepts_a_well_formed_plan():
+    """The discriminator. Every rejection case below passes against a load_plan that
+    rejects everything, so one acceptance case is what makes them mean anything."""
+    import harness_yaml as hy
+
+    with tempfile.TemporaryDirectory() as tmp:
+        doc = hy.load_plan(_plan(tmp, GOOD_PLAN))
+        assert doc["tasks"][0]["files"] == ["src/a.py", "src/b.py"], doc["tasks"][0]["files"]
+        assert doc["tasks"][0]["verify"] == "python3 -m pytest\n", repr(doc["tasks"][0]["verify"])
+
+
+def test_every_required_task_field_is_actually_required():
+    """EVERY entry in REQUIRED_TASK_FIELDS, generated FROM the tuple.
+
+    Review found `intent:` had been added to REQUIRED_TASK_FIELDS with no test at all:
+    dropping it back out left all three suites green. A fixture that CARRIES a field
+    cannot assert the field is required — `case_23j`'s 12-line `intent:` pins that intent
+    stays OUT of the budget, which is a different claim.
+
+    Generated from the tuple rather than listed, so a field added to production and not
+    to a list here cannot go unexercised. There is no list to forget.
+    """
+    # Imported HERE, not at module scope: this file deliberately has no top-level
+    # `import yaml`, because test_missing_pyyaml_is_reportable_not_a_second_crash
+    # exercises the absent-parser path.
+    import yaml
+    import harness_yaml as hy
+
+    # PIN THE TUPLE'S CONTENTS FIRST. A loop generated from REQUIRED_TASK_FIELDS cannot
+    # notice a field being removed FROM it — the loop just stops testing that field and
+    # stays green. Measured: dropping "intent" back out left this test passing until this
+    # assertion existed. Generation protects against a field ADDED and untested; only an
+    # explicit set protects against one DELETED.
+    assert set(hy.REQUIRED_TASK_FIELDS) == {
+        "id", "title", "change_type", "execution_mode", "files", "verify", "intent"
+    }, (f"REQUIRED_TASK_FIELDS changed to {hy.REQUIRED_TASK_FIELDS}. If that is "
+        f"deliberate, update this set and say why in the commit — `intent:` in "
+        f"particular is what teams/build.yaml dispatches on.")
+    for field in hy.REQUIRED_TASK_FIELDS:
+        doc = yaml.safe_load(GOOD_PLAN)
+        del doc["tasks"][0][field]
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                hy.load_plan(_plan(tmp, yaml.safe_dump(doc)))
+            except hy.PlanSchemaError as e:
+                assert field in str(e), (
+                    f"omitting {field!r} raised, but the message does not name it: {e}")
+            else:
+                raise AssertionError(
+                    f"a plan with no {field!r} loaded CLEAN — it is in "
+                    f"REQUIRED_TASK_FIELDS but nothing enforces it")
+
+
+def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
+    """The three failures issue #147 was filed about, now unrepresentable.
+
+    Measured on the pre-change tree: `safe_load` fails on 35 of the 36 task blocks in
+    the four live plans. 26 carry a `files:` that begins with a backtick — markdown
+    decoration inside a data field — and one of those 26 is ALSO `execution_mode:
+    **SPLIT`, which YAML reads as an alias; it is the same block, not a 27th. The
+    other 9 put a second `": "` inside a plain scalar via `execution_mode: <mode> —
+    reason: ...`.
+
+    The cases below are NOT a census of those 35. Two are drawn from the corpus; the
+    rest are shapes the loader must also refuse. Each must raise a YamlParseError
+    subclass rather than silently resolving something nobody wrote.
+    """
+    import harness_yaml as hy
+
+    cases = {
+        "backticked files value (the 26-case class)":
+            GOOD_PLAN.replace("      - src/a.py", "      - `src/a.py`"),
+        "bolded execution_mode (FEAT-08 T-04's **SPLIT)":
+            GOOD_PLAN.replace("execution_mode: main-session-direct",
+                              "execution_mode: **SPLIT (D-10, amended)**"),
+        "files: as a bare string, not a list":
+            GOOD_PLAN.replace("    files:\n      - src/a.py\n      - src/b.py",
+                              "    files: src/a.py, src/b.py"),
+        "an unknown execution_mode token":
+            GOOD_PLAN.replace("execution_mode: main-session-direct", "execution_mode: solo"),
+        "a duplicate task id":
+            GOOD_PLAN + GOOD_PLAN[GOOD_PLAN.index("  - id: T-01"):],
+        "no tasks at all":
+            "schema: plan/1\nfeature: FEAT-TEST\ntasks: []\n",
+        "a task missing verify:":
+            GOOD_PLAN.replace("    verify: |\n      python3 -m pytest\n", ""),
+    }
+    for label, text in cases.items():
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                hy.load_plan(_plan(tmp, text))
+            except hy.YamlParseError:
+                continue
+            raise AssertionError(f"ACCEPTED what it must reject: {label}")
+
+
+def test_load_plan_backticked_path_is_not_silently_cleaned():
+    """The SECOND #147 question: may an entry carry an annotation like `(delete)`?
+
+    No — and the loader is what says so, not a cleanup heuristic. The old `_clean()`
+    stripped backticks and a trailing comma but not a parenthetical, so
+    `` `bin/cost-report.py` (delete) `` resolved ONLY because a `/**` grant swallowed
+    the suffix. Under a narrower grant it was a false violation. Here the value is
+    the literal string, so a resolver gets exactly what the author wrote and can say
+    it resolves to nothing — rather than guessing which characters were commentary.
+    """
+    import harness_yaml as hy
+
+    text = GOOD_PLAN.replace("      - src/a.py", "      - src/a.py (delete)")
+    with tempfile.TemporaryDirectory() as tmp:
+        doc = hy.load_plan(_plan(tmp, text))
+        got = doc["tasks"][0]["files"][0]
+        assert got == "src/a.py (delete)", f"loader altered the authored value: {got!r}"
+
+
+def test_load_plan_reports_line_and_column_on_malformed_yaml():
+    """A denial that says only "does not parse" on a 300-line plan is a loop the
+    author cannot exit. YamlParseError already carries the original exception; this
+    pins that it survives to the caller."""
+    import harness_yaml as hy
+
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            hy.load_plan(_plan(tmp, "tasks:\n  - id: T-01\n   bad: indent\n"))
+        except hy.YamlParseError as e:
+            assert "line" in str(e.original).lower(), f"no position in: {e.original}"
+            return
+        raise AssertionError("malformed YAML was accepted")
+
+
+def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
+    """The template, the normative SPEC example, and the loader must agree — mechanically.
+
+    THIS IS ISSUE #147 ITSELF. That ticket exists because `templates/PLAN.md` prescribed one
+    `files:` shape while the parser accepted three: an author following the template was
+    correct, and an author ignoring it was also correct, and nothing could tell them apart.
+    Prose cannot hold two files in agreement; a test can.
+
+    Both artifacts are loaded through the real `load_plan`, so a template that drifts out of
+    schema fails here rather than at the next planning session. SPEC.md:1701-1702's previous
+    example was itself illegal YAML — three keys on one line — and shipped that way because
+    nothing ever tried to parse it.
+    """
+    import re
+    import harness_yaml as hy
+
+    here = os.path.dirname(os.path.abspath(__file__))
+
+    tmpl = os.path.join(here, "..", "templates", "plan.yaml")
+    hy.load_plan(tmpl)  # raises on any drift
+
+    spec = open(os.path.join(here, "..", "..", "..", "..", "docs", "harness", "SPEC.md"),
+                encoding="utf-8").read()
+    m = re.search(r"```yaml\n(# plan\.yaml.*?)\n```", spec, re.S)
+    assert m, "SPEC.md no longer carries a normative plan.yaml example"
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "plan.yaml")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(m.group(1))
+        hy.load_plan(path)
+
+
 TESTS = [
     test_merge_key_override_is_not_a_duplicate,
     test_missing_pyyaml_is_reportable_not_a_second_crash,
@@ -472,6 +665,13 @@ TESTS = [
     # which is issue #133's own theme ("logic correct, nothing calls it")
     # landing inside the change that cites it. Caught by mutation, not by review.
     test_c_loader_is_used_when_libyaml_is_available,
+    # issue #147 — plan.yaml replaces the markdown-that-looks-like-YAML format.
+    test_load_plan_accepts_a_well_formed_plan,
+    test_every_required_task_field_is_actually_required,
+    test_load_plan_rejects_the_shapes_that_broke_PLAN_md,
+    test_load_plan_backticked_path_is_not_silently_cleaned,
+    test_load_plan_reports_line_and_column_on_malformed_yaml,
+    test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan,
 ]
 
 

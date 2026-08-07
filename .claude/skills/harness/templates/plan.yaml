@@ -1,0 +1,94 @@
+# plan.yaml — the approval-gated plan. REAL YAML, loaded with safe_load.
+#
+# WHY THIS IS NOT MARKDOWN (issue #147, DEC-182). PLAN.md was markdown that LOOKED like
+# YAML, so three scripts hand-rolled regexes against it and each invented its own rule for
+# what a value may contain. Measured: safe_load over every task block in the four live
+# plans fails on 35 of its 36 blocks — 26 because `files:` began with a backtick, which is
+# a reserved YAML indicator, and 9 because `execution_mode: <mode> — reason: ...` puts a
+# second `": "` inside a plain scalar. One of the 26 is also `execution_mode: **SPLIT`,
+# which reads as an alias.
+# A fenced ```yaml block inside markdown was considered and refused: it is the same
+# mixture with a border round it, and an author who decorates a value today decorates it
+# inside a fence tomorrow.
+#
+# So: nothing in this file is prose for a human to read. Intent for a human lives in
+# BRIEF.md. The one long field here, `intent:`, is the literal dispatch prompt an agent
+# receives — it is machine-critical, not narrative.
+#
+# NO BACKTICKS, NO **BOLD**, NO MARKDOWN ANYWHERE IN A VALUE. They are decoration in a
+# data file; the loader will either reject them or hand a resolver a path nobody wrote.
+
+schema: plan/1
+feature: FEAT-NN-<slug>          # must match the directory name
+
+approval:
+  # Written by the ORCHESTRATOR only — pm never self-approves, and the orchestrator
+  # cannot ask the user (DEC-120). Any change to the task set resets this to pending.
+  status: pending                # pending | approved
+  approved_by: <name>
+  date: <YYYY-MM-DD>
+
+lanes:
+  # Resolved HERE against .harness/team-config.yaml at a named SHA — never at build time.
+  # A surface whose lane is a carve-out is declared once here, not re-argued per task.
+  resolved_at: <sha>
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops
+    - surface: <a DEC-174 carve-out path>
+      lane: main-session-direct
+      reason: <why, one clause>
+
+decisions:
+  # POINTERS, not essays. The reasoning lives in docs/harness/DECISIONS.md; a plan-local
+  # choice that never becomes a DEC keeps `dec: none` and dies with the feature.
+  # DEC-158's rule applies: carry the rule and one clause of why, not the biography.
+  - id: D-01
+    choice: <the decision, one sentence>
+    because: <one clause>
+    dec: DEC-NNN | none
+
+tasks:
+  - id: T-01
+    title: <imperative, one line, no markdown>
+
+    # traces: REQ-NN only. D-NN belongs in `decisions:` above; putting it here made the
+    # field mean two things and nothing read the second one.
+    traces: [REQ-01, REQ-02]
+
+    change_type: logic           # logic | api | cross_module | frontend | feature
+                                 # | bugfix | ai_behavior | config | scaffolding | docs
+                                 # MANDATORY — the qa gate reads it to pick required tests.
+
+    # Exactly two legal values. A task that needs BOTH routes is TWO TASKS — there is no
+    # split mode. FEAT-08 T-04 tried to write one and the eng squad hit exit 2 on it.
+    execution_mode: team         # team | main-session-direct
+    execution_agent: <agent>     # when team; the lane row above is the authority
+    execution_reason: <why>      # when main-session-direct
+
+    depends_on: []               # [T-NN, ...] — the build runner orders on this.
+                                 # File order is NOT a topological order.
+
+    status: pending              # pending | done
+
+    # A LIST OF PLAIN STRINGS. Not a comma string, not backticked, no trailing
+    # annotations like "(delete)" — the resolver takes the value verbatim, so an
+    # annotation becomes part of the path and resolves to nothing.
+    files:
+      - path/to/exact/file.py
+
+    # LITERAL BLOCK `|`, NEVER FOLDED `>`. This string is carried VERBATIM by the lead to
+    # the member, which cross-checks it against this file and returns BLOCKED on mismatch
+    # (harness-zero-micro-management). Folding turns newlines into spaces, so a lead
+    # reading source text and a member loading YAML would compare different strings and
+    # block a correct task.
+    verify: |
+      <command that returns pass/fail in under 60s>
+
+    # THE DISPATCH PROMPT. The agent doing the work receives this and nothing else about
+    # the task, so it must be complete: the actual logic, types, structure and values —
+    # never "implement X" or "follow the existing pattern". Detail that only JUSTIFIES the
+    # instruction (probe transcripts, why an earlier draft was wrong) goes to notes/.
+    intent: |
+      <what the code must do afterwards>

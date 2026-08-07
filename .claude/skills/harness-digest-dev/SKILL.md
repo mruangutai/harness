@@ -39,8 +39,9 @@ The `SubagentStop` hook rejects a return missing any of them.
 ## Run your task's `verify:` before you return
 
 Your dispatch carries two strings verbatim: your task's `T-NN` id and its `verify:` command. Run
-that command. Cross-check it against the same task in `.harness/features/<FEAT>/PLAN.md` — you hold
-repo-wide read — and if your dispatch and PLAN.md disagree, return `BLOCKED` naming both strings
+that command. Cross-check it against the same task in `.harness/features/<FEAT>/plan.yaml` — or
+`PLAN.md` for a feature still on the pre-DEC-182 format; exactly one of the two exists — you hold
+repo-wide read — and if your dispatch and the plan disagree, return `BLOCKED` naming both strings
 rather than picking one; a paraphrased command verifies something nobody planned.
 
 `suite` and `task_verify` answer different questions and a passing suite never substitutes for a

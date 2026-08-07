@@ -19,6 +19,21 @@ SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
 
 GRANTED_PATH = ".claude/skills/harness/bin/check-domain.sh"  # granted to two agents
+
+
+def cpr():
+    """The module UNDER TEST, loaded from SCRIPT — never from the repo copy.
+
+    SCRIPT honours CHECK_PLAN_ROUTES_BIN, so during mutation testing the two are
+    DIFFERENT FILES. An earlier case in this suite read the repo copy while the override
+    pointed at a mutant and therefore reported ok against the broken build; anything here
+    that needs a production constant must come through this function.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_cpr_under_test", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 UNGRANTED_PATH = "some/totally/nonexistent/zzz-surface.md"  # granted to nobody
 CASE17_PATH = ".harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.md"
 
@@ -407,13 +422,17 @@ def case_19():
               "across 2 plan(s)" in r.stdout,
               f"expected exactly 2 plans (2 features, 1 sibling BRIEF.md each, 1 nested "
               f"decoy). stdout={r.stdout[:300]!r}")
-        # (a5) The scan line must describe the glob that actually ran. Changing ONLY the
+        # (a5) The scan line must describe the search that actually ran. DEC-182 widened it to
+    # both filenames and this assertion caught the change on the first run — which is the
+    # case working, not breaking: the line is the only way a reader tells "nothing here"
+    # from "wrong place", so it must never describe a search that did not happen. Changing ONLY the
         # print to `.harness/plans/**/ANY.md` survived every other assertion: 19a2 checks
         # `startswith("scanning ")` and that the root appears, 19c2 only that the root
         # appears. The line is the entire mechanism for telling "nothing here" from "wrong
         # place", so a line that describes a different search is worse than none.
         check("case_19a5_the_scan_line_matches_the_glob_that_ran",
-              r.stdout.splitlines()[0] == f"scanning {td}/.harness/features/*/PLAN.md",
+              r.stdout.splitlines()[0]
+              == f"scanning {td}/.harness/features/*/{{plan.yaml,PLAN.md}}",
               f"first line={r.stdout.splitlines()[:1]!r}")
 
     # (c) The other direction. A manifest is present, so the root IS known; there simply
@@ -568,6 +587,310 @@ def case_21():
               f"accepted as a root, which is B-7 in the global install")
 
 
+PLAN_YAML = """schema: plan/1
+feature: FEAT-A
+approval: {status: approved}
+tasks:
+  - id: T-01
+    title: granted path
+    traces: [REQ-01]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: []
+    status: pending
+    files: [%s]
+    verify: |
+      true
+    intent: |
+      do it
+"""
+
+
+def _yaml_project(td, files=".harness/harness.json", extra=""):
+    """A fixture project whose feature carries a plan.yaml, with the REAL manifest so
+    resolution is against the same globs production uses."""
+    fd = os.path.join(td, ".harness", "features", "FEAT-A")
+    os.makedirs(fd, exist_ok=True)
+    import shutil as _sh
+    _sh.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
+              os.path.join(td, ".harness", "team-config.yaml"))
+    with open(os.path.join(fd, "plan.yaml"), "w") as f:
+        f.write((PLAN_YAML % files) + extra)
+    return fd
+
+
+def case_23():
+    """(23) DEC-182: the plan.yaml path resolves routes through the loader, not regexes.
+
+    The whole point of #147 is that PLAN.md's fields were read by hand-rolled regexes that
+    each invented their own rule for what a value may contain. These cases assert the new
+    path does the routing job at least as well, and that the three shapes #147 asked about
+    are now decided by the type rather than by a cleanup heuristic.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td)
+        r = run(project_dir=td)
+        check("case_23a_plan_yaml_granted_path_is_OK",
+              r.returncode == 0 and "OK T-01 granted to harness-dev-ops" in r.stdout,
+              f"exit {r.returncode}: {r.stdout[:200]!r}")
+
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+        r = run(project_dir=td)
+        check("case_23b_plan_yaml_ungranted_path_is_a_VIOLATION",
+              r.returncode == 1 and "ungranted (NOBODY)" in r.stdout,
+              f"exit {r.returncode}: {r.stdout[:200]!r}")
+
+    # #147 Q2 — an annotation is NOT silently cleaned. The old _clean() stripped backticks
+    # and a trailing comma but not a parenthetical, so `bin/x.py (delete)` resolved only
+    # because a /** grant swallowed the suffix. Here the resolver gets what was written.
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, files='".harness/harness.json (delete)"')
+        r = run(project_dir=td)
+        check("case_23c_an_annotated_path_resolves_to_NOBODY_not_silently_cleaned",
+              r.returncode == 1 and "ungranted (NOBODY)" in r.stdout,
+              f"exit {r.returncode}: {r.stdout[:200]!r}")
+
+    # A malformed plan is exit 2 — the checker could not run — never a routing violation.
+    with tempfile.TemporaryDirectory() as td:
+        fd = _yaml_project(td)
+        with open(os.path.join(fd, "plan.yaml"), "w") as f:
+            f.write("tasks:\n  - id: T-01\n   bad: indent\n")
+        r = run(project_dir=td)
+        check("case_23d_a_malformed_plan_yaml_exits_2_not_1",
+              r.returncode == 2 and "does not load" in r.stderr,
+              f"exit {r.returncode}: {r.stderr[:200]!r}")
+
+    # The per-task machine-field budget (DEC-182). READ THE CONSTANT rather than writing
+    # 30 or 50 into three assertions: review caught the first number being wrong, and a
+    # test that hard-codes it fails for the right reason and the wrong cause the next time
+    # it moves. `cap` here is production's own value.
+    cap = cpr().MACHINE_LINES_PER_TASK
+
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, files=", ".join(f'"src/f{i}.py"' for i in range(cap + 40)))
+        r = run(project_dir=td)
+        check("case_23e_the_per_task_machine_budget_fires",
+              f"machine-field lines — budget is {cap}" in r.stdout,
+              f"exit {r.returncode}: {r.stdout[:240]!r}")
+
+    # ...and does NOT fire on a normal task, or it is a cap on having tasks at all.
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td)
+        r = run(project_dir=td)
+        check("case_23f_the_budget_stays_silent_on_a_normal_task",
+              f"budget is {cap}" not in r.stdout, r.stdout[:200])
+
+    # THE BUDGET MUST GATE, NOT MERELY PRINT. `violations += 1` could be deleted with the
+    # suite green, because case_23e asserts on stdout alone and every sibling in this file
+    # asserts on the exit code. A finding that does not change the exit status is a
+    # comment: check-plan-routes.py's whole contract is that CI reads its exit code.
+    #
+    # The fixture's files are GRANTED, so a non-zero exit can only come from the budget.
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, files=", ".join(f'"{GRANTED_PATH}"' for _ in range(cap + 40)))
+        r = run(project_dir=td)
+        check("case_23h_an_over_budget_task_sets_the_EXIT_CODE_not_just_stdout",
+              r.returncode == 1 and "ungranted" not in r.stdout,
+              f"exit {r.returncode}: {r.stdout[:240]!r}")
+
+    # THE BOUNDARY, both sides, ONE LINE APART. `>` -> `>=` survived every earlier
+    # assertion because they all crossed the cap by 40, and in the real corpus FEAT-06
+    # T-01 measures exactly AT the cap — the one value where the two operators disagree.
+    #
+    # Tuned with `traces:`, not `files:`. Both count identically against the budget, but
+    # every files entry costs a check-domain.sh subprocess: a search over `files:` ran 110
+    # of them and this case timed out at two minutes. `traces:` is never resolved.
+    #
+    # THREE RUNS, NO SEARCH. Run 1 goes far over and REPORTS its own total, which gives
+    # the fixture's fixed overhead exactly. Runs 2 and 3 then sit on the boundary. Reading
+    # the overhead beats assuming it: the fixture gains a field and an assumed constant
+    # silently stops testing the boundary while still passing.
+    def _traces(n):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td)
+            p = os.path.join(fd, "plan.yaml")
+            src = re.sub(r"^    traces:.*$", "", open(p).read(), flags=re.M)
+            with open(p, "w") as f:
+                f.write(src.rstrip("\n") +
+                        "\n    traces: [" + ", ".join(f"REQ-{i:02d}"
+                                                      for i in range(n)) + "]\n")
+            return run(project_dir=td).stdout
+
+    probe = cap + 40
+    m = re.search(r"(\d+) machine-field lines", _traces(probe))
+    if not m:
+        check("case_23i_the_budget_boundary_is_exact", False,
+              "probe run did not report a total; boundary untested")
+    else:
+        overhead = int(m.group(1)) - probe          # everything that is not `traces:`
+        at, over = cap - overhead, cap - overhead + 1
+        silent, fires = _traces(at), _traces(over)
+        check("case_23i_the_budget_boundary_is_exact",
+              f"budget is {cap}" not in silent and f"budget is {cap}" in fires,
+              f"overhead={overhead}; {at} traces (=={cap}) must be silent, "
+              f"{over} (=={cap + 1}) must fire")
+
+    # EVERY BUDGETED FIELD COUNTS -- and the first draft of this comment said that while
+    # covering 3 of the 11. Review dropped `title`, `id`, `status`, `change_type`,
+    # `execution_mode`, `execution_agent` and `execution_reason` from BUDGETED_FIELDS one
+    # at a time and the suite stayed ALL PASS on every one. A comment claiming coverage it
+    # does not have is worse than no comment: it tells the next reader not to look.
+    #
+    # So the loop is generated FROM BUDGETED_FIELDS itself. A field added to production and
+    # not to this list can no longer go unexercised, because there is no list to forget.
+    # THE EXACT TOTAL, so every budgeted field is pinned by one assertion.
+    #
+    # Present-vs-absent was the first design and it cannot work: six of the eleven fields
+    # are REQUIRED, so removing one makes load_plan reject the plan and no total is printed
+    # at all. Measured -- files, verify, change_type, execution_mode, title and id all came
+    # back `without=None`. A per-field drop test can only ever reach the five optional ones.
+    #
+    # So the fixture carries a KNOWN size for every field and the reported total is asserted
+    # exactly. Drop any field from BUDGETED_FIELDS, or break any arm of the accumulator, and
+    # the number moves. `status: true` is a BOOL and `execution_reason: ""` is EMPTY on
+    # purpose -- those are the `elif v is not None` and `or 1` arms, both of which survived
+    # as mutants until this case existed.
+    N_TRACES, N_FILES, N_DEPS, N_VERIFY = cap + 20, 3, 2, 4
+    EXPECTED = (N_FILES + N_VERIFY + N_TRACES + N_DEPS   # the four sized fields
+                + 7)                                     # id title change_type
+    #                                                      execution_mode execution_agent
+    #                                                      execution_reason status
+    plan = (
+        "schema: plan/1\nfeature: FEAT-A\ntasks:\n"
+        "  - id: T-01\n"
+        "    title: a title\n"
+        "    change_type: logic\n"
+        "    execution_mode: team\n"
+        "    execution_agent: harness-backend-dev\n"
+        '    execution_reason: ""\n'
+        "    status: true\n"
+        "    traces: [" + ", ".join(f"REQ-{i:03d}" for i in range(N_TRACES)) + "]\n"
+        "    depends_on: [" + ", ".join(f"T-{i:02d}" for i in range(N_DEPS)) + "]\n"
+        "    files:\n" + "".join(f'      - "{GRANTED_PATH}"\n' for _ in range(N_FILES)) +
+        "    verify: |\n" + "".join(f"      echo {i}\n" for i in range(N_VERIFY)) +
+        # REQUIRED by load_plan, and deliberately NOT in BUDGETED_FIELDS — it is the
+        # dispatch prompt, which is READ. Its length must not move EXPECTED, so a long
+        # one here doubles as the assertion that it stays excluded from the count.
+        "    intent: |\n" + "".join(f"      line {i}\n" for i in range(12))
+    )
+    with tempfile.TemporaryDirectory() as td:
+        fd = os.path.join(td, ".harness", "features", "FEAT-A")
+        os.makedirs(fd)
+        shutil.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
+                     os.path.join(td, ".harness", "team-config.yaml"))
+        with open(os.path.join(fd, "plan.yaml"), "w") as f:
+            f.write(plan)
+        r = run(project_dir=td)
+        m = re.search(r"(\d+) machine-field lines", r.stdout)
+        got = int(m.group(1)) if m else None
+        check("case_23j_every_budgeted_field_counts_exactly_once", got == EXPECTED,
+              f"reported {got}, expected {EXPECTED} "
+              f"({N_FILES} files + {N_VERIFY} verify + {N_TRACES} traces + {N_DEPS} "
+              f"depends_on + 7 scalars): {r.stdout[:160]!r}")
+
+    # ...and the field list the case is written against has not drifted from production.
+    check("case_23j2_BUDGETED_FIELDS_is_still_the_eleven_this_case_pins",
+          set(cpr().BUDGETED_FIELDS) == {"files", "verify", "traces", "depends_on",
+                                         "change_type", "execution_mode", "execution_agent",
+                                         "execution_reason", "status", "id", "title"},
+          f"BUDGETED_FIELDS = {cpr().BUDGETED_FIELDS}")
+
+    # A feature carrying BOTH files is a half-finished migration, refused rather than
+    # silently preferred — "which is authoritative" is the ambiguity #147 is about.
+    with tempfile.TemporaryDirectory() as td:
+        fd = _yaml_project(td)
+        with open(os.path.join(fd, "PLAN.md"), "w") as f:
+            f.write("# PLAN\n\n" + task_block("T-09", GRANTED_PATH, "team"))
+        r = run(project_dir=td)
+        check("case_23g_both_plan_yaml_and_PLAN_md_is_refused",
+              r.returncode == 2 and "BOTH" in r.stderr,
+              f"exit {r.returncode}: {r.stderr[:200]!r}")
+
+
+def case_24():
+    """(24) A SHIPPED feature is not route-checked. Its plan is a record, not a contract.
+
+    This is a removal, not a trade-off. Checking shipped plans was the default behaviour of
+    a glob and never a decision: the work shipped, the routes were taken, the plan will not
+    be re-executed, so a finding on it is actionable by nobody. Measured on the real tree
+    before this landed: 36 violations across 8 plans — 27 `no files: line`, 8 the
+    pre-FEAT-06 prose shape, and 1 real routing defect. 35 of the 36 were format noise in
+    SHIPPED plans; the one real finding is FEAT-08 T-04's `**SPLIT`, which is `awaiting_user`
+    and therefore still checked -- as this very case asserts below. That noise is why issue
+    #133's gate could never be switched on.
+
+    Both directions, because a skip that skips everything would pass the first case alone.
+    """
+    results = []
+    for status, want_checked in (("shipped", False), ("abandoned", False),
+                                 ("in_review", True), ("awaiting_user", True)):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+            with open(os.path.join(fd, "feature.yaml"), "w") as f:
+                f.write(f"feature_id: FEAT-A\nstatus: {status}\n")
+            r = run(project_dir=td)
+            checked = "ungranted (NOBODY)" in r.stdout
+            ok = checked == want_checked
+            results.append(ok)
+            check(f"case_24_{status}_is_{'checked' if want_checked else 'skipped'}",
+                  ok, f"exit {r.returncode}, checked={checked}: {r.stdout[:160]!r}")
+
+    # A feature we CANNOT classify is checked, never skipped. The failure that matters is a
+    # live plan going unexamined; an old one examined twice costs nothing.
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+        r = run(project_dir=td)              # no feature.yaml at all
+        check("case_24_no_feature_yaml_is_checked_not_skipped",
+              "ungranted (NOBODY)" in r.stdout, r.stdout[:200])
+
+    # A feature.yaml THAT PARSES BUT IS NOT A MAPPING. This is the case the four statuses
+    # above cannot reach, and it was a live crash: the first draft put `_is_shipped`'s
+    # `return` outside its own `try:`, so `doc.get` ran on a list and raised
+    # AttributeError out of discover_plans(). The process died with EXIT 1 — the code that
+    # means "violations found" — having examined nothing and printed no summary.
+    #
+    # ASSERT ON ALL THREE, because each alone is satisfied by the bug:
+    #   exit != 1 ......... no. The crash exits 1, and so does a real violation.
+    #   stderr is clean ... no on its own. It only says "did not crash", not "did the work".
+    #   the summary line ... this is the one that says the checker REACHED the feature.
+    # A `try:` wrapped around the whole body would silence the traceback and still skip
+    # the feature, so the summary line is the assertion that closes the fail-open half.
+    for label, body in (("a_sequence", "- a\n- b\n"),
+                        ("a_bare_scalar", "shipped\n"),
+                        ("status_is_a_list", "status:\n  - shipped\n"),
+                        # A MAPPING WITH NO `status:` KEY AT ALL. Two shapes REACH
+                        # `bool(token)`; this is the only one for which the guard is
+                        # LOAD-BEARING -- the distinction the whole case exists to draw.
+                        # Here `"".split()` is `[]` -- `"".split()` is `[]`, so without the guard
+                        # `token[0]` raises IndexError and the run dies with empty stdout
+                        # and exit 1, the code a real violation uses.
+                        #
+                        # ONLY TWO of the shapes above stop at the isinstance check --
+                        # `a_sequence` and `a_bare_scalar`. An earlier version of this
+                        # comment said four, which libelled the one case that carries its
+                        # own weight: `status_is_a_list` IS a dict, reaches `bool(token)`
+                        # with a truthy `["['shipped']"]`, and is the SOLE case that
+                        # catches removal of the `str()` at check-plan-routes.py:422.
+                        # A comment telling the next reader a live case is a duplicate is
+                        # how a load-bearing assertion gets deleted as redundant.
+                        ("a_mapping_with_no_status", "feature_id: FEAT-A\n")):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+            with open(os.path.join(fd, "feature.yaml"), "w") as f:
+                f.write(body)
+            r = run(project_dir=td)
+            ok = ("Traceback" not in r.stderr
+                  and "ungranted (NOBODY)" in r.stdout
+                  and "1 violation(s) across 1 plan(s)" in r.stdout)
+            results.append(ok)
+            check(f"case_24_feature_yaml_{label}_is_checked_not_crashed",
+                  ok, f"exit {r.returncode}, stderr={r.stderr[:120]!r}, "
+                      f"stdout={r.stdout[-120:]!r}")
+    return all(results)
+
+
 def case_20():
     """(20) Root resolution is now the FOURTH copy in this tree. D-02 does not forbid
     duplication — it forbids SILENT DRIFT, and case (o) in test-check-state.py is this
@@ -689,6 +1012,8 @@ def main():
     case_20()
     case_21()
     case_22()
+    case_23()
+    case_24()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")
