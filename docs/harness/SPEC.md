@@ -1723,12 +1723,14 @@ long field, `intent:`, is the literal dispatch prompt the doing agent receives.
 **Why not markdown, and why not a fenced block inside markdown.** The format this replaced was
 markdown containing `key: value` lines — parseable by no YAML library, so three scripts hand-rolled
 regexes and each invented its own rule for what a value may contain. `safe_load` over every task
-block in the four live plans failed **43 of 44 times**: 26 because `files:` began with a backtick,
+block in the four live plans failed **on all 36 blocks**: 26 because `files:` began with a backtick,
 a reserved YAML indicator, and one because `execution_mode: **SPLIT` reads as an alias. A fenced
 ```yaml block was considered and refused — it is the same mixture with a border round it, and an
 author who decorates a value today decorates it inside a fence tomorrow.
 
-Shipped `PLAN.md` files are never rewritten and their reader is permanent, not deprecated.
+Shipped `PLAN.md` files are never rewritten. Their reader is a MIGRATION-WINDOW reader: it
+stays while any unshipped feature still carries a `PLAN.md`, and goes once none does. DEC-182
+records that an earlier draft called it permanent and that this was wrong and untested.
 
 ### 11.3 `feature.yaml` — orchestrator-owned, execution facts only
 

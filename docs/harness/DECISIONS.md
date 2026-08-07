@@ -5255,7 +5255,7 @@ value may contain, and nothing reconciled them.
 ruling — which is exactly why issue #147 could be filed and could not be answered.
 
 **Measured, not argued.** `harness_yaml.load_str` over every task block in the four live plans fails
-**43 of 44 times**. 26 because `files:` begins with a backtick, a reserved YAML indicator; 4 the same
+**on every one of its 36 task blocks**. 26 because `files:` begins with a backtick, a reserved YAML indicator; 4 the same
 on `verify:`; one — `execution_mode: **SPLIT` at `FEAT-08/PLAN.md:306` — raises *"while scanning an
 alias"*. Meanwhile `intent:` and `verify:` already use folded `>` scalars in 64 places: the authors
 were writing YAML-shaped values all along, and only the markdown-decorated fields broke.
@@ -5269,7 +5269,7 @@ loud instead of silent, which is worth something, and it is compensating code fo
 format invites. A plain `.yaml` file cannot tempt the author, because nothing else in it is prose.
 
 **`feature.yaml` was not available as the alternative home, and the schema refuses it by name.**
-`SPEC.md:1687-1692`: `feature_id` is "join key ONLY — no name, no traces, no task list. Those live in
+`SPEC.md §11.2`: `feature_id` is "join key ONLY — no name, no traces, no task list. Those live in
 PLAN.md, which is what you approve; duplicating them here would let an agent redefine what FEAT-01
 means without your signature." Audited while deciding this: of 182 DEC entries, **1** names a
 `FEAT-NN` in its ruling and **0** are dominated by a single feature, so `DECISIONS.md` carries no

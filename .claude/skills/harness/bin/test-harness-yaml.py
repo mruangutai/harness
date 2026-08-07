@@ -542,7 +542,7 @@ def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
     """The three failures issue #147 was filed about, now unrepresentable.
 
     Measured on the pre-change tree: safe_load over every task block in the four live
-    plans failed 43 of 44 times. 26 of those were `files:` beginning with a backtick —
+    plans failed on all 36 task blocks. 26 were `files:` beginning with a backtick —
     markdown decoration inside a data field — and one was `execution_mode: **SPLIT`,
     which YAML reads as an alias. Each case below is one of those, and each must raise
     a YamlParseError subclass rather than silently resolving something nobody wrote.
