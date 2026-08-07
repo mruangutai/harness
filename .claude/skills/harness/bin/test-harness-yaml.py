@@ -567,6 +567,38 @@ def test_load_plan_reports_line_and_column_on_malformed_yaml():
         raise AssertionError("malformed YAML was accepted")
 
 
+def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
+    """The template, the normative SPEC example, and the loader must agree — mechanically.
+
+    THIS IS ISSUE #147 ITSELF. That ticket exists because `templates/PLAN.md` prescribed one
+    `files:` shape while the parser accepted three: an author following the template was
+    correct, and an author ignoring it was also correct, and nothing could tell them apart.
+    Prose cannot hold two files in agreement; a test can.
+
+    Both artifacts are loaded through the real `load_plan`, so a template that drifts out of
+    schema fails here rather than at the next planning session. SPEC.md:1701-1702's previous
+    example was itself illegal YAML — three keys on one line — and shipped that way because
+    nothing ever tried to parse it.
+    """
+    import re
+    import harness_yaml as hy
+
+    here = os.path.dirname(os.path.abspath(__file__))
+
+    tmpl = os.path.join(here, "..", "templates", "plan.yaml")
+    hy.load_plan(tmpl)  # raises on any drift
+
+    spec = open(os.path.join(here, "..", "..", "..", "..", "docs", "harness", "SPEC.md"),
+                encoding="utf-8").read()
+    m = re.search(r"```yaml\n(# plan\.yaml.*?)\n```", spec, re.S)
+    assert m, "SPEC.md no longer carries a normative plan.yaml example"
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "plan.yaml")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(m.group(1))
+        hy.load_plan(path)
+
+
 TESTS = [
     test_merge_key_override_is_not_a_duplicate,
     test_missing_pyyaml_is_reportable_not_a_second_crash,
@@ -590,6 +622,7 @@ TESTS = [
     test_load_plan_rejects_the_shapes_that_broke_PLAN_md,
     test_load_plan_backticked_path_is_not_silently_cleaned,
     test_load_plan_reports_line_and_column_on_malformed_yaml,
+    test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan,
 ]
 
 

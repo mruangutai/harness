@@ -17,7 +17,7 @@ writing a deliverable is.
 
 1. **Match the request** against your members' `consult-when` in `.harness/team-config.yaml`.
 2. **Spawn that member and delegate** — the task, the inputs, the paths, the goal. Carry two things
-   **verbatim**: the task's `T-NN` id, and the task's `verify:` command exactly as `PLAN.md` writes
+   **verbatim**: the task's `T-NN` id, and the task's `verify:` command exactly as the plan writes
    it. `verify:` is preloaded into no member's context, so an unquoted command is one the member
    cannot run — the same reason a debug dispatch quotes the skill path it is not preloaded with
    (DEC-158). The member cross-checks your string against `PLAN.md` and returns `BLOCKED` on a
@@ -61,4 +61,10 @@ Do not stall waiting for input that cannot arrive.
 | "I'll ask the user directly" | You have no channel. Use `open_questions` |
 | "I'll re-plan this myself since I can see the problem" | Plan changes belong to `pm`. Escalate |
 | "This task is hard — I'll dispatch the member on a stronger model" | Model pins are org design (DEC-152). Never pass `model:` in a dispatch; escalate with evidence instead (DEC-155) |
+**Why `verify:` must be a literal `|` block in `plan.yaml` (DEC-182).** You read the plan as text;
+the member may load it as YAML. A folded `>` scalar turns every newline into a space, so the two of
+you would compare different strings and a CORRECT task would return `BLOCKED`. The authoring rule
+lives in `harness-spec-driven`; it is restated here because this is where the verbatim-carry
+contract lives, and a rule split from its consequence is one nobody applies.
+
 | "I'll paraphrase the verify command" | The member cross-checks your verbatim string against PLAN and returns `BLOCKED` on mismatch. A paraphrase reads as a mismatch and stops the task |

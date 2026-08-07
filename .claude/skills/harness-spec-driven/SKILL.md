@@ -6,38 +6,81 @@ user-invocable: false
 
 # Spec-Driven Planning
 
-You author `BRIEF.md` and `PLAN.md`. They are the spec — there is no separate spec artifact.
+You author `BRIEF.md` and `plan.yaml`. They are the spec — there is no separate spec artifact.
+
+**`plan.yaml` is REAL YAML, and nothing in it is prose for a human** (DEC-182). The human reads
+`BRIEF.md`. Instantiate from `.claude/skills/harness/templates/plan.yaml`.
+
+**No markdown in any value — no backticks, no `**bold**`, no links.** They are decoration in a data
+file. Measured on the format this replaced: `safe_load` over every task block in the four live plans
+failed 43 of 44 times, 26 of them because `files:` began with a backtick. A value carrying
+decoration is either rejected by the loader or handed to a resolver as a path nobody wrote.
+
+Shipped `PLAN.md` files are never rewritten; their reader stays. You author `plan.yaml`.
 
 ## Every task needs four things
 
 A task missing any of them is **not written**. Identify the gap and return it rather than guessing:
 
-1. **Exact file paths.** Not "update the config" — `edit .harness/harness.json`.
-2. **Complete intent.** Not "implement X" — the actual logic, types, structure, values.
+1. **Exact file paths**, as a YAML list of plain strings — one path per entry. Not a comma string,
+   not backticked, and **no trailing annotation** like `(delete)`: the resolver takes the value
+   verbatim, so an annotation becomes part of the path and resolves to nothing. Intent about a path
+   goes in `intent:`, not beside it.
+2. **Complete intent.** Not "implement X" — the actual logic, types, structure, values. `intent:` is
+   the LITERAL DISPATCH PROMPT: the agent doing the work receives it and nothing else about the
+   task. Detail that only JUSTIFIES the instruction — probe transcripts, why an earlier draft was
+   wrong — belongs in `notes/`, not here.
 3. **A `verify:` command** with the expected result. Runs in under 60 seconds, gives an unambiguous
    pass/fail, needs no human interpretation. If nothing automated is possible, say so explicitly:
    `verify: MANUAL — <what must be built first to make this automatable>`.
-4. **`traces:`** — the `REQ-NN` or `D-NN` this task serves. A task that cannot cite its source is either
-   out of scope or the brief is incomplete.
+   **Write it as a literal block `|`, never a folded `>`** — see below; this one is not a style
+   preference.
+4. **`traces:`** — the `REQ-NN` this task serves, as a list. A task that cannot cite its source is
+   either out of scope or the brief is incomplete. `D-NN` goes in the `decisions:` block, not here:
+   carrying both made the field mean two things and nothing ever read the second.
 
 Plus **`change_type:`** on every task. The qa gate reads it to determine required tests, and a task
 without one **blocks that gate** — `check-state.sh` fails the state check on it.
 
 ## Routing is resolved at plan time
 
-Every task carries `execution_mode:`, in one of exactly two forms:
+Every task carries `execution_mode:`, a bare enum with exactly two legal values, and its
+explanation in a sibling key:
 
-```
-execution_mode: team — <agent> (team-config.yaml:NN)
-execution_mode: main-session-direct — reason: <why>
+```yaml
+execution_mode: team
+execution_agent: harness-backend-dev
+
+execution_mode: main-session-direct
+execution_reason: DEC-174 carve-out — check-domain.sh is a registered PreToolUse gate script
 ```
 
-And every PLAN opens with a `## Lanes` table, resolved against
-`.harness/team-config.yaml` at a named SHA.
+**A task that needs BOTH routes is TWO TASKS.** There is no split mode. FEAT-08 T-04 tried to write
+one as `execution_mode: **SPLIT (D-10…)`; the regex captured `**SPLIT`, reported it as an
+unrecognised token, and the eng squad hit exit 2 on it. Splitting the enum from its reason is what
+makes that unwritable.
+
+And every plan opens with a `lanes:` block, resolved against `.harness/team-config.yaml` at a named
+SHA.
 
 **Before handing a plan back, run
 `python3 .claude/skills/harness/bin/check-plan-routes.py <plan path>` and fix every
 violation. A non-zero exit is not a plan that is ready for signature.**
+
+## `verify:` is a literal block, and this one has teeth
+
+```yaml
+verify: |            # correct — newlines survive
+  python3 .claude/skills/harness/bin/run-unit-tests.sh
+
+verify: >            # WRONG — folding turns every newline into a space
+  python3 ...
+```
+
+The lead carries this string **verbatim** to the member, which cross-checks it against the plan and
+returns `BLOCKED` on any mismatch (`harness-zero-micro-management`). A folded scalar loads as a
+different string than the one on disk, so a correct task blocks. Use `|`, or a single-line plain
+scalar.
 
 What it prevents: a task dispatched to an agent whose domain denies the write,
 discovered mid-build with the build spine already open — three features running.
