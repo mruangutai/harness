@@ -454,6 +454,119 @@ def test_c_loader_is_used_when_libyaml_is_available():
         assert e.mark is not None and e.mark.line >= 0, "line/column lost under this loader"
 
 
+GOOD_PLAN = """schema: plan/1
+feature: FEAT-TEST
+approval:
+  status: approved
+tasks:
+  - id: T-01
+    title: do the thing
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: carve-out
+    traces: [REQ-01]
+    depends_on: []
+    status: pending
+    files:
+      - src/a.py
+      - src/b.py
+    verify: |
+      python3 -m pytest
+    intent: |
+      Do the thing, carefully.
+"""
+
+
+def _plan(tmp, text):
+    p = os.path.join(tmp, "plan.yaml")
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(text)
+    return p
+
+
+def test_load_plan_accepts_a_well_formed_plan():
+    """The discriminator. Every rejection case below passes against a load_plan that
+    rejects everything, so one acceptance case is what makes them mean anything."""
+    import harness_yaml as hy
+
+    with tempfile.TemporaryDirectory() as tmp:
+        doc = hy.load_plan(_plan(tmp, GOOD_PLAN))
+        assert doc["tasks"][0]["files"] == ["src/a.py", "src/b.py"], doc["tasks"][0]["files"]
+        assert doc["tasks"][0]["verify"] == "python3 -m pytest\n", repr(doc["tasks"][0]["verify"])
+
+
+def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
+    """The three failures issue #147 was filed about, now unrepresentable.
+
+    Measured on the pre-change tree: safe_load over every task block in the four live
+    plans failed 43 of 44 times. 26 of those were `files:` beginning with a backtick —
+    markdown decoration inside a data field — and one was `execution_mode: **SPLIT`,
+    which YAML reads as an alias. Each case below is one of those, and each must raise
+    a YamlParseError subclass rather than silently resolving something nobody wrote.
+    """
+    import harness_yaml as hy
+
+    cases = {
+        "backticked files value (the 26-case class)":
+            GOOD_PLAN.replace("      - src/a.py", "      - `src/a.py`"),
+        "bolded execution_mode (FEAT-08 T-04's **SPLIT)":
+            GOOD_PLAN.replace("execution_mode: main-session-direct",
+                              "execution_mode: **SPLIT (D-10, amended)**"),
+        "files: as a bare string, not a list":
+            GOOD_PLAN.replace("    files:\n      - src/a.py\n      - src/b.py",
+                              "    files: src/a.py, src/b.py"),
+        "an unknown execution_mode token":
+            GOOD_PLAN.replace("execution_mode: main-session-direct", "execution_mode: solo"),
+        "a duplicate task id":
+            GOOD_PLAN + GOOD_PLAN[GOOD_PLAN.index("  - id: T-01"):],
+        "no tasks at all":
+            "schema: plan/1\nfeature: FEAT-TEST\ntasks: []\n",
+        "a task missing verify:":
+            GOOD_PLAN.replace("    verify: |\n      python3 -m pytest\n", ""),
+    }
+    for label, text in cases.items():
+        with tempfile.TemporaryDirectory() as tmp:
+            try:
+                hy.load_plan(_plan(tmp, text))
+            except hy.YamlParseError:
+                continue
+            raise AssertionError(f"ACCEPTED what it must reject: {label}")
+
+
+def test_load_plan_backticked_path_is_not_silently_cleaned():
+    """The SECOND #147 question: may an entry carry an annotation like `(delete)`?
+
+    No — and the loader is what says so, not a cleanup heuristic. The old `_clean()`
+    stripped backticks and a trailing comma but not a parenthetical, so
+    `` `bin/cost-report.py` (delete) `` resolved ONLY because a `/**` grant swallowed
+    the suffix. Under a narrower grant it was a false violation. Here the value is
+    the literal string, so a resolver gets exactly what the author wrote and can say
+    it resolves to nothing — rather than guessing which characters were commentary.
+    """
+    import harness_yaml as hy
+
+    text = GOOD_PLAN.replace("      - src/a.py", "      - src/a.py (delete)")
+    with tempfile.TemporaryDirectory() as tmp:
+        doc = hy.load_plan(_plan(tmp, text))
+        got = doc["tasks"][0]["files"][0]
+        assert got == "src/a.py (delete)", f"loader altered the authored value: {got!r}"
+
+
+def test_load_plan_reports_line_and_column_on_malformed_yaml():
+    """A denial that says only "does not parse" on a 300-line plan is a loop the
+    author cannot exit. YamlParseError already carries the original exception; this
+    pins that it survives to the caller."""
+    import harness_yaml as hy
+
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            hy.load_plan(_plan(tmp, "tasks:\n  - id: T-01\n   bad: indent\n"))
+        except hy.YamlParseError as e:
+            assert "line" in str(e.original).lower(), f"no position in: {e.original}"
+            return
+        raise AssertionError("malformed YAML was accepted")
+
+
 TESTS = [
     test_merge_key_override_is_not_a_duplicate,
     test_missing_pyyaml_is_reportable_not_a_second_crash,
@@ -472,6 +585,11 @@ TESTS = [
     # which is issue #133's own theme ("logic correct, nothing calls it")
     # landing inside the change that cites it. Caught by mutation, not by review.
     test_c_loader_is_used_when_libyaml_is_available,
+    # issue #147 — plan.yaml replaces the markdown-that-looks-like-YAML format.
+    test_load_plan_accepts_a_well_formed_plan,
+    test_load_plan_rejects_the_shapes_that_broke_PLAN_md,
+    test_load_plan_backticked_path_is_not_silently_cleaned,
+    test_load_plan_reports_line_and_column_on_malformed_yaml,
 ]
 
 

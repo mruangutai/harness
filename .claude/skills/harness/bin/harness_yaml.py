@@ -255,6 +255,98 @@ def load_file(path):
     return load_str(text, path)
 
 
+
+# --- The plan reader (issue #147) -------------------------------------------
+
+class PlanSchemaError(YamlParseError):
+    """A plan.yaml that PARSES but does not carry the shape every consumer needs.
+
+    Distinct from YamlParseError on purpose. "This is not YAML" and "this is YAML
+    that means nothing to me" are different repairs, and a caller that wants to
+    report them differently can. Both are catchable as YamlParseError, so a caller
+    that does not care still gets one handler — the same subclassing argument
+    DuplicateKeyError already settled.
+    """
+
+
+# The fields every task must carry, and what each is FOR. Kept beside the check so
+# a reader learns the contract from the code that enforces it rather than from a
+# template that can drift — which is exactly how issue #147 happened: the template
+# prescribed one `files:` shape while the parser accepted three, and nobody could
+# say which was right.
+REQUIRED_TASK_FIELDS = ("id", "title", "change_type", "execution_mode", "files", "verify")
+LEGAL_EXECUTION_MODES = ("team", "main-session-direct")
+
+
+def load_plan(path):
+    """Load a `plan.yaml` and validate the shape its consumers depend on.
+
+    WHY THIS EXISTS RATHER THAN load_file: PLAN.md was markdown that LOOKED like
+    YAML, so three scripts hand-rolled regexes against it and each invented its own
+    rule for what a value may contain. Measured before the change: `safe_load` over
+    every task block in the four live plans failed 43 of 44 times — 26 because
+    `files:` began with a backtick, which is a reserved YAML indicator, and one
+    because `execution_mode: **SPLIT` reads as an alias. Those are not style
+    problems; they are the format inviting decoration into data fields.
+
+    A FENCED ```yaml BLOCK INSIDE MARKDOWN WAS CONSIDERED AND REFUSED. It is the
+    same mixture with a border drawn round it: an author who decorates a value
+    today decorates it inside a fence tomorrow. The fence makes the mistake loud
+    instead of silent, which is worth something, but it is compensating code for a
+    problem the format invites. A plain `.yaml` file cannot tempt the author,
+    because nothing else in it is prose.
+
+    Raises YamlParseError if it is not YAML, PlanSchemaError if it is YAML that a
+    consumer could not act on. Never returns a partially-valid plan: a caller that
+    got a dict back can index every field named in REQUIRED_TASK_FIELDS.
+    """
+    doc = load_file(path)
+    if not isinstance(doc, dict):
+        raise PlanSchemaError(path, "top level is not a mapping")
+
+    tasks = doc.get("tasks")
+    if not isinstance(tasks, list) or not tasks:
+        # A plan with no tasks is not a plan. Silence here would be the same
+        # fail-open B-7 was: a checker reporting a clean tree it never looked at.
+        raise PlanSchemaError(path, "`tasks:` is missing, empty, or not a list")
+
+    seen = set()
+    for i, t in enumerate(tasks):
+        where = f"tasks[{i}]"
+        if not isinstance(t, dict):
+            raise PlanSchemaError(path, f"{where} is not a mapping")
+        missing = [f for f in REQUIRED_TASK_FIELDS if t.get(f) in (None, "", [])]
+        if missing:
+            raise PlanSchemaError(
+                path, f"{where} ({t.get('id') or 'no id'}) is missing {missing}")
+        tid = str(t["id"])
+        if tid in seen:
+            # The duplicate would silently shadow in every id-keyed consumer —
+            # the dispatch map, gh-sync's issue map, INV-5's membership test.
+            raise PlanSchemaError(path, f"duplicate task id {tid!r}")
+        seen.add(tid)
+
+        files = t["files"]
+        if not isinstance(files, list) or not all(isinstance(f, str) for f in files):
+            # ISSUE #147's FIRST QUESTION, answered by the type rather than by a
+            # ruling: `files:` is a sequence of strings. Block and flow style load
+            # identically, so the three shapes the old parser accepted collapse into
+            # one thing nobody has to adjudicate.
+            raise PlanSchemaError(path, f"{where} ({tid}) `files:` must be a list of strings")
+
+        mode = t["execution_mode"]
+        if mode not in LEGAL_EXECUTION_MODES:
+            # ISSUE #147's THIRD QUESTION. `execution_mode: **SPLIT` used to be
+            # captured verbatim by a `(\S+)` regex and reported as an unrecognised
+            # token; here it cannot even be written, because `**` opens an alias and
+            # load_file raises first. A task with two routes is two tasks.
+            raise PlanSchemaError(
+                path,
+                f"{where} ({tid}) execution_mode {mode!r} — legal values are "
+                f"{', '.join(LEGAL_EXECUTION_MODES)}")
+    return doc
+
+
 # --- Manifest domain walk (D-03) --------------------------------------------
 
 def manifest_domains(manifest_path, agent):
