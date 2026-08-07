@@ -5254,10 +5254,23 @@ value may contain, and nothing reconciled them.
 `templates/PLAN.md` prescribed it and the parsers were written to match. It was convention, never a
 ruling — which is exactly why issue #147 could be filed and could not be answered.
 
-**Measured, not argued.** `harness_yaml.load_str` fails across the 36 task blocks of the four live
-plans. 26 fail because `files:` begins with a backtick, a reserved YAML indicator; 4 the same
-on `verify:`; one — `execution_mode: **SPLIT` at `FEAT-08/PLAN.md:306` — raises *"while scanning an
-alias"*. Meanwhile `intent:` and `verify:` already use folded `>` scalars in 64 places: the authors
+**Measured, not argued.** `harness_yaml.load_str` over every task block in the four live plans
+fails on **35 of 36**, and the itemisation below accounts for all 35 — an earlier draft named three
+causes covering 26 and left 9 failures unexplained under a heading that says "measured".
+
+**26** fail because `files:` begins with a backtick, a reserved YAML indicator. Four of those also
+carry a backticked `verify:`, and one is also `execution_mode: **SPLIT` at `FEAT-08/PLAN.md:306`,
+which raises *"while scanning an alias"* — they are the same blocks, not three disjoint sets.
+
+**9** fail on a cause the first draft never named: `execution_mode: main-session-direct — reason:
+…` puts a `": "` inside a plain scalar, and YAML reads the second colon as a second mapping key.
+All nine are in FEAT-06. This one matters more than the backticks, because nothing about it looks
+like decoration — the author wrote a sentence, and a sentence containing a colon is not a scalar.
+
+**The 36th block loads cleanly, and it is the entry's own thesis appearing in the corpus.**
+`FEAT-06` T-08 uses a block sequence for `files:`, folded `>` scalars, no backticks, and an
+em-dash with no colon after it. Nothing distinguishes it except that its author happened to write
+YAML. Three earlier drafts of this paragraph asserted it does not exist. Meanwhile `intent:` and `verify:` already use folded `>` scalars in 64 places: the authors
 were writing YAML-shaped values all along, and only the markdown-decorated fields broke.
 `SPEC.md:1701-1702`, the NORMATIVE example, was itself illegal YAML — three keys on one line — and
 shipped that way because nothing ever tried to parse it.

@@ -1723,7 +1723,7 @@ long field, `intent:`, is the literal dispatch prompt the doing agent receives.
 **Why not markdown, and why not a fenced block inside markdown.** The format this replaced was
 markdown containing `key: value` lines — parseable by no YAML library, so three scripts hand-rolled
 regexes and each invented its own rule for what a value may contain. `safe_load` over every task
-block in the four live plans fails across their **36 blocks**: 26 because `files:` began with a backtick,
+block in the four live plans fails on 35 of their 36 blocks: 26 because `files:` began with a backtick,
 a reserved YAML indicator, and one because `execution_mode: **SPLIT` reads as an alias. A fenced
 ```yaml block was considered and refused — it is the same mixture with a border round it, and an
 author who decorates a value today decorates it inside a fence tomorrow.
