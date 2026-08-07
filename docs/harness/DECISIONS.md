@@ -5262,14 +5262,14 @@ were writing YAML-shaped values all along, and only the markdown-decorated field
 `SPEC.md:1701-1702`, the NORMATIVE example, was itself illegal YAML — three keys on one line — and
 shipped that way because nothing ever tried to parse it.
 
-**A fenced ```yaml block inside markdown was considered and refused, and the 43-of-44 figure is the
+**A fenced ```yaml block inside markdown was considered and refused, and the backtick count is the
 argument against it rather than for it.** A fence is the same mixture with a border drawn round it:
 an author who decorates a value today decorates it inside a fence tomorrow. It makes the mistake
 loud instead of silent, which is worth something, and it is compensating code for a problem the
 format invites. A plain `.yaml` file cannot tempt the author, because nothing else in it is prose.
 
 **`feature.yaml` was not available as the alternative home, and the schema refuses it by name.**
-`SPEC.md §11.2`: `feature_id` is "join key ONLY — no name, no traces, no task list. Those live in
+`SPEC.md §11.3`: `feature_id` is "join key ONLY — no name, no traces, no task list. Those live in
 PLAN.md, which is what you approve; duplicating them here would let an agent redefine what FEAT-01
 means without your signature." Audited while deciding this: of 182 DEC entries, **1** names a
 `FEAT-NN` in its ruling and **0** are dominated by a single feature, so `DECISIONS.md` carries no

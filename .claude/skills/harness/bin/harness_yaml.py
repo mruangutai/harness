@@ -290,7 +290,7 @@ def load_plan(path):
     WHY THIS EXISTS RATHER THAN load_file: PLAN.md was markdown that LOOKED like
     YAML, so three scripts hand-rolled regexes against it and each invented its own
     rule for what a value may contain. Measured before the change: `safe_load` over
-    every one of the 36 task blocks in the four live plans failed — 26 because
+    safe_load fails across the 36 task blocks in the four live plans — 26 because
     `files:` began with a backtick, which is a reserved YAML indicator, and one
     because `execution_mode: **SPLIT` reads as an alias. Those are not style
     problems; they are the format inviting decoration into data fields.

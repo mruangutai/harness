@@ -13,7 +13,7 @@ You author `BRIEF.md` and `plan.yaml`. They are the spec — there is no separat
 
 **No markdown in any value — no backticks, no `**bold**`, no links.** They are decoration in a data
 file. Measured on the format this replaced: `safe_load` over every task block in the four live plans
-failed on all 36 task blocks, 26 of them because `files:` began with a backtick. A value carrying
+failed across the 36 task blocks, 26 of them because `files:` began with a backtick. A value carrying
 decoration is either rejected by the loader or handed to a resolver as a path nobody wrote.
 
 Shipped `PLAN.md` files are never rewritten; their reader stays. You author `plan.yaml`.
