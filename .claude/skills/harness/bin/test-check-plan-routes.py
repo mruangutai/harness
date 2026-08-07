@@ -816,8 +816,10 @@ def case_24():
     a glob and never a decision: the work shipped, the routes were taken, the plan will not
     be re-executed, so a finding on it is actionable by nobody. Measured on the real tree
     before this landed: 36 violations across 8 plans — 27 `no files: line`, 8 the
-    pre-FEAT-06 prose shape, 0 routing defects, every one in delivered work. That noise is
-    why issue #133's gate could never be switched on.
+    pre-FEAT-06 prose shape, and 1 real routing defect. 35 of the 36 were format noise in
+    SHIPPED plans; the one real finding is FEAT-08 T-04's `**SPLIT`, which is `awaiting_user`
+    and therefore still checked -- as this very case asserts below. That noise is why issue
+    #133's gate could never be switched on.
 
     Both directions, because a skip that skips everything would pass the first case alone.
     """

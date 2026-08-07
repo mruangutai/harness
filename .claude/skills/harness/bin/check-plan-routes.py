@@ -545,7 +545,9 @@ def discover_plans():
             # decision: the work shipped, the routes were taken, and the plan will not be
             # re-executed, so a finding on it is not actionable by anyone. Measured before
             # this line: 36 violations across 8 plans, of which 27 were `no files: line`
-            # and 8 the pre-FEAT-06 prose shape — 0 routing defects, all in delivered work.
+            # and 8 the pre-FEAT-06 prose shape, and 1 real routing defect. 35 of the 36
+            # were format noise in SHIPPED plans; the one real finding is in FEAT-08, which
+            # is awaiting_user and stays checked.
             #
             # That noise is the whole reason issue #133's gate could never be turned on:
             # /harness entry would have failed every time with 35 findings nobody intended
