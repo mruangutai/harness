@@ -41,7 +41,7 @@ its own record.
 
 | It is | Goes to |
 |---|---|
-| **A choice** — "we'll use Postgres", "the API returns 202 not 200" | `PLAN.md ## Decisions`. **Approval-gated. Not yours** |
+| **A choice** — "we'll use Postgres", "the API returns 202 not 200" | `plan.yaml`'s `decisions:` (`PLAN.md ## Decisions` on the pre-DEC-182 format). **Approval-gated. Not yours** |
 | **An observation** — "migrations fail if run before the seed script" | Your observations log |
 | **A harness defect** — a hook that didn't fire, a validator that passed garbage, a rule that backfired | `open_questions` in your DIGEST, so it reaches the harness owner. **Never Expertise** — a bug report ages into a stale workaround the moment the bug is fixed |
 

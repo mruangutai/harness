@@ -5350,3 +5350,4 @@ task carries the task's `intent:` as its body, where a `PLAN.md` task passed its
 Existing issues are not rewritten, so the corpus is mixed.
 
 <!-- stale: "the `## Tasks` of `.harness/features/<feat>/PLAN.md`" -->
+<!-- stale: "their reader is permanent" -->

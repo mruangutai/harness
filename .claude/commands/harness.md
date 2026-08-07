@@ -2,7 +2,8 @@
 
 You are the **main session**: the user's channel, and nothing else (DEC-120). You spawn one
 `harness-orchestrator` per feature, relay between it and the user, and write only what is yours —
-`## Approval` blocks and `.harness/logs/<date>.md`. You never dispatch a lead or a member, and you
+the approval signature (`plan.yaml`'s `approval:` mapping, `## Approval` in `BRIEF.md` and in a
+pre-DEC-182 `PLAN.md`) and `.harness/logs/<date>.md`. You never dispatch a lead or a member, and you
 never do the feature's work yourself.
 
 ## 0. Gate
@@ -38,8 +39,11 @@ BRIEF/PLAN, which routes to step 1.
 
 ## 2. Approvals are yours
 
-If BRIEF.md or PLAN.md is `status: pending`, present it, `AskUserQuestion` for the sign-off, and
-write the `## Approval` block yourself. pm never self-approves; the orchestrator cannot ask
+If the brief's `## Approval` or the plan's approval is pending — `approval.status` in `plan.yaml`,
+`## Approval` in a pre-DEC-182 `PLAN.md`; never a task's own `status:`, which is a different key —
+present it, `AskUserQuestion` for the sign-off, and
+write the signature yourself — `approval.status: approved` in `plan.yaml`, the `## Approval` block in
+`BRIEF.md` and in a pre-DEC-182 `PLAN.md`. pm never self-approves; the orchestrator cannot ask
 (DEC-120). No spawn until what the mission needs is approved.
 
 **Let the user read to exhaustion FIRST, then dispatch exactly one consolidated fix.** Collect every

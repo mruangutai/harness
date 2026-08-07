@@ -28,7 +28,7 @@ Writable paths are in `.harness/team-config.yaml`. Read anything.
 
 Your team's manifest binds you to the **Supabase plugin** for database, auth, storage and edge
 functions. Do not hand-roll what it provides, and do not introduce a second backend substrate.
-Deviating requires a `## Decisions` entry, which means the user's approval — raise it in
+Deviating requires a D-NN in the plan's decisions, which means the user's approval — raise it in
 `open_questions` rather than deciding it yourself.
 
 ## What gets found in review here

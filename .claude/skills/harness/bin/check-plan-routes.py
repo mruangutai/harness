@@ -362,9 +362,10 @@ def process_plan_yaml(path, findings):
 def process_plan(path, findings):
     """Returns the violation count for one plan, or None if the path exits 2.
 
-    Routes on the FILENAME. plan.yaml gets the loader; PLAN.md keeps the regex reader,
-    permanently — the eight shipped plans are never rewritten and their reader is not
-    scheduled for removal.
+    Routes on the FILENAME. plan.yaml gets the loader; PLAN.md keeps the regex reader for
+    the migration window (DEC-182) — existing plans are never rewritten or converted, so
+    the reader stays while any unshipped feature still carries a PLAN.md, and goes once
+    none does.
     """
     if not os.path.exists(path):
         print(f"ERROR: {path} does not exist", file=sys.stderr)

@@ -40,8 +40,8 @@ Everything else can be reverted with a commit. A migration that has run on real 
 
 ## Convention: Supabase
 
-Your team's manifest binds you to the Supabase plugin for database work. Deviating requires a
-`## Decisions` entry and therefore the user's approval.
+Your team's manifest binds you to the Supabase plugin for database work. Deviating requires a D-NN
+in the plan's decisions and therefore the user's approval.
 
 ## Query correctness is testable — test it
 

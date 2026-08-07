@@ -16,7 +16,9 @@ Wrong-thing-built-well is the costlier failure, and finding it second wastes the
 
 ## Stage 1 — spec compliance
 
-Read `.harness/features/<FEAT>/BRIEF.md` and `PLAN.md ## Decisions`, then the diff. Ask four questions:
+Read `.harness/features/<FEAT>/BRIEF.md` and the plan's decisions — `plan.yaml`'s `decisions:` list,
+or `PLAN.md ## Decisions` for a feature still on the pre-DEC-182 format — then the diff. Ask four
+questions:
 
 1. Does every change serve a documented `REQ-NN` or `D-NN`?
 2. Is anything here that **no** requirement asked for? *(scope creep — a finding even when it is an

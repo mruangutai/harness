@@ -12,7 +12,8 @@ There is no separate verifier downstream of you. If you do not catch it, it ship
 
 ## Two phases, in order — the first is anti-bias
 
-**Phase 1 — derive expected coverage with NO source access.** Read `BRIEF.md` and `PLAN.md` only. From
+**Phase 1 — derive expected coverage with NO source access.** Read `BRIEF.md` and the plan only —
+`plan.yaml`, or `PLAN.md` for a feature still on the pre-DEC-182 format. From
 the requirements and success criteria alone, write down what tests *should* exist.
 
 Do this first because once you have read the implementation you will unconsciously test what the code

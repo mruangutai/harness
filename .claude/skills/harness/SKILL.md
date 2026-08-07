@@ -13,7 +13,8 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
 ## The loop
 
 1. **Read state from disk, every cycle** — your feature's `STATE.md` and `feature.yaml`, plus the
-   `BRIEF.md`/`PLAN.md` **sections your current step needs** (Grep for the task/SC id; PLAN can run
+   the **parts of `BRIEF.md` and the plan your current step needs** — the plan is `plan.yaml`, or
+   `PLAN.md` for a feature still on the pre-DEC-182 format (Grep for the task/SC id; a plan can run
    to tens of KB and you rarely need it whole). Never from memory: your context may reset, and the
    files are what survive. **Resuming a predecessor: the handoff prompt is your working set** —
    read only the artifacts it names, by path. `runs/` and `notes/` are archives, read by pointer
@@ -23,11 +24,13 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    `.claude/skills/harness/templates/` — `max_total_cycles` and `max_total_runs` come from
    harness.json `budgets.`, never your own guess; raising either later is a user decision
    recorded in feature.yaml (DEC-157). **The approval gate depends on your mission:**
-   - mission **ship** (or resuming one): BRIEF *and* PLAN must both carry `status: approved` —
+   - mission **ship** (or resuming one): the BRIEF's `## Approval` *and* the plan's approval
+     (`approval.status` in `plan.yaml`, `## Approval` in a `PLAN.md`) must both read `approved` —
      an unapproved artifact stops you at step 0, `BLOCKED`.
    - mission **plan**: producing those artifacts IS the mission — a missing or pending BRIEF/PLAN
      is your starting state, not a violation. Your terminus is returning them `pending` for the
-     user's signature; you never mark them approved (only the main session writes `## Approval`).
+     user's signature; you never mark them approved (only the main session writes the signature —
+     `plan.yaml`'s `approval:` mapping, `## Approval` in `BRIEF.md` and in a pre-DEC-182 `PLAN.md`).
 2. **Decide next** — next task/team in PLAN order, plus any pending adjustment from the last cycle.
 3. **Delegate to a lead, never a member.** Every dispatch is a plain subagent — **never pass a
    `name:` parameter** (teammate→teammate named spawns are rejected; the roster is flat, DEC-147).
@@ -79,7 +82,8 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    Also stop for: the feature blocked, or the user must decide. Then return.
 
 **Authority boundary:** execution-time adjustments are yours (loop back, insert a review, reorder,
-escalate). Plan-level changes are pm's — delegate re-planning, never edit `PLAN.md` yourself.
+escalate). Plan-level changes are pm's — delegate re-planning, never edit the plan yourself
+(`plan.yaml`, or `PLAN.md` for a feature still on the pre-DEC-182 format).
 
 ## Routing a lead's return
 
@@ -174,7 +178,8 @@ verifying must be backed up, restored, and byte-verified (`git status --porcelai
 commit.
 | the main session relays the user's shipped acceptance | `gh-sync.py ship <feature-dir>` — closes the milestone unconditionally, and the parent **only if `parent_origin` is `created`** (an adopted issue is someone's live work and stays open). `gh-sync.py abandon <feature-dir> --reason-file <path>` is the other terminal state: sub-issues `not_planned`, same conditional parent rule |
 
-You never read GitHub state into harness state — PLAN.md is the truth and the mirror is a mirror.
+You never read GitHub state into harness state — the plan on disk is the truth and the mirror is a
+mirror.
 **Anything posted into the repo is the user's own words or text the user signed (DEC-138 am.6).**
 The mirror never composes: a post takes its body from a file path — the signed ship-review, the
 approved artifact — never from a string you assembled. Agents doing the work post nothing; they

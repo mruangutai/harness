@@ -1728,9 +1728,12 @@ a reserved YAML indicator, and one because `execution_mode: **SPLIT` reads as an
 ```yaml block was considered and refused — it is the same mixture with a border round it, and an
 author who decorates a value today decorates it inside a fence tomorrow.
 
-Shipped `PLAN.md` files are never rewritten. Their reader is a MIGRATION-WINDOW reader: it
-stays while any unshipped feature still carries a `PLAN.md`, and goes once none does. DEC-182
-records that an earlier draft called it permanent and that this was wrong and untested.
+**Both formats are legal, and the migration is forward-only.** Existing `PLAN.md` files are never
+rewritten and never converted; a feature keeps the format it was planned on until it ships. Its
+reader is a MIGRATION-WINDOW reader: it stays while any unshipped feature still carries `PLAN.md`,
+and goes once none does. A feature carrying both plans is a half-finished migration and
+`check-plan-routes.py` refuses it. DEC-182 records that an earlier draft of this paragraph called
+that reader permanent, and that the claim was wrong and untested.
 
 ### 11.3 `feature.yaml` — orchestrator-owned, execution facts only
 
