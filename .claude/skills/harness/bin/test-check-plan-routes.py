@@ -675,6 +675,42 @@ def case_23():
               f"exit {r.returncode}: {r.stderr[:200]!r}")
 
 
+def case_24():
+    """(24) A SHIPPED feature is not route-checked. Its plan is a record, not a contract.
+
+    This is a removal, not a trade-off. Checking shipped plans was the default behaviour of
+    a glob and never a decision: the work shipped, the routes were taken, the plan will not
+    be re-executed, so a finding on it is actionable by nobody. Measured on the real tree
+    before this landed: 36 violations across 8 plans — 27 `no files: line`, 8 the
+    pre-FEAT-06 prose shape, 0 routing defects, every one in delivered work. That noise is
+    why issue #133's gate could never be switched on.
+
+    Both directions, because a skip that skips everything would pass the first case alone.
+    """
+    results = []
+    for status, want_checked in (("shipped", False), ("abandoned", False),
+                                 ("in_review", True), ("awaiting_user", True)):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+            with open(os.path.join(fd, "feature.yaml"), "w") as f:
+                f.write(f"feature_id: FEAT-A\nstatus: {status}\n")
+            r = run(project_dir=td)
+            checked = "ungranted (NOBODY)" in r.stdout
+            ok = checked == want_checked
+            results.append(ok)
+            check(f"case_24_{status}_is_{'checked' if want_checked else 'skipped'}",
+                  ok, f"exit {r.returncode}, checked={checked}: {r.stdout[:160]!r}")
+
+    # A feature we CANNOT classify is checked, never skipped. The failure that matters is a
+    # live plan going unexamined; an old one examined twice costs nothing.
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+        r = run(project_dir=td)              # no feature.yaml at all
+        check("case_24_no_feature_yaml_is_checked_not_skipped",
+              "ungranted (NOBODY)" in r.stdout, r.stdout[:200])
+    return all(results)
+
+
 def case_20():
     """(20) Root resolution is now the FOURTH copy in this tree. D-02 does not forbid
     duplication — it forbids SILENT DRIFT, and case (o) in test-check-state.py is this
@@ -797,6 +833,7 @@ def main():
     case_21()
     case_22()
     case_23()
+    case_24()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

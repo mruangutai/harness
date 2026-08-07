@@ -346,6 +346,29 @@ def process_plan(path, findings):
     return violations
 
 
+SHIPPED_STATUSES = ("shipped", "abandoned")
+
+
+def _is_shipped(feature_dir):
+    """True when this feature's work is delivered and its plan is a record, not a contract.
+
+    Reads `feature.yaml`'s `status:` with the real loader. An unreadable or absent
+    feature.yaml means NOT shipped — a feature we cannot classify is checked rather than
+    skipped, because the failure that matters is a live plan going unexamined, not an old
+    one being examined twice.
+    """
+    fy = os.path.join(feature_dir, "feature.yaml")
+    if not os.path.isfile(fy):
+        return False
+    try:
+        import harness_yaml
+        doc = harness_yaml.load_file(fy) or {}
+    except Exception:
+        return False
+    return str((doc or {}).get("status", "")).split()[0:1] and \
+        str(doc.get("status", "")).split()[0] in SHIPPED_STATUSES
+
+
 def discover_plans():
     """Argv-less discovery: every PLAN.md under the PROJECT ROOT, not under the cwd.
 
@@ -460,6 +483,23 @@ def discover_plans():
             # A feature carrying both is a half-finished migration and is refused below
             # rather than silently preferred, because "which one is authoritative" is
             # exactly the ambiguity issue #147 was filed about.
+            # SHIPPED FEATURES ARE NOT ROUTE-CHECKED, and this is a removal rather than a
+            # trade-off. Checking them was the default behaviour of a glob, never a
+            # decision: the work shipped, the routes were taken, and the plan will not be
+            # re-executed, so a finding on it is not actionable by anyone. Measured before
+            # this line: 36 violations across 8 plans, of which 27 were `no files: line`
+            # and 8 the pre-FEAT-06 prose shape — 0 routing defects, all in delivered work.
+            #
+            # That noise is the whole reason issue #133's gate could never be turned on:
+            # /harness entry would have failed every time with 35 findings nobody intended
+            # to fix. Skipping them takes the tree to 1 finding, on live work.
+            #
+            # `status:` is a BORROWED SIGNAL and the honest name for it is era. It means
+            # "how far along is this feature", not "which format does it use". It is the
+            # only marker on disk — no feature.yaml carries schema_version — so it is used
+            # deliberately rather than a new field being invented for one transition.
+            if _is_shipped(entry.path):
+                continue
             plan = None
             both = [os.path.join(entry.path, n) for n in ("plan.yaml", "PLAN.md")]
             present = [q for q in both if os.path.lexists(q)]
