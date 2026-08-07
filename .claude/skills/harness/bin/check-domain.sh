@@ -576,6 +576,13 @@ RE_STATE_MD     = re.compile(r"^\.harness/features/[^/]+/STATE\.md$")
 # CLAUDE.md (issue #139). Not a state file, and included here anyway because this is
 # where the four-route machinery already lives — the alternative was a fifth gate.
 RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$")
+# plan.yaml is DELIBERATELY ABSENT (DEC-182). It carries neither a budget nor a vocabulary
+# rule, which is what this gate is for: `feature.yaml` 200/20 and `CLAUDE.md` 80 are
+# budgets, `state.yaml`'s 23-key whitelist is a vocabulary, and STATE.md and the handoff
+# note are both. A plan.yaml check here would be a PARSE check — a third thing — and
+# check-plan-routes.py already refuses a malformed plan BEFORE signature, which is when it
+# matters, with check-state.sh refusing it again at entry. A third enforcement point buys
+# nothing and costs two entries in two pattern lists that have already drifted once.
 SHAPE_PATTERNS = (RE_FEATURE_YAML, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD)
 
 

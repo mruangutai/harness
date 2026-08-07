@@ -665,6 +665,112 @@ def case_p():
     return all(results)
 
 
+PLAN_YAML_OK = """schema: plan/1
+feature: FEAT-TEST
+approval: {status: approved}
+tasks:
+  - id: T-01
+    title: a task
+    traces: [REQ-01]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: []
+    status: pending
+    files: [src/a.py]
+    verify: |
+      true
+    intent: |
+      do it
+"""
+
+
+def case_q():
+    """(q) DEC-182: INV-3/4/5 read plan.yaml through the loader, not a regex over prose.
+
+    INV-4's old "no change_type:" case cannot reach the yaml path at all — load_plan
+    guarantees the field, so a missing one is a LOAD error, caught before the invariants
+    run. What remains is what the loader does not police: the approval block, and STATE.md
+    pointing at a task the plan does not contain.
+    """
+    results = []
+
+    # approval: approved -> silent; pending -> a note, never a halt
+    for status, want_note in (("approved", False), ("pending", True)):
+        with tempfile.TemporaryDirectory() as tmp:
+            h = make_fixture(tmp, '{}', "  parent: 40")
+            fd = os.path.join(h, "features", "FEAT-TEST")
+            os.remove(os.path.join(fd, "feature.yaml"))
+            with open(os.path.join(fd, "feature.yaml"), "w") as f:
+                f.write("feature_id: FEAT-TEST\nstatus: in_review\n")
+            with open(os.path.join(fd, "plan.yaml"), "w") as f:
+                f.write(PLAN_YAML_OK.replace("status: approved", f"status: {status}"))
+            _code, out = run(tmp)
+            got = "plan.yaml approval is pending" in out
+            ok = got == want_note
+            results.append(ok)
+            print(f"{'ok' if ok else 'FAIL'} - case (q/{status}): INV-3 "
+                  f"{'notes' if want_note else 'is silent'} on plan.yaml")
+
+    # A plan.yaml that does not LOAD is a violation naming the file — never a silent skip.
+    with tempfile.TemporaryDirectory() as tmp:
+        h = make_fixture(tmp, '{}', "  parent: 40")
+        fd = os.path.join(h, "features", "FEAT-TEST")
+        with open(os.path.join(fd, "plan.yaml"), "w") as f:
+            f.write("tasks:\n  - id: T-01\n   bad: indent\n")
+        _code, out = run(tmp)
+        ok = "plan.yaml does not load" in out
+        results.append(ok)
+        print(f"{'ok' if ok else 'FAIL'} - case (q/malformed): a plan.yaml that does not "
+              f"load is reported, not skipped")
+
+    # INV-5 across the yaml path: STATE.md naming a task the plan lacks.
+    with tempfile.TemporaryDirectory() as tmp:
+        h = make_fixture(tmp, '{}', "  parent: 40")
+        fd = os.path.join(h, "features", "FEAT-TEST")
+        with open(os.path.join(fd, "plan.yaml"), "w") as f:
+            f.write(PLAN_YAML_OK)
+        with open(os.path.join(fd, "STATE.md"), "w") as f:
+            f.write("## Current\nworking T-99\n")
+        _code, out = run(tmp)
+        ok = "references T-99" in out and "plan.yaml" in out
+        results.append(ok)
+        print(f"{'ok' if ok else 'FAIL'} - case (q/inv5): STATE.md naming a task the "
+              f"plan.yaml lacks is a violation")
+    return all(results)
+
+
+def case_r():
+    """(r) A project with NO harness.json must not CRASH check-state.
+
+    Pre-existing, reproduced on main before it was fixed: `cj` was assigned only inside
+    `if cfg:`, so an absent harness.json left the name unbound and every later consumer
+    raised NameError. A crash exits 1 — the same code a real violation exits — so /harness
+    entry reported "violations found" for a missing config, with a traceback where the
+    diagnosis should be. check-state.sh's own header records the identical shape being
+    fixed once already, for a bad _selfdir.
+
+    Found while landing DEC-182, because a plan.yaml fixture legitimately carries none.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        h = os.path.join(tmp, ".harness")
+        os.makedirs(os.path.join(h, "features", "FEAT-TEST"))
+        # deliberately NO harness.json
+        _code, out = run(tmp)
+        # ASSERT ON WHAT A HEALTHY RUN PRODUCES, not on the absence of a traceback.
+        # The first draft checked `"NameError" not in out` — and `run()` returns STDOUT
+        # ONLY, while a traceback goes to STDERR, so it searched a stream that could never
+        # contain the thing it looked for. It reported ok against the crashing build.
+        # A crash produces NO invariant output at all, so the presence of the diagnosis
+        # this fixture is supposed to earn is the discriminator.
+        ok = "harness.json missing" in out
+        print(f"{'ok' if ok else 'FAIL'} - case (r): no harness.json is DIAGNOSED, not a "
+              f"crash (a crash prints nothing to stdout)")
+        if not ok:
+            print(f"       | stdout was: {out.strip()[:200]!r}")
+        return ok
+
+
 def case_o():
     """The two enforcement scripts must AGREE on every number and key they both carry.
 
@@ -767,6 +873,8 @@ def main():
     ok_n = case_n()
     ok_o = case_o()
     ok_p = case_p()
+    ok_q = case_q()
+    ok_r = case_r()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -775,7 +883,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

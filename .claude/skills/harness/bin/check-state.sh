@@ -54,6 +54,22 @@ briefs = {os.path.basename(os.path.dirname(p)): read(p)
           for p in glob.glob(os.path.join(H, "features", "*", "BRIEF.md"))}
 plans  = {os.path.basename(os.path.dirname(p)): read(p)
           for p in glob.glob(os.path.join(H, "features", "*", "PLAN.md"))}
+# plan.yaml (DEC-182) is loaded, never read as text. Kept in a SEPARATE dict rather than
+# merged into `plans`: every check below either reads markdown or reads a mapping, and one
+# dict holding both shapes is how a regex ends up running over a dict repr. A feature with
+# both files is refused by check-plan-routes; here the yaml simply wins, because a feature
+# mid-migration should be judged by the artifact its author is maintaining.
+plan_docs = {}
+for _p in glob.glob(os.path.join(H, "features", "*", "plan.yaml")):
+    _feat = os.path.basename(os.path.dirname(_p))
+    try:
+        plan_docs[_feat] = harness_yaml.load_plan(_p)
+        plans.pop(_feat, None)
+    except harness_yaml.YamlParseError as _e:
+        # A plan that does not load is a VIOLATION, never a silent skip — the whole point
+        # of DEC-182 is that a malformed plan stops being something a regex half-reads.
+        bad.append(f"{_feat}/plan.yaml does not load, so INV-3/4/5 cannot be checked "
+                   f"for it: {_e}")
 # STATE.md is per-feature since DEC-120; read them all.
 states = {os.path.basename(os.path.dirname(p)): read(p)
           for p in glob.glob(os.path.join(H, "features", "*", "STATE.md"))}
@@ -79,6 +95,27 @@ for feat, brief in briefs.items():
 for feat in states:
     if feat not in briefs:
         bad.append(f"{feat} has STATE.md but no BRIEF.md — a flow is running with no goal of record.")
+
+# --- INV-3/4/5 on plan.yaml (DEC-182). Same three invariants, read from a mapping
+# instead of scraped out of prose. load_plan has already guaranteed every task carries the
+# fields REQUIRED_TASK_FIELDS names, so INV-4's "no change_type" case cannot reach here —
+# it is a load error now, caught above. What remains is what the loader does not police:
+# the approval block, and STATE.md pointing at a task the plan does not contain.
+for feat, doc in plan_docs.items():
+    _appr = doc.get("approval")
+    if not isinstance(_appr, dict):
+        bad.append(f"{feat}/plan.yaml has no `approval:` block — cannot tell if the goal "
+                   f"is signed.")
+    elif str(_appr.get("status", "")).strip().lower() != "approved":
+        warn.append(f"{feat}/plan.yaml approval is pending — awaiting the user.")
+
+    _plan_ids = {str(t["id"]) for t in doc["tasks"]}
+    _state = states.get(feat)
+    if _state:
+        for _tid in set(re.findall(r"\bT-[0-9A-Za-z]+\b", _state)):
+            if _tid not in _plan_ids:
+                bad.append(f"{feat}/STATE.md references {_tid}, which is absent from its "
+                           f"plan.yaml.")
 
 # --- INV-3: a plan must be signed too, and re-planning must reset that signature.
 for feat, plan in plans.items():
@@ -358,6 +395,19 @@ else:
 # `cj` is the parsed harness.json, consumed below by the test_kinds, github.sync and
 # gh-config checks. The JSON-validity violation is kept on its own merit — a config
 # that does not parse silently disables every check that reads it.
+# BOUND UNCONDITIONALLY. `cj` used to be assigned only inside the `if cfg:` below, so a
+# project with NO harness.json reached the consumers further down with the name unbound and
+# died with `NameError: name 'cj' is not defined`. That is a CRASH, and a crash exits 1 —
+# the same code a real violation exits — so /harness entry reported "violations found" for
+# an absent config file, with a traceback where a diagnosis should be.
+#
+# Pre-existing and reproduced on main at the same fixture before being fixed here; found
+# while landing DEC-182 because a plan.yaml fixture legitimately carries no harness.json.
+# Fixed in passing rather than left in a file this change already opens: check-state.sh is
+# a DEC-174 carve-out, so the next person to touch it pays the full carve-out cost, and
+# leaving a known landmine for them is worse than a two-line diff here. The absent-config
+# case is already reported by the INV-1 check above; this only stops the crash.
+cj = {}
 cfg = read(os.path.join(H, "harness.json"))
 if cfg:
     try:
