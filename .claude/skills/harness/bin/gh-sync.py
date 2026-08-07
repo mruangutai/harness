@@ -149,7 +149,37 @@ def parse_brief(feat_dir):
 
 
 def parse_tasks(feat_dir):
-    """Both task formats, like INV-4 (DEC-129): `### T-NN — title` blocks and `- T-NN:` items."""
+    """Tasks from plan.yaml if present, else PLAN.md's two markdown shapes (DEC-129/182).
+
+    plan.yaml FIRST and by the loader, not a regex. The issue body becomes the task's
+    `intent:` rather than its whole raw block — a deliberate behaviour change: intent is the
+    dispatch prompt, and it is the half of a task a human reading a GitHub issue actually
+    wants. Issues already opened from a PLAN.md carry the old whole-body text; they are not
+    rewritten, so the corpus is mixed. Stated here rather than discovered later.
+    """
+    yml = os.path.join(feat_dir, "plan.yaml")
+    if os.path.isfile(yml):
+        import harness_yaml
+        try:
+            doc = harness_yaml.load_plan(yml)
+        except harness_yaml.YamlParseError as e:
+            die(f"{yml} does not load: {e}")
+        out = []
+        for t_ in doc["tasks"]:
+            traces = t_.get("traces") or []
+            out.append({
+                "id": str(t_["id"]),
+                "title": t_.get("title") or str(t_["id"]),
+                "body": (t_.get("intent") or "").strip(),
+                "change_type": t_.get("change_type", ""),
+                # A LIST, joined for the issue body. The old field was a raw string, so a
+                # caller expecting text still gets text.
+                "traces": ", ".join(str(x) for x in traces) if isinstance(traces, list)
+                          else str(traces),
+                "absorbs": [str(a).lstrip("#") for a in (t_.get("absorbs") or [])],
+            })
+        return out
+
     t = read(os.path.join(feat_dir, "PLAN.md"))
     tasks = []
     for m in re.finditer(r"^(?:###\s*|-\s*)(T-\d+)\b[ —:-]*(.*?)$(.*?)(?=^(?:###\s*|-\s*)T-\d+\b|^## |\Z)",

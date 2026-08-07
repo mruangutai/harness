@@ -64,6 +64,7 @@ COLLECT_FIXTURE = {
         [
             ".harness/features/*/BRIEF.md",
             ".harness/features/*/PLAN.md",
+        ".harness/features/*/plan.yaml",
             ".harness/features/*/notes/research-*.md",
             ".harness/notes/research-*.md",
             ".harness/features/*/notes/uat-*.md",
