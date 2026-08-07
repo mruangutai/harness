@@ -35,14 +35,22 @@ jobs:
     # and test-gh-sync.py assert on `chmod 000` paths, so under root they would pass for
     # the wrong reason — a green tick proving nothing, which is the exact defect class this
     # repo keeps filing tickets about.
+    #
+    # NOTHING PROVES THE RUNNER IS NON-ROOT ANY MORE. The `Assert the runner is not root`
+    # step that used to back this comment was removed by owner decision, so this ban is the
+    # only thing standing between a container job and those assertions passing vacuously —
+    # and it is a ban on a KEY, not evidence about the runtime. test-gh-sync.py carries a
+    # `skip … (running as root)` branch, so if it ever did run as root those checks would go
+    # QUIET rather than red. `case_25b9` keeps the key banned; nothing checks the uid.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
+      # NO `actions/setup-python`, BY OWNER DECISION. The job runs on whatever python3
+      # `ubuntu-latest` ships. What that gives up is stated rather than discovered: the version
+      # is no longer pinned, so a runner-image bump changes the interpreter under the suite
+      # without any diff here. Accepted as too little value for its weight.
+      #
       # PyYAML is REQUIRED, not optional (DEC-171 am.1). There is no line-scan fallback:
       # a missing parser is a loud failure by design, so install it rather than letting
       # the suite exercise a degraded path that does not exist.
@@ -57,12 +65,70 @@ jobs:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
         run: .claude/skills/harness/bin/run-unit-tests.sh --kind integration
 
-      # Proves the runner is not root, so the chmod-based assertions above mean what they
-      # say. If this ever fails, the suite result above is not trustworthy.
-      - name: Assert the runner is not root
+      # THE ROUTE CHECK, PROMOTED (issue #133, DEC-183). `check-plan-routes.py` worked from the
+      # day it shipped and NOTHING mechanical ran it: not this workflow, not check-state.sh, not
+      # one of the 7 hook registrations in settings.json — `run-unit-tests.sh` runs its TEST, never
+      # the checker. Its sole invocation was one sentence in harness-spec-driven/SKILL.md telling a
+      # planner to remember. This step is the mechanism; the sentence stays, because plan time is
+      # still when a violation is cheap to fix.
+      #
+      # IN THIS JOB, NOT A JOB OF ITS OWN, and this is load-bearing rather than tidy. Branch
+      # protection on main requires exactly one context, `integration` — measured:
+      # `contexts: ["integration"]`, `enforce_admins: true`. That string is this job's ID, and the
+      # job deliberately carries NO `name:` key, so the ID is what GitHub emits. Two traps follow:
+      # moving this step into a job of its own emits a context nobody requires, so a PR would merge
+      # with the route gate red or absent until someone PATCHes protection by hand; and adding a
+      # `name:` to this job renames the context and blocks every PR forever.
+      #
+      # AND THE STEP CAN BE DELETED BY THE THING IT PROTECTS. `pull_request` runs the workflow
+      # definition from the PR's own ref, so a PR removing this step still emits `integration` and
+      # still goes green — #133's shape applied to #133's fix. `test-check-plan-routes.py` case 25
+      # reads this file and asserts the step is here and unneutered; that test runs in the
+      # integration suite above, which IS the required context, so deleting this step now fails it.
+      #
+      # M IS ASSERTED, NOT JUST THE EXIT CODE. The checker's last line is
+      # `N violation(s) across M plan(s)`; a step that read only $? passes when M is 0 — a green
+      # tick from a gate that examined nothing, issue #133's named ordering trap. Not a live hole
+      # today: all 8 plan files are git-tracked and `.harness/features/` is not ignored, so
+      # `actions/checkout@v4` cannot
+      # produce M=0, and B-7 (PR #153) derives the root from the manifest rather than the cwd. It
+      # is a guard against a future `.gitignore` entry, sparse checkout or root-derivation change
+      # making it reachable again — cheap, and this repo's most-repeated defect is exactly "the
+      # guard is right and nothing calls it correctly". Both halves measured, not assumed:
+      # `git ls-files '.harness/features/*/PLAN.md' '.harness/features/*/plan.yaml'` returns 8, and
+      # `git check-ignore -v .harness/features` exits 1.
+      #
+      # THREE OUTCOMES, THREE MESSAGES. Exit 2 with no summary means the checker could not run at
+      # all; a summary with M=0 means it ran and looked at nothing; anything else is a real verdict
+      # on real plans. Collapsing them into one "failed" is how a broken gate hides behind a red X.
+      - name: Plan-route gate
+        env:
+          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
         run: |
-          if [ "$(id -u)" = "0" ]; then
-            echo "::error::running as root — chmod-based assertions cannot fail here" >&2
+          rc=0
+          out=$(python3 .claude/skills/harness/bin/check-plan-routes.py 2>&1) || rc=$?
+          printf '%s\n' "$out"
+
+          # THE REGEX IS COUPLED to `check-plan-routes.py`'s final `print()` — the summary
+          # format string, which carries a comment pointing back here. A reword there makes
+          # this grep miss, which fails the step CLOSED (nothing merges silently) but reports
+          # "the checker could not run" about a checker that ran fine. Change both together.
+          #
+          # `|| true` IS LOAD-BEARING: steps run under `bash -e {0}`, so a grep that matches
+          # nothing would kill the step HERE, at the assignment, before either message below
+          # could print — the exit-2 case would come back as a bare failure with no diagnosis.
+          summary=$(printf '%s\n' "$out" | grep -E '^[0-9]+ violation\(s\) across [0-9]+ plan\(s\)$' | tail -1) || true
+
+          if [ -z "$summary" ]; then
+            echo "::error::check-plan-routes.py printed no summary line and exited ${rc} — the CHECKER COULD NOT RUN (exit 2 = it does not know where to look). This is not a clean tree; nothing was checked." >&2
             exit 1
           fi
-          echo "uid=$(id -u) ($(id -un)) — permission assertions are meaningful"
+
+          plans=$(printf '%s' "$summary" | sed -E 's/^.* across ([0-9]+) plan\(s\)$/\1/')
+          if [ "$plans" -eq 0 ]; then
+            echo "::error::check-plan-routes.py examined 0 plans and therefore exited ${rc} on an empty search. A route gate that finds no plans is indistinguishable from a clean tree and would pass forever — the exact trap issue #133 names. Check CLAUDE_PROJECT_DIR and .harness/features/." >&2
+            exit 1
+          fi
+
+          echo "route gate examined ${plans} live plan(s); checker exit ${rc}"
+          exit "$rc"

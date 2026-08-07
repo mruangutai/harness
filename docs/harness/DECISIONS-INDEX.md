@@ -199,4 +199,5 @@ A row ending `— SUPERSEDED BY DEC-NN` is one you must not act on.
 - DEC-179 @4996 [plan,domain,skills,approval] refs: DEC-174 :: Routing is resolved at plan time by delegating every literal `files:` path to `check-domain.sh --resolve`, so an ungranted surface becomes a declared `main-session-direct` step, never a mid-run rejected write.
 - DEC-180 @5040 [state,domain,budget,worktree] refs: DEC-150 DEC-174 :: SHAPE is independent of DOMAIN: it binds every author including the main session, and a `PostToolUse` mode reports from DISK on the Edit and Bash routes.
 - DEC-181 @5191 [state,budget,docs,domain] refs: DEC-135 DEC-180 :: CLAUDE.md gets an 80-line budget on all four write routes and enters check-docs.sh's scan roots, non-recursively at the repo root.
-- DEC-182 @5246 [plan] refs:  :: The plan is `plan.yaml`, real YAML loaded with `safe_load`; PLAN.md was markdown that looked like YAML and failed `safe_load` 43 times in 44.
+- DEC-182 @5246 [plan,budget,state,cost] refs: DEC-154 DEC-181 :: The plan is `plan.yaml`, real YAML loaded with `safe_load`; PLAN.md was markdown that looked like YAML and failed `safe_load` 43 times in 44.
+- DEC-183 @5334 [plan,github,state,tests] refs: DEC-174 DEC-179 DEC-182 :: The route check becomes a step of the required `integration` CI job, asserting the plan COUNT as well as the exit code; nothing guards the step itself.

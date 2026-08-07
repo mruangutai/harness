@@ -5243,6 +5243,161 @@ commit that duplicates it, rather than in a later one nobody writes.
 
 ---
 
-## DEC-182 — The plan is `plan.yaml`, real YAML loaded with `safe_load`
+## DEC-182 — The plan is `plan.yaml`, real YAML loaded with `safe_load`, and nothing in it is prose for a human
+
+`PLAN.md` was markdown that LOOKED like YAML. No parser could use a YAML library, so three
+scripts hand-rolled regexes against it — `check-plan-routes.py`, `check-state.sh` (INV-3/4/5),
+`gh-sync.py` — plus the team runner via `teams/build.yaml`. Each invented its own rule for what a
+value may contain, and nothing reconciled them.
+
+**There was no decision establishing that format.** Searched `DECISIONS.md` and the index: nothing.
+`templates/PLAN.md` prescribed it and the parsers were written to match. It was convention, never a
+ruling — which is exactly why issue #147 could be filed and could not be answered.
+
+**Measured, not argued.** `harness_yaml.load_str` over every task block in the four live plans fails
+**43 of 44 times**. 26 because `files:` begins with a backtick, a reserved YAML indicator; 4 the same
+on `verify:`; one — `execution_mode: **SPLIT` at `FEAT-08/PLAN.md:306` — raises *"while scanning an
+alias"*. Meanwhile `intent:` and `verify:` already use folded `>` scalars in 64 places: the authors
+were writing YAML-shaped values all along, and only the markdown-decorated fields broke.
+`SPEC.md:1701-1702`, the NORMATIVE example, was itself illegal YAML — three keys on one line — and
+shipped that way because nothing ever tried to parse it.
+
+**A fenced ```yaml block inside markdown was considered and refused, and the 43-of-44 figure is the
+argument against it rather than for it.** A fence is the same mixture with a border drawn round it:
+an author who decorates a value today decorates it inside a fence tomorrow. It makes the mistake
+loud instead of silent, which is worth something, and it is compensating code for a problem the
+format invites. A plain `.yaml` file cannot tempt the author, because nothing else in it is prose.
+
+**`feature.yaml` was not available as the alternative home, and the schema refuses it by name.**
+`SPEC.md:1687-1692`: `feature_id` is "join key ONLY — no name, no traces, no task list. Those live in
+PLAN.md, which is what you approve; duplicating them here would let an agent redefine what FEAT-01
+means without your signature." Audited while deciding this: of 182 DEC entries, **1** names a
+`FEAT-NN` in its ruling and **0** are dominated by a single feature, so `DECISIONS.md` carries no
+feature-local pollution in the other direction either.
+
+**What the agents actually read decided the split** — measured, not assumed. `intent:` is the
+LITERAL dispatch prompt (`teams/build.yaml:59`); `verify:` is a byte-exact cross-file contract;
+`depends_on:` orders the build; `change_type:` feeds the qa gate and the issue label; `files:` and
+`execution_mode:` are read by `check-plan-routes.py` alone; `traces:` is captured at
+`gh-sync.py:163` and **never used**. So DEC-154's test — *"if a value needs to be read rather than
+matched, it is in the wrong file"* — puts everything in one file, because the one long field is the
+dispatch prompt and the human reads `BRIEF.md`.
+
+**Issue #147's three questions are answered by the type, not by a ruling.** Legal `files:` shapes:
+exactly one, a sequence of strings — block and flow style load identically, so the three shapes the
+old parser accepted collapse into one thing nobody adjudicates. Annotations like `(delete)`: the
+loader returns the literal authored string, so a resolver gets what was written instead of guessing
+which characters were commentary; the old `_clean()` stripped backticks and a trailing comma but not
+a parenthetical, so `` `bin/cost-report.py` (delete) `` resolved ONLY because a `/**` grant swallowed
+the suffix. `execution_mode: **SPLIT`: unwritable, because `**` opens an alias and the loader raises
+first — and the real need behind it, one task with two routes, is TWO TASKS.
+
+**Forward-only, and shipped plans are never route-checked again.** Checking them was the default
+behaviour of a glob and never a decision: the work shipped, the routes were taken, the plan will not
+be re-executed. Measured before: 36 violations across 8 plans — 27 `no files: line`, 8 the
+pre-FEAT-06 prose shape, **0 routing defects**, all in delivered work. That noise is why issue #133's
+gate could never be switched on. After: **1**, on live work, and it is FEAT-08 T-04's `**SPLIT`.
+`status:` is a BORROWED signal for era — it means "how far along" — and it is used deliberately
+because no `feature.yaml` carries a `schema_version`. A feature that cannot be classified is
+CHECKED, never skipped.
+
+**The `PLAN.md` reader is a migration-window reader, not a permanent one.** An earlier draft of this
+entry said permanent; that was wrong and untested. Four live features still carry `PLAN.md` and
+INV-3/4/5 must keep working for them. Once they ship it can go, and shipped plans stop being parsed
+at all — verified: INV-3/4/5 report 0 findings across the five shipped features today.
+
+**The budget is PER TASK, 30 machine-field lines, and the asymmetry against every peer is
+deliberate.** Derived the way DEC-181 derived CLAUDE.md's 80: measured machine+verify lines per task
+are 11.5 (FEAT-09), 21.2 (FEAT-06), 26.7 (FEAT-07), 19.9 (FEAT-08), so 30 leaves ~12% headroom. A
+plan is a LIST — its length tracks how many tasks a feature has, not how much fat it carries — so a
+flat file cap would be a cap on how many tasks a feature may have, a scoping decision wearing a
+budget's clothes. `intent:` is excluded from the count because it is READ. Enforced in
+`check-plan-routes.py` at plan time, not in the shape gate: pm holds `upsert: true` and drafts with
+`Edit`, and that gate measures `Write` payloads.
+
+**`plan.yaml` is deliberately absent from `check-domain.sh`'s shape gate.** Shape is not budget —
+that conflation was mine and the user caught it. `feature.yaml` 200/20 and `CLAUDE.md` 80 are
+budgets; `state.yaml`'s 23-key whitelist is a VOCABULARY with no cap at all; `STATE.md` and the
+handoff note are both. A `plan.yaml` check there would be a PARSE check, a third thing — and
+`check-plan-routes.py` already refuses a malformed plan BEFORE signature, with `check-state.sh`
+refusing it again at entry. A third enforcement point bought nothing and cost two entries in two
+pattern lists that had already drifted once during this very change.
+
+**Behaviour change worth stating rather than discovering:** a GitHub issue opened from a `plan.yaml`
+task carries the task's `intent:` as its body, where a `PLAN.md` task passed its whole raw block.
+Existing issues are not rewritten, so the corpus is mixed.
 
 <!-- stale: "the `## Tasks` of `.harness/features/<feat>/PLAN.md`" -->
+
+---
+
+## DEC-183 — The route check is promoted to a step of the `integration` CI job, and the step asserts the plan COUNT, not just the exit code
+
+`check-plan-routes.py` shipped working and nothing mechanical ran it (issue #133). DEC-179's clause
+"nothing executes it automatically" is now false.
+
+**The venue is CI, and the step goes INSIDE the `integration` job.** Branch protection requires
+exactly that one context, and it is the job's ID — the job carries no `name:` key. A job of its own
+would emit a context nobody requires, which is the defect being closed rather than a fix for it, and
+adding a `name:` renames the context and blocks every PR forever. `check-state.sh` was rejected on
+WHO MAY WRITE IT, not on merit: it is a DEC-174 carve-out, so an invariant there forces a
+main-session-direct edit for every future adjustment. Both venues together was refused — DEC-182
+turned down a third enforcement point one PR earlier.
+
+**The cost is EARLINESS.** Issue #133 framed the check as plan-time; CI fires at PR time, when the
+plan is signed and the tasks may already be built. That is why the planner-facing sentence stays in
+`harness-spec-driven/SKILL.md` rather than being replaced. No venue had both.
+
+**The step asserts M, and that assertion is the whole promotion.** The checker's final line is
+`N violation(s) across M plan(s)`, and a step reading only `$?` passes when M is 0 — a green tick
+from a gate that examined nothing. Three outcomes get three messages: no summary (the checker could
+not run), a summary with M=0 (it ran and looked at nothing), and a real verdict. `|| true` on the
+summary grep is load-bearing, not defensive: under `bash -e {0}` an unmatched grep inside a command
+substitution kills the step before either diagnostic prints.
+
+**THE STEP IS UNGUARDED, BY DECISION, AND THAT REOPENS ISSUE #133.** An earlier version of this
+entry described a suite of assertions defending the step — that the workflow defines the required
+job, that the step is present and unneutered, that the job header carries no `if:`, `needs:`,
+`defaults:`, `env:` or `container:`, that the step list and `uses:` set are pinned, and that the
+bodies are executed rather than read. **All 39 of those assertions were deleted by owner decision**,
+along with the harness that executed workflow bodies against a cloned workspace. Nothing in this
+tree now asserts anything about `.github/workflows/tests.yml`.
+
+The consequence is specific and is not softened here: `pull_request` runs the workflow definition
+from the PR's own ref, so **a PR that deletes the `Plan-route gate` step still emits a green
+`integration` check and satisfies branch protection.** The gate can be removed by the same PR it
+would have failed. That is issue #133's own shape — "the guard is right and nothing calls it" —
+restored at one remove, and it is accepted rather than unnoticed.
+
+The control that remains is a human reading the `.github/` diff, and **nothing requires one — nor
+can anything, on this repo as it stands.** `required_pull_request_reviews` on `main` is null: one
+required context, `enforce_admins` on, zero required reviewers. CODEOWNERS covering `/.github/` and
+`run-unit-tests.sh` is committed and **deliberately not enforced**, because enabling
+`require_code_owner_reviews` would make every PR to `main` permanently unmergeable — measured, not
+predicted: `mruangutai` is the sole collaborator and therefore the only possible code owner, GitHub
+forbids authors approving their own pull requests, and `enforce_admins: true` removes the bypass.
+The repo's own history shows the policy already in effect — **52 reviews, every one `COMMENTED`,
+none `APPROVED`.** #175 is closed as not achievable; it becomes possible only with a second
+collaborator. So the honest statement is that this gate protects the plans and **nothing protects
+the gate** — not pending, settled.
+
+**Also removed by owner decision: `actions/setup-python@v5` and the root-assert step.** The job is
+four steps — checkout, Install PyYAML, Integration suite, Plan-route gate. The Python version is no
+longer pinned, so a runner-image bump changes the interpreter with no diff here; and nothing
+observes the runner's uid, so if the job ever ran as root the `chmod 000` assertions elsewhere in
+the suite would pass for the wrong reason and go QUIET, not red.
+
+**The per-feature off-switch is a one-word status flip, named rather than closed.** The checker skips
+`shipped` and `abandoned` features (DEC-182). Promotion made that skip load-bearing: flipping a
+feature's status takes the gate green without touching CI. Accepted as an escape hatch — status is
+the one signal that says work is delivered, and refusing to trust it re-introduces the noise DEC-182
+removed. Failing when M drops in the same PR that flips a status was weighed and declined: a
+legitimate ship drops M by one, so the common case would fire and the fix would be an override.
+
+**This gate is RED at the commit that introduces it, deliberately** — FEAT-08 T-04's
+`execution_mode: **SPLIT`, a real finding in live work. A gate switched on green by exempting the one
+thing it found would be enforcement theatre.
+
+**Scope:** no prior decision established this workflow, and this one does not adopt it. It rules on
+the route step alone; #163's triggers and #161's reasons keep their justification in the file's own
+comments. **Not verified:** the real CI run.

@@ -13,12 +13,10 @@ You author `BRIEF.md` and `plan.yaml`. They are the spec — there is no separat
 
 **No markdown in any value — no backticks, no `**bold**`, no links.** They are decoration in a data
 file. Measured on the format this replaced: `safe_load` over every task block in the four live plans
-failed on 35 of the 36 task blocks, 26 of them because `files:` began with a backtick. A value carrying
+failed 43 of 44 times, 26 of them because `files:` began with a backtick. A value carrying
 decoration is either rejected by the loader or handed to a resolver as a path nobody wrote.
 
-Existing `PLAN.md` files are never rewritten and never converted; their reader stays. You author
-`plan.yaml` for a NEW feature, and you re-plan a feature still on the pre-DEC-182 format in its own
-`PLAN.md`. Never both in one feature — `check-plan-routes.py` refuses a feature carrying two plans.
+Shipped `PLAN.md` files are never rewritten; their reader stays. You author `plan.yaml`.
 
 ## Every task needs four things
 
@@ -68,6 +66,9 @@ SHA.
 **Before handing a plan back, run
 `python3 .claude/skills/harness/bin/check-plan-routes.py <plan path>` and fix every
 violation. A non-zero exit is not a plan that is ready for signature.**
+Run it here because plan time is when the fix is one edit, not a rewrite of work already built.
+The `integration` CI job runs the same checker over every live plan and is a required check on
+`main` (DEC-183), so skipping this does not skip the finding — it only makes it expensive.
 
 ## `verify:` is a literal block, and this one has teeth
 
@@ -102,7 +103,7 @@ tries to dispatch it.
 | It is | Where | Test |
 |---|---|---|
 | **REQ-NN** — what the product must do | `BRIEF.md` | survives changing your mind about implementation |
-| **D-NN** — how, architecturally | `plan.yaml`'s `decisions:` | changes if you swap the approach |
+| **D-NN** — how, architecturally | `PLAN.md ## Decisions` | changes if you swap the approach |
 
 *"Users can sign in with their Google account"* is a requirement. *"Use Supabase social login"* is a
 decision. Swap Supabase for Auth0: the requirement is untouched, the decision is not.
@@ -159,13 +160,12 @@ state the observation that would prove it false, it is not one.
 
 ## Approval is not yours
 
-You draft `BRIEF.md` and the plan; you never mark them approved. Only the **main session** writes the
-signature — `plan.yaml`'s `approval:` mapping, `## Approval` in `BRIEF.md` and in a pre-DEC-182
-`PLAN.md`. It is the only tier with a user channel (the orchestrator cannot reach the user
+You draft `BRIEF.md` and `PLAN.md`; you never mark them approved. Only the **main session** writes
+`## Approval` — it is the only tier with a user channel (the orchestrator cannot reach the user
 either; it returns `awaiting_user`).
 
-**Re-planning resets approval.** If you change the task set after approval, set `approval.status`
-back to `pending`. A stale signature must never carry onto a changed plan.
+**Re-planning resets approval.** If you change the task set after approval, set `## Approval` back to
+pending. A stale signature must never carry onto a changed plan.
 
 ## Red flags
 
