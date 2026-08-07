@@ -1,0 +1,46 @@
+# CODEOWNERS — the terminal link in the CI guard chain (issue #175, SC-07 of #133).
+#
+# WHY THIS FILE EXISTS. Every other guard in this repo is an assertion inside the test
+# suite; the suite runs as a step in .github/workflows/tests.yml; and `pull_request` runs
+# the workflow definition from the PR's OWN ref. So a PR that deletes the step stops the
+# assertions from running and the job still reports green. Assertions cannot object to
+# being switched off. Branch protection cannot express "this file must keep this step."
+# The only remaining link is a human read, and a hoped-for read is not enforcement.
+#
+# THIS FILE IS INERT ON ITS OWN. It does nothing until `require_code_owner_reviews` is
+# true on main's protection rule. See issue #175 for the exact API call and for the
+# single-collaborator deadlock that call runs into.
+#
+# SCOPE IS DELIBERATELY TWO PATHS, NOT A DIRECTORY SWEEP. Most PRs here are agent-opened;
+# every path added is owner review on that traffic forever. Each entry below has to earn
+# the friction by being a route to switching CI off.
+
+# The workflow definition itself, plus this file. Deleting the "Integration suite" step,
+# narrowing `on:`, or deleting CODEOWNERS all land here.
+/.github/                                      @mruangutai
+
+# The workflow's only substantive step is `run-unit-tests.sh --kind integration`, so
+# tampering here is equivalent to tampering with the workflow — and one edit does it
+# WITHOUT tripping the script's own drift detector. `--kind integration` sets SCRIPTS
+# from INTEGRATION_SCRIPTS, but the drift detector iterates ALL_SCRIPTS (the union of
+# both arrays). Move an entry from INTEGRATION_SCRIPTS to UNIT_SCRIPTS and it is still
+# "registered", so the detector stays quiet, while CI never executes it again.
+#
+# Pinned to the one file, not to `/.claude/skills/harness/bin/`. That directory holds
+# every test file and hook script in the repo; owning it would put the owner in the
+# review path for the majority of agent PRs, which is the friction this file is trying
+# not to spend.
+/.claude/skills/harness/bin/run-unit-tests.sh  @mruangutai
+
+# NOT OWNED, deliberately:
+#
+#   .harness/team-config.yaml — org data, not part of the CI enforcement chain. Nothing
+#   in it can stop a test from running or a workflow step from executing, and it is
+#   edited routinely by agents during normal feature work. Owning it would buy no
+#   guard-chain coverage and would tax ordinary traffic.
+#
+#   The other bin/ scripts named in DEC-174 (check-domain.sh, bash-write-guard.sh,
+#   validate-digest.py, check-state.sh, check-docs.sh) — these are guarded by DEC-174's
+#   human-reads-the-diff carve-out, which already forbids changing them through an
+#   automated team run. Adding them here would be a second lock on a door that is
+#   already bolted, paid for in review latency on every PR that touches a hook.
