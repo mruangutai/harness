@@ -5306,9 +5306,6 @@ entry said permanent; that was wrong and untested. Four live features still carr
 INV-3/4/5 must keep working for them. Once they ship it can go, and shipped plans stop being parsed
 at all — verified: INV-3/4/5 report 0 findings across the five shipped features today.
 
-<!-- stale: "30 leaves ~12% headroom" -->
-<!-- stale: "The budget is PER TASK, 30 machine-field lines" -->
-
 **The budget is PER TASK, 50 machine-field lines, and the asymmetry against every peer is
 deliberate.** *Amended: this entry first said 30, derived from the per-PLAN MEANS 11.5 / 21.2 /
 26.7 / 19.9 with "~12% headroom". The budget is enforced per TASK, so a mean was the wrong

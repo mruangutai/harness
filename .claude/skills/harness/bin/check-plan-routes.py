@@ -255,9 +255,11 @@ def process_task(tid, body, findings):
 # swallows the rest of the section and reports 199, 246 or 251 depending on where it gives
 # up. Two reviewers and I produced three different numbers from the same file.
 #
-# So no distribution is quoted here. A number nobody can reproduce is not evidence, and
-# citing one is how "derived, not picked" becomes a costume. The two anchors are enough
-# to place the cap and they are the only figures that survived independent check.
+# So no distribution of the ENFORCED metric is quoted here. A number nobody can reproduce
+# is not evidence, and citing one is how "derived, not picked" becomes a costume. The two
+# anchors are the only figures that survived independent check, and they are enough to
+# place the cap. The one measurement quoted below is of the REJECTED alternative, kept
+# because it is what disqualified that alternative -- not offered as a warrant for 50.
 #
 # THE HONEST CAVEAT: `find .harness -name plan.yaml` returns ZERO. This budget has never
 # been applied to a real file of the format it governs, and the anchors come from
@@ -267,8 +269,9 @@ def process_task(tid, body, findings):
 # because DEC-154's read-vs-match test does arguably reach it — the lead carries it
 # VERBATIM to the member. It was measured and rejected: without `verify:` the distribution
 # is median 11, max 21, and the per-field maxima across ALL eight plans sum to 23
-# (files 3, traces 12, depends_on 8) against a cap of 30. A task cannot reach 31 without
-# ~25 list entries, a shape nobody has ever written. That is not a budget, it is a cap
+# (files 3, traces 12, depends_on 8) -- against ANY cap at or above 30, and this one is
+# 50. A task could not reach even 31 without ~25 list entries, a shape nobody has ever
+# written. That is not a budget, it is a cap
 # that cannot fire — and a threshold made unreachable is how a gate passes while the
 # behaviour it names is gone.
 #

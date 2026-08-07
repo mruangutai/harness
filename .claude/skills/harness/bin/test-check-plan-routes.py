@@ -858,8 +858,10 @@ def case_24():
     for label, body in (("a_sequence", "- a\n- b\n"),
                         ("a_bare_scalar", "shipped\n"),
                         ("status_is_a_list", "status:\n  - shipped\n"),
-                        # A MAPPING WITH NO `status:` KEY AT ALL. The only shape reaching
-                        # `bool(token)` -- `"".split()` is `[]`, so without the guard
+                        # A MAPPING WITH NO `status:` KEY AT ALL. Two shapes REACH
+                        # `bool(token)`; this is the only one for which the guard is
+                        # LOAD-BEARING -- the distinction the whole case exists to draw.
+                        # Here `"".split()` is `[]` -- `"".split()` is `[]`, so without the guard
                         # `token[0]` raises IndexError and the run dies with empty stdout
                         # and exit 1, the code a real violation uses.
                         #
