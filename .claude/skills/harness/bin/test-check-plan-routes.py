@@ -769,7 +769,11 @@ def case_23():
         "    traces: [" + ", ".join(f"REQ-{i:03d}" for i in range(N_TRACES)) + "]\n"
         "    depends_on: [" + ", ".join(f"T-{i:02d}" for i in range(N_DEPS)) + "]\n"
         "    files:\n" + "".join(f'      - "{GRANTED_PATH}"\n' for _ in range(N_FILES)) +
-        "    verify: |\n" + "".join(f"      echo {i}\n" for i in range(N_VERIFY))
+        "    verify: |\n" + "".join(f"      echo {i}\n" for i in range(N_VERIFY)) +
+        # REQUIRED by load_plan, and deliberately NOT in BUDGETED_FIELDS — it is the
+        # dispatch prompt, which is READ. Its length must not move EXPECTED, so a long
+        # one here doubles as the assertion that it stays excluded from the count.
+        "    intent: |\n" + "".join(f"      line {i}\n" for i in range(12))
     )
     with tempfile.TemporaryDirectory() as td:
         fd = os.path.join(td, ".harness", "features", "FEAT-A")
@@ -853,7 +857,13 @@ def case_24():
     # the feature, so the summary line is the assertion that closes the fail-open half.
     for label, body in (("a_sequence", "- a\n- b\n"),
                         ("a_bare_scalar", "shipped\n"),
-                        ("status_is_a_list", "status:\n  - shipped\n")):
+                        ("status_is_a_list", "status:\n  - shipped\n"),
+                        # A MAPPING WITH NO `status:` KEY AT ALL. This is the only shape
+                        # that reaches `bool(token)` -- `"".split()` is `[]`, so without
+                        # the guard `token[0]` raises IndexError and the run dies with
+                        # empty stdout and exit 1, the code a real violation uses. The
+                        # four shapes above all fail earlier, at the isinstance check.
+                        ("a_mapping_with_no_status", "feature_id: FEAT-A\n")):
         with tempfile.TemporaryDirectory() as td:
             fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
             with open(os.path.join(fd, "feature.yaml"), "w") as f:

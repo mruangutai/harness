@@ -274,7 +274,13 @@ class PlanSchemaError(YamlParseError):
 # template that can drift — which is exactly how issue #147 happened: the template
 # prescribed one `files:` shape while the parser accepted three, and nobody could
 # say which was right.
-REQUIRED_TASK_FIELDS = ("id", "title", "change_type", "execution_mode", "files", "verify")
+# `intent:` IS REQUIRED, and leaving it out of the first draft was exactly backwards.
+# It is the ONE field the team runner dispatches on (`teams/build.yaml`,
+# `prompt: from_task_intent`) and the one `gh-sync.py:173` puts in an issue body. Without
+# it here, a plan carrying an empty or absent intent loaded CLEAN, got signed, and opened
+# empty-bodied sub-issues. The least-validated field was the most-read one.
+REQUIRED_TASK_FIELDS = ("id", "title", "change_type", "execution_mode", "files", "verify",
+                        "intent")
 LEGAL_EXECUTION_MODES = ("team", "main-session-direct")
 
 

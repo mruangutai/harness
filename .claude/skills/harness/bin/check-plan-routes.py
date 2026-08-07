@@ -242,13 +242,26 @@ def process_task(tid, body, findings):
 # headroom over the worst", computed from the per-PLAN MEANS (11.5 / 21.2 / 26.7 / 19.9).
 # The budget is enforced PER TASK, so a mean was the wrong statistic and review caught it.
 #
-# The real per-task distribution over the 36 tasks in the four live plans:
+# WHAT IS ACTUALLY MEASURED, AND WHAT IS NOT. Three independent hand-conversions of the
+# 36 tasks in the four live plans agree on two anchors and on nothing else worth quoting:
 #
-#   median 22.5    p75 27    p90 42    max 209
-#   over 30: 5 tasks — 209, 89, 48, 42, 31
+#   48   the largest task that is a task
+#   89   the smallest task that is an inlined script
 #
-# 30 would have exited 1 on five signed tasks nobody intends to shorten, which is the
-# noise that kept issue #133's gate switched off in the first place.
+# An earlier draft of this comment cited "max 209" and "over 30: 5 tasks". Both were
+# wrong, and the cause is worth recording because it is a trap for the next person who
+# measures this. FEAT-08 T-12's `verify:` is five physical lines (748-752), terminated by
+# a `## ` heading at 753 — NOT a `key:` line. An extractor that scans for the next key
+# swallows the rest of the section and reports 199, 246 or 251 depending on where it gives
+# up. Two reviewers and I produced three different numbers from the same file.
+#
+# So no distribution is quoted here. A number nobody can reproduce is not evidence, and
+# citing one is how "derived, not picked" becomes a costume. The two anchors are enough
+# to place the cap and they are the only figures that survived independent check.
+#
+# THE HONEST CAVEAT: `find .harness -name plan.yaml` returns ZERO. This budget has never
+# been applied to a real file of the format it governs, and the anchors come from
+# converting a different format by hand. The first migrated plan is what will settle it.
 #
 # WHY 50, AND WHY `verify:` STAYS COUNTED. Excluding `verify:` was the tidier-looking fix,
 # because DEC-154's read-vs-match test does arguably reach it — the lead carries it
@@ -259,10 +272,8 @@ def process_task(tid, body, findings):
 # that cannot fire — and a threshold made unreachable is how a gate passes while the
 # behaviour it names is gone.
 #
-# So the cap sits above the largest task that is a task (48) and below the two that are
-# inlined SCRIPTS: 89, and 209 whose `verify:` alone is 199 lines. Those two are the
-# actual subject. A 199-line verify block belongs in a file the plan names, not in the
-# contract, and at 50 the gate says so.
+# So the cap sits between the two anchors: above 48, below 89. An inlined script belongs
+# in a file the plan NAMES, not in the contract, and at 50 the gate says so.
 MACHINE_LINES_PER_TASK = 50
 
 # Fields whose value is MATCHED rather than read, and therefore counted against the budget.
