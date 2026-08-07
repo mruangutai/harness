@@ -5268,8 +5268,9 @@ All nine are in FEAT-06. This one matters more than the backticks, because nothi
 like decoration — the author wrote a sentence, and a sentence containing a colon is not a scalar.
 
 **The 36th block loads cleanly, and it is the entry's own thesis appearing in the corpus.**
-`FEAT-06` T-08 uses a block sequence for `files:`, folded `>` scalars, no backticks, and an
-em-dash with no colon after it. Nothing distinguishes it except that its author happened to write
+`FEAT-06` T-08 uses a block sequence for `files:`, folded `>` scalars, and an em-dash with no
+colon after it. It is not backtick-free — it carries 52 of them — and that is the point: the rule
+is not "no backticks", it is that no VALUE BEGINS with one, which is what the loader chokes on. Nothing distinguishes it except that its author happened to write
 YAML. Three earlier drafts of this paragraph asserted it does not exist. Meanwhile `intent:` and `verify:` already use folded `>` scalars in 64 places: the authors
 were writing YAML-shaped values all along, and only the markdown-decorated fields broke.
 `SPEC.md:1701-1702`, the NORMATIVE example, was itself illegal YAML — three keys on one line — and
@@ -5308,7 +5309,8 @@ first — and the real need behind it, one task with two routes, is TWO TASKS.
 **Forward-only, and shipped plans are never route-checked again.** Checking them was the default
 behaviour of a glob and never a decision: the work shipped, the routes were taken, the plan will not
 be re-executed. Measured before: 36 violations across 8 plans — 27 `no files: line`, 8 the
-pre-FEAT-06 prose shape, **0 routing defects**, all in delivered work. That noise is why issue #133's
+pre-FEAT-06 prose shape, and **1 real routing defect**, which is FEAT-08 T-04's `**SPLIT` and is
+live work, not delivered. So 35 of the 36 were format noise in shipped plans. That noise is why issue #133's
 gate could never be switched on. After: **1**, on live work, and it is FEAT-08 T-04's `**SPLIT`.
 `status:` is a BORROWED signal for era — it means "how far along" — and it is used deliberately
 because no `feature.yaml` carries a `schema_version`. A feature that cannot be classified is
