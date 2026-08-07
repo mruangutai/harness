@@ -5254,8 +5254,8 @@ value may contain, and nothing reconciled them.
 `templates/PLAN.md` prescribed it and the parsers were written to match. It was convention, never a
 ruling — which is exactly why issue #147 could be filed and could not be answered.
 
-**Measured, not argued.** `harness_yaml.load_str` over every task block in the four live plans fails
-**on every one of its 36 task blocks**. 26 because `files:` begins with a backtick, a reserved YAML indicator; 4 the same
+**Measured, not argued.** `harness_yaml.load_str` fails across the 36 task blocks of the four live
+plans. 26 fail because `files:` begins with a backtick, a reserved YAML indicator; 4 the same
 on `verify:`; one — `execution_mode: **SPLIT` at `FEAT-08/PLAN.md:306` — raises *"while scanning an
 alias"*. Meanwhile `intent:` and `verify:` already use folded `>` scalars in 64 places: the authors
 were writing YAML-shaped values all along, and only the markdown-decorated fields broke.
