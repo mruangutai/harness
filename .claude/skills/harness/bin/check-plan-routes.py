@@ -241,7 +241,32 @@ def process_task(tid, body, findings):
 # carries. feature.yaml (200), STATE.md (120), handoff (60) and CLAUDE.md (80) all govern
 # files whose content does not grow with task count. A flat cap here would be a cap on how
 # many tasks a feature may have, which is a scoping decision wearing a budget's clothes.
-MACHINE_LINES_PER_TASK = 30
+# DERIVED PER TASK, and the first draft was not. That draft said 30, justified as "~12%
+# headroom over the worst", computed from the per-PLAN MEANS (11.5 / 21.2 / 26.7 / 19.9).
+# The budget is enforced PER TASK, so a mean was the wrong statistic and review caught it.
+#
+# The real per-task distribution over the 36 tasks in the four live plans:
+#
+#   median 22.5    p75 27    p90 42    max 209
+#   over 30: 5 tasks — 209, 89, 48, 42, 31
+#
+# 30 would have exited 1 on five signed tasks nobody intends to shorten, which is the
+# noise that kept issue #133's gate switched off in the first place.
+#
+# WHY 50, AND WHY `verify:` STAYS COUNTED. Excluding `verify:` was the tidier-looking fix,
+# because DEC-154's read-vs-match test does arguably reach it — the lead carries it
+# VERBATIM to the member. It was measured and rejected: without `verify:` the distribution
+# is median 11, max 21, and the per-field maxima across ALL eight plans sum to 23
+# (files 3, traces 12, depends_on 8) against a cap of 30. A task cannot reach 31 without
+# ~25 list entries, a shape nobody has ever written. That is not a budget, it is a cap
+# that cannot fire — and a threshold made unreachable is how a gate passes while the
+# behaviour it names is gone.
+#
+# So the cap sits above the largest task that is a task (48) and below the two that are
+# inlined SCRIPTS: 89, and 209 whose `verify:` alone is 199 lines. Those two are the
+# actual subject. A 199-line verify block belongs in a file the plan names, not in the
+# contract, and at 50 the gate says so.
+MACHINE_LINES_PER_TASK = 50
 
 # Fields whose value is MATCHED rather than read, and therefore counted against the budget.
 # `intent:` is excluded on purpose: it is the literal dispatch prompt and it is READ, which
@@ -356,17 +381,38 @@ def _is_shipped(feature_dir):
     feature.yaml means NOT shipped — a feature we cannot classify is checked rather than
     skipped, because the failure that matters is a live plan going unexamined, not an old
     one being examined twice.
+
+    EVERY EXIT FROM THIS FUNCTION IS `False` OR A MEMBERSHIP TEST. It never raises, and
+    that is the whole point: the first draft put the `return` OUTSIDE its own `try:`, so a
+    feature.yaml holding a YAML sequence reached `doc.get` on a list and raised
+    AttributeError out of discover_plans(). The process then died with **exit 1 — the code
+    that means "violations found"** — after examining nothing, printing no summary, and
+    naming no feature. One malformed file anywhere under .harness/features/ silently
+    converted the whole checker into a liar.
+
+    That is the same defect this change fixes in passing for check-state.sh (`NameError:
+    cj`) and the same one harness_yaml.manifest_domains records as M-02. Three instances,
+    one shape: a crash exits 1, and 1 is already spoken for. check-state.sh:160-168 is the
+    model — `isinstance(doc, dict)` is checked before anything reads a key off it.
     """
     fy = os.path.join(feature_dir, "feature.yaml")
     if not os.path.isfile(fy):
         return False
     try:
         import harness_yaml
-        doc = harness_yaml.load_file(fy) or {}
+        doc = harness_yaml.load_file(fy)
     except Exception:
         return False
-    return str((doc or {}).get("status", "")).split()[0:1] and \
-        str(doc.get("status", "")).split()[0] in SHIPPED_STATUSES
+    # `or {}` is NOT enough here. load_file returns whatever the document is, and a
+    # non-empty list is truthy — it would survive `or {}` and then fail on `.get`.
+    if not isinstance(doc, dict):
+        return False
+    # `status: shipped  # with a trailing comment` is the live corpus's shape (FEAT-02,
+    # FEAT-03, FEAT-04, FEAT-05 all carry one), so take the first whitespace-delimited
+    # token. A status that is a list or a mapping stringifies to something that is not in
+    # SHIPPED_STATUSES, which is the fail-CHECKED direction.
+    token = str(doc.get("status", "")).split()
+    return bool(token) and token[0] in SHIPPED_STATUSES
 
 
 def discover_plans():

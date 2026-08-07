@@ -19,6 +19,21 @@ SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
 
 GRANTED_PATH = ".claude/skills/harness/bin/check-domain.sh"  # granted to two agents
+
+
+def cpr():
+    """The module UNDER TEST, loaded from SCRIPT — never from the repo copy.
+
+    SCRIPT honours CHECK_PLAN_ROUTES_BIN, so during mutation testing the two are
+    DIFFERENT FILES. An earlier case in this suite read the repo copy while the override
+    pointed at a mutant and therefore reported ok against the broken build; anything here
+    that needs a production constant must come through this function.
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_cpr_under_test", SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 UNGRANTED_PATH = "some/totally/nonexistent/zzz-surface.md"  # granted to nobody
 CASE17_PATH = ".harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.md"
 
@@ -647,13 +662,17 @@ def case_23():
               r.returncode == 2 and "does not load" in r.stderr,
               f"exit {r.returncode}: {r.stderr[:200]!r}")
 
-    # The per-task machine-field budget (DEC-182).
+    # The per-task machine-field budget (DEC-182). READ THE CONSTANT rather than writing
+    # 30 or 50 into three assertions: review caught the first number being wrong, and a
+    # test that hard-codes it fails for the right reason and the wrong cause the next time
+    # it moves. `cap` here is production's own value.
+    cap = cpr().MACHINE_LINES_PER_TASK
+
     with tempfile.TemporaryDirectory() as td:
-        fat = ", ".join(f'"src/f{i}.py"' for i in range(40))
-        _yaml_project(td, files=fat)
+        _yaml_project(td, files=", ".join(f'"src/f{i}.py"' for i in range(cap + 40)))
         r = run(project_dir=td)
         check("case_23e_the_per_task_machine_budget_fires",
-              "machine-field lines — budget is 30" in r.stdout,
+              f"machine-field lines — budget is {cap}" in r.stdout,
               f"exit {r.returncode}: {r.stdout[:240]!r}")
 
     # ...and does NOT fire on a normal task, or it is a cap on having tasks at all.
@@ -661,7 +680,80 @@ def case_23():
         _yaml_project(td)
         r = run(project_dir=td)
         check("case_23f_the_budget_stays_silent_on_a_normal_task",
-              "budget is 30" not in r.stdout, r.stdout[:200])
+              f"budget is {cap}" not in r.stdout, r.stdout[:200])
+
+    # THE BUDGET MUST GATE, NOT MERELY PRINT. `violations += 1` could be deleted with the
+    # suite green, because case_23e asserts on stdout alone and every sibling in this file
+    # asserts on the exit code. A finding that does not change the exit status is a
+    # comment: check-plan-routes.py's whole contract is that CI reads its exit code.
+    #
+    # The fixture's files are GRANTED, so a non-zero exit can only come from the budget.
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, files=", ".join(f'"{GRANTED_PATH}"' for _ in range(cap + 40)))
+        r = run(project_dir=td)
+        check("case_23h_an_over_budget_task_sets_the_EXIT_CODE_not_just_stdout",
+              r.returncode == 1 and "ungranted" not in r.stdout,
+              f"exit {r.returncode}: {r.stdout[:240]!r}")
+
+    # THE BOUNDARY, both sides, ONE LINE APART. `>` -> `>=` survived every earlier
+    # assertion because they all crossed the cap by 40, and in the real corpus FEAT-06
+    # T-01 measures exactly AT the cap — the one value where the two operators disagree.
+    #
+    # Tuned with `traces:`, not `files:`. Both count identically against the budget, but
+    # every files entry costs a check-domain.sh subprocess: a search over `files:` ran 110
+    # of them and this case timed out at two minutes. `traces:` is never resolved.
+    #
+    # THREE RUNS, NO SEARCH. Run 1 goes far over and REPORTS its own total, which gives
+    # the fixture's fixed overhead exactly. Runs 2 and 3 then sit on the boundary. Reading
+    # the overhead beats assuming it: the fixture gains a field and an assumed constant
+    # silently stops testing the boundary while still passing.
+    def _traces(n):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td)
+            p = os.path.join(fd, "plan.yaml")
+            src = re.sub(r"^    traces:.*$", "", open(p).read(), flags=re.M)
+            with open(p, "w") as f:
+                f.write(src.rstrip("\n") +
+                        "\n    traces: [" + ", ".join(f"REQ-{i:02d}"
+                                                      for i in range(n)) + "]\n")
+            return run(project_dir=td).stdout
+
+    probe = cap + 40
+    m = re.search(r"(\d+) machine-field lines", _traces(probe))
+    if not m:
+        check("case_23i_the_budget_boundary_is_exact", False,
+              "probe run did not report a total; boundary untested")
+    else:
+        overhead = int(m.group(1)) - probe          # everything that is not `traces:`
+        at, over = cap - overhead, cap - overhead + 1
+        silent, fires = _traces(at), _traces(over)
+        check("case_23i_the_budget_boundary_is_exact",
+              f"budget is {cap}" not in silent and f"budget is {cap}" in fires,
+              f"overhead={overhead}; {at} traces (=={cap}) must be silent, "
+              f"{over} (=={cap + 1}) must fire")
+
+    # EVERY BUDGETED FIELD COUNTS. Dropping "verify" from BUDGETED_FIELDS survived the
+    # suite, and `verify:` is what actually blows the budget in the real corpus — the two
+    # tasks this cap exists to catch are 89 and 209 lines, of which 69 and 199 are verify.
+    # A budget that silently stops counting its own dominant term is not a budget.
+    for field, filler in (("verify", "verify: |\n" + "".join(
+                              f"      echo {i}\n" for i in range(cap + 40))),
+                          ("traces", "traces: [" + ", ".join(
+                              f"REQ-{i:02d}" for i in range(cap + 40)) + "]"),
+                          ("depends_on", "depends_on: [" + ", ".join(
+                              f"T-{i:02d}" for i in range(cap + 40)) + "]")):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td)
+            p = os.path.join(fd, "plan.yaml")
+            src = open(p).read()
+            src = re.sub(rf"^    {field}:.*?(?=^    [a-z_]+:|\Z)", "",
+                         src, flags=re.M | re.S)
+            with open(p, "w") as f:
+                f.write(src.rstrip("\n") + "\n    " + filler.replace("\n", "\n    ") + "\n")
+            r = run(project_dir=td)
+            check(f"case_23j_{field}_counts_against_the_budget",
+                  f"budget is {cap}" in r.stdout,
+                  f"exit {r.returncode}: {r.stdout[:200]!r}")
 
     # A feature carrying BOTH files is a half-finished migration, refused rather than
     # silently preferred — "which is authoritative" is the ambiguity #147 is about.
@@ -708,6 +800,34 @@ def case_24():
         r = run(project_dir=td)              # no feature.yaml at all
         check("case_24_no_feature_yaml_is_checked_not_skipped",
               "ungranted (NOBODY)" in r.stdout, r.stdout[:200])
+
+    # A feature.yaml THAT PARSES BUT IS NOT A MAPPING. This is the case the four statuses
+    # above cannot reach, and it was a live crash: the first draft put `_is_shipped`'s
+    # `return` outside its own `try:`, so `doc.get` ran on a list and raised
+    # AttributeError out of discover_plans(). The process died with EXIT 1 — the code that
+    # means "violations found" — having examined nothing and printed no summary.
+    #
+    # ASSERT ON ALL THREE, because each alone is satisfied by the bug:
+    #   exit != 1 ......... no. The crash exits 1, and so does a real violation.
+    #   stderr is clean ... no on its own. It only says "did not crash", not "did the work".
+    #   the summary line ... this is the one that says the checker REACHED the feature.
+    # A `try:` wrapped around the whole body would silence the traceback and still skip
+    # the feature, so the summary line is the assertion that closes the fail-open half.
+    for label, body in (("a_sequence", "- a\n- b\n"),
+                        ("a_bare_scalar", "shipped\n"),
+                        ("status_is_a_list", "status:\n  - shipped\n")):
+        with tempfile.TemporaryDirectory() as td:
+            fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+            with open(os.path.join(fd, "feature.yaml"), "w") as f:
+                f.write(body)
+            r = run(project_dir=td)
+            ok = ("Traceback" not in r.stderr
+                  and "ungranted (NOBODY)" in r.stdout
+                  and "1 violation(s) across 1 plan(s)" in r.stdout)
+            results.append(ok)
+            check(f"case_24_feature_yaml_{label}_is_checked_not_crashed",
+                  ok, f"exit {r.returncode}, stderr={r.stderr[:120]!r}, "
+                      f"stdout={r.stdout[-120:]!r}")
     return all(results)
 
 
