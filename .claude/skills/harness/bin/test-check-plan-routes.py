@@ -732,28 +732,66 @@ def case_23():
               f"overhead={overhead}; {at} traces (=={cap}) must be silent, "
               f"{over} (=={cap + 1}) must fire")
 
-    # EVERY BUDGETED FIELD COUNTS. Dropping "verify" from BUDGETED_FIELDS survived the
-    # suite, and `verify:` is what actually blows the budget in the real corpus — the two
-    # tasks this cap exists to catch are 89 and 209 lines, of which 69 and 199 are verify.
-    # A budget that silently stops counting its own dominant term is not a budget.
-    for field, filler in (("verify", "verify: |\n" + "".join(
-                              f"      echo {i}\n" for i in range(cap + 40))),
-                          ("traces", "traces: [" + ", ".join(
-                              f"REQ-{i:02d}" for i in range(cap + 40)) + "]"),
-                          ("depends_on", "depends_on: [" + ", ".join(
-                              f"T-{i:02d}" for i in range(cap + 40)) + "]")):
-        with tempfile.TemporaryDirectory() as td:
-            fd = _yaml_project(td)
-            p = os.path.join(fd, "plan.yaml")
-            src = open(p).read()
-            src = re.sub(rf"^    {field}:.*?(?=^    [a-z_]+:|\Z)", "",
-                         src, flags=re.M | re.S)
-            with open(p, "w") as f:
-                f.write(src.rstrip("\n") + "\n    " + filler.replace("\n", "\n    ") + "\n")
-            r = run(project_dir=td)
-            check(f"case_23j_{field}_counts_against_the_budget",
-                  f"budget is {cap}" in r.stdout,
-                  f"exit {r.returncode}: {r.stdout[:200]!r}")
+    # EVERY BUDGETED FIELD COUNTS -- and the first draft of this comment said that while
+    # covering 3 of the 11. Review dropped `title`, `id`, `status`, `change_type`,
+    # `execution_mode`, `execution_agent` and `execution_reason` from BUDGETED_FIELDS one
+    # at a time and the suite stayed ALL PASS on every one. A comment claiming coverage it
+    # does not have is worse than no comment: it tells the next reader not to look.
+    #
+    # So the loop is generated FROM BUDGETED_FIELDS itself. A field added to production and
+    # not to this list can no longer go unexercised, because there is no list to forget.
+    # THE EXACT TOTAL, so every budgeted field is pinned by one assertion.
+    #
+    # Present-vs-absent was the first design and it cannot work: six of the eleven fields
+    # are REQUIRED, so removing one makes load_plan reject the plan and no total is printed
+    # at all. Measured -- files, verify, change_type, execution_mode, title and id all came
+    # back `without=None`. A per-field drop test can only ever reach the five optional ones.
+    #
+    # So the fixture carries a KNOWN size for every field and the reported total is asserted
+    # exactly. Drop any field from BUDGETED_FIELDS, or break any arm of the accumulator, and
+    # the number moves. `status: true` is a BOOL and `execution_reason: ""` is EMPTY on
+    # purpose -- those are the `elif v is not None` and `or 1` arms, both of which survived
+    # as mutants until this case existed.
+    N_TRACES, N_FILES, N_DEPS, N_VERIFY = cap + 20, 3, 2, 4
+    EXPECTED = (N_FILES + N_VERIFY + N_TRACES + N_DEPS   # the four sized fields
+                + 7)                                     # id title change_type
+    #                                                      execution_mode execution_agent
+    #                                                      execution_reason status
+    plan = (
+        "schema: plan/1\nfeature: FEAT-A\ntasks:\n"
+        "  - id: T-01\n"
+        "    title: a title\n"
+        "    change_type: logic\n"
+        "    execution_mode: team\n"
+        "    execution_agent: harness-backend-dev\n"
+        '    execution_reason: ""\n'
+        "    status: true\n"
+        "    traces: [" + ", ".join(f"REQ-{i:03d}" for i in range(N_TRACES)) + "]\n"
+        "    depends_on: [" + ", ".join(f"T-{i:02d}" for i in range(N_DEPS)) + "]\n"
+        "    files:\n" + "".join(f'      - "{GRANTED_PATH}"\n' for _ in range(N_FILES)) +
+        "    verify: |\n" + "".join(f"      echo {i}\n" for i in range(N_VERIFY))
+    )
+    with tempfile.TemporaryDirectory() as td:
+        fd = os.path.join(td, ".harness", "features", "FEAT-A")
+        os.makedirs(fd)
+        shutil.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
+                     os.path.join(td, ".harness", "team-config.yaml"))
+        with open(os.path.join(fd, "plan.yaml"), "w") as f:
+            f.write(plan)
+        r = run(project_dir=td)
+        m = re.search(r"(\d+) machine-field lines", r.stdout)
+        got = int(m.group(1)) if m else None
+        check("case_23j_every_budgeted_field_counts_exactly_once", got == EXPECTED,
+              f"reported {got}, expected {EXPECTED} "
+              f"({N_FILES} files + {N_VERIFY} verify + {N_TRACES} traces + {N_DEPS} "
+              f"depends_on + 7 scalars): {r.stdout[:160]!r}")
+
+    # ...and the field list the case is written against has not drifted from production.
+    check("case_23j2_BUDGETED_FIELDS_is_still_the_eleven_this_case_pins",
+          set(cpr().BUDGETED_FIELDS) == {"files", "verify", "traces", "depends_on",
+                                         "change_type", "execution_mode", "execution_agent",
+                                         "execution_reason", "status", "id", "title"},
+          f"BUDGETED_FIELDS = {cpr().BUDGETED_FIELDS}")
 
     # A feature carrying BOTH files is a half-finished migration, refused rather than
     # silently preferred — "which is authoritative" is the ambiguity #147 is about.

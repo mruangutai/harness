@@ -231,10 +231,7 @@ def process_task(tid, body, findings):
     return violations
 
 
-# Machine-field lines allowed per task, on the plan.yaml path (DEC-182). DERIVED, not
-# picked, the way DEC-181 derived CLAUDE.md's 80: measured machine+verify lines per task
-# across the four live plans were 11.5 (FEAT-09), 21.2 (FEAT-06), 26.7 (FEAT-07) and 19.9
-# (FEAT-08). 30 leaves ~12% headroom over the worst.
+# Machine-field lines allowed per task, on the plan.yaml path (DEC-182).
 #
 # PER TASK, NOT PER FILE, and that asymmetry against every peer budget is deliberate. A
 # plan is a LIST — its length tracks how many tasks a feature has, not how much fat it
