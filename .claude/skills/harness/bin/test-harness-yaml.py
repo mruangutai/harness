@@ -542,10 +542,15 @@ def test_load_plan_rejects_the_shapes_that_broke_PLAN_md():
     """The three failures issue #147 was filed about, now unrepresentable.
 
     Measured on the pre-change tree: `safe_load` fails on 35 of the 36 task blocks in
-    the four live plans. 26 carry a `files:` that begins with a backtick —
-    markdown decoration inside a data field — and one was `execution_mode: **SPLIT`,
-    which YAML reads as an alias. Each case below is one of those, and each must raise
-    a YamlParseError subclass rather than silently resolving something nobody wrote.
+    the four live plans. 26 carry a `files:` that begins with a backtick — markdown
+    decoration inside a data field — and one of those 26 is ALSO `execution_mode:
+    **SPLIT`, which YAML reads as an alias; it is the same block, not a 27th. The
+    other 9 put a second `": "` inside a plain scalar via `execution_mode: <mode> —
+    reason: ...`.
+
+    The cases below are NOT a census of those 35. Two are drawn from the corpus; the
+    rest are shapes the loader must also refuse. Each must raise a YamlParseError
+    subclass rather than silently resolving something nobody wrote.
     """
     import harness_yaml as hy
 

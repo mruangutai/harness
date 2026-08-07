@@ -291,8 +291,10 @@ def load_plan(path):
     YAML, so three scripts hand-rolled regexes against it and each invented its own
     rule for what a value may contain. Measured before the change: `safe_load` fails
     on 35 of the 36 task blocks in the four live plans — 26 because
-    `files:` began with a backtick, which is a reserved YAML indicator, and one
-    because `execution_mode: **SPLIT` reads as an alias. Those are not style
+    `files:` began with a backtick, which is a reserved YAML indicator (one of
+    those is ALSO `execution_mode: **SPLIT`, which reads as an alias — the same
+    block, not a 27th), and 9 because `execution_mode: <mode> — reason: ...`
+    puts a second `": "` inside a plain scalar. Those are not style
     problems; they are the format inviting decoration into data fields.
 
     A FENCED ```yaml BLOCK INSIDE MARKDOWN WAS CONSIDERED AND REFUSED. It is the
