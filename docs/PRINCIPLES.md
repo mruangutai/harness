@@ -13,11 +13,10 @@ is for.
 
 This document is the constitution. It states each rule together with its reasoning,
 so a future reader can tell when a rule has outlived the conditions that justified
-it. It is amended, not appended: when a principle proves wrong, change it and record
-why. Design records ("Design NNNN") live as DEC entries in `docs/harness/DECISIONS.md` —
-enter through `docs/harness/DECISIONS-INDEX.md`; that file is also where the harness
-records its own build decisions, and where the two differ, this constitution governs
-intent (operator ruling, 2026-08-08, effort #181 ticket #191).
+it. When a principle proves wrong, rewrite the rule. The history of each change lives
+in git and in `docs/harness/DECISIONS.md` (enter through `DECISIONS-INDEX.md`), never
+in amendment notes inside this document. Where this constitution and the decision
+record differ, the constitution governs intent.
 
 **What Harness is not.** It is not a framework installed into repositories — repos
 carry almost nothing of it. Its workers are not disposable — no anonymous, throwaway
@@ -26,11 +25,7 @@ grows must be earned by a real bottleneck, not designed in anticipation of one.
 
 **Naming.** The document stays plain; the flavor lives in the system. Workers take
 names from one well: jazz musicians — Duke, Basie, Miles, Nina, Trane — assigned when
-a seat is founded. *(Amended 2026-08-08, effort #181 ticket #192: the original wells
-were breads and Arabic male names — Abbas, Adam, Badr, Bakkar, Fino, Rye. The
-operator ruled a full renaming under one theme when the roster grew to cover every
-harness role; the six founding names are retired, their identities continuous under
-rule 10.)*
+a seat is founded.
 
 ## State
 
@@ -187,29 +182,15 @@ writes its own notes for tomorrow — never with silent termination, except when
 genuinely unavoidable. On waking, the compiler gives each seat purpose, memory, and
 credit for what its past work achieved.
 
-**The design seat is the first seat.** The role that turns the operator's intent into
-specified tasks — and reviews landings — is itself a named seat inside the factory,
-with design memory and doctrine accumulating in the store like everyone else's. The
-starting roster is deliberately minimal — the design seat plus **one builder**, until
-the full path — dispatch, build, verify, land — works end to end — and it is a
-**starting point, not an endpoint**. Beside the build roster sit seats of a
-different kind: **management seats** (Abbas, Adam), founded by the operator to
-extend the operator's own direction — orchestration, never production; they manage
-the floor, speak to seats on the operator's behalf, and build nothing. The roster
-stands at six: management Abbas and Adam, design Badr and Bakkar, builders Fino and
-Rye. Specialization is excavated from experience, never designed up front — the
-paired seats begin as peers, and their charters diverge only as their records do.
-*(Amended 2026-08-06, Design 0002 = DEC-185: the original text fixed the roster with no place
-for a management seat; the operator ruled the minimal roster was a starting point,
-not an endpoint. Amended 2026-08-07: the operator founded Adam, Bakkar, and Rye
-ahead of demonstrated queue pressure — staffing ahead of planned growth, with the
-duplicate-seat pairs deliberately undifferentiated until experience differentiates
-them. The build-roster clause of the bootstrap tripwire was consumed by this
-ruling; the autonomy clause stands. Amended 2026-08-08, effort #181 ticket #192: the
-operator ruled that seats wake into harness roles — every role carries a named seat,
-17 in all, renamed under the jazz well; the full roster and mapping are recorded in
-ticket #192's resolution. The main session is the operator's own desk, never a
-seat.)*
+**Every role carries a named seat.** A dispatch wakes a seat into a role. The role
+defines capability and rules; the seat carries the name, the memory, and the
+handoffs. The roster stands at 17 seats over the harness roles — the full mapping is
+recorded in effort #181, ticket #192. Two **management seats** (Duke, Basie) hold the
+orchestrator role: they extend the operator's own direction — orchestration, never
+production; they manage the floor, speak to seats on the operator's behalf, and build
+nothing. The main session is the operator's own desk, never a seat. Seat memory lives
+centralized in the factory repo, one directory per seat, with per-project experience
+under it. Specialization is excavated from experience, never designed up front.
 
 *Reasoning:* notes written by the one who holds the context preserve what actually
 mattered; an externally-generated summary preserves what an outsider guessed
@@ -324,20 +305,13 @@ work root is configurable for machine onboarding, but it must remain local scrat
 The first version of the factory is **hand-built by the operator and design partner**,
 outside the factory: store layout, ledger, context compiler v0, landing step. Its
 first dispatched tasks may be drawn from the factory's own reviewed backlog — real
-tickets, real gates. The original guard — the factory earns the right to work on
-itself only after it has shipped someone else's work — survives as a tripwire:
-**an outside project must ship before autonomy is granted.** *(The tripwire's
-build-roster clause was consumed 2026-08-07 when the operator founded Rye ahead of
-outside shipping — a recorded exception, not a deletion of the principle; the
-autonomy clause is untouched and no seat pulls work unattended.)*
+tickets, real gates. One tripwire guards this: **an outside project must ship before
+autonomy is granted.** No seat pulls work unattended before then.
 
 *Reasoning:* tooling whose first and only customer is itself tends to remain its only
 customer. A real task forces every seam — dispatch, briefing, gates, landing — to
-meet reality immediately — and a reviewed factory ticket does this as well as an
-outside one, so the guard moved from the first dispatch to the tripwire above.
-*(Amended 2026-08-06, Design 0002 = DEC-185: the first harvest produced a Harness backlog
-before any outside project was registered; the operator ruled Harness-first with the
-tripwire kept.)*
+meet reality immediately, and a reviewed factory ticket does this as well as an
+outside one. That is why the guard sits on autonomy, not on the first dispatch.
 
 ## Deliberately deferred
 

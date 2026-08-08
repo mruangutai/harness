@@ -5419,11 +5419,12 @@ ruling of 2026-08-08: GitHub Issues are the work ledger for that version.
 ## DEC-185 — Design 0002, reconstructed stub: the minimal roster is a starting point, and management seats exist
 
 **Reconstructed after the fact (2026-08-08), not a transcript** — same provenance and same operator
-ruling as DEC-184. This stub holds only what PRINCIPLES.md itself states.
+ruling as DEC-184, and the same 2026-08-08 no-amendment-notes rewrite applies: the text below is
+what PRINCIPLES.md recorded before that rewrite; git history holds the full lineage.
 
-What PRINCIPLES.md records of it (dated 2026-08-06 there): the original constitution text fixed the
+What PRINCIPLES.md recorded of it (dated 2026-08-06 there): the original constitution text fixed the
 roster with no place for a management seat; the operator ruled the minimal roster was a starting
 point, not an endpoint, founding management seats that orchestrate and never produce. The same
 ruling amended the Bootstrap section: the first harvest produced a Harness backlog before any
 outside project was registered, and the operator ruled Harness-first with the outside-ship tripwire
-kept (rule 10 and "Bootstrap", `docs/PRINCIPLES.md`).
+kept (pre-rewrite rule 10 and "Bootstrap" of `docs/PRINCIPLES.md`; git history holds the text).
