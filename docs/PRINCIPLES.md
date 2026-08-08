@@ -17,7 +17,7 @@ it. It is amended, not appended: when a principle proves wrong, change it and re
 why. Design records ("Design NNNN") live as DEC entries in `docs/harness/DECISIONS.md` —
 enter through `docs/harness/DECISIONS-INDEX.md`; that file is also where the harness
 records its own build decisions, and where the two differ, this constitution governs
-intent (operator ruling, 2026-08-08, effort #181 ticket #191).
+intent.
 
 **What Harness is not.** It is not a framework installed into repositories — repos
 carry almost nothing of it. Its workers are not disposable — no anonymous, throwaway
@@ -26,11 +26,10 @@ grows must be earned by a real bottleneck, not designed in anticipation of one.
 
 **Naming.** The document stays plain; the flavor lives in the system. Workers take
 names from one well: jazz musicians — Duke, Basie, Miles, Nina, Trane — assigned when
-a seat is founded. *(Amended 2026-08-08, effort #181 ticket #192: the original wells
-were breads and Arabic male names — Abbas, Adam, Badr, Bakkar, Fino, Rye. The
-operator ruled a full renaming under one theme when the roster grew to cover every
-harness role; the six founding names are retired, their identities continuous under
-rule 10.)*
+a seat is founded. *(Amended 2026-08-08: the original wells were breads and Arabic
+male names — Abbas, Adam, Badr, Bakkar, Fino, Rye. When the roster grew to cover
+every role, the operator renamed it whole under one well; the founding six are
+retired, their identities continuous under rule 10.)*
 
 ## State
 
@@ -193,23 +192,26 @@ with design memory and doctrine accumulating in the store like everyone else's. 
 starting roster is deliberately minimal — the design seat plus **one builder**, until
 the full path — dispatch, build, verify, land — works end to end — and it is a
 **starting point, not an endpoint**. Beside the build roster sit seats of a
-different kind: **management seats** (Abbas, Adam), founded by the operator to
+different kind: **management seats** (Duke, Basie), founded by the operator to
 extend the operator's own direction — orchestration, never production; they manage
-the floor, speak to seats on the operator's behalf, and build nothing. The roster
-stands at six: management Abbas and Adam, design Badr and Bakkar, builders Fino and
-Rye. Specialization is excavated from experience, never designed up front — the
-paired seats begin as peers, and their charters diverge only as their records do.
+the floor, speak to seats on the operator's behalf, and build nothing. A dispatch
+wakes a seat *into* a role: the role defines capability and rules; the seat carries
+the name, the memory, and the handoffs. The roster stands at seventeen — a named
+seat over every role in the org: management Duke and Basie at the orchestrator's
+desk; leads Miles, Mingus, and Monk; design Nina and Alice; Sarah, the voice;
+builders Bird, Trane, Sunra, Blakey, and Elvin; and the review panel — Ornette,
+Dizzy, Max, and Billie. The main session is the operator's own desk, never a seat.
+Specialization is excavated from experience, never designed up front — seats begin
+as peers within their tier, and their charters diverge only as their records do.
 *(Amended 2026-08-06, Design 0002 = DEC-185: the original text fixed the roster with no place
 for a management seat; the operator ruled the minimal roster was a starting point,
-not an endpoint. Amended 2026-08-07: the operator founded Adam, Bakkar, and Rye
-ahead of demonstrated queue pressure — staffing ahead of planned growth, with the
+not an endpoint. Amended 2026-08-07: the operator founded three seats ahead of
+demonstrated queue pressure — staffing ahead of planned growth, with the
 duplicate-seat pairs deliberately undifferentiated until experience differentiates
 them. The build-roster clause of the bootstrap tripwire was consumed by this
-ruling; the autonomy clause stands. Amended 2026-08-08, effort #181 ticket #192: the
-operator ruled that seats wake into harness roles — every role carries a named seat,
-17 in all, renamed under the jazz well; the full roster and mapping are recorded in
-ticket #192's resolution. The main session is the operator's own desk, never a
-seat.)*
+ruling; the autonomy clause stands. Amended 2026-08-08: the operator ruled that
+seats wake into roles — every harness role carries a named seat — and renamed the
+roster whole under the jazz well.)*
 
 *Reasoning:* notes written by the one who holds the context preserve what actually
 mattered; an externally-generated summary preserves what an outsider guessed
@@ -327,7 +329,7 @@ first dispatched tasks may be drawn from the factory's own reviewed backlog — 
 tickets, real gates. The original guard — the factory earns the right to work on
 itself only after it has shipped someone else's work — survives as a tripwire:
 **an outside project must ship before autonomy is granted.** *(The tripwire's
-build-roster clause was consumed 2026-08-07 when the operator founded Rye ahead of
+build-roster clause was consumed 2026-08-07 when the operator founded a second builder ahead of
 outside shipping — a recorded exception, not a deletion of the principle; the
 autonomy clause is untouched and no seat pulls work unattended.)*
 
