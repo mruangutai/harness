@@ -14,10 +14,9 @@ is for.
 This document is the constitution. It states each rule together with its reasoning,
 so a future reader can tell when a rule has outlived the conditions that justified
 it. It is amended, not appended: when a principle proves wrong, change it and record
-why. Design records ("Design NNNN") live as DEC entries in `docs/harness/DECISIONS.md` —
-enter through `docs/harness/DECISIONS-INDEX.md`; that file is also where the harness
-records its own build decisions, and where the two differ, this constitution governs
-intent.
+why. This document depends on nothing: it names no tools, no repositories, and no
+record by its identifier, so it can outlive every system built under it. Where a
+concrete system's decisions differ from it, this constitution governs intent.
 
 **What Harness is not.** It is not a framework installed into repositories — repos
 carry almost nothing of it. Its workers are not disposable — no anonymous, throwaway
@@ -26,10 +25,8 @@ grows must be earned by a real bottleneck, not designed in anticipation of one.
 
 **Naming.** The document stays plain; the flavor lives in the system. Workers take
 names from one well: jazz musicians — Duke, Basie, Miles, Nina, Trane — assigned when
-a seat is founded. *(Amended 2026-08-08: the original wells were breads and Arabic
-male names — Abbas, Adam, Badr, Bakkar, Fino, Rye. When the roster grew to cover
-every role, the operator renamed it whole under one well; the founding six are
-retired, their identities continuous under rule 10.)*
+a seat is founded. A seat may be renamed — even the well may change — and its
+identity, memory, and record run on unbroken.
 
 ## State
 
@@ -203,15 +200,9 @@ builders Bird, Trane, Sunra, Blakey, and Elvin; and the review panel — Ornette
 Dizzy, Max, and Billie. The main session is the operator's own desk, never a seat.
 Specialization is excavated from experience, never designed up front — seats begin
 as peers within their tier, and their charters diverge only as their records do.
-*(Amended 2026-08-06, Design 0002 = DEC-185: the original text fixed the roster with no place
-for a management seat; the operator ruled the minimal roster was a starting point,
-not an endpoint. Amended 2026-08-07: the operator founded three seats ahead of
-demonstrated queue pressure — staffing ahead of planned growth, with the
-duplicate-seat pairs deliberately undifferentiated until experience differentiates
-them. The build-roster clause of the bootstrap tripwire was consumed by this
-ruling; the autonomy clause stands. Amended 2026-08-08: the operator ruled that
-seats wake into roles — every harness role carries a named seat — and renamed the
-roster whole under the jazz well.)*
+The operator may found seats ahead of demonstrated queue pressure — staffing ahead
+of planned growth — and paired seats stay deliberately undifferentiated until
+experience differentiates them.
 
 *Reasoning:* notes written by the one who holds the context preserve what actually
 mattered; an externally-generated summary preserves what an outsider guessed
@@ -328,18 +319,13 @@ outside the factory: store layout, ledger, context compiler v0, landing step. It
 first dispatched tasks may be drawn from the factory's own reviewed backlog — real
 tickets, real gates. The original guard — the factory earns the right to work on
 itself only after it has shipped someone else's work — survives as a tripwire:
-**an outside project must ship before autonomy is granted.** *(The tripwire's
-build-roster clause was consumed 2026-08-07 when the operator founded a second builder ahead of
-outside shipping — a recorded exception, not a deletion of the principle; the
-autonomy clause is untouched and no seat pulls work unattended.)*
+**an outside project must ship before autonomy is granted.** No seat pulls work
+unattended before then.
 
 *Reasoning:* tooling whose first and only customer is itself tends to remain its only
 customer. A real task forces every seam — dispatch, briefing, gates, landing — to
 meet reality immediately — and a reviewed factory ticket does this as well as an
-outside one, so the guard moved from the first dispatch to the tripwire above.
-*(Amended 2026-08-06, Design 0002 = DEC-185: the first harvest produced a Harness backlog
-before any outside project was registered; the operator ruled Harness-first with the
-tripwire kept.)*
+outside one, so the guard sits on autonomy rather than on the first dispatch.
 
 ## Deliberately deferred
 
@@ -351,5 +337,5 @@ tripwire kept.)*
 - **Merge batching** — serial landing until the ledger shows real queue pressure.
 - **Multi-machine dispatch** — when one machine's ceiling actually binds.
 - **Work-graph engine** — when multiple seats need atomic claiming: adopt Beads,
-  fork it as Harness's own, or build from scratch (a recorded future design;
-  research brief in Design 0001 = DEC-184). Local SQLite is correct until then.
+  fork it as Harness's own, or build from scratch (a recorded future design).
+  Local SQLite is correct until then.
