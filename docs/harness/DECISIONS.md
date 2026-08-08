@@ -5406,10 +5406,12 @@ comments. **Not verified:** the real CI run.
 
 **Reconstructed after the fact (2026-08-08), not a transcript.** `docs/PRINCIPLES.md` cited a
 "Design 0001" research brief that was never written down; the operator ruled (effort #181, ticket
-#191) that Design records live HERE, in this file, not in a separate design store. This stub holds
-only what PRINCIPLES.md itself states, so the citation resolves; it adds nothing beyond it.
+#191) that Design records live HERE, in this file, not in a separate design store. A later ruling
+the same day made the constitution standalone — no identifiers, no amendment records — so
+PRINCIPLES.md no longer cites Design 0001 by name; this entry and git history are the lineage's
+only home. The stub adds nothing beyond what PRINCIPLES.md stated.
 
-What PRINCIPLES.md records of it: the work-graph engine is deliberately deferred — local SQLite is
+What PRINCIPLES.md records of it (the deferral still stands there, now without the identifier): the work-graph engine is deliberately deferred — local SQLite is
 correct until multiple seats need atomic claiming, and the options on that day are adopt Beads, fork
 it as Harness's own, or build from scratch ("Deliberately deferred", `docs/PRINCIPLES.md`).
 
@@ -5419,11 +5421,13 @@ ruling of 2026-08-08: GitHub Issues are the work ledger for that version.
 ## DEC-185 — Design 0002, reconstructed stub: the minimal roster is a starting point, and management seats exist
 
 **Reconstructed after the fact (2026-08-08), not a transcript** — same provenance and same operator
-ruling as DEC-184. This stub holds only what PRINCIPLES.md itself states.
+ruling as DEC-184, and the same standalone ruling applies: PRINCIPLES.md now carries no amendment
+records, so the text below survives only here and in git history.
 
-What PRINCIPLES.md records of it (dated 2026-08-06 there): the original constitution text fixed the
+What PRINCIPLES.md recorded of it (dated 2026-08-06 there, before the amendment notes were removed):
+the original constitution text fixed the
 roster with no place for a management seat; the operator ruled the minimal roster was a starting
 point, not an endpoint, founding management seats that orchestrate and never produce. The same
 ruling amended the Bootstrap section: the first harvest produced a Harness backlog before any
 outside project was registered, and the operator ruled Harness-first with the outside-ship tripwire
-kept (rule 10 and "Bootstrap", `docs/PRINCIPLES.md`).
+kept (pre-rewrite rule 10 and "Bootstrap" of `docs/PRINCIPLES.md`; git history holds the text).
