@@ -5401,3 +5401,29 @@ thing it found would be enforcement theatre.
 **Scope:** no prior decision established this workflow, and this one does not adopt it. It rules on
 the route step alone; #163's triggers and #161's reasons keep their justification in the file's own
 comments. **Not verified:** the real CI run.
+
+## DEC-184 — Design 0001, reconstructed stub: the work-graph engine is a recorded future design, deferred until multiple seats need atomic claiming
+
+**Reconstructed after the fact (2026-08-08), not a transcript.** `docs/PRINCIPLES.md` cited a
+"Design 0001" research brief that was never written down; the operator ruled (effort #181, ticket
+#191) that Design records live HERE, in this file, not in a separate design store. This stub holds
+only what PRINCIPLES.md itself states, so the citation resolves; it adds nothing beyond it.
+
+What PRINCIPLES.md records of it: the work-graph engine is deliberately deferred — local SQLite is
+correct until multiple seats need atomic claiming, and the options on that day are adopt Beads, fork
+it as Harness's own, or build from scratch ("Deliberately deferred", `docs/PRINCIPLES.md`).
+
+For effort #181 ("Personal Software Factory"), this deferral is CONSUMED by the operator's GitHub
+ruling of 2026-08-08: GitHub Issues are the work ledger for that version.
+
+## DEC-185 — Design 0002, reconstructed stub: the minimal roster is a starting point, and management seats exist
+
+**Reconstructed after the fact (2026-08-08), not a transcript** — same provenance and same operator
+ruling as DEC-184. This stub holds only what PRINCIPLES.md itself states.
+
+What PRINCIPLES.md records of it (dated 2026-08-06 there): the original constitution text fixed the
+roster with no place for a management seat; the operator ruled the minimal roster was a starting
+point, not an endpoint, founding management seats that orchestrate and never produce. The same
+ruling amended the Bootstrap section: the first harvest produced a Harness backlog before any
+outside project was registered, and the operator ruled Harness-first with the outside-ship tripwire
+kept (rule 10 and "Bootstrap", `docs/PRINCIPLES.md`).
