@@ -202,4 +202,4 @@ A row ending `— SUPERSEDED BY DEC-NN` is one you must not act on.
 - DEC-182 @5246 [plan,budget,state,cost] refs: DEC-154 DEC-181 :: The plan is `plan.yaml`, real YAML loaded with `safe_load`; PLAN.md was markdown that looked like YAML and failed `safe_load` 43 times in 44.
 - DEC-183 @5334 [plan,github,state,tests] refs: DEC-174 DEC-179 DEC-182 :: The route check becomes a step of the required `integration` CI job, asserting the plan COUNT as well as the exit code; nothing guards the step itself.
 - DEC-184 @5405 [docs,github,brief,state] refs:  :: Design 0001, reconstructed stub: the work-graph engine is a deferred recorded design (Beads / fork / build when atomic claiming binds); consumed for effort #181 by the GitHub ruling.
-- DEC-185 @5419 [docs] refs: DEC-184 :: Design 0002, reconstructed stub: the minimal roster is a starting point — management seats exist, and bootstrap is Harness-first with the outside-ship tripwire kept.
+- DEC-185 @5419 [docs,state] refs: DEC-184 :: Design 0002, reconstructed stub: the minimal roster is a starting point — management seats exist, and bootstrap is Harness-first with the outside-ship tripwire kept.
