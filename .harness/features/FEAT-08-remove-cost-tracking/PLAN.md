@@ -301,18 +301,62 @@ sitting **on top of** the grants (a grant does not authorise a team run for a ca
     that proves the drift detector is satisfied rather than tripped (exit 2), and is mandatory here
     per SC-11.
 
-- T-04: Strip the `cost_model` block and the two USD budgets from both configs
+- T-04: Strip the `cost_model` block and the two USD budgets from `.harness/harness.json`
   segment: S2
-  execution_mode: **SPLIT (D-10, amended after the S2 BLOCKED).** `.harness/harness.json` →
-    team, `harness-dev-ops` (`team-config.yaml:196`, the grant that actually covers it).
-    `.claude/skills/harness/templates/harness.json` → **main-session-direct**, a declared step:
-    no member is granted `templates/`. The original single `team — harness-dev-ops
-    (team-config.yaml:197)` line miscited a `bin/**` grant for both paths and is what the eng
-    squad hit at exit 2. The intent, files and verify below are unchanged and span both halves.
+  execution_mode: team
+  execution_agent: harness-dev-ops
   change_type: config
   depends_on: T-02
   traces: REQ-02, REQ-09, D-02, D-04
-  files: `.harness/harness.json`, `.claude/skills/harness/templates/harness.json`
+  files: `.harness/harness.json`
+  intent: >
+    The same removals in both files; the line numbers differ by two because the template has an extra
+    `_per_feature_rationale`. **Remove** from `.harness/harness.json`: `_cost_model_note` (`:136`),
+    the entire `cost_model` object (`:137-231`, which contains `rates`, `verified_on` and
+    `_modifier_note` at `:194`), `_budgets_note` (`:232`), and inside `budgets` (`:233-240`) the three
+    keys `per_feature_usd` (`:234`), `per_run_usd` (`:235`), `warn_at_fraction` (`:236`) and
+    `_per_feature_rationale` (`:237`).
+    **Remove** from `.claude/skills/harness/templates/harness.json`: `_cost_model_note` (`:138`), the
+    `cost_model` object (`:139-233`), `_budgets_note` (`:234`), and inside `budgets` (`:235-242`)
+    `per_feature_usd` (`:236`), `per_run_usd` (`:237`), `warn_at_fraction` (`:238`) and
+    `_per_feature_rationale` (`:239`).
+    **KEEP in both**, byte-identical: `max_total_cycles` and `_max_total_cycles_rationale`. The
+    `budgets` object survives with exactly those two keys — it is not deleted, because
+    `max_total_cycles` lives in it. `_budgets_note` goes because its text is entirely about spend
+    ("max_cycles bounds RETRIES, these bound SPEND"); if a note is wanted for the surviving key, the
+    `_max_total_cycles_rationale` already is one, so do not write a replacement.
+    `warn_at_fraction` is removed under D-04: its only consumer was `cost-report.py:406`, deleted in
+    T-03, and it has no referent against `max_total_cycles`.
+    Touch no other key. `test_matrix`, `test_kinds`, `gates`, `log_retention_days` and `github` are
+    out of scope.
+  verify: >
+    `python3 -c "import json,sys; [json.load(open(p)) for p in ['.harness/harness.json',
+    '.claude/skills/harness/templates/harness.json']]"` exits 0 — both still parse as valid JSON; AND
+    `grep -c -e cost_model -e per_feature_usd -e per_run_usd -e warn_at_fraction -e _budgets_note
+    .harness/harness.json .claude/skills/harness/templates/harness.json` prints `<path>:0` for BOTH
+    files — with two file arguments `grep -c` emits one `path:count` line per file, so the expected
+    output is two lines, not a bare number, and the command exits 1 when every count is zero (the
+    count lines are the evidence, never the exit status); AND
+    `grep -c max_total_cycles .harness/harness.json
+    .claude/skills/harness/templates/harness.json` prints `<path>:2` for BOTH files (the key and its
+    rationale) — again two `path:count` lines; AND
+    `.claude/skills/harness/bin/check-state.sh` exits 0 — this is the command that
+    fails if T-02 did not land first (D-02); AND the WHOLE unit suite
+    `.claude/skills/harness/bin/run-unit-tests.sh` exits 0 (this task touches both `harness.json`
+    files, so the whole-suite clause is mandatory per SC-11 — `test-upgrade-config.py` and
+    `test-team-catalog.py` read these files).
+
+
+- T-04b: Strip the same block and budgets from `.claude/skills/harness/templates/harness.json`
+  segment: S2
+  execution_mode: main-session-direct
+  execution_reason: no member agent is granted `templates/` — the path resolves to NOBODY, so this
+    half cannot be dispatched. Split from T-04 because one task carries one route; the original
+    wrote `execution_mode: **SPLIT`, which is not a legal token, and the eng squad hit exit 2 on it.
+  change_type: config
+  depends_on: T-02
+  traces: REQ-02, REQ-09, D-02, D-04
+  files: `.claude/skills/harness/templates/harness.json`
   intent: >
     The same removals in both files; the line numbers differ by two because the template has an extra
     `_per_feature_rationale`. **Remove** from `.harness/harness.json`: `_cost_model_note` (`:136`),
@@ -993,7 +1037,7 @@ INV-11 by T-02.
 
 ## Approval
 
-status: approved
-approved-by: Mike Ruangutai
-date: 2026-08-05
-amendments-signed: A-1, A-3, A-4, A-5
+status: pending
+prior-approval: Mike Ruangutai, 2026-08-05, amendments A-1, A-3, A-4, A-5
+reset-reason: T-04 was split into T-04 and T-04b on 2026-08-07. A task-set change resets
+  approval; the prior signature covered a task list this one no longer is.
