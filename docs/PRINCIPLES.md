@@ -25,8 +25,12 @@ runs. Its state is not scattered — one store, one source of truth. Any structu
 grows must be earned by a real bottleneck, not designed in anticipation of one.
 
 **Naming.** The document stays plain; the flavor lives in the system. Workers take
-names from two wells: breads and Arabic male names — Abbas, Adam, Badr, Bakkar,
-Fino, Rye — assigned when a seat is founded.
+names from one well: jazz musicians — Duke, Basie, Miles, Nina, Trane — assigned when
+a seat is founded. *(Amended 2026-08-08, effort #181 ticket #192: the original wells
+were breads and Arabic male names — Abbas, Adam, Badr, Bakkar, Fino, Rye. The
+operator ruled a full renaming under one theme when the roster grew to cover every
+harness role; the six founding names are retired, their identities continuous under
+rule 10.)*
 
 ## State
 
@@ -201,7 +205,11 @@ not an endpoint. Amended 2026-08-07: the operator founded Adam, Bakkar, and Rye
 ahead of demonstrated queue pressure — staffing ahead of planned growth, with the
 duplicate-seat pairs deliberately undifferentiated until experience differentiates
 them. The build-roster clause of the bootstrap tripwire was consumed by this
-ruling; the autonomy clause stands.)*
+ruling; the autonomy clause stands. Amended 2026-08-08, effort #181 ticket #192: the
+operator ruled that seats wake into harness roles — every role carries a named seat,
+17 in all, renamed under the jazz well; the full roster and mapping are recorded in
+ticket #192's resolution. The main session is the operator's own desk, never a
+seat.)*
 
 *Reasoning:* notes written by the one who holds the context preserve what actually
 mattered; an externally-generated summary preserves what an outsider guessed
