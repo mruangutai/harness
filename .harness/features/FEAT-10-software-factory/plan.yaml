@@ -1,0 +1,1729 @@
+schema: plan/1
+feature: FEAT-10-software-factory
+
+approval:
+  status: approved
+  approved_by: Mike Ruangutai
+  date: 2026-08-09
+
+lanes:
+  resolved_at: 914b6fd
+  rows:
+    - surface: .claude/skills/harness/bin/factory_*.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-*.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/factory/fleet.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY for this path, so no agent may write it
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out, check-state.sh is the state gate and cannot vouch for its own change
+    - surface: .claude/skills/harness/bin/test-check-state.py
+      lane: main-session-direct
+      reason: it is the gate script's own test and is edited in the same DEC-174 direct step
+    - surface: docs/harness/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: docs/harness/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+
+decisions:
+  - id: D-01
+    choice: AMENDED at the plan review of 2026-08-08, and the amendment is the third item in this sentence. Issues and the board are the interface, the signed plan.yaml stays the truth, and factory tools may read GitHub state back for exactly THREE purposes - learning whether an item is claimed, learning or setting which station it is at, and learning whether a BLOCKER ISSUE IS FINISHED - and never to write a read-back value into an approval-gated artifact. The third purpose is new and it is not optional at the tool - factory_claim MUST NOT claim an issue whose depends_on blockers are unfinished, so a candidate whose blockers are still open is skipped, mutates nothing, and reports a reason on stderr distinct from every other skip reason. The DAG authority stays plan.yaml's depends_on; resolution runs plan.yaml depends_on to feature.yaml's issue map to that blocker issue's open or closed state, and GitHub contributes the last hop only. The rendered blocked_by edge on GitHub is still NEVER read back, because it is hand-editable and deriving control flow from it would put a remote object in charge of the signed DAG
+    because: DEC-138 IS THE WRITE-ONLY BASELINE BEING AMENDED, and this entry records a deliberate ruling rather than drift. DEC-138 makes the outbound Issues mirror strictly one-way so that a wiki-editable surface cannot feed an approval-gated artifact, and effort ticket #184 found that post-approval issues-as-truth contradicts it, so the read-back has to be bounded and recorded rather than assumed. The original bound was claim and station. Blocker completion is neither - it is not ownership, not bookkeeping and not a station, it is a gate on CANDIDACY applied before any of those are engaged - so enforcing it required widening the bound in this entry rather than adding a check under it. The operator ruled the widening in at the plan review of 2026-08-08 and rejected deferral, on the ground that a queue which renders a block marker and then hands the work out anyway is worse than no marker at all, because the operator reads the board and believes ordering holds. DEC-138's actual guarantee survives intact - nothing read here is ever written into BRIEF.md, plan.yaml or an approval block, and the only harness file a factory tool writes is a feature's own feature.yaml factory block. THE COST, STATED RATHER THAN LEFT IMPLICIT - enforcement adds one blocker-state read PER BLOCKER per candidate, not one per candidate. The cache the task specifies is the YAML FILE cache, so plan.yaml and feature.yaml are each read once per poll, but issue_view results are not cached and T-12's six blockers cost six reads. It is bounded by the ready column and not by the board, because D-10's server-side query already bounds the candidate set that way; measured on board 3, the ready-station query returned 1 item against 150 on the board. Two edges are ruled here so no implementer settles them silently - a depends_on entry the issue map cannot resolve counts as BLOCKED and not clear, reported on stderr, because handing work out on an unresolvable blocker is the failure this amendment exists to stop; and a candidate the factory cannot resolve to a plan task at all, D-09's tolerant feature null read of a gh-sync.py mirror issue, has no resolvable DAG and is NOT gated, staying claimable exactly as before, because making it an error would silently reverse D-09
+    dec: DEC-138
+  - id: D-02
+    choice: Factory control-plane tools fail loudly with a non-zero exit when gh is missing, unauthenticated or erroring, unlike gh-sync.py which prints SKIP and exits 0
+    because: a mirror that skips loses a copy, but a control plane that skips leaves the board asserting a state that is not true
+    dec: DEC-138
+  - id: D-03
+    choice: Every board item is added explicitly by a factory tool and no Projects v2 auto-add workflow is configured
+    because: effort ticket #183 measured the auto-add cap at 1 on Free and 5 on Pro, and gh api user returns a null plan here with the cause not established, so a multi-repo fleet cannot rely on it
+    dec: none
+  - id: D-04
+    choice: Agents discover work by polling the board on demand, with no webhook path anywhere in the design
+    because: effort ticket #183 measured that personal accounts emit no board-event webhooks
+    dec: none
+  - id: D-05
+    choice: The claim is the creation of the git ref refs/heads/factory/issue-N in the target repository, a create-if-absent whose refusal is the conflict signal; the factory:claimed label and the assignee are operator-visible bookkeeping written only by the agent whose create returned 201, and they never decide a race
+    because: an assignee set is additive, so two racing agents both succeed and neither can conclude it won, which leaves the issue marked and owned by nobody and is a failure that fails OPEN; measured against the live API, creating a ref that already exists returns HTTP 422 Reference already exists with process exit 1 and no mutation, and git refs are compare-and-swap by construction, so exactly one concurrent creator can receive 201; the ref is also the branch the journey already needs, so the claim costs no new object, and releasing an abandoned claim is one ref delete. Residual risk, stated not assumed - that concurrent creates serialise is inferred from the endpoint being create-only and is not measurable from this checkout, so it stays UNMEASURED BEFORE SHIP. No success criterion races two real claims on the live API - the criterion that did was deleted by the operator on 2026-08-08 as anticipation, on the ground that a one-issue-in-flight cap, one issue per wake, a single credential and push-first dispatch mean two concurrent claims on one issue cannot arise in normal use. SC-12 covers only the tool's handling of the two answers the primitive can give. This decision and REQ-03 stand unchanged; the first real dispatch is the live verification
+    dec: none
+  - id: D-10
+    choice: The factory reads the board through the server-side query filter, selecting on the station option name plus is:open, and treats the station field as the item lifecycle signal; it never archives or removes a board item, and reaping stays the operator's through the board UI
+    because: measured on board 3, which holds 150 items of which 80 are Done, the item payload carries no state key so a tool cannot filter closed issues from it, while query status:Ready returned 1 item and is:open returned 70 - the filter bounds the read by the ready column rather than by board size, at no cost. The accepted limitation is that the board still grows monotonically, which effort ticket 186 owns; the rejected alternatives were a second gh call per item, which is a per-poll cost proportional to the whole board, and an archive step, which is new scope and destroys the operator visibility REQ-01 asks for
+    dec: none
+  - id: D-11
+    choice: The eight tasks that edit run-unit-tests.sh - T-02, T-03, T-04, T-05, T-06, T-07, T-11 and T-12 - are serialised at dispatch and never run concurrently, even when the dependency graph makes them one wave
+    because: that script's drift detector exits 2 for any bin/test-*.py it does not list, so a task that has created its test file but not yet registered it turns EVERY other task's verify red with a message naming the wrong task; the graph cannot express the constraint, so recording it here is what carries it into build instead of leaving it in one lead's head. One further ordering constraint the graph cannot express rides here - T-12 must land in the same run as T-04 through T-07, before the qa gate evaluates them, because it is the only integration-kind coverage of their surface, the only test anywhere in this feature that observes a real process exit status, and, since the criteria rework, the only automated proof that the four tools COMPOSE into the journey at all (SC-19) - three reasons living in one task, so deleting or reordering it costs all three, and the gate evaluates one feature diff once after the build team returns rather than per task. T-10 by contrast must land in the FIRST wave and must not be made to wait on T-12, because SC-06 declares integration evidence and the kind detects nothing until T-10 widens its glob. Neither constraint rests on the change_type feature matrix floor - an earlier draft justified both that way and was wrong, since qa classifies a diff by reading it rather than by reading a task's change_type field
+    dec: none
+  - id: D-12
+    choice: The duplicate-ledger problem between gh-sync.py and factory_decompose.py is recorded and deliberately not fixed in this increment
+    because: both write issues for the same T-NN into the same repository and keep two maps in one file, feature.yaml's github and factory blocks, and mruangutai/harness is both a candidate fleet member and harness.json's github.repo, so running both there produces two issues per task; INV-24 detects collisions only within the factory ledger. Reconciling two issue writers is a redesign of the mirror and would consume the increment, so it becomes a named DEC-186 candidate the operator decides on with the evidence in front of them rather than a silent hazard. The edge work D-14 adds widens this entry rather than opening a new one, and the difference between the two writers is stated exactly, because the premise that they share an identical gap was checked and is false - gh-sync.py already draws the hierarchy half in full, cmd_open adopting or creating a parent, recording parent_origin and attaching every task with attach_sub_issue_args, while the string depends_on appears zero times in that file, so what it lacks is only the dependency half. Bringing the two writers to blocked_by parity is deferred with the rest of D-12; gh-sync.py is a different surface governed by DEC-138 and the Q7 ruling names the decomposition, so widening this increment to touch it would widen scope the rulings deliberately did not
+    dec: DEC-138
+  - id: D-06
+    choice: The fleet declaration lives at .harness/factory/fleet.yaml, a surface no agent domain grants, so the operator writes it in a declared main-session step
+    because: DEC-179 requires an ungranted surface to become a declared main-session-direct step at plan time instead of a mid-run rejected write
+    dec: DEC-179
+  - id: D-07
+    choice: Factory tools are underscore-named importable Python modules whose command-line entry sits behind a main guard, and their tests import and monkeypatch the runner seam instead of forking the script
+    because: run-unit-tests.sh splits its two arrays by whether a test drives a real script end to end, so import-and-monkeypatch tests belong in UNIT_SCRIPTS and the unit test kind then genuinely covers this surface
+    dec: none
+  - id: D-08
+    choice: The CLI contract of DESIGN.md C-3 — stdout carries the machine-readable payload only, exit 0 success, 1 nothing to do, 2 refused, 3 lost race, and every entry point traps unexpected exceptions into exit 2 — is implemented once in a shared factory_cli module that every entry point calls, not restated in each tool
+    because: the trap is the load-bearing part and Python's default for an unhandled exception is exit 1, which in this vocabulary reads as nothing-to-do, the single worst confusion in the table; specified six times it drifts five ways and only a shared wrapper makes the trap independently testable in isolation. The module's scope is C-3 and nothing else - no fleet knowledge, no gh knowledge, no factory imports - so it cannot become the grab-bag a shared module tends to become, and the failure-line body is built by one exported helper rather than by hand at each raise site, because two ways to build one grammar is the drift D-08 exists to stop
+    dec: none
+  - id: D-09
+    choice: Every factory-created issue carries a feature label whose value is the plan's feature id alongside harness, factory_claim reports that feature in its payload, and a factory issue that carries no feature label is still claimable with a null feature rather than an error
+    because: DESIGN.md C-4's Q3, ruled here because plan.yaml is pm-owned and unsigned — the feature address appears nowhere the operator reads today, not on the board card, not in the claim payload, not in the issue body, while T-08's INV-24 already collects repo-and-issue pairs across all features and flags a collision naming both, which is an invariant nobody writes for a case that cannot arise; the tolerant read side keeps issues created by the existing gh-sync mirror, which label harness and nothing else, claimable on the same board
+    dec: DEC-138
+  - id: D-13
+    choice: The two accepted growths in this increment - board items that are never archived, and claim refs left behind by an agent that died before its bookkeeping - are accepted TOGETHER for increment 1 rather than fixed, and reaping stale refs is deferred as named follow-up work alongside effort ticket 186. Recorded in one place so the increment does not ship two separate reassurances in two files that each look sufficient alone. ACCEPTED BY THE OPERATOR at the plan review of 2026-08-08, in their words premature optimization right now, and the acceptance carries this entry's own condition unchanged - SC-13 clause (b) must land exactly as stated below, because it is the only signal the residual is biting. That clause is therefore protected wording in BRIEF.md and is not to be re-balanced by any later criteria pass
+    because: the two are not independent, which is why one entry rather than two. D-10's server-side query bounds the board read by the ready column, but a stale-ref item IS open and IS in the ready column, so it sits inside the bounded set by construction and the bound does not exclude it; and effort ticket 186's saved views reap board items, not refs. Accepted on four grounds, each checked. The growths differ in kind and in rate - board items grow with completed work, one per task ever published, and the operator reaps them through the board UI, while stale refs grow only with an agent death inside the narrow window between a create_ref that returned True and the label, assignee and station writes that follow it. The measured ready column is small - on board 3, no query returned 150 items, the is-open query returned 70, and the ready-station query returned 1 - so stale refs add to a set of that size linearly, not multiplicatively. The cost of each stale item is one skipped candidate per poll, an O(n) scan cost and not a wedge, because work behind it stays reachable. And unlike the orphaned-issue case this plan closes in T-04 step 4, there IS an operator remedy - delete the ref. CONDITIONAL, and the condition is the whole reason this is signable - accepting the residual depends on SC-13 clause (b) landing, because the no-claimable-work line is the operator's only signal that the residual is biting, and without that assertion a queue full of stuck items is indistinguishable from an idle factory
+    dec: none
+  - id: D-14
+    choice: The GitHub decomposition encodes the plan's task DAG as a one-way projection - each task issue is a sub-issue of one feature-level parent that is adopt-or-create and is never added to the board, and carries one blocked_by edge per depends_on entry - drawn in a SECOND PASS after every issue exists, made idempotent by a per-edge receipt recorded in feature.yaml rather than by any assumed API property, with a failed edge write fatal at exit 2 under the existing C-3 vocabulary, one narrow exception on the blocked_by call alone where a measured already-exists response records the receipt and continues, and a blocker with no issue number yet skipped on stderr
+    because: the operator ruled flat issues out (Q7) and DESIGN.md C-5 settled the shape; what this entry fixes is the four things C-5 left to the plan, each of which is a real trade-off rather than a detail. The parent cannot carry the dependencies - GitHub allows an issue exactly ONE parent and T-12 declares six blockers - so hierarchy and dependency stay two edge types against two endpoints, and both take an issue's internal REST integer id, never its number. Idempotence is a LEDGER and not an API property, and the honest statement is now a measured one on the dependency half and an unmeasured one on the hierarchy half - a live probe re-POSTed an existing dependencies/blocked_by edge and got HTTP 422 with a message containing "already been taken", while sub_issues on a repeat has still not been measured. Read-before-write is AVAILABLE at the API level for blocked_by, since the GET works and returns an empty list for an issue with no blockers. What is missing is a builder in gh_issues.py, which has parent_args to read a parent back but none for blocked_by - a one-function library gap, not an API gap, and that distinction is recorded because the earlier wording claimed the read did not exist and a future reader would take it as settled. The ledger stays the mechanism anyway - it costs no read per edge, it is the same receipt shape gh-sync.py already uses for attached and T-04 step 4 already uses for issues and items, and adding a read builder would put a GET in front of every edge to learn what the receipt already records. The measured 422 is what makes the narrow non-fatal exception writable, and it is scoped to blocked_by alone - on sub_issues the same phrase plausibly means the child already has a DIFFERENT parent, since GitHub allows exactly one, so recording a receipt there would file a false one and mis-report the hierarchy. The crash window between a successful attach and its receipt therefore stays open and is named in T-04 rather than papered over, it is the same receipt shape gh-sync.py already uses for attached and T-04 step 4 already uses for issues and items, and SC-01's second run mutates nothing is false without it. The second pass rather than the create loop, because a blocked_by edge needs both endpoints and drawing it inside the loop would make correctness depend on the plan's task ORDER, a silent dependency C-5 Q5(ii) names. Fatal at exit 2 rather than a reported skip, because run_gh raises GhError on any non-zero exit and D-02 already rules that the control plane fails loudly - the ledger makes the re-run resume and draw only the undrawn edges, so the cost of stopping is one command, while continuing past a GhError would swallow an authentication failure as a cosmetic gap. The mid-publish case is different in kind and is therefore NOT fatal - a blocker whose issue is not yet recorded is an ordinary intermediate state, reported on stderr and drawn by the next run. Nothing reads an edge back to decide anything, which is what keeps this inside D-01 rather than reopening it
+    dec: none
+  - id: D-15
+    choice: Every factory write in increment 1 is made with one GitHub credential as mruangutai, and the distinction between agents is carried by the claim ref refs/heads/factory/issue-N and never by the assignee; per-agent identity is deferred to effort ticket 192
+    because: ACCEPTED by the operator at the plan review of 2026-08-08, and it is recorded as a decision because it is load-bearing for why the assignee cannot arbitrate a race and is therefore the premise under D-05 rather than a detail beside it. With one credential, two racing agents produce two identical assignee writes, so no reader of the issue can tell which agent holds it and no comparison of a login against the assignees list can decide anything - which is exactly why the tool never makes that comparison outside the --issue self-ownership branch. Reversing this later means a credential per seat and a re-reading of every ownership test, so it is recorded where a future reader looks for it
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Create the factory fleet declaration
+    traces: [REQ-06]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve reports NOBODY for .harness/factory/fleet.yaml, so no agent domain grants the write (DEC-179, D-06)
+    depends_on: []
+    status: pending
+    files:
+      - .harness/factory/fleet.yaml
+    verify: |
+      python3 -c "import sys; sys.path.insert(0,'.claude/skills/harness/bin'); import harness_yaml as h; d=h.load_file('.harness/factory/fleet.yaml'); assert d['schema']=='factory-fleet/1'; b=d['board']; assert b['owner'] and isinstance(b['number'],int) and b['station_field']; s=b['stations']; assert set(s)=={'ready','building','review'} and all(s.values()); r=d['repos']; assert r and all('/' in x['name'] and x['default_branch'] for x in r); assert d['workspace_root'].startswith('/'); print('fleet ok')"
+    intent: |
+      Create .harness/factory/fleet.yaml, the single place that states which repositories the
+      factory operates and which Projects v2 board is its control plane. Nothing in the factory
+      may infer either from the working directory.
+
+      Write exactly this structure and exactly these values, as plain YAML with no markdown in any
+      value:
+
+        schema: factory-fleet/1
+        board:
+          owner: mruangutai
+          number: 3
+          station_field: Status
+          stations:
+            ready: Ready
+            building: Building
+            review: Review
+        repos:
+          - name: mruangutai/harness
+            default_branch: main
+        workspace_root: /Users/molchairuangutai/GitHub/harness-factories
+
+      Those are the operator's answers, given at the plan review of 2026-08-08 and no longer
+      placeholders: board 3 is the one named Harness, Status is its single-select station field, and
+      workspace_root is deliberately NOT under the operator's hand-managed clones in
+      /Users/molchairuangutai/GitHub, because T-06 refreshes an existing checkout with a fetch and a
+      reset and must never do that to a clone the operator is working in. Do not invent any other
+      value and do not write a placeholder.
+
+      The three station option names must satisfy DESIGN.md C-1's naming rule, which this task is
+      the only place that can enforce, because the words are chosen at this signature and never
+      again: each is ONE word, distinguishable from the other two at a glance on a board card, maps
+      1:1 to exactly one C-1 predicate, and is a state and never a verb. Two of those clauses are
+      load-bearing rather than stylistic. One word: the claim tool passes the option name inside a
+      board query string, so a name containing a space would need quoting the tools do not do.
+      1:1 to a predicate: the station field IS the item lifecycle signal for this factory (D-10), so
+      an option that does not correspond to exactly one predicate leaves work in a state no tool can
+      select. If an operator answer breaks either clause, report it back rather than writing it.
+
+      Every option name written here must already exist as an option on the board's single-select
+      field. Measured on the live account: a query naming an option the board does not offer returns
+      zero items and exit 0, so a typo here is indistinguishable from an empty queue forever. T-05
+      validates the three names against the board at run time; this task must not rely on that alone.
+
+      OPERATOR PRE-CONDITION, ARMED ON DAY ONE - two of the three option names above do not exist on
+      the board yet. Re-measured by the operator on 2026-08-08, board 3's Status options are Backlog,
+      Ready, In progress, In review, Done. Ready exists; Building and Review DO NOT. Before this
+      fleet file is written, the operator renames the column In progress to Building and the column
+      In review to Review, in the board UI. No tool in this increment performs that rename, and it
+      is not a defensive maybe: until it happens factory_claim exits 2 on its very first run, loudly
+      and correctly, naming the missing option - and that firing IS the instruction to go rename the
+      two columns. Backlog and Done are untouched and stay operator-managed, outside the factory's
+      three stations. Scope it precisely rather than reporting it as a blanket blocker:
+      factory_decompose writes only the ready option (T-04 step 7) and Ready exists today, so
+      publishing is unaffected; it is claiming that stops. If the rename has not happened when this
+      task runs, write the fleet file as specified and report the pre-condition as outstanding.
+
+      Facts already verified in this tree at 914b6fd, for cross-checking the operator's answers:
+      user-owned Projects v2 boards are number 3 named Harness and number 2 named kaya-ai;
+      mruangutai/harness is public; mruangutai/kaya-ai is private with default branch master;
+      mruangutai/rental-property-automation is private with default branch main.
+
+      Add no other keys. Every repository entry must name a personal mruangutai repository;
+      Implentio company repositories and mruangutai/pilot-implentio-app are out of scope.
+
+  - id: T-11
+    title: Add the shared CLI contract module and its unit test
+    traces: [REQ-08]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_cli.py
+      - .claude/skills/harness/bin/test-factory-cli.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t11.txt 2>&1; s=$?; grep -q "^PASS test-factory-cli.py$" /tmp/v-t11.txt && [ "$s" -eq 0 ]
+    intent: |
+      Add factory_cli.py, the one place the factory's command-line contract is implemented. Every
+      other factory tool with a command-line entry calls into it, so the contract is written once
+      rather than six times, and so the exception trap below is testable on its own. This is D-08.
+
+      The contract it implements:
+        - stdout carries the machine-readable payload and nothing else. Every diagnostic, warning
+          and error goes to stderr.
+        - exit 0 success, the payload is on stdout; exit 1 nothing to do, which is not an error;
+          exit 2 refused, meaning the config was invalid, the repository is not in the fleet, the
+          plan is unsigned or a guard tripped, and nothing was mutated; exit 3 lost race, another
+          agent owns the issue, and nothing was mutated.
+        - a tool NEVER exits 1 for a failure. An unhandled exception exits 1 by Python's default
+          and would read as nothing-to-do, so the entry-point wrapper traps it and exits 2.
+
+      factory_cli.py must expose, with no imports of any other factory module so that nothing can
+      import it circularly:
+        - EXIT_OK = 0, EXIT_NOTHING = 1, EXIT_REFUSED = 2, EXIT_RACE = 3.
+        - body(what, value, next_step) -> str. Build "{what}: {value} — {next_step}" with an em
+          dash. This is the ONE place the failure-line body is constructed. factory_config's
+          FleetError and factory_gh's GhError both build their message with it and neither formats
+          a line by hand, because two ways to build one grammar is exactly the drift D-08 exists to
+          stop, and those two classes' messages are printed verbatim behind the tool prefix.
+        - message(tool, what, value, next_step) -> str. Build exactly one line in this order:
+          "factory: {tool}: {what}: {value} — {next_step}" with an em dash. It must never be
+          called with an exception class as the value; the value is the path, the repository, the
+          issue number or the option name the operator can act on.
+        - fail(tool, what, value, next_step) -> None. Write message(...) plus a newline to
+          sys.stderr. Write nothing to stdout.
+        - refuse(tool, what, value, next_step). fail(...) then sys.exit(EXIT_REFUSED).
+        - nothing_to_do(tool, why). Write "factory: {tool}: {why}" to sys.stderr, then
+          sys.exit(EXIT_NOTHING). This is the path factory_claim.py takes for no work available,
+          and it is why that line is not on stdout.
+        - lost_race(tool, what, value, next_step). fail(...) then sys.exit(EXIT_RACE).
+        - payload(obj) -> None. Write json.dumps(obj) and a newline to sys.stdout, and nothing to
+          stderr. It accepts only a dict or a list and raises TypeError on anything else. There is
+          deliberately no plain-text branch: one would let a tool print arbitrary text to stdout
+          while still claiming to honour the contract, and every tool's stdout must parse in a
+          single json.loads of the whole stream.
+        - run(tool, fn, expected=()) -> None. Call fn(). Let SystemExit propagate unchanged, so a
+          deliberate sys.exit(1) stays 1 and a deliberate sys.exit(3) stays 3. Catch any exception
+          whose type is in `expected` and emit "factory: {tool}: {str(exc)}" on stderr, then
+          sys.exit(EXIT_REFUSED) — those exceptions are raised already carrying the
+          what/value/next_step body, so no second prefix is added. Catch every other BaseException
+          except SystemExit, emit
+          "factory: {tool}: unexpected failure: {type(exc).__name__}: {exc} — re-run with
+          FACTORY_DEBUG=1 for a traceback" on stderr, and sys.exit(EXIT_REFUSED). When
+          os.environ.get("FACTORY_DEBUG") is set and non-empty, print the traceback to stderr
+          after that line. `expected` is a tuple the caller passes, so factory_cli never imports
+          FleetError or GhError.
+      Importing the module must have no side effects and it must have no command-line entry of
+      its own.
+
+      One carve-out, stated so it is not read as a violation of the grammar: the unexpected-failure
+      line is the single place an exception type name may occupy the value slot, because there is by
+      definition no operator-actionable value to put there — that is what unexpected means. Every
+      other line in every factory tool puts a path, a repository, an issue number, a key or an option
+      name there. stderr is human-facing throughout; a machine caller reads the exit status and the
+      single JSON document on stdout, never a stderr line, which is why the three shapes on stderr
+      (the full grammar, the nothing-to-do line, and a preformed expected-exception message) do not
+      need to be one shape.
+
+      This module has no point of no return: it mutates nothing, ever.
+
+      Add test-factory-cli.py: a plain python3 script in the style of the other bin tests, no
+      pytest, one line per case, exit 1 on any failure. Every case runs in-process, capturing
+      streams with contextlib.redirect_stdout and redirect_stderr over io.StringIO and catching
+      SystemExit to read its code. Cases, at minimum:
+        - fn returning normally leaves the process at exit 0 and writes nothing to either stream.
+        - fn raising KeyError exits 2 and NOT 1, stdout is empty, and the stderr line contains
+          FACTORY_DEBUG. This is the trap in the failure direction.
+        - fn calling sys.exit(1) still exits 1, and fn calling sys.exit(3) still exits 3. This is
+          the trap in the other direction: a wrapper written over BaseException would convert both
+          to 2 and the no-work path would become an error.
+        - an exception listed in `expected` produces a stderr line equal to
+          "factory: t: " plus its own message, with no "unexpected failure" text, and exits 2.
+        - message() renders the five parts in the documented order with the em dash.
+        - payload({"a": 1}) writes exactly one stdout line that json.loads parses, and writes
+          nothing to stderr; payload("a string") raises TypeError; nothing_to_do writes only to
+          stderr and exits 1.
+      The test must not spawn a subprocess.
+
+      Register test-factory-cli.py in run-unit-tests.sh by appending it to the UNIT_SCRIPTS array
+      in this same task. It never forks, so it belongs in UNIT_SCRIPTS and not in
+      INTEGRATION_SCRIPTS, and leaving it unregistered makes that script's drift detector exit 2
+      and redden every other task's verify.
+
+  - id: T-02
+    title: Add the fleet loader module and its unit test
+    traces: [REQ-06]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01, T-11]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_config.py
+      - .claude/skills/harness/bin/test-factory-config.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t02.txt 2>&1; s=$?; grep -q "^PASS test-factory-config.py$" /tmp/v-t02.txt && [ "$s" -eq 0 ]
+    intent: |
+      Add factory_config.py, the only reader of .harness/factory/fleet.yaml. Every other factory
+      tool takes its repository and board from this module and never from the working directory.
+
+      factory_config.py must expose:
+        - harness_root() -> str and FLEET_PATH, an ABSOLUTE path. A relative default is forbidden:
+          SC-08 requires every tool to refuse to infer its repository or board from the working
+          directory, and a relative default IS that inference. It bites hardest here, because
+          factory_workspace.py and factory_land.py operate a checkout of ANOTHER repository — run
+          from inside it, a relative .harness/factory/fleet.yaml resolves against the target repo,
+          and the factory reads a fleet declaration that is not its own or none at all.
+          Use the three-tier root resolution this repository already standardises on. The reference
+          copy is the _resolve_root function in check-plan-routes.py, and run-unit-tests.sh's header
+          comment block is 24 lines about this exact collapse-to-cwd defect and why each obvious
+          probe is wrong. Copy the tiers, not the probe: prefer CLAUDE_PROJECT_DIR when it is set
+          AND the probe file is readable under it; otherwise derive the root from __file__ by
+          walking up out of the bin directory; announce on stderr when a set CLAUDE_PROJECT_DIR is
+          discarded rather than swapping trees in silence. The probe file is docs/harness/SPEC.md,
+          the same one run-unit-tests.sh uses and for the same reason — deploy.sh copies the skill
+          directory to a location that carries the scripts but no docs, so probing for the bin
+          directory or for a script re-accepts that tree.
+          FLEET_PATH is harness_root() joined with .harness/factory/fleet.yaml. An explicit --fleet
+          argument always wins over it.
+        - workspace_path(fleet, repo_name) -> str. Return the absolute checkout path,
+          workspace_root joined with the repository name after the owner. This is the ONE place
+          that derivation exists; factory_workspace.py and factory_land.py both call it and neither
+          restates the rule, because two copies of a path rule in two tools is how the two tools end
+          up looking in different directories.
+        - class FleetError(Exception). Every FleetError message is built with factory_cli.body,
+          never by hand, so it lands in the C-3 grammar body that factory_cli.run prints verbatim
+          behind "factory: {tool}: ". The value part must always be a path, a key name or a
+          repository name the operator can act on, never an exception class name. Example shape:
+          "fleet key invalid: board.number — set it to the Projects v2 board number in
+          .harness/factory/fleet.yaml".
+        - load_fleet(path=FLEET_PATH) -> dict. Load with harness_yaml.load_file. Raise FleetError
+          naming the file and the offending key in that grammar when: schema is not
+          factory-fleet/1; board is missing or is not a mapping; board.owner is empty;
+          board.number is not an int; board.station_field is empty; board.stations does not
+          carry exactly the keys ready, building and review with non-empty values; repos is
+          missing, empty or not a list; any repo entry lacks a name containing a slash or lacks a
+          non-empty default_branch; workspace_root is missing or not an absolute path.
+        - repo_entry(fleet, name) -> dict. Return the repos entry whose name equals name exactly.
+          Raise FleetError naming name and listing the known names when it is absent. This is the
+          function that makes an unlisted repository unusable rather than silently accepted.
+        - station(fleet, key) -> str. Return board.stations[key]; raise FleetError on an unknown
+          key.
+      This module mutates nothing, so it has no point of no return.
+      Put the command-line entry behind `if __name__ == "__main__":`, supporting one flag
+      --show. The entry must be wrapped as factory_cli.run("config", _main,
+      expected=(FleetError,)), so an invalid fleet exits 2 and an unexpected exception also exits
+      2 rather than Python's default 1. --show emits ONE JSON object through factory_cli.payload,
+      with the keys board, the resolved board mapping, and repos, the list of repo entries — not
+      a board line plus a line per repo, because the whole of stdout must parse in a single
+      json.loads. Any diagnostic goes to stderr. Importing the module must have no side effects.
+
+      Add test-factory-config.py in the same style as the existing bin tests: a plain python3
+      script, no pytest, printing one line per case and exiting 1 if any case failed. It must
+      write its fixture fleet files into a tempfile.TemporaryDirectory and must never read the
+      real .harness/factory/fleet.yaml. Cases, at minimum: a well-formed fleet loads and its
+      values round-trip; each of the nine validation failures above raises FleetError; a
+      repo_entry lookup for an unlisted name raises FleetError and the message contains that
+      name; station returns the configured option name and raises on an unknown key; every
+      FleetError message raised by the nine validation failures contains an em dash and names a
+      key or a path, and none of them contains the substring "FleetError" or "Traceback" — that
+      is the C-3 grammar asserted at the raise site, where it is decided. Three cases cover the root
+      and the path rule: FLEET_PATH is an absolute path — a relative default fails this one case and
+      nothing else, which is why it is written explicitly; with CLAUDE_PROJECT_DIR pointed at a
+      temporary directory holding no docs/harness/SPEC.md the resolver discards it, says so on
+      stderr, and still returns a root under which that probe file is readable; and
+      workspace_path(fleet, "owner/name") returns workspace_root joined with "name", not with
+      "owner/name". Two cases assert the C-3
+      stream contract, captured with contextlib.redirect_stdout and redirect_stderr: --show over a
+      well-formed fleet writes stdout that parses in a single json.loads of the whole stream; and
+      --show over an invalid fleet writes nothing to stdout, one line to stderr, and exits 2. The
+      test must not spawn a subprocess.
+
+      Register test-factory-config.py in run-unit-tests.sh by appending it to the UNIT_SCRIPTS
+      array. It belongs in UNIT_SCRIPTS, not INTEGRATION_SCRIPTS, because it never forks. Leaving
+      it unregistered makes the script's drift detector exit 2 and redden the whole suite.
+
+  - id: T-03
+    title: Add the gh seam module and its unit test
+    traces: [REQ-01, REQ-02, REQ-03]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_gh.py
+      - .claude/skills/harness/bin/test-factory-gh.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t03.txt 2>&1; s=$?; grep -q "^PASS test-factory-gh.py$" /tmp/v-t03.txt && [ "$s" -eq 0 ]
+    intent: |
+      Add factory_gh.py, the single place every factory tool talks to GitHub through. It exists so
+      that the tools are testable offline and so that failure behaviour is decided once.
+
+      factory_gh.py must expose:
+        - GH = os.environ.get("FACTORY_GH", "gh") — the injectable binary, resolved at call time
+          so a test can set the environment variable after import.
+        - class GhError(Exception), carrying the argument list, the process exit status, the
+          captured standard output and the captured standard error as attributes — stdout is on
+          the list because gh api prints the HTTP error body there, and create_ref below needs it —
+          and whose str() is built with factory_cli.body, never by hand, because
+          factory_cli.run prints str(exc) verbatim behind "factory: {tool}: ". The value part is
+          always the repository, the issue number, the field name, the option name or the gh
+          subcommand, never the class name and never a traceback. Example shape:
+          "gh issue create failed: mruangutai/kaya-ai — {the first line of the captured standard
+          error}". The full argument list and captured standard error stay on the attributes for
+          a debugger; they are not the message.
+        - run_gh(args, json_out=False) -> str or parsed JSON. Run [GH] + args with
+          subprocess.run, capture_output=True, text=True and stdin closed. Raise GhError when the
+          binary is absent (FileNotFoundError) or the exit status is non-zero. Never swallow a
+          failure and never return a default. This is D-02: the control plane fails loudly, in
+          deliberate contrast to gh-sync.py, whose SKIP-and-exit-0 behaviour is correct for a
+          mirror and wrong here.
+        - preflight() -> None. Run `auth status` and raise GhError with a message telling the
+          operator to run `gh auth login` when it fails.
+        - ensure_labels(repo, labels) -> None. For each label run `label create <name> --repo
+          <repo> --force --color 5319e7 --description "created by the harness factory"`, using
+          that one constant colour for every factory label, and let
+          run_gh raise GhError on a non-zero exit. This exists because GitHub REJECTS an issue
+          create that names a label the repository does not define: gh-sync.py's ensure_labels
+          records that as LIVE SMOKE FINDING #1, and a fresh repository ships `bug` but neither
+          `harness` nor `chore`. Unlike gh-sync.py, which swallows the error there because a
+          mirror must never gate a flow, this one propagates it: a control plane that cannot
+          create its own vocabulary must stop rather than fail at the issue create with a
+          confusing message. That is D-02. `--force` makes the call idempotent for a label that
+          already exists.
+        - create_issue(repo, title, body, labels) -> int. Run `issue create --repo <repo> --title
+          --body --label ...`, parse the created issue number out of the returned URL, return it.
+        - issue_view(repo, number, fields) -> dict, via `issue view <n> --repo <repo> --json
+          <comma-joined fields>`.
+        - add_label(repo, number, label) and assign(repo, number, login), via `issue edit`.
+        - project_item_add(owner, number, url) -> str, via `project item-add <number> --owner
+          <owner> --url <url> --format json`, returning the item id.
+        - project_items(owner, number, query=None, limit=500) -> list of dicts, via
+          `project item-list <number> --owner <owner> --format json --limit <limit>` plus
+          `--query <query>` when a query is given. Return the items list. Before returning, compare
+          the response's totalCount against the length of the items list and raise GhError naming
+          the board and both numbers when totalCount is the larger — that means the read was
+          truncated and work is hidden behind it, which must never be reported as an empty column.
+          Measured on the live account: totalCount reports the UNTRUNCATED total, so this guard is
+          real; at --limit 30 against a 150-item board the response carried totalCount 150 and 30
+          items. gh pages internally up to --limit, so no cursor loop is needed.
+          The query is the server-side filter, and it is the whole answer to reading a board that
+          grows without bound. Measured on the same 150-item board: no query returned 150 items,
+          `is:open` returned 70, and `status:Ready` returned 1. The item payload has NO state key,
+          so a closed issue cannot be filtered out of the payload at all — the station field is the
+          lifecycle signal instead, which is D-10.
+          Return the items exactly as gh gives them; do not reshape. Callers must know the measured
+          shape rather than an imagined one: each item carries the keys content, id, labels,
+          repository, status and title, where repository is a URL such as
+          "https://github.com/mruangutai/harness" and content is a mapping carrying the issue
+          number and repository in "mruangutai/harness" form. Every fixture in this feature's tests
+          must use that shape, because a fixture authored to match what the implementer assumed
+          agrees with the code and disagrees with GitHub, which is green units over a broken tool.
+        - project_field_options(owner, number, field) -> list of str, via
+          `project field-list <number> --owner <owner> --format json`, returning the option names
+          of the named single-select field. Raise GhError naming the field when it is absent. This
+          exists so a caller can prove a station option name is real BEFORE querying on it:
+          measured, a query naming an option the board does not offer returns zero items and exit
+          0, so an unvalidated typo is indistinguishable from an empty queue, forever.
+        - default_branch_sha(repo, branch) -> str, via
+          `api repos/<repo>/git/ref/heads/<branch> --jq .object.sha`.
+        - create_ref(repo, ref, sha) -> bool. THE ATOMIC PRIMITIVE. Run
+          `api -X POST repos/<repo>/git/refs -f ref=<ref> -f sha=<sha>`. Return True when it
+          succeeds. Return False — do NOT raise — when the ref already existed, which is the
+          conflict signal and the only expected failure. Measured against the live API, that case
+          is: process exit 1, stdout
+          {"message":"Reference already exists", ..., "status":"422"}, stderr
+          gh: Reference already exists (HTTP 422). Discriminate on the captured streams containing
+          both "422" and "already exists", case-insensitively; ANY other non-zero exit raises
+          GhError as usual. Never widen that test — a create_ref that returns False on an
+          authentication failure would report a lost race where there was none, and the caller
+          would skip live work forever.
+        - delete_ref(repo, ref) -> None, via `api -X DELETE repos/<repo>/git/refs/heads/<name>`.
+          This is the release path for an abandoned claim and is not called by any tool in this
+          increment; it exists so the operator has one command and so a later increment's stuck
+          protocol (effort ticket 195) has a seam rather than a redesign.
+        - project_field_set(owner, number, item_id, field, option) -> None, via
+          `project item-edit`. Resolve the field id and the option id first with
+          `project field-list <number> --owner <owner> --format json`; raise GhError naming the
+          field or option when either is absent.
+        - THE THREE EDGE FUNCTIONS, which are how the DAG reaches GitHub (D-14). Each is one line:
+          it imports the shared module `gh_issues` and passes that module's argv builder to run_gh.
+          Do NOT hand-roll the argv, and do NOT call gh_issues.gh_bin() or execute anything through
+          gh_issues - that module is argv-builders only and its gh_bin() reads GH_SYNC_GH, so a call
+          routed through it would bypass FACTORY_GH and silently escape T-12's stub gh.
+            - internal_id(repo, num) -> int. run_gh(gh_issues.internal_id_args(repo, num)), the
+              result stripped and converted to int.
+            - attach_sub_issue(repo, parent_num, child_id) -> None.
+              run_gh(gh_issues.attach_sub_issue_args(repo, parent_num, child_id)).
+            - blocked_by(repo, num, blocker_id) -> None.
+              run_gh(gh_issues.blocked_by_args(repo, num, blocker_id)).
+          THE TRAP, carried here verbatim because it was a real bug in this tree and it is invisible
+          at the call site: both edge endpoints take an issue's INTERNAL REST INTEGER id, never its
+          number. `gh issue view --json id` returns the GraphQL NODE id, a string like I_kwDO..., and
+          that string is TRUTHY - so an `or` fallback written after it never fires and every attach
+          422s. gh_issues.py documents this at its head and wayfind.py:272-276 records the review
+          that found it. Consequently: id resolution goes through internal_id above and NEVER through
+          issue_view, and no caller may pass an issue number where a *_id argument is named. The two
+          edge types stay two functions against two endpoints - sub_issues is hierarchy,
+          dependencies/blocked_by is dependency - and neither is implemented in terms of the other.
+      Every function takes the repository or the board owner and number as arguments. No function
+      may read git remotes, the current directory, or any environment variable other than
+      FACTORY_GH. Importing the module must have no side effects. This module is a library with
+      NO command-line entry of its own, so it does not call factory_cli.run; its share of the C-3
+      contract is the GhError message shape above, plus the rule that no function in it ever
+      mutates anything its caller did not ask for — the point of no return is the caller's to state,
+      because each function here is one call — plus the rule that no function in it ever
+      writes to stdout — anything it has to say goes to stderr, because its callers own stdout for
+      their payload.
+
+      Add test-factory-gh.py: a plain python3 script in the style of the other bin tests, no
+      pytest, one line per case, exit 1 on any failure. It must monkeypatch factory_gh.run_gh (or
+      the subprocess.run it calls) with a recorder and must never invoke the real gh. Cases, at
+      minimum: run_gh raises GhError when the binary is missing; run_gh raises GhError on a
+      non-zero exit and the message carries the captured standard error; create_issue returns the
+      number parsed from a URL such as https://github.com/o/r/issues/42; project_field_set
+      resolves the field and option ids before editing and raises GhError when the option name is
+      not offered by the board; every helper passes the repository or owner it was given
+      verbatim in the argument list, asserted by inspecting the recorded arguments; ensure_labels
+      issues one `label create --force` per label and raises GhError when one of them exits
+      non-zero, rather than swallowing it; create_ref returns True on a zero exit and returns False
+      WITHOUT raising when the recorder replays the measured conflict — exit 1, stdout carrying
+      "status":"422", stderr carrying gh: Reference already exists (HTTP 422); create_ref RAISES
+      GhError on a non-zero exit whose output carries neither token, such as an authentication
+      failure, because a False there would report a lost race that did not happen; project_items
+      raises GhError when the recorder returns a totalCount greater than the number of items, and
+      passes the query string through verbatim when one is given and omits --query when none is;
+      project_field_options returns the option names and raises GhError naming the field when the
+      recorder offers no such field; internal_id returns an INT parsed from the recorder's output
+      and its recorded argv is the REST path repos/<owner/name>/issues/<n> with --jq .id, never an
+      `issue view` call - assert the string "issue" is not the recorded argv's first element, which
+      is the trap in the only form a test can see it; attach_sub_issue records an argv whose path
+      ends in /sub_issues and blocked_by records one whose path ends in /dependencies/blocked_by, so
+      the two edge types cannot be silently collapsed into one endpoint; all three edge functions go
+      through run_gh, asserted by monkeypatching run_gh alone and observing that each is recorded
+      there - a function that reached gh_issues.gh_bin() instead would record nothing and would
+      escape FACTORY_GH; every GhError raised in these cases has a str()
+      containing an em dash and a concrete value, and containing neither "GhError" nor
+      "Traceback"; no helper writes anything to stdout, asserted by running each recorded case
+      under contextlib.redirect_stdout over an io.StringIO and checking it is empty. The test must
+      not spawn a subprocess.
+
+      Register test-factory-gh.py in run-unit-tests.sh's UNIT_SCRIPTS array in this same task.
+
+  - id: T-04
+    title: Publish an approved plan as issues on the board
+    traces: [REQ-01, REQ-02, REQ-07]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02, T-03, T-11]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_decompose.py
+      - .claude/skills/harness/bin/test-factory-decompose.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t04.txt 2>&1; s=$?; grep -q "^PASS test-factory-decompose.py$" /tmp/v-t04.txt && [ "$s" -eq 0 ]
+    intent: |
+      Add factory_decompose.py, which turns one approved plan into work items in a target
+      repository and places each on the control-plane board.
+
+      Command line: factory_decompose.py <feature-dir> --repo <owner/name> [--fleet <path>]
+      [--parent <n>].
+      The entry is wrapped as factory_cli.run("decompose", _main, expected=(FleetError, GhError)),
+      so the C-3 exit vocabulary holds and an unexpected exception exits 2 rather than Python's
+      default 1. Every refusal below goes through factory_cli.refuse, so its message is one C-3
+      line on stderr naming the value the operator acts on. Nothing but the step 8 payload is ever
+      written to stdout.
+      Behaviour, in order:
+        1. Load the fleet with factory_config.load_fleet and resolve the repository with
+           repo_entry. An unlisted repository is a hard error, exit 2, naming the repository and
+           the fleet file.
+        2. Load <feature-dir>/plan.yaml with harness_yaml.load_plan. If approval.status is not
+           exactly "approved", refuse with exit 2 naming the plan path and telling the operator to
+           get it signed. Nothing is published from an unsigned plan.
+        3. Call factory_gh.preflight().
+        4. Load <feature-dir>/feature.yaml with harness_yaml.load_file and read its `factory`
+           block if present. Its shape, WIDENED by D-14 to carry the parent and a per-edge receipt,
+           is:
+             factory:
+               repo: <owner/name>
+               parent: <the parent issue number>
+               parent_origin: adopted | created
+               issues: { T-01: 17, T-02: 18 }
+               items: { T-01: <board item id> }
+               edges:
+                 parent: [T-01, T-02]
+                 blocked_by: { T-04: [T-02, T-03] }
+           `edges.parent` lists the task ids already attached as sub-issues of the parent.
+           `edges.blocked_by` maps a task id to the list of blocker task ids whose edge has already
+           been drawn FOR that task. Both are receipts written the moment the call returns, exactly
+           as `issues` and `items` are, and exactly as gh-sync.py's `attached` list is — and for the
+           same reason, which is stated plainly in D-14 and must not be softened here: re-POSTing an
+           edge is not idempotent on the dependency half. A live probe MEASURED
+           dependencies/blocked_by: a repeat POST of an edge that already exists returns HTTP 422
+           with a message containing "already been taken". The sub_issues endpoint has NOT been
+           measured and its behaviour on a repeat is unknown. Read-before-write is available at the
+           API level for blocked_by — the GET works and returns an empty list for an issue with no
+           blockers — so the gap is a ONE-FUNCTION LIBRARY GAP in gh_issues.py, which ships no read
+           builder for it, and not an API gap. The receipt is nevertheless the mechanism this
+           increment uses: you are recording rather than reading back, deliberately. SC-01's "the
+           second run mutates nothing" rests on this ledger.
+           Sort every task in the plan into exactly one of FOUR dispositions. The key is all three
+           records — issues, items and edges — and never issues alone:
+             - recorded in issues AND in items AND with every edge it owes already in edges — fully
+               published. Skip it entirely, creating nothing and calling nothing for it.
+             - recorded in issues but NOT in items — PARTIALLY published. This is the state an
+               interrupted run leaves when the issue was created and the board add then failed. It
+               is NOT complete and must not be skipped. Create no second issue for it: carry the
+               recorded issue number forward and resume it at step 7, adding the board item and
+               setting its station, then recording the item id in step 8.
+             - recorded in neither issues nor items — not published. It goes through step 6, then
+               step 7, then step 7b.
+             - recorded in issues AND in items but owing at least one edge that `edges` does not
+               record — EDGES UNWRITTEN. This is the fourth disposition and it is the structural
+               consequence of drawing edges at all: an interrupted run now has a third way to stop,
+               and a task sorted on issues-and-items alone would have its edges left permanently
+               undrawn with nothing anywhere to redraw them. Such a task creates no issue and adds
+               no board item; it goes to step 7b and nowhere else. The edges it owes are: one parent
+               attachment unless its id is already in edges.parent, plus one blocked_by edge per
+               entry in the task's plan `depends_on` that is not already listed for it under
+               edges.blocked_by.
+           Keying the skip on issues alone is what would make the partial state permanent, and that
+           state has no other recovery anywhere in this increment: factory_claim reads the board in
+           poll mode AND in --issue mode and refuses with exit 2 when the board holds no item for
+           the issue, so an issue that never reached the board is reachable by no tool at all and
+           the task disappears from the feature with no operator signal.
+        5. RUN THIS STEP ONLY IF AT LEAST ONE TASK IS IN THE THIRD DISPOSITION — recorded in
+           neither map — OR the factory block records no `parent`. Otherwise skip step 5 entirely
+           and call nothing: ensure_labels is a remote write (see the point of no return below), so
+           a run with no issue left to create and a parent already recorded must make no call at
+           all, or SC-01's "the second run mutates nothing" is false and the second-publish test
+           case below is red. Read that condition exactly and do not widen it to "anything left to
+           do": a task in the second disposition needs no label ensured because it creates no issue,
+           and a task in the EDGES-UNWRITTEN disposition needs none either, because the edge
+           endpoints take issue ids and touch no label. The parent is in the condition because step
+           5b writes the `feature:<FEAT>` label onto it whether it was adopted or created, and a
+           first run that died before step 5 cannot have recorded anything in issues, so nothing can
+           reach a later disposition with its labels un-ensured.
+           Two label sets, and they are NOT the same set. Conflating them is what left
+           `factory:claimed` undefined in every target repository.
+           The ENSURED set — passed to factory_gh.ensure_labels once, before any issue is created —
+           is every label the factory will ever put on an issue in this repository, whichever tool
+           puts it there: `harness`, `feature:<FEAT>`, `chore`, `bug`, and `factory:claimed`.
+           `factory:claimed` is ensured here even though this tool never applies it, because
+           factory_claim.py applies it and has no create-issue call to piggyback on; whether
+           `gh issue edit --add-label` rejects an undefined label was deliberately NOT probed, since
+           it needs a write to a live repository and ensuring the label closes the hole whichever
+           way gh behaves. GitHub definitely rejects an issue CREATE naming an undefined label, and
+           a fresh repository ships `bug` but not `harness`.
+           The APPLIED set, per issue, is: `harness` always; `feature:<FEAT>` where <FEAT> is the
+           plan's top-level `feature` value verbatim, for example feature:FEAT-10-software-factory
+           (this is D-09, and it is what puts the feature address somewhere the operator reads);
+           plus `chore` when change_type is one of config, scaffolding, infra or ci, plus `bug` when
+           it is bugfix, and no fourth label otherwise. The chore and bug derivation is DEC-138
+           amendment 3 and is mechanical. `factory:claimed` is never applied by this tool.
+        5b. THE PARENT — adopt or create, run after ensure_labels and before the first task create.
+           This is DESIGN.md C-5 and it reuses gh-sync.py cmd_open's shape rather than inventing a
+           second one (gh-sync.py:400-416 is the reference). If the factory block already records a
+           `parent`, print that it is already recorded on stderr and do nothing else here. Otherwise:
+           with --parent <n>, ADOPT that issue — record parent: <n> and parent_origin: adopted
+           immediately, before anything else happens. Without --parent, CREATE one, and the title and
+           body come from a source this tool does not otherwise read, so name it explicitly: READ
+           <feature-dir>/BRIEF.md, take the first paragraph under its `## Problem` heading as the
+           problem statement and the first paragraph under its `## Goal` heading as the goal. The
+           title is "<FEAT> — <the first sentence of the goal, trimmed>"; the body is two parts
+           following cmd_open's precedent — the problem statement, a blank line, then one line
+           "**Goal:** <goal>". Labels `harness` and `feature:<FEAT>` and nothing else; then record
+           parent and parent_origin: created immediately, by the same record-after-every-create rule.
+           If the problem or the goal cannot be extracted FOR ANY REASON, do NOT invent text and do
+           NOT refuse the whole publish: create the parent titled with the feature id alone and with
+           an empty body, and say on stderr what could not be extracted. Read that condition as
+           broadly as it is written and do not narrow it back to an absent file or a missing
+           heading: BRIEF.md is a human-edited markdown file, so a heading written without its
+           space, a heading differing in case, a section present but empty, and an unreadable or
+           malformed file are all extraction failures and all take this path. Implement it as a
+           guarded extraction whose every failure yields the empty result, not as a list of the
+           shapes anticipated here. A publish must not be blocked by prose
+           the operator can edit afterwards, and the parent's title is not load-bearing for any tool.
+           THIS IS A READ AND ONLY A READ. BRIEF.md is never written, which is D-01 and SC-03 — the
+           tool's write set is unchanged, still <feature-dir>/feature.yaml alone, and SC-20 asserts
+           BRIEF.md is byte-identical after a publish.
+           THE FACTORY NEVER DISCOVERS A PARENT. There is no search for a likely existing issue:
+           adoption is the operator naming a number on the command line. That is D-01 — GitHub state
+           is read only for that decision's three enumerated purposes, none of which is discovering
+           a container, and never to decide an approval-gated artifact — and it
+           is also what keeps D-12 honest, since mruangutai/harness may already carry a parent for
+           this feature from the gh-sync mirror and a factory that invented its own would put a
+           second container beside it.
+           An ADOPTED parent is not factory-created, and the asymmetry is settled here so it is not
+           decided mid-build: apply `feature:<FEAT>` to the parent either way, because D-09 says every
+           issue the factory puts on this address carries it, the write is additive and idempotent,
+           and it is the label REQ-01's reader looks for — but NEVER rewrite an adopted parent's title
+           or body. The parent carries no `change_type` and no `traces`; those describe a task and the
+           parent is not one, which is why C-4's fixed-order body rule is scoped to task issues.
+        6. For each task in the third disposition — recorded in neither map — create an issue in
+           the repository titled "<T-NN> <title>" with those labels. The body has a fixed order and
+           no other content, so it diffs
+           cleanly when a task is republished: the task's `intent` verbatim first, then one blank
+           line, then one line "change_type: <value>", then one line "traces: REQ-01, REQ-07" —
+           comma-separated on a single line, never a YAML list dumped into prose.
+        7. Add to the board with project_item_add, and set the station field to the fleet's `ready`
+           option, every TASK issue that has no recorded item id — both the ones step 6 just created
+           and the ones resumed from the second disposition in step 4. A resumed task reaches this
+           step carrying its already-recorded issue number, so the board add is the only thing it
+           does.
+           THE PARENT IS NEVER ADDED TO THE BOARD. Iterate the task list, never the issue map: a
+           board-add written as "every issue with no recorded item id" would sweep up a newly created
+           parent, which would then sit open in the Ready column carrying `feature:<FEAT>` and
+           factory_claim would claim the container. Excluding it here forecloses that with no new
+           check anywhere else, because factory_claim's read is bounded by the board (D-10) and an
+           issue that is not an item is invisible to it. The cost is that the parent's sub-issue
+           progress bar is read on the issue page rather than on a card, which is accepted.
+           On validating the `ready` option name: this tool does NOT pre-check it against
+           project_field_options, and that is a decision rather than an omission. project_field_set
+           resolves the option id before editing and raises GhError naming the option when the board
+           does not offer it, so a bad `ready` here fails loudly with the value in the message. T-05
+           pre-checks all three names because it QUERIES on one — a query naming a non-existent
+           option returns zero items and exit 0, a silent empty forever, which has no failure signal
+           at all. Writing has a signal; querying does not. Adding a third copy of the same check
+           here would buy nothing and cost a board read on every publish.
+        7b. THE EDGE PASS — a SECOND PASS, run after every issue in this publish exists. This is
+           D-14 and DESIGN.md C-5. It cannot ride the create loop in step 6: a blocked_by edge needs
+           BOTH endpoints, so drawing it inside the loop would make correctness depend on the plan's
+           task ORDER, which is a silent dependency on an ordering nothing guarantees. For every task
+           that is not fully published — the second, third and fourth dispositions — in plan order:
+             a. Resolve the task's issue id ONCE with factory_gh.internal_id(repo, <its number>) and
+                reuse it for both edge types. Never call issue_view for an id: it returns the GraphQL
+                node id, which is truthy and 422s at the endpoint. That is the trap T-03 documents.
+                MEMOIZE every resolution in ONE dict keyed by issue number, held for the lifetime of
+                the process and consulted by every internal_id lookup in this pass — a task's own id
+                and a blocker's alike. Without it a task that blocks six others is resolved six
+                times over, once per edge, and the pass costs O(N+E) API reads where O(N) is
+                available. The dict is a pure read cache: nothing invalidates it, because an issue's
+                internal id does not change within a publish.
+             b. Unless the task id is already in edges.parent, call
+                factory_gh.attach_sub_issue(repo, <parent number>, <this task's issue id>), then
+                append the task id to edges.parent and write feature.yaml immediately.
+             c. For each entry in this task's plan `depends_on` that edges.blocked_by does not
+                already record for this task: look up the blocker's issue number in `issues`. IF THE
+                BLOCKER HAS NO RECORDED ISSUE NUMBER YET, SKIP THAT EDGE, report it on stderr naming
+                both task ids, and CONTINUE — this is not an error and must never exit non-zero. It
+                is an ordinary mid-publish state, and the next run draws the edge, because every task
+                in the plan is published (step 4 sorts every task, including the main-session-direct
+                ones) so a blocker always has an issue once the publish completes. Otherwise resolve
+                the blocker's issue id with internal_id and call
+                factory_gh.blocked_by(repo, <this task's number>, <the blocker's issue id>), then
+                append the blocker's task id under edges.blocked_by[<this task id>] and write
+                feature.yaml immediately.
+           An edge write that RAISES GhError is FATAL: let it propagate, so the wrapper exits 2 with
+           the C-3 line naming the value. Do not catch it and continue. Those two cases are adjacent
+           on purpose and an implementer must keep them apart — a blocker with no issue number yet is
+           an intermediate state and is skipped; a call that failed at the API is an environmental
+           failure and D-02 says the control plane stops rather than degrades. The ledger is what
+           makes stopping cheap: the re-run draws only the edges not yet recorded.
+           ONE NARROW EXCEPTION, ON THE blocked_by CALL IN (c) AND NOWHERE ELSE. The window the
+           ledger cannot close is a process death between a blocked_by POST that RETURNED and the
+           feature.yaml receipt write that follows it: the ledger then under-records, the re-run
+           re-POSTs an edge GitHub already has, and a live probe measured that repeat as HTTP 422
+           with a message containing "already been taken". Under the unnarrowed rule that is exit 2
+           on every re-run, reproducibly, with hand-editing feature.yaml the operator's only recovery
+           and no diagnostic pointing there. So: catch GhError around the blocked_by call ONLY, and
+           when the failure carries BOTH the 422 status and the phrase "already been taken", treat
+           the edge as ALREADY DRAWN — record the receipt exactly as a successful call would, report
+           one line on stderr naming both task ids and saying the edge already existed, and CONTINUE.
+           Discriminate on the exception's own captured output, which is why GhError carries the exit
+           status, the captured stdout and the captured stderr as attributes: gh api prints the HTTP
+           error body on stdout, so the check is the token 422 in the captured stdout or stderr AND
+           the phrase "already been taken" in either. This is the same shape create_ref already uses
+           to tell a lost race from an authentication failure. Any GhError failing either half of
+           that test propagates and stays fatal.
+           THE ATTACH CALL IN (b) IS NOT NARROWED AND STAYS FATAL IN EVERY CASE. Do not generalise
+           the exception across both endpoints, and the reason is specific rather than caution: only
+           dependencies/blocked_by was probed. On sub_issues, "already been taken" plausibly means
+           THIS CHILD ALREADY HAS A DIFFERENT PARENT rather than this edge exists, because GitHub
+           allows an issue exactly one parent. Recording a receipt on that response would file a
+           false receipt and silently mis-report the hierarchy, which is worse than exiting 2.
+           The hierarchy half of this crash window therefore REMAINS OPEN by construction:
+           edges.parent is a per-edge receipt with the same gap, a kill between a successful attach
+           and its receipt write wedges the re-run at exit 2, and the recovery is still hand-editing
+           feature.yaml. That residual is stated rather than papered over, and closing it needs a
+           probe of sub_issues that this increment does not have.
+        8. After each successful issue creation, each successful board add and each successful edge
+           write, write the number, item id or edge receipt back into <feature-dir>/feature.yaml's
+           factory block immediately, so an interrupted run resumes instead of duplicating.
+           EVERY ONE OF THOSE WRITES IS ATOMIC — temp file plus os.replace, never a truncating write
+           of feature.yaml in place. A publish performs roughly 27 sequential whole-file rewrites,
+           and a process death DURING one of them truncates the file: that loses every receipt at
+           once rather than one, and leaves a feature.yaml that no longer parses, so the re-run
+           cannot read the ledger at all and a re-publish duplicates every issue. The procedure, per
+           write: splice the factory block surgically as described below to produce the complete new
+           file content in memory, write that content to a temporary file created in the SAME
+           DIRECTORY as feature.yaml — same directory because os.replace is only atomic within one
+           filesystem — flush and fsync it, close it, then os.replace it onto feature.yaml. Remove
+           the temporary file if any step before the replace raises. feature.yaml itself is never
+           opened in a mode that truncates it, so every observer either sees the previous complete
+           file or the next complete file and never a partial one.
+           When every task is done, emit one JSON object through factory_cli.payload with the keys
+           repo, feature, parent, parent_origin, issues, edges_drawn and edges_skipped, where issues
+           maps each task id to its issue number, edges_drawn is the count of edges this run wrote,
+           and edges_skipped is the count of blocked_by edges step 7b(c) skipped because the blocker
+           had no recorded issue number. edges_skipped earns its place because nothing in the harness
+           validates depends_on referential integrity — check-plan-routes.py reads the field only as
+           a budgeted name (:272, :285) — so a depends_on naming a task the plan does not contain
+           reaches this tool inside a SIGNED plan, and stderr is otherwise the only place the
+           resulting DAG gap is named. A non-zero edges_skipped in the payload makes that gap
+           machine-visible instead of scrollback-visible. It is a count only and never a refusal: the
+           skip stays exit 0.
+           That object is the only thing this tool writes to stdout; progress lines, skips and
+           warnings all go to stderr.
+      The only harness file this tool writes is <feature-dir>/feature.yaml. It must never write
+      plan.yaml, BRIEF.md or any approval block: that is D-01, and reading a plan while writing
+      only feature.yaml is what keeps the signed plan the source of truth.
+
+      Write feature.yaml SURGICALLY — locate the factory block textually and rewrite only those
+      lines, preserving the rest of the file byte for byte. Do not load it and dump it back. That
+      same file carries gh-sync.py's github block and the operator's comments; gh-sync.py does
+      surgical text rewriting for exactly this reason, and check-state.sh's INV-23 budgets comment
+      lines, so a round trip that reformats the file trips a gate in a different feature and reads
+      as an unrelated regression.
+
+      POINT OF NO RETURN — state it, because C-3's exit-2 row cannot claim one rule for all tools.
+      Everything through step 4 mutates nothing: an unlisted repository, an unsigned plan, a failed
+      preflight and an unreadable feature.yaml all exit 2 with zero mutating calls. THE POINT OF NO
+      RETURN IS ensure_labels IN STEP 5, because that is the first remote write this tool makes —
+      gh label create mutates the target repository — and no refusal reached after it can claim
+      zero mutating calls. The consequence is stated honestly rather than made to sound clean, and
+      it is mild: every label create carries --force, so an exit 2 in the window between step 5 and
+      the first create_issue leaves labels defined in the repository which are idempotent and
+      harmless, and leaves no issue, no board item and no harness file written.
+      Two later thresholds sit inside that mutating region and are named separately because their
+      consequences differ, matching DESIGN.md C-3's factory_decompose row exactly. First, the parent
+      create in step 5b: after it, exit 2 can leave A PARENT WITH NO CHILDREN — an empty container
+      issue in the target repository. It is off the board by construction, so it is not claimable and
+      the re-run adopts it from the recorded number rather than creating a second one. Second, the
+      first successful create_issue: after it, exit 2 leaves a PARTIALLY PUBLISHED feature with some
+      edges undrawn, which is also deliberately safe rather than clean — step 8 records each issue
+      number, item id and edge receipt immediately, so a re-run resumes, creates nothing twice and
+      draws no edge twice. The operator's recovery from every one of these thresholds is to re-run
+      the same command.
+
+      Add test-factory-decompose.py: plain python3, no pytest, one line per case, exit 1 on any
+      failure. Build a temporary feature directory holding a plan.yaml and a feature.yaml, and
+      monkeypatch the factory_gh helpers with recorders. Cases, at minimum: an unsigned plan
+      publishes nothing and exits 2; a signed two-task plan creates two issues, adds two board
+      items and sets both stations to the fleet's ready option; running the same publish a
+      second time against the resulting feature.yaml — which by then records the parent, both issue
+      numbers, both item ids AND every edge — creates nothing, adds nothing and DRAWS NO EDGE, with
+      the recorder showing zero calls of any kind, including zero internal_id calls, since an id
+      lookup on a second run is the cheapest way to leak a call into a run that must make none;
+      a repository absent from the fleet exits 2 before any gh call;
+      the chore label appears for a config task and not for a logic task; feature.yaml carries
+      the issue number after the first creation even when the board add then raises GhError;
+      a feature.yaml recording an issue number for a task but NO item id for it re-runs, creates NO
+      new issue — asserted from the recorder showing zero create_issue calls — and DOES call
+      project_item_add for the recorded number and set that item's station to the ready option, and
+      afterwards feature.yaml carries the item id. That is the resume-after-partial case, and it is
+      the only thing that consumes the partial state the previous case sets up; without it a task
+      whose board add failed once is unreachable by every tool forever;
+      every created issue carries both `harness` and `feature:<FEAT>` with the feature id taken
+      from the plan, and NOT `factory:claimed`; ensure_labels was called BEFORE the first
+      create_issue call, asserted from the recorder's call order, and its argument set CONTAINS
+      `factory:claimed` even though no created issue carries it — that one case is the whole
+      ensured-versus-applied distinction, and it is the only thing standing between
+      factory_claim.py and an undefined label in a fresh repository; a feature.yaml carrying
+      comments and a github block round-trips with those bytes unchanged after the factory block is
+      written; every exit-2 path before ensure_labels leaves the recorder with zero
+      mutating calls, asserted over the full call list; the issue body's four parts
+      appear in the C-4 order with traces on one comma-separated line.
+      Eleven cases carry the DAG and the ledger that makes it idempotent (D-14, DESIGN.md C-5), and
+      each is a criterion the pre-edge draft
+      could not falsify:
+        - with no --parent, a parent issue is created carrying exactly the labels harness and
+          feature:<FEAT>, a two-part body of the problem statement, a blank line and one **Goal:**
+          line, and NO change_type or traces line; feature.yaml afterwards records parent_origin
+          created.
+        - with --parent <n>, no issue is created for the parent, feature.yaml records that number
+          with parent_origin adopted, and the recorder shows the feature:<FEAT> label applied to it
+          but NO call that edits its title or its body.
+        - the parent is absent from the board: assert over the FULL project_item_add call list that
+          the parent's number appears in none of them. This is the case that stops factory_claim
+          claiming the container.
+        - every task issue is attached to the parent exactly once, and the attach call carries the
+          INTERNAL id the recorder returned for internal_id, never the issue number — script
+          internal_id to return an integer distinct from every issue number so a number passed in its
+          place is visibly wrong rather than coincidentally equal.
+        - a task whose plan depends_on lists six blockers draws exactly six blocked_by calls, one per
+          blocker, and each names the blocker's resolved id. Use T-12's shape from this very plan;
+          six is the number that makes a parent-per-dependency impossible and is why the two edge
+          types are separate.
+        - EVERY edge call goes through the second pass: assert from the recorder's call ORDER that no
+          attach_sub_issue and no blocked_by call precedes the LAST create_issue call. A tool that
+          drew edges inside the create loop passes every count-based assertion above and fails this
+          one, and it is the ordering C-5 Q5(ii) names.
+        - a blocker with no recorded issue number is SKIPPED, not fatal: run a publish where one task
+          depends on a task the plan does not contain, and assert the run exits 0, draws the other
+          edges, writes a line naming both task ids to stderr, and makes no blocked_by call for the
+          missing one — and assert on the parsed stdout payload that edges_skipped is exactly 1 and
+          that edges_drawn counts only the edges actually written. The stderr line alone is not the
+          assertion: the payload key is the machine-visible half.
+        - THE FOURTH DISPOSITION, and it is the case an interrupted run depends on: a feature.yaml
+          recording both issue numbers and both item ids but an EMPTY edges block re-runs, creates no
+          issue and adds no board item — asserted from zero create_issue and zero project_item_add
+          calls — and DOES draw every parent and blocked_by edge, after which feature.yaml records
+          them; running it a third time then draws nothing at all. Without this case a run
+          interrupted between the board add and the edge pass leaves those edges undrawn forever.
+        - THE ALREADY-DRAWN blocked_by EDGE IS NOT FATAL, and its twin on the attach STILL IS. Two
+          assertions in one case, and they must both be present or the narrowing is untested in the
+          direction that matters. First: script factory_gh.blocked_by to raise a GhError whose exit
+          status is non-zero and whose captured stdout and stderr carry the measured shape — the
+          token 422 and the phrase "already been taken" — and assert the publish exits 0, that
+          feature.yaml afterwards RECORDS that edge under edges.blocked_by exactly as a successful
+          call would, that a stderr line names both task ids, and that the run continues to draw
+          every later edge rather than stopping at the raise. Second, in the same case: script
+          factory_gh.attach_sub_issue to raise a GhError carrying that identical shape and assert
+          the publish exits 2 and that feature.yaml records NO parent receipt for that task —
+          the narrowing is scoped to the dependency endpoint alone, and a build that generalised it
+          across both would pass the first assertion and fail this one.
+        - A GhError THAT IS NOT THE ALREADY-DRAWN SHAPE STAYS FATAL ON BOTH EDGE TYPES: script
+          blocked_by to raise a GhError carrying a non-zero status and an authentication message
+          with neither the 422 token nor the phrase, and assert the publish exits 2 and records no
+          receipt for that edge. Without this case a build that swallowed every GhError on the
+          dependency call passes the case above.
+        - THE LEDGER IS NEVER OBSERVED PARTIALLY WRITTEN. Monkeypatch os.replace for the duration of
+          a publish and assert, at every call: that its destination is the temporary feature
+          directory's feature.yaml; that its source is a different path in the SAME directory as
+          that destination, which is what makes the replace atomic rather than cross-device; and
+          that the source file's full contents parse as YAML and carry the factory block, so what is
+          about to be swapped in is a complete file and not a truncated one. Assert separately, from
+          a monkeypatched builtins.open recording every call for that path, that feature.yaml itself
+          is opened only for reading and NEVER in a truncating mode — "w", "w+", "wb" or an
+          os.O_TRUNC — during the whole publish. Assert last that os.replace was called at least
+          once, so a build that stopped writing receipts altogether cannot pass by vacuum. These
+          together are what a plain before-and-after content check cannot see: the failure being
+          excluded is a kill DURING a write, which leaves no observable end state to compare.
+      One case carries SC-20: hash every file in the temporary feature directory before a publish and
+      again afterwards, and assert that plan.yaml and BRIEF.md are byte-identical and that
+      feature.yaml is the only file whose hash changed. Three cases assert the C-3
+      contract, captured with contextlib.redirect_stdout and redirect_stderr: the unsigned-plan
+      refusal writes nothing at all to stdout and one line to stderr; the happy path's stdout
+      parses in a single json.loads of the whole stream, proving no per-task progress line was
+      interleaved into it; and a monkeypatched create_issue raising a plain KeyError makes the
+      entry point exit 2, not 1. The test must not
+      spawn a subprocess and must not touch the real feature directories.
+
+      Register test-factory-decompose.py in run-unit-tests.sh's UNIT_SCRIPTS array in this task.
+
+  - id: T-05
+    title: Claim the next board item atomically
+    traces: [REQ-03]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02, T-03, T-11]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_claim.py
+      - .claude/skills/harness/bin/test-factory-claim.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t05.txt 2>&1; s=$?; grep -q "^PASS test-factory-claim.py$" /tmp/v-t05.txt && [ "$s" -eq 0 ]
+    intent: |
+      Add factory_claim.py, the polling and claiming tool. It is how an agent takes work, and it
+      is the only thing standing between two agents and the same issue.
+
+      Command line: factory_claim.py --as <github-login> [--repo <owner/name>] [--issue <n>]
+      [--fleet <path>].
+      The entry is wrapped as factory_cli.run("claim", _main, expected=(FleetError, GhError)).
+      This tool is where the C-3 stream split bites hardest: it prints a JSON object on success
+      and a human line on exit 1, and if both landed on stdout no caller could parse either. So
+      the JSON object is the ONLY thing this tool ever writes to stdout, and every other line —
+      no work available, the lost-race report, any warning — goes to stderr through factory_cli.
+
+      THE CLAIM IS A REF CREATION, NOT AN ASSIGNMENT. This is D-05 and it is the point of the
+      whole task. An assignee set is ADDITIVE: two racing agents both succeed at assigning, so
+      neither can conclude it won, and the honest reading of the result leaves both backing off and
+      the issue marked and owned by nobody. Creating the git ref refs/heads/factory/issue-<n> is a
+      create-if-absent decided by the server: measured against the live API, a create against an
+      existing ref returns HTTP 422 Reference already exists and mutates nothing. Exactly one
+      concurrent creator can receive a create. The label and the assignee stay, but they are
+      operator-visible bookkeeping written only by the winner, and they never decide anything.
+
+      Behaviour, in order:
+        1. Load the fleet; call factory_gh.preflight(). A missing or unauthenticated gh raises
+           GhError and the wrapper exits 2, never 1: exit 1 means only that the ready column was
+           empty, and a failure that exits 1 would be read as no work available.
+        2. Validate the fleet's three station option names against the board with
+           factory_gh.project_field_options for the fleet's station_field. If any of the three is
+           not an option the board offers, refuse with exit 2 naming the missing option, the field
+           and the fleet file. This check is not defensive padding: measured on the live account, a
+           board query naming an option that does not exist returns zero items and exit 0, so
+           without it a typo in fleet.yaml is indistinguishable from an empty queue, forever, and
+           the operator sees agents reporting nothing to do beside a board full of cards.
+        3. Read the board with factory_gh.project_items(owner, number, query=...), where the query
+           is the fleet's `ready` option name and is:open, so the filter runs on the server and the
+           returned set is bounded by the ready column rather than by the size of the board. That
+           is D-10, and it is also why the read cannot silently truncate: project_items raises when
+           the response's totalCount exceeds the items it returned. There is no webhook path: this
+           poll is the discovery mechanism, which is D-04. When --issue is given, read the board the
+           same way but WITHOUT the ready-station part of the query, and keep the single item whose
+           content number equals --issue; if the board holds no item for that issue, refuse with
+           exit 2 naming the issue and the board, because step 6 needs that item's id and no other
+           call produces one. Do not skip the board read in --issue mode.
+        4. Keep candidates whose repository is listed in the fleet, further filtered to --repo when
+           given, and sort them by issue number ascending.
+           TAKE THE REPOSITORY FROM content.repository, NOT from the item's repository key.
+           Measured on the live board, one item carries repository
+           "https://github.com/mruangutai/harness" and content.repository "mruangutai/harness",
+           and the fleet lists repositories in owner/name form. Comparing the URL against the fleet
+           matches nothing, so every candidate would be discarded and the tool would report no work
+           available forever — the same silent-empty failure as an unvalidated station option, in
+           the one code path that decides whether the factory does anything at all. If
+           content.repository is absent on an item, normalise the URL by taking its last two path
+           segments rather than dropping the item silently, and say so on stderr.
+           If none remains, call
+           factory_cli.nothing_to_do("claim", "no work available"), which writes that line to
+           STDERR and exits 1. It is not an error and it is not a payload, so it belongs on neither
+           stdout nor a non-1 exit.
+        5. LOOP over the sorted candidates. Never stop at the first one that is unavailable — that
+           single behaviour is the difference between a queue and a wedge, because one item nobody
+           can claim would otherwise block every agent forever, and effort ticket 195's stuck
+           protocol, which would release it, is deferred out of this increment. For each candidate,
+           in order:
+             a. Re-read the issue with issue_view for the fields number, title, state, assignees
+                and labels. Then, IN THIS ORDER:
+                  - Self-ownership first, and only in --issue mode: if the issue carries
+                    `factory:claimed` AND its assignees include --as, this agent already owns it.
+                    Re-emit the step 7 payload and exit 0. This test must come BEFORE the skip
+                    below, or it can never be reached — an issue this agent owns satisfies every
+                    skip condition — and it is what makes re-running after an interrupted step 6
+                    safe rather than a permanent exit 3 against the agent's own claim. In poll mode
+                    an owned issue is somebody's work in progress and is skipped like any other.
+                  - Otherwise, if its state is not OPEN, or it carries the label
+                    `factory:claimed`, or its assignees list is non-empty, SKIP to the next
+                    candidate, reporting the skip and the reason on stderr. Any non-empty assignees
+                    list means somebody else's, whatever logins it holds — outside the
+                    self-ownership test above, this tool never compares a login against that list,
+                    because the comparison is precisely the ambiguity the ref removes. Nothing is
+                    mutated on a skip. This is a cheap pre-filter, not the race decider.
+             a-bis. THE BLOCKER GATE. This is D-01 as amended on 2026-08-08 and DESIGN.md C-2's
+                amendment, and it is the one check in this loop that decides WHAT THE FACTORY TAKES
+                rather than merely how fast it reaches a candidate it would have taken anyway. A
+                candidate whose plan dependencies are unfinished is not claimed. Its placement is
+                exact and is ruled, not free: it sits AFTER the step 5a self-ownership branch above
+                and BEFORE 5b's create_ref. After self-ownership, because re-entry under --issue on
+                an issue this agent already owns repairs a claim that already exists and is NEVER
+                gated - gating it would delete the only documented repair for an interrupted step 6.
+                Before create_ref, because a blocked candidate must cost no race and no mutation.
+                Resolve the candidate, using the same harness_yaml helper the rest of the harness
+                uses, and cache each file so a poll reads each one once:
+                  - The candidate's feature comes from its `feature:` label with the prefix stripped
+                    - the same value step 7 reports - and its task id is the T-NN in the issue title.
+                  - The DAG comes from .harness/features/<FEAT>/plan.yaml, that task's depends_on.
+                    plan.yaml is the AUTHORITY for the graph and is read READ-ONLY; this tool never
+                    writes it. Never read the rendered blocked_by edge from GitHub for this or any
+                    other purpose - it is hand-editable, so deriving control flow from it would put
+                    a remote object in charge of the signed DAG.
+                  - Each blocker T-NN becomes an issue number through that same feature's
+                    feature.yaml factory.issues map, and the blocker's finished-ness is that issue's
+                    state read with factory_gh.issue_view. Closed means finished. This is the ONLY
+                    thing GitHub contributes to the gate.
+                Then, in this order:
+                  - If the candidate has no resolvable feature - a feature: null issue from the
+                    existing gh-sync.py mirror, D-09's tolerant read - it has no plan task and no
+                    depends_on, so IT IS NOT GATED AT ALL. Fall through to 5b and claim it exactly
+                    as before. State this explicitly rather than letting it fall out of the code by
+                    accident: making an unresolvable feature an error would silently reverse D-09
+                    and drop mirror issues off the same board. This ungated path is scoped to an
+                    issue carrying NO feature: label and to nothing else. A candidate whose
+                    feature: label DOES resolve but whose title yields no matching plan task is
+                    edge (i) - it counts as BLOCKED, not clear: skip it, mutate nothing, and report
+                    it on stderr with edge (i)'s reason. It is a factory-created issue whose task
+                    identity has been lost, reachable by a hand-edited title or by amending a plan
+                    after publish, and leaving it ungated would let a hand-editable remote string
+                    decide whether the DAG applies at all - the class of object D-01 refuses
+                    everywhere else.
+                  - If the task's depends_on is empty, the candidate is clear. Fall through to 5b.
+                  - If ANY blocker issue is still open, SKIP to the next candidate, mutating nothing,
+                    and report on stderr a reason DISTINCT from every other skip reason in this loop
+                    - name the candidate issue, the blocking T-NN and its issue number. The
+                    distinctness is load-bearing and is not a style point: once the unblocked tasks
+                    are claimed the ready column holds only blocked items, so a poll exits 1 on
+                    D-13's protected `no claimable work` line in HEALTHY operation, and the per-skip
+                    reason is the only thing left that tells the operator which kind of stuck it is.
+                  - If ANY depends_on entry cannot be resolved to an issue number - a dangling entry
+                    naming a task the plan does not contain, which reaches a SIGNED plan because
+                    nothing validates depends_on referential integrity - the candidate counts as
+                    BLOCKED, NOT CLEAR. Skip it, mutate nothing, and report it on stderr on EVERY
+                    poll with its own distinct reason. Handing work out on an unresolvable blocker is
+                    the failure this gate exists to stop, and the board renders no block marker for
+                    such an edge (DESIGN.md C-5), so stderr is the operator's only view of it.
+                    Do not refuse the whole run at exit 2 here: one bad entry would wedge the entire
+                    queue, which is exactly what REQ-03 forbids.
+                In POLL mode every case above is a skip and the run continues at the next candidate.
+                With --issue naming a blocked issue as a FRESH claim - that is, one this agent does
+                not already own, so the 5a self-ownership branch did not fire - the tool REFUSES with
+                EXIT 2, naming the issue, the blocking T-NN and its issue number, having mutated
+                nothing. Exit 2 is the existing DESIGN.md C-3 row for a refused run with a guard
+                tripped; do NOT invent a new exit status for this. It must stay distinguishable from
+                exit 3, which is reserved for a race this agent actually entered by calling
+                create_ref, and no create_ref is reached on this path.
+             b. Resolve the base commit with factory_gh.default_branch_sha for the repository's
+                default_branch, then call
+                factory_gh.create_ref(repo, "refs/heads/factory/issue-<n>", sha).
+                THE RETURN VALUE OF THAT ONE CALL DECIDES OWNERSHIP.
+                False means the ref already existed — either another agent holds the claim or an
+                older branch survives. In poll mode, SKIP to the next candidate AND REPORT THAT SKIP
+                ON STDERR ON EVERY POLL, with a reason DISTINCT from every other skip reason in this
+                loop, naming the candidate issue number and the fact that the ref
+                refs/heads/factory/issue-<n> already exists. This is DESIGN.md C-2's contract and it
+                is not cosmetic. Once the blocker gate landed, exit 1 with no claimable work became
+                the HEALTHY steady state of a queue whose remaining items are correctly waiting, so
+                this line is the ONLY thing that tells the operator the queue is instead silting up
+                with claim refs left by agents that died before their bookkeeping - D-13's accepted
+                residual, whose acceptance is conditional on that signal existing. This is POLL MODE
+                ONLY. With --issue, this
+                is a lost race: call factory_cli.lost_race naming the issue number and exit 3,
+                having mutated nothing. The agent's own re-entry was already handled in step 5a,
+                which is why there is no ownership test here. Exit 3 is reserved for a race this
+                agent actually entered and must stay distinguishable from exit 1, no work available.
+                True means this agent won. Leave the loop and continue at step 6.
+             c. If every candidate is exhausted without a win, call
+                factory_cli.nothing_to_do("claim", "no claimable work") and exit 1, having mutated
+                nothing. The queue is never blocked by a stale item; it is only shorter.
+        6. Winner only. In this order: add the label `factory:claimed`, assign --as, then set the
+           item's station field to the fleet's `building` option. None of these three decides
+           ownership — the ref already did — so a failure here is a bookkeeping failure over a
+           claim this agent holds, and it exits 2 rather than 3.
+        7. Emit one JSON object through factory_cli.payload, so it is the sole content of stdout,
+           with the keys repo, issue, title, branch and feature, where branch is
+           "factory/issue-<number>" and feature is the value of the issue's `feature:` label with
+           the "feature:" prefix stripped. An issue carrying no `feature:` label yields
+           feature: null and is claimed normally — issues created by the existing gh-sync.py
+           mirror carry `harness` and no feature label, they can sit on the same board, and a
+           tolerant read is what keeps them claimable instead of failing them through the trap.
+           An issue carrying more than one `feature:` label takes the first in sorted order and
+           reports the others on stderr as a warning, without failing.
+      This tool writes to nothing but GitHub, and it creates no branch locally: the ref it creates
+      is a remote ref, and T-06 is what turns it into a checkout.
+
+      POINT OF NO RETURN — the whole candidate scan is mutation-free, including every refused
+      create_ref, so a losing agent NEVER mutates anything and exit 3 keeps the no-mutation
+      guarantee C-3 states. The point of no return is the create_ref that returns True. After it,
+      a failure in step 6 exits 2 with the claim held and the station possibly still ready; the
+      recorded recovery is to re-run with --issue <n>, which the same agent completes idempotently,
+      or for the operator to release the claim with
+      gh api -X DELETE repos/<owner/name>/git/refs/heads/factory/issue-<n>. An abandoned claim
+      costs one skipped candidate on every future poll, never a blocked queue.
+
+      Add test-factory-claim.py: plain python3, no pytest, one line per case, exit 1 on any
+      failure, monkeypatching the factory_gh helpers with a scripted recorder. Cases, at minimum:
+      an empty ready column exits 1; an item in a repository absent from the fleet is not a
+      candidate; every board item fixture in this file carries the REAL measured shape — a
+      repository key holding "https://github.com/owner/name" AND a content mapping holding
+      repository "owner/name" and number — and one case asserts that an item whose owner/name IS
+      in the fleet is selected despite its repository key being a URL, which is the case a fixture
+      authored from the implementer's imagination would silently invert into a permanently empty
+      queue; the lowest issue number wins among three candidates that are all claimable; a
+      station option name missing from the recorder's field options exits 2 naming the option,
+      BEFORE any board read; the happy path sets the station to the building option exactly once
+      and prints JSON whose branch is factory/issue-<n>; the happy path's feature key equals the
+      value of the issue's feature: label with the prefix stripped, and an issue with only a
+      `harness` label claims normally with feature null rather than raising; project_items was
+      called with a query naming the ready option, asserted from the recorder, not with no query.
+      Five cases carry REQ-03 and each of them is a criterion nothing in the previous draft could
+      falsify:
+        - create_ref returning True on the first candidate produces a payload and exit 0, and the
+          label, the assign and the field set all happen AFTER the create_ref call, asserted from
+          the recorder's call ORDER. Ownership before bookkeeping, or the bookkeeping is a lie.
+        - EXHAUSTION, run once per route because SC-13 clause (b) binds every way a candidate can
+          be unclaimable, not only the refused create. Route one: create_ref returns False for
+          every one of three candidates. Route two: all three are rejected by the step 5a
+          pre-filter instead — one closed, one already carrying factory:claimed, one with a
+          non-empty assignees list — so no create_ref is attempted at all. Both routes exit 1 with
+          a payload-free stdout and ZERO mutating calls in the recorder. The losing agent must be
+          indistinguishable from an idle one in its effect on the world — but NOT in what it says.
+          In BOTH routes capture stderr with contextlib.redirect_stderr, the same way the C-3
+          stream cases below do, and assert it carries the words no claimable work and NOT the
+          words no work available. Both that line and the empty-column line exit 1, so this one
+          string is the only thing that tells the operator the ready column held candidates and
+          every one of them was stuck, rather than that the column was empty. Without this
+          assertion nothing in the plan can distinguish them, and a queue full of permanently
+          unclaimable items reports itself as an idle factory.
+          ROUTE ONE CARRIES ONE FURTHER ASSERTION, and it is the one that keeps D-13's residual
+          visible: the captured stderr names EACH of the three candidate issue numbers and, for
+          each, that its claim ref already exists, in a form distinct from the already-marked and
+          already-assigned skip reasons route two produces. Assert route one's stderr and route
+          two's stderr are NOT equal. Both routes exit 1 on the same no claimable work line, so
+          without the per-candidate reason a queue silting up with stale claim refs and a queue
+          of legitimately blocked work differ only by an absence, and an operator cannot read an
+          absence.
+        - a ready column whose LOWEST-numbered candidate is unclaimable — closed, already labelled,
+          already assigned, or its ref create refused — still claims the next one and exits 0. Run
+          this case once per reason, four times. This is the wedge, and a tool that exits non-zero
+          here is the defect that survived three reviews. SC-13 clause (a) now carries a FIFTH
+          reason, blocked by an unfinished blocker; its case lives with the blocker-gate cases below
+          because it needs a plan fixture the other four do not, and it asserts identity rather than
+          exit status alone.
+        - with --issue <n>, create_ref returning False on an issue assigned to a DIFFERENT login
+          exits 3 with zero mutating calls; with --issue on an issue assigned to --as and carrying
+          factory:claimed, the tool exits 0 and re-emits the payload WITHOUT calling create_ref at
+          all, asserted from the recorder — that is the step 5a self-ownership branch, and if it
+          were placed after the skip test instead it would be unreachable; the same issue reached
+          in POLL mode is skipped, not re-emitted.
+        - a create_ref that RAISES GhError rather than returning False exits 2 and never 3, and the
+          loop stops rather than skipping — an authentication failure must not be read as a lost
+          race and must not silently walk the whole queue.
+      SEVEN CASES COVER THE BLOCKER GATE, and the first two are written so that a tool which ignores
+      blockers entirely FAILS them. That is the bar: a case asserting only that some claim happened
+      would pass against the very tool the gate exists to catch, because candidates are sorted by
+      issue number and an unblocked task would usually be reached first anyway. Build one fixture
+      feature for these cases - a temporary plan.yaml and feature.yaml written into a temporary
+      directory, never this repository's own - in which the LOWEST-NUMBERED ready candidate is the
+      BLOCKED one and a higher-numbered candidate is clear. The fixture's plan.yaml carries the
+      depends_on lists and its feature.yaml carries the T-NN to issue-number map, so one candidate
+      may carry SEVERAL blockers resolving to several distinct issue numbers; the scripted recorder
+      answers issue_view PER ISSUE NUMBER, so each blocker's open or closed state is set
+      independently. This is SC-22.
+        - SKIP AND CONTINUE. Ready column holds the blocked lowest-numbered candidate plus at least
+          one clear higher-numbered candidate. The tool exits 0 with a payload, and the assertion is
+          on IDENTITY, not on the exit status: create_ref was called EXACTLY ONCE and its issue
+          number is the CLEAR candidate's, never the blocked one's, asserted from the recorder's
+          call list. A tool that ignores blockers claims the blocked issue here and fails this case.
+          The blocked candidate's skip reason appears on stderr and differs from the already-marked
+          and already-assigned skip reasons.
+        - EVERY CANDIDATE BLOCKED. Every candidate in the ready column has an open blocker. The tool
+          exits 1 with ZERO mutating calls in the recorder - no create_ref, no label, no assign, no
+          field set - and stderr carries the words no claimable work and NOT the words no work
+          available. A tool that ignores blockers exits 0 here with a payload and fails this case.
+        - ALL BLOCKERS CLOSED. The same fixture with every blocker issue closed: the previously
+          blocked lowest-numbered candidate IS now claimed, asserted as create_ref called with that
+          issue number. This is what stops the gate being satisfied by a tool that refuses
+          everything.
+        - MIXED BLOCKER SET, and this case is the only one that falsifies a PARTIALLY correct tool.
+          Give the blocked lowest-numbered candidate a depends_on with THREE entries, each resolving
+          through feature.yaml's factory.issues map to a DIFFERENT issue number: the first CLOSED,
+          the middle CLOSED, the last OPEN. The scripted issue_view recorder answers per ISSUE
+          NUMBER, which is what lets one candidate carry several blockers in different states.
+          Assert the candidate is SKIPPED - create_ref called exactly once and with the clear
+          higher-numbered candidate's issue number, never this one - and that its stderr reason
+          names the LAST blocker's T-NN and issue number, the one that is actually open. Then, as
+          the ALL BLOCKERS CLOSED case does, take THE SAME FIXTURE and close only that last blocker,
+          and assert the candidate IS now claimed, asserted as create_ref called with its issue
+          number. WHY THIS CASE EXISTS, so nobody drops it as a duplicate: every other case gives
+          each candidate blockers that are all open or all closed, so a tool that checks only
+          depends_on[0] passes all of them, and so does the mirror error that calls a candidate
+          blocked only when EVERY blocker is open. T-12 in this very plan declares six blockers, so
+          a depends_on[0] tool hands T-12 out the moment T-02 closes with five still open - the
+          board renders the block marker and the factory hands the work out anyway, which is the
+          exact failure the gate was ruled in to stop.
+        - UNRESOLVABLE BLOCKER. A candidate whose depends_on names a T-NN with no entry in
+          feature.yaml's factory.issues map is SKIPPED, not claimed, with its own distinct stderr
+          reason - DESIGN.md C-2 edge (i), blocked and not clear.
+        - FEATURE NULL IS UNGATED. An issue carrying only a `harness` label, with no feature: label,
+          is claimed normally with feature null even though no plan or issue map can be resolved for
+          it, and the recorder shows no plan file was consulted for it. This is D-09's tolerant read
+          and the case that catches an implementation which turns unresolvable into blocked.
+        - --ISSUE ON A BLOCKED ISSUE. With --issue naming a blocked issue this agent does NOT own,
+          the tool exits 2 - never 3 and never 0 - with zero mutating calls and no create_ref call at
+          all, and its stderr names the blocking T-NN. With --issue naming a blocked issue this agent
+          DOES own - factory:claimed plus assignees including --as - the tool exits 0 and re-emits
+          the payload, proving the gate sits after the self-ownership branch and never breaks the
+          documented repair for an interrupted step 6.
+
+      Three cases assert
+      the C-3 contract, captured in-process with contextlib.redirect_stdout and redirect_stderr:
+      on the empty-column path stdout is EMPTY and the words no work available appear on stderr,
+      with exit 1; on the happy path stdout parses as JSON in a single json.loads of the whole
+      stream, proving no diagnostic was interleaved into it, and stderr may hold anything; and a
+      monkeypatched preflight raising GhError exits 2, not 1, with stdout empty and one stderr
+      line naming a concrete value. The test must not spawn a subprocess.
+
+      Register test-factory-claim.py in run-unit-tests.sh's UNIT_SCRIPTS array in this task.
+
+  - id: T-06
+    title: Prepare a workspace checkout for a claimed issue
+    traces: [REQ-04]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02, T-11]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_workspace.py
+      - .claude/skills/harness/bin/test-factory-workspace.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t06.txt 2>&1; s=$?; grep -q "^PASS test-factory-workspace.py$" /tmp/v-t06.txt && [ "$s" -eq 0 ]
+    intent: |
+      Add factory_workspace.py, which gives an agent a ready checkout of a repository the harness
+      does not live in. The harness is not installed into that repository in this increment; the
+      tool operates it from here over git.
+
+      Command line: factory_workspace.py --repo <owner/name> --issue <n> [--fleet <path>].
+      The entry is wrapped as factory_cli.run("workspace", _main, expected=(FleetError,)), so the
+      C-3 exit vocabulary holds and an unexpected exception exits 2 rather than Python's default
+      1. git's own stdout and stderr are never forwarded to this process's stdout: run_git
+      captures them, and anything worth telling the operator is re-emitted on stderr.
+      Behaviour, in order:
+        1. Load the fleet, resolve the repository entry, and read default_branch from it. An
+           unlisted repository refuses with exit 2, naming the repository and the fleet file,
+           before any git call.
+        2. The checkout path is factory_config.workspace_path(fleet, repo). Do not re-derive it
+           here — one rule, in one module, or the two tools that need it end up in two directories.
+        3. If that path has no .git directory, clone https://github.com/<owner/name>.git into it.
+           Otherwise run a fetch and reset the local default branch onto origin's, so a stale
+           checkout is refreshed rather than reused blindly.
+        4. Check out branch factory/issue-<n>, and the ORDER of the two cases is a prohibition, not
+           a preference. factory_claim.py creates that branch REMOTELY as the claim itself (D-05),
+           so after a fetch it normally already exists as origin/factory/issue-<n>. When it does,
+           check it out tracking that remote ref, and NEVER create a same-named local branch from
+           any other base. A local branch cut from origin/<default_branch> beside an existing
+           remote one of the same name diverges silently here and surfaces as a rejected
+           non-fast-forward push in T-07 — the worst possible place to discover it, after the work
+           is done. Only when origin carries no such ref may the branch be created off
+           origin/<default_branch>; that is the path for a checkout prepared without a claim.
+           If the branch already exists locally and tracks the remote ref, check it out as is.
+        5. Emit one JSON object through factory_cli.payload with the keys path, the absolute
+           checkout path, and branch. That object is the only thing this tool writes to stdout,
+           so a caller can parse it rather than splitting two bare lines.
+      The process must never leave the checkout on the default branch: the last git command it
+      runs is the checkout of factory/issue-<n>, and it exits non-zero if that command fails.
+
+      POINT OF NO RETURN — this tool mutates NOTHING on GitHub, ever; every mutation is local, under
+      workspace_root, and every path is disposable. The point of no return is step 3's first write
+      into the workspace — the clone on a fresh path, or, on an existing checkout, the
+      fetch-and-reset that step 3 performs instead. Exit 2 at any point may leave a checkout that is
+      not on the issue branch, and the recovery is to re-run the same command, which is why step 3
+      refreshes a stale checkout rather than trusting it.
+      Route every git invocation through a module-level run_git(args, cwd) that shells out to
+      os.environ.get("FACTORY_GIT", "git"), so the test can substitute a recorder. Importing the
+      module must have no side effects.
+
+      Add test-factory-workspace.py: plain python3, no pytest, one line per case, exit 1 on any
+      failure, monkeypatching run_git with a recorder and using a tempfile.TemporaryDirectory as
+      workspace_root. Cases, at minimum: a missing checkout produces a clone followed by the
+      branch checkout, in that order; an existing checkout produces a fetch and no clone; the
+      final recorded git command is always the checkout of factory/issue-<n>; when the recorder
+      reports that origin carries factory/issue-<n>, the recorded commands check it out tracking
+      origin and NO recorded command names origin/<default_branch> as the branch's start point —
+      this is the case that would otherwise send divergent work into T-07's push; when the recorder
+      reports origin carries no such ref, the branch IS created off origin/<default_branch>; an
+      existing local branch is checked out rather than recreated; a repository absent from the
+      fleet exits 2 and
+      the recorder shows zero git calls; a failing git command propagates a non-zero exit. Three
+      cases assert the C-3 contract, captured with contextlib.redirect_stdout and redirect_stderr:
+      the happy path's stdout parses as JSON in a single json.loads of the whole stream, so no git
+      chatter reached it; the unlisted-repository refusal writes nothing to stdout and one line
+      naming the repository to stderr, with exit 2; and a run_git recorder raising a plain
+      RuntimeError makes the entry point exit 2 and NOT 1, which is the exit the operator would
+      otherwise read as nothing to do. The test must not spawn a subprocess and must not touch any
+      real repository.
+
+      Register test-factory-workspace.py in run-unit-tests.sh's UNIT_SCRIPTS array in this task.
+
+  - id: T-07
+    title: Land finished work as a pull request
+    traces: [REQ-05]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02, T-03, T-06, T-11]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_land.py
+      - .claude/skills/harness/bin/test-factory-land.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/v-t07.txt 2>&1; s=$?; grep -q "^PASS test-factory-land.py$" /tmp/v-t07.txt && [ "$s" -eq 0 ]
+    intent: |
+      Add factory_land.py, the last step of the journey. It opens a pull request and stops. The
+      operator merges; the factory never does, in this increment.
+
+      Command line: factory_land.py --repo <owner/name> --issue <n> [--fleet <path>].
+      The entry is wrapped as factory_cli.run("land", _main, expected=(FleetError, GhError)), so
+      the C-3 exit vocabulary holds and an unexpected exception exits 2 rather than Python's
+      default 1. git's and gh's own output is captured, never forwarded to stdout.
+      Behaviour, in order:
+        1. Load the fleet, resolve the repository entry and read default_branch. An unlisted
+           repository refuses with exit 2, naming the repository and the fleet file.
+        2. Compute branch = factory/issue-<n>. If branch equals default_branch, refuse with exit 2
+           and a message naming that branch and saying the factory does not push default
+           branches. This guard must be the first thing checked after the fleet loads.
+        3. Push the branch from the workspace checkout at factory_config.workspace_path(fleet,
+           repo) — the same one function T-06 uses, never a second derivation of the path — using
+           the same FACTORY_GIT seam factory_workspace.py uses:
+           git push --set-upstream origin <branch>. Never push any other refspec.
+        4. Call factory_gh.preflight(), then create the pull request with gh pr create, base
+           <default_branch>, head <branch>, title taken from the issue's title, body containing
+           the line "closes #<n>". If a pull request is already open for this head, that is NOT a
+           failure: report the existing URL on stderr, carry it as the payload's url, and continue
+           to step 5. Without this the retry path after any step-5 failure exits 2 forever, and the
+           tool becomes single-shot at the one moment the operator most wants to re-run it.
+        5. Set the issue's board item station field to the fleet's `review` option.
+        6. Emit one JSON object through factory_cli.payload with the keys repo, issue, branch and
+           url, the pull request URL. That object is the only thing this tool writes to stdout.
+      The module must contain no call to gh pr merge, no call to gh api with a merge endpoint,
+      and no git push whose refspec is the default branch.
+
+      POINT OF NO RETURN — the fleet load and the default-branch guard in steps 1 and 2 exit 2 with
+      zero calls of any kind. The point of no return is the successful push in step 3. After it,
+      exit 2 leaves the branch pushed with no pull request, or a pull request with the station not
+      yet moved; every step from 3 onward is idempotent on a re-run — the push is a no-op, step 4
+      adopts an existing pull request, and the field set is a write of the same value — so the
+      recovery is to re-run the same command.
+
+      Add test-factory-land.py: plain python3, no pytest, one line per case, exit 1 on any
+      failure, monkeypatching run_git and the factory_gh helpers with recorders. Cases, at
+      minimum: the happy path pushes exactly one branch, creates exactly one pull request with
+      base equal to the fleet's default_branch and a body containing closes #<n>, and sets the
+      station to the review option; the push runs against the path
+      factory_config.workspace_path returns for that repository, asserted from the recorder's cwd;
+      a pr create that fails because a pull request is already open for the head still sets the
+      station and exits 0 with that url in the payload; an issue number whose branch would equal
+      the default branch exits 2 with zero recorded calls; a repository absent from the fleet exits
+      2 with zero recorded calls; the recorded git argument lists contain no push of the default
+      branch; the
+      recorded gh argument lists contain no merge subcommand. The last two cases assert over the
+      full recorded argument lists, not over a single call. Three cases assert the C-3 contract,
+      captured with contextlib.redirect_stdout and redirect_stderr: the happy path's stdout parses
+      as JSON in a single json.loads of the whole stream; the default-branch guard writes nothing
+      to stdout and one stderr line naming the branch, with exit 2; and a monkeypatched pr-create
+      raising a plain ValueError makes the entry point exit 2, not 1. The test must not spawn a
+      subprocess.
+
+      Register test-factory-land.py in run-unit-tests.sh's UNIT_SCRIPTS array in this task.
+
+  - id: T-08
+    title: Add the state-check invariant for recorded factory claims
+    traces: [REQ-06, REQ-07]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out — check-state.sh is a gate script, and green gates cannot vouch for the code that produces them; its own test file is edited in the same direct step
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      grep -q "INV-24" .claude/skills/harness/bin/check-state.sh && grep -q "INV-24" .claude/skills/harness/bin/test-check-state.py && .claude/skills/harness/bin/run-unit-tests.sh --kind integration > /tmp/v-t08.txt 2>&1 && grep -q "^PASS test-check-state.py$" /tmp/v-t08.txt
+    intent: |
+      Add INV-24 to check-state.sh, covering the factory block that T-04 writes into a feature's
+      feature.yaml.
+
+      For every .harness/features/*/feature.yaml that parses and carries a `factory` mapping:
+        - Load .harness/factory/fleet.yaml with the same harness_yaml helper check-state.sh
+          already uses. If the fleet file is absent, append one `bad` entry saying the feature
+          records factory state but no fleet declares the repository, and skip the rest for that
+          feature.
+        - If factory.repo is not among the fleet's repos names, append a `bad` entry naming the
+          feature, the recorded repository and the fleet names that do exist.
+        - Collect every (factory.repo, issue number) pair from factory.issues AND, when the block
+          carries one, the pair formed from factory.repo and factory.parent — the feature-level
+          container issue T-04 adopts or creates. Collect both into ONE list across all features,
+          so a parent colliding with a task issue, with another feature's parent, or with an issue
+          another feature already records is detected by the same comparison. If any pair appears
+          under two different features, append a `bad` entry naming both features and the pair —
+          two features claiming one issue means the board and the harness disagree about what is in
+          flight. Including the parent is the operator's ruling of 2026-08-08 on finding A-1, and
+          the hazard it makes detectable is D-12's exactly: gh-sync.py's cmd_open also adopts or
+          creates a container for the same feature in the same repository, so a container published
+          beside one the factory creates is the collision D-12 records and this is the only place in
+          the increment where it becomes visible. A factory block with no parent key is not a
+          violation and contributes nothing to the list.
+      Follow the file's existing conventions exactly: append to the same `bad` list the other
+      violation checks use, keep every message on one line, and do not introduce a new exit code.
+      A feature.yaml with no factory block is not a violation and must produce no output.
+
+      Add cases to test-check-state.py in the same task, in the style of its existing cases,
+      forking the real check-state.sh against a temporary tree: a feature with a factory block
+      naming a listed repository passes; a feature naming an unlisted repository produces a
+      violation whose message contains the repository name; two features recording the same
+      repository and issue number produce a violation naming both; ONE FEATURE'S factory.parent
+      equal to another feature's recorded issue number in the same repository produces a violation
+      naming both, which is the A-1 case the issues-only comparison could not see; two features
+      recording the SAME factory.parent in one repository produce a violation naming both; a
+      factory block carrying no parent key produces no INV-24 output; a factory block with no fleet
+      file present produces a violation; a tree with no factory blocks at all produces no INV-24
+      output. Name the new cases so that the literal string INV-24 appears in test-check-state.py
+      as well as in check-state.sh. Do not add a new file to the bin directory — these cases go
+      into the existing test script, which is already registered in INTEGRATION_SCRIPTS.
+
+  - id: T-09
+    title: Record the bounded read-back as a decision
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: []
+    status: pending
+    files:
+      - docs/harness/DECISIONS.md
+      - docs/harness/DECISIONS-INDEX.md
+    verify: |
+      grep -q "^## DEC-186 " docs/harness/DECISIONS.md && grep -q "^- DEC-186 " docs/harness/DECISIONS-INDEX.md && python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout > /tmp/v-t09.txt 2>&1 && diff /tmp/v-t09.txt docs/harness/DECISIONS-INDEX.md && bash .claude/skills/harness/bin/check-docs.sh
+    intent: |
+      Append DEC-186 to docs/harness/DECISIONS.md, following the file's existing entry shape
+      (a `## DEC-186 — <title>` heading, the context, the decision, the reasoning, and the
+      rejected alternatives). DEC-185 is currently the last entry.
+
+      What it must record:
+        - The decision: GitHub Issues and one Projects v2 board are the factory's INTERFACE and
+          control plane; the approval-gated plan.yaml remains the source of truth for what the
+          work is. Factory tools may read GitHub state back for exactly THREE purposes — learning
+          whether an item is claimed, learning or setting which station it is at, and learning
+          whether a BLOCKER ISSUE IS FINISHED — and may
+          never write a read-back value into BRIEF.md, plan.yaml or any approval block. The only
+          harness file a factory tool writes is a feature's own feature.yaml factory block.
+        - THE THIRD PURPOSE, and why it is a ruling rather than a detail. DEC-138 is the write-only
+          baseline being amended here, and the amendment is exactly one item wide. factory_claim
+          MUST NOT claim an issue whose plan dependencies are unfinished, so blocker completion has
+          to be readable. It is not a claim and not a station — it is a gate on candidacy applied
+          before ownership, bookkeeping or the station field are engaged at all — so it did not fit
+          the original two-purpose bound and the bound was widened deliberately. The operator ruled
+          it in at the plan review of 2026-08-08 and rejected deferring enforcement, on the ground
+          that a board which renders a block marker and then hands the work out anyway is worse than
+          no marker, because the operator reads the board and believes ordering holds. What is read,
+          and from where: the DAG authority stays the signed plan.yaml's depends_on, resolution runs
+          plan.yaml depends_on to feature.yaml's issue map to that blocker issue's open or closed
+          state, and GitHub contributes the last hop only. What is NEVER read is the rendered
+          blocked_by edge on GitHub — it is hand-editable, so deriving control flow from it would
+          put a remote object in charge of the signed DAG, which is the inversion DEC-138 exists to
+          prevent. Record the cost plainly rather than leaving it implicit: enforcement adds a
+          blocker-state read PER BLOCKER per candidate and not one per candidate, bounded by the
+          ready column rather than by the board,
+          because the board read is already a server-side query on the ready station option — on
+          board 3 that query returned 1 item against 150 on the board. Record the two ruled edges
+          too: a depends_on entry that cannot be resolved to an issue counts as blocked rather than
+          clear and is reported on stderr, and an issue the factory cannot resolve to a plan task at
+          all — a gh-sync.py mirror issue with no feature label — is not gated and stays claimable.
+        - Why it is an amendment and not a contradiction: DEC-138 makes the mirror one-way and
+          outbound precisely so that a wiki-editable surface cannot feed an approval-gated
+          artifact. Effort ticket #184 found that treating issues as truth after approval
+          contradicts DEC-138, DEC-182 and DEC-168; effort ticket #182 found that a factory needs
+          some read-back to exist at all. Bounding the read-back to those three purposes and to
+          nothing else keeps DEC-138's actual guarantee intact while letting the control plane
+          work: nothing read back is ever written into an approval-gated artifact.
+        - The contrast in failure behaviour: gh-sync.py prints SKIP and exits 0 on any
+          environmental failure because a mirror must never gate a flow; the factory control-plane
+          tools exit non-zero instead, because a control plane that skips leaves the board
+          asserting a state that is not true.
+        - The claim mechanism, because it is the part a future reader will most want the reason
+          for: ownership is taken by creating the git ref refs/heads/factory/issue-N in the target
+          repository, a create-if-absent the server decides, and the factory:claimed label and the
+          assignee are operator-visible bookkeeping the winner writes afterwards. The rejected
+          alternative is assignment as the claim, rejected because an assignee set is additive:
+          two racing agents both succeed, neither can conclude it won, and the issue is left marked
+          and owned by nobody. Record the residual risk plainly — that concurrent ref creates
+          serialise is inferred from the endpoint being create-only, not measured, and no success
+          criterion exercises the live concurrent case before ship — the operator accepted that on
+          2026-08-08, so the first real dispatch is the live verification.
+        - Two known duplications this increment records rather than fixes, so a later reader finds
+          them named instead of rediscovering them. First, gh-sync.py and factory_decompose.py are
+          two independent issue writers keeping two T-NN-to-issue maps in one file, feature.yaml's
+          github and factory blocks; mruangutai/harness is both a candidate fleet member and
+          harness.json's github.repo, so running both there yields two issues per task, and INV-24
+          detects collisions only within the factory ledger. Second, the publish idempotence key is
+          feature.yaml, which is LOCAL state, in a feature whose non-negotiable constraint is that
+          GitHub is the single source of truth — a lost or reverted feature.yaml republishes
+          duplicates. Both are judged non-blocking for increment 1 and both are named here as work
+          a later increment owns. This is D-12.
+        - The rejected alternative: issues as the post-approval source of truth, rejected because
+          it reopens signed choices through a surface with no signature.
+      Reference DEC-138, DEC-168, DEC-179 and DEC-182 in the entry's refs so the index rows link
+      them.
+
+      Then regenerate the index with `python3 .claude/skills/harness/bin/gen-decisions-index.py`
+      and write the hand-written right-hand summary for the new row.
+
+      On stale markers: DEC-186 adds a bounded exception to DEC-138 without falsifying any of its
+      wording — the mirror stays one-way and outbound, and the new read-back neither writes an
+      approval-gated artifact nor makes any DEC-138 sentence untrue. So write no
+      `<!-- stale: ... -->` marker. If, while writing, you find a DEC-138 sentence that DEC-186
+      does make untrue, quote that sentence in a marker inside the DEC-186 entry itself and say
+      so in your digest; do not create a separate entry for markers.
+
+  - id: T-10
+    title: Widen the integration test kind to detect the state-check test
+    traces: [REQ-07]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: []
+    status: pending
+    files:
+      - .harness/harness.json
+    verify: |
+      python3 -c "import json,glob; k=json.load(open('.harness/harness.json'))['test_kinds']['integration']; pats=k['detect'].split('|'); assert k['cmd']; assert '_reason' not in k, 'stale _reason left beside a filled cmd'; assert '.claude/skills/harness/bin/test-factory-integration.py' in pats, pats; hits=[f for p in pats for f in glob.glob(p, recursive=True)]; assert '.claude/skills/harness/bin/test-check-state.py' in hits, hits; print('integration detects', len(hits), 'file(s)')"
+    intent: |
+      In .harness/harness.json, change the `detect` value of test_kinds.integration from
+      "tests/integration/**" to
+      "tests/integration/**|.claude/skills/harness/bin/test-check-state.py|.claude/skills/harness/bin/test-factory-integration.py".
+
+      Why this is load-bearing and not cosmetic: the qa gate resolves each required kind by two
+      signals, and one of its four states is misconfigured — "cmd is null, or no test files
+      matched" — which returns BLOCKED rather than a pass. The integration kind has a real runner
+      (run-unit-tests.sh --kind integration, which does execute test-check-state.py because that
+      file is listed in INTEGRATION_SCRIPTS), but its detect glob tests/integration/** matches
+      zero files in this repository, so the kind resolves to "no test files matched" and SC-06
+      can never come back satisfied. Widening detect is what lets the runner's result count,
+      which is why the criterion is not downgraded to inspection instead.
+
+      Do NOT restate this widening as something four other tasks' change_type: feature matrix floor
+      requires. That justification is wrong and an earlier draft carried it. The qa gate judges the
+      kind from the diff and never from a task's change_type field (harness-qa-gate/SKILL.md:30),
+      and it defines feature as UI and API together (:38); this increment is five Python
+      command-line tools and one configuration file with no user interface, so that classification
+      will not be reached. The widening stands on SC-06 alone, which declares integration evidence
+      and cannot be satisfied while the kind detects nothing, and T-08's verify is what produces
+      that evidence.
+
+      This task depends on NOTHING and lands in the first wave — deliberately, and do not add a
+      dependency on T-12 to make the glob match at write time. The second path names a file T-12
+      creates later; a glob that currently matches nothing is harmless, because test-check-state.py
+      already makes the kind resolve. The verify below asserts the second path is PRESENT IN THE
+      DETECT STRING and only asserts a filesystem hit for the file that exists today.
+
+      DELETE the `_reason` key from the integration entry. Do not preserve it. The file's own
+      _test_kinds_note instructs that the _reason is deleted on any kind whose cmd is filled, and
+      the integration entry carries a filled cmd beside a _reason stating that detection has not
+      been run — a false statement about the project's own configuration, which an earlier draft of
+      this task wrongly told a specialist to keep. Change nothing else: every other kind's detect,
+      exclude, cmd and _reason stay exactly as they are. Keep the file valid JSON.
+
+  - id: T-12
+    title: Add the fork-level exit-status and end-to-end test for every command-line tool
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-08]
+    change_type: scaffolding
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02, T-04, T-05, T-06, T-07, T-11]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-factory-integration.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration > /tmp/v-t12.txt 2>&1; s=$?; grep -q "^PASS test-factory-integration.py$" /tmp/v-t12.txt && [ "$s" -eq 0 ]
+    intent: |
+      Add test-factory-integration.py, the only test in this feature that observes a real PROCESS
+      exit status.
+
+      Why it exists, stated so nobody deletes it as redundant: SC-10 and SC-15 are written about the
+      status a process exits with, and every other test in this feature asserts in-process by
+      catching SystemExit — each of those tests explicitly forbids spawning a subprocess, which is
+      correct for what they cover and blind to this. A tool whose `if __name__ == "__main__":` block
+      forgets to call factory_cli.run, or that raises at import time, passes every one of those
+      tests and violates SC-10 in production. Nothing else in the plan can catch that class.
+      Its support is REQ-08 and the two criteria written on a real process exit status, SC-10 and
+      SC-15, and that support was sufficient on its own before the criteria rework. It now also
+      carries SC-19, the automated happy path: the operator ruled that the journey must be provable
+      without a human, and this file is the only place in the feature where a stubbed board state
+      lets publish, claim, workspace and land run in sequence. That is why the coverage landed here
+      rather than in a new task — the seams, the stubs and the dependency on all five tools already
+      exist here, and a new task would duplicate every one of them. Do not delete this file on the belief that
+      its only justification was a change_type: feature matrix floor — that argument appeared in an
+      earlier draft and is wrong, because the qa gate classifies from the diff rather than from a
+      task's change_type (harness-qa-gate/SKILL.md:30) and this feature ships no user interface.
+      It is separately the only integration-kind coverage of the factory tool surface.
+
+      The seams already exist and no new production code is needed. factory_gh reads FACTORY_GH and
+      factory_workspace reads FACTORY_GIT for the binary to invoke, so the test writes two stub
+      executables into a tempfile.TemporaryDirectory — small scripts that print a scripted response
+      on stdout and exit with a scripted status, chosen per case by an environment variable the stub
+      reads — and points those variables at them. No case may reach the real gh or the real git, and
+      no case may touch a real repository, the real board, or the real .harness/factory/fleet.yaml;
+      each writes its own fleet file into the temporary directory and passes it with --fleet.
+
+      Run each tool with subprocess.run([sys.executable, <tool path>, ...]), capture_output=True,
+      text=True, and a cwd set to a temporary directory that is NOT the harness checkout — the cwd
+      is part of what is under test, since a tool that resolves its fleet from the working directory
+      would find nothing there.
+
+      Cases, at minimum, for each of the five command-line tools factory_config.py,
+      factory_decompose.py, factory_claim.py, factory_workspace.py and factory_land.py:
+        - a stub gh that exits non-zero on auth status makes the tool exit with process status
+          exactly 2, never 1 and never 0, with an empty stdout and a non-empty stderr. This is the
+          SC-10 case and the reason the file exists.
+        - a run whose stubs script a success exits 0 and its whole stdout parses in one
+          json.loads — asserted on the captured process stdout, which is the only place an
+          interleaved progress line would actually show up.
+      THE HAPPY PATH, END TO END, and it is why this file grew rather than a new task appearing: it
+      is the only place in this feature where the four tools are observed COMPOSING. Every other test
+      here proves a tool refuses correctly; nothing else proves the factory works. Run, in one case,
+      against one stubbed board state and one temporary fleet file:
+        factory_decompose.py on a signed two-task plan in a temporary feature directory, then
+        factory_claim.py, then factory_workspace.py, then factory_land.py for the claimed issue.
+      PIN THE FIXTURE PLAN'S DEPENDENCIES, or this case fails on correct behaviour rather than on a
+      defect. Since the blocker gate landed in T-05, factory_claim refuses a candidate whose
+      depends_on blockers are open, and both tasks in this fixture are published open. The
+      lowest-numbered task in the two-task plan must therefore carry depends_on with no entries, so
+      the claim step has a clear candidate; give the second task depends_on naming the first, which
+      costs nothing here and keeps the fixture honest about what a real plan looks like. The blocker
+      gate's own coverage stays in T-05's unit cases (SC-22) and is not this file's job.
+      Assert: decompose exits 0 and creates one issue per task, adds each to the board and sets each
+      station to the fleet's ready option; claim exits 0 with exactly one payload whose branch is
+      factory/issue-<n> and moves that item to the building option; workspace exits 0 with a payload
+      whose path is under the temporary workspace_root and whose branch is factory/issue-<n>; land
+      exits 0, pushes that branch, opens one pull request and moves the item to the review option.
+      Every step's whole stdout must parse in one json.loads of the captured PROCESS stdout, and each
+      step takes its issue number from the previous step's payload rather than from a constant, so a
+      break in the chain shows up as a failure here rather than as four independently green steps.
+      This is SC-19. There is no live-board equivalent criterion; this case proves the tools compose
+      and proves nothing about GitHub's own behaviour.
+      THE STUB gh MUST SCRIPT THE EDGE ENDPOINTS, or that case fails in a way that reads as a tool
+      defect rather than as a gap in the stub. Beyond auth status, issue create, project item-add,
+      project item-edit, project field-list, project item-list, pr create and the git refs endpoints,
+      it must answer: `api repos/<owner/name>/issues/<n> --jq .id` with a plain INTEGER on stdout —
+      never a GraphQL node id, since the tools must never be handed one; `api
+      repos/<owner/name>/issues/<parent>/sub_issues` with a success; and `api
+      repos/<owner/name>/issues/<n>/dependencies/blocked_by` with a success. The stub is reached
+      through FACTORY_GH, which is exactly why the edge functions execute through factory_gh.run_gh
+      and never through gh_issues.gh_bin() — the latter reads GH_SYNC_GH and would walk straight past
+      this stub to the real gh.
+      Plus, once each:
+        - factory_claim.py with a stub gh scripting a refused ref create for every candidate exits
+          with process status 1 and writes nothing to stdout — the losing agent, observed as a
+          process.
+        - a tool invoked with a --fleet path that does not exist exits 2 with a stderr line naming
+          that path.
+        - every one of the five tools, run with no arguments at all, exits 2 and never 1 — a tool
+          whose entry point is not wrapped is most likely to show it here, where argument parsing
+          raises before anything else runs.
+      Keep each case to one subprocess call; the whole file must run in well under 60 seconds.
+
+      Register test-factory-integration.py in run-unit-tests.sh by appending it to the
+      INTEGRATION_SCRIPTS array, NOT to UNIT_SCRIPTS — that array is the one for tests that drive a
+      real script end to end through a fork, which is exactly what this file does, and the split is
+      what keeps the unit kind honest about what it covers. Leaving it unregistered makes the
+      script's drift detector exit 2 and redden every other task's verify.

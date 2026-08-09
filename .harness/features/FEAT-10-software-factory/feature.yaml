@@ -1,0 +1,140 @@
+feature_id: FEAT-10-software-factory
+mission: plan
+phase: plan
+status: awaiting_user
+branch: none
+pr: none
+effort: https://github.com/mruangutai/harness/issues/181
+operator_answers: .harness/features/FEAT-10-software-factory/notes/answers-plan-review.md
+lanes_resolved_at: 914b6fd
+review_sha: 914b6fd
+review_sha_note: >-
+  Base pin for the plan-time reviews. BRIEF.md, plan.yaml and DESIGN.md are UNTRACKED
+  working-tree files at this base, not commits. No FEAT-10 source changed in this phase.
+  UNREVIEWED PAST THE LAST REVIEW: the amend2-product pass — SC-07's deletion, the plain-English
+  rewrite of every REQ and criterion, SC-22's seventh case and B1's three edits. Verified by me at
+  source: 20 criteria all traced, no REQ uncovered, zero SC-07 references in any artifact, task
+  fields unchanged, all gates re-run. A reviewer has not read the rewritten prose.
+cycles_used: 8
+cycles_note: >-
+  6 prior; +1 for edges-delta-eng's must_fix routed into final2-product; +1 for the two review
+  FAILs (bound-delta-eng, enforce-delta-validator) routed into amend2-product. The Q7/Q8 revision
+  and the five operator rulings added ZERO — user-directed new requirements are not rework
+  (DEC-157) — and amend-product, final2-product and amend2-product each reported no send-backs.
+max_total_cycles: 10
+max_total_runs: 20
+counts:
+  reqs: 8
+  scs: 20
+  sc_automated: 18
+  sc_inspection: 2
+  sc_uat: 0
+  tasks: 12
+  tasks_main_session_direct: 2
+  decisions: 15
+tasks:
+  T-01: PLANNED
+  T-02: PLANNED
+  T-03: PLANNED
+  T-04: PLANNED
+  T-05: PLANNED
+  T-06: PLANNED
+  T-07: PLANNED
+  T-08: PLANNED
+  T-09: PLANNED
+  T-10: PLANNED
+  T-11: PLANNED
+  T-12: PLANNED
+runs:
+  - id: plan-product
+    squad: product
+    verdict: PASS
+  - id: arch-eng
+    squad: eng
+    verdict: PASS
+  - id: contract-validator
+    squad: validator
+    verdict: FAIL
+  - id: revise-product
+    squad: product
+    verdict: PASS
+  - id: arch-delta-eng
+    squad: eng
+    verdict: PASS
+  - id: contract-delta-validator
+    squad: validator
+    verdict: FAIL
+  - id: final-product
+    squad: product
+    verdict: PASS
+  - id: revise2-product
+    squad: product
+    verdict: PASS
+  - id: edges-delta-eng
+    squad: eng
+    verdict: ESCALATE
+  - id: sc-delta-validator
+    squad: validator
+    verdict: PASS
+  - id: final2-product
+    squad: product
+    verdict: PASS
+  - id: amend-product
+    squad: product
+    verdict: PASS
+  - id: bound-delta-eng
+    squad: eng
+    verdict: FAIL
+  - id: enforce-delta-validator
+    squad: validator
+    verdict: FAIL
+  - id: amend2-product
+    squad: product
+    verdict: PASS
+  - id: prose-delta-validator
+    squad: validator
+    verdict: PASS
+gate_status:
+  brief_approval: PENDING
+  plan_approval: PENDING
+  plan_load: "PASS — load_plan re-run by me at final state; 12 tasks, 15 decisions"
+  plan_routes: "PASS — check-plan-routes.py exit 0, re-run by me at final state"
+  docs: "PASS — check-docs.sh exit 0, re-run by me at final state"
+  sc_traces: "PASS — re-run by me post-deletion: 20 of 20 SCs traced, no REQ uncovered"
+  uat: >-
+    NONE, DELIBERATELY, AND IT MUST NOT BE A SILENT SKIP. sc_uat is 0 because the operator
+    DELETED SC-07 (2026-08-08 late ruling) as anticipation under #194's one-in-flight cap.
+    Consequence the operator accepted explicitly: NO criterion exercises the live GitHub API
+    before ship, and the first real dispatch is the live verification. The ship gate must state
+    this, never skip it. Prose lives at BRIEF.md ## Verification gaps."
+  task_set_stable: "VERIFIED — no id, depends_on, files or verify changed in any revision"
+  design_pass: "PASS — prototype_required false; re-fired on the edge work and stands"
+  arch_review: >-
+    PASS, PASS-delta, then ESCALATE on the edge delta — 5 of 6 items ACCEPT, must_fix E-1 and
+    E-2 both closed by final2-product, and item 4 escalated to the operator as ESC-1. That run
+    was killed mid-write by an API error; its digest was completed by its own lead and now
+    passes validate-digest.py lead.
+  ui_contract: "FAIL then FAIL-delta; all 10 must_fix closed"
+  sc_rework_review: "PASS — validator delta on the Q8 rework, must_fix empty, severity_max med"
+  prose_review: >-
+    PASS, must_fix empty, severity_max med. Covers the plain-English rewrite, SC-22's seventh case
+    and B1's three edits. CEILING, STATED: the feature dir is untracked, so only 7 of 20 criteria
+    had a pre-rewrite baseline to diff. Those 7 got a semantic falsification-set comparison and
+    yielded the one real change (SC-01). The other 13 plus all 8 REQs got an exact-data check only
+    — ids, paths, command names, exit codes, field names — which found nothing. So the mechanical
+    half of the plain-English ruling is covered for all 20; the semantic half is unverifiable for
+    13 by construction.
+  edge_probes: >-
+    RAN by me, both halves — notes/probe-edge-idempotence.md. blocked_by re-POST returns 422
+    'Target issue has already been taken', so E-1 was real. sub_issues re-attach returns a 422
+    that CONFLATES duplicate-edge with different-parent, which is why the narrowing stays
+    scoped to blocked_by. Neither probe mutated anything, re-verified after each.
+  board_probe: >-
+    RAN by me twice — notes/probe-board-limits.md. Board 3 Status is STILL
+    Backlog/Ready/In progress/In review/Done, so the operator's Building and Review do not
+    exist yet. The rename is a live pre-condition, armed in T-01 and guarded by SC-21.
+  state: >-
+    5 VIOLATIONS, only ONE of them FEAT-10's — BRIEF.md unapproved, cleared by the signature.
+    The other 4 are pre-existing FEAT-04/FEAT-07 run digests, untouched since 08-02/08-04,
+    newly surfaced because validate-digest.py changed at 16:29 today (issues #39, #68).
+    Not FEAT-10 work, not written by any agent I dispatched.
