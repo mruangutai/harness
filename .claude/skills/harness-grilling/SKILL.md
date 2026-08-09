@@ -1,5 +1,6 @@
 ---
 name: harness-grilling
+user-invocable: false
 description: Dialog to clarity before anything is built — a relentless one-question-at-a-time interview that names the destination, settles the decision tree, and records fog and out-of-scope. Blocking step zero of /harness-plan and of onboarding. Run by the main session only.
 ---
 
@@ -14,6 +15,16 @@ Why it is blocking: pm plans from what it is told. Every unstated assumption at 
 becomes a REQ nobody meant, an SC that cannot be verified, or a build cycle spent discovering the
 question. **Five kaya premises briefed as fact were FALSE at HEAD** on one feature — the cheapest
 possible moment to find that is here, in conversation, before a spawn.
+
+Three ways in, and they differ only in what follows:
+
+- **A loose idea or a feature request** — grill it to clarity, write the artifact, then offer
+  `/harness-plan` with the artifact path as pm's input. Do not start planning unasked.
+- **Inside onboarding** — `harness-init` runs this as its interview.
+- **Standalone** ("stress-test this", "grill me on X") — write the artifact and stop. Nothing
+  downstream is implied.
+
+Skipping this step is the user's call to make explicitly, never yours to assume.
 
 ## The discipline
 
