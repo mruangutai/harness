@@ -107,7 +107,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve reports NOBODY for .harness/factory/fleet.yaml, so no agent domain grants the write (DEC-179, D-06)
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/factory/fleet.yaml
     verify: |
