@@ -1,0 +1,445 @@
+schema: plan/1
+feature: FEAT-11-graphql-field-resolve
+
+approval:
+  status: approved
+  approved_by: operator
+  date: 2026-08-10
+  rulings: >-
+    Signed at 687fd3e. Three operator rulings ride with this signature.
+    (1) BUDGET RAISED 10 -> 12, DEC-157 recorded here. Eight cycles went to plan; a one-task build
+    should need zero, and the raise removes a mid-build interruption rather than endorsing rework.
+    (2) SC-01 RESTORES BOARD 6. The proof runs a real factory_decompose against board 6, which moves
+    items between stations — and board 6 is a RETAINED FIXTURE (687fd3e), not scratch. Record every
+    item's station value BEFORE the run and put them back after. The Station field and the four
+    items in known states are the thing being preserved; a proof that leaves them moved has spent
+    the fixture to measure a number.
+    (3) Q1's cleanup half is closed: board 6 and mruangutai/harness-factory-smoke-a1 are kept
+    deliberately. Do not delete them, and do not report them as cleanup owed.
+
+lanes:
+  resolved_at: c1d161706ab4867c00078b966e1969203ee6ca92
+  rows:
+    - surface: .claude/skills/harness/bin/factory_gh.py
+      lane: team
+      agent:
+        - harness-backend-dev
+        - harness-dev-ops
+      note: verbatim output of check-domain.sh --resolve on this exact path, exit 0, re-run at c1d161706ab4867c00078b966e1969203ee6ca92 which is HEAD. Both agents are granted; execution_agent picks harness-backend-dev because the change is module logic, not tooling operations.
+    - surface: .claude/skills/harness/bin/test-factory-gh.py
+      lane: team
+      agent:
+        - harness-backend-dev
+        - harness-dev-ops
+      note: verbatim output of check-domain.sh --resolve on this exact path, exit 0, re-run at c1d161706ab4867c00078b966e1969203ee6ca92. Same pick, same reason.
+    - surface: .claude/skills/harness/bin/test-factory-integration.py
+      lane: team
+      agent:
+        - harness-backend-dev
+        - harness-dev-ops
+      note: verbatim output of check-domain.sh --resolve on this exact path, exit 0, re-run at c1d161706ab4867c00078b966e1969203ee6ca92. Same pick, same reason. This file is in INTEGRATION_SCRIPTS at run-unit-tests.sh:18, not UNIT_SCRIPTS at :17, so the task verify must run it explicitly. git diff between the earlier resolution SHA bd295b0e9c5824a0050a3ad2e1f07086de94b57e and HEAD is empty over team-config.yaml and all three surfaces, so the resolution did not move.
+
+decisions:
+  - id: D-01
+    choice: ONE private resolver serves both public functions. Add _project_field_resolve(owner, number, field) to factory_gh.py, which makes the single GraphQL query and returns a dict with project_id, field_id and options as a list of dicts each carrying id and name. project_field_options keeps returning a list of option NAMES built from that dict; project_field_set reads project_id, field_id and the matching option id from the same dict. Both public signatures and return shapes are unchanged.
+    because: the public signatures are frozen by three other test files and three callers. test-factory-decompose.py, test-factory-claim.py and test-factory-land.py all patch at the factory_gh module boundary with explicit name lists and recorder methods carrying the current argument tuples, so any signature change breaks three suites and three call sites for no gain. Two independent query functions were rejected because they would duplicate the query text, the owner branches and the field-missing branch, and the two copies would drift.
+    dec: none
+  - id: D-02
+    choice: The query roots at repositoryOwner(login:) with __typename, not user(login:), and the resolver discriminates FOUR owner/board/field states rather than two. Order - owner absent (data.repositoryOwner null), owner is an Organization (__typename not User), board absent (projectV2 null), field absent or not single-select (field null or an empty object). Each raises its own GhError with its own what, value and next_step; no message is reused for another case.
+    because: user(login:) returns the identical NOT_FOUND for an organization, for a misspelled login and for a deleted account, so it reproduces one level up the exact collapse this decision exists to prevent at the board number - a mistyped owner reported as an unsupported org sends the operator to the wrong fix. repositoryOwner separates them at cost 1, measured, and ProjectV2Owner is the interface both concrete types satisfy so the projectV2 selection is unchanged. Rejected alternative - keep user(login:) and reword branch (a) to state both causes; it costs nothing but leaves the operator to guess which of two unrelated fixes applies, and error text is expensive to change later because operators and runbooks learn it.
+    dec: none
+  - id: D-03
+    choice: Diagnosis runs ONCE, over the parsed envelope, entered from BOTH the success and the failure path. The resolver calls run_gh inside try/except GhError. On GhError it parses the captured stdout - if that yields a mapping containing a data key, the envelope is diagnosable and control joins the SAME walk the success path uses; if it does not, the failure is a transport or auth failure and is re-raised with the operator's own inputs as the value, never the generic subcommand fallback. Two separate walks, one per exit code, are forbidden.
+    because: measured live 2026-08-10 (notes/research-FEAT-11-combined-query-probe.md), the four failure states do not share an exit code. An unknown owner returns exit 0 with data.repositoryOwner null and NO errors key; a field that exists but is not single-select returns exit 0 with an empty object; an organization, a missing board and a missing field each return exit 1 with a partial envelope on stdout and an errors array. A resolver that diagnoses only inside except GhError misses two states; one that diagnoses only on the happy path misses three. Splitting the walk in two is D-01's own drift argument one level down. The value rule is separate and equally binding - run_gh's _value_from_argv (factory_gh.py:48-63) matches --owner and repos/ prefixes, neither of which appears in a -f owner= argv, so it falls through to joining argv[:2] and names the failure api graphql, which tells the operator nothing they can act on. preflight() (:105-114) is the in-module precedent for catch-and-re-raise with a real value. Rejected alternative - branch on exit code first, then on envelope; it reads naturally and is wrong, because the exit code does not partition the failure set.
+    dec: none
+  - id: D-04
+    choice: The two frozen next_step strings keep their exact bytes, including the one naming a subcommand this change removes from the tree. project_field_options and project_field_set keep raising, byte-identical, the wordings at factory_gh.py:206-210 and :251-256. Nobody tidies them in a later pass.
+    because: REQ-02 binds the field and option failures to behave exactly as they do today. The wording names a command the factory will no longer invoke internally, which reads like dead text and invites a cleanup - but it is an instruction to a HUMAN, who can still type that command themselves, which is exactly what the action slot is for. Recorded as a decision rather than a line of task prose because it is hard to reverse by its own argument, operators learn the string, and the next person to read the file will otherwise fix it. This also settles the reviewer's open point that one of the two frozen strings states a fact rather than an action and so sits awkwardly with the message grammar - the tension is ACCEPTED, not resolved. The remedy would be a reword, the reword breaks the freeze, and the freeze is the requirement. New messages written by this feature do obey the grammar.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Resolve project field ids with one GraphQL query and rewrite the stub tests that pin the old call shape
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    absorbs: [211]
+    files:
+      - .claude/skills/harness/bin/factory_gh.py
+      - .claude/skills/harness/bin/test-factory-gh.py
+      - .claude/skills/harness/bin/test-factory-integration.py
+    verify: |
+      set -o pipefail
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/feat11-unit.log 2>&1 || { echo "FAIL unit suite"; tail -60 /tmp/feat11-unit.log; exit 1; }
+      python3 .claude/skills/harness/bin/test-factory-integration.py > /tmp/feat11-integration.log 2>&1 || { echo "FAIL test-factory-integration.py"; tail -60 /tmp/feat11-integration.log; exit 1; }
+      test "$(grep -c '"field-list"' .claude/skills/harness/bin/test-factory-integration.py)" = 0 || { echo "FAIL: the fake gh still answers project field-list, so a surviving old-shape call would pass silently"; exit 1; }
+      test "$(grep -c '"project", "view"' .claude/skills/harness/bin/test-factory-integration.py)" = 0 || { echo "FAIL: the fake gh still answers project view, so a surviving old-shape call would pass silently"; exit 1; }
+      test "$(grep -c '"field-list"' .claude/skills/harness/bin/factory_gh.py)" = 0 || { echo "FAIL: the gh project field-list INVOCATION is still in factory_gh.py"; exit 1; }
+      test "$(grep -c '"project", "view"' .claude/skills/harness/bin/factory_gh.py)" = 0 || { echo "FAIL: gh project view still called in factory_gh.py"; exit 1; }
+      QT="$(cd .claude/skills/harness/bin && python3 -c 'import factory_gh; print(factory_gh._FIELD_QUERY)')" || { echo "FAIL: factory_gh._FIELD_QUERY does not exist or the module does not import"; exit 1; }
+      test "$(printf '%s\n' "$QT" | grep -Ec 'field[[:space:]]*\([[:space:]]*name[[:space:]]*:')" -ge 1 || { echo "FAIL: the query does not select a single field by name"; exit 1; }
+      test "$(printf '%s\n' "$QT" | grep -Ec 'fields[[:space:]]*\(')" = 0 || { echo "FAIL: over-scoped plural field connection in the query"; exit 1; }
+      test "$(printf '%s\n' "$QT" | grep -Ec '(first|last)[[:space:]]*:')" = 0 || { echo "FAIL: a connection argument is in the query, which is how fan-out gets back in"; exit 1; }
+      test "$(printf '%s\n' "$QT" | grep -c 'user(login:')" = 0 || { echo "FAIL: the query still roots at user(login:), which cannot separate an org from a misspelled owner"; exit 1; }
+      test "$(printf '%s\n' "$QT" | grep -c 'repositoryOwner(login:')" = 1 || { echo "FAIL: expected exactly one repositoryOwner(login: root in the query"; exit 1; }
+      test "$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' .claude/skills/harness/bin/test-factory-decompose.py)" = "f86899df74eca3b40c292b6e0f959ecd72a690ba5c7b92d54fcd847cceb9e5c3" || { echo "FAIL: test-factory-decompose.py content no longer matches its planned hash, so a dependent test file was edited and the public signatures moved"; exit 1; }
+      test "$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' .claude/skills/harness/bin/test-factory-claim.py)" = "44f6cf0a0f379869222f1628e3aeef6126927b043df10f9696437b4bd2e5eaac" || { echo "FAIL: test-factory-claim.py content no longer matches its planned hash, so a dependent test file was edited and the public signatures moved"; exit 1; }
+      test "$(python3 -c 'import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest())' .claude/skills/harness/bin/test-factory-land.py)" = "f3ca25684b1350f7757b8c5b8ce1c0cd8b7e3d2577130e1c63dab4b8b481ea0f" || { echo "FAIL: test-factory-land.py content no longer matches its planned hash, so a dependent test file was edited and the public signatures moved"; exit 1; }
+      echo PASS
+    intent: |
+      TDD applies inside this task. Rewrite the affected cases in test-factory-gh.py FIRST, watch
+      them fail against the unchanged factory_gh.py, then change factory_gh.py to make them pass.
+      All THREE files are yours - factory_gh.py, test-factory-gh.py and test-factory-integration.py -
+      and both test kinds must be green when you finish: the unit kind and test-factory-integration.py,
+      which lives in the INTEGRATION kind and is therefore invisible to a unit-only run.
+
+      WHY THIS EXISTS. gh project field-list costs 102 GraphQL points and gh project view costs 2,
+      measured 2026-08-10 by differencing gh api rate_limit --jq .resources.graphql.used. The cost is
+      in the query shape gh sends, not in the data returned - the same call with --limit 5 also costs
+      102. project_field_set pays both on every call and runs inside the per-task loop at
+      factory_decompose.py:444-458, so the factory exhausts the 5000-point hourly budget and stops.
+      The single GraphQL query below returns all three values at cost 1, measured live the same day.
+
+      THE MEASURED TRANSPORT - read this table before you write a single fixture. Every row was
+      observed live on 2026-08-10 against this exact query document. THE EXIT CODE IS PART OF THE
+      FIXTURE. A fixture written at exit 0 for a row that measured exit 1 certifies a response real
+      gh never produces, and that is the defect this cycle exists to remove.
+
+      ONE ROW CARRIES TWO ENVELOPES, and it is the only exception to the rule above. The
+      organization row below was measured at exit 1 only because no org owning a REACHABLE board is
+      reachable from this account - the exit 1 came from projectV2(number:) failing beneath the
+      owner selection. An org that DOES own a reachable board returns exit 0 with projectV2
+      populated. __typename is readable in both envelopes, which is why step 3b reads it before
+      projectV2 and why the refusal must fire on either. SC-05 therefore requires BOTH org fixtures.
+      The exit-code rule binds every other row absolutely.
+
+        input                                  | exit | envelope on stdout
+        ---------------------------------------|------|--------------------------------------------
+        valid user / valid board / valid field | 0    | __typename User, projectV2.id, field + options
+        unknown owner login                    | 0    | data.repositoryOwner is null, NO errors key
+        field exists but is not single-select  | 0    | projectV2.id present, field is {} (EMPTY DICT)
+        owner is an organization               | 1    | __typename Organization, projectV2 null, errors[]
+        valid owner / board number not present | 1    | __typename User, projectV2 null, errors[]
+        valid board / field name not present   | 1    | projectV2.id present, field null, errors[]
+
+      On every exit-1 row, stdout still parses as JSON carrying BOTH data and errors; gh's own
+      one-line diagnostic goes to stderr, not stdout. Verified by json.load on stdout alone.
+
+      PART A - factory_gh.py.
+
+      1. Add a module-level query constant and a private resolver:
+
+         _project_field_resolve(owner, number, field) -> dict
+
+         It builds this GraphQL document (one named field, never the plural connection):
+
+           query($owner: String!, $number: Int!, $field: String!) {
+             repositoryOwner(login: $owner) {
+               __typename
+               ... on ProjectV2Owner {
+                 projectV2(number: $number) {
+                   id
+                   field(name: $field) {
+                     ... on ProjectV2SingleSelectField {
+                       id
+                       name
+                       options { id name }
+                     }
+                   }
+                 }
+               }
+             }
+           }
+
+         The ... on ProjectV2Owner inline fragment on a RepositoryOwner selection is legal and was
+         run live - both User and Organization satisfy that interface, so one selection covers both.
+
+         The document MUST select exactly one field by name, MUST NOT contain a plural
+         field-connection selection, and MUST NOT contain any connection argument (first: or last:)
+         anywhere. The last clause is the load-bearing one: a selection set carrying no connection
+         argument cannot fan out, which is what makes the query cheap. An implementation that
+         fetches every field, or every project, and filters in Python resolves the same ids, passes
+         every behavioural assertion, and costs exactly what we are removing.
+
+         NAME THE CONSTANT EXACTLY _FIELD_QUERY, at module level. The task verify imports
+         factory_gh and reads factory_gh._FIELD_QUERY by that name, then asserts the shape rules
+         above against the string itself - not against the file - so a comment or docstring that
+         happens to mention first: or fields( does not trip it, and a query that hides fan-out in a
+         string built elsewhere does not escape it. Importing the module must stay side-effect-free,
+         as its own docstring promises.
+
+      2. It runs through THIS module's run_gh, never a new subprocess call:
+
+           run_gh(["api", "graphql",
+                   "-f", "query=" + _FIELD_QUERY,
+                   "-f", "owner=" + owner,
+                   "-F", "number=" + str(number),
+                   "-f", "field=" + field], json_out=True)
+
+         -F for number so gh sends an Int; -f for the two String variables.
+
+      3. D-03 - ONE diagnosis walk, entered from BOTH paths. Do not write two.
+
+           try:
+               env = run_gh(argv, json_out=True)
+           except GhError as e:
+               parse e.stdout as JSON. If it is a mapping containing a "data" key, set env to it and
+               FALL THROUGH to the same walk below. Otherwise this is a genuine transport or auth
+               failure: re-raise a GhError carrying e.argv, e.status, e.stdout, e.stderr, with
+               what "gh graphql call failed", value the string owner + " project " + str(number),
+               next_step "re-run after checking gh auth status and network access".
+               Do NOT let run_gh's own message escape from this path - see step 3e.
+
+         Then walk env["data"], in this order, each raising GhError(argv, None, "", "", what, value,
+         next_step) with argv as the args list actually sent:
+
+         a. repositoryOwner is null -> what "project owner not found", value owner,
+            next_step "check the owner login". D-02: this is a login that resolves to nothing, and
+            it arrives at EXIT 0 with no errors key. It is NOT the organization case.
+         b. repositoryOwner.__typename is not "User" -> what "organization-owned board not
+            supported", value owner, next_step "run against a user-owned board". Read __typename
+            BEFORE projectV2: it is present in both the exit-0 and the exit-1 envelope, so the org
+            refusal does not depend on the org's board existing.
+         c. repositoryOwner.projectV2 is null -> what "project not found", value the string
+            owner + " project " + str(number), next_step "check the board number". D-02: a mistyped
+            board number must never report the organization message.
+         d. projectV2.field is null OR is an empty dict -> what "project field not found", value
+            field, next_step "field-list for {owner} project {number} does not offer it". Test for
+            BOTH shapes: an empty dict is what a field that exists but is not single-select returns,
+            at exit 0, and `{} is None` is False, so `if field is None` alone passes here and then
+            sends --field-id None to item-edit. D-04: keep that next_step byte-identical to the two
+            existing sites at factory_gh.py:206-210 and :251-256, because operators learn the string
+            and a reword is expensive to undo. Do not tidy it.
+         e. THE VALUE RULE, D-03, applies to every raise in this path including the transport one.
+            No GhError leaving this resolver may carry the generic subcommand fallback as its value.
+            run_gh's _value_from_argv (factory_gh.py:48-63) looks for a literal --owner argv element
+            and a repos/ prefix; a -f owner= argv has neither, so it falls through to joining
+            argv[:2] and the operator reads "api graphql", which names nothing they can act on.
+            preflight() (:105-114) is the in-module pattern for catching and re-raising with a real
+            value. Note GhError stores only argv, status, stdout and stderr - there is no value
+            attribute - so the test asserts on str(exc).
+
+         Return {"project_id": <projectV2.id>, "field_id": <field.id>,
+                 "options": [{"id": o["id"], "name": o["name"]} for o in field.get("options", [])]}.
+
+      4. DELETE _field_list (factory_gh.py:196-198) entirely. It has exactly two callers, both of
+         which you are converting. Leaving it in the tree preserves the 102-point path the operator
+         settled must not remain as a fallback.
+
+      5. project_field_options(owner, number, field) keeps its exact signature and returns a list of
+         option NAMES, now built from the resolver's options list. Its field-not-found error is the
+         resolver's branch (d) - do not add a second copy of it.
+
+      6. project_field_set(owner, number, item_id, field, option) keeps its exact signature. It calls
+         the resolver once, then:
+         - if no entry in options has name == option, raise GhError([], None, "", "",
+           "project field option not found", option,
+           "field {field} on {owner} project {number} does not offer it") - the wording at
+           factory_gh.py:257-262, unchanged, frozen by D-04.
+         - otherwise run the SAME gh project item-edit call as today, with --project-id taking the
+           resolver's project_id (the PVT_ node id, never str(number)), --field-id the field_id, and
+           --single-select-option-id the matching option id.
+         There is no fallback anywhere: if the resolver raises, project_field_set raises and no
+         item-edit call is made. That is the D-02 never-swallow property, preserved.
+
+      7. Delete the gh project view call and its comment block at factory_gh.py:263-271. Replace the
+         comment with a short one recording that --project-id takes the GraphQL node id, never the
+         board number (measured live: --project-id 4 raises "Could not resolve to a node with the
+         global id of '4'"), and that the id now comes from the same single query as the field ids.
+         Do not reintroduce the word parity - there is no second read to be in parity with.
+
+      PART B - test-factory-gh.py. Every case below is fed by fixtures shaped for the OLD call
+      sequence and breaks by construction. Rewrite all of them. EVERY fixture carries the exit code
+      from the measured-transport table above, not exit 0 by default. There is exactly ONE
+      exception, flagged where it appears below: the exit-0 organization fixture, which has no row
+      in that table because no org owning a reachable board was reachable to measure.
+
+      - :78-87 FIELD_LIST_JSON and PROJECT_VIEW_JSON. Replace with GraphQL envelope fixtures. The
+        success one, at EXIT 0:
+        GRAPHQL_FIELD_JSON = json.dumps({"data": {"repositoryOwner": {"__typename": "User",
+        "projectV2": {"id": "PVT_kwFAKE", "field": {"id": "F1", "name": "Station",
+        "options": [{"id": "O1", "name": "Ready"}, {"id": "O2", "name": "Doing"}]}}}}})
+        Keep the ids F1, O1, O2 and PVT_kwFAKE so the existing value assertions stay meaningful.
+        Add SIX sibling fixtures, each at its measured exit code:
+          - unknown owner, EXIT 0: {"data": {"repositoryOwner": None}}, no errors key.
+          - organization with an UNREACHABLE board, EXIT 1: {"data": {"repositoryOwner":
+            {"__typename": "Organization", "projectV2": None}}, "errors": [{"type": "NOT_FOUND"}]}
+            on stdout.
+          - organization with a REACHABLE board, EXIT 0. NAME IT EXACTLY GRAPHQL_ORG_OK_JSON, at
+            module level beside GRAPHQL_FIELD_JSON, so the criterion it serves has a content anchor
+            to grep for. It is the success envelope with the typename flipped - {"data": {"repositoryOwner": {"__typename": "Organization", "projectV2":
+            {"id": "PVT_kwFAKE", "field": {"id": "F1", "name": "Station", "options": [{"id": "O1",
+            "name": "Ready"}, {"id": "O2", "name": "Doing"}]}}}}}, NO errors key. This one is the
+            discriminating org fixture: against it an implementation that reads __typename only
+            inside except GhError returns SUCCESSFULLY and writes to an org board. The exit-1 org
+            fixture cannot catch that, because it raises either way. Unlike the other five rows this
+            envelope was NOT measured - no org owning a reachable board is reachable from this
+            account - it is derived from the exit-0 success shape with __typename changed. Build it
+            anyway; the criterion it serves is SC-05.
+          - board absent, EXIT 1: {"data": {"repositoryOwner": {"__typename": "User",
+            "projectV2": None}}, "errors": [{"type": "NOT_FOUND"}]} on stdout.
+          - field absent, EXIT 1: projectV2 present with its id, "field": None, plus an errors
+            array, on stdout.
+          - field not single-select, EXIT 0: projectV2 present with its id, "field": {}.
+        The three exit-1 fixtures must put the envelope on STDOUT, because that is where the
+        resolver reads it from, and may put an unrelated one-line diagnostic on stderr.
+      - :255-267 asserts len(calls) == 3 and field-list then project-view then item-edit. Rewrite to
+        assert exactly TWO calls: one gh api graphql, then one gh project item-edit. Keep the F1 and
+        O1 assertions on the item-edit argv.
+      - :269-279 the option-not-offered case. Keep the behaviour assertion; re-feed it from the
+        success GraphQL fixture and assert ZERO item-edit calls were made. ALSO ADD the D-04 freeze
+        assertion, which exists nowhere in the tree today and is why the freeze can currently be
+        reworded green: assert that str(exc) contains the RENDERED next_step for this case's own
+        arguments, byte for byte. With this case's current arguments - project_field_set("owner", 3,
+        "ITEM1", "Station", "NotAnOption") - the exact substring is
+        field Station on owner project 3 does not offer it
+        Assert the RENDERED string, never the braced template: the source wording is an f-string
+        (factory_gh.py:251-256), so an assertion written against field {field} on {owner} project
+        {number} does not offer it matches nothing, ever, and is a dead assertion that ships green.
+        Substitute this case's own owner, number, field and option if you change them. GhError
+        exposes no next_step attribute - str(exc) is built by factory_cli.body(what, value,
+        next_step) at factory_gh.py:43 - so str(exc) is where the assertion goes.
+      - :282-306 the --project-id argv-dispatching case. Keep the dispatching_fake, but dispatch on
+        the ("api", "graphql") prefix instead of ("project", "field-list") and ("project", "view").
+        Keep the assertion that --project-id is PVT_kwFAKE and not "3".
+      - :309-328 the failed-project-view case. Its trigger no longer exists. Replace it with a
+        NON-DIAGNOSABLE transport failure: the ("api", "graphql") prefix returns
+        Result(1, stdout="", stderr="gh: API error"). Assert GhError is raised, zero gh project
+        item-edit calls were made, AND - this is the new clause - that str(exc) contains
+        "mruangutai project 3" (or whatever owner/number the case uses) and does NOT contain
+        "api graphql". Keep the comment naming D-02, never swallow, so the property's lineage
+        survives the rewrite.
+      - :446-463 project_field_options: returns the option names, and raises naming the absent field.
+        Re-feed from the GraphQL fixtures. The absent-field case now uses the field-absent fixture
+        at exit 1. ALSO ADD the D-04 freeze assertion for the OTHER frozen string, the one this
+        error carries, for the same reason and in the same form: assert that str(exc) contains the
+        RENDERED next_step for this case's own arguments, byte for byte. With this case's current
+        arguments - project_field_options("owner", 3, "NoSuchField") - the exact substring is
+        field-list for owner project 3 does not offer it
+        Rendered, never braced: field-list for {owner} project {number} does not offer it matches
+        nothing, ever. This is the correct and only home for that assertion - the resolver raises
+        the field error once, in branch (d), and step 5 forbids a second copy of it.
+      - :571-573 and :594-597 the writes-nothing-to-stdout cases for project_field_options and
+        project_field_set. Their with_recorder positional result lists are shaped for the old
+        sequence; re-shape them (one graphql result, and for field_set one graphql plus one empty
+        item-edit result).
+
+      ADD FOUR NEW CASES, one per newly separated state, each asserting the exception message and
+      that zero item-edit calls were made:
+        - unknown owner (exit-0 fixture) raises naming the owner, and its message is DIFFERENT from
+          the organization message and from the board-not-found message. Assert the difference
+          explicitly, not just that each raises.
+        - organization raises the org refusal naming the owner, asserted against BOTH org fixtures -
+          the exit-1 one and the exit-0 one. Same case, two fixtures, not two cases. The exit-0 half
+          is the one that fails an implementation whose org check lives only inside except GhError.
+        - board absent (exit-1 fixture) raises naming owner + " project " + number.
+        - field not single-select (exit-0 empty-dict fixture) raises the SAME field-not-found error
+          as the field-absent case. This case is the one that catches `if field is None`.
+
+      ALSO ASSERT, across every failing case in this path including the transport one: str(exc) never
+      contains the substring "api graphql". That string is what run_gh's generic fallback produces
+      for this argv, and it names nothing the operator can act on.
+
+      THE OVER-SCOPE GUARD - this one is the point, do not omit it. Inside the SUCCESS case of
+      project_field_set (the two-call case above), after asserting the ids reached item-edit, pull
+      the graphql call's argv, take the value carried in the "query=" argument, and assert on that
+      string with REGEXES, not substrings:
+        - re.search(r"field\s*\(\s*name\s*:", q) is not None
+        - re.search(r"fields\s*\(", q) is None
+        - re.search(r"\b(first|last)\s*:", q) is None
+      Substring tests on the literal "fields(" are NOT sufficient and were rejected in review: a
+      query shaped projectsV2(first: 100){ nodes { ... field(name: $field){...} } } filtered in
+      Python contains "field(name:", contains no "fields(", satisfies both substring assertions
+      affirmatively, and still fans out about 100 nodes; and "fields (first: 100)" with a space is
+      legal GraphQL that both substring tests miss. The third clause is the structural one - no
+      connection argument means no fan-out, checkable from the query text alone. Verified against
+      the intended document above: it contains no first: and no last:.
+
+      PART C - test-factory-integration.py. This suite drives the REAL factory_decompose and
+      factory_claim through a whole-CLI fake gh, so project_field_options and project_field_set reach
+      that fake for real. It breaks by construction exactly like the Part B cases: after your change
+      they issue ["api", "graphql", ...], which matches no handler and falls through to the
+      unhandled-argv error at :227. It is in INTEGRATION_SCRIPTS (run-unit-tests.sh:18), not
+      UNIT_SCRIPTS (:17), so a unit-only run cannot see the break - that is why the verify runs it
+      explicitly.
+
+      1. Add a handler for the new call, placed BEFORE the existing `if argv and argv[0] == "api":`
+         block at :205 - matching argv[:2] == ["api", "graphql"] and ending in ok(...). Placement is
+         not cosmetic: after :205 it happens to still work only because "graphql" matches none of the
+         REST regexes, which is an accident the next person editing the REST branch would break.
+
+      2. It returns the same envelope shape the new resolver reads, unconditionally, without
+         inspecting the query= text:
+           {"data": {"repositoryOwner": {"__typename": "User", "projectV2": {"id": "PVT_kwFAKE",
+            "field": {"id": "FIELD_STATUS", "name": <the requested field name>,
+            "options": [{"id": "OPT_READY", "name": "Ready"},
+            {"id": "OPT_BUILDING", "name": "Building"},
+            {"id": "OPT_REVIEW", "name": "Review"}]}}}}
+         Carry PVT_kwFAKE and the FIELD_STATUS / OPT_* ids through UNCHANGED, so the --project-id
+         assertion at :196-199 and the option-id-to-station mapping at :200-202 keep working with no
+         edit. Do NOT duplicate the query-shape guard here - that assertion lives once, in
+         test-factory-gh.py, and a second copy is a second thing to keep in sync.
+
+      3. DELETE both now-dead handlers: ["project", "field-list"] at :178-188 and ["project", "view"]
+         at :190-191. Deleting them is the point, not tidiness. Confirmed at
+         c1d161706ab4867c00078b966e1969203ee6ca92 that the ONLY invocations of those two subcommands
+         anywhere in the factory are factory_gh.py:197 and :269, both of which you are removing - so
+         the handlers are unreachable. Leaving them in would make the fake keep answering the old
+         calls, and a half-done implementation that still resolves one id the old way would pass this
+         suite silently. Removed, the unhandled-argv branch at :227 becomes the guard: any surviving
+         old-shape invocation fails loudly.
+
+      4. Update the failure message at :198-199, which currently reads "want the node id from
+         `project view`, not the bare board number". The ASSERTION is correct and stays; the message
+         cites a call that will no longer exist anywhere in the tree. Reword it to name the graphql
+         resolver as the source of the node id. It is a Python string, so no docs gate catches it,
+         and the task verify's "project", "view" clause passes either way because that line spells
+         it in prose - so this step is on your honour.
+
+      DO NOT EDIT test-factory-decompose.py, test-factory-claim.py or test-factory-land.py. They
+      patch factory_gh at the module boundary and their passing unedited is the proof that the public
+      signatures did not move. The verify command carries the sha256 of each of the three files as
+      planned and fails the task if any of them no longer matches.
+
+      Note on the verify command. It greps for the QUOTED token "field-list", not the bare token,
+      and that distinction is deliberate: the bare token survives a correct implementation, because
+      step 3d and D-04 order you to keep the next_step wording that contains it. Measured at
+      c1d161706ab4867c00078b966e1969203ee6ca92: the bare token appears on 4 lines in factory_gh.py
+      and the quoted form appears exactly once, at the argv of the call being deleted, so the quoted
+      form is the discriminating clause - 1 today, 0 afterwards. The four query-shape clauses read
+      factory_gh._FIELD_QUERY rather than the file, and they are discriminating by construction: the
+      constant does not exist today, so the import step fails today and every one of them can only
+      pass after the change. Scoping them to the constant instead of the file is deliberate - a
+      whole-file grep for first: or fields( would redden on a comment explaining why those shapes
+      are banned, which is exactly the comment step 1 asks you to be able to write. The unit-level
+      over-scope check in Part B is the other half: it asserts on the query text as EMITTED in the
+      argv, so a constant that passes here but is rewritten before the call still fails there.
+
+      Why the three sentinel clauses pin a CONTENT HASH rather than diffing against a git ref. The
+      three sha256 values were observed on a clean working tree at 92d2723282d1cc1309ffa6e4c163df2b92cb2187,
+      and git diff --stat 835b2976abd649fb814385d7d9b5b19fb7e1431a HEAD over the same three files is
+      empty, so they are also the content at the review_sha the plan was signed against. A hash is
+      taken over the file bytes, so committing the work before running verify cannot change it; and
+      it names no commit, ref or merge base, so unrelated commits landing on main while T-01 is in
+      flight - FEAT-12 is the live one - cannot move it either. Both defeats apply to the earlier
+      git diff --quiet HEAD form, which passes trivially the moment the build agent commits, and the
+      second one also defeats a literal SHA pin. If a clause reddens, diagnose before assuming the
+      task broke it: re-run the hash on a clean checkout of 835b297 to tell drift from falsification.
+      A legitimate unrelated edit to one of these three files would also redden it, which is correct
+      behaviour - it means the sentinel is no longer the file the plan was signed against, and the
+      task cannot claim it as proof.
+
+      Why the verify runs test-factory-integration.py directly rather than --kind all. Measured at
+      bd295b0e9c5824a0050a3ad2e1f07086de94b57e, clean tree, and unchanged at HEAD because git diff
+      over these files between those two SHAs is empty: --kind all exits 0 in 54.9s wall, --kind
+      unit exits 0 in 0.7s, and test-factory-integration.py alone exits 0 in 5.5s with 97/97 checks.
+      --kind all is inside the 60s task-verify budget by 5 seconds on this machine, which is not a
+      margin worth spending; the targeted pair covers the same three files this task edits in ~6s.
+      The drift detector at run-unit-tests.sh:42-55 still runs over the UNION on the --kind unit
+      call, so an unregistered new test file is still caught. This task adds no new test FILE, so
+      no registration edit is owed. Note what neither form covers: the detector catches an
+      unregistered NEW file, never an existing registered file that broke - which is precisely why
+      this task names test-factory-integration.py explicitly instead of trusting it.
