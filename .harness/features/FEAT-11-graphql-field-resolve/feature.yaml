@@ -1,18 +1,17 @@
 feature_id: FEAT-11-graphql-field-resolve
-mission: plan
-phase: plan
-status: approved
+mission: ship
+phase: build
+status: in_progress
 branch: feat/FEAT-11-graphql-field-resolve
 pr: none
 effort: https://github.com/mruangutai/harness/issues/211
 briefing: none
-review_sha: 835b2976abd649fb814385d7d9b5b19fb7e1431a
+review_sha: 8dedeae08229946d12d0579bcaaaca63856b5337
 review_sha_note: >-
-  Pinned at the tree the plan was reviewed against, per INV-6, BEFORE the validator segment. The
-  briefing that spawned this flow said main was at 45af5aa; eight commits landed under it during
-  the plan run (45af5aa..835b297), none touching factory_gh.py. pm's route resolution recorded
-  c1d1617, which is inside that range. Two reviewers independently confirmed the pin diffs empty
-  over all three subject files.
+  RE-PINNED at the signature commit at the start of the ship mission, and MOVED AGAIN after the
+  T-01 commit — see review_sha_history. The plan phase's pin (835b297) predates T-01 entirely, so a
+  panel dispatched against it would review a tree with none of the work in it. Every validator run
+  gets a pin naming a sha that actually contains the work under review.
 cycles_used: 8
 max_total_cycles: 12
 cycles_raise: >-
@@ -23,21 +22,18 @@ cycles_raise: >-
   does not endorse rework.
 max_total_runs: 20
 cycles_note: >-
-  6 charged from plan-product (lead-reported send-backs: three to pm, one to visual-designer, two
-  ui-reviewer re-runs; the lead volunteered that two were its own). 1 charged for the validator FAIL
-  routed back. The validator's two API-transport re-dispatches are NOT charged: an infrastructure
-  retry against a lost context is not rework. 1 charged for the plan-product digest-contract
-  repair — BOOKKEEPING, not deliverable rework: the digest's roll-up read PASS over three
-  superseded FAIL member entries. Counted because a send-back is a send-back; the operator may
-  reasonably discount it.
+  All 8 charged in the plan phase (6 plan-product send-backs, 1 validator FAIL routed back, 1
+  digest-contract repair). Ship mission so far: t01-eng reported ZERO send-backs and returned PASS
+  on the first pass, so it charges nothing — DEC-157, a first-pass run is not rework.
 counts: { reqs: 5, scs: 12, tasks: 1, decisions: 4, main_session_direct: 0 }
 counts_note: "SC-01 is operator-run by construction; every other criterion is agent-verifiable."
-tasks: { T-01: PLANNED }
+tasks: { T-01: BUILT }
 tasks_note: "change_type bugfix, absorbs #211, files: factory_gh.py + test-factory-gh.py + test-factory-integration.py, all resolving to harness-backend-dev."
 route_resolution: >-
   ZERO main-session-direct. Resolved by check-domain.sh --resolve, not by reading team-config, which
   is ambiguous for bin/** (granted to both backend-dev and dev-ops). None of the five DEC-174
-  carve-out files is in scope.
+  carve-out files is in scope. eng-lead confirmed the pick at dispatch on semantics, not on the
+  grant, which cannot discriminate between backend-dev and dev-ops for bin/**.
 peer_feature_collision:
   peer: FEAT-12-end-copy-distribution
   overlap_files: none
@@ -45,8 +41,13 @@ peer_feature_collision:
   risk: >-
     NO file in T-01 is in FEAT-12's plan union, but FEAT-12 edits run-unit-tests.sh, which is the
     command T-01's verify invokes for --kind unit. If FEAT-12 lands first and changes how the suite
-    splits, T-01's verify changes meaning without T-01 changing. Sequencing is the operator's call;
-    derived from FEAT-12's plan.yaml files union, not from its grilling artifact.
+    splits, T-01's verify changes meaning without T-01 changing. Sequencing is the operator's call.
+  ship_phase_measurement: >-
+    CHECKED at the start of the ship mission: git status --porcelain is clean over
+    run-unit-tests.sh and over all four DEC-174 carve-out files, so FEAT-12 has landed nothing into
+    this working tree and T-01's verify means what the plan measured. Only held dirt is
+    .harness/logs/2026-08-10.md (modified) and the untracked FEAT-12 feature dir — both excluded
+    from every commit by explicit pathspec.
 e1_ruling:
   claim: >-
     The grilling artifact states the two error paths at factory_gh.py:251-262 must survive because
@@ -61,44 +62,72 @@ e1_ruling:
     own stderr; it never enters factory_gh.
   ruling: >-
     THE OPERATOR'S CONSTRAINT STANDS UNCHANGED — the two error paths survive unchanged in behavior.
-    A falsified rationale does not release a constraint, and relaxing one is not mine. Only the
-    stated REASON is wrong, in four prose sites. The grilling artifact is NOT edited: it is a dated
-    record of that session, and this file carries the correction.
+    A falsified rationale does not release a constraint. Only the stated REASON is wrong. The
+    grilling artifact is NOT edited: it is a dated record of that session, and this file carries the
+    correction.
   the_real_dependency: >-
     _validate_stations depends on project_field_options RAISING on a missing field
-    (factory_gh.py:206-210) — a THIRD error path the grilling never named. The plan is already more
-    precise than the grilling and names :206-210 at plan.yaml:201, so no behaviour is at risk.
-sc01_fixture_tension: >-
-  SURFACED AFTER EVERY RUN CLOSED, at 687fd3e, which landed during this phase. The operator ruled
-  board 6 a retained FIXTURE ("a working Station field with four items in known states"), not
-  cleanup debt. SC-01's verification is a real factory_decompose against that same board, and it
-  moves items between stations. The Station FIELD survives; the item STATES do not. Nobody in the
-  plan runs could have known — the ruling postdates them. Not a plan defect and not blocking:
-  a scheduling decision for whoever runs SC-01.
-my_own_residual: >-
-  DESIGN.md:59 and :119 carry <!-- ok-stale --> markers because MY dispatch prompts cited that
-  mechanism as live. It was STRUCK at 835b297 (issue #202), which removed 66 of them. Both are
-  inert. Not fixed here: DESIGN.md is visual-designer's file and a spawn to delete two HTML
-  comments costs a cycle at 8 of 10. Strike at signature or fold into the build phase.
+    (factory_gh.py:206-210) — a THIRD error path the grilling never named. The plan names :206-210
+    at plan.yaml:201, so no behaviour is at risk.
+sc01_ruling: >-
+  CLOSED BY THE OPERATOR at signature. Board 6 and mruangutai/harness-factory-smoke-a1 are RETAINED
+  FIXTURES, not scratch and not cleanup owed. SC-01's proof runs a real factory_decompose against
+  board 6, which moves items between stations, so the operator records every item's station value
+  BEFORE the run and restores it after. The UAT script pm authors at goal-check carries that
+  record-and-restore procedure; a proof that leaves the four items moved has spent the fixture to
+  measure a number. No agent in this flow made any live gh call against board 6.
+q4_sentinels: >-
+  MOOT, measured at 8dedeae before any dispatch and unchanged after the build. All three sha256 pins
+  in T-01's verify recompute byte-identical to the planned values, so no amendment is owed and the
+  sentinel clauses discriminate as designed.
+build_baseline: >-
+  Measured at 8dedeae, clean tree: run-unit-tests.sh --kind unit exits 0 and
+  test-factory-integration.py exits 0 (97/97). The verify's discriminating clauses were RED before
+  the change — factory_gh._FIELD_QUERY did not exist and the quoted "field-list" argv appeared once
+  — so the green verify after it can only come from the change.
 gate_status:
-  brief_approval: "PENDING — the operator's signature, never an agent's"
-  plan_approval: "PENDING — approval.status is pending in plan.yaml"
-  arch_review: "PASS — eng-lead, 4 must_fix all closed in remediation"
-  design_contract: "PASS — visual-designer, needs_prototype false; DESIGN.md written then corrected against the wider probe"
-  ui_contract_prebuild: "PASS — ui-reviewer, three passes, two must_fix then one more, all closed"
-  plan_contract: "PASS after fix — 3 must_fix closed in one round, zero send-backs, re-verified by me"
-  docs: "NOT APPLICABLE — check-docs.sh was DELETED by the operator at 835b297 (issue #202, the
-    propagation checker is struck). There is no docs gate to run; CLAUDE.md no longer cites it."
-  state: "PASS for this feature except the expected unapproved-BRIEF violation — run by me after
-    every write. All four run dirs recorded; all three lead digests pass validate-digest.py."
-  github_mirror: "NOT RUN — gh-sync.py open is mission ship, after approval"
-  commit_pen: "NOT EXERCISED — the artifacts are unsigned and approval-gated; committing them is not this phase's job"
+  brief_approval: "PASS — approved / operator / 2026-08-10"
+  plan_approval: "PASS — approval.status approved, three rulings ride with the signature"
+  arch_review: "PASS (plan phase) — eng-lead, 4 must_fix all closed"
+  design_contract: "PASS (plan phase) — visual-designer, needs_prototype false"
+  ui_contract_prebuild: "PASS (plan phase) — ui-reviewer, three passes, all must_fix closed"
+  plan_contract: "PASS (plan phase) — validator, 3 must_fix closed in one round"
+  docs: "NOT APPLICABLE — check-docs.sh was DELETED at 835b297 (issue #202). No docs gate exists."
+  task_verify: >-
+    PASS — re-run BY ME from the repo root against the plan's verify scalar rather than relayed:
+    exit 0, prints PASS. Independently confirms the lead's claim.
+  qa_gate: "PENDING — blocking, orchestrator-sequenced validator segment, dispatched next"
+  review_panel: "PENDING — dispatched against a pin that contains T-01, never the plan-phase pin"
+  uat: "PENDING — blocking_when_uat_criteria_exist; SC-01 is uat and only the operator may run it"
+  github_mirror: "PASS — gh-sync.py open exit 0: milestone #5, parent #214 (created), T-01 -> #215"
+  commit_pen: "EXERCISED for T-01 by explicit pathspec; held dirt excluded"
 runs:
   - { id: plan-product, squad: product, verdict: PASS }
   - { id: plan-eng, squad: eng, verdict: PASS }
   - { id: plan-contract-validator, squad: validator, verdict: FAIL }
   - { id: plan-fix-product, squad: product, verdict: PASS }
+  - { id: t01-eng, squad: eng, verdict: PASS }
 runs_note: >-
   plan-eng is the eng-lead architecture review's artifact dir, created as a leaf reviewer inside the
-  plan-feature run; it holds no digest of its own. The digest-contract repair created no run dir —
-  it edited plan-product/digest.md in place, which now passes validate-digest.py lead.
+  plan-feature run; it holds no digest of its own. The digest-contract repair created no run dir.
+build_residuals:
+  d03_partial_success: >-
+    RAISED BY eng-lead, non-blocking, a signed-plan consequence rather than a build defect. The
+    resolver treats any exit-1 stdout that parses to a mapping carrying a "data" key as a
+    diagnosable envelope. A GraphQL partial-success response — complete data, no null anywhere,
+    non-empty errors — would walk clean and return success for a call gh reported as failed. No row
+    in the plan's measured transport table has that shape, so no signed fixture reaches it. The
+    member implemented D-03 as written rather than adding an undeclared defensive re-raise, which
+    was correct. Routed to the qa segment as a known coverage hole, then to the briefing backlog.
+  plan_anchor_43: >-
+    plan.yaml's intent cites factory_cli.body "at factory_gh.py:43"; at 8dedeae line 43 is
+    self.stdout = stdout and the call is at :45. Non-blocking — the instruction it supports (assert
+    on str(exc)) is correct either way and the tests do assert on str(exc). Recorded so the anchor
+    is not copied forward. Not fixed by me: plan.yaml is pm's file.
+github:
+  milestone: 5
+  parent: 214
+  parent_origin: created
+  attached: [T-01]
+  issues:
+    T-01: 215
