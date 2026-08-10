@@ -771,6 +771,106 @@ def case_r():
         return ok
 
 
+FLEET_YAML = """schema: factory-fleet/1
+board:
+  owner: acme
+  number: 3
+  station_field: Status
+  stations:
+    ready: Ready
+    building: Building
+    review: Review
+repos:
+  - name: acme/widget
+    default_branch: main
+workspace_root: /tmp/acme-factories
+"""
+
+
+def _factory_tree(tmp, features, fleet=FLEET_YAML):
+    """Build a fixture with N features, each optionally carrying a `factory` block.
+
+    `features` is {feature_id: factory_block_yaml_or_None}. A None block writes a
+    feature.yaml with no factory key at all, which INV-24 must ignore entirely.
+    """
+    h = os.path.join(tmp, ".harness")
+    os.makedirs(h, exist_ok=True)
+    with open(os.path.join(h, "harness.json"), "w") as f:
+        f.write(HARNESS_JSON_SYNC_OFF)
+    if fleet is not None:
+        os.makedirs(os.path.join(h, "factory"), exist_ok=True)
+        with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
+            f.write(fleet)
+    for feat, block in features.items():
+        d = os.path.join(h, "features", feat)
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "feature.yaml"), "w") as f:
+            f.write(block if block else "branch: none\n")
+    return h
+
+
+def case_s():
+    """INV-24 (DEC-186): factory claims must resolve against the fleet, and no two
+    features may claim one issue.
+
+    The parent is folded into the SAME comparison list as the task issues rather than
+    checked separately. That is the operator's 2026-08-08 ruling on finding A-1, and it is
+    what makes D-12 visible: gh-sync.py's `open` also adopts or creates a container for the
+    same feature in the same repository, so a container published beside one the factory
+    created collides — and an issues-only comparison cannot see it.
+    """
+    results = []
+
+    def check(label, features, expect_hit, needles=(), fleet=FLEET_YAML):
+        with tempfile.TemporaryDirectory() as tmp:
+            _factory_tree(tmp, features, fleet=fleet)
+            _code, out = run(tmp)
+        lines = [l for l in out.splitlines() if "INV-24" in l]
+        hit = bool(lines)
+        ok = (hit == expect_hit) and all(
+            any(n in l for l in lines) for n in needles
+        )
+        print(f"{'ok' if ok else 'FAIL'} - case (s) INV-24: {label}")
+        if not ok:
+            print(f"       | INV-24 lines: {lines!r}")
+        results.append(ok)
+
+    listed = "factory:\n  repo: acme/widget\n  parent: 10\n  issues:\n    T-01: 11\n"
+
+    check("a listed repository passes", {"FEAT-A": listed}, False)
+
+    check("an UNLISTED repository is a violation naming the repo",
+          {"FEAT-A": "factory:\n  repo: acme/nope\n  issues:\n    T-01: 11\n"},
+          True, needles=("acme/nope",))
+
+    check("two features recording one repo+issue names BOTH",
+          {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n",
+           "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-09: 11\n"},
+          True, needles=("FEAT-A", "FEAT-B"))
+
+    # A-1: the case an issues-only comparison could not see.
+    check("one feature's PARENT equal to another's issue names BOTH",
+          {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n",
+           "FEAT-B": "factory:\n  repo: acme/widget\n  parent: 11\n  issues:\n    T-09: 12\n"},
+          True, needles=("FEAT-A", "FEAT-B"))
+
+    check("two features sharing one PARENT names BOTH",
+          {"FEAT-A": "factory:\n  repo: acme/widget\n  parent: 10\n",
+           "FEAT-B": "factory:\n  repo: acme/widget\n  parent: 10\n"},
+          True, needles=("FEAT-A", "FEAT-B"))
+
+    check("a block with NO parent key is silent",
+          {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n"}, False)
+
+    check("factory state with NO fleet file is a violation",
+          {"FEAT-A": listed}, True, needles=("FEAT-A",), fleet=None)
+
+    check("a tree with no factory blocks at all is silent",
+          {"FEAT-A": None, "FEAT-B": None}, False)
+
+    return all(results)
+
+
 def case_o():
     """The two enforcement scripts must AGREE on every number and key they both carry.
 
@@ -875,6 +975,7 @@ def main():
     ok_p = case_p()
     ok_q = case_q()
     ok_r = case_r()
+    ok_s = case_s()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -883,7 +984,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

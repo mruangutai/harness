@@ -81,3 +81,54 @@
   correction moved the plain-English rule from harness-brief to harness-handoff and said so
   explicitly. Verifying it had landed took one grep; writing it again would have created exactly
   the two-copies drift the correction existed to prevent. Verify-then-skip beats assume-and-write.
+
+- 2026-08-09: I WROTE A REPAIR DISPATCH AGAINST TOOLS THE ADDRESSEE DOES NOT HOLD. I told
+  validator-lead "do both yourself, no member spawns needed" and then demanded three exit codes —
+  but leads hold no Bash, and one of the two target paths was qa's write domain, not the lead's.
+  Both bounds forced the very member spawn I said was unnecessary, and the lead had to raise it as
+  a defect in my dispatch. Before writing "do it yourself" to a lead, check the tier's tool grant
+  and the target path's domain owner; a lead can Read and route, it cannot measure.
+
+- 2026-08-09: A BLOCKED gate that turns out to be a CONFIG defect costs ZERO cycles to re-run, and
+  saying so explicitly in the dispatch stopped the lead from padding. DEC-157 counts rework — work
+  redone because someone produced a bad artifact. Nobody did here: the matrix bound a kind that
+  could not run, the operator fixed the config directly, and the re-run was a first pass against
+  corrected config. Naming the reason in the dispatch also stops the lead reporting a defensive 1.
+
+- 2026-08-09: A LEAD DIGEST CAN PASS THE SUBAGENT HOOK AND STILL FAIL check-state. The panel digest
+  reported PASS over two member FAILs; the hook let it through at return time and only the
+  standalone `validate-digest.py lead` sweep caught it, days later. The repair is the roll-up field
+  alone and it changes no finding — but it changes what a successor reads, so it must be paired
+  with an explicit "this gates nothing, do not start a fix loop" note or the correction manufactures
+  the cycle it was supposed to prevent.
+
+- 2026-08-09: MY OWN STATE.md WRITE INTRODUCED A VIOLATION THAT DID NOT EXIST BEFORE. I wrote the
+  literal placeholder `T-NN` in prose ("absent T-NN issues are not a defect") and check-state read
+  it as a reference to a task absent from plan.yaml. Re-running check-state AFTER my own write, not
+  just after the squad's, is what caught it. Placeholder task ids do not survive contact with the
+  state checker — spell the concept out instead.
+
+- 2026-08-09: THREE OF FOUR INHERITED "COMMIT TRAPS" IN MY OWN PREDECESSOR'S STATE.md WERE STALE,
+  and I nearly relayed all four verbatim into a return that framed the commit as non-mechanical.
+  Four commands settled it: the branch was already cut (`git rev-parse --abbrev-ref HEAD`), the two
+  "staged deletions" were committed (`git diff --cached` empty), the OMP stream was committed, and
+  check-state.sh's "unsplittable foreign dirt" was ONE hunk of 52 additions opening "INV-24" — the
+  feature's own work. Git-state claims rot faster than any other kind in STATE.md because every
+  commit invalidates them silently, and STATE.md is superseded-not-appended so nothing flags the
+  rot. Re-derive every git claim at HEAD before relaying it, however confident the predecessor was.
+
+- 2026-08-09: THE DOMAIN HOOK CORRECTLY DENIED ME MY OWN RED-PROOF. I tried to `cp` a production
+  file to the scratchpad to reproduce a member's red demonstration myself; bash-write-guard blocked
+  it as guardrail evasion (DEC-151), which is right — an orchestrator that can stage writes under
+  `bin/` via the shell has no domain. The substitute is a STATIC read of the assertion: the test
+  compares `pid == "PVT_kwFAKE" and pid != "3"` against board number 3, so it excludes the buggy
+  value by construction and cannot be vacuous. I can verify a red's DISCRIMINATING POWER by reading
+  the predicate even when I cannot execute the mutation. Disclose which of the two I did.
+
+- 2026-08-09: AN OPERATOR'S NAMED GAP LIST CAN DISAGREE WITH THE ARTIFACT IT CITES. The dispatch
+  named three SC-19 clauses "each named by pm's goal-check", but two of the three were already
+  asserted at `test-factory-integration.py:643-644` and `:684-685`, both predating the digest by an
+  hour (file mtime 10:00, digest 10:59). Closing the named list would have shipped SC-19 still
+  partial. The citation outranks the paraphrase: I substituted pm's three actually-unbound clauses,
+  disclosed the swap with line cites, and did not spend a round-trip asking. Check a named gap
+  against the artifact cited for it before dispatching — a paraphrase slip is invisible downstream.

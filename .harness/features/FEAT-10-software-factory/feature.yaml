@@ -1,28 +1,43 @@
 feature_id: FEAT-10-software-factory
-mission: plan
-phase: plan
+mission: ship
+phase: build
+phase_note: >-
+  DELIBERATELY LEFT AT build, AND THE PREDICATE IS MET. Build exits when every planned task has a
+  PASS run: all 12 are DONE and the blocking qa gate is PASS. It is NOT advanced to ship because no
+  validate session ran here and ship's entry is the operator's acceptance, which has not happened.
 status: awaiting_user
-branch: none
+branch: feat/FEAT-10-software-factory
 pr: none
 effort: https://github.com/mruangutai/harness/issues/181
 operator_answers: .harness/features/FEAT-10-software-factory/notes/answers-plan-review.md
+briefing: .harness/features/FEAT-10-software-factory/notes/ship-review-build-2026-08-09.md
+briefing_note: >-
+  STALE ON FIVE POINTS, NOT refreshed — no trigger fired. It prices three options for a qa blocker
+  DEC-187 decided, says SC-06 has zero evidence, records the panel PASS, and predates both the 20/20
+  close and the live-run defect. Deltas are in the orchestrator's return and STATE.md.
 lanes_resolved_at: 914b6fd
-review_sha: 914b6fd
+review_sha: f9488a2
 review_sha_note: >-
-  Base pin for the plan-time reviews. BRIEF.md, plan.yaml and DESIGN.md are UNTRACKED
-  working-tree files at this base, not commits. No FEAT-10 source changed in this phase.
-  UNREVIEWED PAST THE LAST REVIEW: the amend2-product pass — SC-07's deletion, the plain-English
-  rewrite of every REQ and criterion, SC-22's seventh case and B1's three edits. Verified by me at
-  source: 20 criteria all traced, no REQ uncovered, zero SC-07 references in any artifact, task
-  fields unchanged, all gates re-run. A reviewer has not read the rewritten prose.
-cycles_used: 8
-cycles_note: >-
-  6 prior; +1 for edges-delta-eng's must_fix routed into final2-product; +1 for the two review
-  FAILs (bound-delta-eng, enforce-delta-validator) routed into amend2-product. The Q7/Q8 revision
-  and the five operator rulings added ZERO — user-directed new requirements are not rework
-  (DEC-157) — and amend-product, final2-product and amend2-product each reported no send-backs.
+  Ship-phase base pin. THE BUILD DIFF IS UNCOMMITTED AND MOSTLY UNTRACKED, so every validator
+  segment assessed the WORKING TREE against this base. CARRIED CEILING: the plain-English rewrite
+  got a SEMANTIC review for only 7 of 20 criteria; the other 13 got an exact-data check only.
+cycles_used: 10
 max_total_cycles: 10
+cycles_note: >-
+  8 were the plan phase's. The FOUR dispatches this run added ZERO, per the operator's ruling that
+  operator-directed new work is not rework (DEC-157). The +2 comes entirely from inside assert2-eng,
+  where TWO of DEC-157's three triggers fired: it was an unmet-SC re-dispatch (SC-18 still partial),
+  AND its lead reported one send-back against its own member. DEC-157's worked example (~6 = 3 fix
+  runs + 3 runs carrying one send-back each) uses six DISTINCT runs and does not cover one run firing
+  two triggers, so the enumeration is the only guide and it reads +2. CONSEQUENCE: the ship phase
+  begins with ZERO rework headroom. RECOMMEND raising max_total_cycles to 12 as part of the ship
+  decision — a user decision recorded here (DEC-157) — or overturning this count to 8.
 max_total_runs: 20
+runs_note: >-
+  29 of 20, INFORMATIONAL, never a stop (INV-22, issue #79). Each of the FOUR added this run
+  resolved a named blocker: three closed the last three criteria, one killed a blocking production
+  defect. It is a FLOOR — T-01 and T-08 were main-session-direct and the digest-repair segment wrote
+  a note rather than a run dir, so none of the three appears below.
 counts:
   reqs: 8
   scs: 20
@@ -32,109 +47,152 @@ counts:
   tasks: 12
   tasks_main_session_direct: 2
   decisions: 15
+counts_note: >-
+  `decisions` counts the FEATURE's D-NN set in plan.yaml (D-01..D-15). DEC-186 and DEC-187 are
+  PROJECT decisions in docs/harness/DECISIONS.md and are not counted here.
 tasks:
-  T-01: PLANNED
-  T-02: PLANNED
-  T-03: PLANNED
-  T-04: PLANNED
-  T-05: PLANNED
-  T-06: PLANNED
-  T-07: PLANNED
-  T-08: PLANNED
-  T-09: PLANNED
-  T-10: PLANNED
-  T-11: PLANNED
-  T-12: PLANNED
+  T-01: DONE
+  T-02: DONE
+  T-03: DONE
+  T-04: DONE
+  T-05: DONE
+  T-06: DONE
+  T-07: DONE
+  T-08: DONE
+  T-09: DONE
+  T-10: DONE
+  T-11: DONE
+  T-12: DONE
+tasks_note: >-
+  T-08 landed operator-direct under the DEC-174 carve-out (it edits check-state.sh). Verified by me
+  at source: INV-24 at check-state.sh:858-904, eight cases in test-check-state.py. plan.yaml:1435
+  still records it `status: pending` and is stale — pm's to correct.
+sc_tally:
+  met: 20
+  partial: 0
+  not_met: 0
+  note: >-
+    ALL TWENTY MET, on the STRICT clause-level bar the operator ruled STANDS. The
+    20/20-versus-17/20 question is SETTLED and is not to be re-opened. SC-13, SC-18 and SC-19 were
+    closed by added assertions (runs/assert-eng, runs/assert2-eng) and re-graded INDEPENDENTLY by pm
+    at runs/goalcheck2-product — pm verified each by MUTATION on a scratchpad copy, not by reading,
+    and diverged from eng's own SC-19 evidence by rejecting a vacuous half of it. SC-06 flipped met
+    earlier when T-08 landed. PROVENANCE: this run verified THREE criteria; the other seventeen are
+    carried forward from goalcheck-product and sc06-product, not re-verified today.
+  residuals_not_demoting: >-
+    SC-18: a module-scope alias not naming "fleet" evades the source-text rule, and the scan covers
+    factory_*.py rather than all of bin/. SC-19: the sibling assertion at
+    test-factory-integration.py:691-692 is DEAD (the fixture pre-creates that directory at :676);
+    the clause rests on :704-708, which does redden.
+live_run_defect:
+  found: >-
+    OPERATOR'S LIVE END-TO-END RUN against a real throwaway GitHub repository, run outside this
+    flow. BLOCKING: factory_gh.py:266 passed the board NUMBER to `gh project item-edit
+    --project-id`, which takes the GraphQL node id. THE FACTORY COULD NEVER MOVE AN ITEM BETWEEN
+    STATIONS — decompose:363 ready, claim:330 building, land:99 review were all dead. Every test
+    passed because the stub `gh` never READ that flag.
+  fixed: >-
+    factory_gh.py:268-271 resolves the id via `gh project view`, UNCACHED by deliberate choice
+    (parity with the already-uncached _field_list call; factory_gh.py:11 forbids caching at import).
+    A failed lookup RAISES, never falls back to the number (D-02). Cost: publish now makes 3N board
+    calls per N-task plan where it made 2N.
+  also_fixed: >-
+    factory_decompose.py:287-293 — publish REFUSES a plan with no top-level `feature` key (exit 2,
+    zero remote calls) instead of writing a `feature:None` label and exiting 0.
+  scoped_out: >-
+    Publish accepts a feature dir at ANY path while claim hardcodes .harness/features/
+    (factory_claim.py:43). A plan can be published that claim cannot resolve. Any answer is a
+    contract between publish and claim, not a one-line fix. Reported, not fixed.
 runs:
-  - id: plan-product
-    squad: product
-    verdict: PASS
-  - id: arch-eng
-    squad: eng
-    verdict: PASS
-  - id: contract-validator
-    squad: validator
-    verdict: FAIL
-  - id: revise-product
-    squad: product
-    verdict: PASS
-  - id: arch-delta-eng
-    squad: eng
-    verdict: PASS
-  - id: contract-delta-validator
-    squad: validator
-    verdict: FAIL
-  - id: final-product
-    squad: product
-    verdict: PASS
-  - id: revise2-product
-    squad: product
-    verdict: PASS
-  - id: edges-delta-eng
-    squad: eng
-    verdict: ESCALATE
-  - id: sc-delta-validator
-    squad: validator
-    verdict: PASS
-  - id: final2-product
-    squad: product
-    verdict: PASS
-  - id: amend-product
-    squad: product
-    verdict: PASS
-  - id: bound-delta-eng
-    squad: eng
-    verdict: FAIL
-  - id: enforce-delta-validator
-    squad: validator
-    verdict: FAIL
-  - id: amend2-product
-    squad: product
-    verdict: PASS
-  - id: prose-delta-validator
-    squad: validator
-    verdict: PASS
+  - { id: plan-product, squad: product, verdict: PASS }
+  - { id: arch-eng, squad: eng, verdict: PASS }
+  - { id: contract-validator, squad: validator, verdict: FAIL }
+  - { id: revise-product, squad: product, verdict: PASS }
+  - { id: arch-delta-eng, squad: eng, verdict: PASS }
+  - { id: contract-delta-validator, squad: validator, verdict: FAIL }
+  - { id: final-product, squad: product, verdict: PASS }
+  - { id: revise2-product, squad: product, verdict: PASS }
+  - { id: edges-delta-eng, squad: eng, verdict: ESCALATE }
+  - { id: sc-delta-validator, squad: validator, verdict: PASS }
+  - { id: final2-product, squad: product, verdict: PASS }
+  - { id: amend-product, squad: product, verdict: PASS }
+  - { id: bound-delta-eng, squad: eng, verdict: FAIL }
+  - { id: enforce-delta-validator, squad: validator, verdict: FAIL }
+  - { id: amend2-product, squad: product, verdict: PASS }
+  - { id: prose-delta-validator, squad: validator, verdict: PASS }
+  - { id: w1-eng, squad: eng, verdict: PASS }
+  - { id: t09-product, squad: product, verdict: PASS }
+  - { id: w2-eng, squad: eng, verdict: PASS }
+  - { id: w3-eng, squad: eng, verdict: PASS }
+  - { id: qa-validator, squad: validator, verdict: BLOCKED }
+  - { id: panel-validator, squad: validator, verdict: FAIL }
+  - { id: goalcheck-product, squad: product, verdict: ESCALATE }
+  - { id: qa2-validator, squad: validator, verdict: PASS }
+  - { id: sc06-product, squad: product, verdict: PASS }
+  - { id: assert-eng, squad: eng, verdict: PASS }
+  - { id: assert2-eng, squad: eng, verdict: PASS }
+  - { id: goalcheck2-product, squad: product, verdict: PASS }
+  - { id: fix-projectid-eng, squad: eng, verdict: PASS }
+runs_correction_note: >-
+  panel-validator was recorded PASS and was WRONG: two of its three members returned FAIL and a team
+  verdict is the worst member verdict. Repaired to FAIL — the ROLL-UP FIELD ONLY, no finding,
+  severity or open_question touched. IT GATES NOTHING: gates.review is advisory_unless_high,
+  severity_max is med, must_fix is empty. A SUCCESSOR READING FAIL MUST NOT START A FIX LOOP.
 gate_status:
-  brief_approval: PENDING
-  plan_approval: PENDING
-  plan_load: "PASS — load_plan re-run by me at final state; 12 tasks, 15 decisions"
-  plan_routes: "PASS — check-plan-routes.py exit 0, re-run by me at final state"
-  docs: "PASS — check-docs.sh exit 0, re-run by me at final state"
-  sc_traces: "PASS — re-run by me post-deletion: 20 of 20 SCs traced, no REQ uncovered"
+  brief_approval: "PASS — Mike Ruangutai, 2026-08-09"
+  plan_approval: "PASS — Mike Ruangutai, 2026-08-09"
+  build: "PASS — 12 of 12 tasks DONE (10 by team, T-01 and T-08 main-session-direct), zero send-backs"
+  qa_gate: >-
+    PASS, RE-MEASURED BY ME AFTER the project-id fix landed: run-unit-tests.sh exit 0, unit 10/10
+    files, integration 14/14 files, 0 FAILs across 87 script results. DEC-187 removed `functional`
+    from the always floor, so required kinds are `unit` + `integration` only. CAVEATS qa attached
+    and I carry unchanged: green is FILE-level not mutation-bound; 2 of the 14 integration files
+    belong to an unrelated OMP stream; `functional` is EXCLUDED BY SIGNED DECISION, not satisfied.
+  review_panel: >-
+    FAIL after the roll-up repair, severity_max med, must_fix empty — ADVISORY, gates nothing.
+    First code review the 15 modules have ever had; both `high` findings reconciled DOWN to med on
+    verified evidence; the lead disclosed it ANCHORED its own panel by carrying the word "high" into
+    all three reviewer dispatches. NOT re-run after the project-id fix — that fix is unreviewed by
+    the panel, though it carries its own red-proved tests.
+  security_review: "PASS, severity_max info — 12 mechanisms audited; no shell=True, safe_load confirmed, no credential reaches stdout/stderr/ledger"
+  ui_contract_postbuild: "FAIL at member tier, reconciled to med — the exception-class-name leak is systemic across five tools"
+  goal_check: >-
+    PASS — 20 met / 0 partial / 0 not_met at runs/goalcheck2-product/digest.md, on the strict bar
+    the operator ruled stands. The ESCALATE that carried the bar question is RESOLVED.
+  docs: "PASS — check-docs.sh exit 0, 62 superseded patterns across 305 files, run by me this session"
+  sc_traces: "PASS — 20 of 20 traced, no REQ uncovered"
   uat: >-
-    NONE, DELIBERATELY, AND IT MUST NOT BE A SILENT SKIP. sc_uat is 0 because the operator
-    DELETED SC-07 (2026-08-08 late ruling) as anticipation under #194's one-in-flight cap.
-    Consequence the operator accepted explicitly: NO criterion exercises the live GitHub API
-    before ship, and the first real dispatch is the live verification. The ship gate must state
-    this, never skip it. Prose lives at BRIEF.md ## Verification gaps."
-  task_set_stable: "VERIFIED — no id, depends_on, files or verify changed in any revision"
-  design_pass: "PASS — prototype_required false; re-fired on the edge work and stands"
-  arch_review: >-
-    PASS, PASS-delta, then ESCALATE on the edge delta — 5 of 6 items ACCEPT, must_fix E-1 and
-    E-2 both closed by final2-product, and item 4 escalated to the operator as ESC-1. That run
-    was killed mid-write by an API error; its digest was completed by its own lead and now
-    passes validate-digest.py lead.
-  ui_contract: "FAIL then FAIL-delta; all 10 must_fix closed"
-  sc_rework_review: "PASS — validator delta on the Q8 rework, must_fix empty, severity_max med"
+    NO SCRIPTED UAT — sc_uat is 0 because the operator DELETED SC-07 under #194's one-in-flight cap.
+    THAT GAP IS NOW LARGELY CLOSED BY MEASUREMENT, not by a criterion: the operator ran the live
+    journey against a real throwaway repository. It found the project-id defect, and with that one
+    fix applied the whole journey ran green — publish created parent #7 and task #8 boarded at
+    Ready, claim moved #8 to Building on factory/issue-8, workspace produced the checkout, land
+    pushed, opened PR #9 and moved the item to Review, all four stdouts parsing in one json.loads.
   prose_review: >-
-    PASS, must_fix empty, severity_max med. Covers the plain-English rewrite, SC-22's seventh case
-    and B1's three edits. CEILING, STATED: the feature dir is untracked, so only 7 of 20 criteria
-    had a pre-rewrite baseline to diff. Those 7 got a semantic falsification-set comparison and
-    yielded the one real change (SC-01). The other 13 plus all 8 REQs got an exact-data check only
-    — ids, paths, command names, exit codes, field names — which found nothing. So the mechanical
-    half of the plain-English ruling is covered for all 20; the semantic half is unverifiable for
-    13 by construction.
-  edge_probes: >-
-    RAN by me, both halves — notes/probe-edge-idempotence.md. blocked_by re-POST returns 422
-    'Target issue has already been taken', so E-1 was real. sub_issues re-attach returns a 422
-    that CONFLATES duplicate-edge with different-parent, which is why the narrowing stays
-    scoped to blocked_by. Neither probe mutated anything, re-verified after each.
-  board_probe: >-
-    RAN by me twice — notes/probe-board-limits.md. Board 3 Status is STILL
-    Backlog/Ready/In progress/In review/Done, so the operator's Building and Review do not
-    exist yet. The rename is a live pre-condition, armed in T-01 and guarded by SC-21.
+    PASS, must_fix empty. CEILING CARRIED: only 7 of 20 criteria had a pre-rewrite baseline to diff,
+    so the semantic half is unverifiable for the other 13 by construction.
+  test_baseline: >-
+    Measured green at f9488a2 BEFORE any dispatch and re-measured green after every review run,
+    after T-08 landed, and again by me after the project-id fix.
   state: >-
-    5 VIOLATIONS, only ONE of them FEAT-10's — BRIEF.md unapproved, cleared by the signature.
-    The other 4 are pre-existing FEAT-04/FEAT-07 run digests, untouched since 08-02/08-04,
-    newly surfaced because validate-digest.py changed at 16:29 today (issues #39, #68).
-    Not FEAT-10 work, not written by any agent I dispatched.
+    check-state.sh exits 1 with 4 VIOLATIONs, none this feature's — FEAT-04 x2 and FEAT-07 x2, all
+    the IDENTICAL lead-digest-contract defect class (DEC-156). INV-22 note also fires; informational.
+  github_mirror: >-
+    gh-sync.py open DELIBERATELY NOT RUN and the operator has RULED: wait for the factory to own it
+    (notes/answers-github-mirror.md). Absent per-task issues are NOT a defect.
+  commit_pen: >-
+    NOTHING COMMITTED BY ME, NOTHING STAGED — `git diff --cached` is EMPTY. I RE-DERIVED the four
+    inherited traps at HEAD and THREE ARE STALE, so the commit is now close to mechanical.
+    (1) STALE — the branch is `feat/FEAT-10-software-factory`, not `main`; it was cut and carries
+    two commits, 2a3e91c (the door change) and b89c00a (the OMP port). (2) STALE — the two staged
+    deletions are GONE because 2a3e91c committed them; both files are absent from the tree.
+    (3) STALE — the OMP stream is COMMITTED in b89c00a, not intermingled, and run-unit-tests.sh is
+    CLEAN. (4) LARGELY STALE — check-state.sh's diff is ONE hunk of 52 additions opening
+    "INV-24 (DEC-186)", so it is T-08's own work, not unsplittable foreign dirt; test-check-state.py
+    is its eight cases; harness.json is DEC-187 plus factory config (many hunks, content-checked not
+    hunk-audited). WHAT REMAINS TRUE AND MATTERS: all 15 factory modules are UNTRACKED, so
+    `git stash` would DROP them and `git checkout --` cannot restore them — nothing here is
+    git-recoverable until it is committed.
+  close_out: >-
+    DELIBERATELY SKIPPED AGAIN. Ship-refresh and distillation are FEATURE-CLOSE steps (DEC-145) and
+    this feature still returns for user decisions. Distilling now would double-write Expertise.

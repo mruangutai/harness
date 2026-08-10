@@ -703,6 +703,58 @@ if cj and (cj.get("github") or {}).get("sync"):
                         f"parent — ship/abandon cannot close the container and open "
                         f"will not re-derive it (D-05). Re-run `open` to record it.")
 
+# --- INV-24 (DEC-186): a feature that records factory state must name a repository the
+# fleet declares, and no two features may claim one issue. The factory writes exactly one
+# harness file — a feature's own `factory` block — so that block is the only place the
+# harness can disagree with the board about what is in flight.
+# The parent is counted alongside the task issues, not separately: gh-sync.py's `open`
+# ALSO adopts or creates a container for the same feature in the same repository, so a
+# container published beside one the factory created is D-12's collision, and comparing
+# parents and issues in one list is the only place in this increment it becomes visible.
+# A feature.yaml with no `factory` block contributes nothing and is not a violation.
+_fac_pairs = {}
+for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+    feat = os.path.basename(os.path.dirname(fy))
+    try:
+        fdoc = harness_yaml.load_file(fy) or {}
+    except harness_yaml.YamlParseError:
+        continue  # the parse failure is already a violation elsewhere; do not double-report
+    fac = fdoc.get("factory")
+    if not isinstance(fac, dict):
+        continue
+    fleet_p = os.path.join(H, "factory", "fleet.yaml")
+    if not os.path.isfile(fleet_p):
+        bad.append(f"INV-24 {feat}: records factory state but {os.path.relpath(fleet_p, root)} "
+                   f"is absent — no fleet declares the repository it claims work in.")
+        continue
+    try:
+        fleet = harness_yaml.load_file(fleet_p) or {}
+    except harness_yaml.YamlParseError as _e:
+        bad.append(f"INV-24 {feat}: records factory state but the fleet file does not parse: {_e}")
+        continue
+    names = [r.get("name") for r in (fleet.get("repos") or []) if isinstance(r, dict)]
+    repo = fac.get("repo")
+    if repo not in names:
+        bad.append(f"INV-24 {feat}: records factory repo {repo!r}, which the fleet does not "
+                   f"declare — fleet names: {', '.join(str(n) for n in names) or '(none)'}.")
+        continue
+    nums = []
+    issues = fac.get("issues")
+    if isinstance(issues, dict):
+        nums.extend(issues.values())
+    elif isinstance(issues, list):
+        nums.extend(issues)
+    if fac.get("parent") is not None:
+        nums.append(fac.get("parent"))
+    for n in nums:
+        key = (repo, str(n))
+        if key in _fac_pairs and _fac_pairs[key] != feat:
+            bad.append(f"INV-24: {_fac_pairs[key]} and {feat} both record {repo} issue {n} — "
+                       f"two features claiming one issue means the board and the harness "
+                       f"disagree about what is in flight.")
+        else:
+            _fac_pairs[key] = feat
+
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
 # (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip
 # silently, which reads exactly like a working mirror to anyone not tailing logs.
