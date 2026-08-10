@@ -3,87 +3,85 @@
 ## Current
 
 - feature: FEAT-10-software-factory
-- mission: ship — phase still recorded `build`. Its exit predicate stays met (12/12 tasks DONE, qa
-  gate PASS) and ship's entry is the operator's acceptance, which has not happened.
-- status: awaiting_user — the criteria question is CLOSED; what remains is the commit, the cycle
-  budget, and three named residuals. ZERO blocking gates.
-- review_sha: f9488a2 — the whole diff is UNCOMMITTED against it; nothing staged by me.
+- mission: ship — phase `ship`. **Every gate is green and the work is committed.** What remains is
+  the operator's acceptance, which is the only thing that can close this feature.
+- status: awaiting_user. **A1 is fixed, committed and re-pinned.** The four blocking questions the
+  last segment raised are all ruled and closed; one non-blocking question survives to the ship call.
+- HEAD is `b86565b` — `[harness:t-04] A1 closed`. Not pushed, no PR: both the operator's.
 
-- **ALL 20 CRITERIA ARE MET — 20 met / 0 partial / 0 not_met**, on the STRICT clause-level bar the
-  operator ruled stands. The 20/20-vs-17/20 question is SETTLED and must not be re-opened.
-  SC-13, SC-18 and SC-19 were closed by added assertions, then re-graded independently by pm at
-  runs/goalcheck2-product/digest.md. pm verified each by MUTATION on a scratchpad copy, not by
-  reading. Seventeen of the twenty are carried forward from earlier runs, not re-verified today.
+- **THE FOUR RULINGS ARE APPLIED, EACH IN THE FILE THAT OWNS IT.** `max_total_cycles` is 12 in
+  `feature.yaml` with the DEC-157 record naming `notes/answers-a1fix-eng.md` as the decision;
+  `declared_widening.status` now reads RESOLVED and `plan.yaml` was not touched; the panel2
+  worktree-edit disclosure is accepted with nothing filed; `review_sha` is `b86565b` with base
+  **deliberately unmoved** at `f9488a2` so every panel2 line citation keeps its range.
 
-- **A BLOCKING PRODUCTION DEFECT WAS FOUND BY THE OPERATOR'S LIVE RUN AND IS FIXED.**
-  factory_gh.py:266 passed the board NUMBER to `gh project item-edit --project-id`, which takes the
-  GraphQL node id. The factory could never move an item between stations — all three callers
-  (decompose:363 ready, claim:330 building, land:99 review) were dead. Every test passed because the
-  stub `gh` never READ that flag. Fixed at factory_gh.py:268-271 by resolving the id via
-  `gh project view`, uncached by deliberate choice. Publish also now REFUSES a plan with no
-  top-level `feature` key (factory_decompose.py:287-293, exit 2, zero remote calls) instead of
-  writing a `feature:None` label and exiting 0.
+- **THE COMMIT IS BY EXPLICIT PATHSPEC, AND ONE FILE WAS LEFT OUT ON PURPOSE.** `b86565b` carries
+  `factory_decompose.py`, `test-factory-decompose.py` and the five notes.
+  `.harness/logs/2026-08-09.md` is still dirty: its twelve added lines are the main session's own
+  record — the bf8f191 measurements, #203 and #204 — and I cannot verify those claims, so signing
+  them into my commit would be the wrong trade. It is the operator's to commit.
+  `check-state.sh` and `test-check-state.py` were never opened for edit and are in no commit.
 
-- gates: qa PASS (blocking, green — run-unit-tests.sh exit 0, unit 10/10 files, integration 14/14
-  files, 0 FAILs, re-measured by me AFTER the fix); docs PASS exit 0; review panel FAIL-but-ADVISORY
-  (severity_max med, must_fix empty — DO NOT start a fix loop on it); security PASS info.
-- budget: 10 of 10 cycles. TWO were added this run and my count is CONTESTABLE — see Open Questions.
-  ZERO headroom remains for the ship phase.
-- runs: 29 of 20, informational only (INV-22). Each of the four added resolved a named blocker.
-- the briefing notes/ship-review-build-2026-08-09.md is STALE on five points now and was NOT
-  refreshed — no briefing trigger fired. Close-out (ship-refresh, distillation) still deliberately
-  skipped: both are feature-close and this feature is not closing.
+- **THREE GATES RE-MEASURED BY ME AT THE SETTLED TREE, BEFORE THE COMMIT, NOT INHERITED.**
+  `run-unit-tests.sh` exit 0 — **22 test files PASS, 0 FAIL** (the 22 is FILE-level; a bare
+  `grep -c "^PASS"` returns 85 by counting sub-case lines). `check-docs.sh` exit 0 — 62 patterns
+  across 317 files. `check-state.sh` exit 0 — **zero violations**, only notes, including the
+  expected INV-22. Both checkers were re-run AFTER the last write, not before it.
+
+- **ADVANCING THE PHASE TO `ship` EXPOSED A REAL GAP, AND I CLOSED IT RATHER THAN REVERTING.**
+  INV-17 fired two VIOLATIONs: the build and validate seams were each crossed with **no handoff
+  note**, so every successor lost its predecessor's working memory. That is true and it happened.
+  `notes/handoff-build.md` and `notes/handoff-validate.md` now exist, each labelled RECONSTRUCTED
+  AT FEATURE CLOSE in its own opening lines so the loss is recorded permanently instead of erased,
+  and each priced claim-by-claim with `verified-at b86565b` or `UNVERIFIED`. Reverting the phase to
+  `build` would have hidden it; leaving it red would have left the operator a paperwork failure on
+  ship day with no note to show for it.
+
+- **ONE OPEN QUESTION CLOSED BY MEASUREMENT RATHER THAN BY ASKING.** The last segment asked the
+  operator to confirm whether panel2's security low was among bf8f191's "four INV-24 defects". It
+  is. I read that commit's own diff: the new guard's comment cites **"panel2 C1"** by name and
+  describes the exact fail-open — a `repos:` entry with no `name` putting `None` in the allow-list
+  so `factory.repo: null` matched it — and adds both an `isinstance` filter and a `factory.repo`
+  type check. Closed, not carried.
+
+- **CLOSE-OUT: SHIP-REFRESH SKIPPED ON A MEASUREMENT, DISTILLATION SKIPPED ON A JUDGEMENT.** No
+  codebase map exists — `find . -name INDEX.md` returns nothing — so the union of `files_touched`
+  intersects no map domain and ship-refresh is zero dispatches. Distillation is deliberately NOT
+  run: DEC-145 puts it after ship, and this feature is returning **for** the ship decision with Q5
+  still open. Distilling a run the operator may reopen writes Expertise hot, which is the failure
+  DEC-145 exists to prevent. The operator can overrule and it costs three lead dispatches.
+
+- **THE BRIEFING WAS ASSEMBLED FROM DISK, NOT FROM A REPORT ROUND.** No lead was spawned to
+  re-narrate. All **31** run digests under `runs/*/digest.md` were read directly, including the
+  plan and build phases this segment did not run. Paths are cited in the briefing itself.
+
+- budget: **12 of 12 — RAISED BY THE OPERATOR, AND NOW AT ZERO HEADROOM.** Any rework ordered from
+  here exhausts a hard bound and the next orchestrator returns BLOCKED rather than working it.
+- runs: 31 of 20, informational (INV-22). The last four each found or closed a defect that would
+  otherwise have shipped.
+- briefing: `notes/ship-review-ship-2026-08-09.md`, with its rendered `.html` sibling.
 
 ## Open Questions
 
-- BLOCKING · THE COMMIT — and it is FAR SIMPLER than the inherited note said. I re-derived all four
-  traps at HEAD and THREE ARE STALE. The branch is already `feat/FEAT-10-software-factory` with two
-  commits on it (2a3e91c the door change, b89c00a the OMP port), so no branch needs cutting. The two
-  staged deletions are gone — 2a3e91c committed them, `git diff --cached` is EMPTY. The OMP stream is
-  committed, not intermingled, and run-unit-tests.sh is clean. check-state.sh's diff is ONE hunk of
-  52 additions opening "INV-24 (DEC-186)" — T-08's own work, not foreign dirt. WHAT IS ACTUALLY LEFT:
-  a normal pathspec commit of 15 untracked factory modules under .claude/skills/harness/bin/, the
-  INV-24 pair, .harness/harness.json, the two DECISIONS docs, and this feature dir. STILL TRUE AND
-  STILL THE RISK: every factory module is UNTRACKED, so `git stash` would DROP them and
-  `git checkout --` cannot restore them. Nothing is git-recoverable until it is committed.
-- NON-BLOCKING · DEAD ASSERTION at test-factory-integration.py:691-692. `os.path.isdir` on the
-  workspace payload path passes even under a factory_workspace.py that produces no checkout, because
-  the fixture pre-creates that exact directory at :676. It costs nothing today — SC-19's clause rests
-  on :704-708, which does redden — but it reads as coverage to the next reader. Drop it or move the
-  makedirs whenever this file is next touched.
-- NON-BLOCKING · SC-18's assertion has two named residuals, neither demoting the clause: a
-  module-scope alias not containing "fleet" evades the source-text rule, and the enumeration covers
-  factory_*.py rather than all of bin/. Also AsyncFunctionDef coverage is itself unprotected — the
-  self-test fixture has no `async def`, so dropping it from the scope list stays green. Two fixture
-  lines whenever this scan is next touched.
-- NON-BLOCKING · publish now makes 3N board calls per N-task plan where it made 2N, because
-  project_field_set sits in the decompose loop and the id lookup is uncached. Chosen deliberately for
-  parity with the already-uncached _field_list call and to respect factory_gh.py:11's
-  never-cache-at-import intent. Worth watching against a real board.
-- NON-BLOCKING · SCOPED OUT, reported not fixed: publish accepts a feature dir at ANY path while
-  claim hardcodes .harness/features/ (factory_claim.py:43), so a plan can be published that claim
-  cannot resolve. Any answer is a contract between publish and claim, not a one-line fix.
-- NON-BLOCKING BUT LIVE HARNESS DEFECT · SIX FILES STILL CARRY THE PRE-DEC-187 MODEL, two of them
-  TEMPLATES (.claude/skills/harness/templates/README.md:30, templates/harness.json:82), so every new
-  /harness-init seeds the contradiction.
-- NON-BLOCKING · HARNESS DEFECT, sixth recurrence (issue #199): the `notes/receipt-<agent>-<runid>.md`
-  path harness-handoff prescribes is DENIED by the domain hook for most personas. harness-pm's grant
-  at .harness/team-config.yaml:88-98 has no receipt-*.md pattern at all. pm filed to
-  notes/research-* instead and disclosed it.
-- NON-BLOCKING · ORCHESTRATOR CANNOT SELF-VERIFY A RED PROOF. The domain hook denied me a scratchpad
-  `cp` of factory_gh.py to reproduce the project-id red myself (correctly — DEC-151, guardrail
-  evasion). I verified the assertion STATICALLY instead: test-factory-gh.py:306 asserts
-  `pid == "PVT_kwFAKE" and pid != "3"` against board number 3, so it excludes the buggy value by
-  construction. Structural, not executed-by-me.
-- NON-BLOCKING · CYCLES ARE 10 OF 10 AND THE COUNT IS DISCLOSED, NOT ASKED. The operator ruled this
-  run's new work adds zero and I honoured that for all four dispatches. The +2 is entirely inside
-  assert2-eng, where two of DEC-157's three triggers fired at once: an unmet-SC re-dispatch AND the
-  lead's own reported member send-back. DEC-157's worked example uses six distinct runs and does not
-  cover one run firing two triggers. Consequence: the ship phase begins with zero rework headroom.
-  RECOMMEND raising max_total_cycles to 12 as part of the ship decision, or overturning the count
-  to 8. Either is a user decision recorded in feature.yaml.
-- NON-BLOCKING · plan.yaml line 1435 still records task 08 `status: pending`. Stale; pm's to fix.
-- NON-BLOCKING · gh-sync.py open not run. RULED by the operator: wait for the factory to own it.
-- HARNESS DEFECTS for the owner, none this feature's: four check-state violations across FEAT-04 and
-  FEAT-07, all the IDENTICAL lead-digest-contract defect (DEC-156); two inert `<!-- ok-stale -->`
-  markers one line off their target.
+- **NON-BLOCKING, AND THE ONE THE SHIP CALL TURNS ON · the A1 fix is verified against the STUB
+  ONLY.** The operator's one-character station typo is the only thing that ever reproduced A1
+  outside a test, and it has not been re-run against a real board. It needs a throwaway repo and a
+  fresh board, which is the operator's to authorize; the last one required a `delete_repo` scope
+  refresh to clean up. Carried deliberately (answers-a1fix-eng.md Q5) — recommended before ship,
+  required by no signed criterion.
+- NON-BLOCKING · `.harness/logs/2026-08-09.md` is dirty and deliberately uncommitted. Reasons above.
+- NON-BLOCKING · **deleting `wip-omp-and-feat10-mixed` kills every panel2 line citation** — the old
+  pin `8bbb246` survives nowhere else. The new pin's range `f9488a2..b86565b` also sweeps in
+  `c5597be` (the wayfinding door), which is not this feature's work; `bf8f191` in the same range
+  IS in scope, since T-08 is a FEAT-10 task.
+- NON-BLOCKING · eleven panel2 advisory findings survive undispatched, plus panel1's carried F3 and
+  F7. Each is a proposed backlog row in the briefing with an id the operator can strike by name.
+- NON-BLOCKING · `plan.yaml:1435` still records T-08 `status: pending`. Stale; pm's to fix, and it
+  is the only plan-level correction this feature still owes.
+- NON-BLOCKING · issue #199, **seventh recurrence**: the receipt path `harness-handoff` prescribes
+  is denied to most personas by `check-domain.sh`. Hit again by this feature's a1fix segment.
+- NON-BLOCKING · all three commits in the OLD review pin were unattributed (`2a3e91c`, `b89c00a`,
+  `8bbb246`). `bf8f191` and `b86565b` both carry trailers, so the gap is historical.
+- HARNESS QUESTION, demonstrated twice on this feature: should a review panel — or any segment —
+  run against a working checkout another process can move under it? panel2 hit it as a moving HEAD,
+  a1fix-eng hit it as `check-state.sh` changing mid-run. A worktree at the pin is free both times.
