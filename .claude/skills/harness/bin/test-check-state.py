@@ -740,6 +740,67 @@ def case_q():
     return all(results)
 
 
+def case_t():
+    """Two crash shapes, and the reason they share one case: both exit 1 with EMPTY stdout.
+
+    The /harness gate reads a non-zero exit as "violations found" and prints nothing for the
+    operator to act on, and every invariant after the raise never runs — the same fail-shape
+    this file already documents fixing three times (lines 14-19, 400-409, 444-452).
+
+      1. A hook matcher that is not a valid regex. The permission-rule form people paste in
+         is `Bash(git commit:*)`, and TRUNCATING it — the copy-paste that loses the closing
+         paren — leaves an unterminated subpattern that re.search raises on. Note the intact
+         form parses fine as a regex group, so only the truncated one reproduces this.
+      2. A plain FILE named `runs` under a feature dir. glob matches files as well as
+         directories, and os.listdir on a file raises NotADirectoryError.
+
+    The assertion is diagnosis-shaped, not exit-code-shaped: exit 1 is the CORRECT outcome
+    for both once they are reported, so only non-empty output distinguishes a report from a
+    crash.
+    """
+    results = []
+
+    with tempfile.TemporaryDirectory() as tmp:
+        make_fixture(tmp, '{}', "  parent: 40")
+        cl = os.path.join(tmp, ".claude")
+        os.makedirs(cl, exist_ok=True)
+        with open(os.path.join(cl, "settings.json"), "w") as f:
+            json.dump({"env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "3"},
+                       "hooks": {
+                           "SubagentStart": [{"hooks": [{"command": "x/inject-expertise.sh"}]}],
+                           "SubagentStop": [{"hooks": [{"command": "x/validate-digest.py --hook"}]}],
+                           "PostToolUse": [{"matcher": "Write|Edit|Bash(",
+                                            "hooks": [{"command": "x/check-domain.sh --post"}]}],
+                           "PreToolUse": [
+                               {"hooks": [{"command": "x/check-domain.sh"}]},
+                               {"hooks": [{"command": "x/branch-create-gate.sh"}]},
+                               {"hooks": [{"command": "x/bash-write-guard.sh"}]},
+                               {"hooks": [{"command": "x/dispatch-guard.sh"}]}]}}, f)
+        _code, out = run(tmp)
+        ok = out.strip() != "" and "not a valid regular expression" in out
+        print(f"{'ok' if ok else 'FAIL'} - case (t1): an invalid hook matcher is REPORTED, "
+              f"not raised (empty stdout means the checker crashed)")
+        if not ok:
+            print(f"       | stdout: {out.strip()[:200]!r}")
+        results.append(ok)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        make_fixture(tmp, '{}', "  parent: 40")
+        fdir = os.path.join(tmp, ".harness", "features", "FEAT-CRASH")
+        os.makedirs(fdir, exist_ok=True)
+        with open(os.path.join(fdir, "runs"), "w") as f:   # a FILE, not a directory
+            f.write("not a directory\n")
+        _code, out = run(tmp)
+        ok = out.strip() != "" and "Traceback" not in out
+        print(f"{'ok' if ok else 'FAIL'} - case (t2): a plain file named `runs` does not "
+              f"crash INV-18 (empty stdout means the checker crashed)")
+        if not ok:
+            print(f"       | stdout: {out.strip()[:200]!r}")
+        results.append(ok)
+
+    return all(results)
+
+
 def case_r():
     """(r) A project with NO harness.json must not CRASH check-state.
 
@@ -821,15 +882,31 @@ def case_s():
     """
     results = []
 
-    def check(label, features, expect_hit, needles=(), fleet=FLEET_YAML):
+    CONTROL = "factory:\n  repo: acme/nope\n  issues:\n    T-99: 999\n"
+
+    def check(label, features, expect_hit, needles=(), fleet=FLEET_YAML, control=True):
+        """expect_hit False is VACUOUS on its own — it also passes when INV-24 is deleted.
+
+        panel2 C3: four of the eight original cases asserted only absence, so none of them
+        would go red if the branch they target were removed or inverted. Every no-hit case
+        now carries a POSITIVE CONTROL feature in the same tree — an unlisted repo, which
+        must always fire. Absence is only believed when the checker demonstrably ran.
+        """
+        feats = dict(features)
+        if not expect_hit and control and fleet is not None:
+            feats["FEAT-CONTROL"] = CONTROL
         with tempfile.TemporaryDirectory() as tmp:
-            _factory_tree(tmp, features, fleet=fleet)
+            _factory_tree(tmp, feats, fleet=fleet)
             _code, out = run(tmp)
         lines = [l for l in out.splitlines() if "INV-24" in l]
-        hit = bool(lines)
+        subject = [l for l in lines if "FEAT-CONTROL" not in l]
+        hit = bool(subject)
         ok = (hit == expect_hit) and all(
-            any(n in l for l in lines) for n in needles
+            any(n in l for l in subject) for n in needles
         )
+        if not expect_hit and control and fleet is not None:
+            # the control MUST have fired, or absence proves nothing
+            ok = ok and any("FEAT-CONTROL" in l for l in lines)
         print(f"{'ok' if ok else 'FAIL'} - case (s) INV-24: {label}")
         if not ok:
             print(f"       | INV-24 lines: {lines!r}")
@@ -862,11 +939,50 @@ def case_s():
     check("a block with NO parent key is silent",
           {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: 11\n"}, False)
 
-    check("factory state with NO fleet file is a violation",
-          {"FEAT-A": listed}, True, needles=("FEAT-A",), fleet=None)
+    check("factory state with NO fleet file names the FLEET as the problem",
+          {"FEAT-A": listed}, True, needles=("FEAT-A", "fleet.yaml", "is absent"), fleet=None)
 
+    check("a null factory.repo is a violation, not a silent pass (C1)",
+          {"FEAT-A": "factory:\n  repo: null\n  issues:\n    T-01: 11\n"},
+          True, needles=("not a repository name",))
+
+    check("a null issue number is named, not treated as a collision (C1)",
+          {"FEAT-A": "factory:\n  repo: acme/widget\n  issues:\n    T-01: null\n",
+           "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-09: null\n"},
+          True, needles=("not an integer",))
+
+    # The needle reaches PAST "twice within its own factory" deliberately. The message used
+    # to re-derive both labels from `n == fac.get("parent")`, so in this exact case — the
+    # only case it was written for — it rendered "(parent and parent)" and told the reader
+    # the container was recorded twice instead of that a task collides with it.
+    check("a feature whose own parent equals its own task issue fires, and names BOTH sides (C2)",
+          {"FEAT-A": "factory:\n  repo: acme/widget\n  parent: 11\n  issues:\n    T-01: 11\n"},
+          True, needles=("twice within its own factory", "task T-01", "the parent"))
+
+    # INV-21 thirty lines above accepts `parent: "40"` on purpose (gh-sync.py's reader was
+    # widened to it). If INV-24 rejected the same shape, one legal feature.yaml would pass
+    # one invariant and hard-block on its twin — the D-03 divergence, inside one file.
+    check("a quoted issue number is a number here, as it is for INV-21 (D-03)",
+          {"FEAT-A": 'factory:\n  repo: acme/widget\n  parent: "40"\n  issues:\n    T-01: "41"\n'},
+          False)
+
+    check("a quoted number still collides across features (D-03 does not weaken the check)",
+          {"FEAT-A": 'factory:\n  repo: acme/widget\n  issues:\n    T-01: "41"\n',
+           "FEAT-B": "factory:\n  repo: acme/widget\n  issues:\n    T-02: 41\n"},
+          True, needles=("both record acme/widget issue 41",))
+
+    # The CONTENTS were type-checked while the CONTAINER was assumed: `issues: 42` left the
+    # number list empty, so no collision check ran and nothing was reported at all.
+    check("an issues block that is neither a mapping nor a list is reported, not skipped",
+          {"FEAT-A": "factory:\n  repo: acme/widget\n  issues: 42\n"},
+          True, needles=("neither a T-NN-to-number mapping nor a list",))
+
+    # control=False, and the reason is the case itself: injecting the control would put a
+    # factory block in the one tree whose entire premise is that none exists, so the
+    # `not isinstance(fac, dict): continue` branch would go untested. Absence is instead
+    # believed because every OTHER case above proves the checker runs on this fixture shape.
     check("a tree with no factory blocks at all is silent",
-          {"FEAT-A": None, "FEAT-B": None}, False)
+          {"FEAT-A": None, "FEAT-B": None}, False, control=False)
 
     return all(results)
 
@@ -976,6 +1092,7 @@ def main():
     ok_q = case_q()
     ok_r = case_r()
     ok_s = case_s()
+    ok_t = case_t()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -984,7 +1101,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

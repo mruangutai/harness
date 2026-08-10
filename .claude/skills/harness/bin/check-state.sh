@@ -374,7 +374,19 @@ else:
         if _m in ("", "*", ".*"):
             _have |= _want
         else:
-            _have |= {t for t in _want if re.search(_m, t)}
+            # A matcher is user-authored text, not a guaranteed regex — `Bash(git:*)` is
+            # the permission-rule form people paste in, and it raises. An UNCAUGHT raise
+            # here exits 1 with EMPTY stdout, which the /harness gate reads as "violations
+            # found" with nothing to read, and every invariant below this line never runs.
+            # A bad matcher is a finding, not a crash: it matches no tool, so report it AND
+            # leave those tools uncovered.
+            try:
+                _have |= {t for t in _want if re.search(_m, t)}
+            except re.error as _re:
+                bad.append(f"INV-9: the PostToolUse check-domain matcher {_m!r} is not a "
+                           f"valid regular expression ({_re}) — Claude Code matches nothing "
+                           f"with it, so the shape gate covers no tool through this entry. "
+                           f"Correct the matcher in .claude/settings.json.")
     _pt = _pts[0] if _pts else None
     if _pt is None:
         bad.append("No PostToolUse check-domain hook — the DEC-150 state-file SHAPE "
@@ -469,7 +481,9 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
 # Observed live: FEAT-03's plan phase ran to completion before feature.yaml existed.
 for rd in glob.glob(os.path.join(H, "features", "*", "runs")):
     fdir = os.path.dirname(rd)
-    if os.listdir(rd) and not os.path.isfile(os.path.join(fdir, "feature.yaml")):
+    # isdir FIRST: glob matches a plain file named `runs` too, and os.listdir on it raises
+    # NotADirectoryError — exit 1, empty stdout, every later invariant skipped.
+    if os.path.isdir(rd) and os.listdir(rd) and not os.path.isfile(os.path.join(fdir, "feature.yaml")):
         bad.append(f"{os.path.basename(fdir)}: has runs/ but no feature.yaml — the feature is "
                    f"invisible to run reconciliation and phase checks; instantiate it from the "
                    f"template (the playbook's first-cycle duty).")
@@ -548,6 +562,25 @@ CHECKPOINT_KEYS = {
     "verdict", "severity_max", "digest",
 }
 vd = os.path.join(root, ".claude/skills/harness/bin/validate-digest.py")
+# INV-15 used to fork one interpreter per completed lead run. Measured on this tree: 103
+# spawns costing 3.02s of a 3.45s run — 87% of the time the operator waits at every
+# /harness entry, and it grows with run history because historical digests are re-validated
+# forever. Load the module ONCE instead. `validate()` is a pure function of (persona, text)
+# and the CLI lives behind `if __name__ == "__main__":`, so importing runs nothing.
+# _vd_mod is None when the file is absent or will not import; the loop below then reports
+# digests as UNCHECKED rather than passing them silently.
+_vd_mod = None
+_vd_import_err = None
+if os.path.isfile(vd):
+    try:
+        import importlib.util as _ilu
+        _spec = _ilu.spec_from_file_location("harness_validate_digest", vd)
+        _vd_mod = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_vd_mod)
+        if not callable(getattr(_vd_mod, "validate", None)):
+            _vd_mod, _vd_import_err = None, "it defines no validate() function"
+    except Exception as _e:
+        _vd_mod, _vd_import_err = None, str(_e)
 for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml")):
     rel = os.path.relpath(sy, H)
     rundir = os.path.dirname(sy)
@@ -605,13 +638,16 @@ for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml"))
         if not os.path.isfile(dg):
             bad.append(f"{os.path.relpath(rundir, H)}: run is complete but digest.md is "
                        f"missing — the lead's report artifact never landed (DEC-156).")
-        elif not os.path.isfile(vd):
-            bad.append(f"INV-15 could not run: {os.path.relpath(vd, root)} is missing. "
+        elif _vd_mod is None:
+            bad.append(f"INV-15 could not run: {os.path.relpath(vd, root)} "
+                       f"{'is missing' if not os.path.isfile(vd) else 'will not import (' + str(_vd_import_err) + ')'}. "
                        f"Digest files are UNCHECKED — likely a partial deploy.")
         else:
-            r = subprocess.run([sys.executable, vd, "lead", dg],
-                               capture_output=True, text=True)
-            if r.returncode != 0:
+            try:
+                _errs = _vd_mod.validate("lead", open(dg, encoding="utf-8", errors="replace").read())
+            except Exception as _e:
+                _errs = [f"validate() raised: {_e}"]
+            if _errs:
                 bad.append(f"{os.path.relpath(dg, H)}: does not satisfy the lead digest "
                            f"contract — a successor reads this file, not the transcript "
                            f"(DEC-156). Run bin/validate-digest.py lead on it for reasons.")
@@ -725,33 +761,82 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
     fleet_p = os.path.join(H, "factory", "fleet.yaml")
     if not os.path.isfile(fleet_p):
         bad.append(f"INV-24 {feat}: records factory state but {os.path.relpath(fleet_p, root)} "
-                   f"is absent — no fleet declares the repository it claims work in.")
+                   f"is absent — no fleet declares the repository it claims work in. "
+                   f"Write the fleet declaration, or clear the feature's factory block.")
         continue
     try:
         fleet = harness_yaml.load_file(fleet_p) or {}
     except harness_yaml.YamlParseError as _e:
-        bad.append(f"INV-24 {feat}: records factory state but the fleet file does not parse: {_e}")
+        bad.append(f"INV-24 {feat}: records factory state but the fleet file does not parse: "
+                   f"{_e} — fix .harness/factory/fleet.yaml before any factory run.")
         continue
-    names = [r.get("name") for r in (fleet.get("repos") or []) if isinstance(r, dict)]
+    # TYPES ARE VALIDATED, NOT ASSUMED (panel2 C1). Both halves of this used to read
+    # straight off the YAML: a `repos:` entry with no `name` put None in the allow-list,
+    # so `factory.repo: null` matched it and passed BOTH checks silently — a fail-open
+    # inside an invariant checker. The mirror defect pointed the other way: an issue
+    # number of null stringified to "None", so two unrelated features both keyed
+    # (repo, "None") and were reported as colliding when nothing collided.
+    names = [r["name"] for r in (fleet.get("repos") or [])
+             if isinstance(r, dict) and isinstance(r.get("name"), str) and r["name"]]
     repo = fac.get("repo")
+    if not isinstance(repo, str) or not repo:
+        bad.append(f"INV-24 {feat}: factory.repo is {repo!r}, not a repository name — "
+                   f"set it to an owner/name string the fleet declares, or remove the "
+                   f"factory block if this feature claims no work.")
+        continue
     if repo not in names:
         bad.append(f"INV-24 {feat}: records factory repo {repo!r}, which the fleet does not "
-                   f"declare — fleet names: {', '.join(str(n) for n in names) or '(none)'}.")
+                   f"declare — fleet names: {', '.join(names) or '(none)'}. Add it to "
+                   f".harness/factory/fleet.yaml, or correct the feature's factory.repo.")
         continue
+    # Each number carries WHERE IT CAME FROM. Re-deriving the label later from
+    # `n == fac.get("parent")` renders the duplicate message as "(parent and parent)" in
+    # the exact container-equals-task case this check exists for, because both sides of
+    # the comparison are then true.
     nums = []
     issues = fac.get("issues")
     if isinstance(issues, dict):
-        nums.extend(issues.values())
+        nums.extend((v, f"task {k}") for k, v in issues.items())
     elif isinstance(issues, list):
-        nums.extend(issues)
+        nums.extend((v, "a task") for v in issues)
+    elif issues is not None:
+        # The CONTAINER type was assumed while its contents were validated: `issues: 42`
+        # left nums empty, so no collision check ran and nothing was reported at all.
+        bad.append(f"INV-24 {feat}: factory.issues is {issues!r}, which is neither a "
+                   f"T-NN-to-number mapping nor a list of numbers — no issue in this "
+                   f"block can be checked for collision. Re-run `factory publish` to "
+                   f"rewrite it, or correct it by hand.")
     if fac.get("parent") is not None:
-        nums.append(fac.get("parent"))
-    for n in nums:
-        key = (repo, str(n))
+        nums.append((fac.get("parent"), "the parent"))
+    # WITHIN a feature as well as across features (panel2 C2). The comparison used to be
+    # `!= feat`, so a feature whose own parent equalled one of its own task issues never
+    # fired — which is exactly D-12's container collision, in the one shape this check
+    # was written to make visible.
+    _seen_here = {}
+    for n, _src in nums:
+        # A DIGIT STRING IS A NUMBER HERE. INV-21 thirty lines above accepts `parent: "40"`
+        # deliberately — gh-sync.py's reader was widened to it because bare-digits-only
+        # read a quoted number as absent. Rejecting the same shape here would make one
+        # legal feature.yaml pass one invariant and hard-block on its twin (D-03).
+        if isinstance(n, bool) or not (isinstance(n, int) or str(n).strip().isdigit()):
+            bad.append(f"INV-24 {feat}: records issue number {n!r} for {repo}, which is not "
+                       f"an integer — re-run `factory publish` to rewrite the block, or "
+                       f"correct it by hand.")
+            continue
+        n = int(n)
+        key = (repo, n)
+        if key in _seen_here:
+            bad.append(f"INV-24 {feat}: records {repo} issue {n} twice within its own factory "
+                       f"block ({_seen_here[key]} and {_src}) — a container that is also a "
+                       f"task issue is D-12's collision. "
+                       f"Re-run `factory publish` after correcting the block.")
+            continue
+        _seen_here[key] = _src
         if key in _fac_pairs and _fac_pairs[key] != feat:
             bad.append(f"INV-24: {_fac_pairs[key]} and {feat} both record {repo} issue {n} — "
                        f"two features claiming one issue means the board and the harness "
-                       f"disagree about what is in flight.")
+                       f"disagree about what is in flight. Decide which feature owns it and "
+                       f"clear the other's factory block.")
         else:
             _fac_pairs[key] = feat
 
