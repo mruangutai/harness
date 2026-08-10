@@ -12,9 +12,10 @@
 > on average, reading it end-to-end to change one thing is waste. Use the index below.
 >
 > An earlier header claimed the property that mattered was being "short enough to re-read entirely
-> after each change." **That was retracted** (DEC-104): the target was arbitrary, and a discipline
-> built on it failed — ten statements went stale before an audit caught them. Propagation is now
-> enforced by `bin/check-docs.sh`, not by anyone's memory.
+> after each change." **That was retracted**: the target was arbitrary, and a discipline built on it
+> failed — ten statements went stale before an audit caught them. The checker that replaced it is
+> itself struck (DEC-188); a decision the tree contradicts is now struck rather than marked, so
+> nothing survives to go stale.
 
 ---
 
@@ -39,9 +40,10 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 | Composability — v1 scope and the post-v1 flattening plan | **14** | 0.2k |
 | **Operating constraints** — single operator, one feature per worktree, your own hand edits, unmodelled costs | **15** | 0.9k |
 
-**Schemas are inline, deliberately.** Extracting them to a separate file was measured and rejected
-(DEC-104): it saves 378 lines but creates a second file for a decision to fail to land in, which is the
-defect this project has already hit once.
+**Schemas are inline, deliberately.** Extracting them to a separate file was measured and rejected:
+it saves 378 lines but creates a second file for a decision to fail to land in, which is the defect
+this project has already hit once. (The ruling came from DEC-104, since struck on other grounds under
+DEC-188; this half of it was never what was contradicted.)
 
 **Runtime agents never load this file.** Rule skills, injected Expertise, and `BRIEF`/`PLAN`/`STATE` are
 what the 16 agents read at spawn. SPEC is a build-time artifact, so its size costs harness *development*,
@@ -116,7 +118,7 @@ and crash recovery share one code path.
 durable artifacts may be written from these answers. Lateral lead→lead routing uses the same file,
 since two leads share no run dir.
 
-**Feature-scoped artifacts live in the feature's folder** — `.harness/features/<FEAT>/notes/` (DEC-130). The path carries the feature id, so filenames no longer need to: `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `research-*`, `review-<persona>-c<n>.md`. An earlier convention encoded the FEAT id in filenames under a flat `notes/` <!-- ok-stale -->; it retired because the id was forgettable (observed on pm's first outing) while a directory cannot be. `.harness/notes/` remains for genuinely project-scoped artifacts only.
+**Feature-scoped artifacts live in the feature's folder** — `.harness/features/<FEAT>/notes/` (DEC-130). The path carries the feature id, so filenames no longer need to: `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `research-*`, `review-<persona>-c<n>.md`. An earlier convention encoded the FEAT id in filenames under a flat `notes/`; it retired because the id was forgettable (observed on pm's first outing) while a directory cannot be. `.harness/notes/` remains for genuinely project-scoped artifacts only.
 
 Onboarding is handled by `/harness-init`, not a team (§3): it interviews you directly, writes
 `BRIEF.md` + `harness.json` + the manifest, and takes your approval. The round-trip above is the
@@ -994,7 +996,7 @@ skills:
 ```
 
 **This makes rule delivery a runtime guarantee rather than an act of obedience.** There is no
-`## Discipline` step-0 instruction to skip, and no `<files_to_read>` belt-and-suspenders is needed — <!-- ok-stale -->
+`## Discipline` step-0 instruction to skip, and no `<files_to_read>` belt-and-suspenders is needed —
 the rule is in context before the agent takes its first action.
 
 Consequences of the mechanism, stated plainly:
@@ -1424,7 +1426,7 @@ How it runs:
 
 1. **No report round is spawned (#80). The orchestrator reads every run's `digest.md` from disk**,
    including runs from phases it did not host — under DEC-159 it is a per-phase successor and never
-   received those digests in context. `feature.yaml` `runs:` names them. A "report on your domain" <!-- ok-stale --> quotes the retired phrase to forbid it
+   received those digests in context. `feature.yaml` `runs:` names them. A "report on your domain" quotes the retired phrase to forbid it
    spawn buys a re-narration of a file on disk; DEC-69 assumes exactly this in holding that the
    cross-lead view costs no extra spawn. A lead is spawned here **only** when a specific question
    its digest does not answer needs one, and then only that lead.
@@ -1522,7 +1524,7 @@ lead could make, dismissals recorded with reasons, open questions.
 
 Requiring the contract block in the file too would duplicate every field in two places with nothing
 checking the copy. Observed live (DEC-124): a lead returned a valid block and wrote an excellent
-prose report, and the earlier wording <!-- ok-stale --> made that look like a
+prose report, and the earlier wording made that look like a
 deviation when it was the better outcome.
 
 The per-member block is what preserves `STATE.md` granularity under hierarchy. **Each entry carries

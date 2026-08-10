@@ -4,7 +4,7 @@ per FEAT-04-decisions-index T-01 — this is the RED deliverable.
 
 Six tests. Four of them exercise the generator directly and fail-by-design at
 T-01 because `gen-decisions-index.py` does not exist yet. Test 4 exercises the
-already-shipped `check-docs.sh` and is expected to be green today. Test 5
+already-shipped generator and is expected to be green today. Test 5
 exercises the committed `docs/harness/DECISIONS-INDEX.md`, which does not
 exist yet either, and SKIPs by design (file-absence only — see its docstring).
 
@@ -22,7 +22,6 @@ BIN_DIR = os.path.dirname(os.path.realpath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
 REAL_DECISIONS = os.path.join(REPO_ROOT, "docs", "harness", "DECISIONS.md")
 REAL_INDEX = os.path.join(REPO_ROOT, "docs", "harness", "DECISIONS-INDEX.md")
-CHECK_DOCS = os.path.join(BIN_DIR, "check-docs.sh")
 
 # Overridable so a fix can be proven RED against a reverted copy — the same
 # CHECK_STATE_BIN escape test-check-state.py uses.
@@ -44,7 +43,7 @@ ROW_RE = gdi.ROW_RE
 
 
 def fence_guarded_dec_headings(text):
-    """Mirror check-docs.sh's fence toggle (:44-48) exactly: a '## DEC-N'
+    """Mirror the fence toggle exactly: a '## DEC-N'
     heading seen while inside a ``` code fence is documentation of the format,
     not a live declaration, and must not be harvested."""
     owners = []
@@ -128,21 +127,32 @@ def test_row_per_distinct_dec_matches_authority():
         fenced = fence_guarded_dec_headings(text)
         distinct = sorted(set(fenced))
 
-        # Documented divergence (D-04): ## DEC-83 appears a second time inside a
-        # code fence at DECISIONS.md:1583. The raw regex harvests it; the
-        # fence-guarded parse the generator must use does not.
-        # Assert the RELATIONSHIP, never frozen totals (issue #5): a literal count
-        # reddens this gate on the next appended decision, which punishes writing a
-        # decision rather than catching a parser defect. What D-04 actually claims is
-        # that the raw regex over-harvests by exactly the fenced duplicates.
-        fenced_dupes = len(raw) - len(distinct)
-        if fenced_dupes != 1:
-            print(f"FAIL - {name}: raw regex should over-harvest fence-guarded by exactly 1 "
-                  f"(the DEC-83 duplicate inside a code fence), got {fenced_dupes} "
-                  f"(raw={len(raw)}, distinct={len(distinct)})")
+        # ASSERT THE RELATIONSHIP, NEVER A FROZEN TOTAL (issue #5). This used to
+        # require exactly ONE fenced duplicate, because a fenced `## DEC-83` sat
+        # inside DEC-104's body illustrating the fence-toggle rule. DEC-104 was
+        # struck under DEC-188 and that example went with it, so the count fell to
+        # zero and a green test went red for a reason that was not a parser defect.
+        # Zero fenced duplicates is a legitimate state of the live document.
+        #
+        # So the live file now carries only the invariants that must always hold,
+        # and the fence guard is proven against a SYNTHETIC fixture below — which is
+        # stronger, because it fails when the guard breaks rather than when someone
+        # edits an unrelated decision.
+        if len(raw) < len(distinct):
+            print(f"FAIL - {name}: fence-guarded parse harvested MORE ids than the raw "
+                  f"regex ({len(distinct)} > {len(raw)}) — the guard is adding ids")
             return False
         if len(distinct) != len(set(distinct)):
             print(f"FAIL - {name}: fence-guarded parse yielded duplicate ids")
+            return False
+
+        # The guard itself: a heading inside a fence must NOT be harvested.
+        planted = text + "\n\n```\n## DEC-9999 — fenced, must not be harvested\n```\n"
+        if "DEC-9999" in fence_guarded_dec_headings(planted):
+            print(f"FAIL - {name}: fence guard harvested a heading inside a code fence")
+            return False
+        if "DEC-9999" not in re.findall(r"^## (DEC-\d+)", planted, re.M):
+            print(f"FAIL - {name}: the planted fixture is wrong — the raw regex should see it")
             return False
 
         if not os.path.exists(GEN):
@@ -303,100 +313,6 @@ def test_preserves_inline_ok_stale_marker_on_a_row():
                 return False
             if dec3_rows[0] != marked_row:
                 print(f"FAIL - {name}: DEC-3 row not byte-identical (ok-stale marker or text altered)")
-                return False
-
-        print(f"ok - {name}")
-        return True
-    except Exception as e:
-        print(f"FAIL - {name}: {type(e).__name__}: {e}")
-        return False
-
-
-def test_checker_scans_root_level_markdown():
-    """check-docs.sh must see CLAUDE.md — the file read at EVERY session start (issue #139).
-
-    Its scan roots were docs/harness, .harness, .claude/skills, .claude/commands and
-    .claude/agents. The REPO ROOT was not among them, so the propagation checker was blind
-    to the file with the widest blast radius in the tree. Verified before the fix by
-    planting a live stale phrase in the real CLAUDE.md: zero hits.
-
-    The second half of this case is as load-bearing as the first: the root tier must be
-    NON-RECURSIVE. Globbing `**` from `.` would walk .git, node_modules and
-    .claude/worktrees/, scanning every file of every other checkout as if it were this one.
-    """
-    name = "test_checker_scans_root_level_markdown"
-    try:
-        phrase = "another fabricated placeholder phrase"
-        with tempfile.TemporaryDirectory() as tmp:
-            docs_dir = os.path.join(tmp, "docs", "harness")
-            os.makedirs(docs_dir, exist_ok=True)
-            with open(os.path.join(docs_dir, "DECISIONS.md"), "w", encoding="utf-8") as f:
-                f.write("## DEC-01 — Single test decision\n\n"
-                        f'<!-- stale: "{phrase}" -->\n\n**Chose:** placeholder body.\n')
-            with open(os.path.join(tmp, "CLAUDE.md"), "w", encoding="utf-8") as f:
-                f.write(f"# Project\n\nThis file repeats the {phrase} on purpose.\n")
-            # A decoy one level down that the root tier must NOT reach, or the tier is
-            # recursive and the case above would pass for the wrong reason.
-            deep = os.path.join(tmp, "vendor", "someones-node-modules")
-            os.makedirs(deep, exist_ok=True)
-            with open(os.path.join(deep, "README.md"), "w", encoding="utf-8") as f:
-                f.write(f"Vendored text mentioning the {phrase}.\n")
-
-            env = dict(os.environ)
-            env["CLAUDE_PROJECT_DIR"] = tmp
-            r = subprocess.run([CHECK_DOCS], cwd=tmp, capture_output=True, text=True, env=env)
-            out = r.stdout + r.stderr
-            assert "CLAUDE.md" in out, f"root CLAUDE.md was not scanned:\n{out}"
-            assert r.returncode == 1, f"expected exit 1, got {r.returncode}:\n{out}"
-            assert "someones-node-modules" not in out, (
-                f"the root tier recursed into a subdirectory — it must be depth-0 only:\n{out}")
-        print(f"ok   {name}")
-        return True
-    except AssertionError as e:
-        print(f"FAIL {name}: {e}")
-        return False
-
-
-def test_checker_flags_planted_stale_phrase_in_index():
-    name = "test_checker_flags_planted_stale_phrase_in_index"
-    try:
-        phrase = "fabricated placeholder phrase"
-        with tempfile.TemporaryDirectory() as tmp:
-            docs_dir = os.path.join(tmp, "docs", "harness")
-            os.makedirs(docs_dir, exist_ok=True)
-            with open(os.path.join(docs_dir, "DECISIONS.md"), "w", encoding="utf-8") as f:
-                f.write(
-                    "## DEC-01 — Single test decision\n\n"
-                    f'<!-- stale: "{phrase}" -->\n\n'
-                    "**Chose:** placeholder body text.\n"
-                )
-            index_row = f"- DEC-01 @1 [] refs:  :: This ruling repeats the {phrase} on purpose."
-            with open(os.path.join(docs_dir, "DECISIONS-INDEX.md"), "w", encoding="utf-8") as f:
-                f.write("<!-- index-contract v1 -->\n\n" + index_row + "\n")
-
-            env = dict(os.environ)
-            env["CLAUDE_PROJECT_DIR"] = tmp
-            r = subprocess.run([CHECK_DOCS], cwd=tmp, capture_output=True, text=True, env=env)
-            # check-docs.sh cd's into CLAUDE_PROJECT_DIR and reports paths relative
-            # to it, not absolute.
-            rel_index_path = os.path.join("docs", "harness", "DECISIONS-INDEX.md")
-            if r.returncode != 1:
-                print(f"FAIL - {name}: expected exit 1 on planted phrase, got {r.returncode}\n{r.stdout}\n{r.stderr}")
-                return False
-            if rel_index_path not in r.stdout:
-                print(f"FAIL - {name}: stdout does not name {rel_index_path}")
-                return False
-            if "DEC-01" not in r.stdout:
-                print(f"FAIL - {name}: stdout does not name DEC-01")
-                return False
-
-            # Now mark the same row ok-stale and assert exit 0.
-            marked_row = index_row + " <!-- ok-stale -->"
-            with open(os.path.join(docs_dir, "DECISIONS-INDEX.md"), "w", encoding="utf-8") as f:
-                f.write("<!-- index-contract v1 -->\n\n" + marked_row + "\n")
-            r2 = subprocess.run([CHECK_DOCS], cwd=tmp, capture_output=True, text=True, env=env)
-            if r2.returncode != 0:
-                print(f"FAIL - {name}: expected exit 0 after <!-- ok-stale -->, got {r2.returncode}\n{r2.stdout}\n{r2.stderr}")
                 return False
 
         print(f"ok - {name}")
@@ -749,8 +665,6 @@ TESTS = [
     test_supersession_declared_in_body_prose_is_harvested,
     test_preserves_hand_written_rulings_by_dec_number,
     test_preserves_inline_ok_stale_marker_on_a_row,
-    test_checker_scans_root_level_markdown,
-    test_checker_flags_planted_stale_phrase_in_index,
     test_committed_index_is_complete_and_within_budget,
     test_orphaned_ruling_is_reported_not_silently_dropped,
 ]

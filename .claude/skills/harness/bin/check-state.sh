@@ -853,34 +853,18 @@ if cj:
         bad.append("github.sync is ON but github.repo is not pinned — every sync will "
                    "silently SKIP. Pin the repo (from `gh repo view`) or turn sync off.")
 
-# --- INV-10: docs must not contradict a decision that superseded them (DEC-103).
-docs = os.path.join(root, "docs", "harness", "DECISIONS.md")
-if os.path.isfile(docs):
-    import subprocess
-    cd = os.path.join(root, ".claude/skills/harness/bin/check-docs.sh")
-    # NEVER skip silently. This used to be `if os.access(cd, X_OK):` with no else,
-    # so a checker that lost its exec bit — or went missing in a partial deploy —
-    # made INV-10 pass. An invariant that reports "all state invariants hold"
-    # because it could not run is worse than one that fails: it is DEC-110's
-    # fail-open-and-silent shape inside the thing built to catch it. Three separate
-    # agents flagged it independently before it was fixed.
-    if not os.path.isfile(cd):
-        bad.append(f"INV-10 could not run: {os.path.relpath(cd, root)} is missing. "
-                   f"Doc propagation is UNCHECKED — likely a partial deploy.")
-    elif not os.access(cd, os.X_OK):
-        bad.append(f"INV-10 could not run: {os.path.relpath(cd, root)} is not executable. "
-                   f"Doc propagation is UNCHECKED. Fix with `chmod +x`.")
-    else:
-        r = subprocess.run([cd], capture_output=True, text=True, cwd=root)
-        if r.returncode == 1:
-            bad.append("docs contain statements a superseding decision invalidated "
-                       "— run bin/check-docs.sh for the list.")
-        elif r.returncode != 0:
-            # Exit 1 is "found stale statements". Anything else is the checker
-            # itself failing, which must not read as a clean bill of health.
-            bad.append(f"INV-10 could not run: check-docs.sh exited {r.returncode}. "
-                       f"Doc propagation is UNCHECKED. stderr: "
-                       f"{(r.stderr or '').strip().splitlines()[-1] if r.stderr.strip() else '(none)'}")
+# INV-10 IS GONE, AND THE NUMBER IS RETIRED WITH IT. It ran check-docs.sh, the
+# propagation checker, which no longer exists: the operator struck the whole
+# stale-marker mechanism and replaced detection with deletion — a decision the tree
+# flatly contradicts is struck from the record and removed from every gate, so
+# nothing survives to contradict. Do NOT reuse "INV-10" for a new invariant; the
+# number appears in shipped digests and reviews, and reusing it makes that history
+# read as being about something it never was.
+#
+# What this costs, stated plainly so nobody rediscovers it as a surprise: nothing
+# mechanical now checks that a doc statement a later decision falsified was actually
+# removed. The replacement rule holds only while the striking really happens every
+# time, and its enforcement is a human reading a diff.
 
 for m in bad:  print(f"  VIOLATION  {m}")
 for m in warn: print(f"  note       {m}")

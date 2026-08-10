@@ -58,16 +58,6 @@ violation becomes `BLOCKED (contract violation)`.
 Your artifact is read by the *consumer* of your work. The orchestrator reads only your VERDICT and
 DIGEST, so anything the routing decision depends on must be in the DIGEST, not buried in the artifact.
 
-**Your artifact is gated too.** `check-docs.sh` scans **every `.md` file under `.harness/`** — not
-just the project's docs — so a superseded phrase you write into a brief, plan, note or digest fails
-the gate exactly like one in `SPEC.md`. Two consequences worth knowing before you write:
-
-- **Quoting stale wording is legitimate; it just has to mark itself.** Put `<!-- ok-stale -->` on
-  that line. The escape is **per line, not per file** — a phrase you quote three times needs it three
-  times, and the checker now lists every location of a pattern in one report so you can fix them all
-  in one pass.
-- **Run dirs are exempt** — `runs/**` is history and is never scanned. Live feature docs are not.
-
 **Where your artifact goes.** If your deliverable is code or a verification result and you have no
 other per-feature path, write the receipt to
 `.harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`. **Not your observations log.**
