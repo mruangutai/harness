@@ -708,8 +708,7 @@ work, matching every other gate except the two in DEC-34.
 automation" limitation, which is superseded — `qa` owns Playwright E2E execution (DEC-35).
 
 ## DEC-63 — Rule delivery switches to native `skills:` preload — SUPERSEDES DEC-20
-<!-- stale: "injected via agent_skills" -->
-<!-- stale: "## Discipline" -->
+
 
 **Chose:** each rule becomes a skill; each agent declares its rules in the `skills:` frontmatter
 field, and Claude Code injects the **full content** at spawn.
@@ -821,10 +820,9 @@ spend with nothing to surface it"*). The curation block DEC-69 mandates is unaff
 never sourced from the report round. A lead is still spawned here when a specific question its
 digests do not answer needs one, and then only that lead.
 
-<!-- stale: "All three always report" -->
-<!-- stale: "report on your domain" -->
-<!-- stale: "all three leads **in parallel**" -->
-<!-- stale: "all three leads in parallel" -->
+
+
+
 
 ## DEC-70 — `ai_behavior` becomes a real change type: ai-dev authors the eval, qa owns the gate — SUPERSEDES DEC-37
 
@@ -1381,7 +1379,7 @@ into an observation; and one real bug found and fixed in `harness-qa-gate` (DEC-
 SC-2 is the one cost that cannot be absorbed by spending more.
 
 ## DEC-100 — All four platform unknowns resolved empirically
-<!-- stale: "rules/handoff.md" -->
+
 
 Probed 2026-07-26 with throwaway agents and hooks, since cleaned up. Three of four settled outright; the
 fourth is settled in substance with one link resting on documentation.
@@ -1551,89 +1549,28 @@ probe agent flagged this itself, and the re-test with `general-purpose` (which d
 level) is what made the finding sound. Worth noting as a method point: the confound was caught by the
 subagent, not by me.
 
-## DEC-103 — The propagation defect recurred, and the fix was a sweep not a habit
+## DEC-103 — STRUCK 2026-08-10
 
-**Audit finding, 2026-07-26.** After 12 decisions were recorded (DEC-91…DEC-102), a check of SPEC and
-BUILD found **ten stale statements** that those decisions had already invalidated:
+Created `bin/check-docs.sh`, the propagation checker, after twelve decisions left ten falsified
+statements standing in SPEC and BUILD — the exact defect the SPEC/DECISIONS/BUILD split had been
+created to prevent.
 
-| Stale claim | Contradicted by |
-|---|---|
-| 6× rule skills at `rules/<name>/SKILL.md` | DEC-100 — nested skill dirs are not discoverable |
-| "scoped lead `Write` depends on spike 0a" | DEC-101 — verified, script shipped |
-| "what remains for spike 0a is confirming…" | DEC-101 |
-| "hosting model pending spike 0b" | DEC-100/102 — hierarchical verified |
-| "parallel fan-out is the one unproven narrow case" | DEC-100 — verified, 3 concurrent spawns |
-| BUILD Step 0 titled "one remaining spike" | all four resolved |
+Struck under DEC-188: the operator replaced detection with deletion. A decision the tree flatly
+contradicts is now struck from the record and removed from every gate, so nothing survives to
+contradict and nothing needs detecting. `bin/check-docs.sh` is deleted.
 
-**This is precisely the defect the SPEC/DECISIONS/BUILD split was created to prevent** — the source plan's
-own diagnosis was *"a decision lands in one section and never propagates."* The split did not prevent it.
+## DEC-104 — STRUCK 2026-08-10
 
-**Why it recurred, honestly:** appending to DECISIONS is cheap and satisfying; re-reading SPEC is not.
-SPEC is now **1831 lines**, four times the ~450 I originally targeted and well past what anyone re-reads
-after each change. The mechanism the split relied on — *"short enough to re-read entirely"* — was never
-actually achieved, so the propagation discipline had no support.
+Enforced DEC-103's checker as INV-10 in `check-state.sh`, with DECISIONS itself as the registry via
+inline stale-wording markers in HTML comments, with a per-line escape comment.
 
-**All ten are now fixed**, and SPEC gained the depth-semantics diagram it lacked entirely. Verified clean:
-0 stale skill paths, 0 unresolved spike markers, 0 dangling `DEC-NN` refs, 0 dangling `§N` refs.
+Struck under DEC-188, with DEC-103. What went with it: the INV-10 block in `check-state.sh`, 66
+`stale` markers and 14 `ok-stale` exemptions. The trigger is worth recording because it is the
+mechanism's own failure mode — a change contradicted a passage in DEC-165, the marker needed a host
+decision, and the natural host DEC-161 had already been deleted. There was nowhere to put the
+declaration.
 
-**The durable fix is mechanical, not behavioral.** Relying on remembering to re-read a 1831-line file has
-now failed once; it will fail again. Two options, neither yet chosen:
-- **A propagation check in `check-state.sh`** — grep SPEC/BUILD for phrases that superseded DECs
-  invalidate (`pending spike`, a superseded path form) and fail the state check. Cheap, catches the
-  literal-string class of staleness, misses the semantic class.
-- **Split SPEC further** — move the normative payload (manifest, roster, DIGEST schemas, test matrix,
-  `feature.yaml`/`state.yaml`, crew YAML — ~300 lines that cannot shrink) into a `SCHEMAS.md` appendix,
-  leaving a genuinely re-readable spec. Addresses the root cause rather than the symptom.
-
-Recorded as an open item rather than silently deferred: **the split's central property is currently
-unmet, and that is a live defect, not a stylistic preference.**
-
-## DEC-104 — Propagation is enforced by a checker whose registry is DECISIONS itself
-
-**Chose:** `bin/check-docs.sh`, wired into `check-state.sh` as INV-10. A decision that supersedes
-something declares the stale wording inline, in the same paragraph as the reasoning:
-
-```
-## DEC-83 — Nesting default is 3, not off
-<!-- stale: "pending spike" -->
-<!-- stale: "nesting is off by default" -->
-```
-
-The checker reads those markers out of DECISIONS.md and greps SPEC/BUILD for them, naming the DEC that
-invalidated each hit. **There is no separate registry to drift** — which matters, because a stale-claim
-registry going stale would be the same defect one level up.
-
-**Over:** (a) remembering to re-read SPEC — that has now failed once (DEC-103) and would again;
-(b) a standalone list of forbidden phrases, which drifts;
-(c) splitting SPEC to make it re-readable — see below, it does not work.
-
-**Verified against real history and one injected regression.** Declaring 12 markers on 6 superseding
-decisions surfaced 4 hits, **all of them false positives** — and the false positives were the useful part:
-the migration map legitimately quotes old wording in its «change *"old"* → new» rows, and §7 legitimately
-*describes* the mechanism it retired. Fixed with an **explicit** `<!-- ok-stale -->` escape rather than a
-heuristic, because a heuristic that guesses which quotes are intentional will be wrong in both directions.
-Re-injecting `pending spike 0b` was then caught and correctly attributed to DEC-83.
-
-### The size fix does NOT work — recorded so it is not attempted again
-
-DEC-103 offered "split the normative payload" as the root-cause fix. **Measured, it fails:**
-
-| | Lines |
-|---|---|
-| SPEC.md today | **1853** |
-| Normative payload extractable to a `SCHEMAS.md` (manifest 112, frontmatter 63, test_matrix 64, crew YAML 40, roster 31, `state.yaml` 27, DIGEST 23, `feature.yaml` 18) | −378 |
-| Correction narration that belongs in DECISIONS (8 sites: *"An earlier draft claimed…"*, *"that overstated it twice over"*) | ≈ −50 |
-| Result | **≈ 1425 — still 3× the 450-line target** |
-
-**The 450-line target was never achievable** for a system with 15 sections of genuine specification. The
-split's founding premise — *"short enough to re-read entirely after each change"* — was wishful, and
-building a discipline on it was the actual mistake. Extracting schemas remains defensible for
-*navigability*, but it must not be sold as fixing propagation. **Mechanical enforcement is the fix;
-document size is a comfort.**
-
-**Residual honesty:** this catches the *literal-string* class of staleness only. A statement that
-contradicts a decision in different words still passes. That class needs a reader, and no script will
-substitute for one.
+**INV-10's number is retired, not reused.** It appears in shipped digests and reviews.
 
 ## DEC-105 — The per-spawn baseline is ~15.3k tokens; CLAUDE.md is 31% of it, the rules 11%
 
@@ -1746,8 +1683,7 @@ spawnable, and the first post-restart run should confirm the one residual platfo
 with `exit 2`; the docs assert the frontmatter variant, and it is now declared on all 15.
 
 ## DEC-108 — Post-restart validation: Expertise injection WORKS, the domain hook DID NOT FIRE
-<!-- stale: "Domain-enforcement hook — VERIFIED" -->
-<!-- stale: "blocking works, and the stderr reason" -->
+
 
 First run with all 15 agents spawnable. Three results, one of them bad.
 
@@ -1846,7 +1782,7 @@ Whether that is caution or a gap in the `harness-expertise` wording is worth wat
 
 BUILD.md §0b still read **"Domain-enforcement hook — VERIFIED, script shipped"** and *"blocking works"*
 after DEC-108 had recorded the opposite. `check-docs.sh` did not catch it **because I never declared a
-`<!-- stale: -->` marker on DEC-108** — the checker enforces what it is told, and I recorded the finding
+`` marker on DEC-108** — the checker enforces what it is told, and I recorded the finding
 without registering the wording it invalidated.
 
 **So the mechanism is sound and the discipline around it is not.** Two markers now declared, and the
@@ -1857,9 +1793,8 @@ This is the third recurrence (DEC-103, then the §0b claim, now caught only by r
 conclusion is that no amount of care substitutes for the marker being part of writing the DEC.
 
 ## DEC-110 — Agent-frontmatter `PreToolUse` does not fire; the domain hook moves to `settings.json` and WORKS
-<!-- stale: in each agent's frontmatter -->
-<!-- stale: "SCRIPT WORKS, DELIVERY DOES NOT" -->
-<!-- stale: "Domain enforcement is currently fail-open" -->
+
+
 
 **Settled after three attempts.** Agent-frontmatter `PreToolUse` hooks **do not fire for spawned
 subagents** in this environment:
@@ -1953,7 +1888,7 @@ under `.claude/skills/harness/templates/`, and three deterministic merge scripts
 
 The task-12 spec said two incompatible things: artifact #4 said init **never marks the brief approved**,
 while interview step 3 said the goal is signed before anything runs and the first Done-when required
-`check-state.sh` to pass. <!-- stale: "never marks it approved" -->
+`check-state.sh` to pass.
 
 Run against a fixture, `check-state.sh` exits **1** on a pending brief (`BRIEF.md is NOT approved — halt`)
 and **0** on an approved one. So the two lines could not both hold, and the pending reading would have
@@ -2491,22 +2426,18 @@ before telling a tier to do something, confirm its grants permit it.
 ---
 
 ## DEC-120 — The orchestrator becomes a spawned agent; the main session becomes the user channel
-<!-- stale: the main session — not an agent -->
-<!-- stale: orchestrator = the main session -->
-<!-- stale: main-session orchestrator -->
-<!-- stale: .harness/STATE.md -->
-<!-- stale: One feature in flight at a time -->
-<!-- stale: all 15 agents -->
-<!-- stale: all 15 personas -->
+
+
+
+
+
 
 **Supersedes DEC-102's conclusion** that `depth: 2` "is exactly the harness shape". The shape
 changed.
-<!-- stale: SPAWN_DEPTH": "2" -->
-<!-- stale: SPAWN_DEPTH: "2" -->
-<!-- stale: one nesting level -->
-<!-- stale: workers are always leaves -->
-<!-- stale: session, you are running it flat -->
-<!-- stale: Single operator, single session -->
+
+
+
+
 
 ### Why
 
@@ -2589,7 +2520,7 @@ orchestrator *reads*, or a DAG format it *executes* like a team. Deferred until 
 ---
 
 ## DEC-121 — Every digest field is required; `[]` is how you say nothing
-<!-- stale: expertise_updated -->
+
 
 The validator built in DEC-101 skipped absent fields by design — *"presence is the persona's
 business; shape is ours"*. Demonstrated against the real `review` run's lead digest, that meant it
@@ -2670,9 +2601,8 @@ That last row is a deliberate asymmetry. Everywhere else this design prefers fai
 the blast radius of our own bug is every subagent everywhere, and the failure is loud rather than
 silent — which is the property that actually matters.
 
-<!-- stale: three prerequisites -->
-<!-- stale: ALL THREE entries -->
-<!-- stale: three platform prerequisites -->
+
+
 
 ---
 
@@ -2775,8 +2705,7 @@ The reviewer asked whether to take a real YAML dependency rather than keep harde
 subset, flagging it as a constraint question. **`python3 -c "import yaml"` fails on this machine.** A
 YAML dependency would break the harness on its own development host, so the files-only constraint is
 load-bearing rather than stylistic. Harden the parser.
-<!-- stale: This one is checked, not trusted -->
-<!-- stale: or they run one after another and the fan-out is lost -->
+
 
 ---
 
@@ -2825,8 +2754,7 @@ one, which is the obvious next failure and cheaper to prevent than to detect.
 An earlier attempt at this made it worse: it correctly told agents the block may be absent and then
 concluded "you have none — proceed without it and do not go looking for it", which states the
 deadlock as policy.
-<!-- stale: proceed without it and do not go looking for it -->
-<!-- stale: Init creating the dir empty is per spec -->
+
 
 ### DEC-125 addendum — the first fix failed, and the reason is the interesting part
 
@@ -2865,7 +2793,6 @@ a prose report instead, and the prose was the better artifact.
 return at source. `<run_dir>/digest.md` is what a human opens. Requiring the block in the file as
 well would put every field in two places with nothing checking the second copy, which is the drift
 this project keeps paying for.
-<!-- stale: same shape as this block -->
 
 
 ---
@@ -3064,9 +2991,8 @@ the hole.
 Also per the user: **`## Problem` precedes `## Goal` in every BRIEF.** What hurts, observed, before
 what to build — a brief that cannot state the problem without naming the solution is a solution
 looking for a problem, and the goal-check has nothing to anchor against.
-<!-- stale: .harness/BRIEF.md -->
-<!-- stale: .harness/PLAN.md -->
-<!-- stale: .harness/DESIGN.md -->
+
+
 
 ---
 
@@ -3084,9 +3010,8 @@ project-level research glob for that.
 Also closed on the way: the template manifest never had qa's notes grant at all — live/template
 drift caught by asserting every substitution rather than replacing blind (the DEC-129 sweep's own
 failure, not repeated).
-<!-- stale: .harness/notes/answers- -->
-<!-- stale: .harness/notes/ship-review- -->
-<!-- stale: .harness/notes/uat- -->
+
+
 
 ---
 
@@ -3157,7 +3082,7 @@ orchestrator — `model: opus`; the other 10 members `model: sonnet`. The orches
 user's enumeration; grouping it with the judgment tier is the recorded assumption. Context: the
 overrun's root cause was every agent inheriting the session's fable-tier model (~$20/lead-run);
 pinning makes per-role cost a design property instead of an accident of who spawned the session.
-<!-- stale: exhausting either ends the loop -->
+
 
 ---
 
@@ -3536,9 +3461,8 @@ gate: unverifiable states (gh missing, unauthenticated) DENY with the reason rat
 work through. Nine offline proof shapes green, including the original's year-token guard and both
 grammars. The init question that keys it ("Mirror features to GitHub Issues?") was already in place
 (DEC-138).
-<!-- stale: four prerequisites -->
-<!-- stale: ALL FOUR entries -->
-<!-- stale: fourth mandatory -->
+
+
 
 ---
 
@@ -3575,9 +3499,8 @@ all survive; only the *when* moved) and DEC-25/68's overflow flow becomes the es
 a distilling agent cannot condense under the caps. Live probe deferred to the next kaya-ai feature
 run: agents appending observations, feature-close distillation firing, injected context staying
 under budget.
-<!-- stale: apply your own ops -->
-<!-- stale: merge` over `add -->
-<!-- stale: if you learned nothing durable -->
+
+
 
 **Amendment (same day):** a third boundary joined decision-vs-observation: **a harness defect is a
 bug report, not a learning** — it routes to `open_questions`, never Expertise, because a recorded
@@ -3614,7 +3537,7 @@ the second while still hot from the first, and its distillation degrades into su
 it just routed — invisible at ship time, surfacing as a worse next feature. Two dispatches in one
 message preserve the cold framing; one dispatch carrying both does not, and is forbidden.
 
-<!-- stale: "alongside ship-refresh" -->
+
 ---
 
 ## DEC-146 — Board-flip lookup inverted: issue → projectItems, no item cap
@@ -3715,7 +3638,7 @@ the same disease early (a cost figure stored as a paragraph-long string).
 The spec was already right — STATE.md is `## Current` + `## Open Questions`, "holds no history at
 all" (§2), feature.yaml is data a script parses — but nothing enforced it, and the playbook itself
 taught the opposite: step 5 said "APPEND the per-member roll-up to STATE.md."
-<!-- stale: append the per-member roll-up -->
+
 
 Three changes. **A shape gate in check-domain.sh** (stage two, after the domain check): a `Write`
 to `.harness/features/*/feature.yaml` over 200 lines or 20 comment lines, or to `STATE.md` over
@@ -3958,7 +3881,6 @@ REPORTED, not silently dropped**: a `harness.json` that parses but lacks the key
 the check with no diagnostic, and `templates/examples/harness.kaya-ai.json` ships in exactly that
 shape. DEC-160 records the identical config lag for `max_total_cycles`.
 
-<!-- stale: "the only one it keeps (DEC-178)" -->
 
 ## DEC-158 — Context-budget pass: skills carry the rule, DECISIONS carries the rule's history
 
@@ -4005,14 +3927,12 @@ entry for something that is not a new decision:
   orchestrator hosting a team DAG itself — is dead per DEC-100/DEC-102, so anything describing the
   orchestrator as a team host, or offering flat as a live hosting mode, is stale.
 
-<!-- stale: "you are running it flat" -->
-<!-- stale: "or the orchestrator agent itself (flat)" -->
-<!-- stale: "or the orchestrator agent (flat)" -->
-<!-- stale: "In flat mode the orchestrator hosts" -->
-<!-- stale: "This holds in flat mode too" -->
-<!-- stale: "In **flat** mode members return their DIGEST" -->
-<!-- stale: "apply the `harness-expertise` contract" -->
-<!-- stale: "distill what passes the six-spawns test into its Expertise file per `harness-expertise`" -->
+
+
+
+
+
+
 
 ## DEC-159 — Orchestrators are per-phase; the handoff note carries intent, trust, and dead ends
 
@@ -4760,7 +4680,7 @@ while its own manifest is unparseable is not checking itself.
 |---|---|---|
 | grilling, BRIEF, PLAN, review panel, goal-check | **yes, keep it** | none of it depends on the code being changed; FEAT-05's grilling and plan were good work and caused none of the day's trouble |
 | agent roles, digests, expertise | yes | drift risk, not circularity |
-| **hooks, validators, gate scripts** (`check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh`, `check-docs.sh`) | **NO** | the artifact under change is the artifact doing the checking |
+| **hooks, validators, gate scripts** (`check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`, `check-state.sh`) | **NO** | the artifact under change is the artifact doing the checking |
 
 Everything painful on 2026-08-03 sits in the third row: which copy of `check-domain.sh` a hook fires,
 whether DEC-173 governs any agent, whether 13 edited agent templates are even live, and a fail-closed
@@ -5162,8 +5082,7 @@ once.** `merge-settings.py` carried "six" on five lines and the snippet three mo
 after a first draft of this very paragraph asserted them from memory and got both wrong. The script now prints `len(HOOK_SPECS) + 1`; the prose says eight. A prose count that disagrees
 with the code is how a reader concludes an entry is spurious and deletes it.
 
-<!-- stale: "check-domain.sh` DENIES an over-budget `feature.yaml` or STATE.md Write" -->
-<!-- stale: "The six prerequisites" -->
+
 
 **Carve-out compliance.** `check-domain.sh`, `check-state.sh` and their tests are DEC-174 files: this
 landed as direct main-session edits with tests run explicitly and a human reading the diff, never
@@ -5174,24 +5093,18 @@ defensive rather than load-bearing instead of being papered over with a test tha
 
 ---
 
-## DEC-181 — CLAUDE.md gets a line budget of 80 and enters the propagation checker's scan roots
+## DEC-181 — CLAUDE.md gets a line budget of 80
+
+**STRUCK IN PART, 2026-08-10.** This decision had two halves. The budget stands and is enforced at
+`check-domain.sh:779-780`. The other half — putting `CLAUDE.md` into the propagation checker's scan
+roots — went with the checker itself under DEC-188, along with every paragraph here that argued for
+it. Nothing cites the struck half.
 
 `CLAUDE.md` is read at **every session start** — the widest blast radius of any file in this repo,
-wider than SPEC.md or any agent file. It was the only file of its class with neither a mechanical
-budget nor propagation coverage. Its peers all have the first: expertise 150, `feature.yaml` 200/20,
-handoff notes 60, STATE.md 120.
+wider than SPEC.md or any agent file. It was the only file of its class with no mechanical budget.
+Its peers all have one: expertise 150, `feature.yaml` 200/20, handoff notes 60, STATE.md 120.
 
-**Both halves were re-derived at `a5edb13`, not inherited from issue #139.** Planting a live stale
-phrase in `CLAUDE.md` and running `check-docs.sh` produced **zero** hits: the scan roots were
-`docs/harness`, `.harness`, `.claude/skills`, `.claude/commands` and `.claude/agents`, and the repo
-root was not among them. The checker whose whole purpose is catching claims a decision invalidated
-could not see the file every agent reads first.
-
-**The root tier is NON-RECURSIVE, and that is not a detail.** Globbing `**` from `.` walks `.git`,
-`node_modules` and `.claude/worktrees/` — scanning every file of every other checkout as though it
-were this one. The test plants a decoy one level down and fails if it is reached.
-
-**80 is derived from the file's own history, and that history STARTS AT A CLEANUP.** The file was
+**80 was re-derived at `a5edb13`, not inherited from issue #139, and it comes from the file's own history, and that history STARTS AT A CLEANUP.** The file was
 208-214 lines from April through 2026-07-27; DEC-135 then cut it to 50. That blow-out is why issue #139
 exists — it says so, and an earlier draft of this entry began the table after the cleanup and read as
 though the file had always been small. Since the cleanup: 50-51 through 07-28, 56 on 08-02, 71 on 08-04,
@@ -5210,8 +5123,6 @@ which is what actually edits `CLAUDE.md`, is ungoverned by it". Both clauses wer
 neither is true now: the main session is bound on all four routes. So the budget lives where the
 four-route machinery already is, rather than in a fifth gate. `Edit` matters more than `Write` for this
 file, and a `Write`-only gate would have bound the one route nobody uses on it.
-
-**No `<!-- stale: -->` marker is declared for the ruling this supersedes, and that is checked, not assumed.** The phrase issue #139 uses to rule out the shape gate lives in the ISSUE BODY, which `check-docs.sh` does not scan and should not — GitHub issues are a record of what was believed then. `--audit` reported the marker INERT, which is exactly what that flag exists to catch, so it was removed rather than left as decoration that reads like enforcement. The same audit removed DEC-180's `all six prerequisites present` marker: that string had already been replaced by the derived count in the same commit that declared it stale, so it could never have matched anything.
 
 **Two residuals, measured and accepted rather than discovered later.** The SHRINK EXEMPTION applies:
 with the file at 200 lines, a `Write` payload of 150 is denied even though it improves things, because
@@ -5313,7 +5224,6 @@ pattern lists that had already drifted once during this very change.
 task carries the task's `intent:` as its body, where a `PLAN.md` task passed its whole raw block.
 Existing issues are not rewritten, so the corpus is mixed.
 
-<!-- stale: "the `## Tasks` of `.harness/features/<feat>/PLAN.md`" -->
 
 ---
 
@@ -5565,3 +5475,39 @@ repository. If a service surface ever appears here, `functional` must be reinsta
 active will prompt that — only the `_matrix_provenance` entry, which is findable but passive. The
 compensating control is the closure invariant, which makes the *absence* of a runner for a *required*
 kind a violation rather than a warning, because a warning is what already failed.
+
+---
+
+## DEC-188 — A contradicted decision is struck, not marked: detection is replaced by deletion
+
+**The operator's rule, 2026-08-09.** If an existing decision is one the tree absolutely goes
+against, with zero room for interpretation, it is **struck from the record and removed from every
+gate**. Not marked stale. Not amended. Not left standing with a marker beside it.
+
+DEC-103 and DEC-104 are struck, and DEC-181 is struck in part. `bin/check-docs.sh` is deleted, the
+INV-10 block is out of `check-state.sh`, and the 66 stale-wording markers and 14 escape
+comments are gone from the live docs.
+
+**What forced it was the mechanism's own failure mode.** A change contradicted a passage in DEC-165.
+Under the old convention that needed a `stale` marker, and a marker has to be hosted by the decision
+that supersedes the wording. The natural host, DEC-161, had already been deleted. There was nowhere
+to put the declaration. A convention with no valid place to record the thing it requires is not a
+convention.
+
+**What is traded away, stated plainly rather than softened.** The repo loses the only mechanism that
+catches a doc statement a later decision falsified. That gap is not theoretical here: DEC-103 exists
+because, after twelve decisions were recorded, SPEC and BUILD still held **ten** statements those
+decisions had already falsified — and the SPEC/DECISIONS/BUILD split had been created to prevent
+exactly that, and did not.
+
+The new rule replaces detection with deletion: nothing survives to contradict, because the
+contradicted decision is struck. **This holds only while the striking actually happens every time,
+and nothing mechanical now checks that it did.** The enforcement is a human reading a diff.
+
+**The rule does not generalize by itself.** It applies to a flat contradiction with no room for
+interpretation. Anything softer than that — a decision that is merely dated, narrowed, or partly
+overtaken — is amended, and striking it needs the operator's word first.
+
+**Struck decisions keep their heading and a strike record.** They are not deleted from the file. A
+reader who finds `DEC-103` cited in a shipped digest must land somewhere that explains what happened,
+and an absent entry reads as a broken reference rather than a decision.

@@ -31,8 +31,8 @@ Harness is active and **self-hosted, with one carve-out** — this repo builds i
 is no GSD dependency: no `.planning/` root, no `agent_skills`, no `<files_to_read>` blocks.
 
 **The carve-out (DEC-174): the harness PLANS its own work but does not EXECUTE changes to its own
-enforcement layer.** Changes to `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-`check-state.sh` or `check-docs.sh` are made **directly** — ordinary edits, tests run explicitly, a
+enforcement layer.** Changes to `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`
+or `check-state.sh` are made **directly** — ordinary edits, tests run explicitly, a
 human reading the diff — never dispatched through a team run whose gates are the thing being changed.
 Green gates cannot vouch for the code that produces them: on 2026-08-03 all four gates passed while
 four `.harness` YAML files did not parse and the validator rejected its own normative template.
@@ -48,6 +48,7 @@ harness code is being changed, so a stale copy silently tests the wrong logic.
 | The org, as data | `.harness/team-config.yaml` |
 | Rule skills | `.claude/skills/harness-<name>/` — **flat**, one level under `.claude/skills/` |
 | Agents | `.claude/agents/harness-*.md` |
+| The constitution | `docs/PRINCIPLES.md` — what the factory is FOR. States intent, not mechanism; parts describe the destination, not what is built. Reaches all 16 agents distilled, as the preloaded `harness-principles` skill |
 | Design docs | `docs/harness/SPEC.md` (what it is) · `DECISIONS-INDEX.md` (**the entry point** — one row per decision) · `DECISIONS.md` (why — **the authority**) · `BUILD.md` (what is left) |
 
 **The org is 16 agents in four tiers:** main session (layer 0, the only user channel) →
@@ -61,14 +62,12 @@ surface you are touching, and open the two or three entries it names. The author
 need not be. Cited decisions are a floor, not a ceiling: go broader via the index when a cited entry
 points at one nobody named. A row is an open-or-skip filter, so open the entry before acting on it.
 
-Then run `.claude/skills/harness/bin/check-docs.sh`. It is the propagation checker, and its registry
-is DECISIONS.md itself.
-
-**Declare what you invalidate**, or it passes green while the tree contradicts itself: a
-`<!-- stale: "…" -->` marker in the entry your change APPLIES — not a new entry. Format:
-`check-docs.sh`'s header.
+**A decision the tree flatly contradicts is STRUCK, never marked** (DEC-188): removed from every
+gate, its entry kept with a strike record so citations still land somewhere. There is no propagation
+checker — nothing detects a falsified statement left standing, so the striking has to actually
+happen.
 
 ## Conventions
 
 - Every claim in prose that a command can check gets checked before it is written.
-- Check `bin/check-docs.sh` BEFORE committing, never after.
+- Check `bin/check-state.sh` BEFORE committing, never after.

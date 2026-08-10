@@ -8,6 +8,7 @@ color: purple
 skills:
   - harness-handoff
   - harness-expertise
+  - harness-principles
 ---
 
 # Harness: Documentor

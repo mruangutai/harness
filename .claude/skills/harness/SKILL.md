@@ -296,7 +296,7 @@ wholesale sweep (DEC-150).
 `ship-feature` completes · a lead returns `BLOCKED` · the main session relays "where are we?".
 
 1. **Do NOT spawn a report round — READ THE DIGESTS FROM DISK INSTEAD.** Every run wrote one to
-   `runs/<run-dir>/digest.md` and `feature.yaml` `runs:` names them. A "report on your domain" <!-- ok-stale --> quotes the retired phrase to forbid it
+   `runs/<run-dir>/digest.md` and `feature.yaml` `runs:` names them. A "report on your domain" quotes the retired phrase to forbid it
    spawn buys a re-narration of a file you can open (DEC-69: the cross-lead view is yours "at no
    extra spawn cost"). A FEAT-04 orchestrator killed this round on its own judgement: *"three lead
    spawns at ~20 USD each to re-narrate digests I hold is spend with nothing to surface it."*

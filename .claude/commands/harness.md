@@ -18,8 +18,8 @@ BRIEF/PLAN, which routes to step 1.
 - **No argument** → list in-flight features from `.harness/features/*/feature.yaml` (id, status,
   cycles used, last run) and ask which — or whether to start a new one.
 - **New feature** → clarity before planning, always (DEC-164/165). Fits one conversation →
-  `/harness-grill`; the destination itself is fuzzy or decisions wait on facts/prototypes →
-  `/harness-wayfind` (a persistent map under `.harness/efforts/`). Then `pm` plans it:
+  `/harness-grilling`; the destination itself is fuzzy or decisions wait on facts/prototypes →
+  `/harness-wayfinding` (a persistent map under `.harness/efforts/`). Then `pm` plans it:
   `/harness-plan`.
 - **"where are we?"** → relay a briefing request to that feature's orchestrator (trigger 3, §10.3).
 - **A bug report** ("X is broken", a stack trace, a failing repro) → mission **debug**: cause
