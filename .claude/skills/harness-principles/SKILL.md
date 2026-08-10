@@ -1,6 +1,6 @@
 ---
 name: harness-principles
-description: The constitution in brief — the mission, and the rules that change how you work: weakest sufficient specification, verification as the product, an honest record, the right to refuse, and crystallizing repetition into tools. Loaded by all 16 agents at every spawn. The authority is `docs/principles.md`; read it only when a decision turns on it.
+description: The constitution in brief — the mission, and the rules that change how you work: weakest sufficient specification, verification as the product, an honest record, the right to refuse, and crystallizing repetition into tools. Loaded by all 16 agents at every spawn. The authority is `docs/PRINCIPLES.md`; read it only when a decision turns on it.
 user-invocable: false
 ---
 
@@ -13,7 +13,7 @@ repository it is pointed at. The operator directs. The factory designs, builds, 
 measure of that experience is what it ships — real, verified software of the highest possible
 quality. Experience and output are not competing goals. The experience is judged by the output.
 
-**The authority is `docs/principles.md`.** This skill carries the rules that change how you work.
+**The authority is `docs/PRINCIPLES.md`.** This skill carries the rules that change how you work.
 When a decision turns on a principle — not on a mechanism — open the full document and cite the rule
 by its heading. Do not paraphrase it from memory here.
 
