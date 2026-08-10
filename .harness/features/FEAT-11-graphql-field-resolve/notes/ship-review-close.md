@@ -1,6 +1,6 @@
 # FEAT-11 — ship review — one GraphQL query for project field ids
 
-**For the operator. Written 2026-08-10, branch `feat/FEAT-11-graphql-field-resolve` at `15cabe9`.
+**For the operator. Written 2026-08-10, branch `feat/FEAT-11-graphql-field-resolve` at `aea7824`.
 Nothing is pushed and no PR is open — the merge is yours.**
 
 ---
@@ -50,6 +50,14 @@ the four `notes/review-harness-*-c0.md`, `notes/research-FEAT-11-goal-check.md` 
 **Every gate result quoted here I re-ran myself rather than relaying** — the task verify, both test
 kinds, the three sha256 sentinels, the byte-identity of both mutant restores, and the expertise
 format gate.
+
+**One verdict is mine rather than a squad's, and you should know which.** pm's goal-check returned
+SC-11 `not_met`, I routed the fix, and then **I closed SC-11 myself instead of re-spawning the
+goal-check.** The criterion's declared method is `automated` with `unit` evidence; I read the landed
+assertion, confirmed its mutant proof named the reddening checks in advance, and re-ran both kinds —
+that is the declared method executed, not a shortcut around it. But nothing on disk shows pm
+agreeing it closed, so `runs/goalcheck-product/digest.md` still reads `not_met`. If you want the
+paper trail, a pm re-run is one dispatch.
 
 ---
 
@@ -170,26 +178,27 @@ neither is reported as cleanup owed.**
 and one a lead charged itself when it discovered it had handed its own members an incomplete source
 list and re-ran the round. That third one is worth reading as a good sign rather than a bad one: the
 correction recovered six Expertise entries that would otherwise have been lost permanently, because
-Expertise is written once per feature.
+Expertise is written once per feature, and a member caught the error and returned it upward.
 
-**15 runs against an informational budget of 20 — not crossed, so no note is owed.** The two runs
+**16 runs against an informational budget of 20 — not crossed, so no note is owed.** The two runs
 that cost a cycle are also the two that found the defects, and the panel that cost nothing found
 none. That is the gates working in the order they are designed to.
 
 **Distillation is complete and every Expertise file passes the format gate except one, which this
 feature never touched.** Eleven agents updated their files; `harness-visual-designer` got one for the
-first time. No file was wiped — I checked entry counts before and after rather than trusting the
-reports. The one failure, `harness-documentor.md`, was already red before this feature opened
-(`git log 8dedeae..HEAD` shows it untouched); two leads independently declined to spawn documentor to
-trim three words, both citing the risk of opening a near-full file with nothing to distill, and I
-agree with them. It is `B-13`.
+first time. No file was wiped — entry counts were checked before and after rather than trusted, and
+one lead went further and proved its nine untouched entries byte-identical. The one failure,
+`harness-documentor.md`, was already red before this feature opened (`git log 8dedeae..HEAD` shows it
+untouched); three leads independently declined to spawn documentor to trim three words, each citing
+the risk of opening a near-full file with nothing to distill, and I endorsed all three refusals. It
+is `B-13`.
 
 **GitHub mirror:** milestone #5, parent #214 (created by this flow), T-01 → #215, now closed. Issue
 **#211** — the P0 this feature absorbs — is deliberately left **open** for your acceptance to close.
 
 **Commits, all by explicit pathspec with the tree's unrelated held dirt excluded:** `5c433f2` (T-01),
 `2ea9af3` (MF-1 + the marker strike), `15cabe9` (MF-2 + review artifacts + two record corrections to
-the executed plan), plus one close-out commit carrying the distilled Expertise and this briefing.
+the executed plan), `aea7824` (the close-out: distilled Expertise, two seam notes, this briefing).
 
 ---
 
