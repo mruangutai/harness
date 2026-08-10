@@ -336,8 +336,12 @@ def build_index(text, existing_rows):
                 key=lambda c: int(DEC_REF_RE.search(c).group(1)),
             )
             clauses = [body_prose] + supersede_clauses
-        if had_ok_stale:
-            clauses.append("<!-- ok-stale -->")
+        # had_ok_stale IS DELIBERATELY NOT RE-EMITTED. The marker belonged to the
+        # propagation checker, struck whole under DEC-188 — it now means nothing, and
+        # a generator that faithfully preserved one would let a future author revive
+        # dead syntax no gate can object to. Measured before this changed: a planted
+        # marker propagated through regeneration while check-state.sh and the whole
+        # unit suite stayed green. Stripping on read and never writing closes that.
         ruling = " ".join(clauses)
 
         left = f"- {key} @{dec['line']}"

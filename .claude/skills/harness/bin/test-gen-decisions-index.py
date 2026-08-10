@@ -249,8 +249,16 @@ def test_preserves_hand_written_rulings_by_dec_number():
         return False
 
 
-def test_preserves_inline_ok_stale_marker_on_a_row():
-    name = "test_preserves_inline_ok_stale_marker_on_a_row"
+def test_strips_inline_ok_stale_marker_on_a_row():
+    """The marker is STRIPPED, never preserved — the revival vector, closed.
+
+    This test used to assert the opposite: that a hand-written row carrying
+    `<!-- ok-stale -->` survived regeneration byte-identical. That was correct while
+    the propagation checker existed. DEC-188 struck the checker whole, and a live
+    plant then proved the emitter was a revival vector — the marker propagated
+    through regeneration while check-state.sh and the whole unit suite stayed green.
+    Now the hand-written RULING must survive and the dead marker must not."""
+    name = "test_strips_inline_ok_stale_marker_on_a_row"
     try:
         if not os.path.exists(GEN):
             print(f"FAIL - {name}: generator not found at {GEN}")
@@ -311,8 +319,13 @@ def test_preserves_inline_ok_stale_marker_on_a_row():
             if not dec3_rows:
                 print(f"FAIL - {name}: DEC-3 row missing after regeneration")
                 return False
-            if dec3_rows[0] != marked_row:
-                print(f"FAIL - {name}: DEC-3 row not byte-identical (ok-stale marker or text altered)")
+            if "ok-stale" in dec3_rows[0]:
+                print(f"FAIL - {name}: the ok-stale marker survived regeneration — "
+                      f"the revival vector DEC-188 closed is open again: {dec3_rows[0]!r}")
+                return False
+            if dec3_rows[0] != marked_row.replace(" <!-- ok-stale -->", "").replace("<!-- ok-stale -->", "").rstrip():
+                print(f"FAIL - {name}: the hand-written ruling did not survive the strip "
+                      f"unchanged: {dec3_rows[0]!r}")
                 return False
 
         print(f"ok - {name}")
@@ -664,7 +677,7 @@ TESTS = [
     test_malformed_row_is_reported_not_silently_dropped,
     test_supersession_declared_in_body_prose_is_harvested,
     test_preserves_hand_written_rulings_by_dec_number,
-    test_preserves_inline_ok_stale_marker_on_a_row,
+    test_strips_inline_ok_stale_marker_on_a_row,
     test_committed_index_is_complete_and_within_budget,
     test_orphaned_ruling_is_reported_not_silently_dropped,
 ]

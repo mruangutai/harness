@@ -37,15 +37,16 @@
   edit — the values a plan or brief records were true when written and drift silently afterwards.
 - G-02: WHEN handed-down prose says "always" or "unconditionally" DO grep for the early return or
   skip clause before repeating it, and write the narrower claim the guards actually support.
-- G-03: WHEN tempted to declare a superseded-pattern marker in `DECISIONS.md` DO land the replacing
-  edit first — the propagation checker goes red the moment a declared pattern still exists in a
-  scanned file, and it cannot be cleared if no agent's domain owns that file.
-- G-04: WHEN judging whether a file you edited or wrote is inside the propagation checker's scan set
-  DO read the glob table in `check-docs.sh` — `docs/harness` takes `*.md` AND `*.html`; `.harness`,
-  `.claude/skills`, `.claude/commands` markdown only; `DECISIONS.md` and any `/runs/` path excluded.
+- G-03: WHEN a decision the tree flatly contradicts turns up DO strike it, never mark it — DEC-188
+  removed the superseded-pattern marker and its checker entirely. A struck decision keeps its
+  heading and a strike record so old citations still land somewhere.
+- G-04: WHEN you strike a decision DO sweep every live surface by hand — no propagation checker
+  exists any more (DEC-188), so a falsified sentence left standing is caught only by a human
+  reading the diff. Live means CLAUDE.md, docs/, .claude/skills, .claude/commands, .claude/agents
+  and .harness/expertise; feature dirs under .harness/features are historical record, leave them.
 - G-05: WHEN you edit a ruling in `docs/harness/DECISIONS-INDEX.md` DO run the unit-test runner, not
   just the generator diff — the index's length budgets are asserted only in
-  `test-gen-decisions-index.py`, stated nowhere in the index itself, and invisible to `check-docs.sh`.
+  `test-gen-decisions-index.py` and stated nowhere in the index itself.
 - G-06: WHEN a `grep -c` detector must go from 0 to >=1 in a hard-wrapped file DO re-flow so the
   counted tokens share one physical line — grep counts physical lines, so a prose-correct fix still
   reads 0 and looks unwritten.
