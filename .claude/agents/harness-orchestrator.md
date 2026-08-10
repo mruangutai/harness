@@ -9,6 +9,7 @@ skills:
   - harness
   - harness-handoff              # universal — all 16
   - harness-expertise            # universal — all 16
+  - harness-principles           # universal — all 16
 ---
 
 # Harness: Orchestrator

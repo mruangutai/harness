@@ -8,6 +8,7 @@ effort: high
 skills:
   - harness-handoff
   - harness-expertise
+  - harness-principles
 ---
 
 # Harness: Security Reviewer

@@ -8,6 +8,7 @@ effort: medium
 skills:
   - harness-handoff
   - harness-expertise
+  - harness-principles
   - harness-spec-driven
   - harness-brief
 ---

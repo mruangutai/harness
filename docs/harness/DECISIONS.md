@@ -5390,7 +5390,7 @@ comments. **Not verified:** the real CI run.
 
 ## DEC-184 — Design 0001, reconstructed stub: the work-graph engine is a recorded future design, deferred until multiple seats need atomic claiming
 
-**Reconstructed after the fact (2026-08-08), not a transcript.** `docs/PRINCIPLES.md` cited a
+**Reconstructed after the fact (2026-08-08), not a transcript.** `docs/principles.md` cited a
 "Design 0001" research brief that was never written down; the operator ruled (effort #181, ticket
 #191) that Design records live HERE, in this file, not in a separate design store. A later ruling
 the same day made the constitution standalone — no identifiers, no amendment records — so
@@ -5399,7 +5399,7 @@ only home. The stub adds nothing beyond what PRINCIPLES.md stated.
 
 What PRINCIPLES.md records of it (the deferral still stands there, now without the identifier): the work-graph engine is deliberately deferred — local SQLite is
 correct until multiple seats need atomic claiming, and the options on that day are adopt Beads, fork
-it as Harness's own, or build from scratch ("Deliberately deferred", `docs/PRINCIPLES.md`).
+it as Harness's own, or build from scratch ("Deliberately deferred", `docs/principles.md`).
 
 For effort #181 ("Personal Software Factory"), this deferral is CONSUMED by the operator's GitHub
 ruling of 2026-08-08: GitHub Issues are the work ledger for that version.
@@ -5416,7 +5416,7 @@ roster with no place for a management seat; the operator ruled the minimal roste
 point, not an endpoint, founding management seats that orchestrate and never produce. The same
 ruling amended the Bootstrap section: the first harvest produced a Harness backlog before any
 outside project was registered, and the operator ruled Harness-first with the outside-ship tripwire
-kept (pre-rewrite rule 10 and "Bootstrap" of `docs/PRINCIPLES.md`; git history holds the text).
+kept (pre-rewrite rule 10 and "Bootstrap" of `docs/principles.md`; git history holds the text).
 
 ## DEC-186 — GitHub is the factory's control plane, and factory read-back is bounded to exactly three purposes
 

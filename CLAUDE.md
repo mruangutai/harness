@@ -48,6 +48,7 @@ harness code is being changed, so a stale copy silently tests the wrong logic.
 | The org, as data | `.harness/team-config.yaml` |
 | Rule skills | `.claude/skills/harness-<name>/` — **flat**, one level under `.claude/skills/` |
 | Agents | `.claude/agents/harness-*.md` |
+| The constitution | `docs/principles.md` — what the factory is FOR. States intent, not mechanism; parts describe the destination, not what is built. Reaches all 16 agents distilled, as the preloaded `harness-principles` skill |
 | Design docs | `docs/harness/SPEC.md` (what it is) · `DECISIONS-INDEX.md` (**the entry point** — one row per decision) · `DECISIONS.md` (why — **the authority**) · `BUILD.md` (what is left) |
 
 **The org is 16 agents in four tiers:** main session (layer 0, the only user channel) →

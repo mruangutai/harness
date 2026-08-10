@@ -8,6 +8,7 @@ effort: high
 skills:
   - harness-handoff
   - harness-expertise
+  - harness-principles
   - harness-zero-micro-management
   - harness-team
   - harness-codebase-design

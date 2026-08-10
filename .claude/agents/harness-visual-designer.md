@@ -8,6 +8,7 @@ effort: medium
 skills:
   - harness-handoff
   - harness-expertise
+  - harness-principles
 ---
 
 # Harness: Visual Designer
