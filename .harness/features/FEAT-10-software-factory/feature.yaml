@@ -1,7 +1,11 @@
 feature_id: FEAT-10-software-factory
 mission: ship
 phase: ship
-status: awaiting_user
+status: complete
+shipped: >-
+  SHIPPED BY THE OPERATOR, 2026-08-10, after the live end-to-end verification against the real
+  GitHub API passed on both halves of A1. Evidence: notes/live-verification-a1-2026-08-10.md.
+  Nothing pushed and no PR opened by this decision — both remain the operator's call.
 branch: feat/FEAT-10-software-factory
 pr: none
 effort: https://github.com/mruangutai/harness/issues/181
