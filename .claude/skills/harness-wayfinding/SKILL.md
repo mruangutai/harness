@@ -49,11 +49,14 @@ created without its `wayfinder:<type>` label is invisible to every later query.
 
 ## Grill or map? — the entry test
 
-| Signal | Door |
+This is the single door for an unclear idea, so the first act is deciding whether the idea needs a
+map at all. Nothing here sends the user somewhere else — both answers are yours to run.
+
+| Signal | What you run |
 |---|---|
-| The destination is nameable and the open decisions fit one conversation | `harness-grilling`. Do not build a map |
-| The destination itself needs deciding, or decisions depend on facts/prototypes you do not have | **map** |
-| Grilling started and stalled on "we can't answer that until we know X" | **promote to a map**, carrying what is already settled |
+| The destination is nameable and the open decisions fit one conversation | **Grill it here.** Load `harness-grilling`, run the interview, write its artifact, stop. Build no map |
+| The destination itself needs deciding, or decisions depend on facts/prototypes you do not have | **Chart a map** |
+| A grilling started and stalled on "we can't answer that until we know X" | **Promote it to a map**, carrying what is already settled |
 
 Charting a map for a small idea is pure overhead — the map is for fog, and a map with three
 tickets you could have talked through was a worse conversation.
@@ -62,8 +65,8 @@ tickets you could have talked through was a worse conversation.
 
 Wayfinding produces **decisions, not deliverables**. The map is done when nothing is left to decide
 before someone builds — that hand-off is `/harness-plan`, with pm authoring BRIEF and PLAN from the
-map. The pull to just start building is the signal you have reached the edge of the map, not
-permission to carry on past it.
+map. Offer it and hand over the map path. Do not start planning unasked. The pull to just start
+building is the signal you have reached the edge of the map, not permission to carry on past it.
 
 ## The map
 

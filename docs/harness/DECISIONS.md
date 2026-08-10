@@ -4092,20 +4092,6 @@ handoff's Trust section caught the discrepancy against SKILL.md. Added to kaya d
 general path for config-schema additions remains `/harness-init --upgrade`, and a DEC that adds a
 harness.json key must say so.
 
-## DEC-161 — Missions get explicit doors, and deploy ships the commands
-
-Two discoverability gaps, found in one conversation: (1) missions map and deepen had no slash
-command — the user-invocable surface was /harness-plan, /harness-ship, /harness-deploy plus
-free-form asks, so deepen (DEC-149) sat unexercised in kaya with nothing advertising it;
-(2) deploy.sh never shipped `.claude/commands/` at all — kaya ran three features on free-form
-prompts because /harness* did not exist there, and nothing flagged it.
-
-Added `/harness-deepen` and `/harness-map` as thin doors over the general `/harness` router
-(same pattern as plan/ship: "read harness.md with mission X, differences listed"), routed both
-in harness.md step 1, and made deploy.sh treat `commands/harness*.md` as part of the
-distributable — copied global and per-project, stale harness-named commands pruned, project-own
-commands untouched.
-
 ## DEC-162 — The glossary gets a checkable moment; domain-modeling is otherwise already resident
 
 Assessed Matt Pocock's `domain-modeling` skill for adoption (the user's ask). Finding: DEC-149
@@ -4233,8 +4219,8 @@ wayfinding decisions are provisional by construction.
 **Charting and resolving are separate sessions** — a session that charts and then starts resolving
 does both badly.
 
-The entry test keeps the two doors honest: fits one conversation → `/harness-grill`; the destination
-itself is fuzzy or decisions wait on facts and prototypes → `/harness-wayfind`; a grilling that
+The entry test keeps the two doors honest: fits one conversation → `/harness-grilling`; the destination
+itself is fuzzy or decisions wait on facts and prototypes → `/harness-wayfinding`; a grilling that
 stalls on "we cannot answer that until we know X" gets **promoted** to a map carrying what is
 settled. A map with three tickets you could have talked through was a worse conversation.
 
@@ -5401,3 +5387,181 @@ thing it found would be enforcement theatre.
 **Scope:** no prior decision established this workflow, and this one does not adopt it. It rules on
 the route step alone; #163's triggers and #161's reasons keep their justification in the file's own
 comments. **Not verified:** the real CI run.
+
+## DEC-184 — Design 0001, reconstructed stub: the work-graph engine is a recorded future design, deferred until multiple seats need atomic claiming
+
+**Reconstructed after the fact (2026-08-08), not a transcript.** `docs/PRINCIPLES.md` cited a
+"Design 0001" research brief that was never written down; the operator ruled (effort #181, ticket
+#191) that Design records live HERE, in this file, not in a separate design store. A later ruling
+the same day made the constitution standalone — no identifiers, no amendment records — so
+PRINCIPLES.md no longer cites Design 0001 by name; this entry and git history are the lineage's
+only home. The stub adds nothing beyond what PRINCIPLES.md stated.
+
+What PRINCIPLES.md records of it (the deferral still stands there, now without the identifier): the work-graph engine is deliberately deferred — local SQLite is
+correct until multiple seats need atomic claiming, and the options on that day are adopt Beads, fork
+it as Harness's own, or build from scratch ("Deliberately deferred", `docs/PRINCIPLES.md`).
+
+For effort #181 ("Personal Software Factory"), this deferral is CONSUMED by the operator's GitHub
+ruling of 2026-08-08: GitHub Issues are the work ledger for that version.
+
+## DEC-185 — Design 0002, reconstructed stub: the minimal roster is a starting point, and management seats exist
+
+**Reconstructed after the fact (2026-08-08), not a transcript** — same provenance and same operator
+ruling as DEC-184, and the same standalone ruling applies: PRINCIPLES.md now carries no amendment
+records, so the text below survives only here and in git history.
+
+What PRINCIPLES.md recorded of it (dated 2026-08-06 there, before the amendment notes were removed):
+the original constitution text fixed the
+roster with no place for a management seat; the operator ruled the minimal roster was a starting
+point, not an endpoint, founding management seats that orchestrate and never produce. The same
+ruling amended the Bootstrap section: the first harvest produced a Harness backlog before any
+outside project was registered, and the operator ruled Harness-first with the outside-ship tripwire
+kept (pre-rewrite rule 10 and "Bootstrap" of `docs/PRINCIPLES.md`; git history holds the text).
+
+## DEC-186 — GitHub is the factory's control plane, and factory read-back is bounded to exactly three purposes
+
+The factory publishes work to GitHub Issues and one Projects v2 board, and then has to read some of
+it back — otherwise no tool can tell whether an item is already taken. DEC-138 made the mirror
+one-way and outbound precisely so that a wiki-editable surface could not feed an approval-gated
+artifact. Effort ticket #184 found that treating issues as truth after approval contradicts DEC-138,
+DEC-182 and DEC-168; effort ticket #182 found that a factory needs some read-back to exist at all.
+This entry rules on the bound between those two findings.
+
+**GitHub Issues and one Projects v2 board are the factory's INTERFACE and control plane; the
+approval-gated `plan.yaml` remains the source of truth for what the work is.** Factory tools may
+read GitHub state back for exactly THREE purposes, and the set is closed: learning whether an item
+is claimed, learning or setting which station it is at, and learning whether a blocker issue is
+finished. A read-back value is never written into `BRIEF.md`, `plan.yaml` or any approval block. The
+only harness file a factory tool writes is a feature's own `feature.yaml` factory block.
+
+**The third purpose is a ruling, not a detail, and it widens the bound by exactly one item.**
+`factory_claim` MUST NOT claim an issue whose plan dependencies are unfinished, so blocker
+completion has to be readable. Blocker state is neither a claim nor a station: it is a gate on
+candidacy, applied before ownership, bookkeeping or the station field are engaged at all. It
+therefore did not fit the original two-purpose bound, and the bound was widened deliberately rather
+than stretched to cover it. The operator ruled it in at the plan review of 2026-08-08 and rejected
+deferring enforcement, on the ground that a board which renders a block marker and then hands the
+work out anyway is worse than no marker at all — the operator reads the board and believes ordering
+holds.
+
+**What is read, and from where.** The DAG authority stays the signed `plan.yaml`'s `depends_on`.
+Resolution runs a task's `depends_on` to `feature.yaml`'s issue map to that blocker issue's open or
+closed state, and GitHub contributes the last hop only. **What is NEVER read is the rendered
+`blocked_by` edge on GitHub** — it is hand-editable, so deriving control flow from it would put a
+remote object in charge of the signed DAG, which is the inversion DEC-138 exists to prevent.
+
+**The cost is a blocker-state read PER BLOCKER PER CANDIDATE, not one per candidate.** It is bounded
+by the ready column rather than by the board, because the board read is already a server-side query
+on the ready station option — on board 3 that query returned 1 item against 150 on the board.
+
+**Two edges are ruled here rather than left to the implementation.** A `depends_on` entry that
+cannot be resolved to an issue counts as BLOCKED rather than clear, and is reported on stderr. An
+issue the factory cannot resolve to a plan task at all — a `gh-sync.py` mirror issue with no feature
+label — is not gated and stays claimable.
+
+**An amendment, not a contradiction.** Bounding the read-back to those three purposes and to nothing
+else keeps DEC-138's actual guarantee intact while letting the control plane work: nothing read back
+is ever written into an approval-gated artifact.
+
+**Scope.** This entry rules on factory read-back and on the claim mechanism, and on nothing else.
+DEC-179's plan-time route resolution and DEC-182's plan format are untouched by it.
+
+**Failure behaviour is deliberately the opposite of the mirror's.** `gh-sync.py` prints SKIP and
+exits 0 on any environmental failure, because a mirror must never gate a flow. The factory
+control-plane tools exit non-zero instead, because a control plane that skips leaves the board
+asserting a state that is not true.
+
+**The claim is a git ref create, and the reason is the part a future reader will want.** Ownership
+is taken by creating the ref `refs/heads/factory/issue-N` in the target repository — a
+create-if-absent that the server decides. The `factory:claimed` label and the assignee are
+operator-visible bookkeeping that the winner writes afterwards. The rejected alternative is
+assignment as the claim, rejected because an assignee set is additive: two racing agents both
+succeed, neither can conclude it won, and the issue is left marked and owned by nobody. **The
+residual risk, plainly:** that concurrent ref creates serialise is INFERRED from the endpoint being
+create-only, NOT MEASURED, and no success criterion exercises the live concurrent case before ship.
+The operator accepted that on 2026-08-08, so the first real dispatch is the live verification.
+
+**D-12 — two known duplications this increment records rather than fixes**, so that a later reader
+finds them named instead of rediscovering them. First, `gh-sync.py` and `factory_decompose.py` are
+two independent issue writers keeping two T-NN-to-issue maps in one file, `feature.yaml`'s `github`
+and `factory` blocks; `mruangutai/harness` is both a candidate fleet member and `harness.json`'s
+`github.repo`, so running both there yields two issues per task, and INV-24 detects collisions only
+within the factory ledger. Second, the publish idempotence key is `feature.yaml`, which is LOCAL
+state, in a feature whose non-negotiable constraint is that GitHub is the single source of truth — a
+lost or reverted `feature.yaml` republishes duplicates. Both are judged non-blocking for increment 1
+and both are named here as work a later increment owns.
+
+**The rejected alternative: issues as the post-approval source of truth**, rejected because it
+reopens signed choices through a surface with no signature.
+
+## DEC-187 — The test matrix is per-project, and a kind with no runner is excluded by decision, never by inference
+
+The qa gate is the project's only blocking gate, and on 2026-08-09 it could not return a verdict on
+FEAT-10. `test_matrix` requires a `functional` test for `api` and `cross_module` changes; the factory
+tools shell out to `gh` and `git`, which is crossing a process boundary; and `functional` cannot run
+here for two independent reasons — `cmd` is null, and `detect` is `tests/functional/**` in a
+repository that has no `tests/` directory.
+
+The cause was not the requirement. It was that `test_matrix` and `test_kinds` are two halves of one
+contract and only one half was ever given an owner. `dev-ops` detects `test_kinds.cmd` per project at
+init. The matrix has no owner, no init step, no upgrade path, and nothing that checks the kinds it
+names against the kinds that can run. This repository's matrix is character-for-character the
+template's, and the template describes a web application — endpoints, components, client state,
+`.tsx` files. Five of its seven kinds have no runner here.
+
+**The matrix is per-project, with a closure invariant instead of a freeze.** Every kind the matrix
+names must exist in `test_kinds` and be either `active` — a `cmd` someone has run and seen pass — or
+`excluded`, which is a human's recorded decision that this project does not practise the kind.
+`unresolved` is the template default and means nobody has decided yet; it blocks.
+
+**A kind resolves to a soft skip only when its status is `excluded` and its `signed` value names a
+decision that resolves in the project's decisions file.** An excluded kind is not selected at all,
+so neither its `cmd` nor its `detect` is read, and the gate reports it by name with that decision id.
+In every other case a null or unrunnable `cmd`, or a `detect` glob matching nothing, is BLOCKED —
+never a skip and never a FAIL. That settles a contradiction that had been live across eight files:
+three said BLOCKED, five said soft skip, and one of the five was `harness.json`'s own note, which
+every agent reads as data.
+
+Two records are added to `harness.json`. `status` on every kind, with `excluded_because` and `signed`
+whenever it is `excluded`. `_matrix_provenance` beside `test_matrix`, one entry per change type that
+differs from the template, naming what was removed or added and the decision that signed it. The
+baseline `_matrix_provenance` measures against is **the template as it stood at this decision**; a
+later template change does not retroactively make an entry wrong.
+
+**This clarifies DEC-35's scope rather than amending it.** DEC-35 fixed the *predicate names*
+(`touches_db_or_external`, `has_interaction_flow`, `match_bug_class`) as data so qa's judgment stays
+auditable. It never said the table must be identical across projects, and it already scoped
+`test_kinds.cmd` as per-project. Tailoring was in fact already happening, ungoverned: the one
+onboarded reference, `templates/examples/harness.kaya-ai.json`, deleted `functional`, added a
+project-specific `python` kind, and reshaped four change types — and is broken, because its
+`bugfix.always` names `__bug_class__`, a predicate placeholder that exists in no `test_kinds` and can
+therefore never resolve. Ungoverned tailoring is what this entry replaces.
+
+**Applied here: this repository excludes `functional`.** `run-unit-tests.sh` splits its suite on one
+stated principle from issue #160 — does this drive a real script end to end? — into in-process
+`UNIT_SCRIPTS` and forking `INTEGRATION_SCRIPTS`. There is no third bucket, this repository ships no
+service API, and pointing `functional` at either array would double-count files the other kind
+already runs. There is no honest `functional.cmd` here, so the requirement is removed from
+`api.always`, `cross_module.always` and `feature.always`, and the kind is retained with
+`status: excluded`.
+
+**The kind is retained, not deleted, and that is load-bearing.** Three DEC-163 surfacings trigger on
+the key existing with a null `cmd`: INV-20 in `check-state.sh`, pm's `## Verification gaps` block,
+and the init interview's null-kind loop. Deleting a kind silences all three — it goes past the soft
+skip DEC-36 forbids, to no record at all. `upgrade-config.py`'s additive merge also re-adds a deleted
+key wholesale from the template, stale placeholder reason included, while a narrowed `always` list
+survives untouched. So the rule is: narrow the lists, never remove the keys.
+
+**Rejected: standing up a functional runner.** It would pass vacuously, because this feature has no
+functional tests to put under it, and a green gate over an empty suite is the silent no-op DEC-36
+exists to prevent.
+
+**Rejected: settling the null-`cmd` contradiction toward soft skip and leaving the matrix alone.**
+It does not even unblock — the empty-`detect` trigger survives independently — and it would convert
+every unrunnable kind in every project into a silent pass.
+
+**Tradeoff accepted, and it is real.** This lowers the floor for every future feature in this
+repository. If a service surface ever appears here, `functional` must be reinstated, and nothing
+active will prompt that — only the `_matrix_provenance` entry, which is findable but passive. The
+compensating control is the closure invariant, which makes the *absence* of a runner for a *required*
+kind a violation rather than a warning, because a warning is what already failed.

@@ -14,8 +14,8 @@ BIN_DIR=".claude/skills/harness/bin"
 # check-domain.sh would prove nothing. Nothing here is being called a bad test. The problem
 # #160 records is one populated kind doing two jobs while test_kinds.integration sat null,
 # so INV-20 could never see the hole and the qa matrix could not tell the two apart.
-UNIT_SCRIPTS=("test-harness-yaml-corpus.py" "test-render-brief.py" "test-team-catalog.py")
-INTEGRATION_SCRIPTS=("test-validate-digest.py" "test-gh-sync.py" "test-check-state.py" "test-check-expertise.py" "test-gen-decisions-index.py" "test-bash-write-guard.py" "test-check-domain.py" "test-harness-yaml.py" "test-upgrade-config.py" "test-check-plan-routes.py" "test-merge-settings.py")
+UNIT_SCRIPTS=("test-harness-yaml-corpus.py" "test-render-brief.py" "test-team-catalog.py" "test-factory-cli.py" "test-factory-gh.py" "test-factory-config.py" "test-factory-workspace.py" "test-factory-decompose.py" "test-factory-claim.py" "test-factory-land.py")
+INTEGRATION_SCRIPTS=("test-validate-digest.py" "test-gh-sync.py" "test-check-state.py" "test-check-expertise.py" "test-gen-decisions-index.py" "test-bash-write-guard.py" "test-check-domain.py" "test-harness-yaml.py" "test-upgrade-config.py" "test-check-plan-routes.py" "test-merge-settings.py" "test-factory-integration.py")
 
 # --kind DEFAULTS TO all, so every existing caller — harness.json, a human, a QA agent —
 # keeps the behaviour it had before this split.

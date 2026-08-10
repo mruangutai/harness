@@ -2,7 +2,7 @@
 
 Read `.claude/commands/harness.md` and follow it with **mission: plan**. The differences:
 
-- **Step zero, BLOCKING:** `/harness-grill` first (skill `harness-grilling`) — dialog to clarity
+- **Step zero, BLOCKING:** load the `harness-grilling` skill and run it first — dialog to clarity
   with the user, name the destination, record settled/fog/out-of-scope, and hand pm the artifact
   **path** as a BRIEF input (DEC-164). A wayfinding map whose frontier and fog are both empty is
   the same hand-off — pass `.harness/efforts/<slug>/MAP.md` (DEC-165). Already have either

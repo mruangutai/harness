@@ -1,0 +1,121 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-10 software factory — ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-10-software-factory-ship-review">FEAT-10 software factory — ship review</h1>
+<p><strong>2026-08-09 · build phase complete · base <code>f9488a2</code> · nothing committed</strong></p>
+<hr>
+<h2 id="the-short-version">The short version</h2>
+<p><strong>The factory is built and it is not shippable yet — for two reasons, neither of which is a defect in the code you paid for.</strong></p>
+<p>Eleven of twelve tasks landed across four runs with <strong>zero rework</strong>. Fifteen new files — <strong>1,585 lines of implementation against 4,008 lines of test</strong> (measured, not estimated) — and all suites are green. The first real code review of those modules found nothing that gates.</p>
+<p>What stops it:</p>
+<ol><li><strong>Your only blocking gate cannot return a verdict</strong>, because <code>harness.json</code> describes a test kind that does not exist in this repository. This is a config decision, not a code fix, and its blast radius is every future feature.</li><li><strong>One task was withheld from the robots on purpose</strong> and only you can land it. Until you do, one success criterion out of twenty has no evidence at all.</li></ol>
+<p><strong>Budget is healthy.</strong> Eight of ten rework cycles used — <strong>all eight from the planning phase, none from the build.</strong> Two remain.</p>
+<div class="scroll"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Tasks</td><td>11 of 12 done, <strong>0 send-backs</strong> across three build waves</td></tr><tr><td>Success criteria</td><td><strong>16 met, 3 one-assertion-short, 1 with no evidence</strong> (see the tally dispute below)</td></tr><tr><td>Blocking gate (qa)</td><td><strong>BLOCKED</strong> — on <code>harness.json</code>, not on the code</td></tr><tr><td>Review panel</td><td><strong>PASS</strong>, worst severity <code>med</code> — nothing gates</td></tr><tr><td>Security</td><td><strong>PASS</strong>, worst severity <code>info</code></td></tr><tr><td>Cycles</td><td>8 of 10, two remaining</td></tr></tbody></table></div>
+<hr>
+<h2 id="what-i-need-you-to-decide">What I need you to decide</h2>
+<h3 id="d-1-the-functional-test-kind-this-is-the-blocker">D-1 · The <code>functional</code> test kind — this is the blocker</h3>
+<p><code>harness.json</code> says three change types must have &quot;functional&quot; tests. The factory&#x27;s modules classify into two of those types, because they shell out to <code>gh</code> and <code>git</code>. So functional tests are required.</p>
+<p><strong>They cannot run, for two independent reasons, and I verified both myself:</strong></p>
+<ul><li><code>test_kinds.functional.cmd</code> is <code>null</code> — there is no command to run.</li><li><code>test_kinds.functional.detect</code> is <code>tests/functional/**</code>, and <strong>no such directory exists</strong> in this repository. It matches zero files.</li></ul>
+<p>The gate&#x27;s rule is that a test kind it cannot run is <code>BLOCKED</code>, never a pass and never a failure — because a hard gate that waves through a broken command is worse than one that halts.</p>
+<p><strong>Why both triggers matter:</strong> there is a known disagreement across four harness skill files about whether a <code>null</code> command means &quot;blocked&quot; or &quot;harmlessly not applicable.&quot; You might reasonably reach for settling that in favour of &quot;not applicable.&quot; <strong>It would not unblock you</strong> — the second trigger, the glob matching nothing, stands on its own.</p>
+<p>Your options, with the real cost of each:</p>
+<div class="scroll"><table><thead><tr><th>Option</th><th>What it costs</th><th>What it buys</th></tr></thead><tbody><tr><td>Stand up a functional test runner</td><td>New work nobody planned; this feature has no functional tests to run under it</td><td>The gate passes honestly</td></tr><tr><td>Change the matrix so CLI work does not require <code>functional</code></td><td>A plan change, so it comes back for your approval; changes the gate for <strong>every future feature</strong></td><td>The gate passes, and the four-file contradiction must be settled in the same pass or the next gate re-derives the opposite answer</td></tr><tr><td>Accept the feature with its only blocking gate unresolved</td><td>You are overriding the gate knowingly</td><td>Ships now</td></tr></tbody></table></div>
+<p>There is no free option here. The code is not the problem in any of them.</p>
+<h3 id="d-2-t-08-the-task-only-you-can-land">D-2 · T-08 — the task only you can land</h3>
+<p><code>T-08</code> adds an invariant to <code>check-state.sh</code>. It was withheld from every squad because a gate cannot vouch for a change to itself — that is the standing carve-out, and I honoured it.</p>
+<p>It is the <strong>only</strong> thing that can satisfy <strong>SC-06</strong> (&quot;the state check fails when a feature records a claimed issue in a repository the fleet file does not declare&quot;). I confirmed by grep that <code>INV-24</code> appears nowhere in the codebase.</p>
+<p><strong>One timing detail you would not otherwise see.</strong> The integration test runner uses a hardcoded file list, not the config — and that list <strong>already contains</strong> <code>check-state.sh</code>&#x27;s test. T-12&#x27;s evidence therefore depends on that file. If T-08 lands <em>after</em> the fact, T-12&#x27;s green becomes stale evidence for two criteria. T-08 depends only on T-01, which is done, so it can be landed at any time and sooner is strictly better.</p>
+<h3 id="d-3-which-bar-counts-as-done">D-3 · Which bar counts as &quot;done&quot;</h3>
+<p>The goal-check and the qa gate graded the same tree differently, and the difference is honest:</p>
+<ul><li><strong>19 of 20</strong>, if the question is <em>does each criterion have evidence pointing at it</em> (qa&#x27;s bar).</li><li><strong>16 of 20</strong>, if the question is <em>does every clause of each criterion have an assertion behind it</em> (the goal-check&#x27;s stricter bar).</li></ul>
+<p>The three criteria in dispute — <strong>SC-13, SC-18, SC-19</strong> — are each <strong>one added assertion</strong> from met. Each has a clause nothing tests: that no two skip reasons read alike; that the fleet loader is the only reader of the fleet file; and three clauses of the end-to-end journey. The goal-check flagged that this stricter bar is <strong>its own construction, not something the brief states</strong>, and that you may overturn it.</p>
+<p>My recommendation: <strong>add the three assertions.</strong> It is one small run, it costs one of my two remaining cycles at most, and amending the criteria instead would be a plan change needing your signature anyway.</p>
+<h3 id="d-4-two-smaller-calls">D-4 · Two smaller calls</h3>
+<ul><li><strong>The GitHub mirror was not run, deliberately.</strong> Publishing this feature&#x27;s tasks as issues would put them in <code>mruangutai/harness</code> — the same repository the factory itself publishes into. The plan records this as a double-write hazard producing two issues per task, and defers it to you. Creating a milestone, a parent issue and twelve sub-issues is not cheaply reversible, so I left it.</li><li><strong>Nothing is committed, and I recommend you commit by explicit pathspec if you do.</strong> Two reasons. First, <code>run-unit-tests.sh</code> is a file this feature changed <em>and</em> one that already carried unrelated uncommitted work, so its change cannot be isolated. Second — and I did not expect this — <strong>two staged deletions appeared in the index during this session</strong> (<code>.claude/commands/harness-grill.md</code>, <code>.claude/commands/harness-wayfind.md</code>). They are not this feature&#x27;s; no agent I dispatched has written anywhere near <code>.claude/commands/</code>. A plain <code>git commit</code> right now would sweep them in.</li></ul>
+<hr>
+<h2 id="two-limits-the-plan-deliberately-preserved-neither-is-a-surprise-both-must-be-said-out-loud">Two limits the plan deliberately preserved. Neither is a surprise; both must be said out loud.</h2>
+<h3 id="no-success-criterion-exercises-the-live-github-api-at-all-before-shipping">No success criterion exercises the live GitHub API. At all. Before shipping.</h3>
+<p>This feature&#x27;s only hand-operated criterion, SC-07, was <strong>deleted on your 2026-08-08 ruling</strong> as anticipation under the one-in-flight cap. The consequence you accepted then, restated now because this is the moment it bites:</p>
+<p><strong>The entire test suite is green against scripted stand-ins for <code>gh</code> and <code>git</code>. The first real dispatch of this factory IS its live verification.</strong></p>
+<p>Concretely: that two agents racing for the same work item genuinely serialise is <em>inferred</em> from the GitHub endpoint being create-only — it is measured by nothing. The board, the target repository and the merge are exercised by no criterion. The whole automated set could be green on a factory that cannot perform one real claim. That is disclosed in the brief and it remains true.</p>
+<h3 id="the-plain-english-rewrite-of-the-requirements-got-only-a-partial-review">The plain-English rewrite of the requirements got only a partial review</h3>
+<p>When the requirements and criteria were rewritten into plain English, a reviewer could only compare <strong>7 of the 20 criteria</strong> against their earlier wording — the other 13 had no earlier version on record to diff against, because the feature&#x27;s files were untracked at the time.</p>
+<p>Those 7 got a full meaning-level comparison and produced the one real change (SC-01 gained a precondition). The other 13, plus all 8 requirements, got a mechanical check only — identifiers, paths, command names, exit codes — which found nothing wrong. <strong>So for 13 criteria, &quot;the rewrite changed no meaning&quot; is unverified and unverifiable by construction.</strong> The files are tracked now, so this cannot recur; it does not retroactively create the missing baseline.</p>
+<hr>
+<h2 id="what-each-squad-found">What each squad found</h2>
+<p><strong>Assembled from run digests read off disk. I spawned no reporting round</strong> — every run wrote a digest and re-narrating them would have cost three lead spawns to tell me what I can open. Every claim below is cited to its file. All paths are under <code>.harness/features/FEAT-10-software-factory/</code>.</p>
+<p><strong>Engineering — three build waves, <code>runs/w1-eng/</code>, <code>runs/w2-eng/</code>, <code>runs/w3-eng/</code>, all PASS, zero send-backs.</strong> Wave 1 shipped the CLI contract, the GitHub seam and the test-kind widening. Wave 2 shipped the fleet loader, workspace, publish and claim tools. Wave 3 shipped the pull-request tool and the fork-level suite. Two things worth your attention: the lead caught a contradiction in the plan&#x27;s own wording that would have cost three tasks an import error, and it was ruled before dispatch rather than after — zero spawns spent. And a coverage hole the builders admitted themselves (git commands validated against the manual, never executed) was closed in wave 3 against real git, which also corrected a misattribution about which safety hook had been blocking them.</p>
+<p><strong>Product — <code>runs/t09-product/</code>, PASS.</strong> DEC-186 recorded: GitHub issues and one board are the factory&#x27;s interface, the signed plan remains the source of truth, and the factory may read GitHub state back for exactly three purposes.</p>
+<p><strong>QA gate — <code>runs/qa-validator/</code>, BLOCKED.</strong> Covered as D-1. Unit and integration are both genuinely green — 10 and 14 files, exit 0. qa also built the criterion-to-test evidence map the goal-check then audited.</p>
+<p><strong>Review panel — <code>runs/panel-validator/</code>, PASS, worst severity <code>med</code>.</strong> First code review these fifteen modules have ever had. Security audited twelve mechanisms — argv construction, path resolution, YAML loading, environment seams, credential flow — and topped out at <code>info</code>: no shell injection surface, safe YAML loading confirmed, no credential reaches output or a ledger.</p>
+<p><strong>The panel&#x27;s most valuable act was to argue its own findings down.</strong> Two <code>high</code> findings it was handed came back <code>med</code> on evidence, and the lead disclosed that it had <em>caused</em> one of them by carrying the word &quot;high&quot; into all three reviewer briefs — three reviewers echoed a severity instead of deriving one. It then ran the check nobody had run and refuted the reasoning behind it. I would rather have that disclosure than a clean-looking panel.</p>
+<p><strong>Goal-check — <code>runs/goalcheck-product/</code>, ESCALATE.</strong> Covered as D-3. It found three cases of a mapped test that passes while a clause of its criterion has nothing asserting it — including that the very test guarding against the top-ranked defect omits both discriminators, so it passes without binding what it exists to bind. It also corrected three rows of qa&#x27;s evidence map.</p>
+<hr>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Nothing here gates. <strong>Anything you do not strike becomes an issue; anything not listed dies here.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td><code>factory_land.py:77</code> adopts any error containing &quot;already exists&quot; plus any URL as the pull request — no 422 check, no URL-shape check. Can exit 0 with a wrong URL. <strong>Fix via a <code>create_pull_request</code> helper behind the seam, not in place</strong> — the in-place patch gets thrown away. Closes B-2 too</td></tr><tr><td>B-2</td><td>chore</td><td>Three different predicates for the same GitHub error, in three files, at three strictnesses</td></tr><tr><td>B-3</td><td>bug</td><td>An absent or unparseable fleet file prints a Python exception class name to the operator — the exact shape a plan-phase ruling forbade. Two fix points, not one</td></tr><tr><td>B-4</td><td>enhancement</td><td>The three missing assertions behind SC-13, SC-18, SC-19 — see D-3</td></tr><tr><td>B-5</td><td>bug</td><td>Repeat publish under a different <code>--repo</code> can confuse issue numbers across repositories</td></tr><tr><td>B-6</td><td>chore</td><td><code>factory_claim.py:43</code> resolves a path at module import, against the stated no-side-effects rule</td></tr><tr><td>B-7</td><td>bug</td><td><code>factory_config</code> with no <code>--show</code> prints empty output and exits 0, which breaks a JSON parse</td></tr><tr><td>B-8</td><td>chore</td><td>A test round-trip that passes without exercising the ordering it exists to check</td></tr><tr><td>B-9</td><td>enhancement</td><td>Record the trigger: if Projects v2 auto-add is ever enabled on the fleet board, the claim tool needs a provenance check first. Safe today only because of a board setting</td></tr><tr><td>B-10</td><td>chore</td><td>Settle the four-file disagreement on whether a null test command blocks or is skipped — regardless of how D-1 is resolved</td></tr><tr><td>B-11</td><td>chore</td><td>The harness prescribes a receipt path that five agent roles are not permitted to write. Hit repeatedly across this feature; already filed as #199</td></tr><tr><td>B-12</td><td>chore</td><td>Two `` markers sit one line off from the text they exempt, so they are inert</td></tr><tr><td>B-13</td><td>chore</td><td>Plan-phase advisories never resolved: the &quot;edge (i)&quot; label names two different scenarios; SC-10 declares unit evidence while the plan&#x27;s own reasoning argues integration</td></tr></tbody></table></div>
+<hr>
+<h2 id="housekeeping">Housekeeping</h2>
+<ul><li><strong>Run count: 23 against a budget of 20</strong> (counted from the run directories on disk, not estimated). That budget is informational and never stops work. My read: eleven tasks landed with zero rework, every run resolved something and advanced the criteria. The count is earning its place. It is also a floor — the two tasks you handle directly never appear in it.</li><li><strong><code>check-state.sh</code> exits 1</strong> with four violations. All four are old FEAT-04 and FEAT-07 digests, untouched since early August, unrelated to this feature. I did not repair them: the validator behind them is enforcement-layer code under the same carve-out as T-08. Scoped to this feature&#x27;s paths, the check is clean.</li><li><strong>Close-out was deliberately skipped.</strong> Distillation happens once, when a feature closes. This one is returning for your decisions, so distilling now would mean distilling twice and overwriting.</li><li>Documentation gate green: <code>check-docs.sh</code> exit 0 across 300 files. Suites re-measured green after every review run.</li></ul><p class='derived'>Derived from <code>ship-review-build-2026-08-09.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

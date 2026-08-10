@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "cli_min_version": "2.1.217",
-  "_test_matrix_note": "change_type -> required test kinds. A FLOOR, not a ceiling: qa may add kinds it infers from the diff, never drop below. Predicate names in `when` are FIXED DATA so the gate is auditable; qa evaluates them against the diff.",
+  "_test_matrix_note": "change_type -> required test kinds. A FLOOR, not a ceiling: qa may add kinds it infers from the diff, never drop below. Predicate names in `when` are FIXED DATA so the gate is auditable; qa evaluates them against the diff. This matrix is PER-PROJECT (DEC-187): every kind it names must exist in test_kinds and be active or excluded, and any change_type differing from the template needs a _matrix_provenance entry with a signed decision. DEC-35's 'fixed data' is the predicate names, not the table.",
   "test_matrix": {
     "logic": {
       "always": [
@@ -10,8 +10,7 @@
     },
     "api": {
       "always": [
-        "unit",
-        "functional"
+        "unit"
       ],
       "when": [
         {
@@ -23,7 +22,6 @@
     "cross_module": {
       "always": [
         "unit",
-        "functional",
         "integration"
       ]
     },
@@ -42,7 +40,6 @@
     "feature": {
       "always": [
         "unit",
-        "functional",
         "integration"
       ],
       "when": [
@@ -78,48 +75,79 @@
       "always": []
     }
   },
-  "_test_kinds_note": "EVERY cmd ships as null. dev-ops replaces it with a command it has RUN and seen pass, or leaves it null and REPLACES the placeholder _reason with the real one. NEVER write a plausible-looking command you have not executed: `node --test src/` reports `tests 1 / fail 1` for a module-load error, which reads exactly like a failing suite (DEC-98). A null cmd is a not-applicable soft skip in the qa gate; an invented cmd turns a hard gate into a silent no-op, which is strictly worse. DELETE the _reason on any kind whose cmd you fill \u2014 leaving 'unset, detection has not run' beside a verified command is a lie about the project's own config. `exclude` keeps worktree and vendor dirs out of diff scans \u2014 measured 3x test-file inflation in kaya-ai without it.",
+  "_matrix_provenance_note": "Every change_type whose always/when differs from the template. The baseline is the template as it stood at DEC-187; a later template change does not retroactively make an entry wrong.",
+  "_matrix_provenance": {
+    "api": {
+      "removed": [
+        "functional"
+      ],
+      "added": [],
+      "signed": "DEC-187"
+    },
+    "cross_module": {
+      "removed": [
+        "functional"
+      ],
+      "added": [],
+      "signed": "DEC-187"
+    },
+    "feature": {
+      "removed": [
+        "functional"
+      ],
+      "added": [],
+      "signed": "DEC-187"
+    }
+  },
+  "_test_kinds_note": "EVERY cmd ships as null. dev-ops replaces it with a command it has RUN and seen pass, or leaves it null and REPLACES the placeholder _reason with the real one. NEVER write a plausible-looking command you have not executed: `node --test src/` reports `tests 1 / fail 1` for a module-load error, which reads exactly like a failing suite (DEC-98). A null cmd is BLOCKED in the qa gate, never a skip. The ONLY soft skip is status: excluded with a signed decision id — a human's recorded call, never inferred at gate time (DEC-187). An invented cmd turns a hard gate into a silent no-op, which is worse than either. DELETE the _reason on any kind whose cmd you fill — leaving 'unset, detection has not run' beside a verified command is a lie about the project's own config. `exclude` keeps worktree and vendor dirs out of diff scans — measured 3x test-file inflation in kaya-ai without it.",
   "test_kinds": {
     "unit": {
       "detect": "tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py|.claude/skills/harness/bin/test-*.py",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**|dist/**|build/**",
-      "cmd": ".claude/skills/harness/bin/run-unit-tests.sh --kind unit"
+      "cmd": ".claude/skills/harness/bin/run-unit-tests.sh --kind unit",
+      "status": "active"
     },
     "functional": {
       "detect": "tests/functional/**",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
       "cmd": null,
-      "_reason": "unset \u2014 dev-ops has not run detection yet"
+      "status": "excluded",
+      "excluded_because": "this repository ships no service API, and run-unit-tests.sh splits its suite on one principle (issue #160) into in-process UNIT_SCRIPTS and forking INTEGRATION_SCRIPTS. There is no third bucket; pointing functional at either would double-count files the other kind already runs.",
+      "signed": "DEC-187"
     },
     "integration": {
-      "detect": "tests/integration/**",
+      "detect": "tests/integration/**|.claude/skills/harness/bin/test-check-state.py|.claude/skills/harness/bin/test-factory-integration.py",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
       "cmd": ".claude/skills/harness/bin/run-unit-tests.sh --kind integration",
-      "_reason": "unset \u2014 dev-ops has not run detection yet"
+      "status": "active"
     },
     "component": {
       "detect": "**/*.spec.tsx|**/*.stories.tsx|**/*.stories.ts",
       "exclude": ".claude/worktrees/**|node_modules/**|dist/**|build/**",
       "cmd": null,
-      "_reason": "unset \u2014 dev-ops has not run detection yet"
+      "_reason": "unset — dev-ops has not run detection yet",
+      "status": "unresolved"
     },
     "ui": {
       "detect": "tests/e2e/**|e2e/**|**/*.e2e.spec.ts",
       "exclude": ".claude/worktrees/**|node_modules/**",
       "cmd": null,
-      "_reason": "unset \u2014 dev-ops has not run detection yet. If the project has no browser-driver, leave null: qa records `ui: skipped (no browser target)` and does NOT fail."
+      "_reason": "unset — dev-ops has not run detection yet. If the project has no browser-driver, leave null: qa records `ui: skipped (no browser target)` and does NOT fail.",
+      "status": "unresolved"
     },
     "eval": {
       "detect": "evals/**|tests/**eval**",
       "exclude": ".claude/worktrees/**|node_modules/**|.venv/**",
       "cmd": null,
-      "_reason": "unset \u2014 dev-ops has not run detection yet. Required only for change_type: ai_behavior; ai-dev authors the eval, qa gates it."
+      "_reason": "unset — dev-ops has not run detection yet. Required only for change_type: ai_behavior; ai-dev authors the eval, qa gates it.",
+      "status": "unresolved"
     },
     "typecheck": {
       "detect": "**/*.ts|**/*.tsx",
       "exclude": ".claude/worktrees/**|node_modules/**|dist/**|build/**",
       "cmd": null,
-      "_reason": "unset \u2014 dev-ops has not run detection yet. Not in the matrix; available for qa to add."
+      "_reason": "unset — dev-ops has not run detection yet. Not in the matrix; available for qa to add.",
+      "status": "unresolved"
     }
   },
   "_commit_attribution_note": "Recovery derives what landed from `git log` rather than trusting a state file, and review scope depends on telling human edits from agent commits (SPEC 15.3).",
@@ -136,8 +164,8 @@
   "budgets": {
     "max_total_cycles": 10,
     "max_total_runs": 20,
-    "_max_total_runs_rationale": "INFORMATIONAL, NOT A GATE (issue #79). Cycles count REWORK only (DEC-157), so a first-pass run adds nothing and NOTHING bounded or even counted total runs \u2014 FEAT-03 ran 19 times against a 6-cycle count and tripped nothing. Cost was the other long-feature signal and DEC-178 deleted it, so this is the only one left. Set to 20 from measured data: across nine features the range is 1-19 runs (median 14), so this is a tripwire for the runaway, NOT a critique of normal work \u2014 a long feature is fine if each run is efficient, resolves issues and advances the SCs. Crossing it emits a NOTE naming those three questions; it never stops a branch. NOTE THE KNOWN UNDER-COUNT: a main-session-direct segment is not a run and never appears in runs:, which on FEAT-07 hid eight of ten tasks, so the count is a FLOOR.",
-    "_max_total_cycles_rationale": "REWORK loops only (DEC-157): a cycle is a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back \u2014 never a first-pass run, which the PLAN's task list already bounds. Ten consecutive rework loops on one feature is the runaway this kills. Per-feature raises are user decisions recorded in feature.yaml."
+    "_max_total_runs_rationale": "INFORMATIONAL, NOT A GATE (issue #79). Cycles count REWORK only (DEC-157), so a first-pass run adds nothing and NOTHING bounded or even counted total runs — FEAT-03 ran 19 times against a 6-cycle count and tripped nothing. Cost was the other long-feature signal and DEC-178 deleted it, so this is the only one left. Set to 20 from measured data: across nine features the range is 1-19 runs (median 14), so this is a tripwire for the runaway, NOT a critique of normal work — a long feature is fine if each run is efficient, resolves issues and advances the SCs. Crossing it emits a NOTE naming those three questions; it never stops a branch. NOTE THE KNOWN UNDER-COUNT: a main-session-direct segment is not a run and never appears in runs:, which on FEAT-07 hid eight of ten tasks, so the count is a FLOOR.",
+    "_max_total_cycles_rationale": "REWORK loops only (DEC-157): a cycle is a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back — never a first-pass run, which the PLAN's task list already bounds. Ten consecutive rework loops on one feature is the runaway this kills. Per-feature raises are user decisions recorded in feature.yaml."
   },
   "gates": {
     "qa_gate": "blocking",

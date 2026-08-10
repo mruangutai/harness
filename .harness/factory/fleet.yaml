@@ -1,0 +1,13 @@
+schema: factory-fleet/1
+board:
+  owner: mruangutai
+  number: 3
+  station_field: Status
+  stations:
+    ready: Ready
+    building: Building
+    review: Review
+repos:
+  - name: mruangutai/harness
+    default_branch: main
+workspace_root: /Users/molchairuangutai/GitHub/harness-factories
