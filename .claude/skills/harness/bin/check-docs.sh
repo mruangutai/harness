@@ -85,7 +85,13 @@ targets = []
 # `.` would walk .git, node_modules and .claude/worktrees/, where every file in every other
 # checkout would be scanned as if it were this one.
 targets += glob.glob("*.md")
-for base, pats_ in ((D, ("*.md", "*.html")),
+# `docs`, NOT `docs/harness` — the constitution lives at docs/principles.md, one directory
+# above the design docs, and was the last prose surface an agent reads that this checker could
+# not see. It reaches all 16 agents distilled, as the preloaded `harness-principles` skill, so a
+# superseded sentence there propagates as far as one in an agent file. Measured when this widened:
+# 0 of 62 markers matched it, so the change added coverage without changing the verdict. The skill
+# itself was already in scope under `.claude/skills` below.
+for base, pats_ in (("docs", ("*.md", "*.html")),
                     (".harness", ("*.md",)),
                     (".claude/skills", ("*.md",)),
                     (".claude/commands", ("*.md",)),
