@@ -1,10 +1,10 @@
 # Expertise — harness-security-reviewer
 
 ## Patterns (max 15)
-- P-01: This codebase has no network, database, or browser surface — the only
-  untrusted-input boundary is the hook payload. `.claude/skills/harness/bin/*.{py,sh}`
-  read JSON on stdin and parse agent-authored text or tool params. Start every
-  audit there; the rest of the repo is Markdown.
+- P-01: This codebase's untrusted-input boundary is the hook payload (JSON on
+  stdin, `.claude/skills/harness/bin/*.{py,sh}`) — but `bin/factory_*.py` is a
+  second surface: it builds subprocess argv and GraphQL query documents from
+  operator-config values (`fleet.yaml`) and shells to `gh`. Audit both.
 - P-02: WHEN grading a possible finding DO name the threat model before severity:
   an actor who already controls a value already holds the privilege it grants (no
   escalation, not a finding); a control reachable only from a higher-trust step
@@ -27,6 +27,18 @@
   locally-correct early-exit for one tool (e.g. Write) can leave other routes
   (Edit, Bash) silently unchecked, invisible from reading the triggered logic
   alone.
+- P-07: WHEN a CLI's own value-parsing (e.g. magic-value flags) can't be verified
+  under review constraints DO close on provenance instead — but label the closure
+  reachability-closed and name the exact provenance assumption (e.g. "value is
+  always operator-authored") that would reopen it if violated.
+- P-08: WHEN auditing whether a modified code path changed data exposure DO
+  compare against the pre-change path's behavior, not against zero — a rewrap
+  that discards a raw-error field and substitutes a fixed string is a reduction
+  worth stating, distinct from "no new leak found".
+- P-09: WHEN a review closes a construction-injection question by citing an
+  assertion on the emitted value DO check whether it proves equality to the
+  reviewed constant, not merely shape or pattern — a regex a second,
+  differently-worded string also satisfies establishes nothing about identity.
 
 ## Gotchas (max 15)
 - G-01: Only `exit 2` blocks a hook (DEC-100); any other exit — including an

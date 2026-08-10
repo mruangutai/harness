@@ -1,0 +1,118 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-11 — ship review — one GraphQL query for project field ids</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-11-ship-review-one-graphql-query-for-project-field-ids">FEAT-11 — ship review — one GraphQL query for project field ids</h1>
+<p><strong>For the operator. Written 2026-08-10, branch <code>feat/FEAT-11-graphql-field-resolve</code> at <code>15cabe9</code>. Nothing is pushed and no PR is open — the merge is yours.</strong></p>
+<hr>
+<h2 id="the-conclusion-first">The conclusion first</h2>
+<p><strong>The factory no longer burns 104 GraphQL points to move one item between stations. It burns 2.</strong> That call sits inside <code>factory_decompose</code>&#x27;s per-task loop, so the practical difference is a factory that used to exhaust the 5000-point hourly budget mid-run and stop, versus one that does not.</p>
+<p><strong>Eleven of the twelve success criteria are proven. The twelfth — SC-01, the cost measurement itself — is yours to run and cannot be delegated.</strong> That is the documented expected end state, not a gap: the proof writes to a live Projects v2 board, which is outside every agent&#x27;s authorization in this flow. The script is written and waiting at <code>.harness/features/FEAT-11-graphql-field-resolve/notes/uat-SC-01-graphql-cost.md</code>.</p>
+<p><strong>Two decisions need you.</strong> One is blocking — SC-01&#x27;s total clause may be arithmetically unmeetable as written. The other is the D-03 partial-success question, where both pm and I recommend accepting rather than amending.</p>
+<div class="scroll"><table><thead><tr><th></th><th>Before</th><th>After</th></tr></thead><tbody><tr><td>One station move</td><td>104 GraphQL points</td><td>2</td></tr><tr><td>Field + board id resolution</td><td>two calls (<code>field-list</code> 102, <code>view</code> 2)</td><td>one call, cost 1</td></tr><tr><td>Failure states told apart</td><td>1</td><td>4, each naming your own input</td></tr><tr><td>A four-task decompose</td><td>exhausts the hourly budget</td><td>see the open ruling below</td></tr></tbody></table></div>
+<hr>
+<h2 id="how-this-briefing-was-assembled-and-what-that-costs-you">How this briefing was assembled — and what that costs you</h2>
+<p><strong>No report round was spawned.</strong> Every run wrote a digest to disk and I read them, including the plan-phase runs I never participated in. Three lead spawns to re-narrate files I can open would have been spend with nothing to surface it. The cost of that choice is that this is my reading of those digests rather than each lead&#x27;s own summary; the paths are below so you can check any claim against its source.</p>
+<p>Assembled from: <code>runs/plan-product/digest.md</code>, <code>runs/plan-contract-validator/digest.md</code>, <code>runs/plan-fix-product/digest.md</code>, <code>runs/t01-eng/digest.md</code>, <code>runs/t01-qa-validator/digest.md</code>, <code>runs/mf1-eng/digest.md</code>, <code>runs/2026-08-10-01-q5-product/digest.md</code>, <code>runs/2026-08-10-02-validator/digest.md</code>, <code>runs/goalcheck-product/digest.md</code>, <code>runs/mf2-eng/digest.md</code>, <code>runs/distill-{eng,product,validator}/digest.md</code>, plus <code>notes/qa-c0.md</code>, the four <code>notes/review-harness-*-c0.md</code>, <code>notes/research-FEAT-11-goal-check.md</code> and <code>notes/uat-SC-01-graphql-cost.md</code>. Paths are relative to <code>.harness/features/FEAT-11-graphql-field-resolve/</code>.</p>
+<p><strong>Every gate result quoted here I re-ran myself rather than relaying</strong> — the task verify, both test kinds, the three sha256 sentinels, the byte-identity of both mutant restores, and the expertise format gate.</p>
+<hr>
+<h2 id="what-each-squad-did">What each squad did</h2>
+<p><strong>Engineering</strong> ran three times, all PASS, all first-pass. T-01 replaced the two-call path with one named-field GraphQL query and a single diagnosis walk that tells four failures apart: an owner login that resolves to nothing, an organization-owned board, a board number that does not exist, and a field the board does not offer. The old code conflated them. <code>_field_list</code> was deleted rather than kept as a fallback, because keeping the 102-point path in the tree preserves the thing being removed. TDD order is evidenced in the receipt — 11 of 108 checks red against the unchanged module first. Two later runs fixed test assertions, below.</p>
+<p><strong>Validation</strong> ran twice. The blocking test-matrix gate passed <strong>after one fix cycle</strong> and earned its blocking status. It also established something the record had been wrong about for a while: the integration <em>kind</em> had never been shown green — every &quot;97/97&quot; before that segment was one script out of twelve. The four-reviewer panel then returned PASS at <code>severity_max: info</code> with zero must_fix, re-raising none of the four known items I named in its dispatch while still probing an unmeasured shape (<code>projectV2</code> present with <code>id</code> absent) and finding it fails safe with no write. Security confirmed your inputs travel as GraphQL variables, never interpolated into the query text.</p>
+<p><strong>Product</strong> ran the plan phase, struck two dead markers from <code>DESIGN.md</code>, and ran the goal-check that found the last defect and wrote your UAT script.</p>
+<hr>
+<h2 id="the-two-defects-the-gates-caught-both-of-the-same-kind">The two defects the gates caught, both of the same kind</h2>
+<p>Neither was a bug in the shipped code. Both were <strong>assertions that could not fail</strong> — checks reporting green for a reason unrelated to what they claimed to prove. This is the failure mode this factory is most exposed to, because it is invisible in a green suite.</p>
+<p><strong>MF-1 (found by the qa gate).</strong> SC-10 says every failure names your own input. Its proof for the unknown-owner case was <code>&quot;owner&quot; in str(exc)</code> — against a message reading <em>&quot;project owner not found: owner — check the owner login&quot;</em>. The word is in the prose twice, so the check was true for every possible value, including no value at all.</p>
+<p><strong>MF-2 (found by the goal-check).</strong> SC-11 requires the misspelled-owner error be distinct from <strong>both</strong> the organization refusal <strong>and</strong> the board-not-found error. The suite proved two pairings and stopped. Inequality is not transitive, so the pair SC-11 names first was never compared.</p>
+<p>Both fixes were <strong>watched failing before they were believed</strong>: the source was mutated, the specific checks predicted by name, and the prediction checked against what actually reddened. In MF-2&#x27;s case, had only the other check reddened, the new assertion would have been vacuous and the cycle would have failed. The source file was restored byte-identically both times and I verified that myself with an empty <code>git diff</code>, not from the report.</p>
+<p><strong>One finding was itself half wrong, and the record says so rather than being tidied.</strong> qa&#x27;s MF-1 named two vacuous assertions; only one was. The organization message reads <em>&quot;organization-<strong>owned</strong> … user-<strong>owned</strong>&quot;</em> and contains no <code>owner</code> substring, so that row already discriminated. The correction lives in <code>feature.yaml</code> <code>mf1_correction</code>; the qa digest is left as the dated record of what that run concluded.</p>
+<p><strong>The pattern matters more than either instance.</strong> Both were multi-clause criteria whose clauses were scored as covered because <em>some</em> assertion touched the area. Two occurrences in one feature is a counting method that does not work, not two unlucky misses. It is <code>B-7</code> below.</p>
+<hr>
+<h2 id="what-only-you-can-settle">What only you can settle</h2>
+<h3 id="1-sc-01-may-be-unmeetable-as-written-and-you-get-one-run-blocking">1. SC-01 may be unmeetable as written — and you get one run <strong>[blocking]</strong></h3>
+<p>pm found this at goal-check, not at plan time, and the arithmetic is the problem rather than the code. SC-01 asks for a <strong>single-digit total</strong> across a four-task <code>factory_decompose</code>. But a decompose also pays <code>gh project item-list</code> at <strong>31 points per task</strong> whenever it has to find an existing board item — a call this feature never touched and never claimed to change. An all-<code>partial</code> run therefore has a floor around 133 points regardless of how cheap the field resolution became.</p>
+<p>There is no free option here:</p>
+<div class="scroll"><table><thead><tr><th>Choice</th><th>What you get</th><th>What it costs</th></tr></thead><tbody><tr><td>Measure the <strong>per-move</strong> clause only (2 vs 104)</td><td>The number that proves the feature, cleanly isolated</td><td>SC-01&#x27;s total clause goes unproven and is recorded as mis-specified</td></tr><tr><td>Measure the <strong>total</strong> on an all-new run</td><td>The total clause as written</td><td>The run creates board items your restore cannot undo — it spends the fixture</td></tr></tbody></table></div>
+<p><strong>My recommendation: accept the per-move clause as the proof and record the total clause as mis-specified at plan time.</strong> The per-move number is what the feature changed, it is discriminating either way, and the total was written against a cost model derived for the code being changed rather than for the whole run the criterion measures. Amending an SC is yours alone; I have not touched it.</p>
+<h3 id="2-a-graphql-partial-success-response-completes-its-write-non-blocking-recommend-accept">2. A GraphQL partial-success response completes its write <strong>[non-blocking — recommend accept]</strong></h3>
+<p>If <code>gh</code> exits non-zero but returns a <em>complete</em> data payload alongside an <code>errors</code> array, the resolver walks it clean and <code>project_field_set</code> finishes its write. <strong>What you would experience:</strong> an item moves station, <code>gh</code> reported the call failed, the run finishes green recording no error, and recovery is moving the item back by hand. How often that happens is unmeasured — the envelope has no row in the six-row transport table the plan measured.</p>
+<p>This is <strong>signed decision D-03 behaving exactly as written</strong>, so no engineering fix cycle can legitimately close it; changing it changes the decision. It does not violate SC-07, whose clause is that a failed resolution never reuses the bare board number as <code>--project-id</code> — the id passed is the real resolved node id. <strong>pm and I both recommend accepting it as a recorded residual against D-03</strong> rather than amending. If you prefer to amend, that is a new <code>D-NN</code> under your approval.</p>
+<h3 id="3-before-you-run-the-uat-read-its-step-0">3. Before you run the UAT, read its step 0</h3>
+<p>pm added a step nobody asked for and it is the most valuable thing in the script. <code>factory_decompose</code> does <strong>not</strong> take the board from a flag — it reads <code>.harness/factory/fleet.yaml</code>, which today declares <strong>board 3</strong>, station field <code>Status</code>. I verified that line myself. Run the measurement as originally specified and it writes stations onto board 3, which nobody snapshotted, while carefully protecting board 6, which nothing would have touched. The script pins an explicit fleet file first and asserts the board number is 6 before anything runs.</p>
+<p>The script also keeps the snapshot and the restore <strong>outside</strong> the differenced measurement window on purpose — 67 points spent deliberately so the window contains only what is under test — and gets the option ids for 1 point rather than via the 102-point call this feature exists to remove.</p>
+<p><strong>Board 6 and <code>mruangutai/harness-factory-smoke-a1</code> are treated throughout as retained fixtures. Nothing in this feature deleted them, no agent made a single live <code>gh</code> call against either, and neither is reported as cleanup owed.</strong></p>
+<hr>
+<h2 id="budget-effort-and-what-the-org-learned">Budget, effort and what the org learned</h2>
+<p><strong>11 of 12 cycles spent</strong> — 8 in the plan phase before this mission began, 3 in this one: MF-1, MF-2, and one a lead charged itself when it discovered it had handed its own members an incomplete source list and re-ran the round. That third one is worth reading as a good sign rather than a bad one: the correction recovered six Expertise entries that would otherwise have been lost permanently, because Expertise is written once per feature.</p>
+<p><strong>15 runs against an informational budget of 20 — not crossed, so no note is owed.</strong> The two runs that cost a cycle are also the two that found the defects, and the panel that cost nothing found none. That is the gates working in the order they are designed to.</p>
+<p><strong>Distillation is complete and every Expertise file passes the format gate except one, which this feature never touched.</strong> Eleven agents updated their files; <code>harness-visual-designer</code> got one for the first time. No file was wiped — I checked entry counts before and after rather than trusting the reports. The one failure, <code>harness-documentor.md</code>, was already red before this feature opened (<code>git log 8dedeae..HEAD</code> shows it untouched); two leads independently declined to spawn documentor to trim three words, both citing the risk of opening a near-full file with nothing to distill, and I agree with them. It is <code>B-13</code>.</p>
+<p><strong>GitHub mirror:</strong> milestone #5, parent #214 (created by this flow), T-01 → #215, now closed. Issue <strong>#211</strong> — the P0 this feature absorbs — is deliberately left <strong>open</strong> for your acceptance to close.</p>
+<p><strong>Commits, all by explicit pathspec with the tree&#x27;s unrelated held dirt excluded:</strong> <code>5c433f2</code> (T-01), <code>2ea9af3</code> (MF-1 + the marker strike), <code>15cabe9</code> (MF-2 + review artifacts + two record corrections to the executed plan), plus one close-out commit carrying the distilled Expertise and this briefing.</p>
+<hr>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Nothing here gates the ship. <strong>Anything you do not strike becomes a backlog issue on your acceptance; anything not listed dies silently, so this list is deliberately complete.</strong></p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Item</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td><strong>D-03 partial-success completes its write.</strong> Decision #2 above. If you accept, this row records it against D-03 rather than opening work</td><td>chore</td></tr><tr><td>B-2</td><td><strong>A top-level <code>{&quot;data&quot;: null}</code> envelope reports the wrong cause</strong> — it raises &quot;project owner not found&quot;, which is safe (no write) but factually wrong. Unmeasured, possibly schema-impossible</td><td>bug</td></tr><tr><td>B-3</td><td><strong><code>harness-qa</code> cannot author a test in this repo.</strong> Its grants are <code>tests/**</code> and <code>web/src/**/*.test.*</code>; every test here lives in <code>.claude/skills/harness/bin/test-*.py</code>. The qa segment is gate-and-assess by construction and a missing test can only ever be a finding</td><td>bug</td></tr><tr><td>B-4</td><td><strong><code>harness-pm</code> has no <code>notes/receipt-*.md</code> grant</strong> while the handoff skill instructs every agent to file one there. Same routing-wall class as B-3</td><td>bug</td></tr><tr><td>B-5</td><td><strong><code>bash-write-guard.sh</code> mis-parses <code>cp … 2&gt;/dev/null</code></strong> — it reads the redirect target as the <code>cp</code> destination and blocks a legitimate in-domain write. A fail-closed hook with a false positive. <strong>It is a DEC-174 carve-out file, so no agent may fix it; this one is yours to edit directly</strong></td><td>bug</td></tr><tr><td>B-6</td><td><strong><code>BRIEF.md:162</code> still calls board 6 &quot;the throwaway … already owed cleanup&quot;</strong>, contradicting your own later ruling. pm left it deliberately — changing a signed artifact is a re-signature, not a correction — but it is what the next reader opens</td><td>chore</td></tr><tr><td>B-7</td><td><strong>Multi-clause criteria are scored as covered when one clause is asserted.</strong> MF-1 and MF-2 are the same defect twice in one feature. Worth a harness-level look at how criteria are counted against assertions</td><td>enhancement</td></tr><tr><td>B-8</td><td><strong><code>GRAPHQL_ORG_OK_JSON</code> is derived, never observed.</strong> The organization path&#x27;s discriminating fixture was constructed from reasoning because no org owning a reachable board exists on this account. Disclosed in the BRIEF; recorded so it is not later mistaken for measured</td><td>chore</td></tr><tr><td>B-9</td><td><strong>Two <code>ok-stale</code> markers survive</strong> in <code>notes/review-harness-ui-reviewer-plan-product.md:63-64</code>. Left because that file belongs to the validator squad and product could not write it</td><td>chore</td></tr><tr><td>B-10</td><td><strong>No gate observes TDD order.</strong> T-01 landed in one commit, so red-before-green rests on the build receipt&#x27;s self-report</td><td>enhancement</td></tr><tr><td>B-11</td><td><strong>Two of five qa mutants reddened by suite crash</strong> rather than by a named check. Detection held, but a crash halts the linear script and masks every check after it</td><td>enhancement</td></tr><tr><td>B-12</td><td><strong><code>plan.yaml</code> line anchors shift as the file is edited.</strong> Two digests now cite line numbers that resolve to different (still green) checks after MF-2 inserted three lines. Nothing is falsified; the citations are silently re-pointed</td><td>chore</td></tr><tr><td>B-13</td><td><strong><code>harness-documentor.md</code> G-04 is 53 words against a 50-word cap</strong>, which makes <code>check-expertise.sh</code> red across the whole directory. Pre-existing, not caused here. A permanently-red shared gate stops being read, which is the real cost</td><td>bug</td></tr><tr><td>B-14</td><td><strong><code>harness-pm.md</code> and <code>harness-orchestrator.md</code> are at their Patterns cap</strong>, and <code>harness-code-reviewer.md</code> is one below. Every future distillation must displace to add, with no usage data to rank entries by</td><td>enhancement</td></tr><tr><td>B-15</td><td><strong>No member wrote an observations log this feature.</strong> Distillation ran entirely off run receipts and worked, because those receipts were unusually complete — not because the hot layer is optional. Worth deciding whether the layer is a gap or correctly unused</td><td>enhancement</td></tr><tr><td>B-16</td><td><strong><code>validate-digest.py</code> has no <code>suite:</code> spelling for a run that executes no test suite</strong>, so a distillation run must report a test-suite field that measured nothing</td><td>chore</td></tr></tbody></table></div>
+<hr>
+<h2 id="what-i-recommend">What I recommend</h2>
+<p><strong>Ship it, after you run the UAT.</strong> The code is correct, the gates are green, the two defects found were in the proofs rather than the product, and both were fixed and proven falsifiable. The one thing standing between this and done is the measurement only you can take — and the ruling on what SC-01&#x27;s total clause should have said.</p><p class='derived'>Derived from <code>ship-review-close.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

@@ -28,6 +28,9 @@
 - P-09: WHEN a member reports N clauses balanced against N fixtures DO recount the clauses against
   the task's own intent prose, not against the fixture map — a count taken from the criterion's own
   wording is self-consistent and still short of what the task forbids.
+- P-10: WHEN your dispatch names an output path for a member DO check it against that member's own
+  domain grant first — a role owning a named per-feature artifact is exactly the one the receipt
+  convention does not cover, and the guard denies the dispatched path correctly.
 
 ## Gotchas (max 15)
 - G-01: WHEN a test name or label is offered as evidence DO read the invocation it wraps — labels
@@ -39,6 +42,9 @@
 - G-03: WHEN writing your run state.yaml DO put every value inside a step entry and add nothing new
   at top level — the guard rejects any unrecognised top-level key, including a bare counter, not
   merely the prose the rule text names.
+- G-04: WHEN a member reports a harness defect DO read the governing rule file at HEAD before
+  relaying it up — a rule amended since the member's habit formed turns the report into a stale
+  escalation the tier above cannot close.
 
 ## Outcomes (max 10)
 - O-01: WHEN a cosmetic defect sits in a file a human is already about to open DO fold it into that

@@ -1,127 +1,127 @@
 feature_id: FEAT-11-graphql-field-resolve
 mission: ship
-phase: build
-status: in_progress
+phase: ship
+status: awaiting_user
 branch: feat/FEAT-11-graphql-field-resolve
 pr: none
 effort: https://github.com/mruangutai/harness/issues/211
-briefing: none
-review_sha: PENDING_MF1_COMMIT
+briefing: .harness/features/FEAT-11-graphql-field-resolve/notes/ship-review-close.md
+review_sha: 2ea9af3324ab1ef175fe8ef2307f5c850edfd315
 review_sha_note: >-
-  Re-pinned once per validator run, always at a commit that contains the work under review (INV-6).
-  The panel's pin is set immediately after the MF-1 commit lands and is recorded here before the
-  panel is dispatched.
-review_sha_history: "835b297 (plan contract) -> 8dedeae (ship open) -> 5c433f2 (T-01) -> MF-1 commit (panel)"
-cycles_used: 9
+  The pin the review panel ran against. Every validator run got a pin naming a tree that CONTAINS the
+  work under review (INV-6); an inherited plan-phase pin would have returned PASS on a tree with none
+  of T-01 in it. MF-2 landed after the panel at 15cabe9 and was verified by me directly rather than
+  by a second panel — the change is one guarded assertion in a test file, mutant-proved by name.
+review_sha_history: "835b297 (plan contract) -> 8dedeae (ship open) -> 5c433f2 (T-01) -> 2ea9af3 (panel)"
+cycles_used: 11
 max_total_cycles: 12
 cycles_raise: >-
-  RAISED 10 -> 12 BY THE OPERATOR, 2026-08-10, recorded here as DEC-157 requires. Eight cycles went
-  to the plan phase — six to the plan team's own convergence, one to the validator FAIL, one to a
-  digest-contract repair the orchestrator itself flagged as bookkeeping rather than deliverable
-  rework. The raise removes a mid-build BLOCKED interruption; it does not endorse rework.
-max_total_runs: 20
+  RAISED 10 -> 12 BY THE OPERATOR, 2026-08-10, recorded here as DEC-157 requires. The raise removed a
+  mid-build BLOCKED interruption; it did not endorse rework.
 cycles_note: >-
-  8 charged in the plan phase. 1 charged in the ship phase: the qa segment returned FAIL with MF-1
-  and I routed it back to eng — a FAIL routed back is rework by DEC-157 even though every lead
-  reported ZERO internal send-backs. t01-eng, 2026-08-10-01-q5-product and the qa segment's own run
-  charge nothing: first-pass forward work is not rework however many steps it has.
+  8 charged in the plan phase. 3 charged in the ship phase, each a genuine send-back and each named:
+  (1) the qa gate FAILed with MF-1 and I routed it to eng; (2) the goal-check FAILed with MF-2 and I
+  routed it to eng; (3) distill-validator charged itself one when it found it had handed all four of
+  its members an incomplete source list and re-ran the round — that correction recovered six
+  Expertise entries which would otherwise have been lost permanently, since Expertise is written once
+  per feature. NOT charged: the three lead-ops applications, which are continuations of work already
+  done rather than rework of a deliverable, and every first-pass run however many steps it had.
+max_total_runs: 20
 counts: { reqs: 5, scs: 12, tasks: 1, decisions: 4, main_session_direct: 0 }
-counts_note: "SC-01 is operator-run by construction; every other criterion is agent-verifiable."
-tasks: { T-01: BUILT }
+sc_result: >-
+  11 of 12 MET. SC-01 is `uat` — the live cost proof, operator-run by construction, which is the
+  documented expected end state and not a defect. SC-11 was returned `not_met` by the goal-check at
+  2ea9af3 and CLOSED at 15cabe9 by MF-2; I verified the landed assertion and re-ran both kinds
+  myself rather than re-spawning a goal-check to confirm one grep.
+tasks: { T-01: DONE }
 tasks_note: >-
-  change_type bugfix, absorbs #211, files: factory_gh.py + test-factory-gh.py +
-  test-factory-integration.py, all resolving to harness-backend-dev. BUILT is my own vocabulary for
-  the execution record; plan.yaml tasks[0].status is pm's field and its update rides the goal-check
-  dispatch, because the signed plan otherwise reads as though the feature never built.
+  change_type bugfix, absorbs #211. plan.yaml tasks[0].status was set to done by pm at goal-check —
+  its own file, not mine. The approval block and the decisions are byte-identical across that edit,
+  verified by parsing both revisions rather than by reading the diff.
 route_resolution: >-
   ZERO main-session-direct. Resolved by check-domain.sh --resolve, not by reading team-config, which
   is ambiguous for bin/** (granted to both backend-dev and dev-ops). None of the DEC-174 carve-out
-  files is in scope. eng-lead confirmed the pick on semantics, since the grant cannot discriminate.
+  files was in scope at any point.
 peer_feature_collision:
   peer: FEAT-12-end-copy-distribution
-  overlap_files: none
   shared_surface: .claude/skills/harness/bin/run-unit-tests.sh
-  risk: >-
-    NO file in T-01 is in FEAT-12's plan union, but FEAT-12 edits run-unit-tests.sh, which is the
-    command T-01's verify invokes. If FEAT-12 lands first and changes how the suite splits, T-01's
-    verify changes meaning without T-01 changing. Landing order is the operator's call.
   ship_phase_measurement: >-
-    MEASURED, not assumed: git status --porcelain is clean over run-unit-tests.sh and over all four
-    DEC-174 carve-out files at every commit this mission made. FEAT-12 has landed nothing here, so
-    T-01's verify means what the plan measured. Held dirt (.harness/logs/2026-08-10.md, the
-    untracked FEAT-12 dir) is excluded from every commit by explicit pathspec.
+    MEASURED before every commit, not assumed: git status --porcelain stayed clean over
+    run-unit-tests.sh and all four DEC-174 carve-out files throughout. FEAT-12 landed nothing into
+    this tree, so T-01's verify means what the plan measured. Unrelated held dirt appeared mid-run
+    (harness-handoff/SKILL.md, team-config.yaml, test-harness-yaml.py, .harness/logs/2026-08-10.md,
+    the untracked FEAT-12 dir) and was excluded from every commit by explicit pathspec.
 preflight_measurements: >-
-  Taken by me at 8dedeae BEFORE any dispatch, so no claim below is inherited. (1) All three sha256
-  pins in T-01's verify recompute byte-identical — Q4 is MOOT and no plan amendment is owed.
-  (2) Baseline green: --kind unit exit 0, test-factory-integration.py exit 0, 97/97.
-  (3) The verify's discriminating clauses were RED before the change — factory_gh._FIELD_QUERY did
-  not exist and the quoted "field-list" argv appeared once — so the green verify after it can only
-  come from the change.
+  Taken by me at 8dedeae BEFORE any dispatch, so no claim here is inherited. (1) All three sha256
+  pins in T-01's verify recompute byte-identical — the plan's Q4 is MOOT and no amendment is owed.
+  (2) Baseline green. (3) The verify's discriminating clauses were RED before the change, so the
+  green after it can only come from the change.
 e1_ruling:
   claim: >-
     The grilling artifact states the two error paths at factory_gh.py:251-262 must survive because
     _validate_stations and the Redy typo case depend on them. The validator escalated that the
     dependency is false.
-  verified_by_me: >-
-    CONFIRMED at 835b297, read directly. _validate_stations (factory_decompose.py:255-268) calls
-    project_field_options and propagates its GhError WITHOUT reading the text; the option-not-offered
-    message operators actually see is produced by _validate_stations itself at :264-268 via
-    factory_cli.refuse. The Redy case (test-factory-decompose.py:1025-1048) runs against a Recorder
-    stand-in and never enters factory_gh.
   ruling: >-
-    THE OPERATOR'S CONSTRAINT STANDS UNCHANGED — the two error paths survive unchanged in behavior.
-    A falsified rationale does not release a constraint. Only the stated REASON is wrong. The
-    grilling artifact is NOT edited: it is a dated record of that session, and this file carries the
-    correction.
+    CONFIRMED FALSE at 835b297 by direct read, and THE OPERATOR'S CONSTRAINT STANDS UNCHANGED — the
+    error paths survive unchanged in behavior. A falsified rationale does not release a constraint;
+    only the stated REASON was wrong. The grilling artifact is NOT edited: it is a dated record of
+    that session, and this file carries the correction.
   the_real_dependency: >-
     _validate_stations depends on project_field_options RAISING on a missing field
-    (factory_gh.py:206-210) — a THIRD error path the grilling never named. The plan names :206-210
-    at plan.yaml:201, so no behaviour is at risk.
+    (factory_gh.py:206-210) — a third error path the grilling never named. The plan already covers it.
 sc01_ruling: >-
-  CLOSED BY THE OPERATOR at signature. Board 6 and mruangutai/harness-factory-smoke-a1 are RETAINED
-  FIXTURES, not scratch and not cleanup owed. SC-01's proof runs a real factory_decompose against
-  board 6, which moves items between stations, so the operator records every item's station value
-  BEFORE the run and restores it after. pm authors that record-and-restore procedure into the UAT
-  script at goal-check. A proof that leaves the four items moved has spent the fixture to measure a
-  number. NO AGENT IN THIS FLOW MADE ANY LIVE gh CALL AGAINST BOARD 6 — every dispatch forbade it
-  and every path in the changed tests is fed by stubs or the whole-CLI fake.
+  Board 6 and mruangutai/harness-factory-smoke-a1 are RETAINED FIXTURES, not scratch and not cleanup
+  owed. SC-01's proof moves items between stations, so the operator records every item's station
+  value BEFORE and restores it after; pm wrote that procedure into notes/uat-SC-01-graphql-cost.md.
+  NO AGENT IN THIS FLOW MADE ANY LIVE gh CALL AGAINST EITHER FIXTURE — every dispatch forbade it and
+  every changed test path is fed by stubs or the whole-CLI fake.
+  pm ALSO CAUGHT WHAT THE RULING COULD NOT SAY: factory_decompose takes its board from
+  .harness/factory/fleet.yaml, which declares board 3, not from a flag. Run as originally specified
+  the measurement would have written stations onto an unsnapshotted board while carefully protecting
+  the snapshotted one. I verified fleet.yaml:4 myself. The script now pins an explicit fleet file and
+  asserts board 6 before anything runs.
 mf1_correction: >-
-  THE RECORD, CORRECTED WHERE IT IS WRONG, WITHOUT REWRITING THE ARTIFACT THAT CARRIES IT.
-  qa's MF-1 claimed BOTH test-factory-gh.py:407 and :428 asserted vacuously. Only :407 did.
-  factory_gh.py:264-266 renders "organization-owned ... user-owned" — the prose carries "owned",
-  never "owner" — so :428 was already discriminating on the value. Verified BY ME by substring test,
-  not relayed. Consequence: SC-10's positive clause was nominal for ONE row, not two, so SC-10 was
-  partially proven before this cycle and is fully proven after. The remedy was warranted in full
-  anyway: :432 and :452 cross-compare messages for INEQUALITY, so moving one case's owner value
-  without the others makes those inequalities pass on the value rather than on the prose. The
-  qa-segment digest and notes/qa-c0.md are NOT edited — they are dated records of that run, the same
-  treatment e1_ruling gives the grilling artifact, and this entry is the correction.
+  THE RECORD CORRECTED WHERE IT IS WRONG, WITHOUT REWRITING THE ARTIFACT THAT CARRIES IT.
+  qa's MF-1 claimed both test-factory-gh.py:407 and :428 asserted vacuously. Only :407 did:
+  factory_gh.py renders "organization-owned ... user-owned", whose prose carries "owned" and never
+  "owner", so :428 already discriminated on the value. Verified by me by substring test. SC-10's
+  positive clause was therefore nominal for ONE row, not two. The remedy was warranted in full
+  anyway, because the cross-comparison checks must share one owner value or they start passing on
+  the value rather than on the prose. The qa digest and notes/qa-c0.md are left as the dated records
+  of what that run concluded.
 gate_status:
   brief_approval: "PASS — approved / operator / 2026-08-10"
-  plan_approval: "PASS — approval.status approved, three rulings ride with the signature"
-  arch_review: "PASS (plan phase) — eng-lead, 4 must_fix all closed"
-  design_contract: "PASS (plan phase) — visual-designer, needs_prototype false"
-  ui_contract_prebuild: "PASS (plan phase) — ui-reviewer, three passes, all must_fix closed"
-  plan_contract: "PASS (plan phase) — validator, 3 must_fix closed in one round"
-  docs: "NOT APPLICABLE — check-docs.sh was DELETED at 835b297 (issue #202). No docs gate exists."
-  task_verify: >-
-    PASS — re-run BY ME from the repo root against the plan's verify scalar, twice: after T-01 and
-    again after MF-1. Exit 0, prints PASS. Not relayed.
+  plan_approval: "PASS — approved, three rulings ride with the signature"
+  task_verify: "PASS — re-run by me from the repo root after T-01, after MF-1 and after MF-2. Exit 0."
   qa_gate: >-
-    PASS AFTER ONE FIX CYCLE — blocking gate, and it earned its blocking status. Both required kinds
-    ran as the standing test_kinds commands rather than as T-01's task-local verify: unit 10/10
-    scripts (test-factory-gh.py 118/118), integration 12/12 scripts
-    (test-factory-integration.py 97/97). The integration KIND had never been shown green before this
-    segment — every "97/97" in the record until now was one script out of twelve. Re-run by me.
-  mf1_mutant_proof: >-
-    PASS — the fix was proven falsifiable rather than asserted. factory_gh.py was mutated to drop the
-    value, three named checks reddened (:411 once, :433 twice inside the two-fixture loop), and the
-    file was restored byte-identically. I verified the restore myself: git diff --stat over
-    factory_gh.py is EMPTY, and all three D-04 frozen literals (:332, :476, :624) are untouched.
-  review_panel: "PENDING — dispatched against the MF-1 commit, never an earlier pin"
-  uat: "PENDING — blocking_when_uat_criteria_exist; SC-01 is uat and only the operator may run it"
-  github_mirror: "PASS — open: milestone #5, parent #214 (created), T-01 -> #215; close-task closed #215, left #211 open for the briefing"
-  commit_pen: "EXERCISED twice, always by explicit pathspec, held dirt excluded"
+    PASS after one fix cycle. BLOCKING, and it earned it. Both required kinds ran as the standing
+    test_kinds commands rather than as the task's own verify: unit 10/10 scripts, integration 12/12.
+    The integration KIND had never been shown green before — every "97/97" in the record until then
+    was one script out of twelve. Bug-class kind was named as `integration` in the dispatch, citing
+    SC-09, rather than left to inference against a matrix that binds only `unit`.
+  mutant_proofs: >-
+    PASS x2. Both assertion fixes were proven falsifiable rather than asserted: source mutated, the
+    reddening checks predicted BY NAME beforehand, prediction matched. factory_gh.py restored
+    byte-identically both times and I verified each restore with git diff before committing, not
+    from the report.
+  review_panel: "PASS at severity_max: info — four reviewers in one turn, zero must_fix, none of the four pre-briefed items re-raised as a discovery"
+  goal_check: "FAIL then closed — SC-11 not_met at 2ea9af3, fixed at 15cabe9, 11 of 12 met, SC-01 uat"
+  distillation: >-
+    COMPLETE. 11 agent Expertise files updated, harness-visual-designer.md created for the first
+    time. No wipes — entry counts checked before and after rather than trusted.
+    check-expertise.sh over the directory exits 1 on ONE file, harness-documentor.md (G-04, 53 words
+    against a 50 cap). PRE-EXISTING, not caused here: git log 8dedeae..HEAD shows that file untouched
+    by this feature. Two leads independently declined to spawn documentor to trim three words on
+    DEC-125 wipe-risk grounds and I endorsed both refusals. Backlog B-13.
+  ship_refresh: "SKIPPED, documented — no codebase map exists (no INDEX.md anywhere in the repo), so no map can be stale"
+  seam_handoffs: >-
+    WRITTEN, and owed: I ran build, validate and ship in one session without stopping, and
+    check-state.sh correctly reported both missing seam notes as VIOLATIONS rather than advice.
+    notes/handoff-build.md and notes/handoff-validate.md are written retrospectively and say so
+    rather than presenting themselves as contemporaneous.
+  uat: "PENDING — blocking_when_uat_criteria_exist. SC-01 is the only uat criterion and only the operator may run it"
+  github_mirror: "PASS — milestone #5, parent #214 (created), T-01 -> #215 closed; #211 left OPEN for the operator's acceptance, per DEC-138 am.7"
+  commit_pen: "EXERCISED four times, always by explicit pathspec, unrelated held dirt excluded every time"
 runs:
   - { id: plan-product, squad: product, verdict: PASS }
   - { id: plan-eng, squad: eng, verdict: PASS }
@@ -131,37 +131,25 @@ runs:
   - { id: t01-qa-validator, squad: validator, verdict: FAIL }
   - { id: 2026-08-10-01-q5-product, squad: product, verdict: PASS }
   - { id: mf1-eng, squad: eng, verdict: PASS }
+  - { id: 2026-08-10-02-validator, squad: validator, verdict: PASS }
+  - { id: goalcheck-product, squad: product, verdict: FAIL }
+  - { id: mf2-eng, squad: eng, verdict: PASS }
+  - { id: distill-eng, squad: eng, verdict: PASS }
+  - { id: distill-product, squad: product, verdict: PASS }
+  - { id: distill-validator, squad: validator, verdict: FAIL }
+  - { id: distill-apply-eng, squad: eng, verdict: PASS }
+  - { id: distill-apply-validator, squad: validator, verdict: PASS }
 runs_note: >-
-  plan-eng is the eng-lead architecture review's artifact dir from inside the plan-feature run; it
-  holds no digest. 8 runs against a max_total_runs of 20 — INV-22 is not crossed and no note is owed.
-residuals:
-  d03_partial_success: >-
-    MEASURED BY qa, escalated as E-1, and NOT a fix cycle. A constructed partial-success envelope
-    (exit 1, complete data, no null anywhere, non-empty errors) makes project_field_set return
-    successfully AND issue the gh project item-edit — a WRITE on a call gh reported as failed, worse
-    than the read eng-lead predicted. It does NOT violate SC-07, whose clause is that a failed
-    resolution never silently reuses the BARE BOARD NUMBER as --project-id: the id passed is the
-    resolved PVT_ node id from a complete envelope. It is signed D-03 step 3 behaving exactly as
-    written ("if it is a mapping containing a data key, set env to it and FALL THROUGH"), so the
-    remedy contradicts the signed decision and no eng fix cycle can legitimately close it. Routed to
-    pm for a recommendation, and it reaches the operator in the briefing as a named decision.
-  data_null_wrong_cause: >-
-    A top-level {"data": null} envelope raises "project owner not found: <owner>" — safe, no write,
-    but factually wrong about the cause. SC-10 satisfied literally. Backlog.
-  plan_anchor_43: >-
-    plan.yaml's intent cites factory_cli.body "at factory_gh.py:43"; line 43 is self.stdout = stdout
-    and the call is at :45. Harmless — the instruction it supports is correct either way — but
-    recorded so the anchor is not copied forward. plan.yaml is pm's file, so the fix rides goal-check.
-  qa_cannot_author_here: >-
-    team-config.yaml:217-218 grants harness-qa `tests/**` and `web/src/**/*.test.*`, neither of which
-    matches `.claude/skills/harness/bin/test-*.py` — the only test files this repo has. The qa
-    segment is therefore GATE-AND-ASSESS by construction and a missing test is a finding, never
-    something qa can write. Same class as the Q6 pm-receipt routing wall. Backlog.
-  ok_stale_receipt_markers: >-
-    Two ok-stale markers survive at notes/review-harness-ui-reviewer-plan-product.md:63-64. Left
-    deliberately: that file is the validator squad's artifact and product cannot write it. Four other
-    hits are PROSE ABOUT the syntax, not markers — deleting those would corrupt the sentences and
-    rewrite a review record, which principles rule 15 forbids. Backlog, not owed here.
+  16 runs against an informational budget of 20 — INV-22 not crossed, no note owed. plan-eng is the
+  architecture review's artifact dir from inside plan-product and holds no digest of its own. The
+  product-lead ops application wrote only its own Expertise file and created no run dir.
+  distill-validator returned FAIL on another squad's pre-existing file, not on its own work.
+residuals: >-
+  All carried into the briefing's backlog as B-1..B-16, which is the list that survives: anything not
+  in that table dies silently at acceptance. The ones that most want the operator's eye are B-5
+  (bash-write-guard.sh mis-parses a redirect and is a DEC-174 carve-out file only the operator may
+  fix), B-7 (multi-clause criteria scored as covered when one clause is asserted — the same defect
+  twice in this feature), and B-13 (the expertise gate is red on a pre-existing file).
 github:
   milestone: 5
   parent: 214

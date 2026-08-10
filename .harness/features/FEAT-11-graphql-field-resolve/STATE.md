@@ -3,30 +3,45 @@
 ## Current
 
 - feature: FEAT-11-graphql-field-resolve
-- run: none yet this mission
+- run: .harness/features/FEAT-11-graphql-field-resolve/notes/ship-review-close.md
 - squad: none
-- status: in-progress
+- status: awaiting-user
 
-Mission SHIP, phase BUILD (transitioned from phase plan at 8dedeae, on the operator's signature).
-Both approvals read `approved` / `operator` / 2026-08-10, so the step-0 gate passes and the
-plan-phase handoff's `## Next` is validated: mirror, then T-01 to eng-lead, then the qa segment.
-Two inherited claims were re-measured before any dispatch rather than trusted: the three sha256
-sentinels recompute byte-identical (Q4 is moot, no amendment owed), and the working tree is clean
-over `run-unit-tests.sh` and all four DEC-174 carve-out files (Q3's FEAT-12 hazard has not arrived
-here). Baseline suites are green and the verify's discriminating clauses are red, as designed.
-8 of 12 cycles spent, all of them in the plan phase.
+Mission SHIP is COMPLETE up to the operator's gate. Build, validate and close-out are all done and
+the briefing is written. **Eleven of twelve success criteria are met; SC-01 is `uat` and stays that
+way — it is the live cost measurement against a Projects v2 board and no agent in this flow may run
+it.** The work is committed on the feature branch and nothing is pushed; no PR is open.
+
+The headline outcome: a station move cost 104 GraphQL points and now costs 2, which is the
+difference between a factory that exhausts its hourly budget mid-run and one that does not.
+
+Both defects the gates caught were assertions that could not fail rather than bugs in the shipped
+code, and both fixes were watched failing before they were believed. 11 of 12 cycles spent, 15 runs
+against an informational budget of 20. Distillation is complete across 11 Expertise files with no
+wipes. Ship-refresh was skipped and the reason recorded: this repo has no codebase map, so none can
+be stale.
+
+**Next action is the operator's, and it is three things:** run the SC-01 UAT (read its step 0 first
+— `factory_decompose` takes its board from `fleet.yaml`, which says board 3, not the board 6 the
+ruling protects); rule on SC-01's total clause; and strike whatever should not enter the backlog.
 
 ## Open Questions
 
-- Q1 (SC-01): ANSWERED by the operator's signature ruling — board 6 is a retained fixture, its item
-  station values are recorded before the proof and restored after. Carried into the UAT script.
-- Q2 (the falsified grilling rationale): CLOSED — ruling stands in `feature.yaml` `e1_ruling`.
-- Q3 (FEAT-12 / `run-unit-tests.sh`): measured clean at 8dedeae. Re-check before the final commit.
-- Q4 (sha256 sentinels): CLOSED — recomputed byte-identical at 8dedeae.
-- Q5 (`DESIGN.md:59`, `:119` inert `<!-- ok-stale -->` markers): the orchestrator may resolve this
-  without asking, per the ship dispatch. Swept as a product-squad segment in this phase.
-- Q6 (harness defect: `harness-pm` has no `notes/receipt-*.md` grant in team-config.yaml): still
-  open, not this feature's to fix. Rides the briefing's backlog.
-- Q7 (validator residuals): the bugfix matrix binds only `unit`, so the qa segment is told
-  explicitly that `integration` is the required bug-class kind, citing SC-09. The two unmeasured
-  envelope shapes are named in T-01's fixture list.
+- Q1 (blocking, operator only): **SC-01's total clause may be arithmetically unmeetable as written.**
+  A four-task decompose also pays `gh project item-list` at 31 points per task, a call this feature
+  never touched, so an all-`partial` run floors around 133 regardless. Measuring the total instead on
+  an all-new run creates board items the restore cannot undo, spending the fixture. My
+  recommendation: accept the per-move clause (2 vs 104) as the proof and record the total as
+  mis-specified. Amending a criterion is the operator's alone.
+- Q2 (non-blocking, recommend accept): a GraphQL partial-success envelope makes `project_field_set`
+  complete its write on a call `gh` reported as failed. It is signed D-03 behaving exactly as
+  written, so no engineering cycle can legitimately close it, and it does not violate SC-07. pm and
+  I both recommend accepting it as a recorded residual rather than amending D-03.
+- Q3 (harness defect, operator only): `bash-write-guard.sh` reads the redirect target of
+  `cp … 2>/dev/null` as the `cp` destination and blocks a legitimate in-domain write. A fail-closed
+  hook with a false positive, and a DEC-174 carve-out file no agent may fix.
+- Q4 (backlog): the expertise format gate is red on `harness-documentor.md` (53 words against a
+  50-word cap). Pre-existing — that file is untouched by this feature — and two leads independently
+  declined to spawn documentor to trim it, on wipe-risk grounds. I endorsed both refusals.
+- Q5..Q16: the remaining residuals are the briefing's backlog table B-1..B-16. Anything the operator
+  does not strike becomes an issue on acceptance; anything not in that table dies silently.
