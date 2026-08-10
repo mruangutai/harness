@@ -169,4 +169,11 @@ runs:
   - { id: fix-projectid-eng, squad: eng, verdict: PASS }
   - { id: panel2-validator, squad: validator, verdict: ESCALATE }
   - { id: a1fix-eng, squad: eng, verdict: PASS }
+  - { id: i202-validator, squad: validator, verdict: FAIL }
+i202_note: >-
+  i202-validator reviewed GitHub issue #202, not this feature. It lives here because #202 owns no
+  feature dir and the panel needed one. Its FAIL stands as the lead recorded it; four of five
+  findings were later ruled void or fixed, and its envelope — written after the fact by the main
+  session, because the lead died on an API error before writing it — records each disposition
+  against evidence.
 runs_correction_note: "panel-validator was recorded PASS and was WRONG (two of three members FAILed). Repaired to FAIL — roll-up field only; it gates nothing."
