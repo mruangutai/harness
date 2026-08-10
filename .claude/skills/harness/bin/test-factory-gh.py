@@ -458,6 +458,9 @@ check("board absent: makes ZERO item-edit calls",
       not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
 check("board absent: message differs from the organization message",
       raised and str(board_exc) != str(org_exc), f"board={board_exc}, org={org_exc}")
+check("board absent: message differs from the unknown-owner message",
+      raised and unknown_exc is not None and str(board_exc) != str(unknown_exc),
+      f"board={board_exc}, unknown={unknown_exc}")
 check("board absent: message carries no generic subcommand fallback",
       raised and "api graphql" not in str(board_exc), f"exc={board_exc if raised else None}")
 

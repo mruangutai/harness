@@ -65,7 +65,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     absorbs: [211]
     files:
       - .claude/skills/harness/bin/factory_gh.py
@@ -301,7 +301,7 @@ tasks:
         {number} does not offer it matches nothing, ever, and is a dead assertion that ships green.
         Substitute this case's own owner, number, field and option if you change them. GhError
         exposes no next_step attribute - str(exc) is built by factory_cli.body(what, value,
-        next_step) at factory_gh.py:43 - so str(exc) is where the assertion goes.
+        next_step) at factory_gh.py:45 - so str(exc) is where the assertion goes.
       - :282-306 the --project-id argv-dispatching case. Keep the dispatching_fake, but dispatch on
         the ("api", "graphql") prefix instead of ("project", "field-list") and ("project", "view").
         Keep the assertion that --project-id is PVT_kwFAKE and not "3".
