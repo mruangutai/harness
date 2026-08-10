@@ -1,4 +1,4 @@
-# /harness-grill — dialog to clarity before anything is built
+# /harness-grilling — dialog to clarity before anything is built
 
 Load `harness-grilling` and run it, here in the main session (no subagent has a user channel).
 
