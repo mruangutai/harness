@@ -6,11 +6,15 @@ Command line: factory_decompose.py <feature-dir> --repo <owner/name> [--fleet <p
 
 Behaviour is documented step-by-step in plan.yaml T-04's intent and in DESIGN.md C-3/C-4/C-5.
 In short: load and validate the fleet and the signed plan, ensure the factory's label
-vocabulary, adopt-or-create a parent issue, create one issue per not-yet-published task, add
+vocabulary, validate the fleet's declared stations against the board's real field options
+(step 3b), adopt-or-create a parent issue, create one issue per not-yet-published task, add
 each to the board, then draw the DAG (sub-issue + blocked_by edges) in a second pass so edge
 correctness never depends on plan task order. Every receipt (issue number, item id, edge) is
-written back into <feature-dir>/feature.yaml's `factory` block IMMEDIATELY and ATOMICALLY, so
-an interrupted run resumes instead of duplicating (D-14).
+written back into <feature-dir>/feature.yaml's `factory` block ATOMICALLY, so an interrupted
+run resumes instead of duplicating (D-14). The item id specifically is written back only after
+`project_field_set` returns (T-04 defect fix) — not immediately after the board add — so the
+ledger never claims a task is ready to claim when the station-set that makes it claimable has
+in fact failed.
 
 The only harness file this tool writes is feature.yaml, and it is spliced surgically —
 locate the `factory:` block textually and rewrite only those lines, preserving the rest of the
@@ -241,6 +245,73 @@ def sort_dispositions(tasks, factory):
 
 
 # --------------------------------------------------------------------------
+# Station validation (T-04 defect fix, deliverable 4 — a declared widening beyond the signed
+# plan). Called at step 3/4, before ensure_labels (step 5, THE POINT OF NO RETURN per
+# plan.yaml:818-830). Deliberately NOT inside preflight() — plan.yaml:412 signs preflight() as
+# `auth status` only and plan.yaml:1270 tests a monkeypatched preflight raising GhError; widening
+# that signature would break a signed test for no gain.
+# --------------------------------------------------------------------------
+
+def _validate_stations(owner, board_number, station_field, stations):
+    """Validate every fleet station name against the board's real field options before anything
+    is created. Two failure modes of factory_gh.project_field_options: the FIELD itself missing
+    (it raises GhError naming the field, propagated unchanged) and an OPTION missing (it returns
+    a list and this function produces the message, naming the offending station key, its
+    configured value, and the board's real options)."""
+    options = factory_gh.project_field_options(owner, board_number, station_field)
+    for key, value in stations.items():
+        if value not in options:
+            factory_cli.refuse(
+                TOOL, "station option not offered by the board", f"{key}={value!r}",
+                f"field {station_field!r} on {owner} project {board_number} offers: "
+                + ", ".join(options),
+            )
+
+
+# --------------------------------------------------------------------------
+# Re-add resolution (T-04 defect fix, deliverable 3, option ii). On the `partial` recovery path
+# only: resolve an already-added board item before calling project_item_add again, since
+# `gh project item-add` on an already-added issue is UNVERIFIED to be idempotent. Reuses the
+# EXACT field access factory_claim.py's poll already depends on today for its own item-list
+# consumption — content.number (factory_claim.py:249) and content.repository
+# (factory_claim.py:73) — with a fallback (_item_repo, below) for when content.repository is
+# absent from the response, rather than guessing the project item-list JSON shape fresh.
+# --------------------------------------------------------------------------
+
+def _item_repo(item):
+    """Resolve an item's repository the SAME way factory_claim.py:69-84's `_repo_name_of` does —
+    content.repository when present, otherwise normalise the item's top-level URL-form
+    `repository` key to its last two path segments (owner/name). Replicated rather than imported:
+    factory_claim.py is a read-only dependency here (T-04 cycle-1 defect fix). content.repository
+    can be ABSENT on a real board response — `_repo_name_of`'s own docstring says so — so a
+    comparison against content.repository alone silently misses every such item and makes every
+    lookup a false MISS, reproducing the factory_gh.py:266 fail-open shape this deliverable exists
+    to avoid."""
+    content = item.get("content") or {}
+    repo = content.get("repository")
+    if repo:
+        return repo
+    url = item.get("repository") or ""
+    parts = url.rstrip("/").split("/")
+    return "/".join(parts[-2:]) if len(parts) >= 2 else url
+
+
+def _find_existing_item_id(owner, board_number, repo, issue_number):
+    """No `query=` filter: this looks up whether ONE SPECIFIC issue already has a board item,
+    not whether it is currently claimable — factory_claim.py's `is:open` scoping serves a
+    different purpose (polling for open work) and would silently miss the issue if it were
+    closed between the failed run and this recovery run, which would re-trigger the exact
+    re-add this function exists to avoid. project_items already guards against a truncated read
+    via totalCount (factory_gh.py:180-192), so an unqueried read fails loud rather than silently
+    short."""
+    for it in factory_gh.project_items(owner, board_number):
+        content = it.get("content") or {}
+        if content.get("number") == issue_number and _item_repo(it) == repo:
+            return it.get("id")
+    return None
+
+
+# --------------------------------------------------------------------------
 # The publish itself.
 # --------------------------------------------------------------------------
 
@@ -294,6 +365,16 @@ def _main():
 
     # 3. preflight.
     factory_gh.preflight()
+
+    # 3b. hoisted board reads + station validation (T-04 defect fix, deliverable 4 — a declared
+    # widening beyond the signed plan). Everything through step 4 mutates nothing
+    # (plan.yaml:818-830), so validating here costs one field-list READ and stops a typo before
+    # ensure_labels (step 5, the point of no return). fleet["board"] reads used to sit inside
+    # step 7 alone (issue: T-04 defect fix); hoisted here rather than duplicated.
+    owner = fleet["board"]["owner"]
+    board_number = fleet["board"]["number"]
+    station_field = fleet["board"]["station_field"]
+    _validate_stations(owner, board_number, station_field, fleet["board"]["stations"])
 
     # 4. load the ledger and sort every task into a disposition.
     factory = load_factory(feat_dir)
@@ -354,20 +435,29 @@ def _main():
         write_factory(feat_dir, factory)
 
     # 7. add every task issue with no recorded item id to the board. The parent is NEVER added.
-    owner = fleet["board"]["owner"]
-    board_number = fleet["board"]["number"]
-    station_field = fleet["board"]["station_field"]
+    # The item id is recorded ONLY after project_field_set returns (T-04 defect fix): recording
+    # it the moment project_item_add returns left an orphan permanently invisible to
+    # sort_dispositions whenever the station-set that follows raised — the ledger said "done"
+    # while no agent could ever claim the task (fleet.yaml's `stations.ready` need only be one
+    # character wrong for the board add to succeed and the station-set to fail forever).
     ready_option = factory_config.station(fleet, "ready")
     for t in tasks:
         tid = str(t["id"])
-        if dispositions[tid] not in ("new", "partial"):
+        disp = dispositions[tid]
+        if disp not in ("new", "partial"):
             continue
         num = factory["issues"][tid]
-        url = f"https://github.com/{args.repo}/issues/{num}"
-        item_id = factory_gh.project_item_add(owner, board_number, url)
+        item_id = None
+        if disp == "partial":
+            # The board add may already have succeeded on an earlier, interrupted run whose
+            # station-set then failed — resolve it rather than re-adding (deliverable 3).
+            item_id = _find_existing_item_id(owner, board_number, args.repo, num)
+        if item_id is None:
+            url = f"https://github.com/{args.repo}/issues/{num}"
+            item_id = factory_gh.project_item_add(owner, board_number, url)
+        factory_gh.project_field_set(owner, board_number, item_id, station_field, ready_option)
         factory["items"][tid] = item_id
         write_factory(feat_dir, factory)
-        factory_gh.project_field_set(owner, board_number, item_id, station_field, ready_option)
 
     # 7b. the edge pass — a second pass, run after every issue in this publish exists.
     id_cache = {}

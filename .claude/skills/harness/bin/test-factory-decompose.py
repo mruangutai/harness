@@ -58,6 +58,10 @@ class Recorder:
         self._issue_seq = 100
         self._item_seq = 5000
         self.raise_on = {}   # name -> exception instance, or callable(args) -> exception|None
+        # Matches good_fleet_dict's station option names exactly, so every existing fixture's
+        # stations validate clean by default.
+        self.field_options = ["Ready", "Building", "Review"]
+        self.board_items = []   # project_items() return value, set per-test
 
     def _hit(self, name, args):
         self.calls.append((name, args))
@@ -105,10 +109,19 @@ class Recorder:
     def blocked_by(self, repo, num, blocker_id):
         self._hit("blocked_by", (repo, num, blocker_id))
 
+    def project_field_options(self, owner, number, field):
+        self._hit("project_field_options", (owner, number, field))
+        return list(self.field_options)
+
+    def project_items(self, owner, number, query=None, limit=500):
+        self._hit("project_items", (owner, number, query, limit))
+        return list(self.board_items)
+
 
 PATCHED = (
     "preflight", "ensure_labels", "create_issue", "add_label", "project_item_add",
     "project_field_set", "internal_id", "attach_sub_issue", "blocked_by",
+    "project_field_options", "project_items",
 )
 
 
@@ -862,6 +875,177 @@ for mode in ("missing", "empty", "whitespace"):
               not any(str(l).startswith("feature:None") for l in all_labels), all_labels)
         check(f"(S2-{mode}) no bare 'feature:' label anywhere in what reached gh either",
               not any(str(l) == "feature:" for l in all_labels), all_labels)
+
+
+# ============================================================================
+# D-04-fix. project_field_set raising on EVERY call (a persistent condition, e.g. a fleet
+# typo) must never let the ledger record the board add as complete — reproduces the station-set
+# orphan (T-04 defect fix). A VALID fleet (station names match the stub board) is used so the
+# run reaches step 7, unlike deliverable 4's fleet-typo test, which never gets past step 3/4.
+# The SAME Recorder instance is reused across both runs so the failure condition persists exactly
+# as a real fleet typo would — a fresh Recorder for run 2 would silently launder the bug.
+# ============================================================================
+with tempfile.TemporaryDirectory() as td:
+    tasks = [task("T-01")]
+    feat_dir, fleet_path = make_feature(td, tasks=tasks)
+    rec = Recorder()
+    persistent_fail = factory_gh.GhError(
+        [], 1, "", "field not found", "gh project item-edit failed", "Status",
+        "check fleet.yaml",
+    )
+    rec.raise_on["project_field_set"] = persistent_fail
+
+    code1, out1, err1 = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
+    check("(D4fix-1) run 1 exits 2", code1 == 2, f"code={code1!r} err={err1}")
+    check("(D4fix-1) run 1: project_item_add WAS called (proves the run reached step 7)",
+          any(c[0] == "project_item_add" for c in rec.calls), rec.calls)
+    fblock = read_factory_block(feat_dir)
+    check("(D4fix-1) run 1: issue recorded", "T-01" in (fblock.get("issues") or {}), fblock)
+    check("(D4fix-1) run 1: item NOT recorded as complete (the orphan does not land in the "
+          "ledger)", "T-01" not in (fblock.get("items") or {}), fblock)
+
+    code2, out2, err2 = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
+    check("(D4fix-2) run 2, same persistent failure: exits non-zero",
+          code2 not in (0, None), f"code={code2!r}")
+    fblock2 = read_factory_block(feat_dir)
+    check("(D4fix-2) run 2: item STILL not recorded as complete",
+          "T-01" not in (fblock2.get("items") or {}), fblock2)
+
+
+# ============================================================================
+# D-04-3. The partial-recovery path resolves an already-added board item via project_items
+# rather than re-adding it — settles the re-add question (deliverable 3, option ii).
+# project_item_add must NOT be called a second time when the item already exists on the board.
+# ============================================================================
+with tempfile.TemporaryDirectory() as td:
+    tasks = [task("T-01")]
+    feat_dir, fleet_path = make_feature(td, tasks=tasks)
+    rec1 = Recorder()
+    rec1.raise_on["project_field_set"] = factory_gh.GhError(
+        [], 1, "", "boom", "gh project item-edit failed", "Status", "retry",
+    )
+    run_publish(feat_dir, fleet_path, rec1, extra_args=["--parent", "1"])
+    fblock_mid = read_factory_block(feat_dir)
+    issue_num = fblock_mid["issues"]["T-01"]
+    check("(D4-3) precondition: issue recorded, item not recorded",
+          issue_num is not None and "T-01" not in (fblock_mid.get("items") or {}), fblock_mid)
+
+    rec2 = Recorder()
+    rec2.board_items = [{
+        "id": "ITEM-EXISTING",
+        "content": {"number": issue_num, "repository": REPO},
+    }]
+
+    def _boom(args):
+        raise AssertionError(
+            "project_item_add must not be called when the item already exists on the board"
+        )
+
+    rec2.raise_on["project_item_add"] = _boom
+    code, out, err = run_publish(feat_dir, fleet_path, rec2, extra_args=["--parent", "1"])
+    check("(D4-3) resume with existing board item: exits 0", code in (0, None),
+          f"code={code!r} err={err}")
+    check("(D4-3) project_item_add was NOT called on the recovery run",
+          [c for c in rec2.calls if c[0] == "project_item_add"] == [], rec2.calls)
+    check("(D4-3) project_items WAS called (the read-before-write)",
+          any(c[0] == "project_items" for c in rec2.calls), rec2.calls)
+    field_calls = [c for c in rec2.calls if c[0] == "project_field_set"]
+    check("(D4-3) project_field_set called with the RESOLVED existing item id",
+          any(c[1][2] == "ITEM-EXISTING" for c in field_calls), field_calls)
+    fblock_after = read_factory_block(feat_dir)
+    check("(D4-3) feature.yaml records the resolved existing item id",
+          (fblock_after.get("items") or {}).get("T-01") == "ITEM-EXISTING", fblock_after)
+
+# --- D-04-3b. the miss case: no matching item on the board -> project_item_add IS called (the
+#     fallback is deliberate, not accidental — pins the branch the "found" case above never
+#     exercises)
+with tempfile.TemporaryDirectory() as td:
+    tasks = [task("T-01")]
+    feat_dir, fleet_path = make_feature(td, tasks=tasks)
+    rec1 = Recorder()
+    rec1.raise_on["project_field_set"] = factory_gh.GhError(
+        [], 1, "", "boom", "gh project item-edit failed", "Status", "retry",
+    )
+    run_publish(feat_dir, fleet_path, rec1, extra_args=["--parent", "1"])
+
+    rec2 = Recorder()
+    rec2.board_items = []   # the lookup misses — no item recorded for this issue on the board
+    code, out, err = run_publish(feat_dir, fleet_path, rec2, extra_args=["--parent", "1"])
+    check("(D4-3b) resume with a board lookup miss: exits 0", code in (0, None),
+          f"code={code!r} err={err}")
+    check("(D4-3b) project_items WAS called (the lookup happened)",
+          any(c[0] == "project_items" for c in rec2.calls), rec2.calls)
+    check("(D4-3b) project_item_add IS called on a lookup miss (the fallback)",
+          any(c[0] == "project_item_add" for c in rec2.calls), rec2.calls)
+
+# --- D-04-3c. content.repository ABSENT: the board item carries only the URL-form top-level
+#     `repository` key (the shape factory_claim.py:69-84's fallback exists for). The lookup must
+#     still resolve the existing item via the same normalisation `_repo_name_of` performs, so
+#     project_item_add must NOT be called and project_field_set must target the resolved id.
+with tempfile.TemporaryDirectory() as td:
+    tasks = [task("T-01")]
+    feat_dir, fleet_path = make_feature(td, tasks=tasks)
+    rec1 = Recorder()
+    rec1.raise_on["project_field_set"] = factory_gh.GhError(
+        [], 1, "", "boom", "gh project item-edit failed", "Status", "retry",
+    )
+    run_publish(feat_dir, fleet_path, rec1, extra_args=["--parent", "1"])
+    fblock_mid = read_factory_block(feat_dir)
+    issue_num = fblock_mid["issues"]["T-01"]
+
+    rec2 = Recorder()
+    rec2.board_items = [{
+        "id": "ITEM-URLFORM",
+        "content": {"number": issue_num},   # no "repository" key at all
+        "repository": f"https://github.com/{REPO}",
+    }]
+
+    def _boom_c(args):
+        raise AssertionError(
+            "project_item_add must not be called when the item already exists on the board, "
+            "even when content.repository is absent and only the URL form is present"
+        )
+
+    rec2.raise_on["project_item_add"] = _boom_c
+    code, out, err = run_publish(feat_dir, fleet_path, rec2, extra_args=["--parent", "1"])
+    check("(D4-3c) resume with content.repository absent: exits 0", code in (0, None),
+          f"code={code!r} err={err}")
+    check("(D4-3c) project_item_add was NOT called on the recovery run",
+          [c for c in rec2.calls if c[0] == "project_item_add"] == [], rec2.calls)
+    field_calls = [c for c in rec2.calls if c[0] == "project_field_set"]
+    check("(D4-3c) project_field_set called with the RESOLVED existing item id",
+          any(c[1][2] == "ITEM-URLFORM" for c in field_calls), field_calls)
+
+
+# ============================================================================
+# D-04-4. Station-name validation before the point of no return: a one-character fleet typo
+# exits 2 before ensure_labels (step 5), before any mutating call. "Zero calls" is scoped to
+# the mutating surface — the validation itself makes a project_field_options READ.
+# ============================================================================
+with tempfile.TemporaryDirectory() as td:
+    feat_dir = os.path.join(td, "feature")
+    os.makedirs(feat_dir, exist_ok=True)
+    write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict())
+    write_text(os.path.join(feat_dir, "BRIEF.md"), GOOD_BRIEF)
+    write_text(os.path.join(feat_dir, "feature.yaml"), "")
+    fleet_dir = os.path.join(td, "fleet")
+    os.makedirs(fleet_dir, exist_ok=True)
+    fleet_path = os.path.join(fleet_dir, "fleet.yaml")
+    bad_fleet = good_fleet_dict(os.path.join(td, "workspaces"))
+    bad_fleet["board"]["stations"]["ready"] = "Redy"
+    write_yaml(fleet_path, bad_fleet)
+
+    rec = Recorder()
+    code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
+    check("(D4-4) typo fleet: exits 2", code == 2, f"code={code!r}")
+    check("(D4-4) typo fleet: zero mutating calls", rec.mutating_calls() == [], rec.calls)
+    check("(D4-4) typo fleet: the validation read itself happened",
+          any(c[0] == "project_field_options" for c in rec.calls), rec.calls)
+    check("(D4-4) typo fleet: stderr names the offending station key", "ready" in err, err)
+    check("(D4-4) typo fleet: stderr names the configured (wrong) value", "Redy" in err, err)
+    check("(D4-4) typo fleet: stderr names the board's real options",
+          "Ready" in err and "Building" in err and "Review" in err, err)
+    check("(D4-4) typo fleet: nothing on stdout", out == "", repr(out))
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
