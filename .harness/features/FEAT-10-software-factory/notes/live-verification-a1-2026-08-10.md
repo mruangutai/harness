@@ -69,7 +69,16 @@ load-bearing — correct to keep, but the stated risk does not exist.
    passed because that key is configurable. Items carry a stray `status: "Todo"` from the untouched
    default field.
 
-## Cleanup owed — the token lacks `delete_repo`, not attempted
+## RETAINED DELIBERATELY — operator ruling, 2026-08-10
+
+**Not cleanup owed. Kept as a test fixture.** The operator ruled these stay so future factory work
+has a real repo and a real board to run against. Board 6 already carries a working `Station` field
+with four items in known states, which is the expensive part to recreate.
+
+Do not delete them as housekeeping. The token lacks `delete_repo` anyway, so removal needs
+`gh auth refresh -h github.com -s delete_repo` — an explicit act, not an accident.
+
+What exists, so a later run knows what it is inheriting:
 
 `mruangutai/harness-factory-smoke-a1` (private): issues #1-#5, branches `factory/issue-2` and
 `factory/issue-4`, PR #6 OPEN and unmerged, labels `harness` / `feature:ZZ-THROWAWAY-a1-smoke` /
