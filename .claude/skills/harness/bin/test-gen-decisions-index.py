@@ -335,6 +335,62 @@ def test_strips_inline_ok_stale_marker_on_a_row():
         return False
 
 
+def test_committed_index_matches_a_fresh_regeneration():
+    """The committed index must BE what the generator produces. Nothing checked this.
+
+    Found by mutant testing during the #202 review. Two mutants against the committed
+    file: a DELETED row and a SPURIOUS row for a decision with no heading. The whole
+    suite stayed green for both, because every other test regenerates into a tmp dir
+    and compares counts — none of them reads REAL_INDEX and diffs it.
+
+    Only half the gap was real. The generator ALREADY exits 1 on the spurious row
+    (`ORPHAN: … has a ruling in the index but no live heading`), measured. The deleted
+    row is the silent one, and it self-heals on the next regeneration — so the window
+    is narrow, and this test closes it rather than guarding a disaster.
+
+    THE COST, STATED SO NOBODY IS SURPRISED BY IT: this goes red when someone edits
+    DECISIONS.md and has not yet run the generator. That is the "punishes writing a
+    decision rather than catching a defect" trap this file warns about elsewhere, and
+    it is accepted here because the remedy is one command the failure message names.
+    """
+    name = "test_committed_index_matches_a_fresh_regeneration"
+    try:
+        if not os.path.exists(GEN):
+            print(f"FAIL - {name}: generator not found at {GEN}")
+            return False
+        if not os.path.isfile(REAL_INDEX):
+            print(f"FAIL - {name}: {REAL_INDEX} not found")
+            return False
+
+        r = subprocess.run([sys.executable, GEN, "--stdout"],
+                           cwd=REPO_ROOT, capture_output=True, text=True)
+        if r.returncode != 0:
+            print(f"FAIL - {name}: generator exited {r.returncode} — the committed index "
+                  f"cannot be reproduced: {r.stderr.strip()[:300]}")
+            return False
+
+        fresh = r.stdout.splitlines()
+        committed = open(REAL_INDEX, encoding="utf-8").read().splitlines()
+        if fresh != committed:
+            only_committed = [l for l in committed if l not in fresh and l.startswith("- DEC-")]
+            only_fresh = [l for l in fresh if l not in committed and l.startswith("- DEC-")]
+            detail = ""
+            if only_committed:
+                detail += f" rows in the file the generator does not produce: {only_committed[:3]}"
+            if only_fresh:
+                detail += f" rows the generator produces that the file lacks: {only_fresh[:3]}"
+            print(f"FAIL - {name}: docs/harness/DECISIONS-INDEX.md is not what the generator "
+                  f"produces.{detail or ' (difference is outside the DEC rows)'} "
+                  f"Fix: .claude/skills/harness/bin/gen-decisions-index.py")
+            return False
+
+        print(f"ok - {name}")
+        return True
+    except Exception as e:
+        print(f"FAIL - {name}: {type(e).__name__}: {e}")
+        return False
+
+
 def test_committed_index_is_complete_and_within_budget():
     name = "test_committed_index_is_complete_and_within_budget"
     try:
@@ -678,6 +734,7 @@ TESTS = [
     test_supersession_declared_in_body_prose_is_harvested,
     test_preserves_hand_written_rulings_by_dec_number,
     test_strips_inline_ok_stale_marker_on_a_row,
+    test_committed_index_matches_a_fresh_regeneration,
     test_committed_index_is_complete_and_within_budget,
     test_orphaned_ruling_is_reported_not_silently_dropped,
 ]
