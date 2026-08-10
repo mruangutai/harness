@@ -397,14 +397,18 @@ check("project_field_set: transport-failure message never carries the generic "
 fake, calls = recorder([Result(0, stdout=GRAPHQL_UNKNOWN_OWNER_JSON)])
 fgh.subprocess.run = fake
 try:
-    fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+    # "acmeuser", not "owner" (MF-1): "owner" occurs in this case's own fixed prose
+    # ("project owner not found", "check the owner login"), so the naming assertion below
+    # would pass regardless of the value slot. "acmeuser" occurs in no fixed prose in this
+    # file. Moves together with :421 and :441.
+    fgh.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
     raised, unknown_exc = False, None
 except fgh.GhError as e:
     raised, unknown_exc = True, e
     RAISED.append(e)
 restore()
 check("unknown owner: raises GhError naming the owner",
-      raised and "owner" in str(unknown_exc), f"exc={unknown_exc if raised else None}")
+      raised and "acmeuser" in str(unknown_exc), f"exc={unknown_exc if raised else None}")
 check("unknown owner: makes ZERO item-edit calls",
       not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
 check("unknown owner: message carries no generic subcommand fallback",
@@ -418,14 +422,15 @@ for label, fixture in (("exit-1 unreachable", GRAPHQL_ORG_UNREACHABLE_JSON),
                                     stderr="" if status == 0 else "gh: not found")])
     fgh.subprocess.run = fake
     try:
-        fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+        # "acmeuser" — moves together with :400 and :441 (MF-1 remedy).
+        fgh.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
         raised, org_exc = False, None
     except fgh.GhError as e:
         raised, org_exc = True, e
         RAISED.append(e)
     restore()
     check(f"organization ({label}): raises GhError naming the owner",
-          raised and "owner" in str(org_exc), f"exc={org_exc if raised else None}")
+          raised and "acmeuser" in str(org_exc), f"exc={org_exc if raised else None}")
     check(f"organization ({label}): makes ZERO item-edit calls",
           not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
     check(f"organization ({label}): message differs from the unknown-owner message",
@@ -438,14 +443,17 @@ for label, fixture in (("exit-1 unreachable", GRAPHQL_ORG_UNREACHABLE_JSON),
 fake, calls = recorder([Result(1, stdout=GRAPHQL_BOARD_ABSENT_JSON, stderr="gh: not found")])
 fgh.subprocess.run = fake
 try:
-    fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+    # "acmeuser" — not optional here even though :452 already discriminates below;
+    # moving only the org case would make that inequality pass for the wrong reason
+    # (differing values, not differing messages) — MF-1 trap 1.
+    fgh.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
     raised, board_exc = False, None
 except fgh.GhError as e:
     raised, board_exc = True, e
     RAISED.append(e)
 restore()
 check("board absent: raises GhError naming owner + project number",
-      raised and "owner project 3" in str(board_exc), f"exc={board_exc if raised else None}")
+      raised and "acmeuser project 3" in str(board_exc), f"exc={board_exc if raised else None}")
 check("board absent: makes ZERO item-edit calls",
       not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
 check("board absent: message differs from the organization message",

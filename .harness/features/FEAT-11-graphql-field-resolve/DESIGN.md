@@ -56,7 +56,7 @@ then happens one level up with a mistyped **owner**.
 is unchanged. That recommendation stands.
 
 **Correction, 2026-08-10.** This document previously asserted that `repositoryOwner` discriminates
-all three states at exit 0, with no errors array. <!-- ok-stale --> That was measured on
+all three states at exit 0, with no errors array. That was measured on
 `repositoryOwner(login:)` **alone**, and does not survive the combined document
 (`notes/research-FEAT-11-combined-query-probe.md`, six cases, same account, same day). The combined
 query splits across **two** exit codes: unknown-owner stays exit 0, but the organization case —
@@ -116,7 +116,7 @@ that is achieved belongs to `harness-backend-dev`.
 ## Open questions
 
 - **Q1 — resolved, and its own wording corrected.** D-02 was rewritten and SC-04/05/06 reshaped.
-  Q1 originally said every fixture must carry exit 1 plus the partial envelope; <!-- ok-stale -->
+  Q1 originally said every fixture must carry exit 1 plus the partial envelope;
   that holds for **three** of the five states, not all. The measured split is three exit-1 fixtures
   (org as probed †, board-not-found, field-null) and **two exit-0** fixtures (unknown owner with no
   `errors` key; not-single-select with `field: {}`). A fixture set that is uniformly exit 1 certifies a

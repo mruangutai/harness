@@ -10,3 +10,9 @@
   "a response real `gh` never produces" was a stronger, more misleading overgeneralisation than the
   Contract 2 paragraph I was sent to fix. When one claim is falsified, grep the file for every
   restatement of the same premise before returning.
+- 2026-08-10: `check-domain.sh` blocked me from writing the dispatch-requested receipt at
+  `.harness/features/*/notes/receipt-harness-visual-designer-*.md` — my permitted set is DESIGN.md,
+  notes/mockups/**, notes/prototypes/**, expertise, observations. `harness-handoff` tells every
+  agent to write receipts under `notes/`, so this role structurally cannot produce one. Returned the
+  receipt body in the assistant message and raised it as a blocking open question rather than
+  routing around the hook or dumping it in this log.

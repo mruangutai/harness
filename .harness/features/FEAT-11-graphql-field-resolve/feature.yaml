@@ -6,48 +6,57 @@ branch: feat/FEAT-11-graphql-field-resolve
 pr: none
 effort: https://github.com/mruangutai/harness/issues/211
 briefing: none
-review_sha: 8dedeae08229946d12d0579bcaaaca63856b5337
+review_sha: PENDING_MF1_COMMIT
 review_sha_note: >-
-  RE-PINNED at the signature commit at the start of the ship mission, and MOVED AGAIN after the
-  T-01 commit — see review_sha_history. The plan phase's pin (835b297) predates T-01 entirely, so a
-  panel dispatched against it would review a tree with none of the work in it. Every validator run
-  gets a pin naming a sha that actually contains the work under review.
-cycles_used: 8
+  Re-pinned once per validator run, always at a commit that contains the work under review (INV-6).
+  The panel's pin is set immediately after the MF-1 commit lands and is recorded here before the
+  panel is dispatched.
+review_sha_history: "835b297 (plan contract) -> 8dedeae (ship open) -> 5c433f2 (T-01) -> MF-1 commit (panel)"
+cycles_used: 9
 max_total_cycles: 12
 cycles_raise: >-
   RAISED 10 -> 12 BY THE OPERATOR, 2026-08-10, recorded here as DEC-157 requires. Eight cycles went
   to the plan phase — six to the plan team's own convergence, one to the validator FAIL, one to a
   digest-contract repair the orchestrator itself flagged as bookkeeping rather than deliverable
-  rework. A one-task build should need zero. The raise removes a mid-build BLOCKED interruption; it
-  does not endorse rework.
+  rework. The raise removes a mid-build BLOCKED interruption; it does not endorse rework.
 max_total_runs: 20
 cycles_note: >-
-  All 8 charged in the plan phase (6 plan-product send-backs, 1 validator FAIL routed back, 1
-  digest-contract repair). Ship mission so far: t01-eng reported ZERO send-backs and returned PASS
-  on the first pass, so it charges nothing — DEC-157, a first-pass run is not rework.
+  8 charged in the plan phase. 1 charged in the ship phase: the qa segment returned FAIL with MF-1
+  and I routed it back to eng — a FAIL routed back is rework by DEC-157 even though every lead
+  reported ZERO internal send-backs. t01-eng, 2026-08-10-01-q5-product and the qa segment's own run
+  charge nothing: first-pass forward work is not rework however many steps it has.
 counts: { reqs: 5, scs: 12, tasks: 1, decisions: 4, main_session_direct: 0 }
 counts_note: "SC-01 is operator-run by construction; every other criterion is agent-verifiable."
 tasks: { T-01: BUILT }
-tasks_note: "change_type bugfix, absorbs #211, files: factory_gh.py + test-factory-gh.py + test-factory-integration.py, all resolving to harness-backend-dev."
+tasks_note: >-
+  change_type bugfix, absorbs #211, files: factory_gh.py + test-factory-gh.py +
+  test-factory-integration.py, all resolving to harness-backend-dev. BUILT is my own vocabulary for
+  the execution record; plan.yaml tasks[0].status is pm's field and its update rides the goal-check
+  dispatch, because the signed plan otherwise reads as though the feature never built.
 route_resolution: >-
   ZERO main-session-direct. Resolved by check-domain.sh --resolve, not by reading team-config, which
-  is ambiguous for bin/** (granted to both backend-dev and dev-ops). None of the five DEC-174
-  carve-out files is in scope. eng-lead confirmed the pick at dispatch on semantics, not on the
-  grant, which cannot discriminate between backend-dev and dev-ops for bin/**.
+  is ambiguous for bin/** (granted to both backend-dev and dev-ops). None of the DEC-174 carve-out
+  files is in scope. eng-lead confirmed the pick on semantics, since the grant cannot discriminate.
 peer_feature_collision:
   peer: FEAT-12-end-copy-distribution
   overlap_files: none
   shared_surface: .claude/skills/harness/bin/run-unit-tests.sh
   risk: >-
     NO file in T-01 is in FEAT-12's plan union, but FEAT-12 edits run-unit-tests.sh, which is the
-    command T-01's verify invokes for --kind unit. If FEAT-12 lands first and changes how the suite
-    splits, T-01's verify changes meaning without T-01 changing. Sequencing is the operator's call.
+    command T-01's verify invokes. If FEAT-12 lands first and changes how the suite splits, T-01's
+    verify changes meaning without T-01 changing. Landing order is the operator's call.
   ship_phase_measurement: >-
-    CHECKED at the start of the ship mission: git status --porcelain is clean over
-    run-unit-tests.sh and over all four DEC-174 carve-out files, so FEAT-12 has landed nothing into
-    this working tree and T-01's verify means what the plan measured. Only held dirt is
-    .harness/logs/2026-08-10.md (modified) and the untracked FEAT-12 feature dir — both excluded
-    from every commit by explicit pathspec.
+    MEASURED, not assumed: git status --porcelain is clean over run-unit-tests.sh and over all four
+    DEC-174 carve-out files at every commit this mission made. FEAT-12 has landed nothing here, so
+    T-01's verify means what the plan measured. Held dirt (.harness/logs/2026-08-10.md, the
+    untracked FEAT-12 dir) is excluded from every commit by explicit pathspec.
+preflight_measurements: >-
+  Taken by me at 8dedeae BEFORE any dispatch, so no claim below is inherited. (1) All three sha256
+  pins in T-01's verify recompute byte-identical — Q4 is MOOT and no plan amendment is owed.
+  (2) Baseline green: --kind unit exit 0, test-factory-integration.py exit 0, 97/97.
+  (3) The verify's discriminating clauses were RED before the change — factory_gh._FIELD_QUERY did
+  not exist and the quoted "field-list" argv appeared once — so the green verify after it can only
+  come from the change.
 e1_ruling:
   claim: >-
     The grilling artifact states the two error paths at factory_gh.py:251-262 must survive because
@@ -58,8 +67,7 @@ e1_ruling:
     project_field_options and propagates its GhError WITHOUT reading the text; the option-not-offered
     message operators actually see is produced by _validate_stations itself at :264-268 via
     factory_cli.refuse. The Redy case (test-factory-decompose.py:1025-1048) runs against a Recorder
-    stand-in, asserting project_field_options is in rec.calls and asserting on _validate_stations'
-    own stderr; it never enters factory_gh.
+    stand-in and never enters factory_gh.
   ruling: >-
     THE OPERATOR'S CONSTRAINT STANDS UNCHANGED — the two error paths survive unchanged in behavior.
     A falsified rationale does not release a constraint. Only the stated REASON is wrong. The
@@ -73,18 +81,21 @@ sc01_ruling: >-
   CLOSED BY THE OPERATOR at signature. Board 6 and mruangutai/harness-factory-smoke-a1 are RETAINED
   FIXTURES, not scratch and not cleanup owed. SC-01's proof runs a real factory_decompose against
   board 6, which moves items between stations, so the operator records every item's station value
-  BEFORE the run and restores it after. The UAT script pm authors at goal-check carries that
-  record-and-restore procedure; a proof that leaves the four items moved has spent the fixture to
-  measure a number. No agent in this flow made any live gh call against board 6.
-q4_sentinels: >-
-  MOOT, measured at 8dedeae before any dispatch and unchanged after the build. All three sha256 pins
-  in T-01's verify recompute byte-identical to the planned values, so no amendment is owed and the
-  sentinel clauses discriminate as designed.
-build_baseline: >-
-  Measured at 8dedeae, clean tree: run-unit-tests.sh --kind unit exits 0 and
-  test-factory-integration.py exits 0 (97/97). The verify's discriminating clauses were RED before
-  the change — factory_gh._FIELD_QUERY did not exist and the quoted "field-list" argv appeared once
-  — so the green verify after it can only come from the change.
+  BEFORE the run and restores it after. pm authors that record-and-restore procedure into the UAT
+  script at goal-check. A proof that leaves the four items moved has spent the fixture to measure a
+  number. NO AGENT IN THIS FLOW MADE ANY LIVE gh CALL AGAINST BOARD 6 — every dispatch forbade it
+  and every path in the changed tests is fed by stubs or the whole-CLI fake.
+mf1_correction: >-
+  THE RECORD, CORRECTED WHERE IT IS WRONG, WITHOUT REWRITING THE ARTIFACT THAT CARRIES IT.
+  qa's MF-1 claimed BOTH test-factory-gh.py:407 and :428 asserted vacuously. Only :407 did.
+  factory_gh.py:264-266 renders "organization-owned ... user-owned" — the prose carries "owned",
+  never "owner" — so :428 was already discriminating on the value. Verified BY ME by substring test,
+  not relayed. Consequence: SC-10's positive clause was nominal for ONE row, not two, so SC-10 was
+  partially proven before this cycle and is fully proven after. The remedy was warranted in full
+  anyway: :432 and :452 cross-compare messages for INEQUALITY, so moving one case's owner value
+  without the others makes those inequalities pass on the value rather than on the prose. The
+  qa-segment digest and notes/qa-c0.md are NOT edited — they are dated records of that run, the same
+  treatment e1_ruling gives the grilling artifact, and this entry is the correction.
 gate_status:
   brief_approval: "PASS — approved / operator / 2026-08-10"
   plan_approval: "PASS — approval.status approved, three rulings ride with the signature"
@@ -94,36 +105,63 @@ gate_status:
   plan_contract: "PASS (plan phase) — validator, 3 must_fix closed in one round"
   docs: "NOT APPLICABLE — check-docs.sh was DELETED at 835b297 (issue #202). No docs gate exists."
   task_verify: >-
-    PASS — re-run BY ME from the repo root against the plan's verify scalar rather than relayed:
-    exit 0, prints PASS. Independently confirms the lead's claim.
-  qa_gate: "PENDING — blocking, orchestrator-sequenced validator segment, dispatched next"
-  review_panel: "PENDING — dispatched against a pin that contains T-01, never the plan-phase pin"
+    PASS — re-run BY ME from the repo root against the plan's verify scalar, twice: after T-01 and
+    again after MF-1. Exit 0, prints PASS. Not relayed.
+  qa_gate: >-
+    PASS AFTER ONE FIX CYCLE — blocking gate, and it earned its blocking status. Both required kinds
+    ran as the standing test_kinds commands rather than as T-01's task-local verify: unit 10/10
+    scripts (test-factory-gh.py 118/118), integration 12/12 scripts
+    (test-factory-integration.py 97/97). The integration KIND had never been shown green before this
+    segment — every "97/97" in the record until now was one script out of twelve. Re-run by me.
+  mf1_mutant_proof: >-
+    PASS — the fix was proven falsifiable rather than asserted. factory_gh.py was mutated to drop the
+    value, three named checks reddened (:411 once, :433 twice inside the two-fixture loop), and the
+    file was restored byte-identically. I verified the restore myself: git diff --stat over
+    factory_gh.py is EMPTY, and all three D-04 frozen literals (:332, :476, :624) are untouched.
+  review_panel: "PENDING — dispatched against the MF-1 commit, never an earlier pin"
   uat: "PENDING — blocking_when_uat_criteria_exist; SC-01 is uat and only the operator may run it"
-  github_mirror: "PASS — gh-sync.py open exit 0: milestone #5, parent #214 (created), T-01 -> #215"
-  commit_pen: "EXERCISED for T-01 by explicit pathspec; held dirt excluded"
+  github_mirror: "PASS — open: milestone #5, parent #214 (created), T-01 -> #215; close-task closed #215, left #211 open for the briefing"
+  commit_pen: "EXERCISED twice, always by explicit pathspec, held dirt excluded"
 runs:
   - { id: plan-product, squad: product, verdict: PASS }
   - { id: plan-eng, squad: eng, verdict: PASS }
   - { id: plan-contract-validator, squad: validator, verdict: FAIL }
   - { id: plan-fix-product, squad: product, verdict: PASS }
   - { id: t01-eng, squad: eng, verdict: PASS }
+  - { id: t01-qa-validator, squad: validator, verdict: FAIL }
+  - { id: 2026-08-10-01-q5-product, squad: product, verdict: PASS }
+  - { id: mf1-eng, squad: eng, verdict: PASS }
 runs_note: >-
-  plan-eng is the eng-lead architecture review's artifact dir, created as a leaf reviewer inside the
-  plan-feature run; it holds no digest of its own. The digest-contract repair created no run dir.
-build_residuals:
+  plan-eng is the eng-lead architecture review's artifact dir from inside the plan-feature run; it
+  holds no digest. 8 runs against a max_total_runs of 20 — INV-22 is not crossed and no note is owed.
+residuals:
   d03_partial_success: >-
-    RAISED BY eng-lead, non-blocking, a signed-plan consequence rather than a build defect. The
-    resolver treats any exit-1 stdout that parses to a mapping carrying a "data" key as a
-    diagnosable envelope. A GraphQL partial-success response — complete data, no null anywhere,
-    non-empty errors — would walk clean and return success for a call gh reported as failed. No row
-    in the plan's measured transport table has that shape, so no signed fixture reaches it. The
-    member implemented D-03 as written rather than adding an undeclared defensive re-raise, which
-    was correct. Routed to the qa segment as a known coverage hole, then to the briefing backlog.
+    MEASURED BY qa, escalated as E-1, and NOT a fix cycle. A constructed partial-success envelope
+    (exit 1, complete data, no null anywhere, non-empty errors) makes project_field_set return
+    successfully AND issue the gh project item-edit — a WRITE on a call gh reported as failed, worse
+    than the read eng-lead predicted. It does NOT violate SC-07, whose clause is that a failed
+    resolution never silently reuses the BARE BOARD NUMBER as --project-id: the id passed is the
+    resolved PVT_ node id from a complete envelope. It is signed D-03 step 3 behaving exactly as
+    written ("if it is a mapping containing a data key, set env to it and FALL THROUGH"), so the
+    remedy contradicts the signed decision and no eng fix cycle can legitimately close it. Routed to
+    pm for a recommendation, and it reaches the operator in the briefing as a named decision.
+  data_null_wrong_cause: >-
+    A top-level {"data": null} envelope raises "project owner not found: <owner>" — safe, no write,
+    but factually wrong about the cause. SC-10 satisfied literally. Backlog.
   plan_anchor_43: >-
-    plan.yaml's intent cites factory_cli.body "at factory_gh.py:43"; at 8dedeae line 43 is
-    self.stdout = stdout and the call is at :45. Non-blocking — the instruction it supports (assert
-    on str(exc)) is correct either way and the tests do assert on str(exc). Recorded so the anchor
-    is not copied forward. Not fixed by me: plan.yaml is pm's file.
+    plan.yaml's intent cites factory_cli.body "at factory_gh.py:43"; line 43 is self.stdout = stdout
+    and the call is at :45. Harmless — the instruction it supports is correct either way — but
+    recorded so the anchor is not copied forward. plan.yaml is pm's file, so the fix rides goal-check.
+  qa_cannot_author_here: >-
+    team-config.yaml:217-218 grants harness-qa `tests/**` and `web/src/**/*.test.*`, neither of which
+    matches `.claude/skills/harness/bin/test-*.py` — the only test files this repo has. The qa
+    segment is therefore GATE-AND-ASSESS by construction and a missing test is a finding, never
+    something qa can write. Same class as the Q6 pm-receipt routing wall. Backlog.
+  ok_stale_receipt_markers: >-
+    Two ok-stale markers survive at notes/review-harness-ui-reviewer-plan-product.md:63-64. Left
+    deliberately: that file is the validator squad's artifact and product cannot write it. Four other
+    hits are PROSE ABOUT the syntax, not markers — deleting those would corrupt the sentences and
+    rewrite a review record, which principles rule 15 forbids. Backlog, not owed here.
 github:
   milestone: 5
   parent: 214
