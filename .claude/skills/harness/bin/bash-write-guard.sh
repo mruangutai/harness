@@ -243,7 +243,26 @@ for _seg in SEGMENTS:
 REDIR = re.compile(r"^(?:[0-9]*(?:>{1,2}|<)|[0-9]*>&|&>{1,2})")
 
 
-def trailing_files(args, drop_first_script=False):
+# WHICH COMMANDS ACTUALLY TAKE A SCRIPT ARGUMENT AFTER -f. This set is the whole fix for
+# #241, and getting it wrong fails in one of two directions, so it is a set and not a
+# blanket rule.
+#
+# `sed -f script.sed file`, `perl -f`, `awk -f prog.awk file` consume the token after -f,
+# and skipping it is what keeps the SCRIPT out of the target list.
+#
+# `rm -f path` does NOT. There -f means force, and the token after it is the target. The
+# skip was unconditional, so `rm -f <out-of-domain-path>` arrived with an EMPTY target
+# list and no deny fired — measured at exit 0 while bare `rm <same path>` exited 2. The
+# most common deletion idiom was the one that got through. `rm -rf dir` was never affected
+# because -rf is a single token; `rm -r -f path` was.
+#
+# DO NOT "simplify" this by dropping -f from the flag list entirely: `sed -i -f script.sed
+# <out-of-domain>` blocks correctly TODAY by skipping the script path and keeping the real
+# target, and a blanket drop would report the script as the target instead.
+SCRIPT_ARG_CMDS = ("sed", "perl", "awk")
+
+
+def trailing_files(args, drop_first_script=False, script_flags=False):
     out, skip, saw_expr, skip_is_redir = [], False, False, False
     for a in args:
         if skip:
@@ -255,7 +274,7 @@ def trailing_files(args, drop_first_script=False):
                 saw_expr = True
             skip_is_redir = False
             continue
-        if a in ("-e", "-E", "--expression", "-f", "--file"):
+        if script_flags and a in ("-e", "-E", "--expression", "-f", "--file"):
             skip = True; continue          # the next token is an expression/script, not a target
         m = REDIR.match(a) if a else None
         if m:
@@ -284,7 +303,9 @@ for seg_tokens in tokens:
         base = os.path.basename(t)
         args = seg_tokens[i + 1:]
         if base in ("sed", "perl") and any(a.startswith(("-i", "-pi", "-ni")) or a == "-p" and "-i" in args for a in args):
-            findings.append((f"{base} in-place", trailing_files(args, drop_first_script=(base == "sed"))))
+            findings.append((f"{base} in-place",
+                             trailing_files(args, drop_first_script=(base == "sed"),
+                                            script_flags=(base in SCRIPT_ARG_CMDS))))
         elif base == "tee":
             findings.append(("tee", [a for a in trailing_files(args) if a != "-"]))
         elif base in ("mv", "cp") and len(trailing_files(args)) >= 2:
@@ -294,7 +315,7 @@ for seg_tokens in tokens:
         elif base == "sponge":
             findings.append(("sponge", trailing_files(args)))
         elif base == "awk" and any(a == "-i" or a.startswith("inplace") for a in args):
-            findings.append(("awk inplace", trailing_files(args)))
+            findings.append(("awk inplace", trailing_files(args, script_flags=True)))
 
 if not findings:
     sys.exit(0)

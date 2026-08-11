@@ -50,6 +50,20 @@ case("a redirect after cp still blocks, spaced",
      'cp .harness/features/F/runs/r-eng/a.md .harness/features/F/runs/r-eng/b.md > src/evil.py', 2)
 case("an out-of-domain cp destination still blocks",
      'cp .harness/features/F/runs/r-eng/a.md src/evil.py', 2)
+# #241: `-f` is a SCRIPT-FILE flag for sed/perl/awk and a FORCE flag for rm. The skip was
+# unconditional, so `rm -f <path>` arrived with an empty target list and no deny fired —
+# the most common deletion idiom was the one that got through. `rm -rf dir` was never
+# affected because -rf is one token; `rm -r -f path` was.
+case("rm -f does not hide its target", 'rm -f src/main.py', 2)
+case("rm -r -f does not hide its target", 'rm -r -f src/main.py', 2)
+case("rm -rf still blocks, unchanged", 'rm -rf src/', 2)
+# The other direction, and the reason -f could not simply be dropped from the flag list:
+# sed's script path must STILL be skipped, so the finding names the target and not the script.
+case("sed -i -f still names the target, not the script", 'sed -i -f /tmp/s.sed src/main.py', 2)
+case("awk -i inplace -f still names the target", 'awk -i inplace -f /tmp/p.awk src/main.py', 2)
+# In-domain forms must not become collateral: a fix that blanket-denies rm -f is not a fix.
+case("rm -f in-domain passes", 'rm -f .harness/features/F/runs/r-eng/a.md', 0)
+case("sed -i -f in-domain passes", 'sed -i -f /tmp/s.sed .harness/features/F/runs/r-eng/a.md', 0)
 # Reviewers are read-only everywhere and never reach the path check at all.
 case("plain read commands pass", 'git status --porcelain', 0)
 
