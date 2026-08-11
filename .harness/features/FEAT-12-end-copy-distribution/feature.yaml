@@ -1,69 +1,75 @@
 feature_id: FEAT-12-end-copy-distribution
-mission: plan
-phase: plan
-status: approved
+mission: ship
+phase: build
+status: awaiting_user
 branch: chore/203-end-copy-distribution
 pr: none
 effort: https://github.com/mruangutai/harness/issues/203
 grilling: .harness/notes/grilling-end-distribution-2026-08-10.md
 briefing: none
-review_sha: none
-cycles_used: 4
+review_sha: ff75afb
+cycles_used: 5
 max_total_cycles: 10
 max_total_runs: 20
 counts: { reqs: 8, scs: 11, sc_automated: 6, sc_inspection: 4, sc_uat: 1, tasks: 14, decisions: 6 }
-counts_note: >-
-  RECOUNTED BY ME after run -03, not relayed. SC-02b is a lettered sibling, so 11 criteria across
-  SC-01..SC-10. decisions rose 5 to 6: D-06 declares the settings.json.harness-bak deferral.
-  sc_uat: 1 is SC-06 and it MATTERS - gates.uat is blocking_when_uat_criteria_exist, so the ship
-  phase carries a blocking UAT the operator runs himself against a factory checkout of kaya. No
-  runner in this repo can observe another repository.
+approval_gate: "PASS - BRIEF ## Approval and plan approval.status both approved/operator/2026-08-10, read by me"
 tasks: { T-01: PENDING, T-02: PENDING, T-03: PENDING, T-04: PENDING, T-05: PENDING,
-         T-06: PENDING, T-07: PENDING, T-08: PENDING, T-09: PENDING, T-10: PENDING,
-         T-11: PENDING, T-12: PENDING, T-13: PENDING, T-14: PENDING }
-tasks_note: >-
-  T-05 is NO LONGER CONDITIONAL - Q1 answered commit-and-push, path-scoped, so all 14 tasks are
-  live. T-02..T-05 and T-09 run outside CLAUDE_PROJECT_DIR and are executable ONLY by
-  harness-dev-ops or main-session-direct - measured, see seat_constraint.
-baseline_note: >-
-  THE TREE MOVED UNDER THIS RUN, verified by me. PR #213 MERGED at 2026-08-10T16:25:38Z as 1e5f55d
-  - the operator's own action, untouched by this chain. My dispatch pinned 365a8a9 on
-  chore/202-strike-propagation-checker; that commit is an ancestor of HEAD, so the baseline moved
-  FORWARD, never diverged. The checkout now sits on feat/FEAT-11-graphql-field-resolve at 8dedeae,
-  switched by another chain. FEAT-12's whole feature dir is UNTRACKED - nothing of this feature has
-  been committed onto FEAT-11's branch. pm worked at HEAD rather than 365a8a9 because checking out
-  the pinned sha would have un-landed #202 and contradicted its own instruction.
-seat_constraint: >-
-  MEASURED, not assumed. bash-write-guard.sh:265-266 parses `rm`, and its policy at :16-18 denies a
-  detected write whose target is outside the agent's domain; harness-dev-ops is exempt at :15
-  (DEC-85) and the main session is ungoverned at :19. check-domain.sh:399-406 passes out-of-repo
-  paths through. So every kaya-touching task has exactly two executable seats.
+         T-06: PENDING, T-07: DONE, T-08: PENDING, T-09: PENDING, T-10: DONE,
+         T-11: PENDING, T-12: DONE, T-13: BLOCKED, T-14: BLOCKED }
+commits: { T-07: e987c6d, T-10: 9e49ba7, T-12: ff75afb }
+segments_layer0: .harness/features/FEAT-12-end-copy-distribution/notes/segments-layer0-2026-08-10.md
+lane_split: >-
+  MEASURED BY ME. 5 tasks are team lane (T-07, T-10, T-12, T-13, T-14); 9 are main-session-direct.
+  check-domain.sh denies harness-orchestrator Write at exit 2 on fleet.yaml, harness-deploy.md and
+  harness-team/SKILL.md, so T-06, T-08 and T-11 are mechanically not mine. T-01..T-05 and T-09 sit
+  outside CLAUDE_PROJECT_DIR where both guards pass me through at exit 0 - those are lane-locked by
+  the SIGNED plan under DEC-179, not by a hook.
+blocked_on: >-
+  T-14 needs T-08 and T-11, both layer-0. MEASURED at ff75afb: T-14's verify clause 1 returns 6
+  hits, 4 of them in .claude/commands/harness-deploy.md, harness-init/SKILL.md,
+  harness-team/SKILL.md and templates/team-config.yaml. The plan's T-14 depends_on omits T-08 and
+  it does block. T-13 needs everything.
+d06_reversal: >-
+  The operator REVERSED D-06 at signature. Removing kaya .claude/settings.json.harness-bak folds
+  into T-03 (one path) and T-05 (one pathspec entry). No new task. Both are main-session-direct.
+dec174_check: >-
+  CLEAR, measured by me. DEC-12 has exactly 3 inbound references, all under docs/. No team task in
+  this feature names check-domain.sh, bash-write-guard.sh, validate-digest.py or check-state.sh.
 kaya_measurements: .harness/features/FEAT-12-end-copy-distribution/notes/measurements-2026-08-10-orchestrator.md
-kaya_note: >-
-  M-1..M-6 taken BY ME in kaya on 2026-08-10 and folded into the plan. Three were unknown to the
-  operator when he answered: agent files are 0 TRACKED but 16 ON DISK untracked; settings.json
-  wires EIGHT harness registrations across four hook events, not three; and
-  .claude/settings.json.harness-bak is TRACKED ON THE REMOTE and wires six of them.
-sc_tally: { met: 0, partial: 0, not_met: 0, note: "not goal-checked - mission is plan, not ship" }
+sc_tally: { met: 0, partial: 0, not_met: 0, note: "not goal-checked - build phase incomplete" }
 gate_status:
-  brief_approval: "PENDING - the operator's signature, never this chain's"
-  plan_approval: "PENDING - approval.status pending, approved_by none, verified by safe_load BY ME"
-  plan_routes: "PASS - RE-RUN BY ME at HEAD 8dedeae, not relayed: exit 0, 0 violations across 7 plans; 2 advisory DEVIATIONs on T-01/T-04 manifest paths, expected"
-  docs: >-
-    UNAVAILABLE BY DESIGN, NOT SKIPPED. check-docs.sh no longer exists - deleted under #202, which
-    merged as 1e5f55d. DEC-188 records that the stale-marker mechanism is struck and replaced by
-    deletion. Nothing was substituted for it and the plan strikes decisions rather than marking them.
-  github_mirror: >-
-    NOT RUN, and correctly so - gh-sync.py open is a mission-ship sync point after the approval
-    gate. This is mission plan and nothing is approved. No issue was created, closed or commented
-    on, and neither project board was touched.
+  suite: "PASS - full run-unit-tests.sh at ff75afb, exit 0, 85 PASS, 0 FAIL, re-run by me"
+  qa_gate: "NOT RUN - deferred with T-13 and T-14, which are blocked on the layer-0 segments"
+  review: "NOT RUN - validate phase, after the build completes"
+  uat: "BLOCKING and OUTSTANDING - SC-06 is the operator's own run against a factory checkout of kaya"
+  github_mirror: "gh-sync open ran; T-07, T-10 and T-12 sub-issues closed by close-task"
 cycles_note: >-
-  FOUR send-backs, all rework under DEC-157. Run -01: 1, the lead sending pm back for two fail-open
-  verify strings. Run -02: 2, mine for falsified premises, then the lead's for a T-11 assignment gap
-  that made T-14 unpassable. Run -03: 1, the lead sending pm back because the narrowed REQ-03 left
-  the BRIEF's Goal promising something wider, and because the worktree deferral's stated reason was
-  unmeasured. Folding the operator's answers in is the designed round-trip and counts zero.
+  Four send-backs from the plan phase plus ONE this session - product-lead sent documentor back for
+  writing a claim into README.md that its own research had just disproved. The eng segment was a
+  clean first pass and added zero.
 runs:
   - { id: 2026-08-10-01-product, squad: product, verdict: PASS }
   - { id: 2026-08-10-02-product, squad: product, verdict: PASS }
   - { id: 2026-08-10-03-product, squad: product, verdict: PASS }
+  - { id: t07-t10-eng, squad: eng, verdict: PASS }
+  - { id: t12-product, squad: product, verdict: PASS }
+github:
+  milestone: 6
+  parent: 223
+  parent_origin: created
+  attached: [T-01, T-02, T-03, T-04, T-05, T-06, T-07, T-08, T-09, T-10, T-11, T-12, T-13, T-14]
+  issues:
+    T-01: 224
+    T-02: 225
+    T-03: 226
+    T-04: 227
+    T-05: 228
+    T-06: 229
+    T-07: 230
+    T-08: 231
+    T-09: 232
+    T-10: 233
+    T-11: 234
+    T-12: 235
+    T-13: 236
+    T-14: 237

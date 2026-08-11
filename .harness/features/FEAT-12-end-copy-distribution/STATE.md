@@ -3,54 +3,50 @@
 ## Current
 
 - feature: FEAT-12-end-copy-distribution
-- run: .harness/features/FEAT-12-end-copy-distribution/runs/2026-08-10-03-product/state.yaml
+- run: .harness/features/FEAT-12-end-copy-distribution/runs/t12-product/state.yaml
 - squad: product
 - status: awaiting-user
 
-The operator's answers are folded in. BRIEF.md and plan.yaml are on disk, both `pending`, and
-**ready for his signature**. 8 REQs, 11 SCs, 14 tasks, 6 decisions — recounted by me at the settled
-tree. No blocking question remains. The plan phase ends at the signature, which is the main
-session's to write.
+Three of the five team-lane tasks are done and committed: T-07 deleted `deploy.sh` (`e987c6d`),
+T-10 neutralised every deploy reference in the six bin modules (`9e49ba7`), and T-12 rewrote the
+distribution story across README.md, SPEC.md, BUILD.md and `.harness/README.md` (`ff75afb`). Full
+unit suite green at each: exit 0, 85 PASS, 0 FAIL, re-run by me rather than relayed.
 
-Both required fixes landed and I verified each against the files, not against the report: the kaya
-agent-count basis is corrected everywhere it appeared, and Q8's SHARP EDGE sites are folded into
-T-11 with a verify that fails today for the right reason (exit 1, both comment lines still present).
+**The build stops here and goes up, because nine of the fourteen tasks are lane-locked to layer 0
+and I am layer 1.** T-06, T-08 and T-11 return exit 2 from `check-domain.sh` for
+`harness-orchestrator` — I probed each path. T-01 to T-05 and T-09 sit outside the project
+directory where both guards pass me through, so those are locked by the signed plan under DEC-179,
+not by a hook. The nine work orders, with every `verify:` verbatim, are in
+`notes/segments-layer0-2026-08-10.md`.
 
-Three things the operator has not yet seen, all measured, all recorded in the artifacts he signs:
-kaya's `settings.json` wires **eight** harness registrations across four hook events where the plan
-said three — the four it missed are the ones a Task spawn fires, which is exactly what SC-06's
-blocking UAT exercises; `.claude/settings.json.harness-bak` is tracked **on the remote** and wires
-six of them, now declared as D-06's deferral; and REQ-03 was narrowed away from kaya's worktree
-branches, which carry 153 tracked harness skill files that nothing in this feature reaches.
+T-14 and T-13 could not run and are not late. Measured at `ff75afb`: T-14's first verify clause
+returns six hits, four of them inside T-08's and T-11's files. The plan's `depends_on` for T-14
+names T-11 but omits T-08, and T-08 does block it.
+
+One send-back this session, so the cycle count is five of ten. Product-lead sent documentor back
+for writing into README.md a claim its own research had just disproved — that `factory_config.py`
+is the fleet declaration's only reader. It is not: `check-state.sh` reads that file directly.
 
 ## Open Questions
 
-- Q1 (non-blocking, ratify at signature): REQ-03 was NARROWED to kaya's three top-level tooling
-  directories, and the BRIEF's Goal was reconciled to match. Measured by me: three of kaya's six
-  worktree branches carry tracked harness copies — `feat/333-env-test` 55 skills + 8 commands,
-  `feat/120-statements-page` 48 skills, `feat/48-live-review-loop` 50 skills, 153 skill files in
-  total. `master` tracks nothing under `.claude/worktrees/` and the directory is gitignored at
-  `.gitignore:23`, so those copies never enter this feature's commit and never reach a factory
-  checkout. Each branch drops its copy the next time it takes `master`. I measured the one thing
-  that could make "self-clearing" false: `git log master..<branch> -- .claude/skills/harness
-  .claude/commands/harness` returns **0 commits for all three**, so none of them carries its own
-  change to those paths and the next master merge deletes cleanly rather than raising a
-  modify/delete conflict. The deferral is transient, not three deferred conflicts. Signing the
-  BRIEF ratifies the narrowing.
-- Q2 (non-blocking, ratify at signature): D-06 defers `.claude/settings.json.harness-bak` rather
-  than removing it. It is tracked on `origin/master` and names six harness scripts that will no
-  longer exist. It is inert for SC-06 — `merge-settings.py` writes it and never reads it back — so
-  nothing breaks; but kaya's `master` keeps one tracked file pointing at deleted paths. Reversal
-  costs one path on T-03 and one entry on T-05's pathspec.
-- Q3 (non-blocking, for the operator's awareness): the checkout moved during the run. #213 MERGED
-  as `1e5f55d` at 16:25:38Z — his own action, untouched by this chain — and the working tree now
-  sits on `feat/FEAT-11-graphql-field-resolve` at `8dedeae`, switched by another chain. `365a8a9`
-  is an ancestor of HEAD, so the baseline moved forward and never diverged. FEAT-12's feature
-  directory is entirely untracked, so nothing of this feature has been committed onto FEAT-11's
-  branch. It needs a branch of its own before anything is committed.
-- Q4 (non-blocking, a HARNESS DEFECT, not this feature's): `check-domain.sh` blocked pm from
-  writing the receipt path its own dispatch named. `harness-pm`'s permitted notes paths are
-  `notes/research-*.md` and `notes/uat-*.md`, while `harness-handoff/SKILL.md` instructs every
-  member to write `notes/receipt-<agent>-<runid>.md`. The skill and the team-config grant
-  contradict each other; pm raised it rather than working around it. Every member that follows the
-  handoff skill literally will hit this.
+- Q1 (BLOCKING, for the operator, before segment A is staged): the ship dispatch says to STOP if
+  any of kaya's uncommitted entries sit under `.claude/skills/harness*` or `.claude/commands/harness*`.
+  BRIEF.md's settled rulings record that 34 tracked files under exactly those paths carry local
+  modifications he signed off on discarding. Read literally the stop fires on the signed-for work
+  and T-02 can never run; read as intended it means entries beyond those 34. The cost of guessing
+  is a permanent discard on another repository's `master`, so it is his call, not an agent's.
+- Q2 (non-blocking, a HARNESS DEFECT, filed nowhere yet): `bash-write-guard.sh` passes
+  `rm -f <out-of-domain-path>` at exit 0 while blocking `rm <same-path>` and `rm -rf <same-dir>` at
+  exit 2. `trailing_files` treats `-f` as sed's script-file flag and skips the next token, so the
+  target list comes back empty and no deny fires. Measured for `harness-orchestrator`, `harness-pm`
+  and `harness-documentor`. The most common deletion idiom is the one that gets through, and the
+  file is a DEC-174 carve-out so only the main session can fix it.
+- Q3 (non-blocking, for T-13's author): `git grep -E` does not honour `\b`.
+  `git grep -cE '\bdeploy' -- docs/harness/BUILD.md` matches nothing where `git grep -c 'deploy'`
+  returns 5 and `-P` returns 5. T-13's case 4 asks for a word boundary on `DEC-12`; in Python `re`
+  that is fine, through `git grep -E` it would pass vacuously.
+- Q4 (non-blocking, unowned): `docs/harness/SPEC.md:419-421` illustrates the fleet-config claim with
+  three scripts and omits `factory_claim.py`. Incomplete, not false. No scheduled task owns it.
+- Q5 (non-blocking, for the record): `gh-sync.py open` CREATED parent issue #223 rather than
+  adopting #203, which `feature.yaml`'s `effort:` names. `parent_origin: created`, so a ship close
+  would close #223 and leave #203 open.
