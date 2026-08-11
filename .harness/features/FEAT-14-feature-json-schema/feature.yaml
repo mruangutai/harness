@@ -1,9 +1,11 @@
 # The TEN SPEC §11.3 keys and nothing else. github and factory are the schema's other
-# two, both optional; the gh-sync mirror has not run (blocked by the environment
+# two, both optional; the gh-sync mirror has NOT run (denied by the environment
 # classifier — DEC-138 SKIP, never a gate), so there is no github block to record.
 # This feature exists because feature.yaml grew to 32 keys; its own state file is not
 # going to be the 33rd example. Narrative lives in STATE.md, per-run detail in digests.
-# Still carries `phase` because the migration (T-04/T-08) has not run.
+# Still carries `phase` because the migration (T-04/T-08) has not run. NOTE for T-04:
+# this file now reads phase build, so its row in T-04's a29ad06 table is stale and
+# T-04's own rule places it at Building, not Plan.
 feature_id: FEAT-14-feature-json-schema
 branch: feat/204-feature-json-schema
 pr: none
@@ -21,3 +23,4 @@ runs:
   - { id: revision2-product, squad: product, verdict: PASS }
   - { id: t01t03-eng, squad: eng, verdict: ESCALATE }
   - { id: e1fix-eng, squad: eng, verdict: PASS }
+  - { id: qa-seg1-validator, squad: validator, verdict: PASS }
