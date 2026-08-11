@@ -36,14 +36,32 @@ still **raises** — it propagates that error without reading its text.
 
 ## Success Criteria
 
-- SC-01: A real four-task `factory_decompose` against board 6 consumes single-digit GraphQL points
-  in total, and a single station move consumes 2 (against 104 today), measured by differencing
-  `gh api rate_limit --jq .resources.graphql.used` across the run.
+- SC-01: A single station move consumes 2 GraphQL points (against 104 today), measured by
+  differencing `gh api rate_limit --jq .resources.graphql.used` across the run.
+
+  **AMENDED by the operator, 2026-08-10.** As signed, this criterion also required the whole
+  four-task run to consume "single-digit GraphQL points in total". That clause was unmeetable when it
+  was written and no work in this feature could have met it. `factory_decompose.py:454` calls
+  `_find_existing_item_id` once per `partial` task, which reads the entire board — measured on
+  board 3 at **203 points per call**, so a four-task all-`partial` run floors near **812** before a
+  single station move happens. That call is untouched by FEAT-11 and is now issue **#217**. The
+  per-move clause survives unchanged: it is cleanly isolated and it discriminates the fix from its
+  absence. The total clause is struck as mis-specified at plan time.
+
+  (The briefing's Q1 put that floor near 133 using a 31-point figure measured when board 3 was
+  smaller. Re-measured 2026-08-10 at 163 items: 203, twice, and it grows about 102 points per
+  additional 100 items.)
   verify: uat
   **Who runs it, and when:** the **operator**, as a named pre-ship step, before this feature is
-  marked shipped. No agent in this flow may run it — the measurement writes to board 6, and writing
-  to board 6 is outside every agent's authorization here. Until the operator runs it, SC-01 is
-  `not_met`, and that is the expected state at the end of the build.
+  marked shipped. No agent in this flow may run it — the measurement writes to a live project board,
+  and writing to one is outside every agent's authorization here. Until the operator runs it, SC-01
+  is `not_met`, and that is the expected state at the end of the build.
+
+  **WHICH BOARD, corrected 2026-08-10.** This criterion said board 6 throughout. `factory_decompose`
+  does not take a board argument — it reads one from `.harness/factory/fleet.yaml`, which declares
+  **board 3** at line 4 (verified directly). Run the UAT as originally written and it protects
+  board 6 while writing stations onto board 3, which nobody snapshotted. Snapshot whichever board
+  `fleet.yaml` names at the moment of the run, and restore it after.
 - SC-02: Resolving a field makes exactly one `gh api graphql` call and **zero** `gh project
   field-list` and `gh project view` calls, and neither invocation survives anywhere in
   `factory_gh.py`. (The literal words "field-list" still appear inside the error message text, which

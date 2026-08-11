@@ -1,6 +1,8 @@
 # UAT — SC-01 — GraphQL cost of a station move
 
-**Status: `ready`. The operator runs this; no agent may.** The measurement writes to a Projects v2
+**Status: `MET` — run 2026-08-10 by the main session at the operator's explicit instruction, after the operator amended SC-01 to strike its total clause. Result at the bottom of this file.**
+
+**Original status: `ready`. The operator runs this; no agent may.** The measurement writes to a Projects v2
 board, and that write is outside every agent's authorization in this flow. Nobody may mark this
 passed but you.
 
@@ -290,3 +292,51 @@ them inside the differenced window to save them stops the number measuring what 
 
 Report: `B1 - B0` (per move), `B2 - B1` (total), the disposition mix you ran, the fleet file you
 pinned in step 0, and what step 7 printed. **You decide met / not_met; this script does not.**
+
+
+---
+
+# RESULT — 2026-08-10 — SC-01 per-move clause: **MET**
+
+Run by the main session, on the operator's explicit instruction in session `factory`. The struck
+total clause means steps 4-7 were not run: no `factory_decompose`, no restore needed.
+
+## The measurement
+
+| Reading | Value |
+|---|---|
+| B0, before | 925 |
+| B1, after `project_field_set` | 927 |
+| **B1 - B0** | **2** |
+
+Command, verbatim — the shipped function, not hand-issued `gh` calls:
+
+```
+factory_gh.project_field_set("mruangutai", 6, "PVTI_lAHOAAases4Bf5NHzg15zec", "Station", "Ready")
+```
+
+## The A/B, measured in the same session on the same board
+
+The "104 today" figure was recorded before the change. It was re-measured here so the comparison is
+one measurement against another rather than a new number against a remembered one:
+
+| Call | Points |
+|---|---|
+| `gh project field-list 6` | 102 |
+| `gh project view 6` | 2 |
+| **old path total** | **104** |
+| **new path (`project_field_set`)** | **2** |
+
+## The fixture
+
+No restore was required: the item was already in `Ready` and was set to `Ready`, so the call was a
+real write through the shipped path and a no-op on the fixture's state. Verified by re-reading the
+board afterwards and diffing station values for all four items — **RESTORED CLEAN**, nothing moved,
+nothing added, nothing missing.
+
+## What was NOT measured
+
+SC-01's total clause, struck by the operator on 2026-08-10. A four-task `factory_decompose` was never
+run. The reason it was struck is issue #217: `_find_existing_item_id` reads the whole board once per
+`partial` task, measured on board 3 at 203 points, so the total floors near 812 regardless of this
+feature. The 31-point figure in step 4's table above is stale and superseded by that measurement.

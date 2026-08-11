@@ -29,8 +29,14 @@ cycles_note: >-
 max_total_runs: 20
 counts: { reqs: 5, scs: 12, tasks: 1, decisions: 4, main_session_direct: 0 }
 sc_result: >-
-  11 of 12 MET. SC-01 is `uat` — the live cost proof, operator-run by construction, which is the
-  documented expected end state and not a defect. SC-11 was returned `not_met` by the goal-check at
+  12 of 12 MET. SC-01 CLOSED 2026-08-10: the live per-move measurement returned 925 -> 927, a
+  per-move cost of 2, run by the main session on the operator's explicit instruction against
+  board 6 item PVTI_lAHOAAases4Bf5NHzg15zec. The old path was re-measured in the same session on
+  the same board — field-list 102 + view 2 = 104 — so the headline is one measurement against
+  another, not a new number against a remembered one. The write was a no-op (Ready set to Ready),
+  and a re-read diffing all four items' station values returned RESTORED CLEAN. SC-01's total
+  clause was struck by the operator before the run; see operator_rulings_2026_08_10 and
+  notes/uat-SC-01-graphql-cost.md. SC-11 was returned `not_met` by the goal-check at
   2ea9af3 and CLOSED at 15cabe9 by MF-2; I verified the landed assertion and re-ran both kinds
   myself rather than re-spawning a goal-check to confirm one grep.
 tasks: { T-01: DONE }
@@ -150,6 +156,23 @@ residuals: >-
   (bash-write-guard.sh mis-parses a redirect and is a DEC-174 carve-out file only the operator may
   fix), B-7 (multi-clause criteria scored as covered when one clause is asserted — the same defect
   twice in this feature), and B-13 (the expertise gate is red on a pre-existing file).
+operator_rulings_2026_08_10: >-
+  Q1 AMENDED. SC-01's "single-digit GraphQL points in total" clause is STRUCK as mis-specified at
+  plan time; the per-move clause (2 against 104) stands unchanged and is still the operator's live
+  measurement to run. The reason is issue #217: _find_existing_item_id reads the whole board once
+  per partial task, measured on board 3 at 203 points, so a four-task all-partial run floors near
+  812 regardless of this feature. The briefing's Q1 said 133 using a stale 31-point figure; 203 is
+  the re-measurement at 163 items, taken twice. The BRIEF also carried board 6 throughout while
+  factory_decompose reads board 3 from .harness/factory/fleet.yaml:4 — corrected there.
+
+  Q2 ACCEPTED as a residual against D-03, not an amendment. project_field_set completes its
+  item-edit write on a GraphQL partial-success envelope that gh reports as failed. This is signed
+  D-03 step 3 behaving as written and it does not violate SC-07, so no engineering fix cycle may
+  close it. Recorded, not fixed.
+
+  Q3 TAKEN BY THE MAIN SESSION. bash-write-guard.sh mis-parses `cp ... 2>/dev/null` and blocks a
+  legal in-domain write. DEC-174 carve-out: fixed directly, never dispatched.
+
 github:
   milestone: 5
   parent: 214
