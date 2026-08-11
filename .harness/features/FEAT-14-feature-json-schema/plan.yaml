@@ -1,0 +1,1897 @@
+schema: plan/1
+feature: FEAT-14-feature-json-schema
+
+approval:
+  status: approved
+  approved_by: operator
+  date: '2026-08-11'
+
+lanes:
+  resolved_at: a29ad06
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out, a registered gate script
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out, a registered PreToolUse gate script
+    - surface: .claude/skills/harness/bin/validate-digest.py
+      lane: main-session-direct
+      reason: DEC-174 carve-out, one of the four named enforcement scripts; the bin/** row above
+        resolves it to team, which is wrong, and this feature edits it in T-06
+    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out, one of the four named enforcement scripts; listed because the
+        bin/** row resolves it to team, not because this feature touches it
+    - surface: .github/workflows/**
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: docs/harness/**
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/harness/templates/**
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+    - surface: .claude/skills/**/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+    - surface: .claude/agents/**
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+    - surface: .claude/commands/**
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+    - surface: .harness/team-config.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+    - surface: CLAUDE.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY, an ungranted surface under DEC-179
+    - surface: .harness/features/*/feature.yaml
+      lane: main-session-direct
+      reason: resolves to harness-orchestrator, which owns only its own feature dir; a
+        cross-feature migration belongs to no orchestrator
+
+decisions:
+  - id: D-01
+    choice: The schema holds ELEVEN top-level keys - SPEC 11.3's ten minus phase, plus github and
+      factory - with additionalProperties false at the top level and inside runs items, github and
+      factory.
+    because: Those eleven are the only keys with a demonstrated reader once phase is collapsed into
+      status by the operator's 2026-08-11 ruling, and the worst prose rot is inside runs items, so
+      closing only the top level would leave it untouched. The count moved from twelve to eleven for
+      one reason only - phase no longer exists as a key - and no other key changed disposition.
+    dec: none
+  - id: D-02
+    choice: EIGHT keys are required - feature_id, branch, pr, status, review_sha, cycles_used,
+      max_total_cycles, runs - and three are optional - max_total_runs, github and factory.
+    because: SPEC 11.3 says max_total_runs may be omitted to inherit harness.json, and github and
+      factory only exist once a feature is mirrored or decomposed. Measured over all 17 feature
+      files at a29ad06, max_total_runs is the only optional key ever absent and every one of the
+      eight required keys is present on every file, so the migration BACKFILLS NOTHING. The earlier
+      draft of this decision priced a phase backfill onto FEAT-01 and FEAT-02; phase is gone, so
+      that analysis is void and is not carried forward.
+      THE CONSEQUENCE THAT SURVIVES, AND IT IS LARGER THAN THE BACKFILL WAS. status is REQUIRED and
+      is already present on all 17 files, so INV-17 in check-state.sh loses its exemption carrier
+      outright rather than on two files. INV-17 is guarded today by phase ABSENCE - check-state.sh
+      line 451 reads if _phase not in PHASE_ORDER continue, and line 436 says pre-DEC-159 features
+      stay quiet - and FEAT-01 and FEAT-02 are quiet only because they carry no phase. With phase
+      deleted and nothing put in its place, _phase is the empty string on all 17, so the continue
+      fires every time and INV-17 stops firing ENTIRELY while check-state.sh still exits clean. A
+      gate that examines nothing reports no violations. T-12 is the task that answers this, and it
+      is a task rather than a note precisely because the failure mode is silence.
+    dec: DEC-159
+  - id: D-03
+    choice: Enforcement is one implementation in two shapes - an importable module
+      bin/feature_schema.py holding the schema load and the validation, plus a thin CLI wrapper
+      bin/validate-feature-json.py for CI, the migration tasks and the corpus sweep. check-domain.sh
+      IMPORTS the module in process on its existing write-payload path; it does not spawn the CLI.
+      The PreToolUse bash-write-guard and a check-state.sh sweep are rejected as the primary point.
+    because: check-domain.sh already inspects write payloads on this exact path for the line
+      budget, so write-time denial costs an import and a call rather than schema logic inside a
+      carve-out gate; bash-write-guard guards the Bash route, not the Write tool the orchestrator
+      uses, and a check-state sweep only reddens after the bad write is on disk. IN PROCESS RATHER
+      THAN SUBPROCESS, and this is the load-bearing half - check-domain.sh already exports PYTHONPATH
+      and imports harness_yaml, so an import costs nothing, while a subprocess re-adds the 104.7 ms
+      interpreter launch measured at check-domain.sh line 92 and removed by T-13, once per file in a
+      post-Bash sweep that a bulk mtime refresh can drag the whole corpus into. A subprocess also
+      fails OPEN when it cannot launch (the exception escapes to exit 1, and line 14 says exit 1 is
+      NON-blocking) and can only be handed a temporary file, so its message names a path nobody
+      wrote - the unattributable-finding defect DEC-180 fixed twice in this file. An import makes the
+      missing dependency an ordinary except ImportError branch that appends to the problems list, so
+      the write is denied with exit 2 and the message is formatted through the existing _head, naming
+      the real target. The house already splits importable modules from hyphenated CLIs
+      (harness_yaml.py, gh_issues.py, factory_*.py against gh-sync.py, check-plan-routes.py), so
+      feature_schema.py sits in that convention; it differs from feature-schema.json by extension as
+      well as separator, which is judged sufficient and is reversible.
+    dec: DEC-174
+  - id: D-04
+    choice: jsonschema becomes a required dependency, declared where PyYAML is - harness-init's
+      prerequisite gate and the CI workflow - with a missing import raising a loud error naming
+      the install command, never a skip.
+    because: DEC-171 am.1's shape; a validator that silently passes when its checker is absent is
+      a gate that looks real and does nothing. There is no requirements.txt or pyproject.toml in
+      this repo to declare it in.
+    dec: DEC-189
+  - id: D-05
+    choice: The 20-comment-line budget for this path is struck and the 200-line budget is raised
+      to 300.
+    because: JSON has no comments so the first is unreachable, and the twelve-key form of FEAT-10 -
+      measured before phase was dropped - is 173 lines at 32 runs with about 5 lines per run, so 200
+      breaches at about 38 runs. Dropping phase removes one line from that figure and does not move
+      the conclusion.
+    dec: DEC-150
+  - id: D-06
+    choice: The migration drops keys while the files are still YAML, then converts the format in a
+      separate later task.
+    because: Each drop is independently verifiable against unchanged readers, and converting first
+      would change ten reader files and the data in one blast.
+    dec: none
+  - id: D-07
+    choice: A one-shot converter writes a per-feature receipt naming every dropped key and its
+      value before removing it.
+    because: Fourteen files lose up to twenty keys each; hand editing loses records silently and a
+      diff is not a durable receipt.
+    dec: none
+  - id: D-09
+    choice: phase and status COLLAPSE INTO ONE FIELD whose value set is the GitHub board's six
+      columns - Backlog, Plan, Ready, Building, Review, Done. This is a REPLACEMENT, not a mapping
+      layer. The old values are read once, by the migration, as input; NO old-to-new mapping table
+      survives anywhere in the code, in the schema, or in any test fixture. pr becomes integer or
+      null in the same pass, so the migration normalizes values as well as dropping keys.
+    because: The operator ruled it on 2026-08-11 (notes/answers-2026-08-11-revision.md). Two
+      vocabularies describing one lifecycle is the two-copies drift this org keeps paying for, and
+      the board is where the operator actually looks, so the board's columns are the vocabulary
+      rather than a projection of one. The cost was named and accepted at the ruling - Review cannot
+      distinguish a running review panel from waiting on the operator, and Done cannot distinguish
+      shipped from abandoned; one record on disk is affected by the second, FEAT-01. Both boards
+      already carry the six options, applied and verified 2026-08-11, so no board mutation is in
+      scope here; T-04 opens with a PRECONDITION that reads the boards and confirms the six exist.
+      blocked is NOT in the vocabulary. The earlier draft kept it as legal-but-unused; the six
+      columns have no Blocked column, the tree carries the value zero times, and a blocked feature
+      is waiting on the operator, which is Review. That rationale is superseded, not merely dropped.
+    dec: none
+  - id: D-10
+    choice: The surviving key is named status. phase is deleted outright.
+    because: Stated on the record rather than assumed, because the reverse is defensible and nobody
+      should have to re-derive why it was not taken. Every reader that survives this feature already
+      reads status - check-plan-routes.py line 426 - while the only reader of phase is INV-17, which
+      T-12 rewrites anyway. status is the field name SPEC 11.3, validate-digest.py and both GitHub
+      boards' single-select field already use, so keeping it costs zero renames in three places that
+      would otherwise all need one. Naming the survivor phase would have renamed the one field the
+      board and the digest agree on, to match the field neither of them has.
+    dec: none
+  - id: D-11
+    choice: The values keep the board's own capitalized spelling - Backlog, Plan, Ready, Building,
+      Review, Done - and comparisons against them are case SENSITIVE. No lowercase alias is
+      accepted anywhere.
+    because: Also stated on the record, because it is a real change and not a formatting detail. The
+      corpus is uniformly lowercase snake_case today, and check-plan-routes.py line 426 does
+      str(doc.get("status","")).split() then a membership test on token[0], so the casing flows
+      straight into that comparison - a file written Done and a constant written done silently stop
+      matching, and the failure direction there is fail-CHECKED, which is loud, not silent. The
+      capitalized form is chosen over normalizing the board down to lowercase because a normalizing
+      step IS a mapping layer, which the ruling forbids - the value a human reads on the board and
+      the value on disk must be byte-identical or the replacement has not happened. Accepting a
+      lowercase alias would reintroduce the same layer through the back door, so it is refused.
+    dec: none
+  - id: D-12
+    choice: INV-17 SURVIVES the collapse. check-state.sh keeps an ordered list of the six status
+      values and a separate literal table naming, per status, the handoff-note STEMS that must exist
+      once a feature is at or past it. The stems stay lowercase literals - plan, build, validate -
+      and are NOT derived from the status values.
+    because: Deleting INV-17 was available and is rejected, because DEC-159's guarantee is that a crossed
+      seam leaves working memory on disk, and that guarantee does not depend on how many lifecycle
+      values exist. The stems are decoupled from the values for a mechanical reason measured here,
+      not a stylistic one - deriving the filename from the status value produces
+      notes/handoff-Plan.md and notes/handoff-Building.md, which match the on-disk lowercase
+      notes/handoff-plan.md on this machine's case-INSENSITIVE filesystem and MISS on Linux CI, so
+      the invariant would pass locally and go dark on the only machine that gates the merge. Keeping
+      the stems literal also renames none of the 34 handoff notes on disk. A status-to-required-
+      artifact table is NOT the mapping layer D-09 forbids, because D-09 forbids an old-vocabulary to
+      new-vocabulary translation surviving in code, and this table names neither vocabulary's
+      counterpart - it names artifacts. THE RESIDUAL LOSS IS STATED RATHER THAN HIDDEN. validate and
+      ship both fold into Review, so the validate-to-ship crossing is no longer separately
+      observable and nothing can demand handoff-validate.md at Review; it is demanded at Done
+      instead, which is the next boundary that proves Review completed. One seam therefore moves
+      later; none is dropped.
+    dec: DEC-159
+  - id: D-13
+    choice: validate-digest.py's orchestrator status enum - in_progress, in_review, shipped, blocked,
+      awaiting_user, at line 182 - is OUT OF SCOPE and is NOT collapsed into the six board columns.
+    because: Recorded rather than quietly skipped, because this feature's own title says one status
+      vocabulary and a reader will ask why two survive. The discriminating fact is that they are
+      different objects - validate-digest.py governs an agent's RETURN CONTRACT for a single run,
+      while status on disk is a feature's position in its lifecycle, and the two answer different
+      questions about different lifetimes. The mechanical evidence is that the digest enum carries
+      blocked and the six columns have no Blocked; collapsing them would either invent a seventh
+      column the operator did not authorize or delete a token the SubagentStop hook routes on.
+      Changing it would also rewrite every orchestrator return contract and agent prompt, which is
+      scope the 2026-08-11 ruling never granted. It is surfaced to the operator as a non-blocking
+      open question at signature so the boundary is a decision rather than an oversight.
+    dec: DEC-172
+  - id: D-08
+    choice: The closed key set gets its own decision entry alongside the dependency entry, and the
+      index row is produced by gen-decisions-index.py, never hand written.
+    because: This reverses ten features of growth and a future scan will re-suggest a notes field;
+      the load-bearing reason has to be on the record.
+    dec: DEC-190
+
+tasks:
+  - id: T-01
+    title: Ship the schema artifact and its validator with unit tests
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-06]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/feature-schema.json
+      - .claude/skills/harness/bin/feature_schema.py
+      - .claude/skills/harness/bin/validate-feature-json.py
+      - .claude/skills/harness/bin/test-validate-feature-json.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Write a JSON Schema (draft 2020-12) at
+      .claude/skills/harness/bin/feature-schema.json describing a harness feature's
+      execution state, and a validator that applies it.
+
+      SCHEMA CONTENT. Top level: type object, additionalProperties false, and exactly
+      these ELEVEN properties. THERE IS NO phase PROPERTY - phase and status collapsed
+      into status alone under D-09, and a schema that still declared phase would
+      re-legalise the field this feature exists to delete.
+        required (eight): feature_id (string), branch (string), pr (integer or null),
+        status (string, enum EXACTLY these six, spelled and CASED exactly like this:
+        Backlog, Plan, Ready, Building, Review, Done - these are the GitHub board's
+        column names, both boards already carry them, and D-11 makes the comparison
+        case sensitive so no lowercase alias is legal), review_sha (string),
+        cycles_used (integer, minimum 0), max_total_cycles (integer, minimum 1),
+        runs (array).
+        optional (three): max_total_runs (integer, minimum 1), github (object),
+        factory (object).
+      runs items: type object, additionalProperties false, required id, squad, verdict,
+      all strings. Nothing else - no cost_usd, no note.
+      github: type object, additionalProperties false, properties milestone
+      (integer or null), parent (integer or null), parent_origin (string or null),
+      attached (array of strings), issues (object with additionalProperties integer).
+      No property is required inside github.
+      factory: type object, additionalProperties false, properties repo (string or
+      null), parent (integer or null), parent_origin (string or null), issues (object),
+      items (object), edges (object with properties parent (array) and blocked_by
+      (object), additionalProperties false). No property is required inside factory.
+      Do NOT add a notes property anywhere, at any level.
+      branch and review_sha are plain strings and the literal string none is a legal
+      value for both - check-state.sh INV-6 already treats none as unset via
+      PLACEHOLDER_UNSET, so do not model them as nullable. pr, by contrast, IS
+      integer-or-null: it is the string none in every live file today and T-04
+      rewrites those to null.
+
+      Every property carries a description string. For the object-valued ones the
+      description names the code that reads it, verbatim from these census results:
+      runs items are read at check-state.sh lines 184-190; review_sha at 195;
+      cycles_used at 203; max_total_runs at 249; status by check-plan-routes.py's
+      finished-feature skip and by check-state.sh INV-17's seam table; github by
+      gh-sync.py load_recorded and check-state.sh INV-21; factory by
+      factory_decompose.py load_factory, factory_claim.py issue_number and
+      check-state.sh INV-24. CITE status BY THE READER'S NAME, NOT BY A LINE NUMBER -
+      T-11 and T-12 both move those lines inside this same build, so a line anchor
+      written here is stale before it is read.
+
+      VALIDATOR, IN TWO PIECES - an importable module and a thin CLI over it (D-03).
+
+      A. .claude/skills/harness/bin/feature_schema.py, an importable module in the
+      house's module convention (underscored, like harness_yaml.py and gh_issues.py,
+      against the hyphenated CLIs). It holds all the logic and exposes at least:
+        - load_schema(), reading feature-schema.json from beside this module;
+        - problems_for_text(text, display) -> list of stderr LINES, [] when clean,
+          taking the document TEXT and the path to NAME IN THE MESSAGE. It never
+          exits and never writes a temporary file. This is the entry point
+          check-domain.sh imports at T-06, and it is why the module exists: a
+          subprocess cannot be handed the real path, and its launch failure escapes
+          as a non-blocking exit 1;
+        - problems_for_file(path) -> the same, reading from disk.
+      Import jsonschema at MODULE level inside a try, setting a module-level flag on
+      ImportError. Do not import it inside a per-file function: check-domain.sh's
+      post sweep calls the entry point once per candidate file, and a per-call import
+      pays the cost, and emits the message, once per file.
+      When jsonschema is unavailable, problems_for_* returns a ONE-line problem, and
+      the caller decides what to do with it. That line reads:
+        jsonschema is REQUIRED and is not importable, so this file CANNOT be checked.
+        Install it with: python3 -m pip install jsonschema  (or python3 -m pip install
+        --user --break-system-packages jsonschema)
+      Never return [] on that path and never emit the word skip - [] means checked and
+      clean, and a checker that cannot run must never be indistinguishable from one
+      that passed. This mirrors harness_yaml.MissingDependency's shape under
+      DEC-171 am.1.
+      THE FEATURE.JSON PATH DEPENDS ON STDLIB json AND jsonschema ONLY, NEVER PyYAML.
+      Say so in a comment. The state.yaml branch in check-domain.sh returns [] when
+      PyYAML is absent - a fail-open the user ruled on - and the next editor will try
+      to make this branch match it. It must not: this branch has no PyYAML dependency
+      to be absent, so the two are not the same case.
+
+      B. .claude/skills/harness/bin/validate-feature-json.py, executable, a THIN CLI
+      wrapper over the module with a docstring stating usage - argument parsing,
+      printing and exit codes only, no schema logic. Command line: one or more paths,
+      or no argument meaning every execution-state file on disk.
+      THE NO-ARGUMENT SWEEP GLOBS .harness/features/*/feature.* AND KEEPS ONLY THE
+      .json, .yaml and .yml suffixes, rather than naming two literal filenames. Two
+      reasons, and the second is not cosmetic: it spans the migration window, where the
+      corpus is still YAML and the schema is already live; and T-08's verify clause fails
+      the build on ANY surviving literal feature.yaml under .claude outside one pinned
+      file, so a hard-coded second filename here would redden T-08 and be discovered at
+      the end of the build rather than here. Name test fixtures neutrally for the same
+      reason - sample.json, sample.yaml - never the literal old filename.
+      LOAD BY EXTENSION, not by one permissive loader. A .json path is read with
+      json.load; anything else is read with harness_yaml.load_file. A file named
+      .json that is valid YAML but not valid JSON is therefore REJECTED, naming the
+      json decode error. Without this, a feature.json that no json.load consumer can
+      read validates clean - the guarantee gap in the feature whose product IS the
+      guarantee, and gh-sync.py, factory_claim.py and factory_decompose.py are all
+      json.load consumers after T-05.
+      THREE EXIT CODES, DISTINCT, because callers branch on them (T-03's CI step,
+      T-04's, T-07's and T-08's verify clauses all read the return code):
+        0 - every file validates;
+        1 - at least one file failed validation, which is a verdict ABOUT a file;
+        3 - the checker could not run at all (jsonschema unimportable), which is not
+            a verdict about any file.
+      A caller cannot tell an escape from a real violation if both are 1, and the
+      distinction is cheap here and undiscoverable at the call sites.
+
+      REJECTION MESSAGES REDIRECT, THEY DO NOT ONLY REFUSE. For an undeclared key,
+      report the file, the JSON pointer to the offending key and the key name, then a
+      destination line chosen by nesting level and printed verbatim:
+        This file holds execution state only. An operator ruling goes in that feature's
+        plan.yaml under approval.rulings; run narrative, findings and corrections go in
+        that run's digest; current state and open questions go in STATE.md;
+        measurements, research and receipts go in notes/.
+      For a missing required key, report the file and the key and say it is required by
+      SPEC 11.3.
+
+      TESTS. .claude/skills/harness/bin/test-validate-feature-json.py, following the
+      house style of the existing test-*.py files in that directory (stdlib only, a
+      main that prints a PASS/FAIL line per case and exits non-zero on any failure,
+      temporary fixtures under tempfile). Cases required:
+      - one accepted fixture carrying all eleven keys;
+      - one accepted fixture carrying only the eight required keys;
+      - three separately accepted fixtures, each omitting exactly one of
+        max_total_runs, github, factory;
+      - eight rejected fixtures, each omitting exactly one required key, each asserting
+        the message names that key. Do not compare counts - assert per key;
+      - SIX separately accepted fixtures, one per status value - Backlog, Plan, Ready,
+        Building, Review, Done - because Backlog and Ready have ZERO instances in the
+        live corpus after the migration, so no per-file assertion anywhere in this
+        feature can ever exercise them. Fixture coverage is the only coverage those two
+        values get, and without these six cases a schema that accidentally omitted
+        Backlog from the enum would ship green;
+      - one rejected fixture proving phase IS GONE: a document carrying all eight
+        required keys PLUS phase set to ship. It must be rejected as an undeclared
+        top-level key. Without this case a schema that quietly kept phase in its
+        properties passes every other case in this list;
+      - three rejected fixtures for undeclared keys, one per nesting level: a top-level
+        invented key, a runs item carrying cost_usd, a github sub-key named closed.
+        Each asserts the offending key name AND the redirection sentence appear in the
+        message;
+      - one rejected fixture reproducing the real rot: a runs item whose key is the
+        string "3 must_fix at med";
+      - THREE rejected VALUE fixtures, not key fixtures: status set to shipped (a value
+        the live corpus carries on four files today and which is outside the new
+        six-value enum), status set to the lowercase done (which proves D-11's case
+        sensitivity - a case-insensitive enum would accept it and the on-disk value
+        would stop matching the board), and pr set to the string none (not integer or
+        null). All three are shapes the live corpus or a plausible careless writer
+        produces, so a schema that accepts any of them would make the migration a no-op;
+      - one case running the CLI in a subprocess with an environment that makes
+        jsonschema unimportable (inject a directory on PYTHONPATH containing a
+        jsonschema.py that raises ImportError), asserting exit EXACTLY 3, the word
+        REQUIRED in stderr, and that the exit is neither 0 nor 1 - 0 would be a silent
+        pass and 1 would be indistinguishable from a file that failed validation;
+      - one rejected fixture named *.json whose text is valid YAML but NOT valid JSON
+        (for example `feature_id: FEAT-01` in YAML block form), asserting a non-zero
+        exit and a message naming the JSON decode failure. A .yaml fixture with the
+        same content is ACCEPTED, which is what proves the dispatch is by extension
+        rather than a blanket tightening;
+      - one case calling feature_schema.problems_for_text DIRECTLY with a display path
+        of .harness/features/FEAT-99-x/feature.json, asserting that path appears in
+        every returned line - the in-process entry point must name the real file,
+        because check-domain.sh has no other way to attribute a finding;
+      - one case calling feature_schema.problems_for_text with jsonschema forced
+        unavailable, asserting it returns a non-empty list (never []) whose single
+        line carries REQUIRED and the install command.
+
+      REGISTER THE NEW TEST FILE in .claude/skills/harness/bin/run-unit-tests.sh, in
+      the UNIT_SCRIPTS array, NOT INTEGRATION_SCRIPTS. The runner has a drift detector
+      that fails the whole run on any unregistered test-*.py, and the integration
+      kind's detect globs in harness.json name only test-check-state.py and
+      test-factory-integration.py, so a file registered there would match no detect
+      glob.
+
+  - id: T-02
+    title: Declare jsonschema as a required prerequisite in init and CLAUDE.md
+    traces: [REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for both paths, an ungranted
+      surface under DEC-179
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness-init/SKILL.md
+      - CLAUDE.md
+    verify: |
+      python3 - <<'PY'
+      import sys
+      init = open('.claude/skills/harness-init/SKILL.md').read()
+      cm = open('CLAUDE.md').read()
+      bad = []
+      if 'jsonschema' not in init: bad.append('harness-init SKILL.md does not mention jsonschema')
+      if 'pip install jsonschema' not in init and 'install jsonschema' not in init:
+          bad.append('harness-init SKILL.md carries no jsonschema install command')
+      if 'jsonschema' not in cm: bad.append('CLAUDE.md does not mention jsonschema')
+      print('\n'.join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Two edits, both prose, both making an already-taken decision findable.
+
+      1. .claude/skills/harness-init/SKILL.md. The prerequisite gate around lines 44-56
+      currently checks PyYAML and stops with MISSING. Extend the same gate to check
+      jsonschema the same way: the probe line prints MISSING when import jsonschema
+      raises, the STOP paragraph names both packages, and both install commands are
+      given (python3 -m pip install pyyaml jsonschema, and the --user
+      --break-system-packages variant). Do not create a second, parallel gate - one gate
+      covering both packages. The rationale sentence is: jsonschema is REQUIRED because
+      a feature's execution state is schema-checked at write time, and a validator that
+      passes silently when its checker is absent is a gate that looks real and does
+      nothing.
+
+      2. CLAUDE.md. The Constraints bullet beginning "Files-only" states the
+      no-dependency clause is reversed and PyYAML is required. Extend that same bullet:
+      jsonschema is required too, for the feature execution-state schema, with the same
+      loud-failure rule - a missing import is an error, never a quieter mode. Keep the
+      bullet's existing wording about PyYAML intact; add, do not rewrite. CLAUDE.md has
+      an 80-line budget enforced at check-domain.sh, so keep the addition to one or two
+      lines and check the file's line count afterwards.
+
+  - id: T-03
+    title: Install jsonschema in CI and add the validator to the required integration job
+    traces: [REQ-06, REQ-07]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .github/workflows/tests.yml
+      - .harness/harness.json
+    verify: |
+      python3 - <<'PY'
+      import sys, yaml
+      w = yaml.safe_load(open('.github/workflows/tests.yml'))
+      steps = w['jobs']['integration']['steps']
+      blob = yaml.safe_dump(steps)
+      bad = []
+      if 'jsonschema' not in blob: bad.append('integration job never installs jsonschema')
+      if 'validate-feature-json.py' not in blob: bad.append('integration job never runs the validator')
+      if '--kind unit' not in blob: bad.append('integration job never runs the unit suite, so the validator tests never run in CI')
+      if list(w['jobs']) != ['integration']: bad.append('jobs changed: %s' % list(w['jobs']))
+      raw = open('.harness/harness.json').read()
+      if 'feature.yaml' in raw: bad.append('harness.json still names feature.yaml')
+      print('\n'.join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      1. .github/workflows/tests.yml. The integration job installs PyYAML at the step
+      whose run is "python3 -m pip install --upgrade pyyaml". Change that step to
+      install jsonschema in the same command: python3 -m pip install --upgrade pyyaml
+      jsonschema. Do not add a second install step.
+
+      Then add TWO new steps to the SAME integration job. Never a new job, and never a
+      `name:` key on the job: branch protection requires exactly the context
+      `integration`, which is this job's id, so a second job emits a context nobody
+      requires and a job name renames the required one.
+        - "Unit suite", before the existing integration step, whose run is
+          .claude/skills/harness/bin/run-unit-tests.sh --kind unit, with the same
+          CLAUDE_PROJECT_DIR env block the integration step carries. THIS IS THE POINT
+          OF THE TASK, not a tidy-up: T-01's test-validate-feature-json.py is a UNIT
+          script, SC-07 is the only proof of REQ-06, and the required job runs
+          --kind integration only, so without this step nothing mechanical ever runs
+          it. The corpus sweep below cannot substitute - it validates only files that
+          are already VALID and stays green under a fail-open regression in the
+          validator itself.
+        - "Validate feature execution state", after both test steps, whose run is
+          .claude/skills/harness/bin/validate-feature-json.py with no arguments (it
+          then sweeps every feature file). A non-zero exit reddens the PR.
+      AMEND THE COMMENT THAT NOW READS FALSE. The block above the integration step
+      says the unit kind "is 3 files and 0.28s and would have caught none of the
+      defects that motivated this". That was true when written and is false the moment
+      T-01 lands. Rewrite that sentence to say what changed: the unit kind now carries
+      test-validate-feature-json.py, which is the only mechanical proof that the schema
+      checker refuses when its dependency is absent, so the unit kind runs here too.
+      Do not delete the original reasoning about why integration was chosen first -
+      correct the claim that is now false and leave the rest.
+      Do not touch the Plan-route gate step: test-check-plan-routes.py case 25 reads
+      this file and asserts that step is present and unneutered.
+      Do not add either step to any other workflow.
+
+      2. .harness/harness.json contains exactly one occurrence of the string
+      feature.yaml (a rationale string on the _max_total_cycles_rationale key). Change
+      that occurrence to feature.json. Change nothing else in the file - no key
+      additions, no budget changes; DEC-160 requires a decision for any harness.json key
+      addition and this task adds none.
+
+  - id: T-04
+    title: Drop every unread key from every feature.yaml on disk, with a receipt per feature
+    traces: [REQ-01, REQ-05]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: the path resolves to harness-orchestrator, which owns only its own feature
+      directory; a cross-feature migration belongs to no single orchestrator
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .harness/features/*/feature.yaml
+      - .harness/features/FEAT-14-feature-json-schema/feature.yaml
+    verify: |
+      python3 - <<'PY'
+      import glob, subprocess, sys, yaml
+      bad = [] if glob.glob('.harness/features/FEAT-14-feature-json-schema/notes/baseline-check-state.txt') else ['no pre-migration check-state capture at notes/baseline-check-state.txt - T-04 step 0 did not run, and T-08 has nothing to compare against']
+      r = subprocess.run(['.claude/skills/harness/bin/validate-feature-json.py'],
+                         capture_output=True, text=True)
+      if r.returncode != 0: bad.append('validator exited %d: %s' % (r.returncode, r.stdout[-800:]))
+      fy = sorted(glob.glob('.harness/features/*/feature.yaml')); miss = {f.rsplit('/', 1)[0] for f in fy} - {r.split('/notes/')[0] for r in glob.glob('.harness/features/*/notes/receipt-feature-key-drop.md')}
+      if miss: bad.append('feature.yaml with no drop receipt: %s' % sorted(miss))
+      allowed = {'feature_id','branch','pr','status','review_sha','cycles_used',
+                 'max_total_cycles','max_total_runs','runs','github','factory'}
+      for f in fy:
+          d = yaml.safe_load(open(f)) or {}
+          if 'phase' in d: bad.append('%s still carries phase - the collapse did not happen on this file' % f)
+          if sorted(set(d) - allowed): bad.append('%s carries %s' % (f, sorted(set(d) - allowed)))
+          for i, e in enumerate(d.get('runs') or []):
+              ex = sorted(set(e) - {'id','squad','verdict'})
+              if ex: bad.append('%s runs[%d] carries %s' % (f, i, ex))
+          for blk, ok in (('github', {'milestone','parent','parent_origin','attached','issues'}),
+                          ('factory', {'repo','parent','parent_origin','issues','items','edges'})):
+              ex = sorted(set(d.get(blk) or {}) - ok)
+              if ex: bad.append('%s %s carries %s' % (f, blk, ex))
+          if d.get('status') not in ('Backlog','Plan','Ready','Building','Review','Done'):
+              bad.append('%s status is %r, outside the six board columns' % (f, d.get('status')))
+          if not (d.get('pr') is None or isinstance(d.get('pr'), int)):
+              bad.append('%s pr is %r' % (f, d.get('pr')))
+      print('\n'.join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Reduce every feature.yaml on disk to the eleven schema keys, WITHOUT changing the
+      file format yet - these stay YAML in this task.
+
+      PRECONDITION ONE - THE WAIT, AND IT IS THE MAIN SESSION'S TO CLEAR, NOT YOURS.
+      FEAT-16-factory-per-repo-board and FEAT-17-guard-boundaries were both status
+      in_progress at a29ad06 and are writing execution state LIVE. This task does not start
+      until BOTH have returned for signature, and no feature may cross from signature into
+      build between this task and T-08. Only the main session holds the cross-feature view
+      that can confirm either half, so the main session is NAMED here as the owner of this
+      precondition; it has no owner inside this plan and no task can discharge it.
+      THE EARLIER LIST NAMING FEAT-12, FEAT-13 AND FEAT-15 IS STALE AND IS NOT THE LIST.
+      It was measured on 2026-08-10 and the corpus moved under it, which is the whole reason
+      membership is a glob and not a sentence. If a fourth flow has started by the time you
+      run, it counts too - the rule is the condition, not the roster.
+      A signature is the moment a feature starts BUILDING, and building writes execution
+      state live, so confirm no orchestrator is mid-run on any feature, including this one,
+      and re-confirm it rather than trusting a reading taken before the wait.
+
+      PRECONDITION TWO - READ THE BOARDS AND CONFIRM THE SIX COLUMNS EXIST BEFORE YOU
+      WRITE A SINGLE VALUE. Both GitHub boards were given the six-value single-select
+      vocabulary - Backlog, Plan, Ready, Building, Review, Done - and verified on
+      2026-08-11 by counting items per column before and after. DO NOT MUTATE EITHER BOARD
+      IN THIS TASK; the board work is already done and re-sending an option list is how an
+      omitted option deletes itself and strands its items. Read board 3 (Harness) and
+      board 2 (kaya-ai), confirm all six options are present on each, and STOP and report
+      if any is missing. Writing Building onto disk while the board has no Building column
+      would put the corpus into a vocabulary the operator's own view cannot display.
+
+      THE OPERATING FILE SET IS A GLOB, EVALUATED WHEN YOU RUN, NEVER A LIST FROM PLANNING.
+      Enumerate .harness/features/*/feature.yaml now, sort it, and migrate exactly what it
+      returns. THE files: BLOCK ABOVE IS THAT SAME GLOB, deliberately, plus ONE literal path
+      kept only so the route checker can resolve a lane and prove it. It is a ROUTING
+      declaration - it establishes which lane may write this shape of path - and it is not a
+      roster. An earlier draft enumerated all seventeen paths; that enumeration was stale
+      within a day, because FEAT-13's feature.yaml disappeared while FEAT-15 gained one, and
+      it breached DEC-182's 50-line per-task machine-field budget, measured at 54. The lanes:
+      block locks .harness/features/*/feature.yaml to main-session-direct, so the lane is
+      declared at any corpus size. The count is whatever the glob returns; no step in this
+      task may assert a fixed number.
+
+      A DIRECTORY WITH runs/ AND NO feature.yaml IS SKIPPED, NOT CRASHED ON. FEAT-13 was in
+      exactly that state on 2026-08-10 and FEAT-15 was an hour earlier. Such a directory is
+      not in the glob, so it gets no receipt and no rewrite; record it by name in this
+      task's report as skipped-no-feature-file, so the operator sees which directories the
+      migration did not touch. check-state.sh INV-18 already flags the condition; this task
+      neither creates a feature file for one nor treats it as an error.
+
+      CAPTURE THE PRE-MIGRATION check-state.sh BASELINE BEFORE YOU TOUCH ANYTHING. T-08's
+      verify asserts its violation set has not GROWN, and the only honest baseline is the
+      one taken before this task's first write - by T-06 the gate reads feature.json while
+      the corpus is still YAML, so a capture taken later is a degenerate window of INV-18
+      violations that would make the assertion vacuous. THE CAPTURE IS STEP 0 AND ITS
+      TIMING IS PART OF THE INSTRUCTION: take it only AFTER the precondition above is
+      satisfied and re-confirmed, in the same sitting as the rewrites, immediately before
+      the first receipt write. A capture taken at task start and then held through a wait
+      for FEAT-12 to ship is stale by exactly the mechanism this whole amendment exists to
+      remove. This task's verify clause fails if the file is absent. Run check-state.sh,
+      keep every stdout line containing VIOLATION stripped of surrounding whitespace, one
+      per line, and write them to
+      .harness/features/FEAT-14-feature-json-schema/notes/baseline-check-state.txt.
+      NEVER OVERWRITE AN EXISTING CAPTURE - if the file is already there this is a resume,
+      and the existing capture is the pre-migration one. Recapturing on a resume would bake
+      this task's own partial output in as pre-existing.
+
+      For each feature.yaml the glob returned, in sorted order:
+      1. Load it with harness_yaml.load_file.
+      2. Compute the removals: every top-level key outside the ELEVEN
+         (feature_id, branch, pr, status, review_sha, cycles_used,
+         max_total_cycles, max_total_runs, runs, github, factory) - phase is NOT in
+         that list and is therefore removed from every file, but it is removed in
+         step 5 rather than here, because its value is READ FIRST as input to the
+         status collapse; every key inside a
+         runs item outside id, squad, verdict; every github sub-key outside milestone,
+         parent, parent_origin, attached, issues; every factory sub-key outside repo,
+         parent, parent_origin, issues, items, edges.
+      3. WRITE THE RECEIPT FIRST, before touching the file:
+         .harness/features/<FEAT>/notes/receipt-feature-key-drop.md, a markdown file
+         whose first line is a one-sentence statement of what was removed and why (the
+         key had no reader; FEAT-14 closed the key set), followed by every removed key
+         with its full value, rendered with yaml.safe_dump so nothing is abbreviated.
+         Nested removals are recorded with their path, for example
+         runs[3].cost_usd. A receipt is written for every feature, including one that
+         loses nothing - in that case it says so in one line.
+         THE FILENAME CARRIES NO DATE. The build date is not knowable now, the receipt
+         is per feature and unique without one, and a dated name invites the second
+         attempt to write a different file rather than recognise the first.
+         NEVER OVERWRITE AN EXISTING RECEIPT, and this is what makes a retry safe. The
+         receipt is written before the destructive rewrite, so a halt between the two
+         leaves a receipt whose file is not yet reduced; a re-run that blindly rewrote
+         the receipt would replace it with a zero-removal one and destroy the only
+         durable record REQ-05 and SC-10 rest on. On encountering an existing receipt:
+           - if the file on disk already holds exactly the eleven keys and its status is
+             already one of the six board columns, this feature was
+             completed by an earlier attempt - SKIP it silently and count it as done. It
+             still counts as migrated; the verify clause asserts that every feature.yaml
+             present at build time has a receipt beside it, so a resume must leave no
+             feature.yaml without one and must not error on the ones already done;
+           - otherwise recompute the removals from the current file and compare them with
+             the existing receipt. Identical means the halt fell between receipt and
+             rewrite: keep the receipt untouched and perform the rewrite. Different means
+             something else changed the file - STOP and report, and change nothing.
+      4. Rewrite the feature.yaml with only the surviving keys, preserving key order as
+         listed in the schema, using yaml.safe_dump with default_flow_style False and
+         sort_keys False. Comments are lost; that is accepted, the receipt is the record.
+      5. COLLAPSE phase AND status INTO status. This is the core of the migration and it
+         happens ONCE, here. Read the file's OLD status and OLD phase, write the single
+         new status, then DELETE the phase key. After this step no file on disk carries
+         phase and no code anywhere carries a table from old values to new ones - the
+         table below exists only in this instruction, and it dies with this task (D-09).
+         NOTHING IS BACKFILLED. Every one of the eight required keys was measured present
+         on all 17 files at a29ad06, so no key is invented on any file. A missing
+         max_total_runs, github or factory is legal and stays absent.
+         THE TABLE, MEASURED FROM DISK AT a29ad06 - all 17 rows, old status and old phase
+         on the left, the single new status on the right:
+           FEAT-01                         abandoned / no phase   -> Done
+           FEAT-02                         shipped / no phase     -> Done
+           FEAT-03-subissue-mirror         shipped / ship         -> Done
+           FEAT-04-decisions-index         shipped / ship         -> Done
+           FEAT-05-pyyaml-file-parsers     shipped / ship         -> Done
+           FEAT-06-team-layer-inv6         awaiting_user / validate -> Review
+           FEAT-07-verify-teeth-batch-probe in_review / ship      -> Review
+           FEAT-08-remove-cost-tracking    awaiting_user / ship   -> Review
+           FEAT-09-plan-time-route-check   shipping / ship        -> Review
+           FEAT-10-software-factory        complete / ship        -> Done
+           FEAT-11-graphql-field-resolve   awaiting_user / ship   -> Review
+           FEAT-12-end-copy-distribution   awaiting_user / ship   -> Review
+           FEAT-13-single-issue-board-lookup in_review / ship     -> Review
+           FEAT-14-feature-json-schema     in_progress / plan     -> Plan
+           FEAT-15-domain-product-base     awaiting_user / plan   -> Done
+           FEAT-16-factory-per-repo-board  in_progress / plan     -> Plan
+           FEAT-17-guard-boundaries        in_progress / plan     -> Plan
+         THE RULE BEHIND THE TABLE, so a file that appeared after a29ad06 can be placed
+         without asking: shipped, abandoned and complete are Done. shipping is Review, NOT
+         Done - the ship phase is built-validated-and-waiting-on-the-operator and begins
+         before the PR and before the merge, and Done means merged and closed. in_review is
+         Review. awaiting_user is Review. in_progress with old
+         phase plan is Plan; in_progress with old phase build is Building. blocked is
+         Review, because a blocked feature is waiting on the operator and Review is the
+         column that means waiting on the operator; the tree carries blocked ZERO times, so
+         this row is written for completeness, not for a file.
+         THE OLD phase KEY IS NOT AUTHORITATIVE, AND THIS OVERRIDE OUTRANKS EVERY ROW
+         ABOVE. Before placing any feature by its old status and phase, read that
+         feature's plan.yaml approval block and its shipped state. If the plan reads
+         approval status approved AND the feature's PR is merged, the feature is Done
+         whatever its old phase said. The old pair is a cached reading that nothing kept
+         fresh; the plan's signature and the merged PR are the ground truth. Apply this to
+         the glob's contents when you run, not only to the seventeen rows above - a file
+         that appeared or moved after a29ad06 gets placed by this rule, not by the row.
+         FEAT-15 IS WHY THIS OVERRIDE EXISTS, and it is recorded rather than buried. Its
+         feature.yaml still said awaiting_user / plan, so an earlier draft of this task
+         sent it to Plan on the grounds that its plan.yaml carried approval pending and it
+         held no handoff note. THAT GROUNDING WAS FALSE and was read off a stale file: at
+         a29ad06 FEAT-15's plan.yaml reads approval status approved, PR 263 is MERGED and
+         issue 239 is CLOSED. FEAT-15 is Done. Recording a merged feature as being planned
+         would put the one field meant to mirror the board in disagreement with the board
+         on its first day. Its zero handoff notes are correct and are NOT evidence of an
+         uncrossed seam: all five of its tasks are execution_mode main-session-direct
+         under DEC-174, so no squad ran and no note was ever owed - T-12 carries the
+         INV-17 exemption that makes that legal. If FEAT-15 has moved again by the time
+         you run, place it by the override above rather than by this paragraph.
+         RUN ENTRIES NEED NO BACKFILL EITHER. All 150 run entries across the corpus at
+         06ae963 were censused with harness_yaml.load_file: every one carries id, squad and
+         verdict, and none is a non-mapping. So required id, squad, verdict is safe as
+         written and you are only DROPPING extra run keys, never adding one. If any entry
+         turns out to be missing one of the three, STOP and report rather than inventing a
+         value.
+      6. NORMALIZE VALUES, recording each change in the same receipt as a before and
+         after pair. This step is not optional - after the collapse, ALL 17 files would
+         fail the schema on status alone if it were skipped, because the new vocabulary
+         and the old one share no value at all.
+         - status: already handled in step 5. Record BOTH old values and the one new value
+           in the receipt as a before-and-after triple - old status, old phase, new status
+           - because the receipt is the only place the pre-collapse pair survives once
+           phase is deleted from disk. Every one of the 17 files changes here: the old
+           vocabulary and the new one share not a single value, which is what makes this a
+           replacement rather than a normalization. If a file's old pair is not in step 5's
+           table and the rule there does not place it unambiguously, STOP and report rather
+           than guessing at its meaning.
+           THIS CHANGES A LIVE GATE'S VERDICT, and T-11 is the task that keeps that gate
+           honest. check-plan-routes.py's finished-feature skip reads status, and after this
+           task no file carries a value it recognises, so EVERY plan becomes route-checked -
+           measured at a29ad06 by running the checker with the skip tuple emptied: 35
+           violations across 16 plans, against 0 across 12 today. That window is expected,
+           is confined to the working tree, and CLOSES AT T-11, which repoints the skip at
+           Done. Do not attempt to fix it here and do not revert a value to keep the
+           checker quiet. Record in the FEAT-09 and FEAT-10 receipts specifically that
+           their route-check disposition changes - FEAT-10 leaves the checked set (Done)
+           and FEAT-09 stays in it (Review) - naming check-plan-routes.py as the reader
+           whose answer changes, so a later reader does not read it as a silent regression.
+         - pr: the string none appeared in every file at 06ae963 and becomes null. An integer pr,
+           if any exists by then, is left alone.
+         - branch and review_sha: leave the string none exactly as it is. INV-6 reads it
+           as a placeholder and changing it would alter a gate script's input.
+
+      Then run .claude/skills/harness/bin/validate-feature-json.py with no arguments and
+      confirm exit 0 over every file the glob returned.
+
+      THE PROHIBITED-TOOL WINDOW OPENS HERE AND CLOSES AT THE END OF T-08, and it is the
+      one hazard in this plan whose damage is EXTERNAL and not undone by a git reset. Do
+      NOT invoke gh-sync.py, factory_decompose.py or factory_claim.py AGAINST THE LIVE
+      .harness/features/ CORPUS at any point from this task through T-08 - no --repo run,
+      no sync, no decompose, no claim, whether by hand or from a script. Scope it exactly:
+      the prohibition is on running these tools against real feature directories. Their
+      fixture-based suites are NOT prohibited and are expected to run - T-05's own verify
+      clause runs run-unit-tests.sh, which exercises test-gh-sync.py and the factory tests
+      against tempfile fixtures, and that stays legal.
+      WHY, verified rather than inferred: gh-sync.py load_recorded (lines 255-256) returns
+      the EMPTY record when the file it looks for is missing, and its own docstring
+      (lines 236-243) names the consequence - every recorded task issue reads as "nothing
+      is mirrored", so it RE-CREATES issues that already exist and takes the
+      duplicate-parent path. save_recorded then writes that empty record back over the
+      real one. Between this task and T-08 the readers and the filename disagree by
+      construction, so that missing-file state is reachable for every feature at once.
+
+  - id: T-05
+    title: Repoint the four python readers of feature.yaml at feature.json
+    traces: [REQ-07]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-04]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/factory_claim.py
+      - .claude/skills/harness/bin/factory_decompose.py
+      - .claude/skills/harness/bin/test-check-plan-routes.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+      - .claude/skills/harness/bin/test-factory-claim.py
+      - .claude/skills/harness/bin/test-factory-decompose.py
+      - .claude/skills/harness/bin/test-harness-yaml-corpus.py
+    verify: |
+      python3 - <<'PY'
+      import subprocess, sys
+      bad = []
+      n = open('.claude/skills/harness/bin/test-harness-yaml-corpus.py').read().count('feature.yaml')
+      if n != 4:
+          bad.append('test-harness-yaml-corpus.py names feature.yaml %d times, expected exactly 4 '
+                     '(the three preserved path:line citations plus the FEAT-05 sentence); the '
+                     'historical marker must not add a fifth' % n)
+      r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.sh'],
+                         capture_output=True, text=True)
+      if r.returncode != 0:
+          bad.append('unit runner exited %d:\n%s' % (r.returncode, r.stdout[-2000:]))
+      print('\n'.join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Repoint every python consumer of a feature's execution state from feature.yaml to
+      feature.json, and replace the two text-splicing writers with plain JSON writes.
+      Do not change what any of them reads or decides - only the filename and the
+      serialisation.
+
+      1. check-plan-routes.py, the shipped-feature check around line 410: the path it
+      joins becomes feature.json. Its defensive shape stays exactly as is - not a file,
+      parse failure or non-mapping all still mean NOT shipped.
+
+      2. gh-sync.py. load_recorded (around line 247) reads feature.json; keep the real
+      parser, keep the explicit os.path.exists check before parsing, keep the loud
+      SystemExit on MissingDependency and on a parse failure with its existing wording
+      about duplicate issues, adjusting only the filename in the message. save_recorded
+      (around line 265) currently splices text to preserve comments; JSON has no
+      comments, so replace the splice with a read-modify-write: load the document,
+      set its github key to the five-field mapping it already builds (milestone,
+      parent, parent_origin, attached, issues), and write the whole document back with
+      json.dump(indent=2) plus a trailing newline. Preserve the existing key order of
+      the document. Delete the comment block explaining why the writer splices text -
+      it is now false, and a false explanation is more expensive than none.
+
+      3. factory_claim.py issue_number (around line 116): the path becomes feature.json.
+      Its behaviour on a parse failure (treat as no issue map) is unchanged.
+
+      4. factory_decompose.py. load_factory (around line 94) reads feature.json.
+      write_factory (around line 181) currently strips and re-renders a textual factory
+      block atomically; replace the strip-and-splice with load, set the factory key,
+      json.dump(indent=2). KEEP THE ATOMICITY EXACTLY AS IT IS - tempfile.mkstemp in the
+      same directory, then os.replace. That property is why the function exists. Delete
+      _strip_factory_block and _render_factory_block if nothing else calls them, and
+      delete their explanatory comments with them.
+
+      5. Update the four named test files so their fixtures create feature.json with
+      JSON content, and add to each ONE case that reads an eleven-key feature.json
+      fixture end to end for that tool.
+      THE FIXTURE VALUES MOVE TOO, NOT ONLY THE FIXTURE FILENAMES, and a filename sweep
+      misses this half. These files write status and phase values into fixture feature
+      documents - test-gh-sync.py writes status: in_progress on roughly a dozen fixtures
+      and phase: plan or phase: ship on five more; test-factory-decompose.py,
+      test-factory-claim.py and test-check-plan-routes.py write their own. Rewrite every
+      such value to a board column (in_progress becomes Building or Plan, whichever the
+      fixture is standing in for) and DELETE every phase line. Leave
+      test-check-plan-routes.py's status fixture loop alone - that one is T-11's, per
+      item 7. A fixture carrying a value the schema rejects is not merely untidy: it is a
+      worked example of the old vocabulary sitting in the tree after the replacement,
+      and the next person to copy a fixture copies it. Where a test asserts on a splice-preserving
+      behaviour that no longer exists (comments surviving a write), replace the
+      assertion with one that the whole document round-trips: keys outside the block
+      being written are unchanged.
+
+      6. test-harness-yaml-corpus.py - DO NOT RENAME ANYTHING IN THIS FILE. Its module
+      docstring cites FEAT-03/feature.yaml:97, FEAT-04/feature.yaml:77 and
+      FEAT-05/feature.yaml:55 as evidence of what those files contained on 2026-08-03,
+      and a fourth sentence saying FEAT-05/feature.yaml was written the same day by an
+      agent. Renaming them would assert that files existed under a name they never had,
+      which PRINCIPLES rule 15 forbids. Make exactly ONE change: insert this marker
+      VERBATIM as the paragraph immediately before the indented citation block, writing
+      nothing of your own. The wording is FIXED, not a summary to paraphrase, because
+      T-05's and T-08's verify clauses pin this file at exactly four occurrences of the
+      old filename and any natural rephrasing adds a fifth, failing both:
+        HISTORICAL RECORD, NOT CURRENT PATHS: the three paths below name each file as it
+        was named on 2026-08-03. FEAT-14 later closed the key set and converted that
+        format to JSON. The citations are deliberately left unrenamed - renaming them
+        would assert those files existed under a name they never had, and this docstring
+        is the evidence for why the gate exists.
+      The file's runtime behaviour is untouched;
+      it scans every *.yaml under .harness, so after T-08 it simply has fewer files to
+      scan, and feature.json is covered by validate-feature-json.py instead.
+
+      7. DO NOT TOUCH SHIPPED_STATUSES OR ITS FIXTURES IN THIS TASK. The finished-feature
+      skip and the assertion tying it to the schema enum are T-11's, which owns that
+      constant end to end and lands after this task. Changing the filename it joins is
+      this task's whole business there; changing what it compares is not. If you find
+      yourself editing test-check-plan-routes.py's status fixture loop around line 828,
+      you are doing T-11's work - stop and leave it.
+
+      THE PROHIBITED-TOOL WINDOW IS OPEN ACROSS THIS TASK. Do NOT invoke gh-sync.py,
+      factory_decompose.py or factory_claim.py against the live .harness/features/ corpus
+      at any point in this task - this task is what makes them look at a filename the
+      corpus does not carry yet, and gh-sync.py treats a missing file as an empty record
+      and re-files issues that already exist (its own docstring, lines 236-243). Running
+      their fixture-based suites is NOT prohibited and is required: this task's own verify
+      clause runs run-unit-tests.sh, which exercises test-gh-sync.py and the factory tests
+      against tempfile fixtures.
+
+      Every one of these files is already registered in run-unit-tests.sh; add no new
+      test file in this task.
+
+  - id: T-06
+    title: Repoint and re-budget the two gate scripts, and wire schema validation into the
+      write-payload path
+    traces: [REQ-02, REQ-03, REQ-06, REQ-07, REQ-08]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - check-state.sh, check-domain.sh and validate-digest.py are
+      three of the four named enforcement scripts, edited directly and never dispatched
+    depends_on: [T-04]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/validate-digest.py
+      - .claude/skills/harness/bin/test-check-state.py
+      - .claude/skills/harness/bin/test-check-domain.py
+      - .claude/skills/harness/bin/test-validate-digest.py
+    verify: |
+      python3 - <<'PY'
+      import subprocess, sys
+      bad = []
+      for f in ('.claude/skills/harness/bin/validate-digest.py',
+                '.claude/skills/harness/bin/test-validate-digest.py'):
+          n = open(f).read().count('feature.yaml')
+          if n: bad.append('%s still names feature.yaml %d time(s)' % (f, n))
+      r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.sh', '--kind', 'integration'],
+                         capture_output=True, text=True)
+      if r.returncode != 0:
+          bad.append('integration suite exited %d:\n%s' % (r.returncode, r.stdout[-2000:]))
+      print('\n'.join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      DEC-174: make these edits directly, run the tests explicitly, read the diff. Do
+      not dispatch this task.
+
+      1. check-state.sh. Six globs name feature.yaml (around lines 148, 439, 486, 506,
+      713, 752); all become feature.json. Every message naming feature.yaml becomes
+      feature.json. Two substantive changes beyond the rename:
+        - INV-18's message (around line 487) currently says to instantiate it from the
+          template without naming one. Change it to name the file:
+          .claude/skills/harness/templates/feature.json.
+        - LEAVE INV-17's LOGIC ENTIRELY ALONE IN THIS TASK. Anchor on content, not on a
+          line number - the block runs from the comment `# --- INV-17 (DEC-159)` to the
+          end of its handoff-heading loop, and it contains `PHASE_ORDER = [`. Rename the
+          feature-file glob inside it like the other five and change NOTHING else in that
+          block. INV-17 is T-12's, which lands after this task and rewrites it. Two tasks
+          editing the same twenty lines of a carve-out gate is how a hand-applied edit
+          gets silently reverted by the next one.
+        - ONE CARVE-OUT FROM THAT HANDS-OFF RULE, AND IT IS REQUIRED, NOT OPTIONAL.
+          test-check-state.py's INV-17 fixture - the case whose comment reads
+          `phase: validate with NO handoff-plan.md` and which writes a feature file into
+          a tempdir - writes it under the OLD filename. Rename that fixture's filename to
+          feature.json along with every other fixture filename in this task, and leave its
+          CONTENT alone. Without the rename the renamed glob matches nothing, the case
+          passes vacuously, and this task's own verify clause goes green on a test that
+          stopped testing anything. With it, the case still passes here, because
+          PHASE_ORDER and the phase read are still in place until T-12. The same applies
+          to the budget fixture that writes `phase: build`: rename the filename, leave the
+          content. T-12 rewrites both contents around status. The earlier draft of this task
+          carried an INV-17 exemption item and a PHASE_ORDER-equals-the-schema-enum test;
+          BOTH ARE DELETED, not moved verbatim - the first was written for a phase
+          backfill that no longer happens, and the second pinned two copies of a phase
+          enum that no longer exists on either side, so it has nothing left to pin.
+        - INV-23 (around line 506) enforces two budgets on this path. Raise the line
+          budget from 200 to 300 and REMOVE the comment-line budget check and its
+          message entirely - JSON has no comments, so it can never fire, and a check
+          that cannot fire is a check a reader trusts. Say in a one-line comment that
+          the 300 came from FEAT-10 at 173 lines with 32 runs and roughly 5 lines per
+          run.
+
+      2. check-domain.sh. In _SWEEP_PATTERNS (around line 506) the entry
+      .harness/features/*/feature.yaml becomes .harness/features/*/feature.json, and the
+      RE_FEATURE_YAML constant (line 572, used at line 586's SHAPE_PATTERNS and at line
+      633) is renamed RE_FEATURE_JSON with its pattern ending feature\.json. Rename every
+      use; leave the other four shape patterns alone. The
+      budget message around line 636 changes from 200 to 300 and drops the comment-line
+      half, matching check-state.sh. Then add the schema check to the SAME payload path
+      that already applies the line budget, inside shape_problems, so it returns lines
+      like every other shape finding and both call sites (the named PRE target and the
+      POST sweep) get it for free.
+
+      IMPORT THE MODULE, DO NOT SPAWN THE CLI - AND IMPORT IT INSIDE THE BRANCH, NOT AT
+      MODULE LEVEL. The heredoc already exports PYTHONPATH="$_selfdir", so the plumbing is
+      free, but the TIME is not, and it was measured on 2026-08-10 rather than assumed:
+      importing jsonschema costs +42.6 ms median (17.3 ms -> 59.9 ms, median of 10
+      isolated interpreter launches, jsonschema 4.26.0 on python3 3.14.5, warm bytecode;
+      395 ms on the first cold import). Two other imports measured the same way for scale:
+      stdlib json +0.2 ms, PyYAML +6.4 ms. That figure is a DIFFERENT measurement from the
+      ~38 ms of ~42 ms per post-Bash call this file records at line 534 and the 104.7 ms
+      governed path at line 92 - those are whole-hook figures on a different day - so treat
+      the comparison as order-of-magnitude, not arithmetic. It still settles the choice:
+      +42.6 ms more than triples a bare interpreter start-up and is roughly 40% of the
+      recorded governed path, and a module-level import would charge it on EVERY Write,
+      Edit and Bash in the entire repo, not on the rare feature.json write. This file
+      already defers its heaviest import for exactly this reason - see line 139, harness_yaml
+      is imported LAZILY, below the manifest check, never at the top.
+      So: inside the RE_FEATURE_JSON branch, in a TIGHT try, import feature_schema, then
+      call feature_schema.problems_for_text(content, display or rel) and extend the
+      problems list with what it returns. Pass the DISPLAY path, so the message names the
+      file the agent actually wrote. Import no schema logic here - the module is the
+      schema's home, and it does not live inside the gate it guards.
+      THE DEFERRAL CHANGES NOTHING IN T-01 AND BREAKS NO ACCEPTANCE, and here is why, so
+      nobody re-opens either: sys.modules caches the first import, so a POST sweep over
+      many candidates pays the 42.6 ms ONCE per invocation, not once per file - which is
+      the exact property T-01's module-level jsonschema import was written to protect,
+      and T-01 is unchanged. The unimportable-jsonschema path is unchanged too: T-01 has
+      feature_schema swallow that ImportError behind a module-level flag and RETURN the
+      REQUIRED line, so it arrives as a returned problem, not as a raise, and the
+      problems -> exit 2 denial still fires with the payload's own target path.
+      WHAT THE TIGHT try IS FOR IS A DIFFERENT FAILURE: feature_schema itself being
+      unimportable - PYTHONPATH not exported, a syntax error in the module, the file
+      missing. On `except ImportError` append a problem line naming feature_schema as
+      unimportable and the same install/repair advice, so that case is DENIED with exit 2
+      as well. The try must sit INSIDE the branch and append to problems: a raise escaping
+      the per-file loop exits 1, and line 14 says exit 1 is NON-BLOCKING, so the bad write
+      would land - fail open, in the case the checker exists for.
+      DO NOT WRITE A TEMPORARY FILE AND DO NOT RUN A SUBPROCESS. Three reasons, all
+      measured, and a later editor will be tempted by the subprocess because the CLI
+      exists: a subprocess is one interpreter launch per file, and the POST sweep can be
+      handed the whole corpus at once when a git checkout or stash refreshes mtimes in
+      bulk (lines 519-524; the file's own figure is ~38 ms of ~42 ms per call being
+      start-up, and 104.7 ms for the full governed path at line 92); a subprocess that
+      cannot LAUNCH raises through this loop and exits 1, and line 14 says exit 1 is
+      NON-BLOCKING, so the bad write lands - the checker would fail OPEN in exactly the
+      case it exists for; and a subprocess can only be handed a temporary file, so its
+      message names a path nobody wrote, which is the unattributable-finding defect
+      DEC-180 already fixed twice in this file (lines 611-626).
+
+      FAIL CLOSED, WITH NO BOOTSTRAP ESCAPE, AND SAY WHY IN THE COMMENT. When jsonschema
+      is unavailable the module returns its one REQUIRED line; append it to the problems
+      list, so the payload is DENIED with exit 2. Do NOT claim it shares check-domain.sh's
+      existing bootstrap escape - it does not, and a false explanatory comment is what the
+      next editor edits against. require_or_bootstrap is reached only inside `if
+      _run_domain:` (line 333), which needs a governed harness-* agent in PRE mode with a
+      readable manifest; the shape phase reaches neither it nor the grant. The comment must
+      state the facts as they are:
+        - the shape phase runs for EVERY writer, including the main session, because the
+          no-agent_type carve-out is the _governed FLAG, not an exit - it was a bare
+          sys.exit(0) once and that silently disabled this whole gate;
+        - so this denial governs the main-session-direct migration tasks T-04, T-07 and
+          T-08 as well, deliberately;
+        - and no escape is needed, because the remedy is `python3 -m pip install
+          jsonschema`, a Bash command no gate denies. That is the difference from the
+          missing-PARSER case, where the escape exists because the gate cannot read its
+          own manifest without PyYAML and therefore cannot let anything through at all.
+        - THIS BRANCH NEEDS STDLIB json AND jsonschema ONLY, NEVER PyYAML. The state.yaml
+          branch's `if _no_parser: return out` is a user-ruled fail-open for a check that
+          genuinely cannot run without a parser. Do not extend that condition to cover
+          this branch: there is no missing parser here to excuse it.
+      ONE MESSAGE PER INVOCATION, NOT ONE PER FILE. The unavailable-checker line is
+      emitted once even when the sweep carries many candidates - deduplicate it in this
+      file, or gate it on a module-level flag - or a corpus-wide sweep prints one
+      identical block per feature, re-creating the noise defect the display-path work fixed.
+      ONE ROUTING SENTENCE PER FINDING, NOT TWO. The existing deny() helper appends the
+      module-level ROUTING constant, which speaks about STATE.md, digests and notes/ - a
+      different sentence from the schema's redirection line, which names plan.yaml
+      approval.rulings as well. Two routing sentences in one stderr stream contradict each
+      other about the same file class. For SCHEMA findings on this path, emit the schema's
+      redirection line and NOT the ROUTING constant; the constant stays exactly as it is
+      for every other pattern that uses it. The line-budget finding on this same path keeps
+      deny() and therefore keeps ROUTING - it is not a schema finding and its advice is
+      still the right advice.
+      KNOW WHAT THIS TASK LEAVES BEHIND. Between this task and T-08 the globs name
+      feature.json while the corpus is still feature.yaml, so check-state.sh INV-18
+      fires for every feature still on YAML. That window is accepted and expected; this task
+      is verified by the fixture-based integration suite, not by a green check-state.sh,
+      and the branch is not committed against a green state check until T-08 closes the
+      window. Do not "fix" the red by reverting a glob.
+      THE PROHIBITED-TOOL WINDOW IS OPEN ACROSS THIS TASK. Do NOT invoke gh-sync.py,
+      factory_decompose.py or factory_claim.py against the live .harness/features/ corpus
+      until T-08 has landed - a missing file reads to gh-sync.py as an empty record and
+      re-files issues that already exist, which no git reset undoes. Fixture-based test
+      suites are not prohibited and this task's verify clause runs one.
+
+      3. validate-digest.py and test-validate-digest.py - the two carve-out files the
+      first draft of this plan missed. Both are pure renames of a filename, nothing else.
+        - validate-digest.py, one occurrence around line 173, inside the comment block
+          explaining which DIGEST fields the main session routes on. The sentence reads
+          "Everything else stays on disk in feature.yaml." It is a present-tense statement
+          about where state lives and it becomes false at T-08, so it becomes
+          feature.json. Change no other word of that comment.
+        - test-validate-digest.py, two occurrences around lines 753 and 773, both the
+          fixture value `artifact: .harness/features/FEAT-01/feature.yaml` inside
+          synthetic DIGEST payloads. These are test inputs, not a record of anything that
+          happened, so rename both to feature.json. The assertions around them are
+          unchanged - validate-digest.py does not check that the artifact path exists.
+
+      4. Extend test-check-state.py and test-check-domain.py:
+        - NOTHING ABOUT INV-17 - its cases are T-12's, and adding one here would be
+          rewritten by that task;
+        - a fixture feature dir with runs/ and no feature.json still trips INV-18, and
+          the message names templates/feature.json;
+        - a 310-line feature.json trips the new line budget and a 290-line one does not;
+        - no test asserts on a comment-line budget any more;
+        - a check-domain payload carrying an invented top-level key on the feature.json
+          path yields exit 2 and the validator's key name in the reason - assert on the
+          EXIT CODE from running the hook, not by reading the source;
+        - EVERY EXISTING test-check-domain.py FIXTURE THAT WRITES A FEATURE DOCUMENT NOW
+          PASSES THROUGH THE SCHEMA, which is new in this task and is the half a filename
+          rename misses. Those fixtures currently write feature.yaml with old values;
+          after this task the same payloads reach the schema check. Any fixture that is
+          meant to be ACCEPTED must carry a legal eleven-key document with a board-column
+          status and no phase key, or it will now be denied for a reason its case never
+          intended - a green-looking test asserting the wrong cause. Audit every
+          feature-document fixture in that file and fix the ones whose expected outcome is
+          acceptance; leave the deliberately-bad ones bad. Fixtures writing run_id and
+          status: complete are state.yaml fixtures on a different path - leave those
+          alone;
+        - a valid eleven-key payload on the same path is not denied by the schema check;
+        - THE CHECKER-CANNOT-RUN CASE, which is SC-16 and the reason this task is worth
+          reviewing twice: run the hook in PreToolUse mode with an OTHERWISE VALID
+          eleven-key payload on the feature.json path, in an environment where jsonschema
+          is unimportable (inject a directory on PYTHONPATH holding a jsonschema.py that
+          raises ImportError, the same fixture shape T-01 uses). Assert exit is EXACTLY 2,
+          explicitly not 1 - exit 1 is non-blocking and the write would land - and assert
+          stderr carries the REQUIRED wording and the payload's OWN target path, not a
+          tempfile path. A valid payload is the discriminating input: with a schema
+          violation in it the denial could come from the violation instead;
+        - the same unavailable-checker condition across a POST sweep of several feature
+          files emits the REQUIRED line ONCE, not once per file;
+        - the schema rejection message on this path carries the redirection sentence and
+          does NOT also carry the ROUTING constant's sentence.
+
+  - id: T-07
+    title: Rename the file in every instruction, template and config, and ship the missing template
+    traces: [REQ-07, REQ-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: every path resolves to NOBODY under check-domain.sh --resolve, an ungranted
+      surface under DEC-179
+    depends_on: [T-04]
+    status: pending
+    files:
+      - .claude/skills/harness/templates/feature.json
+      - .claude/skills/harness/templates/gitignore.snippet
+      - .claude/skills/harness/templates/harness.json
+      - .claude/skills/harness/templates/team-config.yaml
+      - .claude/skills/harness/SKILL.md
+      - .claude/skills/harness-team/SKILL.md
+      - .claude/skills/harness-spec-driven/SKILL.md
+      - .claude/agents/harness-orchestrator.md
+      - .claude/commands/harness.md
+      - .harness/team-config.yaml
+    verify: |
+      python3 - <<'PY'
+      import subprocess, sys, json
+      paths = ['.claude/skills/harness/templates', '.claude/skills/harness/SKILL.md',
+               '.claude/skills/harness-team/SKILL.md', '.claude/skills/harness-spec-driven/SKILL.md',
+               '.claude/agents', '.claude/commands', '.harness/team-config.yaml']
+      r = subprocess.run(['git', 'grep', '-n', 'feature.yaml', '--'] + paths,
+                         capture_output=True, text=True)
+      bad = [l for l in r.stdout.splitlines() if l.strip()]
+      t = '.claude/skills/harness/templates/feature.json'
+      try:
+          doc = json.load(open(t))
+      except Exception as e:
+          bad.append(f'{t} is not loadable JSON: {e}')
+          doc = None
+      if doc is not None:
+          v = subprocess.run(['.claude/skills/harness/bin/validate-feature-json.py', t],
+                             capture_output=True, text=True)
+          if v.returncode != 0:
+              bad.append('template does not validate: ' + v.stdout + v.stderr)
+      print('\n'.join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Two jobs: ship the template that two instructions already point at, and change
+      every remaining instruction that names feature.yaml.
+
+      BUILD CONDUCT, AND IT APPLIES FROM THE MOMENT THIS TASK LANDS. This feature's own
+      orchestrator holds the PRE-RENAME instructions in its context and re-creates its
+      feature file at every run boundary. After this task that would re-create the file
+      under the old name, which T-08's verify clause forbids and detects. So from here on,
+      either respawn the orchestrator so it reads the renamed instructions, or keep
+      FEAT-14's own execution-state writes main-session-direct through the rest of the
+      build. This is conduct, not a plan defect - T-08 self-detects it, and detecting it
+      after the fact costs a re-run of T-08.
+      THE PROHIBITED-TOOL WINDOW IS OPEN ACROSS THIS TASK. Do NOT invoke gh-sync.py,
+      factory_decompose.py or factory_claim.py against the live .harness/features/ corpus
+      until T-08 has landed; fixture-based suites are unaffected.
+
+      1. NEW FILE .claude/skills/harness/templates/feature.json. An eleven-key document
+      that itself validates against feature-schema.json, holding the eight required keys
+      with placeholder values an instantiator replaces. Literally, as JSON types:
+      feature_id the string FEAT-NN-slug, branch the STRING "none", pr the literal null,
+      status the string Plan (capitalized - it is a board column name, and a template
+      shipping the lowercase form would teach every future instantiation to fail its own
+      schema), review_sha the STRING
+      "none", cycles_used the number 0, max_total_cycles the number taken from
+      harness.json budgets, runs an empty array. branch and review_sha are strings and
+      must NOT be null, or the template fails its own schema. It omits max_total_runs,
+      github and factory, which are absent until they apply. An eleven-key document is
+      therefore an EIGHT-key template.
+      JSON has no comments, so the template carries no explanatory text - the schema's
+      description strings are where the explanation lives. Confirm it validates before
+      finishing.
+
+      2. Rename in the following, changing nothing else about what any line says:
+        - templates/gitignore.snippet, templates/harness.json,
+          templates/team-config.yaml, .harness/team-config.yaml: one occurrence each.
+        - .claude/agents/harness-orchestrator.md: four occurrences, including the
+          artifact path in the return block at the end.
+        - .claude/commands/harness.md: two occurrences, including the no-argument
+          listing at line 18.
+        - .claude/skills/harness-team/SKILL.md: one occurrence in the writes table.
+        - .claude/skills/harness-spec-driven/SKILL.md: the citation-rot example around
+          lines 140-142. The example cites feature.yaml:41 and feature.yaml
+          github.parent; rename both to feature.json. The lesson is unchanged.
+        - .claude/skills/harness/SKILL.md: every occurrence (around lines 15, 23, 26,
+          61, 271, 286, 292, 299, 336). At line 23, the first-cycle instruction becomes
+          explicit: instantiate STATE.md from templates/STATE.md and feature.json from
+          templates/feature.json. At line 61-64 the budget sentence says the shape gate
+          denies a feature.json over 300 lines, and the twenty-comment clause is
+          removed. Add one sentence to the same step: the key set is closed and
+          schema-checked at write time; content that is not one of the eleven keys goes
+          to plan.yaml approval.rulings, the run digest, STATE.md or notes/ as the
+          rejection message says.
+
+      3. THE phase INSTRUCTION IS NOW FALSE AND MUST BE REWRITTEN, NOT JUST RENAMED. This
+      is a second job on the same files and it is the half a filename sweep would miss:
+      grep for feature.yaml finds none of it, because the sentence names the FIELD.
+      The site, verified at a29ad06 rather than assumed:
+        - .claude/skills/harness/SKILL.md lines 271-272 read "Record your phase in
+          `feature.yaml` `phase:` and each transition as a STATE.md log entry." There is
+          no phase field after this feature. Rewrite it to: record your position in
+          feature.json status:, using the board column the feature is now in - Backlog,
+          Plan, Ready, Building, Review or Done - and each transition as a STATE.md log
+          entry. Add one clause naming the two columns an orchestrator will not otherwise
+          guess: Review covers validating AND waiting on the operator, and Done means
+          merged and closed.
+        - LEAVE lines 264-270 AND 276-281 ALONE. "Your mission IS one phase - plan,
+          build, validate, or ship", the phase exit predicates, and
+          notes/handoff-<ending-phase>.md are DEC-148/159's mission framing and D-12's
+          handoff stems. An orchestrator still runs one phase; what died is recording
+          that phase as a FIELD. Deleting the mission framing would take the handoff
+          filenames with it and orphan the 34 handoff notes on disk. Change the
+          sentence that names a field; leave every sentence that names a mission.
+        - .claude/agents/harness-orchestrator.md CARRIES NO phase INSTRUCTION - verified
+          by grep at a29ad06, zero occurrences of the word. Do not go looking for one and
+          do not invent one. Its four feature.yaml occurrences are the filename rename in
+          item 2 and nothing more.
+        - DO NOT TOUCH .claude/agents/harness-orchestrator.md LINE 69, the DIGEST return
+          contract reading status: in_progress|in_review|shipped|blocked|awaiting_user.
+          That is validate-digest.py's enum, which D-13 rules OUT of this feature's
+          scope. It looks exactly like the vocabulary this feature is replacing and it is
+          a different object with a different lifetime; changing it here would break
+          every orchestrator return with nothing in the plan to catch it.
+
+  - id: T-08
+    title: Convert every remaining feature.yaml to feature.json and prove the whole system green
+    traces: [REQ-01, REQ-05, REQ-07]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: the path resolves to harness-orchestrator, which owns only its own feature
+      directory; a cross-feature migration belongs to no single orchestrator
+    depends_on: [T-05, T-06, T-07, T-03, T-11, T-12]
+    status: pending
+    files:
+      - .harness/features/*/feature.yaml
+      - .harness/features/FEAT-14-feature-json-schema/feature.yaml
+    verify: |
+      python3 - <<'PY'
+      import glob, subprocess, sys, yaml
+      B = [l.split('\u2014')[0].strip().replace('feature.yaml', 'feature.json') for l in open('.harness/features/FEAT-14-feature-json-schema/notes/baseline-check-state.txt') if l.strip()]
+      P = {'.claude/skills/harness/bin/test-harness-yaml-corpus.py': 4}
+      bad = []; y = sorted(glob.glob('.harness/features/*/feature.yaml'))
+      if y: bad.append('feature.yaml still on disk: %s' % y)
+      if len(glob.glob('.harness/features/*/feature.json')) < len(glob.glob('.harness/features/*/notes/receipt-feature-key-drop.md')): bad.append('fewer feature.json files than T-04 drop receipts - a feature was lost in conversion')
+      r = subprocess.run(['.claude/skills/harness/bin/validate-feature-json.py'], capture_output=True, text=True)
+      if r.returncode: bad.append('validator exit %d: %s' % (r.returncode, r.stdout[-800:]))
+      cs = subprocess.run(['.claude/skills/harness/bin/check-state.sh'], capture_output=True, text=True)
+      v = [l.strip() for l in cs.stdout.splitlines() if 'VIOLATION' in l]
+      bad += ['NEW violation vs the pre-migration baseline: ' + x for x in v if x.split('\u2014')[0].strip().replace('feature.yaml', 'feature.json') not in B] + (['violation set GREW from %d at the pre-migration baseline to %d' % (len(B), len(v))] if len(v) > len(B) else [])
+      EX = {'FEAT-01', 'FEAT-02'} | {p.split('/')[2] for p in glob.glob('.harness/features/*/plan.yaml') for T in [(yaml.safe_load(open(p)) or {}).get('tasks') or []] if T and all(isinstance(i, dict) and i.get('execution_mode') == 'main-session-direct' for i in T)}
+      bad += ['INV-17 fires on exempt feature %s, so T-12 exemption did not land: %s' % (f, x) for x in v if 'handoff-' in x for f in EX if f in x]
+      if not [l for l in cs.stdout.splitlines() if 'exempt' in l.lower() and 'handoff' in l and any(f in l for f in EX)]: bad.append('no INV-17 exemption note names a plan-keyed exempt feature - the exemption never evaluated, so INV-17 being quiet on it is not evidence it was granted')
+      cpr = subprocess.run(['.claude/skills/harness/bin/check-plan-routes.py'], capture_output=True, text=True)
+      if cpr.returncode: bad.append('check-plan-routes exit %d:\n%s' % (cpr.returncode, cpr.stdout[-1500:]))
+      import re as _re
+      m = _re.search(r'(\d+) violation\(s\) across (\d+) plan\(s\)', cpr.stdout)
+      if not m: bad.append('check-plan-routes printed no summary line, so its plan count cannot be read')
+      elif int(m.group(1)): bad.append('check-plan-routes reports %s violation(s)' % m.group(1))
+      elif int(m.group(2)) < 1: bad.append('check-plan-routes examined %s plan(s) - a checker that looks at nothing passes everything' % m.group(2))
+      g = subprocess.run(['git', 'grep', '-c', 'feature.yaml', '--', '.claude', '.github', '.harness/harness.json', '.harness/team-config.yaml', 'docs/harness'], capture_output=True, text=True)
+      for ln in filter(None, g.stdout.splitlines()):
+          p, _, c = ln.rpartition(':')
+          if p.startswith('docs/harness/DECISIONS'): continue
+          if p not in P: bad.append('feature.yaml survives in %s (%s occurrence(s))' % (p, c))
+          elif int(c) != P[p]: bad.append('%s has %s occurrences, pinned at %d historical citations' % (p, c, P[p]))
+      print('\n'.join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Convert every already-reduced feature.yaml to feature.json. Same
+      precondition as T-04, RE-CHECKED HERE rather than assumed from T-04, and idle does
+      NOT mean signed: FEAT-16-factory-per-repo-board and FEAT-17-guard-boundaries must
+      both have returned for signature, and no feature may have crossed from signature
+      into build since T-04. The MAIN SESSION owns that confirmation - it is the only
+      tier that can see across features - and the earlier list naming FEAT-12, FEAT-13
+      and FEAT-15 is stale and is not the roster.
+      DO NOT MUTATE EITHER GITHUB BOARD HERE EITHER. T-04's board precondition is a READ.
+      The six columns were applied and verified on 2026-08-11 and no task in this plan
+      writes a board field option. No orchestrator mid-run on any feature, including this feature's own -
+      and per T-07's build-conduct note, this feature's orchestrator must not re-create
+      its own execution-state file under the old name at a run boundary; the verify clause
+      below fails if it did.
+
+      THE OPERATING FILE SET IS THE GLOB .harness/features/*/feature.yaml, EVALUATED WHEN
+      YOU RUN. The files: block above IS that glob plus one literal path kept so the route
+      checker can resolve a lane; it is a routing declaration, not the list you iterate.
+      Membership is not decided by any sentence in this plan. No step here asserts a count.
+      A directory carrying runs/ but no feature.yaml is not in the glob: SKIP it, create no
+      feature file for it, and name it in your report as skipped-no-feature-file. If T-04's
+      report named a directory it skipped for the same reason, it is expected here too.
+      THE PROHIBITED-TOOL WINDOW CLOSES WHEN THIS TASK LANDS, and not before. Do NOT
+      invoke gh-sync.py, factory_decompose.py or factory_claim.py against the live
+      .harness/features/ corpus until the conversion is complete and the validator exits 0
+      over every converted file; fixture-based suites are unaffected. Running gh-sync mid-window
+      re-files issues that already exist, and no git reset undoes an issue created on
+      GitHub.
+
+      For each feature directory: load feature.yaml with harness_yaml.load_file, write
+      the identical document to feature.json with json.dump(indent=2) and a trailing
+      newline, preserving key order, then git rm the feature.yaml. Use git mv semantics
+      where possible so the history follows the file. Add or drop no key here - T-04
+      already reduced them; this task changes serialisation only. If any file does not
+      already hold exactly the schema keys, STOP and report - it means T-04 did not
+      complete.
+
+      THE VALIDATOR IS ALSO THE JSON-VALIDITY ASSERTION, so nothing extra is needed here.
+      T-01's validator loads a .json path with json.load rather than the YAML loader, so a
+      file that is valid YAML but not valid JSON fails it. Its exit 0 over the corpus is
+      therefore the proof that every converted file is readable by the json.load consumers
+      T-05 created, not merely that it carries the right keys.
+
+      Then run, and report the output of, each of: the validator with no arguments,
+      check-state.sh, run-unit-tests.sh with no kind filter, and check-plan-routes.py
+      over every live plan. The validator, the unit runner and the route checker must all
+      exit 0. check-state.sh must NOT be judged by its exit code, and NOT against any
+      violation list written at plan time. The bar is that its violation set does not GROW
+      and no new violation text appears, measured against
+      notes/baseline-check-state.txt, which T-04 captured before the migration's first
+      write. A baseline violation that has cleared on its own by then is fine. If that file
+      is absent the verify clause raises and the task fails: an absent capture means T-04
+      did not run its first step, and there is no honest baseline to compare against - do
+      not synthesise one now, because a capture taken here is post-T-06 and would record
+      the whole corpus as INV-18 violations, making the assertion vacuous.
+      THE COMPARISON IS DELIBERATELY LOOSE ON MESSAGE TAILS. Both sides are keyed on the
+      text before the em dash, with feature.yaml rewritten to feature.json, because T-06
+      changes both the filename in these messages and INV-18's remediation sentence. What
+      it must still catch is a violation that did not exist before the migration, in a
+      feature nobody wrote down today. Two plan-time readings are recorded for context and
+      bind nothing: at 06ae963 there were four violations (FEAT-13's BRIEF unapproved,
+      FEAT-14's BRIEF unapproved, FEAT-12 missing notes/handoff-plan.md, FEAT-15 with runs/
+      and no feature file); on 2026-08-10 there were seven, and only one of the four
+      survived. That drift inside one planning session is why the baseline is captured
+      rather than written.
+
+      THE INV-17 EXEMPTION ASSERTION IS COMPUTED, NOT A LITERAL ROSTER. The verify clause
+      derives the exempt set the same way T-12's code does - the literal FEAT-01 and
+      FEAT-02, plus every feature whose plan.yaml has a non-empty tasks: list in which
+      every task is execution_mode main-session-direct - and fails if INV-17 raises a
+      handoff violation naming any of them. An earlier draft hardcoded FEAT-01 and
+      FEAT-02, which would have passed green while INV-17 raised three violations on
+      FEAT-15. It ALSO fails if no exemption note line is present at all: a plan-keyed
+      exemption that never evaluates leaves INV-17 quiet for the wrong reason, and silence
+      is not evidence.
+
+      The verify clause also sweeps for surviving feature.yaml references. Two exemptions,
+      and they are different in kind. docs/harness/DECISIONS* is exempt by PREFIX, because
+      T-09 adds occurrences there and the post-T-09 count cannot be predicted now.
+      .claude/skills/harness/bin/test-harness-yaml-corpus.py is exempt by an EXACT COUNT
+      of four, because its docstring cites three files by path:line as they stood on
+      2026-08-03 and renaming them would assert those files existed under a name they
+      never had. Pinning the count rather than the file means a NEW reference in it still
+      fails. Every other path must be clean.
+
+  - id: T-09
+    title: Record both decisions and rewrite SPEC 11.3 around the closed key set
+    traces: [REQ-09]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-08]
+    status: pending
+    files:
+      - docs/harness/DECISIONS.md
+      - docs/harness/SPEC.md
+      - docs/harness/BUILD.md
+      - docs/harness/org.html
+    verify: |
+      python3 - <<'PY'
+      import re, sys
+      d = open('docs/harness/DECISIONS.md').read()
+      s = open('docs/harness/SPEC.md').read()
+      bad = []
+      nums = [int(m) for m in re.findall(r'^##\s+DEC-(\d+)\b', d, re.M)]
+      if max(nums) < 191: bad.append(f'highest DEC entry is DEC-{max(nums)}, expected three new ones')
+      if 'jsonschema' not in d: bad.append('DECISIONS.md has no jsonschema entry')
+      if 'additionalProperties' not in d: bad.append('DECISIONS.md does not record the closed key set')
+      if 'Building' not in d: bad.append('DECISIONS.md does not record the six board-column status vocabulary')
+      if 'feature.yaml' in s: bad.append('SPEC.md still names feature.yaml')
+      if 'feature.json' not in s: bad.append('SPEC.md does not name feature.json')
+      for tok in ('Backlog', 'Ready', 'Building', 'Done'):
+          if tok not in s: bad.append('SPEC.md never names the status value %s' % tok)
+      import re as _re
+      _sec = _re.search(r'11\.3(.*?)(?=\n#{1,4} |\Z)', s, _re.S)
+      if _sec is None: bad.append('cannot locate SPEC 11.3 to check it')
+      elif _re.search(r'^\s*["\x27]?phase["\x27]?\s*:', _sec.group(1), _re.M): bad.append('SPEC 11.3 still declares a phase field')
+      for f in ('docs/harness/BUILD.md', 'docs/harness/org.html'):
+          if 'feature.yaml' in open(f).read(): bad.append(f'{f} still names feature.yaml')
+      print('\n'.join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Write two decision entries in docs/harness/DECISIONS.md, in the file's existing
+      entry format (## DEC-NNN heading, the same section shape as its neighbours), then
+      bring the spec into line. Take the next THREE unused DEC numbers at the moment you
+      write - DEC-189, DEC-190 and DEC-191 if still free, otherwise the next free run of
+      three; the highest entry at plan time was DEC-188 and concurrent features may have
+      taken more. THE THIRD NUMBER IS ASSIGNED AT WRITE TIME AND IS NOT PRE-COMMITTED IN
+      THE PLAN. D-04 cites DEC-189 and D-08 cites DEC-190 because those two were reserved
+      when this plan was first written; the collapse entry has no reserved number, so
+      report the number you actually took in your digest rather than back-filling it into
+      any decision block.
+
+      Three entries are needed, not two: the dependency, the closed key set, and the
+      status vocabulary collapse.
+
+      ENTRY ONE - jsonschema is a required dependency. State: the decision, the shape
+      borrowed from DEC-171 am.1 (a missing import is a LOUD error naming the install
+      command, never a silent skip or a quieter mode), where it is declared (this repo
+      has no requirements.txt and no pyproject.toml, so it is declared in
+      harness-init's prerequisite gate and the CI workflow, exactly where PyYAML is),
+      and the rejected alternative with its load-bearing reason: a hand-rolled stdlib
+      checker was declined because a checker and a schema that can disagree is the
+      two-copies drift this org keeps finding. Reference DEC-171 and DEC-101.
+
+      ENTRY TWO - a feature's execution state has a closed key set. State: eleven keys,
+      additionalProperties false at the top level and inside runs items, github and
+      factory; eight required, three optional (max_total_runs, github, factory); the
+      burden of proof is on KEEPING a key, so a key survives because code reads it, not
+      because removing it feels lossy. Record the measurement that forced it: 75
+      distinct top-level keys across fourteen features at 2026-08-10, 41 of them
+      appearing nowhere outside a feature directory, cost_usd surviving on 75 run
+      entries with zero readers, and run entries carrying prose as mapping keys. Record
+      the enforcement point and why (check-domain.sh's existing write-payload path plus
+      the required integration CI job, with bash-write-guard and a check-state sweep
+      rejected, one clause each). Record the rejected alternative a future scan will
+      re-suggest: a typed notes array, declined because it becomes the drawer everything
+      is swept into and would leave the file a narrative document with a schema blessing
+      it; the redirection table is the answer instead. Reference DEC-150, DEC-154,
+      DEC-160, DEC-174, DEC-183.
+
+      ENTRY THREE - phase and status collapse into one field whose values are the GitHub
+      board's columns. This is the entry a future scan is most likely to try to undo, so
+      the load-bearing reason has to be on the record. State: the six values (Backlog,
+      Plan, Ready, Building, Review, Done), that they are the board's own column names
+      and therefore case sensitive and byte-identical to what the operator reads; that it
+      is a REPLACEMENT and no old-to-new mapping survives anywhere in code; the two
+      collapses and their accepted cost (Review cannot distinguish a running panel from
+      waiting on the operator; Done cannot distinguish shipped from abandoned, which
+      affects exactly one record, FEAT-01); and that blocked was DELIBERATELY dropped
+      rather than overlooked - the tree carries it zero times, and a blocked feature is
+      waiting on the operator, which is Review. Record the rejected alternative a future
+      scan will re-suggest: keeping phase and status as two fields with a translation
+      between them, declined because two vocabularies for one lifecycle is the two-copies
+      drift this org keeps paying for, and the board is the surface the operator actually
+      reads. Record the consequence that made this a task rather than a rename: deleting
+      phase without replacing INV-17's guard would have left that invariant skipping all
+      17 features while check-state.sh still reported clean. Reference DEC-148, DEC-159,
+      DEC-172 and the closed-key-set entry above.
+
+      DO NOT EDIT docs/harness/DECISIONS-INDEX.md in this task. The index is generated.
+
+      SPEC.md section 11.3 (around line 1742): replace the ten-key sample and its prose
+      with the eleven-key JSON form, marking which eight are required. §11.3 CURRENTLY
+      DECLARES A phase FIELD AND A FOUR-VALUE status FIELD; BOTH DESCRIPTIONS DIE. Write
+      the section around ONE lifecycle field, and say plainly that it is one field rather
+      than leaving a reader to notice that phase is missing:
+        - the field is status, and its six values are the GitHub board's column names,
+          spelled and cased exactly - Backlog, Plan, Ready, Building, Review, Done;
+        - what each means, in the operator's own words from the 2026-08-11 ruling:
+          Backlog is filed but not yet planned; Plan is BRIEF and plan.yaml being
+          authored, not yet signed; Ready is plan signed, waiting to be dispatched;
+          Building is a build running; Review is validating OR waiting on the operator;
+          Done is merged and closed, or abandoned;
+        - state the two collapses and their cost, because the spec is where a future
+          reader will look for it: Review cannot distinguish a running review panel from
+          waiting on the operator, and Done cannot distinguish shipped from abandoned.
+          Do not present either as free;
+        - state that there is NO phase field and no lifecycle vocabulary other than these
+          six. A reader who remembers phase must find that sentence, not silence;
+        - state that the values are case sensitive and that no lowercase alias is
+          accepted, because the board's spelling and the disk's spelling are required to
+          be byte-identical (D-11);
+        - DO NOT DESCRIBE THE OLD VALUES OR HOW THEY MAP. The old vocabulary is gone and
+          §11.3 is not its memorial; the migration record lives in the T-04 receipts and
+          in the decision entry. A mapping table in the spec is the mapping layer D-09
+          forbids, wearing prose.
+      Keep the ORCHESTRATOR MISSION language elsewhere in SPEC.md intact if it names plan,
+      build, validate and ship as MISSIONS or as handoff-note names - those are DEC-148,
+      DEC-159 and D-12, and they are not this field. Only the field description changes.
+      Name the schema
+      file .claude/skills/harness/bin/feature-schema.json as the authority, and stating
+      that the key set is closed and enforced at write time rather than by a human
+      noticing. Keep the existing cycle-budget paragraph (DEC-157) intact, changing only
+      the filename. Then rename feature.yaml to feature.json everywhere else in SPEC.md,
+      in docs/harness/BUILD.md and in docs/harness/org.html.
+
+  - id: T-10
+    title: Regenerate the decisions index
+    traces: [REQ-09]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-09]
+    status: pending
+    files:
+      - docs/harness/DECISIONS-INDEX.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - docs/harness/DECISIONS-INDEX.md
+    intent: |
+      Run python3 .claude/skills/harness/bin/gen-decisions-index.py with no arguments,
+      which rewrites docs/harness/DECISIONS-INDEX.md in place. Do not hand-write or
+      hand-edit any row - everything left of the :: separator is generated. The THREE new
+      entries from T-09 need the hand-written half of their rows (everything right of
+      ::) supplied; write those three summary clauses only, then re-run the generator and
+      confirm the diff in the verify clause is empty.
+
+  - id: T-11
+    title: Repoint check-plan-routes.py's finished-feature skip at Done
+    traces: [REQ-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-04, T-05]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/test-check-plan-routes.py
+    verify: |
+      python3 - <<'PY'
+      import re, subprocess, sys, os
+      bad = []
+      src = [l for l in open('.claude/skills/harness/bin/check-plan-routes.py')
+             if l.split('#', 1)[0].strip()]
+      code = ''.join(l.split('#', 1)[0] for l in src)
+      if 'SHIPPED_STATUSES' in code:
+          bad.append('check-plan-routes.py still assigns or reads SHIPPED_STATUSES in CODE - the '
+                     'constant is renamed FINISHED_STATUSES')
+      for dead in ('"shipped"', "'shipped'", '"abandoned"', "'abandoned'"):
+          if dead in code:
+              bad.append('check-plan-routes.py still carries the literal %s in CODE - the old '
+                         'vocabulary must not survive as a value the skip compares against. '
+                         'COMMENTS MAY NAME IT: the intent requires a comment explaining that '
+                         'Done absorbs abandoned, so this check reads code with comments '
+                         'stripped, never the raw file' % dead)
+      env = dict(os.environ, CLAUDE_PROJECT_DIR=os.getcwd())
+      r = subprocess.run(['.claude/skills/harness/bin/check-plan-routes.py'],
+                         capture_output=True, text=True, env=env)
+      m = re.search(r'(\d+) violation\(s\) across (\d+) plan\(s\)', r.stdout)
+      if not m:
+          bad.append('no summary line in output, so neither number can be read:\n' + r.stdout[-1500:])
+      else:
+          if int(m.group(1)): bad.append('%s violation(s):\n%s' % (m.group(1), r.stdout[-1500:]))
+          if int(m.group(2)) < 1:
+              bad.append('the route check examined %s plan(s) - a checker that looks at nothing '
+                         'reports no violations and passes every check anyone would run'
+                         % m.group(2))
+      t = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.sh', '--kind', 'unit'],
+                         capture_output=True, text=True)
+      if t.returncode: bad.append('unit suite exited %d:\n%s' % (t.returncode, t.stdout[-2000:]))
+      print('\n'.join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      ANCHOR ON CONTENT, NOT ON LINE NUMBERS - T-05 runs before you and edits this same
+      file and its test file, so every line number below has already moved. Find the
+      constant by `SHIPPED_STATUSES =`, the classifier by the function that reads a
+      feature file's status, and the fixture loop by its `want_checked` variable.
+
+      check-plan-routes.py reads SHIPPED_STATUSES = ("shipped", "abandoned").
+      Neither value exists after T-04. This is a REQUIRED CI gate (DEC-183) silently
+      changing what it examines, which is why it is a task with a criterion rather than a
+      follow-up note: left alone, the tuple matches nothing, every finished feature stops
+      being skipped, and the checker examines plans nobody will ever act on again.
+      MEASURED, NOT ASSERTED. At a29ad06 the checker reports 0 violation(s) across 12
+      plan(s). Running it with the tuple emptied - the exact state T-04 leaves it in -
+      reports 35 violation(s) across 16 plan(s), because the four shipped features'
+      PLAN.md files predate the route-check contract and were never meant to satisfy it.
+      That window opens at T-04 and CLOSES HERE; it is confined to the working tree, the
+      landing unit is one PR, and CI evaluates the required context once at the end.
+
+      1. Rename the constant and repoint it: FINISHED_STATUSES = ("Done",). Rename it
+      because SHIPPED_STATUSES is now a false name - Done absorbs abandoned as well as
+      shipped, which is the behaviour that tuple already had, and a constant whose name
+      contradicts its contents is what the next editor edits against. Update every use.
+      A ONE-ELEMENT TUPLE IS CORRECT AND IS NOT A CODE SMELL. Say so in the comment: the
+      six values collapse to one finished state, so there is exactly one member, and the
+      tuple shape is kept over a bare string only so a future value can join it without
+      changing the comparison. Do NOT add "shipped" or "abandoned" back as aliases -
+      that would be the old-to-new mapping layer D-09 forbids.
+
+      2. Leave the FUNCTION's defensive shape exactly as it is. Its documented rule, in
+      the docstring above the classifier, is that a feature it cannot classify is CHECKED
+      rather than skipped - not a file, a parse failure, a non-mapping and a status that is
+      a list all mean NOT finished. That fail-CHECKED direction is the reason the T-04
+      window is loud instead of silent, and it must survive this edit. The token compare -
+      str(doc.get("status","")).split() then a membership test on token[0] - stays as is:
+      it already handles a trailing YAML comment, and D-11 makes the comparison case
+      sensitive, which is what that expression already does.
+
+      3. test-check-plan-routes.py, the status fixture loop - find it by `want_checked`.
+      It reads
+      for status, want_checked in (("shipped", False), ("abandoned", False),
+      ("in_review", True), ("awaiting_user", True)). Every one of those four values is
+      dead. Replace it with a loop over ALL SIX board columns and their expected
+      dispositions, so the pairing is asserted per value rather than by a count:
+      ("Backlog", True), ("Plan", True), ("Ready", True), ("Building", True),
+      ("Review", True), ("Done", False). ADD A SEVENTH CASE that is not a board column:
+      ("done", True) - the lowercase spelling must be CHECKED, not skipped, which is the
+      only test that proves the comparison is case sensitive and therefore proves D-11
+      holds in the one place casing is load-bearing. Update the surrounding docstring,
+      which currently argues about shipped plans by name.
+
+      4. ASSERT THE CONSTANT AGAINST THE SCHEMA. This item moved here from T-05, which
+      no longer touches it. Add one case that loads feature-schema.json, reads
+      properties.status.enum, extracts FINISHED_STATUSES from check-plan-routes.py, and
+      asserts every member of FINISHED_STATUSES is in that enum. A SUBSET assertion, not
+      equality - a status can legitimately be in the enum and not be finished. Without
+      it the constant and the schema are two copies of the same vocabulary with nothing
+      tying them together, which is the drift D-04's rationale rejects.
+
+      5. THE ROUTE-CHECKED SET AFTER THIS TASK, stated so the verify clause's numbers are
+      predictions and not observations copied back. Done features skip. Of the 17
+      features, SEVEN are Done - FEAT-01, FEAT-02, FEAT-03, FEAT-04, FEAT-05, FEAT-10 and
+      FEAT-15, which is Done because its plan is signed and PR 263 is merged - and
+      FEAT-01 carries no plan file at all, so six plans are skipped out of the 16 that
+      exist, leaving TEN checked, with 0 violations. FEAT-09 stays in the checked set
+      because shipping maps to Review, not Done. Ten is comfortably above the floor the
+      CI workflow asserts, which is that the count is NOT ZERO rather than any particular
+      number. If your run reports a plan count of 0, the tuple is matching everything and
+      the gate has gone dark - that is a failure, not a clean run.
+
+  - id: T-12
+    title: Rebuild INV-17 around the six status values so it keeps firing
+    traces: [REQ-07]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - check-state.sh is one of the four named enforcement
+      scripts, edited directly by the main session and never dispatched
+    depends_on: [T-06]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      python3 - <<'PY'
+      import subprocess, sys
+      bad = []
+      raw = open('.claude/skills/harness/bin/check-state.sh').read()
+      code = ''.join(l.split('#', 1)[0] for l in raw.splitlines(True))
+      if 'PHASE_ORDER' in code:
+          bad.append('check-state.sh still assigns or reads PHASE_ORDER in CODE - the phase '
+                     'vocabulary must not survive as an executable constant. A COMMENT naming it '
+                     'is expected and legal: the intent requires recording what replaced it, so '
+                     'this check reads code with comments stripped, never the raw file')
+      if '_doc.get("phase"' in code or "_doc.get('phase'" in code:
+          bad.append('check-state.sh still reads a phase key in CODE that no feature file carries')
+      for stem in ('handoff-Plan', 'handoff-Building', 'handoff-Review', 'handoff-Done',
+                   'handoff-Ready', 'handoff-Backlog'):
+          if stem in code:
+              bad.append('check-state.sh BUILDS the handoff path %s.md from a capitalized status '
+                         'value; the notes on disk are lowercase, so this passes on a '
+                         'case-insensitive filesystem and fails on Linux CI. Naming the hazard in '
+                         'a comment is required by the intent and is not a finding' % stem)
+      r = subprocess.run(['.claude/skills/harness/bin/run-unit-tests.sh', '--kind', 'integration'],
+                         capture_output=True, text=True)
+      if r.returncode:
+          bad.append('integration suite exited %d:\n%s' % (r.returncode, r.stdout[-2000:]))
+      print('\n'.join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      DEC-174: make these edits directly, run the tests explicitly, read the diff. Do not
+      dispatch this task.
+
+      ANCHOR ON CONTENT, NOT ON LINE NUMBERS. T-06 runs before you and edits six globs,
+      INV-18's message and INV-23 in this same file, so every line number below has
+      already moved. Find the block by its comment `# --- INV-17 (DEC-159)`, the constant
+      by `PHASE_ORDER = [`, the read by `_doc.get("phase"`, and the handoff path by the
+      expression that joins `notes` with a handoff filename.
+
+      WHY THIS IS A TASK AND NOT A DELETED CONSTANT. check-state.sh assigns
+      PHASE_ORDER = ["plan","build","validate","ship"], reads the phase key just below it,
+      and then does `if _phase not in PHASE_ORDER: continue`. Delete phase from the corpus
+      and leave those lines standing, and _phase is the empty string on all 17 features,
+      never in PHASE_ORDER, so the loop continues on every one of them: INV-17 stops
+      firing ENTIRELY and check-state.sh reports no INV-17 violation, ever, while exiting
+      exactly as it does today. A gate that examines nothing reports nothing wrong. That
+      is the failure this task exists to prevent, and it is why this task's success
+      criterion asserts a violation is RAISED rather than that the script exits clean.
+
+      1. DELETE PHASE_ORDER AND THE phase READ FROM THE CODE. A comment may still NAME
+      PHASE_ORDER when it records what replaced it and why - this task's verify clause
+      strips comments before checking, precisely so the comment the next item demands does
+      not fail the check that demands it. Replace them with two named constants
+      next to each other, and D-12 is the decision that fixes their shape:
+        - STATUS_ORDER = ["Backlog", "Plan", "Ready", "Building", "Review", "Done"], the
+          six board columns in lifecycle order;
+        - SEAM_NOTES, a literal mapping from a status to the handoff-note STEMS that must
+          exist once a feature is at that status:
+            Backlog  -> []
+            Plan     -> []
+            Ready    -> ["plan"]
+            Building -> ["plan"]
+            Review   -> ["plan", "build"]
+            Done     -> ["plan", "build", "validate"]
+      THE STEMS ARE LOWERCASE LITERALS AND ARE NOT DERIVED FROM THE STATUS VALUES. This
+      is the load-bearing detail and it is mechanical, not stylistic. The line that joins
+      notes with the handoff filename today builds notes/handoff-{prev}.md from the
+      PHASE_ORDER values; repoint that list at
+      the capitalized board columns and the paths become notes/handoff-Plan.md and
+      notes/handoff-Building.md, while every one of the 34 handoff notes on disk is
+      lowercase. That MATCHES on this machine's case-insensitive filesystem and MISSES on
+      Linux CI, so the invariant would look healthy locally and go dark on the only
+      machine that gates the merge. Keeping the stems as their own literals also renames
+      no file on disk. Write a comment saying exactly this, because the next editor's
+      first instinct will be to derive one list from the other.
+      THE RESIDUAL LOSS IS RECORDED IN THE SAME COMMENT, not hidden: validate and ship
+      both folded into Review, so the validate-to-ship crossing is no longer separately
+      observable and handoff-validate.md cannot be demanded at Review. It is demanded at
+      Done instead, the next boundary that proves Review completed. One seam moves later;
+      none is dropped.
+
+      2. THE EXEMPTION SET IS NOW MANDATORY, and it is larger in effect than the one the
+      earlier draft priced. status is REQUIRED and present on all 17 files, so absence can
+      no longer carry the pre-DEC-159 exemption the way missing phase did. Add a literal
+      two-element exemption set naming exactly FEAT-01 and FEAT-02, skipping only the
+      handoff-note half of INV-17 for those two, with a comment saying why: both are Done,
+      both carry zero handoff notes, both finished before DEC-159 existed, no seam was
+      crossed, and so no honest handoff note can be written for them. DO NOT CREATE THOSE
+      NOTES - fabricating a handoff record falsifies the record, which PRINCIPLES rule 15
+      forbids outright. Make it a literal list, not an inferred rule: a finite set no
+      future feature can join.
+
+      2b. A SECOND EXEMPTION, PLAN-KEYED, AND IT IS A DIFFERENT MECHANISM FROM 2 ON
+      PURPOSE. BOTH SURVIVE; do not fold either into the other. The literal set in 2
+      exists because FEAT-01 and FEAT-02 have NO PLAN TO KEY ON - FEAT-01 carries no plan
+      file at all and FEAT-02 carries a pre-DEC-182 PLAN.md with zero execution_mode keys
+      - so the rule below cannot reach them by construction, and a literal list is the
+      only thing that can. The rule below covers the features whose plans DO declare
+      execution modes, which is a set that grows.
+      WHY IT IS NEEDED. A feature built entirely main-session-direct under DEC-174 runs no
+      squad, crosses no seam and is owed NO handoff note. FEAT-15 is the first: all five of
+      its tasks are execution_mode main-session-direct because check-domain.sh is a DEC-174
+      carve-out file, it holds zero handoff notes, and T-04 places it at Done. Without this
+      exemption INV-17 raises THREE violations on it - handoff-plan, handoff-build and
+      handoff-validate - for notes that should never have existed. This generalises to
+      every future carve-out feature.
+      THE PREDICATE - THREE CONJOINED CONDITIONS, ALL NECESSARY. A feature is exempt from
+      the handoff-note half of INV-17 when ALL of:
+        (1) a plan.yaml exists at .harness/features/<FEAT>/plan.yaml - a PLAN.md does NOT
+            qualify and is never read here, AND
+        (2) that plan's tasks: list is present and NON-EMPTY, AND
+        (3) EVERY task in it carries an explicit execution_mode whose value is exactly
+            main-session-direct.
+      Absent plan, PLAN.md instead, absent or empty tasks:, or any task missing the field
+      or carrying any other value - NOT exempt.
+      FAIL CLOSED. Any read error, any parse error, any non-mapping task entry - NOT
+      exempt, and say so in the note line. SC-16 already fixes this direction for this
+      feature: a checker that cannot run DENIES. This is that rule, not a new one.
+      KEYED ON THE PLAN'S EXECUTION MODES, NEVER ON THE NOTES' ABSENCE. Keying on absence
+      would satisfy INV-17 by exactly the condition it exists to detect - the vacuous-gate
+      shape this project keeps finding.
+      CONDITION 2 IS A VACUITY GUARD AND IT EXCLUDES NOBODY IN TODAY'S CORPUS. State that
+      honestly rather than crediting it with work it does not do. Measured at a29ad06 over
+      all 17 features: every plan.yaml on disk has a non-empty tasks: list, so condition 2
+      changes no verdict today. It is kept because "every task is main-session-direct" over
+      an EMPTY list is VACUOUSLY TRUE, so without it a plan.yaml with an empty or missing
+      tasks: - a stub, a half-written plan, a plan whose tasks: key was mistyped - would be
+      silently exempted from a seam invariant. It is the guard on the degenerate input, not
+      a filter on the live corpus. What actually excludes FEAT-01 through FEAT-05 is
+      CONDITION 1, in every one of the five cases: FEAT-01 has no plan file, and FEAT-02,
+      FEAT-03, FEAT-04 and FEAT-05 each carry a PLAN.md and no plan.yaml.
+      A DELIBERATE FALSE NEGATIVE, RECORDED SO IT IS NOT MISTAKEN FOR AN OVERSIGHT.
+      FEAT-06 and FEAT-07 are all-main-session-direct too, but on PLAN.md, so condition 1
+      keeps them NON-exempt and they keep owing their notes. That is the safe direction and
+      it costs nothing: both already carry every note their status demands - FEAT-06 has
+      plan and build at Review, FEAT-07 has all three. Do not widen condition 1 to reach
+      PLAN.md.
+      IMPLEMENT IT LAZILY: evaluate the predicate ONLY when a required note is found
+      missing, never for every feature on every run. Load the plan with
+      harness_yaml.load_file, which check-state.sh already imports and uses for
+      feature files.
+
+      2c. THE EXEMPTION IS REPORTED, NEVER SILENT. An exempted feature emits one line
+      naming itself, the reason, and the specific notes the exemption suppressed - for
+      FEAT-15 that is handoff-plan, handoff-build and handoff-validate. A wrongly granted
+      exemption must be VISIBLE rather than look like a pass.
+      ONE LINE PER FEATURE, NOT ONE PER SUPPRESSED NOTE. The predicate is evaluated lazily
+      per missing note, so the naive shape emits three near-identical lines for FEAT-15.
+      Collect the suppressed stems for a feature and emit a single line listing them.
+      IT GOES THROUGH warn, NOT bad, AND ITS TEXT MUST NOT CONTAIN THE STRING VIOLATION.
+      This is mechanical, not stylistic: T-08's verify clause builds its baseline
+      comparison from the stdout lines containing VIOLATION, so a line worded as a
+      violation pollutes that diff and fails T-08 for the wrong reason. Use the shape
+      INV-22 already uses in this same script - warn.append, printed by the existing
+      output loop as a lowercase note line.
+      THE LINE MUST CONTAIN THE WORD exempt, THE FEATURE NAME, AND THE STRING handoff.
+      Those three tokens are not decoration: T-08's verify clause looks for a note line
+      carrying all three and FAILS if none is present, so that a silent INV-17 can never be
+      mistaken for a granted exemption. Wording is otherwise yours.
+      DRY-RUN RESULT, so you know what green looks like before you start. Applying
+      STATUS_ORDER, SEAM_NOTES, the literal two-element set and the plan-keyed predicate
+      to the 17 features with the statuses T-04 assigns produces ZERO violations PLUS ONE
+      exemption note line, for FEAT-15, naming the three suppressed notes. A run that
+      produces zero violations and NO note line is also a failure: it means the exemption
+      never evaluated. If your run produces any violation, either a status was assigned
+      differently from T-04's table or SEAM_NOTES is wrong - do not widen the exemption set
+      to make it quiet.
+
+      3. Extend test-check-state.py. SEVEN CASES - the four that were always here plus
+      three that the plan-keyed exemption in 2b makes mandatory - and the first two are the
+      point of the task: they assert in opposite directions and neither alone is
+      sufficient. Count them against this list, not against SC-18's wording.
+      THE FIXTURE HELPER MUST BE EXTENDED FIRST, IN THIS SAME TASK. make_fixture in
+      test-check-state.py writes a feature file and nothing else; cases 5, 6 and 7 each
+      need a plan.yaml beside it inside the fixture's feature directory. Add a small
+      helper that writes .harness/features/<FEAT>/plan.yaml from a supplied tasks: list -
+      including the empty and the absent case - so those three cases are writable at all.
+      Without it they cannot be written and SC-18 would assert tests that do not exist.
+      NO CASE IN THIS TASK MAY REST ON check-state.sh EXITING 0. A dead invariant produces
+      exactly that exit. Assert on the presence or absence of specific output lines.
+        - INV-17 RAISES a violation on a constructed fixture: a feature directory whose
+          status is Review with notes/handoff-build.md ABSENT. Assert the violation is
+          present in the output AND that its text names handoff-build. This is the
+          positive firing case. Asserting that check-state.sh exits 0 proves nothing here
+          - a dead invariant produces exactly that - so no case in this task may rest on
+          a clean exit;
+        - INV-17 STAYS QUIET for the exemption set: a fixture named FEAT-01 at status
+          Done with no handoff notes at all raises NO handoff violation. Assert on the
+          absence of any handoff- line for that feature, not on the exit code;
+        - a fixture at status Done OUTSIDE the exemption set, with handoff-plan.md and
+          handoff-build.md present but handoff-validate.md absent, RAISES - this is the
+          case that proves the validate seam survived the fold into Review by moving to
+          the Done boundary, rather than being silently dropped;
+        - a fixture at status Plan with no handoff notes raises NOTHING, because no seam
+          has been crossed yet;
+        - THE PLAN-KEYED EXEMPTION, POSITIVE DIRECTION. A fixture at status Done, NOT in
+          the literal two-element set, with NO handoff notes, whose plan.yaml carries a
+          non-empty tasks: list in which EVERY task has execution_mode
+          main-session-direct, raises NO handoff violation - and the run ALSO emits the
+          exemption note line naming that feature. Assert BOTH halves: the absence of any
+          handoff- violation line for it, and the presence of a note line that names the
+          feature and the suppressed note stems. Asserting only the silence would pass
+          against an exemption that granted itself without saying so, which 2c forbids;
+        - THE NO-MODES CASE, which is what stops the exemption degenerating into
+          keyed-on-absence. A fixture at status Done, NOT in the literal set, with NO
+          handoff notes, whose plan.yaml has a non-empty tasks: list in which NO task
+          carries an execution_mode key at all, RAISES handoff violations as normal and
+          emits NO exemption note. If this case goes quiet the predicate is reading the
+          notes' absence, not the plan's modes;
+        - THE EMPTY-TASKS CASE, which is condition 2 under test. A fixture at status Done,
+          NOT in the literal set, with NO handoff notes, whose plan.yaml has tasks: []
+          RAISES handoff violations - "every task is main-session-direct" is vacuously
+          true over an empty list, and without condition 2 this fixture would be exempted.
+          Cover the tasks:-key-absent shape as a SECOND ASSERTION INSIDE THIS SAME CASE,
+          not as an eighth case - both must raise, and keeping them in one case is what
+          keeps this list at seven. Without this case condition 2 ships untested inside a
+          carve-out gate.
+      REWRITE, do not adapt, the two existing fixtures that assert on phase. Find them by
+      content, not by line - the one whose comment reads `phase: validate with NO
+      handoff-plan.md` (INV-17's only existing case) and the budget fixture that writes
+      `phase: build`. T-06 has already renamed both fixtures' FILENAMES to feature.json and
+      deliberately left their contents; the contents are yours. Both write a key the schema
+      now rejects. Rewrite both around status - the first becomes the Review case in the
+      list above, and the second simply drops the phase line.
+
+      4. LEAVE check-state.sh LINE 599 ALONE. It reads
+      str(sdoc.get("status","")).strip() == "complete" and it is a DIFFERENT status - a
+      RUN's status inside state.yaml, governed by CHECKPOINT_KEYS and DEC-154, which this
+      feature puts out of scope. complete is also one of the old feature-file values, so
+      any sweep for that literal lands on this line. Changing it breaks INV-15 and INV-16.
+      It is named here so it is deliberately untouched rather than accidentally missed.

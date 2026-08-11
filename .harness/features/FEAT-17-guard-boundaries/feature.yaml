@@ -1,0 +1,20 @@
+# The SPEC 11.3 keys and nothing else. Narrative lives in STATE.md, the operator answers
+# notes/answers-2026-08-11-rescope.md (supersedes the grilling artifact where they conflict),
+# .harness/notes/grilling-guard-boundaries-2026-08-11.md, notes/measurements-2026-08-11.md,
+# notes/handoff-plan.md, and the run digests.
+feature_id: FEAT-17-guard-boundaries
+branch: none
+pr: none
+status: awaiting_user
+phase: plan
+review_sha: none
+cycles_used: 6
+max_total_cycles: 10
+max_total_runs: 20
+runs:
+  - { id: 2026-08-11-01-plan-product, squad: product, verdict: PASS }
+  - { id: 2026-08-11-02-archreview-eng, squad: eng, verdict: FAIL }
+  - { id: 2026-08-11-03-archreview-eng, squad: eng, verdict: FAIL }
+  - { id: 2026-08-11-04-archreview-eng, squad: eng, verdict: PASS }
+  - { id: 2026-08-11-05-planfix-product, squad: product, verdict: PASS }
+  - { id: 2026-08-11-06-rescope-product, squad: product, verdict: PASS }
