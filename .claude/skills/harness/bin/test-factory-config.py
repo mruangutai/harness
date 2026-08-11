@@ -123,7 +123,17 @@ def mut_workspace_root_relative(d):
     d["workspace_root"] = "relative/path"
 
 
+def mut_workspace_root_is_filesystem_root(d):
+    # Review panel, 2026-08-11. "/" passes isabs and inverts the write guard:
+    # check-domain.sh refuses any path under workspace_root belonging to no declared
+    # repo, so with "/" every path on the machine is under it and /tmp/scratch.py
+    # flips from no-verdict to BLOCKED — the opposite of REQ-05. Fails closed, so it
+    # never wrongly permits; it still teaches an agent the guard is broken.
+    d["workspace_root"] = "/"
+
+
 add_bad_case("(2) schema is not factory-fleet/1", mut_schema)
+add_bad_case("(2b) workspace_root is a filesystem root", mut_workspace_root_is_filesystem_root)
 add_bad_case("(3) board is missing", mut_board_missing)
 add_bad_case("(4) board is not a mapping", mut_board_not_mapping)
 add_bad_case("(5) board.owner is empty", mut_owner_empty)

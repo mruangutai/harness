@@ -137,6 +137,28 @@ def load_fleet(path=FLEET_PATH):
             "fleet key invalid", "workspace_root",
             f"set it to an absolute path in {path}",
         )
+    # A FILESYSTEM ROOT PASSES `isabs` AND INVERTS THE WRITE GUARD (review panel,
+    # 2026-08-11). `check-domain.sh` refuses any path under `workspace_root` that
+    # belongs to no declared repository. With `workspace_root: "/"` every path on the
+    # machine is under it, so that branch becomes a catch-all: `/tmp/scratch.py` flips
+    # from no-verdict to BLOCKED, inverting REQ-05 and the scratch-path behaviour
+    # DEC-189 preserves deliberately. Verified by live probe before this check existed.
+    #
+    # Rejected here rather than in the guard because this is a malformed DECLARATION,
+    # and `load_fleet` is the one place fleet shape is enforced — a check in the hook
+    # would leave every other reader accepting the value.
+    #
+    # It fails CLOSED, never toward a wrongful permit, which is why it is a low finding
+    # and not a high one. It is still wrong: a guard that refuses `/tmp` teaches agents
+    # that the guard is broken, and DEC-151 records what an agent does next.
+    if os.path.dirname(os.path.normpath(workspace_root)) == os.path.normpath(workspace_root):
+        raise FleetError(
+            "fleet key invalid", "workspace_root",
+            f"it is a filesystem root ({workspace_root!r}) in {path} — every path on "
+            f"the machine would resolve inside the factory workspace, so the write "
+            f"guard would refuse scratch paths it must ignore. Set it to a real "
+            f"directory that holds the checkouts.",
+        )
 
     return data
 
