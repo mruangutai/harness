@@ -1,16 +1,16 @@
-# Deliberately the TEN SPEC §11.3 keys and nothing else — github and factory are the
-# schema's other two, both optional, and this feature legitimately has neither. This
-# feature exists because feature.yaml grew to 32 keys; its own state file is not going
-# to be the 33rd example. Narrative — mission, effort, baseline — lives in STATE.md.
-# After the 2026-08-11 revision the schema is ELEVEN keys, not twelve: phase collapses
-# into status. This file still carries phase because the migration has not run.
+# The TEN SPEC §11.3 keys and nothing else. github and factory are the schema's other
+# two, both optional; the gh-sync mirror has not run (blocked by the environment
+# classifier — DEC-138 SKIP, never a gate), so there is no github block to record.
+# This feature exists because feature.yaml grew to 32 keys; its own state file is not
+# going to be the 33rd example. Narrative lives in STATE.md, per-run detail in digests.
+# Still carries `phase` because the migration (T-04/T-08) has not run.
 feature_id: FEAT-14-feature-json-schema
-branch: none
+branch: feat/204-feature-json-schema
 pr: none
-status: awaiting_user
-phase: plan
-review_sha: none
-cycles_used: 3
+status: in_progress
+phase: build
+review_sha: 3d37762
+cycles_used: 5
 max_total_cycles: 10
 max_total_runs: 20
 runs:
@@ -19,3 +19,5 @@ runs:
   - { id: 2026-08-10-03-plan-product, squad: product, verdict: PASS }
   - { id: 2026-08-11-04-revision-product, squad: product, verdict: PASS }
   - { id: revision2-product, squad: product, verdict: PASS }
+  - { id: t01t03-eng, squad: eng, verdict: ESCALATE }
+  - { id: e1fix-eng, squad: eng, verdict: PASS }
