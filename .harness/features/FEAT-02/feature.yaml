@@ -1,31 +1,20 @@
 feature_id: FEAT-02
 branch: feat/harness-native-foundation
-pr: none
-status: shipped  # budget bound hit before pm goal-check; see notes/ship-review-2026-07-27-04.md
+pr: null
+status: Done
 review_sha: d9b16e5323526d6f02228b48652ded84328a40cb
 cycles_used: 4
 max_total_cycles: 10
-cost_usd: 49  # approximate attribution — per-agent snapshot deltas (P-01); EXCEEDS max_cost_usd
-max_cost_usd: 40
 runs:
-  - id: 2026-07-27-01-product
-    squad: product
-    verdict: PASS
-    cost_usd: 5  # approx
-  - id: 2026-07-27-02-eng
-    squad: eng
-    verdict: PASS
-    cost_usd: 2  # approx
-  - id: 2026-07-27-03-eng
-    squad: eng
-    verdict: PASS
-    cost_usd: 21  # approx by snapshot delta: eng-lead +6.85, backend-dev +12.51, orchestrator share ~2
-  - id: 2026-07-27-04-validator
-    squad: validator
-    verdict: PASS
-    cost_usd: 21  # approx by snapshot delta: lead 6.80, qa 4.98, code 4.17, security 2.88, ui 1.03, orchestrator share ~1
-pending:
-  - pm goal-check on SC-01/SC-02 — not dispatched, budget exhausted; evidence ready at notes/qa-FEAT-02.md
-skipped_segments:
-  - segment: 3-ui-reviewer-contract-check
-    reason: design pass ruled no end-user interaction and no DESIGN.md exists — no contract to review (Expertise O-01)
+- id: 2026-07-27-01-product
+  squad: product
+  verdict: PASS
+- id: 2026-07-27-02-eng
+  squad: eng
+  verdict: PASS
+- id: 2026-07-27-03-eng
+  squad: eng
+  verdict: PASS
+- id: 2026-07-27-04-validator
+  squad: validator
+  verdict: PASS

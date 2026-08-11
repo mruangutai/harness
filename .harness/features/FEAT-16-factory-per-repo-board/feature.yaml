@@ -1,14 +1,15 @@
-# The ten SPEC §11.3 keys and nothing else. Narrative lives in STATE.md, the grilling note
-# (.harness/notes/grilling-factory-per-repo-board-2026-08-11.md) and the run digests.
 feature_id: FEAT-16-factory-per-repo-board
 branch: none
-pr: none
-status: in_review
-phase: plan
+pr: null
+status: Ready
 review_sha: none
 cycles_used: 3
 max_total_cycles: 10
 max_total_runs: 20
 runs:
-  - { id: 2026-08-11-01-plan-product, squad: product, verdict: PASS }
-  - { id: 2026-08-11-02-plan-product, squad: product, verdict: PASS }
+- id: 2026-08-11-01-plan-product
+  squad: product
+  verdict: PASS
+- id: 2026-08-11-02-plan-product
+  squad: product
+  verdict: PASS

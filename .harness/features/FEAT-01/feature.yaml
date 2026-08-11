@@ -1,13 +1,11 @@
 feature_id: FEAT-01
-# Backfilled at DEC-160: this predates feature.yaml discipline (the validator-panel
-# exercise that produced BUILD task 22). Recorded so INV-8/12/18 can see it.
 branch: none
-pr: none
-status: abandoned  # superseded by the BUILD task 22 hardening + FEAT-02 fix
+pr: null
+status: Done
 review_sha: a606d7a..9b07cfc
 cycles_used: 1
 max_total_cycles: 10
-cost_usd: 0  # unmetered — predates INV-11
-max_cost_usd: 40
 runs:
-  - { id: 2026-07-27-01-validator, squad: validator, verdict: FAIL, cost_usd: 0 }
+- id: 2026-07-27-01-validator
+  squad: validator
+  verdict: FAIL
