@@ -7,9 +7,17 @@ board:
     ready: Ready
     building: Building
     review: Review
+# mruangutai/harness is DELIBERATELY ABSENT (DEC-174 am.1). Harness develops itself in the
+# live checkout and in worktrees under it — both sit INSIDE the repository root, resolve in
+# the harness base, and keep full write rights.
+#
+# The absence is what enforces it, and the mechanism CHANGED when the entry came out.
+# Measured both ways on `harness-factories/harness/.claude/skills/harness/bin/check-domain.sh`:
+# with the entry present, `--resolve` returned NOBODY (product base, control-plane globs
+# filtered); with it absent, `--resolve` exits 2 — "under the factory workspace but belongs
+# to no repository declared in fleet.yaml". Louder, not quieter. Re-adding the entry is a
+# decision, not a convenience.
 repos:
-  - name: mruangutai/harness
-    default_branch: main
   - name: mruangutai/kaya-ai
     default_branch: master
 workspace_root: /Users/molchairuangutai/GitHub/harness-factories
