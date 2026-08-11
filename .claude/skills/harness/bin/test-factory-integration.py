@@ -175,20 +175,26 @@ def main():
             )
         ok(json.dumps({"items": items_out, "totalCount": len(items_out)}))
 
-    if argv[:2] == ["project", "field-list"]:
-        ok(json.dumps({
-            "fields": [{
-                "id": "FIELD_STATUS", "name": "Status",
+    if argv[:2] == ["api", "graphql"]:
+        # The single GraphQL query factory_gh._project_field_resolve sends (D-01). Answered
+        # unconditionally, without inspecting the query= text — that guard lives once, in
+        # test-factory-gh.py. Placed BEFORE the generic ["api", ...] REST branch below: after it
+        # this would still work by accident, since "graphql" matches none of the REST regexes.
+        field_name = None
+        for i, a in enumerate(argv):
+            if a == "-f" and i + 1 < len(argv) and argv[i + 1].startswith("field="):
+                field_name = argv[i + 1][len("field="):]
+        ok(json.dumps({"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
+            "id": "PVT_kwFAKE",
+            "field": {
+                "id": "FIELD_STATUS", "name": field_name,
                 "options": [
                     {"id": "OPT_READY", "name": "Ready"},
                     {"id": "OPT_BUILDING", "name": "Building"},
                     {"id": "OPT_REVIEW", "name": "Review"},
                 ],
-            }],
-        }))
-
-    if argv[:2] == ["project", "view"]:
-        ok(json.dumps({"id": "PVT_kwFAKE"}))
+            },
+        }}}}))
 
     if argv[:2] == ["project", "item-edit"]:
         item_id = argv[argv.index("--id") + 1]
@@ -196,7 +202,7 @@ def main():
         project_id = argv[argv.index("--project-id") + 1]
         if project_id != "PVT_kwFAKE":
             bad(f"fake_gh: item-edit --project-id was {project_id!r}, want the node id "
-                f"from `project view`, not the bare board number", 1)
+                f"from the graphql field-resolve call, not the bare board number", 1)
         mapping = {"OPT_READY": "Ready", "OPT_BUILDING": "Building", "OPT_REVIEW": "Review"}
         rec = state["items"].setdefault(item_id, {"number": None, "repo": None})
         rec["station"] = mapping.get(option_id, option_id)

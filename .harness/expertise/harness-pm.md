@@ -12,10 +12,9 @@
 - P-03: WHEN a criterion declares automated verification DO NOT admit a source-code reading as its
   evidence — that converts it to inspection, and the method is fixed at approval. Name the passing
   test, or return the criterion not met.
-- P-04: WHEN a criterion enumerates N clauses, shapes or personas DO count the enumerated items in
-  its own prose against the fixture cases, and diff a sibling criterion's fixture set against it.
-  Under-fixturing, not wrong behaviour, is the dominant defect — reading the implementation will
-  not show it.
+- P-04: WHEN a criterion enumerates N distinctions or shapes DO map each to an assertion of its own
+  and read that assertion, never matching counts. Equal counts hide a miscredited neighbour, and
+  inequality is not transitive — the enumeration can be half-covered while every count agrees.
 - P-05: WHEN grading a criterion DO grade its own full text: a leading claim broader than its
   enumerated list still binds, and an enumeration delivered in part is not met, never partial.
   Met on a method that cannot detect the failure it exists to detect is worse than unmet.
@@ -46,6 +45,9 @@
 - P-14: WHEN a brief names a hazard DO probe the opposite input condition as well before planning
   against it. The named half is the half someone already noticed; the unnamed half often fails
   open, exiting clean where the named one fails loudly.
+- P-15: WHEN a criterion states an aggregate budget over a whole run DO cost the components the
+  change does not touch before signature. A model derived from the code under change under-states
+  a total the criterion measures end to end, and only the goal-check finds it.
 
 ## Gotchas (max 15)
 - G-01: WHEN citing or counting anything in a file another agent may be editing DO pin the figure
@@ -72,6 +74,15 @@
 - G-08: WHEN a task adds a file to a suite that keeps an explicit registration list DO register it
   in that same task. A drift detector fails the WHOLE run on an unregistered file, reddening every
   other task's verify. Exemplar: the SCRIPTS array in this repo's unit-test runner.
+- G-09: WHEN a step you write will mutate live state DO trace the tool's resolution of its target
+  from its entry point first. A CLI can take the target from a config file while the flags name
+  something else, sending your one live measurement at the wrong system.
+- G-10: WHEN a check compares a field looked up by a name discovered at runtime DO add an explicit
+  key-absent branch reporting CANNOT VERIFY. A wrong key makes both sides None, the comparison
+  reports clean for every record, and its silence reads as proof.
+- G-11: WHEN a later signed ruling falsifies prose inside an approved brief DO report the
+  contradiction and leave the prose standing. Editing a signed artifact is a re-signature, not a
+  record correction, but the brief is what the next reader opens.
 
 ## Outcomes (max 10)
 

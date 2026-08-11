@@ -26,12 +26,15 @@
 - P-08: WHEN a clause count is offered as evidence a design rule is guarded DO count only the
   behavioural clauses — grep clauses die to a rename, and an assertion coarser than the property
   it names is green under the bug.
-- P-09: WHEN a dispatch carries a line anchor taken from the approved plan DO open the cited
-  lines before relaying it — a wrong anchor in a plan is copied verbatim into source and tests
-  and survives every gate green.
+- P-09: WHEN a dispatch states what a file contains — an anchor, a justification, a relayed
+  finding's premise — DO open the file before relaying it: an unchecked claim is copied verbatim
+  into source, tests and records, and survives every gate green.
 - P-10: WHEN a feature's value depends on an agent choosing to invoke a checker DO say at review
   that no code gate verifies it — inspecting the rule text proves the rule exists, never that
   it fires.
+- P-11: WHEN a member's finding would be remedied only by contradicting a signed decision DO
+  route it up as a decision question and keep the verdict PASS — dispatching the fix would make
+  the squad amend an approved plan without approval.
 
 ## Gotchas (max 15)
 - G-01: `.claude/skills/harness/bin/**` sits in both backend-dev's and dev-ops's domain in
