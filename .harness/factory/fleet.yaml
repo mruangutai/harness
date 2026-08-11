@@ -10,4 +10,6 @@ board:
 repos:
   - name: mruangutai/harness
     default_branch: main
+  - name: mruangutai/kaya-ai
+    default_branch: master
 workspace_root: /Users/molchairuangutai/GitHub/harness-factories

@@ -1,8 +1,7 @@
-# Distributed templates
+# Templates
 
-Canonical schemas, pushed to every project by `/harness-deploy` and instantiated by
-`/harness-init`. **Deploy copies these files; it never writes project state.** That split is
-what lets deploy be dumb and safe.
+Canonical schemas, instantiated by `/harness-init`. They are read from here; nothing copies them
+into a product repository.
 
 | Template | Instantiated to | By | When |
 |---|---|---|---|

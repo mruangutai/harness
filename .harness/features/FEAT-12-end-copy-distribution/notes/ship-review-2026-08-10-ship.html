@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-12 — end the copy-based distribution — ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-12-end-the-copy-based-distribution-ship-review">FEAT-12 — end the copy-based distribution — ship review</h1>
+<p><strong>Recommendation: ship it, after you do two things only you can do.</strong> Run the UAT, and rule on one evidence gap that can never now be closed. Everything else is done, committed and gated.</p>
+<p>The harness no longer distributes itself by copying. <code>deploy.sh</code>, <code>/harness-deploy</code> and the machine-wide registry are gone. <code>kaya-ai</code> has been stripped of its copy and that deletion is pushed to its <code>master</code>. A product repository now reaches harness tooling by being checked out by the factory, declared in <code>.harness/factory/fleet.yaml</code>, which kaya is now in.</p>
+<p><strong>Branch <code>chore/203-end-copy-distribution</code>. I pushed nothing and opened no PR — the merge is yours.</strong> Stated precisely, because &quot;not pushed&quot; would be false about the branch: it already has an origin counterpart at <code>275de45</code>, pushed by the main session, and that remote copy carries four of this feature&#x27;s commits. I am 6 ahead of it and ran no <code>git push</code> at any point. One commit went to another repository: <code>7d2f946</code> on <code>mruangutai/kaya-ai</code> <code>master</code>, which you authorized.</p>
+<hr>
+<h2 id="the-two-things-that-need-you">The two things that need you</h2>
+<p><strong>1. Run the UAT — SC-06, and it is a blocking gate.</strong> Script at <code>notes/uat-FEAT-12-sc06.md</code>. A fresh factory checkout of <code>kaya-ai</code> at <code>master</code> must execute a Bash call, a Write and <strong>a Task spawn</strong> with no missing-hook error. The Task spawn is the one that matters: kaya&#x27;s <code>settings.json</code> wired eight harness registrations across four hook events, and four of them are the ones a Task spawn fires. No runner in this repository can observe another repository, so this was never automatable.</p>
+<p><strong>2. Rule on SC-05.</strong> The criterion says kaya&#x27;s <code>.harness/</code> is byte-identical across the removal — same file count, same per-file sha256. <strong>The manifests that were meant to prove it contain no hashes.</strong> They are 377 identical paths and zero sha256 fields. The plan asked for <code>xargs -0 shasum -a 256</code>; what ran produced a path list. The before-state no longer exists, so re-running the capture yields two after-captures and proves nothing.</p>
+<p>The review panel raised this as its only <code>high</code> and asked the one question that could still settle it. I ran it rather than passing it up:</p>
+<div class="scroll"><table><thead><tr><th>Question</th><th>Answer, measured at <code>fb80543</code></th></tr></thead><tbody><tr><td>Is kaya&#x27;s <code>.harness/</code> tracked in git?</td><td><strong>Yes — 117 files</strong></td></tr><tr><td>Did the deletion commit touch anything under it?</td><td><strong>No. The pathspec held</strong></td></tr><tr><td>Is kaya&#x27;s <code>.harness/</code> clean now?</td><td>One modified file, <code>features/FEAT-03-live-review-loop/feature.yaml</code></td></tr><tr><td>When was that file modified?</td><td><strong>2026-08-07 19:57</strong> — three days before this feature ran</td></tr></tbody></table></div>
+<p>So content integrity is <strong>strongly evidenced by git for the 117 tracked paths</strong> and <strong>not evidenced for the 260 untracked ones</strong> (<code>.DS_Store</code>, artifacts, feature dirs). That is much better than the panel had and still weaker than the criterion claims. Your options are to accept path-set equality with the weakening recorded, or to restate the criterion. I have not marked SC-05 either way.</p>
+<p><strong>One record correction rides with this.</strong> Commit <code>f3452bf</code>&#x27;s body says the re-capture was &quot;IDENTICAL, byte for byte&quot;. The artifact does not support that phrase. It stands as written and is corrected here rather than rewritten.</p>
+<hr>
+<h2 id="where-the-goal-stands">Where the goal stands</h2>
+<p><strong>Nine of eleven success criteria met.</strong> SC-01, SC-02, SC-02b, SC-03, SC-04, SC-07, SC-08, SC-09 and SC-10 are verified by their own declared methods. SC-05 is partial, SC-06 awaits your run.</p>
+<p>Gates: <strong>qa gate PASS</strong> — <code>matrix_ok: true</code>, the project&#x27;s only blocking gate. Full suite exit 0, 23 test scripts, 0 failures. <strong>Review panel FAIL on the one <code>high</code> above</strong>, everything else advisory. <strong>UAT outstanding and blocking.</strong></p>
+<p><code>test-no-distribution.py</code> is new and is the standing gate on all of this: 18 assertions, each case pairing an absence with a presence, and every case was proven able to go red by perturbation before it landed. Two of its judgments were settled by qa with mutants rather than by reading.</p>
+<hr>
+<h2 id="what-i-would-want-you-to-know-that-no-gate-reports">What I would want you to know that no gate reports</h2>
+<p><strong>Every gate on this feature searched for tokens. Nothing checked whether the replacement prose was true.</strong> Three false statements were written during this feature and all three passed every sweep; each was caught by a human-style read. The sharpest: a member proved in its own research that <code>factory_config.py</code> is not the fleet declaration&#x27;s only reader, then wrote that exact falsehood into <code>README.md</code> in a stronger form. Its lead caught it. The approved plan had told it to write that sentence.</p>
+<p>That defect class survives this feature. It is the single most consequential thing in this review.</p>
+<p><strong>Two verifies in the approved plan were themselves broken.</strong> T-06&#x27;s calls a function with the wrong number of arguments and raises regardless of outcome. T-14&#x27;s presence clause matched a different section of the same file, so it passed while gating nothing — which is how T-14 came back green with its success criterion unmet. I caught the second by reading and spent one fix cycle on it.</p>
+<hr>
+<h2 id="cost-and-shape">Cost and shape</h2>
+<p>Sixteen runs against an informational budget of 20, so no long-feature note fires, and 8 of 10 cycles. Two of those cycles were rework I would spend again: one where a documentor wrote a claim its own research had disproved, one where a task passed its own verify with SC-08 still unmet. Nine of the fourteen tasks were lane-locked to you and executed by the main session, and a main-session segment is never recorded as a run — so sixteen is a floor, not the real step count.</p>
+<p><strong>No report round was spawned for this briefing</strong> — it is assembled from the digests on disk: <code>runs/2026-08-10-01-product/digest.md</code>, <code>-02-product</code>, <code>-03-product</code>, <code>runs/t07-t10-eng/digest.md</code>, <code>runs/t12-product/digest.md</code>, <code>runs/t14-product/digest.md</code>, <code>runs/t14fix-product/digest.md</code>, <code>runs/t13-eng/digest.md</code>, <code>runs/qagate-validator/digest.md</code>, <code>runs/panel-validator/digest.md</code>, <code>runs/goalcheck-product/digest.md</code>, <code>runs/distill-eng</code>, <code>distill-product</code>, <code>distill-validator</code>, <code>distill-apply-validator</code>, <code>distill-apply-eng</code>. Ship-refresh was skipped because this repository has no <code>.harness/codebase/</code> map to refresh.</p>
+<p>Expertise changed in eight files, 139 entries to 160, applied by their owners. <code>check-expertise.sh</code> reports OK on all thirteen files, and the three reviewer files plus qa took insertions only — checked per file, not from the aggregate diffstat.</p>
+<hr>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Strike any row by name. Anything not listed here dies silently.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>What</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td>Nothing in the tree gates prose truth. Three false statements passed every sweep this feature</td></tr><tr><td>B-2</td><td>chore</td><td>Plan T-06&#x27;s <code>verify:</code> calls <code>repo_entry(name)</code> against a <code>repo_entry(fleet, name)</code> signature — raises regardless of outcome</td></tr><tr><td>B-3</td><td>chore</td><td>BRIEF SC-02 and plan T-09 cite &quot;case 20&quot;; the fixture is <code>case_21</code>. Claim true, label wrong, in two signed documents</td></tr><tr><td>B-4</td><td>chore</td><td>Plan T-14&#x27;s <code>depends_on</code> omits T-08, which measurably blocked it</td></tr><tr><td>B-5</td><td>bug</td><td><code>docs/harness/BUILD.md:826</code> still reads <code>Enroll = deploy + /harness-init</code> — a backtick breaks the phrase pattern, so it evaded both T-12&#x27;s and T-14&#x27;s verify</td></tr><tr><td>B-6</td><td>chore</td><td><code>BUILD.md:829</code> and <code>DECISIONS.md:3945</code> cite DEC-113 for rulings it no longer carries</td></tr><tr><td>B-7</td><td>bug</td><td>DEC-13&#x27;s heading and body still describe deploy pushing templates. Falsified, one decision over from the two this feature struck</td></tr><tr><td>B-8</td><td>bug</td><td><code>SPEC.md:1925</code> still reads &quot;rides the existing skill distribution&quot; — no sweep here covered the bare word</td></tr><tr><td>B-9</td><td>chore</td><td><code>SPEC.md:419-421</code> illustrates the fleet-config claim with three scripts and omits <code>factory_claim.py</code></td></tr><tr><td>B-10</td><td>bug</td><td>The absence idiom `test &quot;$(git grep … \</td></tr><tr><td>B-11</td><td>bug</td><td><code>git grep -E</code> does not honour <code>\b</code>, so a word-boundary sweep matches nothing and asserts nothing</td></tr><tr><td>B-12</td><td>bug</td><td><code>harness.json</code>&#x27;s <code>test_kinds.integration.detect</code> can never match the two files that actually run under <code>--kind integration</code></td></tr><tr><td>B-13</td><td>bug</td><td><code>gh-sync.py open</code> created parent issue #223 instead of adopting #203. On ship acceptance #223 closes and <strong>#203 — the issue you watch — stays open</strong></td></tr><tr><td>B-14</td><td>bug</td><td>The orchestrator cannot apply another agent&#x27;s Expertise ops (exit 2), which is the path its own playbook prescribes. Reviewers hold <code>Write</code> and self-apply</td></tr><tr><td>B-15</td><td>bug</td><td><code>check-expertise.sh</code> does not bind an entry&#x27;s ID letter to its section, nor detect duplicate or skipped IDs</td></tr><tr><td>B-16</td><td>bug</td><td>The instruction-shaped-pattern guard mangles any return that merely names <code>.claude/settings.json</code>, twice this feature</td></tr><tr><td>B-17</td><td>bug</td><td>A <code>plan.yaml</code> plain scalar carrying a space-then-<code>#NN</code> truncates silently under <code>safe_load</code> while the route check exits 0</td></tr><tr><td>B-18</td><td>enhancement</td><td>kaya became fleet-reachable in the same range that stripped its guards. No task, criterion or gate records re-wiring as a precondition</td></tr><tr><td>B-19</td><td>chore</td><td>SC-03&#x27;s two clauses and SC-08&#x27;s &quot;retains only&quot; clause have no standing assertion — both held at this sha by inspection alone</td></tr><tr><td>B-20</td><td>chore</td><td>T-10&#x27;s comment edits in <code>test-check-plan-routes.py</code> have no standing test; that file is <code>ALLOW_LIST</code>-exempt</td></tr><tr><td>B-21</td><td>bug</td><td><code>upgrade-config.py</code>&#x27;s no-templates message gives no remedy and is false for the repos the tool targets. Candidate to fold into #206</td></tr></tbody></table></div>
+<p>Already filed, listed so you can see the whole set: <strong>#218</strong> (qa cannot write test files here), <strong>#241</strong> (<code>rm -f</code> bypassed the write guard), <strong>#242</strong> (<code>templates/team-config.yaml</code> does not parse).</p><p class='derived'>Derived from <code>ship-review-2026-08-10-ship.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

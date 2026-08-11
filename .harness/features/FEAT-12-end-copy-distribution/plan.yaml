@@ -1,0 +1,987 @@
+schema: plan/1
+feature: FEAT-12-end-copy-distribution
+
+approval:
+  status: approved
+  approved_by: operator
+  date: 2026-08-10
+  rulings: >-
+    D-06 IS REVERSED: remove kaya's .claude/settings.json.harness-bak in this feature. The plan
+    deferred it as inert — merge-settings.py writes it and never reads it back — but it is tracked
+    on kaya's origin/master and names six harness scripts this feature deletes, so deferring leaves
+    kaya's master carrying a tracked file that points at paths which no longer exist. Cost is stated
+    in the plan: one path on T-03, one entry on T-05's pathspec. Fold it into those tasks; do not
+    add a task.
+
+    RATIFIED, not re-asked: REQ-03's narrowing to kaya's three top-level tooling directories, and
+    the corrected push cost (34 TRACKED files lose their local modifications permanently; all 34 are
+    reproducible from this repo, 28 byte-identical at 365a8a9 and 6 present in its object database).
+
+    UNCHANGED AND STILL BINDING: the kaya push is authorized for mruangutai/kaya-ai master, for the
+    deletion commit ONLY, staged by explicit pathspec — never git commit -a, never git add . or -A.
+    kaya's 63 unrelated uncommitted entries are not this feature's to touch. Nothing in this
+    repository may be pushed on that authorization.
+
+lanes:
+  resolved_at: c1d161706ab4867c00078b966e1969203ee6ca92
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev
+      reason: check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops at the resolved sha
+    - surface: docs/**
+      lane: team
+      agent: harness-documentor
+      reason: check-domain.sh --resolve returns harness-documentor for docs/harness/SPEC.md, BUILD.md, DECISIONS.md and DECISIONS-INDEX.md
+    - surface: README.md
+      lane: team
+      agent: harness-documentor
+      reason: check-domain.sh --resolve returns harness-documentor
+    - surface: .harness/README.md
+      lane: team
+      agent: harness-documentor
+      reason: check-domain.sh --resolve returns harness-documentor
+    - surface: .claude/commands/**
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY for .claude/commands/harness-deploy.md, so DEC-179 makes it a declared main-session step
+    - surface: .claude/skills/harness-team/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY; rule skills are unowned by any lane
+    - surface: .claude/skills/harness-init/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY; rule skills are unowned by any lane
+    - surface: .claude/skills/harness/templates/README.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY for the templates tree
+    - surface: .claude/skills/harness/templates/team-config.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY for the templates tree
+    - surface: .harness/team-config.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY, measured at 835b297; no lane grants the file that declares the lanes
+    - surface: .harness/factory/fleet.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY; precedent is FEAT-10 T-01, written main-session-direct on 2026-08-09
+    - surface: /Users/molchairuangutai/GitHub/kaya-ai/**
+      lane: main-session-direct
+      reason: outside CLAUDE_PROJECT_DIR, so check-domain.sh passes it through ungoverned and no team-config lane grants it; the work is a cross-repo destructive change gated on Q1, so it stays with the tier that has an operator channel
+    - surface: /Users/molchairuangutai/.harness/registry.json
+      lane: main-session-direct
+      reason: outside CLAUDE_PROJECT_DIR, ungoverned by check-domain.sh, and no lane in team-config.yaml names a path under the home directory
+
+decisions:
+  - id: D-01
+    choice: >-
+      All three distributed surfaces are removed from kaya-ai, not just the skills the operator
+      ruling names - 21 harness skill directories, 8 harness slash commands, and the harness agent
+      files on kaya's disk. The three are NOT one committed triple, and the plan must not treat them
+      as one. Measured in kaya-ai on 2026-08-10, and superseding every earlier count in this plan:
+      55 tracked skill files and 8 tracked command files on master, and 16 agent files present on
+      disk but tracked by nothing - git ls-files .claude/agents/harness* returns zero rows while
+      ls -1 .claude/agents returns 16 files, all matching harness-*.md and nothing else.
+      Consequence, stated once here and repeated wherever it binds: the agents deletion is
+      WORKING-TREE-ONLY, it produces no commit content, and the remote never carried it. So T-05's
+      remote verify carries no agents clause by design, and SC-04's agents half is a claim about
+      kaya's working tree, never about origin/master.
+    because: >-
+      deploy.sh derives its payload from all three sets at lines 52 to 59 and copies commands into
+      each enrolled project at lines 264 to 268, so the mechanism itself is the authority for
+      treating the triple as one distributable. deploy.sh line 54 attributes the slash-command half
+      to DEC-161; that citation is unfounded, because no DEC-161 exists in docs/harness/DECISIONS.md
+      - grep -c '^## DEC-161' returns 0 at 687fd3e, and DEC-188 records that DEC-161 had already been
+      deleted. The mechanism is re-derived from deploy.sh directly and no decision is cited for it.
+      The operator deleted exactly that triple from the global install on 2026-08-10 - 21 skills,
+      16 agents, 8 commands. review-team.md is not harness tooling and survives.
+    dec: none
+  - id: D-02
+    choice: >-
+      kaya-ai's committed .claude/settings.json loses EVERY harness registration, and there are
+      EIGHT of them across FOUR hook events, not three PreToolUse hooks. Measured with json.load in
+      kaya-ai on 2026-08-10: PreToolUse Bash branch-create-gate.sh; PreToolUse Bash
+      branch-create-gate.sh a second, duplicate time under a different variable spelling; PreToolUse
+      Bash bash-write-guard.sh; PreToolUse Write or Edit check-domain.sh; PreToolUse Task or Agent
+      dispatch-guard.sh; SubagentStart on matcher harness-.* inject-expertise.sh; SubagentStop on
+      matcher harness-.* validate-digest.py --hook; PostToolUse Write or Edit or Bash
+      check-domain.sh --post. All eight go, in this feature rather than as a deferral.
+    because: >-
+      those paths live inside the skill tree D-01 deletes, so leaving them wired makes every Bash,
+      Write, Task and subagent call in any kaya session - including the factory checkouts the fleet
+      entry exists to enable - fail on a dangling command, which would ship the fleet entry inert.
+      The earlier count of three was wrong and is corrected here rather than left for the builder to
+      discover: SC-06 is the operator's own blocking UAT and it spawns a Task, which fires
+      PreToolUse Task or Agent, SubagentStart and SubagentStop - three of the four events the
+      three-hook framing never mentioned. deploy.sh line 14 disclaims writing settings.json, so this
+      wiring came from merge-settings.py, and unwinding it touches ground that issue 206 also covers.
+    dec: none
+  - id: D-03
+    choice: The retirement is recorded by STRIKING DEC-12 from the record and striking the two falsified parts of DEC-113, not by declaring stale markers.
+    because: >-
+      DEC-188 is the governing rule and it says so directly: a decision the tree flatly contradicts
+      is struck from the record and removed from every gate, not marked stale, not amended, not left
+      standing with a marker beside it. DEC-188 also records what was already carried out under it -
+      bin/check-docs.sh deleted, the INV-10 block out of check-state.sh, and the 66 stale-wording
+      markers and 14 escape comments gone from the live docs - so a marker task would write into a
+      mechanism that no longer exists. Confirmed at 687fd3e of this repository: check-docs.sh is
+      absent from the tree.
+    dec: none
+  - id: D-04
+    choice: DEC-12 is struck whole; DEC-113 is struck in part, keeping only its override-precedence ruling with a justification that no longer cites distribution.
+    because: DEC-12 is about nothing but the deploy and init split, so every clause of it is falsified. DEC-113 carries three rulings and only two die with deploy - agents distributed globally only, and agent_skills cleanup reported not performed. Its third, that team and crew overrides live outside the tool tree and resolve first, is still live and is cited by harness-team/SKILL.md, so striking DEC-113 whole would delete a rule the tree still obeys.
+    dec: none
+  - id: D-05
+    choice: A new unit test, test-no-distribution.py, carries the absence claims, and every absence assertion in it is paired with a presence assertion.
+    because: DEC-169 - an absence check proves only that the wrong words are gone, and a grep that was going to pass anyway proves nothing. It also has to be registered in run-unit-tests.sh UNIT_SCRIPTS in the same task, because the drift detector fails the whole run on an unregistered test file.
+    dec: DEC-169
+  - id: D-06
+    choice: >-
+      kaya-ai's .claude/settings.json.harness-bak is declared OUT OF SCOPE and left on master, as a
+      deferral on the record rather than an omission. It is tracked on the remote - git ls-tree -r
+      --name-only origin/master lists it beside .claude/settings.json - it is modified in kaya's
+      working tree, and it registers six harness scripts. After this feature master therefore still
+      ships one tracked file naming scripts that no longer exist. No task, REQ or SC here touches it,
+      and T-05's pathspec does not match it.
+    because: >-
+      The discriminating check is whether merge-settings.py ever reads the backup back. It does not.
+      In this repository at 687fd3e, grep -n over .claude/skills/harness/bin/merge-settings.py
+      returns exactly three hits for harness-bak: line 325 a comment, line 326
+      shutil.copyfile(path, path + ".harness-bak"), and line 338 a print naming its location. It is
+      write-only, nothing restores from it, and Claude Code does not load a .harness-bak file, so the
+      residue is inert for SC-06 and cannot cause a dangling-hook error. Bringing it in would also
+      need a REQ it does not have: REQ-03 is about harness tooling, REQ-06 about dangling hooks, and
+      REQ-07 about this repository, and line 325's own comment says the backup exists because
+      merge-settings edits a file the project owns and harness does not - it is kaya's property, not
+      harness tooling. Inventing a ninth REQ on a brief the operator is about to sign is scope
+      widening, so the residue is declared here and in BRIEF's Constraints instead. What a future
+      reader needs: deleting it is a one-path change to T-03 and one entry on T-05's pathspec, and
+      git history on the remote retains the file, so the deferral is cheap to reverse.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Capture the kaya-ai .harness state manifest before any deletion
+    traces: [REQ-04]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: the WORK is a read of /Users/molchairuangutai/GitHub/kaya-ai, outside CLAUDE_PROJECT_DIR and granted to no lane; only the receipt lands in-repo, so check-plan-routes reports an advisory deviation on the artifact path granted to harness-orchestrator. It stays with the seat that runs T-02 to T-05, because a manifest captured by a different seat than the one that deletes is not evidence about the same moment.
+    depends_on: []
+    status: pending
+    files:
+      - .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt
+    verify: |
+      test -s .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt && awk 'END{print NR}' .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt | awk '$1>50{exit 0} {exit 1}'
+    intent: |
+      Write a reproducible content manifest of every file under /Users/molchairuangutai/GitHub/kaya-ai/.harness/ to
+      .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt in this repository.
+
+      Produce it with exactly this command, so that the after-capture in T-04 is byte-comparable:
+
+        cd /Users/molchairuangutai/GitHub/kaya-ai && find .harness -type f -print0 | LC_ALL=C sort -z | xargs -0 shasum -a 256
+
+      Redirect the output to the file path above. Do not sort the shasum output afterwards, do not
+      strip paths, and do not filter anything: the manifest must cover all seven top-level entries -
+      artifacts, codebase, expertise, features, harness.json, notes, team-config.yaml - not only the
+      five the operator ruling names.
+
+      Then append two lines at the end of the file, in this exact form, so a later reader can tell
+      the capture apart from a partial one:
+
+        TOTAL_FILES <n>
+        TOP_LEVEL <the output of `ls -1 .harness` joined by single spaces>
+
+      Write nothing inside kaya-ai. This task is read-only with respect to that repository.
+
+  - id: T-02
+    title: Delete kaya-ai's copies of the harness skills, slash commands and agents
+    traces: [REQ-03]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: the path is outside CLAUDE_PROJECT_DIR and no team-config lane grants it
+    depends_on: [T-01]
+    status: pending
+    files:
+      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/skills
+      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/commands
+      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/agents
+      - .harness/features/FEAT-12-end-copy-distribution/notes/kaya-agents-count-before.txt
+    verify: |
+      cd /Users/molchairuangutai/GitHub/kaya-ai && test "$(ls -1d .claude/skills/harness* 2>/dev/null | wc -l | tr -d ' ')" = 0 && test "$(ls -1 .claude/commands/harness*.md 2>/dev/null | wc -l | tr -d ' ')" = 0 && test -d .claude/agents && test "$(ls -1 .claude/agents/harness-*.md 2>/dev/null | wc -l | tr -d ' ')" = 0 && test -s /Users/molchairuangutai/GitHub/harness/.harness/features/FEAT-12-end-copy-distribution/notes/kaya-agents-count-before.txt && test "$(cat /Users/molchairuangutai/GitHub/harness/.harness/features/FEAT-12-end-copy-distribution/notes/kaya-agents-count-before.txt)" -gt 0 && test -d .claude/commands && test -f .claude/commands/review-team.md && test -d .harness/expertise && test -d .harness/codebase && test -d .harness/features && test -d .harness/artifacts && test -d .harness/notes && test -f .harness/harness.json && test -f .harness/team-config.yaml
+    intent: |
+      In the working tree at /Users/molchairuangutai/GitHub/kaya-ai, remove the harness tooling that
+      deploy.sh copied there. Three sets, and only these three:
+
+      1. Every directory matching .claude/skills/harness*/ - 21 of them at the time of planning,
+         including the 37-file harness/bin/. Remove the directories themselves, not just contents.
+      2. Every file matching .claude/commands/harness*.md - 8 of them.
+      3. Every file matching .claude/agents/harness-*.md. This set is DIFFERENT IN KIND from the
+         other two and must not be handled as if it were the same. Measured in kaya on 2026-08-10:
+         git ls-files .claude/agents/harness* returns ZERO rows, while ls -1 .claude/agents returns
+         16 files, all matching harness-*.md and nothing else. They are real files on disk and
+         deleting them is real work, but they were never committed, so this deletion produces NO
+         COMMIT CONTENT and the remote never carried them. That is why T-05's remote verify has no
+         agents clause and why SC-04's agents half is graded against kaya's working tree. It is also
+         why git rm cannot be used on them at all.
+
+      FIRST, before deleting anything, record the pre-deletion agent count so the 16-to-0 transition
+      has a witness that a post-hoc command cannot supply - once the directory is empty, nothing can
+      distinguish "16 were deleted" from "there were never any". Run, in kaya:
+
+        ls -1 .claude/agents | wc -l | tr -d ' '
+
+      and write that single number, and nothing else, to
+      .harness/features/FEAT-12-end-copy-distribution/notes/kaya-agents-count-before.txt in THIS
+      repository. This task's verify asserts that file exists and holds a number greater than zero,
+      alongside the post-deletion count of zero. Also report the same number in your receipt: it is
+      SC-04's cited evidence for the agents half.
+
+      The directory .claude/agents/ SURVIVES, empty, and so does .claude/commands/, which still
+      holds review-team.md. The verify asserts both, because an all-absent result is also what
+      deleting the wrong directory outright would produce.
+
+      .claude/skills/ IS EXPECTED TO DISAPPEAR, and that is correct rather than an overreach.
+      Measured in kaya on 2026-08-10: ls -1 .claude/skills returns 21 entries and every one of them
+      matches harness*, nothing else is in there. git removes a leading directory that its removals
+      leave empty - reproduced in a scratch repository - so the directory goes with its last child.
+      Do not recreate it, and do not treat its absence as a fault.
+
+      The pre-count you record must be the LITERAL output of ls -1 .claude/agents | wc -l run before
+      any deletion in this task - not a number carried from this plan, not one recalled from a
+      measurement note. Quote the command next to the number in your receipt. SC-04 cites that
+      number as its evidence, and a number with no command beside it is an assertion rather than a
+      measurement.
+
+      Explicitly DO NOT touch:
+      - .claude/commands/review-team.md. It does not match harness* and is not harness tooling.
+      - .harness/ in any form. All seven of its top-level entries are kept by operator ruling.
+      - .claude/settings.json. That is T-03.
+      - any non-harness file anywhere in the repository.
+
+      Derive the deletion set from the three globs above at execution time; do not paste a
+      hand-written list, and do not use a broader glob such as .claude/skills/* .
+
+      HOW TO DELETE. The operator ruled git rm rather than rm. git rm cannot be applied blanket-wise
+      here, and both reasons were reproduced in a scratch repository rather than reasoned about:
+
+        - git rm -r -- <pathspec> on a pathspec that includes an UNTRACKED path exits 128 with
+          "fatal: pathspec ... did not match any files" and removes nothing at all.
+        - git rm -r -- <pathspec> on a TRACKED path that has local modifications exits 1 with
+          "error: the following file has local modifications". -f is required.
+        - git rm -f -r -- on a tracked path already deleted from disk exits 0 and stages the
+          deletion, so a path that git ls-files reports but ls does not is expected, not a fault.
+
+      So split the set AT EXECUTION TIME, by the same rule that derives it - never from a number
+      written in this plan:
+
+        - Whatever git ls-files reports under the three globs is removed with git rm -f -r -- .
+        - Everything the globs match that git ls-files does not report is removed with rm -rf .
+
+      -f is authorized, and here is the authorization, because it discards local modifications
+      permanently. Measured on 2026-08-10: 34 tracked harness files under .claude/skills/harness* or
+      .claude/commands/harness* carry local modifications. Every one of them is reproducible from
+      this repository - 28 are byte-identical to this repo's copy at 365a8a9, and the remaining 6
+      are present in this repo's object database, confirmed by hashing kaya's copy and running
+      git cat-file -e on the hash here. Nothing unique is lost. Do not stop and escalate on the
+      local-modifications error; it is expected and -f is the answer.
+
+      THIS TASK THEREFORE STAGES, and that is deliberate: git rm stages by construction, so the
+      earlier direction that no staging happens here is superseded. What is still forbidden is a
+      staging decision that widens the set. Do not run git add, git commit, git stash or git
+      checkout in this task, and never use -a, -A or a bare rm -rf .claude . The working tree there
+      carries 63 modified or untracked entries that are not this feature's. The set this task
+      stages is exactly the deletion set derived from the three globs, which is a subset of T-05's
+      pathspec .claude/skills .claude/commands .claude/settings.json - so T-05's check that every
+      staged entry is either a deletion of a harness* path or the single settings.json modification
+      still holds, and holds over what this task staged.
+
+      Two of the tracked paths under those globs are already deleted from disk in kaya
+      (.claude/skills/harness/bin/cost-report.py and .claude/skills/harness/teams/gate-probe.yaml).
+      git ls-files still reports them, git rm -f -r stages their deletion, and ls disagreeing with
+      git ls-files is not grounds to stop.
+
+      kaya carries six git worktrees under .claude/worktrees/. Three of them - 333-env-test,
+      feat02-statements and feat03-live-review-loop - hold their own .claude/skills/harness* tree,
+      153 files across 56 directories, and those files are TRACKED content of each worktree's own
+      branch, not untracked. They are invisible to kaya's root git status only because
+      .gitignore line 23 ignores the .claude/worktrees/ container in the main tree. Nothing on
+      master tracks any worktree path, so the three globs cannot reach them and neither the git rm
+      set nor the rm -rf remainder touches them. Do not extend any glob to reach them and do not
+      delete them: they are a declared deferral in the BRIEF Constraints section, and each of the
+      three branches drops its copy on its own when it next merges or rebases master.
+
+  - id: T-03
+    title: Unwire all eight harness hook registrations from kaya-ai's settings.json
+    traces: [REQ-06]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: the path is outside CLAUDE_PROJECT_DIR and no team-config lane grants it
+    depends_on: [T-01]
+    status: pending
+    files:
+      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/settings.json
+    verify: |
+      cd /Users/molchairuangutai/GitHub/kaya-ai && python3 -c "
+      import json
+      t = open('.claude/settings.json').read()
+      d = json.loads(t)
+      assert 'skills/harness' not in t, 'a harness skill path survives in settings.json'
+      assert set(d) >= {'hooks', 'env'}, 'a top-level key was lost: %s' % sorted(d)
+      cmds = [h['command'] for ev in d['hooks'].values() for m in ev for h in m['hooks'] if 'command' in h]
+      for s in ('work-tracking-nudge.sh', 'pre-commit-tests.sh', 'pr-issue-gate.sh', 'branch-issue-gate.sh'):
+          assert any(s in c for c in cmds), 'a non-harness hook was lost: ' + s
+      assert all('.claude/hooks/' in c for c in cmds), 'a hook outside .claude/hooks/ survives: %s' % cmds
+      print('ok', len(cmds), 'hooks remain')
+      "
+    intent: |
+      Edit /Users/molchairuangutai/GitHub/kaya-ai/.claude/settings.json so that it no longer
+      registers any hook whose command points inside the skill tree T-02 deletes.
+
+      There are EIGHT such registrations and they span FOUR hook events, not three PreToolUse hooks.
+      An earlier draft of this task enumerated three; that enumeration was wrong, it contradicted
+      this task's own headline instruction and its own verify, and a builder who followed it would
+      leave five registrations wired and then fail the verify. Measured with json.load in kaya on
+      2026-08-10, the full set is:
+
+        PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.sh
+        PreToolUse   Bash              .claude/skills/harness/bin/branch-create-gate.sh   (a SECOND,
+                                       duplicate entry, spelled ${CLAUDE_PROJECT_DIR} where the
+                                       first uses "$CLAUDE_PROJECT_DIR" - both go)
+        PreToolUse   Bash              .claude/skills/harness/bin/bash-write-guard.sh
+        PreToolUse   Write or Edit     .claude/skills/harness/bin/check-domain.sh
+        PreToolUse   Task or Agent     .claude/skills/harness/bin/dispatch-guard.sh
+        SubagentStart  harness-.*      .claude/skills/harness/bin/inject-expertise.sh
+        SubagentStop   harness-.*      .claude/skills/harness/bin/validate-digest.py --hook
+        PostToolUse  Write or Edit or Bash  .claude/skills/harness/bin/check-domain.sh --post
+
+      Do not treat this list as the definition of the set. The DEFINITION is the headline above -
+      any hook whose command points inside .claude/skills/harness/ - and the list is what that
+      definition matched on 2026-08-10. If you find a ninth, remove it too and say so.
+
+      WHY THE COUNT MATTERS HERE, where you are reading it: SC-06 is the operator's own blocking
+      UAT, he runs it himself, and it executes a Bash call, a Write and a TASK SPAWN in a fresh
+      factory checkout expecting no missing-hook error. A Task spawn fires PreToolUse on Task or
+      Agent, SubagentStart and SubagentStop - three of the four events the old three-hook
+      enumeration missed entirely. Leaving any of them wired ships the fleet entry inert and the
+      operator is the one who finds out.
+
+      FOUR NON-HARNESS HOOKS MUST SURVIVE, all under .claude/hooks/ and none of them this feature's:
+      work-tracking-nudge.sh (on UserPromptSubmit), pre-commit-tests.sh, pr-issue-gate.sh and
+      branch-issue-gate.sh (on PreToolUse). Both top-level keys, hooks and env, must survive. The
+      verify asserts all six of those presences, because an absence-only check is equally satisfied
+      by deleting the hooks key outright.
+
+      Remove the matcher object entirely when removing its last command leaves it with an empty
+      hooks list, and remove the PreToolUse key entirely when removing its last matcher leaves it
+      empty. Do not leave an empty array or an empty object behind - an empty PreToolUse array is
+      indistinguishable from a truncation, and a reader cannot tell it was deliberate.
+
+      Preserve every other key in the file byte-for-byte, including any permissions, env or
+      statusLine settings, and preserve the file's existing indentation. The result must be valid
+      JSON.
+
+      Do not run any git command in this task.
+
+  - id: T-04
+    title: Re-capture kaya-ai's .harness manifest and prove it is unchanged
+    traces: [REQ-04]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: same as T-01 - the work reads /Users/molchairuangutai/GitHub/kaya-ai, which no lane grants, and only the receipt lands in-repo, so check-plan-routes reports an advisory deviation on the artifact path
+    depends_on: [T-02, T-03]
+    status: pending
+    files:
+      - .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-after.txt
+    verify: |
+      diff .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-before.txt .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-after.txt && echo IDENTICAL
+    intent: |
+      Repeat T-01's capture verbatim - same command, same appended TOTAL_FILES and TOP_LEVEL lines -
+      writing to
+      .harness/features/FEAT-12-end-copy-distribution/notes/kaya-harness-manifest-after.txt.
+
+      Then diff it against kaya-harness-manifest-before.txt. The diff must be empty. A non-empty
+      diff means the deletion reached kaya's project state and the task FAILS: report it, do not
+      reconcile the manifests, and do not regenerate the before-capture.
+
+      This is the evidence pointer for SC-05, so the artifact must survive the run; do not delete
+      either manifest afterwards.
+
+  - id: T-05
+    title: Commit and push the kaya-ai tooling removal to master, path-scoped
+    traces: [REQ-03]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: the path is outside CLAUDE_PROJECT_DIR, no team-config lane grants it, and the step pushes to another product repository
+    depends_on: [T-04]
+    status: pending
+    files:
+      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/skills
+      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/commands
+      - /Users/molchairuangutai/GitHub/kaya-ai/.claude/settings.json
+    verify: |
+      cd /Users/molchairuangutai/GitHub/kaya-ai && git fetch origin master --quiet && test "$(git ls-tree -r --name-only origin/master | grep -c '^\.claude/skills/harness')" = 0 && test "$(git ls-tree -r --name-only origin/master | grep -c '^\.claude/commands/harness')" = 0 && git ls-tree -r --name-only origin/master | grep -q '^\.claude/commands/review-team.md' && echo REMOTE_CLEAN
+    intent: |
+      THE AUTHORIZATION, stated first because it is narrow and because nothing else in this feature
+      pushes anything. The operator ruled on 2026-08-10: commit and PUSH to kaya's master,
+      path-scoped. That authorization covers the repository mruangutai/kaya-ai, the branch master,
+      and the deletion commit ONLY. It authorizes nothing in this repository - the standing "do not
+      push, do not open a PR" still binds here in full - and it authorizes no second commit in kaya.
+      This task is unconditional; there is no working-tree-only branch any more.
+
+      In /Users/molchairuangutai/GitHub/kaya-ai, on branch master, stage ONLY the paths this feature
+      touched and push.
+
+      T-02 has already staged the deletions it derived, because the operator ruled git rm and git rm
+      stages. So this task's job is to CONFIRM the staged set and complete it, not to discover it.
+      The working tree there carries 63 modified or untracked entries that belong to other work.
+      Stage the remainder with an explicit pathspec and never with -a or -A. The remainder is ONE
+      file:
+
+        git add -- .claude/settings.json
+
+      Do NOT write git add -- .claude/skills here. T-02's git rm already staged every tracked
+      deletion, and .claude/skills/ no longer exists in the index or on disk once its last tracked
+      child is removed - kaya's .claude/skills holds only harness* entries - so that pathspec would
+      match nothing and abort this task with "fatal: pathspec ... did not match any files",
+      reproduced in a scratch repository. Narrowing the add also removes a second hazard: a bare
+      .claude/skills pathspec would sweep any unrelated modification under that tree into this
+      commit, which the path-scoping ruling exists to prevent.
+
+      Before committing, run `git status --porcelain -- .claude/skills .claude/commands
+      .claude/settings.json` and confirm every staged entry is either a deletion of a path matching
+      harness* or the single modification to .claude/settings.json. If any other path is staged,
+      unstage it and stop.
+
+      Also confirm `git diff --cached --stat -- .harness` is empty. If it is not, abort: kaya's
+      project state must not enter this commit.
+
+      Commit message subject: "Remove distributed harness tooling; harness is reached via the
+      factory". Body: one paragraph naming what this COMMIT contains - 55 tracked skill files and 8
+      tracked command files deleted, plus the settings.json hook unwiring - and stating that
+      .harness/ project state is untouched, verified by an unchanged sha256 manifest.
+
+      DO NOT name the agent files in the commit message. The commit contains none of them: they were
+      never tracked, so T-02's deletion of the 16 on disk produces no commit content and the remote
+      never carried them. A commit body naming files the commit does not contain is a false record.
+      For the same reason this task's verify has no agents clause on origin/master, and that absence
+      is deliberate rather than an omission - SC-04's agents half is graded against kaya's working
+      tree, on the pre-count T-02 recorded and the post-count of zero.
+
+      Then `git push origin master`.
+
+      Push is required rather than optional because factory_workspace.py line 125 materialises a
+      workspace with `git clone https://github.com/<repo>.git` - from the remote. A local-only
+      commit leaves the remote carrying 55 tracked skill files and 8 tracked command files, and the
+      next factory checkout restores every one of them.
+
+  - id: T-06
+    title: Add mruangutai/kaya-ai to the factory fleet declaration
+    traces: [REQ-05]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for .harness/factory/fleet.yaml; precedent is FEAT-10 T-01
+    depends_on: []
+    status: pending
+    files:
+      - .harness/factory/fleet.yaml
+    verify: |
+      python3 -c "import sys; sys.path.insert(0,'.claude/skills/harness/bin'); import factory_config; f=factory_config.load_fleet(); r={x['name']:x for x in f['repos']}; assert set(r)=={'mruangutai/harness','mruangutai/kaya-ai'}, r; assert r['mruangutai/kaya-ai']['default_branch']=='master'; assert r['mruangutai/harness']['default_branch']=='main'; print(factory_config.repo_entry('mruangutai/kaya-ai'))"
+    intent: |
+      Add a second entry to the repos list in .harness/factory/fleet.yaml:
+
+        - name: mruangutai/kaya-ai
+          default_branch: master
+
+      Keep the existing mruangutai/harness entry with default_branch main, keep the schema, board and
+      workspace_root keys unchanged, and keep the file's existing two-space indentation and key
+      order.
+
+      default_branch is master, not main - kaya-ai's default branch is master, verified.
+
+      This entry is what keeps kaya reachable at all once the registry is deleted: the registry held
+      one local absolute path and the fleet holds GitHub slugs, and the two lists have no entry in
+      common, so the fleet does not absorb the registry by default.
+
+      Do not edit factory_config.py in this task. Its public API was checked at the resolved sha and
+      exposes load_fleet and repo_entry, which is what the verify calls.
+
+  - id: T-07
+    title: Delete deploy.sh
+    traces: [REQ-01]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/deploy.sh
+    verify: |
+      test ! -e .claude/skills/harness/bin/deploy.sh && .claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-t07.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t07.log; grep -c '^FAIL ' /tmp/feat12-t07.log; exit $s
+    intent: |
+      Delete the file .claude/skills/harness/bin/deploy.sh. It is 287 lines and it is the only
+      writer of ~/.harness/registry.json and the only mechanism that copies harness skills, agents
+      and slash commands out of this repository.
+
+      There is no test-deploy.sh and no test-deploy.py anywhere in the tree - verified, `find` for
+      any path containing deploy returns exactly deploy.sh and .claude/commands/harness-deploy.md.
+      Do not spend time looking for deploy tests; there are none to delete.
+
+      run-unit-tests.sh and .github/workflows/tests.yml contain zero references to deploy, so no
+      runner registration changes here.
+
+      Do not edit any other file in this task. The Python modules that mention deploy.sh in comments
+      are T-10's, and the slash command file is T-08's.
+
+      Redirect the suite output to a file rather than piping it: piping a multi-script runner
+      reports the pipe's exit status, not the runner's, and truncates the earlier output away.
+
+  - id: T-08
+    title: Delete the harness-deploy slash command
+    traces: [REQ-01, REQ-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/commands/harness-deploy.md
+    depends_on: []
+    status: pending
+    files:
+      - .claude/commands/harness-deploy.md
+    verify: |
+      test ! -e .claude/commands/harness-deploy.md && test "$(ls -1 .claude/commands/harness*.md | wc -l | tr -d ' ')" -ge 6 && echo DELETED_AND_DOORS_INTACT
+    intent: |
+      Delete the file .claude/commands/harness-deploy.md - the 121-line slash command whose only
+      body is the deploy.sh workflow.
+
+      Delete nothing else under .claude/commands/. Every other harness*.md command there is a live
+      door and survives.
+
+  - id: T-09
+    title: Delete the deploy registry from the home directory
+    traces: [REQ-02]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: ~/.harness/registry.json is outside CLAUDE_PROJECT_DIR and no team-config lane names a path under the home directory
+    depends_on: [T-07]
+    status: pending
+    files:
+      - /Users/molchairuangutai/.harness/registry.json
+    verify: |
+      test ! -e "$HOME/.harness/registry.json" && test "$(ls -1 "$HOME/.harness"/global-harness-*-backup-2026-08-10.tgz | wc -l | tr -d ' ')" = 2 && python3 .claude/skills/harness/bin/test-check-plan-routes.py > /tmp/feat12-t09.log 2>&1; s=$?; tail -3 /tmp/feat12-t09.log; exit $s
+    intent: |
+      Delete /Users/molchairuangutai/.harness/registry.json. It has zero readers: deploy.sh line 46
+      wrote it and no code consults it. check-plan-routes.py line 457 only mentions it in a comment
+      explaining why the root probe must be a filename; the actual probe is team-config.yaml.
+
+      Delete the file only. Do not delete the ~/.harness/ directory itself and do not touch the two
+      backup archives global-harness-skills-backup-2026-08-10.tgz and
+      global-harness-agents-commands-backup-2026-08-10.tgz that sit beside it - they are the only
+      copy of what was removed from the global install on 2026-08-10.
+
+      Note for the record, and report it in your digest: after this deletion ~/.harness/ continues to
+      exist only because those two archives are in it. wayfind.py probes the .harness DIRECTORY, so
+      a session under the home directory with no project of its own still resolves the home
+      directory as a project root. That exposure is unchanged by this task and is not this feature's
+      to fix - it is the pre-existing issue recorded at test-check-plan-routes.py's
+      KNOWN_DIRECTORY_PROBE exception. The verify below proves the fixture did not depend on the
+      real file: case 20 builds its own synthetic registry.json inside a temp directory.
+
+  - id: T-10
+    title: Neutralise every deploy reference in the bin python modules, comments and user-facing strings alike
+    traces: [REQ-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-07]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/upgrade-config.py
+      - .claude/skills/harness/bin/test-upgrade-config.py
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/test-check-plan-routes.py
+      - .claude/skills/harness/bin/wayfind.py
+      - .claude/skills/harness/bin/factory_config.py
+    verify: |
+      test "$(git grep -cE 'harness-deploy|deploy\.sh' -- .claude/skills/harness/bin/ ':!.claude/skills/harness/bin/test-no-distribution.py' | wc -l | tr -d ' ')" = 0 && .claude/skills/harness/bin/run-unit-tests.sh > /tmp/feat12-t10.log 2>&1; s=$?; grep -c '^FAIL ' /tmp/feat12-t10.log; exit $s
+    intent: |
+      Remove every reference to deploy.sh, /harness-deploy and the deploy registry from these six
+      modules. Two of the edits change behaviour and four are comments; do all six.
+
+      BEHAVIOUR - upgrade-config.py:
+      - The message at line 176, currently "upgrade-config: no templates at {tdir} - run
+        /harness-deploy first.", must stop naming a command that no longer exists. Replace the
+        instruction with: the templates ship inside this repository at
+        .claude/skills/harness/bin/../templates, so a missing templates directory means the
+        checkout is incomplete, not that a distribution step was skipped.
+      - The message at line 254, currently telling the user to "Re-run /harness-deploy", must be
+        rewritten the same way: the remedy is a complete checkout of this repository, not a
+        distribution step.
+
+      TESTS - test-upgrade-config.py line 53 asserts the old wording. Update the assertion to assert
+      the NEW wording positively. Do not merely delete the assertion: a test that stops asserting
+      anything is how a message regresses unnoticed.
+
+      COMMENTS - the following are explanatory prose whose factual claim is about to become false.
+      Rewrite each so the claim it makes is true after this feature, keeping the reasoning it
+      exists to carry:
+      - check-plan-routes.py lines 455 to 458: the argument is that the root probe must be a
+        FILENAME and never isdir(".harness"). Keep that argument. Replace its supporting example -
+        currently "$HOME/.harness/ exists because deploy.sh writes registry.json there" - with the
+        example that is true now: $HOME/.harness/ exists on this machine because it holds the
+        2026-08-10 backup archives, so any directory probe still resolves $HOME as a project root.
+      - test-check-plan-routes.py line 558 and lines 958 to 959: same substitution, same reasoning
+        preserved. Do NOT remove the synthetic registry.json the fixture writes at line 572 - it is
+        the case's own trap, built inside a temp directory, and it must keep working. If you rename
+        the synthetic file, rename it in both the fixture and its docstring.
+      - wayfind.py line 12: "Same precedent as deploy.sh" - name a precedent that still exists in
+        the tree, or state the dry-run-then-apply convention directly without citing a precedent.
+      - factory_config.py line 13: the docstring argues that docs/harness/SPEC.md is the probe
+        rather than bin/ or a script file, "because deploy.sh copies the skill directory (scripts,
+        no docs) to $HOME/.claude/skills". Keep the rule. Replace the justification: no mechanism
+        copies the skill directory any more, and the probe stays a docs path because the derived
+        root must be a full checkout of this repository, which a bare skills tree is not.
+
+      Do not create or delete files in this task. Do not touch check-domain.sh, bash-write-guard.sh,
+      validate-digest.py or check-state.sh - DEC-174 puts all four outside a team run. There is no
+      fifth: check-docs.sh was deleted under issue 202 and DEC-188, it is absent from the tree at
+      687fd3e, and it must not be recreated.
+
+      Redirect the suite output to a file rather than piping it.
+
+  - id: T-11
+    title: Sweep the deploy references out of the rule skills, the templates readme and both team-config files
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY at 835b297 for all five files - .claude/skills/harness-team/SKILL.md, .claude/skills/harness-init/SKILL.md, .claude/skills/harness/templates/README.md, .claude/skills/harness/templates/team-config.yaml and .harness/team-config.yaml, each measured individually
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness-team/SKILL.md
+      - .claude/skills/harness-init/SKILL.md
+      - .claude/skills/harness/templates/README.md
+      - .claude/skills/harness/templates/team-config.yaml
+      - .harness/team-config.yaml
+    verify: |
+      test "$(git grep -ciE 'harness-deploy|deploy\.sh|Enroll = deploy \+ init|never touches project state|distributes the tool and never|replaced wholesale on every|deploy never touches' -- .claude/skills/harness-team/SKILL.md .claude/skills/harness-init/SKILL.md .claude/skills/harness/templates/README.md .claude/skills/harness/templates/team-config.yaml .harness/team-config.yaml | wc -l | tr -d ' ')" = 0 && test "$(git grep -ciE 'it owns deploy|merge and deploy stay user-gated' -- .claude/skills/harness/templates/team-config.yaml .harness/team-config.yaml | wc -l | tr -d ' ')" = 0 && test "$(git grep -c 'SHARP EDGE (DEC-85)' -- .claude/skills/harness/templates/team-config.yaml .harness/team-config.yaml | wc -l | tr -d ' ')" = 2 && test "$(git grep -c 'bypasses path checks' -- .claude/skills/harness/templates/team-config.yaml .harness/team-config.yaml | wc -l | tr -d ' ')" = 2 && test "$(git grep -ci 'user-gated' -- .claude/skills/harness/templates/team-config.yaml .harness/team-config.yaml | wc -l | tr -d ' ')" = 2 && test "$(git grep -c 'DEC-113' -- .claude/skills/harness/templates/team-config.yaml .harness/team-config.yaml | wc -l | tr -d ' ')" = 2 && test "$(git grep -ci 'resolved first' -- .claude/skills/harness/templates/team-config.yaml .harness/team-config.yaml | wc -l | tr -d ' ')" = 2 && git grep -q '.harness/teams/' .claude/skills/harness-team/SKILL.md && test "$(ls -1 .claude/skills/harness/templates | wc -l | tr -d ' ')" -ge 10 && echo SWEPT
+    intent: |
+      Five files, and the sites enumerated below. These are live rules read by agents at spawn, not background prose,
+      so each rewrite must leave a rule that is still true rather than a hole.
+
+      NOTHING you write in this task may contain the strings harness-deploy or deploy.sh. A later
+      task scans every tracked file for both tokens against a fixed allow list that does not include
+      any of these five files, and this task's own verify forbids them here too. Say what is true now
+      without naming the deleted script.
+
+      1. .claude/skills/harness-team/SKILL.md line 37 reads: overrides win because "the shipped
+         directory is replaced wholesale on every /harness-deploy, so anything placed inside the
+         tool tree is destroyed by the next push". Nothing is shipped or replaced any more, so that
+         justification is false. Keep the RULE - .harness/teams/ is resolved first and wins over
+         .claude/skills/harness/teams/ - and replace the justification with the reason that holds
+         now: the tool tree is this repository's own source and is rewritten by harness development,
+         while .harness/teams/ is project-owned state that harness development never edits.
+
+      2. .claude/skills/harness-init/SKILL.md, three sites. Scope this narrowly - the rewrite of
+         this skill for the central model is issue #206 and is NOT this feature.
+         - Lines 8 and 9, one sentence spanning both: "The onboarding interview, run inside a
+           target project. /harness-deploy distributes the tool and never touches project state;
+           this writes every project artifact, once. Enroll = deploy + init." Delete both the
+           distribution clause and the bold Enroll sentence. What remains must say only that this
+           is the onboarding interview run inside a target project and that it writes every project
+           artifact once.
+         - Line 27: "No templates -> /harness-deploy has not run here. Stop and say so; there is
+           nothing to instantiate." The templates now ship inside this repository and are never
+           pushed anywhere, so a missing templates directory means an incomplete checkout of the
+           harness repository. Rewrite the branch to say that, keeping the stop-and-say-so
+           behaviour.
+         - Line 221: the closing message conditioned on "only if /harness-deploy installed or
+           updated ...". Remove the condition and keep whichever part of the message is
+           unconditionally true; if nothing survives the condition, delete the whole conditional
+           block rather than leaving a dangling clause.
+
+      3. .claude/skills/harness/templates/README.md line 3: "Canonical schemas, pushed to every
+         project by /harness-deploy and instantiated by ...". Delete the pushed-to-every-project
+         clause and keep the instantiated-by clause. The templates DIRECTORY stays - it is
+         explicitly out of scope for deletion in this feature. Change the sentence only.
+
+      4. .claude/skills/harness/templates/team-config.yaml and .harness/team-config.yaml, two
+         falsified trailing comments each, on adjacent lines. Anchor on the comment text, not on a
+         line number - this task rewrites those lines. The two files carry the same paths block with
+         the same two comments, so make the same rewrite in both and keep them identical.
+
+         - On the entry whose key is teams, the comment reads: shipped by deploy - REPLACED WHOLESALE
+           on every push. Nothing is shipped or replaced any more. Replace it with a comment saying
+           that this directory is this repository's own source, rewritten by harness development.
+         - On the entry whose key is team_overrides, the comment reads: project-owned; deploy never
+           touches it. Resolved FIRST (DEC-113). The clause about never being touched by a
+           distribution step is false. KEEP the DEC-113 citation and KEEP the resolved-first ruling -
+           both are still live and are what the record retains. Repoint only the justification:
+           this directory is project-owned state that harness development never edits, and it is
+           resolved first. The DEC-113 citation must survive in BOTH files; this task's verify
+           asserts it, because deleting the comment outright would satisfy every absence clause
+           while destroying the rule.
+
+      5. The SAME TWO FILES again, a third falsified comment each, this one inside the dev-ops team
+         entry rather than the paths block. At 687fd3e it sits at .harness/team-config.yaml lines
+         204 to 206 and .claude/skills/harness/templates/team-config.yaml lines 196 to 198, and the
+         two are identical. Anchor on the text, not the numbers. It reads, across three comment
+         lines: SHARP EDGE (DEC-85): dev-ops holds Bash, which bypasses path checks entirely. It is
+         trusted by design - it owns deploy - and the compensating control is that merge and deploy
+         stay user-gated.
+
+         DEC-85's rationale stands on its own and is NOT falsified by this feature: dev-ops holding
+         Bash does bypass path checks, that is still a sharp edge, and merge is still user-gated.
+         KEEP that sentence. Cut only the two references to the deleted script: the appositive
+         clause "it owns deploy", and the word deploy in "merge and deploy stay user-gated", which
+         becomes "merge stays user-gated". Do not delete the comment block.
+
+         This task's verify pairs the two absence clauses ("it owns deploy" and "merge and deploy
+         stay user-gated", zero files matching) with three presence clauses ("SHARP EDGE (DEC-85)",
+         "bypasses path checks" and "user-gated", each matching in both files). That pairing is the
+         point: an absence-only clause here would be satisfied by deleting the whole comment, which
+         would destroy exactly the DEC-85 rationale the operator ruled must survive. Note the
+         surviving text carries a BARE "deploy" nowhere - the word deployment on the dev-ops scope
+         line above is a different word and is untouched.
+
+         Change only these three comments in each file. Every path value, key, and the rest of both
+         files are untouched - these are live configuration parsed by the domain resolver, and the
+         two files must stay identical to each other in every one of the three sites.
+
+  - id: T-12
+    title: Sweep the distribution story out of the four documentation surfaces
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: []
+    status: pending
+    files:
+      - README.md
+      - docs/harness/SPEC.md
+      - docs/harness/BUILD.md
+      - .harness/README.md
+    verify: |
+      test "$(git grep -cE 'harness-deploy|deploy\.sh|harness-registry|registry\.json' -- README.md docs/harness/SPEC.md docs/harness/BUILD.md .harness/README.md | wc -l | tr -d ' ')" = 0 && test "$(git grep -ciE 'Enroll = deploy \+ init|never touches project state|distributes the tool and never|replaced wholesale on every' -- README.md docs/harness/SPEC.md docs/harness/BUILD.md .harness/README.md | wc -l | tr -d ' ')" = 0 && git grep -q 'factory' README.md && git grep -qi 'fleet' docs/harness/SPEC.md && echo SWEPT
+    intent: |
+      Rewrite the distribution story in four documents so that it describes what exists: a product
+      repository reaches harness tooling by being checked out by the factory, never by holding a
+      copy of it. Removing the sentences is not enough - each place that told a reader how to get
+      the tool must tell them how they get it now.
+
+      1. README.md - eleven sites, the whole distribution section rather than two lines. Sites
+         include the passages around the installation and enrolment narrative and two lines that
+         still document ~/.gsd/harness-registry.json, plus two that describe agent_skills and
+         manifest.json, both of which are long dead. Replace the section with: harness lives in this
+         repository; the factory checks out a product repository under the workspace root declared
+         in .harness/factory/fleet.yaml; a repository is onboarded by adding it to that file. Do not
+         leave a section header with no body.
+
+      2. docs/harness/SPEC.md - section 3.3 is titled "Distribution - /harness-deploy vs
+         /harness-init" and is a whole section, not a stray line. Replace it with a section
+         describing the fleet model: fleet.yaml is the declaration, factory_config.py is its only
+         reader, and factory_workspace.py materialises a checkout by cloning the repository from
+         GitHub. Also correct the remaining site outside that section. Retitle the section; a
+         section whose title names a deleted command misroutes every reader who greps the table of
+         contents.
+
+      3. docs/harness/BUILD.md - nine sites. This document records what is left to build. Where a
+         site describes remaining deploy work, strike the item as done-by-deletion rather than
+         rewriting it as a live task; where a site merely cites deploy as context for another item,
+         repoint it at the fleet model.
+
+      4. .harness/README.md line 6: "Written by /harness-init, never by /harness-deploy. Deploy
+         distributes the tool and never ...". Keep the claim that this directory is project state
+         written by the onboarding interview, and drop the contrast with a command that no longer
+         exists.
+
+      FOUR SITES CARRY NO deploy TOKEN AT ALL and would survive a token-only sweep. They are the
+      sites T-14's markers will flag, so fix them here:
+      - docs/harness/SPEC.md line 274, a comment inside a path table reading "shipped by deploy -
+        REPLACED WHOLESALE on every push". Nothing is shipped or replaced; describe the two teams
+        directories by what they are - repository source versus project-owned override.
+      - docs/harness/SPEC.md line 412, the bold line "Enroll = deploy + init."
+      - docs/harness/SPEC.md line 1987, "(shipped, replaced wholesale on every push) - DEC-113."
+      - docs/harness/BUILD.md line 391, "Enroll = deploy + init. This split is what lets deploy be
+        dumb and safe (DEC-12)."
+      Line numbers are given as of c1d161706ab4867c00078b966e1969203ee6ca92; locate each by its
+      quoted content, not by the number, since your own earlier edits in this task will move them.
+
+      Leave the words agent_skills and manifest.json alone where they appear as history in BUILD.md.
+      They are dead concepts but they are recorded outcomes, and rewriting them is not this
+      feature's. The two README.md sites that present them as CURRENT distribution behaviour are in
+      scope and are part of the distribution section rewrite above.
+
+      Do not edit docs/harness/DECISIONS.md or docs/harness/DECISIONS-INDEX.md in this task - both
+      are T-14's. Do not edit .harness/logs/**, .harness/notes/** or .harness/features/** anywhere:
+      those are records that were true when written.
+
+  - id: T-13
+    title: Add test-no-distribution.py and register it in the unit suite
+    traces: [REQ-01, REQ-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-06, T-07, T-08, T-09, T-10, T-11, T-12, T-14]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-no-distribution.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      python3 .claude/skills/harness/bin/test-no-distribution.py && .claude/skills/harness/bin/run-unit-tests.sh --kind unit > /tmp/feat12-t13.log 2>&1; s=$?; grep -c '^PASS ' /tmp/feat12-t13.log; grep -c '^FAIL \|MISCONFIGURED' /tmp/feat12-t13.log; exit $s
+    intent: |
+      Write .claude/skills/harness/bin/test-no-distribution.py, following the structure of the
+      existing test-*.py scripts in the same directory: no pytest, a main that runs numbered cases,
+      prints one line per case, and exits 0 when all pass and 1 otherwise. It resolves the
+      repository root the same way its siblings do, from its own file location, never from the cwd.
+
+      Every case pairs an ABSENCE assertion with a PRESENCE assertion, because an absence check
+      proves only that the wrong words are gone (DEC-169). Cases:
+
+      Case 1 - the mechanism is gone and the tree is otherwise intact.
+        Absence: no file named deploy.sh exists anywhere under the repository root, and
+        .claude/commands/harness-deploy.md does not exist.
+        Presence: .claude/commands/ still contains at least six other harness*.md command files, and
+        .claude/skills/harness/bin/ still contains check-plan-routes.py and factory_workspace.py.
+
+      Case 2 - the token sweep, deliberately wider than the survey that produced this plan.
+        Scan every file tracked by git, excluding these four prefixes and nothing else:
+        docs/harness/DECISIONS.md, .harness/logs/, .harness/notes/, .harness/features/. Those are
+        historical records and stay true as written.
+        Absence: no scanned file matches the regular expression harness-deploy|deploy\.sh|
+        harness-registry|registry\.json, EXCEPT for paths on an ALLOW_LIST constant declared at
+        module top level
+        with a one-line comment per entry saying why that site is legitimate. The allow list is
+        declared in the test, never derived from what happens to be present, so a new unswept site
+        fails rather than being absorbed. All four alternatives are required: SC-07 promises the
+        operator a sweep of registry.json, and harness-registry alone needs a literal hyphen, so it
+        cannot see .harness/registry.json - the exact path REQ-02 is about. The pattern here is
+        deliberately the same four alternatives T-12's verify already uses.
+        THE ALLOW_LIST HAS EXACTLY TWO ENTRIES, both mandatory:
+        - .claude/skills/harness/bin/test-no-distribution.py - this file necessarily contains all
+          four tokens in its own pattern and allow list, and without the entry case 2 fails on
+          itself on the first run.
+        - .claude/skills/harness/bin/test-check-plan-routes.py - case 20's $HOME-shaped trap builds
+          its OWN synthetic registry.json inside a temp directory, which SC-02 requires to keep
+          working; that fixture is legitimate and must not be deleted to satisfy this sweep.
+        Give each the same one-line comment form. Note that ALLOW_LIST is path-scoped, so the
+        second entry also exempts test-check-plan-routes.py from the harness-deploy and deploy.sh
+        alternatives here; that coverage is not lost, because T-10's verify greps both tokens
+        across .claude/skills/harness/bin/ excluding only test-no-distribution.py. Do not
+        restructure ALLOW_LIST into path-and-token pairs.
+        Presence: at least one scanned file matches fleet\.yaml, proving the scan actually reached
+        the tree rather than matching an empty file set.
+
+      Case 3 - the fleet declaration is the reachability record.
+        Presence: .harness/factory/fleet.yaml safe_loads, its repos list has exactly two entries,
+        and mruangutai/kaya-ai is present with default_branch master.
+        Absence: no file under .harness/ is named registry.json.
+
+      Case 4 - the falsified decisions are struck, and the strike did not overreach.
+        Absence: docs/harness/DECISIONS.md contains no heading matching ^## DEC-12 followed by a
+        space, and no occurrence of the string <!-- stale: anywhere - the
+        marker mechanism was removed under issue 202 and DEC-188 and must not be reintroduced.
+        Do NOT add an assertion about DEC-161: no such decision exists in the record, it was already
+        deleted before this feature began, and an absence assertion over something that never
+        existed passes vacuously and proves nothing. Match DEC-12
+        with a word boundary so DEC-120 and DEC-121 are not counted.
+        Presence: docs/harness/DECISIONS.md still contains exactly one heading matching
+        ^## DEC-113 followed by a space, and that section still states the override-precedence rule
+        - assert it by searching that section for the substring harness/teams. Striking the whole of
+        DEC-113 would delete a rule harness-team/SKILL.md still obeys, so this presence assertion is
+        what stops the strike overreaching.
+        Absence, second half: no file under docs/ contains a reference matching DEC-12 followed by a
+        non-digit or end of line. A citation of a struck decision is a dead pointer.
+        Presence, second half: docs/harness/DECISIONS-INDEX.md contains exactly one row beginning
+        - DEC-113 and no row beginning - DEC-12 followed by a space. Assert the rows directly rather
+        than diffing the index against the generator: at planning time the generator was mid-strike
+        for a different feature's decisions and produced no output at all, so a whole-file diff here
+        would fail for a reason that has nothing to do with FEAT-12.
+
+      Register the new file in run-unit-tests.sh by appending "test-no-distribution.py" to the
+      UNIT_SCRIPTS array on line 17. This registration is mandatory and belongs in this same task:
+      run-unit-tests.sh has a drift detector that exits 2 on ANY test-*.py under bin/ that is not in
+      one of the two arrays, which fails the whole run and reddens every other task's verify.
+
+      Do not add the file to INTEGRATION_SCRIPTS as well; the drift detector scans the union, so one
+      registration is enough and two would run it twice.
+
+  - id: T-14
+    title: Strike DEC-12 and the falsified half of DEC-113 from the decision record
+    traces: [REQ-08]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-10, T-11, T-12]
+    status: pending
+    files:
+      - docs/harness/DECISIONS.md
+      - docs/harness/DECISIONS-INDEX.md
+      - docs/harness/BUILD.md
+    verify: |
+      set -e
+      test "$(git grep -ciE 'Enroll = deploy \+ init|never touches project state|distributes the tool and never|replaced wholesale on every' -- docs/ README.md .harness/README.md .claude/skills .claude/commands | wc -l | tr -d ' ')" = 0
+      test "$(grep -c '^## DEC-12 ' docs/harness/DECISIONS.md)" = 0
+      test "$(grep -c '^## DEC-113 ' docs/harness/DECISIONS.md)" = 1
+      grep -q 'harness/teams' docs/harness/DECISIONS.md
+      test "$(git grep -cE 'DEC-12([^0-9]|$)' -- docs/harness/DECISIONS.md docs/harness/DECISIONS-INDEX.md docs/harness/BUILD.md docs/harness/SPEC.md | wc -l | tr -d ' ')" = 0
+      test "$(grep -cE '^- DEC-12 ' docs/harness/DECISIONS-INDEX.md)" = 0
+      test "$(grep -cE '^- DEC-113 ' docs/harness/DECISIONS-INDEX.md)" = 1
+      echo STRUCK
+
+    intent: |
+      Two decisions are falsified by this feature. Record that the way the operator now records it:
+      by STRIKING the falsified ruling from the record, not by marking it. The stale-marker
+      mechanism and its checker were removed while this feature was being planned - check-state.sh
+      around line 856 states the replacement rule in full, and DEC-103, DEC-104, DEC-83 and DEC-181
+      were each deleted outright rather than annotated. Follow that precedent exactly.
+
+      1. STRIKE DEC-12 WHOLE from docs/harness/DECISIONS.md. Delete the entire section, heading
+         included. Every clause of it is about the deploy and init split and none of it survives:
+         deploy distributing the tool, init writing project state, and enrolling being deploy plus
+         init.
+
+      2. STRIKE DEC-113 IN PART. Delete its heading's claim about agents going global only, its
+         numbered ruling 1 (agents distributed globally only) and its numbered ruling 3 (agent_skills
+         cleanup reported not performed). KEEP its ruling 2 - that team and crew overrides live
+         outside the tool tree and are resolved first - because harness-team/SKILL.md still obeys it.
+         Rewrite ruling 2's justification so it no longer rests on a wholesale replacement that no
+         longer happens: the tool tree is this repository's own source, rewritten by harness
+         development, while the override directory is project-owned state harness development never
+         edits. Retitle the section so its title describes what remains rather than what was struck.
+
+      3. REPOINT EVERY INBOUND REFERENCE TO DEC-12, TREE-WIDE. Enumerate them with
+
+           git grep -nE 'DEC-12([^0-9]|$)' -- . ':!.harness/logs' ':!.harness/notes' ':!.harness/features'
+
+         and report the full hit list in your digest before editing. The three excluded trees are
+         records that were true when written. A citation of a struck decision inside a preloaded
+         skill under .claude/skills propagates further than one in BUILD.md, so the search must not
+         stop at docs/ - it was never checked there. For each hit, either delete the citing sentence
+         together with the claim it supports, or repoint it at what is true now. Do not leave a
+         citation of a struck decision anywhere: a reader who follows it finds nothing and cannot
+         tell deletion from typo. The character class after DEC-12 is what stops DEC-120, DEC-121
+         and every other DEC-12N from matching.
+
+      4. Remove DEC-12's row from docs/harness/DECISIONS-INDEX.md, and edit the hand-written summary
+         to the RIGHT of the string space colon colon space on DEC-113's row so it describes only
+         the ruling that survives. Everything to the LEFT of that separator is generated - do not
+         hand-edit it.
+
+      5. Run gen-decisions-index.py so the generated half of every row is rebuilt.
+
+         MEASURED PRECONDITION, so this does not surprise you: at c4fea5d the generator emits
+         nothing and reports ORPHAN: DEC-104, because the operator's own #202 strike deleted
+         DEC-103, DEC-104, DEC-83 and DEC-181 from DECISIONS.md and has not yet regenerated the
+         index. If the generator still reports an ORPHAN for any decision OTHER than DEC-12, return
+         BLOCKED naming that decision - it is #202's to finish and repairing it here would hide an
+         unfinished operator change behind a green gate. Do NOT return FAIL: nothing about this task
+         is wrong when that happens.
+
+         SUPERSEDED: the c4fea5d observation above stays on the record but no longer describes the
+         tree. #202 landed as 835b297 and the generator was re-measured green there - it emits the
+         index normally, starting with the index-contract v1 marker, and reports no ORPHAN at all.
+         EXPECT A CLEAN GENERATOR. The BLOCKED instruction above still stands as written, but it is
+         now a genuine surprise condition rather than the expected one: if you see an ORPHAN for a
+         decision other than DEC-12, something regressed after 835b297 and BLOCKED is still the
+         right answer.
+
+         This task's own verify deliberately asserts only the two FEAT-12 rows rather than diffing
+         the whole index, for the same reason.
+
+      Do not restore, re-add or re-declare any stale marker anywhere, and do not create a new
+      decision entry recording the strike. The strike IS the record; git history carries the rest.

@@ -3,8 +3,8 @@
 Everything the harness knows about *this* project. Plain files, read and written by agents at spawn
 time — no engine, no build step, no database.
 
-**Written by `/harness-init`, never by `/harness-deploy`.** Deploy distributes the tool and never
-touches anything here; init writes it once. That split is what lets deploy run unattended.
+**Written by `/harness-init`, the onboarding interview.** It writes this directory once, at
+onboarding; everything after that is written by the agents that own each path (see the table below).
 
 ## Layout
 

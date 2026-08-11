@@ -173,7 +173,9 @@ def main():
     if tdir is None:
         tdir = os.path.join(root, ".claude", "skills", "harness", "templates")
     if not os.path.isdir(tdir):
-        print(f"upgrade-config: no templates at {tdir} — run /harness-deploy first.")
+        print(f"upgrade-config: no templates at {tdir} — the templates ship inside "
+              f"this repository at .claude/skills/harness/bin/../templates, so a "
+              f"missing templates directory means the checkout is incomplete.")
         return 1
 
     gaps = []
@@ -251,8 +253,9 @@ def main():
         except harness_yaml.YamlParseError as e:
             print(f"THE SHIPPED TEMPLATE at {t_yaml} does not parse — {e}")
             print("  This is a harness bug, NOT your project. Your team-config.yaml is "
-                  "not the problem and editing it will not help. Re-run /harness-deploy "
-                  "to refresh the templates, and report it if that does not fix it.")
+                  "not the problem and editing it will not help. The remedy is a "
+                  "complete checkout of this repository, not a distribution step; "
+                  "report it if that does not fix it.")
             gaps.append("team-config.yaml")
         new_agents = [n for n in tnames if n.startswith("harness-") and n not in pnames]
         if pver != tver or new_agents:

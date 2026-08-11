@@ -49,11 +49,11 @@ teams:
 def project(harness_json='{"schema_version": 1}', manifest="schema_version: 1\n"):
     """A fixture that REACHES the manifest comparison.
 
-    It must carry a templates dir. Without one the script exits early with
-    "no templates … run /harness-deploy first" and never calls yaml_version or
-    yaml_names at all — which is how the first draft of this file passed 6/6
-    against the KNOWN-BROKEN script. A test that never reaches the defect is not
-    a test; it is the same non-discriminating shape that let F-03 ship.
+    It must carry a templates dir. Without one the script exits early citing an
+    incomplete checkout and never calls yaml_version or yaml_names at all — which
+    is how the first draft of this file passed 6/6 against the KNOWN-BROKEN
+    script. A test that never reaches the defect is not a test; it is the same
+    non-discriminating shape that let F-03 ship.
     """
     d = tempfile.mkdtemp()
     os.makedirs(os.path.join(d, ".harness"))
@@ -159,6 +159,32 @@ teams:
 r = run(project(manifest=TRUTHY), "--check")
 check("Q2: a YAML-truthy name (`- name: no`) does not vanish from the roster",
       ran_clean(r), f"exit {r.returncode}: {r.stderr.strip()[-300:]}")
+
+# --- 6. the missing-templates message names a checkout gap, not a retired command ---
+# There is no distribution slash command any more: templates ship inside this repository.
+# The message must say so, not send the user to run a command that no longer exists.
+# RETIRED_CMD is built by concatenation, not written literally, so this file itself does
+# not trip the whole-tree grep for the retired command's name.
+RETIRED_CMD = "/" + "harness" + "-" + "deploy"
+no_templates = project()
+r = subprocess.run(
+    [sys.executable, SCRIPT, no_templates, "--check",
+     "--templates", os.path.join(no_templates, "_does_not_exist")],
+    capture_output=True, text=True)
+out = r.stdout + r.stderr
+check("missing-templates message points at an incomplete checkout, not the retired command",
+      RETIRED_CMD not in out and "checkout is incomplete" in out,
+      f"exit {r.returncode}: {out.strip()[-300:]}")
+
+# --- 7. the unparsable-shipped-template message names a checkout gap, not a retired command ---
+broken_template = project()
+with open(os.path.join(broken_template, "_templates", "team-config.yaml"), "w") as f:
+    f.write("teams: [ {name: x ## eaten\nnext: 1\n")
+r = run(broken_template, "--check")
+out = r.stdout + r.stderr
+check("unparsable shipped template message points at a complete checkout, not the retired command",
+      ran_clean(r) and RETIRED_CMD not in out and "complete checkout of this repository" in out,
+      f"exit {r.returncode}: {out.strip()[-300:]}")
 
 # --- 5. --check writes nothing ---
 p = project()

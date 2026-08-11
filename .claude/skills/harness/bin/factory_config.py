@@ -10,9 +10,11 @@ ROOT RESOLUTION, THREE TIERS — the same rule check-plan-routes.py's _resolve_r
 run-unit-tests.sh's header comment already standardise on, copied here rather than re-derived:
 prefer CLAUDE_PROJECT_DIR when it is set AND `docs/harness/SPEC.md` is readable under it;
 otherwise derive the root from this file's own location, walking up out of the bin directory.
-`docs/harness/SPEC.md` is the probe, never `bin/` or a script file, because deploy.sh copies the
-skill directory (scripts, no docs) to `$HOME/.claude/skills` — probing for the bin directory or
-for a script re-accepts that tree and reads a fleet declaration that is not this checkout's own.
+`docs/harness/SPEC.md` is the probe, never `bin/` or a script file: no mechanism copies the skill
+directory (scripts, no docs) to `$HOME/.claude/skills` any more, and the probe stays a docs path
+because the derived root must be a full checkout of this repository, which a bare skills tree is
+not — probing for the bin directory or for a script would re-accept that tree and read a fleet
+declaration that is not this checkout's own.
 A discarded CLAUDE_PROJECT_DIR is announced on stderr, never swapped in silence.
 
 Importing this module has no side effects beyond resolving that root and computing FLEET_PATH:

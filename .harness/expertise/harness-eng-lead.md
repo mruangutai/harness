@@ -35,14 +35,17 @@
 - P-11: WHEN a member's finding would be remedied only by contradicting a signed decision DO
   route it up as a decision question and keep the verdict PASS — dispatching the fix would make
   the squad amend an approved plan without approval.
+- P-12: WHEN a member is barred from running the checker that validates its own output DO read
+  the checker and apply its rule yourself before accepting — the carve-out moves the check to
+  you, it does not remove it.
 
 ## Gotchas (max 15)
 - G-01: `.claude/skills/harness/bin/**` sits in both backend-dev's and dev-ops's domain in
   team-config.yaml, so the domain hook cannot keep their writes disjoint there — serialize any
   two tasks touching one file under it and attribute each write.
-- G-02: WHEN two specialists' domains both grant the path a task touches DO route by consult-when
-  semantics — what kind of logic the change is — and record the reason; the grant cannot
-  discriminate, so an unrecorded choice looks arbitrary to the next lead.
+- G-02: WHEN two specialists' domains both grant a task's path DO route by the plan's own
+  `execution_agent` when it names one, and record it — re-routing on `consult-when` purity would
+  amend an approved plan, and the grant itself cannot discriminate.
 - G-03: A path in no agent's `domain:` and absent from `shared:` is writable by no agent —
   `manifest_domains` does no widening or inheritance. Re-dispatching to another specialist
   reproduces the denial; the fix is a manifest grant or main-session-direct, neither a lead's call.
