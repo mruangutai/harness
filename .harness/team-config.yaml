@@ -119,6 +119,10 @@ teams:
           - { path: .harness/README.md, upsert: true }
           - { path: .harness/codebase/INDEX.md, upsert: true }            # skeleton ONLY (DEC-137)
           - { path: .harness/codebase/architecture.md, upsert: true }
+          # Every other member owns at least one per-feature notes/ path; documentor owned
+          # none, so the receipt rule's own escape hatch was closed to exactly the member
+          # that needs it (#216). Its five siblings hold the same grant for the same reason.
+          - { path: .harness/features/*/notes/receipt-harness-documentor-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-documentor.md, upsert: true }
           - { path: .harness/features/*/observations/harness-documentor.md, upsert: true }   # hot layer (DEC-145)
           - { path: ".", read: true }

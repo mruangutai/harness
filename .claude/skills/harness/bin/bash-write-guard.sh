@@ -229,13 +229,40 @@ for _seg in SEGMENTS:
             continue
         findings.append(("redirect", [p]))
 
+# A redirection is not an operand. `shlex.split` hands back `2>/dev/null` as an ordinary
+# token, so `cp docs/a.md docs/b.md 2>/dev/null` read its LAST token as the cp destination
+# and denied a legal in-domain copy, naming "2>/dev/null" as the path (B-5, hit twice during
+# FEAT-11). Two shapes exist and both must go: the operator glued to its target
+# (`2>/dev/null`, `>out.md`) and the operator standing alone, whose target is the NEXT token
+# (`> out.md`).
+#
+# THIS DOES NOT WEAKEN THE GUARD, and that is the whole reason it is safe to drop them: the
+# redirect scan above (the `>{1,2}` finditer over the masked text) already reports every real
+# redirect target as its own finding. `cp a b > src/evil.py` is still denied — by the finding
+# that correctly calls it a redirect, instead of by one that mislabels it a cp destination.
+REDIR = re.compile(r"^(?:[0-9]*(?:>{1,2}|<)|[0-9]*>&|&>{1,2})")
+
+
 def trailing_files(args, drop_first_script=False):
-    out, skip, saw_expr = [], False, False
+    out, skip, saw_expr, skip_is_redir = [], False, False, False
     for a in args:
         if skip:
-            skip = False; saw_expr = True; continue
+            # A skipped REDIRECT target is not an expression. Conflating the two would let
+            # `sed -i 's/a/b/' f > out` look as if -e had been passed, and drop_first_script
+            # would then keep the script `s/a/b/` in the file list.
+            skip = False
+            if not skip_is_redir:
+                saw_expr = True
+            skip_is_redir = False
+            continue
         if a in ("-e", "-E", "--expression", "-f", "--file"):
             skip = True; continue          # the next token is an expression/script, not a target
+        m = REDIR.match(a) if a else None
+        if m:
+            # A bare operator takes the next token as its target; a glued one carries it.
+            if m.end() == len(a):
+                skip = True; skip_is_redir = True
+            continue
         if not a or a.startswith("-") or a in (";", "&&", "||"):
             continue                       # empty covers BSD `sed -i ''`
         out.append(a)
