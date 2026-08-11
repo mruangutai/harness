@@ -38,7 +38,16 @@ t14_scope: >-
 dec174_check: >-
   CLEAR. DEC-12 has 3 inbound references, all under docs/. No remaining task names check-domain.sh,
   bash-write-guard.sh, validate-digest.py or check-state.sh.
-sc_tally: { met: 9, partial: 1, not_met: 1, note: "pm goal-check at d543809. SC-05 partial, SC-06 not_met - both are the operator's, neither is a build failure" }
+sc_tally: { met: 10, partial: 0, not_met: 1, note: "pm goal-check at d543809 read 9/1/1. Operator ruled SC-05 MET on 2026-08-11 - see sc05_ruling. SC-06 remains not_met and is the operator's UAT" }
+sc05_ruling: >-
+  OPERATOR RULING, 2026-08-11. SC-05 is MET on path-set equality, WITH THE WEAKENING RECORDED
+  HERE rather than left implicit. What the criterion claimed: same file count AND same per-file
+  sha256. What exists: 377 identical PATHS and zero sha256 fields, plus git evidence that the
+  deletion commit touched nothing under kaya's .harness/. So content integrity is strongly
+  evidenced for the 117 TRACKED paths and UNEVIDENCED for the 260 untracked ones. The
+  before-state no longer exists, so no re-run can close the gap - a second capture would be two
+  after-states. The operator accepted this rather than restate the criterion or fail it. Anyone
+  citing SC-05 as byte-identity evidence is citing something that was never captured.
 sc05_probe: >-
   MEASURED BY ME after the panel raised it, because a probe closes it and an inference does not.
   kaya .harness/ IS tracked - 117 files. The deletion commit 7d2f946 touched NOTHING under it, so
