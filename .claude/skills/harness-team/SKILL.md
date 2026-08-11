@@ -34,8 +34,7 @@ outputs disjoint when steps run in parallel.
 ### 1. Resolve the team
 
 `.harness/teams/<name>.yaml` first, then `.claude/skills/harness/teams/<name>.yaml`. Project
-overrides win: the shipped directory is replaced wholesale on every `/harness-deploy`, so anything
-project-specific has to live outside it (DEC-113).
+overrides win, and anything project-specific has to live outside the shipped directory (DEC-113).
 
 **No team named?** List `name` + `purpose` from both directories and stop. The filesystem is the
 registry — there is no catalog to keep in sync.

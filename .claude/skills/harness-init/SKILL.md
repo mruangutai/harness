@@ -5,8 +5,8 @@ description: Onboard a project to the harness — interview the user, write .har
 
 # Harness: Init
 
-The onboarding interview, run **inside a target project**. `/harness-deploy` distributes the tool and
-**never touches project state**; this writes every project artifact, once. **Enroll = deploy + init.**
+The onboarding interview. Harness is not copied into a product repository — the factory works on a
+checkout and reaches it remotely — so this is the one step that writes a project's artifacts.
 
 **Run this in the main session.** Only the main session can call `AskUserQuestion` — a subagent has no
 channel to the user. Delegate the *mechanical detection* to `dev-ops`; never delegate the interview.
@@ -24,7 +24,8 @@ claude --version
 git rev-parse --show-toplevel 2>/dev/null || echo "NOT A GIT REPO"
 ```
 
-- **No templates** → `/harness-deploy` has not run here. Stop and say so; there is nothing to instantiate.
+- **No templates** → the harness templates directory is not readable from here. Stop and say so;
+  there is nothing to instantiate.
 - **CLI < 2.1.217** → below the floor for the spawn env vars. Stop; the depth setting will not take.
 - **Not a git repo** → warn but continue. Commit attribution and `review_sha` pinning will not work.
 - **`.harness/` already exists** → this project is initialised. Route to `--upgrade`, do not re-run fresh.
@@ -218,8 +219,8 @@ it reads as though the decisions were made.
 `check-state.sh` must exit 0. It will not if the brief is pending (step 7) or the settings merge was
 skipped — both are real failures, not noise to talk past.
 
-Then say this, explicitly, as the last thing — **but only if `/harness-deploy` installed or updated
-agent definitions during this same session:**
+Then say this, explicitly, as the last thing — **but only if agent definitions were installed or
+updated during this same session:**
 
 > **Restart Claude Code before running a team.** Agent definitions are not live-reloaded (DEC-100a), so
 > agents installed in this session are not spawnable yet. Without a restart the first team fails with
