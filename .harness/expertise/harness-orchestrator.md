@@ -80,9 +80,10 @@
 - G-10: WHEN a dispatch would tell a lead to run a checker DO run it yourself and say so — leads hold no
   Bash, so the instruction returns an unverifiable claim, a forbidden member spawn, or an escalation on
   the contradiction. Hold every mechanical gate at your own tier.
-- G-11: WHEN writing a summary value into a state file DO quote any scalar containing a colon followed
-  by a space. A verdict line is the natural place to write one, `safe_load` raises at that column, and
-  the file was valid one write earlier.
+- G-11: WHEN a feature needs a worktree DO create it under `.claude/worktrees/<one-segment>/` inside the
+  project root. `check-domain.sh` strips exactly that prefix and matches identical globs; a worktree
+  anywhere else escapes the root and the hook RETURNS WITHOUT ENFORCING — a silent fail-open, not a
+  block.
 - G-12: WHEN a task edits a generated or budget-constrained artifact DO run the whole unit suite, not
   the task's own `verify:`. Length caps and format rules are asserted in test files that no task's
   `verify:` invokes and that the artifact's own header does not state.
@@ -134,3 +135,6 @@
 - OQ-01: A review panel and a human diff read have disjoint blind spots: the panel caught a rotted
   in-file anchor the human read passed over, while the human ruled on intent the panel could not. Two
   features suggest the split is route-versus-coverage, but neither has been run with the panel absent.
+- OQ-02: Shared `.harness/expertise/` has no concurrency or lineage protection, and two features
+  distilling at once silently revert each other. Whether the fix is a lineage check, a lock, or keeping
+  Expertise off feature branches entirely is undecided; this feature only established the hazard.
