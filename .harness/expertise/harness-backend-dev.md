@@ -20,10 +20,20 @@
 - P-07: WHEN a task extracts text via an awk/sed line-range or tail-anchored match DO verify the
   anchor pattern occurs exactly once in the target file — a second match silently shifts the
   extracted range with no error.
-- P-08: WHEN adding an assertion to close a vacuous-pass gap DO verify it actually distinguishes a
-  broken implementation from a correct one — an "OK-line present" check is weak if a broken
-  implementation also emits an OK-prefixed line; the assertion that flips (e.g. VIOLATION absence)
-  carries the real signal.
+- P-08: WHEN adding or fixing an assertion to close a vacuous-pass gap DO prove it with a mutant,
+  predicting by name which checks redden before the run — and treat "a different check reddened
+  instead" as a FAIL of the fix, not a pass.
+- P-09: WHEN asserting an exception's VALUE slot, or comparing exception messages for inequality,
+  DO pick a value absent from every compared message's fixed prose and reuse that SAME value
+  across all cases — reused prose or a mismatched value lets the check pass without proving
+  anything is wired.
+- P-10: WHEN N things must be enumerated as pairwise-distinct (messages, states, branches) DO
+  verify all C(N,2) pairwise comparisons exist, not just N-1 chained ones — a missing pair can be
+  uncovered even though every other pair is asserted, and inequality is not transitive.
+- P-11: WHEN mutating source to prove a test can fail DO record its sha256 before mutating,
+  restore it, re-verify the hash matches, and confirm the file is absent from
+  `git status --porcelain` — this is what makes a "no net change this cycle" claim checkable, not
+  just asserted.
 
 ## Gotchas (max 15)
 - G-01: The harness repo has no application source; src/** is empty here.

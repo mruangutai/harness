@@ -193,21 +193,100 @@ def project_items(owner, number, query=None, limit=500):
     return items
 
 
-def _field_list(owner, number):
-    return run_gh(["project", "field-list", str(number), "--owner", owner, "--format", "json"],
-                   json_out=True)
+# The single named-field query, cost 1, replacing the two calls it used to take (D-01):
+# `gh project field-list` (102 GraphQL points, fetches every field) and `gh project view`
+# (2 points, only for the node id). The inline fragment on ProjectV2Owner is what lets one
+# selection cover both a User and an Organization owner — see _project_field_resolve below for
+# the branch that then tells them apart. No `first:`/`last:` connection argument anywhere: that
+# is what keeps the query from fanning out, which is the entire point of replacing the old pair.
+_FIELD_QUERY = """query($owner: String!, $number: Int!, $field: String!) {
+  repositoryOwner(login: $owner) {
+    __typename
+    ... on ProjectV2Owner {
+      projectV2(number: $number) {
+        id
+        field(name: $field) {
+          ... on ProjectV2SingleSelectField {
+            id
+            name
+            options { id name }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+
+def _project_field_resolve(owner, number, field):
+    """Resolve a board's node id, a single-select field's id and its options in ONE GraphQL
+    call (D-01). Never cached — called fresh on every invocation, same as the pair it replaces.
+
+    D-03: one diagnosis walk, entered from both the exception path (gh exits non-zero but still
+    carries a `data` envelope on stdout — GraphQL's partial-failure shape) and the success path.
+    Every raise here carries a real, actionable value (D-03 step e) — never the generic argv[:2]
+    fallback `_value_from_argv` would produce for a `-f owner=` argv.
+    """
+    argv = ["api", "graphql",
+            "-f", "query=" + _FIELD_QUERY,
+            "-f", "owner=" + owner,
+            "-F", "number=" + str(number),
+            "-f", "field=" + field]
+    try:
+        env = run_gh(argv, json_out=True)
+    except GhError as e:
+        parsed = None
+        if e.stdout:
+            try:
+                parsed = json.loads(e.stdout)
+            except ValueError:
+                parsed = None
+        if isinstance(parsed, dict) and "data" in parsed:
+            env = parsed
+        else:
+            raise GhError(
+                e.argv, e.status, e.stdout, e.stderr,
+                "gh graphql call failed", owner + " project " + str(number),
+                "re-run after checking gh auth status and network access",
+            ) from e
+
+    data = env.get("data") or {}
+    repo_owner = data.get("repositoryOwner")
+    if repo_owner is None:
+        # D-02: a login that resolves to nothing, at exit 0, no errors key. Not the org case.
+        raise GhError(argv, None, "", "",
+                      "project owner not found", owner,
+                      "check the owner login")
+    if repo_owner.get("__typename") != "User":
+        # __typename is read before projectV2: present in both the exit-0 and exit-1 envelope,
+        # so the refusal never depends on the org's own board existing.
+        raise GhError(argv, None, "", "",
+                      "organization-owned board not supported", owner,
+                      "run against a user-owned board")
+    project = repo_owner.get("projectV2")
+    if project is None:
+        # D-02: a mistyped board number must never report the organization message.
+        raise GhError(argv, None, "", "",
+                      "project not found", owner + " project " + str(number),
+                      "check the board number")
+    field_obj = project.get("field")
+    if not field_obj:
+        # `not field_obj` catches BOTH None (field name absent) and {} (field exists but is not
+        # single-select) — `field_obj is None` alone would miss the empty-dict shape (D-04).
+        raise GhError(argv, None, "", "",
+                      "project field not found", field,
+                      f"field-list for {owner} project {number} does not offer it")
+    return {
+        "project_id": project["id"],
+        "field_id": field_obj["id"],
+        "options": [{"id": o["id"], "name": o["name"]} for o in field_obj.get("options", [])],
+    }
 
 
 def project_field_options(owner, number, field):
-    out = _field_list(owner, number)
-    for f in out.get("fields", []):
-        if f.get("name") == field:
-            return [o["name"] for o in f.get("options", [])]
-    raise GhError(
-        [], None, "", "",
-        "project field not found", field,
-        f"field-list for {owner} project {number} does not offer it",
-    )
+    resolved = _project_field_resolve(owner, number, field)
+    return [o["name"] for o in resolved["options"]]
 
 
 def default_branch_sha(repo, branch):
@@ -238,22 +317,12 @@ def delete_ref(repo, ref):
 
 
 def project_field_set(owner, number, item_id, field, option):
-    out = _field_list(owner, number)
-    field_id = None
+    resolved = _project_field_resolve(owner, number, field)
     option_id = None
-    for f in out.get("fields", []):
-        if f.get("name") == field:
-            field_id = f.get("id")
-            for o in f.get("options", []):
-                if o.get("name") == option:
-                    option_id = o.get("id")
+    for o in resolved["options"]:
+        if o["name"] == option:
+            option_id = o["id"]
             break
-    if field_id is None:
-        raise GhError(
-            [], None, "", "",
-            "project field not found", field,
-            f"field-list for {owner} project {number} does not offer it",
-        )
     if option_id is None:
         raise GhError(
             [], None, "", "",
@@ -262,18 +331,13 @@ def project_field_set(owner, number, item_id, field, option):
         )
     # `item-edit --project-id` takes the GraphQL node id (PVT_kwHO...), never the board NUMBER
     # that every other `gh project` subcommand accepts — measured live: --project-id 4 raises
-    # "Could not resolve to a node with the global id of '4'". Resolved here, late (after both
-    # error paths above), never cached: this is parity with the field-list call two lines up,
-    # which is already made uncached on every invocation of this function.
-    project_id = run_gh(
-        ["project", "view", str(number), "--owner", owner, "--format", "json"],
-        json_out=True,
-    )["id"]
+    # "Could not resolve to a node with the global id of '4'". The id comes from the same single
+    # query, above, that resolved the field and option ids — there is no second read.
     run_gh([
         "project", "item-edit",
         "--id", item_id,
-        "--project-id", project_id,
-        "--field-id", field_id,
+        "--project-id", resolved["project_id"],
+        "--field-id", resolved["field_id"],
         "--single-select-option-id", option_id,
     ])
 

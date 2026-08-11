@@ -2,9 +2,9 @@
 
 ## Patterns (max 15)
 
-- P-02: WHEN a resumed feature's runs look complete DO check whether they were PLANTED rather than
-  executed before diagnosing anything — the dated log under `.harness/logs/` records fixture staging by
-  defect id. An off-contract digest is then a fixture property, not a hook gap.
+- P-02: WHEN dispatching any validator run DO re-pin `review_sha` at a commit that CONTAINS the work
+  under review, and move the pin again after every commit. An inherited pin from an earlier phase
+  reviews a tree the work is absent from and returns PASS on nothing.
 - P-03: WHEN a plan cites a line number inside `feature.yaml` DO treat the anchor as already rotten and
   cite the FIELD instead — the orchestrator rewrites that file every run, so nobody can keep the
   reference true.
@@ -89,9 +89,9 @@
 - G-13: WHEN deciding which lane may write a path DO run the domain hook on it, once per candidate
   agent type, and read its answer. Reading the org config gives the wrong lane where running the guard
   gives the right one; a path no grant covers routes to layer 0.
-- G-14: WHEN your own probe contradicts a suite that just passed DO suspect the probe first. An
-  escaped-quote payload inside a shell echo makes a hook's JSON invalid, and a hook that exits 0 on
-  unparseable input reads exactly like a broken guard. Build hook payloads as FILES.
+- G-14: WHEN a member reports restoring a file it mutated to prove a test fails DO run `git diff` on
+  that file yourself before committing. A failed restore is invisible in the diffstat you are reading
+  for the file the task was supposed to change, and it commits silently.
 - G-15: WHEN a ruling or a handed-down claim quotes a shared file DO re-run the check in the tree you
   are standing in. A worktree sits on the far side of an unmerged seam, so one path gives two answers
   and only one of them governs you.
@@ -119,6 +119,15 @@
 - O-07: WHEN a panel finds a surface violating an ALREADY-APPROVED requirement DO route it as a fix
   cycle, not as a plan amendment. Approved-but-unmet needs no re-signature; only a criterion that
   cannot be met as written does. Naming which it is settles the routing in one step.
+- O-08: WHEN a finding's only remedy would contradict a SIGNED decision DO route it up as a decision
+  question with a recommendation and keep the verdict PASS. Dispatching the fix makes a squad amend an
+  approved plan without approval, and no fix cycle can legitimately close it.
+- O-09: WHEN a constraint names a resource to protect DO verify what the tool reads at RUNTIME before
+  handing anyone the procedure. The target usually comes from a config file rather than a flag, so a
+  carefully protected fixture and the resource actually written are routinely different ones.
+- O-10: WHEN two squad segments share no files DO dispatch them in one message rather than in sequence.
+  Concurrency is free and nothing surfaces the wait, so serial dispatch looks identical to correct
+  while costing a full lead round-trip per segment.
 
 ## Open (max 5)
 

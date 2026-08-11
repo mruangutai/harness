@@ -23,6 +23,16 @@
   message — not just a token's presence or an exit code. A different code path, or an
   over-permissive implementation, can produce the identical token, so presence-only assertions
   pass under both correct and incorrect code.
+- P-08: WHEN a success criterion names multiple required distinctions DO confirm each one has its
+  own comparison, not just an area with some passing assertion — inequality is not transitive, so
+  "A distinct from B" plus "A distinct from C" does not follow from asserting only one of the two.
+- P-09: WHEN judging whether an assertion is vacuous DO run a substring/mutation probe rather than
+  reading the message text — reading generalizes from one message to a sibling whose wording
+  differs just enough to already discriminate, producing a false vacuity claim.
+- P-10: WHEN a verify clause does `git diff --quiet HEAD -- <files>` DO check for
+  commit-before-verify ordering — committing moves HEAD to include the edit, making the
+  comparison self-referential and passing regardless. Diff against the pinned baseline SHA,
+  never HEAD.
 
 ## Gotchas (max 15)
 - G-01: WHEN proving a test runner's MISCONFIGURED exit path live by creating a stray
@@ -34,6 +44,9 @@
 - G-03: WHEN a mode selector reads an environment variable rather than argv DO add a test case
   that explicitly sets that variable in the subprocess env — existing clean-env cases pass because
   the env happens to be clean, and prove nothing about the actual bypass axis.
+- G-04: WHEN a task's own `verify:` command exercises only one script of a required kind DO also
+  run the standing per-kind test command directly — a task-local pass can coexist with the kind
+  itself never having been shown green across its full bucket.
 
 ## Outcomes (max 10)
 - O-01: WHEN an amendment deletes a fixture that was the sole source of some coverage and the loss

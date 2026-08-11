@@ -1,0 +1,182 @@
+feature_id: FEAT-11-graphql-field-resolve
+mission: ship
+phase: ship
+status: awaiting_user
+branch: feat/FEAT-11-graphql-field-resolve
+pr: none
+effort: https://github.com/mruangutai/harness/issues/211
+briefing: .harness/features/FEAT-11-graphql-field-resolve/notes/ship-review-close.md
+review_sha: 2ea9af3324ab1ef175fe8ef2307f5c850edfd315
+review_sha_note: >-
+  The pin the review panel ran against. Every validator run got a pin naming a tree that CONTAINS the
+  work under review (INV-6); an inherited plan-phase pin would have returned PASS on a tree with none
+  of T-01 in it. MF-2 landed after the panel at 15cabe9 and was verified by me directly rather than
+  by a second panel — the change is one guarded assertion in a test file, mutant-proved by name.
+review_sha_history: "835b297 (plan contract) -> 8dedeae (ship open) -> 5c433f2 (T-01) -> 2ea9af3 (panel)"
+cycles_used: 11
+max_total_cycles: 12
+cycles_raise: >-
+  RAISED 10 -> 12 BY THE OPERATOR, 2026-08-10, recorded here as DEC-157 requires. The raise removed a
+  mid-build BLOCKED interruption; it did not endorse rework.
+cycles_note: >-
+  8 charged in the plan phase. 3 charged in the ship phase, each a genuine send-back and each named:
+  (1) the qa gate FAILed with MF-1 and I routed it to eng; (2) the goal-check FAILed with MF-2 and I
+  routed it to eng; (3) distill-validator charged itself one when it found it had handed all four of
+  its members an incomplete source list and re-ran the round — that correction recovered six
+  Expertise entries which would otherwise have been lost permanently, since Expertise is written once
+  per feature. NOT charged: the three lead-ops applications, which are continuations of work already
+  done rather than rework of a deliverable, and every first-pass run however many steps it had.
+max_total_runs: 20
+counts: { reqs: 5, scs: 12, tasks: 1, decisions: 4, main_session_direct: 0 }
+sc_result: >-
+  12 of 12 MET. SC-01 CLOSED 2026-08-10: the live per-move measurement returned 925 -> 927, a
+  per-move cost of 2, run by the main session on the operator's explicit instruction against
+  board 6 item PVTI_lAHOAAases4Bf5NHzg15zec. The old path was re-measured in the same session on
+  the same board — field-list 102 + view 2 = 104 — so the headline is one measurement against
+  another, not a new number against a remembered one. The write was a no-op (Ready set to Ready),
+  and a re-read diffing all four items' station values returned RESTORED CLEAN. SC-01's total
+  clause was struck by the operator before the run; see operator_rulings_2026_08_10 and
+  notes/uat-SC-01-graphql-cost.md. SC-11 was returned `not_met` by the goal-check at
+  2ea9af3 and CLOSED at 15cabe9 by MF-2; I verified the landed assertion and re-ran both kinds
+  myself rather than re-spawning a goal-check to confirm one grep.
+tasks: { T-01: DONE }
+tasks_note: >-
+  change_type bugfix, absorbs #211. plan.yaml tasks[0].status was set to done by pm at goal-check —
+  its own file, not mine. The approval block and the decisions are byte-identical across that edit,
+  verified by parsing both revisions rather than by reading the diff.
+route_resolution: >-
+  ZERO main-session-direct. Resolved by check-domain.sh --resolve, not by reading team-config, which
+  is ambiguous for bin/** (granted to both backend-dev and dev-ops). None of the DEC-174 carve-out
+  files was in scope at any point.
+peer_feature_collision:
+  peer: FEAT-12-end-copy-distribution
+  shared_surface: .claude/skills/harness/bin/run-unit-tests.sh
+  ship_phase_measurement: >-
+    MEASURED before every commit, not assumed: git status --porcelain stayed clean over
+    run-unit-tests.sh and all four DEC-174 carve-out files throughout. FEAT-12 landed nothing into
+    this tree, so T-01's verify means what the plan measured. Unrelated held dirt appeared mid-run
+    (harness-handoff/SKILL.md, team-config.yaml, test-harness-yaml.py, .harness/logs/2026-08-10.md,
+    the untracked FEAT-12 dir) and was excluded from every commit by explicit pathspec.
+preflight_measurements: >-
+  Taken by me at 8dedeae BEFORE any dispatch, so no claim here is inherited. (1) All three sha256
+  pins in T-01's verify recompute byte-identical — the plan's Q4 is MOOT and no amendment is owed.
+  (2) Baseline green. (3) The verify's discriminating clauses were RED before the change, so the
+  green after it can only come from the change.
+e1_ruling:
+  claim: >-
+    The grilling artifact states the two error paths at factory_gh.py:251-262 must survive because
+    _validate_stations and the Redy typo case depend on them. The validator escalated that the
+    dependency is false.
+  ruling: >-
+    CONFIRMED FALSE at 835b297 by direct read, and THE OPERATOR'S CONSTRAINT STANDS UNCHANGED — the
+    error paths survive unchanged in behavior. A falsified rationale does not release a constraint;
+    only the stated REASON was wrong. The grilling artifact is NOT edited: it is a dated record of
+    that session, and this file carries the correction.
+  the_real_dependency: >-
+    _validate_stations depends on project_field_options RAISING on a missing field
+    (factory_gh.py:206-210) — a third error path the grilling never named. The plan already covers it.
+sc01_ruling: >-
+  Board 6 and mruangutai/harness-factory-smoke-a1 are RETAINED FIXTURES, not scratch and not cleanup
+  owed. SC-01's proof moves items between stations, so the operator records every item's station
+  value BEFORE and restores it after; pm wrote that procedure into notes/uat-SC-01-graphql-cost.md.
+  NO AGENT IN THIS FLOW MADE ANY LIVE gh CALL AGAINST EITHER FIXTURE — every dispatch forbade it and
+  every changed test path is fed by stubs or the whole-CLI fake.
+  pm ALSO CAUGHT WHAT THE RULING COULD NOT SAY: factory_decompose takes its board from
+  .harness/factory/fleet.yaml, which declares board 3, not from a flag. Run as originally specified
+  the measurement would have written stations onto an unsnapshotted board while carefully protecting
+  the snapshotted one. I verified fleet.yaml:4 myself. The script now pins an explicit fleet file and
+  asserts board 6 before anything runs.
+mf1_correction: >-
+  THE RECORD CORRECTED WHERE IT IS WRONG, WITHOUT REWRITING THE ARTIFACT THAT CARRIES IT.
+  qa's MF-1 claimed both test-factory-gh.py:407 and :428 asserted vacuously. Only :407 did:
+  factory_gh.py renders "organization-owned ... user-owned", whose prose carries "owned" and never
+  "owner", so :428 already discriminated on the value. Verified by me by substring test. SC-10's
+  positive clause was therefore nominal for ONE row, not two. The remedy was warranted in full
+  anyway, because the cross-comparison checks must share one owner value or they start passing on
+  the value rather than on the prose. The qa digest and notes/qa-c0.md are left as the dated records
+  of what that run concluded.
+gate_status:
+  brief_approval: "PASS — approved / operator / 2026-08-10"
+  plan_approval: "PASS — approved, three rulings ride with the signature"
+  task_verify: "PASS — re-run by me from the repo root after T-01, after MF-1 and after MF-2. Exit 0."
+  qa_gate: >-
+    PASS after one fix cycle. BLOCKING, and it earned it. Both required kinds ran as the standing
+    test_kinds commands rather than as the task's own verify: unit 10/10 scripts, integration 12/12.
+    The integration KIND had never been shown green before — every "97/97" in the record until then
+    was one script out of twelve. Bug-class kind was named as `integration` in the dispatch, citing
+    SC-09, rather than left to inference against a matrix that binds only `unit`.
+  mutant_proofs: >-
+    PASS x2. Both assertion fixes were proven falsifiable rather than asserted: source mutated, the
+    reddening checks predicted BY NAME beforehand, prediction matched. factory_gh.py restored
+    byte-identically both times and I verified each restore with git diff before committing, not
+    from the report.
+  review_panel: "PASS at severity_max: info — four reviewers in one turn, zero must_fix, none of the four pre-briefed items re-raised as a discovery"
+  goal_check: "FAIL then closed — SC-11 not_met at 2ea9af3, fixed at 15cabe9, 11 of 12 met, SC-01 uat"
+  distillation: >-
+    COMPLETE. 11 agent Expertise files updated, harness-visual-designer.md created for the first
+    time. No wipes — entry counts checked before and after rather than trusted.
+    check-expertise.sh over the directory exits 1 on ONE file, harness-documentor.md (G-04, 53 words
+    against a 50 cap). PRE-EXISTING, not caused here: git log 8dedeae..HEAD shows that file untouched
+    by this feature. Two leads independently declined to spawn documentor to trim three words on
+    DEC-125 wipe-risk grounds and I endorsed both refusals. Backlog B-13.
+  ship_refresh: "SKIPPED, documented — no codebase map exists (no INDEX.md anywhere in the repo), so no map can be stale"
+  seam_handoffs: >-
+    WRITTEN, and owed: I ran build, validate and ship in one session without stopping, and
+    check-state.sh correctly reported both missing seam notes as VIOLATIONS rather than advice.
+    notes/handoff-build.md and notes/handoff-validate.md are written retrospectively and say so
+    rather than presenting themselves as contemporaneous.
+  uat: "PENDING — blocking_when_uat_criteria_exist. SC-01 is the only uat criterion and only the operator may run it"
+  github_mirror: "PASS — milestone #5, parent #214 (created), T-01 -> #215 closed; #211 left OPEN for the operator's acceptance, per DEC-138 am.7"
+  commit_pen: "EXERCISED four times, always by explicit pathspec, unrelated held dirt excluded every time"
+runs:
+  - { id: plan-product, squad: product, verdict: PASS }
+  - { id: plan-eng, squad: eng, verdict: PASS }
+  - { id: plan-contract-validator, squad: validator, verdict: FAIL }
+  - { id: plan-fix-product, squad: product, verdict: PASS }
+  - { id: t01-eng, squad: eng, verdict: PASS }
+  - { id: t01-qa-validator, squad: validator, verdict: FAIL }
+  - { id: 2026-08-10-01-q5-product, squad: product, verdict: PASS }
+  - { id: mf1-eng, squad: eng, verdict: PASS }
+  - { id: 2026-08-10-02-validator, squad: validator, verdict: PASS }
+  - { id: goalcheck-product, squad: product, verdict: FAIL }
+  - { id: mf2-eng, squad: eng, verdict: PASS }
+  - { id: distill-eng, squad: eng, verdict: PASS }
+  - { id: distill-product, squad: product, verdict: PASS }
+  - { id: distill-validator, squad: validator, verdict: FAIL }
+  - { id: distill-apply-eng, squad: eng, verdict: PASS }
+  - { id: distill-apply-validator, squad: validator, verdict: PASS }
+runs_note: >-
+  16 runs against an informational budget of 20 — INV-22 not crossed, no note owed. plan-eng is the
+  architecture review's artifact dir from inside plan-product and holds no digest of its own. The
+  product-lead ops application wrote only its own Expertise file and created no run dir.
+  distill-validator returned FAIL on another squad's pre-existing file, not on its own work.
+residuals: >-
+  All carried into the briefing's backlog as B-1..B-16, which is the list that survives: anything not
+  in that table dies silently at acceptance. The ones that most want the operator's eye are B-5
+  (bash-write-guard.sh mis-parses a redirect and is a DEC-174 carve-out file only the operator may
+  fix), B-7 (multi-clause criteria scored as covered when one clause is asserted — the same defect
+  twice in this feature), and B-13 (the expertise gate is red on a pre-existing file).
+operator_rulings_2026_08_10: >-
+  Q1 AMENDED. SC-01's "single-digit GraphQL points in total" clause is STRUCK as mis-specified at
+  plan time; the per-move clause (2 against 104) stands unchanged and is still the operator's live
+  measurement to run. The reason is issue #217: _find_existing_item_id reads the whole board once
+  per partial task, measured on board 3 at 203 points, so a four-task all-partial run floors near
+  812 regardless of this feature. The briefing's Q1 said 133 using a stale 31-point figure; 203 is
+  the re-measurement at 163 items, taken twice. The BRIEF also carried board 6 throughout while
+  factory_decompose reads board 3 from .harness/factory/fleet.yaml:4 — corrected there.
+
+  Q2 ACCEPTED as a residual against D-03, not an amendment. project_field_set completes its
+  item-edit write on a GraphQL partial-success envelope that gh reports as failed. This is signed
+  D-03 step 3 behaving as written and it does not violate SC-07, so no engineering fix cycle may
+  close it. Recorded, not fixed.
+
+  Q3 TAKEN BY THE MAIN SESSION. bash-write-guard.sh mis-parses `cp ... 2>/dev/null` and blocks a
+  legal in-domain write. DEC-174 carve-out: fixed directly, never dispatched.
+
+github:
+  milestone: 5
+  parent: 214
+  parent_origin: created
+  attached: [T-01]
+  issues:
+    T-01: 215

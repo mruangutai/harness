@@ -75,16 +75,37 @@ def silent_stdout(fn, *a, **kw):
         return exc, out.getvalue()
 
 
-FIELD_LIST_JSON = json.dumps({
-    "fields": [
-        {"id": "F1", "name": "Station", "options": [
-            {"id": "O1", "name": "Ready"},
-            {"id": "O2", "name": "Doing"},
-        ]}
-    ]
+GRAPHQL_FIELD_JSON = json.dumps({"data": {"repositoryOwner": {"__typename": "User",
+    "projectV2": {"id": "PVT_kwFAKE", "field": {"id": "F1", "name": "Station",
+    "options": [{"id": "O1", "name": "Ready"}, {"id": "O2", "name": "Doing"}]}}}}})
+
+# The exit-0 organization fixture: no row in the measured table names it — no org owning a
+# reachable board is reachable from this account — it is derived from the success shape above
+# with __typename flipped. Named so SC-05 has a content anchor to grep for.
+GRAPHQL_ORG_OK_JSON = json.dumps({"data": {"repositoryOwner": {"__typename": "Organization",
+    "projectV2": {"id": "PVT_kwFAKE", "field": {"id": "F1", "name": "Station",
+    "options": [{"id": "O1", "name": "Ready"}, {"id": "O2", "name": "Doing"}]}}}}})
+
+GRAPHQL_UNKNOWN_OWNER_JSON = json.dumps({"data": {"repositoryOwner": None}})
+
+GRAPHQL_ORG_UNREACHABLE_JSON = json.dumps({
+    "data": {"repositoryOwner": {"__typename": "Organization", "projectV2": None}},
+    "errors": [{"type": "NOT_FOUND"}],
 })
 
-PROJECT_VIEW_JSON = json.dumps({"id": "PVT_kwFAKE", "number": 3, "title": "board"})
+GRAPHQL_BOARD_ABSENT_JSON = json.dumps({
+    "data": {"repositoryOwner": {"__typename": "User", "projectV2": None}},
+    "errors": [{"type": "NOT_FOUND"}],
+})
+
+GRAPHQL_FIELD_ABSENT_JSON = json.dumps({
+    "data": {"repositoryOwner": {"__typename": "User",
+              "projectV2": {"id": "PVT_kwFAKE", "field": None}}},
+    "errors": [{"type": "NOT_FOUND"}],
+})
+
+GRAPHQL_FIELD_NOT_SINGLE_SELECT_JSON = json.dumps({"data": {"repositoryOwner": {
+    "__typename": "User", "projectV2": {"id": "PVT_kwFAKE", "field": {}}}}})
 
 
 def dispatching_fake(responses_by_prefix, default=None):
@@ -252,21 +273,48 @@ check("ensure_labels: passes repo verbatim",
       all(c["argv"][c["argv"].index("--repo") + 1] == "o/r" for c in calls))
 
 
-# ---------------- project_field_set: resolves ids before editing ----------------
+# ---------------- project_field_set: resolves ids via ONE graphql call, then edits ----------------
 fake, calls = recorder([
-    Result(0, stdout=FIELD_LIST_JSON), Result(0, stdout=PROJECT_VIEW_JSON), Result(0, stdout=""),
+    Result(0, stdout=GRAPHQL_FIELD_JSON), Result(0, stdout=""),
 ])
 fgh.subprocess.run = fake
-fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+try:
+    fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+    set_exc = None
+except fgh.GhError as e:
+    set_exc = e
+    RAISED.append(e)
 restore()
-check("project_field_set: reads field-list, then project-view, then item-edit",
-      len(calls) == 3, f"calls={calls}")
-check("project_field_set: resolves the field id",
-      "F1" in calls[2]["argv"], f"argv={calls[2]['argv']}")
-check("project_field_set: resolves the option id",
-      "O1" in calls[2]["argv"], f"argv={calls[2]['argv']}")
+check("project_field_set: made no more and no fewer than TWO calls (graphql, then item-edit)",
+      set_exc is None and len(calls) == 2, f"exc={set_exc}, calls={calls}")
+if set_exc is None:
+    graphql_call, edit_call = calls[0], calls[1]
+    check("project_field_set: first call is gh api graphql",
+          graphql_call["argv"][1:3] == ["api", "graphql"], f"argv={graphql_call['argv']}")
+    check("project_field_set: second call is gh project item-edit",
+          edit_call["argv"][1:3] == ["project", "item-edit"], f"argv={edit_call['argv']}")
+    check("project_field_set: resolves the field id",
+          "F1" in edit_call["argv"], f"argv={edit_call['argv']}")
+    check("project_field_set: resolves the option id",
+          "O1" in edit_call["argv"], f"argv={edit_call['argv']}")
 
-fake, calls = recorder([Result(0, stdout=FIELD_LIST_JSON)])
+    # THE OVER-SCOPE GUARD. Regexes, not substrings — see the intent for why a substring test
+    # is not sufficient (a filtered plural connection can satisfy it while still fanning out).
+    import re as _re
+    qargv = graphql_call["argv"]
+    q = ""
+    for i, a in enumerate(qargv):
+        if a == "-f" and i + 1 < len(qargv) and qargv[i + 1].startswith("query="):
+            q = qargv[i + 1][len("query="):]
+    check("project_field_set: query selects exactly one field by name",
+          _re.search(r"field\s*\(\s*name\s*:", q) is not None, f"q={q!r}")
+    check("project_field_set: query has no plural field-connection selection",
+          _re.search(r"fields\s*\(", q) is None, f"q={q!r}")
+    check("project_field_set: query carries no connection argument (first:/last:)",
+          _re.search(r"\b(first|last)\s*:", q) is None, f"q={q!r}")
+
+# ---------------- project_field_set: option not offered — raises, edits nothing ----------------
+fake, calls = recorder([Result(0, stdout=GRAPHQL_FIELD_JSON)])
 fgh.subprocess.run = fake
 try:
     fgh.project_field_set("owner", 3, "ITEM1", "Station", "NotAnOption")
@@ -277,21 +325,31 @@ except fgh.GhError as e:
 restore()
 check("project_field_set: raises GhError naming the option when it is not offered",
       raised and "NotAnOption" in str(exc), f"exc={exc if raised else None}")
+check("project_field_set: option-not-offered case makes ZERO item-edit calls",
+      not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
+# D-04 freeze: the rendered next_step, byte for byte, for THIS case's own arguments.
+check("project_field_set: option-not-offered message is the D-04-frozen rendered string",
+      raised and "field Station on owner project 3 does not offer it" in str(exc),
+      f"exc={exc if raised else None}")
+check("project_field_set: option-not-offered message carries no generic subcommand fallback",
+      raised and "api graphql" not in str(exc), f"exc={exc if raised else None}")
 
 
 # ---------------- project_field_set: --project-id must be the node id, not the board number ----
-# argv-DISPATCHING fake, not a positional list: a positional 3-result list would let a
-# field-list-then-item-edit-only implementation (the bug) consume the project-view result as its
-# field-list call and die on "project field not found" instead — a red that proves nothing about
-# --project-id. Dispatching on argv prefix means the buggy code (which never calls
-# ["project","view"] at all) still runs to completion, so the failure is a clean VALUE mismatch.
+# argv-DISPATCHING fake, dispatching on the ("api", "graphql") prefix now that there is one call
+# that resolves all three ids.
 fake, calls = dispatching_fake({
-    ("project", "field-list"): Result(0, stdout=FIELD_LIST_JSON),
-    ("project", "view"): Result(0, stdout=PROJECT_VIEW_JSON),
+    ("api", "graphql"): Result(0, stdout=GRAPHQL_FIELD_JSON),
 }, default=Result(0, stdout=""))
 fgh.subprocess.run = fake
-fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+try:
+    fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+    pid_exc = None
+except fgh.GhError as e:
+    pid_exc = e
+    RAISED.append(e)
 restore()
+check("project_field_set (--project-id case): did not raise", pid_exc is None, f"exc={pid_exc}")
 edit_calls = [c for c in calls if c["argv"][1:3] == ["project", "item-edit"]]
 check("project_field_set: exactly one item-edit call was made", len(edit_calls) == 1,
       f"calls={calls}")
@@ -301,17 +359,18 @@ if edit_calls:
           "--project-id" in argv, f"argv={argv}")
     if "--project-id" in argv:
         pid = argv[argv.index("--project-id") + 1]
-        check("project_field_set: --project-id carries the id from `project view`, "
+        check("project_field_set: --project-id carries the GraphQL node id, "
               "NOT the bare board number",
               pid == "PVT_kwFAKE" and pid != "3", f"--project-id={pid!r} argv={argv}")
 
 
-# ---------------- project_field_set: a failed `project view` RAISES, never falls back ----------
-# The miss case: if the id lookup fails, this must not silently reuse str(number) as
-# --project-id (that would resurrect the bug under a different trigger — D-02, never swallow).
+# ---------------- project_field_set: a NON-DIAGNOSABLE transport failure RAISES, never falls
+# back ---------------------------------------------------------------------------------------
+# The genuine transport/auth-failure path (D-03 step e): stdout carries no JSON at all, so the
+# resolver cannot fall through to the data walk and must re-raise with a real value — never the
+# generic "api graphql" subcommand fallback (D-02, never swallow).
 fake, calls = dispatching_fake({
-    ("project", "field-list"): Result(0, stdout=FIELD_LIST_JSON),
-    ("project", "view"): Result(1, stderr="gh: project not found"),
+    ("api", "graphql"): Result(1, stdout="", stderr="gh: API error"),
 }, default=Result(0, stdout=""))
 fgh.subprocess.run = fake
 try:
@@ -321,11 +380,108 @@ except fgh.GhError as e:
     raised, exc = True, e
     RAISED.append(e)
 restore()
-check("project_field_set: a failed `project view` raises GhError",
-      raised, f"exc={exc if raised else None}")
-check("project_field_set: a failed `project view` makes ZERO item-edit calls "
+check("project_field_set: a non-diagnosable transport failure raises GhError",
+      raised and isinstance(exc, fgh.GhError), f"exc={exc!r}")
+check("project_field_set: a transport failure makes ZERO item-edit calls "
       "(never falls back to the bare number)",
       not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
+check("project_field_set: transport-failure message names owner + project number",
+      raised and "owner project 3" in str(exc), f"exc={exc if raised else None}")
+check("project_field_set: transport-failure message never carries the generic "
+      "subcommand fallback",
+      raised and "api graphql" not in str(exc), f"exc={exc if raised else None}")
+
+
+# ---------------- _project_field_resolve: the newly separated diagnosis states ----------------
+# unknown owner login — EXIT 0, no errors key. Different message from the org and board cases.
+fake, calls = recorder([Result(0, stdout=GRAPHQL_UNKNOWN_OWNER_JSON)])
+fgh.subprocess.run = fake
+try:
+    # "acmeuser", not "owner" (MF-1): "owner" occurs in this case's own fixed prose
+    # ("project owner not found", "check the owner login"), so the naming assertion below
+    # would pass regardless of the value slot. "acmeuser" occurs in no fixed prose in this
+    # file. Moves together with :421 and :441.
+    fgh.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
+    raised, unknown_exc = False, None
+except fgh.GhError as e:
+    raised, unknown_exc = True, e
+    RAISED.append(e)
+restore()
+check("unknown owner: raises GhError naming the owner",
+      raised and "acmeuser" in str(unknown_exc), f"exc={unknown_exc if raised else None}")
+check("unknown owner: makes ZERO item-edit calls",
+      not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
+check("unknown owner: message carries no generic subcommand fallback",
+      raised and "api graphql" not in str(unknown_exc), f"exc={unknown_exc if raised else None}")
+
+# organization-owned board — asserted against BOTH envelopes (exit-1 unreachable, exit-0 reachable)
+for label, fixture in (("exit-1 unreachable", GRAPHQL_ORG_UNREACHABLE_JSON),
+                       ("exit-0 reachable", GRAPHQL_ORG_OK_JSON)):
+    status = 1 if label.startswith("exit-1") else 0
+    fake, calls = recorder([Result(status, stdout=fixture,
+                                    stderr="" if status == 0 else "gh: not found")])
+    fgh.subprocess.run = fake
+    try:
+        # "acmeuser" — moves together with :400 and :441 (MF-1 remedy).
+        fgh.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
+        raised, org_exc = False, None
+    except fgh.GhError as e:
+        raised, org_exc = True, e
+        RAISED.append(e)
+    restore()
+    check(f"organization ({label}): raises GhError naming the owner",
+          raised and "acmeuser" in str(org_exc), f"exc={org_exc if raised else None}")
+    check(f"organization ({label}): makes ZERO item-edit calls",
+          not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
+    check(f"organization ({label}): message differs from the unknown-owner message",
+          raised and unknown_exc is not None and str(org_exc) != str(unknown_exc),
+          f"org={org_exc}, unknown={unknown_exc}")
+    check(f"organization ({label}): message carries no generic subcommand fallback",
+          raised and "api graphql" not in str(org_exc), f"exc={org_exc if raised else None}")
+
+# board number not present — EXIT 1, __typename User, projectV2 null
+fake, calls = recorder([Result(1, stdout=GRAPHQL_BOARD_ABSENT_JSON, stderr="gh: not found")])
+fgh.subprocess.run = fake
+try:
+    # "acmeuser" — not optional here even though :452 already discriminates below;
+    # moving only the org case would make that inequality pass for the wrong reason
+    # (differing values, not differing messages) — MF-1 trap 1.
+    fgh.project_field_set("acmeuser", 3, "ITEM1", "Station", "Ready")
+    raised, board_exc = False, None
+except fgh.GhError as e:
+    raised, board_exc = True, e
+    RAISED.append(e)
+restore()
+check("board absent: raises GhError naming owner + project number",
+      raised and "acmeuser project 3" in str(board_exc), f"exc={board_exc if raised else None}")
+check("board absent: makes ZERO item-edit calls",
+      not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
+check("board absent: message differs from the organization message",
+      raised and str(board_exc) != str(org_exc), f"board={board_exc}, org={org_exc}")
+check("board absent: message differs from the unknown-owner message",
+      raised and unknown_exc is not None and str(board_exc) != str(unknown_exc),
+      f"board={board_exc}, unknown={unknown_exc}")
+check("board absent: message carries no generic subcommand fallback",
+      raised and "api graphql" not in str(board_exc), f"exc={board_exc if raised else None}")
+
+# field exists but is not single-select — EXIT 0, field is {} — must catch `{} is not None`
+fake, calls = recorder([Result(0, stdout=GRAPHQL_FIELD_NOT_SINGLE_SELECT_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_field_set("owner", 3, "ITEM1", "Station", "Ready")
+    raised, notsingle_exc = False, None
+except fgh.GhError as e:
+    raised, notsingle_exc = True, e
+    RAISED.append(e)
+restore()
+check("field not single-select (empty dict): raises the SAME field-not-found error as "
+      "the field-absent case",
+      raised and "field-list for owner project 3 does not offer it" in str(notsingle_exc),
+      f"exc={notsingle_exc if raised else None}")
+check("field not single-select: makes ZERO item-edit calls",
+      not any(c["argv"][1:3] == ["project", "item-edit"] for c in calls), f"calls={calls}")
+check("field not single-select: message carries no generic subcommand fallback",
+      raised and "api graphql" not in str(notsingle_exc), f"exc={notsingle_exc if raised else None}")
 
 
 # ---------------- issue_view / add_label / assign: pass repo verbatim ----------------
@@ -444,14 +600,18 @@ check("project_items: a missing totalCount raises rather than defaulting to 0", 
 
 
 # ---------------- project_field_options ----------------
-fake, calls = recorder([Result(0, stdout=FIELD_LIST_JSON)])
+fake, calls = recorder([Result(0, stdout=GRAPHQL_FIELD_JSON)])
 fgh.subprocess.run = fake
-opts = fgh.project_field_options("owner", 3, "Station")
+try:
+    opts = fgh.project_field_options("owner", 3, "Station")
+except fgh.GhError as e:
+    opts = None
+    RAISED.append(e)
 restore()
 check("project_field_options: returns the option names",
       opts == ["Ready", "Doing"], f"opts={opts!r}")
 
-fake, calls = recorder([Result(0, stdout=FIELD_LIST_JSON)])
+fake, calls = recorder([Result(1, stdout=GRAPHQL_FIELD_ABSENT_JSON, stderr="gh: not found")])
 fgh.subprocess.run = fake
 try:
     fgh.project_field_options("owner", 3, "NoSuchField")
@@ -462,6 +622,12 @@ except fgh.GhError as e:
 restore()
 check("project_field_options: raises GhError naming the absent field",
       raised and "NoSuchField" in str(exc), f"exc={exc if raised else None}")
+# D-04 freeze: the rendered next_step, byte for byte, for THIS case's own arguments.
+check("project_field_options: absent-field message is the D-04-frozen rendered string",
+      raised and "field-list for owner project 3 does not offer it" in str(exc),
+      f"exc={exc if raised else None}")
+check("project_field_options: absent-field message carries no generic subcommand fallback",
+      raised and "api graphql" not in str(exc), f"exc={exc if raised else None}")
 
 
 # ---------------- default_branch_sha ----------------
@@ -568,7 +734,7 @@ _, out, _ = with_recorder(
 check("project_items: writes nothing to stdout", out == "", f"out={out!r}")
 
 _, out, _ = with_recorder(
-    [Result(0, stdout=FIELD_LIST_JSON)], fgh.project_field_options, "owner", 3, "Station",
+    [Result(0, stdout=GRAPHQL_FIELD_JSON)], fgh.project_field_options, "owner", 3, "Station",
 )
 check("project_field_options: writes nothing to stdout", out == "", f"out={out!r}")
 
@@ -591,7 +757,7 @@ _, out, _ = with_recorder(
 check("create_ref: writes nothing to stdout on the measured conflict", out == "", f"out={out!r}")
 
 _, out, _ = with_recorder(
-    [Result(0, stdout=FIELD_LIST_JSON), Result(0, stdout=PROJECT_VIEW_JSON), Result(0, stdout="")],
+    [Result(0, stdout=GRAPHQL_FIELD_JSON), Result(0, stdout="")],
     fgh.project_field_set, "owner", 3, "ITEM1", "Station", "Ready",
 )
 check("project_field_set: writes nothing to stdout", out == "", f"out={out!r}")
