@@ -1,0 +1,69 @@
+feature_id: FEAT-12-end-copy-distribution
+mission: plan
+phase: plan
+status: approved
+branch: chore/203-end-copy-distribution
+pr: none
+effort: https://github.com/mruangutai/harness/issues/203
+grilling: .harness/notes/grilling-end-distribution-2026-08-10.md
+briefing: none
+review_sha: none
+cycles_used: 4
+max_total_cycles: 10
+max_total_runs: 20
+counts: { reqs: 8, scs: 11, sc_automated: 6, sc_inspection: 4, sc_uat: 1, tasks: 14, decisions: 6 }
+counts_note: >-
+  RECOUNTED BY ME after run -03, not relayed. SC-02b is a lettered sibling, so 11 criteria across
+  SC-01..SC-10. decisions rose 5 to 6: D-06 declares the settings.json.harness-bak deferral.
+  sc_uat: 1 is SC-06 and it MATTERS - gates.uat is blocking_when_uat_criteria_exist, so the ship
+  phase carries a blocking UAT the operator runs himself against a factory checkout of kaya. No
+  runner in this repo can observe another repository.
+tasks: { T-01: PENDING, T-02: PENDING, T-03: PENDING, T-04: PENDING, T-05: PENDING,
+         T-06: PENDING, T-07: PENDING, T-08: PENDING, T-09: PENDING, T-10: PENDING,
+         T-11: PENDING, T-12: PENDING, T-13: PENDING, T-14: PENDING }
+tasks_note: >-
+  T-05 is NO LONGER CONDITIONAL - Q1 answered commit-and-push, path-scoped, so all 14 tasks are
+  live. T-02..T-05 and T-09 run outside CLAUDE_PROJECT_DIR and are executable ONLY by
+  harness-dev-ops or main-session-direct - measured, see seat_constraint.
+baseline_note: >-
+  THE TREE MOVED UNDER THIS RUN, verified by me. PR #213 MERGED at 2026-08-10T16:25:38Z as 1e5f55d
+  - the operator's own action, untouched by this chain. My dispatch pinned 365a8a9 on
+  chore/202-strike-propagation-checker; that commit is an ancestor of HEAD, so the baseline moved
+  FORWARD, never diverged. The checkout now sits on feat/FEAT-11-graphql-field-resolve at 8dedeae,
+  switched by another chain. FEAT-12's whole feature dir is UNTRACKED - nothing of this feature has
+  been committed onto FEAT-11's branch. pm worked at HEAD rather than 365a8a9 because checking out
+  the pinned sha would have un-landed #202 and contradicted its own instruction.
+seat_constraint: >-
+  MEASURED, not assumed. bash-write-guard.sh:265-266 parses `rm`, and its policy at :16-18 denies a
+  detected write whose target is outside the agent's domain; harness-dev-ops is exempt at :15
+  (DEC-85) and the main session is ungoverned at :19. check-domain.sh:399-406 passes out-of-repo
+  paths through. So every kaya-touching task has exactly two executable seats.
+kaya_measurements: .harness/features/FEAT-12-end-copy-distribution/notes/measurements-2026-08-10-orchestrator.md
+kaya_note: >-
+  M-1..M-6 taken BY ME in kaya on 2026-08-10 and folded into the plan. Three were unknown to the
+  operator when he answered: agent files are 0 TRACKED but 16 ON DISK untracked; settings.json
+  wires EIGHT harness registrations across four hook events, not three; and
+  .claude/settings.json.harness-bak is TRACKED ON THE REMOTE and wires six of them.
+sc_tally: { met: 0, partial: 0, not_met: 0, note: "not goal-checked - mission is plan, not ship" }
+gate_status:
+  brief_approval: "PENDING - the operator's signature, never this chain's"
+  plan_approval: "PENDING - approval.status pending, approved_by none, verified by safe_load BY ME"
+  plan_routes: "PASS - RE-RUN BY ME at HEAD 8dedeae, not relayed: exit 0, 0 violations across 7 plans; 2 advisory DEVIATIONs on T-01/T-04 manifest paths, expected"
+  docs: >-
+    UNAVAILABLE BY DESIGN, NOT SKIPPED. check-docs.sh no longer exists - deleted under #202, which
+    merged as 1e5f55d. DEC-188 records that the stale-marker mechanism is struck and replaced by
+    deletion. Nothing was substituted for it and the plan strikes decisions rather than marking them.
+  github_mirror: >-
+    NOT RUN, and correctly so - gh-sync.py open is a mission-ship sync point after the approval
+    gate. This is mission plan and nothing is approved. No issue was created, closed or commented
+    on, and neither project board was touched.
+cycles_note: >-
+  FOUR send-backs, all rework under DEC-157. Run -01: 1, the lead sending pm back for two fail-open
+  verify strings. Run -02: 2, mine for falsified premises, then the lead's for a T-11 assignment gap
+  that made T-14 unpassable. Run -03: 1, the lead sending pm back because the narrowed REQ-03 left
+  the BRIEF's Goal promising something wider, and because the worktree deferral's stated reason was
+  unmeasured. Folding the operator's answers in is the designed round-trip and counts zero.
+runs:
+  - { id: 2026-08-10-01-product, squad: product, verdict: PASS }
+  - { id: 2026-08-10-02-product, squad: product, verdict: PASS }
+  - { id: 2026-08-10-03-product, squad: product, verdict: PASS }
