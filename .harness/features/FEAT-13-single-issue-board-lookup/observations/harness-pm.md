@@ -33,3 +33,16 @@
   filed as "one sentence in plan.yaml" but the sentence it falsifies lives in BRIEF.md's Goal.
   A behaviour delta recorded only in the plan leaves the brief asserting the opposite, and the
   brief is what the operator reads at signature. Check every accepted delta against the Goal text.
+- 2026-08-10 (goal-check): the `argv[:2]` slice I wrote at plan.yaml:368 can never match, because
+  run_gh (factory_gh.py:88) builds [gh] + list(args). The adjacent line :367 already used the
+  right `argv[1:3]` form, so one plan step carried both. Two lines of the same prose block
+  disagreeing is invisible on reading — it shows only when someone runs the clause. Check every
+  argv-slice literal in a plan against the actual arg-builder before shipping the step.
+- 2026-08-10 (goal-check): SC-05 named a state ("an issue whose state is closed") that neither
+  test double can represent — decompose's Recorder returns item_by_issue.get(number)
+  unconditionally (test-factory-decompose.py:123-125), and the integration stub keys on a
+  query-text token then answers from its own state dict. Both are state-blind by construction, so
+  making either state-aware would test the fake. When an SC's distinguishing condition lives in a
+  string the code SENDS rather than in an argument the fake SEES, the only non-vacuous evidence is
+  an assertion on that string. At plan time ask where the condition is observable, not merely
+  whether a test kind exists.

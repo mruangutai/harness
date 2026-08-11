@@ -31,6 +31,9 @@
 - P-10: WHEN your dispatch names an output path for a member DO check it against that member's own
   domain grant first — a role owning a named per-feature artifact is exactly the one the receipt
   convention does not cover, and the guard denies the dispatched path correctly.
+- P-11: WHEN a member re-anchors a stale citation set DO count the clauses each pointer covers
+  before and after, not merely their currency — a thinner-but-current pointer that folds two
+  clauses onto one head silently deletes evidence, and it rides in on the fix for staleness.
 
 ## Gotchas (max 15)
 - G-01: WHEN a test name or label is offered as evidence DO read the invocation it wraps — labels
@@ -45,6 +48,12 @@
 - G-04: WHEN a member reports a harness defect DO read the governing rule file at HEAD before
   relaying it up — a rule amended since the member's habit formed turns the report into a stale
   escalation the tier above cannot close.
+- G-05: WHEN spot-checking a member's `file:line` evidence on a worktree feature DO confirm the path
+  you read resolved inside the worktree — your cwd is the main checkout root by construction, so the
+  same relative path returns a pre-feature copy with unrelated content at the same line numbers.
+- G-06: WHEN a member reports a cycle count DO recount it as send-backs you yourself issued and
+  check what the tier above already charged — a member cannot see another squad's rework, so an
+  inherited cycle gets double-counted against the feature budget.
 
 ## Outcomes (max 10)
 - O-01: WHEN a cosmetic defect sits in a file a human is already about to open DO fold it into that

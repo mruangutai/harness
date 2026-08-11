@@ -1,0 +1,122 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-13 — ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-13-ship-review">FEAT-13 — ship review</h1>
+<p><strong>One targeted GraphQL call now answers what used to cost a whole-board download.</strong> Measured live on board 3: <strong>1 point</strong>, against 203 for <code>decompose</code> and 102 each for <code>land</code> and <code>claim</code>. All ten success criteria are met, every gate is green, and the reviewer panel found no defect in the shipped code. <strong>It is ready to merge.</strong></p>
+<p><strong>Two things need you.</strong> One is a decision I already took that you may want to reverse. The other is a collision with FEAT-12 that I deliberately did <strong>not</strong> resolve, because it is not mine to.</p>
+<hr>
+<h2 id="what-changed">What changed</h2>
+<p>Three factory tools answered a question about <strong>one</strong> issue by downloading the <strong>whole</strong> project board. They now share one helper, <code>factory_gh.issue_board_item_id</code>, whose query is scoped to a repository and an issue number.</p>
+<div class="scroll"><table><thead><tr><th></th><th>Before</th><th>After</th></tr></thead><tbody><tr><td><code>decompose</code> recovery lookup</td><td>203 points</td><td>1</td></tr><tr><td><code>land</code> review-station move</td><td>102 points</td><td>1</td></tr><tr><td><code>claim --issue</code></td><td>102 points</td><td>1</td></tr><tr><td>claim poll (&quot;what is claimable now&quot;)</td><td>unchanged, by your constraint</td><td>unchanged</td></tr></tbody></table></div>
+<p>The cost tracked board size — roughly +102 points per additional 100 items — so every factory run was getting more expensive as the board filled. That growth is gone.</p>
+<p><strong>Two behaviours that used to be side effects are now deliberate checks.</strong> <code>land</code> and <code>claim</code> both refused closed issues only because an <code>is:open</code> board filter hid them. That filter is gone, so each tool now checks the issue&#x27;s state explicitly. <code>land</code> refuses at exactly the same point in its sequence as before — after the branch push, after the PR create, station never set — so it ships zero observable change, which is what you ruled.</p>
+<hr>
+<h2 id="the-one-decision-i-made-that-you-may-want-to-reverse">The one decision I made that you may want to reverse</h2>
+<p><strong>I overruled two leads and routed a fix cycle instead of sending you a plan amendment.</strong></p>
+<p>The goal-check returned <strong>SC-05 as partial</strong>, and the reviewer panel returned three missing-guard findings. Both recommended the same thing: bring it to you, because adding a test assertion exceeds the assertion list you signed in <code>plan.yaml</code> step 5.</p>
+<p>I disagreed and acted. <strong>SC-05 was an approved criterion that was unmet.</strong> Approved-but-unmet needs no new signature — only a criterion that <em>cannot be met as written</em> does. An enumerated assertion list is an implementation floor, not a ceiling; read as a ceiling, an approved criterion stays permanently undischargeable because the plan&#x27;s prose did not anticipate a gap. Nothing about scope, the goal, or any signed decision moved, and no production code changed — tests only, in files already in T-01&#x27;s approved <code>files:</code> list.</p>
+<p><strong>pm subsequently confirmed the reasoning against me.</strong> The BRIEF&#x27;s own proof standard (<code>BRIEF.md:104-106</code> — &quot;unit call-shape assertions plus one live read. No <code>factory_decompose</code> run against the live board&quot;) <strong>forbids the only technique that could instantiate a closed issue at the unit layer, so it cannot also demand it.</strong> pm recorded that its own earlier recommendation had been the wrong one.</p>
+<p>If you disagree with the principle, the remedy is cheap: the fix is one commit (<code>5e81612</code>) and reverting it returns SC-05 to <code>partial</code>.</p>
+<hr>
+<h2 id="the-one-thing-i-did-not-resolve-because-it-is-yours">The one thing I did NOT resolve, because it is yours</h2>
+<p><strong>FEAT-12 is distilling into the same shared Expertise files right now, and nothing in the harness detects the collision.</strong></p>
+<p><code>.harness/expertise/</code> is shared across features, not feature-scoped. FEAT-12 is mid-close in the main checkout with <strong>six of those files modified and uncommitted</strong>, and its write set <strong>grew while my run was in flight</strong> — which is how I know it is live rather than stale. FEAT-13 modified nine. <code>check-expertise.sh</code> validates <strong>format, not lineage</strong>, so a file that silently loses another feature&#x27;s rules passes it cleanly. Two leads hit this independently and both returned it blocking.</p>
+<p><strong>What I did.</strong> I committed only the three files FEAT-13 alone touched. The six contested ones are left <strong>modified but uncommitted</strong> in the worktree — nothing destroyed, everything inspectable.</p>
+<div class="scroll"><table><thead><tr><th>Expertise file</th><th>FEAT-12 writing</th><th>FEAT-13 writing</th><th>Committed here</th></tr></thead><tbody><tr><td><code>backend-dev</code>, <code>code-reviewer</code>, <code>eng-lead</code>, <code>pm</code>, <code>qa</code>, <code>security-reviewer</code></td><td>yes</td><td>yes</td><td><strong>no — contested</strong></td></tr><tr><td><code>product-lead</code>, <code>ui-reviewer</code>, <code>validator-lead</code></td><td>no</td><td>yes</td><td>yes</td></tr><tr><td><code>documentor</code></td><td>yes</td><td>no</td><td>not mine</td></tr></tbody></table></div>
+<p><strong>Why not just commit them.</strong> <code>eng-lead</code>&#x27;s member, acting in good faith, reconciled its file against the main checkout&#x27;s <em>live</em> copy — so committing would import FEAT-12&#x27;s half-finished distillation into this branch and freeze a snapshot of work that is still moving.</p>
+<p><strong>The contested ops are written out in full at the end of this document</strong> so they survive even if the worktree is discarded. Re-apply them against the settled tree once FEAT-12 lands.</p>
+<p><strong>The systemic issue is worth a ticket on its own:</strong> shared Expertise + concurrent features + one worktree per feature = a memory-wipe hazard with no detector. A lineage check, or excluding <code>.harness/expertise/</code> from feature branches entirely, would close it.</p>
+<hr>
+<h2 id="verification">Verification</h2>
+<p><strong>Goal-check: 10 met, 0 partial, 0 not_met.</strong> Nine criteria are automated, one is the live inspection.</p>
+<ul><li>Unit suite: 10/10 scripts, exit 0. Integration: 97/97, exit 0. <strong>I re-ran both myself at every commit</strong> rather than accepting them on report.</li><li>The blocking <code>test_matrix</code> qa gate passed. qa caught that my own dispatch named a narrower runner than the configured one; I re-ran the configured command.</li><li>Reviewer panel: <strong>PASS</strong>, <code>must_fix</code> empty, max severity <code>med</code>, advisory. Four reviewers, four PASS.</li><li>Live spot-check: <strong>1 GraphQL point</strong>, item id matched an independently derived live reference. <strong>Taken twice</strong> because board 3 carries other flows&#x27; traffic and a stray point would have read as a failure. Both rounds agreed, so nothing was chosen or suppressed.</li></ul>
+<p><strong>The sharpest finding of the whole feature came from a mutation, not from reading.</strong> Nothing pinned the field list that <code>claim</code> and <code>land</code> request from <code>issue_view</code>. Dropping <code>&quot;state&quot;</code> from both left <strong>every test green</strong>, because the test doubles ignored the <code>fields</code> argument they were handed — while in production that same one-line edit makes both tools <strong>refuse every issue</strong>. A total outage, invisible to the entire suite. It is now pinned at both sites, and each new assertion was proven to redden under a real mutation before I accepted it.</p>
+<p><strong>Honest limits on what green buys you</strong>, volunteered by qa and agreed by the panel:</p>
+<ul><li>Assertion <em>strength</em> is proven by mutation for some criteria, not all. The rest pass, but a passing test is not a test that can fail.</li><li>SC-08 proves the tools and the forked stub <code>gh</code> agree — <strong>not</strong> that the stub matches real GitHub. The stub was authored in the same task as the helper it answers.</li><li>The panel cannot bound its own calibration: three of four reviewers returned zero or one finding on a nine-file diff, which fits a genuinely clean change and equally fits a shallow pass.</li></ul>
+<hr>
+<h2 id="how-this-briefing-was-assembled-no-report-round-was-spawned">How this briefing was assembled — no report round was spawned</h2>
+<p>I did <strong>not</strong> spawn any lead to report on its own work. Every run wrote a digest and I read them from disk. Assembled from, all under <code>.harness/features/FEAT-13-single-issue-board-lookup/runs/</code>:</p>
+<p><code>2026-08-10-01-product/digest.md</code> · <code>2026-08-10-02-eng/digest.md</code> · <code>2026-08-10-03-product/digest.md</code> (the plan phase, which I did not run and inherited) · <code>t01-eng/digest.md</code> · <code>qa-validator/digest.md</code> · <code>t02-eng/digest.md</code> · <code>panel-validator/digest.md</code> · <code>goalcheck-product/digest.md</code> · <code>fix01-eng/digest.md</code> · <code>sc05recheck-product/digest.md</code> · <code>distill-eng/digest.md</code> · <code>distill-validator/digest.md</code> · <code>distill-product/digest.md</code></p>
+<p><strong>Those run directories are gitignored</strong> (<code>.harness/features/*/runs/**</code>), so they exist only in the worktree and will not survive its removal. This document is the durable record.</p>
+<p>I copied the three plan-phase run directories into the worktree at setup for exactly this reason — without that, this briefing would have silently omitted an entire phase.</p>
+<p><strong>Budget: 4 cycles of 10. 13 runs against an informational ceiling of 20 — not crossed.</strong> Two cycles were the plan phase&#x27;s, one was the SC-05 fix, one was a send-back inside the eng distillation. Every other run was first-pass clean and charged nothing.</p>
+<hr>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Anything not listed here dies silently, so this is everything that survived collation without gating.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td><strong>Shared Expertise has no concurrency or lineage protection.</strong> Two features distilling at once into <code>.harness/expertise/</code> can silently revert each other; <code>check-expertise.sh</code> checks format, not lineage. Rank this first — it silently destroys the factory&#x27;s memory.</td></tr><tr><td>B-2</td><td>bug</td><td><code>plan.yaml:368</code> tells a future reader to assert <code>argv[:2] == [&quot;project&quot;, &quot;item-list&quot;]</code>, which can never match — <code>run_gh</code> prepends the <code>gh</code> binary. <code>:367</code> is already correct and the shipped tests are right. pm recommends <strong>no amendment</strong> (editing a signed artifact makes it stop being what was approved); record the idiom instead.</td></tr><tr><td>B-3</td><td>chore</td><td>The grilling note this feature&#x27;s BRIEF and plan cite as binding is <strong>not reachable from the feature branch</strong> — it lives only on <code>chore/203-end-copy-distribution</code>. A reviewer on this branch cannot open a document the approved plan calls binding.</td></tr><tr><td>B-4</td><td>bug</td><td><code>bash-write-guard.sh</code> does not expand shell variables when extracting a <code>cp</code> target, so <code>cp … &quot;$SCRATCH/x&quot;</code> is denied even though the resolved destination is outside the repo and would pass the guard&#x27;s own carve-out. Literal absolute paths work. (DEC-174 carve-out file — yours alone.)</td></tr><tr><td>B-5</td><td>bug</td><td><code>validate-digest.py</code> keys the <code>suite: n/a</code> exemption by <strong>persona</strong> when the discriminator that matters is the task&#x27;s <code>change_type</code>. A backend-dev on a <code>docs</code> task cannot say &quot;no tests applied&quot; the way a dev-ops on the identical task can. (DEC-174 carve-out file.)</td></tr><tr><td>B-6</td><td>bug</td><td><code>harness-documentor.md</code> fails <code>check-expertise.sh</code> — one entry is 53 words against a 50-word cap — which makes the <strong>whole directory</strong> check exit 1. Pre-existing, not this feature&#x27;s.</td></tr><tr><td>B-7</td><td>chore</td><td><code>test-factory-claim.py:336</code> is a bare <code>json.loads(out)</code> with no guard. Under exactly the total-outage regression B-1&#x27;s sibling fix now catches, it raises uncaught and kills the rest of the script.</td></tr><tr><td>B-8</td><td>enhancement</td><td>No <code>--issue</code> case asserts that a <strong>fresh open issue claims successfully</strong>. I deliberately excluded it from the fix cycle to keep it tight; four existing assertions already redden on an always-refuse.</td></tr><tr><td>B-9</td><td>chore</td><td>A fixture named <code>ITEM-CLOSED</code> and a label reading &quot;resume with a closed issue&quot; still read as instantiating a closed issue, which they do not. A corrective comment is in place. Cosmetic.</td></tr><tr><td>B-10</td><td>chore</td><td>Creating a worktree fires a one-time shape-sweep burst over historical state files the checkout duplicates (<code>FEAT-02</code>, <code>FEAT-05</code>). Pre-existing violations, not in scope — but the noise is where a real violation could hide.</td></tr><tr><td>B-11</td><td>chore</td><td>Sub-issues #245 and #246 were closed at T-02&#x27;s commit, before the fix cycle changed T-01&#x27;s test files. Reopening is not in the mirror&#x27;s vocabulary; recorded, not corrected.</td></tr></tbody></table></div>
+<hr>
+<h2 id="open-questions">Open questions</h2>
+<p>None block the merge.</p>
+<ol><li><strong>Do you accept the SC-05 routing call?</strong> I treated approved-but-unmet as a fix cycle rather than a plan amendment. Reversing it means reverting <code>5e81612</code>.</li><li><strong>How should the contested Expertise ops land?</strong> My recommendation: let FEAT-12 finish and commit, then re-apply the ops below against the settled files, letting each owner re-pick displacement targets where a section is at cap. Do not merge those six files textually.</li><li><strong>The worktree is still in place</strong> at <code>.claude/worktrees/FEAT-13-single-issue-board-lookup</code>, with the six contested files dirty. I did not remove it, because removing it discards them.</li></ol>
+<hr>
+<h2 id="appendix-contested-expertise-ops-verbatim">Appendix — contested Expertise ops, verbatim</h2>
+<p>Recorded here because the digests that hold them are gitignored. Apply against the settled tree.</p>
+<p><strong><code>harness-eng-lead</code></strong> — add to Gotchas:</p>
+<ul><li><code>G-04: WHEN a receipt path is named both by the team file&#x27;s outputs: template and by the approved plan&#x27;s files: list DO write the plan&#x27;s literal path — a verify: clause greps the plan&#x27;s string, so the rendered template leaves the gate red on correct work.</code></li><li><code>G-05: WHEN dispatching a distillation from a worktree DO grep the entry IDs from both that copy and the main checkout&#x27;s and compare — a worktree branched before the last distillation carries a stale copy whose write reverts the prior feature&#x27;s entries, every format check still green.</code></li></ul>
+<p><strong><code>harness-backend-dev</code></strong> — 5 entries accepted (3 self-derived, 2 relayed), Patterns 12→15 at cap, Gotchas 8→9, with one Pattern displaced to hold the cap. Its file in the worktree is a full-file renumber; take it wholesale or re-derive, never hunk-by-hunk.</p>
+<p><strong><code>harness-qa</code></strong> — Patterns 10→11: one entry on argument-blind test doubles. Both relayed candidates rejected with reasons.</p>
+<p><strong><code>harness-code-reviewer</code></strong> — Patterns 14→15 (now at cap), Gotchas 2→3. It filed the fake-ignores-arguments lesson as a Gotcha rather than spend its last Patterns slot.</p>
+<p><strong><code>harness-security-reviewer</code></strong> — Patterns 9→11, Gotchas 5→6, Outcomes 0→1 (section opened).</p>
+<p><strong><code>harness-pm</code></strong> — 3 ops: replace <code>P-07</code> with the signed-proof-standard rule (if a standard forbids the only technique that could instantiate a condition, it cannot also demand it); replace <code>P-10</code> with content-anchoring over line numbers; add a Gotcha on confirming which checkout a <code>file:line</code> resolved in. Note <code>P-10</code> is a <strong>merge</strong>, not a kill — both sides widened the same incumbent in different directions.</p>
+<p><strong>Already committed</strong> (uncontested): <code>harness-product-lead</code> (Patterns 10→11, Gotchas 4→6), <code>harness-ui-reviewer</code> (Patterns 8→10, both self-derived), <code>harness-validator-lead</code> (Patterns 7→10, Gotchas 6→9).</p><p class='derived'>Derived from <code>ship-review-5e81612.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

@@ -23,6 +23,15 @@
 - P-07: WHEN dispatching a review panel DO hand the file set down explicitly rather than let each
   reviewer self-scope — self-chosen scopes leave the seams between them uncovered, and the seam
   is where the gating defect sits.
+- P-08: WHEN you have verified at source that the code does X DO treat that as a different claim
+  from "something holds it to X" and require a mutation before calling the seam closed — correct
+  today and pinned against regression are separate findings, and only the second survives an edit.
+- P-09: WHEN a panel returns few or no findings DO record in your adequacy notes that this cannot
+  distinguish a clean diff from a shallow pass, and name which reviewers produced falsification
+  evidence — a mutation or equivalent probe is the only discriminator available to you.
+- P-10: WHEN carrying a task's verify clause verbatim DO also establish which command the coverage
+  gate itself rests on — the configured per-kind command can be strictly broader than the task's
+  own clause, so a faithful carry can satisfy the task and still not be what makes the gate true.
 
 ## Gotchas (max 15)
 - G-01: WHEN the blocking gate passes and an advisory gate carries the only defect DO headline
@@ -43,6 +52,15 @@
 - G-06: WHEN a member's role field carries a placeholder you would not have chosen DO check the
   digest validator's per-persona table before recording a convention mismatch — a scoped-out
   reviewer's `n/a` is the sanctioned spelling there, not drift.
+- G-07: WHEN narrating a member's verdict or its reasoning DO have its artifact open, or be
+  quoting its returned digest, before the sentence is written — a completion notification is not
+  the content, and prose shaped by what you expected can be true purely by luck.
+- G-08: WHEN the work lives in a worktree DO check the worktree prefix on every read path before
+  using the result — the main checkout holds a stale copy at the identical path, and a conclusion
+  drawn from it is wrong in exactly the way that looks right.
+- G-09: WHEN relaying a handed-down candidate that characterises a member's conduct DO check it
+  against that member's own artifact first — the account reaching you is a hypothesis, and a
+  member forced to reject a false premise spends its distillation slot on your error.
 
 ## Outcomes (max 10)
 - O-01: WHEN dispatching a review panel DO name the already-ruled items in the prompt —
