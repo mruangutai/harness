@@ -146,17 +146,6 @@ them into the manifest would create text that drifts. No file `path` in the mani
 Claude Code resolves agents by name.
 **Tradeoff accepted:** an agent's full picture requires reading two files.
 
-## DEC-12 — Distribution: templates + `init`, NOT deploy-merge
-
-**Chose:** `/harness-deploy` distributes the tool and **never** touches project state;
-`/harness-init` writes every project artifact. Enroll = deploy + init.
-**Over:** deploy merging config into each project (the previous behavior).
-**Because:** the manifest mixes generic org structure (teams, `consult-when` — identical everywhere)
-with project-specific data (`domain` globs — one repo's UI is `src/components/`, another's is
-`app/ui/`). If deploy pushed the manifest it would clobber every project's paths. Separating the two
-operations makes deploy safe to be dumb.
-**Tradeoff accepted:** two commands instead of one; a project needs an explicit init step.
-
 ## DEC-13 — Template versioning; upgrades are user-triggered, not a deploy side effect
 
 **Chose:** templates carry `schema_version`; deploy pushes the new template but leaves the project's
@@ -1972,7 +1961,7 @@ exist rather than pointing it somewhere plausible.
 
 ---
 
-## DEC-113 — Deploy reconciles instead of copying; agents go global only
+## DEC-113 — Team and crew overrides live outside the tool tree, and are resolved first
 
 Task 13. `/harness-deploy` is rewritten as distribution-only, with the mechanical work in
 `bin/deploy.sh` (dry run by default) and the command file reduced to plan → confirm → apply → report.
@@ -1984,26 +1973,14 @@ current agents were there. `~/.claude/skills/harness/` was the **April layout** 
 `tdd/`, `manifest.json`) — structurally unrelated to the present one. The old deploy was copy-only, so
 nothing it ever did could have removed any of that.
 
-### Three decisions, each a deviation worth naming
+### The deviation worth naming
 
-**1. Agents are distributed GLOBALLY ONLY.** SPEC §3.3 said "skills, agents, templates — to global +
-enrolled projects"; §3.3 is now corrected. One copy in `~/.claude/agents/` is visible from every
-project, so a per-project copy buys nothing and costs drift: a project holding a stale shadow silently
-overrides the fixed agent, and prune cannot see it because prune only walks the sets it knows about.
-Skills and templates still go both places — they are read by path, not resolved by name.
-
-**2. Crew overrides live in `.harness/crews/`, not `.claude/skills/harness/crews/`.** Deploy replaces
-skill dirs **wholesale**, because they are harness-owned end to end — which means an override placed
-inside the tool tree is destroyed by the next routine push. The precedence rule BUILD asked for
-("project-local overrides global") only holds if the override sits somewhere deploy never touches.
-Recorded in both manifests as `paths.crew_overrides`; the runner (task 10) resolves it first.
-
-**3. `agent_skills` cleanup is REPORTED, not performed.** BUILD's detail block asked deploy to strip
-the inert block from enrolled projects' `config.json`. That is writing project state, which the
-deploy/init split exists to forbid — and the same list says so two items earlier. The dry run now names
-any project whose `agent_skills` points at paths the push removes and leaves it to the user. Second
-instance of the DEC-112 shape: **one document holding two requirements that cannot both be satisfied**,
-found only by trying to implement both.
+**Crew overrides live in `.harness/crews/`, not `.claude/skills/harness/crews/`.** The skill tree is
+this repository's own source, rewritten by harness development itself — so an override placed inside
+it is whatever the next harness change leaves behind, and nobody editing harness code owes it a
+thought. The override directory is project-owned state that harness development never edits. The
+precedence rule BUILD asked for ("project-local overrides global") only holds if the override sits
+there. Recorded in both manifests as `paths.crew_overrides`; the runner (task 10) resolves it first.
 
 ### What the fixture caught that reading did not
 

@@ -390,7 +390,7 @@ It must run in the **main session**: only that tier can call `AskUserQuestion` (
 Onboarding is a fleet entry plus init: adding `- name: <owner>/<repo>` to
 `.harness/factory/fleet.yaml` is what makes a repository reachable, and `/harness-init` is what
 writes its `.harness/` state. Nothing is copied into the repository, which is what keeps the
-first half dumb and safe (DEC-12 recorded this split when the first half was a distribution step).
+first half dumb and safe.
 
 ### What it writes — six artifacts
 
