@@ -43,6 +43,14 @@
   reachability in another DO check the combination, not each task alone —
   neither task's scope may cover it, so no SC or gate records the ordering
   precondition, and the combined posture goes unaudited.
+- P-11: WHEN a diff synthesizes a sparse object standing in for a fuller one DO
+  trace every consumer field-by-field to its write or auth check — a permissive
+  `.get()` reading an omitted key as absence-equals-permission is the fail-open
+  shape to rule out.
+- P-12: WHEN a security-relevant detail is observed but pre-existing/unchanged
+  by the diff DO record it in the review as assessed-and-dismissed rather than
+  omitting it — a recorded non-finding stops a later reviewer re-raising it; a
+  silent drop does not.
 
 ## Gotchas (max 15)
 - G-01: Only `exit 2` blocks a hook (DEC-100); any other exit — including an
@@ -69,7 +77,14 @@
   under review (e.g. a guard config pushed elsewhere) DO verify against
   that repo's live state — clone, diff, or fetch it — rather than resting
   on the local diff; this turns argued claims into measured ones.
+- G-07: WHEN a diff is scoped IN and returns zero findings DO set severity_max
+  to info, not n/a — n/a is reserved for scoped-out diffs; conflating them
+  misreports whether the surface was actually assessed.
 
 ## Outcomes (max 10)
+- O-01: WHEN a surface looks clean on first read DO close with identity-level
+  evidence (assertions proving equality, consumers traced to their actual write)
+  not a read-and-conclude — a zero-finding review is otherwise indistinguishable
+  from a shallow pass to anyone downstream.
 
 ## Open (max 5)

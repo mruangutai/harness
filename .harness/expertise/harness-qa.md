@@ -36,6 +36,10 @@
 - P-11: WHEN a verify does `grep -q <literal>` against a whole file DO check where the match
   actually lands — the substring can be satisfied by an unrelated section, so the check gates
   nothing about the section it names, even though it exits 0.
+- P-12: WHEN a fake stands in for a call taking a selector argument (e.g. `fields`) DO assert the
+  argument value at each call site, not just that the call happened — an argument-blind fake
+  returns fixed data regardless, so dropping a field stays green while the real callee refuses
+  the request.
 
 ## Gotchas (max 15)
 - G-01: WHEN proving a test runner's MISCONFIGURED exit path live by creating a stray

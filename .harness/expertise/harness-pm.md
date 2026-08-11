@@ -18,9 +18,10 @@
 - P-05: WHEN grading a criterion DO grade its own full text: a leading claim broader than its
   enumerated list still binds, and an enumeration delivered in part is not met, never partial.
   Met on a method that cannot detect the failure it exists to detect is worse than unmet.
-- P-06: WHEN a task's dispositions are enumerated by a grep DO give one `verify:` clause a broader
-  pattern than the survey used, with the legitimate survivors listed as an allow-list. A site
-  outside the survey's token set is not merely unlisted, it is unfalsifiable.
+- P-06: WHEN judging whether an unmet criterion is undischargeable DO read the signed proof
+  standard. If it forbids the only technique that could instantiate the condition, it cannot also
+  demand it: the strongest proof permitted inside the standard is the proof, and the route is a
+  fix cycle.
 - P-07: WHEN drafting a criterion DO read it for presupposition against the criteria already
   written. A clause asserting something about surviving occurrences presupposes they survive,
   which negates any absence check over the same files. Each reads sound alone.
@@ -30,9 +31,9 @@
 - P-09: WHEN handed a claim that a test already covers a property DO mutate the tool to violate the
   property and see which cases redden. Cited lines are often comments, not assertions. A mutant
   that reddens every case is broken, not evidence of strong coverage.
-- P-10: WHEN a criterion or task cites a location DO anchor it on content text, never on a line
-  number or an ordinal such as a test-case number. Both rot inside one feature's lifetime as files
-  are reordered, leaving the claim unverifiable while the content it protects is intact.
+- P-10: WHEN a criterion, task step, or carried-forward evidence pointer cites a location DO anchor
+  it on content text, never a line number or an ordinal such as a test-case number. Both rot within
+  one cycle as files shift, leaving verdicts standing while every pointer under them lands wrong.
 - P-11: WHEN a criterion names the mechanism behind a behaviour DO confirm the code uses that
   mechanism before signature, or state the observable outcome instead. A criterion false only in
   its mechanism routes as a fix cycle against working code, never as a re-signature.
@@ -65,9 +66,9 @@
 - G-05: WHEN an amendment widens the scope of an already-executed task DO carry the re-dispatch
   signal in your DIGEST. A filed receipt proves only what it ran against, and no plan file can
   re-open a task that already passed.
-- G-06: WHEN confirming a criterion built from several tokens DO enumerate every hit with the full
-  pattern and confirm each sits inside text the change removes. Greping one token of five verifies
-  one fifth of the claim; file-level arithmetic is not evidence.
+- G-06: WHEN citing a file:line as evidence DO confirm which checkout resolved the path — a sibling
+  copy on another branch holds a different file at the same path, returns unrelated content at
+  those lines and nothing errors, so the read succeeds and reads as proof.
 - G-07: A sibling worktree under `.claude/worktrees/` is a full second copy inside the search path:
   the main tree's `.gitignore` hides it from `git grep` there but not from `grep -r`. Its files are
   tracked on its own branch, so the parent's ignore rules say nothing about the child's index.

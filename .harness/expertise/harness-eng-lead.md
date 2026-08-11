@@ -49,6 +49,13 @@
 - G-03: A path in no agent's `domain:` and absent from `shared:` is writable by no agent —
   `manifest_domains` does no widening or inheritance. Re-dispatching to another specialist
   reproduces the denial; the fix is a manifest grant or main-session-direct, neither a lead's call.
+- G-04: WHEN a receipt path is named both by the team file's `outputs:` template and by the
+  approved plan's `files:` list DO write the plan's literal path — a `verify:` clause greps the
+  plan's string, so the rendered template leaves the gate red on correct work.
+- G-05: WHEN distilling into a shared Expertise file from a worktree DO compare entry text
+  against the main checkout's current copy before writing, never IDs — a worktree branched
+  before the last distillation carries a stale base whose write reverts the prior feature's
+  entries, every format check green.
 
 ## Outcomes (max 10)
 
