@@ -58,8 +58,15 @@ violation becomes `BLOCKED (contract violation)`.
 Your artifact is read by the *consumer* of your work. The orchestrator reads only your VERDICT and
 DIGEST, so anything the routing decision depends on must be in the DIGEST, not buried in the artifact.
 
-**Where your artifact goes.** If your deliverable is code or a verification result and you have no
-other per-feature path, write the receipt to
+**Where your artifact goes — check your own domain FIRST, and use what you already own.** Most
+personas hold a per-feature `notes/` path named for their role: pm writes `notes/research-*.md` or
+`notes/uat-*.md`, qa writes `notes/qa-*.md`, each reviewer writes `notes/review-<self>-*.md`, the
+visual designer writes under `notes/mockups/` or `notes/prototypes/`. **If you own such a path, your
+artifact goes there and you write no receipt.** A dispatch that names a receipt path for you does not
+override this — the guard will deny it, correctly (#216).
+
+The receipt is the fallback for the personas that own no other per-feature path — the five engineers
+and the documentor. Only those six write
 `.harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`. **Not your observations log.**
 That log is the Expertise hot layer — it is never injected into any spawn, so anything a successor
 must read is lost there. Use it only for lessons about *how you work*.
