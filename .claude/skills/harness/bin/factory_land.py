@@ -27,13 +27,10 @@ import factory_workspace
 TOOL = "land"
 
 
-def _find_item_id(owner, board_number, number):
-    """The board item id for `number`, or None when the board carries no such item."""
-    items = factory_gh.project_items(owner, board_number, query="is:open")
-    for it in items:
-        if (it.get("content") or {}).get("number") == number:
-            return it.get("id")
-    return None
+def _find_item_id(repo, number, board_number):
+    """The board item id for `number`, or None when the board carries no such item — one
+    targeted, repository-scoped GraphQL lookup (FEAT-13, D-01) rather than a whole-board scan."""
+    return factory_gh.issue_board_item_id(repo, number, board_number)
 
 
 def _main():
@@ -63,7 +60,8 @@ def _main():
     # NOT a failure — it is adopted so the retry path stays usable.
     factory_gh.preflight()
 
-    title = factory_gh.issue_view(args.repo, args.issue, ["title"]).get("title")
+    issue = factory_gh.issue_view(args.repo, args.issue, ["title", "state"])
+    title = issue.get("title")
     body = f"closes #{args.issue}"
     pr_args = [
         "pr", "create", "--repo", args.repo, "--base", default_branch,
@@ -89,7 +87,19 @@ def _main():
     station_field = fleet["board"]["station_field"]
     review_option = fleet["board"]["stations"]["review"]
 
-    item_id = _find_item_id(owner, board_number, args.issue)
+    # The explicit open-check (D-04): today's is:open board filter is gone, so the same refusal
+    # land has always issued for a closed issue is now a deliberate check, at the SAME point in
+    # the sequence — after the push and after the pull-request create, never earlier. #238 (a
+    # closed issue making land fail so the item never reaches Review) is a known, out-of-scope
+    # latent bug; this check does not touch it.
+    if issue.get("state") != "OPEN":
+        raise factory_gh.GhError(
+            [], None, "", "",
+            "issue is not open", args.issue,
+            "a closed issue is finished work and cannot move to Review",
+        )
+
+    item_id = _find_item_id(args.repo, args.issue, board_number)
     if item_id is None:
         raise factory_gh.GhError(
             [], None, "", "",

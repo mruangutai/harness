@@ -89,12 +89,25 @@ class Recorder:
         self.queries.append(query)
         return list(self.items)
 
+    def issue_board_item_id(self, repo, number, board_number):
+        self.calls.append(("issue_board_item_id", (repo, number, board_number)))
+        for it in self.items:
+            content = it.get("content") or {}
+            if content.get("number") == number and content.get("repository") == repo:
+                return it.get("id")
+        return None
+
     def issue_view(self, repo, number, fields):
         self.calls.append(("issue_view", (repo, number, tuple(fields))))
         data = self.issue_data.get(number)
         if data is None:
             raise AssertionError(f"test bug: no issue_data fixture for #{number}")
-        return dict(data)
+        # Honours the requested `fields` (FEAT-13 fix01) — every fixture in this file happens to
+        # carry all of {number, title, state, labels, assignees}, so filtering to `fields` is a
+        # no-op today (production always requests all five, T-05 D-05) and stays a no-op unless
+        # a future call site narrows its own request; if `state` is ever dropped from that
+        # request, `.get("state")` reads None the same way a real gh response would.
+        return {k: v for k, v in data.items() if k in fields}
 
     def default_branch_sha(self, repo, branch):
         self.calls.append(("default_branch_sha", (repo, branch)))
@@ -119,7 +132,7 @@ class Recorder:
 
 
 PATCHED = (
-    "preflight", "project_field_options", "project_items", "issue_view",
+    "preflight", "project_field_options", "project_items", "issue_board_item_id", "issue_view",
     "default_branch_sha", "create_ref", "add_label", "assign", "project_field_set",
 )
 
@@ -371,6 +384,12 @@ except Exception:
     parsed_ok = False
 check("(C2) whole stdout parses as one JSON object", parsed_ok, out)
 check("(C2) exit 0", code == 0, code)
+# FIX 2 (FEAT-13 fix01): issue_view is invoked with "state" among the requested fields —
+# without it the OPEN-state check always reads None, `!= "OPEN"` is always true, and the tool
+# refuses EVERY issue (total outage of claim).
+c2_issue_view_calls = [c for c in rec.calls if c[0] == "issue_view"]
+check("(C2) issue_view's requested fields include \"state\"",
+      c2_issue_view_calls and "state" in c2_issue_view_calls[0][1][2], c2_issue_view_calls)
 
 # C3. a monkeypatched preflight raising GhError exits 2, not 1, stdout empty, one stderr line.
 rec = Recorder()
@@ -463,6 +482,12 @@ rec.create_ref_results[61] = False
 code, out, err = run_main(rec, ["--as", AS_LOGIN, "--issue", "61"])
 check("(R4) --issue lost race exits 3", code == 3, code)
 check("(R4) zero mutating calls", rec.mutating_calls() == [], rec.mutating_calls())
+r4_lookup = [c for c in rec.calls if c[0] == "issue_board_item_id"]
+check("(R4) --issue resolves via issue_board_item_id EXACTLY ONCE, zero project_items calls",
+      len(r4_lookup) == 1 and not any(c[0] == "project_items" for c in rec.calls), rec.calls)
+check("(R4) issue_board_item_id called with the fleet repo entry's own name, then args.issue, "
+      "then the board number",
+      r4_lookup and r4_lookup[0][1] == (REPO, 61, BOARD), r4_lookup)
 
 rec = Recorder()
 rec.items = [board_item("i1", 62, REPO)]
@@ -474,6 +499,9 @@ check("(R4) --issue self-owned re-entry exits 0", code == 0, code)
 check("(R4) self-owned re-entry payload", json.loads(out).get("issue") == 62, out)
 check("(R4) self-owned re-entry never calls create_ref",
       not any(c[0] == "create_ref" for c in rec.calls), rec.calls)
+check("(R4) self-owned re-entry resolves via issue_board_item_id, zero project_items calls",
+      any(c[0] == "issue_board_item_id" for c in rec.calls)
+      and not any(c[0] == "project_items" for c in rec.calls), rec.calls)
 
 rec = Recorder()
 rec.items = [board_item("i1", 62, REPO)]
@@ -495,6 +523,64 @@ code, out, err = run_main(rec, ["--as", AS_LOGIN])
 check("(R5) exits 2, not 3", code == 2, code)
 check("(R5) loop stopped — #66 was never reached (issue_view called once)",
       len([c for c in rec.calls if c[0] == "issue_view"]) == 1, rec.calls)
+
+
+# ==========================================================================
+# R6. SC-06 — the closed-issue refusal (D-05). Once the is:open board filter is gone, a closed
+# issue reaches the candidate loop; without an explicit check, an issue this agent already owns
+# would satisfy the self-ownership branch at 5a and be emitted as claimable, finished work. The
+# refusal sits BEFORE 5a, so both an unowned and a self-owned closed issue are refused —
+# asserted separately, since only the self-owned case exercises the ordering this decision
+# depends on.
+# ==========================================================================
+
+# R6a. --issue on a closed issue this agent does NOT own: refused, zero mutating calls, zero
+# create_ref calls.
+rec = Recorder()
+rec.items = [board_item("i1", 95, REPO)]
+rec.issue_data[95] = issue_data(95, "issue 95", state="CLOSED", labels=["harness"])
+code, out, err = run_main(rec, ["--as", AS_LOGIN, "--issue", "95"])
+check("(R6a) --issue on a closed, unowned issue exits 2 (refused)", code == 2, code)
+check("(R6a) zero mutating calls", rec.mutating_calls() == [], rec.mutating_calls())
+check("(R6a) zero create_ref calls", rec.create_ref_calls() == [], rec.create_ref_calls())
+check("(R6a) stdout empty", out == "", out)
+check("(R6a) stderr names the issue", "95" in err, err)
+
+# R6b. --issue on a closed issue this agent ALREADY owns (factory:claimed + assignees include
+# --as) — the self-ownership branch would otherwise emit it. Still refused, not re-emitted.
+rec = Recorder()
+rec.items = [board_item("i1", 96, REPO)]
+rec.issue_data[96] = issue_data(
+    96, "issue 96", state="CLOSED", labels=["harness", "factory:claimed"], assignees=[AS_LOGIN],
+)
+code, out, err = run_main(rec, ["--as", AS_LOGIN, "--issue", "96"])
+check("(R6b) --issue on a closed, self-owned issue exits 2 (refused), NOT re-emitted at exit 0",
+      code == 2, code)
+check("(R6b) zero mutating calls", rec.mutating_calls() == [], rec.mutating_calls())
+check("(R6b) zero create_ref calls", rec.create_ref_calls() == [], rec.create_ref_calls())
+check("(R6b) stdout empty", out == "", out)
+
+# R7. --issue on an issue the board holds under no fleet repo the lookup matches: refused
+# (D-02's accepted behaviour delta — exit 2, not the old exit-1 nothing_to_do), zero mutations.
+rec = Recorder()
+rec.items = []   # issue_board_item_id finds nothing for any fleet repo
+code, out, err = run_main(rec, ["--as", AS_LOGIN, "--issue", "97"])
+check("(R7) --issue found on no fleet repo exits 2 (refused)", code == 2, code)
+check("(R7) zero mutating calls", rec.mutating_calls() == [], rec.mutating_calls())
+check("(R7) stderr names the issue", "97" in err, err)
+
+# R8. SC-09 — the poll path (no --issue) is UNCHANGED: still calls project_items exactly once
+# with the station-and-open query string.
+rec = Recorder()
+rec.items = [board_item("i1", 98, REPO)]
+rec.issue_data[98] = issue_data(98, "issue 98", labels=["harness"])
+code, out, err = run_main(rec, ["--as", AS_LOGIN])
+poll_calls = [c for c in rec.calls if c[0] == "project_items"]
+check("(R8) poll mode calls project_items EXACTLY ONCE", len(poll_calls) == 1, rec.calls)
+check("(R8) poll query names the ready station and is:open, unchanged",
+      poll_calls and poll_calls[0][1][2] == f'{STATION_FIELD}:"Ready" is:open', poll_calls)
+check("(R8) poll mode never calls issue_board_item_id",
+      not any(c[0] == "issue_board_item_id" for c in rec.calls), rec.calls)
 
 
 # ==========================================================================

@@ -1,0 +1,501 @@
+schema: plan/1
+feature: FEAT-13-single-issue-board-lookup
+
+approval:
+  status: approved
+  approved_by: operator
+  date: 2026-08-10
+  rulings: >-
+    Signed on the grilling artifact notes/grilling-board-read-lookups-2026-08-10.md, whose Settled
+    section is not re-openable by the build.
+
+    Q1 RATIFIED: the amended Goal stands, including the recorded exception that claim --issue exits 2
+    rather than 1 for an issue on the board under a repo outside the fleet.
+
+    Q2 ACCEPTED AS WRITTEN: T-01's receipt stays declared in files: without a test -s clause in
+    verify:. The tests are the gate; the receipt is a process artifact.
+
+    Q3 LANE RATIFIED AS PLANNED: T-02's live rate_limit spot-check stays with harness-backend-dev. It
+    is a pure READ against board 3 with no mutation, which is why it does not need the
+    main-session-direct treatment FEAT-11's live measurement got — that one wrote to a board.
+
+lanes:
+  resolved_at: bbfc9bb
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev
+      note: >-
+        check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops for every
+        factory_*.py and test-factory-*.py path in this plan. The work is application logic in
+        the factory tools, not tooling or CI, so harness-backend-dev is named and harness-dev-ops
+        is not used. FEAT-11 recorded the same ambiguity on the same surface.
+    - surface: .harness/features/*/notes/receipt-harness-backend-dev-*.md
+      lane: team
+      agent: harness-backend-dev
+      note: >-
+        Resolves to harness-backend-dev and harness-orchestrator. The receipt is the member's own,
+        so harness-backend-dev is named.
+
+decisions:
+  - id: D-01
+    choice: >-
+      One shared public helper on factory_gh, issue_board_item_id(repo, number, board_number),
+      serves all three call sites rather than each module growing its own lookup.
+    because: >-
+      The three sites ask the identical question and each needs the identical shape and
+      truncation guards; three private copies would triple the fail-loud surface that must stay
+      correct.
+    dec: none
+  - id: D-02
+    choice: >-
+      claim --issue discovers the repository by querying each fleet repo in turn, filtered to
+      --repo when it is given, rather than making --repo required alongside --issue.
+    because: >-
+      --issue is used today without --repo, so requiring it is a CLI contract change nobody
+      sanctioned; the cost is one point per fleet repo searched, and the fleet holds one repo.
+      ACCEPTED BEHAVIOUR DELTA, recorded rather than fixed: for one case — the board holds the
+      issue under a repository outside the fleet, or one not matching --repo — claim --issue
+      today reaches nothing_to_do and exits 1, and under this decision it reaches the refusal and
+      exits 2. The case is unreachable in practice because .harness/factory/fleet.yaml declares
+      exactly one repo, so no board row can sit under a fleet-external repository that claim would
+      otherwise have matched by number. Recording it is what keeps the record honest; pinning the
+      old exit code with an assertion was the alternative and the operator did not ask for it.
+    dec: none
+  - id: D-03
+    choice: >-
+      The helper returns None for a genuine absence, including an issue number that does not
+      exist, and raises GhError only for an unrecognised response shape or a truncated item
+      connection.
+    because: >-
+      decompose reads None as go-add-it, so raising on absence breaks recovery, while returning
+      None on garbage re-triggers the duplicate board add the lookup exists to prevent.
+    dec: none
+  - id: D-04
+    choice: >-
+      land gets its explicit open-check by widening the existing step-4 issue_view fields from
+      title to title and state, and refusing at step 5 where today's lookup failure fires.
+    because: >-
+      It adds no call and moves no failure point, so land ships zero observable behaviour change,
+      which is what the operator ruled.
+    dec: none
+  - id: D-05
+    choice: >-
+      claim's explicit closed-issue refusal sits before the self-ownership branch at step 5a, not
+      after it.
+    because: >-
+      Once the is:open board filter is gone a closed issue the agent already owns would reach 5a
+      and be emitted as claimable work, which is the regression this refusal exists to prevent.
+    dec: none
+  - id: D-06
+    choice: >-
+      The whole swap is one task with change_type cross_module, accepting the mandatory
+      integration tests that pulls in from harness.json test_matrix.
+    because: >-
+      The change spans factory_gh and three tools, and the forked stub gh in
+      test-factory-integration.py must learn the new query in the same commit or the end-to-end
+      journey reddens the entire integration script.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Replace all three whole-board single-issue lookups with one targeted GraphQL helper
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_gh.py
+      - .claude/skills/harness/bin/factory_decompose.py
+      - .claude/skills/harness/bin/factory_land.py
+      - .claude/skills/harness/bin/factory_claim.py
+      - .claude/skills/harness/bin/test-factory-gh.py
+      - .claude/skills/harness/bin/test-factory-decompose.py
+      - .claude/skills/harness/bin/test-factory-land.py
+      - .claude/skills/harness/bin/test-factory-claim.py
+      - .claude/skills/harness/bin/test-factory-integration.py
+      - .harness/features/FEAT-13-single-issue-board-lookup/notes/receipt-harness-backend-dev-lookup-swap.md
+    verify: |
+      bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit &&
+      python3 .claude/skills/harness/bin/test-factory-integration.py &&
+      grep -q 'def issue_board_item_id' .claude/skills/harness/bin/factory_gh.py &&
+      ! grep -q 'factory_gh\.project_items' .claude/skills/harness/bin/factory_decompose.py &&
+      ! grep -q 'factory_gh\.project_items' .claude/skills/harness/bin/factory_land.py &&
+      test "$(grep -c 'factory_gh\.project_items' .claude/skills/harness/bin/factory_claim.py)" = 1
+    intent: |
+      Three factory tools answer a question about ONE issue by downloading the WHOLE project
+      board. Replace all three with one targeted query. Measured 2026-08-10 on board 3 at 163
+      items: decompose pays 203 GraphQL points, land and claim --issue pay 102 each; the targeted
+      query costs 1. Write the tests FIRST, in the same task, before each production edit — qa
+      runs the suite, qa does not author it.
+
+      THE ORDER OF WORK INSIDE THIS TASK IS MANDATED, not left to you. This task is large — nine
+      source and test files — and its risk is concentrated in one function, so it is split into
+      two halves internally with a green gate between them:
+
+        HALF A. Write step 1 (the helper in factory_gh.py) and the step-5 assertions that live in
+        test-factory-gh.py, and nothing else. Then run:
+          bash .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+        It must pass. Record that intermediate result in your receipt at
+        .harness/features/FEAT-13-single-issue-board-lookup/notes/receipt-harness-backend-dev-lookup-swap.md
+        — the command, its exit status, the date — before touching anything else. That path is in
+        this task's files: list and is yours to write. If it is red, fix the helper before
+        proceeding; do not carry a red helper into the call sites.
+
+        HALF B. Only then do steps 2, 3 and 4 with their own step-5 assertions, and the
+        test-factory-integration.py stub branch. Then run the task's full verify.
+
+      Do not interleave the halves. The point is an early green on the risky half, while it is
+      still the only thing that can have broken.
+
+      ONE TOKEN IS FORBIDDEN IN PROSE, AND THIS TASK'S OWN VERIFY IS WHY. The verify greps the
+      literal dotted string factory_gh.project_items and it cannot tell code from comments: it
+      requires ZERO occurrences in factory_decompose.py, ZERO in factory_land.py, and EXACTLY ONE
+      in factory_claim.py — the surviving poll call itself, which leaves no slack at all. Several
+      steps below tell you to rewrite comments and docstrings that describe what this change
+      removed. Do NOT write that dotted string into any comment, docstring or other prose in those
+      three files. Name issue_board_item_id as the new mechanism instead of naming the old
+      function in its dotted form. A correct implementation that mentions the old name in a
+      comment reddens this task's verify.
+
+      STEP 1 — the helper, in factory_gh.py, beside _project_field_resolve.
+
+      Add a module-level query constant and a public function
+      issue_board_item_id(repo, number, board_number). repo is the "owner/name" string, number is
+      the issue number, board_number is the project number. It returns the board item id string,
+      or None when the issue has no item on that board.
+
+      The query selects, with variables $owner (String!), $name (String!), $number (Int!):
+      repository(owner: $owner, name: $name) { issue(number: $number) { projectItems(first: 100)
+      { totalCount nodes { id project { number } } } } }
+
+      Build the argv exactly as _project_field_resolve does: ["api", "graphql", "-f",
+      "query=" + <the constant>, "-f", "owner=" + owner, "-f", "name=" + name, "-F",
+      "number=" + str(number)], then call run_gh(argv, json_out=True). Split repo on "/" into
+      owner and name; a repo string that does not split into exactly two non-empty parts raises
+      GhError with what="malformed repository" and value=repo.
+
+      Reuse _project_field_resolve's partial-failure recovery verbatim in shape: catch GhError,
+      json.loads(e.stdout), and if the parsed object is a dict carrying a "data" key use it as
+      the envelope; otherwise re-raise a GhError whose what is "gh graphql call failed", whose
+      value is repo + " issue " + str(number), and whose next_step tells the operator to re-run
+      after checking gh auth status and network access.
+
+      THE DISCRIMINATION IS THE POINT OF THIS FUNCTION. There are two distinct outcomes and
+      conflating them breaks decompose. Absence is CORRECT and returns None. Only an
+      unrecognised or truncated response raises.
+
+      Return None for:
+        - repository.issue is null (the issue number does not exist), and
+        - a recognised, non-truncated nodes list containing no node whose project.number equals
+          board_number.
+
+      Raise GhError for:
+        - the envelope carries no "data" key, or data is not a dict. This one is a DELIBERATE
+          divergence from the sibling, not an oversight: _project_field_resolve does
+          env.get("data") or {} and does not raise there. Raising here is intended. Everything
+          else in this paragraph imitates the sibling;
+        - data carries no "repository" key at all, or repository is not a dict and not null;
+        - repository is null (what="repository not found", value=repo);
+        - repository is a dict carrying NO "issue" key at all. This is DISTINCT from a repository
+          dict whose "issue" is explicitly null, which returns None. Absence of the key is an
+          unrecognised shape; an explicit null is a real answer meaning the issue does not exist.
+          A helper written as issue = repository.get("issue"); if issue is None: return None
+          collapses the two and is WRONG — decompose then reads garbage as go-add-it and re-adds a
+          board item that already exists, the exact defect this function exists to prevent. Use an
+          explicit key-presence test before reading the value;
+        - the issue object carries no "projectItems" key, or projectItems is not a dict;
+        - projectItems carries no "nodes" key, or nodes is not a list;
+        - projectItems carries no "totalCount" key. Do NOT default it to 0 — project_items
+          records why: a default makes the guard permanently silent on exactly the response shape
+          it exists to catch;
+        - totalCount is present and not None but is not an int (a string, a list). Check the type
+          explicitly and raise GhError. Without the check, total > len(nodes) raises a bare
+          TypeError, which factory_cli traps at the same exit code, so it does not fail open — but
+          the operator loses the what/value/next_step triple every other raise in the module
+          carries and gets "unexpected failure: TypeError" instead;
+        - totalCount is greater than len(nodes) (what="issue projectItems truncated", value
+          naming repo, the issue number, the totalCount and the node count, next_step naming that
+          the issue is on more projects than the query returns);
+        - any node that is not a dict, carries no "id", carries no "project" dict, or whose
+          project carries no "number".
+
+      Every raise carries a real, actionable value — never a bare argv fallback. Follow
+      _project_field_resolve's GhError(argv, None, "", "", what, value, next_step) form.
+
+      Do NOT touch project_items or its totalCount guard. After this task the claim poll at
+      factory_claim.py:238 is its only remaining caller, and that poll is out of scope.
+
+      STEP 2 — factory_decompose.py.
+
+      This step and step 1 both edit files whose line numbers move as you work. ANCHOR BY QUOTED
+      TEXT, not by line number. Every anchor below is a quoted fragment; search for it.
+
+      _find_existing_item_id, whose body today is the loop "for it in
+      factory_gh.project_items(owner, board_number):", becomes a single delegation to
+      factory_gh.issue_board_item_id(repo, issue_number, board_number). The owner parameter is no
+      longer used: the signature becomes _find_existing_item_id(board_number, repo,
+      issue_number). Its single call site is the line reading
+      "item_id = _find_existing_item_id(owner, board_number, args.repo, num)" and becomes
+      "item_id = _find_existing_item_id(board_number, args.repo, num)" — args.repo, the
+      "owner/name" string, keeps the slot it already holds, and the board owner is dropped.
+
+      Never add an is:open filter or any open-only scoping here.
+
+      Docstring of _find_existing_item_id — three verdicts, by quoted fragment:
+        - KEEP the closed-issue clause, the sentence beginning "No `query=` filter:" through
+          "re-add this function exists to avoid." Its MEANING stays and it is the reason the
+          function exists, but its opening words describe an omitted parameter on a call that no
+          longer happens, so reword the opener: it becomes a statement that this lookup is
+          deliberately unscoped by issue STATE, not a statement about a missing query argument.
+          It is now true BY CONSTRUCTION rather than by omission: the new query is scoped
+          to a repository and an issue number with no state filter. Confirmed live on 2026-08-10,
+          read-only, against board 3: the targeted repository.issue.projectItems query returned
+          the board item for an issue in the CLOSED state. That observation is the property the
+          whole feature rests on — say so in the rewritten docstring.
+        - REWRITE the sentence "project_items already guards against a truncated read via
+          totalCount (factory_gh.py:180-192), so an unqueried read fails loud rather than silently
+          short." It becomes FALSE the moment the delegation lands — project_items is no longer in
+          this path and its guard is no longer the guard in play. Replace it with the truth: the
+          truncation guard now lives in factory_gh.issue_board_item_id, which raises when the
+          issue is on more projects than the query returns. Leaving the old sentence standing is a
+          falsified record.
+        - Do not add anything else to the docstring.
+
+      _item_repo becomes dead once _find_existing_item_id stops iterating board rows — the new
+      query is repository-scoped, so matching the repository in Python is no longer needed. Delete
+      the whole def _item_repo function, its docstring and its body, after confirming with grep
+      that nothing else in the tree references it. Its only caller is the line being replaced.
+
+      The explanatory comment block ABOVE _item_repo is NOT deleted wholesale. It is a block
+      opened and closed by two identical "# ----" rule lines. Verified at source on 2026-08-10:
+      the block spans those two rules inclusive, and the earlier draft's anchor ":277-280" was
+      wrong — deleting those four lines would have severed a sentence mid-clause and removed the
+      closing rule. Four verdicts, by quoted fragment:
+        - PRESERVE both "# ----" rule lines. The block keeps its delimiters.
+        - KEEP the sentence beginning "Re-add resolution (T-04 defect fix" through "is UNVERIFIED
+          to be idempotent." The resolve-before-add rule is still exactly why this code exists.
+        - REWRITE the sentence beginning "Reuses the EXACT field access factory_claim.py's poll
+          already depends on today" through "rather than guessing the project item-list JSON shape
+          fresh." It becomes FALSE: decompose reads no item-list fields at all after the swap,
+          neither content.number nor content.repository, and the _item_repo fallback it names no
+          longer exists. Replace it with a sentence saying the resolution is now one targeted,
+          repository-scoped GraphQL lookup through factory_gh.issue_board_item_id, which needs no
+          client-side repository matching.
+        - Add nothing else to the block.
+
+      STEP 3 — factory_land.py.
+
+      _find_item_id at :32-38 currently calls project_items with query="is:open". Its body becomes
+      a single delegation to factory_gh.issue_board_item_id(repo, number, board_number); change
+      the signature to _find_item_id(repo, number, board_number).
+
+      THE CALL SITE IS THE HAZARD, so it is spelled out. Today the call reads
+      "item_id = _find_item_id(owner, board_number, args.issue)" and the variable owner is
+      assigned one line above it as fleet["board"]["owner"] — the BOARD owner, a bare login. The
+      new first argument is args.repo, the "owner/name" repository string. The call becomes
+      "item_id = _find_item_id(args.repo, args.issue, board_number)". Do NOT keep passing owner:
+      it is in easy reach, it produces a call with the right shape and the right count, and the
+      Recorder in the unit tests records without validating, so a mis-wire would pass every unit
+      assertion and redden only in the integration script. owner stays in scope and is still used
+      by the project_field_set call below and by the not-found GhError message; only the
+      _find_item_id argument changes.
+
+      land must keep TODAY'S BEHAVIOUR EXACTLY, including refusing when the issue is closed. That
+      refusal is today a side effect of the is:open filter, which is going away, so replace it
+      with a deliberate check. At step 4, widen the existing
+      factory_gh.issue_view(args.repo, args.issue, ["title"]) call to request ["title", "state"];
+      this adds no call. At step 5, immediately before the _find_item_id call, raise the same
+      factory_gh.GhError land already raises when the issue's state is not "OPEN" — a distinct
+      what, "issue is not open", with the issue number as the value. The failure must stay at the
+      same point in the sequence as today: AFTER the branch push and AFTER the pull-request
+      create, and the station must never be set. Moving the check earlier is a behaviour change
+      and is not wanted.
+
+      Do NOT change the None-return path at :92-98. The latent bug it carries — a closed issue
+      making land fail so the item never reaches Review — is already filed as issue #238 and is
+      explicitly out of scope. Nothing in this task may fix it.
+
+      STEP 4 — factory_claim.py, the --issue branch at :227-236 only.
+
+      Leave the poll at :238 completely untouched: it still calls
+      factory_gh.project_items(owner, board_number, query=f'{station_field}:"{ready_option}"
+      is:open'). It asks what is claimable now, which is a list by nature.
+
+      Replace the --issue branch. --repo is optional alongside --issue and must stay optional, so
+      discover the repository by iterating fleet["repos"] in file order, skipping any entry whose
+      name is not args.repo when args.repo is given, and calling
+      factory_gh.issue_board_item_id(name, args.issue, board_number) for each. The first entry
+      returning a non-None id wins. Build raw_items as a single synthetic row shaped like the one
+      the rest of the function already consumes:
+      [{"id": <the item id>, "content": {"number": args.issue, "repository": <the fleet repo
+      name>}}]. That shape satisfies _repo_name_of's content.repository preference, so no warning
+      is printed and no URL normalisation runs. When no fleet repo yields an id, keep today's
+      refusal verbatim: factory_cli.refuse(TOOL, "issue not found on the board", args.issue,
+      f"board {owner}/{board_number}").
+
+      The --issue path must still funnel into the SAME candidate loop at step 4 and step 5 — do
+      not turn it into a straight-line branch. The exhausted-without-a-win path must still reach
+      factory_cli.nothing_to_do, so its exit code is unchanged.
+
+      THE CLOSED-ISSUE REFUSAL. Today a closed issue never reaches the loop, because is:open
+      hides its board row. After this change it does reach the loop, and the self-ownership
+      branch at 5a would emit a CLOSED issue this agent owns as claimable work — an agent picking
+      up finished work. So inside the candidate loop, when args.issue is not None and
+      issue.get("state") != "OPEN", call factory_cli.refuse(TOOL, "issue is not open", num,
+      <a next_step naming that a closed issue is finished work>) — and place that check BEFORE
+      the self-ownership branch at 5a, ahead of every other skip. The existing state skip that
+      prints and continues stays exactly as it is for the poll path.
+
+      The in-code comment above 5a, quoted here as the anchor — "5a. self-ownership FIRST, and
+      only under --issue — must precede every skip below, or an issue this agent owns (which
+      satisfies every skip condition) is unreachable." — becomes FALSE the moment the closed-issue
+      refusal lands ahead of it. Rewrite it: the closed-issue refusal now precedes 5a, 5a precedes
+      every OTHER skip, and the original reason (an issue this agent owns satisfies every skip
+      condition and would otherwise be unreachable) still holds for those other skips. A comment
+      the code contradicts is a falsified record; leaving it is not an option.
+
+      STEP 5 — the tests. Author these BEFORE the production edits above, and assert each
+      distinction with its own check() call. Equal call counts hide a miscredited neighbour, so
+      never assert a count where the distinction is what matters.
+
+      In test-factory-gh.py, using the existing argv-dispatching fake_run_gh idiom (the
+      project_field_set case around :288-305 is the model — it asserts no more and no fewer than
+      two calls and then reads argv[1:3]):
+        - one lookup emits exactly ONE call whose argv[1:3] == ["api", "graphql"], and ZERO calls
+          whose argv[:2] == ["project", "item-list"];
+        - the argv carries the issue number and both repository halves;
+        - a response with nodes containing an item on a DIFFERENT project number returns None and
+          does not raise;
+        - a response with an empty nodes list and totalCount 0 returns None and does not raise;
+        - a response whose issue is explicitly null returns None and does not raise;
+        - a response whose repository dict carries NO "issue" key at all RAISES. Assert this as
+          its own check() call, SEPARATE from the issue-null case above. Two cases sharing one
+          assertion are one case: the whole point is that null returns None and absent raises, and
+          only a pair of independent assertions can tell a correct helper from one that collapses
+          them;
+        - a response with no "projectItems" key RAISES;
+        - a response whose nodes is not a list RAISES;
+        - a response with no "totalCount" key RAISES;
+        - a response whose totalCount is a string rather than an int RAISES a GhError, asserted on
+          the exception TYPE being GhError and not TypeError;
+        - a response with totalCount 3 and one node RAISES, and the message names truncation;
+        - a node missing "id", and separately a node missing "project", each RAISE;
+        - a null repository RAISES with a message naming the repository, not the generic
+          graphql-call-failed text;
+        - the matching node's id is returned when project.number equals board_number.
+
+      In test-factory-decompose.py, test-factory-land.py and test-factory-claim.py, each of which
+      monkeypatches factory_gh's public surface over a Recorder: add issue_board_item_id to each
+      Recorder and to each module's patched-name tuple, then assert per site that
+      project_items was called ZERO times on the single-issue path and issue_board_item_id
+      exactly once. The zero-project_items half is what discriminates the fix from its absence,
+      and every Recorder already logs project_items.
+
+      A CALL COUNT IS NOT ENOUGH — pin the ARGUMENTS. The Recorder records and returns a canned
+      id; it never validates what it was handed, so a call wired to the wrong value has the right
+      count and the right name and passes a count-only assertion, reddening only in the
+      integration script. So make each Recorder store the full argument tuple for
+      issue_board_item_id, and assert the recorded tuple per site:
+        - land: the first element is the "owner/name" repository string the test passes as
+          args.repo — assert its VALUE, and assert explicitly that it is NOT the bare board-owner
+          login, which is the mis-wire this assertion exists to catch. Then the issue number, then
+          the board number;
+        - decompose: the repository string from args.repo, the issue number, the board number.
+          The call site already holds args.repo in the slot the reorder keeps, so this is expected
+          to pass on the first write — assert it anyway, so a later reorder cannot break it
+          silently;
+        - claim: the fleet repo entry's own "name" value, which is already an "owner/name" string,
+          then args.issue, then the board number.
+      Give the land tuple assertion a fixture whose board owner and whose repository string are
+      DIFFERENT values. If the fixture uses the same login for both, the assertion cannot fail
+      when the mis-wire happens and proves nothing.
+
+      Additionally:
+        - decompose: a partial-disposition task whose issue is CLOSED still resolves its existing
+          item id and issues no project_item_add for it;
+        - land: with a closed issue, the push and the pull-request create still happen and
+          project_field_set is never called (the field_set_calls == [] idiom already at
+          test-factory-land.py:245);
+        - claim: --issue on a closed issue exits refused with zero mutating calls and zero
+          create_ref calls, asserted twice — once for an issue the agent does not own, and once
+          for an issue carrying factory:claimed AND this agent in assignees, which is the case
+          the self-ownership branch would otherwise emit;
+        - claim: the poll path (no --issue) still calls project_items exactly once with the
+          station-and-open query string, unchanged.
+
+      In test-factory-integration.py, the forked stub gh (_FAKE_GH_SRC) already dispatches on the
+      ["api", "graphql"] argv prefix at :178 for FEAT-11's field-resolve query. Add a BRANCH
+      inside that existing dispatch, keyed on the query text, that answers the new
+      repository.issue.projectItems query from the stub's JSON state file with a totalCount and a
+      nodes list. Read the real argv factory_gh.py emits rather than guessing it.
+
+      THE SYNTHETIC NODE'S project.number MUST EQUAL THE FIXTURE'S BOARD NUMBER, 9 — the value
+      fleet_dict sets as board.number in test-factory-integration.py. issue_board_item_id matches
+      the board client-side against each node's project.number, so a placeholder there makes every
+      integration case return None and reddens SC-08 for a reason that has nothing to do with the
+      code under test. This is
+      mandatory, not optional: leave the stub unchanged and SC-08's end-to-end journey reddens,
+      which reddens the whole integration script and every other task's verify with it.
+
+      Do not add any new test FILE. Every assertion above lands in a file already registered in
+      run-unit-tests.sh's UNIT_SCRIPTS or INTEGRATION_SCRIPTS arrays; an unregistered file fails
+      the whole run on the drift detector.
+
+  - id: T-02
+    title: Record one live read-only rate_limit spot-check of a single board lookup
+    traces: [REQ-01]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .harness/features/FEAT-13-single-issue-board-lookup/notes/receipt-harness-backend-dev-live-spot-check.md
+    verify: |
+      test -s .harness/features/FEAT-13-single-issue-board-lookup/notes/receipt-harness-backend-dev-live-spot-check.md && grep -qE '^points_used: [0-9]+$' .harness/features/FEAT-13-single-issue-board-lookup/notes/receipt-harness-backend-dev-live-spot-check.md && grep -q '^item_id_match: ' .harness/features/FEAT-13-single-issue-board-lookup/notes/receipt-harness-backend-dev-live-spot-check.md
+    intent: |
+      Confirm on the live board that one lookup costs what the unit assertions imply and returns
+      the right item id. THIS IS A READ. No board write, no fixture snapshot, no restore, no
+      factory_decompose run. The operator explicitly declined a FEAT-11-style live measurement,
+      which cost a full UAT script and a fixture-protection ruling to produce a number the
+      call-shape assertion already implies.
+
+      Pick an issue that is already on board 3 and is NOT part of any in-flight factory work.
+      Issue #216 is a reasonable choice; any settled issue on board 3 works.
+
+      DERIVE THE REFERENCE ITEM ID LIVE, and do it OUTSIDE the measured window. Two recorded
+      artifacts give DIFFERENT ids for issue #216, sharing only the leading PVTI_lAHOAAases4Bf.
+      One live read-only query on 2026-08-10 settled it: the id in issue #217's body is the
+      correct one and the id at line 82 of
+      .harness/notes/grilling-board-read-lookups-2026-08-10.md is the wrong one. That dated note
+      is a record of what was observed then and is deliberately left standing. Derive the
+      reference live anyway — a prose anchor is corroboration, never the comparison target, and a
+      hardcoded expected value would turn this task's one live check into a tautology. Order the
+      steps so exactly one lookup sits between the two rate_limit readings:
+
+      1. Read the baseline: gh api rate_limit --jq .resources.graphql.used
+      2. Run exactly one lookup through the shipped helper, for example
+         python3 -c "import sys; sys.path.insert(0, '.claude/skills/harness/bin'); import
+         factory_gh; print(factory_gh.issue_board_item_id('mruangutai/harness', 216, 3))"
+      3. Read rate_limit again, the same way, and difference the two.
+      4. ONLY NOW, after the second reading, obtain the reference id independently — for example
+         gh project item-list 3 --owner mruangutai --format json filtered to that issue number —
+         and compare it to what step 2 returned. This read is deliberately outside the measured
+         window so it cannot contaminate the difference.
+
+      Write the receipt at the path in files: as plain text with these lines, one per line, and
+      no markdown decoration on the two machine-read keys:
+        points_used: <the difference, an integer>
+        item_id_match: <yes or no>
+      plus the issue number, the board number, the item id the helper returned, the reference id
+      from step 4, the exact command step 4 used to obtain it, the date, and the two raw
+      rate_limit readings. State plainly whether the difference is at most 5, and if it is not,
+      record the number as measured — do not soften it. A rate_limit reading taken while another
+      agent is calling gh is noisy; say so if the two readings cannot be attributed to this
+      lookup alone.
+
+      Do not run any board mutation. Do not run factory_claim, factory_land or factory_decompose
+      against the live board as part of this task.
