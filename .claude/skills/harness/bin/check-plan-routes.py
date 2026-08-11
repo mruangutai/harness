@@ -451,14 +451,14 @@ def discover_plans():
     and legitimately has zero features, and it still exits 0. Zero plans is not an error.
     """
     # THE PROBE IS THE MANIFEST FILE, NEVER `isdir(".harness")`, and that distinction is
-    # the only thing standing between this fix and B-7 reappearing in the REAL global
-    # installation shape. `deploy.sh:44` installs to `$HOME/.claude/skills`, so a globally
-    # installed copy derives `$HOME` as its project root — and `$HOME/.harness/` EXISTS on
-    # a machine that has ever run deploy.sh: it holds `registry.json`, written by
-    # `deploy.sh:46`. Verified on this machine. A reviewer ran the counterfactual: swap the
-    # file probe for a directory test and a global `check-plan-routes.py` prints
-    # `0 violation(s) across 0 plan(s)` and exits 0 — the exact defect this function was
-    # written to remove, in the installation most users have.
+    # the only thing standing between this fix and B-7 reappearing: a `.harness/`
+    # directory can exist under `$HOME` for reasons that have nothing to do with any
+    # project. `$HOME/.harness/` EXISTS on this machine because it holds the 2026-08-10
+    # backup archives, so any directory probe still resolves `$HOME` as a project root.
+    # Verified on this machine. A reviewer ran the counterfactual: swap the file probe
+    # for a directory test and running `check-plan-routes.py` from anywhere under such a
+    # `$HOME` prints `0 violation(s) across 0 plan(s)` and exits 0 — the exact defect
+    # this function was written to remove.
     #
     # `test-check-plan-routes.py` case (20) pins every copy of this probe to the same
     # filename for that reason. Do not "simplify" it to a directory check.

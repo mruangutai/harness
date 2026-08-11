@@ -26,7 +26,7 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 | Looking for | § | Cost |
 |---|---|---|
 | `.harness/` file layout, the question round-trip, state-consistency matrix, writer ownership, commit policy | **2** | 1.3k |
-| The 16-agent org, `team-config.yaml` manifest, `consult-when` routing, team conventions (Supabase/Astryx), deploy-vs-init, the roster table | **3** | 2.5k |
+| The 16-agent org, `team-config.yaml` manifest, `consult-when` routing, team conventions (Supabase/Astryx), the fleet — how a repository reaches the harness, the roster table | **3** | 2.5k |
 | Agent frontmatter (what Claude Code parses, and what to avoid), tool grants per tier, the domain hook, reviewer verdict mapping, autonomy | **4** | 2.0k |
 | Expertise — injection hook, entry IDs, update ops, curation, CEO feedback, project vs global tiers | **5** | 2.0k |
 | Rules vs Expertise — which is which, who writes each | **6** | 0.3k |
@@ -273,7 +273,7 @@ orchestrator:
 
 paths:
   agents: .claude/agents/
-  teams:  .claude/skills/harness/teams/    # shipped by deploy — REPLACED WHOLESALE on every push
+  teams:  .claude/skills/harness/teams/    # the repository's own team definitions — the default set
   team_overrides: .harness/teams/          # project-owned; resolved FIRST (DEC-113)
   features: .harness/features/
   expertise: .harness/expertise/
@@ -401,21 +401,36 @@ not silently worked around.
   (`PLAN.md ## Decisions`), not a silent drift.
 - **Deviating from a convention requires a `## Decisions` entry** and therefore your approval. An
   agent may not quietly choose a different substrate because it found one more convenient.
-- Templates ship the default conventions, so a new project inherits them without configuration
-  (§3.3).
+- The templates in this repository carry the default conventions, so a project onboarded by
+  `/harness-init` inherits them without configuration (§3.3, *The fleet — how a repository reaches the harness*).
 
-### 3.3 Distribution — `/harness-deploy` vs `/harness-init`
+### 3.3 The fleet — how a repository reaches the harness
 
-| Operation | Does | Touches project state? |
+**The harness is never copied into a product repository.** It lives in this repository, and it
+reaches a product repository by *checking that repository out* and working inside the checkout.
+There is no distribution step, no per-project copy of the skills, and nothing to keep in sync.
+
+| Piece | Is | Where |
 |---|---|---|
-| **`/harness-deploy`** | distributes the tool — **skills and templates** to global + enrolled projects, **agents to global only** (DEC-113) | **never** |
-| **`/harness-init`** | **THE onboarding interview** — run inside a project; asks project type, frameworks, and what you're building; writes every project artifact | yes, once |
+| **`fleet.yaml`** | the declaration — `repos:` (each `name` + `default_branch`), the `board:` the factory reads work from, and `workspace_root` | `.harness/factory/fleet.yaml` |
+| **`factory_config.py`** | the reader — resolves this checkout's root, holds `FLEET_PATH`, and exposes `load_fleet` / `repo_entry` / `station` / `workspace_path` | `.claude/skills/harness/bin/factory_config.py` |
+| **`factory_workspace.py`** | the materialiser — `git clone https://github.com/<repo>.git` into `workspace_root/<name>`, then checks out the issue branch | `.claude/skills/harness/bin/factory_workspace.py` |
 
-**Enroll = deploy + init.**
+**Every factory tool takes its repository, board and workspace path from `factory_config.py` and
+never parses `fleet.yaml` itself** — `factory_workspace.py:113`, `factory_land.py:46` and
+`factory_decompose.py` all call `factory_config.load_fleet()`. A second derivation is how two tools
+end up disagreeing about where a checkout lives. `FLEET_PATH` is absolute for the same reason: these
+tools run *inside another repository's checkout*, where a relative path would resolve against the
+wrong root.
 
-**Distributed templates** live at `.claude/skills/harness/templates/`: `team-config.yaml`,
-`harness.json`, `BRIEF.md`, `PLAN.md`, `STATE.md`, `DESIGN.md`, `gitignore.snippet`. They carry the
-canonical schema plus the generic org, with **placeholders** where a project differs.
+**Onboarding a repository is one edit:** add a `- name: <owner>/<repo>` entry (with its
+`default_branch`) under `repos:` in `.harness/factory/fleet.yaml`. The first factory run against it
+clones it under `workspace_root`; nothing is installed into it.
+
+**Templates** live at `.claude/skills/harness/templates/`: `team-config.yaml`, `harness.json`,
+`BRIEF.md`, `PLAN.md`, `STATE.md`, `DESIGN.md`, `plan.yaml`, `gitignore.snippet` and the rest. They
+carry the canonical schema plus the generic org, with **placeholders** where a project differs, and
+`/harness-init` reads them from this repository at onboarding time.
 
 **`/harness-init` is an interview:**
 
@@ -437,9 +452,9 @@ Mechanical detection (test-runner discovery, source layout → `domain` globs) i
 obviously-irrelevant reviewer from a specific panel.
 
 **Template versioning handles org changes.** Templates carry a `schema_version`. When the harness
-adds an agent, deploy pushes the new template but leaves the project's manifest alone; the state
-check notices the version gap and tells you to run `/harness-init --upgrade`, which merges new
-entries while preserving your `domain` values.
+adds an agent, the template in this repository moves ahead while the project's own manifest stays
+where it is; the state check notices the version gap and tells you to run `/harness-init --upgrade`,
+which merges new entries while preserving your `domain` values.
 
 ### 3.4 The roster
 
@@ -945,12 +960,14 @@ Both are read at task start and written by the agent that owns them.
 | Scope | generic, identical in **every** project | per-project |
 | Writer | **you**, in the harness repo | the agent itself (or the orchestrator on its behalf, §5.3) |
 | Delivery | `skills:` frontmatter — preloaded at spawn (§7) | `SubagentStart` hook injection (§5.1) |
-| Deploy | distributed and **overwritten** on every push | never touched |
+| Lives in | this repository, one tracked copy | the project's own `.harness/` |
 | Changes | deliberately, human-authored | continuously, self-maintained |
 
-**Rule skills are static — agents never write them.** This is structural: they are distributed, so
-an agent's edit would survive until the next `harness-deploy` and then vanish silently. Rules
-therefore *cannot* be agent-writable without breaking distribution.
+**Rule skills are static — agents never write them.** This is structural: they are the tool's own
+source, held in this repository, so an agent editing one would be silently changing the constitution
+every other repository is worked on under. No agent's `domain` in `.harness/team-config.yaml` grants
+a path under `.claude/skills/harness-*/` — the two grants that reach into the skill tree at all are
+`.claude/skills/harness/bin/**`, for the two agents that maintain the factory's scripts.
 
 **The eight rules**, each a **flat** skill at `.claude/skills/harness-<name>/SKILL.md` and referenced as
 `harness-<name>`:
@@ -974,8 +991,9 @@ earlier count said "seven" and omitted `systematic-debugging`, which §3.4 has a
 *values* still vary (`domain` globs, `test_kinds`, §3); project-specific *behavior* does not.
 
 **How a rule improves:** an agent notices a recurring problem → records it in its Expertise →
-surfaces at a CEO briefing → **you** decide → you edit the rule in the harness repo → deploy pushes
-it everywhere.
+surfaces at a CEO briefing → **you** decide → you edit the rule in this repository, and every run
+after that commit reads the new rule. There is nothing to push: the harness is read from this
+checkout, not from a copy inside each project.
 
 ---
 
@@ -1985,8 +2003,8 @@ The lead therefore records monotonic ordering markers rather than wall-clock tim
 **Invocation UX:** the primary entry is the team skill (triggers on "run the X team" / "assemble a
 team to…", taking team name + goal). No team name → the runner scans `teams/*.yaml` and lists
 `name` + `purpose` — the filesystem is the registry. **Team resolution precedence:** `.harness/teams/<name>.yaml`
-(project-owned, never touched by deploy) overrides `.claude/skills/harness/teams/<name>.yaml`
-(shipped, replaced wholesale on every push) — DEC-113.
+(project-owned, and the only one a project may edit) overrides
+`.claude/skills/harness/teams/<name>.yaml` (this repository's default set) — DEC-113.
 
 ---
 

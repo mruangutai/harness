@@ -554,10 +554,11 @@ def case_21():
 
     So test the PROPERTY instead: a directory holding `.harness/` but NO `team-config.yaml`
     must NOT be accepted as a project root. That is the whole reason the probe names the
-    manifest file, and it is the difference between working and B-7 in the real global
-    install — `deploy.sh` writes `$HOME/.harness/registry.json`, so `$HOME` has a `.harness/`
-    on every machine that has ever deployed. Any implementation that probes the directory
-    fails this, however it is spelled.
+    manifest file — a `.harness/` directory can exist under `$HOME` for reasons that have
+    nothing to do with any project: `$HOME/.harness/` exists on this machine because it
+    holds the 2026-08-10 backup archives, so `$HOME` has a `.harness/` on any machine with
+    that kind of unrelated content sitting under it. Any implementation that probes the
+    directory fails this, however it is spelled.
     """
     with tempfile.TemporaryDirectory() as td:
         # bin/ four levels down, so the from-__file__ derivation lands on `fake_root`.
@@ -955,8 +956,8 @@ def case_20():
     # CODED EXCEPTIONS, each naming its issue — never a silent skip, and never prose.
     # wayfind.py:46-54 probes the `.harness` DIRECTORY on purpose: it walks UP from the cwd
     # so a session inside a feature dir still resolves. That upward walk is also why it is
-    # exposed — `$HOME/.harness/` exists wherever deploy.sh has run (it holds
-    # registry.json), so from anywhere under $HOME with no project of its own it resolves
+    # exposed — `$HOME/.harness/` exists on this machine because it holds the 2026-08-10
+    # backup archives, so from anywhere under $HOME with no project of its own it resolves
     # $HOME as the project root. Found by THIS case on its first full-tree run, filed as
     # its own issue, and listed here rather than fixed inside PR #153, which is about a
     # different script.

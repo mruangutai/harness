@@ -26,25 +26,23 @@ You also get role-based reviewers that fire at key workflow points (see [Role Ga
 - [GSD](https://github.com/gsd-build/get-shit-done) installed globally
 - Claude Code CLI
 
-### New projects — automatic
+### Getting your repository into the harness
 
-Run `/gsd-new-project` as normal. If harness has been deployed on your machine, it activates automatically:
+**Nothing is installed into your repository.** The harness lives in *this* repository and works on
+yours by checking it out: add your repository to the fleet declaration
+`.harness/factory/fleet.yaml`, and the factory clones it under that file's `workspace_root` the
+first time it works there.
 
-1. Harness skills are copied to your project
-2. `agent_skills` entries are added to `.planning/config.json`
-3. Your project is registered for future harness updates
-
-Nothing extra to run. Harness is active from the first `/gsd-execute-phase`.
-
-### Existing projects — ask the maintainer
-
-If your project predates harness, ask the harness maintainer to run:
-
-```
-/harness-deploy /absolute/path/to/your-project
+```yaml
+# .harness/factory/fleet.yaml
+repos:
+  - name: your-org/your-repo
+    default_branch: main
+workspace_root: /Users/you/GitHub
 ```
 
-This copies skills, configures `config.json`, and registers your project.
+That entry is the whole onboarding step. `/harness-init`, run inside the checkout, then writes the
+project's own `.harness/` state — see `.harness/README.md`.
 
 ### Role gates
 
@@ -64,35 +62,24 @@ Role-based reviewers challenge assumptions at key workflow points. They are avai
 
 ## For Maintainers
 
-### Architecture
+### Architecture — one copy, checked-out targets
 
 ```
-harness repo (.claude/skills/harness/)   ← development copy (git-tracked)
+this repository                          ← the harness itself: skills, agents, factory scripts
+  .harness/factory/fleet.yaml            ← the declaration: repos, board, workspace_root
         │
-        │  /harness-deploy
+        │  bin/factory_workspace.py — git clone https://github.com/<repo>.git
         ▼
-~/.claude/skills/harness/               ← global distribution point (survives /gsd-update)
-        │
-        │  /harness-deploy <path>  or  auto on /gsd-new-project
-        ▼
-{project}/.claude/skills/harness/       ← per-project instance
-{project}/.planning/config.json         ← agent_skills entries pointing to above
-~/.gsd/harness-registry.json            ← registry of enrolled projects
+<workspace_root>/<repo>/                 ← a checkout of a product repository
+  .harness/                              ← that project's own state, written by /harness-init
 ```
 
-The harness repo is where you develop. `~/.claude/skills/harness/` is the distribution point. Projects get a copy via deploy or auto-activation — they never pull from the harness repo directly.
-
-### Why this survives `/gsd-update`
-
-`/gsd-update` replaces `~/.claude/get-shit-done/`, `~/.claude/commands/gsd/`, and `~/.claude/agents/gsd-*.md`. Everything harness uses is outside those paths:
-
-| Harness file | Why it's safe |
-|-------------|---------------|
-| `~/.claude/skills/harness/` | Not in `get-shit-done/` |
-| `~/.claude/agents/harness-*.md` | Not `gsd-` prefixed |
-| `~/.claude/CLAUDE.md` | Never touched by GSD update |
-| `~/.gsd/harness-registry.json` | Not in `get-shit-done/` |
-| `{project}/.claude/`, `.planning/` | Project-level, not global |
+There is **one** copy of the harness: this repository. A product repository never holds skills,
+agents or a manifest of them; it holds only its own `.harness/` state. The four factory scripts in
+`.claude/skills/harness/bin/` — `factory_claim.py`, `factory_decompose.py`, `factory_land.py` and
+`factory_workspace.py` — take their repository, board and workspace path from `factory_config.py`
+alongside them rather than parsing the fleet declaration themselves, and `factory_workspace.py` is
+the one that materialises the checkout.
 
 ### Repository structure
 
@@ -104,8 +91,7 @@ The harness repo is where you develop. `~/.claude/skills/harness/` is the distri
     harness-code-reviewer.md
     harness-qa-reviewer.md
     harness-security-reviewer.md
-  commands/
-    harness-deploy.md        ← /harness-deploy slash command
+  commands/                  ← slash-command entry doors (`/harness`, `/harness-plan`, …)
   skills/harness/
     SKILL.md                 ← routing index (do not load subdirs directly)
     tdd/
@@ -127,43 +113,21 @@ The harness repo is where you develop. `~/.claude/skills/harness/` is the distri
   config.json                ← agent_skills injection paths (project-level)
 ```
 
-### Deploying skill updates
+### Changing the harness, and adding a skill
 
-After changing anything in `.claude/skills/harness/`:
+**There is no publish step.** Commit the change here and the next factory run uses it — the harness
+is read from this checkout, so nothing has to be pushed anywhere and nothing can be out of date in a
+product repository.
 
-```
-/harness-deploy
-```
+To add a skill: create `.claude/skills/harness-<name>/SKILL.md` — **flat**, exactly one level under
+`.claude/skills/`, never nested — and add `harness-<name>` to the `skills:` list of each agent in
+`.claude/agents/` that should preload it.
 
-This:
-1. Copies `.claude/skills/harness/` → `~/.claude/skills/harness/`
-2. Regenerates `~/.claude/skills/harness/manifest.json` from `config.json` agent_skills
-3. Pushes updated skills to all registered projects
+### Onboarding another repository
 
-### Enrolling an existing project
-
-For any GSD project that predates harness:
-
-```
-/harness-deploy /absolute/path/to/project
-```
-
-This copies skills, merges `agent_skills` into `config.json`, and registers the project. Future `/harness-deploy` (no args) will include it automatically.
-
-### Adding a new skill
-
-1. Create the skill file(s) under `.claude/skills/harness/`
-2. Add a `SKILL.md` index if creating a new subdirectory
-3. Add the agent type → skill path mapping to `agent_skills` in `.planning/config.json`
-4. Run `/harness-deploy` — manifest is regenerated and all registered projects receive the update
-
-### The manifest
-
-`~/.claude/skills/harness/manifest.json` is the single source of truth for which `agent_skills` entries get written to enrolled project `config.json` files. It is regenerated from `config.json` on every `/harness-deploy` — never edit it directly.
-
-### Auto-activation trigger
-
-`~/.claude/CLAUDE.md` contains a trigger that fires after `/gsd-new-project` completes. It reads the manifest, copies skills to the new project, merges `config.json`, and registers the project. This is the zero-setup path for all new projects going forward.
+Add it to `repos:` in `.harness/factory/fleet.yaml` (see *Getting your repository into the harness*
+above). There is no per-project skill tree to create, no registry to update, and nothing to keep in
+sync afterwards.
 
 ### Role gates — global integration (in progress)
 
@@ -172,8 +136,5 @@ Role gate agents currently live in `.claude/agents/` (harness repo only) and tri
 - Move agents to `~/.claude/agents/` (globally available in all project sessions)
 - Add trigger instructions to `~/.claude/CLAUDE.md` (apply to all GSD projects)
 
-Until that ships, role gates work in the harness project automatically and in other projects via `CLAUDE.md` instructions added during enrollment.
-
-### Key constraint: agent_skills paths are project-relative
-
-GSD's `validatePath` rejects absolute paths for `agent_skills`. Skills must be under the project root. This is why each project needs its own `.claude/skills/harness/` copy rather than referencing `~/.claude/skills/harness/` directly. The deploy mechanism handles this — you never manage per-project skill files manually.
+Until that ships, role gates work in the harness project automatically and in other projects via
+`CLAUDE.md` instructions.

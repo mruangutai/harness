@@ -43,8 +43,8 @@ orchestrator:
 
 paths:
   agents: .claude/agents/
-  teams: .claude/skills/harness/teams/     # shipped by deploy — REPLACED WHOLESALE on every push
-  team_overrides: .harness/teams/          # project-owned; deploy never touches it. Resolved FIRST (DEC-113)
+  teams: .claude/skills/harness/teams/     # the shipped set, owned by harness
+  team_overrides: .harness/teams/          # project-owned. Resolved FIRST (DEC-113)
   features: .harness/features/
   expertise: .harness/expertise/
 
@@ -194,8 +194,8 @@ teams:
           - { path: .harness/expertise/harness-dev-ops.md, upsert: true }
           - { path: ".", read: true }
         # SHARP EDGE (DEC-85): dev-ops holds Bash, which bypasses path checks
-        # entirely. It is trusted by design — it owns deploy — and the
-        # compensating control is that merge and deploy stay user-gated.
+        # entirely. It is trusted by design — it owns the build and release
+        # tooling — and the compensating control is that merge stays user-gated.
 
   # ───────────────────────────────────────────────────────────────────────────
   - team-name: Validation

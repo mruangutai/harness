@@ -30,24 +30,24 @@
 - P-09: WHEN handed a claim that a test already covers a property DO mutate the tool to violate the
   property and see which cases redden. Cited lines are often comments, not assertions. A mutant
   that reddens every case is broken, not evidence of strong coverage.
-- P-10: WHEN an inspection criterion says where to look DO anchor it on content strings, never line
-  numbers. Anchors taken at the base commit rot inside a single feature's lifetime, leaving the
-  criterion unverifiable as written while the content it protects is intact.
+- P-10: WHEN a criterion or task cites a location DO anchor it on content text, never on a line
+  number or an ordinal such as a test-case number. Both rot inside one feature's lifetime as files
+  are reordered, leaving the claim unverifiable while the content it protects is intact.
 - P-11: WHEN a criterion names the mechanism behind a behaviour DO confirm the code uses that
   mechanism before signature, or state the observable outcome instead. A criterion false only in
   its mechanism routes as a fix cycle against working code, never as a re-signature.
-- P-12: WHEN a criterion presupposes a case exists in the data, such as a path granted by only one
-  pattern, DO enumerate that data for an unshadowed instance first. If every candidate is shadowed
-  by a broader entry, no fixture discriminates and the criterion is unprovable as written.
+- P-12: WHEN tasks partition a token sweep DO run the widest verify pattern tree-wide at plan time,
+  assign every hit to an owning task, and order the sweeping task after them. A narrower pathspec
+  upstream is a blind pass; the widest grep is the real survey.
 - P-13: WHEN a criterion's clauses are verified DO count techniques, not clauses. Several source
   greps share one blind spot, and a single idiom change defeats them together. Balanced clause and
   fixture counts hide this. Give at least one clause a behavioural check.
 - P-14: WHEN a brief names a hazard DO probe the opposite input condition as well before planning
   against it. The named half is the half someone already noticed; the unnamed half often fails
   open, exiting clean where the named one fails loudly.
-- P-15: WHEN a criterion states an aggregate budget over a whole run DO cost the components the
-  change does not touch before signature. A model derived from the code under change under-states
-  a total the criterion measures end to end, and only the goal-check finds it.
+- P-15: WHEN a task's intent directs the doer to write a factual claim about the codebase DO verify
+  that claim at source before shipping the task. You author both halves, no sweep catches a false
+  claim that is correctly spelled, and the doer either refuses or propagates it.
 
 ## Gotchas (max 15)
 - G-01: WHEN citing or counting anything in a file another agent may be editing DO pin the figure
@@ -68,9 +68,9 @@
 - G-06: WHEN confirming a criterion built from several tokens DO enumerate every hit with the full
   pattern and confirm each sits inside text the change removes. Greping one token of five verifies
   one fifth of the claim; file-level arithmetic is not evidence.
-- G-07: A sibling feature's worktree under `.claude/worktrees/` is a second full copy of the repo
-  inside the search path. `.gitignore` hides it from `git grep` but not from `grep -r`, so exclude
-  it or a working-tree figure and a pinned one disagree by an order of magnitude.
+- G-07: A sibling worktree under `.claude/worktrees/` is a full second copy inside the search path:
+  the main tree's `.gitignore` hides it from `git grep` there but not from `grep -r`. Its files are
+  tracked on its own branch, so the parent's ignore rules say nothing about the child's index.
 - G-08: WHEN a task adds a file to a suite that keeps an explicit registration list DO register it
   in that same task. A drift detector fails the WHOLE run on an unregistered file, reddening every
   other task's verify. Exemplar: the SCRIPTS array in this repo's unit-test runner.
@@ -83,6 +83,18 @@
 - G-11: WHEN a later signed ruling falsifies prose inside an approved brief DO report the
   contradiction and leave the prose standing. Editing a signed artifact is a re-signature, not a
   record correction, but the brief is what the next reader opens.
+- G-12: A plain YAML scalar containing a space then a hash starts a comment: `safe_load` truncates
+  the value there, so an inline issue reference silently deletes the rest of the sentence. Write
+  prose scalars folded or quoted, then reload the file and confirm each value's tail survives.
+- G-13: WHEN you narrow or correct a claim in one section of an artifact you are revising DO grep
+  the whole artifact for the claim's tokens and fix every occurrence in the same edit. Fixing only
+  the cited section leaves two contradictory statements inside one document.
+- G-14: WHEN a verify asserts absence by counting DO NOT wrap the search in
+  `test "$(cmd | wc -l)" = 0`: a search that errors prints nothing, the count is zero and the test
+  passes. Assert the search's exit status, or pair it with a positive control that must match.
+- G-15: WHEN a criterion will be graded against working-tree state rather than a commit DO make the
+  task name its before and after capture commands and their output artifacts. Untracked files leave
+  no commit evidence, so a missing capture is unrecoverable and stays invisible until goal-check.
 
 ## Outcomes (max 10)
 
