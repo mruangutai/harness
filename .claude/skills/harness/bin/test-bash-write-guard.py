@@ -141,6 +141,7 @@ teams:
       - name: harness-backend-dev
         domain:
           - { path: allowed/**, upsert: true }
+          - { path: .harness/allowed/**, upsert: true }
           - { path: ".", read: true }
 """
 
@@ -212,11 +213,24 @@ def run_t14():
     T14.append(("an ABSENT manifest still fails OPEN (DEC-151 carve-out intact)",
                 r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:160]}"))
 
-    # D-03's point: both hooks now compute domains from ONE function, so the same
-    # agent and path must get the same verdict from either write surface.
+    # Both hooks compute domains from ONE function, so the same agent and path must get
+    # the same verdict from either write surface.
+    #
+    # THE ALLOW HALF MOVED to a control-plane path on 2026-08-11, and the reason is a
+    # real divergence rather than a fixture detail. FEAT-15 taught check-domain.sh that
+    # a product-shaped target inside the harness root is refused, and bash-write-guard.sh
+    # was out of that feature's scope. Measured after the change, with `src/**` granted
+    # to harness-backend-dev and the target <root>/src/main.py: Write exits 2, Bash
+    # exits 0. So on a product-shaped in-root path the two surfaces genuinely DISAGREE,
+    # and asserting agreement there would fail for a true reason.
+    #
+    # Filed rather than papered over — see the P0 ticket for the shell route. This case
+    # keeps its original job (proving both guards read one rulebook) on a path where
+    # that property still holds, and it stays discriminating: the forbidden half is
+    # unchanged, so an allow-all guard still fails it.
     root = fixture(FIXTURE_MANIFEST)
     cd = os.path.join(HERE, "check-domain.sh")
-    for rel, want in (("allowed/x.txt", 0), ("forbidden/x.txt", 2)):
+    for rel, want in ((".harness/allowed/x.txt", 0), ("forbidden/x.txt", 2)):
         tgt = os.path.join(root, rel)
         b = fire(root, f"echo hi > {tgt}")
         w = subprocess.run([cd], input=json.dumps(

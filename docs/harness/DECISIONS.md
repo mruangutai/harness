@@ -4646,6 +4646,61 @@ them with a test.**
 work. The user considered stopping self-hosting entirely and chose the carve-out; the stronger position
 stays available and is a stage question, not a correctness one.
 
+### am.1 (2026-08-11) — three checkout modes, and the factory workspace is not one of them
+
+FEAT-15 gave `check-domain.sh` two bases, and that made a question visible that the original ruling
+never faced: harness code can be edited from three different checkout shapes, and they do not carry the
+same rights. Resolved with `--resolve` on the SAME file,
+`.claude/skills/harness/bin/check-domain.sh`, at this tree:
+
+| mode | path | `--resolve` | ever used? |
+|---|---|---|---|
+| factory workspace clone | `harness-factories/harness/.claude/…` | **NOBODY** | **never** — `/Users/molchairuangutai/GitHub/harness-factories` does not exist |
+
+Measured before the removal below. **The removal changed this verdict, and the change is recorded
+because the first draft of this amendment asserted the old one.** With `mruangutai/harness` gone from
+`repos:`, that path is no longer inside any `workspace_bases` entry, so it no longer reaches the
+product base at all — `--resolve` now exits **2**, "under the factory workspace but belongs to no
+repository declared in fleet.yaml". The enforcement got louder, not quieter, but the mechanism is the
+unlisted-repo branch and no longer glob filtering. A reader who cites "returns NOBODY" is citing the
+pre-removal tree.
+| worktree | `.claude/worktrees/FEAT-13-…/.claude/…` | `harness-backend-dev`, `harness-dev-ops` | yes — FEAT-13, merged as #260 |
+| live checkout | `.claude/…` | `harness-backend-dev`, `harness-dev-ops` | yes — the ordinary case |
+
+A worktree sits UNDER the repository root, so `_inside(target, root)` holds and it lands in the harness
+base with full rights. A factory clone lands under `workspace_root`, outside the root, so it resolves in
+the product base where control-plane globs are filtered — and harness's own source lives almost entirely
+in `.claude/skills/harness/bin/**` and `.harness/**`. A factory-dispatched agent would be refused writes
+to most of the thing it was sent to change.
+
+**The ruling.** Harness develops itself in the live checkout and in worktrees under it. The factory
+workspace is not a harness development mode. `mruangutai/harness` is REMOVED from
+`.harness/factory/fleet.yaml` `repos:` so this is mechanical rather than prose, and
+`test-no-distribution.py` `case3_absence_harness_is_not_a_fleet_member` fails if it is re-added.
+
+**Capability was never sanction, and that is what looked like a contradiction.** The entry made the
+factory route REACHABLE from the day FEAT-10 wrote it. Nothing made it ALLOWED, and nobody ever took it.
+FEAT-15 did not open this door — before FEAT-15 a write to a factory clone got no verdict at all and
+landed silently; now it returns NOBODY. FEAT-15 made an existing hole visible and closed it.
+
+**The cost, stated rather than argued away.** Removing the entry costs nothing measurable today, because
+no factory workspace has ever existed. It costs later: if harness ever wants factory-style parallel
+dispatch across many issues, the entry comes back and this amendment is revisited with it.
+
+**A loose end this amendment does NOT close, and it is not deferrable.** `fleet.yaml` `board.number: 3`
+is the *Harness* board. Measured 2026-08-11: `gh project item-list 3 --owner mruangutai` returns **30
+items, all 30 `mruangutai/harness`, zero kaya-ai**; `gh project list --owner mruangutai` shows board 2
+is "kaya-ai".
+
+So the fleet now holds exactly one repository — kaya-ai — and points its station board at a board that
+contains no kaya-ai issue. The operator has stated that factory runs against kaya-ai are the primary use
+case for the factory. That run reads board 3 for an issue that is not there.
+
+This is left open because retargeting the board is a separate decision with its own consequences — the
+30 harness issues on board 3 are the live effort tracker, and `harness.json` `github.repo` still points
+at `mruangutai/harness` for the issue mirror, which is a different mechanism from the factory station
+board. It is recorded here as OWED, not as an accepted state.
+
 ## DEC-175 — The engineering return declares which task it is answering: `task: T-NN|none` gates `task_verify`, and a self-reported gate FAILURE stops being a pass
 
 Three things ship together and each is unintelligible without the others: the `task_verify` field, the
@@ -5447,3 +5502,71 @@ overtaken — is amended, and striking it needs the operator's word first.
 **Struck decisions keep their heading and a strike record.** They are not deleted from the file. A
 reader who finds `DEC-103` cited in a shipped digest must land somewhere that explains what happened,
 and an absent entry reads as a broken reference rather than a decision.
+
+## DEC-189 — The write guard resolves against two bases, and which one applies is decided from the target
+
+**The factory works on repositories it does not contain.** A product repo lives on its own, is
+checked out under the fleet's `workspace_root`, and is worked on from a harness-rooted session — so
+it is harness's hooks that fire, never the product's. Until this rule the guard had one base, the
+harness checkout, and every path outside it received **no verdict at all**: not a refusal, not a
+message, not a log line. The twelve product-shaped entries in `team-config.yaml` described paths the
+guard never evaluated. They appeared to work only because harness happens to own a `docs/` and a
+`README.md` of its own.
+
+**A target resolves against the harness checkout, or against the checkout of a repository declared
+in the fleet.** Which base applies is decided from the **target**, never from the manifest entry,
+and there is no manifest schema change.
+
+The rule is two-sided, and stated mechanically because prose is what admits the wrong reading:
+
+- **In the harness checkout** every entry is matched, product-shaped and control-plane alike, and a
+  match is accepted only when the base-relative target is **control plane** — its first path segment
+  is `.harness` or `.claude`, or it is one of four named harness paths: `docs/harness/**`,
+  `docs/PRINCIPLES.md`, `README.md`, `.github/**`.
+- **In a product checkout** entries whose first segment is `.harness` or `.claude` are excluded and
+  the rest apply normally. **The four named paths are not consulted there.** They are target-side
+  only, so a product repository keeps its own readme, its own docs and its own CI — the files its
+  documentor and its dev-ops exist to write.
+
+Consequently a `src/**` grant refuses `<harness>/src/main.py` and permits `<product>/src/main.py`; a
+`.harness/expertise/**` grant permits it here and refuses it inside a product checkout; and a
+`docs/**` grant reaches `<harness>/docs/harness/guide.md` and `<product>/docs/guide.md` both.
+
+**Lineage.** The shared block this narrows is DEC-85's. The guard being changed is the one DEC-174
+carves out of self-hosted execution, so this landed as direct main-session edits with the tests run
+explicitly. DEC-151's sibling guard on the Bash route is **not** changed here, and the asymmetry that
+leaves is filed rather than absorbed.
+
+**Target-keyed is not a preference, it is the only shape that expresses the rule.** `team-config.yaml`
+grants `docs/**` and contains no `docs/harness/**` entry anywhere. A glob-keyed classifier would have
+nothing to match two of the four named paths against.
+
+**Three boundary answers, so none is inferred.** A path under the workspace root belonging to no
+declared repository is **refused** — a checkout there for an unlisted repo is stale or a mistake. A
+fleet declaration that exists and cannot be read **closes every write**, not only writes to workspace
+paths, because the value that identifies product paths is the one that failed; enforcing the readable
+parts would mean classifying paths with the classifier missing. An **absent** declaration changes
+nothing: a project with no factory has no second base and keeps the prior behaviour exactly. A path
+outside both bases still receives **no verdict** — `/tmp` is not the repo, is not deployed, and is
+not state.
+
+**The accepted risk, recorded so it is not rediscovered as a defect: this is one more place to
+remember.** A harness-owned path beginning with neither `.harness/` nor `.claude/` and absent from
+the four named paths is treated as a product path. A per-entry base tag, a two-list split and a
+value-level prefix marker were each offered and declined, because each changes the grammar every
+future entry must carry. **No detection machinery is added.** The omission is accepted, not fixed.
+
+**What lost a route, stated precisely rather than generally.** Observed at `d0f0ee9`:
+
+- **No live harness file loses one.** The four named paths carry harness's own docs, its
+  constitution, its readme and its CI, which is why they were named. This rests on nothing in
+  `docs/` sitting outside `docs/harness/` except `docs/PRINCIPLES.md`, which was checked rather than
+  assumed.
+- **The shared block loses its route in the harness checkout.** All eight entries are dependency
+  manifests and lockfiles — `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`,
+  `pyproject.toml`, `uv.lock`, `requirements.txt`, `tsconfig.json` — and none is control plane, so
+  each stops being a serialized allow and becomes a refusal here. Serialized-allow survives where
+  those files actually live: a product checkout.
+- **The live set of affected files is EMPTY**, stated explicitly rather than omitted: none of those
+  eight exists in the harness repository. The consequence is latent. Adding one would need it named
+  the way the four are named.
