@@ -1,30 +1,56 @@
 feature_id: FEAT-13-single-issue-board-lookup
 mission: ship
-phase: build
+phase: validate
 status: in_progress
 branch: feat/FEAT-13-single-issue-board-lookup
 pr: none
 effort: https://github.com/mruangutai/harness/issues/217
 grilling: .harness/notes/grilling-board-read-lookups-2026-08-10.md
 briefing: none
-review_sha: none
+review_sha: 56abf27
 handoff: .harness/features/FEAT-13-single-issue-board-lookup/notes/handoff-plan.md
 cycles_used: 2
 max_total_cycles: 10
 max_total_runs: 20
 counts: { reqs: 6, scs: 10, sc_automated: 9, sc_inspection: 1, sc_uat: 0, tasks: 2, decisions: 6, main_session_direct: 0 }
-tasks: { T-01: DONE, T-02: PENDING }
+tasks: { T-01: DONE, T-02: DONE }
 runs:
   - { id: 2026-08-10-01-product, squad: product, verdict: PASS }
   - { id: 2026-08-10-02-eng, squad: eng, verdict: PASS }
   - { id: 2026-08-10-03-product, squad: product, verdict: PASS }
   - { id: t01-eng, squad: eng, verdict: PASS }
-sc_tally: { met: 0, partial: 0, not_met: 0, note: "build phase - goal-check not yet run" }
+  - { id: qa-validator, squad: validator, verdict: PASS }
+  - { id: t02-eng, squad: eng, verdict: PASS }
+sc_tally: { met: 0, partial: 0, not_met: 0, note: "pm goal-check not yet run - this tally is pm's to fill, not mine" }
 gate_status:
   brief_approval: "APPROVED - operator, 2026-08-10, verified on disk by me"
   plan_approval: "APPROVED - operator, 2026-08-10, verified on disk by me"
-  qa_gate: "NOT RUN - blocking, sequenced next"
-  review: "NOT RUN"
+  qa_gate: "PASSED - blocking gate satisfied at 56abf27, matrix_ok, re-run by me"
+  review: "NOT RUN - panel is the next segment"
+qa_gate_verified_by_me: >-
+  NOT RELAYED. qa reported matrix_ok on unit and integration; I re-ran the CONFIGURED integration
+  command rather than the one my own dispatch named. That distinction was qa's finding, not mine -
+  my dispatch named python3 test-factory-integration.py, which is T-01's verify clause, while
+  harness.json test_kinds.integration.cmd is run-unit-tests.sh --kind integration and is strictly
+  broader. Both exit 0. I also re-checked qa's mutant restores: qa could not mutate repo files under
+  defect #218, so it copied bin/ to scratch and mutated the copy, and bin/ in the worktree is
+  byte-identical to 56abf27 with a clean git status. All four mutants reddened.
+qa_adequacy_limit: >-
+  STATED BY THE LEAD AND CARRIED, because it is the honest bound on what green buys. Reachability is
+  proven for 4 of 9 SCs - SC-03, SC-06, SC-07 and land's half of SC-02 have mutant evidence. SC-01,
+  SC-04, SC-05, SC-08, SC-09 and the decompose and claim halves of SC-02 have assertions that pass
+  but whose strength is unproven. The lead declined to make that a must_fix on the grounds that
+  padding the gate list makes the gate mean less. I agree and did not overrule it.
+t02_measured: >-
+  points_used 1, item_id_match yes, receipt verify re-run by me exit 0. TAKEN TWICE because board 3
+  carries other flows' traffic: null control 1 to 1 delta 0, round 1 delta 1, round 2 delta 1. The
+  two rounds AGREED, so no number was chosen over another and nothing was suppressed. 1 is at most
+  5, clearing SC-10 with margin, against the plan's recorded baseline of 203 points for decompose
+  and 102 each for land and claim. The helper returned PVTI_lAHOAAases4BfZ9Zzg2AMPA in both rounds
+  and the independently derived live reference matched it exactly.
+review_sha_note: >-
+  Pinned at a commit that CONTAINS the work under review, and re-pinned after every commit. An
+  inherited pin reviews a tree the work is absent from and returns PASS on nothing.
 github:
   milestone: 7
   parent: 244
@@ -33,11 +59,6 @@ github:
   issues:
     T-01: 245
     T-02: 246
-  close_task_deferred: >-
-    T-01's sub-issue 245 is deliberately NOT closed at its commit, which is the playbook's stated
-    trigger. The blocking qa gate has not run yet, and a rework would leave a closed issue against
-    live work. The mirror never gates anything, so waiting one gate costs nothing and keeps the
-    record true. Disclosed rather than done silently.
 roots:
   worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/FEAT-13-single-issue-board-lookup
   main_checkout: /Users/molchairuangutai/GitHub/harness
@@ -55,38 +76,38 @@ wrong_root_tripwire: >-
   in both trees, so the domain hook passes, and a verify run in that same tree passes with it. The
   work would land on FEAT-12's branch silently. RUN AFTER T-01 AND CLEAN: git diff --quiet
   origin/main over all nine in-scope files in the main checkout, all nine byte-identical. FEAT-12
-  meanwhile advanced there independently (documentor T-14), which is the flow the worktree spared.
+  meanwhile advanced there independently, which is the flow the worktree spared.
 t01_verified_by_me: >-
   NOT RELAYED. I re-ran T-01's whole verify chain myself from the worktree root - unit suite 10/10
-  scripts PASS exit 0, test-factory-integration.py 97/97 exit 0, the helper def present, and the
-  literal factory_gh.project_items counting 0 in decompose, 0 in land and exactly 1 in claim, which
-  is the structure the verify demands. Also confirmed by reading source rather than the digest -
-  _find_existing_item_id is a bare delegation carrying no query= and no state scoping, and
-  _item_repo has zero remaining references anywhere in bin/.
+  scripts PASS exit 0, integration 97/97 exit 0, the helper def present, and the literal
+  factory_gh.project_items counting 0 in decompose, 0 in land and exactly 1 in claim. Also confirmed
+  by reading source rather than the digest - _find_existing_item_id is a bare delegation carrying no
+  query= and no state scoping, and _item_repo has zero remaining references anywhere in bin/.
 plan_text_defect_found: >-
   T-01's intent specifies the zero-item-list assertion as argv[:2] == ["project", "item-list"],
   which CAN NEVER BE TRUE - run_gh at factory_gh.py:88 does [gh] + list(args), so argv[0] is the
-  binary. Premise re-derived by me at source rather than accepted from the digest. As written it is
-  a vacuous negative assertion under SC-01 and SC-02. The member wrote argv[1:3], the form every
-  other assertion in that file uses, so the CODE is right and the SC's own wording - asserted on the
-  argv the helper actually builds - is satisfied. The approved plan's prose is the thing that is
-  wrong, and amending it is pm's under the operator's signature, not mine. Non-blocking, carried to
-  the briefing.
+  binary. Premise re-derived by me at source. As written it is a vacuous negative assertion under
+  SC-01 and SC-02. The shipped tests use argv[1:3], the form every other assertion in that file
+  uses, so the CODE is right and the SC's own wording - asserted on the argv the helper actually
+  builds - is satisfied. Found independently by eng-lead and by qa. The approved plan's PROSE is the
+  thing that is wrong, and amending it is pm's under the operator's signature, not mine.
 grilling_note_unreachable: >-
   The BRIEF, plan.yaml approval.rulings and this file all cite
   .harness/notes/grilling-board-read-lookups-2026-08-10.md as binding, and it is NOT REACHABLE FROM
-  THIS BRANCH. It was committed at c633bbd on chore/203-end-copy-distribution only - absent from
-  main and absent from feat/FEAT-13. The plan phase ran in the main checkout while it sat on the
-  chore branch, so nobody noticed. eng-lead disclosed reading the main checkout's copy read-only to
+  THIS BRANCH. Committed at c633bbd on chore/203-end-copy-distribution only - absent from main and
+  absent from feat/FEAT-13. The plan phase ran in the main checkout while it sat on the chore
+  branch, so nobody noticed. eng-lead disclosed reading the main checkout's copy read-only to
   confirm the ## Settled content. Record integrity issue for the operator, not a build defect.
+query_constant_unguarded: >-
+  RAISED BY eng-lead, CONFIRMED BY qa, NOT FIXED, and correctly so. No test references
+  _ISSUE_ITEM_QUERY, so nothing at the unit layer stops a future edit reintroducing a state filter
+  into the query text - a regression there would pass every existing assertion. The property is true
+  by construction today and the signed step-5 list does not call for a query-text assertion, so
+  adding one exceeds the approved plan. Routed to the review panel and carried to the briefing.
 plan_digests_copied: >-
-  .gitignore holds .harness/features/*/runs/**, so the three plan-phase run dirs existed only in
-  the main checkout and would never have appeared in the worktree the ship briefing is assembled
-  from. Copied across at setup. They are closed and nothing writes them again.
-q_resolved_at_sha: >-
-  SETTLED IN THE PLAN PHASE, carried because it is not in the handoff. plan.yaml records
-  lanes.resolved_at bbfc9bb where the dispatch named c633bbd. bbfc9bb is a real ancestor commit
-  touching only a log and an unrelated grilling note - no source, no team-config change.
+  .gitignore holds .harness/features/*/runs/**, so the three plan-phase run dirs existed only in the
+  main checkout and would never have appeared in the worktree the ship briefing is assembled from.
+  Copied across at setup. They are closed and nothing writes them again.
 team_config_divergence: >-
   This branch's team-config.yaml differs from origin/main by one removed row, documentor's receipt
   grant from PR #222. No bin/** row differs. THE HOOK READS THE MAIN CHECKOUT'S COPY because hooks
@@ -97,6 +118,8 @@ design_pass: >-
   harness-visual-designer NOT spawned - product-lead's recorded judgment, not a silent skip. The
   surface is a Python CLI whose only output is refusal text and exit codes.
 cycles_note: >-
-  2 charged, both in the plan phase, both genuine rework - a dangling SC-19 pointer in T-01's
-  dispatch prompt, and three eng-review must_fix routed back to pm. T-01's build run was FIRST-PASS
-  CLEAN and charged ZERO, which is the correct accounting under DEC-157.
+  2 charged, BOTH in the plan phase, both genuine rework - a dangling SC-19 pointer in T-01's
+  dispatch prompt, and three eng-review must_fix routed back to pm. Every build-phase and
+  validate-phase run so far was FIRST-PASS CLEAN and charged ZERO, which is the correct accounting
+  under DEC-157. T-02's member was bounced once by the digest hook on a suite-field technicality;
+  that is a hook re-prompt, not a lead send-back, and it charges nothing.
