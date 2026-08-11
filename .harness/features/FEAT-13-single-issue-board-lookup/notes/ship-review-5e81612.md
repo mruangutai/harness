@@ -71,21 +71,24 @@ was in flight** — which is how I know it is live rather than stale. FEAT-13 mo
 `check-expertise.sh` validates **format, not lineage**, so a file that silently loses another
 feature's rules passes it cleanly. Two leads hit this independently and both returned it blocking.
 
-**What I did.** I committed only the three files FEAT-13 alone touched. The six contested ones are
-left **modified but uncommitted** in the worktree — nothing destroyed, everything inspectable.
+**What I did.** I committed only the files FEAT-13 alone touched. The six contested ones are left
+**modified but uncommitted** in the worktree — nothing destroyed, everything inspectable.
 
 | Expertise file | FEAT-12 writing | FEAT-13 writing | Committed here |
 |---|---|---|---|
 | `backend-dev`, `code-reviewer`, `eng-lead`, `pm`, `qa`, `security-reviewer` | yes | yes | **no — contested** |
-| `product-lead`, `ui-reviewer`, `validator-lead` | no | yes | yes |
+| `product-lead`, `ui-reviewer`, `validator-lead`, `orchestrator` | no | yes | yes |
 | `documentor` | yes | no | not mine |
 
 **Why not just commit them.** `eng-lead`'s member, acting in good faith, reconciled its file against
 the main checkout's *live* copy — so committing would import FEAT-12's half-finished distillation
 into this branch and freeze a snapshot of work that is still moving.
 
-**The contested ops are written out in full at the end of this document** so they survive even if the
-worktree is discarded. Re-apply them against the settled tree once FEAT-12 lands.
+**Every contested op is preserved verbatim, in a committed file:**
+`.harness/features/FEAT-13-single-issue-board-lookup/notes/expertise-ops-contested-5e81612.md`.
+The run digests that hold them are gitignored and the worktree is disposable, so that file is the
+durable copy. It also records the two entries `backend-dev` **deleted**, and flags that its file is a
+full renumber — take it wholesale or re-derive, never hunk-by-hunk.
 
 **The systemic issue is worth a ticket on its own:** shared Expertise + concurrent features + one
 worktree per feature = a memory-wipe hazard with no detector. A lineage check, or excluding
@@ -137,7 +140,8 @@ disk. Assembled from, all under
 `distill-validator/digest.md` · `distill-product/digest.md`
 
 **Those run directories are gitignored** (`.harness/features/*/runs/**`), so they exist only in the
-worktree and will not survive its removal. This document is the durable record.
+worktree and will not survive its removal. This document and the contested-ops file are the durable
+record.
 
 I copied the three plan-phase run directories into the worktree at setup for exactly this reason —
 without that, this briefing would have silently omitted an entire phase.
@@ -160,7 +164,7 @@ Anything not listed here dies silently, so this is everything that survived coll
 | B-4 | bug | `bash-write-guard.sh` does not expand shell variables when extracting a `cp` target, so `cp … "$SCRATCH/x"` is denied even though the resolved destination is outside the repo and would pass the guard's own carve-out. Literal absolute paths work. (DEC-174 carve-out file — yours alone.) |
 | B-5 | bug | `validate-digest.py` keys the `suite: n/a` exemption by **persona** when the discriminator that matters is the task's `change_type`. A backend-dev on a `docs` task cannot say "no tests applied" the way a dev-ops on the identical task can. (DEC-174 carve-out file.) |
 | B-6 | bug | `harness-documentor.md` fails `check-expertise.sh` — one entry is 53 words against a 50-word cap — which makes the **whole directory** check exit 1. Pre-existing, not this feature's. |
-| B-7 | chore | `test-factory-claim.py:336` is a bare `json.loads(out)` with no guard. Under exactly the total-outage regression B-1's sibling fix now catches, it raises uncaught and kills the rest of the script. |
+| B-7 | chore | `test-factory-claim.py:336` is a bare `json.loads(out)` with no guard. Under exactly the total-outage regression the fix cycle now catches, it raises uncaught and kills the rest of the script. |
 | B-8 | enhancement | No `--issue` case asserts that a **fresh open issue claims successfully**. I deliberately excluded it from the fix cycle to keep it tight; four existing assertions already redden on an always-refuse. |
 | B-9 | chore | A fixture named `ITEM-CLOSED` and a label reading "resume with a closed issue" still read as instantiating a closed issue, which they do not. A corrective comment is in place. Cosmetic. |
 | B-10 | chore | Creating a worktree fires a one-time shape-sweep burst over historical state files the checkout duplicates (`FEAT-02`, `FEAT-05`). Pre-existing violations, not in scope — but the noise is where a real violation could hide. |
@@ -175,39 +179,8 @@ None block the merge.
 1. **Do you accept the SC-05 routing call?** I treated approved-but-unmet as a fix cycle rather than
    a plan amendment. Reversing it means reverting `5e81612`.
 2. **How should the contested Expertise ops land?** My recommendation: let FEAT-12 finish and commit,
-   then re-apply the ops below against the settled files, letting each owner re-pick displacement
-   targets where a section is at cap. Do not merge those six files textually.
+   then apply the ops from `notes/expertise-ops-contested-5e81612.md` against the settled files,
+   letting each owner re-pick displacement targets where a section is at cap. Do not merge those six
+   files textually.
 3. **The worktree is still in place** at `.claude/worktrees/FEAT-13-single-issue-board-lookup`, with
    the six contested files dirty. I did not remove it, because removing it discards them.
-
----
-
-## Appendix — contested Expertise ops, verbatim
-
-Recorded here because the digests that hold them are gitignored. Apply against the settled tree.
-
-**`harness-eng-lead`** — add to Gotchas:
-- `G-04: WHEN a receipt path is named both by the team file's outputs: template and by the approved plan's files: list DO write the plan's literal path — a verify: clause greps the plan's string, so the rendered template leaves the gate red on correct work.`
-- `G-05: WHEN dispatching a distillation from a worktree DO grep the entry IDs from both that copy and the main checkout's and compare — a worktree branched before the last distillation carries a stale copy whose write reverts the prior feature's entries, every format check still green.`
-
-**`harness-backend-dev`** — 5 entries accepted (3 self-derived, 2 relayed), Patterns 12→15 at cap,
-Gotchas 8→9, with one Pattern displaced to hold the cap. Its file in the worktree is a full-file
-renumber; take it wholesale or re-derive, never hunk-by-hunk.
-
-**`harness-qa`** — Patterns 10→11: one entry on argument-blind test doubles. Both relayed candidates
-rejected with reasons.
-
-**`harness-code-reviewer`** — Patterns 14→15 (now at cap), Gotchas 2→3. It filed the
-fake-ignores-arguments lesson as a Gotcha rather than spend its last Patterns slot.
-
-**`harness-security-reviewer`** — Patterns 9→11, Gotchas 5→6, Outcomes 0→1 (section opened).
-
-**`harness-pm`** — 3 ops: replace `P-07` with the signed-proof-standard rule (if a standard forbids
-the only technique that could instantiate a condition, it cannot also demand it); replace `P-10` with
-content-anchoring over line numbers; add a Gotcha on confirming which checkout a `file:line` resolved
-in. Note `P-10` is a **merge**, not a kill — both sides widened the same incumbent in different
-directions.
-
-**Already committed** (uncontested): `harness-product-lead` (Patterns 10→11, Gotchas 4→6),
-`harness-ui-reviewer` (Patterns 8→10, both self-derived), `harness-validator-lead`
-(Patterns 7→10, Gotchas 6→9).
