@@ -102,7 +102,12 @@ class Recorder:
         data = self.issue_data.get(number)
         if data is None:
             raise AssertionError(f"test bug: no issue_data fixture for #{number}")
-        return dict(data)
+        # Honours the requested `fields` (FEAT-13 fix01) — every fixture in this file happens to
+        # carry all of {number, title, state, labels, assignees}, so filtering to `fields` is a
+        # no-op today (production always requests all five, T-05 D-05) and stays a no-op unless
+        # a future call site narrows its own request; if `state` is ever dropped from that
+        # request, `.get("state")` reads None the same way a real gh response would.
+        return {k: v for k, v in data.items() if k in fields}
 
     def default_branch_sha(self, repo, branch):
         self.calls.append(("default_branch_sha", (repo, branch)))
@@ -379,6 +384,12 @@ except Exception:
     parsed_ok = False
 check("(C2) whole stdout parses as one JSON object", parsed_ok, out)
 check("(C2) exit 0", code == 0, code)
+# FIX 2 (FEAT-13 fix01): issue_view is invoked with "state" among the requested fields —
+# without it the OPEN-state check always reads None, `!= "OPEN"` is always true, and the tool
+# refuses EVERY issue (total outage of claim).
+c2_issue_view_calls = [c for c in rec.calls if c[0] == "issue_view"]
+check("(C2) issue_view's requested fields include \"state\"",
+      c2_issue_view_calls and "state" in c2_issue_view_calls[0][1][2], c2_issue_view_calls)
 
 # C3. a monkeypatched preflight raising GhError exits 2, not 1, stdout empty, one stderr line.
 rec = Recorder()

@@ -993,10 +993,14 @@ with tempfile.TemporaryDirectory() as td:
 #     for an issue that is now CLOSED (REQ-02, SC-05) — the whole reason the swap drops the
 #     is:open-adjacent state scoping that the old `project_items` read never had either, but
 #     which a naive replacement query might reintroduce. This test does not simulate gh's
-#     query itself (the Recorder never filters by state) — it pins that decompose's own call
-#     shape never asks the lookup to filter by state, which is what a `query=` argument would
-#     do if one were added. See T-02's live spot-check for confirmation the real GraphQL query
-#     genuinely returns a closed issue's item (REQ-02's other half).
+#     query itself (the Recorder never filters by state), so it CANNOT pin whether the lookup's
+#     own GraphQL text carries a state filter — `issue_board_item_id` takes no `query`/`state`
+#     kwarg at all, so a call-tuple check here can never redden from that regression. The
+#     no-state-scoping property on `_ISSUE_ITEM_QUERY` is guarded at the query-text level in
+#     `test-factory-gh.py` (the `_ISSUE_ITEM_QUERY` argument-shape assertion, FEAT-13 fix01);
+#     what THIS check actually verifies is only decompose's own call-site arguments (below). See
+#     T-02's live spot-check for confirmation the real GraphQL query genuinely returns a closed
+#     issue's item (REQ-02's other half).
 with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01")]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
@@ -1023,8 +1027,8 @@ with tempfile.TemporaryDirectory() as td:
           f"code={code!r} err={err}")
     check("(D4-3c) project_item_add was NOT called on the recovery run",
           [c for c in rec2.calls if c[0] == "project_item_add"] == [], rec2.calls)
-    check("(D4-3c) the lookup carries no state scoping (called with exactly repo/number/board, "
-          "no query kwarg)",
+    check("(D4-3c) the lookup call args are exactly (repo, issue_num, board_number) — NOT the "
+          "no-state-scoping property, which this check cannot exercise (see comment above)",
           [c for c in rec2.calls if c[0] == "issue_board_item_id"]
           and [c[1] for c in rec2.calls if c[0] == "issue_board_item_id"][0] == (REPO, issue_num, 3),
           rec2.calls)

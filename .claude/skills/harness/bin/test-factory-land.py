@@ -103,7 +103,13 @@ class Recorder:
 
     def issue_view(self, repo, number, fields):
         self.gh_calls.append(("issue_view", (repo, number, tuple(fields))))
-        return {"title": self.issue_title, "state": self.issue_state}
+        # Honours the requested `fields` (FEAT-13 fix01) — the fixture is not the full record
+        # regardless of what was asked for; dropping "state" from the caller's request drops it
+        # from the returned dict too, so `.get("state")` reads None just as it would against a
+        # real gh response, and a caller's own state-refusal logic goes behaviourally wrong
+        # rather than only failing an argv-shape assertion.
+        full = {"title": self.issue_title, "state": self.issue_state}
+        return {k: v for k, v in full.items() if k in fields}
 
     def run_gh(self, args, json_out=False):
         self.gh_calls.append(("run_gh", (tuple(args), json_out)))
@@ -223,6 +229,11 @@ check("(M1) issue_board_item_id called with (repo, issue, board_number)",
 field_set_calls = [c for c in rec.gh_calls if c[0] == "project_field_set"]
 check("(M1) sets the station to Review", len(field_set_calls) == 1
       and field_set_calls[0][1][4] == "Review", field_set_calls)
+# FIX 2 (FEAT-13 fix01): issue_view is invoked with "state" among the requested fields — without
+# it the closed-issue refusal (M7 below) always reads None and NEVER refuses (total outage).
+issue_view_calls = [c for c in rec.gh_calls if c[0] == "issue_view"]
+check("(M1) issue_view's requested fields include \"state\"",
+      issue_view_calls and "state" in issue_view_calls[0][1][2], issue_view_calls)
 payload = json.loads(out)
 check("(M1) payload url is the created pull request url", payload.get("url") == PR_URL.strip(),
       payload)

@@ -658,6 +658,24 @@ check("issue_board_item_id: argv carries both repository halves",
 check("issue_board_item_id: returns the matching node's id when project.number == board_number",
       match_id == "ITEM1", f"match_id={match_id!r}")
 
+# FIX 1 (FEAT-13 fix01): pin _ISSUE_ITEM_QUERY's issue(...) selection to carry EXACTLY the
+# argument `number` — no `state`, `states`, `filterBy` or any other issue-state scoping. This is
+# a STRUCTURAL check (the argument-name list inside `issue( ... )`), not a keyword blacklist and
+# not an equality check on the whole query text, so it reddens under any state-scoping argument
+# regardless of spelling and survives a pure whitespace/reformat of the query.
+import re as _re_query
+_issue_sel = _re_query.search(r"issue\s*\(([^)]*)\)", fgh._ISSUE_ITEM_QUERY)
+_issue_arg_names = []
+if _issue_sel:
+    for _part in _issue_sel.group(1).split(","):
+        _part = _part.strip()
+        if _part:
+            _issue_arg_names.append(_part.split(":")[0].strip())
+check("issue_board_item_id: _ISSUE_ITEM_QUERY's issue(...) selection takes exactly the "
+      "argument {number} — no state/filter argument of any spelling",
+      _issue_arg_names == ["number"],
+      f"arg_names={_issue_arg_names!r} query={fgh._ISSUE_ITEM_QUERY!r}")
+
 fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_OTHER_PROJECT_JSON)])
 fgh.subprocess.run = fake
 try:
