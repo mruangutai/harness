@@ -9,8 +9,8 @@ expresses. And a ticket created without its `wayfinder:<type>` label is invisibl
 to every later query. Prose loses all three; a script cannot.
 
 MUTATIONS ARE DRY-RUN BY DEFAULT. Every subcommand that writes prints the calls it
-would make and exits 0; `--apply` performs them. Same precedent as deploy.sh: this
-touches a shared, human-visible surface, so the plan is shown first.
+would make and exits 0; `--apply` performs them. This touches a shared,
+human-visible surface, so the plan is shown first, dry-run then apply.
 
   wayfind.py map <map#>                      # low-res view: destination, decisions, frontier
   wayfind.py frontier <map#>                 # takeable tickets only (open, unblocked, unclaimed)
