@@ -4646,7 +4646,7 @@ them with a test.**
 work. The user considered stopping self-hosting entirely and chose the carve-out; the stronger position
 stays available and is a stage question, not a correctness one.
 
-### am.1 (2026-08-11) — three checkout modes, and the factory workspace is not one of them
+### DEC-174 amendment 1 (2026-08-11) — three checkout modes, and the factory workspace is not one of them
 
 FEAT-15 gave `check-domain.sh` two bases, and that made a question visible that the original ruling
 never faced: harness code can be edited from three different checkout shapes, and they do not carry the

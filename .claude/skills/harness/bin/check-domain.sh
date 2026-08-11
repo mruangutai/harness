@@ -164,6 +164,24 @@ def is_control_plane_glob(pat):
     return p.split("/", 1)[0] in (".harness", ".claude")
 
 
+def real(path):
+    """Absolute AND symlink-resolved.
+
+    `abspath` alone normalises `..` textually but follows no link, so
+    `docs/harness/<link>/agents/x.md` with `<link> -> ../../.claude` stayed inside
+    `docs/` for every comparison while the write landed in `.claude/agents/`.
+    Reproduced before this fix: through the link exit 0, the same file named directly
+    exit 2. The gap predates the two-base rule — `docs/**` matched with no target-side
+    test — so this closes a live escape rather than a regression.
+
+    `realpath` resolves the existing prefix of a path that does not exist yet, which is
+    the normal case for a Write. Applied to BOTH sides of every comparison: resolving
+    only the target would break any checkout reached through a link (`/var` on macOS is
+    itself a link to `/private/var`).
+    """
+    return os.path.realpath(os.path.abspath(path))
+
+
 def resolve_fleet(root):
     """Resolve the fleet declaration for `root`, returning (workspace_root, bases).
 
@@ -194,7 +212,7 @@ def resolve_fleet(root):
         # is not this hook's probe (.harness/team-config.yaml). Under a fixture root the
         # two disagree and the constant names the live repository.
         fleet = factory_config.load_fleet(fleet_path)
-        bases = [os.path.abspath(factory_config.workspace_path(fleet, e["name"]))
+        bases = [real(factory_config.workspace_path(fleet, e["name"]))
                  for e in fleet["repos"]]
         return fleet["workspace_root"], bases, fleet_path
     except Exception as e:
@@ -220,7 +238,7 @@ def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path):
     path reached via docs/../src/main.py resolves back inside and lands in the right
     base — and /workspaces/widget-other is not read as inside /workspaces/widget.
     """
-    abs_root = os.path.abspath(root)
+    abs_root = real(root)
 
     def inside(child, parent):
         try:
@@ -242,7 +260,7 @@ def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path):
         # README.md, the very file its documentor exists to write.
         base = max((b for b in workspace_bases if inside(abs_target, b)), key=len)
         return base, (lambda g: not is_control_plane_glob(g)), (lambda _r: True)
-    if workspace_root is not None and inside(abs_target, os.path.abspath(workspace_root)):
+    if workspace_root is not None and inside(abs_target, real(workspace_root)):
         # UNDER THE WORKSPACE, BELONGING TO NO DECLARED REPO. Refused rather than
         # ignored: a checkout there for an unlisted repository is stale or a mistake,
         # and treating it as scratch would reopen the hole for exactly the paths the
@@ -339,7 +357,7 @@ if _resolve_target is not None:
     _ws_root, _ws_bases, _fleet_path = resolve_fleet(root)
 
     _abs = _resolve_target if os.path.isabs(_resolve_target) else os.path.join(root, _resolve_target)
-    _abs = os.path.abspath(os.path.normpath(_abs))
+    _abs = real(_abs)
     _base, _glob_filter, _target_test = select_base(
         _abs, root, _ws_root, _ws_bases, _fleet_path)
     if _base is None:
@@ -567,7 +585,7 @@ def domain_check():
     # path was blocked in this repo and permitted outside it, silently, with the write
     # landing.
     workspace_root, workspace_bases, fleet_path = resolve_fleet(root)
-    _abs_target = os.path.abspath(target)
+    _abs_target = real(target)
     base, _glob_filter, target_side_test = select_base(
         _abs_target, root, workspace_root, workspace_bases, fleet_path)
     if base is None:
@@ -577,7 +595,7 @@ def domain_check():
         # learned to route around a hook whose own message said not to. /tmp,
         # /var/folders and unrelated checkouts keep exactly today's behaviour.
         return
-    _abs_root = os.path.abspath(root)
+    _abs_root = real(root)
     applicable_globs = [g for g in globs if _glob_filter(g)]
     applicable_shared = [s for s in shared if _glob_filter(s)]
 
