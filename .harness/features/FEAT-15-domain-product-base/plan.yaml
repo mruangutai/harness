@@ -1,0 +1,411 @@
+schema: plan/1
+feature: FEAT-15-domain-product-base
+
+approval:
+  status: approved
+  approved_by: operator
+  date: '2026-08-11'
+
+lanes:
+  resolved_at: f3452bf
+  rows:
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
+    - surface: .claude/skills/harness/bin/test-check-domain.py
+      lane: main-session-direct
+      reason: rides with the carve-out file it tests; a green suite cannot vouch for the gate that produced it
+    - surface: docs/harness/DECISIONS.md
+      lane: main-session-direct
+      reason: no build squad is spawned on this feature, and the record of a ruling is the operator's own
+
+decisions:
+  - id: D-01
+    choice: >-
+      Classification is TARGET-KEYED, not glob-keyed, and two-sided. In the harness base every glob is
+      matched, control-plane and product alike, and a match is accepted only if the base-relative
+      target is control-plane - its first path segment is .harness or .claude, or it matches one of
+      the four named harness entries. In the product base, globs whose first segment is .harness or
+      .claude are excluded and the rest match normally; the four named entries play no part there.
+      Both tests live in module-scope helpers that the hook path and the resolve path call.
+    because: >-
+      a glob-keyed classifier cannot express the ruling at all - the manifest grants docs/** and holds
+      no docs/harness/** entry, so two of the four named entries have nothing to match against - and
+      two copies of the rule would drift the way the plan checker and the hook would then disagree
+    dec: none
+  - id: D-08
+    choice: The four named harness control-plane entries are a literal constant inside check-domain.sh, matched against the base-relative target with the existing glob_to_re and matches idiom, and are not manifest data.
+    because: ruling 1 forbids a team-config.yaml schema change, and the operator ruled out machinery to detect an omitted future entry, so the cost is one remembered place rather than a grammar every entry carries
+    dec: none
+  - id: D-02
+    choice: The fleet declaration is read once per hook invocation, at the top of the domain check, before the outside-root branch and before any glob is matched.
+    because: ruling 3 closes on every write, so a read gated on the target looking like a workspace path would skip the closure for in-root writes
+    dec: none
+  - id: D-03
+    choice: An absent fleet file is distinguished from an unreadable one by an explicit existence test taken before the load.
+    because: harness_yaml.load_file wraps OSError into YamlParseError, so without it a project with no factory is bricked by the same branch that closes on a corrupt file
+    dec: none
+  - id: D-04
+    choice: The hook passes an explicit fleet path built from its own resolved root and never reads factory_config.FLEET_PATH.
+    because: FLEET_PATH is computed at import time from factory_config.harness_root(), whose probe is docs/harness/SPEC.md while the hook's is .harness/team-config.yaml, so under a fixture root it names the live repo
+    dec: none
+  - id: D-05
+    choice: factory_config is imported lazily, only after the existence test passes, with stderr captured for the duration of the import.
+    because: the import evaluates harness_root() and prints a CLAUDE_PROJECT_DIR discard notice, and a top-level import would break DEC-101's isolated-copy fail-open the way the harness_yaml import once did
+    dec: DEC-101
+  - id: D-06
+    choice: The checkout path for a declared repository is obtained by calling factory_config.workspace_path(fleet, name) for each entry in the fleet's repos list.
+    because: that function is the one place the workspace_root-plus-name-after-owner derivation exists, and restating it is how two copies start disagreeing
+    dec: none
+  - id: D-07
+    choice: The resolve path gets the same base treatment as the hook path in the same feature, not later.
+    because: a resolver that still grants a base the hook refuses is exactly the build-time discovery check-plan-routes.py exists to prevent
+    dec: DEC-183
+
+tasks:
+  - id: T-01
+    title: Resolve the fleet declaration once per invocation, and separate absent from unreadable
+    traces: [REQ-03, REQ-04]
+    change_type: cross_module
+    test_kinds: [unit, integration]
+    execution_mode: main-session-direct
+    execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-domain.py
+    intent: |
+      In check-domain.sh's Python heredoc, inside domain_check(), add a fleet resolution step. Place
+      it immediately after the manifest_domains try/except block that produces globs and shared, and
+      BEFORE the outside-root branch whose body is the bare return following the comment that begins
+      OUTSIDE THE REPO IS NOT A DOMAIN QUESTION. It runs exactly once per hook invocation, for every
+      governed write, whatever the target looks like.
+
+      Step 1, existence. fleet_path = os.path.join(root, ".harness", "factory", "fleet.yaml"). If
+      os.path.exists(fleet_path) is False, set workspace_root to None and workspace_bases to an empty
+      list and fall through with no further work: a project with no factory has no second base and
+      keeps today's behaviour exactly. Import nothing in this case.
+
+      Step 2, import. Only when the file exists, import factory_config lazily inside the function,
+      wrapped in contextlib.redirect_stderr(io.StringIO()) for the duration of the import statement
+      only. Measured: with CLAUDE_PROJECT_DIR set to a directory holding no docs/harness/SPEC.md, the
+      import prints a discard notice to stderr and would reach the agent on every governed write from
+      a fixture root. Import io and contextlib in the same lazy block. If the import raises, treat it
+      as step 3's failure case.
+
+      Step 3, load. Call factory_config.load_fleet(fleet_path) with the explicit path. Never read
+      factory_config.FLEET_PATH - it is computed at import time from that module's own root probe,
+      which is not this hook's root probe. Catch factory_config.FleetError, harness_yaml.YamlParseError
+      and ImportError. On any of them print to stderr, then sys.exit(2):
+        check-domain: BLOCKED - the fleet declaration does not load, so no product path can be
+        identified.
+        <fleet_path>
+        <the exception text>
+        Enforcement is CLOSED rather than partial: the value that identifies product paths is the one
+        that failed. Fix the file (the main session owns it - it is in no agent's domain), then retry.
+      Do not call harness_yaml.require_or_bootstrap here and do not consume its grant: that escape
+      exists for a missing PyYAML, not for a malformed file.
+
+      Step 4, success. Set workspace_root = fleet["workspace_root"] and workspace_bases to the list of
+      os.path.abspath(factory_config.workspace_path(fleet, entry["name"])) for every entry in
+      fleet["repos"]. Both names are consumed by T-02; this task leaves the outside-root branch
+      untouched and must not change any existing verdict.
+
+      In test-check-domain.py, first make the shared fixture survive T-02's rule, because every
+      in-root allow assertion in the file is granted by FIXTURE_MANIFEST's only write glob, allowed/**,
+      and the targets it grants - allowed/thing.md and allowed/d.md - are not control-plane targets:
+      their first segment is neither .harness nor .claude and they are none of the four named harness
+      entries, so T-02 refuses them in the harness base. Add one control-plane entry to
+      FIXTURE_MANIFEST's domain list:
+        - { path: .harness/allowed/**, upsert: true }
+      Leave allowed/** in place - it is granted today, it stays granted for product bases, and
+      deleting it would remove the only product-shaped glob the shared fixture carries. Then repoint
+      the two existing in-root assertions that today rely on allowed/** returning exit 0 - the case
+      named SC-05 pair: permitted allowed AND forbidden blocked, one manifest, and the case named the
+      marker self-unlinks once PyYAML imports again - from allowed/thing.md and allowed/d.md to
+      .harness/allowed/thing.md and .harness/allowed/d.md. Their EXPECTATIONS do not change and must
+      not: the SC-05 pair's forbidden half stays forbidden/thing.md at exit 2, so the pair keeps its
+      discriminating power. This repointing is granted under both the current and the post-T-02 rule,
+      so it is green when this task runs and stays green after T-02. It is done ONCE, here; T-02 must
+      not redo it.
+
+      Then extend the T12 fixture helper so a fixture root may optionally carry
+      .harness/factory/fleet.yaml, and add a run_fleet() group of cases asserting, in this order:
+      (a) a fixture with NO fleet file - a write the agent owns exits 0, and a path under an arbitrary
+      absolute directory outside the fixture exits 0; (b) a fixture whose fleet.yaml is broken YAML -
+      the SAME write the agent owns, inside the fixture root, exits 2 and stderr contains fleet.yaml;
+      (c) a fixture whose fleet.yaml parses but omits workspace_root - the same write exits 2. The
+      write the agent owns is .harness/allowed/x.md in all three, NOT allowed/x.md: an in-root
+      product-shaped path stops being owned at T-02, and case (a) is an allow assertion that would
+      then flip - reintroducing the same both-halves-refuse collapse (a) and (b) exist to prevent.
+      Assert (a) and (b) as one paired check in the shape the existing SC-05 pair case uses, because
+      an allow-all guard passes (a) alone and a block-all guard passes (b) alone. Register the new
+      group in the file's existing runner and summary so its failures fail the process.
+
+  - id: T-02
+    title: Select the base from the target and give the outside-root branch a verdict for product paths
+    traces: [REQ-01, REQ-02, REQ-05, REQ-06]
+    change_type: cross_module
+    test_kinds: [unit, integration]
+    execution_mode: main-session-direct
+    execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-domain.py
+    intent: |
+      The classifier is TARGET-KEYED, not glob-keyed. A glob-keyed classifier cannot express the
+      ruling: .harness/team-config.yaml grants harness-documentor docs/** and holds no docs/harness/**
+      entry anywhere, so there is nothing for two of the four named entries to match against. Build
+      the two-sided rule below exactly.
+
+      Add to check-domain.sh, at module scope beside glob_to_re and matches so both the hook path and
+      the resolve path can call them:
+
+      HARNESS_CONTROL_PLANE = ["docs/harness/**", "docs/PRINCIPLES.md", "README.md", ".github/**"] -
+      a closed literal list, the operator's verbatim four. Do not widen docs/harness/** to docs/**
+      and do not add a fifth entry.
+
+      def is_control_plane_glob(pat): strip a leading "./" and any leading "/", take the text before
+      the first "/", return True when it is exactly ".harness" or ".claude", else False.
+
+      def is_control_plane_target(rel): return True when is_control_plane_glob(rel) is True, or when
+      matches(rel, e) is True for any e in HARNESS_CONTROL_PLANE. Match anchored with the existing
+      glob_to_re and matches idiom against the base-relative path, so README.md means the
+      repository-root readme and never docs/README.md, and .github/** never matches vendor/.github/x.
+
+      In domain_check(), replace the outside-root branch - the one whose body is a bare return, under
+      the comment beginning OUTSIDE THE REPO IS NOT A DOMAIN QUESTION - with a base selection over the
+      absolute target. Keep the existing containment idiom: os.path.commonpath over abspaths, never a
+      string prefix, so a path reached through .. that resolves back inside still lands in the right
+      base. Four outcomes, in this order:
+
+      (1) target inside root - the HARNESS base. Keep the existing rel computation, the worktree strip
+      and the rel_candidates list unchanged. Applicable globs are ALL of globs and applicable shared is
+      ALL of shared - nothing is filtered on the glob side here. A match is accepted only for a
+      rel_candidate for which is_control_plane_target(rel) is True; for any other rel_candidate the
+      match is discarded and the outcome is the ordinary refusal. Apply the same acceptance test to
+      the shared list, so a shared entry only serializes a control-plane target.
+      (2) target inside one of workspace_bases, the longest matching base wins - the PRODUCT base. rel
+      is relpath of the target against that base and the same worktree strip is applied to it.
+      Applicable globs are the globs for which is_control_plane_glob is False, applicable shared is
+      the shared entries for which it is False. HARNESS_CONTROL_PLANE plays NO part on this side: it
+      is target-side only, and consulting it here would refuse a product checkout's own README.md.
+      (3) workspace_root is not None and the target is inside workspace_root but inside none of
+      workspace_bases: print to stderr and sys.exit(2):
+        check-domain: BLOCKED - <target> is under the factory workspace but belongs to no repository
+        declared in <fleet path>.
+        A checkout there for an unlisted repository is stale or a mistake. Add the repository to
+        repos in that file, or remove the directory.
+      (4) anything else: return with no verdict, unchanged. /tmp, /var/folders and unrelated
+      checkouts keep exactly today's behaviour.
+
+      Three cases must hold when you are done, and they are the whole rule: with src/** granted,
+      <root>/src/main.py is REFUSED and <workspace>/<repo>/src/main.py is PERMITTED; with
+      .harness/expertise/** granted, <root>/.harness/expertise/x.md is PERMITTED and
+      <workspace>/<repo>/.harness/expertise/x.md is REFUSED; with docs/** granted,
+      <root>/docs/harness/guide.md is PERMITTED and <workspace>/<repo>/docs/guide.md is PERMITTED.
+
+      The permitted and shared matching below the branch, and the actionable rejection message, are
+      otherwise unchanged. The Permitted for you line must not advertise globs that cannot grant
+      anything in the base that was selected: in the product base it lists the agent's
+      non-control-plane globs, and in the harness base it must not list globs that no control-plane
+      target could satisfy. How that line is composed is yours; SC-12 reads the emitted stderr.
+
+      In test-check-domain.py, add a fixture whose fleet declares a repository whose name is NOT
+      harness - use acme/widget with a workspace_root inside the same tempdir - and assert as one
+      paired group: a persona granted src/** may write <workspace>/widget/src/main.py (exit 0) while
+      a persona not granted it is refused the same path (exit 2); and a path under workspace_root in
+      a directory named for no declared repository exits 2 with fleet in the stderr. Nothing needs to
+      exist on disk under the workspace: the branch is a path comparison, not a stat.
+
+      The shared list has a consequence worth naming rather than discovering: all eight entries in the
+      manifest's shared block are dependency manifests and lockfiles - package.json, pyproject.toml,
+      uv.lock and the rest - none has a control-plane first segment and none is among the four named
+      entries, so in the harness base every one of them stops being serialized-allow and becomes a
+      refusal. No such file exists in this repo today, so nothing live breaks, but the test case does.
+
+      Exactly ONE existing EXPECTATION changes, against the live manifest: the case named a shared
+      path is allowed and serialized, asserting <ROOT>/package.json exits 0, becomes exit 2, for the
+      reason in the paragraph above. Update the case and its comment to say why.
+
+      The case named documentor writing docs/, which asserts harness-documentor writing
+      <ROOT>/docs/harness/guide.md exits 0, KEEPS exit 0 - docs/harness/** is one of the four named
+      entries. Do not flip it. Likewise, in run_resolve() under the comment beginning (g)+(h) THE HOOK
+      PATH IS UNCHANGED, the case named (h) no --resolve: an in-domain Write still exits 0 keeps both
+      its path, docs/harness/SPEC.md, and its expectation. Neither needs repair.
+
+      The two fixture assertions granted by FIXTURE_MANIFEST's allowed/** were already repointed in
+      T-01, along with the control-plane entry that grants their new paths. Do not repeat that work
+      and do not change their expectations either.
+
+      Any other existing case whose expectation you find yourself changing is a regression - stop and
+      report it.
+
+  - id: T-03
+    title: Assert the mirror-image bug is absent in both directions and the four named entries hold in both bases
+    traces: [REQ-06]
+    change_type: cross_module
+    test_kinds: [unit, integration]
+    execution_mode: main-session-direct
+    execution_reason: rides with the carve-out file it tests (DEC-174)
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-domain.py
+    intent: |
+      Add three paired assertion groups to test-check-domain.py, each using the acme/widget fixture
+      built in T-02. Each pair must be asserted from ONE fixture and ONE manifest, because either
+      half alone is also what a broken guard produces.
+
+      Pair A, the product half. Fixture manifest grants harness-documentor exactly one writable path,
+      src/**. Assert that writing <root>/src/main.py exits 2 - a product-shaped glob must not match
+      inside the harness repo - AND that writing <workspace>/widget/src/main.py exits 0. A guard that
+      simply widened both bases passes the second and fails the first.
+
+      Pair B, the control-plane half. Fixture manifest grants harness-documentor exactly one writable
+      path, .harness/expertise/**. Assert that writing <root>/.harness/expertise/x.md exits 0 AND
+      that writing <workspace>/widget/.harness/expertise/x.md exits 2 - a control-plane glob must not
+      match inside a product checkout, even though a product repository could contain a directory of
+      that name.
+
+      Pair C, the both-bases half - the four named entries, and the only place the PRODUCT side of the
+      ruling is checked at all. Build a THIRD fixture manifest for this pair, because neither
+      FIXTURE_MANIFEST nor Pair A's and Pair B's manifests carry the globs it needs: grant one persona
+      docs/** and README.md, and a second persona .github/**. Use the same acme/widget fleet so the
+      fixture has both bases. Assert, all from that one manifest:
+      - in the harness base: <root>/docs/harness/guide.md exits 0, <root>/docs/PRINCIPLES.md exits 0,
+        <root>/README.md exits 0, <root>/.github/workflows/tests.yml exits 0 for the .github persona,
+        and <root>/docs/guide.md exits 2 FOR THE PERSONA GRANTED docs/** - the same persona that is
+        permitted <root>/docs/harness/guide.md above, never the .github persona. A harness path
+        matched by docs/** but under none of the four named entries must be refused, and that last
+        assertion is what proves docs/harness/** was not widened to docs/**. Fired against a persona
+        that was never granted docs/** it exits 2 for the wrong reason and passes under exactly the
+        rule it exists to catch, so the persona is part of the assertion.
+      - in the product base: <workspace>/widget/README.md exits 0 and
+        <workspace>/widget/docs/guide.md exits 0 for the docs persona, and
+        <workspace>/widget/.github/workflows/ci.yml exits 0 for the .github persona. These three are
+        the assertions nothing else in this feature covers: the routing measurement behind the
+        ruling models in-harness resolution only and cannot see a product-side regression.
+      Assert the harness-base and product-base halves in the SAME group from the SAME manifest, so a
+      rule that consulted the four named entries on the product side, or that dropped them from the
+      harness side, fails here rather than shipping.
+
+      Name each assertion for the direction it protects, so a later reader can tell from the failure
+      text which half of the mirror image broke. Register all three groups in the file's runner and
+      summary.
+
+  - id: T-04
+    title: Give the resolve path the same base treatment as the hook path
+    traces: [REQ-07]
+    change_type: cross_module
+    test_kinds: [unit, integration]
+    execution_mode: main-session-direct
+    execution_reason: carve-out (check-domain.sh is named in CLAUDE.md's DEC-174 list)
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-domain.py
+      python3 .claude/skills/harness/bin/check-plan-routes.py
+    intent: |
+      The second verify command is the tree-wide, no-argument invocation - the one the integration CI
+      job runs as a required check on main (DEC-183). It must report 0 violation(s) and exit 0 after
+      this task lands. Do not scope it to this plan: the whole point of the ruling's four named
+      entries is that FEAT-12 T-12 and T-14 and FEAT-14 T-09 and T-10, whose files are docs/harness
+      paths and README.md, keep resolving to harness-documentor. If any of them reports VIOLATION, the
+      target-keyed rule was built glob-keyed - fix the rule, never another feature's plan.
+
+      The --resolve branch exits before domain_check() and carries its own root derivation, its own
+      manifest load and its own call to matches() over _cands, so T-02's change does not reach it.
+      Left alone, the plan checker would keep reporting that a persona owns a base the hook now
+      refuses - the build-time discovery that checker exists to prevent.
+
+      In the --resolve branch, after the manifest is parsed and before the roster walk, resolve the
+      fleet with the SAME four steps T-01 added, against the root this branch derived. Factor T-01's
+      resolution into a module-scope function taking a root and returning (workspace_root,
+      workspace_bases) and call it from both places rather than writing it twice - it is the same
+      rule and D-01's reason applies to it too. This branch already exits 2 on an unreadable
+      manifest rather than failing open; an unreadable fleet takes the same exit and the same message
+      shape.
+
+      Then select the base for the resolve target exactly as T-02 does - inside root, inside a
+      workspace base, under workspace_root but under no base, or outside both - and apply the SAME
+      two-sided rule to each roster member's globs and shared list: in the harness base match all of
+      them and accept a hit only when is_control_plane_target holds for the base-relative candidate;
+      in the product base drop the globs for which is_control_plane_glob holds and match the rest, with
+      HARNESS_CONTROL_PLANE playing no part. For a target under workspace_root belonging to no declared
+      repository, print the literal token NOBODY and exit 0: it is refused for everyone, and silence
+      here is the fail-open this branch exists to remove.
+
+      In test-check-domain.py add resolve-path cases run through the acme/widget fixture with
+      CLAUDE_PROJECT_DIR set to the fixture root and stdin closed: --resolve on
+      <workspace>/widget/src/main.py names the persona granted src/**; --resolve on <root>/src/main.py
+      prints NOBODY; --resolve on a path under workspace_root in an undeclared directory prints
+      NOBODY. Assert on the exact stdout tokens, not on the exit code alone.
+
+      Add one further resolve case against the LIVE root rather than a fixture, because it is what
+      guards the tree-wide check in this task's verify: --resolve on docs/harness/SPEC.md names
+      harness-documentor. Under a glob-keyed rule it would print NOBODY, which is precisely the defect
+      that would redden CI.
+
+  - id: T-05
+    title: Record the two-base rule, the accepted risk, and what it revoked
+    traces: [REQ-08]
+    change_type: docs
+    test_kinds: []
+    execution_mode: main-session-direct
+    execution_reason: no build squad is spawned on this feature; the record of a ruling is the operator's own
+    depends_on: [T-04]
+    status: pending
+    files:
+      - docs/harness/DECISIONS.md
+      - docs/harness/DECISIONS-INDEX.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - docs/harness/DECISIONS-INDEX.md
+    intent: |
+      Add one decision entry to docs/harness/DECISIONS.md recording, in the document's own voice and
+      without narrating this feature:
+
+      (1) The write guard resolves a target against two bases: the harness checkout, and the checkout
+      of a repository declared in the fleet under the factory's workspace root. Which base applies is
+      decided from the TARGET, not from the manifest entry, and the rule is two-sided. In the harness
+      checkout every entry is matched and a match is accepted only when the base-relative target is
+      control plane - its first path segment is .harness or .claude, or it is one of four named
+      harness paths: docs/harness/**, docs/PRINCIPLES.md, README.md and .github/**. In a product
+      checkout, entries whose first segment is .harness or .claude are excluded and the rest apply
+      normally; the four named paths are not consulted there, so a product repository keeps its own
+      readme, docs and CI. There is no manifest schema change.
+      (2) The accepted risk, stated so it is not rediscovered as a defect: this is one more place to
+      remember. A harness-owned path beginning with neither of those two segments and absent from the
+      four named paths is treated as a product path. A per-entry base tag, a two-list split and a
+      value-level prefix marker were each offered and declined, because each changes the grammar every
+      future entry must carry. No detection machinery is added; the omission is accepted, not fixed.
+      (3) A path under the workspace root belonging to no declared repository is refused; a fleet
+      declaration that exists and cannot be read closes every write, because the value that identifies
+      product paths is the one that failed; an absent declaration changes nothing; and a path outside
+      both bases still receives no verdict.
+      (4) Which harness-repo paths lost a route as a consequence, stated precisely rather than
+      generally. NO live harness file loses one: the four named paths carry harness's own docs, its
+      constitution, its readme and its CI, which is why they were named. What does lose a route is the
+      shared block - all eight entries are dependency manifests and lockfiles, package.json,
+      package-lock.json, pnpm-lock.yaml, yarn.lock, pyproject.toml, uv.lock, requirements.txt and
+      tsconfig.json - none of which is control plane, so in the harness checkout each stops being a
+      serialized allow and becomes a refusal. The consequence is latent: none of those eight files
+      exists in the harness repository, and adding one would need it named the way the four are. State
+      the empty live set explicitly; do not omit it, and record the sha the tree was observed at,
+      because it rests on nothing in docs/ sitting outside docs/harness/ except docs/PRINCIPLES.md.
+
+      Then regenerate docs/harness/DECISIONS-INDEX.md with gen-decisions-index.py and hand-write the
+      right-hand side of the new row. There is no --check flag: the verify command pipes the
+      read-only mode into diff, and any output means the row and the entry disagree.

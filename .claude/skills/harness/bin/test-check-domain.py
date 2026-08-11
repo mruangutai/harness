@@ -35,7 +35,16 @@ case("an absolute path in another checkout", "/Users/someone/other-repo/x.py", 0
 case("documentor writing docs/", f"{ROOT}/docs/harness/guide.md", 0)
 case("documentor writing its own expertise",
      f"{ROOT}/.harness/expertise/harness-documentor.md", 0)
-case("a shared path is allowed and serialized", f"{ROOT}/package.json", 0)
+# EXPECTATION CHANGED by FEAT-15 T-02, and it is the only one in this file that moved.
+# All eight entries in the manifest's `shared:` block are dependency manifests and
+# lockfiles — package.json, pyproject.toml, uv.lock and the rest. None has a
+# control-plane first segment and none is among the four named harness entries, so in
+# the HARNESS base every one of them is a product-shaped target and stops being
+# serialized-allow. No such file exists in this repo today, so nothing live changed —
+# but the rule did, and the assertion says so rather than being quietly deleted.
+# Serialized-allow survives where those files actually live: a product checkout.
+case("a shared path in the harness base is now REFUSED (product-shaped target)",
+     f"{ROOT}/package.json", 2)
 
 # ---------------- MUST BLOCK: repo paths outside its domain ----------------
 case("documentor may not write source", f"{ROOT}/src/main.py", 2)
@@ -64,6 +73,7 @@ teams:
       - name: harness-documentor
         domain:
           - { path: allowed/**, upsert: true }
+          - { path: .harness/allowed/**, upsert: true }
           - { path: .harness/features/*/runs/*/state.yaml, upsert: true }
           - { path: ".", read: true }
 shared:
@@ -76,6 +86,18 @@ def fixture(manifest_text):
     os.makedirs(os.path.join(d, ".harness"))
     with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
         f.write(manifest_text)
+    return d
+
+
+def fixture_fleet(manifest_text, fleet_text):
+    """A fixture root that ALSO carries .harness/factory/fleet.yaml. Passing
+    fleet_text=None gives a root with no fleet file at all, which is the no-factory
+    case and must behave exactly as it did before FEAT-15."""
+    d = fixture(manifest_text)
+    if fleet_text is not None:
+        os.makedirs(os.path.join(d, ".harness", "factory"))
+        with open(os.path.join(d, ".harness", "factory", "fleet.yaml"), "w") as f:
+            f.write(fleet_text)
     return d
 
 
@@ -99,7 +121,11 @@ def run_t12():
     # write, a block-all fail-closed blocks the forbidden one. Only a manifest that
     # actually parsed produces BOTH from the same fixture.
     root = fixture(FIXTURE_MANIFEST)
-    allowed = fire(root, "allowed/thing.md")
+    # The ALLOW half is a control-plane path (FEAT-15 T-01). Under T-02's rule an
+    # in-root product-shaped target stops being owned, so `allowed/thing.md` would
+    # flip to exit 2 — and this pair's whole point is that a block-all guard cannot
+    # pass it. The forbidden half stays product-shaped and stays refused.
+    allowed = fire(root, ".harness/allowed/thing.md")
     denied = fire(root, "forbidden/thing.md")
     t12("SC-05 pair: permitted allowed AND forbidden blocked, one manifest",
         allowed.returncode == 0 and denied.returncode == 2,
@@ -377,7 +403,9 @@ def run_t12():
 
     # Self-cleaning: once yaml imports again the marker is removed, so a machine that
     # gets fixed does not carry a spent grant forever.
-    r4 = fire(root, "allowed/d.md")
+    # Control-plane target, for T-01's reason: this is an allow assertion, and an
+    # in-root product-shaped path stops being owned once T-02 lands.
+    r4 = fire(root, ".harness/allowed/d.md")
     t12("the marker self-unlinks once PyYAML imports again",
         r4.returncode == 0 and not os.path.exists(marker),
         f"exit {r4.returncode}, marker present: {os.path.exists(marker)}")
@@ -390,6 +418,430 @@ def run_t12():
             fails += 1
             print(f"FAIL  {name}\n      | {detail}")
     print(f"\n{len(T12) - fails}/{len(T12)} T-12 cases passed.")
+    return fails
+
+
+FLEET = []
+
+
+def fleet_case(name, ok, detail=""):
+    FLEET.append((name, ok, detail))
+
+
+def run_fleet():
+    # FEAT-15 T-01 — REQ-03 and REQ-04. The fleet declaration resolves once per
+    # invocation, and ABSENT is a different answer from UNREADABLE: a project with no
+    # factory keeps today's behaviour, while a project whose factory declaration cannot
+    # be read refuses EVERY governed write, not only writes to workspace paths. The
+    # value that identifies a product path is the one that failed, so enforcing "the
+    # parts we can still read" would mean classifying paths with the classifier missing.
+    #
+    # Every ALLOW assertion below targets .harness/allowed/x.md and never allowed/x.md.
+    # An in-root product-shaped path stops being owned at T-02, so a product-shaped
+    # allow here would flip to exit 2 then — collapsing case (a) and case (b) into
+    # both-halves-refuse, which is exactly the degenerate pair these cases exist to
+    # rule out.
+    # A fleet that load_fleet actually ACCEPTS. The first draft of this fixture omitted
+    # board.station_field and board.stations, and case (d) caught it by failing — which
+    # is the assertion doing its job: an under-specified fixture would otherwise have
+    # tested the failure path twice and never the success path.
+    good_repos = ("schema: factory-fleet/1\n"
+                  "workspace_root: /tmp/harness-fixture-workspaces\n"
+                  "board:\n"
+                  "  owner: nobody\n"
+                  "  number: 1\n"
+                  "  station_field: Status\n"
+                  "  stations:\n"
+                  "    ready: Ready\n"
+                  "    building: Building\n"
+                  "    review: Review\n"
+                  "repos:\n"
+                  "  - { name: nobody/example, default_branch: main }\n")
+
+    # (a) NO fleet file — the no-factory project. Paired with (b) below, because an
+    # allow-all guard passes (a) alone and a block-all guard passes (b) alone.
+    none_root = fixture_fleet(FIXTURE_MANIFEST, None)
+    a_in = fire(none_root, ".harness/allowed/x.md")
+    a_out = subprocess.run(
+        [HOOK],
+        input=json.dumps({"agent_type": "harness-documentor", "tool_name": "Write",
+                          "tool_input": {"file_path": "/tmp/uat-no-fleet-scratch.py",
+                                         "content": "x"}}),
+        capture_output=True, text=True,
+        env=dict(os.environ, CLAUDE_PROJECT_DIR=none_root))
+
+    # (b) fleet.yaml is BROKEN YAML — the same write the agent owns, inside the same
+    # fixture root, must now be refused.
+    bad_root = fixture_fleet(FIXTURE_MANIFEST, "schema: [unclosed\n")
+    b = fire(bad_root, ".harness/allowed/x.md")
+
+    fleet_case(
+        "(a)+(b) PAIR: with no fleet the owned write passes; with a broken fleet the "
+        "SAME write is refused",
+        a_in.returncode == 0 and b.returncode == 2 and "fleet.yaml" in b.stderr,
+        f"no-fleet got {a_in.returncode} (want 0); broken got {b.returncode} (want 2), "
+        f"stderr={b.stderr.strip()[:160]!r}")
+
+    fleet_case(
+        "(a) with no fleet, a scratch path outside the root still gets no verdict",
+        a_out.returncode == 0,
+        f"got {a_out.returncode} (want 0), stderr={a_out.stderr.strip()[:160]!r}")
+
+    # (c) fleet.yaml PARSES but omits workspace_root. Distinct from (b): the file is
+    # valid YAML and the failure is a missing key, so a check that only guards the
+    # parser would let this through with workspace_root unset.
+    nows_root = fixture_fleet(
+        FIXTURE_MANIFEST,
+        "schema: factory-fleet/1\n"
+        "board: { owner: nobody, number: 1 }\n"
+        "repos:\n"
+        "  - { name: nobody/example, default_branch: main }\n")
+    c = fire(nows_root, ".harness/allowed/x.md")
+    fleet_case(
+        "(c) a fleet that parses but omits workspace_root refuses the owned write",
+        c.returncode == 2,
+        f"got {c.returncode} (want 2), stderr={c.stderr.strip()[:160]!r}")
+
+    # (d) a WELL-FORMED fleet changes no existing verdict. T-01 resolves the names and
+    # hands them to T-02; on its own it must be invisible.
+    ok_root = fixture_fleet(FIXTURE_MANIFEST, good_repos)
+    d_allow = fire(ok_root, ".harness/allowed/x.md")
+    d_deny = fire(ok_root, "forbidden/thing.md")
+    fleet_case(
+        "(d) PAIR: a well-formed fleet leaves both verdicts unchanged",
+        d_allow.returncode == 0 and d_deny.returncode == 2,
+        f"owned got {d_allow.returncode} (want 0), forbidden got {d_deny.returncode} "
+        f"(want 2)")
+
+    # (e) the muzzle. factory_config's import prints a discard notice to stderr under a
+    # fixture root that holds no docs/harness/SPEC.md. It must not reach the agent on a
+    # write that PASSES — noise on an exit-0 path is indistinguishable from a verdict.
+    fleet_case(
+        "(e) the lazy factory_config import leaks nothing to stderr on a passing write",
+        d_allow.returncode == 0 and d_allow.stderr.strip() == "",
+        f"exit {d_allow.returncode}, stderr={d_allow.stderr.strip()[:200]!r}")
+
+    # ---- T-02: the two bases, asserted as pairs in both directions ----
+    #
+    # A fixture whose fleet declares a repo that is NOT harness, with workspace_root
+    # inside the same tempdir. Nothing needs to exist on disk under the workspace: the
+    # branch is a path comparison, not a stat.
+    ws = tempfile.mkdtemp()
+    two_base_manifest = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-backend-dev
+        domain:
+          - { path: src/**, upsert: true }
+      - name: harness-documentor
+        domain:
+          - { path: .harness/allowed/**, upsert: true }
+shared:
+  - { path: package.json }
+"""
+    two_base_fleet = ("schema: factory-fleet/1\n"
+                      f"workspace_root: {ws}\n"
+                      "board:\n"
+                      "  owner: nobody\n"
+                      "  number: 1\n"
+                      "  station_field: Status\n"
+                      "  stations:\n"
+                      "    ready: Ready\n"
+                      "    building: Building\n"
+                      "    review: Review\n"
+                      "repos:\n"
+                      "  - { name: acme/widget, default_branch: main }\n")
+    tb = fixture_fleet(two_base_manifest, two_base_fleet)
+    prod_src = os.path.join(ws, "widget", "src", "main.py")
+
+    def fire_abs(root, abspath, agent):
+        return subprocess.run(
+            [HOOK],
+            input=json.dumps({"agent_type": agent, "tool_name": "Write",
+                              "tool_input": {"file_path": abspath, "content": "x"}}),
+            capture_output=True, text=True,
+            env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+    # (f) THE PRODUCT BASE, as a discriminating pair from ONE fixture. Either half
+    # alone is what a broken guard produces: an allow-all passes the granted write, a
+    # block-all refuses the ungranted one.
+    f_yes = fire_abs(tb, prod_src, "harness-backend-dev")
+    f_no = fire_abs(tb, prod_src, "harness-documentor")
+    fleet_case(
+        "(f) PAIR: in a product checkout, src/** grants the owner and refuses a "
+        "persona without it",
+        f_yes.returncode == 0 and f_no.returncode == 2,
+        f"granted got {f_yes.returncode} (want 0), ungranted got {f_no.returncode} "
+        f"(want 2)")
+
+    # (g) THE MIRROR-IMAGE BUG, both directions, from the same fixture. This is the
+    # defect the feature exists to close: the same logical path was blocked inside
+    # harness and permitted outside it.
+    g_in_root = fire_abs(tb, os.path.join(tb, "src", "main.py"), "harness-backend-dev")
+    fleet_case(
+        "(g) PAIR: src/** refuses <root>/src/main.py and permits "
+        "<workspace>/widget/src/main.py",
+        g_in_root.returncode == 2 and f_yes.returncode == 0,
+        f"in-root got {g_in_root.returncode} (want 2), in-product got "
+        f"{f_yes.returncode} (want 0)")
+
+    # (h) THE OTHER DIRECTION: a control-plane grant must not reach a product
+    # checkout's own .harness/. Paired with its in-root twin so neither an allow-all
+    # nor a block-all guard passes.
+    h_in = fire_abs(tb, os.path.join(tb, ".harness", "allowed", "x.md"),
+                    "harness-documentor")
+    h_out = fire_abs(tb, os.path.join(ws, "widget", ".harness", "allowed", "x.md"),
+                     "harness-documentor")
+    fleet_case(
+        "(h) PAIR: a .harness/** grant permits it in root and refuses it in a product "
+        "checkout",
+        h_in.returncode == 0 and h_out.returncode == 2,
+        f"in-root got {h_in.returncode} (want 0), in-product got {h_out.returncode} "
+        f"(want 2)")
+
+    # (i) UNDER workspace_root, BELONGING TO NO DECLARED REPO — refused, and the
+    # message must name the fleet file so the operator knows which file to edit.
+    i = fire_abs(tb, os.path.join(ws, "undeclared", "src", "main.py"),
+                 "harness-backend-dev")
+    fleet_case(
+        "(i) a path under workspace_root for an undeclared repo is refused, naming "
+        "the fleet",
+        i.returncode == 2 and "fleet" in i.stderr,
+        f"got {i.returncode} (want 2), stderr={i.stderr.strip()[:180]!r}")
+
+    # (j) SCRATCH IS STILL NOT A DOMAIN QUESTION (REQ-05). Asserted from the SAME
+    # fixture that refuses (i), so this is not an allow-all passing by accident.
+    j = fire_abs(tb, "/tmp/feat15-scratch-probe.py", "harness-backend-dev")
+    fleet_case(
+        "(j) a scratch path outside both bases still gets no verdict",
+        j.returncode == 0,
+        f"got {j.returncode} (want 0), stderr={j.stderr.strip()[:180]!r}")
+
+    # ---- T-03: the mirror image, both directions, and the four named entries ----
+    #
+    # Every group below is a PAIR asserted from ONE fixture and ONE manifest. Either
+    # half alone is what a broken guard produces: a guard that widened both bases
+    # passes the product half and fails the harness half; a guard that refused
+    # everything outside the root passes the harness half and fails the product half.
+    # Each assertion is named for the direction it protects, so a failure says which
+    # half of the mirror broke.
+
+    def two_base_fleet_for(workspace):
+        return ("schema: factory-fleet/1\n"
+                f"workspace_root: {workspace}\n"
+                "board:\n"
+                "  owner: nobody\n"
+                "  number: 1\n"
+                "  station_field: Status\n"
+                "  stations:\n"
+                "    ready: Ready\n"
+                "    building: Building\n"
+                "    review: Review\n"
+                "repos:\n"
+                "  - { name: acme/widget, default_branch: main }\n")
+
+    # PAIR A — the PRODUCT half. One persona, exactly one writable glob, product-shaped.
+    ws_a = tempfile.mkdtemp()
+    a_root = fixture_fleet("""schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain:
+          - { path: src/**, upsert: true }
+""", two_base_fleet_for(ws_a))
+    a_in = fire_abs(a_root, os.path.join(a_root, "src", "main.py"), "harness-documentor")
+    a_out = fire_abs(a_root, os.path.join(ws_a, "widget", "src", "main.py"),
+                     "harness-documentor")
+    fleet_case(
+        "A PAIR: a product-shaped glob is REFUSED in the harness root and PERMITTED in "
+        "the product checkout",
+        a_in.returncode == 2 and a_out.returncode == 0,
+        f"harness-base got {a_in.returncode} (want 2 — a src/** grant must not reach "
+        f"this repo), product-base got {a_out.returncode} (want 0)")
+
+    # PAIR B — the CONTROL-PLANE half. A product repository can perfectly well contain a
+    # directory called .harness/; a control-plane grant must still not reach it.
+    ws_b = tempfile.mkdtemp()
+    b_root = fixture_fleet("""schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain:
+          - { path: .harness/expertise/**, upsert: true }
+""", two_base_fleet_for(ws_b))
+    b_in = fire_abs(b_root, os.path.join(b_root, ".harness", "expertise", "x.md"),
+                    "harness-documentor")
+    b_out = fire_abs(b_root, os.path.join(ws_b, "widget", ".harness", "expertise", "x.md"),
+                     "harness-documentor")
+    fleet_case(
+        "B PAIR: a control-plane glob is PERMITTED in the harness root and REFUSED in "
+        "the product checkout",
+        b_in.returncode == 0 and b_out.returncode == 2,
+        f"harness-base got {b_in.returncode} (want 0), product-base got "
+        f"{b_out.returncode} (want 2 — a .harness/** grant must not reach a product's "
+        f"own control plane)")
+
+    # PAIR C — THE FOUR NAMED ENTRIES, which are the only paths that resolve in BOTH
+    # bases, and the only place the PRODUCT side of the operator's ruling is checked at
+    # all. The routing measurement behind the ruling models in-harness resolution only
+    # and is structurally blind to a product-side regression.
+    #
+    # Its own manifest, because neither of the two above carries these globs. Two
+    # personas: one holds docs/** and README.md, the other .github/**.
+    ws_c = tempfile.mkdtemp()
+    c_root = fixture_fleet("""schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain:
+          - { path: docs/**, upsert: true }
+          - { path: README.md, upsert: true }
+      - name: harness-dev-ops
+        domain:
+          - { path: .github/**, upsert: true }
+""", two_base_fleet_for(ws_c))
+    DOC, OPS = "harness-documentor", "harness-dev-ops"
+    c_h_docs = fire_abs(c_root, os.path.join(c_root, "docs", "harness", "guide.md"), DOC)
+    c_h_prin = fire_abs(c_root, os.path.join(c_root, "docs", "PRINCIPLES.md"), DOC)
+    c_h_read = fire_abs(c_root, os.path.join(c_root, "README.md"), DOC)
+    c_h_gh = fire_abs(c_root, os.path.join(c_root, ".github", "workflows", "tests.yml"), OPS)
+    fleet_case(
+        "C harness base: all four named entries resolve — docs/harness/**, "
+        "docs/PRINCIPLES.md, README.md, .github/**",
+        all(r.returncode == 0 for r in (c_h_docs, c_h_prin, c_h_read, c_h_gh)),
+        f"docs/harness {c_h_docs.returncode}, PRINCIPLES {c_h_prin.returncode}, "
+        f"README {c_h_read.returncode}, .github {c_h_gh.returncode} (all want 0)")
+
+    # THE NOT-WIDENED ASSERTION, and the persona is part of it. Fired against a persona
+    # never granted docs/**, this exits 2 for the wrong reason and would pass under
+    # exactly the rule it exists to catch. It must be the SAME persona that is permitted
+    # docs/harness/guide.md above.
+    c_h_bare = fire_abs(c_root, os.path.join(c_root, "docs", "guide.md"), DOC)
+    fleet_case(
+        "C harness base: docs/harness/** was NOT widened to docs/** — the same persona "
+        "permitted docs/harness/guide.md is REFUSED docs/guide.md",
+        c_h_docs.returncode == 0 and c_h_bare.returncode == 2,
+        f"docs/harness/guide.md got {c_h_docs.returncode} (want 0), docs/guide.md got "
+        f"{c_h_bare.returncode} (want 2), same persona {DOC}")
+
+    c_p_read = fire_abs(c_root, os.path.join(ws_c, "widget", "README.md"), DOC)
+    c_p_docs = fire_abs(c_root, os.path.join(ws_c, "widget", "docs", "guide.md"), DOC)
+    c_p_gh = fire_abs(c_root, os.path.join(ws_c, "widget", ".github", "workflows", "ci.yml"), OPS)
+    fleet_case(
+        "C product base: a product checkout keeps its OWN README.md, docs/ and .github/ "
+        "— the named entries are target-side only and must not refuse them",
+        all(r.returncode == 0 for r in (c_p_read, c_p_docs, c_p_gh)),
+        f"README {c_p_read.returncode}, docs/guide.md {c_p_docs.returncode}, "
+        f".github {c_p_gh.returncode} (all want 0)")
+
+    # ---- T-04: the RESOLVE path gets the same base treatment (REQ-07) ----
+    #
+    # The --resolve branch exits before domain_check() and carries its own root
+    # derivation and its own manifest load, so T-02's change does not reach it by
+    # inheritance. A resolver that named an owner for a path the hook refuses is the
+    # build-time discovery check-plan-routes.py exists to prevent — a plan signed on a
+    # route the build rejects. Asserted on the exact stdout TOKENS, never on exit code
+    # alone: this branch exits 0 in every case, so the code proves nothing.
+    ws_r = tempfile.mkdtemp()
+    r_root = fixture_fleet("""schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-backend-dev
+        domain:
+          - { path: src/**, upsert: true }
+""", two_base_fleet_for(ws_r))
+
+    def resolve_in(root, path):
+        return subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
+                              stdin=subprocess.DEVNULL, timeout=20,
+                              env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+    r_prod = resolve_in(r_root, os.path.join(ws_r, "widget", "src", "main.py"))
+    r_harn = resolve_in(r_root, os.path.join(r_root, "src", "main.py"))
+    r_undec = resolve_in(r_root, os.path.join(ws_r, "undeclared", "src", "main.py"))
+    fleet_case(
+        "T-04 resolve PAIR: a product path names the src/** owner, the SAME path in "
+        "the harness root resolves to NOBODY",
+        "harness-backend-dev" in r_prod.stdout.split()
+        and r_harn.stdout.strip() == "NOBODY",
+        f"product stdout={r_prod.stdout.strip()!r} (want harness-backend-dev), "
+        f"harness stdout={r_harn.stdout.strip()!r} (want NOBODY)")
+    fleet_case(
+        "T-04 resolve: a path under workspace_root for an undeclared repo resolves to "
+        "NOBODY, never silence",
+        r_undec.stdout.strip() == "NOBODY" or r_undec.returncode == 2,
+        f"stdout={r_undec.stdout.strip()!r}, exit {r_undec.returncode}")
+
+    # Against the LIVE root, not a fixture — this is what guards the tree-wide
+    # check-plan-routes.py run that CI requires on main. Under a glob-keyed rule this
+    # prints NOBODY, which is precisely the defect that would redden CI: no
+    # `docs/harness/**` entry exists anywhere in team-config.yaml, so a glob-keyed
+    # classifier would have nothing to match it against.
+    r_live = subprocess.run([HOOK, "--resolve", "docs/harness/SPEC.md"],
+                            capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                            timeout=20, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT))
+    fleet_case(
+        "T-04 resolve, LIVE tree: docs/harness/SPEC.md names harness-documentor — the "
+        "named entries hold target-side",
+        "harness-documentor" in r_live.stdout.split(),
+        f"stdout={r_live.stdout.strip()!r} (want harness-documentor, NOBODY means the "
+        f"rule was built glob-keyed)")
+
+    # ---- THE SYMLINK ESCAPE, surfaced by the review panel 2026-08-11 ----
+    #
+    # A link inside a granted directory pointing OUT of it: docs/harness/<link> ->
+    # ../../.claude let harness-documentor write .claude/agents/*. Reproduced against
+    # the live tree before the fix — through the link exit 0, the same file named
+    # directly exit 2.
+    #
+    # PRE-EXISTING, not a regression from the two-base rule: before that change
+    # `docs/**` matched any docs/… path with no target-side test, so the same link
+    # granted the same write. Fixed here because the panel found it and it is live.
+    #
+    # Asserted as a PAIR from ONE fixture. A guard that refused everything would pass
+    # the escape half alone, so the legitimate write is part of the assertion.
+    esc_root = fixture("""schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-documentor
+        domain:
+          - { path: docs/**, upsert: true }
+""")
+    os.makedirs(os.path.join(esc_root, "docs", "harness"))
+    os.makedirs(os.path.join(esc_root, ".claude", "agents"))
+    os.symlink(os.path.join(esc_root, ".claude"),
+               os.path.join(esc_root, "docs", "harness", "esc"))
+    esc = fire_abs(esc_root, os.path.join(esc_root, "docs", "harness", "esc",
+                                          "agents", "pwned.md"), "harness-documentor")
+    legit = fire_abs(esc_root, os.path.join(esc_root, "docs", "harness", "guide.md"),
+                     "harness-documentor")
+    fleet_case(
+        "SYMLINK PAIR: a link out of a granted directory is REFUSED at its real "
+        "target, and the ordinary granted write still PASSES",
+        esc.returncode == 2 and legit.returncode == 0,
+        f"escape got {esc.returncode} (want 2 — the write lands in .claude/agents/), "
+        f"legitimate got {legit.returncode} (want 0)")
+    fleet_case(
+        "SYMLINK: the refusal names the REAL target, not the link path — an agent "
+        "told it may not write docs/… would file a bug against the wrong file",
+        ".claude/agents/pwned.md" in esc.stderr,
+        f"stderr={esc.stderr.strip()[:200]!r}")
+
+    print("--- FEAT-15 T-01..T-04 + symlink escape: fleet, bases, mirror, resolve ---")
+    fails = 0
+    for name, ok, detail in FLEET:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n      | {detail}")
+    print(f"\n{len(FLEET) - fails}/{len(FLEET)} fleet cases passed.\n")
     return fails
 
 
@@ -920,6 +1372,7 @@ def main():
     # discarded — the suite goes green with the cases visibly FAILing on screen. The
     # aggregate below is asserted non-negative so the shape of this line stays deliberate.
     fails += run_t12()
+    fails += run_fleet()
     fails += run_resolve()
     fails += run_post()
     return fails

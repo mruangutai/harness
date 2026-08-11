@@ -150,7 +150,16 @@ def case3():
         check("case3_presence_fleet_yaml_safe_loads", True)
 
     repos = (data or {}).get("repos", []) if loaded_ok else []
-    check("case3_presence_fleet_has_exactly_two_repos", len(repos) == 2,
+    check("case3_presence_fleet_has_exactly_one_repo", len(repos) == 1,
+          f"repos: {repos}")
+
+    # DEC-174 (amended): harness is not a fleet member. The convention that harness
+    # develops itself in the live checkout and in worktrees — never in a factory
+    # workspace clone — is enforced by ABSENCE from this list, not by prose. Assert the
+    # absence, so re-adding the entry fails a test instead of passing silently.
+    check("case3_absence_harness_is_not_a_fleet_member",
+          not any(isinstance(r, dict) and r.get("name") == "mruangutai/harness"
+                  for r in repos),
           f"repos: {repos}")
 
     kaya = next((r for r in repos if isinstance(r, dict) and r.get("name") == "mruangutai/kaya-ai"), None)
