@@ -39,6 +39,10 @@
   assertion on the emitted value DO check whether it proves equality to the
   reviewed constant, not merely shape or pattern — a regex a second,
   differently-worded string also satisfies establishes nothing about identity.
+- P-10: WHEN a feature removes a guard in one task and grants new
+  reachability in another DO check the combination, not each task alone —
+  neither task's scope may cover it, so no SC or gate records the ordering
+  precondition, and the combined posture goes unaudited.
 
 ## Gotchas (max 15)
 - G-01: Only `exit 2` blocks a hook (DEC-100); any other exit — including an
@@ -61,6 +65,10 @@
   across arbitrary shell) DO weigh it against fix cost — an unprovable negative
   paired with a one-line fix means the reachability investigation is the wrong
   expenditure; grade on blast radius and auditability instead.
+- G-06: WHEN a diff's effect lands on a different repository than the one
+  under review (e.g. a guard config pushed elsewhere) DO verify against
+  that repo's live state — clone, diff, or fetch it — rather than resting
+  on the local diff; this turns argued claims into measured ones.
 
 ## Outcomes (max 10)
 

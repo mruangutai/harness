@@ -31,6 +31,18 @@
 - P-10: WHEN adding an entry to `docs/harness/DECISIONS.md` DO append at end-of-file and regenerate
   the index rather than hand-writing the new row — appending keeps every existing `@line` anchor
   stable, and the generator emits a sentinel telling you the one place to write.
+- P-11: WHEN a `verify:` clause is your evidence that a criterion about a section's body is met DO
+  print the matching line for every assertion and show it sits in that section — a clause green
+  before your edit and after matched unrelated text, and all-PASS then means nothing.
+- P-12: WHEN you delete a block of documentation DO inventory what durable content it carried and
+  name, for each item, a live in-tree site that still holds it — some survive only in history, and
+  those need a `git show <sha>:<path>` in your receipt or they are lost.
+- P-13: WHEN you narrow a claim in one file after disproving its broad form DO grep every file you
+  touched for the stronger phrasing too — verify coverage is per-file, so the same claim restated
+  in an uncovered file exits 0 and ships false.
+- P-14: WHEN you strike or shrink a section of `docs/harness/DECISIONS.md` DO expect the
+  regenerated index row to lose `refs:` and `[tags]` — the generator recomputes both from the
+  section's body text — and report that as an effect of your edit, never as a generator defect.
 
 ## Gotchas (max 15)
 - G-01: WHEN you intend to claim a checker's output is unchanged DO run that checker before your
@@ -41,9 +53,9 @@
   removed the superseded-pattern marker and its checker entirely. A struck decision keeps its
   heading and a strike record so old citations still land somewhere.
 - G-04: WHEN you strike a decision DO sweep every live surface by hand — no propagation checker
-  exists any more (DEC-188), so a falsified sentence left standing is caught only by a human
-  reading the diff. Live means CLAUDE.md, docs/, .claude/skills, .claude/commands, .claude/agents
-  and .harness/expertise; feature dirs under .harness/features are historical record, leave them.
+  exists (DEC-188), so a falsified sentence standing is caught only by a human reading the diff.
+  Live: CLAUDE.md, docs/, .claude/{skills,commands,agents}, .harness/expertise; .harness/features
+  is historical record, leave them.
 - G-05: WHEN you edit a ruling in `docs/harness/DECISIONS-INDEX.md` DO run the unit-test runner, not
   just the generator diff — the index's length budgets are asserted only in
   `test-gen-decisions-index.py` and stated nowhere in the index itself.
@@ -53,9 +65,10 @@
 - G-07: WHEN wording a decision title or a bold run in `DECISIONS.md` DO check which marker tokens
   `gen-decisions-index.py` scans for — a title opening with one makes the generator stamp a live
   decision's row as superseded.
-- G-08: WHEN a criterion's sweep greps compound tokens DO also sweep the bare word, over every file
-  type in scope — compound patterns are blind to prose using the plain word, and habit scopes
-  sweeps to Markdown while hand-maintained `.html` describes live behaviour too.
+- G-08: WHEN a criterion's sweep greps a compound token or a phrase DO also sweep the bare anchor
+  word, across every file type in scope — backticks and inline markup break word adjacency
+  mid-phrase, and habit scopes sweeps to Markdown while hand-maintained `.html` describes live
+  behaviour too.
 - G-09: WHEN a verify clause is a `grep -v` allow-list sweep DO read stdout, not the exit code — an
   empty result exits 1, so a wrapper treating non-zero as failure reports a green clause as red.
 - G-10: WHEN deleting a clause that begins mid-sentence DO fold the deletion and the
@@ -73,6 +86,9 @@
 - G-14: WHEN a criterion is shaped "file X leaves the sweep" DO enumerate every hit in X with the
   criterion's own full pattern and show each sits in text your edit removes — grepping one token of
   a five-token pattern verifies one fifth of the claim, and file-level arithmetic verifies none.
+- G-15: WHEN a sweep needs a word boundary DO use `-P` or spell it as a character class — `git grep
+  -E` treats `\b` as matching nothing and exits 1, indistinguishable from a clean sweep; dropping
+  `-E` breaks alternation, and `/usr/bin/grep -E` honours `\b`, so the trap is git grep's.
 
 ## Outcomes (max 10)
 

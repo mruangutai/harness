@@ -15,10 +15,14 @@
 - P-12: WHEN judging whether a guarded test assertion is reachable on a green run DO distinguish "unconditionally evaluated" from "conditional but taken by current fixtures" — the latter can silently stop firing on a future fixture change without the guard itself ever being touched; note which grade applies.
 - P-13: WHEN you establish a test assertion is reachable DO check separately whether a discriminating proof exists (a mutant or wrong-value test) that it can actually fail — reachability proves the check runs; only discrimination proves it can catch a wrong result. Flag whichever half is missing.
 - P-14: WHEN a BRIEF or plan cites tests as evidence for a requirement DO check whether those tests exercise the real implementation or a mocked stand-in — a green suite that replaces the function under test proves only caller shape, not the requirement's behavior.
+- P-15: WHEN a feature's gates are token or phrase based DO read the replacement prose as claims and check each against the code it describes — a sweep proves which words are present, never that the sentence they form is true.
 
 ## Gotchas (max 15)
 - G-01: WHEN a file you need to cite shows dirty in git status DO read it at the pinned SHA via `git show <sha>:<path>` and state which you read — a diff reviewed against pinned bytes can differ from the same path's working-tree state.
 - G-02: WHEN a test asserts only a return/exit code DO check whether other code paths in the same function can produce that same code — a regression or reimplementation that satisfies the code via an unintended site still passes; assert a distinguishing message or output too.
+- G-03: WHEN verifying a claim that recurs in several places DO check each occurrence's scope separately — a qualified sentence can be true while its unqualified twin elsewhere is false, so confirming one does not confirm the others.
+- G-04: WHEN recommending a re-run/re-capture as a remedy for a missing before/after evidence artifact DO verify the 'before' state is still reproducible — if later work already overwrote it, the re-run produces two 'after' snapshots, not the evidence recommended, and the remedy does not actually exist.
+- G-05: WHEN about to mark an open question blocking DO first name the single measurement that would settle it and check whether you can run it now — a cheap unrun check escalated as a question costs the chain more than running it.
 
 ## Outcomes (max 10)
 

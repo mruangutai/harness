@@ -8,9 +8,6 @@
 - P-03: WHEN asserting a call was removed via a log grep DO scope the grep to the payload, not the
   path — a path-only absence grep can vacuously "prove" removal while unrelated calls sharing that
   path remain.
-- P-04: WHEN a task claims a change is byte-identical to a previously deployed file DO diff against
-  the copy under `~/.claude/skills/harness/bin/` as the pre-change reference, rather than trusting
-  the claim from context alone.
 - P-05: WHEN a new gate binds every persona sharing a return contract DO check whether your own
   review's return would satisfy it — a PASS accepted only because the change hasn't landed yet is
   itself proof of the gap it is reviewing.
@@ -34,6 +31,12 @@
   restore it, re-verify the hash matches, and confirm the file is absent from
   `git status --porcelain` — this is what makes a "no net change this cycle" claim checkable, not
   just asserted.
+- P-12: WHEN a task's verify pins a claim to a specific section via a presence grep DO scope the
+  grep to the extracted section text, not the whole file — a substring present elsewhere in the
+  file lets the check pass while asserting nothing about the section it names.
+- P-13: WHEN a task's intent cites a specific line as an existing assertion of old wording to
+  update DO read that line first — it may be a docstring or unexecuted comment, not a check. If no
+  executable path exercises it, add new RED-then-GREEN tests instead of a rewrite.
 
 ## Gotchas (max 15)
 - G-01: The harness repo has no application source; src/** is empty here.

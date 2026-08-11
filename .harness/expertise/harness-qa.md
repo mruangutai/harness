@@ -33,6 +33,9 @@
   commit-before-verify ordering — committing moves HEAD to include the edit, making the
   comparison self-referential and passing regardless. Diff against the pinned baseline SHA,
   never HEAD.
+- P-11: WHEN a verify does `grep -q <literal>` against a whole file DO check where the match
+  actually lands — the substring can be satisfied by an unrelated section, so the check gates
+  nothing about the section it names, even though it exits 0.
 
 ## Gotchas (max 15)
 - G-01: WHEN proving a test runner's MISCONFIGURED exit path live by creating a stray
@@ -47,6 +50,9 @@
 - G-04: WHEN a task's own `verify:` command exercises only one script of a required kind DO also
   run the standing per-kind test command directly — a task-local pass can coexist with the kind
   itself never having been shown green across its full bucket.
+- G-05: WHEN every gate on a diff is token- or phrase-based (grep/sweep) DO recognize none of
+  them can confirm replacement prose is actually true — only that a token is present or absent.
+  A false statement that satisfies every sweep is caught only by reading the prose directly.
 
 ## Outcomes (max 10)
 - O-01: WHEN an amendment deletes a fixture that was the sole source of some coverage and the loss
@@ -55,5 +61,8 @@
 - O-02: WHEN a gate's trigger covers multiple tool types DO verify each route independently
   reaches the enforcement logic — a check can be logically correct yet unreachable on some routes
   (an early exit keyed on tool name), and a green run looks the same whether it fired or not.
+- O-03: WHEN a finding is settled by reasoning rather than by mutation (e.g. an audit/
+  author-nothing dispatch) DO label it explicitly as reasoned, not measured, in your digest — the
+  tier above needs to know that assurance is weaker than a mutation-proven verdict.
 
 ## Open (max 5)

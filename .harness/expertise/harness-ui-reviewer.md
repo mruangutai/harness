@@ -9,6 +9,7 @@
 - P-06: WHEN dispatch explicitly names an adjacent non-rendered surface (e.g. CLI/error-message output) alongside a no-UI diff DO treat it as in-remit and audit it against the stated requirement — a handed-down surface turns a decline into a reviewed finding, not an optional extra you may skip.
 - P-07: WHEN a Mode A contract pins concrete values (wording, query shape, format) DO diff them byte-for-byte across every document that claims to implement it (design doc, plan, code) — narrative agreement is not literal agreement, and a criterion that checks only one slot can miss full-text drift.
 - P-08: WHEN auditing a Mode A state/message contract table DO cross-check every row against the full success-criteria list for a covering, checkable assertion — a row with correct prose but no enforcing criterion is invisible to gates and is the highest-value Mode A finding.
+- P-09: WHEN a rewritten message diagnoses one specific system/repo state as an error DO trace which real invocations reach that branch and confirm the post-feature normal state is not among them — a message can be textually accurate yet fire on the case the feature just made normal.
 
 ## Gotchas (max 15)
 - G-01: WHEN closing a prior FAIL's must_fix in a Mode A recheck DO verify the fix's literal text in the document itself (grep the actual wording/query/value) before marking closed — a closing review's own narration, or the plan's stated intent, is not evidence until the artifact is read directly.
