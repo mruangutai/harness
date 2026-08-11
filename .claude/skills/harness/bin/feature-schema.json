@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Feature execution state (feature.json)",
+  "description": "FEAT-14 D-01: eleven top-level keys, additionalProperties false at every closed level. There is no `phase` property — `phase` and `status` collapsed into `status` alone under D-09/D-10; a schema that still declared `phase` would re-legalise the field this feature exists to delete.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "feature_id",
+    "branch",
+    "pr",
+    "status",
+    "review_sha",
+    "cycles_used",
+    "max_total_cycles",
+    "runs"
+  ],
+  "properties": {
+    "feature_id": {
+      "type": "string",
+      "description": "The feature's own identifier, e.g. FEAT-14-feature-json-schema. No demonstrated code reader at the FEAT-14 census; kept because the eleven-key boundary starts at SPEC 11.3's ten and the burden of proof is on removing a key, never on keeping one already there."
+    },
+    "branch": {
+      "type": "string",
+      "description": "The feature's branch name, or the literal string 'none' when unset — check-state.sh INV-6 already treats 'none' as unset via PLACEHOLDER_UNSET, so this stays a plain string rather than nullable. No demonstrated code reader."
+    },
+    "pr": {
+      "type": ["integer", "null"],
+      "description": "The feature's pull request number, or null before one exists. No demonstrated code reader. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["Backlog", "Plan", "Ready", "Building", "Review", "Done"],
+      "description": "The feature's position on the GitHub board, spelled and CASED exactly like the board's own column names — D-11 makes the comparison case sensitive, so no lowercase alias is legal. Read by check-plan-routes.py's finished-feature skip and by check-state.sh INV-17's seam table."
+    },
+    "review_sha": {
+      "type": "string",
+      "description": "Read by check-state.sh's val(\"review_sha\") check against PLACEHOLDER_UNSET. The literal string 'none' is a legal, unset value for the same reason as branch."
+    },
+    "cycles_used": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Read by check-state.sh's val(\"cycles_used\") check against the FAIL-run count."
+    },
+    "max_total_cycles": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "No demonstrated code reader at the FEAT-14 census; kept because the eleven-key boundary starts at SPEC 11.3's ten and the burden of proof is on removing a key, never on keeping one already there."
+    },
+    "runs": {
+      "type": "array",
+      "description": "Read by check-state.sh's per-run loop, entry.get(\"id\"/\"squad\"/\"verdict\").",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "squad", "verdict"],
+        "properties": {
+          "id": { "type": "string", "description": "The run's identifier." },
+          "squad": { "type": "string", "description": "The squad that executed the run." },
+          "verdict": { "type": "string", "description": "The run's verdict." }
+        }
+      }
+    },
+    "max_total_runs": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Read by check-state.sh's _as_budget(val(\"max_total_runs\")). Optional: SPEC 11.3 says it may be omitted to inherit harness.json's default."
+    },
+    "github": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Read by gh-sync.py's load_recorded and by check-state.sh INV-21. Present only once a feature is mirrored to GitHub; no property inside is required.",
+      "properties": {
+        "milestone": { "type": ["integer", "null"], "description": "The GitHub milestone number, or null." },
+        "parent": { "type": ["integer", "null"], "description": "The parent issue number, or null." },
+        "parent_origin": { "type": ["string", "null"], "description": "Where the parent issue number came from, or null." },
+        "attached": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Attached artifact references."
+        },
+        "issues": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" },
+          "description": "Task id to mirrored GitHub issue number."
+        }
+      }
+    },
+    "factory": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Read by factory_decompose.py's load_factory, factory_claim.py's issue_number, and check-state.sh INV-24. Present only once a feature is decomposed by the factory; no property inside is required.",
+      "properties": {
+        "repo": { "type": ["string", "null"], "description": "The factory repo name, or null." },
+        "parent": { "type": ["integer", "null"], "description": "The parent issue number, or null." },
+        "parent_origin": { "type": ["string", "null"], "description": "Where the parent issue number came from, or null." },
+        "issues": { "type": "object", "description": "Task id to mirrored GitHub issue number." },
+        "items": { "type": "object", "description": "Factory item bookkeeping." },
+        "edges": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Dependency edges between factory items.",
+          "properties": {
+            "parent": { "type": "array", "description": "Parent edges." },
+            "blocked_by": { "type": "object", "description": "Blocking edges keyed by item." }
+          }
+        }
+      }
+    }
+  }
+}
