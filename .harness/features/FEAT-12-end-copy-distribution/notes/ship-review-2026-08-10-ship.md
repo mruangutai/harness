@@ -8,7 +8,10 @@ machine-wide registry are gone. `kaya-ai` has been stripped of its copy and that
 to its `master`. A product repository now reaches harness tooling by being checked out by the
 factory, declared in `.harness/factory/fleet.yaml`, which kaya is now in.
 
-**Branch `chore/203-end-copy-distribution`, at `fb80543`. Not pushed, no PR — the merge is yours.**
+**Branch `chore/203-end-copy-distribution`. I pushed nothing and opened no PR — the merge is yours.**
+Stated precisely, because "not pushed" would be false about the branch: it already has an origin
+counterpart at `275de45`, pushed by the main session, and that remote copy carries four of this
+feature's commits. I am 6 ahead of it and ran no `git push` at any point.
 One commit went to another repository: `7d2f946` on `mruangutai/kaya-ai` `master`, which you
 authorized.
 
@@ -85,10 +88,11 @@ its success criterion unmet. I caught the second by reading and spent one fix cy
 
 ## Cost and shape
 
-Eleven runs, 8 of 10 cycles. Two cycles were rework I would spend again: one where a documentor
-wrote a claim its own research had disproved, one where a task passed its verify with SC-08 unmet.
-Nine of the fourteen tasks were lane-locked to you and executed by the main session; those are not
-counted as runs, so the real step count is higher than eleven.
+Sixteen runs against an informational budget of 20, so no long-feature note fires, and 8 of 10
+cycles. Two of those cycles were rework I would spend again: one where a documentor wrote a claim
+its own research had disproved, one where a task passed its own verify with SC-08 still unmet.
+Nine of the fourteen tasks were lane-locked to you and executed by the main session, and a
+main-session segment is never recorded as a run — so sixteen is a floor, not the real step count.
 
 **No report round was spawned for this briefing** — it is assembled from the digests on disk:
 `runs/2026-08-10-01-product/digest.md`, `-02-product`, `-03-product`, `runs/t07-t10-eng/digest.md`,
@@ -98,8 +102,9 @@ counted as runs, so the real step count is higher than eleven.
 `distill-apply-validator`, `distill-apply-eng`. Ship-refresh was skipped because this repository has
 no `.harness/codebase/` map to refresh.
 
-Seventeen Expertise ops landed, applied by their owners. `check-expertise.sh` reports OK on all
-thirteen files, and the three reviewer files took insertions only.
+Expertise changed in eight files, 139 entries to 160, applied by their owners.
+`check-expertise.sh` reports OK on all thirteen files, and the three reviewer files plus qa took
+insertions only — checked per file, not from the aggregate diffstat.
 
 ---
 
