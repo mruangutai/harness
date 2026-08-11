@@ -1,14 +1,14 @@
 feature_id: FEAT-12-end-copy-distribution
 mission: ship
-phase: validate
-status: in_progress
+phase: ship
+status: awaiting_user
 branch: chore/203-end-copy-distribution
 pr: none
 effort: https://github.com/mruangutai/harness/issues/203
 grilling: .harness/notes/grilling-end-distribution-2026-08-10.md
-briefing: none
-review_sha: d543809
-cycles_used: 7
+briefing: .harness/features/FEAT-12-end-copy-distribution/notes/ship-review-2026-08-10-ship.md
+review_sha: fb80543
+cycles_used: 8
 max_total_cycles: 10
 max_total_runs: 20
 counts: { reqs: 8, scs: 11, sc_automated: 6, sc_inspection: 4, sc_uat: 1, tasks: 14, decisions: 6 }
@@ -61,10 +61,24 @@ gate_status:
   review: "FAIL(high) at d543809, 0 send-backs - one must_fix, SC-05 evidence. Panel Q1 measured BY ME and it dissolves most of it: see sc05_probe"
   uat: "BLOCKING and OUTSTANDING - SC-06 is the operator's own run against a factory checkout of kaya"
   github_mirror: "gh-sync open ran once; T-07, T-10, T-12 sub-issues closed. Do not re-run open"
+closeout: >-
+  Distillation done. Ship-refresh SKIPPED and not forgotten - there is no .harness/codebase/ map
+  in this repository, so the feature files_touched intersect nothing. 17 Expertise ops applied BY
+  THEIR OWNERS; check-expertise.sh OK on all 13 files, and the three reviewer files took
+  INSERTIONS ONLY, verified per file by me. My own file: 0 ops - all four sections sit at cap and
+  every candidate was judged already covered by P-06, P-15 or G-01. Healthy, not expertise_full.
+playbook_defect: >-
+  MEASURED. The playbook says write-less reviewers return ops and the ORCHESTRATOR applies them.
+  check-domain.sh denies harness-orchestrator every other agent Expertise file at exit 2, denies
+  a lead its members files too, and grants each reviewer its own at exit 0 because all three
+  hold Write. The documented path is impossible; the working one is forbidden by that document.
 cycles_note: >-
-  Four send-backs from the plan phase plus one in t12-product, where documentor was returned for
-  writing a claim its own research had disproved. The nine layer-0 tasks were main-session-direct
-  and are not runs; DEC-157 counts rework only.
+  EIGHT. Four from the plan phase; one in t12-product where documentor was returned for writing a
+  claim its own research had disproved; one for the SC-08 fix cycle, where T-14 passed its own
+  verify with the criterion unmet; one reported by goalcheck-product; one by distill-eng. The
+  distill-apply round is NOT counted: both returns reported zero send-backs, and DEC-157 counts
+  rework rather than a second forward step made necessary by a stale playbook premise. Say so if
+  you read that differently. The nine layer-0 tasks never appear as runs at all.
 runs:
   - { id: 2026-08-10-01-product, squad: product, verdict: PASS }
   - { id: 2026-08-10-02-product, squad: product, verdict: PASS }
@@ -77,6 +91,11 @@ runs:
   - { id: qagate-validator, squad: validator, verdict: PASS }
   - { id: panel-validator, squad: validator, verdict: FAIL }
   - { id: goalcheck-product, squad: product, verdict: ESCALATE }
+  - { id: distill-eng, squad: eng, verdict: PASS }
+  - { id: distill-product, squad: product, verdict: PASS }
+  - { id: distill-validator, squad: validator, verdict: PASS }
+  - { id: distill-apply-validator, squad: validator, verdict: PASS }
+  - { id: distill-apply-eng, squad: eng, verdict: PASS }
 github:
   milestone: 6
   parent: 223
