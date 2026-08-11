@@ -197,7 +197,7 @@ the time of writing; the live list is authoritative if the two disagree.
 | 10 | **Team runner + lead collation, PROVEN** | **done** (DEC-124) — `validator-lead` conducted the `review` panel end to end: opened its run dir, dispatched three members, collected and assessed their digests, and returned a contract-satisfying team digest with a correct roll-up. It produced a cross-cutting conclusion no single reviewer had, which is the thing a lead is for. Also found: the runner was unreachable by any lead (wired, unverified until a restart), the lead's own parallel-dispatch claim was false though the members overlapped anyway, and `digest.md` on disk is prose rather than the contract shape SPEC 10.4 mandates |
 | 11 | Batch human touchpoints to two | pending |
 | 12 | `/harness-init` + distributed templates | **done** — flat skill at `.claude/skills/harness-init/`, 8 templates, 3 merge scripts (DEC-112) |
-| 13 | Rewrite `harness-deploy` (distribution only, **+ prune**) | **done** (DEC-113) — `bin/deploy.sh`, dry-run by default, reconciles rather than copies. The live risk was confirmed real before the fix: 3 deleted agents spawnable everywhere, the global skill tree still the April layout |
+| 13 | ~~Rewrite the distribution command (distribution only, **+ prune**)~~ | **struck — done by deletion.** It shipped under DEC-113; the shell script that did the copying is deleted from `bin/`, and nothing distributes the harness. A product repository is checked out by the factory under the `workspace_root` its `.harness/factory/fleet.yaml` declares, so there is no destination to reconcile and no stale global tree to prune |
 | 14 | Router + orchestrator + entry doors + CLAUDE.md size | **done** (DEC-128, DEC-135) — all pieces built AND live-validated across the FEAT-02 smoke and four fixtures (18/28 matrix rows). CLAUDE.md cut 79% (3.7k→0.8k tokens/spawn); the stale GSD-era analysis archived. Residual: the answers-file variant of the round-trip has not fired naturally yet |
 | 15 | Recover the five lost design GAPs | pending |
 | 16 | GSD-removal migration (19 items) | **done** (DEC-136) — items completed incidentally through self-hosting; the residue was retiring `.planning/` with its open items triaged rather than dropped. Triage table in the DEC. History lives in git |
@@ -384,10 +384,13 @@ It must run in the **main session**: only that tier can call `AskUserQuestion` (
 
 | Operation | Does | Touches project state? |
 |---|---|---|
-| `/harness-deploy` (task 13) | distributes skills, agents, templates | **never** |
+| the factory's workspace step | clones the repository the fleet declares into `workspace_root` (`bin/factory_workspace.py`) | **no** — it creates the checkout and writes no project artifact inside it |
 | **`/harness-init`** | writes every project artifact | yes, once |
 
-Enroll = deploy + init. This split is what lets deploy be dumb and safe (DEC-12).
+Onboarding is a fleet entry plus init: adding `- name: <owner>/<repo>` to
+`.harness/factory/fleet.yaml` is what makes a repository reachable, and `/harness-init` is what
+writes its `.harness/` state. Nothing is copied into the repository, which is what keeps the
+first half dumb and safe (DEC-12 recorded this split when the first half was a distribution step).
 
 ### What it writes — six artifacts
 
@@ -737,7 +740,8 @@ Beyond "build personas + assemble them." Prune freely.
    - Add the design-pass + prototype segment to `plan-feature` (SPEC §13.1).
    - Add team `conventions:` to the `team-config.yaml` template (SPEC §3.2), and have `dev-ops`
      verify Supabase linkage and install `@astryxdesign/core` at init.
-7. **Deploy pipeline** — update `harness-deploy.md`.
+7. ~~**Deploy pipeline**~~ — **struck, done by deletion.** There is no distribution pipeline to
+   update; the fleet declaration (`.harness/factory/fleet.yaml`) replaced it.
 8. **Self-host cutover (last)** — migrate `.planning/` content → `.harness/`, retire `.planning/`,
    flip the dev workflow to `/harness`. Only after the system runs end-to-end.
 
@@ -769,11 +773,11 @@ Beyond "build personas + assemble them." Prune freely.
 | 11 | Agents — the full org | *Keep + rewrite 3 existing:* `code-reviewer`, `security-reviewer`, `qa` (now a **doer**). Drop `/gsd-*` trigger vocabulary, repoint inputs to `.harness/`, add the three-part `VERDICT:`/`DIGEST:`/`artifact:` return. **Delete** `harness-ceo-reviewer` and `harness-eng-reviewer` (architecture review moves into `eng-lead`). **Add 12:** 3 leads (`product-lead`, `eng-lead`, `validator-lead`), 5 eng specialists (`frontend-dev`, `backend-dev`, `ai-dev`, `data-engineer`, `dev-ops`), `pm`, `visual-designer`, `documentor`, `ui-reviewer`. **Total: 15.** |
 | 12 | `skills/harness/personas/` | **Delete** the stub dir — the roster lives in `.claude/agents/`. |
 | 13 | `CLAUDE.md` | Rewrite "GSD Workflow Enforcement" (route via `/harness`, not `/gsd:*`). Update the `<!-- GSD:harness-* -->` block to describe `.harness/` + teams. Flag the stale STACK.md block for rewrite. GSD marker comments become inert — harmless, drop optionally. |
-| 14 | `.claude/commands/harness-deploy.md` | **DONE** (DEC-113). Scoped to distribution only — it must never write project state. See the detail block below. |
+| 14 | ~~the distribution command~~ | **Struck — done by deletion.** It shipped under DEC-113, scoped to distribution only; the copy mechanism behind it is deleted and the factory checks a repository out instead. See the detail block below. |
 | 15 | `.gitignore` | **NET-NEW FILE.** See the detail block below. |
 | 16 | `.harness/README.md` | **REWRITE, not create** — it already exists and contradicts this design. See the detail block below. **Owner: `documentor`.** |
 | 17 | `.harness/team-config.yaml` | **NET-NEW.** The team manifest (SPEC §3.1): orchestrator, paths, `shared_context`, and the 3 teams with leads, members and `consult-when`. Read by the orchestrator at every `/harness` entry and by each lead when delegating. **This is what makes the org data rather than prose.** Ships alongside **`bin/check-domain.sh`** (net-new): generic and stateless — takes an agent name + a path, reads that agent's `domain` from the project's manifest, exits non-zero if out of scope. No project-specific globs; identical in every project. |
-| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what makes deploy safe to be dumb.** |
+| 18 | `/harness-init` + `templates/` | **DONE** (DEC-112). The onboarding interview (absorbs the deleted `bootstrap` team): project type + frameworks + requirements; writes `harness.json`, `team-config.yaml`, and a draft `BRIEF.md` for approval; optionally chains a design pass. Delegates mechanical detection to `dev-ops` for `domain` globs and `test_kinds`. Supports `--upgrade` to merge newer template entries while preserving project values, driven by `schema_version`. **This is what made the distribution half safe to be dumb, and it is what still writes a checked-out repository's `.harness/` state.** |
 | 19 | `.claude/skills/harness-handoff/SKILL.md` | **NET-NEW FILE** — referenced everywhere, scheduled nowhere. The universal artifact-output discipline (BLUF, pointers-not-payloads, open-questions, bounded length) plus the autonomy-by-reversibility rule, read by all 16 agents. Create it in MVP step 1 alongside the first persona. A **flat** skill, not `rules/handoff.md` (DEC-100). |
 
 **Also net-new, and reshaped:** all seven rules become **skill directories**
@@ -788,15 +792,22 @@ is **renamed to `expertise`** (DEC-80).
 **Net-new artifacts:** `.harness/expertise/<agent>.md` per agent with stable entry IDs (SPEC §5.2),
 `.harness/features/<FEAT>/notes/uat.md`, `.harness/notes/prototypes/<FEAT>/`.
 
-### Detail: #14 — `harness-deploy.md`
+### Detail: #14 — ~~the distribution command~~ (struck, done by deletion)
+
+**Struck: nothing distributes the harness.** It was built (DEC-113), and the shell script in `bin/`
+that did the copying is deleted — a product repository now reaches the harness by being **checked out**
+into the `workspace_root` its `.harness/factory/fleet.yaml` declares, never by holding a copy of the
+tool. Nothing below is outstanding work; the list is kept as the record of what that command was
+specified to do, in the past tense it now belongs to.
 
 - Push skills, agents and **templates**. **Drop every merge-into-project-config behaviour** —
   project scaffolding moves to `/harness-init`.
 - Replace the `.planning/config.json` GSD-project check with a `.harness/` check.
 - **Drop the `manifest.json` / `agent_skills` machinery** entirely.
-- Registry `~/.gsd/harness-registry.json` → `~/.harness/registry.json`. **Migrate the existing
-  registry file** — do not orphan it. Make the migration **idempotent**: handle both files present,
-  and a project listed only in the old registry.
+- Move and migrate the machine-wide registry of enrolled projects. **Struck with the rest:** no
+  code reads a registry any more — the set of repositories the factory works in is the `repos:`
+  list in `.harness/factory/fleet.yaml`, tracked in this repository rather than in a file under
+  `$HOME`.
 - Copy skills + **every agent on disk** (glob `harness-*.md` — 16 since DEC-128, previously 15 until
   `harness-orchestrator.md` lands with task 14) + propagate `teams/`.
 - ⚠️ **`cp -r .claude/skills/harness/.` is not enough, and this is easy to miss.** It copies the router,
@@ -826,7 +837,8 @@ is **renamed to `expertise`** (DEC-80).
 The repo has **none**, yet the commit policy depends on ignoring `.harness/features/*/runs/**`.
 Without it, run dirs dirty the working tree — and the git-failure-mode rule halts a team with
 `BLOCKED` on a dirty tree, so **the harness's own artifacts would deadlock the next run.** Add the
-rule here and to `harness-deploy` enroll (`templates/gitignore.snippet`). Reconcile the dirty-tree
+rule here and to the onboarding template `templates/gitignore.snippet`, which `/harness-init` merges
+into the target repository via `bin/merge-gitignore.sh`. Reconcile the dirty-tree
 halt with a **whitelist**: harness-owned paths and in-progress staged work do not count as dirty.
 
 ### Detail: #16 — `.harness/README.md`
@@ -871,9 +883,13 @@ new system with GSD still available, then cut over and retire `.planning/`.
 
 ## Hard constraints and risks
 
-- **Runner-is-a-skill rests on a verified fact:** `/harness-deploy` distributes skills but **not**
-  commands, so the runner must be a skill to propagate. State passes by file path (context-budget
-  discipline), and sub-teams flatten rather than nest.
+- **Runner-is-a-skill no longer rests on propagation.** The original reason was that the
+  distribution step pushed skills but not commands; nothing is distributed now — the factory checks
+  a repository out under the fleet's `workspace_root`, and the runner travels with this repository
+  either way. What keeps it a skill is that **an agent can preload a skill and cannot preload a
+  command**: `harness-orchestrator.md`'s `skills:` list names `harness`, which is how the playbook
+  reaches the one tier that runs it. State passes by file path (context-budget discipline), and
+  sub-teams flatten rather than nest.
 - **⚠️ Nested spawning is a HARD PREREQUISITE, not an assumption.** Evidence is mixed: some agent
   types list `Tools: *` (likely including the spawn tool), but the Workflow docs note "subagents
   can't spawn subagents in some configs" and "nesting is one level only." Everything downstream of
@@ -924,7 +940,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `.claude/agents/harness-{pm,qa,documentor,visual-designer,ui-reviewer}.md` | **new** — product/validator agents |
 | `.harness/team-config.yaml` | **new** — team manifest (membership + `consult-when` routing + `domain` write scope) |
 | `.claude/skills/harness/bin/check-domain.sh` | **new** — domain-enforcement hook script (the one deliberate exception to files-only) |
-| `.claude/skills/harness/templates/*` | **new** — distributed schema templates (team-config, harness.json, BRIEF/PLAN/STATE/DESIGN, gitignore) |
+| `.claude/skills/harness/templates/*` | **new** — schema templates read from this repository at onboarding (team-config, harness.json, BRIEF/PLAN/STATE/DESIGN, gitignore) |
 | `.claude/skills/harness-init/SKILL.md` | **done** — `/harness-init` project scaffolder. **FLAT**, not `harness/init/`: a project skill is exactly one level under `.claude/skills/` and a nested dir is undiscoverable (DEC-100) |
 | `.claude/skills/harness/bin/merge-settings.py`, `merge-gitignore.sh`, `upgrade-config.py` | **done** — deterministic, idempotent merges. Prose cannot be trusted to preserve a project's own hooks |
 | `.claude/skills/harness-handoff/SKILL.md` | **new** — universal artifact discipline (all 16 agents) |
@@ -933,7 +949,7 @@ new system with GSD still available, then cut over and retire `.planning/`.
 | `settings.json` — `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` + `SubagentStart` + `PreToolUse` + `SubagentStop` | **new** — **all four required**, none on by default, and each degrades silently if absent (§ Step 0a; DEC-111, DEC-122) |
 | `.claude/agents/harness-{code,security}-reviewer.md` | rewrite — de-GSD'd + three-part return (`ceo-reviewer` and `eng-reviewer` are **deleted**) |
 | `.claude/skills/harness/rules/*.md` | rewrite — retarget injection prose to personas |
-| `.claude/commands/harness-deploy.md` | rewrite — strip agent_skills/manifest, repoint to `.harness/`, add teams + prune step |
+| ~~the distribution command~~ | **struck — done by deletion.** The rewrite is moot: the copy mechanism is deleted and repositories are checked out from the fleet declaration instead |
 | `.gitignore` | **new** |
 | `.planning/config.json` + `harness.json` | delete `agent_skills`; move config to `.harness/` |
 
