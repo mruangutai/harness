@@ -24,3 +24,21 @@ runs:
   - { id: t01t03-eng, squad: eng, verdict: ESCALATE }
   - { id: e1fix-eng, squad: eng, verdict: PASS }
   - { id: qa-seg1-validator, squad: validator, verdict: PASS }
+github:
+  milestone: 8
+  parent: 204
+  parent_origin: adopted
+  attached: [T-01, T-02, T-03, T-04, T-05, T-06, T-07, T-08, T-09, T-10, T-11, T-12]
+  issues:
+    T-01: 264
+    T-02: 265
+    T-03: 266
+    T-04: 267
+    T-05: 268
+    T-06: 269
+    T-07: 270
+    T-08: 271
+    T-09: 272
+    T-10: 273
+    T-11: 274
+    T-12: 275

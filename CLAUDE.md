@@ -20,6 +20,8 @@ to global installation and a distributable package.
   fallback — a fallback would keep the brittle parser in the tree, which is the point of removing it.
   A missing PyYAML is a loud error: `harness-init`'s prerequisite gate stops, and the two
   `PreToolUse` hooks fail CLOSED with a one-session bootstrap escape.
+  **`jsonschema` is required too**, for the feature execution-state schema, under the same rule: a
+  missing import is a loud error, never a quieter mode that validates nothing.
 - **Context budget** — the harness must not bloat context: selective loading, never everything-at-once.
 
 (TDD scope lives in `harness.json` `test_matrix` + the `tdd-enforcement` skill — enforced there, not

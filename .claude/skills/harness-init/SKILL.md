@@ -43,17 +43,26 @@ discovering it at step 1 — a denial there is a **stop**, not a detour (see bel
   --template .claude/skills/harness/templates/settings.snippet.json
 .claude/skills/harness/bin/merge-gitignore.sh .
 .claude/skills/harness/bin/merge-settings.py . --check   # must exit 0 before step 2
-python3 -c 'import yaml' 2>/dev/null && echo OK || echo MISSING   # the 7th prerequisite
+python3 -c 'import yaml' 2>/dev/null && echo OK || echo MISSING          # the 7th prerequisite
+python3 -c 'import jsonschema' 2>/dev/null && echo OK || echo MISSING   # the 8th prerequisite
 ```
 
-**If that last line prints `MISSING`, STOP.** PyYAML is REQUIRED, not optional (DEC-171 am.1): there
-is no line-scan fallback anywhere in `bin/`, deliberately, because a fallback leaves the hand-rolled
-parser it exists to remove. Print this for the user to run, then re-check:
+**If either line prints `MISSING`, STOP.** Both packages are REQUIRED, not optional.
+
+**PyYAML** (DEC-171 am.1): there is no line-scan fallback anywhere in `bin/`, deliberately, because
+a fallback leaves the hand-rolled parser it exists to remove.
+
+**jsonschema**: a feature's execution state is schema-checked at write time, and **a validator that
+passes silently when its checker is absent is a gate that looks real and does nothing.**
+
+Print this for the user to run, then re-check:
 
 ```
-python3 -m pip install pyyaml
-# if that fails with "externally-managed-environment" (PEP 668, e.g. Homebrew/Debian):
-python3 -m pip install --user --break-system-packages pyyaml
+python3 -m pip install pyyaml jsonschema
+# only one of them missing? then just the one, e.g.:
+python3 -m pip install jsonschema
+# if either fails with "externally-managed-environment" (PEP 668, e.g. Homebrew/Debian):
+python3 -m pip install --user --break-system-packages pyyaml jsonschema
 ```
 
 That is the content of `harness_yaml.INSTALL_COMMAND`. **Quote it from there rather than
