@@ -221,13 +221,24 @@ def _main():
                 f"— check {fleet_path}",
             )
 
-    # 3. read the board.
+    # 3. read the board. --issue: one targeted lookup per fleet repo (filtered to --repo when
+    # given), the first non-None id wins (D-02) — REPLACES a whole-board scan. Poll mode (no
+    # --issue) is unchanged: it asks what is claimable NOW, which is a list by nature, and stays
+    # on project_items (out of scope — see BRIEF Constraints).
     ready_option = stations["ready"]
     if args.issue is not None:
-        raw_items = factory_gh.project_items(owner, board_number, query="is:open")
-        raw_items = [
-            it for it in raw_items if (it.get("content") or {}).get("number") == args.issue
-        ]
+        raw_items = []
+        for entry in fleet["repos"]:
+            repo_name = entry["name"]
+            if args.repo and repo_name != args.repo:
+                continue
+            found_id = factory_gh.issue_board_item_id(repo_name, args.issue, board_number)
+            if found_id is not None:
+                raw_items = [{
+                    "id": found_id,
+                    "content": {"number": args.issue, "repository": repo_name},
+                }]
+                break
         if not raw_items:
             factory_cli.refuse(
                 TOOL, "issue not found on the board", args.issue,
@@ -265,8 +276,19 @@ def _main():
         labels = [l.get("name", "") for l in (issue.get("labels") or [])]
         assignees = issue.get("assignees") or []
 
-        # 5a. self-ownership FIRST, and only under --issue — must precede every skip below,
-        # or an issue this agent owns (which satisfies every skip condition) is unreachable.
+        # 5a-pre. THE CLOSED-ISSUE REFUSAL, and only under --issue — precedes 5a below and
+        # every other skip. Without it, once the is:open board filter is gone, a CLOSED issue
+        # this agent already owns would satisfy 5a's self-ownership branch and be emitted as
+        # claimable work — an agent picking up finished work.
+        if args.issue is not None and issue.get("state") != "OPEN":
+            factory_cli.refuse(
+                TOOL, "issue is not open", num,
+                "a closed issue is finished work, nothing to claim",
+            )
+
+        # 5a. self-ownership, and only under --issue — precedes every OTHER skip below (the
+        # closed-issue refusal above precedes 5a itself), or an issue this agent owns (which
+        # satisfies every skip condition) is unreachable.
         if args.issue is not None and "factory:claimed" in labels and any(
             a.get("login") == args.as_login for a in assignees
         ):

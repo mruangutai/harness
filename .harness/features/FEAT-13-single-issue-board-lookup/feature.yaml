@@ -1,7 +1,7 @@
 feature_id: FEAT-13-single-issue-board-lookup
-mission: plan
-phase: plan
-status: approved
+mission: ship
+phase: build
+status: in_progress
 branch: feat/FEAT-13-single-issue-board-lookup
 pr: none
 effort: https://github.com/mruangutai/harness/issues/217
@@ -13,107 +13,90 @@ cycles_used: 2
 max_total_cycles: 10
 max_total_runs: 20
 counts: { reqs: 6, scs: 10, sc_automated: 9, sc_inspection: 1, sc_uat: 0, tasks: 2, decisions: 6, main_session_direct: 0 }
-tasks: { T-01: PENDING, T-02: PENDING }
+tasks: { T-01: DONE, T-02: PENDING }
 runs:
   - { id: 2026-08-10-01-product, squad: product, verdict: PASS }
   - { id: 2026-08-10-02-eng, squad: eng, verdict: PASS }
   - { id: 2026-08-10-03-product, squad: product, verdict: PASS }
-cycles_note: >-
-  2 charged, both genuine rework. (1) product-lead sent pm back: intent cited SC-19 where BRIEF
-  defines only SC-01..SC-10, and intent is the literal dispatch prompt a specialist receives
-  verbatim, so the dangling pointer would have sent a builder hunting a criterion that does not
-  exist - neither safe_load nor check-plan-routes.py catches a dangling cross-reference. (2) the
-  eng architecture review returned three must_fix, which I routed back to pm. The eng run itself
-  charged ZERO: it was first-pass and clean.
-plan_contracts_checked_by_me: >-
-  Not relayed. plan.yaml safe_loads; feature: equals the directory name; approval.status pending
-  and BRIEF ## Approval status pending; 2 tasks, 6 decisions, 6 REQs, 10 SCs; both verify: blocks
-  are literal-block scalars; every REQ is traced by a task; the only SC the plan cites is SC-08 and
-  it exists; check-plan-routes.py returns 0 violations across the plan.
-baseline_measured_by_me: >-
-  Taken BEFORE any dispatch and RE-TAKEN after the product run, because the tree moved under this
-  flow. All nine files in scope - factory_decompose.py, factory_claim.py, factory_land.py,
-  factory_gh.py and the five test-factory-*.py siblings - are BYTE-IDENTICAL between the working
-  tree and origin/main at 278de74. The checkout is on chore/203-end-copy-distribution (FEAT-12,
-  building concurrently) and moved c633bbd -> f424609 during the run, landing FEAT-12 commits in
-  bin/ that touch factory_config.py, check-plan-routes.py, wayfind.py and deploy.sh - none of them
-  in this feature's scope. A third flow, FEAT-14, opened a feature dir in the same tree.
-test_kinds_checked: >-
-  The FEAT-11 qa-gate failure mode is CLOSED AT PLAN TIME. change_type cross_module requires
-  exactly unit and integration; both are status active with real cmd values in harness.json
-  test_kinds. T-02 is docs, which requires no kind. No criterion rests on component, ui, eval or
-  typecheck, all four of which are unresolved.
-team_config_divergence: >-
-  .harness/team-config.yaml differs from origin/main by exactly ONE removed row - documentor's
-  notes/receipt-harness-documentor-*.md grant, added on main by PR #222 and absent from this
-  branch. No bin/** row differs, so lane resolution for this feature is identical either way.
-q_resolved_at_sha: >-
-  SETTLED BY ME, not escalated. plan.yaml records lanes.resolved_at bbfc9bb where the dispatch
-  named c633bbd. Verified: bbfc9bb is a real commit, an ancestor of HEAD, and touches exactly two
-  files - .harness/logs/2026-08-10.md and a grilling note for #204. It carries no source and no
-  team-config change, so the lane resolution is valid and pm recording the tree it actually
-  resolved against was compliance, not drift.
-q2_board_item_id: >-
-  SETTLED BY ONE LIVE READ-ONLY QUERY, 1 point, run by me. Issue #216's board item on project 3 is
-  PVTI_lAHOAAases4BfZ9Zzg2AMPA - which MATCHES issue #217's body and does NOT match the grilling
-  note's PVTI_lAHOAAases4Bf5NHzg15... at line 82. The grilling note's id is the wrong one. The
-  ARTIFACT IS NOT EDITED - it is a dated record of that session and this file carries the
-  correction (the FEAT-11 e1_ruling precedent). The note's underlying CLAIM survives intact and is
-  now confirmed live rather than recalled: the targeted query returned exactly one item, on board
-  3, FOR AN ISSUE THAT IS CLOSED. That is a live confirmation of the closed-issue-safe property
-  this whole feature turns on.
-e2_verify_runtime: >-
-  SETTLED BY ME rather than by an eng cycle. T-01's chained verify measures 6.31s total at the
-  current tree - unit suite 0.73s over 10 scripts, test-factory-integration.py 5.58s - against the
-  template's 60s bar. pm's unreported figure was never a risk. Both halves also exit 0 today, so
-  the build phase starts from a GREEN baseline and a red verify after T-01 can only come from T-01.
-grep_false_red_measured: >-
-  The lead flagged that T-01's verify demands ZERO occurrences of the literal factory_gh.project_items
-  in decompose and land while F5 sends the builder to rewrite comments in decompose. MEASURED: the
-  literal occurs 1/1/2 times in decompose/land/claim today, exactly matching the verify's
-  zero/zero/one structure, and decompose's single comment mention at :304 is the BARE token
-  project_items, which the pattern does not match. The hazard is real but narrow, and pm's
-  forbidden-token rule in intent names all three files. Instruction-level mitigation accepted; no
-  verify edit, so the 6.31s measurement stands.
-e1_task_shape: >-
-  RULED BY eng-lead: ONE task, not a helper-first/sites-second split. A split adds no
-  discrimination power - the same unit assertions catch a wrong helper either way - and produces
-  an intermediate commit whose new function has zero production callers. The sibling is the
-  evidence: FEAT-11 made the same shape of change as one task and t01-eng passed first time; its
-  cycles went to the validator and the goal-check, not the builder. The size risk is priced by an
-  intent amendment mandating internal ordering rather than by a second run.
-eng_must_fix_verified_by_me: >-
-  I re-derived the two that would cost the most if wrong rather than relaying them. F1 stands on
-  the plan's own text: the raise list returned None for repository.issue being null, and a builder
-  coding that as .get("issue") is None conflates an explicit null with a MISSING issue key, which
-  is garbage that must raise - decompose then re-adds. F2 stands on the source: factory_land.py:31
-  _find_item_id(owner, board_number, number) takes the BOARD OWNER, and at :92 the variable owner
-  is fleet["board"]["owner"], sitting one line above the call. The new helper needs args.repo, so a
-  mechanical rewire has a wrong value in easy reach. All seven findings were accepted and actioned.
-brief_goal_amended: >-
-  RATIFIABLE AT SIGNATURE, flagged loudly rather than slipped in. eng's F3 found that claim --issue
-  will exit EXIT_REFUSED (2) instead of EXIT_NOTHING (1) when the board holds the issue under a
-  repo outside the fleet or not matching --repo. That is a real observable delta against the Goal's
-  promise that no tool changes what an operator observes, so pm amended the Goal text and added a
-  Constraint bullet naming it. No decision choice, no REQ, no SC and no task count moved: the
-  counts are 6/10/2/6 before and after, recounted by me.
-dec174_check: >-
-  CLEAR, and the eng review confirmed it independently. The plan's surface is
-  .claude/skills/harness/bin/factory_*.py, their test-factory-*.py siblings and two notes/
-  receipts. No task names check-domain.sh, bash-write-guard.sh, validate-digest.py or
-  check-state.sh, so nothing here needs the main session's pen.
-qa_authoring_check: >-
-  HONORED. Both tasks route to harness-backend-dev and T-01's intent states inside the dispatch
-  prompt that tests are authored first, in the same task, and that qa runs the suite rather than
-  authoring it. Defect #218 therefore cannot block the build phase.
-out_of_scope_ticket: >-
-  The land latent bug the grilling found is ALREADY FILED as issue #238, opened before this flow.
-  Nothing is owed and no task may fix it. The plan cites it by number at T-01 step 3.
-design_pass: >-
-  harness-visual-designer NOT spawned, and that is product-lead's recorded judgment rather than a
-  silent skip: the surface is a Python CLI whose only output is refusal text and exit codes, so no
-  end-user interaction and no prototype gate. Overridable in either direction.
-sc_tally: { met: 0, partial: 0, not_met: 0, note: "plan phase - no goal-check in scope" }
+  - { id: t01-eng, squad: eng, verdict: PASS }
+sc_tally: { met: 0, partial: 0, not_met: 0, note: "build phase - goal-check not yet run" }
 gate_status:
-  brief_approval: "PENDING - the operator's signature ends this phase"
-  plan_approval: "PENDING - the operator's signature ends this phase"
+  brief_approval: "APPROVED - operator, 2026-08-10, verified on disk by me"
+  plan_approval: "APPROVED - operator, 2026-08-10, verified on disk by me"
+  qa_gate: "NOT RUN - blocking, sequenced next"
+  review: "NOT RUN"
+github:
+  milestone: 7
+  parent: 244
+  parent_origin: created
+  attached: [T-01, T-02]
+  issues:
+    T-01: 245
+    T-02: 246
+  close_task_deferred: >-
+    T-01's sub-issue 245 is deliberately NOT closed at its commit, which is the playbook's stated
+    trigger. The blocking qa gate has not run yet, and a rework would leave a closed issue against
+    live work. The mirror never gates anything, so waiting one gate costs nothing and keeps the
+    record true. Disclosed rather than done silently.
+roots:
+  worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/FEAT-13-single-issue-board-lookup
+  main_checkout: /Users/molchairuangutai/GitHub/harness
+worktree_reason: >-
+  THE DISPATCH PREMISE WAS FALSE and this is the correction, not a preference. It said the feature
+  branch was created, checked out and signed; the branch exists at 6dfbf7c and is signed, but the
+  main checkout sits on chore/203-end-copy-distribution, which is FEAT-12 mid-build. Checking out
+  here would have pulled a live flow's tree out from under it. The worktree path is the DEC-143
+  shape - check-domain.sh strips a single-segment .claude/worktrees/<name>/ prefix and matches the
+  identical globs, so no grant widens. A worktree outside the project root instead hits the
+  commonpath escape and the hook RETURNS WITHOUT ENFORCING, a silent fail-open across the whole
+  feature and strictly worse than a block. Reported to the operator in the return.
+wrong_root_tripwire: >-
+  An edit to the MAIN checkout's copy of a factory_*.py breaks no gate - backend-dev owns that path
+  in both trees, so the domain hook passes, and a verify run in that same tree passes with it. The
+  work would land on FEAT-12's branch silently. RUN AFTER T-01 AND CLEAN: git diff --quiet
+  origin/main over all nine in-scope files in the main checkout, all nine byte-identical. FEAT-12
+  meanwhile advanced there independently (documentor T-14), which is the flow the worktree spared.
+t01_verified_by_me: >-
+  NOT RELAYED. I re-ran T-01's whole verify chain myself from the worktree root - unit suite 10/10
+  scripts PASS exit 0, test-factory-integration.py 97/97 exit 0, the helper def present, and the
+  literal factory_gh.project_items counting 0 in decompose, 0 in land and exactly 1 in claim, which
+  is the structure the verify demands. Also confirmed by reading source rather than the digest -
+  _find_existing_item_id is a bare delegation carrying no query= and no state scoping, and
+  _item_repo has zero remaining references anywhere in bin/.
+plan_text_defect_found: >-
+  T-01's intent specifies the zero-item-list assertion as argv[:2] == ["project", "item-list"],
+  which CAN NEVER BE TRUE - run_gh at factory_gh.py:88 does [gh] + list(args), so argv[0] is the
+  binary. Premise re-derived by me at source rather than accepted from the digest. As written it is
+  a vacuous negative assertion under SC-01 and SC-02. The member wrote argv[1:3], the form every
+  other assertion in that file uses, so the CODE is right and the SC's own wording - asserted on the
+  argv the helper actually builds - is satisfied. The approved plan's prose is the thing that is
+  wrong, and amending it is pm's under the operator's signature, not mine. Non-blocking, carried to
+  the briefing.
+grilling_note_unreachable: >-
+  The BRIEF, plan.yaml approval.rulings and this file all cite
+  .harness/notes/grilling-board-read-lookups-2026-08-10.md as binding, and it is NOT REACHABLE FROM
+  THIS BRANCH. It was committed at c633bbd on chore/203-end-copy-distribution only - absent from
+  main and absent from feat/FEAT-13. The plan phase ran in the main checkout while it sat on the
+  chore branch, so nobody noticed. eng-lead disclosed reading the main checkout's copy read-only to
+  confirm the ## Settled content. Record integrity issue for the operator, not a build defect.
+plan_digests_copied: >-
+  .gitignore holds .harness/features/*/runs/**, so the three plan-phase run dirs existed only in
+  the main checkout and would never have appeared in the worktree the ship briefing is assembled
+  from. Copied across at setup. They are closed and nothing writes them again.
+q_resolved_at_sha: >-
+  SETTLED IN THE PLAN PHASE, carried because it is not in the handoff. plan.yaml records
+  lanes.resolved_at bbfc9bb where the dispatch named c633bbd. bbfc9bb is a real ancestor commit
+  touching only a log and an unrelated grilling note - no source, no team-config change.
+team_config_divergence: >-
+  This branch's team-config.yaml differs from origin/main by one removed row, documentor's receipt
+  grant from PR #222. No bin/** row differs. THE HOOK READS THE MAIN CHECKOUT'S COPY because hooks
+  register under CLAUDE_PROJECT_DIR, so I re-ran check-domain.sh --resolve there: factory_gh.py
+  resolves to harness-backend-dev plus harness-dev-ops, and the backend-dev receipt path to
+  harness-backend-dev plus harness-orchestrator. Identical either way; the divergence does not bite.
+design_pass: >-
+  harness-visual-designer NOT spawned - product-lead's recorded judgment, not a silent skip. The
+  surface is a Python CLI whose only output is refusal text and exit codes.
+cycles_note: >-
+  2 charged, both in the plan phase, both genuine rework - a dangling SC-19 pointer in T-01's
+  dispatch prompt, and three eng-review must_fix routed back to pm. T-01's build run was FIRST-PASS
+  CLEAN and charged ZERO, which is the correct accounting under DEC-157.

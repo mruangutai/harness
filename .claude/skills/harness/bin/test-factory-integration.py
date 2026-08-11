@@ -176,6 +176,41 @@ def main():
         ok(json.dumps({"items": items_out, "totalCount": len(items_out)}))
 
     if argv[:2] == ["api", "graphql"]:
+        query_text = ""
+        for i, a in enumerate(argv):
+            if a == "-f" and i + 1 < len(argv) and argv[i + 1].startswith("query="):
+                query_text = argv[i + 1][len("query="):]
+
+        if "projectItems" in query_text:
+            # FEAT-13's targeted single-issue lookup (factory_gh.issue_board_item_id), keyed on
+            # the query TEXT (never argv order) since this dispatch sits ahead of the older
+            # field-resolve query below and both hit ["api", "graphql"]. Read the real argv the
+            # tool emits rather than guessing it.
+            owner_v = name_v = number_v = None
+            for i, a in enumerate(argv):
+                if a == "-f" and i + 1 < len(argv) and argv[i + 1].startswith("owner="):
+                    owner_v = argv[i + 1][len("owner="):]
+                if a == "-f" and i + 1 < len(argv) and argv[i + 1].startswith("name="):
+                    name_v = argv[i + 1][len("name="):]
+                if a == "-F" and i + 1 < len(argv) and argv[i + 1].startswith("number="):
+                    number_v = argv[i + 1][len("number="):]
+            repo = f"{owner_v}/{name_v}"
+            issue = state["issues"].get(number_v)
+            if issue is None:
+                ok(json.dumps({"data": {"repository": {"issue": None}}}))
+            nodes = []
+            for item_id, it in state["items"].items():
+                if it.get("repo") == repo and str(it.get("number")) == number_v:
+                    # THE SYNTHETIC NODE'S project.number MUST EQUAL THE FIXTURE'S BOARD
+                    # NUMBER, 9 (fleet_dict's board.number) — issue_board_item_id matches
+                    # client-side against each node's project.number, so a placeholder here
+                    # makes every case return None and reddens SC-08 for a reason unrelated to
+                    # the code under test.
+                    nodes.append({"id": item_id, "project": {"number": 9}})
+            ok(json.dumps({"data": {"repository": {"issue": {"projectItems": {
+                "totalCount": len(nodes), "nodes": nodes,
+            }}}}}))
+
         # The single GraphQL query factory_gh._project_field_resolve sends (D-01). Answered
         # unconditionally, without inspecting the query= text — that guard lives once, in
         # test-factory-gh.py. Placed BEFORE the generic ["api", ...] REST branch below: after it

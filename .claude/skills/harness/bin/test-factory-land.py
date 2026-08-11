@@ -83,6 +83,7 @@ class Recorder:
             {"id": ITEM_ID, "content": {"number": ISSUE, "title": ISSUE_TITLE}},
         ]
         self.issue_title = ISSUE_TITLE
+        self.issue_state = "OPEN"
         self.preflight_raises = None
         self.pr_create_raises = None
         self.field_options = {STATION_FIELD: ["Ready", "Building", "Review"]}
@@ -102,7 +103,7 @@ class Recorder:
 
     def issue_view(self, repo, number, fields):
         self.gh_calls.append(("issue_view", (repo, number, tuple(fields))))
-        return {"title": self.issue_title}
+        return {"title": self.issue_title, "state": self.issue_state}
 
     def run_gh(self, args, json_out=False):
         self.gh_calls.append(("run_gh", (tuple(args), json_out)))
@@ -116,11 +117,21 @@ class Recorder:
         self.gh_calls.append(("project_items", (owner, number, query)))
         return list(self.items)
 
+    def issue_board_item_id(self, repo, number, board_number):
+        self.gh_calls.append(("issue_board_item_id", (repo, number, board_number)))
+        for it in self.items:
+            if (it.get("content") or {}).get("number") == number:
+                return it.get("id")
+        return None
+
     def project_field_set(self, owner, number, item_id, field, option):
         self.gh_calls.append(("project_field_set", (owner, number, item_id, field, option)))
 
 
-PATCHED_GH = ("preflight", "issue_view", "run_gh", "project_items", "project_field_set")
+PATCHED_GH = (
+    "preflight", "issue_view", "run_gh", "project_items", "issue_board_item_id",
+    "project_field_set",
+)
 
 
 def patch(rec):
@@ -196,6 +207,19 @@ check("(M1) pr create head is the branch",
       "--head" in pr_argv and pr_argv[pr_argv.index("--head") + 1] == BRANCH, pr_argv)
 check("(M1) pr create body contains closes #<n>",
       "--body" in pr_argv and f"closes #{ISSUE}" in pr_argv[pr_argv.index("--body") + 1], pr_argv)
+lookup_calls = [c for c in rec.gh_calls if c[0] == "issue_board_item_id"]
+check("(M1) issue_board_item_id was called EXACTLY ONCE — the targeted lookup replaces the "
+      "whole-board scan (FEAT-13, D-01)", len(lookup_calls) == 1, rec.gh_calls)
+check("(M1) project_items was called ZERO times",
+      not any(c[0] == "project_items" for c in rec.gh_calls), rec.gh_calls)
+check("(M1) issue_board_item_id's first argument is the repository string (args.repo), "
+      "NOT the bare board-owner login",
+      lookup_calls and lookup_calls[0][1][0] == REPO, lookup_calls)
+check("(M1) issue_board_item_id's first argument is explicitly NOT the board-owner login "
+      "(the mis-wire this assertion exists to catch)",
+      lookup_calls and lookup_calls[0][1][0] != OWNER, lookup_calls)
+check("(M1) issue_board_item_id called with (repo, issue, board_number)",
+      lookup_calls and lookup_calls[0][1] == (REPO, ISSUE, BOARD), lookup_calls)
 field_set_calls = [c for c in rec.gh_calls if c[0] == "project_field_set"]
 check("(M1) sets the station to Review", len(field_set_calls) == 1
       and field_set_calls[0][1][4] == "Review", field_set_calls)
@@ -302,6 +326,26 @@ merge_calls = [
     if c[0] == "run_gh" and "merge" in c[1][0]
 ]
 check("(M6) no recorded gh call contains a merge subcommand", merge_calls == [], rec.gh_calls)
+
+# (M7) SC-07: a CLOSED issue fails at the SAME point in the sequence as today's is:open-filter
+# miss — AFTER the branch push and AFTER the pull-request create — and the station is never
+# set. Today this was a side effect of the is:open filter on the board read; now it is an
+# explicit check on the widened issue_view(["title", "state"]) read (REQ-04, D-04).
+rec = Recorder()
+rec.issue_state = "CLOSED"
+code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
+check("(M7) a closed issue exits 2 (refused), not 0", code == 2, code)
+check("(M7) stdout empty", out == "", out)
+check("(M7) stderr names the issue", str(ISSUE) in err, err)
+push_calls = [c for c in rec.git_calls if c[0][0] == "push"]
+check("(M7) the push already happened before the closed-issue refusal", len(push_calls) == 1,
+      rec.git_calls)
+pr_create_calls = [c for c in rec.gh_calls if c[0] == "run_gh" and c[1][0][:2] == ("pr", "create")]
+check("(M7) the pull request WAS already created before the closed-issue refusal",
+      len(pr_create_calls) == 1, rec.gh_calls)
+field_set_calls = [c for c in rec.gh_calls if c[0] == "project_field_set"]
+check("(M7) the station is never set on a closed issue (field_set_calls == [])",
+      field_set_calls == [], rec.gh_calls)
 
 # ==========================================================================
 # C-3 contract — three cases, captured with redirect_stdout/redirect_stderr.

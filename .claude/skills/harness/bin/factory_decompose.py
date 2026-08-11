@@ -271,44 +271,24 @@ def _validate_stations(owner, board_number, station_field, stations):
 # --------------------------------------------------------------------------
 # Re-add resolution (T-04 defect fix, deliverable 3, option ii). On the `partial` recovery path
 # only: resolve an already-added board item before calling project_item_add again, since
-# `gh project item-add` on an already-added issue is UNVERIFIED to be idempotent. Reuses the
-# EXACT field access factory_claim.py's poll already depends on today for its own item-list
-# consumption — content.number (factory_claim.py:249) and content.repository
-# (factory_claim.py:73) — with a fallback (_item_repo, below) for when content.repository is
-# absent from the response, rather than guessing the project item-list JSON shape fresh.
+# `gh project item-add` on an already-added issue is UNVERIFIED to be idempotent. The resolution
+# is one targeted, repository-scoped GraphQL lookup through factory_gh.issue_board_item_id,
+# which needs no client-side repository matching.
 # --------------------------------------------------------------------------
 
-def _item_repo(item):
-    """Resolve an item's repository the SAME way factory_claim.py:69-84's `_repo_name_of` does —
-    content.repository when present, otherwise normalise the item's top-level URL-form
-    `repository` key to its last two path segments (owner/name). Replicated rather than imported:
-    factory_claim.py is a read-only dependency here (T-04 cycle-1 defect fix). content.repository
-    can be ABSENT on a real board response — `_repo_name_of`'s own docstring says so — so a
-    comparison against content.repository alone silently misses every such item and makes every
-    lookup a false MISS, reproducing the factory_gh.py:266 fail-open shape this deliverable exists
-    to avoid."""
-    content = item.get("content") or {}
-    repo = content.get("repository")
-    if repo:
-        return repo
-    url = item.get("repository") or ""
-    parts = url.rstrip("/").split("/")
-    return "/".join(parts[-2:]) if len(parts) >= 2 else url
-
-
-def _find_existing_item_id(owner, board_number, repo, issue_number):
-    """No `query=` filter: this looks up whether ONE SPECIFIC issue already has a board item,
-    not whether it is currently claimable — factory_claim.py's `is:open` scoping serves a
-    different purpose (polling for open work) and would silently miss the issue if it were
-    closed between the failed run and this recovery run, which would re-trigger the exact
-    re-add this function exists to avoid. project_items already guards against a truncated read
-    via totalCount (factory_gh.py:180-192), so an unqueried read fails loud rather than silently
-    short."""
-    for it in factory_gh.project_items(owner, board_number):
-        content = it.get("content") or {}
-        if content.get("number") == issue_number and _item_repo(it) == repo:
-            return it.get("id")
-    return None
+def _find_existing_item_id(board_number, repo, issue_number):
+    """Deliberately unscoped by issue STATE, by construction: this looks up whether ONE
+    SPECIFIC issue already has a board item, not whether it is currently claimable —
+    factory_claim.py's `is:open` scoping serves a different purpose (polling for open work) and
+    would silently miss the issue if it were closed between the failed run and this recovery
+    run, which would re-trigger the exact re-add this function exists to avoid. The new query is
+    scoped to a repository and an issue number with no state filter at all. Confirmed live on
+    2026-08-10, read-only, against board 3: the targeted repository.issue.projectItems query
+    returned the board item for an issue in the CLOSED state — that observation is the property
+    this whole feature rests on. The truncation guard now lives in
+    factory_gh.issue_board_item_id, which raises when the issue is on more projects than the
+    query returns."""
+    return factory_gh.issue_board_item_id(repo, issue_number, board_number)
 
 
 # --------------------------------------------------------------------------
@@ -451,7 +431,7 @@ def _main():
         if disp == "partial":
             # The board add may already have succeeded on an earlier, interrupted run whose
             # station-set then failed — resolve it rather than re-adding (deliverable 3).
-            item_id = _find_existing_item_id(owner, board_number, args.repo, num)
+            item_id = _find_existing_item_id(board_number, args.repo, num)
         if item_id is None:
             url = f"https://github.com/{args.repo}/issues/{num}"
             item_id = factory_gh.project_item_add(owner, board_number, url)

@@ -108,6 +108,43 @@ GRAPHQL_FIELD_NOT_SINGLE_SELECT_JSON = json.dumps({"data": {"repositoryOwner": {
     "__typename": "User", "projectV2": {"id": "PVT_kwFAKE", "field": {}}}}})
 
 
+# ---- issue_board_item_id fixtures (D-01/D-03) ----
+ISSUE_ITEM_MATCH_JSON = json.dumps({"data": {"repository": {"issue": {"projectItems": {
+    "totalCount": 1, "nodes": [{"id": "ITEM1", "project": {"number": 9}}]}}}}})
+
+ISSUE_ITEM_OTHER_PROJECT_JSON = json.dumps({"data": {"repository": {"issue": {"projectItems": {
+    "totalCount": 1, "nodes": [{"id": "ITEM1", "project": {"number": 4}}]}}}}})
+
+ISSUE_ITEM_EMPTY_JSON = json.dumps({"data": {"repository": {"issue": {"projectItems": {
+    "totalCount": 0, "nodes": []}}}}})
+
+ISSUE_ITEM_ISSUE_NULL_JSON = json.dumps({"data": {"repository": {"issue": None}}})
+
+ISSUE_ITEM_NO_ISSUE_KEY_JSON = json.dumps({"data": {"repository": {}}})
+
+ISSUE_ITEM_NO_PROJECTITEMS_JSON = json.dumps({"data": {"repository": {"issue": {}}}})
+
+ISSUE_ITEM_NODES_NOT_LIST_JSON = json.dumps({"data": {"repository": {"issue": {"projectItems": {
+    "totalCount": 0, "nodes": "not-a-list"}}}}})
+
+ISSUE_ITEM_NO_TOTALCOUNT_JSON = json.dumps({"data": {"repository": {"issue": {"projectItems": {
+    "nodes": []}}}}})
+
+ISSUE_ITEM_TOTALCOUNT_STRING_JSON = json.dumps({"data": {"repository": {"issue": {"projectItems": {
+    "totalCount": "oops", "nodes": []}}}}})
+
+ISSUE_ITEM_TRUNCATED_JSON = json.dumps({"data": {"repository": {"issue": {"projectItems": {
+    "totalCount": 3, "nodes": [{"id": "ITEM1", "project": {"number": 9}}]}}}}})
+
+ISSUE_ITEM_NODE_NO_ID_JSON = json.dumps({"data": {"repository": {"issue": {"projectItems": {
+    "totalCount": 1, "nodes": [{"project": {"number": 9}}]}}}}})
+
+ISSUE_ITEM_NODE_NO_PROJECT_JSON = json.dumps({"data": {"repository": {"issue": {"projectItems": {
+    "totalCount": 1, "nodes": [{"id": "ITEM1"}]}}}}})
+
+ISSUE_ITEM_NULL_REPOSITORY_JSON = json.dumps({"data": {"repository": None}})
+
+
 def dispatching_fake(responses_by_prefix, default=None):
     """An argv-DISPATCHING fake for subprocess.run: matches on the argv PREFIX (e.g.
     ("project", "field-list")) rather than call ORDER, so it discriminates the shape of a value
@@ -597,6 +634,210 @@ except fgh.GhError as e:
     RAISED.append(e)
 restore()
 check("project_items: a missing totalCount raises rather than defaulting to 0", raised)
+
+
+# ---------------- issue_board_item_id: one targeted call, no whole-board scan (D-01) ----------
+# THE DISCRIMINATION IS THE POINT (D-03): absence (issue.issue null, or a recognised nodes list
+# with no match) returns None; only an unrecognised or truncated shape raises.
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_MATCH_JSON)])
+fgh.subprocess.run = fake
+match_id = fgh.issue_board_item_id("acme/widget", 42, 9)
+restore()
+check("issue_board_item_id: made exactly ONE call",
+      len(calls) == 1, f"calls={calls}")
+check("issue_board_item_id: that one call is gh api graphql",
+      calls and calls[0]["argv"][1:3] == ["api", "graphql"], f"calls={calls}")
+check("issue_board_item_id: ZERO calls hit project item-list",
+      not any(c["argv"][1:3] == ["project", "item-list"] for c in calls), f"calls={calls}")
+argv0 = calls[0]["argv"] if calls else []
+check("issue_board_item_id: argv carries the issue number",
+      "number=42" in argv0, f"argv={argv0}")
+check("issue_board_item_id: argv carries both repository halves",
+      "owner=acme" in argv0 and "name=widget" in argv0, f"argv={argv0}")
+check("issue_board_item_id: returns the matching node's id when project.number == board_number",
+      match_id == "ITEM1", f"match_id={match_id!r}")
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_OTHER_PROJECT_JSON)])
+fgh.subprocess.run = fake
+try:
+    other_result = fgh.issue_board_item_id("acme/widget", 42, 9)
+    other_raised = False
+except fgh.GhError as e:
+    other_raised, other_result = True, None
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: an item on a DIFFERENT project number returns None, does not raise",
+      not other_raised and other_result is None, f"raised={other_raised} result={other_result!r}")
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_EMPTY_JSON)])
+fgh.subprocess.run = fake
+try:
+    empty_result = fgh.issue_board_item_id("acme/widget", 42, 9)
+    empty_raised = False
+except fgh.GhError as e:
+    empty_raised, empty_result = True, None
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: empty nodes list with totalCount 0 returns None, does not raise",
+      not empty_raised and empty_result is None, f"raised={empty_raised} result={empty_result!r}")
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_ISSUE_NULL_JSON)])
+fgh.subprocess.run = fake
+try:
+    null_issue_result = fgh.issue_board_item_id("acme/widget", 42, 9)
+    null_issue_raised = False
+except fgh.GhError as e:
+    null_issue_raised, null_issue_result = True, None
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: repository.issue explicitly null returns None, does not raise",
+      not null_issue_raised and null_issue_result is None,
+      f"raised={null_issue_raised} result={null_issue_result!r}")
+
+# ABSENT "issue" key is a DIFFERENT case from explicit null above — absence is an unrecognised
+# shape and raises; only an explicit null is a real "issue does not exist" answer.
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NO_ISSUE_KEY_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("acme/widget", 42, 9)
+    no_issue_key_raised = False
+except fgh.GhError as e:
+    no_issue_key_raised = True
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: repository dict with NO 'issue' key at all RAISES "
+      "(distinct from the explicit-null case above)", no_issue_key_raised)
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NO_PROJECTITEMS_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("acme/widget", 42, 9)
+    no_pi_raised = False
+except fgh.GhError as e:
+    no_pi_raised = True
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: issue with no 'projectItems' key RAISES", no_pi_raised)
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NODES_NOT_LIST_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("acme/widget", 42, 9)
+    nodes_raised = False
+except fgh.GhError as e:
+    nodes_raised = True
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: projectItems.nodes not a list RAISES", nodes_raised)
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NO_TOTALCOUNT_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("acme/widget", 42, 9)
+    no_total_raised = False
+except fgh.GhError as e:
+    no_total_raised = True
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: projectItems with no 'totalCount' key RAISES "
+      "(never defaults to 0)", no_total_raised)
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_TOTALCOUNT_STRING_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("acme/widget", 42, 9)
+    total_str_raised, total_str_type = False, None
+except Exception as e:
+    total_str_raised, total_str_type = True, type(e)
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("issue_board_item_id: a string totalCount raises GhError, NOT a bare TypeError",
+      total_str_raised and total_str_type is fgh.GhError, f"type={total_str_type}")
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_TRUNCATED_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("acme/widget", 42, 9)
+    trunc_raised, trunc_exc = False, None
+except fgh.GhError as e:
+    trunc_raised, trunc_exc = True, e
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: totalCount 3 with one node RAISES", trunc_raised)
+check("issue_board_item_id: truncation message names the totals",
+      trunc_raised and "3" in str(trunc_exc) and "1" in str(trunc_exc),
+      f"exc={trunc_exc if trunc_raised else None}")
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NODE_NO_ID_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("acme/widget", 42, 9)
+    no_id_raised = False
+except fgh.GhError as e:
+    no_id_raised = True
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: a node missing 'id' RAISES", no_id_raised)
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NODE_NO_PROJECT_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("acme/widget", 42, 9)
+    no_project_raised = False
+except fgh.GhError as e:
+    no_project_raised = True
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: a node missing 'project' RAISES", no_project_raised)
+
+fake, calls = recorder([Result(0, stdout=ISSUE_ITEM_NULL_REPOSITORY_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("acme/widget", 42, 9)
+    null_repo_raised, null_repo_exc = False, None
+except fgh.GhError as e:
+    null_repo_raised, null_repo_exc = True, e
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: a null repository RAISES, naming the repository, "
+      "not the generic graphql-call-failed text",
+      null_repo_raised and "acme/widget" in str(null_repo_exc)
+      and "gh graphql call failed" not in str(null_repo_exc),
+      f"exc={null_repo_exc if null_repo_raised else None}")
+
+# a non-diagnosable transport failure (no JSON on stdout at all) still raises GhError, naming
+# the repo and issue number — mirrors _project_field_resolve's partial-failure recovery shape.
+fake, calls = recorder([Result(1, stdout="", stderr="gh: API error")])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("acme/widget", 42, 9)
+    transport_raised, transport_exc = False, None
+except fgh.GhError as e:
+    transport_raised, transport_exc = True, e
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: a non-diagnosable transport failure raises GhError",
+      transport_raised, f"exc={transport_exc}")
+check("issue_board_item_id: transport-failure message names the repo and issue number",
+      transport_raised and "acme/widget" in str(transport_exc) and "42" in str(transport_exc),
+      f"exc={transport_exc if transport_raised else None}")
+
+# a malformed repository string (no exactly-two-part split) raises before any call is made.
+fake, calls = recorder([])
+fgh.subprocess.run = fake
+try:
+    fgh.issue_board_item_id("not-a-valid-repo", 1, 9)
+    malformed_raised = False
+except fgh.GhError as e:
+    malformed_raised = True
+    RAISED.append(e)
+restore()
+check("issue_board_item_id: a malformed repository string raises before any call",
+      malformed_raised and calls == [], f"calls={calls}")
+check("issue_board_item_id: malformed-repository message names the repository",
+      malformed_raised and "not-a-valid-repo" in str(RAISED[-1]), f"exc={RAISED[-1]}")
 
 
 # ---------------- project_field_options ----------------

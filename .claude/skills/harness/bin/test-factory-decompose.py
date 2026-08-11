@@ -62,6 +62,9 @@ class Recorder:
         # stations validate clean by default.
         self.field_options = ["Ready", "Building", "Review"]
         self.board_items = []   # project_items() return value, set per-test
+        # issue_board_item_id() return value: number -> item id, set per-test. Consulted only
+        # for the issue number asked; anything not in this map means "no item" (returns None).
+        self.item_by_issue = {}
 
     def _hit(self, name, args):
         self.calls.append((name, args))
@@ -117,11 +120,15 @@ class Recorder:
         self._hit("project_items", (owner, number, query, limit))
         return list(self.board_items)
 
+    def issue_board_item_id(self, repo, number, board_number):
+        self._hit("issue_board_item_id", (repo, number, board_number))
+        return self.item_by_issue.get(number)
+
 
 PATCHED = (
     "preflight", "ensure_labels", "create_issue", "add_label", "project_item_add",
     "project_field_set", "internal_id", "attach_sub_issue", "blocked_by",
-    "project_field_options", "project_items",
+    "project_field_options", "project_items", "issue_board_item_id",
 )
 
 
@@ -913,9 +920,11 @@ with tempfile.TemporaryDirectory() as td:
 
 
 # ============================================================================
-# D-04-3. The partial-recovery path resolves an already-added board item via project_items
-# rather than re-adding it — settles the re-add question (deliverable 3, option ii).
-# project_item_add must NOT be called a second time when the item already exists on the board.
+# D-04-3. The partial-recovery path resolves an already-added board item via
+# issue_board_item_id rather than re-adding it — settles the re-add question (deliverable 3,
+# option ii). project_item_add must NOT be called a second time when the item already exists
+# on the board, and the whole-board project_items scan must NOT be used for this — the whole
+# point of the swap (FEAT-13, D-01).
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01")]
@@ -931,10 +940,7 @@ with tempfile.TemporaryDirectory() as td:
           issue_num is not None and "T-01" not in (fblock_mid.get("items") or {}), fblock_mid)
 
     rec2 = Recorder()
-    rec2.board_items = [{
-        "id": "ITEM-EXISTING",
-        "content": {"number": issue_num, "repository": REPO},
-    }]
+    rec2.item_by_issue[issue_num] = "ITEM-EXISTING"
 
     def _boom(args):
         raise AssertionError(
@@ -947,8 +953,13 @@ with tempfile.TemporaryDirectory() as td:
           f"code={code!r} err={err}")
     check("(D4-3) project_item_add was NOT called on the recovery run",
           [c for c in rec2.calls if c[0] == "project_item_add"] == [], rec2.calls)
-    check("(D4-3) project_items WAS called (the read-before-write)",
-          any(c[0] == "project_items" for c in rec2.calls), rec2.calls)
+    check("(D4-3) project_items was called ZERO times — the whole-board scan is gone",
+          [c for c in rec2.calls if c[0] == "project_items"] == [], rec2.calls)
+    lookup_calls = [c for c in rec2.calls if c[0] == "issue_board_item_id"]
+    check("(D4-3) issue_board_item_id was called EXACTLY ONCE (the targeted read-before-write)",
+          len(lookup_calls) == 1, rec2.calls)
+    check("(D4-3) issue_board_item_id called with (repo, issue_number, board_number)",
+          lookup_calls and lookup_calls[0][1] == (REPO, issue_num, 3), lookup_calls)
     field_calls = [c for c in rec2.calls if c[0] == "project_field_set"]
     check("(D4-3) project_field_set called with the RESOLVED existing item id",
           any(c[1][2] == "ITEM-EXISTING" for c in field_calls), field_calls)
@@ -969,19 +980,23 @@ with tempfile.TemporaryDirectory() as td:
     run_publish(feat_dir, fleet_path, rec1, extra_args=["--parent", "1"])
 
     rec2 = Recorder()
-    rec2.board_items = []   # the lookup misses — no item recorded for this issue on the board
+    # no entry in item_by_issue for this issue — the lookup misses
     code, out, err = run_publish(feat_dir, fleet_path, rec2, extra_args=["--parent", "1"])
     check("(D4-3b) resume with a board lookup miss: exits 0", code in (0, None),
           f"code={code!r} err={err}")
-    check("(D4-3b) project_items WAS called (the lookup happened)",
-          any(c[0] == "project_items" for c in rec2.calls), rec2.calls)
+    check("(D4-3b) issue_board_item_id WAS called (the lookup happened)",
+          any(c[0] == "issue_board_item_id" for c in rec2.calls), rec2.calls)
     check("(D4-3b) project_item_add IS called on a lookup miss (the fallback)",
           any(c[0] == "project_item_add" for c in rec2.calls), rec2.calls)
 
-# --- D-04-3c. content.repository ABSENT: the board item carries only the URL-form top-level
-#     `repository` key (the shape factory_claim.py:69-84's fallback exists for). The lookup must
-#     still resolve the existing item via the same normalisation `_repo_name_of` performs, so
-#     project_item_add must NOT be called and project_field_set must target the resolved id.
+# --- D-04-3c. CLOSED issue: the partial-recovery path still resolves the existing board item
+#     for an issue that is now CLOSED (REQ-02, SC-05) — the whole reason the swap drops the
+#     is:open-adjacent state scoping that the old `project_items` read never had either, but
+#     which a naive replacement query might reintroduce. This test does not simulate gh's
+#     query itself (the Recorder never filters by state) — it pins that decompose's own call
+#     shape never asks the lookup to filter by state, which is what a `query=` argument would
+#     do if one were added. See T-02's live spot-check for confirmation the real GraphQL query
+#     genuinely returns a closed issue's item (REQ-02's other half).
 with tempfile.TemporaryDirectory() as td:
     tasks = [task("T-01")]
     feat_dir, fleet_path = make_feature(td, tasks=tasks)
@@ -994,27 +1009,28 @@ with tempfile.TemporaryDirectory() as td:
     issue_num = fblock_mid["issues"]["T-01"]
 
     rec2 = Recorder()
-    rec2.board_items = [{
-        "id": "ITEM-URLFORM",
-        "content": {"number": issue_num},   # no "repository" key at all
-        "repository": f"https://github.com/{REPO}",
-    }]
+    rec2.item_by_issue[issue_num] = "ITEM-CLOSED"
 
     def _boom_c(args):
         raise AssertionError(
             "project_item_add must not be called when the item already exists on the board, "
-            "even when content.repository is absent and only the URL form is present"
+            "even when the issue is now closed"
         )
 
     rec2.raise_on["project_item_add"] = _boom_c
     code, out, err = run_publish(feat_dir, fleet_path, rec2, extra_args=["--parent", "1"])
-    check("(D4-3c) resume with content.repository absent: exits 0", code in (0, None),
+    check("(D4-3c) resume with a closed issue: exits 0", code in (0, None),
           f"code={code!r} err={err}")
     check("(D4-3c) project_item_add was NOT called on the recovery run",
           [c for c in rec2.calls if c[0] == "project_item_add"] == [], rec2.calls)
+    check("(D4-3c) the lookup carries no state scoping (called with exactly repo/number/board, "
+          "no query kwarg)",
+          [c for c in rec2.calls if c[0] == "issue_board_item_id"]
+          and [c[1] for c in rec2.calls if c[0] == "issue_board_item_id"][0] == (REPO, issue_num, 3),
+          rec2.calls)
     field_calls = [c for c in rec2.calls if c[0] == "project_field_set"]
     check("(D4-3c) project_field_set called with the RESOLVED existing item id",
-          any(c[1][2] == "ITEM-URLFORM" for c in field_calls), field_calls)
+          any(c[1][2] == "ITEM-CLOSED" for c in field_calls), field_calls)
 
 
 # ============================================================================

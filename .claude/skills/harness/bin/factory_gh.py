@@ -289,6 +289,133 @@ def project_field_options(owner, number, field):
     return [o["name"] for o in resolved["options"]]
 
 
+# The single targeted-lookup query, cost 1, replacing a whole-board `project item-list` scan
+# (D-01). Scoped to one repository and one issue number with NO state filter — a closed issue
+# still resolves, which is the property decompose's recovery path depends on (REQ-02).
+_ISSUE_ITEM_QUERY = """query($owner: String!, $name: String!, $number: Int!) {
+  repository(owner: $owner, name: $name) {
+    issue(number: $number) {
+      projectItems(first: 100) {
+        totalCount
+        nodes { id project { number } }
+      }
+    }
+  }
+}
+"""
+
+
+def issue_board_item_id(repo, number, board_number):
+    """The board item id for issue `number` of `repo` ("owner/name") on project `board_number`,
+    or None when the issue carries no item on that board. One targeted, repository-scoped
+    GraphQL call replaces a whole-board `project item-list` read (D-01).
+
+    THE DISCRIMINATION IS THE POINT (D-03): absence is CORRECT and returns None — an issue
+    number that does not exist, or a recognised, non-truncated item list with no node on
+    `board_number`. Only an unrecognised or truncated response shape raises GhError. A caller
+    that collapses "issue explicitly null" and "issue key absent" into the same None reads an
+    unrecognised shape as go-add-it and re-adds a board item that already exists — the exact
+    defect this function exists to prevent — so those two are told apart by explicit
+    key-presence tests, never by reading `.get("issue")` and treating None as "not there".
+
+    Never scoped by issue state: no `is:open`, no `query=` filter of any kind. Never cached.
+    """
+    parts = repo.split("/")
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        raise GhError(
+            [], None, "", "",
+            "malformed repository", repo,
+            "expected owner/name",
+        )
+    owner, name = parts
+    argv = ["api", "graphql",
+            "-f", "query=" + _ISSUE_ITEM_QUERY,
+            "-f", "owner=" + owner,
+            "-f", "name=" + name,
+            "-F", "number=" + str(number)]
+    try:
+        env = run_gh(argv, json_out=True)
+    except GhError as e:
+        parsed = None
+        if e.stdout:
+            try:
+                parsed = json.loads(e.stdout)
+            except ValueError:
+                parsed = None
+        if isinstance(parsed, dict) and "data" in parsed:
+            env = parsed
+        else:
+            raise GhError(
+                e.argv, e.status, e.stdout, e.stderr,
+                "gh graphql call failed", repo + " issue " + str(number),
+                "re-run after checking gh auth status and network access",
+            ) from e
+
+    def _generic():
+        return GhError(
+            argv, None, "", "",
+            "gh graphql call failed", repo + " issue " + str(number),
+            "re-run after checking gh auth status and network access",
+        )
+
+    if not isinstance(env, dict) or "data" not in env or not isinstance(env["data"], dict):
+        raise _generic()
+    data = env["data"]
+    if "repository" not in data:
+        raise _generic()
+    repository = data["repository"]
+    if repository is not None and not isinstance(repository, dict):
+        raise _generic()
+    if repository is None:
+        raise GhError(argv, None, "", "",
+                      "repository not found", repo,
+                      "check the repository name")
+    if "issue" not in repository:
+        # Absence of the key is an unrecognised shape. An explicit null (below) is a real
+        # answer — the issue does not exist — and is DISTINCT from this case.
+        raise _generic()
+    issue = repository["issue"]
+    if issue is None:
+        return None
+    if not isinstance(issue, dict) or "projectItems" not in issue \
+            or not isinstance(issue["projectItems"], dict):
+        raise _generic()
+    project_items_obj = issue["projectItems"]
+    if "nodes" not in project_items_obj or not isinstance(project_items_obj["nodes"], list):
+        raise _generic()
+    nodes = project_items_obj["nodes"]
+    if "totalCount" not in project_items_obj:
+        # Do NOT default to 0 — that would make this guard permanently silent on exactly the
+        # response shape it exists to catch.
+        raise GhError(argv, None, "", "",
+                      "issue projectItems missing totalCount", repo + " issue " + str(number),
+                      "cannot verify the read was not truncated")
+    total = project_items_obj["totalCount"]
+    if not isinstance(total, int):
+        raise GhError(argv, None, "", "",
+                      "issue projectItems totalCount is not an integer",
+                      repo + " issue " + str(number) + ": totalCount=" + repr(total),
+                      "unexpected GraphQL response shape")
+    if total > len(nodes):
+        raise GhError(
+            argv, None, "", "",
+            "issue projectItems truncated",
+            f"{repo} issue {number}: totalCount={total} nodes={len(nodes)}",
+            "the issue is on more projects than this query returned — widen the query",
+        )
+    for node in nodes:
+        if not isinstance(node, dict) or "id" not in node \
+                or not isinstance(node.get("project"), dict) or "number" not in node["project"]:
+            raise GhError(argv, None, "", "",
+                          "issue projectItems node has unrecognised shape",
+                          repo + " issue " + str(number),
+                          "unexpected GraphQL response shape")
+    for node in nodes:
+        if node["project"]["number"] == board_number:
+            return node["id"]
+    return None
+
+
 def default_branch_sha(repo, branch):
     return run_gh(["api", f"repos/{repo}/git/ref/heads/{branch}", "--jq", ".object.sha"]).strip()
 
