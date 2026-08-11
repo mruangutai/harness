@@ -85,6 +85,7 @@ COLLECT_FIXTURE = {
             ".harness/README.md",
             ".harness/codebase/INDEX.md",
             ".harness/codebase/architecture.md",
+            ".harness/features/*/notes/receipt-harness-documentor-*.md",
             ".harness/expertise/harness-documentor.md",
             ".harness/features/*/observations/harness-documentor.md",
         ],

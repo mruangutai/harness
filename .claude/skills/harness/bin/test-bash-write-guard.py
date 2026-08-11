@@ -35,6 +35,21 @@ case("input redirection is a READ, not a write",
      'python3 - < script.py', 0)
 case("a quoted string mentioning a redirect",
      'echo "use > path to redirect"', 0)
+# B-5: a redirection is not an operand. Before the fix the LAST token of
+# `cp a b 2>/dev/null` was read as the cp destination, and a legal in-domain copy was
+# denied naming "2>/dev/null" as the path. Hit twice during FEAT-11.
+case("stderr redirection is not the cp destination",
+     'cp .harness/features/F/runs/r-eng/a.md .harness/features/F/runs/r-eng/b.md 2>/dev/null', 0)
+case("stderr redirection is not an rm target",
+     'rm .harness/features/F/runs/r-eng/b.md 2>/dev/null', 0)
+# The other half, and the reason dropping redirect tokens is safe: every REAL redirect is
+# still caught by the redirect scan. If these three ever pass, the fix has gone too far.
+case("a redirect after cp still blocks, glued",
+     'cp .harness/features/F/runs/r-eng/a.md .harness/features/F/runs/r-eng/b.md >src/evil.py', 2)
+case("a redirect after cp still blocks, spaced",
+     'cp .harness/features/F/runs/r-eng/a.md .harness/features/F/runs/r-eng/b.md > src/evil.py', 2)
+case("an out-of-domain cp destination still blocks",
+     'cp .harness/features/F/runs/r-eng/a.md src/evil.py', 2)
 # Reviewers are read-only everywhere and never reach the path check at all.
 case("plain read commands pass", 'git status --porcelain', 0)
 
