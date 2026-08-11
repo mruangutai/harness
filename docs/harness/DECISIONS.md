@@ -1963,54 +1963,13 @@ exist rather than pointing it somewhere plausible.
 
 ## DEC-113 — Team and crew overrides live outside the tool tree, and are resolved first
 
-Task 13. `/harness-deploy` is rewritten as distribution-only, with the mechanical work in
-`bin/deploy.sh` (dry run by default) and the command file reduced to plan → confirm → apply → report.
-
-**The live risk it clears, measured before the rewrite:** `~/.claude/agents/` held five agents — three
-of them (`ceo-reviewer`, `eng-reviewer`, `qa-reviewer`) **deleted from this design** and still spawnable
-in every project on the machine, pointing at a `.planning/` root that no longer exists. None of the 15
-current agents were there. `~/.claude/skills/harness/` was the **April layout** (`personas/`, `rules/`,
-`tdd/`, `manifest.json`) — structurally unrelated to the present one. The old deploy was copy-only, so
-nothing it ever did could have removed any of that.
-
-### The deviation worth naming
-
-**Crew overrides live in `.harness/crews/`, not `.claude/skills/harness/crews/`.** The skill tree is
-this repository's own source, rewritten by harness development itself — so an override placed inside
-it is whatever the next harness change leaves behind, and nobody editing harness code owes it a
-thought. The override directory is project-owned state that harness development never edits. The
-precedence rule BUILD asked for ("project-local overrides global") only holds if the override sits
-there. Recorded in both manifests as `paths.crew_overrides`; the runner (task 10) resolves it first.
-
-### What the fixture caught that reading did not
-
-A fake `HOME` mirroring the real stale global state, plus a live registered project.
-
-1. **`set -u` plus `"${empty_array[@]}"` is an unbound-variable error on macOS's bash 3.2**, not an
-   empty loop. It aborted a real `--apply` **after the skills were copied and before agents, registry
-   or projects ran** — the half-applied state that is strictly worse than either end. Every
-   possibly-empty array now uses `${ARR+"${ARR[@]}"}`.
-2. **`printf ... | python3 - <<'PY'` silently discards the pipe.** The heredoc already occupies stdin,
-   so the program read nothing and wrote `{"projects": []}` — an **emptied registry** while the
-   per-project push visibly succeeded and printed `✓`. Two sources, one stdin, no error anywhere. Data
-   now goes via argv.
-
-Both are the DEC-112 lesson again: the output looked right, and only running it against real state
-showed it was not. Neither would have been caught by reading the script.
-
-### Safety properties, and why each exists
-
-- **Dry run is the default**, and the wrapper must show the plan and get a yes before `--apply`. This
-  reaches outside the repo, into the user's global config and other repositories.
-- **A wholesale `replace` names what it deletes.** "~ harness (replace)" hid four April-era subtrees;
-  the plan now lists every entry present in the destination and absent from the repo.
-- **Every delete target is derived from the repo's own file names**, never from an argument, and is
-  re-checked against `harness*` and its expected parent before `rm -rf`. The script refuses outright if
-  the computed ship set is empty or contains no flat skill dirs — a push computed from an empty set
-  would prune everything.
-- **`~/.claude/agents/` is backed up** before any prune.
-- **Dead registry entries are dropped**, not warned about forever. That is deploy's own state, not
-  project state, and the pre-migration file survives as `.migrated`.
+Task 13. **Crew overrides live in `.harness/crews/`, not `.claude/skills/harness/crews/`.** The
+skill tree is this repository's own source, rewritten by harness development itself — so an override
+placed inside it is whatever the next harness change leaves behind, and nobody editing harness code
+owes it a thought. The override directory is project-owned state that harness development never
+edits. The precedence rule BUILD asked for ("project-local overrides global") only holds if the
+override sits there. Recorded in both manifests as `paths.crew_overrides`; the runner (task 10)
+resolves it first.
 
 ---
 
