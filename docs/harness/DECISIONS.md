@@ -5683,3 +5683,82 @@ field's name, is why this needed work rather than a search-and-replace.
 Lineage: DEC-148 and DEC-159 define plan, build, validate and ship as **orchestrator MISSIONS** and
 as handoff-note names; those are unaffected and are not this field. DEC-172, and DEC-191 for the
 closed key set this field lives inside.
+
+## DEC-193 — Code is written in exactly two locations; any other checkout of this repository is refused by one shared rule on both write routes
+
+**There are exactly two places code is written under harness's authority:** `.claude/worktrees/<id>/`,
+where harness develops itself, and `workspace_root/<product>`, where the factory works on a product.
+Both keep exactly their prior behaviour. **Any other checkout of this repository — a linked worktree
+living outside `.claude/worktrees/`, however complete its manifest and its agents look — is a
+mistake, not a supported shape.**
+
+**Three refusals, and all three refuse rather than resolve.** Such a checkout **cannot be created**
+through the Bash route: `git worktree add` and `git worktree move` are refused broadly, a destination
+that cannot be determined included. It **cannot be written into**, on the Write/Edit route and the
+Bash route alike. And it **cannot host a governed session** — a session rooted there is refused the
+writes that are in-domain relative to its own manifest, in a parser-present session. Nothing maps
+such a location back onto a domain so that it works; that is the ruling, not an omission.
+
+**One implementation, `.claude/skills/harness/bin/harness_boundary.py`, imported lazily by both
+guards** exactly as `harness_yaml` already is, exporting a `classify()` that returns a structured
+verdict rather than raw predicates — a consumer finishing the decision itself is how the two routes
+drifted apart in the first place. **A worktree is identified from its own `.git` pointer file, never
+by invoking git:** the pointer names `<owner>/.git/worktrees/<id>`, the owning root is two levels
+above, and the location is legitimate only under `<owning root>/.claude/worktrees/`. The
+governed-write path therefore forks no subprocess. If the module cannot be imported, both governed
+routes print a BLOCKED line naming it and exit 2 — an unhandled `ImportError` exits 1, which is
+non-blocking, and would switch enforcement off on both routes at once.
+
+**The alternative that was declined, recorded so a future scan does not re-propose it: consulting
+`git worktree list` to map a sibling worktree back onto the domain globs.** It adds a git call to
+every governed write in order to legitimise a location the architecture says should not exist, and it
+would still leave every other prefix-dependent rule broken there.
+
+**What did NOT converge, said plainly so a later reader does not take it for drift this rule failed
+to close.** The requirement commits to one shared **implementation**, not to identical verdicts, and
+three divergences between the two write routes survive deliberately:
+
+- The Bash route keeps DEC-153's blanket allow for governed agents writing under
+  `.claude/worktrees/`, which the Write route does not have.
+- The Bash route still does not enforce product-base domains for paths outside the harness root: its
+  outside-repo pass-through is preserved, narrowed to a filter on the verdict rather than removed,
+  because dropping it would begin enforcing those domains there for the first time.
+- In a PyYAML bootstrap-grant session the Write route does not apply the ROOT-SIDE check. That check
+  sits inside `domain_check`, which is called under `if _run_domain and not _no_parser`, while the
+  Bash route's root-side check sits ahead of that route's own `_no_parser` exit and still fires.
+  Chosen in the 2026-08-11 re-scope rather than left by accident: the grant already skips
+  `domain_check` in the real checkout, so it opens the same escape everywhere. **The Bash route is
+  deliberately not weakened to match** — that would degrade a working route to the level of a
+  weakened one.
+
+**`check-domain.sh --resolve` answers from inside an out-of-place worktree even though the hook now
+refuses writes there.** The resolver exits before session governance is computed and writes nothing,
+so refusing there would make the planning tool unusable from the very tree an operator must stand in
+to diagnose the problem. `check-state.sh`'s INV-25 reports such a tree at session entry as a FAILURE
+rather than a warning, and that is the loud signal instead.
+
+**The evidence, and the wording matters because half of the original evidence was overtaken.**
+Measured at `a29ad06`: a Write to `<root>/src/main.py` exited 2 while the same write via Bash exited
+0; and three writes that exit 2 in the real checkout exited 0 when written INTO a sibling worktree
+**from a harness-rooted session**, taking DEC-150's shape caps dark with them on that route. **The
+other case — a session ROOTED in the sibling worktree — is NOT evidence of an enforcement hole.**
+Re-measured at `a29ad06`, a 211-line `feature.yaml`, a 70-line handoff note and an out-of-domain
+`bin/` script all exit 2 from there, because DEC-180 and issue 132 made the shape caps independent of
+domain and bound them to every author. The rooted case is refused as a lost-work risk, and because
+the location is a mistake — never because it escapes enforcement.
+
+**What the one-implementation claim rests on, stated no wider than the evidence.** The mutation proof
+edits the named legitimate-location constant in an isolated copy of `harness_boundary.py` and watches
+one identical payload's verdict flip on BOTH write routes. The fixture pins `CLAUDE_PROJECT_DIR`
+inside the worktree, so the flip is observed through the **ROOT-SIDE** check and only there: it is
+direct evidence that the root-side rule has one implementation, and it is the strongest evidence this
+rule carries. The **TARGET-SIDE** branch — a write into a sibling worktree from outside it — is
+covered by behavioural cases on both routes and is **NOT** mutation-proved. Neither half may be
+widened into the other, and narrowing the claim does not drop the root-side proof.
+
+Lineage: DEC-151 for the Bash-route guard this rule now shares an implementation with; DEC-153,
+whose worktree allow is one of the three divergences left standing; DEC-174, because both guards are
+the enforcement layer, so this landed as direct main-session edits with the tests run explicitly
+rather than through a run whose gates were the thing changing; and DEC-189, the two-base target-keyed
+resolution this rule sits on top of, whose filed Bash-route asymmetry this closes for the boundary
+case alone. DEC-150 for the shape caps, and DEC-180 for why a rooted session is already governed.
