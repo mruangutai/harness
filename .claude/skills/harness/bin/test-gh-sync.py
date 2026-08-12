@@ -716,6 +716,11 @@ with tempfile.TemporaryDirectory() as tmpM:
 # confirmed by grep before being fixed here. Both cases are read-only — they call the
 # function directly rather than driving a subcommand, because what is under test is the
 # PARSE, not the GitHub calls.
+#
+# FEAT-14 fix1 (B-5) converged feature.json's reader on json.load, so the two fixtures
+# below now carry JSON, not YAML-with-comments — JSON has no comments, so the old
+# comment-tolerance assertion is retired by design, not lost as a regression. What still
+# means something (a QUOTED "7" milestone routing through _opt_int) is kept.
 
 import importlib.util as _ilu
 _spec = _ilu.spec_from_file_location(
@@ -723,37 +728,136 @@ _spec = _ilu.spec_from_file_location(
 _ghs = _ilu.module_from_spec(_spec)
 _spec.loader.exec_module(_ghs)
 
-# 1. A trailing `#` comment on parent: and milestone: — the issue #11 defect class, in
-#    THIS file. The old regexes were `(\d+)`-anchored, so a commented value still
-#    matched; a QUOTED one did not. Both shapes are asserted so the case cannot pass by
-#    accident on the easy half.
+# 1. A populated github: block, including a QUOTED milestone number — _opt_int must still
+#    coerce it. This is row 3 of the fix1 spec's table: "file present with a github
+#    mapping -> load it, as today".
 _d1 = tempfile.mkdtemp()
-open(os.path.join(_d1, "feature.json"), "w").write(
-    "feature_id: F1\n"
-    "github:\n"
-    "  parent: 40        # the container issue, adopted\n"
-    '  milestone: "7"    # quoted on purpose\n'
-    "  parent_origin: adopted\n"
-    "  attached: [T-01]\n"
-    "  issues:\n"
-    "    T-01: 41   # trailing comment here too\n"
-)
+json.dump({
+    "feature_id": "F1",
+    "github": {
+        "parent": 40,
+        "milestone": "7",
+        "parent_origin": "adopted",
+        "attached": ["T-01"],
+        "issues": {"T-01": 41},
+    },
+}, open(os.path.join(_d1, "feature.json"), "w"))
 _rec = _ghs.load_recorded(_d1)
-check("T-06C: a trailing # comment on parent:/milestone:/issues does not lose the value",
+check("T-06C: a populated github: block loads, quoted milestone coerced by _opt_int",
       _rec["parent"] == 40 and _rec["milestone"] == 7
       and _rec["issues"] == {"T-01": 41} and _rec["attached"] == ["T-01"],
       str(_rec))
 
 # 2. No github: block at all -> the all-None default, never a raise. gh-sync would
 #    otherwise crash on any feature that has not been mirrored yet, which is most of
-#    them.
+#    them. This is row 1 of the fix1 spec's table: file present, no github key -> a
+#    legitimate first sync.
 _d2 = tempfile.mkdtemp()
-open(os.path.join(_d2, "feature.json"), "w").write("feature_id: F2\n")
+json.dump({"feature_id": "F2"}, open(os.path.join(_d2, "feature.json"), "w"))
 _rec2 = _ghs.load_recorded(_d2)
 check("T-06C: a feature.json with no github: block returns the default, does not raise",
       _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
                 "attached": [], "issues": {}},
       str(_rec2))
+
+# ---------- fix1 Part B: three states must stay distinct, plus the fourth the operator's
+# table did not enumerate. Collapse row 1 (legitimate first sync) into row 2 (error) and
+# the first sync of every new feature is blocked forever; collapse row 2 into row 1 and
+# the zero-byte-truncation bug (the defect this whole fix cycle exists for) is rebuilt.
+# Every SystemExit case is asserted on the message too, not just "it raised" — a
+# SystemExit from an unrelated crash would satisfy a bare pytest.raises just as well.
+
+# Row 1a: file ABSENT entirely -> default rec, never a raise (already covered by cmd_open's
+# happy path via stage(), asserted again here directly against load_recorded).
+_dabsent = tempfile.mkdtemp()
+_recAbsent = _ghs.load_recorded(_dabsent)
+check("fix1 B row1a: absent feature.json returns the default rec, does not raise",
+      _recAbsent == {"milestone": None, "parent": None, "parent_origin": None,
+                     "attached": [], "issues": {}},
+      str(_recAbsent))
+
+# Row 1b: file present, a dict, but NO github: key -> default rec (already _d2 above,
+# named here again for the fix1 spec's own enumeration).
+check("fix1 B row1b: dict present with no github key returns the default rec",
+      _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
+                "attached": [], "issues": {}},
+      str(_rec2))
+
+# Row 2: file present but a genuine ZERO-BYTE truncation -- the exact artifact
+# save_recorded's pre-fix `open(p, "w")` guaranteed at open. THIS is the live truncation
+# fixture the dispatch requires: a 0-byte record file must ERROR, not load as empty.
+_dzero = tempfile.mkdtemp()
+open(os.path.join(_dzero, "feature.json"), "w").close()
+check("fix1 B row2: 0 bytes on disk",
+      os.path.getsize(os.path.join(_dzero, "feature.json")) == 0, "fixture setup")
+try:
+    _ghs.load_recorded(_dzero)
+    check("fix1 B row2: a 0-byte feature.json raises SystemExit, never loads as empty",
+          False, "load_recorded returned instead of raising")
+except SystemExit as e:
+    check("fix1 B row2: a 0-byte feature.json raises SystemExit, never loads as empty",
+          "does not parse" in str(e) or "cannot be known" in str(e), str(e))
+
+# Row 2 (non-mapping document): a JSON document that parses fine but is not a mapping —
+# a bare list or a bare scalar. Same bug shape as the zero-byte case: `.get` would not
+# exist on either, so a naive fix could still fail OPEN by returning the default rec.
+for _label, _body in (("a_list", "[1, 2]\n"), ("a_scalar", '"just a string"\n')):
+    _dnm = tempfile.mkdtemp()
+    open(os.path.join(_dnm, "feature.json"), "w").write(_body)
+    try:
+        _ghs.load_recorded(_dnm)
+        check(f"fix1 B row2 ({_label}): a non-mapping document raises SystemExit", False,
+              "load_recorded returned instead of raising")
+    except SystemExit as e:
+        check(f"fix1 B row2 ({_label}): a non-mapping document raises SystemExit",
+              "does not parse" in str(e) or "cannot be known" in str(e)
+              or "not a mapping" in str(e) or "mapping" in str(e),
+              str(e))
+
+# Row 4 (the operator's table does NOT enumerate this one): doc IS a dict, `github` IS
+# present, but is not itself a mapping (a string or a list). Treated as row 2 — loud
+# error — because the whole point is refusing to sync when what is mirrored cannot be
+# known. Pre-fix this silently returned the default rec at gh-sync.py:274-276.
+for _label, _github_val in (("a_string", "not-a-mapping"), ("a_list", ["T-01", 41])):
+    _dgh = tempfile.mkdtemp()
+    json.dump({"feature_id": "F-row4", "github": _github_val},
+              open(os.path.join(_dgh, "feature.json"), "w"))
+    try:
+        _ghs.load_recorded(_dgh)
+        check(f"fix1 B row4 (github={_label}): a non-mapping github: value raises "
+              f"SystemExit", False, "load_recorded returned instead of raising")
+    except SystemExit as e:
+        check(f"fix1 B row4 (github={_label}): a non-mapping github: value raises "
+              f"SystemExit", len(str(e)) > 0, str(e))
+
+# ---------- fix1 Part A: save_recorded must be ATOMIC — feature.json is never observable
+# in a partial or empty state. Proven by forcing json.dump to fail PARTWAY through the
+# write, with a real pre-existing file on disk: a truncating `open(p, "w")` has already
+# destroyed the original bytes by the time json.dump raises; os.replace has not.
+_datomic = tempfile.mkdtemp()
+_atomic_path = os.path.join(_datomic, "feature.json")
+_original_doc = {"feature_id": "F-atomic", "status": "Building"}
+json.dump(_original_doc, open(_atomic_path, "w"))
+with open(_atomic_path, "rb") as _f:
+    _original_bytes = _f.read()
+
+# A set() is not JSON-serializable — json.dump raises TypeError partway through encoding
+# the `github` value, after any truncating open() would already have destroyed the file.
+_bad_rec = {"milestone": 9, "parent": 40, "parent_origin": "created",
+            "attached": ["T-01"], "issues": {"T-01": {1, 2, 3}}}
+try:
+    _ghs.save_recorded(_datomic, _bad_rec)
+except (TypeError, Exception):
+    pass
+with open(_atomic_path, "rb") as _f:
+    _after_bytes = _f.read()
+check("fix1 A: a failed save_recorded leaves feature.json byte-identical, never truncated",
+      _after_bytes == _original_bytes,
+      f"before={_original_bytes!r} after={_after_bytes!r}")
+# No temp file left behind either — the except BaseException cleanup path.
+_leftover = [f for f in os.listdir(_datomic) if f != "feature.json"]
+check("fix1 A: no leftover temp file after a failed save_recorded", _leftover == [],
+      str(_leftover))
 
 # ---------- review finding 2: save_recorded is a JSON read-modify-write, so a duplicate
 # github: block is structurally impossible (a dict has one "github" key by construction) —

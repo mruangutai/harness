@@ -41,6 +41,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from gh_issues import internal_id_args, attach_sub_issue_args
@@ -210,6 +211,21 @@ def type_label(change_type):
 # F-04 caught still standing: load_recorded PARSES with harness_yaml (DEC-171).
 # T-05 (FEAT-14) moved the writer off text splicing too: JSON has no comments to
 # preserve, so save_recorded is a read-modify-write over the whole document.
+#
+# FEAT-14 fix1 (panel HIGH): two more defects, found composing. `save_recorded` opened
+# feature.json with a truncating `open(p, "w")` — the file was OBSERVABLY ZERO BYTES the
+# instant that call returned, before any data was written, on EVERY call, and `:394`
+# calls it inside the per-issue create loop. `load_recorded` then read that zero-byte
+# window as "nothing is mirrored", which re-creates GitHub issues that already exist.
+# Fixed by converging on json.load/json.dump (B-5, matching factory_decompose.py's
+# reader) and matching factory_decompose.py:142-186's write_factory shape exactly:
+# same-directory tempfile.mkstemp + fsync + os.replace, so feature.json is never
+# observable partial or empty. And by making an empty/unparseable/non-mapping document a
+# loud SystemExit rather than "nothing recorded" — three states stay distinct: file
+# absent (or present with no `github` key) is a legitimate first sync; file present but
+# empty/non-mapping/unparseable is an error; file present with a `github` mapping loads
+# as today. A `github` key that IS present but is not itself a mapping is treated as the
+# error case too — refusing to sync beats guessing what is mirrored.
 
 def _opt_int(v):
     """A recorded issue/milestone number as int, or None for `none`/absent/junk.
@@ -227,53 +243,72 @@ def _opt_int(v):
 
 
 def load_recorded(feat_dir):
-    """Read the `github:` block with a real parser (T-06).
+    """Read the `github:` block from feature.json with json.load (B-5: converged with
+    factory_decompose.py's reader; this file has no comments to tolerate).
 
-    Four defects the previous line/block regexes carried, each the same shape — one
-    hand-listed serialisation standing in for a format that has several:
+    Three states stay distinct on purpose (fix1 Part B) — collapsing either pair
+    reproduces a real bug:
 
-    - `^\\s{4}(T-\\d+):\\s*(\\d+)` hardcoded a FOUR-SPACE indent for issue entries. Any
-      other nesting and every recorded task issue vanished, which reads as "nothing is
-      mirrored" and re-creates issues that already exist.
-    - `parent:\\s*(\\d+)` accepted only bare digits, so a quoted `parent: "40"` read as
-      absent — the duplicate-parent path.
-    - `attached:\\s*\\[([^\\]]*)\\]` handled the inline flow list ONLY; a block list
-      (`- x` on following lines) returned []. Same single-format bug as DEC-123,
-      DEC-129 and issue #11.
-    - `^github:\\s*$(.*?)(?=^\\S|\\Z)` sliced the block by indentation, so a comment at
-      column 0 inside it truncated everything after.
+    - file ABSENT, or present as a mapping with no `github` key -> a legitimate FIRST
+      SYNC. Return the all-None default; nothing is mirrored yet because nothing has
+      run yet.
+    - file present but empty, unparseable, or not a JSON mapping -> ERROR, loud,
+      SystemExit. This is what a truncating `open(p, "w")` produced for an
+      OBSERVABLE INSTANT on every past call (the defect this fix exists for): reading
+      that window as "nothing recorded" re-creates issues, milestones and the parent
+      that already exist on GitHub.
+    - file present with a `github` mapping -> load it, as today.
+
+    A fourth state the spec's three-row table does not name: `github` IS present but is
+    NOT itself a mapping (a string or a list). Treated as the error case, not as
+    "nothing recorded" — the point is refusing to sync when what is mirrored cannot be
+    known, and a non-mapping `github:` value cannot be read as an empty record without
+    reproducing the exact bug shape this fix removes. (Non-blocking open_question filed
+    for the operator — this state was not in the spec's own table.)
     """
     path = os.path.join(feat_dir, "feature.json")
     rec = {"milestone": None, "parent": None, "parent_origin": None, "attached": [], "issues": {}}
-    # ABSENCE is checked before parsing, not caught after it (review finding 4). The
-    # old `except FileNotFoundError: return rec` was UNREACHABLE — load_file wraps
-    # OSError into YamlParseError, so a missing feature.json reported as "does not
-    # parse", blaming the file's contents for a file that does not exist. The dead
-    # branch also documented an intent that could never occur, which is the more
-    # expensive half: a later reader trusts it.
+    # ABSENCE is checked before parsing, not caught after it (review finding 4) — a
+    # missing feature.json is a legitimate first sync, never an error.
     if not os.path.exists(path):
         return rec
     try:
-        doc = harness_yaml.load_file(path)
-    except harness_yaml.MissingDependency as e:
-        # Distinct from a parse failure and worth its own message: nothing is wrong
-        # with the file. Ordered FIRST — it subclasses YamlParseError.
-        raise SystemExit(f"gh-sync: {e}")
-    except harness_yaml.YamlParseError as e:
-        # Loud, and NOT treated as "nothing recorded" — that mistake would re-create
-        # a parent and a milestone that already exist on GitHub. DEC-171 am.1: a
-        # missing parse is an error, never a quieter mode.
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+    except OSError as e:
+        raise SystemExit(f"gh-sync: {path} could not be read, so what is already mirrored "
+                         f"cannot be known. Refusing to sync rather than risk duplicate "
+                         f"issues.\n  {e}")
+    try:
+        doc = json.loads(text)
+    except (ValueError, UnicodeDecodeError) as e:
+        # Covers a genuinely empty file too: `json.loads("")` raises JSONDecodeError,
+        # never returns None the way `yaml.load("")` silently did — that silent-None
+        # path was the exact defect this fix removes, so the JSON reader must not
+        # reintroduce it under a different parser.
         raise SystemExit(f"gh-sync: {path} does not parse, so what is already mirrored "
                          f"cannot be known. Refusing to sync rather than risk duplicate "
                          f"issues.\n  {e}")
-    # M-02's shape, hardened here too. `(doc or {})` covers an empty file, but a bare
-    # scalar or list parses fine and has no .get — the panel found the identical
-    # pattern crashing manifest_domains. Same rule: parses-but-is-not-a-mapping is not
-    # an error the loader raises, so every consumer must guard the TYPE, not just the
-    # absence.
-    gh = doc.get("github") if isinstance(doc, dict) else None
-    if not isinstance(gh, dict):
+    # A parses-but-is-not-a-mapping document (a bare list or scalar) is not an error
+    # json.loads raises, so the type must be guarded explicitly, same rule M-02 found
+    # in manifest_domains: parsing successfully is not the same as parsing usefully.
+    if not isinstance(doc, dict):
+        raise SystemExit(f"gh-sync: {path} parsed but is not a JSON mapping "
+                         f"(got {type(doc).__name__}), so what is already mirrored "
+                         f"cannot be known. Refusing to sync rather than risk duplicate "
+                         f"issues.")
+    if "github" not in doc:
+        # Row 1: a legitimate first sync — the document exists, it just has nothing
+        # recorded yet.
         return rec
+    gh = doc.get("github")
+    if not isinstance(gh, dict):
+        # The fourth state: present but not a mapping. Same refusal as row 2 — see the
+        # docstring above.
+        raise SystemExit(f"gh-sync: {path}'s github: key is present but is not a "
+                         f"mapping (got {type(gh).__name__}), so what is already "
+                         f"mirrored cannot be known. Refusing to sync rather than risk "
+                         f"duplicate issues.")
 
     rec["milestone"] = _opt_int(gh.get("milestone"))
     rec["parent"] = _opt_int(gh.get("parent"))
@@ -296,8 +331,28 @@ def load_recorded(feat_dir):
 
 
 def save_recorded(feat_dir, rec):
+    """Read-modify-write the `github:` key into feature.json, ATOMICALLY (fix1 Part A).
+
+    Matches factory_decompose.py's write_factory (`:142-186`) exactly in shape: load the
+    document with json.load (or start from `{}` if the file does not exist yet, or is not
+    a JSON mapping — B-5's exists->load-else-{} form, so a genuinely absent feature.json
+    on the row-1 first-sync path does not crash here the way `harness_yaml.load_file`
+    used to, per its OSError-wrapping contract) -> set `github` -> json.dumps the WHOLE
+    document to a temp file created in the SAME DIRECTORY -> fsync -> os.replace onto
+    feature.json. feature.json itself is opened only for reading, never in a truncating
+    mode: every observer sees either the previous complete file or the next one, never a
+    partial or zero-byte one — the truncating `open(p, "w")` this replaces made a
+    zero-byte window OBSERVABLE on every call, which `load_recorded` then read as
+    "nothing recorded", re-creating issues that already exist.
+    """
     p = os.path.join(feat_dir, "feature.json")
-    doc = harness_yaml.load_file(p)
+    if os.path.exists(p):
+        with open(p, encoding="utf-8") as f:
+            doc = json.load(f)
+        if not isinstance(doc, dict):
+            doc = {}
+    else:
+        doc = {}
     doc["github"] = {
         "milestone": rec["milestone"],
         "parent": rec["parent"],
@@ -305,9 +360,22 @@ def save_recorded(feat_dir, rec):
         "attached": rec["attached"],
         "issues": dict(sorted(rec["issues"].items())),
     }
-    with open(p, "w", encoding="utf-8") as f:
-        json.dump(doc, f, indent=2)
-        f.write("\n")
+    text = json.dumps(doc, indent=2) + "\n"
+
+    dirpath = os.path.dirname(p) or "."
+    fd, tmp = tempfile.mkstemp(prefix=".feature.json.", suffix=".tmp", dir=dirpath)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, p)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 # ---------- commands ----------
