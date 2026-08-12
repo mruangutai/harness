@@ -1373,6 +1373,80 @@ def run_post():
     return fails
 
 
+SCHEMA_MANIFEST = FIXTURE_MANIFEST.replace(
+    "- { path: .harness/allowed/**, upsert: true }",
+    "- { path: .harness/allowed/**, upsert: true }\n"
+    "          - { path: .harness/features/*/feature.json, upsert: true }")
+
+
+def run_schema():
+    """The write-time schema gate on feature.json, and the fail-open it used to have.
+
+    The manifest GRANTS the path deliberately. Without that grant every case here exits 2
+    for a DOMAIN reason and the schema phase is never reached — three green cases proving
+    nothing, which is the vacuous shape this feature kept turning up.
+
+    Case 3 is the regression. `except ImportError:` alone let any OTHER exception out of
+    problems_for_text escape the hook: measured before the fix, an ILLEGAL document exited
+    **1 with a traceback** instead of 2, and exit 1 is NON-BLOCKING (line 14), so the bad
+    write landed. A schema loader raises far more than ImportError — a malformed
+    feature-schema.json is JSONDecodeError, an unreadable one OSError, a jsonschema
+    version drift SchemaError — and every one of them meant "written anyway".
+    """
+    import shutil
+    fails = 0
+    root = fixture(SCHEMA_MANIFEST)
+    os.makedirs(os.path.join(root, ".harness", "features", "FEAT-X"), exist_ok=True)
+    rel = ".harness/features/FEAT-X/feature.json"
+    legal = _legal_feature_json(0)
+    illegal = json.dumps({"feature_id": "FEAT-X", "invented_key": 1}, indent=2)
+
+    def case(name, got, want, extra_ok=True, detail=""):
+        nonlocal fails
+        ok = got == want and extra_ok
+        if not ok:
+            fails += 1
+            print(f"FAIL  schema/{name}\n        wanted exit {want}, got {got}. {detail}")
+        else:
+            print(f"ok    schema/{name}")
+
+    r = fire(root, rel, content=legal)
+    case("a legal eleven-key document is ALLOWED", r.returncode, 0,
+         detail=" ".join((r.stderr or "").split())[:160])
+
+    r = fire(root, rel, content=illegal)
+    case("an illegal document is DENIED and the offending key is NAMED", r.returncode, 2,
+         "invented_key" in r.stderr,
+         detail="stderr did not name invented_key: " + " ".join((r.stderr or "").split())[:160])
+
+    # Case 3: break the checker itself. Restored byte-identically, and the restore is
+    # ASSERTED — a probe that silently failed to restore would leave the tree mutated and
+    # every later case measuring the wrong file.
+    fs = os.path.join(os.path.dirname(os.path.realpath(__file__)), "feature_schema.py")
+    before = open(fs, "rb").read()
+    try:
+        src = before.decode()
+        marker = "def problems_for_text("
+        i = src.index(marker)
+        j = src.index("\n", src.index(":", src.index(")", i)))
+        open(fs, "w").write(src[:j + 1] + '    raise ValueError("injected: checker is broken")\n' + src[j + 1:])
+        r = fire(root, rel, content=illegal)
+        case("a CRASHING schema module DENIES the write rather than letting it through",
+             r.returncode, 2, "CRASHED" in r.stderr,
+             detail="fail-open: exit 1 is non-blocking, so this write would have landed. "
+                    + " ".join((r.stderr or "").split())[:160])
+    finally:
+        with open(fs, "wb") as f:
+            f.write(before)
+    if open(fs, "rb").read() != before:
+        fails += 1
+        print("FAIL  schema/probe restored feature_schema.py byte-identically")
+    else:
+        print("ok    schema/probe restored feature_schema.py byte-identically")
+    shutil.rmtree(root, ignore_errors=True)
+    return fails
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -1398,6 +1472,7 @@ def main():
     fails += run_fleet()
     fails += run_resolve()
     fails += run_post()
+    fails += run_schema()
     return fails
 
 

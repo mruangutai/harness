@@ -895,6 +895,25 @@ def shape_problems(rel, content, display=None):
             _sp = ["feature_schema is not importable, so this file CANNOT be checked. "
                    "Expected at .claude/skills/harness/bin/feature_schema.py, reachable on "
                    "PYTHONPATH. Repair the module or reinstall the harness bin directory."]
+        except Exception as _se:
+            # A BARE `except ImportError` HERE WAS A FAIL-OPEN, and the panel measured it:
+            # inject any other exception into problems_for_text and an ILLEGAL document
+            # that must exit 2 escapes at exit 1 with a traceback instead — and exit 1 is
+            # NON-BLOCKING (line 14), so the bad write lands. A schema loader raises far
+            # more than ImportError: a malformed feature-schema.json is JSONDecodeError,
+            # an unreadable one is OSError, a jsonschema version drift is SchemaError.
+            # Every one of them meant "written anyway".
+            #
+            # The message is SEPARATE from the ImportError branch on purpose. Saying "not
+            # importable" when the module imported fine and then crashed sends the reader
+            # to check PYTHONPATH for a fault that is not there — an unattributable
+            # finding, the defect DEC-180 fixed twice in this file.
+            _sp = ["feature_schema CRASHED while checking this file, so it CANNOT be "
+                   "checked: %s: %s. The module IMPORTED — this is a fault inside it or "
+                   "in .claude/skills/harness/bin/feature-schema.json, not a missing "
+                   "dependency. The write is DENIED rather than allowed through, because "
+                   "a checker that cannot run must never be the reason a file passes."
+                   % (type(_se).__name__, _se)]
         _out = []
         for _l in _sp:
             if "CANNOT be checked" in _l:
