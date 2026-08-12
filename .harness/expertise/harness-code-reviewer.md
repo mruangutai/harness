@@ -24,6 +24,7 @@
 - G-04: WHEN recommending a re-run/re-capture as a remedy for a missing before/after evidence artifact DO verify the 'before' state is still reproducible — if later work already overwrote it, the re-run produces two 'after' snapshots, not the evidence recommended, and the remedy does not actually exist.
 - G-05: WHEN about to mark an open question blocking DO first name the single measurement that would settle it and check whether you can run it now — a cheap unrun check escalated as a question costs the chain more than running it.
 - G-06: WHEN a test double is the only thing exercising a production call's arguments DO check whether the double actually reads them — a fake returning fixed values regardless of its `fields`/`args` parameter leaves that argument list unpinned, so deleting a required field stays fully green.
+- G-07: WHEN sweeping a deletion feature for removed terminology DO scan the whole repo, not just diff-touched files — a diff-scoped sweep can pass while live surfaces outside it (commands, docs, injected Expertise) still carry the term.
 
 ## Outcomes (max 10)
 
