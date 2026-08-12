@@ -126,6 +126,11 @@ _no_parser = harness_yaml.yaml is None
 # session while the Write route does not — the chosen divergence T-02 records. Do not
 # move this check below that exit to buy symmetry.
 _root_wt = harness_boundary.worktree_owner(root)
+if _root_wt is not None and _root_wt[1] is None:
+    print(f"bash-write-guard: BLOCKED — {_root_wt[0]} holds a .git pointer file that "
+          "does not parse, so this session's checkout cannot be placed.", file=sys.stderr)
+    print("  Repair or remove it, then start the session again.", file=sys.stderr)
+    sys.exit(2)
 if _root_wt is not None and not _root_wt[2]:
     # THE ROOT-SIDE WORDING, not the target-side one. `git worktree remove` succeeds at
     # exit 0 from inside the tree it removes, so that guidance printed to a session
@@ -544,6 +549,11 @@ for name, paths in findings:
             continue
 
         verdict = harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")
+
+        if verdict["outcome"] == "out_of_place_worktree" and verdict.get("unparsed"):
+            deny(f"{verdict['checkout']} holds a .git pointer file that does not parse, "
+                 "so this code cannot say which repository owns it or whether it is in a "
+                 "legal place. A checkout that cannot be placed is not one to write into.")
 
         if verdict["outcome"] == "out_of_place_worktree":
             # The TARGET-SIDE wording, and the removal guidance is correct here: the

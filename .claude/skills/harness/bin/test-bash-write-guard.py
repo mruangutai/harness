@@ -390,6 +390,28 @@ def run_worktree():
         "(granted independently by BOTH the carve-out and the stripping)",
         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
+    # --- F-A ON THIS ROUTE. The panel's `high` was reproduced on the Write route; this
+    # guard imports the same module and reads the same return value, so an unparseable
+    # pointer must refuse here too. Without these cases the fix is asserted on one route
+    # and merely believed on the other.
+    _ptr = os.path.join(sib, ".git")
+    _good = open(_ptr, "rb").read()
+    for _label, _payload in (
+            ("not valid UTF-8", _good.rstrip() + b"\xff"),
+            ("a bare word, no gitdir:", b"nonsense\n"),
+            ("an empty file", b""),
+    ):
+        with open(_ptr, "wb") as _f:
+            _f.write(_payload)
+        r = _fire(root, f"echo hi > {os.path.join(sib, 'allowed', 'x.txt')}")
+        wtb(f"F-A: a .git pointer that is {_label} REFUSES the shell write",
+            r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+    with open(_ptr, "wb") as _f:
+        _f.write(_good)
+    r = _fire(root, f"echo hi > {os.path.join(root, '.harness', 'allowed', 'x.txt')}")
+    wtb("F-A: with the pointer restored, the in-domain shell write still PASSES",
+        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
     # --- THE FAIL-CLOSED PAIR for the shared module (D-06).
     iso = tempfile.mkdtemp()
     isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")

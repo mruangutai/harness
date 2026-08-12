@@ -270,9 +270,14 @@ def classify(abs_target, root, globs, shared, label):
         # repository in a place nobody merges from.
         _wt_owner = worktree_owner(real(abs_target))
         if _wt_owner is not None and not _wt_owner[2]:
+            # owner_root None means the pointer did not PARSE. Refused either way — a
+            # checkout this code cannot place is not a checkout it may write into — but
+            # the caller says which, because "unparseable" and "in the wrong place" want
+            # different remedies from a human.
             return {"outcome": "out_of_place_worktree", "rel": None, "base": None,
                     "advertise": [], "shared_advertise": [],
                     "checkout": _wt_owner[0], "owner_root": _wt_owner[1],
+                    "unparsed": _wt_owner[1] is None,
                     "expected": worktree_refusal_location(_wt_owner[1])}
 
         # NOT A DOMAIN QUESTION, unchanged. bash-write-guard.sh already said so
@@ -348,10 +353,25 @@ def classify(abs_target, root, globs, shared, label):
 def worktree_owner(path):
     """Which checkout does `path` stand in, and is that checkout in a legal place?
 
-    Returns `(checkout_dir, owner_root, legitimate)`, or None for "unknown", which
-    every caller must treat as not-a-worktree. Issue #103: a linked git worktree of
-    this repository that does not live under `WORKTREES_SEGMENT` silently disables the
-    harness machinery, so it is a mistake rather than a supported shape.
+    Returns `(checkout_dir, owner_root, legitimate)`. Issue #103: a linked git worktree
+    of this repository that does not live under `WORKTREES_SEGMENT` silently disables
+    the harness machinery, so it is a mistake rather than a supported shape.
+
+    THREE OUTCOMES, AND THE THIRD EXISTS BECAUSE ITS ABSENCE WAS A FAIL-OPEN. The review
+    panel found it and it was reproduced end to end before this fix: every parse failure
+    returned None, every caller read None as not-a-worktree, and a single appended
+    `\xff` byte on an otherwise valid pointer turned an identical write from exit 2 into
+    a silent exit 0. That is issue #103's own failure direction, installed inside issue
+    #103's fix.
+
+      None                     NO `.git` entry found walking up. Genuinely not in a
+                               worktree — /tmp, an unrelated directory. Callers ALLOW.
+      (dir, root, True/False)  A pointer was found AND parsed. `legitimate` says whether
+                               the checkout sits under the owner's WORKTREES_SEGMENT.
+      (dir, None, False)       A `.git` FILE was found and could NOT be parsed. UNKNOWN,
+                               and `owner_root is None` is how a caller tells it apart.
+                               Callers must REFUSE: something claims to be a linked
+                               worktree and this code cannot say where it belongs.
 
     NO GIT SUBPROCESS. The guard runs on every governed write, and a hook that shells
     out is both slow and a new failure surface — it would also be answering a question
@@ -379,10 +399,14 @@ def worktree_owner(path):
                 with open(dot, "r", encoding="utf-8", errors="strict") as fh:
                     line = fh.read().strip()
             except Exception:
-                return None
-            m = re.match(r"^gitdir:\s*(.+)$", line)
+                # Unreadable, or not UTF-8. UNKNOWN, never "not a worktree".
+                return (cur, None, False)
+            # MULTILINE, because a pointer carrying any second line is still a pointer
+            # this code can read. Before the fix `$` anchored at end-of-string, so one
+            # trailing line failed the whole match and the write was allowed.
+            m = re.match(r"^gitdir:\s*(.+?)\s*$", line, re.MULTILINE)
             if not m:
-                return None
+                return (cur, None, False)
             entry = m.group(1).strip()
             if not os.path.isabs(entry):
                 # A relative pointer is legal git, but it resolves against the checkout
@@ -393,7 +417,7 @@ def worktree_owner(path):
             worktrees_dir = os.path.dirname(entry)          # <abs>/.git/worktrees
             git_dir = os.path.dirname(worktrees_dir)        # <abs>/.git
             if os.path.basename(worktrees_dir) != "worktrees" or os.path.basename(git_dir) != ".git":
-                return None
+                return (cur, None, False)
             owner_root = real(os.path.dirname(git_dir))     # <abs>
             legal_home = real(os.path.join(owner_root, WORKTREES_SEGMENT))
             try:
@@ -408,5 +432,13 @@ def worktree_owner(path):
 
 
 def worktree_refusal_location(owner_root):
-    """Where worktrees belong, for the caller's verdict. One spelling, from the constant."""
+    """Where worktrees belong, for the caller's verdict. One spelling, from the constant.
+
+    `owner_root` is None in the UNKNOWN case, where the pointer did not parse and no
+    owning repository could be named. Returning the bare segment there is deliberate:
+    formatting None into a path raises, and an unhandled raise in a guard exits 1, which
+    is NON-BLOCKING — the fail-open this whole fix is closing.
+    """
+    if owner_root is None:
+        return WORKTREES_SEGMENT + os.sep
     return os.path.join(owner_root, WORKTREES_SEGMENT) + os.sep

@@ -1567,6 +1567,33 @@ def run_worktree():
     wt("a scratch path outside any worktree still PASSES",
        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
+    # --- F-A, THE PANEL'S `high`: A POINTER THAT DOES NOT PARSE MUST REFUSE, NOT ALLOW.
+    # Reproduced end to end before the fix: appending ONE 0xff byte to an otherwise valid
+    # pointer turned this identical write from exit 2 into a silent exit 0, because every
+    # parse failure returned None and every caller read None as not-a-worktree. That is
+    # issue #103's own failure direction inside issue #103's fix.
+    _ptr = os.path.join(sib, ".git")
+    _good = open(_ptr, "rb").read()
+    for _label, _payload in (
+            ("not valid UTF-8", _good.rstrip() + b"\xff"),
+            ("a bare word, no gitdir:", b"nonsense\n"),
+            ("a gitdir: that is not a worktrees entry", b"gitdir: /tmp/elsewhere/.git\n"),
+            ("an empty file", b""),
+    ):
+        with open(_ptr, "wb") as _f:
+            _f.write(_payload)
+        r = _fire(root, os.path.join(sib, "allowed", "x.txt"))
+        wt(f"F-A: a .git pointer that is {_label} REFUSES the write (it must not read as "
+           "not-a-worktree)",
+           r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+    # THE PAIRED ALLOW, restoring the valid pointer — without it every case above is
+    # satisfied by a guard that refuses everything in this fixture.
+    with open(_ptr, "wb") as _f:
+        _f.write(_good)
+    r = _fire(root, os.path.join(root, ".harness", "allowed", "x.txt"))
+    wt("F-A: with the pointer restored, the in-domain write still PASSES",
+       r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
     # --- THE FAIL-CLOSED PAIR for the shared module (D-06). An isolated copy carrying
     # check-domain.sh and harness_yaml.py but NOT harness_boundary.py.
     iso = tempfile.mkdtemp()

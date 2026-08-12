@@ -964,11 +964,25 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
 # both hooks was that they run on EVERY governed write; check-state runs once per
 # session. If git is absent or the command fails, record nothing: this invariant must
 # never turn an unrelated environment into a red gate.
+# THE IMPORT IS A VIOLATION WHEN IT FAILS, NOT A SILENT SKIP. Found by the review panel:
+# this absorbed the ImportError into `_wt_seg = None`, `if _wt_seg:` then skipped every
+# INV-25 branch, and a session holding a pre-existing out-of-place worktree printed
+# "all state invariants hold" and exited 0. That is the fourth import route — the three
+# in the two write guards fail closed, this one did not.
+#
+# It is a VIOLATION rather than a note because the module ships with the repository: it
+# being unimportable is a defect in the tree, never a property of the environment. That
+# is the opposite of the git-absent case below, which correctly records nothing.
 try:
     import harness_boundary as _hb
     _wt_seg = _hb.WORKTREES_SEGMENT
-except Exception:
+except Exception as _hbe:
     _wt_seg = None
+    bad.append("INV-25 CANNOT RUN: harness_boundary.py did not import (%s: %s), so a "
+               "pre-existing out-of-place worktree would go unreported. The module ships "
+               "with this repository — restore "
+               ".claude/skills/harness/bin/harness_boundary.py."
+               % (type(_hbe).__name__, _hbe))
 
 if _wt_seg:
     try:

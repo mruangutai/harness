@@ -5722,7 +5722,32 @@ three divergences between the two write routes survive deliberately:
   `.claude/worktrees/`, which the Write route does not have.
 - The Bash route still does not enforce product-base domains for paths outside the harness root: its
   outside-repo pass-through is preserved, narrowed to a filter on the verdict rather than removed,
-  because dropping it would begin enforcing those domains there for the first time.
+  because dropping it would begin enforcing those domains there for the first time. **"Preserved" is
+  true of two of the three fleet states and not the third** — see amendment 1.
+
+### DEC-193 amendment 1 (2026-08-12) — "preserved" was too wide by one column
+
+The review panel found that moving the outside-repo pass-through BELOW `classify` also moved it below
+`resolve_fleet`, whose own `sys.exit(2)` for an unloadable fleet declaration is now reached first. So
+on the Bash route a **malformed** `.harness/factory/fleet.yaml` refuses every write outside the
+harness root, where before it refused none. Measured on both branches, same fixture, same target:
+
+| `fleet.yaml` | `main`, before | FEAT-17, after |
+|---|---|---|
+| absent | 0 | 0 |
+| valid | 0 | 0 |
+| **malformed** | **0** | **2** |
+
+**The behaviour stands; the sentence above did not.** The direction is fail-closed, and it agrees with
+what `resolve_fleet` already did on the Write route and with its own stated reason — the value that
+identifies product paths is the one that failed, so enforcement is closed rather than partial. What
+was wrong was claiming preservation across all three states when it holds across two.
+
+Recorded as an amendment rather than a strike: DEC-188 strikes a decision the tree **flatly
+contradicts**, and this one is accurate except in a case it did not enumerate. It is written down
+because the alternative was leaving a falsified sentence standing in the entry the whole factory reads
+as ground truth — and because moving the filter back above `classify` to restore the old column would
+re-blind this route to sibling worktrees, which is the defect the entry exists to record closing.
 - In a PyYAML bootstrap-grant session the Write route does not apply the ROOT-SIDE check. That check
   sits inside `domain_check`, which is called under `if _run_domain and not _no_parser`, while the
   Bash route's root-side check sits ahead of that route's own `_no_parser` exit and still fires.

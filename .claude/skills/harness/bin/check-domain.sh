@@ -418,6 +418,12 @@ def domain_check():
     # `if _run_domain and not _no_parser:` call, and do NOT close it by weakening the
     # Bash route to match.
     _root_wt = harness_boundary.worktree_owner(root)
+    if _root_wt is not None and _root_wt[1] is None:
+        print(f"check-domain: BLOCKED — {_root_wt[0]} holds a .git pointer file that "
+              "does not parse, so this session's checkout cannot be placed.",
+              file=sys.stderr)
+        print("  Repair or remove it, then start the session again.", file=sys.stderr)
+        sys.exit(2)
     if _root_wt is not None and not _root_wt[2]:
         # NO REMOVAL GUIDANCE HERE, unlike the target-side verdict below. Measured:
         # `git worktree remove` SUCCEEDS from inside the tree it removes, so printing
@@ -482,6 +488,13 @@ def domain_check():
         # A write INTO a sibling worktree, from a session standing outside it. The
         # removal guidance is correct here and stays: the tree being named is not the
         # one this session is running in.
+        if _verdict.get("unparsed"):
+            print(f"check-domain: BLOCKED — {_verdict['checkout']} holds a .git pointer "
+                  "file that does not parse, so this code cannot say which repository "
+                  "owns it or whether it is in a legal place.", file=sys.stderr)
+            print("  A checkout that cannot be placed is not one to write into. Repair "
+                  "or remove it.", file=sys.stderr)
+            sys.exit(2)
         print(f"check-domain: BLOCKED — {target} is inside a git worktree that is not "
               f"under {harness_boundary.WORKTREES_SEGMENT}/.", file=sys.stderr)
         print(f"  Worktrees belong under {_verdict['expected']}", file=sys.stderr)

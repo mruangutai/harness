@@ -1267,6 +1267,32 @@ def case_u():
                         and all("git worktree remove" not in l for l in own_lines),
                         f"lines: {own_lines}"))
 
+    # --- F-B: THE FOURTH IMPORT ROUTE. The three in the two write guards fail closed;
+    # this one absorbed the ImportError, skipped every INV-25 branch, printed
+    # "all state invariants hold" and exited 0. Found by the review panel, with zero
+    # coverage: u.1-u.6 all have the module, and SC-10's module-absent fixture is a
+    # different file. An isolated copy is required — a check-state running from the real
+    # bin/ finds the real module whatever the fixture looks like.
+    with tempfile.TemporaryDirectory() as tmp2:
+        isobin = os.path.join(tmp2, ".claude", "skills", "harness", "bin")
+        os.makedirs(isobin)
+        _bin = os.path.dirname(os.path.abspath(SCRIPT))
+        for fn in ("check-state.sh", "harness_yaml.py"):
+            shutil.copy(os.path.join(_bin, fn), os.path.join(isobin, fn))
+        os.chmod(os.path.join(isobin, "check-state.sh"), 0o755)
+        b = _repo(os.path.join(tmp2, "B"))
+        _add_wt(b, os.path.join(tmp2, "B-sib"))
+        make_fixture(b, '{}', "  parent: 40")
+        env = dict(os.environ, CLAUDE_PROJECT_DIR=b)
+        r = subprocess.run([os.path.join(isobin, "check-state.sh")], cwd=b,
+                           capture_output=True, text=True, env=env)
+        results.append(("(u.7) F-B: an unimportable harness_boundary.py is a VIOLATION, "
+                        "not a silent skip of INV-25",
+                        "INV-25 CANNOT RUN" in r.stdout
+                        and "all state invariants hold" not in r.stdout
+                        and r.returncode != 0,
+                        f"exit {r.returncode}: {r.stdout.strip()[:300]}"))
+
     all_ok = True
     for name, ok, detail in results:
         print(f"{'ok' if ok else 'FAIL'} - case {name}")
