@@ -8,6 +8,7 @@ No test invokes a real `gh` binary and none asserts on `sub_issues_summary` (SC-
 import json, os
 import subprocess
 import sys
+import shutil
 import tempfile
 
 # Overridable so a fix can be proven RED against a reverted copy — the same
@@ -214,21 +215,101 @@ def case_g():
     Introduced by a fix and caught by review, not by any gate: no test covered INV-17's
     firing path at all.
     """
-    with tempfile.TemporaryDirectory() as tmp:
+    NOTE = "## Next\n## Trust\n## Dead ends\n## Working set\n"
+
+    def build(feat, status, notes=(), tasks="omit"):
+        """One INV-17 fixture. `tasks` is "omit" for no plan.yaml at all, otherwise a
+        YAML fragment written under a tasks: key — including the empty-list and the
+        absent-key shapes the plan-keyed exemption's condition 2 exists to refuse.
+
+        This helper is the reason cases 5-7 are writable: make_fixture writes a feature
+        file and nothing else, and the plan-keyed predicate reads plan.yaml.
+        """
+        tmp = tempfile.mkdtemp()
         h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "features", "FEAT-TEST", "notes"), exist_ok=True)
+        fd = os.path.join(h, "features", feat)
+        os.makedirs(os.path.join(fd, "notes"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        # phase: validate with NO handoff-plan.md / handoff-build.md -> INV-17 fires.
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
-            f.write("feature_id: FEAT-TEST\nphase: validate\n")
-        code, out = run(tmp)
-        ok = "handoff-plan.md" in out and "Traceback" not in out
-        print(f"{'ok' if ok else 'FAIL'} - case (g): M-01 — INV-17 reports the missing "
-              f"handoff instead of raising NameError")
-        if not ok:
-            print(f"        exit {code}; output: {out.strip()[:200]}")
-        return ok
+        with open(os.path.join(fd, "feature.json"), "w") as f:
+            f.write(f"feature_id: {feat}\nstatus: {status}\n")
+        for n in notes:
+            with open(os.path.join(fd, "notes", f"handoff-{n}.md"), "w") as f:
+                f.write(NOTE)
+        if tasks != "omit":
+            with open(os.path.join(fd, "plan.yaml"), "w") as f:
+                f.write(f"feature_id: {feat}\n{tasks}")
+        try:
+            return run(tmp)[1]
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    MSD = "tasks:\n  - id: T-01\n    execution_mode: main-session-direct\n"
+    NO_MODE = "tasks:\n  - id: T-01\n    title: something\n"
+    results = []
+
+    def check(label, cond, out):
+        # NEVER on the exit code: a dead invariant exits exactly as a live one does when
+        # nothing else is wrong, so an exit assertion here would prove nothing.
+        results.append(cond)
+        print(f"{'ok' if cond else 'FAIL'} - case (g.{len(results)}): {label}")
+        if not cond:
+            print(f"        output: {out.strip()[:400]}")
+
+    # 1 — the positive firing case, and M-01's regression: INV-17 must REPORT a missing
+    # handoff, not raise NameError. The F-02 conversion left one reference to a deleted
+    # regex match object, so the moment INV-17's condition was TRUE the script crashed at
+    # exit 1 — indistinguishable from a real violation — and aborted every later invariant.
+    out = build("FEAT-TEST", "Review", notes=("plan",))
+    check("INV-17 RAISES on Review with handoff-build.md absent, and names it",
+          "handoff-build.md" in out and "Traceback" not in out, out)
+
+    # 2 — the literal exemption set. FEAT-01 finished before DEC-159 existed and no honest
+    # handoff note can be written for it, so none is demanded and none is fabricated.
+    out = build("FEAT-01", "Done")
+    check("INV-17 stays quiet for the literal exemption set (FEAT-01 at Done, no notes)",
+          "handoff-" not in out, out)
+
+    # 3 — the validate seam survived the fold of validate and ship into Review by moving to
+    # the Done boundary, rather than being silently dropped.
+    out = build("FEAT-TEST", "Done", notes=("plan", "build"))
+    check("INV-17 RAISES at Done when handoff-validate.md is absent",
+          "handoff-validate.md" in out, out)
+
+    # 4 — no seam has been crossed yet at Plan, so nothing is owed.
+    out = build("FEAT-TEST", "Plan")
+    check("INV-17 raises nothing at Plan with no notes at all",
+          "handoff-" not in out, out)
+
+    # 5 — the plan-keyed exemption, positive direction. BOTH halves are asserted: silence
+    # alone would pass against an exemption that granted itself without saying so.
+    out = build("FEAT-TEST", "Done", tasks=MSD)
+    check("all-main-session-direct at Done raises NO handoff violation AND reports the "
+          "exemption by name",
+          ("handoff-plan.md is missing" not in out
+           and any("exempt" in l and "FEAT-TEST" in l and "handoff-plan" in l
+                   and "handoff-validate" in l and "VIOLATION" not in l
+                   for l in out.splitlines())), out)
+
+    # 6 — what stops the exemption degenerating into keyed-on-absence. Same absent notes as
+    # case 5; the only difference is that the plan declares no execution modes. If this goes
+    # quiet the predicate is reading the notes' absence, which is the condition INV-17
+    # exists to detect.
+    out = build("FEAT-TEST", "Done", tasks=NO_MODE)
+    check("a plan with NO execution_mode keys still RAISES and reports no exemption",
+          "handoff-plan.md is missing" in out and "exempt" not in out, out)
+
+    # 7 — condition 2, the vacuity guard, in both its shapes. "Every task is
+    # main-session-direct" is VACUOUSLY TRUE over an empty list, so without condition 2 a
+    # stub plan would be silently exempted from a seam invariant.
+    out_empty = build("FEAT-TEST", "Done", tasks="tasks: []\n")
+    out_absent = build("FEAT-TEST", "Done", tasks="approval: approved\n")
+    check("an empty tasks: list and an absent tasks: key BOTH raise, never vacuously exempt",
+          ("handoff-plan.md is missing" in out_empty and "exempt" not in out_empty
+           and "handoff-plan.md is missing" in out_absent and "exempt" not in out_absent),
+          out_empty + "\n---\n" + out_absent)
+
+    return all(results)
 
 
 def case_h():
@@ -392,7 +473,7 @@ def case_l():
         runs = "\n".join(f"  - {{ id: r{i}, squad: eng, verdict: PASS }}"
                          for i in range(n))
         with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
-            f.write(f"feature_id: FEAT-TEST\nphase: build\ncycles_used: 2\n"
+            f.write(f"feature_id: FEAT-TEST\ncycles_used: 2\n"
                     f"review_sha: abc1234\n{declared}runs:\n{runs}\n")
         return run(tmp)
 

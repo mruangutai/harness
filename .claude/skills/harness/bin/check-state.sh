@@ -430,41 +430,148 @@ if cfg:
 
 import subprocess
 
-# --- INV-17 (DEC-159): per-phase orchestrators hand off through notes/handoff-<phase>.md.
-# A feature whose phase: sits past a seam with no handoff note for the crossing lost the
+# --- INV-17 (DEC-159): squad seams hand off through notes/handoff-<stem>.md.
+# A feature whose status: sits past a seam with no handoff note for the crossing lost the
 # predecessor's working memory — recoverable (disk-only is supported) but never silent.
-# Only enforced when the feature declares phase: at all, so pre-DEC-159 features stay quiet.
-PHASE_ORDER = ["plan", "build", "validate", "ship"]
+#
+# This block was keyed on a `phase` field until DEC-150/D-12 (FEAT-14). phase and status
+# collapsed into ONE field whose values are the GitHub board's six columns, and phase was
+# deleted from every feature file. The old constant — named PHASE_ORDER, holding
+# plan/build/validate/ship — is recorded here because leaving it standing was the actual
+# hazard: with phase gone from the corpus the read returns the empty string on every
+# feature, the membership test fails on every feature, and the loop `continue`s on every
+# feature. INV-17 would stop examining anything at all while check-state.sh went on exiting
+# exactly as it does today. A gate that examines nothing reports nothing wrong.
+#
+# THE STEMS ARE LOWERCASE LITERALS AND ARE DELIBERATELY NOT DERIVED FROM THE STATUS VALUES.
+# The next editor's first instinct is to build the filename from the status; do not. The
+# board's values are capitalized, so deriving would look for notes/handoff-Plan.md and
+# notes/handoff-Building.md while all 34 notes on disk are lowercase. That MATCHES on this
+# machine's case-insensitive filesystem and MISSES on Linux CI — the invariant would look
+# healthy locally and go dark on the only machine that gates the merge. Keeping the stems
+# as their own literals also renames no file on disk.
+#
+# THE RESIDUAL LOSS, RECORDED RATHER THAN HIDDEN: validate and ship both folded into
+# Review, so the validate-to-ship crossing is no longer separately observable and
+# handoff-validate.md cannot be demanded at Review. It is demanded at Done instead — the
+# next boundary that proves Review completed. One seam moves later; none is dropped.
+#
+# A status outside STATUS_ORDER skips this feature, which is the same silent shape as
+# above. It is left that way deliberately: status is schema-required with a closed value
+# set, so an unknown value is already denied at write time, and adding a branch here would
+# be a second enforcement point for a rule the schema owns.
+STATUS_ORDER = ["Backlog", "Plan", "Ready", "Building", "Review", "Done"]
+SEAM_NOTES = {
+    "Backlog":  [],
+    "Plan":     [],
+    "Ready":    ["plan"],
+    "Building": ["plan"],
+    "Review":   ["plan", "build"],
+    "Done":     ["plan", "build", "validate"],
+}
 HANDOFF_HEADINGS = ["## next", "## trust", "## dead ends", "## working set"]
+
+# The literal exemption set. FEAT-01 and FEAT-02 are Done, carry zero handoff notes, and
+# finished before DEC-159 existed: no seam was crossed, so no honest handoff note can be
+# written for them and none will be fabricated (PRINCIPLES rule 15). A finite list, not an
+# inferred rule — no future feature can join it.
+#
+# Matched by PREFIX because a feature directory is FEAT-01-<slug>, and FEAT-01's happens to
+# be bare today. Exact equality would pass every fixture and still raise three violations
+# on the live corpus the moment either directory gained a slug.
+#
+# This one is a SILENT skip, unlike the plan-keyed exemption below, which reports. The
+# difference is deliberate: reporting exists so a WRONGLY granted exemption is visible, and
+# a two-element list that cannot grow has nothing to grant wrongly.
+HANDOFF_EXEMPT_LITERAL = ("FEAT-01", "FEAT-02")
+
+def _handoff_exempt(fdir):
+    """The plan-keyed exemption (DEC-174). Returns a reason string when the feature owes no
+    handoff notes, or "" when it does. The second value is a detail to append to the
+    violation when the plan could not be read.
+
+    A feature built entirely main-session-direct runs no squad, crosses no seam and is owed
+    no note. THREE CONJOINED CONDITIONS, all necessary: (1) a plan.yaml exists — a PLAN.md
+    does NOT qualify and is never read here; (2) its tasks: list is present and NON-EMPTY;
+    (3) EVERY task carries an explicit execution_mode of exactly main-session-direct.
+
+    KEYED ON THE PLAN'S EXECUTION MODES, NEVER ON THE NOTES' ABSENCE. Keyed on absence, the
+    invariant would be satisfied by the exact condition it exists to detect.
+
+    Condition 2 is a vacuity guard and excludes nobody in today's corpus — every plan.yaml
+    on disk has a non-empty tasks: list. It is kept because "every task is
+    main-session-direct" is VACUOUSLY TRUE over an empty list, so a stub plan, a
+    half-written one, or one whose tasks: key was mistyped would otherwise be silently
+    exempted from a seam invariant. What actually excludes FEAT-01 through FEAT-05 is
+    condition 1, in all five cases.
+
+    A DELIBERATE FALSE NEGATIVE: FEAT-06 and FEAT-07 are all-main-session-direct too, but on
+    PLAN.md, so condition 1 keeps them non-exempt and they keep owing their notes. That is
+    the safe direction and costs nothing — both already carry every note their status
+    demands. Do not widen condition 1 to reach PLAN.md.
+
+    FAIL CLOSED: any read error, parse error or non-mapping task entry is NOT exempt.
+    """
+    pp = os.path.join(fdir, "plan.yaml")
+    if not os.path.isfile(pp):
+        return "", ""
+    try:
+        pdoc = harness_yaml.load_file(pp) or {}
+    except Exception as e:
+        return "", f" (its plan.yaml does not parse, so no exemption could be evaluated: {e})"
+    if not isinstance(pdoc, dict):
+        return "", " (its plan.yaml is not a mapping, so no exemption could be evaluated)"
+    tasks = pdoc.get("tasks")
+    if not isinstance(tasks, list) or not tasks:
+        return "", ""
+    for t in tasks:
+        if not isinstance(t, dict):
+            return "", (" (its plan.yaml has a task that is not a mapping, so no "
+                        "exemption could be evaluated)")
+        if str(t.get("execution_mode", "")).strip() != "main-session-direct":
+            return "", ""
+    return (f"every task in its plan.yaml is execution_mode main-session-direct (DEC-174), "
+            f"so no squad ran and no seam was crossed"), ""
+
 for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
-    # F-02: parsed, not regex-scanned. `^phase:\s*(\S+)` misses a quoted value and a
+    # F-02: parsed, not regex-scanned. `^status:\s*(\S+)` misses a quoted value and a
     # block scalar, both legal YAML — and a miss here is silent: the feature is skipped
     # entirely by `continue`, so the invariant never runs and never says why.
     try:
         _doc = harness_yaml.load_file(fy) or {}
     except Exception as e:
-        bad.append(f"{feat}/feature.json does not parse, so its phase invariants "
+        bad.append(f"{feat}/feature.json does not parse, so its seam invariants "
                    f"cannot be checked: {e}")
         continue
-    _phase = str(_doc.get("phase", "")).strip() if isinstance(_doc, dict) else ""
-    if _phase not in PHASE_ORDER:
+    _status = str(_doc.get("status", "")).strip() if isinstance(_doc, dict) else ""
+    if _status not in STATUS_ORDER:
         continue
-    idx = PHASE_ORDER.index(_phase)
-    for prev in PHASE_ORDER[:idx]:
+    _lit = feat.startswith(HANDOFF_EXEMPT_LITERAL)
+    # Evaluated LAZILY — only when a required note is actually found missing, never for
+    # every feature on every run — and cached, so a feature owing three notes reads its
+    # plan once and emits ONE line rather than three near-identical ones.
+    _ex_why, _ex_detail, _ex_stems = None, "", []
+    for prev in SEAM_NOTES[_status]:
         hp = os.path.join(os.path.dirname(fy), "notes", f"handoff-{prev}.md")
         if not os.path.isfile(hp):
+            if _lit:
+                continue
+            if _ex_why is None:
+                _ex_why, _ex_detail = _handoff_exempt(os.path.dirname(fy))
+            if _ex_why:
+                _ex_stems.append(prev)
+                continue
             # M-01: this said `pm_.group(1)` — a leftover from the regex the F-02
-            # conversion deleted when it renamed the parsed value to `_phase`. Used
-            # once, assigned nowhere, so it raised NameError on the ONE condition
-            # INV-17 exists to detect, aborting INV-13/15/16/18/21 and INV-10 with
-            # no "could not run" message. A crash exits 1, which is what a real
-            # violation exits, so /harness entry reported "violations found" for a
-            # typo. Introduced by the fix for F-02 and caught by the re-review, not by
-            # any gate.
-            bad.append(f"{feat}: phase is '{_phase}' but notes/handoff-{prev}.md is "
+            # conversion deleted when it renamed the parsed value. Used once, assigned
+            # nowhere, so it raised NameError on the ONE condition INV-17 exists to
+            # detect, aborting INV-13/15/16/18/21 and INV-10 with no "could not run"
+            # message. A crash exits 1, which is what a real violation exits, so
+            # /harness entry reported "violations found" for a typo. Introduced by the
+            # fix for F-02 and caught by the re-review, not by any gate.
+            bad.append(f"{feat}: status is '{_status}' but notes/handoff-{prev}.md is "
                        f"missing — the {prev} seam was crossed without a handoff; the "
-                       f"successor is on the disk-only path (DEC-159).")
+                       f"successor is on the disk-only path (DEC-159).{_ex_detail}")
             continue
         hl = [l.strip().lower() for l in (read(hp) or "").splitlines()]
         miss = [h for h in HANDOFF_HEADINGS if h not in hl]
@@ -475,6 +582,13 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
             bad.append(f"{feat}: notes/handoff-{prev}.md fails the shape ({'; '.join(why)}) "
                        f"— a freeform handoff drifts like an unvalidated digest did "
                        f"(DEC-159/160).")
+    if _ex_stems:
+        # Reported, never silent: a wrongly granted exemption must be VISIBLE rather than
+        # look like a pass. It goes through warn and its text must NOT carry the word that
+        # marks a violation — the shipping gate builds a baseline from those lines, and a
+        # note worded as one would pollute that diff.
+        warn.append(f"INV-17 {feat}: exempt from handoff notes — {_ex_why}. Suppressed "
+                    + ", ".join(f"handoff-{s}" for s in _ex_stems) + ".")
 
 # --- INV-18 (DEC-160): a feature with run dirs but no feature.json is invisible to
 # every feature-keyed invariant (INV-8/12/17) — a whole phase can run unchecked.
