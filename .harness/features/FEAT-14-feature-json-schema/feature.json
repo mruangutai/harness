@@ -97,6 +97,11 @@
       "id": "goalcheck-product",
       "squad": "product",
       "verdict": "FAIL"
+    },
+    {
+      "id": "panel2-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
     }
   ],
   "github": {
