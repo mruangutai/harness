@@ -82,6 +82,11 @@
       "id": "qa-final-validator",
       "squad": "validator",
       "verdict": "BLOCKED"
+    },
+    {
+      "id": "qa-final2-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
     }
   ],
   "github": {
