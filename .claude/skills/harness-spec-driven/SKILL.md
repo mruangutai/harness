@@ -137,9 +137,9 @@ Working rules (DEC-149, adapted from domain-modeling practice):
 
 Two failure shapes, both measured on FEAT-03 where four citations were stale before the build began:
 
-- **Cite the FIELD, never the line, in any file the org rewrites.** `feature.yaml:41` was cited four
+- **Cite the FIELD, never the line, in any file the org rewrites.** `feature.json:41` was cited four
   times for `parent: none`; the orchestrator rewrote that file every run and line 41 became
-  `squad: eng`. Write `feature.yaml github.parent` instead. Line anchors are correct only into files
+  `squad: eng`. Write `feature.json github.parent` instead. Line anchors are correct only into files
   a task does not touch — source, migrations, a pinned SHA's tree.
 - **A recorded baseline carries the sha it was observed at, and the condition.** "check-state.sh
   exits 1" went stale the moment the user signed the approval — the signature itself changed the

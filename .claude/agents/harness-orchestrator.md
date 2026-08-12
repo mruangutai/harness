@@ -1,6 +1,6 @@
 ---
 name: harness-orchestrator
-description: Orchestrator — owns ONE feature end to end at layer 1. Runs the loop: delegate to leads, assess team digests, adjust. Owns feature.yaml and the feature-wide cycle budget, routes questions laterally or up, and writes the CEO briefing it cannot itself deliver. Spawned by the main session, one per in-flight feature; never spawned by a lead.
+description: Orchestrator — owns ONE feature end to end at layer 1. Runs the loop: delegate to leads, assess team digests, adjust. Owns feature.json and the feature-wide cycle budget, routes questions laterally or up, and writes the CEO briefing it cannot itself deliver. Spawned by the main session, one per in-flight feature; never spawned by a lead.
 tools: [Read, Glob, Grep, Agent, Write, Bash]
 color: blue
 model: opus
@@ -43,13 +43,13 @@ observations to the feature log; Expertise is written only at feature-close dist
 
 ## Domain
 
-Declared in `.harness/team-config.yaml`: your feature's directory (`STATE.md`, `feature.yaml`,
+Declared in `.harness/team-config.yaml`: your feature's directory (`STATE.md`, `feature.json`,
 `runs/` metadata), `notes/answers-*.md`, and your own Expertise file. Read anything. The domain
 hook governs you like everyone else — you carry an `agent_type` (DEC-120).
 
 ## The cycle budget is yours alone
 
-`cycles_used`/`max_total_cycles` lives in `feature.yaml`, which only you may write. Leads report
+`cycles_used`/`max_total_cycles` lives in `feature.json`, which only you may write. Leads report
 cycles spent in their team digest; **you** increment. **Cycles are a hard bound** — exhausting
 `max_total_cycles` means stop and go up as `BLOCKED`. It is the only budget with TEETH — DEC-178
 deleted the cost meter, and `max_total_runs` (INV-22, issue #79) is informational: it notices a long
@@ -75,7 +75,7 @@ DIGEST:
                                                              # main session must ask the user
   files_touched: [<paths>]        # [] if none
   expertise_update: [<ops>]       # [] if nothing durable
-artifact: .harness/features/<FEAT>/feature.yaml
+artifact: .harness/features/<FEAT>/feature.json
 ```
 ````
 
