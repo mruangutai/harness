@@ -1,0 +1,113 @@
+{
+  "feature_id": "FEAT-12-end-copy-distribution",
+  "branch": "chore/203-end-copy-distribution",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "fb80543",
+  "cycles_used": 8,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-10-01-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-10-02-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-10-03-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t07-t10-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t12-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t14-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t14fix-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t13-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "qagate-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "panel-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "goalcheck-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "distill-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-apply-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-apply-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 6,
+    "parent": 223,
+    "parent_origin": "created",
+    "issues": {
+      "T-01": 224,
+      "T-02": 225,
+      "T-03": 226,
+      "T-04": 227,
+      "T-05": 228,
+      "T-06": 229,
+      "T-07": 230,
+      "T-08": 231,
+      "T-09": 232,
+      "T-10": 233,
+      "T-11": 234,
+      "T-12": 235,
+      "T-13": 236,
+      "T-14": 237
+    }
+  }
+}

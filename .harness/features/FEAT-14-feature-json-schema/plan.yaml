@@ -1310,7 +1310,7 @@ tasks:
       python3 - <<'PY'
       import glob, subprocess, sys, yaml
       B = [l.split('\u2014')[0].strip().replace('feature.yaml', 'feature.json') for l in open('.harness/features/FEAT-14-feature-json-schema/notes/baseline-check-state.txt') if l.strip()]
-      P = {'.claude/skills/harness/bin/test-harness-yaml-corpus.py': 4}
+      _B='.claude/skills/harness/bin/'; P={_B+'test-harness-yaml-corpus.py':[4,[]], _B+'check-domain.sh':[6,['Measured on the pre-change tree, one','400-line feature.yaml measured exit 0','One over-budget feature.yaml, then five unrelated']], _B+'test-check-domain.py':[1,['Measured before the fix, ONE 400-line']], _B+'check-plan-routes.py':[1,['reached `doc.get` on a list and raised']], 'docs/harness/BUILD.md':[3,['acb8db4','2026-07-28 fixture','PLAN.md` and a sec']]}
       bad = []; y = sorted(glob.glob('.harness/features/*/feature.yaml'))
       if y: bad.append('feature.yaml still on disk: %s' % y)
       if len(glob.glob('.harness/features/*/feature.json')) < len(glob.glob('.harness/features/*/notes/receipt-feature-key-drop.md')): bad.append('fewer feature.json files than T-04 drop receipts - a feature was lost in conversion')
@@ -1329,12 +1329,14 @@ tasks:
       if not m: bad.append('check-plan-routes printed no summary line, so its plan count cannot be read')
       elif int(m.group(1)): bad.append('check-plan-routes reports %s violation(s)' % m.group(1))
       elif int(m.group(2)) < 1: bad.append('check-plan-routes examined %s plan(s) - a checker that looks at nothing passes everything' % m.group(2))
-      g = subprocess.run(['git', 'grep', '-c', 'feature.yaml', '--', '.claude', '.github', '.harness/harness.json', '.harness/team-config.yaml', 'docs/harness'], capture_output=True, text=True)
+      g = subprocess.run(['git', 'grep', '-c', r'feature\.yaml', '--', '.claude', '.github', '.harness/harness.json', '.harness/team-config.yaml', 'docs/harness'], capture_output=True, text=True)
       for ln in filter(None, g.stdout.splitlines()):
           p, _, c = ln.rpartition(':')
           if p.startswith('docs/harness/DECISIONS'): continue
           if p not in P: bad.append('feature.yaml survives in %s (%s occurrence(s))' % (p, c))
-          elif int(c) != P[p]: bad.append('%s has %s occurrences, pinned at %d historical citations' % (p, c, P[p]))
+          elif int(c) != P[p][0]: bad.append('%s has %s occurrences, pinned at %d historical citations' % (p, c, P[p][0]))
+      for _p, _pv in P.items():
+          bad += ['%s no longer carries the dated record anchored on "%s" - a pinned count alone lets a deleted record be traded for a new reference' % (_p, _a) for _a in _pv[1] if _a not in open(_p).read()]
       print('\n'.join(bad) if bad else 'OK')
       sys.exit(1 if bad else 0)
       PY

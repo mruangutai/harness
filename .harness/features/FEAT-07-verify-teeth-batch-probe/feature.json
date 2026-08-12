@@ -1,0 +1,110 @@
+{
+  "feature_id": "FEAT-07-verify-teeth-batch-probe",
+  "branch": "feat/FEAT-07-verify-teeth-batch-probe",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "98ed3e7",
+  "cycles_used": 8,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "revise-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "arch-review-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "amf-fix-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "redirect-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "docs-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "dec175-trim-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "validate-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "goalcheck-product",
+      "squad": "product",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "sc07-fix-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "sc07-fix2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "close-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "close-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "close-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 2,
+    "parent": 47,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 48,
+      "T-02": 49,
+      "T-03": 50,
+      "T-04": 51,
+      "T-05": 52,
+      "T-06": 53,
+      "T-07": 54,
+      "T-08": 55,
+      "T-09": 56,
+      "T-10": 57
+    }
+  }
+}

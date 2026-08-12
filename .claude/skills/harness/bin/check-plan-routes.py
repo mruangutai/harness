@@ -235,7 +235,7 @@ def process_task(tid, body, findings):
 #
 # PER TASK, NOT PER FILE, and that asymmetry against every peer budget is deliberate. A
 # plan is a LIST — its length tracks how many tasks a feature has, not how much fat it
-# carries. feature.yaml (200), STATE.md (120), handoff (60) and CLAUDE.md (80) all govern
+# carries. feature.json (300), STATE.md (120), handoff (60) and CLAUDE.md (80) all govern
 # files whose content does not grow with task count. A flat cap here would be a cap on how
 # many tasks a feature may have, which is a scoping decision wearing a budget's clothes.
 # DERIVED PER TASK, and the first draft was not. That draft said 30, justified as "~12%
@@ -563,7 +563,7 @@ def discover_plans():
             #
             # `status:` is a BORROWED SIGNAL and the honest name for it is era. It means
             # "how far along is this feature", not "which format does it use". It is the
-            # only marker on disk — no feature.yaml carries schema_version — so it is used
+            # only marker on disk — no feature.json carries schema_version — so it is used
             # deliberately rather than a new field being invented for one transition.
             if _is_shipped(entry.path):
                 continue

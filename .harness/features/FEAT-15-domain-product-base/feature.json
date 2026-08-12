@@ -1,0 +1,22 @@
+{
+  "feature_id": "FEAT-15-domain-product-base",
+  "branch": "none",
+  "pr": null,
+  "status": "Done",
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-10-01-plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-10-02-plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    }
+  ]
+}
