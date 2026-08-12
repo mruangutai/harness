@@ -28,7 +28,7 @@ LABELS DERIVE, MECHANICALLY (DEC-138 am.3): change_type config/scaffolding/infra
 -> `chore`; bugfix -> `bug`; anything else unlabeled. `harness` marks provenance on
 every issue. No agent judgment at sync time.
 
-IDEMPOTENT. `open` records issue numbers into feature.yaml (`github:` block) as it
+IDEMPOTENT. `open` records issue numbers into feature.json (`github:` block) as it
 creates; a re-run (resume after interruption — DEC-131 taught us flows die mid-step)
 skips anything already recorded rather than duplicating.
 
@@ -205,12 +205,11 @@ def type_label(change_type):
     return None
 
 
-# ---------- feature.yaml github block ----------
+# ---------- feature.json github block ----------
 # The header used to read "text ops — no yaml dependency", which T-06 made false and
 # F-04 caught still standing: load_recorded PARSES with harness_yaml (DEC-171).
-# save_recorded remains text ops, and deliberately so — safe_dump does not preserve
-# comments, and this block sits in a file whose other sections are heavily annotated.
-# So: the READER parses, the WRITER splices text. Do not "unify" them.
+# T-05 (FEAT-14) moved the writer off text splicing too: JSON has no comments to
+# preserve, so save_recorded is a read-modify-write over the whole document.
 
 def _opt_int(v):
     """A recorded issue/milestone number as int, or None for `none`/absent/junk.
@@ -244,11 +243,11 @@ def load_recorded(feat_dir):
     - `^github:\\s*$(.*?)(?=^\\S|\\Z)` sliced the block by indentation, so a comment at
       column 0 inside it truncated everything after.
     """
-    path = os.path.join(feat_dir, "feature.yaml")
+    path = os.path.join(feat_dir, "feature.json")
     rec = {"milestone": None, "parent": None, "parent_origin": None, "attached": [], "issues": {}}
     # ABSENCE is checked before parsing, not caught after it (review finding 4). The
     # old `except FileNotFoundError: return rec` was UNREACHABLE — load_file wraps
-    # OSError into YamlParseError, so a missing feature.yaml reported as "does not
+    # OSError into YamlParseError, so a missing feature.json reported as "does not
     # parse", blaming the file's contents for a file that does not exist. The dead
     # branch also documented an intent that could never occur, which is the more
     # expensive half: a later reader trusts it.
@@ -296,58 +295,19 @@ def load_recorded(feat_dir):
     return rec
 
 
-def _strip_github_block(t):
-    """Remove an existing top-level `github:` block, however it is written.
-
-    LINE-BASED, not a regex over the whole file. The regex this replaces was
-    `^github:\\s*$...` — anchored to a bare `github:` with nothing after it — and it
-    missed `github:   # comment`, which is this repo's own house style (45 such
-    trailing comments in FEAT-03's feature.yaml alone). Nothing was removed, so
-    save_recorded APPENDED A SECOND top-level `github:` key; the strict loader then
-    raised DuplicateKeyError and load_recorded turned that into SystemExit, so every
-    later gh-sync command died with "does not parse — refusing to sync".
-
-    Worse with a column-0 comment INSIDE the block: the sub stripped the header and
-    left the indented body dangling, i.e. syntactically invalid YAML.
-
-    Why this is the severe one rather than a nuisance: save_recorded is called
-    IMMEDIATELY AFTER an irreversible GitHub mutation (DEC-131's record-after-every-
-    create rule). So the sequence was: milestone created on GitHub -> feature.yaml
-    corrupted -> the record DEC-131 exists to preserve becomes unreadable. Both cases
-    self-healed under the old regex READER, which is why converting only the reader
-    (T-06) armed this.
-    """
-    out, skipping = [], False
-    for line in t.split("\n"):
-        if skipping:
-            # The block ends at the next line that starts at column 0 and is not blank.
-            if line[:1] not in ("", " ", "\t", "#"):
-                skipping = False
-            else:
-                continue
-        # A top-level `github:` key — bare, or with a trailing comment, or quoted.
-        stripped = line.split("#", 1)[0].rstrip()
-        if stripped in ("github:", '"github":', "'github':"):
-            skipping = True
-            continue
-        out.append(line)
-    return "\n".join(out)
-
-
 def save_recorded(feat_dir, rec):
-    p = os.path.join(feat_dir, "feature.yaml")
-    t = read(p)
-    t = _strip_github_block(t).rstrip("\n") + "\n"
-    lines = [
-        "github:",
-        f"  milestone: {rec['milestone']}",
-        f"  parent: {rec['parent'] if rec['parent'] is not None else 'none'}",
-        f"  parent_origin: {rec['parent_origin'] or 'none'}",
-        f"  attached: [{', '.join(rec['attached'])}]",
-        "  issues:",
-    ]
-    lines += [f"    {tid}: {num}" for tid, num in sorted(rec["issues"].items())]
-    open(p, "w").write(t + "\n".join(lines) + "\n")
+    p = os.path.join(feat_dir, "feature.json")
+    doc = harness_yaml.load_file(p)
+    doc["github"] = {
+        "milestone": rec["milestone"],
+        "parent": rec["parent"],
+        "parent_origin": rec["parent_origin"],
+        "attached": rec["attached"],
+        "issues": dict(sorted(rec["issues"].items())),
+    }
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(doc, f, indent=2)
+        f.write("\n")
 
 
 # ---------- commands ----------
@@ -463,7 +423,7 @@ def cmd_abandon(feat_dir, repo, reason_file):
     """Terminal state: closes every recorded sub-issue not_planned, closes the milestone,
     posts the reason on the parent, and closes the parent itself only if `open` created it
     (D-01) — an adopted parent, or one with no recorded origin, is left open. Writes no
-    receipt: this is a closing action, not a recording one, so `feature.yaml` is untouched."""
+    receipt: this is a closing action, not a recording one, so `feature.json` is untouched."""
     reason_file = post_body_path(reason_file, "--reason-file")
     rec = load_recorded(feat_dir)
     if rec["milestone"] is None and not rec["issues"]:
@@ -525,7 +485,7 @@ def cmd_ship(feat_dir, repo, body_file=None):
     """Terminal state: PATCHes the milestone closed unconditionally, and — the mirror image
     of `abandon` step 4 — closes the parent only if `open` created it (D-01, SC-04): an
     adopted parent, or one with no recorded origin, is left open. Writes no receipt: this is
-    a closing action, not a recording one, so `feature.yaml` is untouched."""
+    a closing action, not a recording one, so `feature.json` is untouched."""
     if body_file is not None:
         body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)

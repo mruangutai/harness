@@ -395,8 +395,8 @@ FINISHED_STATUSES = ("Done",)
 def _is_shipped(feature_dir):
     """True when this feature's work is delivered and its plan is a record, not a contract.
 
-    Reads `feature.yaml`'s `status:` with the real loader. An unreadable or absent
-    feature.yaml means NOT finished — a feature we cannot classify is checked rather than
+    Reads `feature.json`'s `status:` with the real loader. An unreadable or absent
+    feature.json means NOT finished — a feature we cannot classify is checked rather than
     skipped, because the failure that matters is a live plan going unexamined, not an old
     one being examined twice.
 
@@ -413,7 +413,7 @@ def _is_shipped(feature_dir):
     one shape: a crash exits 1, and 1 is already spoken for. check-state.sh:160-168 is the
     model — `isinstance(doc, dict)` is checked before anything reads a key off it.
     """
-    fy = os.path.join(feature_dir, "feature.yaml")
+    fy = os.path.join(feature_dir, "feature.json")
     if not os.path.isfile(fy):
         return False
     try:

@@ -4,6 +4,12 @@
 WHY THIS EXISTS: on 2026-08-03 all four gates were green while FOUR files in this
 repo's own `.harness/` tree could not be parsed at all —
 
+HISTORICAL RECORD, NOT CURRENT PATHS: the three paths below name each file as it
+was named on 2026-08-03. FEAT-14 later closed the key set and converted that
+format to JSON. The citations are deliberately left unrenamed - renaming them
+would assert those files existed under a name they never had, and this docstring
+is the evidence for why the gate exists.
+
   .harness/team-config.yaml:18   ` ##` opens a comment even inside a `[...]` flow
                                  sequence, so the `[` never closed and the document
                                  DIED AT LINE 23. Every key from `orchestrator:`
