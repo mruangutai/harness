@@ -91,7 +91,7 @@
     {
       "id": "panel-validator",
       "squad": "validator",
-      "verdict": "ESCALATE"
+      "verdict": "FAIL"
     },
     {
       "id": "goalcheck-product",
