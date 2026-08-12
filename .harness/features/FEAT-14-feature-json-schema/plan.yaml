@@ -468,7 +468,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .github/workflows/tests.yml
       - .harness/harness.json
