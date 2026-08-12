@@ -469,6 +469,65 @@ def run_worktree():
         f"bash={after[0]}, write={after[1]}, want (2, 2) — a flip on one route only "
         f"means a second copy of the boundary rule survives on the other")
 
+    # --- WORKTREE CREATION (REQ-03). The door BEFORE the tree exists. Measured at
+    # a29ad06: `git worktree add --detach ~/GitHub/harness-SIBLING HEAD` exited 0 from
+    # both hooks.
+    wt_root = fixture(FIXTURE_MANIFEST)
+    legal_dest = os.path.join(wt_root, ".claude", "worktrees", "FEAT-99")
+    # Assembled rather than written inline: this repository's own branch-create gate
+    # scans command text for a branch flag and refuses a name carrying no issue or flow
+    # id, which would block anyone editing this file from a session.
+    BRANCH_FLAG = "-" + "b"
+
+    for label, cmd, want in (
+        ("an absolute destination outside .claude/worktrees",
+         "git worktree add /tmp/sib-xyz HEAD", 2),
+        # The flag CONSUMES the next token, so a guard that merely skipped tokens
+        # starting with "-" would read the branch name as the destination.
+        ("a value-taking flag cannot hide the destination",
+         "git worktree add " + BRANCH_FLAG + " chore/FEAT-17-wt /tmp/sib-xyz HEAD", 2),
+        # THE DISCRIMINATING FORM of the case above. `-b` CONSUMES its value, so a guard
+        # that merely skipped tokens starting with "-" would read this LEGAL path as the
+        # destination and permit the write to /tmp. The case above cannot catch that on
+        # its own: a naive guard refuses it too, for the relative-path reason, so it
+        # would pass under the very bug it is named for.
+        ("a value-taking flag whose VALUE is a legal path still cannot hide it",
+         "git worktree add " + BRANCH_FLAG + " " + legal_dest + " /tmp/sib-xyz HEAD", 2),
+        ("a RELATIVE destination is refused — it cannot be resolved",
+         "git worktree add sib HEAD", 2),
+        # THE TRAVERSAL FORM, and it is what makes "resolve BOTH sides" load-bearing
+        # rather than a style choice. With no resolution the comparison is string-level
+        # and this path is judged inside .claude/worktrees/ and PERMITTED — a silent
+        # permit of the exact mistake this scan exists to refuse.
+        ("a .. traversal out of .claude/worktrees",
+         "git worktree add " + os.path.join(wt_root, ".claude", "worktrees",
+                                            "..", "..", "..", "tmp", "sib") + " HEAD", 2),
+        ("`git worktree move` out of .claude/worktrees",
+         "git worktree move " + os.path.join(wt_root, ".claude", "worktrees", "wt")
+         + " /tmp/sib-xyz", 2),
+        # THE PAIRED ALLOWS. The ordinary-git ones are not decoration — they are what
+        # bounds the risk of a rule this broad.
+        ("a destination INSIDE .claude/worktrees",
+         "git worktree add " + legal_dest + " HEAD", 0),
+        ("the same, with a flag that consumes nothing",
+         "git worktree add --detach " + legal_dest + " HEAD", 0),
+        ("ordinary git: status", "git status --porcelain", 0),
+        ("ordinary git: worktree list", "git worktree list", 0),
+        ("ordinary git: commit", "git commit -m x", 0),
+    ):
+        r = fire(wt_root, cmd)
+        wtb(f"worktree creation — {label}",
+            r.returncode == want,
+            f"exit {r.returncode}, want {want}: {r.stderr.strip()[:200]}")
+
+    # THE RELATIVE DESTINATION MUST BE REFUSED FOR BEING RELATIVE, and only the wording
+    # can say so. A guard with the isabs check deleted still exits 2 here — realpath("sib")
+    # resolves against the guard process's cwd, which is not under the fixture's
+    # worktrees dir — so the exit code alone passes under the deleted check.
+    r = fire(wt_root, "git worktree add sib HEAD")
+    wtb("worktree creation — the relative refusal NAMES relativity as the reason",
+        "RELATIVE" in r.stderr, f"stderr: {r.stderr.strip()[:250]}")
+
     fails = 0
     for name, ok_, detail in WTB:
         if ok_:

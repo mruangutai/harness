@@ -362,6 +362,111 @@ for seg_tokens in tokens:
         elif base == "awk" and any(a == "-i" or a.startswith("inplace") for a in args):
             findings.append(("awk inplace", trailing_files(args, script_flags=True)))
 
+# --- WORKTREE CREATION (issue #103, REQ-03) -------------------------------------
+# THE CREATION DOOR, not the write door. Measured at a29ad06:
+# `git worktree add --detach ~/GitHub/harness-SIBLING HEAD` exited 0 from BOTH hooks.
+# Catching the mistake after the tree exists is worth less than preventing it.
+#
+# THIS SCAN MUST RUN BEFORE `if not findings: sys.exit(0)` BELOW. `git` produces no
+# findings, so placed after that exit the whole check is dead code.
+#
+# NOT extended to `git clone` or `git init`. Those materialise a DIFFERENT repository,
+# which carries no .harness/team-config.yaml and no agents, so no agent is misled into
+# believing that tree is governed — which is the harm issue #103 records. Every other
+# git subcommand is untouched.
+_WT_FLAGS_WITH_VALUE = ("-b", "-B", "--reason")
+
+def _worktree_destination(args, sub):
+    """The destination operand of `git worktree add|move`, or None if unparsed.
+
+    None means REFUSE, never permit. Failing loudly on a form this does not understand
+    is the point; failing open reproduces the defect.
+    """
+    rest, i = [], 0
+    while i < len(args):
+        a = args[i]
+        if a in _WT_FLAGS_WITH_VALUE:
+            i += 2                       # these CONSUME the following token
+            continue
+        if a.startswith("-"):
+            i += 1                       # --detach, --force, -f, --checkout, --lock, ...
+            continue
+        rest.append(a)
+        i += 1
+    if sub == "move":
+        return rest[1] if len(rest) > 1 else None    # <worktree> <new-path>
+    return rest[0] if rest else None
+
+for seg_tokens in tokens:
+    for i, t in enumerate(seg_tokens):
+        if os.path.basename(t) != "git":
+            continue
+        # Walk the raw args so flag/value coupling survives: the first non-flag operand
+        # must be `worktree` and the next `add` or `move`. Filtering flags out first and
+        # then re-finding the subcommand by string would match a flag's VALUE.
+        _args = seg_tokens[i + 1:]
+        _j, _ops = 0, []
+        while _j < len(_args) and len(_ops) < 2:
+            _a = _args[_j]
+            if _a in _WT_FLAGS_WITH_VALUE:
+                _j += 2
+                continue
+            if _a.startswith("-"):
+                _j += 1
+                continue
+            _ops.append(_a)
+            _j += 1
+        if len(_ops) < 2 or _ops[0] != "worktree" or _ops[1] not in ("add", "move"):
+            continue
+        _sub = _ops[1]
+        _dest = _worktree_destination(_args[_j:], _sub)
+
+        def _refuse_worktree(why):
+            print(f"bash-write-guard: BLOCKED — {why}", file=sys.stderr)
+            print(f"  Worktrees belong under "
+                  f"{os.path.join(root, harness_boundary.WORKTREES_SEGMENT) + os.sep}",
+                  file=sys.stderr)
+            print("  A worktree elsewhere silently disables the harness machinery for "
+                  "every session opened in it (issue #103).", file=sys.stderr)
+            sys.exit(2)
+
+        if _dest is None:
+            _refuse_worktree(f"`git worktree {_sub}` with no destination this guard can "
+                             "determine. Give an absolute path under "
+                             f"{harness_boundary.WORKTREES_SEGMENT}/.")
+        if not os.path.isabs(_dest):
+            # A RELATIVE DESTINATION CANNOT BE RESOLVED. The Bash payload carries a
+            # command and no working directory, so resolving against root would read
+            # `git worktree add .claude/worktrees/FEAT-99` issued from an unrelated
+            # directory as legitimate — a silent permit of the exact mistake.
+            _refuse_worktree(f"`git worktree {_sub} {_dest}` gives a RELATIVE "
+                             "destination, which this guard cannot resolve. Give an "
+                             "absolute path under "
+                             f"{harness_boundary.WORKTREES_SEGMENT}/.")
+
+        # BOTH SIDES ARE realpath-RESOLVED, and it is one or the other rather than a
+        # preference. root is derived above with os.access alone and never resolved, so
+        # resolving only the destination compares two spellings of the same tree — on
+        # darwin a mkdtemp fixture is /var/folders/... while realpath gives
+        # /private/var/folders/..., commonpath returns "/" and the paired ALLOW goes red
+        # against correct code. Resolving NEITHER also makes the fixture pass and is
+        # rejected on substance: the comparison would be string-level, so
+        # `<root>/.claude/worktrees/../../../tmp/sib` would be judged inside and
+        # permitted. Resolving both closes that and its symlink form together.
+        #
+        # A LOCAL resolved copy only. Every other rule in this file compares against the
+        # unresolved root, and changing that would alter behaviour no criterion covers.
+        _wt_root = os.path.realpath(root)
+        _legal = os.path.realpath(os.path.join(_wt_root, harness_boundary.WORKTREES_SEGMENT))
+        _abs_dest = os.path.realpath(_dest)
+        try:
+            _inside = os.path.commonpath([_abs_dest, _legal]) == _legal
+        except ValueError:      # different drives / unrelated roots
+            _inside = False
+        if not _inside:
+            _refuse_worktree(f"`git worktree {_sub}` targets {_dest}, which is not "
+                             f"under {harness_boundary.WORKTREES_SEGMENT}/.")
+
 if not findings:
     sys.exit(0)
 

@@ -676,7 +676,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out - bash-write-guard.sh is a registered PreToolUse gate script
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/bash-write-guard.sh
       - .claude/skills/harness/bin/test-bash-write-guard.py
