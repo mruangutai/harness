@@ -5570,3 +5570,116 @@ future entry must carry. **No detection machinery is added.** The omission is ac
 - **The live set of affected files is EMPTY**, stated explicitly rather than omitted: none of those
   eight exists in the harness repository. The consequence is latent. Adding one would need it named
   the way the four are named.
+
+## DEC-190 — `jsonschema` is a required dependency, and a missing import is a loud error
+
+**A feature's execution state is validated against a real JSON Schema at write time**, and the
+library that does it — `jsonschema` — is **required**, not optional. This is the second dependency
+the harness takes, and it takes the shape DEC-171 am.1 established for the first.
+
+**The shape, borrowed whole from PyYAML's clause (DEC-171 am.1).** A missing import is a **loud
+error that names the install command**. It is never a silent skip, never a warning that lets the
+flow continue, and never a quieter mode that validates less. The reason is the one DEC-171 already
+paid for: a degraded path that validates nothing is indistinguishable, from the outside, from a
+validator that passed — and the harness's own gates are the thing that would be reporting green.
+There is no hand-rolled fallback, because a fallback keeps the weaker checker alive in the tree,
+which is the whole point of removing it.
+
+**Where it is declared.** This repository has **no `requirements.txt` and no `pyproject.toml`**, so
+there is no manifest to add it to. It is declared in exactly the two places PyYAML is: the
+prerequisite gate in `harness-init` (`.claude/skills/harness-init/SKILL.md:47`, the eighth
+prerequisite, with the install commands at `:61-65`) and the CI workflow
+(`.github/workflows/tests.yml:59-60`). Those two are the dependency declaration. A future reader
+looking for a manifest will not find one, and should not add one for this.
+
+**The rejected alternative, with the reason that made it a rejection.** A hand-rolled stdlib checker
+— walk the mapping, assert the key set, assert the types — was offered and declined. It would put
+**a checker and a schema in the tree that can disagree with each other**, and every drift this org
+has paid for has had that shape: two copies of one truth, one of them silently going stale. With a
+real schema library there is one artifact, `.claude/skills/harness/bin/feature-schema.json`, and the
+checker is a library call over it. The dependency is the price of not having a second copy.
+
+DEC-101 is the precedent for treating an unavailable tool as a stop rather than a degraded run.
+DEC-171 is the parent clause this one extends.
+
+## DEC-191 — A feature's execution state has a CLOSED key set: eleven keys, `additionalProperties: false`
+
+**The execution-state file may carry eleven top-level keys and no others.** The schema is
+`.claude/skills/harness/bin/feature-schema.json` and it sets `additionalProperties: false` at the
+top level and inside each closed sub-object: `runs` items, `github`, and `factory`.
+
+**Eight required, three optional.** Required: `feature_id`, `branch`, `pr`, `status`, `review_sha`,
+`cycles_used`, `max_total_cycles`, `runs`. Optional: `max_total_runs`, `github`, `factory` — the
+last two exist only once a feature has been mirrored to GitHub or decomposed by the factory.
+
+**The burden of proof is on KEEPING a key, not on removing one.** A key survives because code reads
+it, and the schema records the reader by name in each key's `description`. "Removing it feels lossy"
+is not a reason; neither is "an agent might want it later". Where a key was kept without a
+demonstrated reader, the schema says so in as many words.
+
+**The measurement that forced this, recorded so it is not re-litigated.** At 2026-08-10 the corpus
+carried **75 distinct top-level keys across fourteen features**. **41 of them appeared nowhere
+outside a feature directory** — no script read them, nothing gated on them. `cost_usd` survived on
+**75 run entries with zero readers**, an entire field kept alive by copy-paste after DEC-178 deleted
+cost. And run entries had begun carrying **prose as mapping keys**: a sentence where a field name
+belongs. That is not an untidy file, it is a file with no shape at all, and every agent that wrote
+to it was inventing the format afresh.
+
+**The enforcement point, and why it is that one.** The check runs on `check-domain.sh`'s existing
+write-payload path, which is already the place every write to this file passes through, plus the
+required integration job in CI so that a write made outside a hooked session is still caught before
+merge. Two alternatives were declined, one clause each: **`bash-write-guard`** sees a command line,
+not a payload, so it cannot validate content; **a `check-state.sh` sweep** runs after the fact, and
+an invalid file that already landed has already been read by something.
+
+**The rejected alternative a future scan will re-suggest: a typed `notes` array.** Declined. A
+free-form escape hatch, however typed, becomes the drawer everything is swept into — and it would
+leave the execution-state file a narrative document with a schema's blessing on it, which is worse
+than an unvalidated one because it looks governed. The answer for content that has nowhere to go is
+the **redirection table**: each displaced item names the file that actually owns it.
+
+Lineage: DEC-150 (the authority is read by index, never whole — a file nobody reads whole must have
+a shape a machine can check), DEC-154, DEC-160, DEC-174 (the enforcement layer is changed directly,
+never through a run whose gates are the thing changing), DEC-183, and DEC-190 for the library.
+
+## DEC-192 — `phase` and `status` collapse into ONE field whose values are the board's six columns
+
+**There is one lifecycle field, `status`, and its six values are the GitHub board's own column
+names: `Backlog`, `Plan`, `Ready`, `Building`, `Review`, `Done`.** The `phase` field is **deleted**.
+This is the entry a future scan is most likely to try to undo, so the reason is on the record rather
+than inferable.
+
+**The values are the board's column names, byte for byte.** They are therefore **case sensitive**,
+and no lowercase alias is accepted. The board is the surface the operator actually reads; the moment
+disk and board spell the same state differently, a human is doing translation that a machine was
+supposed to make unnecessary.
+
+**This is a REPLACEMENT, and no old-to-new mapping survives anywhere in code.** There is no
+translation function, no alias table, no compatibility shim. The migration record lives in the T-04
+receipts of FEAT-14 and in this entry; nothing in the live tree remembers the old vocabulary.
+
+**Two collapses, with their cost stated as cost rather than smoothed over:**
+
+- **`Review` cannot distinguish a running review panel from waiting on the operator.** Both are
+  `Review`. A reader of the board cannot tell, from the column alone, whether anything is executing.
+- **`Done` cannot distinguish shipped from abandoned.** This affects exactly one record in the
+  corpus, FEAT-01. It is a real loss of resolution, accepted because a second value to express it
+  would be a seventh column the board does not have.
+
+**`blocked` was DELIBERATELY dropped, not overlooked.** The live corpus carries it **zero times**
+across all 17 features, and a blocked feature is by definition waiting on the operator — which is
+`Review`. Recorded explicitly so that a later reader does not restore it as a fix for an omission.
+
+**The rejected alternative a future scan will re-suggest: keep both fields with a translation
+between them.** Declined. Two vocabularies for one lifecycle is precisely the two-copies drift this
+org keeps paying for, and the tie-breaker is that only one of the two is a surface the operator
+reads. A field the board does not show is a field that goes stale unobserved.
+
+**The consequence that made this a task rather than a rename.** Deleting `phase` without replacing
+INV-17's guard would have left that invariant **skipping all 17 features** while `check-state.sh`
+went on exiting clean — a gate that examines nothing and reports success. That failure mode, not the
+field's name, is why this needed work rather than a search-and-replace.
+
+Lineage: DEC-148 and DEC-159 define plan, build, validate and ship as **orchestrator MISSIONS** and
+as handoff-note names; those are unaffected and are not this field. DEC-172, and DEC-191 for the
+closed key set this field lives inside.

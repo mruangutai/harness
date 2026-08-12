@@ -24,3 +24,24 @@
   `files:` with 50 historical `feature.yaml` citations that must all survive, while the intent's
   rename list named three other files. The dispatch has to state the LEAVE list explicitly, because
   "rename it everywhere" plus a `files:` array reads as authorization to sweep.
+- 2026-08-12: **my LEAVE list was too broad and it cost a whole run.** I told the T-05 lead the
+  status fixture loop was off-limits; the plan's own item 7 said only that changing what it
+  COMPARES was off-limits, and changing the filename was the task's business. The eighth of nine
+  files went undone and came back as an escalation. When a prohibition has a stated rationale,
+  quote the rationale into the dispatch — the member can then see when it does not apply, which a
+  bare "do not touch X" never permits.
+- 2026-08-12: an escalation's ATTRIBUTION deserves the same check as its facts. The lead blamed the
+  T-05/T-11 contradiction on my reorder. Running both loop versions against the repointed reader
+  took one tool call and showed the old loop fails on TWO rows and the new on one — the defect was
+  order-independent. Accepting the attribution would have meant reverting a correct reorder.
+- 2026-08-12: a mutant/case pairing asserted from reading a comment can be wrong. I instructed
+  "delete the isinstance guard, expect a_mapping_with_no_status to fail"; that fixture parses to a
+  dict and survives correctly, because the comment was describing the `bool(token)` guard. Name the
+  BEHAVIOUR the mutant should break and let the runner report which cases fall.
+- 2026-08-12: "the count is unchanged" is not a gate. When exempting known occurrences from a
+  string sweep, anchor each exemption on its distinctive text — a `count == N` check passes when
+  someone deletes an exempt line and adds a fresh violation elsewhere.
+- 2026-08-12: an inherited counter with no traceable basis is worth re-deriving from the run list.
+  `cycles_used` read 5; the signature said 3 and the commit that raised it recorded no rework. One
+  increment traced to a real send-back and one traced to nothing, so 4 is the defensible number and
+  the arithmetic belongs in the commit rather than the result alone.

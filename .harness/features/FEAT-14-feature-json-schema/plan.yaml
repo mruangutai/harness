@@ -1430,7 +1430,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-08]
-    status: pending
+    status: done
     files:
       - docs/harness/DECISIONS.md
       - docs/harness/SPEC.md
@@ -1446,17 +1446,31 @@ tasks:
       if max(nums) < 191: bad.append(f'highest DEC entry is DEC-{max(nums)}, expected three new ones')
       if 'jsonschema' not in d: bad.append('DECISIONS.md has no jsonschema entry')
       if 'additionalProperties' not in d: bad.append('DECISIONS.md does not record the closed key set')
-      if 'Building' not in d: bad.append('DECISIONS.md does not record the six board-column status vocabulary')
+      _entries = re.split(r'(?m)^(?=##\s+DEC-)', d)
+      _board = ('Backlog', 'Plan', 'Ready', 'Building', 'Review', 'Done')
+      if not [e for e in _entries if all(v in e for v in _board)]:
+          bad.append('no single DEC- entry records all six board-column status values')
       if 'feature.yaml' in s: bad.append('SPEC.md still names feature.yaml')
       if 'feature.json' not in s: bad.append('SPEC.md does not name feature.json')
       for tok in ('Backlog', 'Ready', 'Building', 'Done'):
           if tok not in s: bad.append('SPEC.md never names the status value %s' % tok)
       import re as _re
-      _sec = _re.search(r'11\.3(.*?)(?=\n#{1,4} |\Z)', s, _re.S)
-      if _sec is None: bad.append('cannot locate SPEC 11.3 to check it')
+      _sec = _re.search(r'^###\s+11\.3(.*?)(?=\n#{1,4} |\Z)', s, _re.M | _re.S)
+      if _sec is None: bad.append('cannot locate the SPEC 11.3 heading to check it')
       elif _re.search(r'^\s*["\x27]?phase["\x27]?\s*:', _sec.group(1), _re.M): bad.append('SPEC 11.3 still declares a phase field')
-      for f in ('docs/harness/BUILD.md', 'docs/harness/org.html'):
-          if 'feature.yaml' in open(f).read(): bad.append(f'{f} still names feature.yaml')
+      b = open('docs/harness/BUILD.md').read()
+      _exempt = (
+          'feature.yaml matched disk in every flow (after the INV-12 block-form fix, acb8db4)',
+          'recorded the contradiction in STATE and feature.yaml',
+          "a second feature's `feature.yaml`",
+      )
+      _rest = b
+      for _e in _exempt:
+          _n = b.count(_e)
+          if _n != 1: bad.append('BUILD.md dated-record anchor occurs %d times, expected exactly 1: %s' % (_n, _e))
+          _rest = _rest.replace(_e, '')
+      if 'feature.yaml' in _rest: bad.append('BUILD.md names feature.yaml outside the three exempt dated records')
+      if 'feature.yaml' in open('docs/harness/org.html').read(): bad.append('docs/harness/org.html still names feature.yaml')
       print('\n'.join(bad) if bad else 'OK')
       sys.exit(1 if bad else 0)
       PY
