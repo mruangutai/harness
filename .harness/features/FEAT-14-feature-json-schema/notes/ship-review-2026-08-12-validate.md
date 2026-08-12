@@ -23,9 +23,17 @@ review, and the first row is a defect that already shipped in this branch.
 `ImportError` — so a syntax-broken `feature_schema.py` escapes uncaught, and `check-domain.sh:14`
 records that exit 1 is **non-blocking**, so the bad write proceeds. The block's own comment at
 `:873-877` names "a syntax error" among the cases it must absorb and spells out this exact
-consequence. The same file already fixed this class at `:529-532` with `except Exception:`. The call
-to `problems_for_text` sits inside the same `try`, so *any* exception escapes, not just the import.
-**Yours — `check-domain.sh` is a DEC-174 carve-out.** Widen to `except Exception:`.
+consequence. The same file already fixed this class at `:529-532` with `except Exception:` under the
+stated rule *"a shape question is never answered by a crash"*. The call to `problems_for_text` sits
+inside the same `try`, so *any* exception escapes, not just the import.
+
+**Yours — `check-domain.sh` is a DEC-174 carve-out.** Widen to `except Exception:`, **and give the
+runtime-crash case its own message** — the current handler text says "feature_schema is not
+importable", which would be wrong for a `problems_for_text` crash.
+
+*Confidence is unusually high here:* **two independent code-review spawns found this same line
+independently**, one falsification-backed live, and I confirmed every element myself — including that
+`issubclass(SyntaxError, ImportError)` is `False`.
 
 **2. The gate has no standing test at all.** HIGH. SC-04, SC-05 and SC-16 declare
 `verify: automated`; `test-check-domain.py` carries **zero** schema-rejection fixtures. The three
@@ -38,8 +46,10 @@ fix cycle. `gh-sync.py:308-310` uses a truncating `open()`; its sibling writer t
 `factory_decompose.py:174-180`, keeps `mkstemp` + `fsync` + `os.replace`. A crash mid-write leaves a
 zero-byte file that reads back as "nothing is mirrored", and the next sync re-files issues that
 already exist — **external damage no `git reset` undoes**. FEAT-14 is the pass that had both writers
-open and gave only one the contract, and `factory_decompose.py:149-151` — marked "carried forward by
-FEAT-14 T-05" — now claims an atomicity that is false of this file.
+open and gave only one the contract. *Correction on the record: an earlier draft of mine claimed
+this falsifies `factory_decompose.py`'s docstring. The lead withdrew that on re-reading and I agree —
+`:141-150` is `write_factory`'s own function contract, not a global claim about the file. The finding
+stands on irreversibility alone; the docstring argument does not support it.*
 
 ## Where the goal stands
 
@@ -79,7 +89,7 @@ half needs no runner and catches three of the eight on its own.** Own feature or
 | B-2 | Plan-time `verify:` clause checker — red-before-signature + intent cross-grep | enhancement |
 | B-3 | SC-14's index check is blind to a corrupted **ruling clause**: prose round-trips verbatim, only structural fields regenerate. Proven live | bug |
 | B-4 | `tests.yml`'s `Unit suite` step is the only runner for eight criteria and nothing asserts it — any PR can delete it. The `case 25` guard the comment claims does not exist (inherited, `eafc8ad`) | bug |
-| B-5 | `gh-sync.py` reads `feature.json` with the YAML loader while `factory_decompose.py` uses `json.load` — latent divergence | chore |
+| B-5 | `gh-sync.py` reads `feature.json` with the YAML loader while `factory_decompose.py` uses `json.load` — latent divergence. Cheapest in the same pass as B-1 | chore |
 | B-6 | `factory.issues` / `factory.items` unconstrained where `github.issues` is integer-typed | chore |
 | B-7 | Three stale BRIEF lines: `:421` "exits 1 today" (exits 0), SC-13's "exactly two carve-outs" (five), SC-10's key counts | chore |
 | B-8 | SC-02 has no failing fixture for the `factory` / `factory.edges` nesting levels (G1) | chore |
@@ -87,6 +97,8 @@ half needs no runner and catches three of the eight on its own.** Own feature or
 | B-10 | Write guard denies paths containing an unexpanded shell variable — it does not expand `$VAR`. False positive | bug |
 | B-11 | Citation drift — two edits: `plan.yaml:158` D-04 → DEC-190, `:261` D-08 → DEC-191 | chore |
 | B-12 | `check-plan-routes.py:558` says FEAT-08 "is `awaiting_user`" in the present tense; it reads `Review` | chore |
+| B-13 | Interrupting a lead does not stop its children (DEC-131). It fired **three times** this session and each digest honestly reported work that had in fact happened | bug |
+| B-14 | No discriminating test confirmed for `check-plan-routes.py`'s `_is_shipped()` — the analogue of `test-check-state.py`'s `case_g`. One grep to settle | chore |
 
 ## How this briefing was assembled
 
@@ -104,12 +116,20 @@ truncating `open()` against its sibling's `os.replace`; zero schema fixtures in 
 and exit 2 from a live invented-key probe; the citation drift being two edits, not three; `factory`
 in zero of 17 files.
 
-**Two runs were interrupted and one left a live mutant** — `MUTANT-PROBE` spliced into `DEC-192`'s
-row in `DECISIONS-INDEX.md`, while its digest reported nothing outside its run dir had changed. I
-restored it and verified byte-identity. Had it been committed it would have corrupted the index this
-feature just built, and the gate meant to catch that was the one that had not run.
+**One scope gap, disclosed rather than absorbed:** the code reviewer recorded its range as
+`1bdfe3f..3abaedd`, not `..HEAD` as dispatched. The difference is the state-only commits above the
+pin — and since this feature's *subject* is execution-state files, "state-only" is not self-evidently
+out of scope. Those commits were not code-reviewed. The security reviewer covered the full range.
+
+**Three runs were interrupted, and every one of them ran on anyway (B-13).** The first qa attempt
+left a live `MUTANT-PROBE` spliced into `DEC-192`'s row in `DECISIONS-INDEX.md` while its digest
+reported nothing outside its run dir had changed; I restored it and verified byte-identity, and
+committing it would have corrupted the index this feature just built. The first panel reported both
+its substantive reviewers "rejected, never started" — **both had in fact run**, and their artifacts
+arrived after the digest. That accident is why fix 1 has two independent confirmations. In every
+case the lead reported honestly what it could see; the orphan is invisible from that tier.
 
 **Budget:** 4 of 10 cycles, **19 of an informational 20 runs**. The run count is high and earned it —
-three runs were consumed by interruptions and permission rejections rather than by rework, and the
-last three produced the two findings that make this briefing worth reading. `cycles_used` is a
-corrected figure: signed at 3, +1 for a traceable send-back, one untraceable increment removed.
+three runs were consumed by interruptions rather than by rework, and the last three produced the two
+findings that make this briefing worth reading. `cycles_used` is a corrected figure: signed at 3,
++1 for a traceable send-back, one untraceable increment removed.
