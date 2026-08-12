@@ -1155,6 +1155,128 @@ def case_o():
     return ok_all
 
 
+def case_u():
+    """INV-25 (issue #103): an out-of-place worktree red-gates session entry.
+
+    Built with REAL git, deliberately. The test process is not the Bash tool route, so
+    it may create the shapes T-04 now forbids there — and INV-25 reads
+    `git worktree list --porcelain`, so a hand-built .git pointer would not appear in
+    that output at all and the case would pass vacuously.
+
+    EVERY DIRECTORY USED AS A RUN ROOT GETS make_fixture. check-state.sh exits 1 with
+    "project not onboarded" before any invariant runs, so a bare worktree root would
+    exit non-zero while printing no INV-25 line, and these assertions could never be
+    satisfied by correct code.
+    """
+    results = []
+
+    def _repo(path):
+        os.makedirs(path, exist_ok=True)
+        for cmd in (["git", "init", "-q"],
+                    ["git", "config", "user.email", "t@example.com"],
+                    ["git", "config", "user.name", "t"]):
+            subprocess.run(cmd, cwd=path, capture_output=True)
+        with open(os.path.join(path, "f.txt"), "w") as f:
+            f.write("x\n")
+        subprocess.run(["git", "add", "f.txt"], cwd=path, capture_output=True)
+        subprocess.run(["git", "commit", "-qm", "init"], cwd=path, capture_output=True)
+        return path
+
+    def _add_wt(repo, dest):
+        subprocess.run(["git", "worktree", "add", "-q", dest, "HEAD"],
+                       cwd=repo, capture_output=True)
+        return dest
+
+    def _inv25_lines(out):
+        return [l for l in out.splitlines() if "INV-25" in l]
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # --- repo A: the PAIRED ALLOW. One worktree, in the legitimate location.
+        # Without this the case cannot tell a working invariant from one that flags
+        # every worktree it sees.
+        a = _repo(os.path.join(tmp, "A"))
+        _add_wt(a, os.path.join(a, ".claude", "worktrees", "wt"))
+        make_fixture(a, '{}', "  parent: 40")
+        _code_a, out_a = run(a)
+        ok = not _inv25_lines(out_a)
+        results.append(("(u.1) a worktree UNDER .claude/worktrees/ is silent", ok,
+                        "\n".join(_inv25_lines(out_a))))
+
+        # --- repo B: FORBIDDEN. A sibling outside the checkout, and the session is NOT
+        # standing in it — so branch 3, which keeps the removal guidance.
+        b = _repo(os.path.join(tmp, "B"))
+        sib = _add_wt(b, os.path.join(tmp, "B-sib"))
+        make_fixture(b, '{}', "  parent: 40")
+        code_b, out_b = run(b)
+        b_lines = [l for l in _inv25_lines(out_b) if os.path.realpath(sib) in l or sib in l]
+        # SEVERITY IS ASSERTED ON THE LINE'S OWN PREFIX, not on the run's exit code. The
+        # fixture is red for other reasons already, so `code != 0` passes with INV-25
+        # demoted to a note — measured. VIOLATION vs note is the only thing that
+        # discriminates, and the write guards now REFUSE writes in such a tree, so a
+        # note would be the same silence in a quieter font.
+        results.append(("(u.2) a sibling worktree is a VIOLATION, not a note",
+                        bool(b_lines) and all("VIOLATION" in l for l in b_lines),
+                        f"exit {code_b}; INV-25 lines: {_inv25_lines(out_b)}"))
+
+        # THE PAIRED POSITIVE FOR THE BRANCH. Without it, the negative asserted on repo C
+        # below is satisfiable by stripping removal guidance from EVERY branch — the
+        # opposite defect, and nothing else in this suite would catch it. This is what
+        # proves the branch actually branches.
+        results.append(("(u.3) the not-my-root branch DOES carry `git worktree remove`",
+                        bool(b_lines) and any("git worktree remove" in l for l in b_lines),
+                        f"lines: {b_lines}"))
+
+        # --- repo C: FORBIDDEN, own-root branch, plus the base-discriminating allow.
+        # Two worktrees from the same mechanism: one out of place, which is ALSO the
+        # session root, and one legitimate under the MAIN checkout.
+        c = _repo(os.path.join(tmp, "C"))
+        own = _add_wt(c, os.path.join(tmp, "C-own"))
+        legit = _add_wt(c, os.path.join(c, ".claude", "worktrees", "legit"))
+        make_fixture(own, '{}', "  parent: 40")
+        code_c, out_c = run(own)
+        c_lines = _inv25_lines(out_c)
+        own_lines = [l for l in c_lines if os.path.realpath(own) in l or own in l]
+        results.append(("(u.4) a session ROOTED in an out-of-place worktree is a "
+                        "VIOLATION too — severity does not branch",
+                        bool(own_lines) and all("VIOLATION" in l for l in own_lines),
+                        f"exit {code_c}; INV-25 lines: {c_lines}"))
+
+        # THE BASE-DISCRIMINATING PAIRED ALLOW, scoped BY PATH and not by the run — repo
+        # C legitimately prints one INV-25 line for its own root, so asserting the run
+        # prints none would contradict u.4.
+        #
+        # This is the assertion that pins the comparison base to the MAIN CHECKOUT. With
+        # the base taken from the session root, `legit` sits outside
+        # <root>/.claude/worktrees/, is not the session root and is not prunable — so it
+        # falls to branch 3 and is handed `git worktree remove` on a correct tree. Repo
+        # A's allow cannot detect this: there the run root and the main checkout are the
+        # same directory and both bases agree.
+        legit_lines = [l for l in c_lines if os.path.realpath(legit) in l or legit in l]
+        results.append(("(u.5) the LEGITIMATE worktree under the main checkout is silent "
+                        "even from an out-of-place root",
+                        not legit_lines, f"lines: {legit_lines}"))
+
+        # THE WORDING, both halves, on THAT LINE ONLY. Asserting over the whole run would
+        # redden correct code the moment any other flagged entry printed the string.
+        # Presence alone passes if the removal sentence is re-added beside the location
+        # line; absence alone passes for a line that says nothing useful.
+        results.append(("(u.6) the own-root line names .claude/worktrees and does NOT say "
+                        "`git worktree remove`",
+                        bool(own_lines)
+                        and all(".claude/worktrees" in l for l in own_lines)
+                        and all("git worktree remove" not in l for l in own_lines),
+                        f"lines: {own_lines}"))
+
+    all_ok = True
+    for name, ok, detail in results:
+        print(f"{'ok' if ok else 'FAIL'} - case {name}")
+        if not ok:
+            all_ok = False
+            print(f"        {str(detail).strip()[:300]}")
+    return all_ok
+
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -1178,6 +1300,7 @@ def main():
     ok_r = case_r()
     ok_s = case_s()
     ok_t = case_t()
+    ok_u = case_u()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -1186,7 +1309,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
