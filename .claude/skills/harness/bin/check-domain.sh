@@ -97,196 +97,17 @@ HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
   python3 - "$_derived" "${1:-}" <<'PY'
 import sys, os, re, json
 
-def glob_to_re(pat):
-    """Translate a glob to a regex. `**` crosses separators, `*` does not.
-
-    fnmatch cannot do this: its `*` matches `/` too, so `web/*/x` would match
-    `web/a/b/x`. And a literal prefix comparison cannot do it either — the bug
-    this replaced used str.startswith on the text before `/**`, which silently
-    failed for any pattern with a wildcard earlier in the path, e.g.
-    `features/*/runs/*-eng/**`. That blocked every lead from its own run dir.
-    """
-    out, i = [], 0
-    while i < len(pat):
-        c = pat[i]
-        if pat.startswith("**", i):
-            out.append(".*"); i += 2
-            if pat.startswith("/", i):      # `**/` also matches zero segments
-                out.append("/?"); i += 1
-        elif c == "*":
-            out.append("[^/]*"); i += 1
-        elif c == "?":
-            out.append("[^/]"); i += 1
-        else:
-            out.append(re.escape(c)); i += 1
-    return re.compile("^" + "".join(out) + "$")
-
-
-def matches(path, pat):
-    pat = pat.rstrip("/")
-    if pat in (".", ""):            # "." means read-anything; never a write grant
-        return False
-    if pat.endswith("/**"):
-        # the directory itself, or anything beneath it
-        base = pat[:-3]
-        return bool(glob_to_re(base).match(path) or glob_to_re(base + "/**").match(path))
-    if glob_to_re(pat).match(path):
-        return True
-    # a bare dir pattern grants everything under it
-    return bool(glob_to_re(pat + "/**").match(path))
-
-
-# THE CONTROL-PLANE CLASSIFIER (FEAT-15 T-02). Defined at module scope beside
-# glob_to_re/matches so the hook path and the --resolve path reach the SAME rule —
-# a resolver that granted a base the hook refuses is the build-time discovery
-# check-plan-routes.py exists to prevent.
+# THE BOUNDARY RULE LIVES IN harness_boundary.py (FEAT-17 T-01), NOT HERE.
+# It used to be defined in this heredoc, which is why bash-write-guard.sh could not
+# consult it and enforced a second, weaker version of the same question — the split
+# issue #261 reports. A heredoc cannot be imported. Moved verbatim, no behaviour
+# changed, both suites unedited.
 #
-# The operator's verbatim four, and the list is CLOSED. `docs/harness/**` is not
-# widened to `docs/**` and no fifth entry is added. The accepted risk, signed: a
-# future harness-owned path starting with neither `.harness/` nor `.claude/` must be
-# added here or it silently becomes a product path. No machinery detects the
-# omission — that was ruled out deliberately. This is one more place to remember.
-HARNESS_CONTROL_PLANE = [
-    "docs/harness/**",
-    "docs/PRINCIPLES.md",
-    "README.md",
-    ".github/**",
-]
-
-
-def is_control_plane_glob(pat):
-    """First segment is `.harness` or `.claude`. Used to FILTER GLOBS on the product
-    side — a `.harness/expertise/**` grant must not reach a product checkout's own
-    `.harness/`."""
-    p = pat.lstrip("/")
-    if p.startswith("./"):
-        p = p[2:]
-    return p.split("/", 1)[0] in (".harness", ".claude")
-
-
-def real(path):
-    """Absolute AND symlink-resolved.
-
-    `abspath` alone normalises `..` textually but follows no link, so
-    `docs/harness/<link>/agents/x.md` with `<link> -> ../../.claude` stayed inside
-    `docs/` for every comparison while the write landed in `.claude/agents/`.
-    Reproduced before this fix: through the link exit 0, the same file named directly
-    exit 2. The gap predates the two-base rule — `docs/**` matched with no target-side
-    test — so this closes a live escape rather than a regression.
-
-    `realpath` resolves the existing prefix of a path that does not exist yet, which is
-    the normal case for a Write. Applied to BOTH sides of every comparison: resolving
-    only the target would break any checkout reached through a link (`/var` on macOS is
-    itself a link to `/private/var`).
-    """
-    return os.path.realpath(os.path.abspath(path))
-
-
-def resolve_fleet(root):
-    """Resolve the fleet declaration for `root`, returning (workspace_root, bases).
-
-    ONE function called from both the hook path and the --resolve path (FEAT-15 T-04).
-    Written twice it would drift, and the two halves disagreeing is precisely the
-    build-time discovery check-plan-routes.py exists to prevent: a resolver that grants
-    a base the hook refuses lets a plan be signed on a route the build will reject.
-
-    Absent is not unreadable. No file at all means no second base and today's behaviour
-    exactly, with nothing imported. A file that will not load exits 2 — the value that
-    identifies product paths is the one that failed, so enforcing the readable parts
-    would mean classifying paths with the classifier missing.
-    """
-    fleet_path = os.path.join(root, ".harness", "factory", "fleet.yaml")
-    if not os.path.exists(fleet_path):
-        return None, [], fleet_path
-    try:
-        # LAZY, and stderr-muzzled for the import statement ONLY. Measured: under a root
-        # holding no docs/harness/SPEC.md, importing factory_config prints a discard
-        # notice to stderr — which would reach the agent on every governed write from a
-        # fixture root, as noise indistinguishable from a real verdict.
-        import io
-        import contextlib
-        with contextlib.redirect_stderr(io.StringIO()):
-            import factory_config
-        # The EXPLICIT path, never factory_config.FLEET_PATH: that constant is computed
-        # at import time from that module's own root probe (docs/harness/SPEC.md), which
-        # is not this hook's probe (.harness/team-config.yaml). Under a fixture root the
-        # two disagree and the constant names the live repository.
-        fleet = factory_config.load_fleet(fleet_path)
-        bases = [real(factory_config.workspace_path(fleet, e["name"]))
-                 for e in fleet["repos"]]
-        return fleet["workspace_root"], bases, fleet_path
-    except Exception as e:
-        print("check-domain: BLOCKED — the fleet declaration does not load, so no "
-              "product path can be identified.", file=sys.stderr)
-        print(f"  {fleet_path}", file=sys.stderr)
-        print(f"  {e}", file=sys.stderr)
-        print("  Enforcement is CLOSED rather than partial: the value that identifies "
-              "product paths is the one that failed. Fix the file (the main session "
-              "owns it — it is in no agent's domain), then retry.", file=sys.stderr)
-        sys.exit(2)
-
-
-def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path):
-    """Pick the base a target resolves against, and say how to match in it.
-
-    Returns (base, filter_globs, target_side_test). Shared by the hook path and the
-    --resolve path so the two can never disagree. Exits 2 for a target under the
-    workspace belonging to no declared repository; returns None for a target in
-    neither base, which stays not-a-domain-question.
-
-    Containment is commonpath over abspaths throughout, never a string prefix, so a
-    path reached via docs/../src/main.py resolves back inside and lands in the right
-    base — and /workspaces/widget-other is not read as inside /workspaces/widget.
-    """
-    abs_root = real(root)
-
-    def inside(child, parent):
-        try:
-            return os.path.commonpath([child, parent]) == parent
-        except ValueError:      # different drives / unrelated roots
-            return False
-
-    if inside(abs_target, abs_root):
-        # THE HARNESS BASE. Every glob is applicable — nothing is filtered on the glob
-        # side — but a match is accepted only for a control-plane TARGET. That is what
-        # stops a src/** grant from reaching this repository's own src/.
-        return abs_root, (lambda _g: True), is_control_plane_target
-    if workspace_bases and any(inside(abs_target, b) for b in workspace_bases):
-        # A PRODUCT BASE. Longest match wins, so a repo checked out beneath another's
-        # path resolves against its own base rather than its parent's. Filtering happens
-        # on the GLOBS here: a control-plane grant must not reach a product checkout's
-        # .harness/ or .claude/. HARNESS_CONTROL_PLANE plays NO part on this side — it is
-        # target-side only, and consulting it here would refuse a product checkout's own
-        # README.md, the very file its documentor exists to write.
-        base = max((b for b in workspace_bases if inside(abs_target, b)), key=len)
-        return base, (lambda g: not is_control_plane_glob(g)), (lambda _r: True)
-    if workspace_root is not None and inside(abs_target, real(workspace_root)):
-        # UNDER THE WORKSPACE, BELONGING TO NO DECLARED REPO. Refused rather than
-        # ignored: a checkout there for an unlisted repository is stale or a mistake,
-        # and treating it as scratch would reopen the hole for exactly the paths the
-        # factory writes to.
-        print(f"check-domain: BLOCKED — {abs_target} is under the factory workspace but "
-              f"belongs to no repository declared in {fleet_path}.", file=sys.stderr)
-        print("  A checkout there for an unlisted repository is stale or a mistake. "
-              "Add the repository to `repos` in that file, or remove the directory.",
-              file=sys.stderr)
-        sys.exit(2)
-    return None, None, None
-
-
-def is_control_plane_target(rel):
-    """The TARGET-side test, used only in the harness base.
-
-    Target-keyed, not glob-keyed, and that is load-bearing: team-config.yaml grants
-    `docs/**` and holds no `docs/harness/**` entry anywhere, so a glob-keyed
-    classifier would have literally nothing to match two of the four named entries
-    against. Anchored through the same `matches` idiom, so `README.md` means the
-    repository-root readme and never `docs/README.md`, and `.github/**` never matches
-    `vendor/.github/x`.
-    """
-    if is_control_plane_glob(rel):
-        return True
-    return any(matches(rel, e) for e in HARNESS_CONTROL_PLANE)
+# The import is LAZY and appears at exactly two sites below, both REQUIRED and both
+# FAIL CLOSED: the --resolve branch, which exits before the other one is reached, and
+# the `if _run_domain:` block. It is deliberately ABSENT from the shape phase, whose
+# import must stay absorbing — a fail-closed import there would block the main
+# session, the only tier that can repair a broken module.
 
 
 # harness_yaml is imported LAZILY, below, after the manifest check — NOT here.
@@ -336,6 +157,24 @@ if _resolve_target is not None:
         print(f"check-domain: no {manifest} — cannot resolve routes.", file=sys.stderr)
         sys.exit(2)
     import harness_yaml
+
+    # FAIL CLOSED, not defensive padding. Unhandled, an ImportError exits 1, and exit 1
+    # is NON-BLOCKING (line 14): the write would land and enforcement would go silently
+    # off on both routes at once — the same failure direction as issue #103, installed
+    # inside its own fix. Exit 2 here is safe because this branch answers a query and
+    # blocks no write, so refusing loudly is the right answer from a resolver whose rule
+    # is missing (D-06).
+    try:
+        import harness_boundary
+    except Exception as _be:
+        print("check-domain: BLOCKED — the boundary module harness_boundary.py could "
+              "not be imported, so no domain can be checked.", file=sys.stderr)
+        print(f"  {type(_be).__name__}: {_be}", file=sys.stderr)
+        print("  Enforcement is CLOSED rather than partial. Restore "
+              ".claude/skills/harness/bin/harness_boundary.py, then retry.",
+              file=sys.stderr)
+        sys.exit(2)
+
     try:
         parsed = harness_yaml.load_file(manifest)
     except harness_yaml.DuplicateKeyError as e:
@@ -354,12 +193,12 @@ if _resolve_target is not None:
     # checker would keep reporting that a persona owns a base the hook now refuses —
     # exactly the build-time discovery it exists to prevent. Both calls below are the
     # module-scope functions the hook path uses, so the two cannot drift.
-    _ws_root, _ws_bases, _fleet_path = resolve_fleet(root)
+    _ws_root, _ws_bases, _fleet_path = harness_boundary.resolve_fleet(root, "check-domain")
 
     _abs = _resolve_target if os.path.isabs(_resolve_target) else os.path.join(root, _resolve_target)
-    _abs = real(_abs)
-    _base, _glob_filter, _target_test = select_base(
-        _abs, root, _ws_root, _ws_bases, _fleet_path)
+    _abs = harness_boundary.real(_abs)
+    _base, _glob_filter, _target_test = harness_boundary.select_base(
+        _abs, root, _ws_root, _ws_bases, _fleet_path, "check-domain")
     if _base is None:
         # Outside both bases — no agent can be named, and NOBODY is the literal answer.
         # Silence here would be the fail-open this branch exists to remove.
@@ -370,7 +209,7 @@ if _resolve_target is not None:
     # from inside .claude/worktrees/<id>/ must resolve against the checkout the agent
     # is standing in, not against a glob nobody wrote.
     _rel = os.path.relpath(_abs, _base)
-    _wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", _rel)
+    _wt = harness_boundary.WORKTREE_REL_RE.match(_rel)
     _cands = [_rel] + ([_wt.group(1)] if _wt else [])
 
     # Every agent carrying a `domain:` list, at EVERY nesting level — members sit
@@ -396,13 +235,13 @@ if _resolve_target is not None:
         # The SAME two-sided rule the hook applies: filter the globs in the product
         # base, test the target in the harness base. A resolver that skipped either
         # half would name an owner for a path the build refuses.
-        if any(matches(c, g) for c in _cands if _target_test(c)
+        if any(harness_boundary.matches(c, g) for c in _cands if _target_test(c)
                for g in _globs if _glob_filter(g)):
             _granting.add(_n)
         for g in _shared:
             if not _glob_filter(g):
                 continue
-            if any(matches(c, g) for c in _cands if _target_test(c)) and g not in _shared_hits:
+            if any(harness_boundary.matches(c, g) for c in _cands if _target_test(c)) and g not in _shared_hits:
                 _shared_hits.append(g)
 
     # NOBODY is a LITERAL EMITTED TOKEN, never silence. Empty stdout is the fail-open
@@ -501,6 +340,23 @@ if _run_domain:
     # lost was DEC-101's deliberate, loud fail-open becoming a silent crash.
     import harness_yaml
 
+    # FAIL CLOSED, not defensive padding. Unhandled, an ImportError exits 1, and exit 1
+    # is NON-BLOCKING (line 14): the write would land and enforcement would go silently
+    # off on both routes at once — the same failure direction as issue #103, installed
+    # inside its own fix. Exit 2 is safe HERE specifically because `_run_domain` implies
+    # `_domain_phase`, which is `_governed` and not `_post`, so the main session — the
+    # only tier that can restore the file — never reaches this line (D-06).
+    try:
+        import harness_boundary
+    except Exception as _be:
+        print("check-domain: BLOCKED — the boundary module harness_boundary.py could "
+              "not be imported, so no domain can be checked.", file=sys.stderr)
+        print(f"  {type(_be).__name__}: {_be}", file=sys.stderr)
+        print("  Enforcement is CLOSED rather than partial. Restore "
+              ".claude/skills/harness/bin/harness_boundary.py, then retry.",
+              file=sys.stderr)
+        sys.exit(2)
+
     # The RETURN VALUE IS THE DECISION — discarding it makes the whole escape inert.
     # False means "PyYAML is missing and this session's one grant is spent (or no identity
     # resolved)", and only exit 2 blocks (DEC-100), so a bare call would let every write
@@ -568,8 +424,8 @@ def domain_check():
               "then retry.", file=sys.stderr)
         sys.exit(2)
 
-    # THE FLEET AND THE BASE (FEAT-15 T-01/T-02, REQ-01 through REQ-06). Both steps go
-    # through the SAME module-scope functions the --resolve path calls, so the resolver
+    # THE FLEET AND THE BASE (FEAT-15 T-01/T-02, REQ-01 through REQ-06). One call into
+    # harness_boundary, which is the SAME rule the --resolve path calls, so the resolver
     # can never grant a base this hook refuses — a plan signed on a route the build
     # rejects is the build-time discovery check-plan-routes.py exists to prevent.
     #
@@ -584,78 +440,34 @@ def domain_check():
     # harness-documentor writing src/main.py INSIDE harness exited 2. The same logical
     # path was blocked in this repo and permitted outside it, silently, with the write
     # landing.
-    workspace_root, workspace_bases, fleet_path = resolve_fleet(root)
-    _abs_target = real(target)
-    base, _glob_filter, target_side_test = select_base(
-        _abs_target, root, workspace_root, workspace_bases, fleet_path)
-    if base is None:
-        # NOT A DOMAIN QUESTION, unchanged. bash-write-guard.sh:211 already said so
-        # ("outside repo — not this hook's problem"), and this hook did not: a scratch
-        # script at /tmp/x.py was legal via Bash and blocked via Write, so an agent
-        # learned to route around a hook whose own message said not to. /tmp,
-        # /var/folders and unrelated checkouts keep exactly today's behaviour.
-        return
-    _abs_root = real(root)
-    applicable_globs = [g for g in globs if _glob_filter(g)]
-    applicable_shared = [s for s in shared if _glob_filter(s)]
+    _verdict = harness_boundary.classify(target, root, globs, shared, "check-domain")
 
-    # Compare base-relative, so an absolute tool path and a relative glob still meet.
-    rel = os.path.relpath(_abs_target, base)
-
-    # WORKTREES (DEC-143). A git worktree under .claude/worktrees/<name>/ is a full
-    # checkout, but to this hook it was just a subdirectory: the same repo-relative
-    # path that globs ALLOW in the main checkout arrived as
-    # .claude/worktrees/t01-83/src/... and matched nothing — so in a
-    # worktree-per-session project, NO doer could write source at all. Found in
-    # kaya-ai at the first build dispatch after plan approval, the most expensive
-    # possible place.
-    #
-    # Fix: match the RAW path first (so a glob that deliberately targets
-    # .claude/worktrees/** still works — none exist today, but the edge is real),
-    # then strip the worktree prefix and match the in-worktree path against the same
-    # globs. This is NOT a widen: identical globs, anchored to the checkout the
-    # agent is standing in.
-    _wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
-    rel_candidates = [rel] + ([_wt.group(1)] if _wt else [])
-
-    # glob_to_re/matches are defined at module scope (above `def domain_check`) so the
-    # --resolve path reaches the SAME matcher. Not modified — only moved (D-02).
-    # A match is accepted only where the base's target-side test passes. In the product
-    # base that test is constant-True and the filtering already happened on the globs;
-    # in the harness base every glob is live but only a control-plane target may be
-    # granted by one. Discarding the match here rather than filtering globs above is
-    # what makes `docs/**` grant <harness>/docs/harness/guide.md AND <product>/docs/x.md
-    # while refusing <harness>/src/main.py under a `src/**` grant.
-    if any(matches(r, g) for r in rel_candidates for g in applicable_globs
-           if target_side_test(r)):
+    if _verdict["outcome"] == "not_a_domain_question":
+        # bash-write-guard.sh already said so ("outside repo — not this hook's
+        # problem"), and this hook did not: a scratch script at /tmp/x.py was legal via
+        # Bash and blocked via Write, so an agent learned to route around a hook whose
+        # own message said not to. /tmp, /var/folders and unrelated checkouts keep
+        # exactly today's behaviour.
         return
 
-    if any(matches(r, g) for r in rel_candidates for g in applicable_shared
-           if target_side_test(r)):
+    rel = _verdict["rel"]
+
+    if _verdict["outcome"] == "allow":
+        return
+
+    if _verdict["outcome"] == "shared":
         # Shared paths are owned by nobody and always serialized (DEC-85). Allow the
         # write, but say so — an unnoticed shared-file edit is how two agents collide.
         print(f"check-domain: {agent} is writing SHARED path {rel} "
               f"(owned by nobody, must be serialized).", file=sys.stderr)
         return
 
-    # ACTIONABLE REJECTION (DEC-100b). A probe confirmed that naming only the
-    # rejected path leaves an agent with no basis for choosing a valid alternative,
-    # so always print what it MAY write.
-    #
-    # The line must not advertise globs that cannot grant anything in the base that was
-    # selected — an agent told it may write `src/**` here, when here is the harness
-    # base, is being sent round a loop it cannot exit. In the product base that is the
-    # non-control-plane globs; in the harness base, the globs some control-plane target
-    # could actually satisfy.
-    if base == _abs_root:
-        _advertise = [g for g in applicable_globs
-                      if is_control_plane_glob(g) or any(
-                          matches(e.rstrip("*").rstrip("/"), g) or matches(g.rstrip("*").rstrip("/"), e)
-                          for e in HARNESS_CONTROL_PLANE)]
-        _shared_advertise = [s for s in applicable_shared if is_control_plane_glob(s)]
-    else:
-        _advertise = list(applicable_globs)
-        _shared_advertise = list(applicable_shared)
+    # ACTIONABLE REJECTION (DEC-100b). A probe confirmed that naming only the rejected
+    # path leaves an agent with no basis for choosing a valid alternative, so always
+    # print what it MAY write. The module computed the two lists; the WORDING stays
+    # here, because the agent-facing verdict names this hook and no other.
+    _advertise = _verdict["advertise"]
+    _shared_advertise = _verdict["shared_advertise"]
     permitted = ", ".join(_advertise) if _advertise else "(no writable domain declared)"
     print(f"check-domain: BLOCKED — {agent} may not write {rel}", file=sys.stderr)
     print(f"  Permitted for you: {permitted}", file=sys.stderr)
