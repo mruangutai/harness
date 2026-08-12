@@ -72,6 +72,23 @@ if not os.access(manifest, os.R_OK):
 
 import harness_yaml
 
+# LAZY, HERE, AND FAIL-CLOSED — the same shape T-01 put in the sibling guard, for the
+# same reason. NOT at the top of the file: the isolated-copy case in this file's own
+# T-14 block asserts that an absent manifest still fails OPEN, and a top-level import
+# breaks it. Unhandled, an ImportError exits 1, which is NON-BLOCKING, so the write
+# would land and BOTH routes would go unenforced at once (D-06). Exit 2 is safe at this
+# point because harness-dev-ops and every non-harness agent already returned above, so
+# the tier that repairs the file is never blocked by it.
+try:
+    import harness_boundary
+except Exception as _be:
+    print("bash-write-guard: BLOCKED — the boundary module harness_boundary.py could "
+          "not be imported, so no domain can be checked.", file=sys.stderr)
+    print(f"  {type(_be).__name__}: {_be}", file=sys.stderr)
+    print("  Enforcement is CLOSED rather than partial. Restore "
+          ".claude/skills/harness/bin/harness_boundary.py, then retry.", file=sys.stderr)
+    sys.exit(2)
+
 # The RETURN VALUE IS THE DECISION — see check-domain.sh's note. A bare call leaves
 # REQ-04's fail-closed and SC-09's expiry inert: the function prints, and the write
 # proceeds anyway because only exit 2 blocks (DEC-100).
@@ -93,6 +110,34 @@ if not harness_yaml.require_or_bootstrap(root):
 # here, in a pair of files this same feature otherwise went to lengths to keep in step
 # (D-03). Two guards, one rule, and I changed one of them.
 _no_parser = harness_yaml.yaml is None
+
+# ROOT-SIDE: THE SESSION IS STANDING IN AN OUT-OF-PLACE WORKTREE (issue #103). This
+# guard has no domain_check function, so T-02's insertion point does not exist here.
+#
+# WHAT THIS PLACEMENT RESTS ON. It must sit ahead of BOTH early exits below — `if not
+# cmd` and `if not findings` — because a session standing in such a tree must be refused
+# even when the command extracts no write target at all. `git status --porcelain` from
+# that root is what asserts this, and it is the only case pinning the position. It must
+# also stay ahead of the per-finding DEC-153 continue, which is never reached when there
+# are no findings.
+#
+# Its position relative to `if _no_parser: sys.exit(0)` below is NOT asserted and is not
+# load-bearing. Sitting above it means this route still refuses in a bootstrap-grant
+# session while the Write route does not — the chosen divergence T-02 records. Do not
+# move this check below that exit to buy symmetry.
+_root_wt = harness_boundary.worktree_owner(root)
+if _root_wt is not None and not _root_wt[2]:
+    # THE ROOT-SIDE WORDING, not the target-side one. `git worktree remove` succeeds at
+    # exit 0 from inside the tree it removes, so that guidance printed to a session
+    # standing in that tree tells the agent to delete its own cwd.
+    print(f"bash-write-guard: BLOCKED — {_root_wt[0]} is a git worktree that is not "
+          f"under {harness_boundary.WORKTREES_SEGMENT}/, and this session is rooted "
+          "in it.", file=sys.stderr)
+    print(f"  Worktrees belong under {harness_boundary.worktree_refusal_location(_root_wt[1])}",
+          file=sys.stderr)
+    print("  Start the session from the main checkout, or from a checkout under that "
+          "location, instead.", file=sys.stderr)
+    sys.exit(2)
 
 cmd = ((d.get("tool_input") or {}).get("command") or "")
 if not cmd:
@@ -369,51 +414,67 @@ except harness_yaml.YamlParseError as e:
           "then retry.", file=sys.stderr)
     sys.exit(2)
 
-def glob_to_re(pat):
-    out, i = [], 0
-    while i < len(pat):
-        if pat.startswith("**", i):
-            out.append(".*"); i += 2
-            if pat.startswith("/", i):
-                out.append("/?"); i += 1
-        elif pat[i] == "*":
-            out.append("[^/]*"); i += 1
-        elif pat[i] == "?":
-            out.append("[^/]"); i += 1
-        else:
-            out.append(re.escape(pat[i])); i += 1
-    return re.compile("^" + "".join(out) + "$")
-
-def matches(path, pat):
-    pat = pat.rstrip("/")
-    if pat in (".", ""):
-        return False
-    if pat.endswith("/**"):
-        base = pat[:-3]
-        return bool(glob_to_re(base).match(path) or glob_to_re(base + "/**").match(path))
-    return bool(glob_to_re(pat).match(path) or glob_to_re(pat + "/**").match(path))
-
-allowed = mine + shared
+# THE DOMAIN DECISION IS harness_boundary.classify's, NOT THIS FILE'S (issue #261).
+# This guard used to carry its own glob_to_re/matches pair and match raw globs with no
+# notion of the two bases and no control-plane target-side test. Measured at a29ad06,
+# with src/** granted to harness-backend-dev: a Write to <root>/src/main.py exited 2
+# while `echo hi > <root>/src/main.py` exited 0. Two write surfaces, two answers, and
+# this hook exists BECAUSE an agent routed around the other one (DEC-151) — so a
+# divergence between them is a bypass by construction.
 for name, paths in findings:
     for p in paths:
         ap = os.path.abspath(os.path.join(root, p)) if not os.path.isabs(p) else p
         rel = os.path.relpath(ap, os.path.abspath(root))
+
+        # BOTH CONTINUES BELOW RUN AHEAD OF classify, AND THAT ORDERING IS BEHAVIOUR.
         # Worktree carve-out (DEC-153): disposable checkouts are where sanctioned
         # perturbation proofs live — qa mutates source there to prove a test
-        # discriminates. The MAIN checkout stays hard-protected. Reviewers never
-        # reach this branch (denied on any write pattern above).
+        # discriminates. Moving it after classify would change what qa may do in a
+        # worktree. The MAIN checkout stays hard-protected. Reviewers never reach this
+        # branch (denied on any write pattern above).
         if re.match(r"^\.claude/worktrees/", rel):
             continue
-        cands = [rel]
-        if rel.startswith(".."):
-            continue  # outside repo — not this hook's problem
-        # tmp/cache noise is not a domain question
-        # NB: no `^/` alternative -- relpath means an out-of-repo absolute target
-        # already hit the `..` continue above, so it was dead (review of PR #4).
+        # tmp/cache noise is not a domain question.
         if re.match(r"^(\.pytest_cache|node_modules|__pycache__|\.venv)", rel):
             continue
-        if not any(matches(r, g) for r in cands for g in allowed):
-            deny(f"{agent}: `{name}` targets {rel}, outside your domain.")
+
+        verdict = harness_boundary.classify(ap, root, mine, shared, "bash-write-guard")
+
+        if verdict["outcome"] == "out_of_place_worktree":
+            # The TARGET-SIDE wording, and the removal guidance is correct here: the
+            # tree being named is not the one this session is running in.
+            deny(f"{ap} is inside a git worktree that is not under "
+                 f"{harness_boundary.WORKTREES_SEGMENT}/. Worktrees belong under "
+                 f"{verdict['expected']} — that tree ({verdict['checkout']}) should be "
+                 "removed with `git worktree remove` rather than written into.")
+
+        # THE OUTSIDE-REPO CONTINUE, MOVED BELOW classify AND NARROWED TO A FILTER ON
+        # THE OUTCOME (D-07). It has to run after classify or the issue #103 fix is dead
+        # code on this route — that continue is precisely what made a sibling worktree
+        # invisible here. But it must NOT be dropped in favour of classify's own
+        # not_a_domain_question: `rel` is ROOT-relative, so every path under the product
+        # workspace begins with `..`, and dropping it would start enforcing product-base
+        # domains on the Bash route for the first time. That widening has no REQ, no
+        # criterion and no test behind it, and the grilling fences it off as out of
+        # scope. Product paths keep today's Bash-route behaviour.
+        if rel.startswith(".."):
+            continue
+
+        if verdict["outcome"] in ("allow", "not_a_domain_question"):
+            continue
+
+        if verdict["outcome"] == "shared":
+            # Shared paths are owned by nobody and always serialized (DEC-85). Same
+            # notice check-domain.sh prints on its own route.
+            print(f"bash-write-guard: {agent} is writing SHARED path "
+                  f"{verdict['rel']} (owned by nobody, must be serialized).",
+                  file=sys.stderr)
+            continue
+
+        # `rel` in this message comes from the VERDICT and is BASE-relative, where the
+        # line above computes it ROOT-relative. In the product base the two differ, so
+        # this guard's message text changed there. That is intended, not a regression.
+        deny(f"{agent}: `{name}` targets {verdict['rel']}, outside your domain.")
 
 sys.exit(0)
 PY
