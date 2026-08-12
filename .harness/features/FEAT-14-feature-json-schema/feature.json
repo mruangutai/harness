@@ -77,6 +77,11 @@
       "id": "t10-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "qa-final-validator",
+      "squad": "validator",
+      "verdict": "BLOCKED"
     }
   ],
   "github": {
