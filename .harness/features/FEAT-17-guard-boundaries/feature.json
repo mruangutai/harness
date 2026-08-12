@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-17-guard-boundaries",
   "pr": null,
   "status": "Building",
-  "review_sha": "2e02cfc",
+  "review_sha": "c6a28bd",
   "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
@@ -47,6 +47,16 @@
       "id": "2026-08-12-08-goalcheck-product",
       "squad": "product",
       "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-12-09-qa-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-09-panel-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
     }
   ]
 }

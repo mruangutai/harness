@@ -1,35 +1,36 @@
-# Handoff — FEAT-17-guard-boundaries, build+goalcheck → operator ruling — written at 2e02cfc, seq-2
+# Handoff — FEAT-17-guard-boundaries, validate → operator fixes — written at c6a28bd, seq-3
 
 ## Next
 
-STOP AND ASK THE OPERATOR — two items, and NEITHER is dispatchable to a lead. (1) Rule on SC-09,
-which pm judged `superseded`: accept that on the record, or amend the SC's text. (2) Execute SC-07's
-owed test — both test files are `lane: main-session-direct` in plan.yaml's lanes block under DEC-174,
-so the main session writes it directly. Add on EACH route a case with the session root at `<root>`
-writing to `<root>/.claude/worktrees/wt/.harness/allowed/x.txt`, expecting exit 0. Only after both
-does the goal-check re-run and the feature move toward Review.
+STOP AND HAND THE OPERATOR THE FIX LIST — nothing here is dispatchable. Every surface named is a
+DEC-174 carve-out file or `harness_boundary.py`, so the operator edits directly. Panel's fix ORDER is
+load-bearing and is its recommendation, not mine: decide F-C's shape first (it changes which paths
+reach `worktree_owner`, so it changes what F-A's tests must assert), then F-A (it changes the return
+contract; F-E and half of F-D fold into it), then F-B (one line), and wrap `domain_check()` LAST —
+wrapping it earlier masks the exit codes you would be testing. Re-run both validator runs after.
 
 ## Trust
 
-- 8/10 SCs met; SC-07 not_met, SC-09 superseded — runs/2026-08-12-08-goalcheck-product/digest.md `sc_status` — verified-at 2e02cfc
-- SC-07's gap is a missing TEST, not a broken guard: `legit` is only ever a session root — test-check-domain.py:1547 and test-bash-write-guard.py:372 both `_fire(legit, …)`, grepped every `legit` use in both files — verified-at 2e02cfc
-- SC-07's diff clause IS met: no pre-existing expected exit code changed VALUE — my own `git diff 52ee5db HEAD` on both test files; the one removed pair-line ADDS `src/main.py, 2` and keeps 0 and 2 — verified-at 2e02cfc
-- SC-09's letter fails: neither capture file exists or was ever committed — `git log --all` on both paths returns nothing — verified-at 2e02cfc
-- SC-09's intent holds: T-06's verify clause exits 0, tag archive/worktree-r6 present for 52d8334 — pm ran the clause verbatim; I did not re-run it — UNVERIFIED by me
-- All 7 tasks done and 4 gates green — plan.yaml all `status: done`; T-07 verify, check-state.sh, check-plan-routes.py, run-unit-tests.sh all exit 0 — verified-at b6f2c80
-- HEAD moved b6f2c80 → 2e02cfc mid-goal-check; the delta is ONE unrelated grilling note, no verdict moves — `git diff --stat` — verified-at 2e02cfc
+- qa PASS, `matrix_ok: true`, `must_fix: []`, severity med; panel FAIL, severity high, 3 must_fix — runs/2026-08-12-09-qa-validator/digest.md and runs/2026-08-12-09-panel-validator/digest.md — verified-at c6a28bd
+- Both runs examined c6a28bd and confirmed the pin themselves — each digest reports the SHA it read — verified-at c6a28bd
+- F-A is real: three `return None` paths in worktree_owner and every caller reads None as not-a-worktree — I read harness_boundary.py:374-400 at source — verified-at c6a28bd
+- F-B is real and is exit 0, not exit 1: `except Exception: _wt_seg = None` then `if _wt_seg:` skips all of INV-25 with no bad and no warn — I read check-state.sh:960-980 at source — verified-at c6a28bd
+- The two post-goal-check SC-07 cases landed and are honest; the Bash one records that TWO rules independently grant it and so discriminates neither alone — I read the diff 2e02cfc..c6a28bd — verified-at c6a28bd
+- F-C's three changed cells rest on the panel's executed before/after with a malformed fleet.yaml — I did NOT re-run that probe — UNVERIFIED by me
+- classify's `shared` outcome is unreachable, making bash-write-guard.sh:571-577 dead — qa's analysis, three separate guards cited — UNVERIFIED by me
+- The suite's green status at c6a28bd rests on qa's run; the panel ran no tests and said so — UNVERIFIED by the panel
 
 ## Dead ends
 
-- Do NOT manufacture the missing worktree captures — writing a before-capture from memory is the falsification ruling R-01 refused, and would place this feature's own defect inside it — plan.yaml R-01 lines 9-40, verified-at 2e02cfc
-- Do NOT dispatch SC-07's fix to a lead — both test files are `lane: main-session-direct`, DEC-174 carve-out — plan.yaml lanes block lines 60-68, verified-at 2e02cfc
-- Do NOT edit BRIEF.md's SC-09 text as a record correction — the BRIEF is signed, so amending it is a re-signature and the operator's call alone — playbook authority boundary, verified-at 2e02cfc
-- Do NOT re-run or re-dispatch T-01..T-06 — main-session-direct under DEC-174, already committed — verified-at b6f2c80
+- Do NOT route any of F-A/F-B/F-C to a lead — all are DEC-174 carve-out files plus harness_boundary.py; assessment was dispatchable, changes are not — CLAUDE.md carve-out, verified-at c6a28bd
+- Do NOT file "add a Bash shared-path test" for Q3 — the branch is unreachable, so the test must fail against correct code — qa digest adequacy notes, UNVERIFIED by me
+- Do NOT treat the security reviewer's corrupt-then-write exploit story as live — the lead falsified it: the write to `<sibling>/.git` is itself refused at bash-write-guard.sh:479 — panel digest, UNVERIFIED by me
+- Do NOT read qa's PASS as coverage of this diff by `--kind unit` — that kind ran 12 unrelated scripts; only `integration` touched the changed code — qa digest, verified-at c6a28bd
 
 ## Working set
 
-- .harness/features/FEAT-17-guard-boundaries/runs/2026-08-12-08-goalcheck-product/digest.md — per-SC evidence
-- .harness/features/FEAT-17-guard-boundaries/notes/research-FEAT-17-goalcheck.md — pm's full working
-- .harness/features/FEAT-17-guard-boundaries/BRIEF.md — SC-07 and SC-09 as written
-- .harness/features/FEAT-17-guard-boundaries/plan.yaml — R-01 at lines 9-40, lanes at 42-78
-- .claude/skills/harness/bin/test-check-domain.py:1547 and test-bash-write-guard.py:372 — where the owed case goes
+- .harness/features/FEAT-17-guard-boundaries/runs/2026-08-12-09-panel-validator/digest.md — the 3 must_fix with anchors
+- .harness/features/FEAT-17-guard-boundaries/runs/2026-08-12-09-qa-validator/digest.md — matrix accounting and adequacy notes
+- .harness/features/FEAT-17-guard-boundaries/notes/review-harness-security-reviewer-2026-08-12-panel.md — F-A's executed evidence
+- .claude/skills/harness/bin/harness_boundary.py:374-400 — F-A's three return-None paths
+- .claude/skills/harness/bin/check-state.sh:960-980 — F-B's silent absorb

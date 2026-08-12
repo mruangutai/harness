@@ -5,54 +5,59 @@
 - feature: FEAT-17-guard-boundaries
 - branch: feat/FEAT-17-guard-boundaries
 - status: Building
-- review_sha: 2e02cfc
-- run: .harness/features/FEAT-17-guard-boundaries/runs/2026-08-12-08-goalcheck-product/digest.md
+- review_sha: c6a28bd
+- run: .harness/features/FEAT-17-guard-boundaries/runs/2026-08-12-09-panel-validator/digest.md
 
-GOAL-CHECK RUN. All seven tasks are done and committed; the four gates are green. EIGHT of ten
-success criteria are met. The feature is NOT ready for Review — two criteria are outstanding and
-neither is mine to close.
+QA GATE PASSES, REVIEW PANEL FAILS WITH A HIGH. Both runs examined c6a28bd and both confirmed the
+pin. The feature does NOT ship as it stands.
 
-SC-07 is NOT MET, and the gap is a missing TEST, not a broken guard. SC-07 requires an allow into
-<root>/.claude/worktrees/wt/.harness/allowed/x.txt reached FROM OUTSIDE that worktree, through
-DEC-143's prefix stripping. Verified at source: in both suites `legit` is only ever used as the
-SESSION ROOT — test-check-domain.py:1547 and test-bash-write-guard.py:372 both call _fire(legit, …),
-and SC-06's mutation case pins the root inside it too. From inside, no prefix stripping happens, so
-the mechanism SC-07 names is exercised by nothing. pm probed both routes directly and both exit 0,
-so the guard is correct and one test per route is owed. No plan task ever instructed this test.
+qa: `matrix_ok: true`, `must_fix: []`, `severity_max: med`. The blocking gate is satisfied on the
+union of kinds, and the forbidden halves were proven rule-driven by MUTATION rather than by reading
+— neutralising worktree_owner to None flipped four forbidden cases from 2 to 0 on both routes.
 
-SC-07's OTHER clause IS met, confirmed by my own diff of 52ee5db..HEAD rather than by anyone's note:
-no pre-existing expected exit code changed VALUE in either test file. The single removed
-expected-code line is the (rel, want) loop in test-bash-write-guard.py's run_t14 block, where a
-pair was ADDED — src/main.py, 2 — while
-both pre-existing pairs kept 0 and 2, which is exactly what T-03's intent instructed.
+panel: FAIL, `severity_max: high`, three must_fix. `gates.review` is advisory_unless_high, so the
+high one GATES. Both reviewers returned executed before/after flips, not readings.
 
-SC-09 is ruled SUPERSEDED by pm and needs the operator's decision. Both halves, neither absorbing
-the other: the LETTER fails — notes/worktree-list-before.md and -after.md do not exist and
-`git log --all` shows neither was ever committed on any branch, and SC-09's paired negative was
-destroyed by the FEAT-13 close-out. The INTENT holds — T-06's verify clause runs verbatim at exit 0:
-no out-of-place worktree remains, archive/worktree-r6 preserves 52d8334 which is not an ancestor of
-main, and the receipt names LATE, the tag and the word sweep. NOTHING WAS MANUFACTURED, which was
-the binding instruction.
+F-A [HIGH] harness_boundary.py — three distinct parse failures each `return None`, and every caller
+reads None as not-a-worktree, so the write is ALLOWED with no stderr. I verified this at source:
+the `except Exception` on a non-UTF-8 read, the `re.match` non-match (the regex `$` is not MULTILINE,
+so any second line fails it), and the basename test. One trailing \xff on a valid pointer flips the
+identical target from BLOCKED to ALLOWED. That is #103's own failure direction reinstalled inside
+#103's fix, and no test builds a malformed pointer.
 
-THE OWED SC-07 WORK IS NOT DISPATCHABLE BY ME. Both test files are `lane: main-session-direct` in
-plan.yaml's lanes block, DEC-174 carve-out, because they co-change with the guards they assert
-against in the same diff a human reads. So there is no fix cycle to route to a lead, and
-cycles_used stays 6 of 10 — no rework was re-dispatched. Runs 8 of 20.
+F-B [MED] check-state.sh:967-971 — the FOURTH import route, and it is worse than the exit-1
+hypothesis. Verified at source: `except Exception: _wt_seg = None` then `if _wt_seg:` skips every
+INV-25 branch with no bad and no warn, so a session holding a pre-existing out-of-place worktree
+prints "all state invariants hold" and exits 0. SC-08's fixture always has the module and SC-10's
+module-absent fixture excludes check-state.sh, so coverage is zero.
+
+F-C [MED, record] D-07 and DEC-193 assert in approved prose that product paths keep exactly today's
+Bash-route behaviour. Executed before/after shows three cells changed with a MALFORMED
+.harness/factory/fleet.yaml: resolve_fleet's internal sys.exit(2) is reached before the `..` filter
+and blocks every Bash-route write outside the harness root. The runtime direction is fail-closed, so
+the CODE is advisory — the RECORD is not.
+
+NOTHING WAS FIXED AND NO FIX CYCLE WAS ROUTED. All four surfaces named are DEC-174 carve-out files
+plus harness_boundary.py, which the operator makes directly. cycles_used stays 6 of 10 — no rework
+was re-dispatched. Runs 10 of 20.
 
 ## Open Questions
 
-- Q1 BLOCKING. SC-09 cannot be met as written. Accept `superseded` on the record, or amend the SC to
-  cite notes/worktree-removal-receipt-2026-08-12.md? The signed BRIEF still names two files that
-  never existed. pm left the prose standing, correctly — editing a signed artifact is a
-  re-signature, not a record correction. Operator's call.
-- Q2 SC-07's owed test is main-session-direct under DEC-174 and therefore the operator's to execute,
-  not mine to dispatch. Add on each route a case with the session root at <root> writing to
-  <root>/.claude/worktrees/wt/.harness/allowed/x.txt, expecting exit 0.
-- Q3 Backlog: both guard suites sit in run-unit-tests.sh INTEGRATION_SCRIPTS despite matching the
-  unit glob, so --kind unit never runs them.
-- Q4 Backlog: bash-write-guard.sh resolves RELATIVE operands against the harness root rather than
-  the agent cwd. Untriaged.
-- Q5 plan.yaml's T-07 intent cites check-domain.sh line 676; verified rotten, the gate is at line
-  534. DEC-193 quotes the condition not the integer, so the shipped doc is unaffected. pm's to fix.
-
-ANSWERED and struck: INV-25 severity — remains a FAILURE, not a warning (operator, 2026-08-11).
+- Q1 BLOCKING. F-A is a high finding and gates the review. Its fix changes worktree_owner's return
+  contract, so it is the operator's to make directly. Panel's recommended order: decide F-C's shape
+  first, then F-A, then F-B, and wrap domain_check last.
+- Q2 The test matrix required `integration` only because T-01 is typed cross_module. `bugfix.always`
+  is [unit] and its `when` names `__bug_class__`, which has no test_kinds entry and can never
+  resolve. T-02/T-03/T-04 carry the actual #103 and #261 fixes and are all bugfix — a future guard
+  change typed entirely bugfix clears this blocking gate on a run that never loads the code.
+- Q3 classify's `shared` outcome is UNREACHABLE, not merely untested, so bash-write-guard.sh:571-577
+  is dead code new in this diff. Filing "add a shared-path test" would spend a cycle on a test that
+  must fail against correct code.
+- Q4 F-C forces a choice that is not the panel's: strike DEC-193 under DEC-188, amend it to state
+  the malformed-fleet column, or move the `..` continue back above classify.
+- Q5 The worktree-creation scan was never tested against evasion — `sh -c`, `command git`, an alias,
+  xargs. It is REQ-03's only mechanism.
+- Q6 SC-07 is no longer not_met; the two post-goal-check cases close it. Run 08's goal-check verdict
+  is stale on that criterion and pm should re-read it rather than carry it forward.
+- Q7 Backlog, widened: `--kind unit` excludes test-check-state.py too, not just the two guard suites
+  BRIEF names. The filed item understates its own scope.
