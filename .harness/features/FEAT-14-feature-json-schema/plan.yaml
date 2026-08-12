@@ -791,7 +791,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/gh-sync.py
