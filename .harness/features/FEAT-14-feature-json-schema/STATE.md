@@ -3,87 +3,95 @@
 ## Current
 
 - feature: FEAT-14-feature-json-schema · phase **build** · status Building
-- branch `feat/204-feature-json-schema` · HEAD `364833c` · `review_sha` pinned `364833c`
-- cycles_used **5** of 10 · runs 10 of 20
-- segment 2: T-03 recorded done · T-11 running · **T-09 and T-10 BLOCKED on the operator** ·
-  T-05 queued behind T-11
+- branch `feat/204-feature-json-schema` · HEAD `df132c6` · `review_sha` pinned `df132c6`
+- cycles_used **5** of 10 (no rework was performed this segment) · runs 11 of 20
+- **Segment 2 is HALTED. Two of five tasks landed; three are blocked on the operator.**
 
-**Segment 1 is COMPLETE and committed.** T-01 and T-03 both landed in `3d37762`; T-02, T-04, T-06,
-T-07 and T-12 are `done` and are not segment 2's to revisit. T-03's status field was the only thing
-outstanding — its verify exits 0 AND the intent's mandated comment amendment is present at
-`.github/workflows/tests.yml:66-74`, so it is intent-complete, not merely verify-green (`11d9676`).
-
-### T-09 is BLOCKED and T-10 with it — full evidence in `runs/t09-product/digest.md`
-
-The product lead halted **before spawning a documentor**: nothing written outside its run dir, no
-DEC number consumed. T-09's intent renames `feature.yaml` everywhere in `BUILD.md`; its verify
-allows zero occurrences; `BUILD.md:335` and `:353` carry the string inside dated evidence markers
-the file itself declares to be records (`BUILD.md:308-310`). Intent, verify and PRINCIPLES rule 15
-cannot all hold, so **no reading was chosen**. The operator picks: narrow the verify clause, or
-re-word the two records so the claim survives without the literal string. Both are pm's.
-
-I re-measured every premise before relaying: BUILD.md has **11** occurrences over 8 lines; SPEC.md's
-**14** and org.html's **2** are all present-tense and rename cleanly. Two assertions in T-09's own
-verify are dead and free to fix while the clause is open — the §11.3 `phase` check captures from a
-prose cross-reference at `SPEC.md:1604` instead of the heading at `:1762` (the real body still
-declares `phase`), and `'Building' in DECISIONS.md` is already true via `DECISIONS.md:1159`.
-
-**T-10 is blocked, not merely unstarted:** its verify already exits 0 against an empty diff at HEAD,
-so running it now would land a task by changing nothing. A vacuous pass is not a landing.
-
-### The third contradiction: T-11's stated dependency makes its own verify unsatisfiable
-
-T-11 records `depends_on: [T-04, T-05]` and its intent opens "T-05 runs before you". Measured
-impossible, so I **reordered T-11 ahead of T-05**. Monkeypatched `_is_shipped`, live corpus:
-
-| configuration | `check-plan-routes.py` prints |
+| task | state |
 |---|---|
-| A — today: `feature.yaml` + `("shipped","abandoned")` | 35 violation(s) / 16 plan(s) |
-| B — T-11 first: `feature.yaml` + `("Done",)` | **0 violation(s) / 10 plan(s)** |
-| C — T-05 first: `feature.json` + `("Done",)` | 35 violation(s) / 16 plan(s) |
+| T-03 | **done** — landed in `3d37762`, plan record corrected (`11d9676`) |
+| T-11 | **done** — `cc6643f`, verify exit 0, `0 violation(s) across 10 plan(s)` |
+| T-05 | **PARTIAL, committed RED** (`df132c6`) — 8 of 9 files correct, verify exits 1 |
+| T-09 | **BLOCKED** — its rename would falsify two dated records |
+| T-10 | **BLOCKED** behind T-09 |
 
-B reproduces intent item 5's prediction byte-for-byte. C fails T-11's verify: T-05 repoints the
-reader at `feature.json`, no feature dir holds one until T-08, a missing file means "not finished",
-so every plan is checked again — and T-08 depends on T-11, so the plan as written deadlocks. The
-reorder is safe because the two tasks' edits to those two files are disjoint by construction (T-05
-item 7 forbids the constant and the `want_checked` loop; T-11 items 1–4 own exactly those).
+**T-08 MUST NOT RUN YET.** It depends on T-05, and T-05 is incomplete. Its verify does not run the
+unit suite, so T-08 can pass while the red below is still there.
 
-**Predicted, so nobody chases it:** T-11 is green at its own commit and goes RED again (35/16) the
-moment T-05 lands, until T-08 converts the corpus. "T-11 closes the 35" is falsified by C.
-**T-08 closes them**, and T-08's own verify asserts exactly that.
+### Three decisions only the operator can make
 
-**T-11's verify never runs the file T-11 edits:** it calls `--kind unit`, but
-`test-check-plan-routes.py` is in `INTEGRATION_SCRIPTS` (`run-unit-tests.sh:17-18`), and items 3–4
-add every new assertion there. The eng run was told to run both kinds. The clause was not edited.
+**1. T-05 vs `test-check-plan-routes.py`.** Item 1 makes repointing the classifier at `feature.json`
+mandatory. That breaks the file's fixture at `:839`, which still writes `feature.yaml`, so
+`case_24_Done_is_skipped` fails and `run-unit-tests.sh` exits 1. Item 5 says in terms *"Leave
+test-check-plan-routes.py's status fixture loop alone"* and item 7 repeats it. **The intent forbids
+the fix its own first item requires, and the verify clause runs the suite that then fails.**
+Repointing that one filename fixes it and destroys nothing of T-11's.
 
-### Baselines measured this session, for attribution
+**This is NOT a consequence of my reordering T-11 ahead of T-05 — I proved that rather than argue
+it.** The classifier returns False for every fixture in that loop because no fixture writes a
+`feature.json` at all. Running both loop versions against the repointed reader: the **pre-T-11 loop
+fails on TWO rows** (`shipped`, `abandoned`), today's on one (`Done`). The reorder changed which
+assertion fails, never whether one does. Reverting it would not help.
 
-- full `run-unit-tests.sh` (both kinds) **exit 0** · `check-plan-routes.py` 35/16 (expected red)
-- `DECISIONS.md` keeps all **50** `feature.yaml` occurrences (rule 15); T-08's verify already
-  exempts `docs/harness/DECISIONS*` from its sweep, so the two are consistent
-- **DEC-189 is taken**, so T-09 would take 190/191/192 — making the plan's D-04 (cites DEC-189) and
-  D-08 (cites DEC-190) stale. pm's to correct; not back-filled here
-- 17 `feature.yaml` and 17 T-04 drop receipts — T-04 is complete
-- `notes/baseline-check-state.txt` is **0 bytes**, consistent with segment 1's "zero violations" but
-  it makes T-08's verify stricter than "no NEW violations": it demands **zero** after conversion
+**Worse than the red, because it is silent.** Four assertions at `:883-913` (`a_sequence`,
+`a_bare_scalar`, `status_is_a_list`, `a_mapping_with_no_status`) now pass **vacuously**: the
+classifier returns at the missing-`feature.json` check and never reaches the `isinstance` guard they
+exist to protect — a guard written for a live crash that made the checker examine nothing, print no
+summary and still exit 1. A green suite is exactly what this failure produces. Item 7 does not
+protect this loop. Item 5's eleven-key end-to-end case for this tool is also absent.
 
-### Carried, and NOT in segment 2's five tasks
+A precondition decides what those fixture bodies become: `_is_shipped` still parses the `.json` path
+with `harness_yaml.load_file`, not `json.load`. If that becomes `json.load`, the fixture shapes and
+the trailing-comment rationale change again.
 
-**G1** (SC-02 wants failing fixtures at the `factory` and `factory.edges` levels) and **G4** (the
-`.json`-holding-valid-YAML rejection needs a mutation) both live in
-`test-validate-feature-json.py` — T-01's `files:`, and none of segment 2's five. Flagged, not done.
+**2. T-09 vs `BUILD.md`.** `BUILD.md:335` and `:353` carry `feature.yaml` inside dated evidence
+markers the file itself declares to be records (`:308-310`). The intent renames; the verify allows
+zero; rule 15 forbids falsifying. Narrow the clause, or re-word the two records so the claim
+survives without the literal string. The product lead halted **before spawning a documentor** — no
+file touched, no DEC number consumed. `BUILD.md:357` (probe D7's standing definition) is a softer
+third call; SPEC.md's 14 and org.html's 2 are all present-tense and rename cleanly.
+
+**3. Two dead assertions in T-09's verify, free to fix while the clause is open.** The §11.3 `phase`
+check regexes from the first `11.3` in the file — a prose cross-reference at `SPEC.md:1604` — and
+captures lines 1604–1761 while the real heading is `:1762`; it passes vacuously and the real body
+still declares `phase`. And `'Building' in DECISIONS.md` is already true via unrelated prose at
+`DECISIONS.md:1159`. `jsonschema` and `additionalProperties` are 0 at HEAD and are live.
+
+### Predicted red — measured, honest, and NOT to be chased
+
+`check-plan-routes.py` went `0/10` → **`35 violation(s) across 16 plan(s)`** when T-05 repointed the
+reader. Correct and expected: no feature dir carries a `feature.json` until T-08. **T-08 closes it**
+and its own verify asserts exactly that. "T-11 closes the 35" is false — I measured it three ways.
+
+The four other expected reds are unchanged: every feature file is still `feature.yaml`,
+`validate-feature-json.py` exits 1 across the corpus, `check-state.sh` INV-18 fires per feature.
+
+### Verified for the record, not taken on a run's word
+
+I re-ran every verify myself. T-11: clause exit 0, `--kind integration` exit 0, full runner exit 0,
+diff confined to two files, both new assertions seen red under mutation and restored. T-05: full
+runner exit 1 on exactly one assertion; `test-harness-yaml-corpus.py` holds at **4** occurrences
+with the marker inserted verbatim; **no `feature.json` was created** under `.harness/features/`; no
+DEC-174 carve-out file was touched; the three prohibited tools were never invoked against the live
+corpus.
+
+### No handoff note was written, deliberately
+
+INV-17 requires `notes/handoff-<prev>.md` for a seam the status sits past. FEAT-14 is `Building`,
+`notes/handoff-plan.md` exists, and the build seam has **not** been crossed — build is unfinished.
+Writing `handoff-build.md` now would assert a crossing that did not happen. STATE.md is the record.
 
 ## Open Questions
 
 - Q1 non-blocking, measured false three ways: `tests.yml` claims `test-check-plan-routes.py case 25`
   asserts the Plan-route step is present and unneutered. No such test exists, and T-03 added a
-  second CI step with the same hole. No task's `files:` authorizes the fix. Briefing row.
+  second CI step with the same hole. No task's `files:` authorizes the fix.
 - Q2 non-blocking, pre-existing: the guarded-import needle misses `except (ImportError, ...)` and
   `except ModuleNotFoundError`.
-- Q3 non-blocking, **now with direct evidence**: a `python3 - <<'PY'` heredoc that rewrote
-  `plan.yaml` was NOT intercepted by the write guard, while `rm` against a scratchpad path in the
-  same session WAS blocked. The write landed in-domain so nothing was damaged; I moved to Write for
-  the rest of the segment. FEAT-17-guard-boundaries' territory.
+- Q3 non-blocking, **two fresh data points**: a `python3 - <<'PY'` heredoc that rewrote `plan.yaml`
+  was NOT intercepted by the write guard, while `rm` against a scratchpad path WAS blocked; and a
+  `>` redirect to a designated scratchpad path was denied while a `tee` to `/tmp` succeeded on the
+  same shape. Both writes were harmless. FEAT-17-guard-boundaries' territory.
 - Q4 non-blocking: `test_exactly_one_guarded_import_in_the_tree` misstates its own contract, kept
   deliberately — nine test names are pinned to FEAT-05's PLAN.
 - Q5 non-blocking: shared run artifacts have no concurrency guard.
@@ -91,6 +99,18 @@ add every new assertion there. The eng run was told to run both kinds. The claus
   (D-13) — it carries `blocked` while the six board columns have no `Blocked`.
 - Q7 non-blocking, carried: BRIEF SC-08 carries one clause twice; SC-07's prose says "exits
   non-zero" where its test asserts exactly 3.
-- Q8 **BLOCKING**: T-09's intent, verify and rule 15 cannot all hold over `BUILD.md:335` and `:353`.
-- Q9 non-blocking: T-09/T-10 record `depends_on: [T-08]`/`[T-09]` and T-08 has not run; the operator
-  assigned both anyway. Recorded, not absorbed — it is not why either is blocked.
+- Q8 non-blocking, **closed by measurement**: `gh-sync.py`'s deleted `_strip_github_block` carried a
+  corruption incident narrative. The deletion was directed and signed. DEC-131 does **not** preserve
+  it — that entry is about orphaned spawns. It survives only in git history at `9cda973`. Rehome it
+  or accept the loss; it is not blocking.
+- Q9 non-blocking: **DEC-189 is taken**, so T-09 would take 190/191/192, making the plan's D-04
+  (cites DEC-189) and D-08 (cites DEC-190) stale. pm's to correct; not back-filled.
+- Q10 non-blocking: `check-plan-routes.py:558` still says FEAT-08 "is `awaiting_user` and stays
+  checked" in the present tense; FEAT-08 reads `status: Review`. It is a comment no gate reads, so
+  widening an approved task to reach it was not an orchestrator's call.
+- Q11 non-blocking: T-11's verify runs `--kind unit`, but `test-check-plan-routes.py` — the file it
+  edits — is in `INTEGRATION_SCRIPTS`. The clause never executes the file the task changes. Run
+  separately this segment (exit 0); the plan text was not edited.
+- Q12 non-blocking: `notes/baseline-check-state.txt` is **0 bytes**, consistent with segment 1's
+  "zero violations" but it makes T-08's verify stricter than "no NEW violations" — it demands
+  **zero** check-state violations after conversion.

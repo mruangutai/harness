@@ -2,7 +2,7 @@ feature_id: FEAT-14-feature-json-schema
 branch: feat/204-feature-json-schema
 pr: null
 status: Building
-review_sha: 48e85f5
+review_sha: df132c6
 cycles_used: 5
 max_total_cycles: 10
 max_total_runs: 20
@@ -37,6 +37,9 @@ runs:
 - id: t11-eng
   squad: eng
   verdict: PASS
+- id: t05-eng
+  squad: eng
+  verdict: ESCALATE
 github:
   milestone: 8
   parent: 204
