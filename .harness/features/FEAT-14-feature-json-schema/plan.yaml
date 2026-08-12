@@ -1302,7 +1302,7 @@ tasks:
     execution_reason: the path resolves to harness-orchestrator, which owns only its own feature
       directory; a cross-feature migration belongs to no single orchestrator
     depends_on: [T-05, T-06, T-07, T-03, T-11, T-12]
-    status: pending
+    status: done
     files:
       - .harness/features/*/feature.yaml
       - .harness/features/FEAT-14-feature-json-schema/feature.yaml
