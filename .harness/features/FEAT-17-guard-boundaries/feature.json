@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-17-guard-boundaries",
-  "branch": "none",
+  "branch": "feat/FEAT-17-guard-boundaries",
   "pr": null,
-  "status": "Ready",
+  "status": "Building",
   "review_sha": "none",
   "cycles_used": 6,
   "max_total_cycles": 10,
@@ -35,6 +35,11 @@
     },
     {
       "id": "2026-08-11-06-rescope-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-07-t07-product",
       "squad": "product",
       "verdict": "PASS"
     }
