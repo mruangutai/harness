@@ -66,12 +66,12 @@
 - G-05: WHEN an amendment widens the scope of an already-executed task DO carry the re-dispatch
   signal in your DIGEST. A filed receipt proves only what it ran against, and no plan file can
   re-open a task that already passed.
-- G-06: WHEN citing a file:line as evidence DO confirm which checkout resolved the path — a sibling
-  copy on another branch holds a different file at the same path, returns unrelated content at
-  those lines and nothing errors, so the read succeeds and reads as proof.
-- G-07: A sibling worktree under `.claude/worktrees/` is a full second copy inside the search path:
-  the main tree's `.gitignore` hides it from `git grep` there but not from `grep -r`. Its files are
-  tracked on its own branch, so the parent's ignore rules say nothing about the child's index.
+- G-06: A sibling worktree under `.claude/worktrees/` is a full second copy inside the search path:
+  `.gitignore` hides it from `git grep` but not `grep -r`, and the same path resolves to different
+  content there with no error. Confirm which checkout resolved any file:line you cite.
+- G-07: WHEN confirming a criterion built from several tokens DO enumerate every hit with the full
+  pattern and confirm each sits inside text the change removes. Greping one token of five verifies
+  one fifth of the claim; file-level arithmetic is not evidence.
 - G-08: WHEN a task adds a file to a suite that keeps an explicit registration list DO register it
   in that same task. A drift detector fails the WHOLE run on an unregistered file, reddening every
   other task's verify. Exemplar: the SCRIPTS array in this repo's unit-test runner.

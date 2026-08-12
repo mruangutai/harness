@@ -1,7 +1,10 @@
 # Expertise — harness-backend-dev
 
 ## Patterns (max 15)
-- P-01: CANARY-7f3a9b — this line exists only to prove Expertise injection fires.
+- P-01: WHEN asserting an exception's VALUE slot, or comparing exception messages for inequality,
+  DO pick a value absent from every compared message's fixed prose and reuse that SAME value
+  across all cases — reused prose or a mismatched value lets the check pass without proving
+  anything is wired.
 - P-02: WHEN a task's listed verify steps are grep receipts plus a test suite that imports code
   standalone DO add a smoke check that actually imports/executes the changed module through its
   real call path — a broken import can leave every listed receipt green.

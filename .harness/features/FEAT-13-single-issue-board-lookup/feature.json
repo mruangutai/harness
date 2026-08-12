@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-13-single-issue-board-lookup",
   "branch": "feat/FEAT-13-single-issue-board-lookup",
-  "pr": null,
-  "status": "Review",
+  "pr": 260,
+  "status": "Done",
   "review_sha": "5e81612",
   "cycles_used": 4,
   "max_total_cycles": 10,
