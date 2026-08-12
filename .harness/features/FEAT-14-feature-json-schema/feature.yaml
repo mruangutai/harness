@@ -3,7 +3,7 @@ branch: feat/204-feature-json-schema
 pr: null
 status: Building
 review_sha: df132c6
-cycles_used: 5
+cycles_used: 4
 max_total_cycles: 10
 max_total_runs: 20
 runs:
