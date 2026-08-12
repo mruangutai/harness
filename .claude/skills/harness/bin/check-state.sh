@@ -145,17 +145,17 @@ for feat, plan in plans.items():
                 bad.append(f"{feat}/STATE.md references {tid}, which is absent from its PLAN.md.")
 
 # --- INV-6..8: per-feature execution facts.
-for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
     # T-07 / issue #11 — a REAL parser, not a regex over two hand-listed shapes.
     #
     # What the regexes could not do: the block form required `\s*\n` after the `id:`
     # and `squad:` captures, so a trailing `# comment` on either line — legal YAML,
-    # and the house style on 45 lines of FEAT-03's feature.yaml — silently dropped the
+    # and the house style on 45 lines of FEAT-03's feature.json — silently dropped the
     # ENTIRE run, failing INV-6, INV-7 and INV-8 open at exit 0. Reproduced before the
     # fix. It had never fired only because those two lines happened to carry no
     # comments, and one author who hit it wrote a warning into the data file
-    # (feature.yaml:63-64) instead of fixing the parser. Same defect class as DEC-123
+    # (feature.json:63-64) instead of fixing the parser. Same defect class as DEC-123
     # and DEC-129; DEC-171 reverses the no-dependency clause that forced it.
     try:
         doc = harness_yaml.load_file(fy) or {}
@@ -163,11 +163,11 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
         # A file that does not parse is a VIOLATION, never a silent skip — the whole
         # point of DEC-171 am.1 is that there is no quieter mode. Report and move on
         # so one broken feature cannot hide every other feature's invariants.
-        bad.append(f"{feat}/feature.yaml does not parse, so INV-6..8 and INV-12 "
+        bad.append(f"{feat}/feature.json does not parse, so INV-6..8 and INV-12 "
                    f"cannot be checked for it: {e}")
         continue
     if not isinstance(doc, dict):
-        bad.append(f"{feat}/feature.yaml is not a YAML mapping.")
+        bad.append(f"{feat}/feature.json is not a YAML mapping.")
         continue
 
     def val(k):
@@ -280,7 +280,7 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
     for d in glob.glob(os.path.join(os.path.dirname(fy), "runs", "*")):
         rid = os.path.basename(d)
         if os.path.isdir(d) and rid not in recorded:
-            warn.append(f"{feat}: run dir {rid} exists on disk but feature.yaml does not "
+            warn.append(f"{feat}: run dir {rid} exists on disk but feature.json does not "
                         f"record it — orphaned work (interrupted flow?). A resume must "
                         f"reconcile it, not rediscover it by luck.")
 
@@ -436,7 +436,7 @@ import subprocess
 # Only enforced when the feature declares phase: at all, so pre-DEC-159 features stay quiet.
 PHASE_ORDER = ["plan", "build", "validate", "ship"]
 HANDOFF_HEADINGS = ["## next", "## trust", "## dead ends", "## working set"]
-for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
     # F-02: parsed, not regex-scanned. `^phase:\s*(\S+)` misses a quoted value and a
     # block scalar, both legal YAML — and a miss here is silent: the feature is skipped
@@ -444,7 +444,7 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
     try:
         _doc = harness_yaml.load_file(fy) or {}
     except Exception as e:
-        bad.append(f"{feat}/feature.yaml does not parse, so its phase invariants "
+        bad.append(f"{feat}/feature.json does not parse, so its phase invariants "
                    f"cannot be checked: {e}")
         continue
     _phase = str(_doc.get("phase", "")).strip() if isinstance(_doc, dict) else ""
@@ -476,19 +476,20 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
                        f"— a freeform handoff drifts like an unvalidated digest did "
                        f"(DEC-159/160).")
 
-# --- INV-18 (DEC-160): a feature with run dirs but no feature.yaml is invisible to
+# --- INV-18 (DEC-160): a feature with run dirs but no feature.json is invisible to
 # every feature-keyed invariant (INV-8/12/17) — a whole phase can run unchecked.
-# Observed live: FEAT-03's plan phase ran to completion before feature.yaml existed.
+# Observed live: FEAT-03's plan phase ran to completion before feature.json existed.
 for rd in glob.glob(os.path.join(H, "features", "*", "runs")):
     fdir = os.path.dirname(rd)
     # isdir FIRST: glob matches a plain file named `runs` too, and os.listdir on it raises
     # NotADirectoryError — exit 1, empty stdout, every later invariant skipped.
-    if os.path.isdir(rd) and os.listdir(rd) and not os.path.isfile(os.path.join(fdir, "feature.yaml")):
-        bad.append(f"{os.path.basename(fdir)}: has runs/ but no feature.yaml — the feature is "
-                   f"invisible to run reconciliation and phase checks; instantiate it from the "
-                   f"template (the playbook's first-cycle duty).")
+    if os.path.isdir(rd) and os.listdir(rd) and not os.path.isfile(os.path.join(fdir, "feature.json")):
+        bad.append(f"{os.path.basename(fdir)}: has runs/ but no feature.json — the feature is "
+                   f"invisible to run reconciliation and phase checks; instantiate it from "
+                   f".claude/skills/harness/templates/feature.json (the playbook's first-cycle "
+                   f"duty).")
 
-# --- INV-23 (DEC-150, mechanized — issue #132): the feature.yaml and STATE.md budgets,
+# --- INV-23 (DEC-150, mechanized — issue #132): the feature.json and STATE.md budgets,
 # swept from DISK. check-domain.sh enforces the same numbers on a WRITE payload, which is
 # where they can still be prevented; this reads the file as it actually is, so no tool and
 # no author identity can route around it — including a session where the PostToolUse half
@@ -503,16 +504,15 @@ for rd in glob.glob(os.path.join(H, "features", "*", "runs")):
 #
 # VOCABULARY stays in sync with check-domain.sh; the MECHANISM deliberately does not
 # (D-02) — that one measures a payload, this one measures a file.
-for fy in sorted(glob.glob(os.path.join(H, "features", "*", "feature.yaml"))):
+for fy in sorted(glob.glob(os.path.join(H, "features", "*", "feature.json"))):
     fl = (read(fy) or "").splitlines()
     feat = os.path.basename(os.path.dirname(fy))
-    if len(fl) > 200:
-        warn.append(f"INV-23 {feat}/feature.yaml is {len(fl)} lines — budget is 200. It is "
+    # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
+    if len(fl) > 300:
+        warn.append(f"INV-23 {feat}/feature.json is {len(fl)} lines — budget is 300. It is "
                     f"data a script parses, not a journal (DEC-150).")
-    nc = sum(1 for l in fl if l.lstrip().startswith("#"))
-    if nc > 20:
-        warn.append(f"INV-23 {feat}/feature.yaml has {nc} comment lines — budget is 20. "
-                    f"Narrative commentary does not belong in feature.yaml (DEC-150).")
+    # The comment-line budget is GONE, not relaxed: JSON has no comments, so it could never
+    # fire, and a check that cannot fire is a check a reader trusts.
 
 # CLAUDE.md (issue #139), swept from disk like its peers. The write-time gate in
 # check-domain.sh is the one with teeth; this is the backstop for a session where the
@@ -710,7 +710,7 @@ if cj:
 # GitHub Issues sync is never a gate, and a re-run of `open` fixes it (INV-20's
 # precedent). Vacuous when github.sync is off — the check costs nothing then.
 if cj and (cj.get("github") or {}).get("sync"):
-    for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+    for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
         feat = os.path.basename(os.path.dirname(fy))
         # F-02: the last of the seven. This carried the SAME four defects gh-sync.py's
         # reader did, and T-06 fixed them there while leaving the twin here — which is
@@ -723,7 +723,7 @@ if cj and (cj.get("github") or {}).get("sync"):
         try:
             gdoc = harness_yaml.load_file(fy) or {}
         except Exception as e:
-            bad.append(f"{feat}/feature.yaml does not parse, so INV-21 cannot be "
+            bad.append(f"{feat}/feature.json does not parse, so INV-21 cannot be "
                        f"checked for it: {e}")
             continue
         gblk = gdoc.get("github") if isinstance(gdoc, dict) else None
@@ -747,9 +747,9 @@ if cj and (cj.get("github") or {}).get("sync"):
 # ALSO adopts or creates a container for the same feature in the same repository, so a
 # container published beside one the factory created is D-12's collision, and comparing
 # parents and issues in one list is the only place in this increment it becomes visible.
-# A feature.yaml with no `factory` block contributes nothing and is not a violation.
+# A feature.json with no `factory` block contributes nothing and is not a violation.
 _fac_pairs = {}
-for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
+for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
     try:
         fdoc = harness_yaml.load_file(fy) or {}
@@ -817,7 +817,7 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.yaml")):
         # A DIGIT STRING IS A NUMBER HERE. INV-21 thirty lines above accepts `parent: "40"`
         # deliberately — gh-sync.py's reader was widened to it because bare-digits-only
         # read a quoted number as absent. Rejecting the same shape here would make one
-        # legal feature.yaml pass one invariant and hard-block on its twin (D-03).
+        # legal feature.json pass one invariant and hard-block on its twin (D-03).
         if isinstance(n, bool) or not (isinstance(n, int) or str(n).strip().isdigit()):
             bad.append(f"INV-24 {feat}: records issue number {n!r} for {repo}, which is not "
                        f"an integer — re-run `factory publish` to rewrite the block, or "

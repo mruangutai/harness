@@ -41,7 +41,7 @@ def make_fixture(tmp, harness_json, parent_line):
     os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(harness_json)
-    with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+    with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
         f.write(feature_yaml(parent_line))
     return h
 
@@ -152,7 +152,7 @@ def case_e():
 
     The pre-T-07 block-form regex required `\\s*\\n` immediately after those two
     captures, so a comment — legal YAML, and the house style on 45 lines of FEAT-03's
-    feature.yaml — matched nothing and dropped the ENTIRE entry. Three invariants then
+    feature.json — matched nothing and dropped the ENTIRE entry. Three invariants then
     failed OPEN at exit 0: INV-6 (no validator run seen, so an unpinned review_sha was
     not reported), INV-7 (0 FAILs counted) and INV-8.
 
@@ -166,7 +166,7 @@ def case_e():
         os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write(RUNS_WITH_TRAILING_COMMENTS)
         code, out = run(tmp)
         ok = "review_sha is not pinned" in out
@@ -178,7 +178,7 @@ def case_e():
 
 
 def case_f():
-    """A feature.yaml that does not parse is a VIOLATION, never a silent skip.
+    """A feature.json that does not parse is a VIOLATION, never a silent skip.
 
     DEC-171 am.1 removed the fallback deliberately: there is no quieter mode. Before
     T-07 an unparseable file was indistinguishable from one with no runs, which is the
@@ -189,11 +189,11 @@ def case_f():
         os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write("runs: [ {id: a, squad: b ## eaten\nnext_key: 1\n")
         code, out = run(tmp)
         ok = "does not parse" in out and code == 1
-        print(f"{'ok' if ok else 'FAIL'} - case (f): an unparseable feature.yaml is "
+        print(f"{'ok' if ok else 'FAIL'} - case (f): an unparseable feature.json is "
               f"reported and exits 1 (got exit {code})")
         return ok
 
@@ -220,7 +220,7 @@ def case_g():
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
         # phase: validate with NO handoff-plan.md / handoff-build.md -> INV-17 fires.
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write("feature_id: FEAT-TEST\nphase: validate\n")
         code, out = run(tmp)
         ok = "handoff-plan.md" in out and "Traceback" not in out
@@ -239,7 +239,7 @@ def case_h():
     passed throughout, which is exactly why this hole survived: the invariant had a
     test, and the test agreed with it.
 
-    FEAT-05's own feature.yaml carried `review_sha: none` for its whole plan phase
+    FEAT-05's own feature.json carried `review_sha: none` for its whole plan phase
     while recording validator-squad runs, so this was live on a shipped feature, not
     hypothetical.
     """
@@ -248,7 +248,7 @@ def case_h():
         os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write("feature_id: FEAT-TEST\n"
                     "review_sha: none\n"
                     "runs:\n"
@@ -277,7 +277,7 @@ def case_i():
         os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write("feature_id: FEAT-TEST\n"
                     "review_sha: 1ce886a\n"
                     "runs:\n"
@@ -299,7 +299,7 @@ def case_j():
     INV-6 exists to stop a REVIEWER diffing a moving HEAD (DEC-50). A feature with no
     validator run has nothing to pin for yet. This guards the `any(sq == "validator")`
     conjunct against being dropped by a rewrite that only looks at the value — and it
-    is live, not theoretical: FEAT-06's own feature.yaml is exactly this shape
+    is live, not theoretical: FEAT-06's own feature.json is exactly this shape
     (placeholder review_sha, product/eng runs only) and must not self-report.
     """
     with tempfile.TemporaryDirectory() as tmp:
@@ -307,7 +307,7 @@ def case_j():
         os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write("feature_id: FEAT-TEST\n"
                     "review_sha: none\n"
                     "runs:\n"
@@ -349,7 +349,7 @@ def case_k():
             os.makedirs(rundir, exist_ok=True)
             with open(os.path.join(h, "harness.json"), "w") as f:
                 f.write(HARNESS_JSON_SYNC_OFF)
-            with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+            with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
                 f.write("feature_id: FEAT-TEST\nreview_sha: none\nruns: []\n")
             with open(os.path.join(rundir, "state.yaml"), "w") as f:
                 f.write("schema_version: 1\n"
@@ -391,7 +391,7 @@ def case_l():
                     + (",\n  " + budget if budget else "") + "\n}\n")
         runs = "\n".join(f"  - {{ id: r{i}, squad: eng, verdict: PASS }}"
                          for i in range(n))
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.yaml"), "w") as f:
+        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write(f"feature_id: FEAT-TEST\nphase: build\ncycles_used: 2\n"
                     f"review_sha: abc1234\n{declared}runs:\n{runs}\n")
         return run(tmp)
@@ -564,7 +564,7 @@ def case_n():
 
     THREE fixtures and PER-FILE assertions, and the per-file part was itself a defect
     found by mutation. The first draft crossed both budgets at once and asserted only
-    "INV-23" in the output — so raising the feature.yaml budget from 200 to 250 left the
+    "INV-23" in the output — so raising the feature.json budget from 200 to 250 left the
     STATE.md finding in the output and the case still reported ok. A test that cannot tell
     which of two checks fired is not testing either.
 
@@ -575,9 +575,12 @@ def case_n():
     """
     results = []
     for label, fl, sl, want_f, want_s in (
-        ("feature.yaml over", 201, 120, True,  False),
-        ("STATE.md over",     200, 121, False, True),
-        ("both within",       200, 120, False, False),
+        # 310/290, not 201/200: T-06 raised the feature budget from 200 to 300. Each
+        # fixture still crosses exactly ONE budget by exactly ONE line, which is what
+        # binds the message to the comparison.
+        ("feature.json over", 301, 120, True,  False),
+        ("STATE.md over",     300, 121, False, True),
+        ("both within",       300, 120, False, False),
     ):
         with tempfile.TemporaryDirectory() as tmp:
             h = make_fixture(tmp, '{}', "  parent: 40")
@@ -588,20 +591,20 @@ def case_n():
             # violation, which reads as INV-23 being wrong when the fixture was.
             head = feature_yaml("  parent: 40")
             pad = fl - len(head.splitlines())
-            with open(os.path.join(fd, "feature.yaml"), "w") as f:
+            with open(os.path.join(fd, "feature.json"), "w") as f:
                 f.write(head + "\n".join(f"k{i}: v" for i in range(pad)) + "\n")
             with open(os.path.join(fd, "STATE.md"), "w") as f:
                 f.write("## Current\n" + "\n".join(f"line {i}" for i in range(sl - 1)) + "\n")
             _code, out = run(tmp)
-            got_f = "INV-23 FEAT-TEST/feature.yaml is" in out
+            got_f = "INV-23 FEAT-TEST/feature.json is" in out
             got_s = "INV-23 FEAT-TEST/STATE.md is" in out
             ok = (got_f == want_f) and (got_s == want_s)
             results.append(ok)
-            print(f"{'ok' if ok else 'FAIL'} - case (n/{label}): at {fl} feature.yaml / "
+            print(f"{'ok' if ok else 'FAIL'} - case (n/{label}): at {fl} feature.json / "
                   f"{sl} STATE.md lines, INV-23 fires on "
-                  f"[{'feature.yaml' if got_f else ''}{' ' if got_f and got_s else ''}"
+                  f"[{'feature.json' if got_f else ''}{' ' if got_f and got_s else ''}"
                   f"{'STATE.md' if got_s else ''}{'nothing' if not (got_f or got_s) else ''}]"
-                  f" — wanted [{'feature.yaml' if want_f else ''}"
+                  f" — wanted [{'feature.json' if want_f else ''}"
                   f"{' ' if want_f and want_s else ''}{'STATE.md' if want_s else ''}"
                   f"{'nothing' if not (want_f or want_s) else ''}]")
     return all(results)
@@ -700,8 +703,8 @@ def case_q():
         with tempfile.TemporaryDirectory() as tmp:
             h = make_fixture(tmp, '{}', "  parent: 40")
             fd = os.path.join(h, "features", "FEAT-TEST")
-            os.remove(os.path.join(fd, "feature.yaml"))
-            with open(os.path.join(fd, "feature.yaml"), "w") as f:
+            os.remove(os.path.join(fd, "feature.json"))
+            with open(os.path.join(fd, "feature.json"), "w") as f:
                 f.write("feature_id: FEAT-TEST\nstatus: in_review\n")
             with open(os.path.join(fd, "plan.yaml"), "w") as f:
                 f.write(PLAN_YAML_OK.replace("status: approved", f"status: {status}"))
@@ -852,7 +855,7 @@ def _factory_tree(tmp, features, fleet=FLEET_YAML):
     """Build a fixture with N features, each optionally carrying a `factory` block.
 
     `features` is {feature_id: factory_block_yaml_or_None}. A None block writes a
-    feature.yaml with no factory key at all, which INV-24 must ignore entirely.
+    feature.json with no factory key at all, which INV-24 must ignore entirely.
     """
     h = os.path.join(tmp, ".harness")
     os.makedirs(h, exist_ok=True)
@@ -865,7 +868,7 @@ def _factory_tree(tmp, features, fleet=FLEET_YAML):
     for feat, block in features.items():
         d = os.path.join(h, "features", feat)
         os.makedirs(d, exist_ok=True)
-        with open(os.path.join(d, "feature.yaml"), "w") as f:
+        with open(os.path.join(d, "feature.json"), "w") as f:
             f.write(block if block else "branch: none\n")
     return h
 
@@ -960,7 +963,7 @@ def case_s():
           True, needles=("twice within its own factory", "task T-01", "the parent"))
 
     # INV-21 thirty lines above accepts `parent: "40"` on purpose (gh-sync.py's reader was
-    # widened to it). If INV-24 rejected the same shape, one legal feature.yaml would pass
+    # widened to it). If INV-24 rejected the same shape, one legal feature.json would pass
     # one invariant and hard-block on its twin — the D-03 divergence, inside one file.
     check("a quoted issue number is a number here, as it is for INV-21 (D-03)",
           {"FEAT-A": 'factory:\n  repo: acme/widget\n  parent: "40"\n  issues:\n    T-01: "41"\n'},
@@ -1019,10 +1022,11 @@ def case_o():
 
     checks, ok_all = [], True
     for what, dpat, spat in (
-        ("feature.yaml lines",  r"feature\.yaml is \{len\(lines\)\} lines — budget is (\d+)",
-                                r"feature\.yaml is \{len\(fl\)\} lines — budget is (\d+)"),
-        ("feature.yaml comments", r"comment lines — budget is (\d+)",
-                                  r"comment lines — budget is (\d+)"),
+        ("feature.json lines",  r"feature\.json is \{len\(lines\)\} lines — budget is (\d+)",
+                                r"feature\.json is \{len\(fl\)\} lines — budget is (\d+)"),
+        # The comment-line budget pair is GONE, not relaxed. T-06 removed the check from
+        # both files because JSON has no comments, so it could never fire — and a pair of
+        # numbers that can never be printed is a duplicate this case cannot police.
         ("STATE.md lines",      r"STATE\.md is \{len\(lines\)\} lines — budget is (\d+)",
                                 r"STATE\.md is \{len\(sl\)\} lines — budget is (\d+)"),
         # Issue #139 made this the fourth number in both files, so it joins the detector in

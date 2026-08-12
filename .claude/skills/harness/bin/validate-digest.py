@@ -170,7 +170,7 @@ SCHEMAS = {
     # session routes on when the orchestrator returns: `status` decides relay vs.
     # done, `runs`/`cycles_used` are the budget accounting it logs, and
     # `briefing` is the path it presents to the user. Everything else stays on disk
-    # in feature.yaml.
+    # in feature.json.
     #
     # The money field this schema used to require is GONE, and a return still
     # carrying it is IGNORED rather than rejected — unknown keys are ignored

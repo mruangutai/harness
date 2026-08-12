@@ -973,16 +973,43 @@ def fire_post(root, payload, flag="--post"):
                           text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
 
 
+
+def _legal_feature_json(nlines):
+    """A schema-clean eleven-key feature.json padded to exactly `nlines` lines.
+
+    T-06 put the schema on this path, so any fixture judged on its LINE COUNT must be
+    schema-clean or it is denied for a reason its case never named — a green-looking test
+    asserting the wrong cause. Trailing whitespace is insignificant to a JSON parser, so
+    padding this way changes the line count and nothing else.
+    """
+    import json as _json
+    body = _json.dumps({"feature_id": "FEAT-X", "branch": "none", "pr": None,
+                        "status": "Building", "review_sha": "none", "cycles_used": 0,
+                        "max_total_cycles": 10, "runs": []}, indent=2).splitlines()
+    return "\n".join(body + [""] * max(0, nlines - len(body))) + "\n"
+
+
 def run_post():
     d = fixture(FIXTURE_MANIFEST)
     fdir = os.path.join(d, ".harness", "features", "FEAT-X")
     os.makedirs(fdir)
-    fy = os.path.join(fdir, "feature.yaml")
-    rel_fy = ".harness/features/FEAT-X/feature.yaml"
+    fy = os.path.join(fdir, "feature.json")
+    rel_fy = ".harness/features/FEAT-X/feature.json"
 
     def write(nlines):
+        # A LEGAL eleven-key document, padded with blank lines to an exact length.
+        # T-06 put the schema on this path, so a fixture meant to be judged on its LINE
+        # COUNT must be schema-clean or it is denied for a reason its case never intended
+        # — a green-looking test asserting the wrong cause. Trailing whitespace is
+        # insignificant to a JSON parser, so padding this way changes the line count and
+        # nothing else.
+        import json as _json
+        doc = _json.dumps({"feature_id": "FEAT-X", "branch": "none", "pr": None,
+                           "status": "Building", "review_sha": "none", "cycles_used": 0,
+                           "max_total_cycles": 10, "runs": []}, indent=2)
+        body = doc.splitlines()
         with open(fy, "w") as f:
-            f.write("\n".join(f"k{i}: v" for i in range(nlines)) + "\n")
+            f.write("\n".join(body + [""] * max(0, nlines - len(body))) + "\n")
 
     def edit_payload(agent="harness-orchestrator"):
         p = {"tool_name": "Edit", "hook_event_name": "PostToolUse",
@@ -1000,7 +1027,7 @@ def run_post():
     write(400)
     r = fire_post(d, edit_payload())
     post("route 2 — post Edit on an over-budget file exits 2",
-         r.returncode == 2 and "budget is 200" in r.stderr,
+         r.returncode == 2 and "budget is 300" in r.stderr,
          f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
 
     pre = subprocess.run([HOOK], input=json.dumps({
@@ -1012,13 +1039,13 @@ def run_post():
     # exits 2 here for a DOMAIN reason. A first draft asserted `returncode == 0` and
     # failed — reading, wrongly, as the pre hook having gained shape coverage on Edit.
     post("route 2 — the PRE hook reports NO shape finding on that same Edit",
-         "budget is 200" not in pre.stderr,
+         "budget is 300" not in pre.stderr,
          f"exit {pre.returncode}: {pre.stderr.strip()[:120]}")
 
     # --- ROUTE 3: Bash. No file_path in the payload at all, so this exercises the sweep.
     r = fire_post(d, bash_payload)
     post("route 3 — post Bash sweeps and finds the over-budget file",
-         r.returncode == 2 and "budget is 200" in r.stderr,
+         r.returncode == 2 and "budget is 300" in r.stderr,
          f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
 
     # --- ROUTE 4: the MAIN SESSION, which has no agent_type and was exempted from the
@@ -1028,29 +1055,25 @@ def run_post():
         "tool_input": {"file_path": fy, "content": "\n".join(["x: 1"] * 400)}}),
         capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=d))
     post("route 4 — the MAIN SESSION is no longer exempt from the shape gate",
-         r.returncode == 2 and "budget is 200" in r.stderr,
+         r.returncode == 2 and "budget is 300" in r.stderr,
          f"exit {r.returncode}: {r.stderr.strip().splitlines()[:1]}")
 
     # --- THE ENFORCED BUDGET, AT ITS BOUNDARY (review F-02). 400-vs-10 passes against
     # `> 250` and `> 350` and against every `>` flipped to `>=`, because nothing between
     # 200 and 400 is ever probed. Cross each budget by exactly ONE line, in both
     # directions, so the comparison itself is bound and not merely the message text.
-    for _n, _want in ((201, True), (200, False)):
+    for _n, _want in ((301, True), (300, False)):
         write(_n)
         r = fire_post(d, edit_payload())
-        post(f"feature.yaml at {_n} lines {'IS' if _want else 'is NOT'} over the 200 budget",
-             (r.returncode == 2 and "budget is 200" in r.stderr) == _want,
+        post(f"feature.json at {_n} lines {'IS' if _want else 'is NOT'} over the 300 budget",
+             (r.returncode == 2 and "budget is 300" in r.stderr) == _want,
              f"exit {r.returncode}: {r.stderr.strip()[:100]}")
 
-    # The COMMENT budget is a second, independent number in the same branch — a fixture
-    # that only ever crosses the line budget leaves it entirely unbound.
-    for _c, _want in ((21, True), (20, False)):
-        with open(fy, "w") as f:
-            f.write("\n".join(["# c"] * _c + ["k: v"] * 5) + "\n")
-        r = fire_post(d, edit_payload())
-        post(f"feature.yaml with {_c} comment lines {'IS' if _want else 'is NOT'} over 20",
-             (r.returncode == 2 and "budget is 20" in r.stderr) == _want,
-             f"exit {r.returncode}: {r.stderr.strip()[:100]}")
+    # THE COMMENT BUDGET CASE IS DELETED, not rewritten. T-06 removed the check from both
+    # check-domain.sh and check-state.sh because JSON has no comments, so it could never
+    # fire — and a check that cannot fire is a check a reader trusts. A case asserting a
+    # budget that no longer exists would pass by never triggering it, which is the
+    # vacuous-assertion shape this suite exists to catch.
 
     # --- THE OTHER THREE GATES, IN POST MODE (review F-03). The handoff branch and the
     # state.yaml checkpoint branch could each be replaced with `if False:` and both suites
@@ -1088,11 +1111,11 @@ def run_post():
     write(10)
     fire_post(d, bash_payload)                      # advance the stamp past everything
     r0 = fire_post(d, bash_payload)                 # nothing fresh -> silence
-    with open(os.path.join(wt, "feature.yaml"), "w") as f:
-        f.write("\n".join(f"k{i}: v" for i in range(400)) + "\n")
+    with open(os.path.join(wt, "feature.json"), "w") as f:
+        f.write(_legal_feature_json(400))
     r1 = fire_post(d, bash_payload)
     post("the sweep reaches a file inside .claude/worktrees/ (and was silent before it)",
-         r0.returncode == 0 and r1.returncode == 2 and "budget is 200" in r1.stderr,
+         r0.returncode == 0 and r1.returncode == 2 and "budget is 300" in r1.stderr,
          f"baseline exit {r0.returncode}, after exit {r1.returncode}")
 
     # --- THE HIGH-WATER MARK. Two review findings in one: no dedup (five unrelated Bash
@@ -1153,11 +1176,11 @@ def run_post():
     _wt = os.path.join(d, ".claude", "worktrees", "wt1")
     os.makedirs(os.path.join(_wt, ".harness", "features", "FEAT-W"), exist_ok=True)
     _wcm = os.path.join(_wt, "CLAUDE.md")
-    _wfy = os.path.join(_wt, ".harness", "features", "FEAT-W", "feature.yaml")
+    _wfy = os.path.join(_wt, ".harness", "features", "FEAT-W", "feature.json")
     with open(_wcm, "w") as f:
         f.write("\n".join(f"x{i}" for i in range(81)) + "\n")
     with open(_wfy, "w") as f:
-        f.write("\n".join(f"k{i}: v" for i in range(400)) + "\n")
+        f.write(_legal_feature_json(400))
 
     for label, path, payload_maker in (
         ("post Edit", _wcm, lambda p: {"hook_event_name": "PostToolUse", "tool_name": "Edit",
@@ -1233,7 +1256,7 @@ def run_post():
     os.utime(fy, None)
     r = fire_post(d, bash_payload)
     post("the same file, freshly touched, IS found",
-         r.returncode == 2 and "budget is 200" in r.stderr, f"exit {r.returncode}")
+         r.returncode == 2 and "budget is 300" in r.stderr, f"exit {r.returncode}")
 
     # --- THE RACE, ASSERTED AS A PROPERTY (review HIGH-1). Round 2's stamp advanced to the
     # moment the sweep FINISHED, so a file another agent wrote DURING the walk landed before
@@ -1299,7 +1322,7 @@ def run_post():
         os.chmod(_sy, 0o644)
         r = fire_post(d, bash_payload)
         post("an unreadable candidate leaves the mark unadvanced (no permanent blind spot)",
-             r.returncode == 2 and "budget is 200" in r.stderr,
+             r.returncode == 2 and "budget is 300" in r.stderr,
              f"exit {r.returncode}: {r.stderr.strip()[:120]}")
     finally:
         os.chmod(_sy, 0o644)
@@ -1326,14 +1349,14 @@ def run_post():
     r = fire_post(d, {"tool_name": "Edit", "tool_input": {"file_path": fy,
                                                           "old_string": "a", "new_string": "b"}})
     post("a post payload with NO agent_type still gets the shape gate",
-         r.returncode == 2 and "budget is 200" in r.stderr,
+         r.returncode == 2 and "budget is 300" in r.stderr,
          f"exit {r.returncode}: {r.stderr.strip()[:120]}")
 
     # --- TWO SIGNALS, EITHER SUFFICIENT. The platform's hook_event_name alone must work,
     # or a registration that omits the flag silently degrades to pre-mode.
     r = fire_post(d, edit_payload(), flag=None)
     post("hook_event_name alone selects post mode (no --post flag)",
-         r.returncode == 2 and "budget is 200" in r.stderr,
+         r.returncode == 2 and "budget is 300" in r.stderr,
          f"exit {r.returncode}: {r.stderr.strip()[:120]}")
 
     shutil.rmtree(d, ignore_errors=True)
