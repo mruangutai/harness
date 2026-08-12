@@ -5,6 +5,43 @@ approval:
   status: approved
   approved_by: operator
   date: '2026-08-11'
+  rulings:
+    - id: R-01
+      date: '2026-08-12'
+      subject: The rename splits by TENSE, not by file
+      ruling: >
+        Present-tense text describing how the system works today is renamed to feature.json.
+        A DATED record of what was observed on a given day is not, because renaming it would
+        assert that a file existed under a name it never had - PRINCIPLES rule 15. This applies
+        wherever the collision occurs, in prose and in code alike. It is the same rule already
+        written into T-05 item 6 for test-harness-yaml-corpus.py; that item was not a one-off
+        exception and is now stated generally.
+      applies_to:
+        - docs/harness/BUILD.md - the six present-tense requirement cells rename; the two
+          dated 2026-07-28 evidence markers at :335 and :353 do not, and :357 is judged with
+          them. T-09's verify is narrowed to those markers BY NAME, never to the whole file,
+          so a genuinely new feature.yaml reference added to BUILD.md is still caught.
+        - .claude/skills/harness/bin/check-plan-routes.py - :238 and :566 are ordinary
+          present-tense comments and rename. :405 is a dated incident record inside a
+          docstring and stays, exempted by name in T-08's verify. No new task - T-08 is
+          already main-session-direct, so this is inside the lane that owns the file.
+      because: >
+        A file-level exemption would let the next genuine reference go undetected, which is the
+        vacuous-gate shape this feature keeps finding. Exempting named lines keeps the gate
+        live everywhere else.
+    - id: R-02
+      date: '2026-08-12'
+      subject: Two dead assertions in T-09's verify are repaired in the same pass
+      ruling: >
+        The SPEC 11.3 check captures from a prose cross-reference at SPEC.md:1604 while the
+        real heading is at :1762, and the DECISIONS check for Building is already satisfied by
+        the word appearing in unrelated prose at DECISIONS.md:1159. Both are repointed - the
+        SPEC capture at the actual heading, the DECISIONS check at the decision entry rather
+        than any occurrence of the word.
+      because: >
+        Both were confirmed dead twice, by reading and by the clause staying silent when run.
+        Shipping a verify clause whose assertions cannot fail is the same defect the tasks it
+        guards were written to prevent, and nothing later would have reminded anyone.
 
 lanes:
   resolved_at: a29ad06
