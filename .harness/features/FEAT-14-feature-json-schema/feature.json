@@ -87,6 +87,11 @@
       "id": "qa-final2-validator",
       "squad": "validator",
       "verdict": "FAIL"
+    },
+    {
+      "id": "panel-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE"
     }
   ],
   "github": {
