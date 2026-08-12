@@ -231,7 +231,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/feature-schema.json
       - .claude/skills/harness/bin/feature_schema.py
@@ -422,7 +422,7 @@ tasks:
     execution_reason: check-domain.sh --resolve returns NOBODY for both paths, an ungranted
       surface under DEC-179
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-init/SKILL.md
       - CLAUDE.md
@@ -536,7 +536,7 @@ tasks:
     execution_reason: the path resolves to harness-orchestrator, which owns only its own feature
       directory; a cross-feature migration belongs to no single orchestrator
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .harness/features/*/feature.yaml
       - .harness/features/FEAT-14-feature-json-schema/feature.yaml
@@ -916,7 +916,7 @@ tasks:
     execution_reason: DEC-174 carve-out - check-state.sh, check-domain.sh and validate-digest.py are
       three of the four named enforcement scripts, edited directly and never dispatched
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/check-domain.sh
@@ -1139,7 +1139,7 @@ tasks:
     execution_reason: every path resolves to NOBODY under check-domain.sh --resolve, an ungranted
       surface under DEC-179
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/templates/feature.json
       - .claude/skills/harness/templates/gitignore.snippet
@@ -1662,7 +1662,7 @@ tasks:
     execution_reason: DEC-174 carve-out - check-state.sh is one of the four named enforcement
       scripts, edited directly by the main session and never dispatched
     depends_on: [T-06]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
