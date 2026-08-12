@@ -722,7 +722,7 @@ ROUTING = ("Routing: current truth REPLACES STATE.md ## Current; per-run finding
 # via `_norm`; the sweep did not.
 _SWEEP_PATTERNS = (
     "CLAUDE.md",
-    ".harness/features/*/feature.yaml",
+    ".harness/features/*/feature.json",
     ".harness/features/*/runs/*/state.yaml",
     ".harness/features/*/notes/handoff-*.md",
     ".harness/features/*/STATE.md",
@@ -788,7 +788,7 @@ VERB = "OVER BUDGET (already written)" if _post else "BLOCKED"
 # whole file. Measured by review on a 200 MB non-state path: 228 ms, against 37 ms once the
 # pattern is consulted first. Two uses, one definition — duplicating them as a fast-path
 # guard would create exactly the silent drift `test-check-state.py` case (o) exists to catch.
-RE_FEATURE_YAML = re.compile(r"^\.harness/features/[^/]+/feature\.yaml$")
+RE_FEATURE_JSON = re.compile(r"^\.harness/features/[^/]+/feature\.json$")
 RE_STATE_YAML   = re.compile(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$")
 RE_HANDOFF      = re.compile(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$")
 RE_STATE_MD     = re.compile(r"^\.harness/features/[^/]+/STATE\.md$")
@@ -796,13 +796,13 @@ RE_STATE_MD     = re.compile(r"^\.harness/features/[^/]+/STATE\.md$")
 # where the four-route machinery already lives — the alternative was a fifth gate.
 RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$")
 # plan.yaml is DELIBERATELY ABSENT (DEC-182). It carries neither a budget nor a vocabulary
-# rule, which is what this gate is for: `feature.yaml` 200/20 and `CLAUDE.md` 80 are
+# rule, which is what this gate is for: `feature.json` 300 and `CLAUDE.md` 80 are
 # budgets, `state.yaml`'s 23-key whitelist is a vocabulary, and STATE.md and the handoff
 # note are both. A plan.yaml check here would be a PARSE check — a third thing — and
 # check-plan-routes.py already refuses a malformed plan BEFORE signature, which is when it
 # matters, with check-state.sh refusing it again at entry. A third enforcement point buys
 # nothing and costs two entries in two pattern lists that have already drifted once.
-SHAPE_PATTERNS = (RE_FEATURE_YAML, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD)
+SHAPE_PATTERNS = (RE_FEATURE_JSON, RE_STATE_YAML, RE_HANDOFF, RE_STATE_MD, RE_CLAUDE_MD)
 
 
 def has_shape_rules(rel):
@@ -814,6 +814,9 @@ def has_shape_rules(rel):
     because the premise is wrong. The gate is about SHAPE; state files are most of what
     has a shape, not the definition of it."""
     return any(p.match(rel) for p in SHAPE_PATTERNS)
+
+
+_SCHEMA_UNAVAILABLE_SAID = False
 
 
 def shape_problems(rel, content, display=None):
@@ -849,17 +852,93 @@ def shape_problems(rel, content, display=None):
         out.extend(f"  {m}" for m in msgs)
         out.append(f"  {ROUTING}")
 
-    if RE_FEATURE_YAML.match(rel):
+    if RE_FEATURE_JSON.match(rel):
+        # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
+        # The comment-line budget is GONE, not relaxed — JSON has no comments, so it could
+        # never fire, and a check that cannot fire is a check a reader trusts.
         problems = []
-        if len(lines) > 200:
-            problems.append(f"feature.yaml is {len(lines)} lines — budget is 200. It is data a script "
+        if len(lines) > 300:
+            problems.append(f"feature.json is {len(lines)} lines — budget is 300. It is data a script "
                             f"parses, not a journal.")
-        comments = sum(1 for l in lines if l.lstrip().startswith("#"))
-        if comments > 20:
-            problems.append(f"{comments} comment lines — budget is 20. Narrative commentary does not "
-                            f"belong in feature.yaml.")
         if problems:
             deny(problems)
+
+        # THE SCHEMA CHECK. Imported INSIDE this branch, never at module level: jsonschema
+        # costs +42.6 ms median on import (17.3 -> 59.9 ms over 10 isolated launches,
+        # 4.26.0, warm bytecode; 395 ms cold). At module level every Write, Edit and Bash
+        # in the repo would pay it, for the rare feature.json write. sys.modules caches it,
+        # so a POST sweep over many candidates pays it ONCE per invocation, not per file.
+        # This file already defers harness_yaml for the same reason (see :139).
+        #
+        # THE TIGHT try IS FOR feature_schema ITSELF being unimportable — PYTHONPATH not
+        # exported, a syntax error, the file missing. It must APPEND to problems, never
+        # raise: a raise escaping the per-file loop exits 1, and :14 says exit 1 is
+        # NON-BLOCKING, so the bad write would land — fail open in the case the checker
+        # exists for.
+        #
+        # FAIL CLOSED, WITH NO BOOTSTRAP ESCAPE, stated as facts rather than as a
+        # comfortable story: the shape phase runs for EVERY writer including the main
+        # session, because the no-agent_type carve-out is the _governed FLAG and not an
+        # exit. So this denial governs the main-session-direct migration tasks too,
+        # deliberately. It does NOT share the PyYAML bootstrap escape —
+        # require_or_bootstrap is reached only inside `if _run_domain:` (:333), which the
+        # shape phase never enters. No escape is needed: the remedy is `python3 -m pip
+        # install jsonschema`, a Bash command no gate denies. That is the difference from
+        # the missing-PARSER case, where the gate cannot read its own manifest at all.
+        # This branch needs stdlib json and jsonschema ONLY, never PyYAML — do not extend
+        # the state.yaml branch's `_no_parser` fail-open to cover it.
+        global _SCHEMA_UNAVAILABLE_SAID
+        try:
+            import feature_schema
+            _sp = feature_schema.problems_for_text(content, display or rel)
+        except ImportError:
+            _sp = ["feature_schema is not importable, so this file CANNOT be checked. "
+                   "Expected at .claude/skills/harness/bin/feature_schema.py, reachable on "
+                   "PYTHONPATH. Repair the module or reinstall the harness bin directory."]
+        except Exception as _se:
+            # A BARE `except ImportError` HERE WAS A FAIL-OPEN, and the panel measured it:
+            # inject any other exception into problems_for_text and an ILLEGAL document
+            # that must exit 2 escapes at exit 1 with a traceback instead — and exit 1 is
+            # NON-BLOCKING (line 14), so the bad write lands. A schema loader raises far
+            # more than ImportError: a malformed feature-schema.json is JSONDecodeError,
+            # an unreadable one is OSError, a jsonschema version drift is SchemaError.
+            # Every one of them meant "written anyway".
+            #
+            # The message is SEPARATE from the ImportError branch on purpose. Saying "not
+            # importable" when the module imported fine and then crashed sends the reader
+            # to check PYTHONPATH for a fault that is not there — an unattributable
+            # finding, the defect DEC-180 fixed twice in this file.
+            _sp = ["feature_schema CRASHED while checking this file, so it CANNOT be "
+                   "checked: %s: %s. The module IMPORTED — this is a fault inside it or "
+                   "in .claude/skills/harness/bin/feature-schema.json, not a missing "
+                   "dependency. The write is DENIED rather than allowed through, because "
+                   "a checker that cannot run must never be the reason a file passes."
+                   % (type(_se).__name__, _se)]
+        _out = []
+        for _l in _sp:
+            if "CANNOT be checked" in _l:
+                # ONE MESSAGE PER INVOCATION, not one per file — a corpus-wide sweep would
+                # otherwise print an identical block per feature.
+                if _SCHEMA_UNAVAILABLE_SAID:
+                    continue
+                _SCHEMA_UNAVAILABLE_SAID = True
+            _out.append(_l)
+        if _out:
+            # APPEND TO `out`, never print-and-exit. deny() ACCUMULATES — it does not
+            # exit — and shape_problems RETURNS its findings to two call sites. A block
+            # that printed and exited here would pre-empt the line-budget finding above
+            # and bypass the accumulator both callers read. Found by the suite: the
+            # 301-line case reported a schema denial instead of its budget denial.
+            #
+            # ONE ROUTING SENTENCE PER FINDING, which is why this does not call deny():
+            # deny() appends the module-level ROUTING constant, speaking about STATE.md,
+            # digests and notes/ — a different sentence from the schema's own redirection
+            # line, which also names plan.yaml approval.rulings. Two routing sentences in
+            # one stderr stream contradict each other about the same file class. The
+            # line-budget finding above keeps deny() and therefore keeps ROUTING: it is
+            # not a schema finding and its advice is still right.
+            out.append(_head("feature execution-state schema."))
+            out.extend(f"  {_l}" for _l in _out)
 
     if RE_STATE_YAML.match(rel):
         # DEC-154/160: the run checkpoint carries only whitelisted top-level keys.
@@ -964,7 +1043,7 @@ def shape_problems(rel, content, display=None):
     if RE_CLAUDE_MD.match(rel):
         # ISSUE #139. CLAUDE.md is read at EVERY session start — the widest blast radius in
         # the repo — and was the only file of its class with no mechanical budget. Its peers
-        # all have one: expertise 150, feature.yaml 200/20, handoff 60, STATE.md 120.
+        # all have one: expertise 150, feature.json 300, handoff 60, STATE.md 120.
         #
         # 80 IS DERIVED, NOT PICKED, and the ticket asked for exactly that. Measured from
         # this file's own history, WHICH STARTS AT A CLEANUP: it was 208-214 lines from

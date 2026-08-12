@@ -25,7 +25,7 @@ orchestrator:
   skill: .claude/skills/harness/SKILL.md   # the playbook it runs
   color: blue
   domain:
-    - { path: .harness/features/**, upsert: true }   # its feature's STATE.md, feature.yaml, runs/
+    - { path: .harness/features/**, upsert: true }   # its feature's STATE.md, feature.json, runs/
     - { path: .harness/features/*/notes/answers-*.md, upsert: true }
     - { path: .harness/features/*/notes/ship-review-*.md, upsert: true }   # the briefing
     - { path: .harness/expertise/harness-orchestrator.md, upsert: true }

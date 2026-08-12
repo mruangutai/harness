@@ -176,6 +176,13 @@ def write_yaml(path, data):
     return path
 
 
+def write_json(path, data):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+    return path
+
+
 def board_item(item_id, num, repo_owner_name, repo_url=None, title=None):
     """The REAL measured shape (T-05's intent): `repository` holds the URL form of the SAME
     repository `content.repository` holds in owner/name form. The fleet lists repositories in
@@ -228,13 +235,28 @@ def build_features_root():
     """One shared fixture tree, built once. FEAT-01-demo carries a single unblocked task and
     backs every case that is not about the blocker gate. FEAT-02-block backs the seven SC-22
     cases: T-05 (single blocker), T-06 (three blockers, MIXED), T-09 (clear), T-10 (unresolvable
-    blocker naming T-99, which feature.yaml never maps)."""
+    blocker naming T-99, which feature.json never maps)."""
     root = tempfile.mkdtemp(prefix="claim-features-")
 
     demo = os.path.join(root, "FEAT-01-demo")
     write_yaml(os.path.join(demo, "plan.yaml"),
                plan_dict("FEAT-01-demo", [task_dict("T-01")]))
-    write_yaml(os.path.join(demo, "feature.yaml"), {"factory": {"issues": {"T-01": 501}}})
+    # An eleven-key feature.json fixture, read end to end by issue_number below — not just a
+    # bare `factory` key — so this case doubles as T-05's (FEAT-14) required eleven-key case.
+    write_json(os.path.join(demo, "feature.json"), {
+        "feature_id": "FEAT-01-demo",
+        "branch": "none",
+        "pr": None,
+        "status": "Building",
+        "review_sha": "none",
+        "cycles_used": 0,
+        "max_total_cycles": 10,
+        "max_total_runs": 20,
+        "runs": [],
+        "github": {"milestone": None, "parent": None, "parent_origin": None,
+                   "attached": [], "issues": {}},
+        "factory": {"issues": {"T-01": 501}},
+    })
 
     block = os.path.join(root, "FEAT-02-block")
     write_yaml(os.path.join(block, "plan.yaml"), plan_dict("FEAT-02-block", [
@@ -243,7 +265,7 @@ def build_features_root():
         task_dict("T-09"),
         task_dict("T-10", depends_on=["T-99"]),
     ]))
-    write_yaml(os.path.join(block, "feature.yaml"), {
+    write_json(os.path.join(block, "feature.json"), {
         "factory": {"issues": {"T-02": 601, "T-03": 602, "T-04": 603}},
     })
 

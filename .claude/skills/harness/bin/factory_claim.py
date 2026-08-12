@@ -17,7 +17,7 @@ THE BLOCKER GATE (DESIGN.md C-2's amendment, D-01 as amended 2026-08-08) sits af
 self-ownership branch and before `create_ref`: a candidate whose plan dependencies are unfinished
 is never claimed, but a candidate this agent already owns is never re-gated. The DAG authority is
 `plan.yaml`'s `depends_on` — read-only, never GitHub's rendered `blocked_by` edge — resolved to an
-issue number through that feature's `feature.yaml` `factory.issues` map, and finished-ness is
+issue number through that feature's `feature.json` `factory.issues` map, and finished-ness is
 that issue's state. An issue with no resolvable `feature:` label has no plan task and is not
 gated at all (D-09's tolerant read); a `feature:` label that resolves but whose title yields no
 matching plan task is edge (i) and counts as blocked.
@@ -85,7 +85,7 @@ def _repo_name_of(item):
 
 
 class _BlockerCache:
-    """Caches each feature's plan.yaml and feature.yaml so a single poll reads each file once —
+    """Caches each feature's plan.yaml and feature.json so a single poll reads each file once —
     the cost model is per-blocker `issue_view` reads, not per-file reads (DESIGN.md C-2
     amendment)."""
 
@@ -113,10 +113,10 @@ class _BlockerCache:
         return None
 
     def issue_number(self, feature, task_id):
-        """The blocker's issue number from that feature's feature.yaml `factory.issues` map, or
+        """The blocker's issue number from that feature's feature.json `factory.issues` map, or
         None when it is unresolvable."""
         if feature not in self._issue_maps:
-            path = os.path.join(self._features_root, feature, "feature.yaml")
+            path = os.path.join(self._features_root, feature, "feature.json")
             try:
                 doc = harness_yaml.load_file(path)
             except harness_yaml.YamlParseError:
@@ -133,7 +133,7 @@ class _BlockerCache:
 def _blocker_gate(cache, repo, feature, task_id):
     """Return None when the candidate is clear, or a tuple describing why it is blocked:
     ("edge_i", task_id) — the feature resolves but the title yields no matching plan task;
-    ("unresolvable", dep) — a depends_on entry has no feature.yaml issue-map entry;
+    ("unresolvable", dep) — a depends_on entry has no feature.json issue-map entry;
     ("open", dep, blocker_num) — the LAST depends_on entry (in order) whose blocker issue is
     still open — scanning every entry, never stopping at the first, is what MIXED BLOCKER SET
     requires (T-05 intent, SC-22)."""
@@ -169,7 +169,7 @@ def _blocker_reason_text(gate, num):
     if kind == "unresolvable":
         dep = gate[1]
         return (
-            f"issue #{num} depends_on {dep}, which has no recorded issue in feature.yaml "
+            f"issue #{num} depends_on {dep}, which has no recorded issue in feature.json "
             f"(unresolvable blocker)"
         )
     dep, blocker_num = gate[1], gate[2]

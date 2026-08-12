@@ -1,0 +1,46 @@
+{
+  "feature_id": "FEAT-05-pyyaml-file-parsers",
+  "branch": "worktree-fix-harness-tooling-backlog",
+  "pr": null,
+  "status": "Done",
+  "review_sha": "f0a3831",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "2026-08-02-01-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-02-02-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-02-03-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-03-01-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-03-04-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-03-05-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    }
+  ],
+  "github": {
+    "milestone": null,
+    "parent": null,
+    "issues": {}
+  }
+}

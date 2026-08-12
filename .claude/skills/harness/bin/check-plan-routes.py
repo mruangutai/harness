@@ -235,7 +235,7 @@ def process_task(tid, body, findings):
 #
 # PER TASK, NOT PER FILE, and that asymmetry against every peer budget is deliberate. A
 # plan is a LIST — its length tracks how many tasks a feature has, not how much fat it
-# carries. feature.yaml (200), STATE.md (120), handoff (60) and CLAUDE.md (80) all govern
+# carries. feature.json (300), STATE.md (120), handoff (60) and CLAUDE.md (80) all govern
 # files whose content does not grow with task count. A flat cap here would be a cap on how
 # many tasks a feature may have, which is a scoping decision wearing a budget's clothes.
 # DERIVED PER TASK, and the first draft was not. That draft said 30, justified as "~12%
@@ -383,14 +383,20 @@ def process_plan(path, findings):
     return violations
 
 
-SHIPPED_STATUSES = ("shipped", "abandoned")
+# The six board columns collapse to exactly one finished state (D-09/D-10: "shipped" and
+# "abandoned" both absorb into Done), so there is exactly one member here. A ONE-ELEMENT
+# TUPLE IS CORRECT AND IS NOT A CODE SMELL — the tuple shape is kept over a bare string only
+# so a future value could join it without changing the comparison below. Do NOT add
+# "shipped" or "abandoned" back as aliases — that would be the old-to-new mapping layer
+# D-09 forbids.
+FINISHED_STATUSES = ("Done",)
 
 
 def _is_shipped(feature_dir):
     """True when this feature's work is delivered and its plan is a record, not a contract.
 
-    Reads `feature.yaml`'s `status:` with the real loader. An unreadable or absent
-    feature.yaml means NOT shipped — a feature we cannot classify is checked rather than
+    Reads `feature.json`'s `status:` with the real loader. An unreadable or absent
+    feature.json means NOT finished — a feature we cannot classify is checked rather than
     skipped, because the failure that matters is a live plan going unexamined, not an old
     one being examined twice.
 
@@ -407,7 +413,7 @@ def _is_shipped(feature_dir):
     one shape: a crash exits 1, and 1 is already spoken for. check-state.sh:160-168 is the
     model — `isinstance(doc, dict)` is checked before anything reads a key off it.
     """
-    fy = os.path.join(feature_dir, "feature.yaml")
+    fy = os.path.join(feature_dir, "feature.json")
     if not os.path.isfile(fy):
         return False
     try:
@@ -419,12 +425,13 @@ def _is_shipped(feature_dir):
     # non-empty list is truthy — it would survive `or {}` and then fail on `.get`.
     if not isinstance(doc, dict):
         return False
-    # `status: shipped  # with a trailing comment` is the live corpus's shape (FEAT-02,
+    # `status: Done  # with a trailing comment` is the live corpus's shape (FEAT-02,
     # FEAT-03, FEAT-04, FEAT-05 all carry one), so take the first whitespace-delimited
     # token. A status that is a list or a mapping stringifies to something that is not in
-    # SHIPPED_STATUSES, which is the fail-CHECKED direction.
+    # FINISHED_STATUSES, which is the fail-CHECKED direction. D-11 makes this comparison
+    # case sensitive — "done" is not "Done" and stays checked.
     token = str(doc.get("status", "")).split()
-    return bool(token) and token[0] in SHIPPED_STATUSES
+    return bool(token) and token[0] in FINISHED_STATUSES
 
 
 def discover_plans():
@@ -556,7 +563,7 @@ def discover_plans():
             #
             # `status:` is a BORROWED SIGNAL and the honest name for it is era. It means
             # "how far along is this feature", not "which format does it use". It is the
-            # only marker on disk — no feature.yaml carries schema_version — so it is used
+            # only marker on disk — no feature.json carries schema_version — so it is used
             # deliberately rather than a new field being invented for one transition.
             if _is_shipped(entry.path):
                 continue

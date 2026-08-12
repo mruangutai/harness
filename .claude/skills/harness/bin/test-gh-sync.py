@@ -92,9 +92,23 @@ status: approved
 - change_type: bugfix
 - traces: SC-01
 """)
-    open(os.path.join(feat, "feature.yaml"), "w").write(
-        f"feature_id: {feat_name}\nstatus: in_progress\n")
+    write_feature_json(os.path.join(feat, "feature.json"), feature_id=feat_name)
     return feat
+
+
+def write_feature_json(path, **fields):
+    """Write a minimal feature.json fixture. `feature_id` and `status` default; any keyword
+    (including `github`) overrides or adds a top-level key."""
+    doc = {"feature_id": fields.pop("feature_id", "FEAT-05-export-fix"),
+           "status": fields.pop("status", "Building")}
+    doc.update(fields)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, indent=2)
+
+
+def read_feature_json(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def run(args, tmp, env_extra=None):
@@ -220,10 +234,12 @@ with tempfile.TemporaryDirectory() as tmp:
     check("T-02 labeled chore (ci)", any("T-02" in l and "--label chore" in l for l in create_lines))
     check("T-03 labeled bug (bugfix)", any("T-03" in l and "--label bug" in l for l in create_lines))
     check("absorbs cited in T-01 body", any("T-01" in l and "absorbs: #12, #14" in l for l in create_lines))
-    fy = open(os.path.join(feat, "feature.yaml")).read()
-    check("issue numbers recorded in feature.yaml",
-          "milestone: 7" in fy and re.search(r"T-01: 4\d", fy), fy)
-    check("created parent records origin created", "parent_origin: created" in fy, fy)
+    doc = read_feature_json(os.path.join(feat, "feature.json"))
+    gh = doc.get("github") or {}
+    check("issue numbers recorded in feature.json",
+          gh.get("milestone") == 7
+          and re.match(r"^4\d$", str((gh.get("issues") or {}).get("T-01"))), doc)
+    check("created parent records origin created", gh.get("parent_origin") == "created", doc)
 
     attach_lines = [l for l in log if "sub_issues -F sub_issue_id=" in l]
     check("three sub-issues attached to the parent", len(attach_lines) == 3, str(attach_lines))
@@ -237,7 +253,7 @@ with tempfile.TemporaryDirectory() as tmp:
               < log.index([l for l in log if "issue create" in l][0]),
           str(log[:6]))
     ms_idx = log.index([l for l in log if "milestones -f" in l or ("milestones" in l and "POST" in l)][0])
-    # feature.yaml already carried the milestone before the last issue was created:
+    # feature.json already carried the milestone before the last issue was created:
     # asserted indirectly — the recorded map exists even though save happens per-create.
 
     # --- idempotency: rerun creates nothing new (issues, milestones, AND attaches)
@@ -303,10 +319,11 @@ with tempfile.TemporaryDirectory() as tmp3:
     r = run(["open", feat3, "--parent", "55"], tmp3)
     log3 = calls(tmp3)
     parent_creates3 = [l for l in log3 if "issue create" in l and not re.search(r"\bT-0\d\b", l)]
-    fy3 = open(os.path.join(feat3, "feature.yaml")).read()
+    doc3 = read_feature_json(os.path.join(feat3, "feature.json"))
+    gh3 = doc3.get("github") or {}
     check("--parent adopts",
-          r.returncode == 0 and len(parent_creates3) == 0 and "parent: 55" in fy3, fy3)
-    check("adopted parent records origin adopted", "parent_origin: adopted" in fy3, fy3)
+          r.returncode == 0 and len(parent_creates3) == 0 and gh3.get("parent") == 55, doc3)
+    check("adopted parent records origin adopted", gh3.get("parent_origin") == "adopted", doc3)
 
 # --- crash resume: recorded-but-unattached task is attached, not re-created;
 #     and the pre-existing parent + its origin survive every per-task save
@@ -315,15 +332,11 @@ with tempfile.TemporaryDirectory() as tmp4:
     feat4 = stage(tmp4)
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmp4, ".harness", "harness.json"), "w"))
-    open(os.path.join(feat4, "feature.yaml"), "w").write(
-        "feature_id: FEAT-05-export-fix\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: 40\n"
-        "  parent_origin: created\n"
-        "  attached: []\n"
-        "  issues:\n"
-        "    T-01: 999\n"
+    write_feature_json(
+        os.path.join(feat4, "feature.json"),
+        feature_id="FEAT-05-export-fix",
+        github={"milestone": 7, "parent": 40, "parent_origin": "created", "attached": [],
+                "issues": {"T-01": 999}},
     )
     r = run(["open", feat4], tmp4)
     log4 = calls(tmp4)
@@ -332,12 +345,15 @@ with tempfile.TemporaryDirectory() as tmp4:
           and not any("issue create" in l and "T-01" in l for l in log4)
           and sum(1 for l in log4 if "sub_issue_id=9000999" in l) == 1,
           str(log4))
-    fy4 = open(os.path.join(feat4, "feature.yaml")).read()
+    doc4 = read_feature_json(os.path.join(feat4, "feature.json"))
+    gh4 = doc4.get("github") or {}
+    issues4 = gh4.get("issues") or {}
     check("pre-existing parent survives per-task saves",
-          "parent: 40" in fy4 and re.search(r"T-01:\s*999", fy4)
-          and re.search(r"T-02:\s*4\d", fy4) and re.search(r"T-03:\s*4\d", fy4),
-          fy4)
-    check("parent_origin survives per-task saves", "parent_origin: created" in fy4, fy4)
+          gh4.get("parent") == 40 and issues4.get("T-01") == 999
+          and re.match(r"^4\d$", str(issues4.get("T-02")))
+          and re.match(r"^4\d$", str(issues4.get("T-03"))),
+          doc4)
+    check("parent_origin survives per-task saves", gh4.get("parent_origin") == "created", doc4)
 
 # --- a phrase containing its own em-dash is taken whole, not truncated at the second one
 with tempfile.TemporaryDirectory() as tmp5:
@@ -361,11 +377,12 @@ with tempfile.TemporaryDirectory() as tmp6:
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmp6, ".harness", "harness.json"), "w"))
     r = run(["open", feat6], tmp6)
-    fy6 = open(os.path.join(feat6, "feature.yaml")).read()
+    doc6 = read_feature_json(os.path.join(feat6, "feature.json"))
+    gh6 = doc6.get("github") or {}
     check("failed attach is a SKIP, exit 0, for the new subcommand too (SC-12)",
           r.returncode == 0 and "SKIP" in r.stdout, r.stdout)
     check("issue recorded before the failed attach survives the crash",
-          re.search(r"T-01:\s*4\d", fy6) is not None, fy6)
+          re.match(r"^4\d$", str((gh6.get("issues") or {}).get("T-01"))) is not None, doc6)
 
 # --- abandon: adopted parent stays open, subs + milestone close not_planned/closed
 with tempfile.TemporaryDirectory() as tmpA:
@@ -373,17 +390,12 @@ with tempfile.TemporaryDirectory() as tmpA:
     featA = stage(tmpA, feat_name="FEAT-06-abandon-adopted")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpA, ".harness", "harness.json"), "w"))
-    open(os.path.join(featA, "feature.yaml"), "w").write(
-        "feature_id: FEAT-06-abandon-adopted\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: 40\n"
-        "  parent_origin: adopted\n"
-        "  attached: [T-01, T-02, T-03]\n"
-        "  issues:\n"
-        "    T-01: 41\n"
-        "    T-02: 42\n"
-        "    T-03: 43\n"
+    write_feature_json(
+        os.path.join(featA, "feature.json"),
+        feature_id="FEAT-06-abandon-adopted",
+        github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
+                "attached": ["T-01", "T-02", "T-03"],
+                "issues": {"T-01": 41, "T-02": 42, "T-03": 43}},
     )
     reasonA = os.path.join(tmpA, "reason.txt")
     open(reasonA, "w").write("budget cut — deprioritized this quarter")
@@ -411,15 +423,11 @@ with tempfile.TemporaryDirectory() as tmpB:
     featB = stage(tmpB, feat_name="FEAT-06-abandon-created")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpB, ".harness", "harness.json"), "w"))
-    open(os.path.join(featB, "feature.yaml"), "w").write(
-        "feature_id: FEAT-06-abandon-created\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: 40\n"
-        "  parent_origin: created\n"
-        "  attached: [T-01]\n"
-        "  issues:\n"
-        "    T-01: 41\n"
+    write_feature_json(
+        os.path.join(featB, "feature.json"),
+        feature_id="FEAT-06-abandon-created",
+        github={"milestone": 7, "parent": 40, "parent_origin": "created",
+                "attached": ["T-01"], "issues": {"T-01": 41}},
     )
     reasonB = os.path.join(tmpB, "reason.txt")
     open(reasonB, "w").write("cutting this")
@@ -440,26 +448,23 @@ with tempfile.TemporaryDirectory() as tmpC:
     featC = stage(tmpC, feat_name="FEAT-06-abandon-noorigin")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpC, ".harness", "harness.json"), "w"))
-    open(os.path.join(featC, "feature.yaml"), "w").write(
-        "feature_id: FEAT-06-abandon-noorigin\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: 40\n"
-        "  attached: [T-01]\n"
-        "  issues:\n"
-        "    T-01: 41\n"
+    write_feature_json(
+        os.path.join(featC, "feature.json"),
+        feature_id="FEAT-06-abandon-noorigin",
+        github={"milestone": 7, "parent": 40, "attached": ["T-01"], "issues": {"T-01": 41}},
     )
     reasonC = os.path.join(tmpC, "reason.txt")
     open(reasonC, "w").write("cutting this too")
     r = run(["abandon", featC, "--reason-file", reasonC], tmpC)
     logC = calls(tmpC)
-    fyC = open(os.path.join(featC, "feature.yaml")).read()
+    docC = read_feature_json(os.path.join(featC, "feature.json"))
+    ghC = docC.get("github") or {}
     check("abandon leaves a parent with no recorded origin open",
           r.returncode == 0
           and not any(re.search(r"\bissues/40\b", l) for l in logC)
           and not any(l.startswith("issue close 40") for l in logC)
-          and "parent_origin" not in fyC,
-          str(logC) + " | " + fyC)
+          and "parent_origin" not in ghC,
+          str(logC) + " | " + str(docC))
 
 # --- abandon: caller errors on a bad or missing --reason-file
 with tempfile.TemporaryDirectory() as tmpD:
@@ -467,14 +472,10 @@ with tempfile.TemporaryDirectory() as tmpD:
     featD = stage(tmpD, feat_name="FEAT-06-abandon-badfile")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpD, ".harness", "harness.json"), "w"))
-    open(os.path.join(featD, "feature.yaml"), "w").write(
-        "feature_id: FEAT-06-abandon-badfile\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: none\n"
-        "  attached: []\n"
-        "  issues:\n"
-        "    T-01: 41\n"
+    write_feature_json(
+        os.path.join(featD, "feature.json"),
+        feature_id="FEAT-06-abandon-badfile",
+        github={"milestone": 7, "parent": None, "attached": [], "issues": {"T-01": 41}},
     )
     r = run(["abandon", featD], tmpD)
     check("abandon without --reason-file exits 1", r.returncode == 1, r.stdout)
@@ -523,14 +524,10 @@ with tempfile.TemporaryDirectory() as tmpE:
     featE = stage(tmpE, feat_name="FEAT-06-abandon-nomilestone")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpE, ".harness", "harness.json"), "w"))
-    open(os.path.join(featE, "feature.yaml"), "w").write(
-        "feature_id: FEAT-06-abandon-nomilestone\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: none\n"
-        "  parent: none\n"
-        "  attached: []\n"
-        "  issues:\n"
-        "    T-01: 41\n"
+    write_feature_json(
+        os.path.join(featE, "feature.json"),
+        feature_id="FEAT-06-abandon-nomilestone",
+        github={"milestone": None, "parent": None, "attached": [], "issues": {"T-01": 41}},
     )
     reasonE = os.path.join(tmpE, "reason.txt")
     open(reasonE, "w").write("no milestone was ever recorded")
@@ -558,15 +555,11 @@ with tempfile.TemporaryDirectory() as tmpG:
     featG = stage(tmpG, feat_name="FEAT-07-ship-created")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpG, ".harness", "harness.json"), "w"))
-    open(os.path.join(featG, "feature.yaml"), "w").write(
-        "feature_id: FEAT-07-ship-created\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: 40\n"
-        "  parent_origin: created\n"
-        "  attached: [T-01]\n"
-        "  issues:\n"
-        "    T-01: 41\n"
+    write_feature_json(
+        os.path.join(featG, "feature.json"),
+        feature_id="FEAT-07-ship-created",
+        github={"milestone": 7, "parent": 40, "parent_origin": "created",
+                "attached": ["T-01"], "issues": {"T-01": 41}},
     )
     r = run(["ship", featG], tmpG)
     logG = calls(tmpG)
@@ -587,15 +580,11 @@ with tempfile.TemporaryDirectory() as tmpH:
     featH = stage(tmpH, feat_name="FEAT-07-ship-adopted")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpH, ".harness", "harness.json"), "w"))
-    open(os.path.join(featH, "feature.yaml"), "w").write(
-        "feature_id: FEAT-07-ship-adopted\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: 40\n"
-        "  parent_origin: adopted\n"
-        "  attached: [T-01]\n"
-        "  issues:\n"
-        "    T-01: 41\n"
+    write_feature_json(
+        os.path.join(featH, "feature.json"),
+        feature_id="FEAT-07-ship-adopted",
+        github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
+                "attached": ["T-01"], "issues": {"T-01": 41}},
     )
     r = run(["ship", featH], tmpH)
     logH = calls(tmpH)
@@ -614,25 +603,22 @@ with tempfile.TemporaryDirectory() as tmpI:
     featI = stage(tmpI, feat_name="FEAT-07-ship-noorigin")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpI, ".harness", "harness.json"), "w"))
-    open(os.path.join(featI, "feature.yaml"), "w").write(
-        "feature_id: FEAT-07-ship-noorigin\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: 40\n"
-        "  attached: [T-01]\n"
-        "  issues:\n"
-        "    T-01: 41\n"
+    write_feature_json(
+        os.path.join(featI, "feature.json"),
+        feature_id="FEAT-07-ship-noorigin",
+        github={"milestone": 7, "parent": 40, "attached": ["T-01"], "issues": {"T-01": 41}},
     )
     r = run(["ship", featI], tmpI)
     logI = calls(tmpI)
-    fyI = open(os.path.join(featI, "feature.yaml")).read()
+    docI = read_feature_json(os.path.join(featI, "feature.json"))
+    ghI = docI.get("github") or {}
     check("ship leaves a parent with no recorded origin open",
           r.returncode == 0
           and not any(l.startswith("issue close 40") for l in logI)
           and not any(re.search(r"\bissues/40\b", l) for l in logI)
           and any("milestones/7" in l and "state=closed" in l for l in logI)
-          and "parent_origin" not in fyI,
-          str(logI) + " | " + fyI)
+          and "parent_origin" not in ghI,
+          str(logI) + " | " + str(docI))
 
 # --- ship --body-file posts once, on an adopted parent, so the UNCONDITIONALITY of the
 #     comment (vs. the conditional close) is what is being checked
@@ -641,15 +627,11 @@ with tempfile.TemporaryDirectory() as tmpJ:
     featJ = stage(tmpJ, feat_name="FEAT-07-ship-bodyfile")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpJ, ".harness", "harness.json"), "w"))
-    open(os.path.join(featJ, "feature.yaml"), "w").write(
-        "feature_id: FEAT-07-ship-bodyfile\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: 40\n"
-        "  parent_origin: adopted\n"
-        "  attached: [T-01]\n"
-        "  issues:\n"
-        "    T-01: 41\n"
+    write_feature_json(
+        os.path.join(featJ, "feature.json"),
+        feature_id="FEAT-07-ship-bodyfile",
+        github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
+                "attached": ["T-01"], "issues": {"T-01": 41}},
     )
     bodyJ = os.path.join(tmpJ, "body.txt")
     open(bodyJ, "w").write("ship review notes, signed")
@@ -667,15 +649,11 @@ with tempfile.TemporaryDirectory() as tmpK:
     featK = stage(tmpK, feat_name="FEAT-07-ship-nobodyfile")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpK, ".harness", "harness.json"), "w"))
-    open(os.path.join(featK, "feature.yaml"), "w").write(
-        "feature_id: FEAT-07-ship-nobodyfile\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: 40\n"
-        "  parent_origin: adopted\n"
-        "  attached: [T-01]\n"
-        "  issues:\n"
-        "    T-01: 41\n"
+    write_feature_json(
+        os.path.join(featK, "feature.json"),
+        feature_id="FEAT-07-ship-nobodyfile",
+        github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
+                "attached": ["T-01"], "issues": {"T-01": 41}},
     )
     r = run(["ship", featK], tmpK)
     logK = calls(tmpK)
@@ -689,15 +667,11 @@ with tempfile.TemporaryDirectory() as tmpL:
     featL = stage(tmpL, feat_name="FEAT-07-ship-emptybodyfile")
     json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
               open(os.path.join(tmpL, ".harness", "harness.json"), "w"))
-    open(os.path.join(featL, "feature.yaml"), "w").write(
-        "feature_id: FEAT-07-ship-emptybodyfile\nstatus: in_progress\n"
-        "github:\n"
-        "  milestone: 7\n"
-        "  parent: 40\n"
-        "  parent_origin: adopted\n"
-        "  attached: [T-01]\n"
-        "  issues:\n"
-        "    T-01: 41\n"
+    write_feature_json(
+        os.path.join(featL, "feature.json"),
+        feature_id="FEAT-07-ship-emptybodyfile",
+        github={"milestone": 7, "parent": 40, "parent_origin": "adopted",
+                "attached": ["T-01"], "issues": {"T-01": 41}},
     )
     emptyL = os.path.join(tmpL, "empty.txt")
     open(emptyL, "w").close()
@@ -707,11 +681,46 @@ with tempfile.TemporaryDirectory() as tmpL:
           r.returncode == 1 and all(l.startswith("auth") for l in logL),
           str(logL))
 
+# --- T-05 (FEAT-14): `open` against a genuine eleven-key feature.json, end to end through the
+#     real subcommand (not a direct save_recorded call) — every key outside `github` survives
+with tempfile.TemporaryDirectory() as tmpM:
+    install_gh(tmpM)
+    featM = stage(tmpM, feat_name="FEAT-08-eleven-key")
+    write_feature_json(
+        os.path.join(featM, "feature.json"),
+        feature_id="FEAT-08-eleven-key",
+        branch="feat/08-eleven-key",
+        pr=None,
+        status="Plan",
+        review_sha="none",
+        cycles_used=0,
+        max_total_cycles=10,
+        max_total_runs=20,
+        runs=[],
+    )
+    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+              open(os.path.join(tmpM, ".harness", "harness.json"), "w"))
+    r = run(["open", featM], tmpM)
+    docM = read_feature_json(os.path.join(featM, "feature.json"))
+    check("(eleven-key) open exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("(eleven-key) every non-github key survives untouched",
+          docM.get("branch") == "feat/08-eleven-key" and docM.get("pr") is None
+          and docM.get("status") == "Plan" and docM.get("review_sha") == "none"
+          and docM.get("cycles_used") == 0 and docM.get("max_total_cycles") == 10
+          and docM.get("max_total_runs") == 20 and docM.get("runs") == [],
+          docM)
+    check("(eleven-key) a github block was written", "github" in docM, docM)
+
 # ---------- T-06 Part C: load_recorded reads the github: block with a PARSER ----------
 # Mandated by the plan and never written; found MISSING by the review panel (F-04) and
 # confirmed by grep before being fixed here. Both cases are read-only — they call the
 # function directly rather than driving a subcommand, because what is under test is the
 # PARSE, not the GitHub calls.
+#
+# FEAT-14 fix1 (B-5) converged feature.json's reader on json.load, so the two fixtures
+# below now carry JSON, not YAML-with-comments — JSON has no comments, so the old
+# comment-tolerance assertion is retired by design, not lost as a regression. What still
+# means something (a QUOTED "7" milestone routing through _opt_int) is kept.
 
 import importlib.util as _ilu
 _spec = _ilu.spec_from_file_location(
@@ -719,64 +728,162 @@ _spec = _ilu.spec_from_file_location(
 _ghs = _ilu.module_from_spec(_spec)
 _spec.loader.exec_module(_ghs)
 
-# 1. A trailing `#` comment on parent: and milestone: — the issue #11 defect class, in
-#    THIS file. The old regexes were `(\d+)`-anchored, so a commented value still
-#    matched; a QUOTED one did not. Both shapes are asserted so the case cannot pass by
-#    accident on the easy half.
+# 1. A populated github: block, including a QUOTED milestone number — _opt_int must still
+#    coerce it. This is row 3 of the fix1 spec's table: "file present with a github
+#    mapping -> load it, as today".
 _d1 = tempfile.mkdtemp()
-open(os.path.join(_d1, "feature.yaml"), "w").write(
-    "feature_id: F1\n"
-    "github:\n"
-    "  parent: 40        # the container issue, adopted\n"
-    '  milestone: "7"    # quoted on purpose\n'
-    "  parent_origin: adopted\n"
-    "  attached: [T-01]\n"
-    "  issues:\n"
-    "    T-01: 41   # trailing comment here too\n"
-)
+json.dump({
+    "feature_id": "F1",
+    "github": {
+        "parent": 40,
+        "milestone": "7",
+        "parent_origin": "adopted",
+        "attached": ["T-01"],
+        "issues": {"T-01": 41},
+    },
+}, open(os.path.join(_d1, "feature.json"), "w"))
 _rec = _ghs.load_recorded(_d1)
-check("T-06C: a trailing # comment on parent:/milestone:/issues does not lose the value",
+check("T-06C: a populated github: block loads, quoted milestone coerced by _opt_int",
       _rec["parent"] == 40 and _rec["milestone"] == 7
       and _rec["issues"] == {"T-01": 41} and _rec["attached"] == ["T-01"],
       str(_rec))
 
 # 2. No github: block at all -> the all-None default, never a raise. gh-sync would
 #    otherwise crash on any feature that has not been mirrored yet, which is most of
-#    them.
+#    them. This is row 1 of the fix1 spec's table: file present, no github key -> a
+#    legitimate first sync.
 _d2 = tempfile.mkdtemp()
-open(os.path.join(_d2, "feature.yaml"), "w").write("feature_id: F2\nphase: plan\n")
+json.dump({"feature_id": "F2"}, open(os.path.join(_d2, "feature.json"), "w"))
 _rec2 = _ghs.load_recorded(_d2)
-check("T-06C: a feature.yaml with no github: block returns the default, does not raise",
+check("T-06C: a feature.json with no github: block returns the default, does not raise",
       _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
                 "attached": [], "issues": {}},
       str(_rec2))
 
-# ---------- review finding 2: save_recorded must not append a SECOND github: block ----------
-# The old `^github:\s*$...` regex missed `github:   # comment` — this repo's own house
-# style — so nothing was stripped and a second top-level key was appended. The strict
-# loader then raised DuplicateKeyError and load_recorded turned it into SystemExit, so
-# every later gh-sync died with "does not parse". Severe because save_recorded runs
-# IMMEDIATELY AFTER an irreversible GitHub mutation (DEC-131), so the record that rule
-# exists to preserve became unreadable.
+# ---------- fix1 Part B: three states must stay distinct, plus the fourth the operator's
+# table did not enumerate. Collapse row 1 (legitimate first sync) into row 2 (error) and
+# the first sync of every new feature is blocked forever; collapse row 2 into row 1 and
+# the zero-byte-truncation bug (the defect this whole fix cycle exists for) is rebuilt.
+# Every SystemExit case is asserted on the message too, not just "it raised" — a
+# SystemExit from an unrelated crash would satisfy a bare pytest.raises just as well.
+
+# Row 1a: file ABSENT entirely -> default rec, never a raise (already covered by cmd_open's
+# happy path via stage(), asserted again here directly against load_recorded).
+_dabsent = tempfile.mkdtemp()
+_recAbsent = _ghs.load_recorded(_dabsent)
+check("fix1 B row1a: absent feature.json returns the default rec, does not raise",
+      _recAbsent == {"milestone": None, "parent": None, "parent_origin": None,
+                     "attached": [], "issues": {}},
+      str(_recAbsent))
+
+# Row 1b: file present, a dict, but NO github: key -> default rec (already _d2 above,
+# named here again for the fix1 spec's own enumeration).
+check("fix1 B row1b: dict present with no github key returns the default rec",
+      _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
+                "attached": [], "issues": {}},
+      str(_rec2))
+
+# Row 2: file present but a genuine ZERO-BYTE truncation -- the exact artifact
+# save_recorded's pre-fix `open(p, "w")` guaranteed at open. THIS is the live truncation
+# fixture the dispatch requires: a 0-byte record file must ERROR, not load as empty.
+_dzero = tempfile.mkdtemp()
+open(os.path.join(_dzero, "feature.json"), "w").close()
+check("fix1 B row2: 0 bytes on disk",
+      os.path.getsize(os.path.join(_dzero, "feature.json")) == 0, "fixture setup")
+try:
+    _ghs.load_recorded(_dzero)
+    check("fix1 B row2: a 0-byte feature.json raises SystemExit, never loads as empty",
+          False, "load_recorded returned instead of raising")
+except SystemExit as e:
+    check("fix1 B row2: a 0-byte feature.json raises SystemExit, never loads as empty",
+          "does not parse" in str(e) or "cannot be known" in str(e), str(e))
+
+# Row 2 (non-mapping document): a JSON document that parses fine but is not a mapping —
+# a bare list or a bare scalar. Same bug shape as the zero-byte case: `.get` would not
+# exist on either, so a naive fix could still fail OPEN by returning the default rec.
+for _label, _body in (("a_list", "[1, 2]\n"), ("a_scalar", '"just a string"\n')):
+    _dnm = tempfile.mkdtemp()
+    open(os.path.join(_dnm, "feature.json"), "w").write(_body)
+    try:
+        _ghs.load_recorded(_dnm)
+        check(f"fix1 B row2 ({_label}): a non-mapping document raises SystemExit", False,
+              "load_recorded returned instead of raising")
+    except SystemExit as e:
+        check(f"fix1 B row2 ({_label}): a non-mapping document raises SystemExit",
+              "does not parse" in str(e) or "cannot be known" in str(e)
+              or "not a mapping" in str(e) or "mapping" in str(e),
+              str(e))
+
+# Row 4 (the operator's table does NOT enumerate this one): doc IS a dict, `github` IS
+# present, but is not itself a mapping (a string or a list). Treated as row 2 — loud
+# error — because the whole point is refusing to sync when what is mirrored cannot be
+# known. Pre-fix this silently returned the default rec at gh-sync.py:274-276.
+for _label, _github_val in (("a_string", "not-a-mapping"), ("a_list", ["T-01", 41])):
+    _dgh = tempfile.mkdtemp()
+    json.dump({"feature_id": "F-row4", "github": _github_val},
+              open(os.path.join(_dgh, "feature.json"), "w"))
+    try:
+        _ghs.load_recorded(_dgh)
+        check(f"fix1 B row4 (github={_label}): a non-mapping github: value raises "
+              f"SystemExit", False, "load_recorded returned instead of raising")
+    except SystemExit as e:
+        check(f"fix1 B row4 (github={_label}): a non-mapping github: value raises "
+              f"SystemExit", len(str(e)) > 0, str(e))
+
+# ---------- fix1 Part A: save_recorded must be ATOMIC — feature.json is never observable
+# in a partial or empty state. Proven by forcing json.dump to fail PARTWAY through the
+# write, with a real pre-existing file on disk: a truncating `open(p, "w")` has already
+# destroyed the original bytes by the time json.dump raises; os.replace has not.
+_datomic = tempfile.mkdtemp()
+_atomic_path = os.path.join(_datomic, "feature.json")
+_original_doc = {"feature_id": "F-atomic", "status": "Building"}
+json.dump(_original_doc, open(_atomic_path, "w"))
+with open(_atomic_path, "rb") as _f:
+    _original_bytes = _f.read()
+
+# A set() is not JSON-serializable — json.dump raises TypeError partway through encoding
+# the `github` value, after any truncating open() would already have destroyed the file.
+_bad_rec = {"milestone": 9, "parent": 40, "parent_origin": "created",
+            "attached": ["T-01"], "issues": {"T-01": {1, 2, 3}}}
+try:
+    _ghs.save_recorded(_datomic, _bad_rec)
+except (TypeError, Exception):
+    pass
+with open(_atomic_path, "rb") as _f:
+    _after_bytes = _f.read()
+check("fix1 A: a failed save_recorded leaves feature.json byte-identical, never truncated",
+      _after_bytes == _original_bytes,
+      f"before={_original_bytes!r} after={_after_bytes!r}")
+# No temp file left behind either — the except BaseException cleanup path.
+_leftover = [f for f in os.listdir(_datomic) if f != "feature.json"]
+check("fix1 A: no leftover temp file after a failed save_recorded", _leftover == [],
+      str(_leftover))
+
+# ---------- review finding 2: save_recorded is a JSON read-modify-write, so a duplicate
+# github: block is structurally impossible (a dict has one "github" key by construction) —
+# what matters now is that every key OUTSIDE github round-trips unchanged (T-05, FEAT-14). ----
 _REC = {"milestone": 9, "parent": 40, "parent_origin": "created",
         "attached": ["T-01"], "issues": {"T-01": 41}}
-for _label, _body in (
-        ("bare", "feature_id: F1\ngithub:\n  parent: 40\nphase: ship\n"),
-        ("trailing comment", "feature_id: F1\ngithub:   # the mirror\n  parent: 40\nphase: ship\n"),
-        ("column-0 comment inside", "feature_id: F1\ngithub:\n  parent: 40\n# note\n  milestone: 9\nphase: ship\n"),
-        ("no block at all", "feature_id: F1\nphase: ship\n")):
+for _label, _doc in (
+        ("no github block yet", {"feature_id": "F1", "status": "Building"}),
+        ("an existing github block",
+         {"feature_id": "F1", "status": "Building",
+          "github": {"milestone": 1, "parent": 2, "parent_origin": None, "attached": [],
+                     "issues": {}}}),
+        ("other keys present",
+         {"feature_id": "F1", "status": "Building", "review_sha": "abc1234",
+          "cycles_used": 3})):
     _d = tempfile.mkdtemp()
-    open(os.path.join(_d, "feature.yaml"), "w").write(_body)
+    with open(os.path.join(_d, "feature.json"), "w", encoding="utf-8") as f:
+        json.dump(_doc, f)
     _ghs.save_recorded(_d, _REC)
-    _txt = open(os.path.join(_d, "feature.yaml")).read()
-    _n = sum(1 for l in _txt.split("\n") if l.split("#", 1)[0].rstrip() == "github:")
-    try:
-        _rt = _ghs.load_recorded(_d)
-        _ok = _n == 1 and _rt["parent"] == 40 and _rt["milestone"] == 9
-        _why = f"{_n} github: keys, round-trip {_rt}"
-    except SystemExit as e:
-        _ok, _why = False, f"load_recorded refused after save: {e}"
-    check(f"finding 2: save_recorded round-trips a feature.yaml with a {_label}", _ok, _why)
+    with open(os.path.join(_d, "feature.json"), encoding="utf-8") as f:
+        _after = json.load(f)
+    _n = sum(1 for k in _after if k == "github")
+    _ok = (_n == 1 and _after["github"]["parent"] == 40 and _after["github"]["milestone"] == 9
+           and _after.get("feature_id") == "F1" and _after.get("status") == "Building")
+    check(f"finding 2: save_recorded round-trips a feature.json with {_label}", _ok,
+          f"{_n} github keys, result {_after}")
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

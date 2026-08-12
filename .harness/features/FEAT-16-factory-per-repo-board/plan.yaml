@@ -1,0 +1,869 @@
+schema: plan/1
+feature: FEAT-16-factory-per-repo-board
+
+approval:
+  status: approved
+  approved_by: operator
+  date: '2026-08-11'
+
+lanes:
+  resolved_at: a29ad06
+  rows:
+    - surface: .claude/skills/harness/bin/factory_*.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-*.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-no-distribution.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-check-domain.py
+      lane: team
+      agent: harness-backend-dev
+      reason: fixture-only edit, and check-domain.sh itself is never touched, so DEC-174 does not reach it
+    - surface: .harness/factory/fleet.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY for this path, so no agent may write it
+    - surface: .harness/features/FEAT-16-factory-per-repo-board/notes/board2-capture.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns harness-orchestrator for this path, but it is written
+        in the same direct step as fleet.yaml, as the evidence pointer SC-03 cites
+    - surface: docs/harness/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: docs/harness/SPEC.md
+      lane: team
+      agent: harness-documentor
+    - surface: docs/harness/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: The board block moves inside each repos entry, number and station_field and stations
+      together, and is REQUIRED on every entry. There is no fleet-level default, and after T-08 a
+      leftover top-level board key is REJECTED by load_fleet rather than ignored.
+    because: a default is exactly how this defect got in - kaya-ai inherited a board nobody chose for
+      it and nothing failed. load_fleet accepts unknown top-level keys silently today, so leaving the
+      old key merely unused would recreate the same silence one level up.
+    dec: none
+  - id: D-02
+    choice: stations stays with its board number in one block rather than remaining fleet-level.
+    because: station names are option names on a specific board, and identical names are not
+      identical options. Measured on 2026-08-11 by gh api graphql over each project's Status field,
+      board 2 and board 3 carry the SAME six option names in the same order - Backlog, Plan, Ready,
+      Building, Review, Done - on different board numbers, and three of those names carry DIFFERENT
+      option ids per board (Plan, Ready and Review), while Backlog, Building and Done share GitHub's
+      default template ids across both. A board number split from its station mapping is precisely
+      the pair that can drift, and factory_claim validates one against the other.
+    dec: none
+  - id: D-03
+    choice: The migration is three-phase and the order is fixed - T-01 makes the fleet-level block
+      OPTIONAL and adds per-repo support, the readers migrate, T-07 rewrites fleet.yaml and board 2
+      together, and only then does T-08 tighten to required-and-rejecting.
+    because: check-domain.sh calls load_fleet on every governed write and fails CLOSED on any
+      exception, and test-check-domain.py case (c) asserts exit 2 on a harness path, so a
+      non-loading fleet refuses harness writes too. Both naive orderings brick the guard including
+      the write that would fix it, and one task cannot land both halves because fleet.yaml resolves
+      to NOBODY while factory_config.py resolves to the team. The operational consequence, stated
+      rather than left implicit - once T-08 lands, the schema is one-way in one narrow way. Narrow
+      because fleet.yaml is tracked and every checkout carries its own copy of BOTH halves, so git
+      alone cannot pair an old loader with a new fleet. What can is a MIXED invocation - a
+      factory_config.py predating T-01 resolving a fleet path that lands on a post-T-07 fleet.yaml,
+      whether by an explicit --fleet or by running the tool from one checkout against another's
+      tree. There load_fleet raises and check-domain.sh fails CLOSED on every governed write.
+      CLAUDE.md's run-everything-from-the-worktree rule covers the mechanics; the recovery is to
+      rebase that checkout past T-08, never to edit the fleet back.
+    dec: DEC-174
+  - id: D-04
+    choice: T-07 does NOT edit board 2. The board-option work is a PRECONDITION CHECK that reads
+      both boards and stops if either disagrees, folded into the same task as the fleet declaration
+      and one capture artifact. The live factory run is NO task at all - it is SC-06 with verify uat.
+    because: the board edit this plan originally specified was already performed, differently, by
+      the main session on 2026-08-11 - Todo became Backlog rather than Ready, and both boards ended
+      at six options rather than four. An edit task would re-do finished work and fight live state,
+      so what remains is a read that confirms the state the rest of the plan assumes. ONE capture,
+      not two - with no edit between them, a before-capture and an after-capture are two identical
+      files, and the unrecoverable-before-capture argument that justified the pair dies with the
+      edit. The capture survives for a different reason - it is the named measurement point SC-03 is
+      evaluated at, taken before any live factory run, and nothing in CI ever re-reads a GitHub
+      board. The precondition, the capture and the declaration stay one ordered unit under one owner
+      because the declaration must not land against a board whose vocabulary it does not match. The
+      live run writes nothing in this repository, mutates a product repository and a live board, and
+      only the operator can consent, so it is SC-06 with verify uat and no task at all.
+    dec: DEC-179
+  - id: D-05
+    choice: The repo-to-board pairing assertion lives in test-no-distribution.py, not check-state.sh.
+    because: check-state.sh is a DEC-174 carve-out file AND is granted to the same two agents, so
+      declaring a task on it main-session-direct emits a permanent DEVIATION line in a required CI
+      check and the task cannot be done by the team at all. test-no-distribution.py already asserts
+      fleet membership under DEC-174 am.1 and runs in UNIT_SCRIPTS, so SC-05 gets real unit evidence.
+    dec: DEC-174
+  - id: D-06
+    choice: No task changes any of the four DEC-174 carve-out scripts, and none needs to.
+    because: re-measured at a29ad06, which is HEAD - check-domain.sh reads only workspace_root and repos[].name from
+      the loaded fleet and never reads board, and check-state.sh INV-24 reads the fleet with
+      harness_yaml.load_file rather than load_fleet and reads only repos[].name. Only
+      test-check-domain.py's good_repos fixture has to change, and that is a fixture, not a gate.
+    dec: DEC-174
+  - id: D-07
+    choice: SC-03 pins all three historic Status option ids on board 2, not just Done, and is
+      evaluated at T-07's capture rather than at goal-check time. The id anchor is WITHIN board 2
+      and across time; it is never used to compare board 2 with board 3.
+    because: renaming an option in Projects v2 keeps its id and recreating one does not, so the ids
+      are what distinguish the cheap rename from the forbidden rename-then-migrate route that
+      reaches identical counts. All three survive the 2026-08-11 rename - f75ad846 is now named
+      Backlog, 47fc9ee4 is now Building, 98236657 is still Done, measured by gh api graphql on
+      2026-08-11 - which is exactly what proves no option was deleted and recreated and no item was
+      moved. Pinning the old Todo option's id as well catches deleting it and creating a fresh
+      station, which would strand 82 items with no status while every Done count still agreed. A
+      CROSS-BOARD id comparison would be vacuous and is deliberately not made - Backlog, Building and
+      Done carry identical ids on both boards because they are GitHub's default template ids, so
+      cross-board assertions compare NAMES only. The named measurement point is what keeps SC-03 and
+      SC-06 jointly satisfiable in every world.
+    dec: none
+  - id: D-08
+    choice: The factory's ready station stays pointed at the Ready option on board 2, and an EMPTY
+      Ready is CORRECT rather than a defect. Backlog means filed-and-untriaged; Ready means the
+      operator has decided the factory may take it. Kaya's 82 unstarted issues are correctly in
+      Backlog, so a claim run against kaya finds nothing to claim, and that is the truth.
+    because: the earlier Todo-becomes-Ready mapping was decided when the target vocabulary was three
+      stations and Ready was the only not-started-yet value available. With six values the two
+      separate, and 82 unplanned issues sitting in Ready would make Ready meaningless. Board 3's own
+      shape is the evidence. Pointing the intake at Backlog instead would make the factory pick up
+      work nobody triaged. THE CONSEQUENCE, RECORDED RATHER THAN ABSORBED - promotion from Backlog
+      to Ready is a human decision and there is NO recorded step for it anywhere in the harness.
+      That is a real gap, it is OUT OF SCOPE for this feature, and the only thing this feature owes
+      it is SC-13 - a claim run that finds an empty ready station must REPORT that it found nothing
+      rather than exiting 0 in silence.
+    dec: none
+  - id: D-09
+    choice: T-10 appends a second amendment to DEC-174 rather than opening a new DEC number.
+    because: the loose end being closed - fleet.yaml board.number 3 described as the Harness board
+      while the fleet holds only kaya-ai - was opened by DEC-174 am.1, and a closure belongs in the
+      entry that opened it. A separate entry would split one story across two places a reader would
+      have to find both of, and the per-repository board is a consequence of DEC-174's own carve-out
+      reasoning rather than a new ruling.
+    dec: DEC-174
+  - id: D-10
+    choice: DEC-186 is AMENDED, not struck.
+    because: DEC-188's own text settles it rather than pm preference - the rule does not generalize
+      by itself, it applies to a flat contradiction with no room for interpretation, and anything
+      softer than that - merely dated, narrowed, or PARTLY OVERTAKEN - is amended, with striking
+      needing the operator's word first. DEC-186 is partly overtaken exactly - its one-board framing
+      is falsified by the per-repository board, while its three-purpose read-back bound is untouched
+      by this feature and is still load-bearing in gates. Striking would remove that bound from all
+      of them.
+    dec: DEC-188
+  - id: D-11
+    choice: No prototype gate fires for this feature and no visual-designer is spawned. Recorded as
+      overridable in either direction.
+    because: every literal files entry across all eleven tasks is a .py, .yaml or .md file, so there
+      is no rendered surface to prototype. The only human-in-the-loop surface in the feature is
+      SC-06's UAT - the operator typing a CLI command and watching a GitHub Projects station move -
+      and a designer cannot prototype GitHub's own board UI.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Teach load_fleet a per-repo board block and add board_for and a repo-scoped station lookup
+    traces: [REQ-01, REQ-02]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_config.py
+      - .claude/skills/harness/bin/test-factory-config.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      In factory_config.py, extract the existing board validation in load_fleet into a module-level
+      helper, def _validate_board(board, where, path), that raises FleetError with the SAME message
+      shapes as today but with the key names prefixed by the where argument - so the current fleet-level errors
+      keep saying board.owner, board.number, board.station_field and board.stations, and a per-repo
+      error says repos[owner/name].board.owner and so on. The four rules are unchanged: owner
+      non-empty, number an int and not a bool, station_field non-empty, stations a mapping whose key
+      set is exactly ready, building and review with every value non-empty.
+
+      Then make three changes to load_fleet:
+      1. The top-level board key becomes OPTIONAL. When present it is validated exactly as today.
+         When absent, no error is raised. Do NOT make it required-per-repo yet and do NOT reject a
+         top-level board - T-08 does both, after the live fleet file has been migrated.
+      2. Each repos entry MAY carry a board key. When present it is a mapping and is validated with
+         _validate_board(entry["board"], f"repos[{name}]", path). When absent, nothing is raised.
+      3. If a repos entry has no board AND there is no top-level board, raise FleetError with what
+         "fleet key invalid", key f"repos[{name}].board", and a next_step telling the reader to give
+         that repository its own board block with number, station_field and stations. This is the
+         only new rejection this task adds.
+
+      Add two new module functions:
+
+        def board_for(fleet, repo_name):
+            """Return the board mapping that governs repo_name: the repos entry's own board when it
+            carries one, else the fleet-level board. Raises FleetError when the repository is not in
+            the fleet, by delegating to repo_entry."""
+
+      It must call repo_entry(fleet, repo_name) so an unlisted repository raises the existing
+      "repository not in fleet" FleetError rather than a KeyError.
+
+        def board_station(fleet, repo_name, key):
+            """Return board_for(fleet, repo_name)["stations"][key]; raises FleetError on an unknown
+            key, listing the known station keys."""
+
+      LEAVE the existing two-argument station(fleet, key) exactly as it is. It is deleted by T-08,
+      not here, and the reason is mechanical: every task in this plan verifies with the whole suite,
+      factory_decompose.py:423 still calls the two-argument form at this task's boundary, and
+      test-factory-decompose.py runs in UNIT_SCRIPTS - so removing it here turns THIS task's own
+      verify red on arrival. The new name is board_station rather than a re-signature of station so
+      that the two can coexist for exactly the three tasks the migration needs, with no rename churn
+      at the end.
+
+      Update _main so that --show prints the resolved fleet as {"repos": fleet["repos"]} plus the
+      top-level board only when one is present, rather than unconditionally indexing fleet["board"].
+      A KeyError there would turn a valid per-repo fleet into a crash.
+
+      STATE THE PAYLOAD CONTRACT, because a downstream test asserts against it. After this task,
+      --show emits a JSON object that ALWAYS carries the key "repos", and carries the key "board"
+      IF AND ONLY IF the fleet file being shown still declares a top-level board. Each repos entry
+      carries its own board mapping verbatim when it declares one, so a migrated fleet is read as
+      payload["repos"][0]["board"]["number"]. After T-08 the "board" key is gone for every fleet
+      that loads at all, because a top-level board becomes a load error - so "board" not in payload
+      is the stable assertion at BOTH boundaries and a presence check on "board" is not.
+
+      In test-factory-config.py, keep every existing case passing by leaving the shared good-fleet
+      fixture fleet-level for now, and ADD cases for: a fleet whose single repos entry carries its
+      own board and no top-level board loads; a fleet with two repos entries on two different board
+      numbers returns each number from board_for; a repos entry with no board and no top-level board
+      raises FleetError whose key names that repository; each of the four per-repo board field rules
+      raises with a repos-prefixed key; board_station(fleet, repo, "ready") returns the per-repo
+      option name when the entry has its own board and the fleet-level one when it does not;
+      board_station with an unknown key raises; and board_for on a repository absent from repos
+      raises "repository not in fleet". Follow the file's existing check() and add_bad_case() helpers rather than inventing a
+      second style.
+
+  - id: T-02
+    title: Move factory_claim board reads and station validation inside a per-repository loop
+    traces: [REQ-01]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_claim.py
+      - .claude/skills/harness/bin/test-factory-claim.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      factory_claim._main currently reads owner, board_number, station_field and stations once from
+      fleet["board"], validates the three station options against that one board, and then either
+      does a targeted per-repo lookup or one whole-board poll query. That single-board shape is the
+      defect: --repo is optional, so in poll mode the tool queries a board before it knows which
+      repository it is serving.
+
+      Restructure so that everything board-shaped is scoped to one repository at a time. Build the
+      list of repositories to serve first: every entry in fleet["repos"], filtered to args.repo when
+      it is given, and refuse with the existing factory_cli.refuse shape when args.repo names a
+      repository the fleet does not declare (factory_config.repo_entry already raises the right
+      FleetError - let it propagate rather than writing a second message).
+
+      For each repository in that list, in fleet order, resolve its board with
+      factory_config.board_for(fleet, repo_name) and take owner, number, station_field and stations
+      from that mapping. Keep the pre-flight station validation exactly as it is today, including its
+      message text, but run it PER BOARD and name that repository's board number in the message, so a
+      mismatch on one repository still identifies which fleet entry is wrong. Two repositories may
+      legitimately resolve to the same board number; validating it twice is a wasted read, not a bug,
+      and de-duplicating the validation is not required.
+
+      The comment above that validation - the one beginning "validate the fleet's three station
+      option names against the board, BEFORE any board read" - asserts a whole-run invariant that
+      this restructure retires: validation is now per board, and it is before that board's reads, not
+      before all reads. MOVE the comment with the code and reword it to the invariant that actually
+      holds, so no comment in the file states the superseded contract. This is a deliberate change,
+      not drift.
+
+      Then, per repository: in targeted mode (args.issue given) call
+      factory_gh.issue_board_item_id(repo_name, args.issue, that repository's board number) and stop
+      at the first non-None id, exactly as the current loop does. In poll mode call
+      factory_gh.project_items with that repository's owner, board number and a query built from that
+      repository's own station_field and ready option name. Collect the items from every repository
+      into one candidate list, tag each candidate with the repository it came from, and keep the
+      existing sort by issue number across the merged list so the claim order does not change for a
+      single-repository fleet.
+
+      DE-DUPLICATE the merged candidate list on (repo_name, issue_number) before the candidate loop.
+      Two fleet entries may declare the SAME board number, and in poll mode each of them issues the
+      same whole-board project_items query, so every item on that board arrives once per entry
+      served. Today nothing collapses those copies deliberately - the duplicate loses the create_ref
+      race or is skipped by the factory:claimed label, which is a side effect, not a rule.
+
+      MAKE THE TIE-BREAK EXPLICIT rather than incidental. Two repositories can carry the same issue
+      number, so sorting on the issue number alone leaves the order between them decided by Python's
+      stable sort over fleet order. That is the order to keep, but state it: sort the merged list on
+      (issue_number, index of the repository in fleet["repos"]), and say in a comment that fleet
+      order is the documented tie-break. Behaviour is unchanged; what changes is that it is now
+      chosen.
+
+      The candidate loop below is unchanged apart from taking each candidate's board values from the
+      repository it was tagged with. The "issue not found on the board" refusal must now name every
+      board that was searched, not one.
+
+      STEP 6 IS NOT PART OF THE CANDIDATE LOOP AND MUST BE REBOUND. The winner-only bookkeeping
+      block below the loop ends with
+      factory_gh.project_field_set(owner, board_number, item_id, station_field, stations["building"])
+      - the tool's only board mutation - and all four of owner, board_number, station_field and
+      stations are today the module-level values this task deletes. Take all four from the board of
+      the repository the WINNER was tagged with, not from the last repository the loop happened to
+      visit. Leave the ordering of add_label, assign and project_field_set exactly as it is.
+
+      In test-factory-claim.py, migrate the fleet fixture to a per-repo board and add cases proving:
+      a two-repo fleet on two different board numbers issues its poll query against BOTH boards, each
+      with its own station_field and ready option name; a candidate found on repository A is claimed
+      using A's board number and never B's; station validation failing for repository B still names
+      B's board number in the refusal; and --repo filters the served set to one repository so only
+      that repository's board is read at all. Add one more: a two-repo fleet whose entries declare
+      the SAME board number produces exactly one candidate per issue, and the claimed issue gets
+      exactly one project_field_set call. Assert on the recorded gh call arguments, not on counts
+      alone - equal call counts would pass while the wrong board was addressed.
+
+      ONE MORE CASE, AND IT IS SC-13's SOLE EVIDENCE. Add a case in which the fleet declares TWO
+      repositories on two different board numbers and --repo names the one whose ready station
+      returns NO items: assert stdout is empty, that stderr carries "no work available", and that
+      the exit code is 1 (factory_cli.EXIT_NOTHING). The existing case labelled C1 does not cover
+      this and cannot be stretched to: its recorder is given an empty item list for the WHOLE run
+      against a single-repository fixture, so it exercises the global empty case only. The mutant
+      this case exists to kill is specific to the per-repository loop this task introduces - a loop
+      that treats an empty repository as a "continue" and falls off the end of the served set into a
+      normal exit 0, leaving the operator with silence where a report belongs. Anchor the new case
+      on its own descriptive check text rather than on a case ordinal, since the ordinals shift.
+
+  - id: T-03
+    title: Point factory_decompose at the board of the repository it is publishing
+    traces: [REQ-01]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_decompose.py
+      - .claude/skills/harness/bin/test-factory-decompose.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      factory_decompose._main takes --repo as a required argument and already calls
+      factory_config.repo_entry(fleet, args.repo) at step 1, so the repository is known before any
+      board read. Replace the hoisted block that reads owner, board_number and station_field from
+      fleet["board"] and calls _validate_stations with fleet["board"]["stations"] so that all four
+      values come from factory_config.board_for(fleet, args.repo). Keep the hoist where it is, before
+      ensure_labels - it exists so a station typo is caught before the point of no return, and moving
+      it would reopen the defect that placed it there.
+
+      Replace the call factory_config.station(fleet, "ready") in step 7 with
+      factory_config.board_station(fleet, args.repo, "ready"). This is the only in-tree caller of the
+      two-argument station(), and T-08 deletes that function once this task has moved off it.
+
+      The comment sitting immediately above that hoist names fleet["board"] as the thing whose reads
+      used to sit further down. Reword it so it names the per-repo board resolution instead: after
+      this task no line in this file, comment included, mentions a fleet-level board, and a criterion
+      greps for exactly that.
+
+      Change no other behaviour: the ledger, the dispositions, the parent handling and the
+      record-after-project_field_set ordering all stay as they are.
+
+      In test-factory-decompose.py, migrate the fleet fixtures to a per-repo board and add a case
+      with two repos entries on two different board numbers proving that publishing --repo A adds
+      every item to A's board and issues no call against B's, and a case proving the ready option
+      name used for the station set is A's own, not B's. Assert on the recorded gh call arguments.
+
+      One existing fixture in that file mutates a station name through the fleet-level block - the
+      line that sets a bad ready option to "Redy" indexes the fleet's board directly. It must move to
+      the per-repo path with its assertion and its case name untouched; it is one of the sites the
+      fleet-level-board sweep counts.
+
+  - id: T-04
+    title: Point factory_land at the board of the repository it is landing in
+    traces: [REQ-01]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_land.py
+      - .claude/skills/harness/bin/test-factory-land.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      factory_land._main takes --repo as a required argument and already resolves the repos entry
+      before anything else. In step 5, replace the four reads of fleet["board"] - owner, number,
+      station_field, and stations["review"] read directly - with values taken from
+      factory_config.board_for(fleet, args.repo). Use the mapping's own stations["review"] rather
+      than reintroducing a helper call, so the read stays one lookup deep and matches the surrounding
+      code.
+
+      THE IDIOM SPLIT IS DELIBERATE, so record it in a comment beside that read rather than leaving a
+      later reader to tidy it away. This file indexes board["stations"]["review"] directly while
+      factory_decompose goes through factory_config.board_station. Both are safe for one reason and
+      only one: load_fleet validates every board's stations mapping to a key set of exactly ready,
+      building and review, so the direct index cannot miss. If that validation is ever relaxed, the
+      direct index is the call site that breaks first.
+
+      Change nothing else. The default-branch guard, the push, the pull-request create-or-adopt path
+      and the explicit open-check keep their current order and their current messages, including the
+      known out-of-scope behaviour on a closed issue.
+
+      In test-factory-land.py, migrate the fleet fixture to a per-repo board and add a case with two
+      repos entries on two different board numbers proving that landing --repo A sets the station on
+      A's board with A's review option name and issues no call against B's board. Assert on the
+      recorded gh call arguments rather than on call counts.
+
+  - id: T-05
+    title: Migrate the factory integration fixtures to per-repo boards
+    traces: [REQ-01]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02, T-03, T-04]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-factory-integration.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+    intent: |
+      test-factory-integration.py writes fleet declarations carrying a fleet-level board block and
+      drives the tools end to end as real processes. Move each of those fleet fixtures to the new
+      shape: delete the top-level board block and give every repos entry its own board block with the
+      same owner, number, station_field and stations values the fixture used before, so no case
+      changes what it asserts.
+
+      Then add one case that only this file can carry, because it is the only place the tools run as
+      real processes and compose: a fleet declaring two repositories on two different board numbers,
+      driven through decompose then claim then land against one of them, asserting that every gh
+      invocation recorded for the run names that repository's board number and never the other's.
+
+      EXACTLY TWO existing sites legitimately change, and no others. Both read the fleet-level board
+      and both become impossible once the fixture moves, so they are part of the fixture move rather
+      than exceptions to it:
+
+      1. The (D-config) success case asserting that --show's payload carries board and repos - the
+         check whose message ends "payload carries board and repos", currently
+         "board" in payload and "repos" in payload. Replace the condition with all three of:
+         "repos" in payload, "board" not in payload, and
+         payload["repos"][0]["board"]["number"] == 9. Keep the case name; update the message text to
+         say the payload carries repos, each with its own board, and no fleet-level board. That is
+         the contract T-01's intent states, it is stable at both boundaries because T-08 only makes
+         a top-level board harder to produce, and it gives this file real discrimination instead of
+         a presence check that passed on either schema.
+      2. The line that reads the ready option out of the fixture as fleet_data board stations ready,
+         in the case that builds a fake git and a per-status log. Read it from that fixture's repos
+         entry board instead. It is a reader in the harness, not an assertion.
+
+      Apart from those two, do not change any assertion, expected exit code or case name. If a case
+      fails after the fixture move, the fixture move is wrong - report it rather than adjusting the
+      assertion.
+
+  - id: T-06
+    title: Migrate the check-domain fleet fixtures to per-repo boards without touching the gate script
+    traces: [REQ-02]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+    intent: |
+      This task is FIXTURE-ONLY and is bounded by DEC-174. You must not edit
+      .claude/skills/harness/bin/check-domain.sh, and you must not change any assertion, any expected
+      exit code, any case name or any explanatory comment in test-check-domain.py. The only edits
+      permitted are to the fleet YAML strings the fixtures build.
+
+      Every fleet string in this file that carries a top-level board block moves to the new shape:
+      delete the top-level board and give each repos entry its own board block with the same owner,
+      number, station_field and stations values it had.
+
+      THERE ARE FOUR SUCH FLEET STRINGS, NOT TWO, and the count is stated here because your own
+      verify cannot see a missed one: this task runs while T-01's loader still ACCEPTS a leftover
+      top-level board, so a fixture you skip stays green here and reddens at T-08, where it is
+      attributed to the wrong task. Find them by their identifiers, not by line number:
+        - good_repos, the well-formed fleet behind case (d) - block-style board with owner, number,
+          station_field and stations. Migrate all four keys onto the repos entry.
+        - the inline fixture behind case (c), the one built into nows_root - a single-line flow
+          mapping carrying ONLY owner and number today, and its repos entry is flow style too.
+          This one is the exception to the carry-the-same-values rule: its migrated per-repo board
+          is COMPLETE, with station_field and stations added. That is the deliberate repair spelled
+          out further down this intent - do not resolve the two by dropping the added keys.
+        - two_base_fleet, block-style, all four keys.
+        - two_base_fleet_for, the helper that builds a fleet for a given workspace, block-style, all
+          four keys.
+      Migrating fewer than four leaves the task incomplete even if the suite is green. The backstop
+      is T-08, which verifies BOTH the unit and the integration kinds in one block for exactly this
+      reason - do not let anyone collapse that to a single clause on the strength of this task
+      passing.
+
+      The good_repos fixture is the one that
+      matters most - case (d) asserts that a WELL-FORMED fleet leaves both verdicts unchanged, so it
+      has to be a fleet BOTH loaders accept: T-01's, which is what runs while this task lands, and
+      T-08's, which rejects any surviving top-level board. A per-repo board on every entry and no
+      top-level board satisfies both. The half of case (d) that proves it is the one asserting the
+      allowed path exits 0; if that half goes red, the fixture is wrong, not the guard.
+
+      The deliberately malformed fixtures keep failing for the reason their case names give. Case (c)
+      names a fleet that parses but omits workspace_root; give its repos entry a valid per-repo board
+      and remove its top-level board, so it still fails on the missing workspace_root and not on the
+      board. A fixture that fails for a reason other than the one its name states is a case that
+      silently stopped testing what it claims.
+
+      THIS IS ALSO A DELIBERATE REPAIR, and record it in your receipt so a reviewer does not read it
+      as drift. Case (c)'s fixture today declares a board with an owner and a number but no
+      station_field and no stations, so load_fleet raises on the missing board.station_field and the
+      case passes for a reason its own name does not state. Giving that entry a COMPLETE per-repo
+      board makes it fail on the missing workspace_root, which is what the case has always claimed to
+      test. The verdict and the exit code do not change; the reason does, and it changes to the
+      correct one.
+
+      For context, and it is measured rather than assumed: check-domain.sh reads only workspace_root
+      and repos[].name from the loaded fleet and never reads board, so the schema change reaches its
+      fixtures and not its source.
+
+  - id: T-07
+    title: Confirm both boards carry the six factory stations, then give kaya-ai its own board in
+      fleet.yaml
+    traces: [REQ-01, REQ-04]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: .harness/factory/fleet.yaml resolves to NOBODY under check-domain.sh
+      --resolve, so no agent may write it and the task cannot take the team lane
+    depends_on: [T-02, T-03, T-04, T-05, T-06, T-11]
+    status: pending
+    files:
+      - .harness/factory/fleet.yaml
+      - .harness/features/FEAT-16-factory-per-repo-board/notes/board2-capture.md
+    verify: |
+      test "$(gh project field-list 2 --owner mruangutai --format json --jq '.fields[]|select(.name=="Status")|.options[].name' | tr '\n' ',')" = "Backlog,Plan,Ready,Building,Review,Done," &&
+      test "$(gh project field-list 3 --owner mruangutai --format json --jq '.fields[]|select(.name=="Status")|.options[].name' | tr '\n' ',')" = "Backlog,Plan,Ready,Building,Review,Done," &&
+      test "$(gh project field-list 2 --owner mruangutai --format json --jq '.fields[]|select(.name=="Status")|.options[].id' | grep -cE '^(f75ad846|47fc9ee4|98236657)$')" = "3" &&
+      python3 .claude/skills/harness/bin/factory_config.py --show >/dev/null
+    intent: |
+      THIS TASK NEVER EDITS A GITHUB BOARD. An earlier draft of it did; the board work was already
+      performed by the main session on 2026-08-11, and differently from what that draft specified -
+      Todo became Backlog rather than Ready, and both boards ended at SIX options rather than four.
+      What remains here is a precondition READ, a capture, and the fleet declaration. If the boards
+      are not as this task expects, STOP AND REPORT. Do not adjust them, do not rename anything, do
+      not add or delete an option: the board is live product state, and a plan whose precondition
+      fails needs re-signing, not repairing in place.
+
+      Three steps, in this order.
+
+      THE FIRST THREE VERIFY CLAUSES ARE THE PRECONDITION, and the first two compare NAMES, never
+      ids. That is not a stylistic choice. Backlog, Building and Done carry IDENTICAL option ids on
+      board 2 and board 3 - they are GitHub's default template ids - so any cross-board assertion
+      written on ids is vacuous and passes whatever either board says. The third clause is a
+      different rule that happens to sit next to it: it is a WITHIN-BOARD-2, ACROSS-TIME id anchor,
+      and there ids are exactly right, because renaming a Projects v2 option keeps its id while
+      deleting and recreating one does not. Do not merge the two rules.
+
+      THE FOURTH VERIFY CLAUSE IS A REGRESSION GUARD, NOT A DISCRIMINATOR, and it is the one that
+      matters most. factory_config.py --show exits 0 only when load_fleet succeeds on the live
+      .harness/factory/fleet.yaml - it resolves that path itself, no --fleet argument, and it exits 2
+      on a FleetError and 2 on anything else. It passes TODAY, before the change, which is exactly
+      the point: it fails only if this task leaves the declaration unloadable, and a fleet.yaml that
+      does not load makes check-domain.sh fail CLOSED and blocks every governed agent write in the
+      repository, including T-08's. The board clauses cannot see that; only this one can.
+
+      RUN THAT CLAUSE FROM THE SAME CHECKOUT WHOSE fleet.yaml STEP 3 REWRITES. With no --fleet
+      argument, factory_config.py resolves the fleet path from its OWN module root, so invoked from
+      a different checkout it exits 0 against a declaration this task never touched and the clause
+      passes vacuously - the one clause whose whole value is reading the live declaration. This is
+      not hypothetical: a second checkout carrying its own fleet.yaml exists on disk at
+      .claude/worktrees/FEAT-13-single-issue-board-lookup/. Before reporting, confirm the file you
+      edited is the one the command read.
+
+      ROLLBACK, and it is benign, because nothing outside this repository is written. If step 2
+      fails, the TREE IS UNCHANGED: fleet.yaml still declares a top-level board on number 3,
+      load_fleet still succeeds, no write is blocked. No board is touched in either direction, so no
+      item moves.
+
+      1. PRECONDITION, AND CAPTURE. Read the Status field of BOTH mruangutai project 2 and
+         mruangutai project 3 and confirm each offers exactly six options with these names in this
+         order: Backlog, Plan, Ready, Building, Review, Done. Then read a per-status item count over
+         board 2. Write board2-capture.md holding the verbatim output of
+         gh project field-list 2 --owner mruangutai --format json
+         and of that per-status count, together with the date, the sha it was taken at, and the
+         command that produced each figure. This capture is the measurement point SC-03 is evaluated
+         at and it must be taken BEFORE any live factory run.
+
+         WHAT THE CAPTURE MUST SHOW, measured on 2026-08-11 by gh api graphql over projectV2 items
+         paginated at 100 and tallied on fieldValueByName Status: 211 items on board 2, 118 in Done,
+         82 in Backlog, 11 in Building, and ZERO in each of Plan, Ready and Review. Board 2's Status
+         option ids on that date, read from the same field query, are f75ad846 Backlog, 51284156
+         Plan, 8f8df98a Ready, 47fc9ee4 Building, 8c67edb9 Review, 98236657 Done.
+
+         THE HISTORY THAT MAKES THE ID ANCHOR MEAN SOMETHING, and it is history, not current fact:
+         at sha d97f5ea on 2026-08-11 the same board offered THREE options - f75ad846 named Todo,
+         47fc9ee4 named In Progress and 98236657 named Done - with 118 Done, 82 Todo and 11 In
+         Progress. All three ids survive under new names, which is what proves the change was a
+         rename rather than a delete-and-recreate and that no item was moved. Record that triple in
+         the capture as the prior reading it is, never as current state.
+
+         IF EITHER BOARD DISAGREES with the six names in that order, or if board 2's item
+         distribution disagrees with the figures above, STOP and report it. Do not adjust the board
+         and do not adjust the plan - SC-03 and SC-07 rest on these figures and need re-signing.
+
+      2. THE FLEET DECLARATION. In .harness/factory/fleet.yaml, delete the top-level board block
+         entirely and give the mruangutai/kaya-ai entry its own board block:
+           repos:
+             - name: mruangutai/kaya-ai
+               default_branch: master
+               board:
+                 owner: mruangutai
+                 number: 2
+                 station_field: Status
+                 stations:
+                   ready: Ready
+                   building: Building
+                   review: Review
+         Keep the existing comment block about mruangutai/harness being deliberately absent under
+         DEC-174 am.1 - it is unrelated to this change and still true. Add a short comment recording
+         that the board is per-repository, that board 2's Done option is retained on purpose, and
+         that Ready is deliberately the intake station even though it is empty today: on board 2
+         Backlog means filed-and-untriaged and Ready means promoted for the factory, so a claim run
+         that finds nothing has found the truth (D-08).
+
+      3. REPORT THE PRECONDITION RESULT explicitly in your return, naming both boards and the six
+         option names you read off each, so a reader can tell a confirmed precondition from an
+         unrun one. A silent pass is indistinguishable from a skipped check.
+
+  - id: T-08
+    title: Require a per-repo board on every entry and reject a leftover fleet-level board key
+    traces: [REQ-02, REQ-03]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-07, T-09]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_config.py
+      - .claude/skills/harness/bin/test-factory-config.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit &&
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+    intent: |
+      This task is the LAST code task and it verifies BOTH suites, not one. Its change reaches
+      test-check-domain.py and test-factory-integration.py, which run in the integration kind and
+      which earlier tasks migrated; this is the task that could break them, and without the second
+      clause the only backstop is goal-check, with no owning task to loop back to. Two clauses rather
+      than one --kind all run because the two commands are exactly the two runners the criteria name,
+      one each; --kind all is accepted by the script but is the cmd of no entry in the project's
+      test_kinds, so no criterion could cite its output.
+
+      This task closes the migration T-01 opened, and it is safe to run only after T-07 has rewritten
+      .harness/factory/fleet.yaml, because check-domain.sh calls load_fleet on every governed write
+      and fails CLOSED on any exception. Confirm before you start that .harness/factory/fleet.yaml
+      has no top-level board key and that its kaya-ai entry carries its own board. If it still has
+      one, STOP - tightening now blocks every agent write in the repository, including the write that
+      would undo it.
+
+      In factory_config.load_fleet, make two changes:
+      1. A top-level board key is now an ERROR, not an ignored key. Raise FleetError with what
+         "fleet key invalid", key "board", and a next_step saying the board is per-repository now and
+         to move it under each repos entry as repos[].board. An unknown top-level key is otherwise
+         accepted silently by this loader, so an ignored leftover would recreate exactly the
+         inherit-a-board-nobody-chose silence this feature removes.
+      2. Every repos entry MUST carry its own board mapping. Raise FleetError with key
+         f"repos[{name}].board" naming the repository when it does not.
+
+      Then delete the fallback: board_for returns the repos entry's own board and nothing else, with
+      no reference to a fleet-level block. DELETE the two-argument station(fleet, key) that T-01 left
+      in place - board_station is now the only station lookup, and factory_decompose.py moved off the
+      old form in T-03, so nothing calls it. Grep the tree for station( before you delete it and
+      report any caller you did not expect rather than leaving a shim. Remove any remaining
+      conditional in _main's --show that guarded a top-level board.
+
+      In test-factory-config.py, move the shared good-fleet fixture to the per-repo shape so every
+      existing case runs against it, delete the cases that asserted the fleet-level block was
+      accepted or used as a fallback, and add two: a fleet carrying a top-level board raises with key
+      "board" and a next_step mentioning repos, and a fleet whose entry has no board raises with a
+      key naming that repository. Keep the file's existing add_bad_case style. The round-trip case
+      that reads the loaded board owner off the fleet-level block - the check named for load_fleet
+      round-tripping board.owner - reads it off the repos entry's own board instead, keeping the
+      value it asserts. It is the last site in this directory that indexes a fleet-level board, and a
+      criterion greps the whole directory for exactly that.
+
+      AFTER THIS TASK THE SCHEMA IS ONE-WAY, in one narrow way. fleet.yaml is tracked and every
+      checkout carries its own copy of it AND its own factory_config.py, so git alone cannot pair an
+      old loader with a new fleet. What can is a MIXED invocation - a factory_config.py predating
+      T-01 resolving a fleet path that lands on a post-T-07 fleet.yaml, by an explicit --fleet or by
+      running the tool from one checkout against another's tree. There load_fleet raises and
+      check-domain.sh fails CLOSED on every governed write. That is expected, not a defect -
+      the recovery is to rebase that checkout past this task, never to edit the fleet back. Say so in
+      your receipt so the next person to hit it does not diagnose it as a broken guard.
+
+  - id: T-09
+    title: Assert the declared repository-to-board pairing in test-no-distribution.py
+    traces: [REQ-05]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-07]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-no-distribution.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      This file already reads .harness/factory/fleet.yaml in case3 and asserts fleet membership under
+      DEC-174 am.1. Add a NEW case function named case5 - case4 already exists and is taken - built
+      in the same style as case3 and case4 and using the same check() helper, and CALL it from
+      main() alongside the existing case calls. A case defined and never called is a criterion that
+      always passes. It asserts three things about the live fleet declaration:
+
+      1. There is NO top-level board key. Name it board_lives_per_repo_not_fleet_level.
+      2. EVERY repos entry carries a board mapping with an integer number, a non-empty station_field
+         and a stations mapping whose keys are exactly ready, building and review. Name it
+         every_repo_declares_its_own_board.
+      3. The pairing itself is pinned: the entry named mruangutai/kaya-ai declares board number 2.
+         Name it kaya_ai_is_paired_with_board_2. The failure detail must say that board 2 is the
+         kaya-ai board - the live Projects v2 board number 2 on the mruangutai account, whose Status
+         options were renamed to the factory stations on 2026-08-11 - and that changing one side of
+         the pairing without the other is what this assertion exists to catch. Name the date and the
+         board, not a sha: this string ships in test output that a future reader must be able to
+         resolve from main, and a sha off this branch is not resolvable there.
+
+      Each assertion needs its own check() call with its own name. One combined assertion over three
+      conditions would report a single failure that does not say which half drifted, and this file's
+      whole purpose is telling a future reader exactly what changed.
+
+      Do not add a network call. This runs in UNIT_SCRIPTS and must stay hermetic; the pairing is
+      asserted against the declaration, and the live board is SC-06's business.
+
+  - id: T-10
+    title: Record the per-repository board in DECISIONS and close DEC-174 am.1's open board loose end
+    traces: [REQ-06]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-08, T-09]
+    status: pending
+    files:
+      - docs/harness/DECISIONS.md
+      - docs/harness/DECISIONS-INDEX.md
+      - docs/harness/SPEC.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff -q - docs/harness/DECISIONS-INDEX.md &&
+      grep -q "DEC-174 amendment 2" docs/harness/DECISIONS.md &&
+      grep -q "per repository served" docs/harness/DECISIONS.md &&
+      grep -E "^- DEC-174 " docs/harness/DECISIONS-INDEX.md | grep -q "per-repository board" &&
+      grep -E "^- DEC-186 " docs/harness/DECISIONS-INDEX.md | grep -q "per-repository board" &&
+      ! grep -q "repo_entry. / .station" docs/harness/SPEC.md &&
+      ! grep -q "the .board:. the factory reads work from" docs/harness/SPEC.md
+    intent: |
+      DEC-174 am.1 ends with a section headed as a loose end this amendment does NOT close, stating
+      that fleet.yaml board.number 3 is the Harness board while the fleet holds only kaya-ai. That
+      statement is now false of the tree, and a falsified claim left standing is what DEC-188 exists
+      to prevent - the record is what every loop in the factory reads as ground truth.
+
+      Append a new amendment to DEC-174 in the form this entry already uses: a level-three heading
+      reading DEC-174 amendment 2, then the date in parentheses, then an em-dash and a short title.
+      A verify clause greps DECISIONS.md for the literal string DEC-174 amendment 2, which that
+      heading contains and which nothing in the file matches today, so the heading is the evidence
+      the amendment landed. Do not write the bold-inline Amendment am.N form - it belongs to other
+      entries and DEC-174 does not use it. Record four things and nothing
+      more: that the station board is now declared PER REPOSITORY inside each repos entry with its
+      number, station_field and stations together; that there is no fleet-level board and a leftover
+      top-level board key is rejected by load_fleet; that mruangutai/kaya-ai is paired with board 2,
+      whose Status options were brought to the same six-value vocabulary board 3 carries - Backlog,
+      Plan, Ready, Building, Review, Done in that order - by RENAMING Todo to Backlog and In Progress
+      to Building, retaining Done and adding the rest, at zero item writes against the 118 finished
+      issues, with Ready deliberately empty because Backlog is filed-and-untriaged and Ready means
+      promoted for the factory; and that the loose end
+      am.1 recorded as open is closed by this feature. Say plainly that am.1's closing section
+      describes the pre-FEAT-16 tree and is superseded by this amendment, rather than editing am.1 -
+      the record is appended to, never rewritten.
+
+      Then update the DEC-174 row in DECISIONS-INDEX.md. Its text after the double-colon is authored
+      and is rewritten in place: it gains a clause naming the per-repository board. Its am-span token
+      is NOT authored - it is computed from the amendment headings by
+      .claude/skills/harness/bin/gen-decisions-index.py, so do not hand-edit it. Regenerate the index
+      with that script, then confirm the DEC-174 row's span reads am.1-am.2 and that the ruling text
+      you authored survived the regeneration.
+
+      Do not create a new DEC number (D-09). This is a consequence of DEC-174's own carve-out
+      reasoning and closes a loose end that DEC-174 am.1 itself opened, so it belongs inside that
+      entry - a separate entry would split one story across two places a reader would have to find
+      both of.
+
+      SECOND ENTRY, AND IT IS THE ONE THE TREE WILL OTHERWISE CONTRADICT. DEC-186 rules that GitHub
+      Issues and ONE Projects v2 board are the factory's interface and control plane, and its index
+      row restates one board. After this feature the control plane is one board PER REPOSITORY, so
+      that framing clause is falsified. AMEND, do not strike, and DEC-188's OWN TEXT is the
+      authority for that rather than anyone's preference: under its paragraph beginning "The rule
+      does not generalize by itself", striking applies to a flat contradiction with no room for
+      interpretation, while anything softer - "merely dated, narrowed, or partly overtaken" - is
+      amended, and striking it needs the operator's word first. DEC-186 is partly overtaken exactly:
+      only the framing is falsified, while the substance - the closed three-purpose read-back bound
+      - is untouched by this feature and is still load-bearing in gates, and a strike would remove
+      that bound from all of them. Append an
+      amendment to DEC-186, in the same appended style DEC-174 am.1 uses, recording exactly two
+      things: that the station board is per repository, so the control plane is one board per
+      repository served rather than one board, with the three-purpose read-back bound unchanged and
+      unwidened; and that the read-back cost model the entry states as one server-side ready-station
+      query per poll becomes one such query per repository served per poll, which scales with fleet
+      size and not with board size. Write that cost clause using the exact lower-case phrase
+      "per repository served" - a verify clause greps DECISIONS.md for it, and it is the only
+      evidence that the DEC-186 amendment landed at all rather than just its index row. Leave the
+      original ruling text standing and say plainly which clause the amendment supersedes - the
+      record is appended to, never rewritten. Then rewrite the DEC-186 row text in
+      DECISIONS-INDEX.md so it no longer says one board and names the per-repository board instead;
+      the index row is authored text and is rewritten in place. The DEC-174 row and the DEC-186 row
+      must EACH carry the literal phrase per-repository board, hyphenated exactly that way - one
+      verify clause greps each row on its own, so writing it twice in one row does not pass.
+
+      THIRD FILE, docs/harness/SPEC.md, TWO ROWS OF ONE TABLE, and nothing else in that file. In the
+      table describing the factory pieces: the fleet.yaml row describes fleet.yaml as carrying the
+      board the factory reads work from, which is fleet-level and now false - restate it as each
+      repos entry carrying its own board. The factory_config.py row lists that module as exposing
+      load_fleet / repo_entry / station / workspace_path, and station is DELETED by T-08 - restate
+      the list as load_fleet / repo_entry / board_for / board_station / workspace_path. A shipped
+      criterion asserting factory_config.station no longer exists while a shipped doc says it does is
+      a contradiction inside the record, which is what DEC-188 exists to prevent, and nothing in the
+      tree detects it. Change no other row, no other section and no prose elsewhere in SPEC.md.
+
+  - id: T-11
+    title: Migrate the factory_workspace test fixture to a per-repo board
+    traces: [REQ-02]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-factory-workspace.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      This file builds its fleet as a Python dict rather than as YAML text, writes it to a temporary
+      path and passes --fleet to factory_workspace._main, which calls factory_config.load_fleet. The
+      dict carries a TOP-LEVEL board block and its single repos entry carries none, which is exactly
+      the shape T-08 rejects twice over - once for the leftover top-level key and once for the entry
+      with no board. The file runs in UNIT_SCRIPTS, so leaving it unmigrated turns the whole unit
+      suite red the moment T-08 lands, in a task with no grant to fix it.
+
+      In the helper that returns the good fleet dict: delete the top-level board key and give the
+      single repos entry its own board mapping carrying the same owner, number, station_field and
+      stations values the top-level block held. Change nothing else in the file - no assertion, no
+      case name, no expected exit code, and no other fixture. factory_workspace reads only
+      workspace_root and the repos entry, never a board, so no behaviour under test changes; this is
+      a schema migration of the fixture and nothing more.
+
+      The migrated fixture must be accepted by BOTH loaders: T-01's, which is what runs while this
+      task lands and which merely permits a per-repo board, and T-08's, which requires one on every
+      entry and rejects any surviving top-level board. A per-repo board on the entry with no
+      top-level board satisfies both, which is what makes this task safe to land anywhere between
+      them.

@@ -216,16 +216,16 @@ def write_text(path, text):
         f.write(text)
 
 
-def make_feature(td, tasks=None, approved=True, factory_yaml_extra="", brief=GOOD_BRIEF,
+def make_feature(td, tasks=None, approved=True, feature_json_extra="{}", brief=GOOD_BRIEF,
                   feat=FEAT):
-    """Build a temporary feature directory: plan.yaml, BRIEF.md, feature.yaml, fleet.yaml.
+    """Build a temporary feature directory: plan.yaml, BRIEF.md, feature.json, fleet.yaml.
     Returns (feat_dir, fleet_path)."""
     feat_dir = os.path.join(td, "feature")
     os.makedirs(feat_dir, exist_ok=True)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict(tasks=tasks, approved=approved,
                                                                feat=feat))
     write_text(os.path.join(feat_dir, "BRIEF.md"), brief)
-    write_text(os.path.join(feat_dir, "feature.yaml"), factory_yaml_extra)
+    write_text(os.path.join(feat_dir, "feature.json"), feature_json_extra)
     fleet_dir = os.path.join(td, "fleet")
     os.makedirs(fleet_dir, exist_ok=True)
     fleet_path = os.path.join(fleet_dir, "fleet.yaml")
@@ -253,7 +253,7 @@ def make_feature_bad_feature_key(td, mode, tasks=None):
         raise ValueError(mode)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), plan)
     write_text(os.path.join(feat_dir, "BRIEF.md"), GOOD_BRIEF)
-    write_text(os.path.join(feat_dir, "feature.yaml"), "")
+    write_text(os.path.join(feat_dir, "feature.json"), "{}")
     fleet_dir = os.path.join(td, "fleet")
     os.makedirs(fleet_dir, exist_ok=True)
     fleet_path = os.path.join(fleet_dir, "fleet.yaml")
@@ -285,7 +285,7 @@ def run_publish(feat_dir, fleet_path, rec, extra_args=None):
 
 
 def read_factory_block(feat_dir):
-    doc = yaml.safe_load(open(os.path.join(feat_dir, "feature.yaml"), encoding="utf-8").read())
+    doc = yaml.safe_load(open(os.path.join(feat_dir, "feature.json"), encoding="utf-8").read())
     return (doc or {}).get("factory") or {}
 
 
@@ -329,12 +329,12 @@ with tempfile.TemporaryDirectory() as td:
     check("(2) both stations set to the fleet's ready option",
           all(c[1][4] == "Ready" for c in field_calls), field_calls)
     fblock = read_factory_block(feat_dir)
-    check("(2) feature.yaml records two issue numbers", len(fblock.get("issues") or {}) == 2,
+    check("(2) feature.json records two issue numbers", len(fblock.get("issues") or {}) == 2,
           fblock)
-    check("(2) feature.yaml records two item ids", len(fblock.get("items") or {}) == 2, fblock)
+    check("(2) feature.json records two item ids", len(fblock.get("items") or {}) == 2, fblock)
 
 # ============================================================================
-# 3. a second publish against a fully-recorded feature.yaml mutates and calls nothing
+# 3. a second publish against a fully-recorded feature.json mutates and calls nothing
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:
     feat_dir, fleet_path = make_feature(td)
@@ -392,7 +392,7 @@ with tempfile.TemporaryDirectory() as td:
           (t01_labels, t02_labels))
 
 # ============================================================================
-# 6. feature.yaml carries the issue number after the first creation even when the board
+# 6. feature.json carries the issue number after the first creation even when the board
 #    add then raises GhError
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:
@@ -404,7 +404,7 @@ with tempfile.TemporaryDirectory() as td:
     code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
     check("(6) a raising board add exits 2", code == 2, f"code={code!r}")
     fblock = read_factory_block(feat_dir)
-    check("(6) feature.yaml still carries the created issue number",
+    check("(6) feature.json still carries the created issue number",
           len(fblock.get("issues") or {}) >= 1, fblock)
 
 # ============================================================================
@@ -435,7 +435,7 @@ with tempfile.TemporaryDirectory() as td:
     check("(7) resume: the item's station is set to the ready option",
           any(c[1][4] == "Ready" for c in field_calls), field_calls)
     fblock_after = read_factory_block(feat_dir)
-    check("(7) resume: feature.yaml now carries an item id",
+    check("(7) resume: feature.json now carries an item id",
           len(fblock_after.get("items") or {}) >= 1, fblock_after)
 
 # ============================================================================
@@ -465,31 +465,42 @@ with tempfile.TemporaryDirectory() as td:
               "factory:claimed" not in labels, labels)
 
 # ============================================================================
-# 9. feature.yaml carrying comments and a github block round-trips those bytes unchanged
+# 9. an eleven-key feature.json carrying a github block round-trips every key outside
+#    `factory` unchanged — JSON has no comments to preserve, so the whole document
+#    round-trips instead (replaces the old comment-splice-preservation assertion)
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:
-    extra = (
-        "# an operator comment at the top\n"
-        "github:  # trailing comment\n"
-        "  milestone: 5\n"
-        "  parent: 9\n"
-        "  parent_origin: created\n"
-        "  attached: [T-01]\n"
-        "  issues:\n"
-        "    T-01: 9\n"
-        "# a trailing comment\n"
-    )
-    feat_dir, fleet_path = make_feature(td, factory_yaml_extra=extra)
-    before = extra
+    pre_existing = {
+        "feature_id": FEAT,
+        "branch": "none",
+        "pr": None,
+        "status": "Building",
+        "review_sha": "abc1234",
+        "cycles_used": 2,
+        "max_total_cycles": 10,
+        "max_total_runs": 20,
+        "runs": [{"id": "r1", "squad": "backend", "verdict": "PASS"}],
+        "github": {
+            "milestone": 5,
+            "parent": 9,
+            "parent_origin": "created",
+            "attached": ["T-01"],
+            "issues": {"T-01": 9},
+        },
+    }
+    feat_dir, fleet_path = make_feature(td, feature_json_extra=json.dumps(pre_existing))
     rec = Recorder()
     code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
-    after = open(os.path.join(feat_dir, "feature.yaml"), encoding="utf-8").read()
-    check("(9) the pre-existing comment survives", "# an operator comment at the top" in after,
-          after)
-    check("(9) the github block survives", "milestone: 5" in after and "parent: 9" in after,
-          after)
-    check("(9) the trailing comment survives", "# a trailing comment" in after, after)
-    check("(9) a factory: block was appended", "factory:" in after, after)
+    with open(os.path.join(feat_dir, "feature.json"), encoding="utf-8") as f:
+        after = json.load(f)
+    check("(9) keys outside the factory block round-trip unchanged",
+          after.get("feature_id") == FEAT and after.get("status") == "Building"
+          and after.get("review_sha") == "abc1234" and after.get("cycles_used") == 2
+          and after.get("runs") == pre_existing["runs"], after)
+    check("(9) the github block survives",
+          (after.get("github") or {}).get("milestone") == 5
+          and (after.get("github") or {}).get("parent") == 9, after)
+    check("(9) a factory key was written", "factory" in after, after)
 
 # ============================================================================
 # 10. every exit-2 path before ensure_labels leaves the recorder with zero mutating calls
@@ -545,7 +556,7 @@ with tempfile.TemporaryDirectory() as td:
     check("(12) parent body carries no change_type/traces line",
           "change_type:" not in pbody and "traces:" not in pbody, pbody)
     fblock = read_factory_block(feat_dir)
-    check("(12) feature.yaml records parent_origin created",
+    check("(12) feature.json records parent_origin created",
           fblock.get("parent_origin") == "created", fblock)
 
 # --- 13. --parent <n>: no issue created for the parent; recorded adopted; feature:<FEAT>
@@ -559,7 +570,7 @@ with tempfile.TemporaryDirectory() as td:
                       and not re.match(r"^T-\d+ ", c[1][1])]
     check("(13) no issue is created for the adopted parent", parent_creates == [], parent_creates)
     fblock = read_factory_block(feat_dir)
-    check("(13) feature.yaml records parent 777 with parent_origin adopted",
+    check("(13) feature.json records parent 777 with parent_origin adopted",
           fblock.get("parent") == 777 and fblock.get("parent_origin") == "adopted", fblock)
     add_label_calls = [c for c in rec.calls if c[0] == "add_label" and c[1][1] == 777]
     check("(13) feature:<FEAT> label applied to the adopted parent",
@@ -694,7 +705,7 @@ with tempfile.TemporaryDirectory() as td:
     code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
     check("(20a) already-drawn blocked_by: exits 0", code in (0, None), f"code={code!r} err={err}")
     fblock = read_factory_block(feat_dir)
-    check("(20a) feature.yaml records the edge exactly as a successful call would",
+    check("(20a) feature.json records the edge exactly as a successful call would",
           "T-01" in ((fblock.get("edges") or {}).get("blocked_by") or {}).get("T-02", []),
           fblock)
     check("(20a) a stderr line names both task ids", "T-02" in err and "T-01" in err, err)
@@ -713,7 +724,7 @@ with tempfile.TemporaryDirectory() as td:
     code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
     check("(20b) the attach twin STAYS FATAL: exits 2", code == 2, f"code={code!r}")
     fblock = read_factory_block(feat_dir)
-    check("(20b) feature.yaml records NO parent receipt for that task",
+    check("(20b) feature.json records NO parent receipt for that task",
           (fblock.get("edges") or {}).get("parent") in (None, []), fblock)
 
 # --- 21. a GhError that is NOT the already-drawn shape stays fatal on both edge types
@@ -744,13 +755,13 @@ with tempfile.TemporaryDirectory() as td:
     real_open = open
     replace_calls = []
     open_calls = []
-    feature_yaml_path = os.path.join(feat_dir, "feature.yaml")
+    feature_json_path = os.path.join(feat_dir, "feature.json")
 
     def fake_replace(src, dst):
         replace_calls.append((src, dst))
-        if os.path.abspath(dst) == os.path.abspath(feature_yaml_path):
-            check("(22) os.replace destination is the fixture's feature.yaml",
-                  os.path.abspath(dst) == os.path.abspath(feature_yaml_path), dst)
+        if os.path.abspath(dst) == os.path.abspath(feature_json_path):
+            check("(22) os.replace destination is the fixture's feature.json",
+                  os.path.abspath(dst) == os.path.abspath(feature_json_path), dst)
             check("(22) os.replace source is a different path in the SAME directory",
                   os.path.dirname(os.path.abspath(src)) == os.path.dirname(os.path.abspath(dst))
                   and src != dst, (src, dst))
@@ -766,10 +777,10 @@ with tempfile.TemporaryDirectory() as td:
         return real_replace(src, dst)
 
     def fake_open(path, mode="r", *a, **kw):
-        if os.path.abspath(path) == os.path.abspath(feature_yaml_path):
+        if os.path.abspath(path) == os.path.abspath(feature_json_path):
             open_calls.append(mode)
             truncating = any(t in mode for t in ("w", "x", "a")) or kw.get("O_TRUNC")
-            check(f"(22) feature.yaml opened in mode {mode!r}: not truncating", not truncating,
+            check(f"(22) feature.json opened in mode {mode!r}: not truncating", not truncating,
                   mode)
         return real_open(path, mode, *a, **kw)
 
@@ -783,14 +794,14 @@ with tempfile.TemporaryDirectory() as td:
         builtins.open = real_open
 
     check("(22) os.replace was called at least once", len(replace_calls) >= 1, replace_calls)
-    check("(22) feature.yaml WAS opened for reading at least once (anti-vacuum)",
+    check("(22) feature.json WAS opened for reading at least once (anti-vacuum)",
           len(open_calls) >= 1, open_calls)
-    check("(22) feature.yaml was opened only for reading, never in a truncating mode",
+    check("(22) feature.json was opened only for reading, never in a truncating mode",
           open_calls != [] and all(m == "r" for m in open_calls), open_calls)
 
 
 # ============================================================================
-# SC-20: plan.yaml and BRIEF.md are byte-identical after a publish; feature.yaml is the
+# SC-20: plan.yaml and BRIEF.md are byte-identical after a publish; feature.json is the
 # only file whose hash changed
 # ============================================================================
 with tempfile.TemporaryDirectory() as td:
@@ -813,7 +824,7 @@ with tempfile.TemporaryDirectory() as td:
     check("(SC-20) BRIEF.md is byte-identical",
           before_hashes["BRIEF.md"] == after_hashes["BRIEF.md"])
     changed = {k for k in before_hashes if before_hashes[k] != after_hashes.get(k)}
-    check("(SC-20) feature.yaml is the only file whose hash changed", changed == {"feature.yaml"},
+    check("(SC-20) feature.json is the only file whose hash changed", changed == {"feature.json"},
           changed)
 
 
@@ -964,7 +975,7 @@ with tempfile.TemporaryDirectory() as td:
     check("(D4-3) project_field_set called with the RESOLVED existing item id",
           any(c[1][2] == "ITEM-EXISTING" for c in field_calls), field_calls)
     fblock_after = read_factory_block(feat_dir)
-    check("(D4-3) feature.yaml records the resolved existing item id",
+    check("(D4-3) feature.json records the resolved existing item id",
           (fblock_after.get("items") or {}).get("T-01") == "ITEM-EXISTING", fblock_after)
 
 # --- D-04-3b. the miss case: no matching item on the board -> project_item_add IS called (the
@@ -1047,7 +1058,7 @@ with tempfile.TemporaryDirectory() as td:
     os.makedirs(feat_dir, exist_ok=True)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict())
     write_text(os.path.join(feat_dir, "BRIEF.md"), GOOD_BRIEF)
-    write_text(os.path.join(feat_dir, "feature.yaml"), "")
+    write_text(os.path.join(feat_dir, "feature.json"), "{}")
     fleet_dir = os.path.join(td, "fleet")
     os.makedirs(fleet_dir, exist_ok=True)
     fleet_path = os.path.join(fleet_dir, "fleet.yaml")

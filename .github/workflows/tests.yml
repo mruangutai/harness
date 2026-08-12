@@ -53,17 +53,44 @@ jobs:
       #
       # PyYAML is REQUIRED, not optional (DEC-171 am.1). There is no line-scan fallback:
       # a missing parser is a loud failure by design, so install it rather than letting
-      # the suite exercise a degraded path that does not exist.
-      - name: Install PyYAML
-        run: python3 -m pip install --upgrade pyyaml
+      # the suite exercise a degraded path that does not exist. jsonschema is REQUIRED
+      # too (DEC-189): FEAT-14's feature.json schema checker fails loudly, never silently,
+      # when it is absent, and CI must carry the same dependency it demands locally.
+      - name: Install PyYAML and jsonschema
+        run: python3 -m pip install --upgrade pyyaml jsonschema
 
-      # The INTEGRATION kind, not `all`. The unit kind is 3 files and 0.28s and would have
-      # caught none of the defects that motivated this; integration is 11 files and ~15s
-      # and is where the write-guard, digest and route-checking assertions live (#160).
+      # TWO SEPARATE STEPS, NOT `--kind all` IN ONE. Keeping unit and integration as
+      # distinct steps gives each its own pass/fail attribution in the Actions log,
+      # which a single combined run would not.
+      #
+      # THE UNIT KIND NOW RUNS HERE TOO (FEAT-14/T-03). It used to be 3 files and 0.28s
+      # and would have caught none of the defects that motivated this job; that is no
+      # longer the whole story. FEAT-14's test-validate-feature-json.py is a UNIT script
+      # (measured: 12 files, ~1.2s) and is the only mechanical proof that the
+      # feature.json schema checker refuses when jsonschema is unavailable (SC-07) — the
+      # required `integration` context is the one CI branch protection evaluates, so
+      # without this step nothing ever runs that proof. Integration remains the reason
+      # this job exists in the first place: it is where the write-guard, digest and
+      # route-checking assertions live (#160), which the unit kind still does not cover.
+      - name: Unit suite
+        env:
+          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
+        run: .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+
+      # Integration kind measured at 12 scripts, ~15s.
       - name: Integration suite
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
         run: .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+
+      # VALIDATE EVERY FEATURE'S EXECUTION STATE (FEAT-14/T-03, REQ-06/REQ-07). No
+      # arguments: the CLI sweeps every .harness/features/*/feature.{json,yaml,yml} file
+      # on disk and exits non-zero if any fails the schema. This is the CI backstop for
+      # a session where check-domain.sh's write-time gate is not registered at all.
+      - name: Validate feature execution state
+        env:
+          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
+        run: .claude/skills/harness/bin/validate-feature-json.py
 
       # THE ROUTE CHECK, PROMOTED (issue #133, DEC-183). `check-plan-routes.py` worked from the
       # day it shipped and NOTHING mechanical ran it: not this workflow, not check-state.sh, not

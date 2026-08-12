@@ -34,7 +34,7 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 | **The handoff contract** — three-part return, normative DIGEST schemas, conditional routing, malformed returns, git/PR lifecycle | **8** | 1.1k |
 | **Test guardrails** — the change-type matrix, `test_matrix`/`test_kinds`, the four resolution states, AI evals | **9** | 1.1k |
 | The orchestrator — loop, hierarchy and spawn depth, canonical flow, CEO briefing, consolidated DIGEST, escalation, `max_cycles` exhaustion | **10** | 2.7k |
-| **Execution state** — `feature.yaml`, `state.yaml`, REQ/FEAT/D/T levels, checkpoint-before-dispatch, success criteria and UAT | **11** | 2.3k |
+| **Execution state** — `feature.json`, `state.yaml`, REQ/FEAT/D/T levels, checkpoint-before-dispatch, success criteria and UAT | **11** | 2.3k |
 | Team YAML schema and the runner algorithm | **12** | 0.7k |
 | The v1 team catalog and the prototype gate | **13** | 0.8k |
 | Composability — v1 scope and the post-v1 flattening plan | **14** | 0.2k |
@@ -199,7 +199,7 @@ leaves its run dir behind; the state check surfaces it and offers resume or disc
 
 **Commit policy:** `BRIEF.md` / `PLAN.md` / `STATE.md` / `notes/` / `logs/` / `expertise/` are
 **committed**, so reviewers auditing the PR diff see plan and state changes.
-`features/*/feature.yaml` is **committed** — it is the record of what shipped.
+`features/*/feature.json` is **committed** — it is the record of what shipped.
 `features/*/runs/**` is **git-ignored** (ephemeral scratch that would pollute the diff) and pruned
 on the `log_retention_days` schedule.
 
@@ -1444,7 +1444,7 @@ How it runs:
 
 1. **No report round is spawned (#80). The orchestrator reads every run's `digest.md` from disk**,
    including runs from phases it did not host — under DEC-159 it is a per-phase successor and never
-   received those digests in context. `feature.yaml` `runs:` names them. A "report on your domain" quotes the retired phrase to forbid it
+   received those digests in context. `feature.json` `runs:` names them. A "report on your domain" quotes the retired phrase to forbid it
    spawn buys a re-narration of a file on disk; DEC-69 assumes exactly this in holding that the
    cross-lead view costs no extra spawn. A lead is spawned here **only** when a specific question
    its digest does not answer needs one, and then only that lead.
@@ -1598,19 +1598,20 @@ things, and **they have different owners** (DEC-119):
 | Counter | Lives in | Owned and written by | Bounds |
 |---|---|---|---|
 | step `cycles` | run `state.yaml` | **the lead** | retries of one step, within one run |
-| `len(runs)` / `max_total_runs` | `feature.yaml` | **the orchestrator** | TOTAL runs, informational only (issue #79). Cycles count rework, so nothing counted runs — FEAT-03 ran 19 against a 6-cycle count and tripped nothing, and DEC-178 deleted cost, the other long-feature signal. `check-state.sh` INV-22 NOTES a crossing and never gates: a long feature is fine when each run is efficient, resolves issues and advances the SCs. The count is a FLOOR — main-session-direct segments are not runs |
-| `cycles_used` / `max_total_cycles` | `feature.yaml` | **the orchestrator** | REWORK across every run of the feature — FAILs routed back, unmet-SC re-dispatches, lead-reported send-backs. A clean first-pass run contributes zero (DEC-157) |
+| `len(runs)` / `max_total_runs` | `feature.json` | **the orchestrator** | TOTAL runs, informational only (issue #79). Cycles count rework, so nothing counted runs — FEAT-03 ran 19 against a 6-cycle count and tripped nothing, and DEC-178 deleted cost, the other long-feature signal. `check-state.sh` INV-22 NOTES a crossing and never gates: a long feature is fine when each run is efficient, resolves issues and advances the SCs. The count is a FLOOR — main-session-direct segments are not runs |
+| `cycles_used` / `max_total_cycles` | `feature.json` | **the orchestrator** | REWORK across every run of the feature — FAILs routed back, unmet-SC re-dispatches, lead-reported send-backs. A clean first-pass run contributes zero (DEC-157) |
 
 The split follows the file ownership that already exists (§11.3/§11.4) and is enforced by the domain
-hook: a lead is **blocked** from writing `feature.yaml`, so it cannot increment the feature counter
+hook: a lead is **blocked** from writing `feature.json`, so it cannot increment the feature counter
 even if told to. The lead reports cycles spent in its team digest; the orchestrator increments from
 that. The tier that can see across runs is the tier that bounds them. Exhausting either terminates the loop, and the sequence is:
 
 1. **Stop that branch.** No further retry of the failing step. Other independent branches of the DAG
    are allowed to finish — exhaustion fails a branch, not necessarily the whole team.
 2. **Preserve everything.** The run's `state.yaml` keeps the per-step history; the branch and all
-   commits stay; nothing is reverted or abandoned. The feature's `status` stays `in_progress` — it is
-   **not** set to `abandoned`, because that is your call, not the orchestrator's.
+   commits stay; nothing is reverted or abandoned. The feature's `status` stays where it is — it is
+   **not** advanced to `Done`, because closing a feature out, shipped or abandoned, is your call and
+   not the orchestrator's.
 3. **Roll up `VERDICT: BLOCKED`** with the accumulated `must_fix`, the number of cycles spent, and
    **what was tried each cycle** — an exhausted loop is only actionable if you can see why it did not
    converge.
@@ -1652,7 +1653,7 @@ turns: every counter, status and SHA is read from and written to disk, never hel
   BRIEF.md  PLAN.md              ← project: what & how (pm-owned, approval-gated)
   features/
     FEAT-01-sso/
-      feature.yaml               ← feature: live execution state (orchestrator-owned)
+      feature.json               ← feature: live execution state (orchestrator-owned)
       runs/
         2026-07-26-01-product/state.yaml    ← product-lead owned
         2026-07-26-02-eng/state.yaml        ← eng-lead owned
@@ -1670,16 +1671,16 @@ history of that feature, in order, with the squad visible in each name. This als
 
 ### 11.1 Declaration vs live state
 
-| | `PLAN.md ## Features` | `feature.yaml` |
+| | `PLAN.md ## Features` | `feature.json` |
 |---|---|---|
 | Nature | **declaration** (intent) | **live state** (reality) |
 | Owner | `pm` | **orchestrator** |
 | Approval-gated | yes — part of what you sign | no — it is tracking |
 | Holds | FEAT-01 is SSO, serves REQ-02, comprises T-04/T-05 | branch, PR, status, runs so far |
 
-`feature.yaml` never restates the declaration; it references `FEAT-01`.
+`feature.json` never restates the declaration; it references `FEAT-01`.
 
-**Feature status lives ONLY in `feature.yaml`.** Tasks keep their own `status:` (they are part of the
+**Feature status lives ONLY in `feature.json`.** Tasks keep their own `status:` (they are part of the
 plan), but a *feature's* progress is execution reality, so the orchestrator owns it.
 
 ### 11.2 Four levels
@@ -1759,31 +1760,72 @@ and goes once none does. A feature carrying both plans is a half-finished migrat
 `check-plan-routes.py` refuses it. DEC-182 records that an earlier draft of this paragraph called
 that reader permanent, and that the claim was wrong and untested.
 
-### 11.3 `feature.yaml` — orchestrator-owned, execution facts only
+### 11.3 `feature.json` — orchestrator-owned, execution facts only
 
-```yaml
-feature_id: FEAT-01            # join key ONLY — no name, no traces, no task list.
-                               # Those live in PLAN.md, which is what you approve;
-                               # duplicating them here would let an agent redefine
-                               # what FEAT-01 means without your signature.
-branch: harness/sso
-pr: 214
-status: in_progress | in_review | shipped | abandoned
-phase: plan | build | validate | ship   # the CURRENT phase; one orchestrator per phase (DEC-159)
-review_sha: def5678            # pinned per review cycle; branch is feature-level, so this is too
-cycles_used: 2                 # fix-loop budget SPANS runs
-max_total_cycles: 10
-max_total_runs: 20             # INFORMATIONAL (issue #79); omit to inherit harness.json
-runs:
-  - { id: 2026-07-27-01-validator, squad: validator, verdict: FAIL }
-  - { id: 2026-07-27-02-eng,       squad: eng,       verdict: PASS }
+```json
+{
+  "feature_id": "FEAT-01",
+  "branch": "harness/sso",
+  "pr": 214,
+  "status": "Building",
+  "review_sha": "def5678",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "runs": [
+    { "id": "2026-07-27-01-validator", "squad": "validator", "verdict": "FAIL" },
+    { "id": "2026-07-27-02-eng",       "squad": "eng",       "verdict": "PASS" }
+  ],
+  "max_total_runs": 20,
+  "github": { "milestone": 7, "parent": 214, "issues": { "T-01": 215 } },
+  "factory": { "repo": "acme/app", "parent": 214 }
+}
 ```
+
+**Eleven keys, and no twelfth.** `.claude/skills/harness/bin/feature-schema.json` is the authority
+(DEC-191). **Eight are required** — `feature_id`, `branch`, `pr`, `status`, `review_sha`,
+`cycles_used`, `max_total_cycles`, `runs`. **Three are optional**: `max_total_runs` (omit to inherit
+harness.json), and `github` and `factory`, which appear only once a feature has been mirrored to
+GitHub or decomposed by the factory. The key set is **closed** — `additionalProperties: false` at
+the top level and inside `runs` items, `github` and `factory` — and it is enforced **at write time**,
+not by a human noticing a stray key in review.
+
+Field notes that are not obvious from the sample: `feature_id` is a **join key ONLY** — no name, no
+traces, no task list, because those live in the plan, which is what you approve, and duplicating
+them here would let an agent redefine what `FEAT-01` means without your signature. `pr` is `null`
+before a pull request exists. `review_sha` is pinned per review cycle; the branch is feature-level,
+so this is too. `cycles_used` counts a fix-loop budget that **spans runs**. `max_total_runs` is
+INFORMATIONAL (issue #79).
+
+**One lifecycle field: `status`. Its six values are the GitHub board's column names.**
+
+| `status` | What it means |
+|---|---|
+| `Backlog` | filed, but not yet planned |
+| `Plan` | BRIEF and `plan.yaml` being authored — **not yet signed** |
+| `Ready` | plan signed, waiting to be dispatched |
+| `Building` | a build is running |
+| `Review` | validating **or** waiting on the operator |
+| `Done` | merged and closed, **or** abandoned |
+
+**There is NO `phase` field, and no lifecycle vocabulary other than these six** (DEC-192). If you
+remember a separate phase field alongside a four-value status, both are gone: they collapsed into
+this one field, and nothing translates between the old values and these.
+
+**The values are case sensitive, and no lowercase alias is accepted.** They are the board's own
+column names, and the board's spelling and the disk's spelling are required to be byte-identical, so
+`building` is not a `Building`.
+
+**Two collapses, and neither is free.** `Review` **cannot distinguish** a review panel that is
+running from one that is waiting on the operator — the column tells you the feature is in review,
+not whether anything is executing. `Done` **cannot distinguish** shipped from abandoned. Both are
+accepted costs of having exactly one vocabulary, and both are stated here because this is where a
+future reader will look for them.
 
 **The cycle budget has teeth (DEC-157).** `max_total_cycles` bounds *retries* and is
 **hard**: exhaustion stops the flow as `BLOCKED`, because a runaway fix loop is a real failure mode
 with no natural end. It counts **rework only** — a first-pass run is bounded by the PLAN's task
 list and adds nothing (DEC-157); the default (10) lives in harness.json `budgets.max_total_cycles`
-and per-feature raises are user decisions recorded in feature.yaml.
+and per-feature raises are user decisions recorded in feature.json.
 
 ### 11.4 `state.yaml` — that squad's lead owns it
 
@@ -1833,7 +1875,7 @@ open_questions:
   `features/*/runs/*-<its-squad>/**`.
 
 **Retention:** `features/*/runs/**` is git-ignored scratch and prunes on the same schedule as
-`logs/` (`log_retention_days`, default 30). `feature.yaml` is **committed**, so the durable record
+`logs/` (`log_retention_days`, default 30). `feature.json` is **committed**, so the durable record
 of what shipped — branch, PR, runs, verdicts — survives pruning.
 
 **Runner invocation contract:** the host is invoked with `(team, goal)` and optionally
@@ -2115,7 +2157,7 @@ DEC-90 originally read "one agent in one session"; DEC-120 narrowed that. The un
 **session-checkout pair**, not the session.
 
 Note what DEC-120 did and did not change. Inside one session, N concurrent orchestrators are the
-*design*, and they do not collide: `STATE.md` and `feature.yaml` are per-feature and each has
+*design*, and they do not collide: `STATE.md` and `feature.json` are per-feature and each has
 exactly one orchestrator, and `logs/` is written only by the main session. What is still unsafe is
 **two sessions over one checkout** — two main sessions means two writers for `logs/`, `## Approval`
 and the committed Expertise files, and there is no lock file anywhere. Separate checkouts are fine

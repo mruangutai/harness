@@ -750,7 +750,7 @@ DIGEST:
   files_touched: []
   open_questions: []
   expertise_update: []
-artifact: .harness/features/FEAT-01/feature.yaml
+artifact: .harness/features/FEAT-01/feature.json
 """, True)
 
 case("orchestrator briefing is NULLABLE — `none` when nothing was written", "harness-orchestrator", """
@@ -770,7 +770,7 @@ DIGEST:
   files_touched: []
   open_questions: []
   expertise_update: []
-artifact: .harness/features/FEAT-01/feature.yaml
+artifact: .harness/features/FEAT-01/feature.json
 """, True)
 
 

@@ -10,18 +10,19 @@ vocabulary, validate the fleet's declared stations against the board's real fiel
 (step 3b), adopt-or-create a parent issue, create one issue per not-yet-published task, add
 each to the board, then draw the DAG (sub-issue + blocked_by edges) in a second pass so edge
 correctness never depends on plan task order. Every receipt (issue number, item id, edge) is
-written back into <feature-dir>/feature.yaml's `factory` block ATOMICALLY, so an interrupted
+written back into <feature-dir>/feature.json's `factory` block ATOMICALLY, so an interrupted
 run resumes instead of duplicating (D-14). The item id specifically is written back only after
 `project_field_set` returns (T-04 defect fix) — not immediately after the board add — so the
 ledger never claims a task is ready to claim when the station-set that makes it claimable has
 in fact failed.
 
-The only harness file this tool writes is feature.yaml, and it is spliced surgically —
-locate the `factory:` block textually and rewrite only those lines, preserving the rest of the
-file (comments, a `github:` block from gh-sync.py) byte for byte. plan.yaml and BRIEF.md are
-read-only inputs and are never written (D-01, SC-03, SC-20).
+The only harness file this tool writes is feature.json, and the write is a read-modify-write
+over the whole document: load it, set the `factory` key, json.dump the whole thing back —
+preserving every other top-level key (a `github:` block from gh-sync.py included) unchanged.
+plan.yaml and BRIEF.md are read-only inputs and are never written (D-01, SC-03, SC-20).
 """
 import argparse
+import json
 import os
 import re
 import sys
@@ -92,7 +93,7 @@ def _empty_factory():
 
 
 def load_factory(feat_dir):
-    path = os.path.join(feat_dir, "feature.yaml")
+    path = os.path.join(feat_dir, "feature.json")
     factory = _empty_factory()
     if not os.path.exists(path):
         return factory
@@ -138,31 +139,25 @@ def load_factory(feat_dir):
     return factory
 
 
-def _strip_factory_block(text):
-    """Remove an existing top-level `factory:` block, however it is written — bare, with a
-    trailing comment, or quoted. Same line-based technique as gh-sync.py's `_strip_github_block`
-    and for the same reason: a regex anchored to a bare `factory:` misses this repo's own house
-    style of trailing comments and leaves an indented body dangling."""
-    out, skipping = [], False
-    for line in text.split("\n"):
-        if skipping:
-            if line[:1] not in ("", " ", "\t", "#"):
-                skipping = False
-            else:
-                continue
-        stripped = line.split("#", 1)[0].rstrip()
-        if stripped in ("factory:", '"factory":', "'factory':"):
-            skipping = True
-            continue
-        out.append(line)
-    return "\n".join(out)
+def write_factory(feat_dir, factory):
+    """Write the `factory:` key into feature.json by read-modify-write, ATOMICALLY.
 
-
-def _render_factory_block(factory):
-    import yaml  # PyYAML is a required dependency (DEC-171 am.1). This dumps data this
-    # module itself constructed; it is not a rulebook read, so harness_yaml's read-only
-    # ownership of `import yaml` does not apply here.
-    ordered = {
+    Load the document (or start from an empty one when the file does not exist yet) -> set
+    its `factory` key to the mapping below -> json.dump the whole document back to a temp
+    file created in the SAME DIRECTORY -> fsync -> os.replace onto feature.json. Every other
+    top-level key (a `github:` block from gh-sync.py included) round-trips unchanged.
+    feature.json itself is opened only for reading, never in a truncating mode: every
+    observer sees either the previous complete file or the next one, never a partial one
+    (T-04 step 8, carried forward by FEAT-14 T-05)."""
+    path = os.path.join(feat_dir, "feature.json")
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+        if not isinstance(doc, dict):
+            doc = {}
+    else:
+        doc = {}
+    doc["factory"] = {
         "repo": factory["repo"],
         "parent": factory["parent"],
         "parent_origin": factory["parent_origin"],
@@ -173,32 +168,10 @@ def _render_factory_block(factory):
             "blocked_by": {k: list(v) for k, v in sorted(factory["edges"]["blocked_by"].items())},
         },
     }
-    dumped = yaml.safe_dump(ordered, default_flow_style=False, sort_keys=False)
-    lines = ["factory:"] + ["  " + l if l else l for l in dumped.rstrip("\n").split("\n")]
-    return "\n".join(lines)
-
-
-def write_factory(feat_dir, factory):
-    """Splice the `factory:` block into feature.yaml SURGICALLY and ATOMICALLY.
-
-    Read (if the file exists) -> strip the old block -> append the new one -> write the whole
-    new content to a temp file created in the SAME DIRECTORY -> fsync -> os.replace onto
-    feature.yaml. feature.yaml itself is opened only for reading, never in a truncating mode:
-    every observer sees either the previous complete file or the next one, never a partial one
-    (T-04 step 8)."""
-    path = os.path.join(feat_dir, "feature.yaml")
-    if os.path.exists(path):
-        with open(path, encoding="utf-8") as f:
-            text = f.read()
-    else:
-        text = ""
-    text = _strip_factory_block(text).rstrip("\n")
-    if text:
-        text += "\n\n"
-    text += _render_factory_block(factory) + "\n"
+    text = json.dumps(doc, indent=2) + "\n"
 
     dirpath = os.path.dirname(path) or "."
-    fd, tmp = tempfile.mkstemp(prefix=".feature.yaml.", suffix=".tmp", dir=dirpath)
+    fd, tmp = tempfile.mkstemp(prefix=".feature.json.", suffix=".tmp", dir=dirpath)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(text)

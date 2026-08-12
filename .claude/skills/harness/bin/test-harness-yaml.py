@@ -300,12 +300,22 @@ def test_marker_self_unlinks_when_yaml_imports():
 
 
 def test_exactly_one_guarded_import_in_the_tree():
-    """D-12's receipt as a standing test: exactly one `except ImportError` in
-    the whole bin/ tree, and it lives in harness_yaml.py. The needle is
-    assembled at runtime and test-*.py files are excluded from the scan, so
-    this test file can never self-match (it lives in bin/ too)."""
+    """Two-assertion rule replacing the old single exact-set check.
+
+    D-12 (PLAN.md:229) is scoped to `import yaml`, not to guarded imports in
+    general — a guard on some other dependency (e.g. jsonschema, D-04) violates
+    no signed decision. The old single assertion widened D-12's scope by
+    accident: it treated ANY guarded import anywhere in bin/ as equivalent to a
+    yaml fallback. Splitting into two assertions restores D-12 to its actual
+    scope at full strength while still capping the general pattern.
+
+    The needle is assembled at runtime and test-*.py files are excluded from
+    the scan, so this test file can never self-match (it lives in bin/ too).
+    """
     needle = "except" + " " + "ImportError"
-    hits = []
+    yaml_tokens = ("import yaml", "from yaml")
+    guarded_hits = []       # any file with the `except ImportError` needle
+    yaml_guarded_hits = []  # subset: needle AND a yaml import token, same file
     for name in sorted(os.listdir(BIN_DIR)):
         if name.startswith("test-"):
             continue
@@ -316,9 +326,45 @@ def test_exactly_one_guarded_import_in_the_tree():
             text = open(path, encoding="utf-8").read()
         except (OSError, UnicodeDecodeError):
             continue
-        if needle in text:
-            hits.append(name)
-    assert set(hits) == {"harness_yaml.py"}, f"expected only harness_yaml.py, got {hits!r}"
+        if needle not in text:
+            continue
+        guarded_hits.append(name)
+        # Substring check is safe here: "import yaml" is NOT a substring of
+        # "import harness_yaml" (verified) because "import " is followed
+        # immediately by "yaml" only in the former — there is no leading
+        # space collapse that would make "harness_yaml" match. Do not
+        # "simplify" this into a bare `"yaml" in text` check — that WOULD
+        # false-positive on `import harness_yaml`.
+        if any(tok in text for tok in yaml_tokens):
+            yaml_guarded_hits.append(name)
+
+    # Assertion 1 — D-12 at full strength, restored to its real scope: a
+    # guarded YAML import (needle + yaml token co-occurring in the SAME file)
+    # exists in exactly one file. This must stay `==`, not a subset — D-12
+    # forbids a second yaml fallback path from ever landing unnoticed.
+    # factory_decompose.py has a real, unguarded `import yaml` today; wrapping
+    # it in a guard would trip this assertion, and that failing loud is
+    # correct — do not weaken this assertion to accommodate that file.
+    assert set(yaml_guarded_hits) == {"harness_yaml.py"}, (
+        f"expected only harness_yaml.py to guard a yaml import, got {yaml_guarded_hits!r}"
+    )
+
+    # Assertion 2 — the generalised anti-fallback rule: one guarded import per
+    # required dependency, each living in the module whose job IS that
+    # dependency's policy. FEAT-14 (D-04) added jsonschema as a second
+    # required dependency, so feature_schema.py is now allowed alongside
+    # harness_yaml.py. check-domain.sh is T-06's tight try around
+    # `import feature_schema` — T-06 is main-session-direct and lands AFTER
+    # this fix, so it holds zero occurrences of the needle right now. This
+    # MUST be a subset (`<=`), never `==`: an equality assertion sized to all
+    # three fails immediately (check-domain.sh is empty today), and one sized
+    # to today's two goes red the moment T-06 lands with nothing driving it.
+    # Subset is what spans that window without losing the cap.
+    allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.sh"}
+    assert set(guarded_hits) <= allowed, (
+        f"unexpected guarded-import file(s) outside the allowed set: "
+        f"{set(guarded_hits) - allowed!r}"
+    )
 
 
 def test_missing_pyyaml_is_reportable_not_a_second_crash():

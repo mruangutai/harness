@@ -1,0 +1,931 @@
+schema: plan/1
+feature: FEAT-17-guard-boundaries
+
+approval:
+  status: approved
+  approved_by: operator
+  date: '2026-08-11'
+
+lanes:
+  resolved_at: a29ad06
+  rows:
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out named in CLAUDE.md - a registered PreToolUse gate script
+    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out named in CLAUDE.md - a registered PreToolUse gate script
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out named in CLAUDE.md - the state gate
+    - surface: .claude/skills/harness/bin/harness_boundary.py
+      lane: main-session-direct
+      reason: >-
+        New module. check-domain.sh --resolve answers harness-backend-dev and
+        harness-dev-ops for it, the same pair the four carve-out files answer, but the
+        enforcement rule MOVES INTO this file, so it is a DEC-174 carve-out by content.
+    - surface: .claude/skills/harness/bin/test-check-domain.py
+      lane: main-session-direct
+      reason: co-changes with the guard it asserts against, in the same diff a human reads
+    - surface: .claude/skills/harness/bin/test-bash-write-guard.py
+      lane: main-session-direct
+      reason: co-changes with the guard it asserts against, in the same diff a human reads
+    - surface: .claude/skills/harness/bin/test-check-state.py
+      lane: main-session-direct
+      reason: co-changes with check-state.sh, in the same diff a human reads
+    - surface: .harness/features/FEAT-17-guard-boundaries/notes/**
+      lane: main-session-direct
+      reason: >-
+        check-domain.sh --resolve answers harness-orchestrator for these capture files;
+        they record a live-state mutation the main session performs, and the main session
+        is exempt from the domain hook.
+    - surface: docs/harness/**
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: >-
+      The shared boundary rule moves into a new module .claude/skills/harness/bin/harness_boundary.py,
+      imported lazily by both guard heredocs exactly as harness_yaml already is, and it exports a
+      classify() returning a structured verdict rather than the five raw functions.
+    because: >-
+      select_base returns a triple whose decision is finished by its consumer in check-domain.sh
+      domain_check, so moving only the five module-scope functions would recreate the drift in the
+      consumer instead of removing it.
+    dec: none
+  - id: D-02
+    choice: >-
+      An out-of-place worktree is identified from the checkout's own .git pointer file - owning root
+      is two levels above .git/worktrees/<id>, legitimate only if the checkout sits under
+      <owning root>/.claude/worktrees/ - and no git subprocess is invoked on any governed write path.
+    because: >-
+      The operator declined a git worktree list call on every governed write; the pointer file is a
+      filesystem read, it is self-describing, and it also catches the case where the session root IS
+      the out-of-place worktree.
+    dec: none
+  - id: D-03
+    choice: >-
+      The creation refusal is BROAD over git worktree add and git worktree move, refuses an
+      undeterminable or relative destination, and deliberately does not cover git clone or git init.
+    because: >-
+      A narrow rule fails silently at exit 0, which is the defect shape this feature exists to kill;
+      clone and init materialise a different repository that carries no manifest and no agents, so
+      nobody is misled into believing it is governed.
+    dec: none
+  - id: D-04
+    choice: >-
+      check-state.sh gains INV-25, which reports an out-of-place linked worktree as a FAILURE rather
+      than a warning.
+    because: >-
+      The guards now refuse writes in that tree, so the environment really is broken; a warning line
+      is the same silence in a quieter font.
+    dec: none
+  - id: D-05
+    choice: >-
+      The two out-of-place worktrees alive today are tagged and pruned rather than migrated, and the
+      new module gets no test file of its own.
+    because: >-
+      Nothing is stranded - r6 is clean - but its commit 52d8334 is not an ancestor of main, so a tag
+      is what keeps it recoverable; run-unit-tests.sh keeps explicit script arrays whose drift
+      detector fails the whole run on an unregistered test file, and behavioural coverage through
+      both guards is stronger evidence than a unit test of the extracted functions.
+    dec: none
+  - id: D-06
+    choice: >-
+      Every import of harness_boundary that sits on a path which can produce a verdict is wrapped in
+      try/except, prints a BLOCKED line naming the missing module, and exits 2. There are three,
+      enumerated rather than described: check-domain.sh line 493 under if _run_domain, the
+      check-domain.sh --resolve branch before line 357, and bash-write-guard.sh line 73. The
+      shape-phase import at check-domain.sh line 529 is NOT one of them - it keeps its absorbing
+      except and takes no dependency on the new module.
+    because: >-
+      An unhandled ImportError exits 1, and exit 1 is non-blocking (check-domain.sh line 14), so an
+      unimportable shared module would turn enforcement silently OFF on both routes at once - the
+      same failure direction as issue 103, installed inside its own fix. Exit 2 cannot lock the
+      repository out of its own repair: line 493 is gated on _run_domain, which is _governed and not
+      _post (lines 432, 450, 471), so the main session never reaches it; --resolve blocks no write,
+      so exit 2 there is a loud refusal to answer a query rather than a denied write; and
+      harness-dev-ops returns before line 73 on the Bash route (bash-write-guard.sh lines 54-59).
+      Line 529 is excluded because it is not gated on _governed and the shape gate needs nothing
+      from the module, so failing closed there would block the main session's own writes.
+    dec: none
+  - id: D-07
+    choice: >-
+      T-03 preserves the Bash route's outside-repo pass-through for product paths. The .. continue
+      runs after classify but only when the outcome is not out_of_place_worktree, so paths under
+      workspace_root and a product name keep exactly today's Bash-route behaviour and no criterion
+      is added for product-base enforcement there.
+    because: >-
+      rel at bash-write-guard.sh line 400 is ROOT-relative, so every product path starts with .. and
+      dropping the continue in favour of classify's own not_a_domain_question would begin enforcing
+      product-base domains on the Bash route for the first time. The grilling's Out of scope section
+      fences out changing how .claude/worktrees/ or the product workspace are governed, and that
+      fence is binding, so the widening is not this feature's to make.
+    dec: none
+  - id: D-08
+    choice: >-
+      The resolver/hook divergence T-02 opens is LEFT standing and recorded rather than closed:
+      after T-02 the Write hook refuses a governed write when the session root is an out-of-place
+      worktree, while check-domain.sh --resolve still names owners from inside one.
+    because: >-
+      --resolve exits at check-domain.sh lines 326-417, before _governed is computed at line 432 and
+      before domain_check runs at all. It is a read-only query path that writes nothing, so REQ-02
+      does not reach it, and refusing there would make the planning tool unusable from the very tree
+      an operator must inspect to diagnose the problem. The cost is that a plan resolved from inside
+      such a tree still resolves; INV-25 from T-05 reports that tree at session entry, which is the
+      loud signal.
+    dec: none
+  - id: D-09
+    choice: >-
+      The root-side check sits at the START of domain_check rather than at module level, so on the
+      Write route it is parser-contingent. In a PyYAML bootstrap-grant session the Write route
+      therefore does NOT refuse an out-of-place session root while the Bash route, which has no
+      domain_check, still does. That divergence is accepted, REQ-02 carries no no-PyYAML clause, no
+      criterion asserts the parser-missing case on either route, and the Bash route is deliberately
+      NOT moved below its own _no_parser exit to make the two symmetric. Taken in the 2026-08-11
+      re-scope and reversible at signature: restoring the module-level hoist restores the clause and
+      the assertion cluster on both routes.
+    because: >-
+      The bootstrap grant already skips domain_check in the REAL checkout, so it opens the same
+      escape everywhere and a stray-worktree session under the grant is no worse off than a
+      sanctioned one. The TARGET-SIDE refusal is parser-contingent on this route already, since it
+      is wired into classify and only domain_check calls classify, so the root-side check now
+      matches what this plan had already accepted. And the rooted case is a lost-work risk rather
+      than an enforcement hole - re-measured at a29ad06, a rooted session's out-of-domain and
+      over-cap writes are already refused under DEC-180 and issue 132 - so it does not earn an
+      assertion cluster on both routes. The cost, recorded rather than hidden: the two write routes
+      disagree in exactly one session shape, and a future scan will re-propose closing it by
+      hoisting. Weakening the Bash route to match would degrade a working route to the level of a
+      deliberately weakened one, so the divergence is the cheaper side of the trade.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Extract the shared boundary rule into harness_boundary.py and make check-domain.sh use it
+    traces: [REQ-05, REQ-06, REQ-09]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - check-domain.sh is a registered PreToolUse gate script
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/harness_boundary.py
+      - .claude/skills/harness/bin/check-domain.sh
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-domain.py && python3 .claude/skills/harness/bin/test-bash-write-guard.py && grep -q '^def select_base' .claude/skills/harness/bin/harness_boundary.py && grep -q '^def classify' .claude/skills/harness/bin/harness_boundary.py && ! grep -q '^def select_base' .claude/skills/harness/bin/check-domain.sh
+    intent: |
+      Create .claude/skills/harness/bin/harness_boundary.py and move the boundary rule into it from
+      the embedded Python heredoc in .claude/skills/harness/bin/check-domain.sh. This task changes
+      NO behaviour: both existing suites must pass unchanged afterwards, with no case edited.
+
+      Move into the module, verbatim except where stated: glob_to_re, matches, is_control_plane_glob,
+      real, resolve_fleet, select_base, is_control_plane_target, and the HARNESS_CONTROL_PLANE list.
+
+      Also move the DECISION LOGIC that currently lives in check-domain.sh's domain_check, at the
+      block starting with the comment THE FLEET AND THE BASE and ending at the sys.exit(2) of the
+      actionable rejection. Expose it as one function:
+
+        classify(abs_target, root, globs, shared, label) -> verdict
+
+      where verdict is a small object or dict carrying: outcome, one of not_a_domain_question,
+      allow, shared, deny; rel, the base-relative path; base; and advertise plus shared_advertise,
+      the two lists the Permitted for you line prints. classify performs, in this order, exactly
+      what domain_check does today: resolve_fleet, real on the target, select_base, the None base
+      early return, the glob filtering through the returned filter, rel via os.path.relpath against
+      the selected base, the DEC-143 worktree prefix stripping regex on rel producing rel_candidates,
+      the two matches loops gated by target_side_test, and the base == abs_root advertise
+      computation. classify RETURNS its verdict and does NOT print the agent-facing BLOCKED lines -
+      check-domain.sh keeps printing those, with the same wording, from the returned fields.
+
+      Hold the legitimate worktree location as ONE named module-level constant in
+      harness_boundary.py - the segment .claude/worktrees - and have every rule that needs it read
+      that constant, including the DEC-143 rel-stripping regex you are moving. T-03 mutates that
+      constant by name to prove there is one implementation, so a second spelling of the literal
+      makes that proof mean less than it looks.
+
+      THE REWIRING IS SCOPED TO harness_boundary.py's OWN RULES, AND NOWHERE ELSE. Two further
+      occurrences of the literal survive in check-domain.sh and BOTH KEEP their literals: the
+      DEC-143 stripping regex inside the _norm helper, and the .claude/worktrees prefixes built
+      into SWEEP_GLOBS. Both belong to the SHAPE phase, which takes no dependency on this module -
+      the shape-phase import at line 529 is deliberately absorbing and is a FORBIDDEN import site
+      below - so reading a boundary-module constant from either one would give the shape gate a
+      dependency the fail-closed rule then blocks the main session on. Do not rewire them, and do
+      not treat their surviving literals as a second spelling of the rule: the mutation proof
+      targets the module constant by name and never greps the tree.
+
+      Three constraints that are not free:
+
+      1. LAZY IMPORT, AT TWO NAMED SITES AND NO OTHERS. check-domain.sh has exactly three candidate
+         positions and they do not behave alike, so enumerate rather than reason by analogy:
+           - REQUIRED: inside the if _run_domain: block at line 493, immediately after
+             import harness_yaml. This serves domain_check.
+           - REQUIRED: on the --resolve path, before that branch's first use of a moved function at
+             line 357. --resolve exits at lines 326-417, so it never reaches line 493 and cannot
+             borrow that import.
+           - FORBIDDEN: the shape-phase try/except at line 529. That import is deliberately
+             absorbing, it is NOT gated on _governed, and the shape gate needs nothing from this
+             module, so a fail-closed import there would block the main session's own writes.
+         The comment at check-domain.sh line 292 records why the import is lazy at all: a top-of-file import made a
+         hook whose module is missing crash before it could print the DEC-101 no-manifest fail-open
+         message, and test-check-domain.py's isolated-copy case catches it. Do not regress that case.
+      2. BOTH REQUIRED IMPORTS FAIL CLOSED. Wrap each:
+
+           try:
+               import harness_boundary
+           except Exception as e:
+               print to stderr: check-domain: BLOCKED - the boundary module
+               harness_boundary.py could not be imported, so no domain can be checked, followed by
+               the exception text and a line saying enforcement is CLOSED rather than partial and
+               naming .claude/skills/harness/bin/harness_boundary.py as the file to restore.
+               sys.exit(2)
+
+         Not optional and not defensive padding: unhandled, the ImportError exits 1, exit 1 is
+         NON-BLOCKING (check-domain.sh line 14), the write lands and enforcement goes silently off
+         on both routes at once - the same failure direction as issue 103, installed inside its own
+         fix. Exit 2 is safe at the line 493 site because _run_domain is _domain_phase which is
+         _governed and not _post (lines 432, 450, 471), so the main session - the tier that must
+         repair the file - never reaches it. It is safe on --resolve because that branch answers a
+         query and blocks no write: exiting 2 there is a loud refusal to answer, which is the right
+         answer from a resolver whose rule is missing. D-06 records both.
+      3. THE HOOK LABEL. resolve_fleet and select_base currently print check-domain: BLOCKED ... and
+         call sys.exit(2) themselves, for the unloadable fleet file and for a path under the
+         workspace belonging to no declared repository. In the module those two must take the hook
+         label as a parameter and emit it in the message, so a second caller cannot print a verdict
+         naming the wrong hook. check-domain.sh passes the string check-domain.
+
+      REWIRE THE --resolve BRANCH TOO. It is a second caller of the functions you are moving:
+      resolve_fleet at check-domain.sh line 357, select_base at lines 361-362 and matches at lines
+      399 and 405. Left alone it calls undefined names, and constraint 3 gives two of them a new
+      signature it must satisfy - so --resolve passes the label check-domain as well. Its import is
+      the second REQUIRED site named in constraint 1. test-check-domain.py drives 10 --resolve
+      cases, so this task's verify catches an omission here.
+
+      Do NOT add a refusal to the --resolve branch for an out-of-place session root. D-08 records
+      that the divergence T-02 opens is left standing deliberately: --resolve exits at lines 326-417
+      before domain_check runs, it writes nothing, and refusing there would make the planning tool
+      unusable from the tree an operator must inspect.
+
+      Leave bash-write-guard.sh untouched in this task.
+  - id: T-02
+    title: Refuse writes into, and sessions rooted in, an out-of-place worktree on the Write route
+    traces: [REQ-01, REQ-02, REQ-09]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - check-domain.sh is a registered PreToolUse gate script
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/harness_boundary.py
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-domain.py
+    intent: |
+      Close the write door of issue 103 on the Write and Edit route. A linked git worktree of this
+      repository that does not live under .claude/worktrees/ is a mistake, not a supported shape: it
+      is REFUSED, never resolved onto the globs. No git subprocess may be invoked.
+
+      In .claude/skills/harness/bin/harness_boundary.py add:
+
+        worktree_owner(path) -> (checkout_dir, owner_root, legitimate) or None
+
+      It walks up from path to the first directory containing a .git entry. If .git is a directory,
+      that checkout is a main checkout: return with owner_root equal to the checkout and legitimate
+      True. If .git is a FILE, read it; its content is a single line of the form
+      gitdir: <abs>/.git/worktrees/<id>. The owning repository root is two directory levels above the
+      worktrees entry, that is the parent of the .git directory in that pointer. The checkout is
+      legitimate only when the checkout directory itself is inside owner_root joined with the named
+      legitimate-location constant T-01 introduced - do not spell the literal again here, T-03
+      mutates that constant by name - compared with os.path.commonpath over realpath-resolved
+      absolute paths, never a string prefix.
+      Anything unreadable, malformed or not matching that shape returns None, which means unknown and
+      is treated as not-a-worktree.
+
+      Wire it into classify at the branch where select_base returns a None base - the branch whose
+      comment today reads NOT A DOMAIN QUESTION. Before returning not_a_domain_question, call
+      worktree_owner on the target. If it returns a checkout whose legitimate flag is False, return
+      a new outcome out_of_place_worktree carrying the checkout directory and the expected location
+      <owner_root>/.claude/worktrees/. Targets that are not inside any worktree - /tmp, an unrelated
+      clone, a scratch script - keep exactly today's behaviour and still return
+      not_a_domain_question. Nothing on the two legitimate bases reaches this branch at all.
+
+      Add the ROOT-SIDE check too, and it is not the same case: when CLAUDE_PROJECT_DIR is itself an
+      out-of-place worktree, that tree carries its own .harness/team-config.yaml, so root resolves to
+      it and writes that are in-domain FOR THAT ROOT succeed at exit 0.
+      ITS GROUNDS, STATED NARROWLY, because the wider version is false at a29ad06. Such a session is
+      NOT ungoverned: DEC-180 and issue 132 made the shape caps fire relative to whatever root the
+      session stands in, and the domain rules resolve against that root correctly - a 211-line
+      feature.yaml, a 70-line handoff note and an out-of-domain bin/ script all exit 2 from a rooted
+      session, re-measured at a29ad06 in
+      .harness/features/FEAT-17-guard-boundaries/notes/answers-2026-08-11-rescope.md. What is left is
+      that the session's work lands in a checkout nobody merges. This check refuses the LOCATION, on
+      the standing ruling that an out-of-place worktree is a mistake rather than a supported shape.
+      Do not justify it as closing an enforcement hole; that justification was overtaken.
+
+      PLACE THE ROOT-SIDE CHECK AT THE START OF domain_check, ahead of the
+      harness_yaml.manifest_domains call, and NOT at module level. root, manifest and agent are
+      module-scope globals already visible there. Call worktree_owner on root; if it returns a
+      checkout with legitimate False, print the verdict and exit 2.
+
+      THE PLACEMENT IS PARSER-CONTINGENT AND THAT IS CHOSEN, NOT OVERLOOKED. domain_check is called
+      at check-domain.sh line 676 under if _run_domain and not _no_parser, so in a bootstrap-grant
+      session - PyYAML missing, _no_parser true - the Write route does NOT refuse an out-of-place
+      root while the Bash route, which has no domain_check, still does. Three reasons that is right
+      here: the bootstrap grant already skips domain_check in the REAL checkout, so it opens the same
+      escape everywhere and a stray-worktree session is no worse off than a sanctioned one; the
+      TARGET-SIDE refusal above is parser-contingent on this route already, because it is wired into
+      classify and only domain_check calls classify; and the rooted case is a lost-work risk rather
+      than an enforcement hole, so it does not earn a second assertion cluster on both routes. The
+      divergence is recorded in BRIEF.md under the heading naming what the root-side rule
+      deliberately does not cover. Do NOT close it by hoisting this check above line 675, and do NOT
+      close it by moving the Bash route's check below its own _no_parser exit - that would weaken a
+      working route to match a deliberately weakened one.
+
+      THE EFFECTIVE GATE IS THEREFORE _run_domain AND NOT _no_parser, and the cost is stated rather
+      than hidden. That gate is strictly narrower than _run_domain, so both properties this placement
+      needs still hold: the main session and post mode stay exempt - the tier that must repair the
+      file is never blocked - and DEC-101's deliberate fail-open on a manifest-less tree is not
+      regressed, because _run_domain is already false there (lines 490-491). Gating on _domain_phase
+      instead would fire on a tree with NO manifest, where root falls back to the cwd: any linked
+      worktree of any unrelated, un-onboarded repository would then be refused. The cost of this gate
+      is that a manifest-less or a parser-less out-of-place worktree gets NO root-side refusal on the
+      Write route. That is acceptable because domain enforcement is already off in those two sessions
+      - by DEC-101 and by the bootstrap grant respectively - not because it does not matter, and
+      every fixture below gives each checkout used as a session root its own manifest.
+
+      Both verdicts print, to stderr, in check-domain.sh, and the two wordings are NOT the same:
+        - TARGET-SIDE, a write into a sibling worktree from outside it:
+          check-domain: BLOCKED - <path> is inside a git worktree that is not under
+          .claude/worktrees/, followed by a line naming <owner_root>/.claude/worktrees/ as where
+          worktrees belong, and a line saying the tree should be removed with git worktree remove
+          rather than written into. This wording is correct here and stays.
+        - ROOT-SIDE, the session is standing in that tree: the same first two lines - the BLOCKED
+          line and the line naming <owner_root>/.claude/worktrees/ as where worktrees belong - and
+          then a line saying to start the session from the main checkout or from a checkout under
+          that location instead. The root-side verdict MUST NOT carry the removal guidance. Measured
+          by visual-designer: git worktree remove SUCCEEDS with exit 0 when run from inside the tree
+          it removes, so the target-side wording, printed to a session whose cwd is that tree, is an
+          instruction to delete the ground the session is standing on.
+      The literal string .claude/worktrees must appear in BOTH outputs - a criterion asserts it. The
+      literal string git worktree remove must NOT appear in the ROOT-SIDE output - the same
+      criterion asserts its absence, because a presence-only assertion passes unchanged if the
+      destructive sentence is re-added beside it.
+
+      In .claude/skills/harness/bin/test-check-domain.py add cases built WITHOUT invoking git, so the
+      suite never creates the shape the guard now forbids. Stand the fixture up as follows: make a
+      tempdir root, write <root>/.harness/team-config.yaml granting .harness/allowed/** to
+      harness-backend-dev, create the directory <root>/.git/worktrees/sib, create a sibling directory
+      <tmp>/sib holding a .git FILE whose single line is gitdir: <root>/.git/worktrees/sib, and
+      create <root>/.claude/worktrees/wt holding a .git FILE whose line is
+      gitdir: <root>/.git/worktrees/wt with the matching directory. Give BOTH <tmp>/sib and
+      <root>/.claude/worktrees/wt their own .harness/team-config.yaml carrying the same
+      .harness/allowed/** grant, since each is used as a session root below and a root with no
+      readable manifest falls to the DEC-101 fail-open and proves nothing.
+
+      WHY EVERY IN-ROOT FIXTURE PATH IS UNDER .harness/ AND NOT allowed/. Inside the harness base a
+      glob match is accepted only if the TARGET passes is_control_plane_target
+      (check-domain.sh lines 277-289, wired as the harness base's unconditional target-side test at
+      lines 249-253). That test passes a first path segment of .harness or .claude, and otherwise
+      only the CLOSED four-entry HARNESS_CONTROL_PLANE list at lines 149-154. A grant of allowed/**
+      therefore cannot permit <root>/allowed/x.txt - it exits 2 for exactly the reason SC-05 asserts
+      <root>/src/main.py exits 2. Do not restore the shorter paths.
+
+      Then assert, each on an exact exit code:
+        - Write to <tmp>/sib/allowed/x.txt exits 2 and stderr contains .claude/worktrees. FORBIDDEN.
+          The sibling is outside root, so select_base returns None and no grant can reach it - this
+          case discriminates whatever the manifest says.
+        - Write to <root>/.harness/allowed/x.txt exits 0. The paired allow, same fixture.
+        - Write to <tmp>/sib/.harness/allowed/x.txt with CLAUDE_PROJECT_DIR set to <tmp>/sib exits 2.
+          FORBIDDEN, root-side. The target is deliberately control-plane and in-domain FOR THAT
+          ROOT: it exits 0 if the root-side rule is absent and 2 only because of it. A target of
+          <tmp>/sib/allowed/x.txt would exit 2 from the ordinary glob rule with the root-side rule
+          deleted, and would prove nothing.
+          ASSERT THE WORDING ON THIS CASE, both halves, on the same captured stderr: it CONTAINS the
+          substring .claude/worktrees, and it does NOT contain the substring git worktree remove.
+          Both are needed. Presence alone passes unchanged if the destructive sentence is re-added
+          beside the location line, which is the regression being guarded; absence alone passes for
+          a verdict that says nothing at all. Scope the negative assertion to THIS case's stderr -
+          the target-side verdict keeps that guidance, so a file-wide or tree-wide grep for the
+          string would fail against correct code.
+        - The same relative payload with CLAUDE_PROJECT_DIR set to <root>/.claude/worktrees/wt and
+          the target <root>/.claude/worktrees/wt/.harness/allowed/x.txt exits 0. The paired allow
+          for the root-side rule: same shape, legitimate location.
+        - NO BOOTSTRAP-GRANT CASE IS ADDED ON THIS ROUTE, deliberately. The 2026-08-11 re-scope cut
+          it with the module-level hoist it existed to pin. Do not add one back here: with the check
+          inside domain_check it would assert exit 2 in a session where domain_check never runs, so
+          it would fail against correct code.
+        - Write to /tmp/<something>/x.txt outside any worktree still exits 0, so the change did not
+          widen into ordinary scratch paths.
+        - THE FAIL-CLOSED PAIR for the shared module (D-06). Build an isolated copy carrying
+          check-domain.sh and harness_yaml.py but NOT harness_boundary.py. With the root manifest
+          PRESENT, a governed write exits 2 and stderr names harness_boundary. With the manifest
+          ABSENT, the existing DEC-101 case at test-check-domain.py lines 163-174 still prints
+          enforcement OFF and exits 0. Without that second half the first is satisfied by a guard
+          that blocks everything.
+  - id: T-03
+    title: Make bash-write-guard.sh decide from the shared module, closing issue 261 and the Bash half of 103
+    traces: [REQ-01, REQ-02, REQ-04, REQ-05, REQ-06, REQ-09]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - bash-write-guard.sh is a registered PreToolUse gate script
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/test-bash-write-guard.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-bash-write-guard.py && python3 .claude/skills/harness/bin/test-check-domain.py
+    intent: |
+      Replace the domain decision inside .claude/skills/harness/bin/bash-write-guard.sh with a call
+      to harness_boundary.classify, so the Bash route and the Write route decide from one
+      implementation. This closes issue 261 - measured at a29ad06, with src/** granted to
+      harness-backend-dev, a Write to <root>/src/main.py exits 2 while echo hi > <root>/src/main.py
+      exits 0, because this guard has no notion of the two bases or of the control-plane target-side
+      test - and it closes the Bash half of issue 103 at the same time, since classify now carries
+      the out-of-place worktree outcome from T-02.
+
+      In the guard's findings loop, which begins allowed = mine + shared and iterates over
+      findings, delete the local matches and glob_to_re definitions and the hand-rolled
+      any(matches(r, g)) test, and call classify(abs_target, root, mine, shared, label) once per
+      extracted path with the label bash-write-guard. Map the outcomes: allow and
+      not_a_domain_question proceed; shared proceeds and prints the same shared-path notice
+      check-domain.sh prints; deny and out_of_place_worktree call the existing deny() with a message
+      built from the verdict fields. Import harness_boundary LAZILY at the same point the guard
+      already imports harness_yaml, at line 73, never at the top - the isolated-copy case in this
+      file's own T-14 block asserts that an absent manifest still fails OPEN, and a top-level import
+      breaks it.
+
+      IMPORT harness_boundary FAIL-CLOSED, exactly as T-01 does in the sibling guard: wrap it in
+      try/except, print bash-write-guard: BLOCKED naming harness_boundary.py as the file to restore,
+      and sys.exit(2). Unhandled it exits 1, which is non-blocking, and both routes then go silently
+      unenforced at once (D-06). Exit 2 is safe at line 73 because harness-dev-ops has already
+      returned at lines 54-59 and a non-harness agent at line 58, so the tier that repairs the file
+      is never blocked by it.
+
+      PRESERVE, ahead of the classify call, the DEC-153 carve-out that is currently the
+      re.match(r"^\.claude/worktrees/", rel) continue near line 405: perturbation proofs run in those
+      checkouts and this guard permits governed-agent writes there regardless of domain. That
+      ordering is behaviour, not style - moving it after classify would change what qa may do in a
+      worktree. Preserve equally the pytest_cache/node_modules/pycache/.venv continue.
+
+      THE .. OUTSIDE-REPO CONTINUE, AND THE ONE READING THAT IS CORRECT (D-07). It must now run
+      AFTER classify, or the issue 103 fix is dead code on this route - today that continue is
+      precisely what makes a sibling worktree invisible here. But it runs after classify ONLY as a
+      filter on the outcome: when classify returns out_of_place_worktree, deny; for EVERY other
+      outcome on a rel beginning with .., continue exactly as today. Do NOT drop the continue in
+      favour of classify's own not_a_domain_question. rel at line 400 is ROOT-relative, so every
+      path under the product workspace begins with .., and dropping the continue would start
+      enforcing product-base domains on the Bash route for the first time - a widening the
+      grilling's Out of scope section fences off, with no REQ, no criterion and no test behind it.
+      Product paths keep today's Bash-route behaviour. This feature changes the Bash route only for
+      out-of-place worktrees and for in-root paths.
+
+      One consequence to state in the code rather than leave for a later reader to file as a
+      regression: rel taken from the verdict is BASE-relative, where line 400 computes it
+      ROOT-relative today, so the guard's message text changes in the product base. That is correct
+      and intended.
+
+      THE ROOT-SIDE CHECK, and where it goes in THIS file. bash-write-guard.sh has no domain_check
+      function, so T-02's insertion point does not exist here. Put it immediately after root and
+      manifest are derived, and place it by CONTENT anchors rather than by line number: immediately
+      after the assignment _no_parser = harness_yaml.yaml is None and its comment block, before the
+      if not cmd: sys.exit(0) early exit. It is also before the reviewer read-only rule and the
+      write-pattern detection.
+      WHAT THIS PLACEMENT RESTS ON, now that the bootstrap-grant case is gone: it must sit ahead of
+      the if not cmd: sys.exit(0) exit and ahead of the if not findings: sys.exit(0) exit, because a
+      session standing in an out-of-place worktree must be refused even when the command extracts no
+      write target at all. The git status --porcelain case below is what asserts that, and it is the
+      only thing pinning this placement - do not move the check below either early exit. Its position
+      relative to the if _no_parser: sys.exit(0) exit near line 340 is NOT asserted by any case and
+      is not load-bearing; sitting above it means this route still refuses in a bootstrap-grant
+      session while the Write route does not, which is the chosen divergence T-02 records. Do not
+      move this check below that exit to buy symmetry with T-02. There:
+      call harness_boundary.worktree_owner(root) and,
+      if it returns a checkout with legitimate False, deny with the ROOT-SIDE verdict wording T-02
+      specifies - the BLOCKED line, the line naming <owner_root>/.claude/worktrees/ as where
+      worktrees belong, and the line saying to start the session from the main checkout or from a
+      checkout under that location. NOT the target-side wording: it instructs removal with
+      git worktree remove, which visual-designer measured succeeds at exit 0 from inside the tree it
+      removes, so printing it to a session standing in that tree tells the agent to delete its own
+      cwd. The literal .claude/worktrees appears here; the literal git worktree remove must not. It
+      must not
+      sit after if not findings: sys.exit(0), where it would be dead for every command that extracts
+      no target, and it must not sit behind the DEC-153 continue, which is computed per finding and
+      is never reached when there are no findings.
+
+      In .claude/skills/harness/bin/test-bash-write-guard.py, using the existing fixture() and fire()
+      helpers plus the hand-built .git pointer files and the per-checkout manifests described in
+      T-02, and with the fixture manifest granting .harness/allowed/** rather than allowed/** for
+      the target-side reason T-02 spells out, add:
+        - echo hi > <sibling>/allowed/x.txt exits 2. FORBIDDEN. The sibling is outside root, so this
+          half discriminates whatever the manifest grants.
+        - echo hi > <root>/.harness/allowed/x.txt exits 0. Paired allow, same fixture.
+        - echo hi > <sibling>/.harness/allowed/x.txt with CLAUDE_PROJECT_DIR set to the sibling
+          exits 2. The target is control-plane and in-domain for that root, so it exits 0 with the
+          root-side rule deleted - which is what makes the case discriminating. Paired: with
+          CLAUDE_PROJECT_DIR set to <root>/.claude/worktrees/wt and the target
+          <root>/.claude/worktrees/wt/.harness/allowed/x.txt, exit 0.
+          ASSERT THE WORDING on the forbidden half's captured stderr, both halves of it: it CONTAINS
+          .claude/worktrees and it does NOT contain git worktree remove. This route prints its own
+          copy of the verdict, so a wording assertion on the Write route alone leaves this one free
+          to regress. Scope the negative to this case's stderr only.
+        - NO BOOTSTRAP-GRANT CASE ON THIS ROUTE EITHER. The 2026-08-11 re-scope cut REQ-02's
+          no-PyYAML clause on both routes together, because under the bootstrap grant the domain
+          check is skipped in the real checkout too, so that case adds nothing worse than the
+          sanctioned escape already does. This route happens to refuse anyway, given where the check
+          sits, but nothing asserts it and nothing should: an assertion here without its partner on
+          the Write route would re-introduce the pressure to hoist T-02's check.
+        - a command that extracts NO write target at all, git status --porcelain, issued with
+          CLAUDE_PROJECT_DIR set to the sibling, exits 2 as well - this is what proves the root-side
+          check is not sitting behind the no-findings early exit, and after the re-scope it is the
+          ONLY case pinning this route's placement.
+        - THE FAIL-CLOSED PAIR (D-06): an isolated copy carrying bash-write-guard.sh and
+          harness_yaml.py but NOT harness_boundary.py exits 2 with the manifest PRESENT and names
+          the missing module, while the existing manifest-absent case in this file's T-14 block
+          still exits 0.
+
+      THE ONE-IMPLEMENTATION PROOF, by mutation rather than by grep. Add a case that builds an
+      isolated bin copy in a tempdir containing four files copied from this bin directory -
+      check-domain.sh, bash-write-guard.sh, harness_boundary.py and harness_yaml.py - plus a root
+      holding .harness/team-config.yaml, and the hand-built pointer files. Note that the existing
+      isolated-copy case copies ONE file; this one needs all four or the guards will not import.
+
+      The mutation must be observed through the ROOT-SIDE check, which means the fixture is pinned,
+      not aimed. Set CLAUDE_PROJECT_DIR to <root>/.claude/worktrees/wt, give that checkout its own
+      .harness/team-config.yaml granting .harness/allowed/**, and make the payload target the
+      literal path <root>/.claude/worktrees/wt/.harness/allowed/x.txt. Every part of that is
+      load-bearing. Aimed at the worktree from outside it, the payload is inside root on the Write
+      route so select_base returns a base and the out-of-place branch is never reached, and on the
+      Bash route the DEC-153 continue returns before classify is called - so the mutation could not
+      flip on either route. And a non-control-plane target such as .../wt/allowed/x.txt exits 2
+      both before and after for the target-side reason T-02 gives, which is 2 to 2 and again no flip.
+
+      Then edit the COPIED harness_boundary.py, replacing the value of the named legitimate-location
+      constant with .claude/wt-mutant, and re-run both guards from that copy against that one
+      identical payload. Assert the verdict FLIPS on BOTH routes - 0 before the mutation, 2 after
+      it. Edit the constant by name; do not sed the bare literal, which also appears in the DEC-143
+      rel-stripping regex and would change two rules at once. A flip on one route only means a
+      second copy of the rule survives somewhere, and the case must fail loudly saying so.
+      FOUR PRE-EXISTING CASES IN test-bash-write-guard.py TURN RED THE MOMENT YOU MAKE THIS CHANGE,
+      AND THE ONLY PERMITTED REPAIR IS TO RETARGET THE FIXTURE PATH. Today this guard matches globs
+      raw and applies no target-side test, so docs/a.md under harness-documentor's docs/** grant
+      exits 0. Once classify decides, is_control_plane_target refuses docs/a.md - its first segment
+      is neither .harness nor .claude and it is not in the closed four-entry HARNESS_CONTROL_PLANE
+      list - and those cases exit 2. Measured on the Write route, which already runs that test: a
+      Write to docs/a.md as harness-documentor exits 2 while its stderr still lists docs/** on the
+      Permitted for you line, so the refusal is the target-side test and not a missing grant; a
+      Write to docs/harness/a.md and to docs/harness/b.md as the same agent exits 0. This task is
+      the first red - T-01 leaves this file untouched and T-02 runs only test-check-domain.py.
+
+      Find them by their case NAMES, never by line number, because this task edits those lines. The
+      first four are the ones that turn red; the fifth is listed after them and is retargeted for a
+      different reason, stated there:
+
+        - the case named: rm in-domain followed by another command
+          Today: rm -f docs/a.md; echo ok, agent harness-documentor, expected exit 0.
+          Change to: rm -f docs/harness/a.md; echo ok. Expected exit stays 0.
+        - the case named: mv within domain followed by another command
+          Today: mv docs/a.md docs/b.md; ls, agent harness-documentor, expected exit 0.
+          Change to: mv docs/harness/a.md docs/harness/b.md; ls. Expected exit stays 0.
+        - the case named: in-domain redirect followed by a read command
+          Today: echo x > docs/a.md; git status, agent harness-documentor, expected exit 0.
+          Change to: echo x > docs/harness/a.md; git status. Expected exit stays 0.
+        - in run_t14, the assertion whose name is, on one line:
+          SC-06 pair: permitted bash write allowed AND forbidden blocked
+          Its allow half fires echo hi > <root>/allowed/x.txt expecting 0 and its forbidden
+          half fires <root>/forbidden/x.txt expecting 2. Retarget the ALLOW half ONLY, to
+          <root>/.harness/allowed/x.txt, which FIXTURE_MANIFEST already grants. Both expected exits
+          stay as they are, 0 and 2.
+
+      A FIFTH CASE IS RETARGETED, AND NOT BECAUSE IT TURNS RED. The case named:
+        an out-of-domain rm in the second segment still blocks
+        Today: rm docs/a.md; rm src/main.py, agent harness-documentor, expected exit 2.
+        Change to: rm docs/harness/a.md; rm src/main.py. EXPECTED EXIT STAYS 2.
+      It does not flip - src/main.py is refused either way - so no diff of expected exit codes
+      catches what is wrong with it, and SC-07's check is structurally blind here. Its name states
+      that the SECOND segment is scanned. Once classify denies docs/a.md in its own right, the FIRST
+      operand carries the refusal and the case passes even if second-segment scanning regressed
+      entirely. Retargeting the first operand to a path that is granted and control-plane, and so
+      exits 0 on its own, puts the whole weight of the expected 2 back on the second segment. The
+      permitted-edit rule covers this: the fixture path moves, the expected exit code does not.
+
+      docs/harness/a.md and docs/harness/b.md are inside harness-documentor's docs/** grant AND
+      control-plane through HARNESS_CONTROL_PLANE's docs/harness/** entry, so they exit 0 both
+      before and after this task, which is what keeps the retarget honest rather than convenient.
+
+      FLIPPING AN EXPECTED EXIT CODE FROM 0 TO 2 IS FORBIDDEN IN ALL FOUR. It is the cheap repair a
+      builder facing four reds reaches for, and it is silent sabotage. Per case, what it destroys:
+        - the first three exist to prove the B-6 fix, and the comment above them records why: shlex
+          leaves the ; ATTACHED to the previous token, so the operand list never ended and the NEXT
+          command's name was collected as a target - rm -f docs/a.md; echo ok was refused for rm
+          targets echo. With the expectation flipped to 2 each case PASSES UNDER THE VERY BUG IT
+          GUARDS, because the refusal then arrives from the domain rule instead of from the parse,
+          and the comment would describe a property nothing asserts any more.
+        - the fourth asserts permitted-allowed AND forbidden-blocked from ONE fixture, which is the
+          only thing that tells a working guard from a block-all one. With its allow half flipped
+          to 2 it degenerates to block-all passes - allow-only blindness reinstalled on the refusal
+          side, which is the defect shape this whole feature exists to kill.
+      Delete none of the five, and change no expected exit code anywhere else in the file either -
+      the fifth's expected 2 is as fixed as the first four's expected 0.
+
+      And restore the agreement case that was demoted on 2026-08-11: in the T-14 block, the loop over
+      (rel, want) pairs currently uses .harness/allowed/x.txt for its allow half because the two
+      surfaces genuinely disagreed on a product-shaped in-root path. Add src/** to that block's
+      FIXTURE_MANIFEST grant, and assert both surfaces exit 2 on <root>/src/main.py and both exit 0
+      on <root>/.harness/allowed/x.txt. Replace the comment above it that says the surfaces disagree
+      with one recording that issue 261 closed the divergence - leave no prose asserting a divergence
+      the code no longer has.
+  - id: T-04
+    title: Refuse creation of a worktree outside .claude/worktrees at the Bash route
+    traces: [REQ-03]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - bash-write-guard.sh is a registered PreToolUse gate script
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/test-bash-write-guard.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-bash-write-guard.py
+    intent: |
+      Close the creation door of issue 103. Measured at a29ad06,
+      git worktree add --detach ~/GitHub/harness-SIBLING HEAD exits 0 from both hooks. Catching the
+      mistake after the tree exists is worth less than preventing it.
+
+      Add a scan to .claude/skills/harness/bin/bash-write-guard.sh over the already-computed tokens
+      list, which is the per-segment shlex split of the command. It fires when a segment's command
+      basename is git and its first non-flag operand is worktree with the next operand add or move.
+      This scan MUST run before the existing early exit if not findings: sys.exit(0) near line 320 -
+      git produces no findings, so placed after it the check is dead code.
+
+      Determining the destination:
+        - For add, the destination is the first remaining operand after the subcommand, skipping
+          flags. -b, -B and --reason each CONSUME the following token, so skip two for those;
+          --detach, --force, -f, --checkout, --no-checkout, --lock and --quiet consume nothing.
+        - For move, the destination is the SECOND remaining operand.
+        - If the destination is a RELATIVE path, refuse. It cannot be resolved: the Bash payload
+          carries a command and not a working directory, and resolving it against root would read
+          git worktree add .claude/worktrees/FEAT-99 issued from an unrelated directory as
+          legitimate, which is a silent permit of the exact mistake. Say in the verdict that an
+          absolute path under .claude/worktrees/ is required.
+        - If no destination can be determined at all, refuse for the same reason. Failing loudly on
+          an unparsed form is the whole point; failing open reproduces the defect.
+      RESOLVE BOTH SIDES WITH os.path.realpath BEFORE COMPARING, not just the destination. Permit
+      when the realpath-resolved destination is inside the realpath-resolved
+      <root>/.claude/worktrees/, compared with os.path.commonpath. Refuse otherwise, with a verdict
+      naming <root>/.claude/worktrees/ as where worktrees belong.
+
+      Both sides, and it is one or the other rather than a preference. bash-write-guard.sh derives
+      root at lines 61-66 with os.access alone and never resolves it, so resolving only the
+      destination compares two different spellings of the same tree: on darwin the test fixture is
+      mkdtemp, which returns /var/folders/..., while realpath returns /private/var/folders/... -
+      commonpath then returns / and T-04's paired allow goes RED against correct code. Resolving
+      NEITHER also makes the fixture pass and was the cheaper branch, and it is rejected on
+      substance: with no resolution the comparison is string-level, so
+      git worktree add <root>/.claude/worktrees/../../../tmp/sib is judged inside .claude/worktrees/
+      and permitted - a silent permit of the exact mistake this task exists to refuse. Resolving
+      both closes that and the symlink form of it together.
+      Do this with a LOCAL resolved copy of root inside this scan. Do not reassign the module-level
+      root or change how lines 61-66 derive it: every other rule in this file compares against the
+      unresolved root, and changing that would alter behaviour no criterion here covers. The task
+      stays execution_mode main-session-direct, which it already is - bash-write-guard.sh is a
+      DEC-174 carve-out and this is a change to its production code.
+
+      Do NOT extend this to git clone or git init. They materialise a different repository, which
+      carries no .harness/team-config.yaml and no agents, so no agent is misled into believing that
+      tree is governed - which is the harm issue 103 records. Every other git subcommand is
+      untouched.
+
+      In .claude/skills/harness/bin/test-bash-write-guard.py, using fixture() and fire(), assert
+      exact exit codes:
+        FORBIDDEN, all 2: git worktree add /tmp/sib-xyz HEAD;
+        git worktree add -b feat/x /tmp/sib-xyz HEAD, proving a flag cannot hide the destination;
+        git worktree add sib HEAD, the relative form;
+        git worktree move <root>/.claude/worktrees/wt /tmp/sib-xyz.
+        PAIRED ALLOWS from the same fixture, all 0: git worktree add <root>/.claude/worktrees/FEAT-99
+        HEAD; git worktree add --detach <root>/.claude/worktrees/FEAT-99 HEAD; git status
+        --porcelain; git worktree list; git commit -m x.
+      The ordinary-git allows are not decoration - they are what bounds the risk of the broad rule.
+  - id: T-05
+    title: Add INV-25 to check-state.sh reporting an out-of-place worktree at entry
+    traces: [REQ-07]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - check-state.sh is the fourth gate script named in CLAUDE.md
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-state.py
+    intent: |
+      An environment that already contains an out-of-place worktree must say so rather than run half
+      governed. Add INV-25 to .claude/skills/harness/bin/check-state.sh. The highest invariant in the
+      file today is INV-24, at the DEC-186 block; number the new one INV-25 and follow the file's
+      existing shape for appending to the failure list.
+
+      INV-25 runs git worktree list --porcelain against the root once, at session entry. This is the
+      one place a git subprocess is acceptable: check-state runs once per session, not once per
+      governed write, which is why the cost objection that kept it out of the two hooks does not
+      apply here. If git is absent or the command fails, record nothing and do not fail - this
+      invariant must never turn an unrelated environment into a red gate.
+
+      DERIVE THE LEGITIMATE LOCATION ONCE, INTO ONE LOCAL VARIABLE, AND USE THAT SAME VALUE FOR BOTH
+      THE COMPARISON AND THE MESSAGE. It is the .claude/worktrees/ directory of the MAIN CHECKOUT:
+      the path carried on the FIRST entry git worktree list --porcelain returns, which is always the
+      main checkout even when the command is run from inside a linked worktree, and which a
+      repository with no linked worktrees still returns as itself - so the derivation is total. Do
+      NOT derive it a second time anywhere in this invariant; two derivations can drift.
+      The base is NEVER <root>/.claude/worktrees/. root is CLAUDE_PROJECT_DIR or the current working
+      directory, so in exactly the session this invariant exists to catch - one whose root IS an
+      out-of-place worktree - that base would mark every LEGITIMATE worktree under the main checkout
+      as out of place and hand it destructive removal guidance.
+
+      For every listed worktree other than the main checkout, the entry is out of place unless its
+      path is inside that one derived legitimate location, compared with os.path.commonpath over
+      realpath-resolved paths. The first porcelain entry plays two separate parts and they must not
+      be fused: it is SKIPPED as the main checkout, and it SUPPLIES the base every other entry is
+      compared against. An out-of-place entry goes to the FAILURE list, not the warning list:
+      the write guards now refuse writes in such a tree, so the environment really is broken, and a
+      warning is the same silence in a quieter font.
+
+      THE MESSAGE ALWAYS NAMES THE PATH AND ALWAYS NAMES WHERE WORKTREES BELONG - that same derived
+      legitimate location, read from the variable rather than rebuilt, so the message can name it
+      without inventing a path. The REMEDY sentence then branches, and the branches are tested in
+      this order:
+        1. THE ENTRY IS THE SESSION'S OWN ROOT - realpath of the entry equals realpath of root. This
+           branch tests against the SESSION ROOT and not against the legitimate location derived
+           above; they answer different questions - am I standing in this tree, versus does this tree
+           belong where it is - and they must stay two comparisons. The remedy is to start the session from the main checkout, or from a checkout under that
+           location, instead. THIS BRANCH MUST NOT CARRY git worktree remove. Same reason FIX 2 took
+           it out of the root-side hook verdict: visual-designer measured git worktree remove exiting
+           0 when run from inside the tree it removes, so telling this session to remove that entry
+           is telling it, at session entry, to delete the ground it is standing on.
+        2. THE ENTRY IS MARKED PRUNABLE - the porcelain record carries a prunable line, which
+           git worktree list --porcelain emits on its own, with no --verbose flag. The remedy is
+           git worktree prune. This is safe in every case - a prunable entry is a stale
+           administrative record whose tree is already gone from disk, so it can never be a live cwd.
+        3. ANY OTHER OUT-OF-PLACE ENTRY. The remedy stays git worktree remove on that path. The
+           session is not standing in it, so removal guidance is correct here and it STAYS - deleting
+           removal guidance everywhere would be the opposite defect.
+      Severity does not branch. Every out-of-place entry, in all three branches, goes to the FAILURE
+      list and red-gates entry until it is cleared. Only the remedy sentence differs.
+
+      In .claude/skills/harness/bin/test-check-state.py add a case that builds its fixtures with git
+      directly - the test process is not the Bash tool route, so it may create these shapes - and
+      runs them through the file's existing run(tmp) helper, which sets CLAUDE_PROJECT_DIR to the
+      directory it is given and runs check-state.sh with that directory as cwd. If this lands as a
+      new case function rather than an extension of an existing one, REGISTER it in main() alongside
+      the other cases in the same task; an unregistered case never runs and passes vacuously. Build
+      three temporary repositories, each with git init, one file and one commit:
+        repo A: git worktree add <repoA>/.claude/worktrees/wt HEAD
+        repo B: git worktree add <tmpdir-outside-B>/sib HEAD
+        repo C: TWO worktrees, added with the same git worktree add mechanism -
+          git worktree add <tmpdir-outside-C>/own HEAD, and
+          git worktree add <repoC>/.claude/worktrees/legit HEAD. This repository's run is made with
+          run() pointed at <tmpdir-outside-C>/own - the session's root IS the out-of-place worktree,
+          while the main checkout is repo C itself. Repo C therefore holds exactly ONE out-of-place
+          entry, its own root; the legit entry sits under the MAIN checkout's .claude/worktrees/ and
+          is legitimate, so it must stay silent and cannot satisfy or break either half of the
+          wording assertion below.
+      EVERY DIRECTORY USED AS A RUN ROOT GETS THE FILE'S EXISTING make_fixture SCAFFOLD - repo A,
+      repo B, and repo C's own-root worktree at <tmpdir-outside-C>/own. check-state.sh exits 1 with
+      no .harness/ - project not onboarded before any invariant runs, so a bare worktree root would
+      exit non-zero while printing no INV-25 line at all, and the assertions below could never be
+      satisfied by correct code.
+      Assert, on the run of each repository:
+        - repo B prints a line containing INV-25 naming the sibling path, and exits non-zero.
+          FORBIDDEN, asserted refused.
+        - repo A prints NO line containing INV-25 - the paired allow from the same mechanism, without
+          which the case cannot tell a working invariant from one that flags every worktree.
+        - repo C prints a line containing INV-25 naming its own root path, and exits non-zero.
+          FORBIDDEN, asserted refused, and the severity half of this assertion is what pins INV-25 as
+          a failure in the own-root branch too.
+        - THE BASE-DISCRIMINATING PAIRED ALLOW, same fixture, on repo C: NO INV-25 line in repo C's
+          captured output contains the path of <repoC>/.claude/worktrees/legit. Scope this by path
+          and not by the run - repo C legitimately prints one INV-25 line for its own root, so an
+          assertion that the run prints no INV-25 line would contradict the FORBIDDEN half above.
+          This is the assertion that pins the comparison base: with the base taken from the session
+          root, legit sits outside <root>/.claude/worktrees/, is not the session root and is not
+          prunable, so it falls to branch 3 and is handed git worktree remove - destructive guidance
+          on a correct tree. With the base taken from the main checkout it is silent. Repo A's allow
+          cannot detect this, because there the run root and the main checkout are the same
+          directory and both bases agree.
+        - THE WORDING, both halves, asserted on THAT INV-25 LINE ONLY - select the line naming repo
+          C's own root path out of the captured output and assert on it, not on the whole run. It
+          CONTAINS the substring .claude/worktrees, and it does NOT contain the substring
+          git worktree remove. Both are needed: presence alone passes unchanged if the removal
+          sentence is re-added beside the location line, and absence alone passes for a line that
+          says nothing useful. Asserting over the whole captured run instead would redden correct
+          code the moment any other invariant or any other flagged entry prints that string.
+        - THE PAIRED POSITIVE FOR THE BRANCH, on repo B: the INV-25 line naming repo B's sibling path
+          DOES contain git worktree remove. Without this half the negative above is satisfiable by
+          stripping removal guidance from every branch, which is the opposite defect and nothing else
+          in the suite would catch it. This assertion is what proves the branch actually branches.
+  - id: T-06
+    title: Tag and remove the out-of-place worktrees that exist in this environment today
+    traces: [REQ-08]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: >-
+      A live-state mutation of this machine's git worktrees, not a repository change; the capture
+      files resolve to harness-orchestrator and the main session is exempt from the domain hook.
+    depends_on: [T-05]
+    status: pending
+    files:
+      - .harness/features/FEAT-17-guard-boundaries/notes/worktree-list-before.md
+      - .harness/features/FEAT-17-guard-boundaries/notes/worktree-list-after.md
+    verify: |
+      git worktree list | grep -v '^/Users/molchairuangutai/GitHub/harness ' | grep -v '/.claude/worktrees/' | wc -l | grep -q '^ *0$' && git tag --list | grep -q 'archive/worktree-r6' && test -s .harness/features/FEAT-17-guard-boundaries/notes/worktree-list-after.md
+    intent: |
+      Remove the two out-of-place worktrees measured at a29ad06 - the scratchpad checkouts r6 and
+      wt140 - leaving the main checkout and the legitimate .claude/worktrees/ entries untouched.
+
+      Order matters, and the tag is not optional. r6 is at commit 52d8334, which git
+      merge-base --is-ancestor shows is NOT an ancestor of main; removing the worktree makes that
+      commit unreachable and gc-eligible. Its working tree is clean, so nothing else is at risk.
+
+      Steps:
+        1. Write the full output of git worktree list to
+           .harness/features/FEAT-17-guard-boundaries/notes/worktree-list-before.md, with the date
+           and the SHA it was taken at in the first line. Untracked live state leaves no commit
+           evidence, so an uncaptured before is unrecoverable.
+        2. git tag archive/worktree-r6 52d8334
+        3. git worktree remove on the r6 path, then git worktree prune to clear wt140, which git
+           already marks prunable and which is gone from disk.
+        4. Write the full output of git worktree list to the matching worktree-list-after.md, same
+           first-line format.
+      Do not touch .claude/worktrees/FEAT-13-single-issue-board-lookup. It must still be listed in
+      the after capture - that is the paired negative proving the prune was targeted and not a sweep.
+  - id: T-07
+    title: Record the boundary rule in DECISIONS.md and regenerate the index
+    traces: [REQ-05]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-04, T-05]
+    status: pending
+    files:
+      - docs/harness/DECISIONS.md
+      - docs/harness/DECISIONS-INDEX.md
+    verify: |
+      shasum docs/harness/DECISIONS-INDEX.md > /tmp/feat17-idx-a && python3 .claude/skills/harness/bin/gen-decisions-index.py && shasum docs/harness/DECISIONS-INDEX.md > /tmp/feat17-idx-b && diff /tmp/feat17-idx-a /tmp/feat17-idx-b && python3 .claude/skills/harness/bin/test-gen-decisions-index.py
+    intent: |
+      Add one new decision entry to docs/harness/DECISIONS.md, at the end, taking the next free
+      number, following the exact shape of the entries around it - the same heading format, the same
+      tags line and the same refs line. It must reference DEC-151, DEC-153, DEC-174 and DEC-189.
+
+      What it records, stated as the rule and one clause of why, not as a narrative:
+        - There are exactly two locations where code is written under harness authority,
+          .claude/worktrees/<id>/ and workspace_root/<product>, and any other checkout of this
+          repository is a mistake rather than a supported shape.
+        - Such a checkout cannot be created through the Bash route, cannot be written into through
+          either route, and cannot host a governed session; all three refuse rather than resolve it.
+        - Both write guards decide this from one module, .claude/skills/harness/bin/harness_boundary.py,
+          and identify a worktree from its own .git pointer file rather than by invoking git, so the
+          governed-write path forks no subprocess.
+        - The alternative that was declined: consulting git worktree list to map a sibling worktree
+          back onto the domain globs. It adds a git call to every governed write in order to
+          legitimise a location the architecture says should not exist, and it would leave every
+          other prefix-dependent rule still broken there. Record this so a future scan does not
+          re-propose it.
+        - What did NOT converge, said plainly so a later reader does not take it for drift this
+          feature failed to close: DEC-153 leaves the Bash route a blanket allow for governed agents
+          inside .claude/worktrees/ that the Write route does not have, and the Bash route still
+          does not enforce product-base domains for paths outside the harness root. REQ-05 commits
+          to one shared implementation, not to identical verdicts. A third divergence, chosen in the
+          2026-08-11 re-scope rather than left by accident: in a PyYAML bootstrap-grant session the
+          Write route does not apply the root-side check, because it sits inside domain_check which
+          check-domain.sh line 676 gates on not _no_parser, while the Bash route's check sits ahead
+          of that route's own _no_parser exit and still fires. It is a chosen cost - the grant
+          already skips domain_check in the real checkout, so it opens the same escape everywhere -
+          and the Bash route is deliberately not weakened to match. Also record that
+          check-domain.sh --resolve answers from inside an out-of-place worktree even though the
+          hook now refuses writes there, because --resolve writes nothing.
+        - The evidence, and the wording matters because half of the original evidence was overtaken:
+          at a29ad06 a Write to <root>/src/main.py exited 2 while the same write via Bash exited 0;
+          and three writes that exit 2 in the real checkout exited 0 when written INTO a sibling
+          worktree FROM A HARNESS-ROOTED SESSION, taking the DEC-150 shape caps dark with them on
+          that route. Record explicitly that the OTHER case - a session ROOTED in the sibling
+          worktree - is NOT evidence of an enforcement hole: re-measured at a29ad06, a 211-line
+          feature.yaml, a 70-line handoff note and an out-of-domain bin/ script all exit 2 from
+          there, because DEC-180 and issue 132 made the shape caps independent of domain and bound
+          them to every author. The rooted case is refused as a lost-work risk and because the
+          location is a mistake, not because it escapes enforcement.
+        - What the one-implementation claim rests on, stated no wider than the evidence. The
+          mutation proof edits the legitimate-location constant in an isolated copy of
+          harness_boundary.py and observes the verdict flip on BOTH write routes, which is direct
+          evidence for the ROOT-SIDE check - the fixture pins CLAUDE_PROJECT_DIR to the worktree, so
+          the flip is observed there and only there. The TARGET-SIDE branch, a write into a sibling
+          worktree from outside it, is covered by behavioural cases on both routes and is NOT
+          mutation-proved. Write it that way. Do not record the mutation as proving the target-side
+          branch, and do not drop the root-side proof in the process - it is the strongest evidence
+          this feature has that the rule has one implementation.
+
+      Then regenerate the index by running
+      python3 .claude/skills/harness/bin/gen-decisions-index.py - do NOT hand-edit
+      docs/harness/DECISIONS-INDEX.md, it is generated. The verify asserts the regenerated file is
+      already committed by requiring a clean diff after a second run.

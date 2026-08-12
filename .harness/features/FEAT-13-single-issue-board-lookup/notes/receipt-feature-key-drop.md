@@ -1,0 +1,142 @@
+Removed 24 key(s) from FEAT-13-single-issue-board-lookup's feature.yaml because each had no reader; FEAT-14 closed the key set to eleven. This receipt is the only durable record of their values.
+
+## status collapse (the pre-collapse pair survives only here)
+
+- old status: `in_review`
+- old phase: `ship`
+- new status: `Review`  (rule)
+
+## value normalization
+
+- `pr`: `'none'` (string) -> `null`
+
+## removed keys, full values
+
+```yaml
+adequacy_limit_carried: 'THE HONEST BOUND, volunteered by qa and agreed by the panel.
+  Reachability proven for 4 of 9 SCs before fix01 added three more falsifiable guards;
+  the rest pass but assertion strength is unproven. SC-08 green proves the tools and
+  the forked stub agree, NOT that the stub matches real GitHub - the stub was authored
+  in the same task as the helper it answers. The panel also cannot bound its own calibration:
+  three of four reviewers returned zero or one finding each, which fits a clean change
+  and equally fits a shallow pass, and only qa produced mutant evidence.'
+briefing: .harness/features/FEAT-13-single-issue-board-lookup/notes/ship-review-5e81612.md
+counts:
+  decisions: 6
+  main_session_direct: 0
+  reqs: 6
+  sc_automated: 9
+  sc_inspection: 1
+  sc_uat: 0
+  scs: 10
+  tasks: 2
+cycles_note: 4 charged. TWO in the plan phase, both genuine rework. ONE for fix01,
+  the SC-05 discharge. ONE reported by eng-lead inside distill-eng, where its member
+  caught the expertise fork against a lead that had told it there was none. Every
+  other run was FIRST-PASS CLEAN and charged ZERO per DEC-157.
+effort: https://github.com/mruangutai/harness/issues/217
+expertise_collision: 'THE ONE THING THAT NEEDS THE OPERATOR, and it is not a FEAT-13
+  defect. FEAT-12 IS DISTILLING RIGHT NOW into the SAME shared .harness/expertise/
+  files, uncommitted, in the main checkout - its distill receipts are on disk there
+  and its modified set GREW during my run, which is how I know it is live rather than
+  stale. Two features are writing one shared memory in two checkouts with no lineage
+  check anywhere: check-expertise.sh validates FORMAT, not lineage, so a wipe passes
+  it cleanly. Both eng-lead and product-lead independently hit this and both returned
+  it blocking. MY RESOLUTION, conservative on purpose: I committed only the three
+  files FEAT-13 alone touched - product-lead, ui-reviewer, validator-lead - and did
+  NOT commit the six contested ones (backend-dev, code-reviewer, eng-lead, pm, qa,
+  security-reviewer). They are left MODIFIED-BUT-UNCOMMITTED in the worktree so nothing
+  is destroyed and everything is inspectable. Every contested op is written verbatim
+  into the briefing, which IS committed, so the work survives even if the worktree
+  is discarded. Committing them would have imported FEAT-12''s half-finished snapshot
+  into this branch, because eng-lead''s member reconciled against the main checkout''s
+  live copy in good faith.'
+gate_status:
+  brief_approval: APPROVED - operator, 2026-08-10, verified on disk by me
+  goal_check: PASSED - 10 met, 0 partial, 0 not_met
+  plan_approval: APPROVED - operator, 2026-08-10, verified on disk by me
+  qa_gate: PASSED - blocking gate, matrix_ok, re-run by me at every commit
+  review: PASSED - panel PASS, must_fix empty, severity_max med, advisory under advisory_unless_high
+  ship_refresh: SKIPPED - no map exists (.harness/map/ absent), so no domain intersects
+    and nothing is stale
+github.closed:
+- T-01
+- T-02
+github.stale_close_note: 245 and 246 were closed at T-02's commit, before fix01 changed
+  T-01's test files. Reopening is not in the mirror's vocabulary and the mirror never
+  gates, so this is recorded, not corrected.
+grilling: .harness/notes/grilling-board-read-lookups-2026-08-10.md
+grilling_note_unreachable: BRIEF, plan.yaml approval.rulings and this file all cite
+  the grilling note as binding, and it is NOT REACHABLE FROM THIS BRANCH - committed
+  at c633bbd on chore/203-end-copy-distribution only, absent from main and from feat/FEAT-13.
+  The plan phase ran in the main checkout while it sat on the chore branch, so nobody
+  noticed. eng-lead disclosed reading the main copy read-only.
+handoff: .harness/features/FEAT-13-single-issue-board-lookup/notes/handoff-plan.md
+mission: ship
+plan_text_defect_found: plan.yaml:368 specifies argv[:2] == ["project", "item-list"],
+  which CAN NEVER BE TRUE - run_gh at factory_gh.py:88 does [gh] + list(args), so
+  argv[0] is the binary. Found independently by eng-lead, qa, the panel and me. :367
+  is already correct and the shipped tests use argv[1:3], so only the prose is wrong.
+  pm recommends NO amendment - editing a signed artifact makes it stop being what
+  was approved. Accepted; backlog row instead.
+req02_evidence_closed_by_me: 'pm and the panel both flagged REQ-02''s closed-issue
+  property as having no reachable evidence, because T-02''s receipt recorded board
+  STATUS "Done" rather than the issue''s state field. ONE read-only call settled it:
+  gh issue view 216 --json state returns CLOSED. T-02''s live measurement DID run
+  against a closed issue, so the docstring claim is TRUE, not falsified. Taken after
+  the measured window, so it cost that number nothing.'
+roots:
+  main_checkout: /Users/molchairuangutai/GitHub/harness
+  worktree: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/FEAT-13-single-issue-board-lookup
+runs_vs_budget: 13 runs against max_total_runs 20, informational only and not crossed.
+  Each run resolved something and advanced the SCs; three of the thirteen were the
+  plan phase inherited from a predecessor.
+sc_tally:
+  met: 10
+  not_met: 0
+  note: all ten verified by pm; SC-05 moved partial to met after fix01
+  partial: 0
+t02_measured: 'points_used 1, item_id_match yes, verify re-run by me exit 0. TAKEN
+  TWICE because board 3 carries other flows'' traffic: null control delta 0, round
+  1 delta 1, round 2 delta 1. The rounds AGREED, so no number was chosen over another.
+  1 is at most 5, against a baseline of 203 points for decompose and 102 each for
+  land and claim.'
+tasks:
+  T-01: DONE
+  T-02: DONE
+the_one_routing_call_i_made: 'I OVERRULED TWO LEADS. pm returned SC-05 partial and
+  the panel returned three gaps, and both recommended the operator amend the approved
+  plan''s step-5 assertion list. SC-05 was an APPROVED criterion that was UNMET, and
+  approved-but-unmet needs no re-signature - only a criterion that cannot be met as
+  written does. pm itself later confirmed the reasoning: BRIEF.md:104-106 sets the
+  proof standard and FORBIDS the only technique that could instantiate a closed issue
+  at the unit layer, so it cannot also demand it. pm recorded that its own recommendation
+  had been wrong. No scope, goal or signed decision moved; no production code changed.
+  Named in the briefing to reverse.'
+what_fix01_closed: 'Three properties asserted in PROSE and enforced ZERO times. (1)
+  _ISSUE_ITEM_QUERY now pinned STRUCTURALLY - the argument names inside issue(...)
+  must be exactly {number} - so it reddens under a state filter of any spelling and
+  survives a reformat. (2) issue_view''s field list pinned to contain "state" at BOTH
+  factory_claim.py:274 and factory_land.py:63. THE SHARPEST FINDING OF THE FEATURE,
+  mutant-proven by qa and missed by three readers'' reasoning: dropping "state" left
+  both suites FULLY GREEN because the fakes ignored their fields argument, while in
+  production .get("state") becomes None, != "OPEN" is always true, and BOTH TOOLS
+  REFUSE EVERY ISSUE. (3) a check NAMED "the lookup carries no state scoping" that
+  could never fail from that regression, renamed to say what it cannot exercise -
+  it is why SC-05 looked met when it was not.'
+worktree_reason: 'THE DISPATCH PREMISE WAS FALSE. It said the branch was created,
+  checked out and signed; it exists and is signed, but the main checkout sits on chore/203-end-copy-distribution,
+  FEAT-12 mid-build, and checking out would have pulled a live flow''s tree from under
+  it. The worktree path is the DEC-143 shape - check-domain.sh strips a single-segment
+  .claude/worktrees/<name>/ prefix and matches identical globs, so no grant widens.
+  A worktree OUTSIDE the project root hits the commonpath escape and the hook RETURNS
+  WITHOUT ENFORCING: a silent fail-open, worse than a block. THE TRAP IS LIVE - pm''s
+  first read of test-factory-land.py hit the main checkout''s pre-FEAT-13 copy and
+  returned unrelated assertions at the cited lines. It caught itself; nothing else
+  would have.'
+wrong_root_tripwire: 'An edit to the MAIN checkout''s copy of a factory_*.py breaks
+  no gate - backend-dev owns that path in both trees, so the hook passes and a verify
+  in that tree passes with it, landing the work on FEAT-12''s branch silently. RUN
+  AND CLEAN at every commit: git diff --quiet origin/main over all nine in-scope files
+  in the main checkout, all nine byte-identical.'
+```

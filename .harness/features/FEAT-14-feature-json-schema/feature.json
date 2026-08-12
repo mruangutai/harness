@@ -1,0 +1,150 @@
+{
+  "feature_id": "FEAT-14-feature-json-schema",
+  "branch": "feat/204-feature-json-schema",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "1c5fd67",
+  "cycles_used": 6,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-10-01-plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-10-02-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-10-03-plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-11-04-revision-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "revision2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t01t03-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "e1fix-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "qa-seg1-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t09-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "t11-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t05-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "t05b-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t09b-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t10-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "qa-final-validator",
+      "squad": "validator",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "qa-final2-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "panel-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "goalcheck-product",
+      "squad": "product",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "panel2-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "fix1-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "confirm-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 8,
+    "parent": 204,
+    "parent_origin": "adopted",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12"
+    ],
+    "issues": {
+      "T-01": 264,
+      "T-02": 265,
+      "T-03": 266,
+      "T-04": 267,
+      "T-05": 268,
+      "T-06": 269,
+      "T-07": 270,
+      "T-08": 271,
+      "T-09": 272,
+      "T-10": 273,
+      "T-11": 274,
+      "T-12": 275
+    }
+  }
+}

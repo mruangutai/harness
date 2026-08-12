@@ -1,0 +1,104 @@
+{
+  "feature_id": "FEAT-08-remove-cost-tracking",
+  "branch": "feat/FEAT-08-remove-cost-tracking",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "942505e",
+  "cycles_used": 5,
+  "max_total_cycles": 10,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "s2-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "s4-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "a4-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "t10r-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "panel-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "mf2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "goalcheck-product",
+      "squad": "product",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-apply-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "sc15-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-apply-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "a5-product",
+      "squad": "product",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 3,
+    "parent": 85,
+    "issues": {
+      "T-01": 86,
+      "T-02": 87,
+      "T-03": 88,
+      "T-04": 89,
+      "T-05": 90,
+      "T-06": 91,
+      "T-07": 92,
+      "T-08": 93,
+      "T-09": 94,
+      "T-10": 95,
+      "T-11": 96,
+      "T-12": 97
+    }
+  }
+}

@@ -811,25 +811,32 @@ def case_23():
 
 
 def case_24():
-    """(24) A SHIPPED feature is not route-checked. Its plan is a record, not a contract.
+    """(24) A DONE feature is not route-checked. Its plan is a record, not a contract.
 
     This is a removal, not a trade-off. Checking shipped plans was the default behaviour of
     a glob and never a decision: the work shipped, the routes were taken, the plan will not
     be re-executed, so a finding on it is actionable by nobody. Measured on the real tree
     before this landed: 36 violations across 8 plans — 27 `no files: line`, 8 the
     pre-FEAT-06 prose shape, and 1 real routing defect. 35 of the 36 were format noise in
-    SHIPPED plans; the one real finding is FEAT-08 T-04's `**SPLIT`, which is `awaiting_user`
-    and therefore still checked -- as this very case asserts below. That noise is why issue
-    #133's gate could never be switched on.
+    SHIPPED plans; the one real finding is FEAT-08 T-04's `**SPLIT`, which was `awaiting_user`
+    and therefore still checked. That noise is why issue #133's gate could never be
+    switched on.
+
+    FINISHED_STATUSES is now ("Done",) — every prior board column (D-09/D-10 collapsed
+    "shipped" and "abandoned" into Done) is checked, and only Done skips. All six board
+    columns are asserted by name below, so a value drops out only if this loop is edited to
+    drop it, never silently by a count changing. The lowercase "done" case is the one that
+    proves D-11's case sensitivity is actually load-bearing here, not just documented.
 
     Both directions, because a skip that skips everything would pass the first case alone.
     """
     results = []
-    for status, want_checked in (("shipped", False), ("abandoned", False),
-                                 ("in_review", True), ("awaiting_user", True)):
+    for status, want_checked in (("Backlog", True), ("Plan", True), ("Ready", True),
+                                 ("Building", True), ("Review", True), ("Done", False),
+                                 ("done", True)):
         with tempfile.TemporaryDirectory() as td:
             fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
-            with open(os.path.join(fd, "feature.yaml"), "w") as f:
+            with open(os.path.join(fd, "feature.json"), "w") as f:
                 f.write(f"feature_id: FEAT-A\nstatus: {status}\n")
             r = run(project_dir=td)
             checked = "ungranted (NOBODY)" in r.stdout
@@ -838,15 +845,30 @@ def case_24():
             check(f"case_24_{status}_is_{'checked' if want_checked else 'skipped'}",
                   ok, f"exit {r.returncode}, checked={checked}: {r.stdout[:160]!r}")
 
+    # FINISHED_STATUSES is a SUBSET of the schema's status enum, never equality — a status
+    # can legitimately be in the enum without being finished. Without this, the constant and
+    # feature-schema.json are two copies of the same vocabulary with nothing tying them
+    # together (D-04).
+    import json
+    schema_path = os.path.join(REPO_ROOT, ".claude", "skills", "harness", "bin",
+                                "feature-schema.json")
+    with open(schema_path) as f:
+        schema_enum = set(json.load(f)["properties"]["status"]["enum"])
+    finished = set(cpr().FINISHED_STATUSES)
+    ok = finished.issubset(schema_enum)
+    results.append(ok)
+    check("case_24_FINISHED_STATUSES_is_a_subset_of_the_schema_status_enum",
+          ok, f"FINISHED_STATUSES={finished}, schema enum={schema_enum}")
+
     # A feature we CANNOT classify is checked, never skipped. The failure that matters is a
     # live plan going unexamined; an old one examined twice costs nothing.
     with tempfile.TemporaryDirectory() as td:
         _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
-        r = run(project_dir=td)              # no feature.yaml at all
+        r = run(project_dir=td)              # no feature.json at all
         check("case_24_no_feature_yaml_is_checked_not_skipped",
               "ungranted (NOBODY)" in r.stdout, r.stdout[:200])
 
-    # A feature.yaml THAT PARSES BUT IS NOT A MAPPING. This is the case the four statuses
+    # A feature.json THAT PARSES BUT IS NOT A MAPPING. This is the case the four statuses
     # above cannot reach, and it was a live crash: the first draft put `_is_shipped`'s
     # `return` outside its own `try:`, so `doc.get` ran on a list and raised
     # AttributeError out of discover_plans(). The process died with EXIT 1 — the code that
@@ -858,9 +880,9 @@ def case_24():
     #   the summary line ... this is the one that says the checker REACHED the feature.
     # A `try:` wrapped around the whole body would silence the traceback and still skip
     # the feature, so the summary line is the assertion that closes the fail-open half.
-    for label, body in (("a_sequence", "- a\n- b\n"),
-                        ("a_bare_scalar", "shipped\n"),
-                        ("status_is_a_list", "status:\n  - shipped\n"),
+    for label, body in (("a_sequence", '["a", "b"]\n'),
+                        ("a_bare_scalar", '"Done"\n'),
+                        ("status_is_a_list", '{"status": ["Done"]}\n'),
                         # A MAPPING WITH NO `status:` KEY AT ALL. Two shapes REACH
                         # `bool(token)`; this is the only one for which the guard is
                         # LOAD-BEARING -- the distinction the whole case exists to draw.
@@ -872,14 +894,14 @@ def case_24():
                         # `a_sequence` and `a_bare_scalar`. An earlier version of this
                         # comment said four, which libelled the one case that carries its
                         # own weight: `status_is_a_list` IS a dict, reaches `bool(token)`
-                        # with a truthy `["['shipped']"]`, and is the SOLE case that
-                        # catches removal of the `str()` at check-plan-routes.py:422.
+                        # with a truthy `["['Done']"]`, and is the SOLE case that
+                        # catches removal of the `str()` at check-plan-routes.py:433.
                         # A comment telling the next reader a live case is a duplicate is
                         # how a load-bearing assertion gets deleted as redundant.
-                        ("a_mapping_with_no_status", "feature_id: FEAT-A\n")):
+                        ("a_mapping_with_no_status", '{"feature_id": "FEAT-A"}\n')):
         with tempfile.TemporaryDirectory() as td:
             fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
-            with open(os.path.join(fd, "feature.yaml"), "w") as f:
+            with open(os.path.join(fd, "feature.json"), "w") as f:
                 f.write(body)
             r = run(project_dir=td)
             ok = ("Traceback" not in r.stderr
@@ -889,6 +911,58 @@ def case_24():
             check(f"case_24_feature_yaml_{label}_is_checked_not_crashed",
                   ok, f"exit {r.returncode}, stderr={r.stderr[:120]!r}, "
                       f"stdout={r.stdout[-120:]!r}")
+
+    # (T-05 item 5) THE ELEVEN-KEY END-TO-END CASE. Based on
+    # templates/feature.json's eight required keys, plus the three optional
+    # keys (max_total_runs, github, factory) so all eleven are present. status
+    # is Done, so the feature must be SKIPPED — proving the real reader path
+    # (harness_yaml.load_file -> json.dumps'd feature.json -> _is_shipped)
+    # end to end, not just the four malformed-document guards above.
+    #
+    # A shipped feature is excluded from discover_plans()'s own count, not
+    # merely from its violations (check-plan-routes.py:568-569, `continue`
+    # before `processed` is incremented) — so "across 1 plan(s)" is the WRONG
+    # assertion for the skipped run on its own; it would be satisfied just as
+    # well by a checker that never found the plan at all (case_19a3's
+    # fail-open). PAIRED, on the SAME eleven-key document with only `status`
+    # changed, is what discriminates: Done -> excluded entirely (0 plans, no
+    # violation), Building -> reached and checked (1 plan, 1 violation on the
+    # fixture's ungranted path). Only the status flips the outcome, proving
+    # the document was actually parsed and _is_shipped actually consulted.
+    def _eleven_key_doc(status):
+        return {
+            "feature_id": "FEAT-A",
+            "branch": "none",
+            "pr": None,
+            "status": status,
+            "review_sha": "none",
+            "cycles_used": 0,
+            "max_total_cycles": 10,
+            "runs": [],
+            "max_total_runs": 5,
+            "github": {},
+            "factory": {},
+        }
+
+    with tempfile.TemporaryDirectory() as td:
+        fd = _yaml_project(td, files=".claude/skills/harness-spec-driven/SKILL.md")
+        with open(os.path.join(fd, "feature.json"), "w") as f:
+            f.write(json.dumps(_eleven_key_doc("Done")))
+        r_done = run(project_dir=td)
+        with open(os.path.join(fd, "feature.json"), "w") as f:
+            f.write(json.dumps(_eleven_key_doc("Building")))
+        r_building = run(project_dir=td)
+
+        ok_done = ("ungranted (NOBODY)" not in r_done.stdout
+                   and "across 0 plan(s)" in r_done.stdout)
+        ok_building = ("ungranted (NOBODY)" in r_building.stdout
+                       and "across 1 plan(s)" in r_building.stdout)
+        ok = ok_done and ok_building
+        results.append(ok)
+        check("case_24_eleven_key_feature_json_Done_is_skipped_end_to_end",
+              ok,
+              f"Done: exit {r_done.returncode}, stdout={r_done.stdout[:200]!r} | "
+              f"Building: exit {r_building.returncode}, stdout={r_building.stdout[:200]!r}")
     return all(results)
 
 

@@ -15,7 +15,7 @@ BRIEF/PLAN, which routes to step 1.
 ## 1. Resolve the mission
 
 - **Argument names a flow** (`FEAT-NN-<slug>` / `BUG-NN-<slug>`, a bare prefix, or a goal in words) → that flow. New features get their id coined by pm at BRIEF time — number plus kebab slug (DEC-133).
-- **No argument** → list in-flight features from `.harness/features/*/feature.yaml` (id, status,
+- **No argument** → list in-flight features from `.harness/features/*/feature.json` (id, status,
   cycles used, last run) and ask which — or whether to start a new one.
 - **New feature** → clarity before planning, always (DEC-164/165). Fits one conversation →
   `/harness-grilling`; the destination itself is fuzzy or decisions wait on facts/prototypes →
@@ -93,6 +93,6 @@ Log every return (one line: feature, verdict, status) to `.harness/logs/<date>.m
 | "I'll answer the agent's question myself, it's obvious" | Blocking questions exist because the call is the user's. Ask |
 | "They've given me one change, I'll start the fix now" | A second request while a fix is in flight is a second run. Collect the set, then dispatch once |
 | "The evidence points one way, I'll relay it" | Adjacent evidence is not a measurement. If a five-minute probe settles it, it is not optional |
-| "I'll dispatch the lead directly, the orchestrator is overhead" | The orchestrator owns feature.yaml and the budgets; bypassing it orphans both |
+| "I'll dispatch the lead directly, the orchestrator is overhead" | The orchestrator owns feature.json and the budgets; bypassing it orphans both |
 | "I'll paste PLAN.md into the spawn prompt" | Paths, not payloads. The orchestrator reads its own state |
 | "The flow is done, I'll merge the PR" | The merge is the user's, always |

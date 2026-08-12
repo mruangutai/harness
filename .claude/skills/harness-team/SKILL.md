@@ -137,7 +137,7 @@ For `loop_back`:
 | **target** | re-dispatch the step whose `files_touched` produced the rejection — or the one `to:` names |
 | **`feed: [self]`** | inject the failing report's **path** into the re-dispatch, with the original inputs — without it the target repeats itself verbatim and cannot converge |
 | **counting** | per-step `cycles` in **your** `state.yaml`, written before re-dispatch, re-read each iteration — the loop is exactly where a context reset happens |
-| | never `feature.yaml` — those are the orchestrator's and the hook blocks you (DEC-119); report cycles in your digest instead |
+| | never `feature.json` — those are the orchestrator's and the hook blocks you (DEC-119); report cycles in your digest instead |
 | | cycles means **send-backs**: a clean first pass reports `0` (DEC-157). Counting runs is how a healthy feature exhausts its budget |
 | **downstream** | steps that ran after the target → `pending`; their verdicts are stale the moment their input changes |
 | **outputs** | resolve `{{cycle}}` in any path that re-runs, else cycle 2's PASS overwrites the evidence for why cycle 1 was spent (DEC-117) |

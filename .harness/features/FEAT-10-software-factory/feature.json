@@ -1,0 +1,172 @@
+{
+  "feature_id": "FEAT-10-software-factory",
+  "branch": "feat/FEAT-10-software-factory",
+  "pr": null,
+  "status": "Done",
+  "review_sha": "b86565b5e28d6181de0bdbf07b1ae0907dc200cf",
+  "cycles_used": 12,
+  "max_total_cycles": 12,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "arch-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "contract-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "revise-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "arch-delta-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "contract-delta-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "final-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "revise2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "edges-delta-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "sc-delta-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "final2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "amend-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "bound-delta-eng",
+      "squad": "eng",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "enforce-delta-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "amend2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "prose-delta-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "w1-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t09-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "w2-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "w3-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "qa-validator",
+      "squad": "validator",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "panel-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "goalcheck-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "qa2-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "sc06-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "assert-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "assert2-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "goalcheck2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "fix-projectid-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "panel2-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "a1fix-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "i202-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    }
+  ]
+}

@@ -12,7 +12,7 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
 
 ## The loop
 
-1. **Read state from disk, every cycle** — your feature's `STATE.md` and `feature.yaml`, plus the
+1. **Read state from disk, every cycle** — your feature's `STATE.md` and `feature.json`, plus the
    the **parts of `BRIEF.md` and the plan your current step needs** — the plan is `plan.yaml`, or
    `PLAN.md` for a feature still on the pre-DEC-182 format (Grep for the task/SC id; a plan can run
    to tens of KB and you rarely need it whole). Never from memory: your context may reset, and the
@@ -20,10 +20,12 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
    read only the artifacts it names, by path. `runs/` and `notes/` are archives, read by pointer
    when a specific digest is cited, NEVER as a startup sweep — a wholesale read of a mature
    feature dir costs ~100k tokens before the first decision (DEC-150).
-   First cycle ever: instantiate `STATE.md` and `feature.yaml` from
-   `.claude/skills/harness/templates/` — `max_total_cycles` and `max_total_runs` come from
+   First cycle ever: instantiate `STATE.md` from `.claude/skills/harness/templates/STATE.md`
+   and `feature.json` from `.claude/skills/harness/templates/feature.json` — the second is a
+   real file now, and INV-18 names it by path when it is missing. `max_total_cycles` and
+   `max_total_runs` come from
    harness.json `budgets.`, never your own guess; raising either later is a user decision
-   recorded in feature.yaml (DEC-157). **The approval gate depends on your mission:**
+   recorded in feature.json (DEC-157). **The approval gate depends on your mission:**
    - mission **ship** (or resuming one): the BRIEF's `## Approval` *and* the plan's approval
      (`approval.status` in `plan.yaml`, `## Approval` in a `PLAN.md`) must both read `approved` —
      an unapproved artifact stops you at step 0, `BLOCKED`.
@@ -58,10 +60,10 @@ is namespaced under `.harness/features/<FEAT>/` (DEC-120).
 4. **Receive the team digest.** The `SubagentStop` hook has checked its shape and roll-up at source,
    but shape is not truth: spot-check `files_touched` against the artifacts when a claim matters.
 5. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now (it holds no
-   history; the per-run detail already lives in that run's digest), update `feature.yaml`'s DATA
+   history; the per-run detail already lives in that run's digest), update `feature.json`'s DATA
    (runs list, `cycles_used` from the lead's reported SEND-BACKS — a clean first-pass run adds
    ZERO cycles; only rework counts (DEC-157) — values, never narrative: the
-   shape gate denies a feature.yaml over 200 lines or 20 comment lines, DEC-150), then route
+   shape gate denies a feature.json over 200 lines or 20 comment lines, DEC-150), then route
    (below).
 6. **Loop until DONE — and done means the success criteria are met, not the tasks exhausted.**
    PLAN tasks completing is the builder's claim; BRIEF's `SC-NN` are the goal's. When the last task
@@ -98,7 +100,7 @@ escalate). Plan-level changes are pm's — delegate re-planning, never edit the 
 
 ## The cycle budget
 
-It lives in `feature.yaml`, maintained only by you, from the lead's report.
+It lives in `feature.json`, maintained only by you, from the lead's report.
 
 | | Teeth | On crossing |
 |---|---|---|
@@ -267,8 +269,8 @@ a reason. Cost grows with the square of session length (each turn re-reads every
 so one long orchestrator outspends every other saving in the org.
 
 Phase exit predicates, all disk-checkable: **plan** and **ship** end at user gates (approval,
-acceptance). **build** exits when every planned T-NN has a PASS run in `feature.yaml`.
-**validate** exits at panel PASS with `must_fix` resolved. Record your phase in `feature.yaml`
+acceptance). **build** exits when every planned T-NN has a PASS run in `feature.json`.
+**validate** exits at panel PASS with `must_fix` resolved. Record your phase in `feature.json`
 `phase:` and each transition as a STATE.md log entry. The **fix loop is the exception**: validator
 FAILs are worked inside your validate session, never relayed per cycle — but a fix loop that runs
 your session long is the one sanctioned mid-phase relay.
@@ -283,20 +285,20 @@ your session long is the one sanctioned mid-phase relay.
 **As a successor:** step zero is validating `## Next` against PLAN/STATE — the note prices trust,
 it never grants it; anything UNVERIFIED gets re-checked before you act on it (stale inherited
 claims have caused regressions twice, DEC-159). No handoff note on disk (crash)? The disk-only
-path is fully supported: STATE.md `## Current`, feature.yaml, and the cited run digests — never a
+path is fully supported: STATE.md `## Current`, feature.json, and the cited run digests — never a
 wholesale sweep (DEC-150).
 
 - **Never carry payloads forward.** What a member returned lives in its digest file; your context
   only needs the verdict and the path. Current truth belongs in `STATE.md ## Current` (replaced,
   not appended), per-run findings in that run's digest, rationale in `notes/` — never in
-  feature.yaml, and never as history anywhere spawn-read.
+  feature.json, and never as history anywhere spawn-read.
 
 ## The CEO briefing (three triggers, not every completion)
 
 `ship-feature` completes · a lead returns `BLOCKED` · the main session relays "where are we?".
 
 1. **Do NOT spawn a report round — READ THE DIGESTS FROM DISK INSTEAD.** Every run wrote one to
-   `runs/<run-dir>/digest.md` and `feature.yaml` `runs:` names them. A "report on your domain" quotes the retired phrase to forbid it
+   `runs/<run-dir>/digest.md` and `feature.json` `runs:` names them. A "report on your domain" quotes the retired phrase to forbid it
    spawn buys a re-narration of a file you can open (DEC-69: the cross-lead view is yours "at no
    extra spawn cost"). A FEAT-04 orchestrator killed this round on its own judgement: *"three lead
    spawns at ~20 USD each to re-narrate digests I hold is spend with nothing to surface it."*
@@ -333,5 +335,5 @@ wholesale sweep (DEC-150).
 | "I'll dispatch the specialist directly, it's one small task" | Through its lead. No orchestrator→member path, no exceptions |
 | "The plan is obviously wrong here, I'll fix it" | pm re-plans, under the user's approval. You conduct |
 | "One more retry past max_cycles will land it" | The bound is the feature. `BLOCKED`, with the evidence |
-| "I'll keep the counters in my head this cycle" | `feature.yaml`, every cycle. Your context may not survive to the next one |
+| "I'll keep the counters in my head this cycle" | `feature.json`, every cycle. Your context may not survive to the next one |
 | "The digest passed the hook, so the work is fine" | The hook checks shape. Assessing substance is your job |
