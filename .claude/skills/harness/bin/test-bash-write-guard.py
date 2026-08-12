@@ -373,6 +373,23 @@ def run_worktree():
     wtb("a session rooted in a LEGITIMATE worktree is unaffected",
         r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
+    # SC-07 on this route, and WHAT IT PROVES IS NARROWER THAN ITS TWIN — measured, after
+    # a first version of this comment asserted the wrong mechanism.
+    #
+    # On the Write route the same case is granted ONLY by DEC-143's prefix stripping:
+    # delete the stripping and it reddens. HERE, TWO INDEPENDENT RULES EACH GRANT IT.
+    # Measured three ways:
+    #   stripping deleted .................... still 0
+    #   DEC-153's carve-out deleted .......... still 0
+    #   BOTH deleted ......................... 2
+    # So this case pins the OUTCOME the criterion asks for and discriminates NEITHER
+    # mechanism on its own. Recorded that way rather than named for one of them, because
+    # a case labelled with a rule it does not test is worse than an unlabelled one.
+    r = _fire(root, f"echo hi > {os.path.join(legit, '.harness', 'allowed', 'x.txt')}")
+    wtb("SC-07: the legitimate worktree is writable FROM OUTSIDE it on the Bash route "
+        "(granted independently by BOTH the carve-out and the stripping)",
+        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
     # --- THE FAIL-CLOSED PAIR for the shared module (D-06).
     iso = tempfile.mkdtemp()
     isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")

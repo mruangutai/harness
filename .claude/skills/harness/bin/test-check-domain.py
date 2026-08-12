@@ -1548,6 +1548,19 @@ def run_worktree():
     wt("a session rooted in a LEGITIMATE worktree is unaffected",
        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
+    # SC-07, AND IT WAS OWED — the goal-check found every fixture using `legit` as the
+    # SESSION ROOT, where no stripping happens, so DEC-143's worktree-prefix rule was
+    # exercised by nothing. This reaches the same file FROM OUTSIDE the worktree.
+    #
+    # It discriminates: relative to `root` the path is
+    # .claude/worktrees/wt/.harness/allowed/x.txt, which NO glob in the fixture matches.
+    # It is granted only because the prefix is stripped to .harness/allowed/x.txt first.
+    # Delete the stripping and this case exits 2.
+    r = _fire(root, os.path.join(legit, ".harness", "allowed", "x.txt"))
+    wt("SC-07: the legitimate worktree is writable FROM OUTSIDE it, through DEC-143's "
+       "prefix stripping",
+       r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
     # Ordinary scratch, outside any worktree — the change must not have widened.
     scratch = tempfile.mkdtemp()
     r = _fire(root, os.path.join(scratch, "x.txt"))
