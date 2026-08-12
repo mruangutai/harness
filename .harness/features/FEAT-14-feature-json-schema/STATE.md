@@ -2,74 +2,81 @@
 
 ## Current
 
-- feature: FEAT-14-feature-json-schema · phase **build** · status in_progress
-- branch `feat/204-feature-json-schema` · HEAD `b3055ec` · `review_sha` pinned `3d37762`
-- cycles_used **5** of 10 · runs 8 of 20 · `check-state.sh` rc 0, **zero violations**
+- feature: FEAT-14-feature-json-schema · phase **build** · status Building
+- branch `feat/204-feature-json-schema` · HEAD `11d9676` · `review_sha` pinned `11d9676`
+- cycles_used **5** of 10 · runs 8 of 20
+- segment 2 in flight: T-03 (recorded), T-11 and T-09 dispatched, T-05 and T-10 queued behind them
 
-**Segment 1 is COMPLETE and committed.** T-01 (schema artifact, `feature_schema` module, thin CLI,
-19-case unit suite) and T-03 (jsonschema in CI, unit suite + corpus sweep wired into the required
-`integration` job) both landed and passed their own `verify:` clauses at exit 0. The blocking qa gate
-returned `matrix_ok: true`, `must_fix: []`. Five mutants proved the load-bearing assertions can go
-red; all restored byte-identical.
+**Segment 1 is COMPLETE and committed** — T-01 and T-03 both landed in `3d37762`. Six further tasks
+(T-02, T-04, T-06, T-07, T-12, plus T-01) are `done` in the plan and are not segment 2's to revisit.
+T-03's status field was the only thing outstanding: its verify exits 0 and the intent's mandated
+comment amendment is present at `.github/workflows/tests.yml:66-74`, so it is intent-complete, not
+merely verify-green. Recorded in `11d9676`.
 
-**E1, found at collation, fixed and committed.** T-01's mandated jsonschema guard tripped
-`test-harness-yaml.py`'s one-guarded-import assertion, reddening the required `integration` context.
-That assertion was **broader than the decision it encodes** — FEAT-05 D-12 (`PLAN.md:229`) is scoped
-to `import yaml`, not to guarded imports in general — so no signed decision was contradicted and it
-was an execution-time fix, not a re-plan. It is now two assertions: exact-set on yaml-guarded files
-(D-12 at full strength) and a **subset** cap over the sanctioned dependency-policy modules, pre-sized
-to include the guard T-06 adds to `check-domain.sh`. Subset, not equality, is load-bearing: equality
-sized to today's two would go red at layer 0 with nothing driving. I proved all six directions myself.
+### The third contradiction: T-11's stated dependency makes its own verify unsatisfiable
 
-### The next action is LAYER 0 — batch A, and it is not mine to run
+The plan records T-11 `depends_on: [T-04, T-05]` and its intent opens "T-05 runs before you". I
+measured that ordering to be impossible and **reordered T-11 ahead of T-05**. Monkeypatched
+`_is_shipped` three ways at HEAD, live corpus:
 
-Six of twelve tasks are DEC-174 `main-session-direct` and interleave on the critical path, so this
-feature cannot finish in one orchestrator session. Batch A is **T-02 → T-04 → T-06 → T-07 → T-12**,
-dependency-ordered and runnable in one turn. Full conditions ride the return; the load-bearing ones:
+| configuration | `check-plan-routes.py` prints |
+|---|---|
+| A — today: `feature.yaml` + `("shipped","abandoned")` | 35 violation(s) across 16 plan(s) |
+| B — T-11 only: `feature.yaml` + `("Done",)` | **0 violation(s) across 10 plan(s)** |
+| C — T-05 then T-11: `feature.json` + `("Done",)` | 35 violation(s) across 16 plan(s) |
 
-- **Run `gh-sync.py open <feature-dir> --parent 204` FIRST, before T-04.** It never opened — the
-  environment classifier denied it here (a DEC-138 SKIP, never a gate). After T-05 it is radioactive
-  until T-08 lands: it hardcodes `feature.yaml`, reads a missing file as an EMPTY record, and re-files
-  existing issues. External damage no `git reset` undoes.
-- **Re-confirm no other writer is active immediately before T-04 and again before T-08.** Verified
-  idle at `1bdfe3f`; the corpus mutates mid-session, so this is a continuous condition.
-- **FEAT-14's own row in T-04's table is STALE and the RULE governs.** The table reads `in_progress /
-  plan → Plan` from `a29ad06`; I moved this feature to `phase: build` this session, so T-04's own rule
-  — *"in_progress with old phase build is Building"* — places it at **`Building`**. T-04 says apply
-  the rule to the glob's contents when you run, not only to the seventeen rows.
-- **After T-06 lands, re-run `--kind integration` before starting T-07.** T-06 adds an
-  `except ImportError` to `check-domain.sh`; the E1 subset already permits it, and this proves it.
-- Today's `check-state.sh` violation set is **0**, the strongest possible T-04 baseline.
+B reproduces T-11 intent item 5's prediction byte-for-byte. C fails T-11's verify, because T-05
+repoints the reader at `feature.json` and **no feature dir holds one until T-08** — a missing file
+means "not finished", so every plan is checked again. T-08 depends on T-11, so the plan as written
+deadlocks. The reorder is safe because the two tasks' edits to `check-plan-routes.py` and
+`test-check-plan-routes.py` are disjoint by explicit construction: T-05 item 7 forbids the constant
+and the `want_checked` loop, T-11 items 1–4 own exactly those.
 
-### Carried into segment 2 (T-05, T-11) — do not lose these
+**Predicted, so nobody chases it:** T-11's verify is green at T-11's commit and goes RED again
+(35 across 16) the moment T-05 lands, staying red until T-08 converts the corpus. The operator's
+framing — "T-11 is the task that closes the 35" — is falsified by measurement C. **T-08 closes them.**
 
-- **G1 — an approved-SC coverage gap, test-only fix, no plan change.** SC-02 requires a failing
-  fixture at **each of three nesting levels**; the `factory` and `factory.edges` levels have NONE.
-  The schema is correct (`feature-schema.json:90`, `:100`) and nothing holds it there. `factory`
-  appears in zero feature files, so fixture coverage is the only coverage it will ever get — the
-  identical argument the operator made for `Backlog`/`Ready`. Add the fixtures to
-  `test-validate-feature-json.py`, already in T-01's `files:`. Folded into segment 2, no own spawn.
-- G4 — the `.json`-holding-valid-YAML rejection is the one assertion whose liveness rests on reading
-  rather than falsification. Mutate it in segment 2.
+### T-11's verify clause never runs the test file T-11 edits
+
+`verify` runs `run-unit-tests.sh --kind unit`, but `test-check-plan-routes.py` is registered in
+`INTEGRATION_SCRIPTS` (`run-unit-tests.sh:17-18`). Items 3 and 4 add every new assertion to that
+file. The eng run is required to run `--kind integration` as well and report both. The verify clause
+is approved plan text and was not edited.
+
+### Baselines measured this session at HEAD, for attribution
+
+- full `run-unit-tests.sh` (both kinds): **exit 0**
+- `check-plan-routes.py`: 35 violation(s) across 16 plan(s) — expected red, closes at T-08
+- `docs/harness/DECISIONS.md` carries **50** `feature.yaml` occurrences and **must keep all 50**
+  (rule 15: they are historical records). Only three new entries are appended there.
+- **DEC-189 is taken** (the write-guard two-bases entry). T-09 takes DEC-190/191/192, which makes
+  the plan's D-04 (cites DEC-189) and D-08 (cites DEC-190) citations stale — pm's to correct.
+
+### Carried from segment 1 — still open
+
+- **G1** — SC-02 wants a failing fixture at each of three nesting levels; `factory` and
+  `factory.edges` have none. Test-only, folded into segment 2, no own spawn.
+- **G4** — the `.json`-holding-valid-YAML rejection needs a mutation to prove liveness.
 
 ## Open Questions
 
-- Q1 non-blocking, **measured false three ways** (eng-lead, qa, and me): `tests.yml:110-114` claims
-  `test-check-plan-routes.py case 25` asserts the Plan-route step is present and unneutered. No such
-  test exists — zero hits in that file. T-03's approved intent repeats the false claim, and T-03 has
-  now added a second CI step with the same deletion hole and no claimed guard at all — the step
-  carrying REQ-06's only mechanical proof. No task's `files:` authorizes the fix. Briefing row.
+- Q1 non-blocking, measured false three ways: `tests.yml` claims `test-check-plan-routes.py case 25`
+  asserts the Plan-route step is present and unneutered. No such test exists. T-03's approved intent
+  repeats the claim and T-03 added a second CI step with the same hole. No task's `files:`
+  authorizes the fix. Briefing row.
 - Q2 non-blocking: the guarded-import needle is the literal `except ImportError` and misses
-  `except (ImportError, ...)` and `except ModuleNotFoundError`. **Pre-existing**, not a regression.
-- Q3 non-blocking: possible Bash-route hole in the write guard — an `Edit` was denied where a
-  byte-identical `Bash` mutation went through. Surfaced through a validator-lead process error, not
-  normal operation; likely FEAT-17-guard-boundaries' territory. T-06 builds on this hook.
-- Q4 non-blocking: `test_exactly_one_guarded_import_in_the_tree` now misstates its own contract (two
-  guarded imports today, three after T-06). Kept deliberately — `test-harness-yaml.py:9` pins nine
-  test names to FEAT-05's PLAN, so a rename breaks a documented correspondence.
-- Q5 non-blocking: two agents wrote `runs/e1fix-eng/digest.md` concurrently; one had its Write
-  rejected as stale and preserved the other's prose. Shared run artifacts have no concurrency guard.
+  `except (ImportError, ...)` and `except ModuleNotFoundError`. Pre-existing.
+- Q3 non-blocking, **now with direct evidence**: the Bash route around the write guard is real. A
+  `python3 - <<'PY'` heredoc that rewrote `plan.yaml` was NOT intercepted, while `rm` against a
+  scratchpad path in the same session WAS blocked. The write landed in-domain so nothing was
+  damaged, and I moved to Write/Edit for the rest of the segment. FEAT-17-guard-boundaries' territory.
+- Q4 non-blocking: `test_exactly_one_guarded_import_in_the_tree` misstates its own contract. Kept
+  deliberately — nine test names are pinned to FEAT-05's PLAN.
+- Q5 non-blocking: shared run artifacts have no concurrency guard.
 - Q6 non-blocking, carried: `validate-digest.py:182`'s orchestrator digest enum stays OUT of scope
-  (D-13) — it carries `blocked` while the six board columns have no `Blocked`. Confirm the boundary.
-- Q7 non-blocking, carried: BRIEF SC-08 carries one clause twice; SC-07's prose says "exits non-zero"
-  where its test asserts exactly 3. Both are wording tightenings, neither a defect.
+  (D-13) — it carries `blocked` while the six board columns have no `Blocked`.
+- Q7 non-blocking, carried: BRIEF SC-08 carries one clause twice; SC-07's prose says "exits
+  non-zero" where its test asserts exactly 3. Wording tightenings, not defects.
+- Q8 non-blocking, new: T-09 and T-10 are `depends_on: [T-08]` / `[T-09]`, and T-08 is the main
+  session's and has not run. The operator assigned both to this segment anyway. Both verifies are
+  docs-only and satisfiable now, so I ran them — recording the deviation rather than absorbing it.
