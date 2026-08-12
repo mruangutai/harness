@@ -396,6 +396,42 @@ def domain_check():
     # key from `orchestrator:` onward unreachable to a real reader while this hook went
     # on enforcing the fragments it still recognised. It reported nothing. A guard that
     # silently sees less than it should is worse than one that stops.
+    # ROOT-SIDE: THE SESSION IS STANDING IN AN OUT-OF-PLACE WORKTREE (issue #103).
+    # Such a tree carries its own .harness/team-config.yaml, so `root` resolves to it and
+    # writes that are in-domain FOR THAT ROOT exit 0.
+    #
+    # THE GROUNDS, NARROWLY. That session is NOT ungoverned — DEC-180 and issue #132 made
+    # the shape caps fire relative to whatever root the session stands in, and the domain
+    # rules resolve against that root correctly; re-measured at a29ad06 in
+    # notes/answers-2026-08-11-rescope.md. What is left is that the work lands in a
+    # checkout nobody merges. This refuses the LOCATION, on the standing ruling that an
+    # out-of-place worktree is a mistake. It does not close an enforcement hole, and
+    # saying it did would be a wrong reason left in the tree for the next reader.
+    #
+    # PLACED HERE, INSIDE domain_check, AND THAT IS PARSER-CONTINGENT BY CHOICE. This
+    # function is called under `_run_domain and not _no_parser`, so a bootstrap-grant
+    # session (PyYAML missing) gets no root-side refusal on this route while the Bash
+    # route still refuses. The grant already skips domain_check in the REAL checkout, so
+    # it opens the same escape everywhere; the target-side refusal below is already
+    # parser-contingent for the same reason; and a lost-work risk does not earn a second
+    # assertion cluster on both routes. Do NOT close it by hoisting this above the
+    # `if _run_domain and not _no_parser:` call, and do NOT close it by weakening the
+    # Bash route to match.
+    _root_wt = harness_boundary.worktree_owner(root)
+    if _root_wt is not None and not _root_wt[2]:
+        # NO REMOVAL GUIDANCE HERE, unlike the target-side verdict below. Measured:
+        # `git worktree remove` SUCCEEDS from inside the tree it removes, so printing
+        # that instruction to a session whose cwd IS that tree tells it to delete the
+        # ground it is standing on.
+        print(f"check-domain: BLOCKED — {_root_wt[0]} is a git worktree that is not "
+              f"under {harness_boundary.WORKTREES_SEGMENT}/, and this session is rooted "
+              "in it.", file=sys.stderr)
+        print(f"  Worktrees belong under {harness_boundary.worktree_refusal_location(_root_wt[1])}",
+              file=sys.stderr)
+        print("  Start the session from the main checkout, or from a checkout under "
+              "that location, instead.", file=sys.stderr)
+        sys.exit(2)
+
     try:
         globs, shared = harness_yaml.manifest_domains(manifest, agent)
     except harness_yaml.DuplicateKeyError as e:
@@ -441,6 +477,17 @@ def domain_check():
     # path was blocked in this repo and permitted outside it, silently, with the write
     # landing.
     _verdict = harness_boundary.classify(target, root, globs, shared, "check-domain")
+
+    if _verdict["outcome"] == "out_of_place_worktree":
+        # A write INTO a sibling worktree, from a session standing outside it. The
+        # removal guidance is correct here and stays: the tree being named is not the
+        # one this session is running in.
+        print(f"check-domain: BLOCKED — {target} is inside a git worktree that is not "
+              f"under {harness_boundary.WORKTREES_SEGMENT}/.", file=sys.stderr)
+        print(f"  Worktrees belong under {_verdict['expected']}", file=sys.stderr)
+        print(f"  That tree ({_verdict['checkout']}) should be removed with "
+              "`git worktree remove` rather than written into.", file=sys.stderr)
+        sys.exit(2)
 
     if _verdict["outcome"] == "not_a_domain_question":
         # bash-write-guard.sh already said so ("outside repo — not this hook's

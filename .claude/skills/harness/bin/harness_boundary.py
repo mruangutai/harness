@@ -263,6 +263,18 @@ def classify(abs_target, root, globs, shared, label):
     base, _glob_filter, target_side_test = select_base(
         _abs_target, root, workspace_root, workspace_bases, fleet_path, label)
     if base is None:
+        # OUT-OF-PLACE WORKTREE (issue #103), checked BEFORE the fall-through below.
+        # A sibling worktree of this repository is outside both bases, so it lands here
+        # and no grant can reach it — which is exactly why it used to be waved through
+        # as "not our problem". It is not a scratch path: it is a checkout of this
+        # repository in a place nobody merges from.
+        _wt_owner = worktree_owner(real(abs_target))
+        if _wt_owner is not None and not _wt_owner[2]:
+            return {"outcome": "out_of_place_worktree", "rel": None, "base": None,
+                    "advertise": [], "shared_advertise": [],
+                    "checkout": _wt_owner[0], "owner_root": _wt_owner[1],
+                    "expected": worktree_refusal_location(_wt_owner[1])}
+
         # NOT A DOMAIN QUESTION, unchanged. bash-write-guard.sh already said so
         # ("outside repo — not this hook's problem"), and check-domain did not: a
         # scratch script at /tmp/x.py was legal via Bash and blocked via Write, so an
@@ -331,3 +343,70 @@ def classify(abs_target, root, globs, shared, label):
 
     return {"outcome": "deny", "rel": rel, "base": base,
             "advertise": _advertise, "shared_advertise": _shared_advertise}
+
+
+def worktree_owner(path):
+    """Which checkout does `path` stand in, and is that checkout in a legal place?
+
+    Returns `(checkout_dir, owner_root, legitimate)`, or None for "unknown", which
+    every caller must treat as not-a-worktree. Issue #103: a linked git worktree of
+    this repository that does not live under `WORKTREES_SEGMENT` silently disables the
+    harness machinery, so it is a mistake rather than a supported shape.
+
+    NO GIT SUBPROCESS. The guard runs on every governed write, and a hook that shells
+    out is both slow and a new failure surface — it would also be answering a question
+    about the filesystem by asking a program that reads the filesystem. Walk up to the
+    first `.git` entry and read it:
+
+      a DIRECTORY  the main checkout. owner_root is the checkout, legitimate is True.
+      a FILE       a linked worktree. Its single line is `gitdir: <abs>/.git/worktrees/<id>`,
+                   so the owning repository is the parent of the `.git` directory named
+                   in that pointer.
+
+    Legitimacy is commonpath over realpath-resolved absolutes, never a string prefix:
+    `<root>/.claude/worktrees-old/wt` must not read as inside `<root>/.claude/worktrees`.
+    """
+    cur = real(path)
+    if not os.path.isdir(cur):
+        cur = os.path.dirname(cur)
+    seen_root = None
+    while True:
+        dot = os.path.join(cur, ".git")
+        if os.path.isdir(dot):
+            return (cur, cur, True)
+        if os.path.isfile(dot):
+            try:
+                with open(dot, "r", encoding="utf-8", errors="strict") as fh:
+                    line = fh.read().strip()
+            except Exception:
+                return None
+            m = re.match(r"^gitdir:\s*(.+)$", line)
+            if not m:
+                return None
+            entry = m.group(1).strip()
+            if not os.path.isabs(entry):
+                # A relative pointer is legal git, but it resolves against the checkout
+                # rather than against this process's cwd — which is what makes writing
+                # `os.path.abspath` here a bug rather than a shortcut.
+                entry = os.path.join(cur, entry)
+            entry = os.path.normpath(entry)
+            worktrees_dir = os.path.dirname(entry)          # <abs>/.git/worktrees
+            git_dir = os.path.dirname(worktrees_dir)        # <abs>/.git
+            if os.path.basename(worktrees_dir) != "worktrees" or os.path.basename(git_dir) != ".git":
+                return None
+            owner_root = real(os.path.dirname(git_dir))     # <abs>
+            legal_home = real(os.path.join(owner_root, WORKTREES_SEGMENT))
+            try:
+                legitimate = os.path.commonpath([real(cur), legal_home]) == legal_home
+            except ValueError:      # different drives / unrelated roots
+                legitimate = False
+            return (cur, owner_root, legitimate)
+        parent = os.path.dirname(cur)
+        if parent == cur or parent == seen_root:
+            return None
+        seen_root, cur = cur, parent
+
+
+def worktree_refusal_location(owner_root):
+    """Where worktrees belong, for the caller's verdict. One spelling, from the constant."""
+    return os.path.join(owner_root, WORKTREES_SEGMENT) + os.sep

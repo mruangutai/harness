@@ -1447,6 +1447,155 @@ def run_schema():
     return fails
 
 
+WT = []
+
+
+def wt(name, ok, detail=""):
+    WT.append((name, ok, detail))
+
+
+def run_worktree():
+    """Issue #103 — an out-of-place git worktree is a mistake, not a supported shape.
+
+    NO GIT IS INVOKED, here or in the guard. Every fixture is built by hand from
+    directories and a `.git` FILE holding the `gitdir:` pointer, which is exactly the
+    on-disk shape `git worktree add` leaves. Standing up a real worktree would mean the
+    suite creating the shape the guard now forbids.
+
+    The manifest is FIXTURE_MANIFEST rather than a fresh one naming harness-backend-dev:
+    same `.harness/allowed/**` grant, and `fire` already defaults to the persona it
+    names. The persona is not what any of these cases discriminate.
+
+    Every path asserted in-root is under `.harness/`, and that is load-bearing. In the
+    harness base a glob match is accepted only when the TARGET passes
+    is_control_plane_target, so a grant of `allowed/**` cannot permit `<root>/allowed/x`
+    — it exits 2 for the same reason `<root>/src/main.py` does. A shorter path would make
+    the paired ALLOW cases fail against correct code.
+    """
+    fails = 0
+    tmp = tempfile.mkdtemp()
+
+    # THE MAIN CHECKOUT. `.git` is a DIRECTORY, which is what makes it the owner.
+    root = os.path.join(tmp, "root")
+    os.makedirs(os.path.join(root, ".harness"))
+    os.makedirs(os.path.join(root, ".git", "worktrees", "sib"))
+    os.makedirs(os.path.join(root, ".git", "worktrees", "wt"))
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
+        f.write(FIXTURE_MANIFEST)
+
+    def _linked(path, wt_id):
+        """A linked worktree, by hand: a `.git` FILE pointing at the owner's entry."""
+        os.makedirs(os.path.join(path, ".harness"), exist_ok=True)
+        with open(os.path.join(path, ".git"), "w") as f:
+            f.write("gitdir: %s\n" % os.path.join(root, ".git", "worktrees", wt_id))
+        # ITS OWN MANIFEST, because each of these is used as a session root below and a
+        # root with no readable manifest falls to the DEC-101 fail-open — which exits 0
+        # for a reason that has nothing to do with worktrees, and proves nothing.
+        with open(os.path.join(path, ".harness", "team-config.yaml"), "w") as f:
+            f.write(FIXTURE_MANIFEST)
+
+    sib = os.path.join(tmp, "sib")                                    # OUT OF PLACE
+    legit = os.path.join(root, ".claude", "worktrees", "wt")          # legitimate
+    _linked(sib, "sib")
+    _linked(legit, "wt")
+
+    def _fire(session_root, abs_target):
+        payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+                   "tool_input": {"file_path": abs_target, "content": "x"}}
+        return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                              text=True,
+                              env=dict(os.environ, CLAUDE_PROJECT_DIR=session_root))
+
+    # --- TARGET-SIDE: a write INTO the sibling, from a session rooted in the checkout.
+    # The sibling is outside root, so select_base returns None and no grant can reach
+    # it — this case discriminates whatever the manifest says.
+    r = _fire(root, os.path.join(sib, "allowed", "x.txt"))
+    wt("a write INTO an out-of-place worktree is REFUSED, and the verdict names where "
+       "worktrees belong",
+       r.returncode == 2 and ".claude/worktrees" in r.stderr,
+       f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # The PAIRED ALLOW, same fixture and same session. Without it the case above is
+    # satisfied by a guard that refuses everything.
+    r = _fire(root, os.path.join(root, ".harness", "allowed", "x.txt"))
+    wt("the same session's in-domain write still PASSES",
+       r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # --- ROOT-SIDE: the session is STANDING IN the out-of-place tree. The target is
+    # deliberately control-plane and in-domain FOR THAT ROOT, so it exits 0 if the
+    # root-side rule is absent and 2 only because of it. A target of sib/allowed/x.txt
+    # would exit 2 from the ordinary glob rule with the root-side rule deleted, and
+    # would prove nothing.
+    r = _fire(sib, os.path.join(sib, ".harness", "allowed", "x.txt"))
+    wt("a session ROOTED in an out-of-place worktree is REFUSED its own in-domain write",
+       r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # BOTH HALVES OF THE WORDING, on the SAME captured stderr. Presence alone passes
+    # unchanged if the destructive sentence is re-added beside the location line, which
+    # is the regression being guarded; absence alone passes for a verdict that says
+    # nothing at all. Measured by visual-designer: `git worktree remove` SUCCEEDS from
+    # inside the tree it removes, so that guidance printed to a session whose cwd IS
+    # that tree is an instruction to delete the ground it is standing on.
+    #
+    # Scoped to THIS case's stderr. The target-side verdict keeps the removal guidance,
+    # so a file-wide or tree-wide grep for the string would fail against correct code.
+    wt("the ROOT-SIDE verdict names .claude/worktrees and does NOT say `git worktree remove`",
+       ".claude/worktrees" in r.stderr and "git worktree remove" not in r.stderr,
+       f"stderr: {r.stderr.strip()[:300]}")
+
+    # The PAIRED ALLOW for the root-side rule: same shape, legitimate location.
+    r = _fire(legit, os.path.join(legit, ".harness", "allowed", "x.txt"))
+    wt("a session rooted in a LEGITIMATE worktree is unaffected",
+       r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # Ordinary scratch, outside any worktree — the change must not have widened.
+    scratch = tempfile.mkdtemp()
+    r = _fire(root, os.path.join(scratch, "x.txt"))
+    wt("a scratch path outside any worktree still PASSES",
+       r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # --- THE FAIL-CLOSED PAIR for the shared module (D-06). An isolated copy carrying
+    # check-domain.sh and harness_yaml.py but NOT harness_boundary.py.
+    iso = tempfile.mkdtemp()
+    isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
+    os.makedirs(isobin)
+    shutil.copy(HOOK, os.path.join(isobin, "check-domain.sh"))
+    shutil.copy(os.path.join(HERE, "harness_yaml.py"), os.path.join(isobin, "harness_yaml.py"))
+    os.makedirs(os.path.join(iso, ".harness"))
+    with open(os.path.join(iso, ".harness", "team-config.yaml"), "w") as f:
+        f.write(FIXTURE_MANIFEST)
+    payload = {"agent_type": "harness-documentor", "tool_name": "Write",
+               "tool_input": {"file_path": os.path.join(iso, ".harness", "allowed", "x.txt"),
+                              "content": "x"}}
+    r = subprocess.run([os.path.join(isobin, "check-domain.sh")], input=json.dumps(payload),
+                       capture_output=True, text=True,
+                       env=dict(os.environ, CLAUDE_PROJECT_DIR=iso))
+    wt("a MISSING harness_boundary.py blocks the write and NAMES the module",
+       r.returncode == 2 and "harness_boundary" in r.stderr,
+       f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # The other half: without it the case above is satisfied by a guard that blocks
+    # everything. The manifest is removed, so DEC-101's deliberate fail-open must still
+    # fire — the module being absent must not convert it into a refusal.
+    os.remove(os.path.join(iso, ".harness", "team-config.yaml"))
+    r = subprocess.run([os.path.join(isobin, "check-domain.sh")], input=json.dumps(payload),
+                       capture_output=True, text=True,
+                       env=dict(os.environ, CLAUDE_PROJECT_DIR=iso))
+    wt("with the module absent AND no manifest, DEC-101 still fails OPEN, loudly",
+       r.returncode == 0 and "enforcement OFF" in r.stderr,
+       f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    fails = 0
+    for name, ok, detail in WT:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n        {detail}")
+    print(f"\n{len(WT) - fails}/{len(WT)} worktree-boundary cases passed.\n")
+    return fails
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -1473,6 +1622,7 @@ def main():
     fails += run_resolve()
     fails += run_post()
     fails += run_schema()
+    fails += run_worktree()
     return fails
 
 
