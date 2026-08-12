@@ -1577,7 +1577,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-09]
-    status: pending
+    status: done
     files:
       - docs/harness/DECISIONS-INDEX.md
     verify: |
