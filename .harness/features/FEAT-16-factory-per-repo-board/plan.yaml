@@ -541,7 +541,7 @@ tasks:
     execution_reason: .harness/factory/fleet.yaml resolves to NOBODY under check-domain.sh
       --resolve, so no agent may write it and the task cannot take the team lane
     depends_on: [T-02, T-03, T-04, T-05, T-06, T-11]
-    status: pending
+    status: done
     files:
       - .harness/factory/fleet.yaml
       - .harness/features/FEAT-16-factory-per-repo-board/notes/board2-capture.md
