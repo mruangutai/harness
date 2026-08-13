@@ -1060,6 +1060,139 @@ if _wt_seg:
                     # defect.
                     bad.append(_where + f" Remove it with `git worktree remove {_wpath}`.")
 
+# --- INV-26 (issue #277): the board must agree with the plan on disk.
+#
+# THIS INVARIANT CARRIES THE GUARANTEE. A failed station write is loud only on stderr, and
+# the operator accepted that stderr inside a subagent run is not something they read — so a
+# board that drifted is caught HERE or it is not caught at all. Every finding goes to `bad`:
+# the operator's view of the factory being wrong is the condition the ticket opens with, and
+# a warning is the same silence in a quieter font.
+#
+# THE IMPORT IS A VIOLATION WHEN IT FAILS — INV-25's precedent, and for its reason: gh_board
+# ships with the repository, so being unimportable is a defect in the tree, never a property
+# of the environment. Everything else below records NOTHING, because an offline or
+# unconfigured environment must never become a red gate.
+try:
+    import gh_board as _gb
+except Exception as _gbe:
+    _gb = None
+    bad.append("INV-26 CANNOT RUN: gh_board.py did not import (%s: %s), so a board that "
+               "disagrees with the plan would go unreported. The module ships with this "
+               "repository — restore .claude/skills/harness/bin/gh_board.py."
+               % (type(_gbe).__name__, _gbe))
+
+# THE BINARY IS OVERRIDABLE OR THIS CANNOT BE TESTED. FACTORY_GH is the variable factory_gh
+# already honours, so ONE fake serves both the module and this invariant. A third variable
+# name would be a third thing to get wrong.
+_gh_bin = os.environ.get("FACTORY_GH") or "gh"
+
+_inv26_board = None
+if _gb is not None:
+    _g26 = cj.get("github") if isinstance(cj, dict) else None
+    _repo26 = (_g26 or {}).get("repo")
+    if isinstance(_g26, dict) and _g26.get("sync") is True and _repo26:
+        _inv26_board = _gb.load_board(root)
+
+if _inv26_board:
+    # gh absent or unauthenticated is an environmental precondition (DEC-138's verbatim
+    # clause), so it records nothing. Same posture as INV-25's git-absent branch.
+    try:
+        _auth = subprocess.run([_gh_bin, "auth", "status"],
+                               capture_output=True, text=True, timeout=15)
+        _gh_ok = _auth.returncode == 0
+    except Exception:
+        _gh_ok = False
+
+    _stations = None
+    if _gh_ok:
+        # A FAILED OR TRUNCATED BOARD READ RECORDS NOTHING. board_stations already refuses a
+        # truncated page by raising, which is what keeps a partial read from being reported
+        # as an empty column — but the remedy here is silence, not a red gate, because the
+        # network is not the tree.
+        try:
+            os.environ["FACTORY_GH"] = _gh_bin
+            _stations = _gb.board_stations(_inv26_board, _repo26)
+        except Exception:
+            _stations = None
+
+    if _stations is not None:
+        # plan status -> the column that status means. `pending` is Backlog because Backlog
+        # is where gh-sync's `open` lands every issue and nothing moves it until start-task.
+        _EXPECT = {"building": "Building", "done": "Done", "pending": "Backlog"}
+
+        for _fp in sorted(glob.glob(os.path.join(H, "features", "*"))):
+            _feat = os.path.basename(_fp)
+            _pdoc = plan_docs.get(_feat)
+            if not _pdoc:
+                # No plan.yaml, or one that did not load. Other invariants own both — the
+                # load failure is already a violation above, and restating it here would
+                # report one defect twice.
+                continue
+
+            # THE TERMINAL EXEMPTION. The ship closes the parent, GitHub's Item-closed
+            # workflow lands it in Done, and the derivation would still say Review — so
+            # without this every shipped feature is a permanent false violation. Case
+            # sensitive on purpose: `done` is not `Done` (DEC-192).
+            try:
+                _fj = json.load(open(os.path.join(_fp, "feature.json"), encoding="utf-8"))
+            except Exception:
+                _fj = {}
+            if str(_fj.get("status") or "").split()[:1] == ["Done"]:
+                continue
+
+            _derived = _gb.derive_station(_pdoc)
+            if _derived is None:
+                # No task-derived verdict — mixed or empty. No claim is the right answer.
+                continue
+
+            _issues = ((_fj.get("github") or {}).get("issues") or {})
+
+            # THE MIRROR-NEVER-RAN CLAUSE — the ticket's own third gap. A mirror that never
+            # ran and one that ran cleanly are otherwise indistinguishable from outside.
+            # INV-21 warns on a DIFFERENT shape (recorded issues, no parent); these stay
+            # two findings and neither restates the other.
+            if not _issues:
+                bad.append(f"INV-26 {_feat}: tasks are in flight or finished (plan derives "
+                           f"{_derived}) but feature.json records no mirrored issues, so the "
+                           f"board cannot be telling the truth about this feature. The mirror "
+                           f"never ran — run `gh-sync.py open` for it.")
+                continue
+
+            _tstat = {}
+            for _t in (_pdoc.get("tasks") or []):
+                if isinstance(_t, dict) and _t.get("id"):
+                    _tstat[_t["id"]] = _t.get("status") or "pending"
+
+            for _tid in sorted(_issues):
+                _num = _issues[_tid]
+                _want = _EXPECT.get(_tstat.get(_tid, "pending"))
+                if _want is None:
+                    continue
+                _found, _reason = _gb.read_station(_stations, _num)
+                if _reason:
+                    # CANNOT VERIFY, NOT CLEAN. A lookup that misses leaves both sides of
+                    # the comparison empty and every record then compares equal — which is
+                    # precisely the silence this invariant exists to break.
+                    bad.append(f"INV-26 CANNOT VERIFY {_feat} {_tid} (issue #{_num}): "
+                               f"{_reason}. The plan says {_tstat.get(_tid, 'pending')}, so "
+                               f"the card should read {_want}.")
+                elif _found != _want:
+                    bad.append(f"INV-26 {_feat} {_tid} (issue #{_num}): plan says "
+                               f"{_tstat.get(_tid, 'pending')}, so the card should read "
+                               f"{_want} — the board reads {_found}.")
+
+            # THE PARENT. A derived station with no recorded parent is INV-21's finding,
+            # not this one.
+            _parent = (_fj.get("github") or {}).get("parent")
+            if isinstance(_parent, int):
+                _pfound, _preason = _gb.read_station(_stations, _parent)
+                if _preason:
+                    bad.append(f"INV-26 CANNOT VERIFY {_feat} parent (issue #{_parent}): "
+                               f"{_preason}. The plan derives {_derived}.")
+                elif _pfound != _derived:
+                    bad.append(f"INV-26 {_feat} parent (issue #{_parent}): the plan derives "
+                               f"{_derived} — the board reads {_pfound}.")
+
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
 # (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip
 # silently, which reads exactly like a working mirror to anyone not tailing logs.
