@@ -17,6 +17,11 @@
       "id": "2026-08-11-02-plan-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-01-eng",
+      "squad": "eng",
+      "verdict": "PASS"
     }
   ]
 }
