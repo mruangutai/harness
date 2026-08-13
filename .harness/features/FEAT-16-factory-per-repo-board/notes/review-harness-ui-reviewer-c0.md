@@ -1,0 +1,1 @@
+Diff `a7c429c..ec195ec06419eb7a2d47ed3eebab5145c346140c` touches only `.py`, `.md`, `.yaml`, and `.json` files (file-extension census across all 38 changed files, `git diff --stat`) — no `.html`/`.css`/`.scss`/`.tsx`/`.jsx`/`.vue`/`.svelte`, no markup, styling, or a11y tree — so there is no rendered user-facing surface for this role to audit, matching plan decision D-11.
