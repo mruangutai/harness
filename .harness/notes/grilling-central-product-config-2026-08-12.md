@@ -34,6 +34,82 @@ applies is kaya's, not harness's.
   product that can prove the resolution works against a repository that is not this one.
 - **FEAT-16 builds before #206 is planned.** → See `## Sequencing`.
 
+## Settled later — the operator's rule for what `harness.json` IS (2026-08-13)
+
+Ruled during FEAT-18's signature conversation, recorded here because **this effort is what implements
+it**, and the operator declined a `DECISIONS.md` entry on the ground that #206's planning will state
+it more precisely than a standalone record could.
+
+> **`harness.json` holds harness RUNTIME metadata. Project, repo and GitHub data belongs with the
+> product — `fleet.yaml` is the more accurate place for project-level data.**
+>
+> **`harness.json` and `fleet.yaml` today hold redundant data, and that redundancy is the defect.**
+
+**The tree already half-agrees, which is what makes this a migration rather than a preference.**
+Measured at `2ccd7f0`:
+
+| Key in `.harness/harness.json` | Whose data is it? |
+|---|---|
+| `github` — `{sync: true, repo: "mruangutai/harness"}` | **repo data.** Already misfiled by this rule |
+| `test_matrix`, `_matrix_provenance` | **project data** — what tests THIS project requires |
+| `test_kinds` | **project data** — the commands THIS project can run |
+| `commit_attribution`, `dirty_tree_whitelist` | mixed; decide per key |
+| `budgets`, `gates`, `log_retention_days`, `schema_version`, `cli_min_version` | runtime metadata — these STAY |
+
+So the rule does not merely justify moving `test_matrix`; **it names `github` as a third thing to
+move**, which this artifact's fog section did not previously contemplate.
+
+**The obstacle this rule runs into, measured and recorded rather than assumed.**
+`mruangutai/harness` is **deliberately absent** from `fleet.yaml`, and the absence is the mechanism.
+The file states it was measured both ways on a harness checkout under the factory workspace: with the
+entry present `--resolve` returned **NOBODY**; with it absent `--resolve` **exits 2**. Louder, not
+quieter. **So "move harness's own project data into `fleet.yaml`" requires giving harness a
+`fleet.yaml` entry, which makes a guard quieter — the direction this repo normally refuses.**
+
+One nuance that narrows it: that measurement was taken on a checkout **inside** `workspace_root`. The
+live checkout at `~/GitHub/harness` is unaffected either way. The entry would only change what
+happens when the factory builds harness itself.
+
+**pm must resolve this as a named decision in the BRIEF**, not absorb it. There is no obviously right
+answer: reversing DEC-174 am.1, a third config location, or harness being the one repo whose project
+data legitimately stays local are all live, and the choice is the operator's at signature.
+
+**Immediate consequence, already taken:** FEAT-18 keeps its three board keys
+(`owner`, `number`, `station_field`) in `harness.json` for now, with the placement recorded in its
+plan as knowingly temporary and pending this migration. The operator chose that over moving one key
+ahead of the rest.
+
+### The same question one level down: how much of the board's SHAPE is prescribed?
+
+Raised by the operator in the same conversation. **Not *which file* holds project config, but *how
+much of it is config at all*.**
+
+**What is already prescribed, and correctly.** DEC-192 fixes the six station values —
+`Backlog, Plan, Ready, Building, Review, Done` — as the board's column names, byte for byte and case
+sensitive, with no alias table and no translation function. **FEAT-18's D-05 therefore declares NO
+`stations` mapping**: it measured board 3 and found exactly those six. `fleet.yaml` carries a
+`stations:` mapping only because a **product** board is foreign and may name its columns anything.
+**That asymmetry is sound and should survive this effort.**
+
+**What is still declared, and whether each earns its place:**
+
+| Key | Verdict |
+|---|---|
+| `number` | **earns it.** Nothing else in the tree identifies harness's board |
+| `owner` | **redundant — derivable.** `github.repo` is `mruangutai/harness`; the owner is the segment before the slash. It restates data two lines above it in the same file. Only a board owned by a different account than its repo would need it, which is not the case and is a strange thing to build for |
+| `station_field` | **arguably redundant, and it is the interesting one.** DEC-192 prescribes the six *values*; nothing prescribes the *field name* holding them. `Status` is GitHub's default and is renameable |
+
+**Why `station_field` is more than a tidiness question.** FEAT-16's ship review already recorded that
+five of its criteria are *"correct today and guarded by nothing — if anyone renames a station on
+board 2 or 3, this feature's central promise breaks and no gate anywhere will say so."* A pinned
+field name is the same shape: **a string that goes stale silently.** Prescribing `Status` the way
+DEC-192 prescribes the six values — and failing loudly on a board that does not carry it — converts a
+silent staleness into a loud one, which is the direction this repo consistently chooses.
+
+**For pm:** decide as a named BRIEF decision **per key**, not for "board config" as a block. The
+three keys have three different arguments and a single ruling on all of them will be wrong about at
+least one.
+
 ## Not yet specified
 
 - **How a factory worker's session finds its product's config.** The worker stands in
