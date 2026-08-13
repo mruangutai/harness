@@ -520,7 +520,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out - check-state.sh is the fourth gate script named in CLAUDE.md
     depends_on: [T-02, T-03]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
