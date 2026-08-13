@@ -99,7 +99,7 @@
       "signed": "DEC-187"
     }
   },
-  "_test_kinds_note": "EVERY cmd ships as null. dev-ops replaces it with a command it has RUN and seen pass, or leaves it null and REPLACES the placeholder _reason with the real one. NEVER write a plausible-looking command you have not executed: `node --test src/` reports `tests 1 / fail 1` for a module-load error, which reads exactly like a failing suite (DEC-98). A null cmd is BLOCKED in the qa gate, never a skip. The ONLY soft skip is status: excluded with a signed decision id — a human's recorded call, never inferred at gate time (DEC-187). An invented cmd turns a hard gate into a silent no-op, which is worse than either. DELETE the _reason on any kind whose cmd you fill — leaving 'unset, detection has not run' beside a verified command is a lie about the project's own config. `exclude` keeps worktree and vendor dirs out of diff scans — measured 3x test-file inflation in kaya-ai without it.",
+  "_test_kinds_note": "EVERY cmd ships as null. dev-ops replaces it with a command it has RUN and seen pass, or leaves it null and REPLACES the placeholder _reason with the real one. NEVER write a plausible-looking command you have not executed: `node --test src/` reports `tests 1 / fail 1` for a module-load error, which reads exactly like a failing suite (DEC-98). A null cmd is BLOCKED in the qa gate, never a skip. The ONLY soft skip is status: excluded with a signed decision id \u2014 a human's recorded call, never inferred at gate time (DEC-187). An invented cmd turns a hard gate into a silent no-op, which is worse than either. DELETE the _reason on any kind whose cmd you fill \u2014 leaving 'unset, detection has not run' beside a verified command is a lie about the project's own config. `exclude` keeps worktree and vendor dirs out of diff scans \u2014 measured 3x test-file inflation in kaya-ai without it.",
   "test_kinds": {
     "unit": {
       "detect": "tests/unit/**|**/*.test.*|**/*_test.*|**/test_*.py|.claude/skills/harness/bin/test-*.py",
@@ -116,7 +116,7 @@
       "signed": "DEC-187"
     },
     "integration": {
-      "detect": "tests/integration/**|.claude/skills/harness/bin/test-check-state.py|.claude/skills/harness/bin/test-factory-integration.py",
+      "detect": "tests/integration/**|.claude/skills/harness/bin/test-check-state.py|.claude/skills/harness/bin/test-factory-integration.py|.claude/skills/harness/bin/test-gh-sync.py|.claude/skills/harness/bin/test-check-plan-routes.py",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
       "cmd": ".claude/skills/harness/bin/run-unit-tests.sh --kind integration",
       "status": "active"
@@ -125,28 +125,28 @@
       "detect": "**/*.spec.tsx|**/*.stories.tsx|**/*.stories.ts",
       "exclude": ".claude/worktrees/**|node_modules/**|dist/**|build/**",
       "cmd": null,
-      "_reason": "unset — dev-ops has not run detection yet",
+      "_reason": "unset \u2014 dev-ops has not run detection yet",
       "status": "unresolved"
     },
     "ui": {
       "detect": "tests/e2e/**|e2e/**|**/*.e2e.spec.ts",
       "exclude": ".claude/worktrees/**|node_modules/**",
       "cmd": null,
-      "_reason": "unset — dev-ops has not run detection yet. If the project has no browser-driver, leave null: qa records `ui: skipped (no browser target)` and does NOT fail.",
+      "_reason": "unset \u2014 dev-ops has not run detection yet. If the project has no browser-driver, leave null: qa records `ui: skipped (no browser target)` and does NOT fail.",
       "status": "unresolved"
     },
     "eval": {
       "detect": "evals/**|tests/**eval**",
       "exclude": ".claude/worktrees/**|node_modules/**|.venv/**",
       "cmd": null,
-      "_reason": "unset — dev-ops has not run detection yet. Required only for change_type: ai_behavior; ai-dev authors the eval, qa gates it.",
+      "_reason": "unset \u2014 dev-ops has not run detection yet. Required only for change_type: ai_behavior; ai-dev authors the eval, qa gates it.",
       "status": "unresolved"
     },
     "typecheck": {
       "detect": "**/*.ts|**/*.tsx",
       "exclude": ".claude/worktrees/**|node_modules/**|dist/**|build/**",
       "cmd": null,
-      "_reason": "unset — dev-ops has not run detection yet. Not in the matrix; available for qa to add.",
+      "_reason": "unset \u2014 dev-ops has not run detection yet. Not in the matrix; available for qa to add.",
       "status": "unresolved"
     }
   },
@@ -164,8 +164,8 @@
   "budgets": {
     "max_total_cycles": 10,
     "max_total_runs": 20,
-    "_max_total_runs_rationale": "INFORMATIONAL, NOT A GATE (issue #79). Cycles count REWORK only (DEC-157), so a first-pass run adds nothing and NOTHING bounded or even counted total runs — FEAT-03 ran 19 times against a 6-cycle count and tripped nothing. Cost was the other long-feature signal and DEC-178 deleted it, so this is the only one left. Set to 20 from measured data: across nine features the range is 1-19 runs (median 14), so this is a tripwire for the runaway, NOT a critique of normal work — a long feature is fine if each run is efficient, resolves issues and advances the SCs. Crossing it emits a NOTE naming those three questions; it never stops a branch. NOTE THE KNOWN UNDER-COUNT: a main-session-direct segment is not a run and never appears in runs:, which on FEAT-07 hid eight of ten tasks, so the count is a FLOOR.",
-    "_max_total_cycles_rationale": "REWORK loops only (DEC-157): a cycle is a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back — never a first-pass run, which the PLAN's task list already bounds. Ten consecutive rework loops on one feature is the runaway this kills. Per-feature raises are user decisions recorded in feature.json."
+    "_max_total_runs_rationale": "INFORMATIONAL, NOT A GATE (issue #79). Cycles count REWORK only (DEC-157), so a first-pass run adds nothing and NOTHING bounded or even counted total runs \u2014 FEAT-03 ran 19 times against a 6-cycle count and tripped nothing. Cost was the other long-feature signal and DEC-178 deleted it, so this is the only one left. Set to 20 from measured data: across nine features the range is 1-19 runs (median 14), so this is a tripwire for the runaway, NOT a critique of normal work \u2014 a long feature is fine if each run is efficient, resolves issues and advances the SCs. Crossing it emits a NOTE naming those three questions; it never stops a branch. NOTE THE KNOWN UNDER-COUNT: a main-session-direct segment is not a run and never appears in runs:, which on FEAT-07 hid eight of ten tasks, so the count is a FLOOR.",
+    "_max_total_cycles_rationale": "REWORK loops only (DEC-157): a cycle is a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back \u2014 never a first-pass run, which the PLAN's task list already bounds. Ten consecutive rework loops on one feature is the runaway this kills. Per-feature raises are user decisions recorded in feature.json."
   },
   "gates": {
     "qa_gate": "blocking",
@@ -175,6 +175,12 @@
   },
   "github": {
     "sync": true,
-    "repo": "mruangutai/harness"
+    "repo": "mruangutai/harness",
+    "board": {
+      "_note": "The harness's own project board (FEAT-18). Three keys, resolved BY NAME at runtime so a wrong value fails loudly; no project_id, field_id or option id is pinned, because branch-create-gate.sh pinned exactly those and a wrong pinned id did nothing at all, silently. Absent or incomplete = station writes are not attempted and INV-26 is vacuous. PLACEMENT IS TEMPORARY: #206 moves github, test_matrix and test_kinds to the product, since harness.json holds runtime metadata.",
+      "owner": "mruangutai",
+      "number": 3,
+      "station_field": "Status"
+    }
   }
 }

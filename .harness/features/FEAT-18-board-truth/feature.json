@@ -1,0 +1,73 @@
+{
+  "feature_id": "FEAT-18-board-truth",
+  "branch": "feat/FEAT-18-board-truth",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "af204ed",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-13-01-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-13-02-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "build-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-13-03-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-13-04-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-13-05-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-13-06-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-13-06-product",
+      "squad": "product",
+      "verdict": "FAIL"
+    }
+  ],
+  "github": {
+    "milestone": 10,
+    "parent": 326,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 327,
+      "T-02": 328,
+      "T-03": 329,
+      "T-04": 330,
+      "T-05": 331,
+      "T-06": 332
+    }
+  }
+}

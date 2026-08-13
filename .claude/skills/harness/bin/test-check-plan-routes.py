@@ -608,16 +608,26 @@ tasks:
 """
 
 
-def _yaml_project(td, files=".harness/harness.json", extra=""):
+def _yaml_project(td, files=".harness/harness.json", extra="", status="pending"):
     """A fixture project whose feature carries a plan.yaml, with the REAL manifest so
-    resolution is against the same globs production uses."""
+    resolution is against the same globs production uses.
+
+    `status` overrides the template's fixed `status: pending`; `status=None` omits the
+    field entirely (the absent-status shape). Default is the original template value, so
+    every existing caller is unaffected.
+    """
     fd = os.path.join(td, ".harness", "features", "FEAT-A")
     os.makedirs(fd, exist_ok=True)
     import shutil as _sh
     _sh.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
               os.path.join(td, ".harness", "team-config.yaml"))
+    text = PLAN_YAML % files
+    if status is None:
+        text = text.replace("    status: pending\n", "", 1)
+    elif status != "pending":
+        text = text.replace("status: pending", f"status: {status}", 1)
     with open(os.path.join(fd, "plan.yaml"), "w") as f:
-        f.write((PLAN_YAML % files) + extra)
+        f.write(text + extra)
     return fd
 
 
@@ -966,6 +976,74 @@ def case_24():
     return all(results)
 
 
+def case_25():
+    """(25) DEC-192 board truth: a task's status, when present, is one of exactly
+    pending / building / done — case sensitive on purpose. "Building" (capital B) is the
+    board's own spelling of the same idea and is the typo a person will actually make;
+    today it would read as not-done forever and the card would silently never move. An
+    absent status is legal (the live corpus predates the field).
+    """
+    # The CLEAN case the whole enum exists for — asserted first.
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, status="building")
+        r = run(project_dir=td)
+        check("case_25a_status_building_is_CLEAN",
+              r.returncode == 0 and "VIOLATION" not in r.stdout,
+              f"exit {r.returncode}: {r.stdout[:200]!r}")
+
+    # Capital B — the board's own spelling — is a VIOLATION naming the three legal values.
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, status="Building")
+        r = run(project_dir=td)
+        legal = cpr().LEGAL_TASK_STATUSES
+        ok = (r.returncode != 0
+              and "VIOLATION T-01" in r.stdout
+              and "Building" in r.stdout
+              and all(v in r.stdout for v in legal))
+        check("case_25b_status_Building_capital_B_is_a_VIOLATION_naming_the_three_legal_values",
+              ok, f"exit {r.returncode}: {r.stdout[:300]!r}, legal={legal}")
+
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, status="in-progress")
+        r = run(project_dir=td)
+        check("case_25c_status_in_progress_is_a_VIOLATION",
+              r.returncode != 0 and "VIOLATION T-01" in r.stdout,
+              f"exit {r.returncode}: {r.stdout[:200]!r}")
+
+    with tempfile.TemporaryDirectory() as td:
+        _yaml_project(td, status=None)
+        r = run(project_dir=td)
+        check("case_25d_no_status_at_all_is_CLEAN",
+              r.returncode == 0 and "VIOLATION" not in r.stdout,
+              f"exit {r.returncode}: {r.stdout[:200]!r}")
+
+    # A second task carrying `status: done`, alongside T-01's default `status: pending`
+    # (via _yaml_project's default), are both CLEAN in the same plan.
+    with tempfile.TemporaryDirectory() as td:
+        fd = _yaml_project(td)
+        second_task = (
+            "  - id: T-02\n"
+            "    title: second task\n"
+            "    traces: [REQ-01]\n"
+            "    change_type: logic\n"
+            "    execution_mode: team\n"
+            "    execution_agent: harness-dev-ops\n"
+            "    depends_on: []\n"
+            "    status: done\n"
+            f'    files: ["{GRANTED_PATH}"]\n'
+            "    verify: |\n"
+            "      true\n"
+            "    intent: |\n"
+            "      do it\n"
+        )
+        with open(os.path.join(fd, "plan.yaml"), "a") as f:
+            f.write(second_task)
+        r = run(project_dir=td)
+        check("case_25e_status_done_and_status_pending_are_both_CLEAN",
+              r.returncode == 0 and "VIOLATION" not in r.stdout,
+              f"exit {r.returncode}: {r.stdout[:300]!r}")
+
+
 def case_20():
     """(20) Root resolution is now the FOURTH copy in this tree. D-02 does not forbid
     duplication — it forbids SILENT DRIFT, and case (o) in test-check-state.py is this
@@ -1089,6 +1167,7 @@ def main():
     case_22()
     case_23()
     case_24()
+    case_25()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-11-graphql-field-resolve",
   "branch": "feat/FEAT-11-graphql-field-resolve",
-  "pr": null,
-  "status": "Review",
+  "pr": 221,
+  "status": "Done",
   "review_sha": "2ea9af3324ab1ef175fe8ef2307f5c850edfd315",
   "cycles_used": 11,
   "max_total_cycles": 12,

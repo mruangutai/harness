@@ -326,6 +326,19 @@ def process_plan_yaml(path, findings):
                 f"the instruction belongs in notes/, not in the contract.")
             violations += 1
 
+        status = t.get("status")
+        if status is not None and (
+                not isinstance(status, str) or status not in LEGAL_TASK_STATUSES):
+            # Not str()-coerced first (DEC-192): a list stringifies to something that
+            # happens not to be in the tuple, which gives the right answer for the wrong
+            # reason and stops giving it the moment the tuple grows. Case sensitive on
+            # purpose — "Building" (the board's own spelling, capital B) is the typo a
+            # person will actually make, and today it would read as not-done forever.
+            findings.append(
+                f"VIOLATION {tid}: status {status!r} is not one of {LEGAL_TASK_STATUSES} "
+                f"(case sensitive)")
+            violations += 1
+
         globs = [f for f in t["files"] if "*" in f or "?" in f]
         literals = [f for f in t["files"] if f not in globs]
         for g in globs:
@@ -390,6 +403,13 @@ def process_plan(path, findings):
 # "shipped" or "abandoned" back as aliases — that would be the old-to-new mapping layer
 # D-09 forbids.
 FINISHED_STATUSES = ("Done",)
+
+# A DIFFERENT VOCABULARY FROM THE ONE ABOVE, deliberately placed beside it so a reader
+# sees both and does not conflate them. FINISHED_STATUSES is the board's feature.json
+# column set; LEGAL_TASK_STATUSES is plan.yaml's per-TASK status (DEC-192) — a task in
+# flight is today indistinguishable from one nobody picked up, because plan.yaml only had
+# pending and done. This is the third value, and the set that bounds it.
+LEGAL_TASK_STATUSES = ("pending", "building", "done")
 
 
 def _is_shipped(feature_dir):

@@ -12,9 +12,10 @@
 #   - The repo is the PINNED github.repo (-R on every gh call), never inferred from
 #     cwd (DEC-138: a fork or renamed remote must not verify against the wrong repo).
 #   - No jq (the original's dependency) — python3 stdlib, like every harness script.
-#   - The project-board flip is OPTIONAL config (github.project_number/project_id/
-#     status_field/in_progress_option in harness.json); absent = skipped silently.
-#     The original hardcoded kaya's board IDs; a fork had to edit the script.
+#   - Station moves live in gh-sync.py (FEAT-18) — this gate deliberately never
+#     pins any board config keys again: it only ever moved one card, at branch
+#     time, with no way to move it back, and the derived parent station covers
+#     that case. It is in git history if the derivation ever misses something.
 #   - Flow-id branches are validated LOCALLY (the flow dir exists) — harness flows
 #     branch per feature, and the feature is the work-tracking record; its issues
 #     are per-task and land via gh-sync, so demanding an issue number here would
@@ -32,18 +33,14 @@ GH="${GH_BIN:-gh}"
 input=$(cat)
 
 # ---- config gate: github.sync on, repo pinned — else pass through instantly
-read -r SYNC REPO PROJ_NUM PROJ_ID FIELD_ID OPT_ID <<<"$(python3 - "$root" <<'PY'
+read -r SYNC REPO <<<"$(python3 - "$root" <<'PY'
 import json, os, sys
 try:
     g = json.load(open(os.path.join(sys.argv[1], ".harness", "harness.json"))).get("github") or {}
 except Exception:
     g = {}
 print(str(bool(g.get("sync"))).lower(),
-      g.get("repo") or "-",
-      g.get("project_number") or "-",
-      g.get("project_id") or "-",
-      g.get("status_field") or "-",
-      g.get("in_progress_option") or "-")
+      g.get("repo") or "-")
 PY
 )"
 [ "$SYNC" = "true" ] || exit 0
@@ -94,19 +91,6 @@ if [ -z "$state" ]; then
   deny "Issue #${num} not found in ${REPO}. Use a real issue number, or create it first."
 fi
 [ "$state" = "OPEN" ] || deny "Issue #${num} is ${state}, not OPEN. Branch off an open issue."
-
-# ---- optional board flip (config-driven; the original hardcoded kaya's IDs)
-# Item-id lookup goes ISSUE → projectItems (a handful of boards per issue), not
-# project → item-list (O(board size), which needed a --limit that silently broke
-# past 500 tickets). No cap in this direction.
-if [ "$PROJ_NUM" != "-" ] && [ "$PROJ_ID" != "-" ] && [ "$FIELD_ID" != "-" ] && [ "$OPT_ID" != "-" ]; then
-  item=$("$GH" api graphql \
-    -f query='query($owner:String!,$repo:String!,$num:Int!){repository(owner:$owner,name:$repo){issue(number:$num){projectItems(first:50){nodes{id project{id}}}}}}' \
-    -f owner="${REPO%%/*}" -f repo="${REPO#*/}" -F num="$num" 2>/dev/null \
-    | python3 -c "import sys,json;p=sys.argv[1];d=json.load(sys.stdin);ns=(((d.get('data') or {}).get('repository') or {}).get('issue') or {}).get('projectItems',{}).get('nodes') or [];print(next((n['id'] for n in ns if (n.get('project') or {}).get('id')==p),''))" "$PROJ_ID" 2>/dev/null)
-  [ -n "$item" ] && "$GH" project item-edit --id "$item" --project-id "$PROJ_ID" \
-    --field-id "$FIELD_ID" --single-select-option-id "$OPT_ID" >/dev/null 2>&1
-fi
 
 python3 -c 'import sys,json; print(json.dumps({"systemMessage":"[work-tracking] Branch maps to OPEN issue #"+sys.argv[1]+" in "+sys.argv[2]+"."}))' "$num" "$REPO"
 exit 0
