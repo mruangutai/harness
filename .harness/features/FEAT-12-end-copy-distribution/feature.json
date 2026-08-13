@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-12-end-copy-distribution",
   "branch": "chore/203-end-copy-distribution",
-  "pr": null,
-  "status": "Review",
+  "pr": 259,
+  "status": "Done",
   "review_sha": "fb80543",
   "cycles_used": 8,
   "max_total_cycles": 10,
