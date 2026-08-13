@@ -311,6 +311,8 @@ with tempfile.TemporaryDirectory() as td:
         check("(27) a repos entry with no board raises FleetError", True)
         check("(27) the message names the repository missing its board",
               "repos[mruangutai/kaya-ai].board" in str(e), str(e))
+        check("(27b) the next_step names all four required board fields, owner included",
+              "with owner, number, station_field and stations" in str(e), str(e))
 
 REPO_BOARD_BAD_CASES = []
 

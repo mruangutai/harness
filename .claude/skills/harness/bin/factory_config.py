@@ -151,8 +151,8 @@ def load_fleet(path=FLEET_PATH):
         if "board" not in entry:
             raise FleetError(
                 "fleet key invalid", f"repos[{name}].board",
-                f"give {name} its own board: {{...}} block with number, station_field and "
-                f"stations in {path}",
+                f"give {name} its own board: {{...}} block with owner, number, "
+                f"station_field and stations in {path}",
             )
         _validate_board(entry["board"], f"repos[{name}]", path)
 
