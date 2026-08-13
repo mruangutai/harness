@@ -37,6 +37,16 @@
       "id": "2026-08-13-05-validator",
       "squad": "validator",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-13-06-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-13-06-product",
+      "squad": "product",
+      "verdict": "FAIL"
     }
   ],
   "github": {
