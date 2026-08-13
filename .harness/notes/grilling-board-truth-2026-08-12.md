@@ -24,10 +24,16 @@ is loud, not silent.
   `Backlog`/`Plan`/`Ready` are set before any task exists.
 - **Station writes live in `gh-sync.py`.** → It already owns the board mirror. Board GraphQL belongs
   in the one place that manages the board; that is the design working, not a cost.
-- **A failed station or status write must FAIL LOUDLY, never skip.** → Operator ruling.
-- **`gh` calls get an exponential backoff retry, and the run STOPS when retries are exhausted.** →
-  Operator ruling. Today there is no retry anywhere and one blip aborts a half-finished sync at
-  exit 0.
+- **A failed station or status write must FAIL LOUDLY, never skip — but the run CONTINUES.** →
+  Operator ruling, revised in the same session: an error on stderr rather than a `SKIP` line, and
+  not a stop. **The cost was stated and accepted: stderr inside a subagent run is not something the
+  operator reads, so in practice this is close to today's behaviour with stronger wording.** That
+  makes the comparison check below the thing that carries the guarantee, not a nice-to-have.
+- **Retry is DROPPED for now.** → Operator ruling, reversing an earlier decision in the same
+  session: no severe `gh` trouble observed to date. **Recorded with its caveat: the absence of
+  observed trouble is not evidence, because `gh()` calls `skip()` on any failure and `skip()` exits
+  0 — every `gh` failure so far printed one line and reported success.** Reopenable; nothing in this
+  design depends on retry being absent.
 - **PR linkage uses GitHub's native linked branch, created THROUGH the issue.** → `gh issue develop`
   cannot link a branch that already exists (measured 2026-08-12: "API returned empty branch name"),
   so the branch has to be created that way from the start. This removes the composed `Closes #N`
@@ -98,15 +104,13 @@ things and a reader hitting both will assume otherwise.
 
 ## Not yet specified
 
-- **Where the retry lives, and its shape.** `gh-sync.py`'s `gh()` wrapper is the obvious home, but
-  `factory_gh.py` has the same failure shape and is out of this ticket's scope by the operator's
-  product-board boundary. Attempt count, base delay and cap are unstated.
-- **Whether a stopped run leaves a partial mirror, and what un-does it.** Stopping on exhausted
-  retries is settled; what happens to the issues already filed in that run is not. `open` is
-  documented re-run safe, which may make this a non-question — unverified.
-- **Whether the comparison check still earns its place.** With loud failures and retries, the
-  remaining hole is a mirror deliberately SUSPENDED, as it was for all of FEAT-14. That is the
-  ticket's gap 3 and the operator has not ruled on it.
+- **The comparison check — its shape and where it runs.** This is now load-bearing rather than
+  optional. With failures loud-but-non-blocking, nothing stops a build on a bad write, so the only
+  thing that can distinguish a mirror that ran from one that did not is something comparing
+  `plan.yaml` against the board. It also covers the case retries never would: a mirror deliberately
+  SUSPENDED, as it was for all of FEAT-14.
+- **Whether a partially-filed mirror needs un-doing.** `open` is documented re-run safe, which may
+  make this a non-question — unverified.
 - **What happens to `branch-create-gate.sh`'s dormant flip.** If the parent is derived from its
   children, the gate's one-shot flip is a cruder duplicate. Delete, or leave dormant with a comment.
 - **Whether the `building` status arrives with the enum that has never existed.** Related but not the
