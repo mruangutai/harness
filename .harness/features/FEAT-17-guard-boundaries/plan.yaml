@@ -5,6 +5,39 @@ approval:
   status: approved
   approved_by: operator
   date: '2026-08-11'
+  rulings:
+    - id: R-01
+      date: '2026-08-12'
+      subject: T-06 is RE-SCOPED to a receipt, because its evidence can no longer be obtained
+      ruling: >
+        T-06's removal was performed OUTSIDE this task, by the main session during the FEAT-13
+        close-out, without knowing T-06 owned it. Two of its four steps were safeguards and both
+        were skipped: no before capture was taken, and the archive tag was applied AFTER removal
+        instead of before. T-06 therefore produces a truthful receipt naming what happened, what
+        it cost and what cannot be proven - not the before/after comparison it was written for.
+      because: >
+        The task would otherwise have PASSED while asserting two false things, and that is the
+        whole reason to change it rather than let it run. Its verify checked three conditions and
+        two were already true before the task started - no out-of-place worktrees remained, and
+        the archive tag existed - while the third, an after capture, was one command away. So it
+        would have gone green on a before/after comparison nobody can make, and on a "targeted
+        prune, not a sweep" claim its own paired negative can no longer support, because the
+        control worktree was removed too. A criterion satisfied by its checkbox rather than its
+        evidence is the exact defect class this feature exists to remove, and a green T-06 would
+        have placed that defect inside the feature that removes it.
+      cost_measured: >
+        52d8334 was unreachable and gc-eligible between the removal and the late tag. It is NOT
+        an ancestor of main - confirmed with git merge-base --is-ancestor, which is precisely why
+        T-06 ordered the tag first. The commit survived only because no gc ran in the gap. It is
+        now preserved by archive/worktree-r6. ffbdbfa was never at risk; it is in main.
+      verify_changed: >
+        The new clause asserts the receipt exists and NAMES the three things a comfortable
+        version would omit - that the tag was LATE, the tag it depends on, and the word sweep.
+        Proven non-vacuous: changing LATE to early in the receipt fails the clause.
+      lesson: >
+        Cleanup performed outside the task that owns it loses that task's safeguards silently. No
+        gate noticed and none could have - git worktree prune is an ordinary command, and the
+        discipline that made it safe lived only in a plan nobody was reading at that moment.
 
 lanes:
   resolved_at: a29ad06
@@ -168,7 +201,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out - check-domain.sh is a registered PreToolUse gate script
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - .claude/skills/harness/bin/check-domain.sh
@@ -274,7 +307,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out - check-domain.sh is a registered PreToolUse gate script
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - .claude/skills/harness/bin/check-domain.sh
@@ -430,7 +463,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out - bash-write-guard.sh is a registered PreToolUse gate script
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/bash-write-guard.sh
       - .claude/skills/harness/bin/test-bash-write-guard.py
@@ -643,7 +676,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out - bash-write-guard.sh is a registered PreToolUse gate script
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/bash-write-guard.sh
       - .claude/skills/harness/bin/test-bash-write-guard.py
@@ -715,7 +748,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out - check-state.sh is the fourth gate script named in CLAUDE.md
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
@@ -834,12 +867,31 @@ tasks:
       A live-state mutation of this machine's git worktrees, not a repository change; the capture
       files resolve to harness-orchestrator and the main session is exempt from the domain hook.
     depends_on: [T-05]
-    status: pending
+    status: done
     files:
-      - .harness/features/FEAT-17-guard-boundaries/notes/worktree-list-before.md
-      - .harness/features/FEAT-17-guard-boundaries/notes/worktree-list-after.md
+      - .harness/features/FEAT-17-guard-boundaries/notes/worktree-removal-receipt-2026-08-12.md
     verify: |
-      git worktree list | grep -v '^/Users/molchairuangutai/GitHub/harness ' | grep -v '/.claude/worktrees/' | wc -l | grep -q '^ *0$' && git tag --list | grep -q 'archive/worktree-r6' && test -s .harness/features/FEAT-17-guard-boundaries/notes/worktree-list-after.md
+      python3 - <<'PY'
+      import subprocess, sys
+      bad = []
+      R = '.harness/features/FEAT-17-guard-boundaries/notes/worktree-removal-receipt-2026-08-12.md'
+      root = subprocess.run(['git','rev-parse','--show-toplevel'],capture_output=True,text=True).stdout.strip()
+      wt = [l for l in subprocess.run(['git','worktree','list'],capture_output=True,text=True).stdout.splitlines()
+            if l.strip() and '/.claude/worktrees/' not in l and not l.startswith(root + ' ')]
+      if wt: bad.append('out-of-place worktree still present: %s' % wt)
+      if 'archive/worktree-r6' not in subprocess.run(['git','tag','--list'],capture_output=True,text=True).stdout:
+          bad.append('archive/worktree-r6 is missing - the commit it preserves is NOT an ancestor of main and is gc-eligible without it')
+      try:
+          txt = open(R).read()
+      except OSError as e:
+          bad.append('the receipt is absent (%s), so T-06 has no evidence at all' % e); txt = ''
+      for token, why in (('LATE', 'it must state the tag was applied AFTER removal rather than imply the ordered discipline was followed'),
+                         ('archive/worktree-r6', 'it must name the tag it relies on'),
+                         ('sweep', 'it must characterise the removal honestly - the paired negative was destroyed, so targeted cannot be claimed')):
+          if txt and token not in txt: bad.append('the receipt does not say "%s": %s' % (token, why))
+      print(chr(10).join(bad) if bad else 'OK')
+      sys.exit(1 if bad else 0)
+      PY
     intent: |
       Remove the two out-of-place worktrees measured at a29ad06 - the scratchpad checkouts r6 and
       wt140 - leaving the main checkout and the legitimate .claude/worktrees/ entries untouched.
@@ -867,7 +919,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-04, T-05]
-    status: pending
+    status: done
     files:
       - docs/harness/DECISIONS.md
       - docs/harness/DECISIONS-INDEX.md

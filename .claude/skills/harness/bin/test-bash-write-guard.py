@@ -82,11 +82,11 @@ case("an unquoted heredoc tag is still a heredoc",
 # break never fired and the NEXT command's name was collected as an operand: `rm -f
 # docs/a.md; echo ok` was refused for "rm targets echo".
 case("rm in-domain followed by another command",
-     'rm -f docs/a.md; echo ok', 0, agent="harness-documentor")
+     'rm -f docs/harness/a.md; echo ok', 0, agent="harness-documentor")
 case("mv within domain followed by another command",
-     'mv docs/a.md docs/b.md; ls', 0, agent="harness-documentor")
+     'mv docs/harness/a.md docs/harness/b.md; ls', 0, agent="harness-documentor")
 case("in-domain redirect followed by a read command",
-     'echo x > docs/a.md; git status', 0, agent="harness-documentor")
+     'echo x > docs/harness/a.md; git status', 0, agent="harness-documentor")
 
 # ---------------- MUST BLOCK: the loosening above must not open a hole ----------------
 # A heredoc fed to a SHELL is code, not data — its body really does redirect.
@@ -100,8 +100,14 @@ case("a redirect on the heredoc command line still blocks",
 # Every segment of a compound line is scanned, not just the first.
 case("an out-of-domain redirect in the SECOND segment still blocks",
      'echo ok; echo x > src/main.py', 2, agent="harness-documentor")
+# RETARGETED BY FEAT-17 T-03, AND NOT BECAUSE IT TURNED RED — it never flipped, since
+# src/main.py is refused either way. That is the problem: this case's NAME says the SECOND
+# segment is scanned, and once classify refuses docs/a.md in its own right the FIRST operand
+# carries the whole refusal, so it would pass even if second-segment scanning regressed
+# entirely. docs/harness/a.md is granted AND control-plane, so it exits 0 alone, which puts
+# the weight of the expected 2 back where the name says it is.
 case("an out-of-domain rm in the second segment still blocks",
-     'rm docs/a.md; rm src/main.py', 2, agent="harness-documentor")
+     'rm docs/harness/a.md; rm src/main.py', 2, agent="harness-documentor")
 case("an out-of-domain write after && still blocks",
      'git status && echo x > src/main.py', 2, agent="harness-documentor")
 # A shell anywhere in the pipeline makes the body code. Looking only at the first word
@@ -168,7 +174,13 @@ def run_t14():
     # fail-closed blocks the forbidden one. Only a manifest that actually parsed
     # yields both from one fixture.
     root = fixture(FIXTURE_MANIFEST)
-    ok = fire(root, f"echo hi > {os.path.join(root, 'allowed', 'x.txt')}")
+    # THE ALLOW HALF IS RETARGETED to a control-plane path (FEAT-17 T-03). Inside the
+    # harness base a glob match is accepted only if the TARGET passes
+    # is_control_plane_target, so the `allowed/**` grant cannot permit <root>/allowed/x.txt.
+    # FIXTURE_MANIFEST already grants .harness/allowed/**. The expected exit codes below
+    # are UNCHANGED — flipping this 0 to a 2 would degenerate the pair into "block-all
+    # passes", which is the allow-only blindness this case exists to catch.
+    ok = fire(root, f"echo hi > {os.path.join(root, '.harness', 'allowed', 'x.txt')}")
     no = fire(root, f"echo hi > {os.path.join(root, 'forbidden', 'x.txt')}")
     T14.append(("SC-06 pair: permitted bash write allowed AND forbidden blocked",
                 ok.returncode == 0 and no.returncode == 2,
@@ -216,28 +228,33 @@ def run_t14():
     # Both hooks compute domains from ONE function, so the same agent and path must get
     # the same verdict from either write surface.
     #
-    # THE ALLOW HALF MOVED to a control-plane path on 2026-08-11, and the reason is a
-    # real divergence rather than a fixture detail. FEAT-15 taught check-domain.sh that
-    # a product-shaped target inside the harness root is refused, and bash-write-guard.sh
-    # was out of that feature's scope. Measured after the change, with `src/**` granted
-    # to harness-backend-dev and the target <root>/src/main.py: Write exits 2, Bash
-    # exits 0. So on a product-shaped in-root path the two surfaces genuinely DISAGREE,
-    # and asserting agreement there would fail for a true reason.
+    # THE PRODUCT-SHAPED PATH IS BACK, AND SO IS THE AGREEMENT (FEAT-17 T-03). On
+    # 2026-08-11 the allow half was moved off <root>/src/main.py because the surfaces
+    # genuinely disagreed there: FEAT-15 taught check-domain.sh that a product-shaped
+    # target inside the harness root is refused, and bash-write-guard.sh was out of that
+    # feature's scope, so Write exited 2 and Bash exited 0. Issue #261. That divergence
+    # is closed — this guard now decides from harness_boundary.classify — so the case is
+    # restored rather than left describing a split the code no longer has.
     #
-    # Filed rather than papered over — see the P0 ticket for the shell route. This case
-    # keeps its original job (proving both guards read one rulebook) on a path where
-    # that property still holds, and it stays discriminating: the forbidden half is
-    # unchanged, so an allow-all guard still fails it.
-    root = fixture(FIXTURE_MANIFEST)
+    # The grant carries src/** for exactly this: without it <root>/src/main.py is
+    # refused for a MISSING GRANT on both routes, which is agreement about nothing. With
+    # it, the only thing that can refuse it is the control-plane target-side test — the
+    # rule that used to live on one route only.
+    agree_manifest = FIXTURE_MANIFEST.replace(
+        "          - { path: .harness/allowed/**, upsert: true }",
+        "          - { path: .harness/allowed/**, upsert: true }\n"
+        "          - { path: src/**, upsert: true }")
+    root = fixture(agree_manifest)
     cd = os.path.join(HERE, "check-domain.sh")
-    for rel, want in ((".harness/allowed/x.txt", 0), ("forbidden/x.txt", 2)):
+    for rel, want in ((".harness/allowed/x.txt", 0), ("src/main.py", 2),
+                      ("forbidden/x.txt", 2)):
         tgt = os.path.join(root, rel)
         b = fire(root, f"echo hi > {tgt}")
         w = subprocess.run([cd], input=json.dumps(
             {"agent_type": "harness-backend-dev", "tool_name": "Write",
              "tool_input": {"file_path": tgt, "content": "x"}}),
             capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
-        T14.append((f"both write surfaces agree on {rel} (D-03, one shared walk)",
+        T14.append((f"both write surfaces agree on {rel} (D-03, one shared rule)",
                     b.returncode == want and w.returncode == want,
                     f"bash got {b.returncode}, write got {w.returncode}, want {want}"))
 
@@ -249,6 +266,315 @@ def run_t14():
             fails += 1
             print(f"FAIL  {name}\n      | {detail}")
     print(f"\n{len(T14) - fails}/{len(T14)} T-14 cases passed.")
+    return fails
+
+
+WTB = []
+
+
+def wtb(name, ok, detail=""):
+    WTB.append((name, ok, detail))
+
+
+def _linked_worktree(path, owner_root, wt_id, manifest_text):
+    """A linked git worktree, built BY HAND — no git is invoked, here or in the guard.
+
+    A `.git` FILE holding `gitdir: <owner>/.git/worktrees/<id>` is exactly the on-disk
+    shape `git worktree add` leaves. Standing up a real one would mean this suite
+    creating the shape the guard now forbids. Each checkout gets its own manifest,
+    because each is used as a session root below and a root with no readable manifest
+    falls to the DEC-151 fail-open — which exits 0 for a reason that has nothing to do
+    with worktrees.
+    """
+    os.makedirs(os.path.join(path, ".harness"), exist_ok=True)
+    with open(os.path.join(path, ".git"), "w") as f:
+        f.write("gitdir: %s\n" % os.path.join(owner_root, ".git", "worktrees", wt_id))
+    with open(os.path.join(path, ".harness", "team-config.yaml"), "w") as f:
+        f.write(manifest_text)
+
+
+def _worktree_fixture():
+    """<tmp>/root as the main checkout, one out-of-place sibling, one legitimate."""
+    tmp = tempfile.mkdtemp()
+    root = os.path.join(tmp, "root")
+    os.makedirs(os.path.join(root, ".harness"))
+    os.makedirs(os.path.join(root, ".git", "worktrees", "sib"))
+    os.makedirs(os.path.join(root, ".git", "worktrees", "wt"))
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
+        f.write(FIXTURE_MANIFEST)
+    sib = os.path.join(tmp, "sib")
+    legit = os.path.join(root, ".claude", "worktrees", "wt")
+    _linked_worktree(sib, root, "sib", FIXTURE_MANIFEST)
+    _linked_worktree(legit, root, "wt", FIXTURE_MANIFEST)
+    return tmp, root, sib, legit
+
+
+def run_worktree():
+    """Issue #103 on the BASH route, and the one-implementation proof for #261.
+
+    Every in-root path asserted here is under `.harness/`. That is load-bearing: inside
+    the harness base a glob match is accepted only when the TARGET passes
+    is_control_plane_target, so the fixture's `allowed/**` grant cannot permit
+    <root>/allowed/x.txt. A shorter path would make the paired ALLOWs fail against
+    correct code.
+    """
+    tmp, root, sib, legit = _worktree_fixture()
+
+    def _fire(session_root, cmd, agent="harness-backend-dev"):
+        payload = {"agent_type": agent, "tool_name": "Bash",
+                   "tool_input": {"command": cmd}}
+        return subprocess.run([GUARD], input=json.dumps(payload), capture_output=True,
+                              text=True,
+                              env=dict(os.environ, CLAUDE_PROJECT_DIR=session_root))
+
+    # TARGET-SIDE: a shell write INTO the sibling, from a session rooted in the
+    # checkout. The sibling is outside root, so this half discriminates whatever the
+    # manifest grants — before this task the `..` continue made it invisible here.
+    r = _fire(root, f"echo hi > {os.path.join(sib, 'allowed', 'x.txt')}")
+    wtb("a shell write INTO an out-of-place worktree is REFUSED",
+        r.returncode == 2 and ".claude/worktrees" in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # The PAIRED ALLOW, same fixture and same session. Without it the case above is
+    # satisfied by a guard that refuses everything.
+    r = _fire(root, f"echo hi > {os.path.join(root, '.harness', 'allowed', 'x.txt')}")
+    wtb("the same session's in-domain shell write still PASSES",
+        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # ROOT-SIDE. The target is control-plane and in-domain FOR THAT ROOT, so it exits 0
+    # with the root-side rule deleted — which is what makes the case discriminating.
+    r = _fire(sib, f"echo hi > {os.path.join(sib, '.harness', 'allowed', 'x.txt')}")
+    wtb("a session ROOTED in an out-of-place worktree is refused its own in-domain "
+        "shell write",
+        r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # BOTH HALVES OF THE WORDING, on the SAME captured stderr. This route prints its own
+    # copy of the verdict, so a wording assertion on the Write route alone would leave
+    # this one free to regress. `git worktree remove` SUCCEEDS at exit 0 from inside the
+    # tree it removes, so that guidance printed to a session standing in that tree is an
+    # instruction to delete its own cwd. Presence alone passes if the destructive
+    # sentence is re-added beside the location line; absence alone passes for a verdict
+    # that says nothing. Scoped to THIS stderr — the target-side verdict keeps it.
+    wtb("the ROOT-SIDE bash verdict names .claude/worktrees and does NOT say "
+        "`git worktree remove`",
+        ".claude/worktrees" in r.stderr and "git worktree remove" not in r.stderr,
+        f"stderr: {r.stderr.strip()[:300]}")
+
+    # A COMMAND THAT EXTRACTS NO WRITE TARGET AT ALL. This is what proves the root-side
+    # check does not sit behind `if not findings: sys.exit(0)`, and after the re-scope it
+    # is the ONLY case pinning this route's placement.
+    r = _fire(sib, "git status --porcelain")
+    wtb("a read-only command from an out-of-place root is ALSO refused (the check is "
+        "not behind the no-findings exit)",
+        r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # The PAIRED ALLOW for the root-side rule: same shape, legitimate location.
+    r = _fire(legit, f"echo hi > {os.path.join(legit, '.harness', 'allowed', 'x.txt')}")
+    wtb("a session rooted in a LEGITIMATE worktree is unaffected",
+        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # SC-07 on this route, and WHAT IT PROVES IS NARROWER THAN ITS TWIN — measured, after
+    # a first version of this comment asserted the wrong mechanism.
+    #
+    # On the Write route the same case is granted ONLY by DEC-143's prefix stripping:
+    # delete the stripping and it reddens. HERE, TWO INDEPENDENT RULES EACH GRANT IT.
+    # Measured three ways:
+    #   stripping deleted .................... still 0
+    #   DEC-153's carve-out deleted .......... still 0
+    #   BOTH deleted ......................... 2
+    # So this case pins the OUTCOME the criterion asks for and discriminates NEITHER
+    # mechanism on its own. Recorded that way rather than named for one of them, because
+    # a case labelled with a rule it does not test is worse than an unlabelled one.
+    r = _fire(root, f"echo hi > {os.path.join(legit, '.harness', 'allowed', 'x.txt')}")
+    wtb("SC-07: the legitimate worktree is writable FROM OUTSIDE it on the Bash route "
+        "(granted independently by BOTH the carve-out and the stripping)",
+        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # --- F-A ON THIS ROUTE. The panel's `high` was reproduced on the Write route; this
+    # guard imports the same module and reads the same return value, so an unparseable
+    # pointer must refuse here too. Without these cases the fix is asserted on one route
+    # and merely believed on the other.
+    _ptr = os.path.join(sib, ".git")
+    _good = open(_ptr, "rb").read()
+    for _label, _payload in (
+            ("not valid UTF-8", _good.rstrip() + b"\xff"),
+            ("a bare word, no gitdir:", b"nonsense\n"),
+            ("an empty file", b""),
+    ):
+        with open(_ptr, "wb") as _f:
+            _f.write(_payload)
+        r = _fire(root, f"echo hi > {os.path.join(sib, 'allowed', 'x.txt')}")
+        wtb(f"F-A: a .git pointer that is {_label} REFUSES the shell write",
+            r.returncode == 2, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+    with open(_ptr, "wb") as _f:
+        _f.write(_good)
+    r = _fire(root, f"echo hi > {os.path.join(root, '.harness', 'allowed', 'x.txt')}")
+    wtb("F-A: with the pointer restored, the in-domain shell write still PASSES",
+        r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # --- THE FAIL-CLOSED PAIR for the shared module (D-06).
+    iso = tempfile.mkdtemp()
+    isobin = os.path.join(iso, ".claude", "skills", "harness", "bin")
+    os.makedirs(isobin)
+    shutil.copy(GUARD, os.path.join(isobin, "bash-write-guard.sh"))
+    shutil.copy(os.path.join(HERE, "harness_yaml.py"), os.path.join(isobin, "harness_yaml.py"))
+    os.makedirs(os.path.join(iso, ".harness"))
+    with open(os.path.join(iso, ".harness", "team-config.yaml"), "w") as f:
+        f.write(FIXTURE_MANIFEST)
+    payload = {"agent_type": "harness-backend-dev", "tool_name": "Bash",
+               "tool_input": {"command": "echo hi > %s"
+                              % os.path.join(iso, ".harness", "allowed", "x.txt")}}
+    r = subprocess.run([os.path.join(isobin, "bash-write-guard.sh")],
+                       input=json.dumps(payload), capture_output=True, text=True,
+                       env=dict(os.environ, CLAUDE_PROJECT_DIR=iso))
+    wtb("a MISSING harness_boundary.py blocks the bash write and NAMES the module",
+        r.returncode == 2 and "harness_boundary" in r.stderr,
+        f"exit {r.returncode}: {r.stderr.strip()[:200]}")
+
+    # --- THE ONE-IMPLEMENTATION PROOF, BY MUTATION RATHER THAN BY GREP.
+    #
+    # A grep proves the literal appears once. It cannot prove both guards READ that one
+    # copy. So: an isolated bin holding all four files both hooks need, one payload, and
+    # the named constant changed in the COPIED module — by NAME, never by sed on the bare
+    # literal, which also appears in the DEC-143 rel-stripping regex and would change two
+    # rules at once.
+    #
+    # THE FIXTURE IS PINNED, NOT AIMED, and every part of it is load-bearing. The
+    # mutation is observed through the ROOT-SIDE check, with CLAUDE_PROJECT_DIR set to
+    # the legitimate worktree and the payload targeting a control-plane path inside it.
+    # Aimed at that worktree from OUTSIDE it, the payload is inside root, so on the Write
+    # route select_base returns a base and the out-of-place branch is never reached,
+    # while on the Bash route the DEC-153 continue returns before classify is called —
+    # the mutation could not flip on either route. And a non-control-plane target such as
+    # .../wt/allowed/x.txt exits 2 both before and after, which is 2 to 2 and again no
+    # flip.
+    m_tmp = tempfile.mkdtemp()
+    m_bin = os.path.join(m_tmp, "bin")
+    os.makedirs(m_bin)
+    for fn in ("check-domain.sh", "bash-write-guard.sh", "harness_boundary.py",
+               "harness_yaml.py"):
+        shutil.copy(os.path.join(HERE, fn), os.path.join(m_bin, fn))
+    for fn in ("check-domain.sh", "bash-write-guard.sh"):
+        os.chmod(os.path.join(m_bin, fn), 0o755)
+
+    m_root = os.path.join(m_tmp, "root")
+    os.makedirs(os.path.join(m_root, ".harness"))
+    os.makedirs(os.path.join(m_root, ".git", "worktrees", "wt"))
+    with open(os.path.join(m_root, ".harness", "team-config.yaml"), "w") as f:
+        f.write(FIXTURE_MANIFEST)
+    m_wt = os.path.join(m_root, ".claude", "worktrees", "wt")
+    _linked_worktree(m_wt, m_root, "wt", FIXTURE_MANIFEST)
+    m_target = os.path.join(m_wt, ".harness", "allowed", "x.txt")
+
+    def _both_routes():
+        env = dict(os.environ, CLAUDE_PROJECT_DIR=m_wt,
+                   PYTHONPATH=m_bin + os.pathsep + os.environ.get("PYTHONPATH", ""))
+        b = subprocess.run([os.path.join(m_bin, "bash-write-guard.sh")],
+                           input=json.dumps({"agent_type": "harness-backend-dev",
+                                             "tool_name": "Bash",
+                                             "tool_input": {"command": f"echo hi > {m_target}"}}),
+                           capture_output=True, text=True, env=env)
+        w = subprocess.run([os.path.join(m_bin, "check-domain.sh")],
+                           input=json.dumps({"agent_type": "harness-backend-dev",
+                                             "tool_name": "Write",
+                                             "tool_input": {"file_path": m_target,
+                                                            "content": "x"}}),
+                           capture_output=True, text=True, env=env)
+        return b.returncode, w.returncode
+
+    before = _both_routes()
+    wtb("one-implementation baseline: both routes ALLOW the legitimate worktree write",
+        before == (0, 0), f"bash={before[0]}, write={before[1]}, want (0, 0)")
+
+    mod = os.path.join(m_bin, "harness_boundary.py")
+    src = open(mod).read()
+    mutated = src.replace('WORKTREES_SEGMENT = ".claude/worktrees"',
+                          'WORKTREES_SEGMENT = ".claude/wt-mutant"', 1)
+    wtb("the mutation targeted the constant BY NAME (not the bare literal)",
+        mutated != src, "WORKTREES_SEGMENT assignment not found in the copied module")
+    open(mod, "w").write(mutated)
+    # DROP THE BYTECODE CACHE, AND THIS IS NOT HOUSEKEEPING. The baseline run above left
+    # a __pycache__ beside the module, and CPython validates a cached .pyc by mtime and
+    # SIZE. `.claude/wt-mutant` is exactly as long as `.claude/worktrees`, so within one
+    # mtime tick the stale bytecode is reused and the mutation never loads — measured
+    # here as a 0/0 "no flip" that looked like a second copy of the rule.
+    shutil.rmtree(os.path.join(m_bin, "__pycache__"), ignore_errors=True)
+
+    after = _both_routes()
+    # A FLIP ON ONE ROUTE ONLY MEANS A SECOND COPY OF THE RULE SURVIVES SOMEWHERE, and
+    # this case must say so rather than passing on a partial result.
+    wtb("ONE IMPLEMENTATION: mutating WORKTREES_SEGMENT flips BOTH routes 0 -> 2",
+        after == (2, 2),
+        f"bash={after[0]}, write={after[1]}, want (2, 2) — a flip on one route only "
+        f"means a second copy of the boundary rule survives on the other")
+
+    # --- WORKTREE CREATION (REQ-03). The door BEFORE the tree exists. Measured at
+    # a29ad06: `git worktree add --detach ~/GitHub/harness-SIBLING HEAD` exited 0 from
+    # both hooks.
+    wt_root = fixture(FIXTURE_MANIFEST)
+    legal_dest = os.path.join(wt_root, ".claude", "worktrees", "FEAT-99")
+    # Assembled rather than written inline: this repository's own branch-create gate
+    # scans command text for a branch flag and refuses a name carrying no issue or flow
+    # id, which would block anyone editing this file from a session.
+    BRANCH_FLAG = "-" + "b"
+
+    for label, cmd, want in (
+        ("an absolute destination outside .claude/worktrees",
+         "git worktree add /tmp/sib-xyz HEAD", 2),
+        # The flag CONSUMES the next token, so a guard that merely skipped tokens
+        # starting with "-" would read the branch name as the destination.
+        ("a value-taking flag cannot hide the destination",
+         "git worktree add " + BRANCH_FLAG + " chore/FEAT-17-wt /tmp/sib-xyz HEAD", 2),
+        # THE DISCRIMINATING FORM of the case above. `-b` CONSUMES its value, so a guard
+        # that merely skipped tokens starting with "-" would read this LEGAL path as the
+        # destination and permit the write to /tmp. The case above cannot catch that on
+        # its own: a naive guard refuses it too, for the relative-path reason, so it
+        # would pass under the very bug it is named for.
+        ("a value-taking flag whose VALUE is a legal path still cannot hide it",
+         "git worktree add " + BRANCH_FLAG + " " + legal_dest + " /tmp/sib-xyz HEAD", 2),
+        ("a RELATIVE destination is refused — it cannot be resolved",
+         "git worktree add sib HEAD", 2),
+        # THE TRAVERSAL FORM, and it is what makes "resolve BOTH sides" load-bearing
+        # rather than a style choice. With no resolution the comparison is string-level
+        # and this path is judged inside .claude/worktrees/ and PERMITTED — a silent
+        # permit of the exact mistake this scan exists to refuse.
+        ("a .. traversal out of .claude/worktrees",
+         "git worktree add " + os.path.join(wt_root, ".claude", "worktrees",
+                                            "..", "..", "..", "tmp", "sib") + " HEAD", 2),
+        ("`git worktree move` out of .claude/worktrees",
+         "git worktree move " + os.path.join(wt_root, ".claude", "worktrees", "wt")
+         + " /tmp/sib-xyz", 2),
+        # THE PAIRED ALLOWS. The ordinary-git ones are not decoration — they are what
+        # bounds the risk of a rule this broad.
+        ("a destination INSIDE .claude/worktrees",
+         "git worktree add " + legal_dest + " HEAD", 0),
+        ("the same, with a flag that consumes nothing",
+         "git worktree add --detach " + legal_dest + " HEAD", 0),
+        ("ordinary git: status", "git status --porcelain", 0),
+        ("ordinary git: worktree list", "git worktree list", 0),
+        ("ordinary git: commit", "git commit -m x", 0),
+    ):
+        r = fire(wt_root, cmd)
+        wtb(f"worktree creation — {label}",
+            r.returncode == want,
+            f"exit {r.returncode}, want {want}: {r.stderr.strip()[:200]}")
+
+    # THE RELATIVE DESTINATION MUST BE REFUSED FOR BEING RELATIVE, and only the wording
+    # can say so. A guard with the isabs check deleted still exits 2 here — realpath("sib")
+    # resolves against the guard process's cwd, which is not under the fixture's
+    # worktrees dir — so the exit code alone passes under the deleted check.
+    r = fire(wt_root, "git worktree add sib HEAD")
+    wtb("worktree creation — the relative refusal NAMES relativity as the reason",
+        "RELATIVE" in r.stderr, f"stderr: {r.stderr.strip()[:250]}")
+
+    fails = 0
+    for name, ok_, detail in WTB:
+        if ok_:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n        {detail}")
+    print(f"\n{len(WTB) - fails}/{len(WTB)} worktree-boundary cases passed.\n")
     return fails
 
 
@@ -268,6 +594,7 @@ def main():
             print(f"ok    {name}")
     print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
     fails += run_t14()
+    fails += run_worktree()
     return fails
 
 

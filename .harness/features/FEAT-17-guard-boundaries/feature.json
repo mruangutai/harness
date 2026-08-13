@@ -1,9 +1,9 @@
 {
   "feature_id": "FEAT-17-guard-boundaries",
-  "branch": "none",
-  "pr": null,
-  "status": "Ready",
-  "review_sha": "none",
+  "branch": "feat/FEAT-17-guard-boundaries",
+  "pr": 298,
+  "status": "Building",
+  "review_sha": "81251a4",
   "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
@@ -37,6 +37,26 @@
       "id": "2026-08-11-06-rescope-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-07-t07-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-08-goalcheck-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-12-09-qa-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-09-panel-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
     }
   ]
 }

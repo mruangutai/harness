@@ -954,6 +954,112 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
         else:
             _fac_pairs[key] = feat
 
+# --- INV-25 (issue #103): the environment itself must not contain an out-of-place
+# worktree. The write guards now REFUSE writes into such a tree and refuse a session
+# rooted in one, so an environment holding one is broken rather than merely unusual —
+# which is why every branch below goes to `bad` and not to `warn`. A warning is the same
+# silence in a quieter font.
+#
+# THE ONE PLACE A GIT SUBPROCESS IS ACCEPTABLE. The cost objection that kept this out of
+# both hooks was that they run on EVERY governed write; check-state runs once per
+# session. If git is absent or the command fails, record nothing: this invariant must
+# never turn an unrelated environment into a red gate.
+# THE IMPORT IS A VIOLATION WHEN IT FAILS, NOT A SILENT SKIP. Found by the review panel:
+# this absorbed the ImportError into `_wt_seg = None`, `if _wt_seg:` then skipped every
+# INV-25 branch, and a session holding a pre-existing out-of-place worktree printed
+# "all state invariants hold" and exited 0. That is the fourth import route — the three
+# in the two write guards fail closed, this one did not.
+#
+# It is a VIOLATION rather than a note because the module ships with the repository: it
+# being unimportable is a defect in the tree, never a property of the environment. That
+# is the opposite of the git-absent case below, which correctly records nothing.
+try:
+    import harness_boundary as _hb
+    _wt_seg = _hb.WORKTREES_SEGMENT
+except Exception as _hbe:
+    _wt_seg = None
+    bad.append("INV-25 CANNOT RUN: harness_boundary.py did not import (%s: %s), so a "
+               "pre-existing out-of-place worktree would go unreported. The module ships "
+               "with this repository — restore "
+               ".claude/skills/harness/bin/harness_boundary.py."
+               % (type(_hbe).__name__, _hbe))
+
+if _wt_seg:
+    try:
+        _wtp = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=root,
+                              capture_output=True, text=True, timeout=10)
+        _wt_out = _wtp.stdout if _wtp.returncode == 0 else None
+    except Exception:
+        _wt_out = None
+
+    if _wt_out:
+        # Porcelain records are blank-line separated; `worktree <path>` opens each one and
+        # `prunable` appears on its own, with no --verbose flag needed.
+        _entries = []
+        for _rec in _wt_out.split("\n\n"):
+            _path, _prunable = None, False
+            for _line in _rec.splitlines():
+                if _line.startswith("worktree "):
+                    _path = _line[len("worktree "):].strip()
+                elif _line.strip() == "prunable" or _line.startswith("prunable "):
+                    _prunable = True
+            if _path:
+                _entries.append((_path, _prunable))
+
+        if _entries:
+            # THE BASE IS DERIVED ONCE, FROM THE MAIN CHECKOUT, AND USED FOR BOTH THE
+            # COMPARISON AND THE MESSAGE. The first porcelain entry is always the main
+            # checkout, even when the command runs from inside a linked worktree, and a
+            # repository with no linked worktrees returns itself — so the derivation is
+            # total.
+            #
+            # NEVER <root>/.claude/worktrees/. `root` is CLAUDE_PROJECT_DIR or the cwd, so
+            # in exactly the session this invariant exists to catch — one whose root IS an
+            # out-of-place worktree — that base would mark every LEGITIMATE worktree under
+            # the main checkout as out of place and hand it destructive removal guidance.
+            _main = os.path.realpath(_entries[0][0])
+            _legal_home = os.path.realpath(os.path.join(_main, _wt_seg))
+            _real_root = os.path.realpath(root)
+
+            def _inside_legal(p):
+                try:
+                    return os.path.commonpath([p, _legal_home]) == _legal_home
+                except ValueError:      # different drives / unrelated roots
+                    return False
+
+            # The first entry plays two SEPARATE parts and they must not be fused: it is
+            # skipped as the main checkout, and it supplied the base above.
+            for _wpath, _prunable in _entries[1:]:
+                _rp = os.path.realpath(_wpath)
+                if _inside_legal(_rp):
+                    continue
+                _where = (f"INV-25: {_wpath} is a git worktree outside {_legal_home}{os.sep}, "
+                          f"where worktrees belong. A worktree elsewhere silently disables "
+                          f"the harness machinery for every session opened in it.")
+                if _rp == _real_root:
+                    # THIS BRANCH TESTS AGAINST THE SESSION ROOT, not against the legitimate
+                    # location above. They answer different questions — am I standing in
+                    # this tree, versus does this tree belong where it is — and they stay
+                    # two comparisons.
+                    #
+                    # NO REMOVAL GUIDANCE HERE. `git worktree remove` exits 0 when run from
+                    # inside the tree it removes, so telling this session to remove this
+                    # entry is telling it, at session entry, to delete the ground it is
+                    # standing on.
+                    bad.append(_where + " This session is rooted in it: start the session "
+                                        "from the main checkout, or from a checkout under "
+                                        "that location, instead.")
+                elif _prunable:
+                    # A prunable entry is a stale administrative record whose tree is
+                    # already gone from disk, so it can never be a live cwd.
+                    bad.append(_where + " The entry is stale — clear it with "
+                                        "`git worktree prune`.")
+                else:
+                    # The session is not standing in it, so removal guidance is correct
+                    # here and it STAYS. Deleting it everywhere would be the opposite
+                    # defect.
+                    bad.append(_where + f" Remove it with `git worktree remove {_wpath}`.")
+
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
 # (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip
 # silently, which reads exactly like a working mirror to anyone not tailing logs.

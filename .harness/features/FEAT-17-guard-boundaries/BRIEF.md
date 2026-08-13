@@ -208,12 +208,31 @@ rule did not exist, so it could not tell a working guard from an absent one. Tar
   `git worktree remove` — the session is not standing in that tree, so removal guidance is correct
   there, and without this half the negative is satisfiable by stripping removal guidance everywhere.
   verify: automated      evidence: integration
-- SC-09: This environment holds no out-of-place worktree, and the legitimate one survived. Evidence:
-  `notes/worktree-list-before.md` and `notes/worktree-list-after.md`; the after-capture lists only
-  the main checkout and paths under `.claude/worktrees/`. Paired negative: the FEAT-13 worktree is
-  still listed in the after-capture, and `git tag --list` contains the recovery tag for the removed
-  worktree's commit `52d8334`, which is not an ancestor of `main`.
+- SC-09 — **AMENDED 2026-08-12 by the operator, after the goal-check. The original text is kept
+  below it, struck, because a criterion that quietly changes shape is how a goal-check stops
+  meaning anything.**
+
+  **As amended:** this environment holds no out-of-place worktree, and the removal is accounted
+  for. Evidence: `notes/worktree-removal-receipt-2026-08-12.md`, plus T-06's verify clause, which
+  asserts that `git worktree list` names only the main checkout, that `archive/worktree-r6`
+  preserves `52d8334`, and that the receipt itself carries the tokens `LATE`, `archive/worktree-r6`
+  and *sweep*.
   verify: inspection
+
+  **Why it was amended rather than failed or quietly passed.** The original named two capture
+  files that were never created, and could not be: the removal happened outside T-06 during the
+  FEAT-13 close-out, so the before-capture was never taken and cannot be reconstructed without
+  falsifying the record — and SC-09's own paired negative, the FEAT-13 worktree still appearing in
+  the after-capture, was destroyed by that same close-out. `git log --all` confirms neither file
+  was ever committed on any branch. **What is gone is proof the prune was TARGETED; what survives
+  is evidence the END STATE is correct**, and the receipt says so on its face rather than claiming
+  the stronger thing.
+
+  ~~Original: This environment holds no out-of-place worktree, and the legitimate one survived.
+  Evidence: `notes/worktree-list-before.md` and `notes/worktree-list-after.md`; the after-capture
+  lists only the main checkout and paths under `.claude/worktrees/`. Paired negative: the FEAT-13
+  worktree is still listed in the after-capture, and `git tag --list` contains the recovery tag for
+  the removed worktree's commit `52d8334`, which is not an ancestor of `main`.~~
 - SC-10: An unimportable shared module fails CLOSED rather than turning both guards off. Fixture:
   an isolated `bin/` copy carrying `check-domain.sh`, `bash-write-guard.sh` and `harness_yaml.py`
   but NOT `harness_boundary.py`, run against a root whose manifest is PRESENT. Forbidden: a governed
