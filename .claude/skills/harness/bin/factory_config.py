@@ -70,12 +70,11 @@ def _require_mapping(data, path):
 
 
 def _validate_board(board, where, path):
-    """Validate a board mapping — the fleet-level block (where="") or one repos entry's own
-    block (where=f"repos[{name}]"). Raises FleetError with the SAME four rules either way, key
-    names prefixed by `where`: "board", "board.owner", "board.number", "board.station_field",
-    "board.stations" for the fleet-level block, "repos[owner/name].board", "...board.owner" and
-    so on for a per-repo block."""
-    key_base = f"{where}.board" if where else "board"
+    """Validate one repos entry's own board mapping (where=f"repos[{name}]"; there is no
+    fleet-level board any more — FEAT-16 T-08). Raises FleetError naming the offending field,
+    key names prefixed by `where`: "repos[owner/name].board", "...board.owner",
+    "...board.number", "...board.station_field", "...board.stations"."""
+    key_base = f"{where}.board"
     if not isinstance(board, dict):
         raise FleetError(
             "fleet key invalid", key_base, f"set {key_base}: {{...}} as a mapping in {path}"
@@ -111,10 +110,12 @@ def _validate_board(board, where, path):
 
 def load_fleet(path=FLEET_PATH):
     """Load and validate a fleet declaration. Raises FleetError naming the file and the
-    offending key on every one of the malformed-fleet shapes this loader rejects, including a
-    repos[] entry that declares no board of its own while no fleet-level board covers it. The
-    top-level board block is OPTIONAL; per-repo board blocks are validated with
-    _validate_board when present."""
+    offending key on every one of the malformed-fleet shapes this loader rejects — including a
+    leftover top-level `board` key (the board is per-repository now, FEAT-16 T-08 — an unknown
+    top-level key would otherwise be accepted silently, which would recreate the very
+    inherit-a-board-nobody-chose silence this feature removes) and a repos[] entry that declares
+    no board of its own. Every repos entry MUST carry its own board mapping, validated by
+    _validate_board."""
     data = harness_yaml.load_file(path)
     _require_mapping(data, path)
 
@@ -123,9 +124,12 @@ def load_fleet(path=FLEET_PATH):
             "fleet schema invalid", "schema", f"set schema: factory-fleet/1 in {path}"
         )
 
-    fleet_board_present = "board" in data
-    if fleet_board_present:
-        _validate_board(data["board"], "", path)
+    if "board" in data:
+        raise FleetError(
+            "fleet key invalid", "board",
+            f"the board is per-repository now — move it under each repos entry as "
+            f"repos[].board in {path}",
+        )
 
     repos = data.get("repos")
     if not isinstance(repos, list) or not repos:
@@ -144,15 +148,13 @@ def load_fleet(path=FLEET_PATH):
                 "fleet repo entry invalid", f"repos[{name}].default_branch",
                 f"set a non-empty default_branch for {name} in {path}",
             )
-        entry_board_present = "board" in entry
-        if entry_board_present:
-            _validate_board(entry["board"], f"repos[{name}]", path)
-        elif not fleet_board_present:
+        if "board" not in entry:
             raise FleetError(
                 "fleet key invalid", f"repos[{name}].board",
                 f"give {name} its own board: {{...}} block with number, station_field and "
                 f"stations in {path}",
             )
+        _validate_board(entry["board"], f"repos[{name}]", path)
 
     workspace_root = data.get("workspace_root")
     if not isinstance(workspace_root, str) or not os.path.isabs(workspace_root):
@@ -199,23 +201,12 @@ def repo_entry(fleet, name):
     )
 
 
-def station(fleet, key):
-    """Return board.stations[key]; raises FleetError on an unknown key."""
-    stations = fleet["board"]["stations"]
-    if key not in stations:
-        known = ", ".join(stations.keys())
-        raise FleetError("unknown station", key, f"known stations: {known}")
-    return stations[key]
-
-
 def board_for(fleet, repo_name):
-    """Return the board mapping that governs repo_name: the repos entry's own board when it
-    carries one, else the fleet-level board. Raises FleetError when the repository is not in
-    the fleet, by delegating to repo_entry."""
+    """Return the repos entry's own board mapping — there is no fleet-level board any more
+    (FEAT-16 T-08). Raises FleetError when the repository is not in the fleet, by delegating to
+    repo_entry."""
     entry = repo_entry(fleet, repo_name)
-    if "board" in entry:
-        return entry["board"]
-    return fleet["board"]
+    return entry["board"]
 
 
 def board_station(fleet, repo_name, key):
@@ -246,8 +237,6 @@ def _main():
 
     if args.show:
         payload = {"repos": fleet["repos"]}
-        if "board" in fleet:
-            payload["board"] = fleet["board"]
         factory_cli.payload(payload)
 
 
