@@ -82,10 +82,17 @@ def _main():
         )
 
     # 5. move the issue's board item to the review station.
-    owner = fleet["board"]["owner"]
-    board_number = fleet["board"]["number"]
-    station_field = fleet["board"]["station_field"]
-    review_option = fleet["board"]["stations"]["review"]
+    board = factory_config.board_for(fleet, args.repo)
+    owner = board["owner"]
+    board_number = board["number"]
+    station_field = board["station_field"]
+    # Idiom split, deliberate (T-04): this file indexes board["stations"]["review"] directly,
+    # one lookup deep, rather than going through factory_config.board_station as
+    # factory_decompose does. Both are safe for one reason and only one: load_fleet validates
+    # every board's stations mapping to a key set of exactly ready, building and review, so the
+    # direct index cannot miss. If that validation is ever relaxed, this direct index is the
+    # call site that breaks first.
+    review_option = board["stations"]["review"]
 
     # The explicit open-check (D-04): today's is:open board filter is gone, so the same refusal
     # land has always issued for a closed issue is now a deliberate check, at the SAME point in
