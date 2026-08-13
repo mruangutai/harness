@@ -536,6 +536,14 @@ def discover_plans():
     # feature. If you ever generalise that name, R_OK comes back with it.
     feats = os.path.join(root, ".harness", "features")
     plans, unreadable = [], []
+    # TWO COUNTS, BECAUSE ONE CANNOT TELL THE TWO ZEROES APART. `0 plan(s)` used to mean
+    # either "discovery is broken" or "every feature has shipped", and the CI gate had to
+    # guess — it guessed "broken" and failed a healthy tree the day the last feature went
+    # Done (2026-08-13, FEAT-18). `examined` counts feature directories the walk entered;
+    # `plans` counts what it will check. examined == 0 on a tree that has features is the
+    # fail-open issue #133 names. examined > 0 with no plans is an all-shipped tree, which
+    # is legitimate and says so.
+    examined = 0
     if os.path.isdir(feats):
         try:
             entries = sorted(os.scandir(feats), key=lambda e: e.path)
@@ -585,6 +593,10 @@ def discover_plans():
             # "how far along is this feature", not "which format does it use". It is the
             # only marker on disk — no feature.json carries schema_version — so it is used
             # deliberately rather than a new field being invented for one transition.
+            # COUNTED HERE, ABOVE THE SHIPPED SKIP AND BELOW THE READABILITY GUARDS: a
+            # directory this walk could not enter is NOT examined, so it must not inflate
+            # the number that proves discovery worked.
+            examined += 1
             if _is_shipped(entry.path):
                 continue
             plan = None
@@ -620,17 +632,18 @@ def discover_plans():
               f"indistinguishable from one that holds nothing, so reporting a total would "
               f"be a lie about the tree.", file=sys.stderr)
         sys.exit(2)
-    return root, sorted(plans)
+    return root, sorted(plans), examined
 
 
 def main(argv):
     # The root guard is ARGV-LESS ONLY. `check-plan-routes.py <path>` must keep working
     # from a directory with no .harness/ anywhere — the caller named the file, so there
     # is nothing to discover and nothing to be wrong about.
+    examined = None
     if len(argv) > 1:
         paths = argv[1:]
     else:
-        root, paths = discover_plans()
+        root, paths, examined = discover_plans()
         # Naming the root is the whole distinction. Without it a legitimate zero-feature
         # project and the wrong-directory defect print the same line.
         print(f"scanning {root}/.harness/features/*/{{plan.yaml,PLAN.md}}")
@@ -653,6 +666,13 @@ def main(argv):
     # exit 0, both suites green — round 1's own `[:1]` defect relocated one line down.
     # Counting what was actually checked makes the two numbers impossible to desynchronise.
     print(f"{total_violations} violation(s) across {processed} plan(s)")
+    # THE SECOND LINE IS ARGV-LESS ONLY. With explicit paths there was nothing to
+    # discover, so there is no discovery to vouch for and a count would be noise.
+    # It is printed AFTER the summary so every existing reader — the CI grep, case_19a,
+    # case_19a4 — still finds the line it matches on, unmoved.
+    if examined is not None:
+        print(f"examined {examined} feature dir(s); "
+              f"{examined - processed} skipped as shipped")
 
     sys.exit(1 if total_violations else 0)
 
