@@ -5,11 +5,18 @@ approval:
   status: approved
   approved_by: Mike Ruangutai
   date: 2026-08-13
-  # RE-SIGNED 2026-08-13, mid-build, same day. One change: T-05's files: list gained
-  # test-branch-create-gate.py. The reason is recorded inline at that task. Nothing else moved -
-  # 8 REQ, 9 SC, 6 tasks, 8 decisions, every other files: list untouched. Recorded here because a
-  # re-signature that leaves no trace is indistinguishable from the original signature, and this
-  # is a feature about records that stop following the work.
+  # RE-SIGNED TWICE on 2026-08-13, both mid-build, both recorded because a re-signature that
+  # leaves no trace is indistinguishable from the original — and this is a feature about records
+  # that stop following the work.
+  #
+  # 1. T-05's files: list gained test-branch-create-gate.py. The task as signed could not pass its
+  #    own matrix: change_type: logic makes a unit test mandatory and no test file was named.
+  #    Reason recorded inline at T-05.
+  # 2. D-02's `amended:` clause — two clauses of its signed text were FALSE about the shipped
+  #    code, and T-06 would have written both into SKILL.md. Reason recorded inline at D-02.
+  #
+  # NO CODE CHANGED FOR EITHER. Nothing else moved: 8 REQ, 9 SC, 6 tasks, 8 decisions, every
+  # other files: list untouched.
 
 lanes:
   resolved_at: 2ccd7f0
@@ -84,16 +91,37 @@ decisions:
       looks like the thing DEC-138 forbids and is not.
     dec: DEC-186
   - id: D-02
+    amended: >-
+      AMENDED 2026-08-13, mid-build, operator re-signed. TWO CLAUSES OF THE ORIGINAL WERE FALSE
+      and the shipped code follows T-03's intent, which contradicted them and is right on the
+      merits. The three-way split at this decision's core is correct and shipped, so this is an
+      amendment and NOT a DEC-188 strike.
+      CLAUSE 1, was: "github.board absent or incomplete" was listed among the environmental
+      preconditions that abandon THE WHOLE INVOCATION. It is not one. An absent or incomplete
+      board skips STATION WRITES ONLY - the issue lifecycle still runs. Verified at
+      gh-sync.py:139-141, and pinned by T-03's own signed test case that a feature whose
+      harness.json carries no github.board runs open and close-task UNCHANGED. The original
+      would have stripped issue mirroring from every project with no board.
+      CLAUSE 2, was: "close-task's issue close joins the loud set." It does not. The close stays
+      on gh() with SKIP semantics - today's behaviour - and the parent write is ORDERED BEFORE it
+      (gh-sync.py:592-593) so a terminating close cannot swallow it. That ordering is load-bearing
+      PRECISELY BECAUSE the close can still terminate the process, which the original clause would
+      have removed the reason for.
+      Caught by the orchestrator before T-06 wrote either falsehood into SKILL.md. No code
+      changed; only this text, which was wrong about the code.
     choice: >-
       The failure posture splits three ways, not two. An ENVIRONMENTAL PRECONDITION checked before
-      any write - github.sync off, github.repo unpinned, github.board absent or incomplete,
-      harness.json unreadable, gh not on PATH, gh unauthenticated - keeps today's behaviour exactly:
-      one SKIP line, exit 0, the whole invocation abandoned. Any OTHER failure of a station write,
-      an issue close or a board read while gh works - an unknown project number, a station field
-      name the board does not carry, an option name the field does not offer, an issue that is not
-      on the board, an API or network error mid-call - prints one line beginning gh-sync ERROR on
-      STDERR, the invocation CONTINUES to its remaining writes, and its overall exit status stays 0.
-      close-task's issue close joins the loud set. Nothing is re-attempted.
+      any write - github.sync off, github.repo unpinned, harness.json unreadable, gh not on PATH,
+      gh unauthenticated - keeps today's behaviour exactly: one SKIP line, exit 0, the whole
+      invocation abandoned. AN ABSENT OR INCOMPLETE github.board IS DIFFERENT AND NARROWER: it
+      prints one plain line, station writes are not attempted, and the issue lifecycle STILL RUNS
+      to completion, exit 0. Any OTHER failure of a station write or a board read while gh works -
+      an unknown project number, a station field name the board does not carry, an option name the
+      field does not offer, an issue that is not on the board, an API or network error mid-call -
+      prints one line beginning gh-sync ERROR on STDERR, the invocation CONTINUES to its remaining
+      writes, and its overall exit status stays 0. close-task's ISSUE CLOSE stays on gh() with
+      today's SKIP semantics, and the parent station write is ordered BEFORE it so a terminating
+      close can never swallow the parent write. Nothing is re-attempted.
     because: >-
       DEC-138's never-a-gate clause is verbatim narrower than it has been applied - it covers gh
       absent or unauthenticated, an environmental precondition - so failing loudly on the rest
