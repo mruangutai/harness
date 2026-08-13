@@ -647,7 +647,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-07, T-09]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
@@ -712,7 +712,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-07]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-no-distribution.py
     verify: |
@@ -750,7 +750,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-08, T-09]
-    status: pending
+    status: done
     files:
       - docs/harness/DECISIONS.md
       - docs/harness/DECISIONS-INDEX.md
