@@ -699,7 +699,7 @@ tasks:
       check-domain.sh --resolve answers NOBODY for .claude/skills/harness/SKILL.md at 2ccd7f0, so
       it is a declared main-session step rather than a mid-run rejected write (DEC-179).
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
     verify: |

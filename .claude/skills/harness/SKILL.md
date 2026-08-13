@@ -163,22 +163,55 @@ investigate — that is a plan mission with a `BUG-NN` id (the FEAT-02 pattern).
 
 Ids: **`BUG-NN-<kebab-slug>`**, independent sequence from FEAT, same folder root and machinery.
 
-## GitHub mirror — three sync points, when `github.sync` is on (DEC-138)
+## GitHub mirror — six sync points, when `github.sync` is on (DEC-138)
 
-`bin/gh-sync.py` — outbound only, idempotent, and **never a gate**: every environmental failure is
-a one-line SKIP that you report and move past. Repo comes from `harness.json`, pinned at init.
+`bin/gh-sync.py` — outbound only, idempotent, and **never a gate**. Repo comes from
+`harness.json`, pinned at init. **Every subcommand has one owner; run only the ones that are
+yours.**
 
-| When | Run |
-|---|---|
-| mission ship, right after the approval gate passes | `gh-sync.py open <feature-dir>` — milestone + one **parent** issue (adopted or created, recorded with its `parent_origin`) + one **sub-issue** per T-NN (re-run safe: already-recorded ids skip) |
-| a task's `[harness:t-NN]` commit is recorded | `gh-sync.py close-task <feature-dir> T-NN` — closes **that task's sub-issue and nothing else**; issues it `absorbs:` are cited, never closed (DEC-138 am.7) |
+| When | Owner | Run |
+|---|---|---|
+| mission ship, right after the approval gate passes | **orchestrator** | `gh-sync.py open <feature-dir>` — milestone + one **parent** issue (adopted or created, recorded with its `parent_origin`) + one **sub-issue** per T-NN (re-run safe: already-recorded ids skip) |
+| a task starts | **orchestrator** | `gh-sync.py start-task <feature-dir> T-NN` — moves that task's card to `Building` and re-derives the parent. **Set the task's status to `building` in `plan.yaml` FIRST, in the same act** |
+| a task's `[harness:t-NN]` commit is recorded | **orchestrator** | `gh-sync.py close-task <feature-dir> T-NN` — closes **that task's sub-issue and nothing else**; issues it `absorbs:` are cited, never closed (DEC-138 am.7). **Record the task's status as `done` in `plan.yaml` FIRST, in the same act** |
+| the feature is abandoned | **main session** | `gh-sync.py abandon <feature-dir> --reason-file <path>` — sub-issues `not_planned`, and the parent **only if `parent_origin` is `created`** |
+| the main session relays the user's shipped acceptance | **main session** | `gh-sync.py ship <feature-dir>` — closes the milestone unconditionally, and the parent **only if `parent_origin` is `created`** (an adopted issue is someone's live work and stays open) |
+| residual findings become backlog | **main session** | `gh-sync.py backlog <feature-dir> <items>` — plain issues, labelled by nature, no milestone (DEC-138 am.4) |
+
+**THE ORDER IS NOT A STYLE POINT — update `plan.yaml`, THEN run the subcommand.** The parent
+card's station is *derived* from `plan.yaml`'s task statuses, so the plan must already carry the
+new status when the subcommand runs. Record `done` **after** running `close-task` and the
+derivation reads the old value, the parent write is a no-op, and after the last task the parent
+sits in `Building` forever while the session-entry check reports it as drift every session — a
+procedure gap that looks exactly like a code defect.
+
+**The build branch is created locally, the ordinary way**, once the plan is approved:
+`git checkout -b feat/<FEAT-id>` — for example `git checkout -b feat/FEAT-18-board-truth`.
+Nothing links the branch to the parent issue, and nothing needs to: **the harness composes no
+issue-closing text into any pull request body**, and the parent is closed by `gh-sync.py ship`,
+which also posts the ship review on it.
+
+**Failure has three shapes, not one.**
+
+- **An environmental precondition** — `sync` off, no repo pinned, `gh` missing, `gh`
+  unauthenticated — is one `SKIP` line and exit 0 for the whole invocation. Report it and move
+  past; the mirror never gates.
+- **No board configured** is narrower: one plain line, station writes are not attempted, and
+  **the issue lifecycle still runs to completion.** A project without a board still gets its
+  milestone and its issues.
+- **A station or issue write failing while `gh` works** — an unknown project number, a station
+  name the board does not offer, an issue not on the board, a network error mid-call — prints one
+  line on **stderr**, the run **continues** to its remaining writes, and the exit status is still
+  0. **Nothing is ever re-attempted.**
+
+**The session-entry check is what catches a mirror that silently did not run**, because a stderr
+line inside a subagent run is not something the operator reads.
 
 **The commit pen is yours (DEC-153):** you stage and commit the feature branch — by explicit
 pathspec, never `git add -A` (the tree carries held dirt) — committing work your doers produced
 and your gates checked. Merge, PR and deploy stay user-gated. Probe edits you make while
 verifying must be backed up, restored, and byte-verified (`git status --porcelain`) before any
 commit.
-| the main session relays the user's shipped acceptance | `gh-sync.py ship <feature-dir>` — closes the milestone unconditionally, and the parent **only if `parent_origin` is `created`** (an adopted issue is someone's live work and stays open). `gh-sync.py abandon <feature-dir> --reason-file <path>` is the other terminal state: sub-issues `not_planned`, same conditional parent rule |
 
 You never read GitHub state into harness state — the plan on disk is the truth and the mirror is a
 mirror.
