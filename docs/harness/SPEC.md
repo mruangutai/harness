@@ -412,7 +412,7 @@ There is no distribution step, no per-project copy of the skills, and nothing to
 
 | Piece | Is | Where |
 |---|---|---|
-| **`fleet.yaml`** | the declaration — `repos:`, where each entry carries its `name`, `default_branch` and its OWN `board:` (`number`, `station_field`, `stations`), plus `workspace_root`. There is no fleet-level board | `.harness/factory/fleet.yaml` |
+| **`fleet.yaml`** | the declaration — `repos:`, where each entry carries its `name`, `default_branch` and its OWN `board:` (`owner`, `number`, `station_field`, `stations`), plus `workspace_root`. There is no fleet-level board | `.harness/factory/fleet.yaml` |
 | **`factory_config.py`** | the reader — resolves this checkout's root, holds `FLEET_PATH`, and exposes `load_fleet` / `repo_entry` / `board_for` / `board_station` / `workspace_path` | `.claude/skills/harness/bin/factory_config.py` |
 | **`factory_workspace.py`** | the materialiser — `git clone https://github.com/<repo>.git` into `workspace_root/<name>`, then checks out the issue branch | `.claude/skills/harness/bin/factory_workspace.py` |
 
