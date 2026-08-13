@@ -35,10 +35,16 @@ plan on disk is reported at the start of the next session rather than discovered
 
 ## Success Criteria
 
-- SC-01: Marking a task `building` moves that task's sub-issue card to the `Building` column, and
-  closing the task lands its card in `Done`. Proven against a recorded fake `gh` that captures the
-  field-set call, so the column name and the item id are both asserted, not merely the fact that a
-  call happened.
+- SC-01: Marking a task `building` moves that task's sub-issue card to the `Building` column.
+  Proven against a recorded fake `gh` that captures the field-set call, so the column name and the
+  item id are both asserted, not merely the fact that a call happened.
+  **Amended 2026-08-13, at operator re-signature.** The clause originally also read "and closing
+  the task lands its card in `Done`" under the same proof standard. That half was unprovable by its
+  own signature: D-03 and T-03 forbid the harness from writing a `Done` station, so no field-set
+  call exists for a fake `gh` to capture. The card reaches `Done` through GitHub's own `Item closed`
+  workflow, which this feature neither owns nor asserts. The criterion now claims only the half the
+  harness performs. This is a correction to the text, not a weakening of delivery — the behavior
+  never changed.
   verify: automated      evidence: integration
 - SC-02: The parent card's station is a function of task statuses alone — any task `building` gives
   `Building`, all tasks `done` gives `Review` — and changing a task's status in the plan changes the

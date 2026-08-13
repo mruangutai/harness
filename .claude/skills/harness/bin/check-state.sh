@@ -1141,8 +1141,19 @@ if _inv26_board:
                 continue
 
             _derived = _gb.derive_station(_pdoc)
-            if _derived is None:
-                # No task-derived verdict — mixed or empty. No claim is the right answer.
+
+            # A None derivation silences the PARENT claim ONLY. It used to `continue` here
+            # and skip the whole feature, which took the per-task comparison with it — and
+            # that comparison never needed the parent derivation, since _EXPECT maps each
+            # task's status on its own. The cost was exact: a plan with one task `done` and
+            # the rest `pending` derives None, so the mis-columned `done` card SC-05 names
+            # went unreported. That is the ordinary window between two tasks, not a corner,
+            # and every INV-26 fixture was single-task so the suite could not see it.
+            _statuses = [(_t.get("status") or "pending")
+                         for _t in (_pdoc.get("tasks") or [])
+                         if isinstance(_t, dict) and _t.get("id")]
+            if _derived is None and not any(_s != "pending" for _s in _statuses):
+                # Nothing has started. No card can be wrong yet, so no claim is right.
                 continue
 
             _issues = ((_fj.get("github") or {}).get("issues") or {})
@@ -1152,8 +1163,10 @@ if _inv26_board:
             # INV-21 warns on a DIFFERENT shape (recorded issues, no parent); these stay
             # two findings and neither restates the other.
             if not _issues:
-                bad.append(f"INV-26 {_feat}: tasks are in flight or finished (plan derives "
-                           f"{_derived}) but feature.json records no mirrored issues, so the "
+                _claim = (f"plan derives {_derived}" if _derived is not None
+                          else "the plan has tasks under way")
+                bad.append(f"INV-26 {_feat}: tasks are in flight or finished ({_claim}"
+                           f") but feature.json records no mirrored issues, so the "
                            f"board cannot be telling the truth about this feature. The mirror "
                            f"never ran — run `gh-sync.py open` for it.")
                 continue
@@ -1183,8 +1196,11 @@ if _inv26_board:
 
             # THE PARENT. A derived station with no recorded parent is INV-21's finding,
             # not this one.
+            # `_derived is None` reaches here now, and the parent is the ONE comparison it
+            # must still silence — there is no station to expect, so any read compares equal
+            # to nothing and would report a false violation.
             _parent = (_fj.get("github") or {}).get("parent")
-            if isinstance(_parent, int):
+            if isinstance(_parent, int) and _derived is not None:
                 _pfound, _preason = _gb.read_station(_stations, _parent)
                 if _preason:
                     bad.append(f"INV-26 CANNOT VERIFY {_feat} parent (issue #{_parent}): "

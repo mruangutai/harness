@@ -1305,7 +1305,8 @@ def case_u():
 
 
 def _inv26_fixture(root, feat, task_status, card_status, parent_status,
-                   issues=None, feature_status="Building"):
+                   issues=None, feature_status="Building", second_status=None,
+                   second_card=None):
     """One INV-26 fixture: harness.json with sync+repo+board, one feature with a plan,
     a feature.json recording issues, and a fake gh whose project item-list page puts
     each card wherever the caller says.
@@ -1328,8 +1329,17 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
                 "    depends_on: []\n"
                 "    status: %s\n    files:\n      - a.py\n    verify: |\n      true\n"
                 "    intent: |\n      x\n" % (feat, task_status))
+        # A SECOND TASK, so a fixture can sit BETWEEN two statuses. Every case before
+        # this parameter was single-task, which is exactly why the suite stayed green
+        # while a mixed plan silenced the whole invariant.
+        if second_status is not None:
+            f.write("  - id: T-02\n    title: t2\n    change_type: logic\n"
+                    "    execution_mode: team\n    execution_agent: harness-backend-dev\n"
+                    "    depends_on: []\n"
+                    "    status: %s\n    files:\n      - b.py\n    verify: |\n      true\n"
+                    "    intent: |\n      x\n" % second_status)
     if issues is None:
-        issues = {"T-01": 41}
+        issues = {"T-01": 41} if second_status is None else {"T-01": 41, "T-02": 42}
     with open(os.path.join(fd, "feature.json"), "w") as f:
         json.dump({"feature_id": feat, "branch": "b", "pr": None,
                    "status": feature_status, "review_sha": "abc1234",
@@ -1338,6 +1348,9 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
 
     items = [{"content": {"repository": "org/repo", "number": 41}, "status": card_status},
              {"content": {"repository": "org/repo", "number": 40}, "status": parent_status}]
+    if second_status is not None:
+        items.append({"content": {"repository": "org/repo", "number": 42},
+                      "status": second_card if second_card is not None else "Backlog"})
     page = json.dumps({"totalCount": len(items), "items": items})
     fake = os.path.join(root, "fake-gh")
     with open(fake, "w") as f:
@@ -1432,6 +1445,43 @@ def case_v():
         ls = _lines(out)
         results.append(("(v.7) a gh binary that does not exist records NO INV-26 finding",
                         not ls, "\n".join(ls)))
+
+    # --- v.8 THE CASE THE INVARIANT WAS BUILT FOR AND COULD NOT SEE.
+    # T-01 done with its card still in Backlog, T-02 pending and correctly in Backlog.
+    # derive_station returns None for {done, pending}, and the old code skipped the whole
+    # feature on None — so SC-05's own scenario went unreported in the ordinary window
+    # between two tasks. The per-task comparison never needed the parent derivation.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Backlog",
+                              second_status="pending", second_card="Backlog")
+        _c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        ok = any("T-01" in l and "done" in l and "Backlog" in l for l in ls)
+        results.append(("(v.8) a mis-columned done card is reported even when the plan "
+                        "derives NO parent station", ok,
+                        "\n".join(ls) or "(no INV-26 line)"))
+
+    # --- v.9 THE NON-VACUITY TWIN FOR v.8, and the parent-silence proof in one fixture.
+    # Same mixed plan, T-01's card corrected to Done. Nothing must be reported — in
+    # particular NOT a parent finding, because a None derivation still has no station to
+    # expect and the parent card sits in Backlog here.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Done", "Backlog",
+                              second_status="pending", second_card="Backlog")
+        _c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        results.append(("(v.9) the corrected twin of v.8 reports NOTHING, and a None "
+                        "derivation raises no parent finding", not ls, "\n".join(ls)))
+
+    # --- v.10 an all-pending plan still claims nothing. The silence that was correct
+    # must survive the fix: no task has started, so no card can be wrong yet.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "pending", "Building", "Review",
+                              second_status="pending", second_card="Done")
+        _c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        results.append(("(v.10) an all-pending plan reports NOTHING even with every card "
+                        "wrong", not ls, "\n".join(ls)))
 
     allok = True
     for name, ok, detail in results:
