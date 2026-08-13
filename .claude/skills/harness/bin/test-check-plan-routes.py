@@ -369,6 +369,22 @@ def case_19():
               f"0 means discovery found nothing (the fail-open this case exists to "
               f"catch); 2 means _is_shipped was not consulted. "
               f"stdout={_r3.stdout[:300]!r}")
+        # (a3c) THE SECOND COUNT IS WHAT LETS CI TELL THE TWO ZEROES APART, so it is
+        # asserted rather than left as unchecked output. The same fixture: 2 dirs entered,
+        # 1 checked, 1 skipped as shipped. The CI step greps this exact wording.
+        check("case_19a3c_the_examined_line_reports_dirs_entered_and_shipped_skipped",
+              "examined 2 feature dir(s); 1 skipped as shipped" in _r3.stdout,
+              f"the argv-less run must report how many feature directories it ENTERED, "
+              f"which is the number that proves discovery ran — `0 plan(s)` alone cannot "
+              f"separate broken discovery from an all-shipped tree. "
+              f"stdout={_r3.stdout[:300]!r}")
+        # (a3d) EXPLICIT PATHS DISCOVER NOTHING, so they must vouch for nothing. A count
+        # printed here would be a claim about a walk that never happened.
+        _r3e = run(os.path.join(_f3, "FEAT-LIVE", "PLAN.md"), project_dir=_td3)
+        check("case_19a3d_explicit_paths_print_no_examined_line",
+              "examined " not in _r3e.stdout,
+              f"with paths named on argv there is no discovery to vouch for. "
+              f"stdout={_r3e.stdout[:300]!r}")
 
     check("case_19a2_argvless_names_the_root_it_scanned",
           r_tmp.stdout.startswith("scanning ") and REPO_ROOT in r_tmp.stdout.splitlines()[0],

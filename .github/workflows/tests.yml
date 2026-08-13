@@ -152,10 +152,30 @@ jobs:
           fi
 
           plans=$(printf '%s' "$summary" | sed -E 's/^.* across ([0-9]+) plan\(s\)$/\1/')
-          if [ "$plans" -eq 0 ]; then
-            echo "::error::check-plan-routes.py examined 0 plans and therefore exited ${rc} on an empty search. A route gate that finds no plans is indistinguishable from a clean tree and would pass forever — the exact trap issue #133 names. Check CLAUDE_PROJECT_DIR and .harness/features/." >&2
+
+          # THE GATE ASKS "DID YOU FIND THE FEATURES", NOT "DID YOU FIND WORK TO DO".
+          # It used to fail on `plans == 0`, on the reasoning that a route gate finding
+          # nothing is indistinguishable from a clean tree. The reasoning is right and the
+          # number was wrong: shipped features are skipped by design, so `plans == 0` is
+          # ALSO what a completely shipped repository looks like. On 2026-08-13 FEAT-18
+          # went Done, every feature on disk was then shipped, and this step failed a
+          # healthy tree. The checker now prints a second line with the count of feature
+          # directories it actually entered, which is the number that proves discovery
+          # ran. That one does not drift as features land.
+          examined=$(printf '%s\n' "$out" | sed -nE 's/^examined ([0-9]+) feature dir\(s\).*$/\1/p' | tail -1)
+          if [ -z "$examined" ]; then
+            echo "::error::check-plan-routes.py printed no 'examined N feature dir(s)' line. The gate cannot tell broken discovery from an all-shipped tree without it, so it refuses to pass rather than guess." >&2
+            exit 1
+          fi
+          if [ "$examined" -eq 0 ]; then
+            echo "::error::check-plan-routes.py entered 0 feature directories, and this repository has features. Discovery did not run — an empty search is indistinguishable from a clean tree and would pass forever, the exact trap issue #133 names. Check CLAUDE_PROJECT_DIR and .harness/features/." >&2
             exit 1
           fi
 
-          echo "route gate examined ${plans} live plan(s); checker exit ${rc}"
+          # NOT CHECKED HERE, AND SAID RATHER THAN LEFT IMPLICIT: a defect that reports
+          # every feature as shipped gives examined>0 and plans==0 and passes this step.
+          # `test-check-plan-routes.py` case_19a3b covers it against a fixture holding one
+          # Building feature and one Done, asserting exactly 1. Neither check is enough
+          # alone.
+          echo "route gate entered ${examined} feature dir(s), checked ${plans} live plan(s); checker exit ${rc}"
           exit "$rc"
