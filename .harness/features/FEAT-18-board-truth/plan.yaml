@@ -5,6 +5,11 @@ approval:
   status: approved
   approved_by: Mike Ruangutai
   date: 2026-08-13
+  # RE-SIGNED 2026-08-13, mid-build, same day. One change: T-05's files: list gained
+  # test-branch-create-gate.py. The reason is recorded inline at that task. Nothing else moved -
+  # 8 REQ, 9 SC, 6 tasks, 8 decisions, every other files: list untouched. Recorded here because a
+  # re-signature that leaves no trace is indistinguishable from the original signature, and this
+  # is a feature about records that stop following the work.
 
 lanes:
   resolved_at: 2ccd7f0
@@ -619,6 +624,16 @@ tasks:
     status: done
     files:
       - .claude/skills/harness/bin/branch-create-gate.sh
+      # AMENDED 2026-08-13, mid-build, operator re-signed. The task as signed was internally
+      # inconsistent: change_type: logic makes test_matrix.logic.always ["unit"] mandatory, and
+      # `logic` is not an exempt change type, but no test file was named — and
+      # branch-create-gate.sh is a live PreToolUse hook that had never had a test in its life
+      # while this task deletes a substantial block from it. The member returned BLOCKED rather
+      # than inventing a PASS. check-domain.sh --resolve already grants this path to
+      # harness-backend-dev, so no domain boundary was crossed; check-plan-routes.py validates
+      # the declared files: list and never the diff, so nothing gated on the omission and the
+      # divergence would have gone unrecorded. Added so the signed artifact matches the tree.
+      - .claude/skills/harness/bin/test-branch-create-gate.py
     verify: |
       ! grep -qE 'project_number|project_id|status_field|in_progress_option|item-edit' .claude/skills/harness/bin/branch-create-gate.sh && python3 -c "import json;print(json.dumps({'tool_input':{'command':'git check'+'out -b feat/FEAT-99-nope'}}))" | CLAUDE_PROJECT_DIR="$PWD" bash .claude/skills/harness/bin/branch-create-gate.sh | grep -q '"permissionDecision": "deny"'
     intent: |
