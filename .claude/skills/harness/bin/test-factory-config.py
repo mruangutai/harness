@@ -216,6 +216,146 @@ with tempfile.TemporaryDirectory() as td:
     except fc.FleetError as e:
         check("(19) station raises FleetError on an unknown key", True)
 
+# --- 12b. per-repo board: board_for, board_station, and the four repos-prefixed field rules --
+
+
+def board_dict(number, ready="Ready", building="Building", review="Review"):
+    return {
+        "owner": "mruangutai",
+        "number": number,
+        "station_field": "Status",
+        "stations": {"ready": ready, "building": building, "review": review},
+    }
+
+
+def per_repo_fleet_dict(workspace_root="/tmp/does-not-need-to-exist/factories"):
+    """A fleet with NO top-level board; its single repos entry carries its own."""
+    return {
+        "schema": "factory-fleet/1",
+        "repos": [
+            {"name": "mruangutai/harness", "default_branch": "main", "board": board_dict(3)},
+        ],
+        "workspace_root": workspace_root,
+    }
+
+
+def two_repo_fleet_dict(workspace_root="/tmp/does-not-need-to-exist/factories"):
+    """Two repos entries on two different board numbers, neither with a top-level board."""
+    return {
+        "schema": "factory-fleet/1",
+        "repos": [
+            {"name": "mruangutai/harness", "default_branch": "main", "board": board_dict(3)},
+            {
+                "name": "mruangutai/kaya-ai",
+                "default_branch": "master",
+                "board": board_dict(2, ready="Todo"),
+            },
+        ],
+        "workspace_root": workspace_root,
+    }
+
+
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, per_repo_fleet_dict()))
+    check("(25) a fleet whose single repos entry carries its own board and no top-level "
+          "board loads", fleet["repos"][0]["board"]["number"] == 3)
+    check("(25) 'board' is absent from a fleet with no top-level board", "board" not in fleet)
+
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, two_repo_fleet_dict()))
+    check("(26) board_for returns repos[0]'s own board number",
+          fc.board_for(fleet, "mruangutai/harness")["number"] == 3)
+    check("(26) board_for returns repos[1]'s own board number",
+          fc.board_for(fleet, "mruangutai/kaya-ai")["number"] == 2)
+
+with tempfile.TemporaryDirectory() as td:
+    d = deep_copy(two_repo_fleet_dict())
+    del d["repos"][1]["board"]
+    path = write_fleet(td, d)
+    try:
+        fc.load_fleet(path)
+        check("(27) a repos entry with no board and no top-level board raises FleetError",
+              False, "did not raise")
+    except fc.FleetError as e:
+        check("(27) a repos entry with no board and no top-level board raises FleetError", True)
+        check("(27) the message names the repository missing its board",
+              "repos[mruangutai/kaya-ai].board" in str(e), str(e))
+
+REPO_BOARD_BAD_CASES = []
+
+
+def add_repo_board_bad_case(name, mutate):
+    REPO_BOARD_BAD_CASES.append((name, mutate))
+
+
+def mut_repo_board_owner_empty(d):
+    d["repos"][0]["board"]["owner"] = ""
+
+
+def mut_repo_board_number_not_int(d):
+    d["repos"][0]["board"]["number"] = "3"
+
+
+def mut_repo_board_station_field_empty(d):
+    d["repos"][0]["board"]["station_field"] = ""
+
+
+def mut_repo_board_stations_wrong_keys(d):
+    d["repos"][0]["board"]["stations"] = {"ready": "Ready", "building": "Building"}
+
+
+add_repo_board_bad_case("(28a) repos[].board.owner is empty", mut_repo_board_owner_empty)
+add_repo_board_bad_case("(28b) repos[].board.number is not an int", mut_repo_board_number_not_int)
+add_repo_board_bad_case(
+    "(28c) repos[].board.station_field is empty", mut_repo_board_station_field_empty)
+add_repo_board_bad_case(
+    "(28d) repos[].board.stations does not carry exactly ready/building/review",
+    mut_repo_board_stations_wrong_keys)
+
+for name, mutate in REPO_BOARD_BAD_CASES:
+    with tempfile.TemporaryDirectory() as td:
+        d = deep_copy(per_repo_fleet_dict())
+        mutate(d)
+        path = write_fleet(td, d)
+        try:
+            fc.load_fleet(path)
+            check(name, False, "did not raise FleetError")
+        except fc.FleetError as e:
+            check(name, "repos[mruangutai/harness].board." in str(e), str(e))
+        except Exception as e:
+            check(name, False, f"raised {type(e).__name__}: {e}")
+
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, two_repo_fleet_dict()))
+    check("(29) board_station returns the per-repo ready option when the entry has its own "
+          "board", fc.board_station(fleet, "mruangutai/kaya-ai", "ready") == "Todo")
+
+with tempfile.TemporaryDirectory() as td:
+    d = deep_copy(two_repo_fleet_dict())
+    d["board"] = board_dict(9, ready="FleetReady")
+    del d["repos"][0]["board"]
+    path = write_fleet(td, d)
+    fleet = fc.load_fleet(path)
+    check("(29) board_station returns the fleet-level ready option when the entry has none",
+          fc.board_station(fleet, "mruangutai/harness", "ready") == "FleetReady")
+
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, per_repo_fleet_dict()))
+    try:
+        fc.board_station(fleet, "mruangutai/harness", "nonexistent")
+        check("(30) board_station raises FleetError on an unknown key", False, "did not raise")
+    except fc.FleetError as e:
+        check("(30) board_station raises FleetError on an unknown key", True)
+
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, per_repo_fleet_dict()))
+    try:
+        fc.board_for(fleet, "someone/unlisted")
+        check("(31) board_for on an unlisted repository raises FleetError", False, "did not raise")
+    except fc.FleetError as e:
+        check("(31) board_for on an unlisted repository raises FleetError", True)
+        check("(31) the message names the unlisted repository", "someone/unlisted" in str(e), str(e))
+
 # --- FLEET_PATH is absolute -------------------------------------------------------------
 check("(20) FLEET_PATH is an absolute path", os.path.isabs(fc.FLEET_PATH), fc.FLEET_PATH)
 
