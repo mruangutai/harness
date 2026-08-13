@@ -3,8 +3,8 @@
   "branch": "feat/FEAT-16-factory-per-repo-board",
   "pr": null,
   "status": "Building",
-  "review_sha": "none",
-  "cycles_used": 3,
+  "review_sha": "ec195ec06419eb7a2d47ed3eebab5145c346140c",
+  "cycles_used": 4,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -21,6 +21,31 @@
     {
       "id": "2026-08-12-01-eng",
       "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-02-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-03-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-3-product",
+      "squad": "product",
       "verdict": "PASS"
     }
   ]
