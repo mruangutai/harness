@@ -447,16 +447,17 @@ def run_fleet():
     # tested the failure path twice and never the success path.
     good_repos = ("schema: factory-fleet/1\n"
                   "workspace_root: /tmp/harness-fixture-workspaces\n"
-                  "board:\n"
-                  "  owner: nobody\n"
-                  "  number: 1\n"
-                  "  station_field: Status\n"
-                  "  stations:\n"
-                  "    ready: Ready\n"
-                  "    building: Building\n"
-                  "    review: Review\n"
                   "repos:\n"
-                  "  - { name: nobody/example, default_branch: main }\n")
+                  "  - name: nobody/example\n"
+                  "    default_branch: main\n"
+                  "    board:\n"
+                  "      owner: nobody\n"
+                  "      number: 1\n"
+                  "      station_field: Status\n"
+                  "      stations:\n"
+                  "        ready: Ready\n"
+                  "        building: Building\n"
+                  "        review: Review\n")
 
     # (a) NO fleet file — the no-factory project. Paired with (b) below, because an
     # allow-all guard passes (a) alone and a block-all guard passes (b) alone.
@@ -493,9 +494,10 @@ def run_fleet():
     nows_root = fixture_fleet(
         FIXTURE_MANIFEST,
         "schema: factory-fleet/1\n"
-        "board: { owner: nobody, number: 1 }\n"
         "repos:\n"
-        "  - { name: nobody/example, default_branch: main }\n")
+        "  - { name: nobody/example, default_branch: main, board: { owner: nobody, "
+        "number: 1, station_field: Status, stations: { ready: Ready, building: "
+        "Building, review: Review } } }\n")
     c = fire(nows_root, ".harness/allowed/x.md")
     fleet_case(
         "(c) a fleet that parses but omits workspace_root refuses the owned write",
@@ -542,16 +544,17 @@ shared:
 """
     two_base_fleet = ("schema: factory-fleet/1\n"
                       f"workspace_root: {ws}\n"
-                      "board:\n"
-                      "  owner: nobody\n"
-                      "  number: 1\n"
-                      "  station_field: Status\n"
-                      "  stations:\n"
-                      "    ready: Ready\n"
-                      "    building: Building\n"
-                      "    review: Review\n"
                       "repos:\n"
-                      "  - { name: acme/widget, default_branch: main }\n")
+                      "  - name: acme/widget\n"
+                      "    default_branch: main\n"
+                      "    board:\n"
+                      "      owner: nobody\n"
+                      "      number: 1\n"
+                      "      station_field: Status\n"
+                      "      stations:\n"
+                      "        ready: Ready\n"
+                      "        building: Building\n"
+                      "        review: Review\n")
     tb = fixture_fleet(two_base_manifest, two_base_fleet)
     prod_src = os.path.join(ws, "widget", "src", "main.py")
 
@@ -630,16 +633,17 @@ shared:
     def two_base_fleet_for(workspace):
         return ("schema: factory-fleet/1\n"
                 f"workspace_root: {workspace}\n"
-                "board:\n"
-                "  owner: nobody\n"
-                "  number: 1\n"
-                "  station_field: Status\n"
-                "  stations:\n"
-                "    ready: Ready\n"
-                "    building: Building\n"
-                "    review: Review\n"
                 "repos:\n"
-                "  - { name: acme/widget, default_branch: main }\n")
+                "  - name: acme/widget\n"
+                "    default_branch: main\n"
+                "    board:\n"
+                "      owner: nobody\n"
+                "      number: 1\n"
+                "      station_field: Status\n"
+                "      stations:\n"
+                "        ready: Ready\n"
+                "        building: Building\n"
+                "        review: Review\n")
 
     # PAIR A — the PRODUCT half. One persona, exactly one writable glob, product-shaped.
     ws_a = tempfile.mkdtemp()
