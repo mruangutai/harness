@@ -1,7 +1,10 @@
 # Grilling — #206, harness-init for the central model — 2026-08-12
 
-Run in the main session. The output is decisions, not a plan: the operator ruled that FEAT-16 builds
-first, so **pm is not to be handed this yet** (see `## Sequencing`).
+Run in the main session. The output is decisions, not a plan.
+
+**READY FOR pm as of 2026-08-13.** The one condition this artifact set — FEAT-16 builds first — is
+met: FEAT-16 merged as `f01b7b6`. The facts below were re-derived at `862d270` and **four had moved
+again**; read `## Fact refresh` before `## Facts I verified`, which it corrects.
 
 ## Destination
 
@@ -89,13 +92,37 @@ Every anchor in issue #206's body was re-derived at `b6f2c80`. **Most had rotted
   "product config" is not only the test matrix, and which keys are per-product is part of the fog
   above.
 
-## Sequencing — why this does NOT go to pm yet
+## Fact refresh at `862d270` — read THIS table, not the one above
 
-**FEAT-16 (signed, idle, eleven tasks, architecture review PASS) also edits `fleet.yaml` and
-`factory_config`.** The operator ruled it builds first. Planning #206 on top of a fleet schema that
-is about to change is planning against a moving target — the same reason FEAT-16 itself waited for
-FEAT-14's `feature.json` to settle.
+The artifact instructed a re-check once FEAT-16 landed. It landed (`f01b7b6`). **Four more facts
+moved**, and the pattern is the point: this issue's anchors rot about once a week.
 
-**So: build FEAT-16, then re-read this artifact, then plan #206.** Re-check the fleet facts above
+| The table above says | At `862d270` |
+|---|---|
+| four anchored regexes at `check-domain.sh:650-653` | **gone entirely.** FEAT-17 moved the boundary rule out of the embedded Python into `harness_boundary.py`; workspace resolution is now `resolve_fleet` (`:125`) and `select_base` (`:169`), and no `[^/]` anchor survives in either file |
+| `templates/examples/harness.kaya-ai.json` | the path is **`.claude/skills/harness/templates/examples/`** — `templates/` at the repo root does not exist |
+| `.harness/harness.json` has 15 top-level keys | **16** |
+| a `repos:` entry carries `name` and `default_branch` | **`name`, `default_branch`, `board`** — FEAT-16 gave each repository its own board, and a leftover top-level `board:` is now rejected |
+
+**Unchanged and re-measured:** `harness-init/SKILL.md` is 286 lines; `.harness/products/` still does
+not exist; `mruangutai/kaya-ai` is still the only `repos:` entry and `mruangutai/harness` is still
+deliberately absent; kaya's `bugfix.always` is still `["__bug_class__"]`.
+
+**What FEAT-16 changed for this effort:** the fleet schema is now settled and per-repository, so the
+moving target the sequencing section names is stationary. A per-product config file is the second
+thing a `repos:` entry points at, alongside the board it already carries.
+
+## Sequencing — SATISFIED. FEAT-16 shipped; this is now plannable
+
+**The condition, and why it existed.** FEAT-16 also edited `fleet.yaml` and `factory_config`. The
+operator ruled it builds first, because planning #206 on top of a fleet schema that was about to
+change is planning against a moving target — the same reason FEAT-16 itself waited for FEAT-14's
+`feature.json` to settle.
+
+**FEAT-16 shipped on 2026-08-12 (`f01b7b6`, 12 of 13 criteria).** The schema is stationary. The
+paragraph below is kept as the record of why this artifact sat for a day; it is no longer an
+instruction.
+
+~~So: build FEAT-16, then re-read this artifact, then plan #206.~~ Re-check the fleet facts above
 before handing them to pm; the whole first half of this section exists because #206's own body was
 trusted for five days after it stopped being true.
