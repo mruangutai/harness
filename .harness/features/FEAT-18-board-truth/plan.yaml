@@ -305,7 +305,7 @@ tasks:
       DEC-174 carve-out by content - check-state.sh imports this module and INV-26 computes its
       verdict from its return value, the same ground FEAT-17 placed harness_boundary.py on.
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh_board.py
       - .claude/skills/harness/bin/test-gh-board.py
