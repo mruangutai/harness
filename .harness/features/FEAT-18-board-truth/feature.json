@@ -1,10 +1,10 @@
 {
   "feature_id": "FEAT-18-board-truth",
-  "branch": "none",
+  "branch": "feat/FEAT-18-board-truth",
   "pr": null,
-  "status": "Plan",
+  "status": "Building",
   "review_sha": "none",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -17,6 +17,37 @@
       "id": "2026-08-13-02-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "build-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-13-03-eng",
+      "squad": "eng",
+      "verdict": "PASS"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 10,
+    "parent": 326,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 327,
+      "T-02": 328,
+      "T-03": 329,
+      "T-04": 330,
+      "T-05": 331,
+      "T-06": 332
+    }
+  }
 }

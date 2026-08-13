@@ -244,7 +244,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-plan-routes.py
       - .claude/skills/harness/bin/test-check-plan-routes.py
@@ -616,7 +616,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/branch-create-gate.sh
     verify: |
