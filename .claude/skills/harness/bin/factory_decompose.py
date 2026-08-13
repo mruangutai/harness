@@ -322,12 +322,15 @@ def _main():
     # 3b. hoisted board reads + station validation (T-04 defect fix, deliverable 4 — a declared
     # widening beyond the signed plan). Everything through step 4 mutates nothing
     # (plan.yaml:818-830), so validating here costs one field-list READ and stops a typo before
-    # ensure_labels (step 5, the point of no return). fleet["board"] reads used to sit inside
-    # step 7 alone (issue: T-04 defect fix); hoisted here rather than duplicated.
-    owner = fleet["board"]["owner"]
-    board_number = fleet["board"]["number"]
-    station_field = fleet["board"]["station_field"]
-    _validate_stations(owner, board_number, station_field, fleet["board"]["stations"])
+    # ensure_labels (step 5, the point of no return). The board resolved here is the one
+    # governing args.repo specifically (factory_config.board_for), never a fleet-level block;
+    # reads used to sit inside step 7 alone (issue: T-04 defect fix); hoisted here rather than
+    # duplicated.
+    board = factory_config.board_for(fleet, args.repo)
+    owner = board["owner"]
+    board_number = board["number"]
+    station_field = board["station_field"]
+    _validate_stations(owner, board_number, station_field, board["stations"])
 
     # 4. load the ledger and sort every task into a disposition.
     factory = load_factory(feat_dir)
@@ -393,7 +396,7 @@ def _main():
     # sort_dispositions whenever the station-set that follows raised — the ledger said "done"
     # while no agent could ever claim the task (fleet.yaml's `stations.ready` need only be one
     # character wrong for the board add to succeed and the station-set to fail forever).
-    ready_option = factory_config.station(fleet, "ready")
+    ready_option = factory_config.board_station(fleet, args.repo, "ready")
     for t in tasks:
         tid = str(t["id"])
         disp = dispositions[tid]
