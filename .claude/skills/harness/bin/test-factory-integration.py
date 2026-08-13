@@ -88,6 +88,14 @@ import sys
 
 def main():
     argv = sys.argv[1:]
+    # Opt-in call recording, in the exact style FACTORY_GIT_LOG already uses for the fake git:
+    # unset for every case except the one that needs it, so no existing case's behaviour changes.
+    # Recorded as one JSON array per line (never space-joined) because a graphql call's query=
+    # argument embeds real newlines, which would otherwise split one call across several lines.
+    call_log_path = os.environ.get("GH_CALL_LOG")
+    if call_log_path:
+        with open(call_log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(argv) + "\n")
     state_path = os.environ["GH_STATE"]
     with open(state_path, encoding="utf-8") as f:
         state = json.load(f)
@@ -334,11 +342,13 @@ DEFAULT_BRANCH = "main"
 def fleet_dict(workspace_root, repo=REPO, default_branch=DEFAULT_BRANCH):
     return {
         "schema": "factory-fleet/1",
-        "board": {
-            "owner": "acme", "number": 9, "station_field": "Status",
-            "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
-        },
-        "repos": [{"name": repo, "default_branch": default_branch}],
+        "repos": [{
+            "name": repo, "default_branch": default_branch,
+            "board": {
+                "owner": "acme", "number": 9, "station_field": "Status",
+                "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+            },
+        }],
         "workspace_root": workspace_root,
     }
 
@@ -478,8 +488,10 @@ with tempfile.TemporaryDirectory() as td:
     try:
         payload = json.loads(r.stdout)
         check("(D-config) success: stdout is one JSON object", True)
-        check("(D-config) success: payload carries board and repos",
-              "board" in payload and "repos" in payload, payload)
+        check("(D-config) success: payload carries repos, each with its own board, and no "
+              "fleet-level board",
+              "repos" in payload and "board" not in payload
+              and payload["repos"][0]["board"]["number"] == 9, payload)
     except Exception as e:
         check("(D-config) success: stdout is one JSON object", False, str(e))
     not_ignored("(D-config)", r)
@@ -642,7 +654,7 @@ with tempfile.TemporaryDirectory() as td:
     fleet_path = os.path.join(td, "fleet", "fleet.yaml")
     fleet_data = fleet_dict(workspace_root)
     write_yaml(fleet_path, fleet_data)
-    ready_option = fleet_data["board"]["stations"]["ready"]
+    ready_option = fleet_data["repos"][0]["board"]["stations"]["ready"]
     cwd = os.path.join(td, "cwd")
     os.makedirs(cwd, exist_ok=True)
     gh_state = write_state(os.path.join(td, "gh_state.json"), next_issue=500)
@@ -951,6 +963,126 @@ else:
         not_ignored("(G2)", r)
 
     check(f"(G) live-git smoke check ran against a real git binary ({real_git}, {git_version})", True)
+
+
+# ============================================================================
+# Case (H) — a fleet declaring TWO repositories on TWO DIFFERENT board numbers, driven through
+# decompose -> claim -> land against ONE of them (T-05 addition, real processes composing). Every
+# recorded gh call that carries a board number carries the served repository's board number, and
+# never the other repository's — this file is the only place these tools run as real processes
+# and compose, so it is the only place that can prove this end to end.
+# ============================================================================
+def _board_numbers_in_gh_call(argv):
+    """Board-number-bearing positions only: the `project` subcommand's numeric positional
+    (item-add / item-list) and the field-resolve graphql call's `-F number=` argument. The
+    issue-item graphql call also carries a `-F number=`, but that one is an ISSUE number, not a
+    board number — excluded here by keying off the query text, exactly as the fake gh's own
+    dispatch (above) tells the two graphql calls apart."""
+    found = set()
+    if argv[:2] in (["project", "item-add"], ["project", "item-list"]):
+        found.add(argv[2])
+    if argv[:2] == ["api", "graphql"]:
+        query_text = ""
+        for i, a in enumerate(argv):
+            if a == "-f" and i + 1 < len(argv) and argv[i + 1].startswith("query="):
+                query_text = argv[i + 1]
+        if "projectV2(number:" in query_text:
+            for i, a in enumerate(argv):
+                if a == "-F" and i + 1 < len(argv) and argv[i + 1].startswith("number="):
+                    found.add(argv[i + 1][len("number="):])
+    return found
+
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    gitb = os.path.join(td, "fake_git.py")
+    write_exec(gitb, _FAKE_GIT_OK_SRC)
+    workspace_root = os.path.join(td, "workspaces")
+    other_repo = "acme/gadget"
+    other_number = 42
+    served_number = 9
+    fleet_two = {
+        "schema": "factory-fleet/1",
+        "repos": [
+            {
+                "name": REPO, "default_branch": DEFAULT_BRANCH,
+                "board": {
+                    "owner": "acme", "number": served_number, "station_field": "Status",
+                    "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+                },
+            },
+            {
+                "name": other_repo, "default_branch": "main",
+                "board": {
+                    "owner": "acme", "number": other_number, "station_field": "Status",
+                    "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+                },
+            },
+        ],
+        "workspace_root": workspace_root,
+    }
+    fleet_path = os.path.join(td, "fleet", "fleet.yaml")
+    write_yaml(fleet_path, fleet_two)
+    cwd = os.path.join(td, "cwd")
+    os.makedirs(cwd, exist_ok=True)
+    gh_state = write_state(os.path.join(td, "gh_state.json"), next_issue=500)
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = base_env(root, gh_bin=gh, git_bin=gitb, gh_state=gh_state)
+    env["GH_CALL_LOG"] = call_log
+
+    feat = "FEAT-INTEG-TWOBOARD"
+    feat_dir = os.path.join(root, ".harness", "features", feat)
+    os.makedirs(feat_dir, exist_ok=True)
+    write_yaml(os.path.join(feat_dir, "plan.yaml"), {
+        "schema": "plan/1", "feature": feat, "approval": {"status": "approved"},
+        "tasks": [{
+            "id": "T-1", "title": "the only task", "change_type": "feature",
+            "execution_mode": "team", "files": ["a.py"], "verify": "true",
+            "intent": "intent text, verbatim.", "traces": ["REQ-01"],
+        }],
+    })
+
+    r1 = run_tool("decompose", [feat_dir, "--repo", REPO, "--fleet", fleet_path], env, cwd)
+    check("(H) decompose against the two-board fleet exits 0",
+          r1.returncode == 0, f"code={r1.returncode} stderr={r1.stderr!r}")
+    p1 = json.loads(r1.stdout) if r1.returncode == 0 else {}
+    not_ignored("(H) decompose", r1)
+
+    r2 = run_tool("claim", ["--as", "agent-a", "--repo", REPO, "--fleet", fleet_path], env, cwd)
+    check("(H) claim against the two-board fleet exits 0",
+          r2.returncode == 0, f"code={r2.returncode} stderr={r2.stderr!r}")
+    p2 = json.loads(r2.stdout) if r2.returncode == 0 else {}
+    not_ignored("(H) claim", r2)
+
+    os.makedirs(os.path.join(workspace_root, "widget"), exist_ok=True)
+    r4 = run_tool(
+        "land", ["--repo", REPO, "--issue", str(p2.get("issue")), "--fleet", fleet_path],
+        env, cwd,
+    )
+    check("(H) land against the two-board fleet exits 0",
+          r4.returncode == 0, f"code={r4.returncode} stderr={r4.stderr!r}")
+    not_ignored("(H) land", r4)
+
+    calls = []
+    if os.path.exists(call_log):
+        with open(call_log, encoding="utf-8") as f:
+            calls = [json.loads(l) for l in f if l.strip()]
+    check("(H) at least one gh call was recorded (anti-vacuum)", len(calls) > 0, calls)
+
+    board_numbers_seen = set()
+    for c in calls:
+        board_numbers_seen |= _board_numbers_in_gh_call(c)
+    check(
+        "(H) no recorded gh call names the other repository's board number",
+        str(other_number) not in board_numbers_seen, sorted(board_numbers_seen),
+    )
+    check(
+        "(H) at least one recorded gh call names the served repository's own board number "
+        "(proves the check above has power)",
+        str(served_number) in board_numbers_seen, sorted(board_numbers_seen),
+    )
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
