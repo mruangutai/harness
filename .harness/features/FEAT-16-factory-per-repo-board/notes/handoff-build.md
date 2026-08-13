@@ -9,12 +9,16 @@ T-09 → T-08 (both eng-lead, `build` team) → T-10 (documentor, so **product-l
 segment) → qa segment (validator-lead) → panel (validator-lead, `teams/review.yaml`) → goal-check
 (pm via product-lead) against `BRIEF.md`'s thirteen SCs.
 
+**Pass eng-lead's advisory F-3 into the panel dispatch:** three of wave A's seven tasks wrote
+production before tests, reconstructing RED with hash-verified restores — weaker evidence than
+observed RED, and three in one wave is a squad pattern — `runs/2026-08-12-01-eng/digest.md`.
+
 ## Trust
 
 - Wave A is seven-for-seven PASS, zero send-backs; T-01..T-06 and T-11 are `status: done` in
   `plan.yaml` — commits `b0dd70a`..`353abc3`, one per task — verified-at 353abc3
-- Both suites green: `run-unit-tests.sh --kind unit` 72 scripts exit 0, `--kind integration` 80
-  scripts exit 0, zero FAIL lines — run by me, unpiped — verified-at 353abc3
+- Both suites green, run by me unpiped: `--kind unit` 72 scripts exit 0, `--kind integration` 80
+  scripts exit 0, zero FAIL lines — verified-at 353abc3
 - SC-11's first grep is down from 18 lines / 7 files to **4 lines / 2 files**, and every survivor is
   a site T-08's intent names: `test-factory-config.py:72`, `factory_config.py:204` (inside
   `station()`), `:218` (the `board_for` fallback), `:250` (the `--show` guard) — verified-at 353abc3
@@ -22,9 +26,8 @@ segment) → qa segment (validator-lead) → panel (validator-lead, `teams/revie
   scripts — verified-at 353abc3
 - `.harness/factory/fleet.yaml` is UNCHANGED — still top-level `board: number: 3` — so T-07's
   rewrite is entirely remaining work — verified-at 353abc3
-- SC-12's four greps are all still 0 (`DEC-174 amendment 2`, `per repository served`, and the
-  per-row `per-repository board` on the DEC-174 and DEC-186 rows) — T-10 alone moves them —
-  verified-at 353abc3
+- SC-12's four greps are all still 0 (`DEC-174 amendment 2`, `per repository served`, and per-row
+  `per-repository board` on the DEC-174 and DEC-186 rows); T-10 alone moves them — verified-at 353abc3
 - **T-10 opens NO new DEC number.** The next free one is DEC-194 (`DECISIONS.md` holds 191 entries,
   highest DEC-193 which carries an am.1), and T-10 appends `DEC-174 amendment 2` — that literal
   string is what its verify greps — operator-measured, relayed — UNVERIFIED by me
@@ -32,24 +35,21 @@ segment) → qa segment (validator-lead) → panel (validator-lead, `teams/revie
   ` :: ` separator**, which its author hand-writes in the same commit; the am-span token IS
   generated — operator-measured on FEAT-17, relayed — UNVERIFIED by me
 - T-06's four fleet strings were each verified by identifier by eng-lead, not by grep, and the diff
-  touches zero assertion / exit-code / case-name / comment lines — I re-read the diff myself —
-  verified-at 54bb7e7
+  touches zero assertion / exit-code / case-name / comment lines — I re-read it — verified-at 54bb7e7
 
 ## Dead ends
 
 - **Do not run qa or the panel before T-10 lands.** Pre-T-08 the loader still accepts a fleet-level
   board and pre-T-10 SPEC/DECISIONS are stale *by design* (D-03's three-phase order), so a panel now
-  returns artifact findings — and `harness.json` `gates.review` is `advisory_unless_high`, so one
-  such `high` buys a fix cycle for nothing — `.harness/harness.json` gates — verified-at 353abc3
+  returns artifact findings — and `gates.review` is `advisory_unless_high`, so one such `high` buys
+  a fix cycle for nothing — `.harness/harness.json` — verified-at 353abc3
 - `review_sha` is still `none` and must be pinned at a commit containing **all** the work, i.e.
   after T-10, never inherited from this phase — `feature.json`, INV-6 — verified-at 353abc3
 - `gh-sync.py open` is BLOCKED by the permission classifier, not by the environment. Recorded as the
-  one-line SKIP the playbook prescribes; do not retry blind, raise it to the operator — observed
-  this run — verified-at 353abc3
+  one-line SKIP the playbook prescribes; do not retry blind, raise it — observed — verified-at 353abc3
 - Never re-add `mruangutai/harness` to `repos:`; its absence is DEC-174 am.1 and is asserted —
   `.harness/factory/fleet.yaml` comment block — verified-at 353abc3
 - `factory_config.station(fleet, key)` must survive until T-08 deletes it — `factory_config.py:202`
-  — verified-at 353abc3
 
 ## Working set
 
