@@ -1,7 +1,8 @@
 # Grilling — #277, the board stops telling the truth during a build — 2026-08-12
 
-Main session, with the operator. Not finished — see `## Not yet specified`. Recorded mid-grilling at
-the operator's instruction so the decisions so far survive the session.
+Main session, with the operator. **COMPLETE** — the frontier is empty and the fog is clear, so this
+effort is ready to hand to pm for BRIEF and PLAN. Recorded in two passes: eight decisions committed
+mid-grilling at the operator's instruction, then three more folded in when the checkout was free.
 
 ## Destination
 
@@ -34,6 +35,18 @@ is loud, not silent.
   observed trouble is not evidence, because `gh()` calls `skip()` on any failure and `skip()` exits
   0 — every `gh` failure so far printed one line and reported success.** Reopenable; nothing in this
   design depends on retry being absent.
+- **The comparison check runs at SESSION ENTRY, as a violation.** → Same shape as INV-25. It is the
+  only thing that catches a mirror deliberately switched off, as it was for all of FEAT-14, and with
+  failed writes loud-but-non-blocking it is what carries the guarantee. Cost accepted: it asks
+  GitHub on every session start, and stays quiet rather than blocking when GitHub is unreachable —
+  INV-25's precedent for an absent tool.
+- **DELETE `branch-create-gate.sh`'s dormant board-flip block**, and never add its four config keys.
+  → One place moves cards. The block only ever moved one card, at branch time, and could not move it
+  back; the derived parent covers that case. It is in git history if the derivation misses something.
+- **The `building` status arrives WITH the enum.** → `pending | building | done`, validated in
+  `check-plan-routes.py`. **Verified before deciding: all 64 tasks across 18 plans use only `pending`
+  and `done`**, so the enum turns nothing red. Without it, `Building` with a capital B is a different
+  string from `building` and the card silently never moves — the exact failure this ticket removes.
 - **PR linkage uses GitHub's native linked branch, created THROUGH the issue.** → `gh issue develop`
   cannot link a branch that already exists (measured 2026-08-12: "API returned empty branch name"),
   so the branch has to be created that way from the start. This removes the composed `Closes #N`
@@ -104,17 +117,17 @@ things and a reader hitting both will assume otherwise.
 
 ## Not yet specified
 
-- **The comparison check — its shape and where it runs.** This is now load-bearing rather than
-  optional. With failures loud-but-non-blocking, nothing stops a build on a bad write, so the only
-  thing that can distinguish a mirror that ran from one that did not is something comparing
-  `plan.yaml` against the board. It also covers the case retries never would: a mirror deliberately
-  SUSPENDED, as it was for all of FEAT-14.
-- **Whether a partially-filed mirror needs un-doing.** `open` is documented re-run safe, which may
-  make this a non-question — unverified.
-- **What happens to `branch-create-gate.sh`'s dormant flip.** If the parent is derived from its
-  children, the gate's one-shot flip is a cruder duplicate. Delete, or leave dormant with a comment.
-- **Whether the `building` status arrives with the enum that has never existed.** Related but not the
-  same decision.
+**Nothing. The frontier is empty and the fog is clear — this effort is plannable.**
+
+The four items that stood here on 2026-08-12 are all closed: three by operator decision (recorded in
+`## Settled` above), and one by measurement rather than by ruling —
+
+- **A partially-filed mirror needs no un-doing.** `gh-sync.py open` records per issue, IMMEDIATELY,
+  inside the create loop (DEC-131), and already-recorded ids skip. A run that dies after filing three
+  of seven leaves those three recorded and re-files only the remaining four. That re-run safety is
+  real *because it was attacked*: FEAT-14's panel found `save_recorded` truncating `feature.json` to
+  zero bytes on every call inside that loop, so `load_recorded` read the window as "nothing is
+  mirrored" and RE-CREATED issues that already existed. Fixed with an atomic same-directory write.
 
 ## Out of scope
 
