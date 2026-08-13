@@ -3,56 +3,74 @@
 ## Current
 
 - feature: FEAT-16-factory-per-repo-board
-- run: .harness/features/FEAT-16-factory-per-repo-board/runs/2026-08-11-02-plan-product/state.yaml
+- run: .harness/features/FEAT-16-factory-per-repo-board/runs/2026-08-12-4-product/state.yaml
 - squad: product
-- status: in_review — signature-ready, signature NOT taken
-- next: the operator's signature on `BRIEF.md ## Approval` and `plan.yaml approval.status`. Nothing
-  else blocks the build phase.
+- status: awaiting_user — 12 of 13 SCs met; SC-06 needs the operator's live run
+- next: the operator's UAT (SC-06) — a live factory claim against a throwaway kaya-ai issue on board
+  2, per `BRIEF.md ## Constraints`. Then the ship decision. No agent work is outstanding.
 
-Plan phase COMPLETE and re-baselined on the six-value board. `BRIEF.md` (`## Approval` status
-pending, line 352) and `plan.yaml` (11 tasks, 6 REQs, **13 SCs**, **11 decisions**,
-`approval.status: pending`) are signature-ready. Both gates re-run by me at `a29ad06`, unpiped:
-`check-plan-routes.py` scoped → `0 violation(s) across 1 plan(s)`, exit 0; tree-wide →
-`0 violation(s) across 12 plan(s)`, exit 0.
+**All eleven tasks are done and every gate has run.** qa gate `matrix_ok: true` (unit exit 0,
+integration exit 0). Reviewer panel `severity_max: med`, `must_fix: []` — below the `high` bar that
+`gates.review: advisory_unless_high` makes blocking, so no fix cycle is owed. Goal-check: 12 met,
+SC-06 `not_met` exactly as the BRIEF predicts.
 
-**The board contradiction is resolved, and six is the intended end state.** Both boards now carry
-`Backlog → Plan → Ready → Building → Review → Done`. Measured by me on 2026-08-11 via
-`gh api graphql`: board 2 items are 211 total — `Done` 118, `Backlog` 82, `Building` 11, with
-`Plan`/`Ready`/`Review` at 0. The three ids SC-03 pins all survive (`f75ad846` now `Backlog`,
-`47fc9ee4` now `Building`, `98236657` still `Done`), which is what proves the change was a rename
-and not a delete-and-recreate. `Backlog`/`Building`/`Done` share ids across both boards — GitHub
-default template ids — so every cross-board assertion in the plan compares names, never ids.
+**`review_sha` is pinned at `ec195ec`**, which contains all eleven tasks and both post-plan fixes.
+Commits after it are bookkeeping and reviewer artifacts only, with nothing reviewable in them.
 
-**All four of T-07's revised verify clauses PASS live, run read-only by me just now.** T-07 no
-longer edits a board: the board work is done, and what remains is a precondition read, one capture,
-and the fleet declaration. `.harness/factory/fleet.yaml` is still untouched at `a29ad06` — top-level
-`board:` on number 3 — so the declaration rewrite is entirely remaining work.
+**Eight criteria are pinned by the suite; five are merely correct today.** SC-03, SC-06, SC-07,
+SC-10 and SC-12 rest on live GitHub reads or one-off inspection that no runner ever re-executes.
+Concretely: if anyone renames a station on board 2 or 3, or reorders the six options, the feature's
+central promise breaks and **no gate anywhere will say so**. SC-05's static assertion catches the
+board NUMBER drifting from its repository, never the station vocabulary drifting on the board. The
+BRIEF predicted this in `## Verification gaps`; the goal-check confirms it survived into delivery.
 
-**An empty `Ready` is CORRECT, not a defect** (D-08). The factory's `ready` station stays pointed at
-`Ready`; the 82 unstarted kaya issues are correctly in `Backlog`. The consequence is recorded rather
-than absorbed: promotion from `Backlog` to `Ready` is a human decision with no recorded step
-anywhere, it is OUT OF SCOPE here, and the only thing this feature owes it is SC-13.
+**Two defects in the signed BRIEF, recorded and deliberately NOT repaired.** SC-10's base `a29ad06`
+is stale — run literally it flags all four DEC-174 carve-out scripts, because FEAT-17 changed them
+on main between plan time and this branch's start; the feature's own diff `a7c429c..ec195ec` touches
+none of the four, so the criterion holds on intent and its base should read `a7c429c`. And SC-13's
+rationale is falsified at source: `factory_claim.py:293` is the sole `no work available` call site
+and it is an AGGREGATE check after the per-repository loop, so the mutant it names kills the
+pre-existing case C1 too. The coverage is real and mutation-proved; only the justification is wrong.
+Amending a signed BRIEF is the operator's.
 
-**I was wrong about one thing and the squad caught it.** I told pm that `check-plan-routes.py`
-contains no budget logic. It does — `MACHINE_LINES_PER_TASK = 50` at line 280, emitted as a DEC-182
-`VIOLATION` at 322-327. I asserted that negative from a truncated grep. The research note's FEAT-14
-claim still fails, for the narrower and stronger reason pm found: `BUDGETED_FIELDS` (lines 282-287)
-excludes `intent:`, so intent length can never produce a budget violation.
+**Three post-plan fixes landed that the plan never named**, each a falsehood this feature itself
+created: `SPEC.md:426`'s onboarding sentence, `SPEC.md:415`'s table row, and — the one that mattered
+— `factory_config.py`'s error message, which told a blocked operator to add three fields when
+`_validate_board` requires four and checks the missing one first. Advisor-decided under the
+operator's standing authorisation; `plan.yaml` was not amended.
+
+**The panel's one finding worth acting on is a test that does not guard.**
+`test-factory-claim.py`'s P5 is labelled as proving T-02's de-duplication, but the candidate loop
+breaks on the first winner at `factory_claim.py:367`, so its assertions pass with the de-dup line
+deleted. Live behaviour is correct; the guard is not. It is a hand-trace, not a killed mutant, so it
+closes only with a fixture that fails before the change. Backlogged as B-1 rather than fixed here:
+test code landing now would land after the pin and evade the panel entirely.
+
+**Cycles 4 of 10, runs 11 of 20.** The single rework event was mine — I pinned a HEAD sha
+(`5c46534`) that does not exist, having asserted it without running `rev-parse`; one lead halted on
+it as instructed and the other proceeded on invariants. Both leads reported zero send-backs across
+every run. Separately, validator-lead disclosed six spawns (~330k tokens) lost to its own dispatch
+errors, one of which overwrote the first code review at its shared path — those findings now survive
+only inside a gitignored run digest, which is why they are restated here.
 
 ## Open Questions
 
-None outstanding. All six from the previous run are closed — Q1, Q2 and Q3 by the operator's answers
-file, Q4/Q5/Q6 by this revision, recorded as D-09, D-10 and D-11. **The question ids below use the
-answers file's scheme; the previous STATE.md numbered the last three one lower and that collision is
-now removed.**
-
-- Q1 (closed, operator): six IS the intended end state; the main session mutated board 2 mid-plan.
-- Q2 (closed, operator): SC-06's live run stays the operator's, `not_met`, and its issue must not be
-  one of the 118 in `Done`.
-- Q3 (closed, operator): the research note is corrected, not struck.
-- Q4 (closed, D-09): T-10 appends DEC-174 am.2 — a closure belongs in the entry that opened the
-  loose end.
-- Q5 (closed, D-10): DEC-186 is amended, forced by DEC-188's own text — partly overtaken is amended,
-  and a strike would remove its live three-purpose read-back bound.
-- Q6 (closed, D-11): no prototype gate fires; every literal `files:` entry is `.py`, `.yaml` or
-  `.md`, so there is no rendered surface to prototype. Overridable in either direction.
+- Q1 (BLOCKING, operator only): SC-06's live factory claim run against a throwaway kaya-ai issue on
+  board 2. It mutates a live board, so no agent may perform it and no gate can close it.
+- Q2 (non-blocking): amend SC-10's base to `a7c429c`, or record the discrepancy as known?
+- Q3 (non-blocking): amend SC-13's rationale, or record it as a known inaccuracy?
+- Q4 (non-blocking, HARNESS DEFECT): `.claude/skills/harness/references/missions.md` was modified
+  during the T-10 run — a path that resolves to NOBODY under `check-domain.sh --resolve`. I reverted
+  and byte-verified it, and could not reproduce the channel: the hook denies every agent against
+  Write, Edit, MultiEdit and NotebookEdit for that path, and `bash-write-guard.sh` is live enough to
+  have blocked my own probe. The decision layer is sound and a write landed anyway.
+- Q5 (non-blocking, HARNESS DEFECT): `bash-write-guard.sh` parses command TEXT rather than the
+  shell-expanded path, so a redirect through a `$VAR` is denied while the identical literal path is
+  allowed. I hit this myself twice.
+- Q6 (non-blocking, ROUTING WALL): `harness-qa` holds no write grant over
+  `.claude/skills/harness/bin/**`, so a qa segment asked to close a coverage gap in this
+  repository's own suite is blocked by construction and must route to eng. Fifth recurrence of the
+  class `team-config.yaml:224-230` already names.
+- Q7 (non-blocking): the GitHub mirror never opened — `gh-sync.py open` was blocked by the
+  permission classifier at the start of the build phase. The playbook makes it a SKIP and never a
+  gate, so the feature proceeded, but FEAT-16 has no milestone and no mirrored issues.

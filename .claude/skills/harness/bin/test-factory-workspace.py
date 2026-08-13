@@ -46,14 +46,17 @@ DEFAULT_BRANCH = "main"
 def good_fleet_dict(workspace_root):
     return {
         "schema": "factory-fleet/1",
-        "board": {
-            "owner": "acme",
-            "number": 3,
-            "station_field": "Status",
-            "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
-        },
         "repos": [
-            {"name": REPO, "default_branch": DEFAULT_BRANCH},
+            {
+                "name": REPO,
+                "default_branch": DEFAULT_BRANCH,
+                "board": {
+                    "owner": "acme",
+                    "number": 3,
+                    "station_field": "Status",
+                    "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+                },
+            },
         ],
         "workspace_root": workspace_root,
     }

@@ -151,13 +151,55 @@ def unpatch_gh(saved):
 def good_fleet_dict(workspace_root):
     return {
         "schema": "factory-fleet/1",
-        "board": {
-            "owner": "acme",
-            "number": 3,
-            "station_field": "Status",
-            "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
-        },
-        "repos": [{"name": REPO, "default_branch": "main"}],
+        "repos": [{
+            "name": REPO,
+            "default_branch": "main",
+            "board": {
+                "owner": "acme",
+                "number": 3,
+                "station_field": "Status",
+                "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+            },
+        }],
+        "workspace_root": workspace_root,
+    }
+
+
+def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
+    """Two repos entries on two different board numbers, no fleet-level board. repo_a is on
+    board 3 (matching good_fleet_dict's numbers/options so most existing assertions keep
+    working when repo_a is what a test publishes against); repo_b is on a different board
+    number with its own distinct station names, so a test can prove a call landed on A's
+    board and never B's by inspecting the option names alone."""
+    return {
+        "schema": "factory-fleet/1",
+        "repos": [
+            {
+                "name": repo_a,
+                "default_branch": "main",
+                "board": {
+                    "owner": "acme",
+                    "number": 3,
+                    "station_field": "Status",
+                    "stations": {
+                        "ready": "Ready", "building": "Building", "review": "Review",
+                    },
+                },
+            },
+            {
+                "name": repo_b,
+                "default_branch": "main",
+                "board": {
+                    "owner": "other-org",
+                    "number": 7,
+                    "station_field": "Stage",
+                    "stations": {
+                        "ready": "Other-Ready", "building": "Other-Building",
+                        "review": "Other-Review",
+                    },
+                },
+            },
+        ],
         "workspace_root": workspace_root,
     }
 
@@ -1063,7 +1105,7 @@ with tempfile.TemporaryDirectory() as td:
     os.makedirs(fleet_dir, exist_ok=True)
     fleet_path = os.path.join(fleet_dir, "fleet.yaml")
     bad_fleet = good_fleet_dict(os.path.join(td, "workspaces"))
-    bad_fleet["board"]["stations"]["ready"] = "Redy"
+    bad_fleet["repos"][0]["board"]["stations"]["ready"] = "Redy"
     write_yaml(fleet_path, bad_fleet)
 
     rec = Recorder()
@@ -1077,6 +1119,49 @@ with tempfile.TemporaryDirectory() as td:
     check("(D4-4) typo fleet: stderr names the board's real options",
           "Ready" in err and "Building" in err and "Review" in err, err)
     check("(D4-4) typo fleet: nothing on stdout", out == "", repr(out))
+
+
+# ============================================================================
+# T-03. per-repo board resolution: a two-repo fleet on two different board numbers, published
+# --repo A, adds every item to A's board and issues no call against B's, and sets the station
+# using A's own ready option name, never B's.
+# ============================================================================
+with tempfile.TemporaryDirectory() as td:
+    feat_dir = os.path.join(td, "feature")
+    os.makedirs(feat_dir, exist_ok=True)
+    write_yaml(os.path.join(feat_dir, "plan.yaml"), plan_dict(tasks=[task("T-01")]))
+    write_text(os.path.join(feat_dir, "BRIEF.md"), GOOD_BRIEF)
+    write_text(os.path.join(feat_dir, "feature.json"), "{}")
+    fleet_dir = os.path.join(td, "fleet")
+    os.makedirs(fleet_dir, exist_ok=True)
+    fleet_path = os.path.join(fleet_dir, "fleet.yaml")
+    write_yaml(fleet_path, two_repo_fleet_dict(os.path.join(td, "workspaces")))
+
+    rec = Recorder()
+    code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
+    check("(T-03) two-repo fleet, --repo A: exits 0", code in (0, None), f"code={code!r} err={err}")
+
+    item_calls = [c for c in rec.calls if c[0] == "project_item_add"]
+    check("(T-03) project_item_add called at least once, all against A's board (acme, 3)",
+          item_calls != [] and all(c[1][0] == "acme" and c[1][1] == 3 for c in item_calls),
+          item_calls)
+    check("(T-03) project_item_add issues no call against B's board (other-org, 7)",
+          all(c[1][0] != "other-org" and c[1][1] != 7 for c in item_calls), item_calls)
+
+    field_calls = [c for c in rec.calls if c[0] == "project_field_set"]
+    check("(T-03) project_field_set called at least once, all against A's board (acme, 3)",
+          field_calls != [] and all(c[1][0] == "acme" and c[1][1] == 3 for c in field_calls),
+          field_calls)
+    check("(T-03) project_field_set issues no call against B's board (other-org, 7)",
+          all(c[1][0] != "other-org" and c[1][1] != 7 for c in field_calls), field_calls)
+    check("(T-03) the station set to A's own ready option (Ready), never B's (Other-Ready)",
+          all(c[1][4] == "Ready" for c in field_calls)
+          and not any(c[1][4] == "Other-Ready" for c in field_calls), field_calls)
+
+    options_calls = [c for c in rec.calls if c[0] == "project_field_options"]
+    check("(T-03) the station-validation read is against A's board and field, never B's",
+          options_calls != []
+          and all(c[1] == ("acme", 3, "Status") for c in options_calls), options_calls)
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")

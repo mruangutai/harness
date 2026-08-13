@@ -252,11 +252,59 @@ def case4():
           f"found {len(dec12_rows)} rows beginning '- DEC-12 '")
 
 
+# ============================== Case 5 ==============================
+# the repository-to-board pairing declared in the live fleet is pinned.
+
+def case5():
+    fleet_path = os.path.join(ROOT, ".harness", "factory", "fleet.yaml")
+    import yaml
+    with open(fleet_path, "r", encoding="utf-8") as fh:
+        data = yaml.safe_load(fh) or {}
+
+    check("board_lives_per_repo_not_fleet_level",
+          "board" not in data,
+          f"top-level 'board' key still present in fleet.yaml: {data.get('board')}")
+
+    repos = data.get("repos", [])
+    STATION_KEYS = {"ready", "building", "review"}
+    bad_repos = []
+    for r in repos:
+        if not isinstance(r, dict):
+            bad_repos.append(r)
+            continue
+        board = r.get("board")
+        if not isinstance(board, dict):
+            bad_repos.append(r.get("name"))
+            continue
+        number = board.get("number")
+        station_field = board.get("station_field")
+        stations = board.get("stations")
+        if (
+            not isinstance(number, int) or isinstance(number, bool)
+            or not isinstance(station_field, str) or station_field == ""
+            or not isinstance(stations, dict)
+            or set(stations.keys()) != STATION_KEYS
+        ):
+            bad_repos.append(r.get("name"))
+    check("every_repo_declares_its_own_board", bad_repos == [],
+          f"repos entries with an invalid or missing board: {bad_repos}")
+
+    kaya = next((r for r in repos if isinstance(r, dict) and r.get("name") == "mruangutai/kaya-ai"), None)
+    kaya_board_number = (kaya or {}).get("board", {}).get("number") if isinstance(kaya, dict) else None
+    check("kaya_ai_is_paired_with_board_2",
+          bool(kaya) and kaya_board_number == 2,
+          "board 2 is the kaya-ai board — the live Projects v2 board number 2 on the "
+          "mruangutai account, whose Status options were renamed to the factory stations on "
+          "2026-08-11 — and changing one side of the pairing without the other is what this "
+          f"assertion exists to catch. kaya-ai entry: {kaya}")
+
+
 def main():
     case1()
     case2()
     case3()
     case4()
+    case5()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

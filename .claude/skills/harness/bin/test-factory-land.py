@@ -49,16 +49,60 @@ ITEM_ID = "PVTI_item99"
 
 
 def good_fleet_dict(workspace_root, default_branch=DEFAULT_BRANCH, repos=None):
+    board = {
+        "owner": OWNER,
+        "number": BOARD,
+        "station_field": STATION_FIELD,
+        "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+    }
     return {
         "schema": "factory-fleet/1",
-        "board": {
-            "owner": OWNER,
-            "number": BOARD,
-            "station_field": STATION_FIELD,
-            "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
-        },
         "repos": repos if repos is not None else [
-            {"name": REPO, "default_branch": default_branch},
+            {"name": REPO, "default_branch": default_branch, "board": board},
+        ],
+        "workspace_root": workspace_root,
+    }
+
+
+OWNER_B = "other-org"
+BOARD_B = 7
+STATION_FIELD_B = "Stage"
+REPO_B = "acme/other"
+
+
+def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b=REPO_B,
+                         default_branch=DEFAULT_BRANCH):
+    """Two repos entries on two different board numbers, no fleet-level board — repo_a on
+    BOARD/OWNER/STATION_FIELD (matching good_fleet_dict's numbers/options so most existing
+    assertions keep working when repo_a is what a test lands against); repo_b on a distinct
+    board with distinct owner, station_field and option names, so a test can prove a call
+    landed on A's board and never B's by inspecting the recorded gh call arguments alone."""
+    return {
+        "schema": "factory-fleet/1",
+        "repos": [
+            {
+                "name": repo_a,
+                "default_branch": default_branch,
+                "board": {
+                    "owner": OWNER,
+                    "number": BOARD,
+                    "station_field": STATION_FIELD,
+                    "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+                },
+            },
+            {
+                "name": repo_b,
+                "default_branch": default_branch,
+                "board": {
+                    "owner": OWNER_B,
+                    "number": BOARD_B,
+                    "station_field": STATION_FIELD_B,
+                    "stations": {
+                        "ready": "Other-Ready", "building": "Other-Building",
+                        "review": "Other-Review",
+                    },
+                },
+            },
         ],
         "workspace_root": workspace_root,
     }
@@ -389,6 +433,40 @@ rec.pr_create_raises = ValueError("boom")
 code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)])
 check("(C3) exits 2, not 1", code == 2, code)
 check("(C3) stdout empty", out == "", out)
+
+# ==========================================================================
+# T-04 — per-repository board (FEAT-16). Two repos entries on two different board numbers;
+# landing --repo A must read and write only A's board, never B's.
+# ==========================================================================
+
+# (T04-1) landing repo_a sets the station on A's board with A's review option name, and issues
+# no call against B's board.
+rec = Recorder()
+ws = tempfile.mkdtemp(prefix="land-ws-")
+fleet_dict = two_repo_fleet_dict(ws)
+code, out, err, ws = run_main(rec, ["--repo", REPO, "--issue", str(ISSUE)], fleet_dict=fleet_dict)
+check("(T04-1) exits 0", code == 0, code)
+lookup_calls = [c for c in rec.gh_calls if c[0] == "issue_board_item_id"]
+check("(T04-1) issue_board_item_id called with A's (repo, issue, board_number)",
+      lookup_calls and lookup_calls[0][1] == (REPO, ISSUE, BOARD), lookup_calls)
+field_set_calls = [c for c in rec.gh_calls if c[0] == "project_field_set"]
+check("(T04-1) project_field_set called exactly once", len(field_set_calls) == 1,
+      rec.gh_calls)
+check("(T04-1) project_field_set carries A's owner, board number, station_field and "
+      "Review option name",
+      field_set_calls
+      and field_set_calls[0][1] == (OWNER, BOARD, ITEM_ID, STATION_FIELD, "Review"),
+      field_set_calls)
+b_markers = (BOARD_B, OWNER_B, STATION_FIELD_B, "Other-Review")
+check("(T04-1) issue_board_item_id's call carries none of B's board markers",
+      lookup_calls and not any(m in lookup_calls[0][1] for m in b_markers), lookup_calls)
+check("(T04-1) project_field_set's call carries none of B's board markers",
+      field_set_calls and not any(m in field_set_calls[0][1] for m in b_markers),
+      field_set_calls)
+check("(T04-1) no gh call of any kind was recorded against B's board number",
+      not any(c[0] in ("issue_board_item_id", "project_field_set", "project_items")
+              and BOARD_B in c[1] for c in rec.gh_calls),
+      rec.gh_calls)
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
 sys.exit(1 if FAILS else 0)

@@ -173,7 +173,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
@@ -251,7 +251,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_claim.py
       - .claude/skills/harness/bin/test-factory-claim.py
@@ -347,7 +347,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_decompose.py
       - .claude/skills/harness/bin/test-factory-decompose.py
@@ -391,7 +391,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_land.py
       - .claude/skills/harness/bin/test-factory-land.py
@@ -428,7 +428,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02, T-03, T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-factory-integration.py
     verify: |
@@ -473,7 +473,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-check-domain.py
     verify: |
@@ -541,7 +541,7 @@ tasks:
     execution_reason: .harness/factory/fleet.yaml resolves to NOBODY under check-domain.sh
       --resolve, so no agent may write it and the task cannot take the team lane
     depends_on: [T-02, T-03, T-04, T-05, T-06, T-11]
-    status: pending
+    status: done
     files:
       - .harness/factory/fleet.yaml
       - .harness/features/FEAT-16-factory-per-repo-board/notes/board2-capture.md
@@ -647,7 +647,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-07, T-09]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
@@ -712,7 +712,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-07]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-no-distribution.py
     verify: |
@@ -750,7 +750,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-08, T-09]
-    status: pending
+    status: done
     files:
       - docs/harness/DECISIONS.md
       - docs/harness/DECISIONS-INDEX.md
@@ -842,7 +842,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-factory-workspace.py
     verify: |

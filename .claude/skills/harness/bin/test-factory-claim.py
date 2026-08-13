@@ -48,6 +48,13 @@ REPO = "acme/widget"
 DEFAULT_BRANCH = "main"
 AS_LOGIN = "agent-1"
 
+# A second repository/board pair, used only by the per-repository-board cases (FEAT-16 T-02).
+# Deliberately a DIFFERENT station_field name from REPO's board, so a case can prove a query was
+# built from THIS board's own field and ready option rather than the other board's.
+REPO_B = "acme/gadget"
+BOARD_B = 5
+STATION_FIELD_B = "StatusB"
+
 MUTATING_NAMES = ("add_label", "assign", "project_field_set")
 
 
@@ -61,7 +68,15 @@ class Recorder:
         self.field_options = {
             STATION_FIELD: ["Ready", "Building", "Review", "Backlog", "Done"],
         }
+        # (owner, number) -> {field: [options]} — overrides field_options for that ONE board,
+        # used by the per-repository-board cases to give two boards different station option
+        # sets. Every case not about that keeps using the simpler field_options dict.
+        self.board_field_options = {}
         self.items = []
+        # (owner, number) -> [items] — overrides self.items for that ONE board's project_items
+        # call, used by the per-repository-board cases so two boards can return different (or
+        # empty) item lists. Every case not about that keeps using the simpler self.items list.
+        self.items_by_board = {}
         self.issue_data = {}          # number -> dict
         self.create_ref_results = {}  # number -> True | False | Exception
         self.default_sha = "deadbeef"
@@ -82,11 +97,17 @@ class Recorder:
 
     def project_field_options(self, owner, number, field):
         self.calls.append(("project_field_options", (owner, number, field)))
+        by_board = self.board_field_options.get((owner, number))
+        if by_board is not None:
+            return by_board.get(field, [])
         return self.field_options.get(field, [])
 
     def project_items(self, owner, number, query=None, limit=500):
         self.calls.append(("project_items", (owner, number, query)))
         self.queries.append(query)
+        key = (owner, number)
+        if key in self.items_by_board:
+            return list(self.items_by_board[key])
         return list(self.items)
 
     def issue_board_item_id(self, repo, number, board_number):
@@ -153,20 +174,49 @@ def unpatch_gh(saved):
 # Fixture builders.
 # --------------------------------------------------------------------------
 
+def repo_board(owner=OWNER, number=BOARD, station_field=STATION_FIELD,
+               ready="Ready", building="Building", review="Review"):
+    """One repos[] entry's own `board:` block (FEAT-16 T-01/T-02) — the per-repo shape, never a
+    fleet-level fallback."""
+    return {
+        "owner": owner,
+        "number": number,
+        "station_field": station_field,
+        "stations": {"ready": ready, "building": building, "review": review},
+    }
+
+
+def repo_dict(name, default_branch=DEFAULT_BRANCH, board=None):
+    return {"name": name, "default_branch": default_branch, "board": board or repo_board()}
+
+
 def good_fleet_dict(workspace_root, repos=None):
     return {
         "schema": "factory-fleet/1",
-        "board": {
-            "owner": OWNER,
-            "number": BOARD,
-            "station_field": STATION_FIELD,
-            "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
-        },
-        "repos": repos if repos is not None else [
-            {"name": REPO, "default_branch": DEFAULT_BRANCH},
-        ],
+        "repos": repos if repos is not None else [repo_dict(REPO)],
         "workspace_root": workspace_root,
     }
+
+
+def two_repo_fleet(workspace_root, board_b_number=BOARD_B, station_field_b=STATION_FIELD_B,
+                    ready_b="ReadyB", building_b="BuildingB", review_b="ReviewB"):
+    """REPO on board BOARD (owner OWNER), REPO_B on a DIFFERENT board — the per-repository-board
+    cases (FEAT-16 T-02)."""
+    return good_fleet_dict(workspace_root, repos=[
+        repo_dict(REPO),
+        repo_dict(REPO_B, board=repo_board(
+            number=board_b_number, station_field=station_field_b,
+            ready=ready_b, building=building_b, review=review_b,
+        )),
+    ])
+
+
+def same_board_two_repo_fleet(workspace_root):
+    """REPO and REPO_B declare the SAME board number — the de-duplication case."""
+    return good_fleet_dict(workspace_root, repos=[
+        repo_dict(REPO),
+        repo_dict(REPO_B, board=repo_board()),
+    ])
 
 
 def write_yaml(path, data):
@@ -846,6 +896,112 @@ check(
     len(set(normalized_with_task)) == len(reasons),
     list(zip(reasons, normalized_with_task)),
 )
+
+
+# ==========================================================================
+# P — per-repository board (FEAT-16 T-02). Everything board-shaped is scoped to one repository
+# at a time; these cases prove the scoping actually reaches the gh calls, not just that the tool
+# still runs.
+# ==========================================================================
+
+# P1. a two-repo fleet on two different board numbers issues its poll query against BOTH boards,
+# each with its own station_field and ready option name.
+rec = Recorder()
+ws = tempfile.mkdtemp(prefix="claim-ws-p1-")
+fleet = two_repo_fleet(ws)
+rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["ReadyB", "BuildingB", "ReviewB"]}
+rec.items_by_board[(OWNER, BOARD)] = []
+rec.items_by_board[(OWNER, BOARD_B)] = []
+code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet)
+poll_calls = [c for c in rec.calls if c[0] == "project_items"]
+check("(P1) poll mode queries both boards, not just one",
+      {(c[1][0], c[1][1]) for c in poll_calls} == {(OWNER, BOARD), (OWNER, BOARD_B)}, poll_calls)
+check("(P1) board A's query is built from board A's own field and ready option",
+      any(c[1] == (OWNER, BOARD, f'{STATION_FIELD}:"Ready" is:open') for c in poll_calls),
+      poll_calls)
+check("(P1) board B's query is built from board B's own field and ready option, not board A's",
+      any(c[1] == (OWNER, BOARD_B, f'{STATION_FIELD_B}:"ReadyB" is:open') for c in poll_calls),
+      poll_calls)
+
+# P2. a candidate found on repository A is claimed using A's board number, and B's board is
+# never addressed by the winner-only bookkeeping (project_field_set).
+rec = Recorder()
+ws = tempfile.mkdtemp(prefix="claim-ws-p2-")
+fleet = two_repo_fleet(ws)
+rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["ReadyB", "BuildingB", "ReviewB"]}
+rec.items_by_board[(OWNER, BOARD)] = [board_item("iA", 200, REPO)]
+rec.items_by_board[(OWNER, BOARD_B)] = []
+rec.issue_data[200] = issue_data(200, "issue 200", labels=["harness"])
+code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet)
+check("(P2) claims #200 on repository A, exit 0",
+      code == 0 and json.loads(out).get("issue") == 200, (code, out))
+field_set_calls = [c for c in rec.calls if c[0] == "project_field_set"]
+check("(P2) exactly one project_field_set call, addressed to A's board and never B's",
+      field_set_calls == [("project_field_set", (OWNER, BOARD, "iA", STATION_FIELD, "Building"))],
+      field_set_calls)
+
+# P3. station validation failing for repository B still names B's board number in the refusal —
+# repository A's board validates cleanly.
+rec = Recorder()
+ws = tempfile.mkdtemp(prefix="claim-ws-p3-")
+fleet = two_repo_fleet(ws)
+rec.board_field_options[(OWNER, BOARD)] = {STATION_FIELD: ["Ready", "Building", "Review"]}
+rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["ReadyB", "BuildingB"]}  # no ReviewB
+code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet)
+check("(P3) exits 2 (refused)", code == 2, code)
+check("(P3) refusal names board B's board number", f"{OWNER} project {BOARD_B}" in err, err)
+check("(P3) refusal does NOT name board A's board number", f"{OWNER} project {BOARD}" not in err,
+      err)
+
+# P4. --repo filters the served set to one repository, so only that repository's board is read
+# at all — never the other fleet member's.
+rec = Recorder()
+ws = tempfile.mkdtemp(prefix="claim-ws-p4-")
+fleet = two_repo_fleet(ws)
+rec.items_by_board[(OWNER, BOARD)] = []
+code, out, err = run_main(rec, ["--as", AS_LOGIN, "--repo", REPO], fleet_dict=fleet)
+check("(P4) --repo REPO exits 1, no work on that repo's board", code == 1, code)
+board_reads = [c for c in rec.calls if c[0] in ("project_field_options", "project_items")]
+check("(P4) --repo filters the served set: every board read names A's board, none names B's",
+      board_reads != [] and all(c[1][0] == OWNER and c[1][1] == BOARD for c in board_reads),
+      board_reads)
+
+# P5. two fleet entries declaring the SAME board number produce exactly one candidate per issue —
+# the claimed issue gets exactly one project_field_set call despite the duplicate.
+rec = Recorder()
+ws = tempfile.mkdtemp(prefix="claim-ws-p5-")
+fleet = same_board_two_repo_fleet(ws)
+rec.items = [board_item("i1", 300, REPO)]
+rec.issue_data[300] = issue_data(300, "issue 300", labels=["harness"])
+code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=fleet)
+check("(P5) claims #300 exactly once, exit 0",
+      code == 0 and json.loads(out).get("issue") == 300, (code, out))
+p5_poll_calls = [c for c in rec.calls if c[0] == "project_items"]
+check("(P5) both fleet entries query the shared board (two project_items calls recorded)",
+      len(p5_poll_calls) == 2, p5_poll_calls)
+p5_issue_view_calls = [c for c in rec.calls if c[0] == "issue_view"]
+check("(P5) issue_view runs exactly once for #300 — the duplicate never entered the candidate loop",
+      len(p5_issue_view_calls) == 1, p5_issue_view_calls)
+p5_field_set_calls = [c for c in rec.calls if c[0] == "project_field_set"]
+check("(P5) exactly one project_field_set call despite the duplicate", len(p5_field_set_calls) == 1,
+      p5_field_set_calls)
+
+# P6. SC-13's SOLE EVIDENCE — a two-repository fleet on two different board numbers, --repo
+# names the one whose ready station returns NO items: stdout stays empty, stderr carries
+# "no work available", exit code is 1 (EXIT_NOTHING). The mutant this guards against is a
+# per-repository loop that treats an empty repository as a "continue" and falls off the end of
+# the served set into a normal exit 0 — silence where a report belongs.
+rec = Recorder()
+ws = tempfile.mkdtemp(prefix="claim-ws-p6-")
+fleet = two_repo_fleet(ws)
+rec.board_field_options[(OWNER, BOARD_B)] = {STATION_FIELD_B: ["ReadyB", "BuildingB", "ReviewB"]}
+rec.items_by_board[(OWNER, BOARD_B)] = []
+code, out, err = run_main(rec, ["--as", AS_LOGIN, "--repo", REPO_B], fleet_dict=fleet)
+check("(P6) SC-13: --repo on the sole served repository's empty ready station: stdout is empty",
+      out == "", out)
+check("(P6) SC-13: stderr carries 'no work available'", "no work available" in err, err)
+check("(P6) SC-13: exit code is EXIT_NOTHING (1), not a silent 0",
+      code == factory_cli.EXIT_NOTHING, code)
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")

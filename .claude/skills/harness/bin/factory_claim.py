@@ -204,35 +204,47 @@ def _main():
     # 1. preflight — a missing or unauthenticated gh raises GhError, exits 2 via the wrapper.
     factory_gh.preflight()
 
-    owner = fleet["board"]["owner"]
-    board_number = fleet["board"]["number"]
-    station_field = fleet["board"]["station_field"]
-    stations = fleet["board"]["stations"]
+    # 1b. the repositories this run serves — every fleet repo, filtered to --repo when given.
+    # repo_entry raises the existing "repository not in fleet" FleetError for an unknown --repo;
+    # let it propagate rather than writing a second refusal message.
+    if args.repo:
+        factory_config.repo_entry(fleet, args.repo)
+        repos_to_serve = [args.repo]
+    else:
+        repos_to_serve = [e["name"] for e in fleet["repos"]]
+    served_repo_names = set(repos_to_serve)
+    repo_index = {e["name"]: i for i, e in enumerate(fleet["repos"])}
 
-    # 2. validate the fleet's three station option names against the board, BEFORE any board
-    # read — a mismatch here is otherwise indistinguishable from an empty queue forever.
-    options = factory_gh.project_field_options(owner, board_number, station_field)
-    for key in ("ready", "building", "review"):
-        opt = stations[key]
-        if opt not in options:
-            factory_cli.refuse(
-                TOOL, "station option not offered by the board", opt,
-                f"field {station_field!r} on {owner} project {board_number} does not offer it "
-                f"— check {fleet_path}",
-            )
+    # 2. resolve each served repository's own board and validate its three station option names
+    # against it, PER BOARD and before that board's own reads — a mismatch here is otherwise
+    # indistinguishable from an empty queue forever, and naming the board in the message means a
+    # mismatch on one repository still identifies which fleet entry is wrong. Two repositories
+    # may legitimately resolve to the same board number; validating it twice is a wasted read,
+    # not a bug.
+    boards = {}
+    for repo_name in repos_to_serve:
+        board = factory_config.board_for(fleet, repo_name)
+        boards[repo_name] = board
+        options = factory_gh.project_field_options(
+            board["owner"], board["number"], board["station_field"],
+        )
+        for key in ("ready", "building", "review"):
+            opt = board["stations"][key]
+            if opt not in options:
+                factory_cli.refuse(
+                    TOOL, "station option not offered by the board", opt,
+                    f"field {board['station_field']!r} on {board['owner']} project "
+                    f"{board['number']} does not offer it — check {fleet_path}",
+                )
 
-    # 3. read the board. --issue: one targeted lookup per fleet repo (filtered to --repo when
-    # given), the first non-None id wins (D-02) — REPLACES a whole-board scan. Poll mode (no
-    # --issue) is unchanged: it asks what is claimable NOW, which is a list by nature, and stays
-    # on project_items (out of scope — see BRIEF Constraints).
-    ready_option = stations["ready"]
+    # 3. read the board(s). --issue: one targeted lookup per served repo, in fleet order, the
+    # first non-None id wins (D-02) — REPLACES a whole-board scan. Poll mode (no --issue) asks
+    # what is claimable NOW on every served repo's own board, one project_items call per repo.
     if args.issue is not None:
         raw_items = []
-        for entry in fleet["repos"]:
-            repo_name = entry["name"]
-            if args.repo and repo_name != args.repo:
-                continue
-            found_id = factory_gh.issue_board_item_id(repo_name, args.issue, board_number)
+        for repo_name in repos_to_serve:
+            board = boards[repo_name]
+            found_id = factory_gh.issue_board_item_id(repo_name, args.issue, board["number"])
             if found_id is not None:
                 raw_items = [{
                     "id": found_id,
@@ -240,28 +252,42 @@ def _main():
                 }]
                 break
         if not raw_items:
+            boards_searched = ", ".join(dict.fromkeys(
+                f"{boards[r]['owner']}/{boards[r]['number']}" for r in repos_to_serve
+            ))
             factory_cli.refuse(
                 TOOL, "issue not found on the board", args.issue,
-                f"board {owner}/{board_number}",
+                f"board {boards_searched}",
             )
     else:
-        query = f'{station_field}:"{ready_option}" is:open'
-        raw_items = factory_gh.project_items(owner, board_number, query=query)
+        raw_items = []
+        for repo_name in repos_to_serve:
+            board = boards[repo_name]
+            query = f'{board["station_field"]}:"{board["stations"]["ready"]}" is:open'
+            raw_items.extend(
+                factory_gh.project_items(board["owner"], board["number"], query=query)
+            )
 
-    # 4. keep candidates whose repository is listed in the fleet, filtered to --repo, sorted.
-    repo_names = {e["name"] for e in fleet["repos"]}
+    # 4. keep candidates whose repository is served, DE-DUPLICATED on (repo_name, issue_number) —
+    # two fleet entries may declare the same board number, and in poll mode each of them issues
+    # the same whole-board project_items query, so every item on that board arrives once per
+    # entry served. Sort on (issue_number, fleet-order index of the repository) — fleet order is
+    # the documented tie-break for two repositories carrying the same issue number.
     candidates = []
+    seen = set()
     for it in raw_items:
         repo_name = _repo_name_of(it)
-        if repo_name not in repo_names:
-            continue
-        if args.repo and repo_name != args.repo:
+        if repo_name not in served_repo_names:
             continue
         num = (it.get("content") or {}).get("number")
         if num is None:
             continue
+        key = (repo_name, num)
+        if key in seen:
+            continue
+        seen.add(key)
         candidates.append((num, repo_name, it))
-    candidates.sort(key=lambda c: c[0])
+    candidates.sort(key=lambda c: (c[0], repo_index[c[1]]))
 
     if not candidates:
         factory_cli.nothing_to_do(TOOL, "no work available")
@@ -344,12 +370,18 @@ def _main():
     if winner is None:
         factory_cli.nothing_to_do(TOOL, "no claimable work")
 
-    # 6. winner only — bookkeeping, in order, after ownership is already decided.
+    # 6. winner only — bookkeeping, in order, after ownership is already decided. The board
+    # values come from the WINNER's own board, never the last repository the loop happened to
+    # visit — two repositories can be served in the same run with different boards.
     num, repo_name, item, issue = winner
     item_id = item.get("id")
+    winner_board = boards[repo_name]
     factory_gh.add_label(repo_name, num, "factory:claimed")
     factory_gh.assign(repo_name, num, args.as_login)
-    factory_gh.project_field_set(owner, board_number, item_id, station_field, stations["building"])
+    factory_gh.project_field_set(
+        winner_board["owner"], winner_board["number"], item_id,
+        winner_board["station_field"], winner_board["stations"]["building"],
+    )
 
     # 7. the single stdout payload.
     _emit(repo_name, num, issue)

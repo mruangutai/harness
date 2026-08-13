@@ -1,10 +1,10 @@
 {
   "feature_id": "FEAT-16-factory-per-repo-board",
-  "branch": "none",
-  "pr": null,
-  "status": "Ready",
-  "review_sha": "none",
-  "cycles_used": 3,
+  "branch": "feat/FEAT-16-factory-per-repo-board",
+  "pr": 311,
+  "status": "Building",
+  "review_sha": "ec195ec06419eb7a2d47ed3eebab5145c346140c",
+  "cycles_used": 4,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -17,6 +17,82 @@
       "id": "2026-08-11-02-plan-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-01-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-02-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-03-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-3-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-01-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-02-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-12-4-product",
+      "squad": "product",
+      "verdict": "PASS"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 9,
+    "parent": 299,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11"
+    ],
+    "issues": {
+      "T-01": 300,
+      "T-02": 301,
+      "T-03": 302,
+      "T-04": 303,
+      "T-05": 304,
+      "T-06": 305,
+      "T-07": 306,
+      "T-08": 307,
+      "T-09": 308,
+      "T-10": 309,
+      "T-11": 310
+    }
+  }
 }

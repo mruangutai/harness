@@ -412,8 +412,8 @@ There is no distribution step, no per-project copy of the skills, and nothing to
 
 | Piece | Is | Where |
 |---|---|---|
-| **`fleet.yaml`** | the declaration — `repos:` (each `name` + `default_branch`), the `board:` the factory reads work from, and `workspace_root` | `.harness/factory/fleet.yaml` |
-| **`factory_config.py`** | the reader — resolves this checkout's root, holds `FLEET_PATH`, and exposes `load_fleet` / `repo_entry` / `station` / `workspace_path` | `.claude/skills/harness/bin/factory_config.py` |
+| **`fleet.yaml`** | the declaration — `repos:`, where each entry carries its `name`, `default_branch` and its OWN `board:` (`owner`, `number`, `station_field`, `stations`), plus `workspace_root`. There is no fleet-level board | `.harness/factory/fleet.yaml` |
+| **`factory_config.py`** | the reader — resolves this checkout's root, holds `FLEET_PATH`, and exposes `load_fleet` / `repo_entry` / `board_for` / `board_station` / `workspace_path` | `.claude/skills/harness/bin/factory_config.py` |
 | **`factory_workspace.py`** | the materialiser — `git clone https://github.com/<repo>.git` into `workspace_root/<name>`, then checks out the issue branch | `.claude/skills/harness/bin/factory_workspace.py` |
 
 **Every factory tool takes its repository, board and workspace path from `factory_config.py` and
@@ -423,8 +423,12 @@ end up disagreeing about where a checkout lives. `FLEET_PATH` is absolute for th
 tools run *inside another repository's checkout*, where a relative path would resolve against the
 wrong root.
 
-**Onboarding a repository is one edit:** add a `- name: <owner>/<repo>` entry (with its
-`default_branch`) under `repos:` in `.harness/factory/fleet.yaml`. The first factory run against it
+**Onboarding a repository is one edit, but not a small one:** add a `- name: <owner>/<repo>` entry
+under `repos:` in `.harness/factory/fleet.yaml` carrying its `default_branch` **and its own `board:`
+block — `owner`, `number`, `station_field` and `stations`, all four required**. An entry missing any
+of them makes `load_fleet` raise, and because `check-domain.sh` then fails CLOSED the symptom is not
+a failed onboarding but every agent write in this repository BLOCKED
+(`.claude/skills/harness/bin/harness_boundary.py:158`). The first factory run against it
 clones it under `workspace_root`; nothing is installed into it.
 
 **Templates** live at `.claude/skills/harness/templates/`: `team-config.yaml`, `harness.json`,
