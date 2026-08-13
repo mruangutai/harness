@@ -24,3 +24,23 @@
   main), and FEAT-17 appeared on disk during the run. Concurrent flows mean `lanes.resolved_at` and
   any cited sha need re-proving at return, and a leaf tier holding no Bash cannot settle ancestry —
   that question is the orchestrator's to close, never the user's.
+
+- 2026-08-12: `files_touched` is a CLAIM, and the T-10 run's omitted a file. `git status --porcelain`
+  before staging showed `.claude/skills/harness/references/missions.md` modified — absent from the
+  task's `files:`, absent from the member's and the lead's reported `files_touched`, and unrelated to
+  the feature. The tree was verified clean at `689b557` immediately before dispatch, so it landed
+  during the run. The rule: as commit-pen holder, diff the WHOLE dirty set against the reported
+  `files_touched` and treat the difference as unattributed, never stage from the digest's list.
+  The content mattered too — it was prose "tightening" that deleted evidence pointers (the kaya-audit
+  observation, the concrete `WORKER → api/` example, DEC-141 provenance). Weaker prose that no gate
+  reads is how a rule quietly stops teaching what it was written to teach.
+
+- 2026-08-12: I could NOT reproduce the channel that wrote that file, and the negative is worth
+  recording. `check-domain.sh --resolve` returns NOBODY for it; feeding the hook a payload for
+  `harness-documentor`, `harness-product-lead`, `harness-orchestrator` and `harness-backend-dev`
+  against `Write`, `Edit`, `MultiEdit` and `NotebookEdit` returns BLOCKED every time; the
+  `PreToolUse` matcher is `Write|Edit`, so those are the covered tools; and `bash-write-guard.sh` is
+  live enough that it blocked my own probe command for merely CONTAINING a redirect to the path. So
+  the decision layer denies every agent × every edit tool, and the write landed anyway. Diagnosing
+  further would mean editing a DEC-174 carve-out script, which is exactly what the carve-out
+  forbids — so the honest terminus is a loud defect report, not a quiet workaround.
