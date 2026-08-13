@@ -6,6 +6,7 @@ Each case invokes the real script as a subprocess against a fixture PLAN.md,
 and against the repo's own templates/PLAN.md, run-unit-tests.sh and source
 for the static/textual checks (cases 8-13, 16).
 """
+import json
 import os
 import re
 import shutil
@@ -326,16 +327,48 @@ def case_19():
     # tree holding 8 plans and 36 violations, and the whole suite stayed green. That is
     # B-7 itself, moved from the glob's BASE to the glob's RESULT.
     #
-    # The other cases avoid a plan count on the stated grounds that counts drift. True,
-    # and it is why this asserts NON-ZERO rather than a number: "at least one" does not
-    # drift while this repo has any feature at all, and it is the whole difference
-    # between looking and reporting.
+    # THE LIVE-REPO NON-ZERO ASSERTION WAS REMOVED ON 2026-08-13 BECAUSE IT LOST ALL
+    # POWER, and this comment is the record so nobody restores it. It read
+    # `int(...) > 0` against the real tree on the stated grounds that "at least one does
+    # not drift while this repo has any feature at all". That premise stopped being true
+    # when `_is_shipped` began skipping delivered features: the moment FEAT-18 went
+    # `status: Done`, EVERY feature on disk was shipped, discovery correctly reported
+    # `0 plan(s)`, and the assertion failed on a healthy tree. Worse than the false
+    # failure is what a green would have meant — with the true count at zero, the
+    # `return root, []` mutant this case exists to catch reports zero too. The
+    # assertion could not distinguish the defect from the truth in either direction.
+    #
+    # Its job moves to a3b below, which carries the same anti-fail-open power against a
+    # FIXTURE and therefore does not depend on how many features this repo has shipped.
     _m = re.search(r"across (\d+) plan\(s\)", r_root.stdout)
-    check("case_19a3_argvless_actually_finds_the_plans",
-          bool(_m) and int(_m.group(1)) > 0,
-          f"argv-less from the repo root reported {_m.group(1) if _m else '??'} plans — "
-          f"resolving the root and finding nothing is the same fail-open as scanning "
-          f"the wrong directory. stdout tail={r_root.stdout.strip().splitlines()[-1:]!r}")
+    check("case_19a3_argvless_reports_a_count_at_all",
+          bool(_m),
+          f"argv-less from the repo root printed no `across N plan(s)` summary at all — "
+          f"a checker that reports nothing cannot be read as clean. "
+          f"stdout tail={r_root.stdout.strip().splitlines()[-1:]!r}")
+
+    # (a3b) DISCOVERY MUST ACTUALLY FIND PLANS, AND MUST SKIP SHIPPED ONES — one fixture,
+    # both halves, because either alone is satisfiable by a broken discoverer. A
+    # `return root, []` reports 0 where 1 is expected; a discoverer that ignored
+    # `_is_shipped` reports 2. The count is exact for that reason, never `> 0`.
+    with tempfile.TemporaryDirectory() as _td3:
+        _f3 = os.path.join(_td3, ".harness", "features")
+        os.makedirs(_f3)
+        with open(os.path.join(_td3, ".harness", "team-config.yaml"), "w") as f:
+            f.write("agents: {}\n")
+        for _n, _status in (("FEAT-LIVE", "Building"), ("FEAT-SHIPPED", "Done")):
+            os.makedirs(os.path.join(_f3, _n))
+            with open(os.path.join(_f3, _n, "PLAN.md"), "w") as f:
+                f.write("# PLAN\n\n" + task_block("T-01", GRANTED_PATH, "team"))
+            with open(os.path.join(_f3, _n, "feature.json"), "w") as f:
+                json.dump({"feature_id": _n, "status": _status}, f)
+        _r3 = run(project_dir=_td3)
+        check("case_19a3b_discovery_finds_the_live_plan_and_skips_the_shipped_one",
+              "across 1 plan(s)" in _r3.stdout,
+              f"expected exactly 1 plan — FEAT-LIVE checked, FEAT-SHIPPED skipped. "
+              f"0 means discovery found nothing (the fail-open this case exists to "
+              f"catch); 2 means _is_shipped was not consulted. "
+              f"stdout={_r3.stdout[:300]!r}")
 
     check("case_19a2_argvless_names_the_root_it_scanned",
           r_tmp.stdout.startswith("scanning ") and REPO_ROOT in r_tmp.stdout.splitlines()[0],
