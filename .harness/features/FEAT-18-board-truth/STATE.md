@@ -3,38 +3,36 @@
 ## Current
 
 - feature: FEAT-18-board-truth
-- run: .harness/features/FEAT-18-board-truth/runs/2026-08-13-03-eng/state.yaml
+- run: .harness/features/FEAT-18-board-truth/runs/t03-eng/state.yaml
 - squad: eng
 - status: building
 
-**T-01 and T-05 are DONE and committed at `1fd6f9a`** on `feat/FEAT-18-board-truth` (branched from
-`e61e081`, created with a plain `git checkout -b` — D-08 struck, no `gh issue develop`). Both tasks
-are marked `status: done` in `plan.yaml` and their sub-issues #327 and #331 are closed on the mirror.
-Milestone #10, parent #326, subs #327–#332. Each task's signed `verify:` string was re-run by me
-independently of the squad's claim and both exit 0.
+**Three of six tasks are done.** T-01 and T-05 at `1fd6f9a`, T-02 at `4755b6e`; sub-issues #327, #331
+and #328 closed on the mirror. All gates green at HEAD, re-run by me rather than taken from a digest:
+unit 0, integration 0, `check-state.sh` 0 with no FEAT-18 finding, `check-plan-routes.py` 0
+violations. `run-unit-tests.sh` no longer reports `MISCONFIGURED` — the main session registered both
+`test-gh-board.py` and `test-branch-create-gate.py` in `UNIT_SCRIPTS` in T-02's turn, which is what
+closed the declared transient.
 
-**One rework cycle spent, 1 of 10.** T-05 first returned BLOCKED: `change_type: logic` requires a
-`unit` kind and the task's signed `files:` list named no test file, so the member had no honest PASS.
-I settled it without granting the Iron Law exemption — `check-domain.sh --resolve` returns
-`harness-backend-dev` for `test-branch-create-gate.py`, so the surface was already granted and no
-human grant was needed. The deletion was reverted, `test-branch-create-gate.py` was written and seen
-**red on the absence assertion alone** against the restored file, then the deletion was re-applied
-and the file came back byte-identical. The gate now has the unit test it has never had in its life.
+**One rework cycle spent, 1 of 10** — T-05's missing unit test. The operator settled the surface
+question by amending T-05's `files:` list and **re-signing the plan at `3862a64`**, so the plan now
+matches the tree and the mismatch is closed, not carried.
 
-**BLOCKED ON THE MAIN SESSION: T-02, a DEC-174 carve-out by content.** No team work exists until it
-lands — T-03 needs T-01+T-02, T-04 needs T-02+T-03, T-06 needs T-03. **T-02 must also register
-`test-branch-create-gate.py` in `run-unit-tests.sh`'s `UNIT_SCRIPTS`, beside its own
-`test-gh-board.py`.** Until that one array append lands, `run-unit-tests.sh` exits 2 with
-`MISCONFIGURED` — declared, transient, and mine, not a defect anyone should "fix" elsewhere.
+**In flight: T-03**, the only remaining team task — `start-task`, the derived parent station, and the
+loud-and-continue failure posture in `gh-sync.py`. Then T-04 and T-06 go back to the main session
+together as one relay; both are `main-session-direct` and neither is mine to attempt.
+
+**Sequencing decision, mine:** the `test_matrix` qa segment runs **after all six tasks land**, not
+after T-03. The build is split across main-session relays, so a qa run now would gate an incomplete
+diff and would have to re-run anyway once T-04 adds `test-check-state.py`. `review_sha` gets pinned
+at the commit containing all six before any validator run.
 
 ## Open Questions
 
-- Q1 and Q3 were both answered at signature and are recorded in `BRIEF.md`'s `## Approval` block.
-  D-05's three board keys stay in `harness.json` and their placement is knowingly temporary (`#206`
-  moves `github`, `test_matrix` and `test_kinds` together). Do not reopen either.
-- Q2 was overtaken by the 2026-08-13 revision and is not in force.
-- New, non-blocking: extending T-05's surface with a test file was **my** execution-time call, not
-  pm's re-plan and not the operator's exemption. `plan.yaml`'s T-05 `files:` list still names one
-  file and is now one file short of the truth. Nothing gates on it — `check-plan-routes.py` validates
-  the declared list, never the diff — so it is a record-accuracy question for the ship review, not a
-  blocker.
+- None blocking. Q1 and Q3 were answered at signature in `BRIEF.md`'s `## Approval` block — D-05's
+  three board keys stay in `harness.json`, knowingly temporary pending `#206`. Q2 was overtaken by
+  the 2026-08-13 revision. Q4 was settled by the operator with a re-signature. Q5 is moot: the
+  advisor is unavailable this session, so judgement calls are made unreviewed and said to be so.
+- Standing, for the ship review rather than for anyone to fix: **no criterion in this feature
+  observes GitHub.** Every automated criterion runs against a fake `gh` because `functional` has
+  `cmd: null` (DEC-187), and striking SC-08 removed the only live-API criterion. Signed knowingly.

@@ -164,6 +164,187 @@ exit 0
 """
 
 
+FAKE_GH_STATIONS = """#!/bin/bash
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+case "$*" in
+  *"sub_issues -F sub_issue_id="*)
+    echo '{}'
+    exit 0 ;;
+  *"--jq .id"*)
+    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
+    echo "9000$num"
+    exit 0 ;;
+  *"ProjectV2SingleSelectField"*)
+    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
+    exit 0 ;;
+  *"projectItems(first: 100)"*)
+    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
+    printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
+    exit 0 ;;
+  *"project item-edit"*)
+    exit 0 ;;
+esac
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "api -X")
+    case "$*" in
+      *milestones\\ -f*) echo '{"number": 7}' ;;
+      *) echo '{}' ;;
+    esac ;;
+  "issue create")
+    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
+    echo "https://github.com/implentio/fake/issues/$n" ;;
+  "issue close") exit 0 ;;
+  "label create") exit 0 ;;
+esac
+exit 0
+"""
+
+# Same board reads/writes, but `project item-edit` — the actual station write — fails while
+# every other gh call (including a subsequent `issue close`) still succeeds. This is what pins
+# D-02's loud-but-non-terminal rule: one stderr ERROR line, and everything after it still runs.
+FAKE_GH_STATIONS_ITEM_EDIT_FAILS = """#!/bin/bash
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+case "$*" in
+  *"sub_issues -F sub_issue_id="*)
+    echo '{}'
+    exit 0 ;;
+  *"--jq .id"*)
+    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
+    echo "9000$num"
+    exit 0 ;;
+  *"ProjectV2SingleSelectField"*)
+    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
+    exit 0 ;;
+  *"projectItems(first: 100)"*)
+    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
+    printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
+    exit 0 ;;
+  *"project item-edit"*)
+    echo "simulated item-edit failure" >&2
+    exit 1 ;;
+esac
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "api -X")
+    case "$*" in
+      *milestones\\ -f*) echo '{"number": 7}' ;;
+      *) echo '{}' ;;
+    esac ;;
+  "issue create")
+    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
+    echo "https://github.com/implentio/fake/issues/$n" ;;
+  "issue close") exit 0 ;;
+  "label create") exit 0 ;;
+esac
+exit 0
+"""
+
+# Same board reads/writes, station write succeeds, but `issue close` fails — this is the
+# fixture that pins the ORDERING in close-task: the parent write must already have happened
+# by the time this failure is hit.
+FAKE_GH_STATIONS_CLOSE_FAILS = """#!/bin/bash
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+case "$*" in
+  *"sub_issues -F sub_issue_id="*)
+    echo '{}'
+    exit 0 ;;
+  *"--jq .id"*)
+    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
+    echo "9000$num"
+    exit 0 ;;
+  *"ProjectV2SingleSelectField"*)
+    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
+    exit 0 ;;
+  *"projectItems(first: 100)"*)
+    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
+    printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
+    exit 0 ;;
+  *"project item-edit"*)
+    exit 0 ;;
+esac
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "api -X")
+    case "$*" in
+      *milestones\\ -f*) echo '{"number": 7}' ;;
+      *) echo '{}' ;;
+    esac ;;
+  "issue create")
+    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
+    echo "https://github.com/implentio/fake/issues/$n" ;;
+  "issue close")
+    echo "simulated close failure" >&2
+    exit 1 ;;
+  "label create") exit 0 ;;
+esac
+exit 0
+"""
+
+
+def write_harness_json_board(tmp, sync=True, repo="implentio/fake", board=True):
+    """harness.json's github block, optionally carrying T-02's `board` sub-mapping."""
+    g = {"sync": sync}
+    if repo:
+        g["repo"] = repo
+    if board:
+        g["board"] = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
+    json.dump({"github": g}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
+
+
+def write_plan_yaml(feat_dir, feat_name, task_statuses):
+    """A minimal plan.yaml — every REQUIRED_TASK_FIELDS key present — carrying only the
+    `status` values a test cares about. Written as JSON text: JSON is valid YAML and this
+    avoids a second parser dependency in the test file itself."""
+    doc = {
+        "schema": "plan/1",
+        "feature": feat_name,
+        "tasks": [
+            {"id": tid, "title": tid, "change_type": "logic", "execution_mode": "team",
+             "files": ["dummy.py"], "verify": "true", "intent": "fixture", "status": status}
+            for tid, status in task_statuses
+        ],
+    }
+    with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
+        json.dump(doc, f)
+
+
+def stage_station(tmp, feat_name, task_statuses, board=True, sync=True, repo="implentio/fake",
+                   feature_status="Building", issues=None, parent=40, milestone=7):
+    """A plan.yaml-backed feature, wired for the T-03 station-write tests: harness.json's
+    github.board (optionally), a plan.yaml carrying the given task statuses, and a
+    feature.json recording the given issues/parent so `load_recorded` needs no live sync."""
+    feat = os.path.join(tmp, ".harness", "features", feat_name)
+    os.makedirs(feat)
+    write_harness_json_board(tmp, sync=sync, repo=repo, board=board)
+    open(os.path.join(feat, "BRIEF.md"), "w").write(f"""# BRIEF — {feat_name} — station fixture
+
+## Problem
+Station fixture.
+
+## Goal
+Station fixture.
+
+## Requirements
+- REQ-01: station writes route correctly.
+
+## Success Criteria
+- SC-01: covered by test-gh-sync.py. verify: automated
+
+## Approval
+
+status: approved
+""")
+    write_plan_yaml(feat, feat_name, task_statuses)
+    write_feature_json(
+        os.path.join(feat, "feature.json"),
+        feature_id=feat_name, status=feature_status,
+        github={"milestone": milestone, "parent": parent, "parent_origin": "created",
+                "attached": list((issues or {}).keys()), "issues": issues or {}},
+    )
+    return feat
+
+
 def install_gh(tmp, script=FAKE_GH):
     gh_path = os.path.join(tmp, "gh")
     open(gh_path, "w").write(script)
@@ -884,6 +1065,153 @@ for _label, _doc in (
            and _after.get("feature_id") == "F1" and _after.get("status") == "Building")
     check(f"finding 2: save_recorded round-trips a feature.json with {_label}", _ok,
           f"{_n} github keys, result {_after}")
+
+# ---------- T-03: gh-sync station writes ----------
+# BOTH GH_SYNC_GH and FACTORY_GH point at the same fake in every case below — gh_board's
+# calls go through factory_gh, which reads FACTORY_GH, not GH_SYNC_GH (the fake-binary trap
+# documented at the top of gh_board.py).
+
+# --- start-task sets the sub-issue's station to Building, then the parent's (D-04) —
+#     two field-sets, distinguishable by item id, never by counting calls.
+with tempfile.TemporaryDirectory() as tmpN:
+    install_gh(tmpN, FAKE_GH_STATIONS)
+    featN = stage_station(
+        tmpN, "FEAT-09-start-task",
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        issues={"T-01": 41, "T-02": 326},
+        parent=40,
+    )
+    r = run(["start-task", featN, "T-02"], tmpN, {"FACTORY_GH": os.path.join(tmpN, "gh")})
+    logN = calls(tmpN)
+    edits = [l for l in logN if "project item-edit" in l]
+    check("start-task exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("start-task sets T-02's OWN issue station to Building",
+          any("--id ITEM_326" in l and "--single-select-option-id OPT_BUILDING" in l
+              for l in edits),
+          str(edits))
+    check("start-task then sets the PARENT's station to Building (distinct item id)",
+          any("--id ITEM_40" in l and "--single-select-option-id OPT_BUILDING" in l
+              for l in edits),
+          str(edits))
+    check("exactly two field-sets, one per item id",
+          len(edits) == 2 and {"ITEM_326", "ITEM_40"} == {
+              next(p for p in l.split() if p.startswith("ITEM_")) for l in edits},
+          str(edits))
+
+# --- close-task on the last outstanding task sets the parent to Review and attempts the
+#     sub-issue close — and the parent write happens even when the close FAILS, which pins
+#     the ordering (parent write BEFORE the close) required by step 4.
+with tempfile.TemporaryDirectory() as tmpO:
+    install_gh(tmpO, FAKE_GH_STATIONS_CLOSE_FAILS)
+    featO = stage_station(
+        tmpO, "FEAT-09-close-last-task",
+        [("T-01", "done"), ("T-02", "done"), ("T-03", "done")],
+        issues={"T-01": 41, "T-02": 42, "T-03": 43},
+        parent=40,
+    )
+    r = run(["close-task", featO, "T-03"], tmpO, {"FACTORY_GH": os.path.join(tmpO, "gh")})
+    logO = calls(tmpO)
+    editsO = [l for l in logO if "project item-edit" in l]
+    check("close-task on the last task exits 0 even though the close fails (SKIP, not a gate)",
+          r.returncode == 0, r.stdout + r.stderr)
+    check("close-task sets the parent to Review",
+          any("--id ITEM_40" in l and "--single-select-option-id OPT_REVIEW" in l
+              for l in editsO),
+          str(editsO))
+    check("the sub-issue close was ATTEMPTED (and is the thing that failed)",
+          any(l.startswith("issue close 43") for l in logO), str(logO))
+    _parent_edit_idx = next((i for i, l in enumerate(logO) if "--id ITEM_40" in l), None)
+    _close_idx = next((i for i, l in enumerate(logO) if l.startswith("issue close 43")), None)
+    check("the parent write is ORDERED BEFORE the close in the log",
+          _parent_edit_idx is not None and _close_idx is not None
+          and _parent_edit_idx < _close_idx,
+          str(logO))
+
+# --- close-task on a feature whose feature.json status is Done writes NO station at all —
+#     the terminal exemption (D-03/D-04) — even though the sub-issue itself still closes.
+with tempfile.TemporaryDirectory() as tmpP:
+    install_gh(tmpP, FAKE_GH_STATIONS)
+    featP = stage_station(
+        tmpP, "FEAT-09-done-exempt",
+        [("T-01", "done")],
+        issues={"T-01": 41},
+        parent=40,
+        feature_status="Done",
+    )
+    r = run(["close-task", featP, "T-01"], tmpP, {"FACTORY_GH": os.path.join(tmpP, "gh")})
+    logP = calls(tmpP)
+    check("close-task on a Done feature exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("close-task on a Done feature makes no item-edit call at all",
+          not any("item-edit" in l for l in logP), str(logP))
+    check("close-task on a Done feature still closes the sub-issue",
+          any(l.startswith("issue close 41") for l in logP), str(logP))
+
+# --- THE LOUD PAIR (SC-04/D-02), one fixture per half, both required —
+#     half 1: gh works but the station write (item-edit) fails -> exit 0, one ERROR line on
+#     stderr naming the issue, AND the call that follows (the sub-issue close) still happens.
+with tempfile.TemporaryDirectory() as tmpQ1:
+    install_gh(tmpQ1, FAKE_GH_STATIONS_ITEM_EDIT_FAILS)
+    featQ1 = stage_station(
+        tmpQ1, "FEAT-09-loud-item-edit-fails",
+        [("T-01", "done"), ("T-02", "done")],
+        issues={"T-01": 41, "T-02": 42},
+        parent=40,
+    )
+    r = run(["close-task", featQ1, "T-02"], tmpQ1, {"FACTORY_GH": os.path.join(tmpQ1, "gh")})
+    logQ1 = calls(tmpQ1)
+    check("loud pair (item-edit fails): process still exits 0", r.returncode == 0,
+          r.stdout + r.stderr)
+    check("loud pair (item-edit fails): stderr carries the gh-sync: ERROR line naming issue 40",
+          "gh-sync: ERROR" in r.stderr and "40" in r.stderr, r.stderr)
+    check("loud pair (item-edit fails): the issue call that follows it still happened",
+          any(l.startswith("issue close 42") for l in logQ1), str(logQ1))
+
+#     half 2: gh is absent from PATH entirely -> one SKIP line, exit 0, and no item-edit call
+#     is even attempted — proving the failing half alone would be satisfied by a tool that
+#     has simply stopped writing anything.
+with tempfile.TemporaryDirectory() as tmpQ2:
+    featQ2 = stage_station(
+        tmpQ2, "FEAT-09-loud-gh-absent",
+        [("T-01", "done"), ("T-02", "done")],
+        issues={"T-01": 41, "T-02": 42},
+        parent=40,
+    )
+    r = run(["close-task", featQ2, "T-02"], tmpQ2,
+            {"GH_SYNC_GH": os.path.join(tmpQ2, "no-such-gh"),
+             "FACTORY_GH": os.path.join(tmpQ2, "no-such-gh")})
+    check("loud pair (gh absent): one SKIP line, exit 0",
+          r.returncode == 0 and r.stdout.count("SKIP") == 1, r.stdout + r.stderr)
+    check("loud pair (gh absent): no item-edit call is even attempted",
+          not calls(tmpQ2), str(calls(tmpQ2)))
+
+# --- a feature whose harness.json carries no github.board runs open and close-task
+#     unchanged, exits 0, and makes no item-edit call — the environmental precondition (D-02).
+with tempfile.TemporaryDirectory() as tmpR:
+    install_gh(tmpR, FAKE_GH_STATIONS)
+    featR = stage_station(
+        tmpR, "FEAT-09-no-board",
+        [("T-01", "done"), ("T-02", "building")],
+        issues={},
+        board=False,
+    )
+    r = run(["open", featR], tmpR, {"FACTORY_GH": os.path.join(tmpR, "gh")})
+    check("no board configured: open exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("no board configured: prints the plain no-board line, not a SKIP",
+          "no github.board configured" in r.stdout and "SKIP" not in r.stdout,
+          r.stdout + r.stderr)
+    docR = read_feature_json(os.path.join(featR, "feature.json"))
+    ghR = docR.get("github") or {}
+    t1R = (ghR.get("issues") or {}).get("T-01")
+    t2R = (ghR.get("issues") or {}).get("T-02")
+    check("no board configured: open still recorded T-02's issue — the lifecycle ran, not skipped",
+          t2R is not None, str(docR))
+    r2 = run(["close-task", featR, "T-01"], tmpR, {"FACTORY_GH": os.path.join(tmpR, "gh")})
+    logR = calls(tmpR)
+    check("no board configured: close-task exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
+    check("no board configured: no item-edit call is ever made",
+          not any("item-edit" in l for l in logR), str(logR))
+    check("no board configured: close-task actually closed T-01's issue — the lifecycle ran",
+          t1R is not None and any(l.startswith(f"issue close {t1R}") for l in logR), str(logR))
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

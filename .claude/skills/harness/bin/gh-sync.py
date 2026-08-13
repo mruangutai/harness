@@ -2,7 +2,10 @@
 """Mirror a feature to GitHub Issues — one-way, outbound, never a gate (DEC-138).
 
   gh-sync.py open  <feature-dir>          plan approved -> milestone + parent + one issue per T-NN
-  gh-sync.py close-task <feature-dir> T-NN    task's commit landed -> close its issue
+  gh-sync.py start-task <feature-dir> T-NN    task moved to building -> sub-issue's station
+                                           -> Building, then the parent's derived station (FEAT-18)
+  gh-sync.py close-task <feature-dir> T-NN    task's commit landed -> close its issue, then
+                                           the parent's derived station (FEAT-18)
   gh-sync.py abandon <feature-dir> --reason-file <path>  feature abandoned -> close subs
                                            not_planned, close the milestone, post the reason
   gh-sync.py ship  <feature-dir> [--body-file <path>]  shipped -> close the milestone,
@@ -13,11 +16,23 @@ TRUTH DIRECTION IS THE POINT. PLAN.md is approval-gated and is the only source; 
 script projects it outward. It never reads GitHub state back into harness state —
 a wiki-editable UI feeding an approval-gated artifact is the DEC-19 bypass shape.
 
-NEVER A GATE. Every environmental failure — sync off, no repo pinned, gh missing,
-gh unauthenticated, network down — prints one loud SKIP line and exits 0, because a
-flow that fails on its *mirror* has inverted its priorities (SPEC §12 precedent for
-branch/PR ops). Exit 1 is reserved for caller errors (bad args, missing files):
-those are bugs in the dispatch, not the environment, and must be visible.
+NEVER A GATE, and since FEAT-18 that is a THREE-WAY split, not two (D-02). An
+ENVIRONMENTAL PRECONDITION — sync off, no repo pinned, gh missing, gh unauthenticated,
+or network down — prints one loud SKIP line and exits 0 for the WHOLE invocation,
+because a flow that fails on its *mirror* has inverted its priorities (SPEC §12
+precedent for branch/PR ops). No `github.board` configured is NOT in that set (T-03):
+it prints one plain line, station writes are not attempted, and the issue lifecycle
+(open, close-task's issue close, abandon, ship) runs unchanged — the whole invocation
+is never abandoned for it. A failure of a STATION WRITE while gh itself works — an
+unknown project, a station name the board does not carry, a network blip mid-call —
+prints one line to STDERR beginning `gh-sync: ERROR -`, naming the issue, the station
+attempted and the underlying message, and the run CONTINUES to its remaining writes;
+the exit status stays 0. Nothing on that path is ever re-attempted. An issue close
+that fails stays on `gh()`, which SKIPs (exits 0) on the spot rather than continuing —
+the parent's station write is ordered before the close specifically so that
+termination can never swallow it (T-03 step 4). Exit 1 is reserved for caller errors
+(bad args, missing files): those are bugs in the dispatch, not the environment, and
+must be visible.
 
 REPO IS PINNED, NEVER INFERRED. Every gh call passes --repo/-R from harness.json's
 `github.repo`, recorded once at init under the user's eyes. Inferring from the cwd's
@@ -46,6 +61,7 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from gh_issues import internal_id_args, attach_sub_issue_args
 
+import gh_board
 import harness_yaml
 
 GH = os.environ.get("GH_SYNC_GH", "gh")
@@ -99,6 +115,10 @@ def gh(args, capture=True):
 # ---------- config ----------
 
 def load_config(root):
+    """Return `(repo, board)`. `board` is `gh_board.load_board(root)` — a dict, or None when
+    `github.board` is absent/incomplete. A missing board is an ENVIRONMENTAL PRECONDITION
+    (D-02), never a reason to skip the whole invocation: the issue lifecycle (open,
+    close-task's issue close, abandon, ship) still runs; only station writes are skipped."""
     p = os.path.join(root, ".harness", "harness.json")
     if not os.path.isfile(p):
         skip("no .harness/harness.json — project not onboarded")
@@ -116,7 +136,67 @@ def load_config(root):
         skip(f"{GH} not on PATH")
     if subprocess.run([GH, "auth", "status"], capture_output=True).returncode != 0:
         skip("gh is not authenticated")
-    return repo
+    board = gh_board.load_board(root)
+    if board is None:
+        print("gh-sync: no github.board configured — station writes are not attempted")
+    return repo, board
+
+
+def _feature_status(feat_dir):
+    """feature.json's top-level `status`, or None if absent/unreadable/not a string.
+
+    The ONLY read of feature.json's status outside the `github:` block, and it feeds
+    EXACTLY one comparison (the Done terminal exemption, D-03/D-04) — nothing else."""
+    path = os.path.join(feat_dir, "feature.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(doc, dict):
+        return None
+    status = doc.get("status")
+    return status if isinstance(status, str) else None
+
+
+def _apply_parent_rule(feat_dir, repo, board):
+    """THE PARENT RULE (T-03, D-03/D-04) — called identically at the end of `start-task` and
+    `close-task`, and written ONCE here rather than twice.
+
+    THE DERIVATION PRESUPPOSES THE PLAN IS ALREADY UPDATED. Both callers read plan.yaml from
+    disk, so the CALLER (the orchestrator) must have recorded the task's new status in
+    plan.yaml BEFORE invoking this subcommand — this function never infers the transition
+    from which subcommand called it, because that would make the subcommand a second status
+    record, which is exactly the drift D-03 removes.
+    """
+    if _feature_status(feat_dir) == "Done":
+        # Terminal exemption: `ship` already closed the parent and GitHub's own Item
+        # closed workflow landed it in Done; the derivation would still say Review.
+        return
+    plan_path = os.path.join(feat_dir, "plan.yaml")
+    if not os.path.isfile(plan_path):
+        # No plan.yaml (a PLAN.md-only feature) carries no task-derived verdict at all.
+        return
+    try:
+        plan_doc = harness_yaml.load_plan(plan_path)
+    except harness_yaml.YamlParseError:
+        # An unparseable plan carries no derivable verdict either — same as no verdict.
+        return
+    station = gh_board.derive_station(plan_doc)
+    if station is None:
+        return
+    rec = load_recorded(feat_dir)
+    if rec["parent"] is None:
+        # INV-21 already warns on this shape (a recorded task issue with no parent) —
+        # this must not become a second report of it.
+        print(f"gh-sync: no parent recorded for {os.path.basename(os.path.abspath(feat_dir))} "
+              f"— parent station not written", file=sys.stderr)
+        return
+    try:
+        gh_board.set_station(board, repo, rec["parent"], station)
+        print(f"gh-sync: parent #{rec['parent']} -> {station}")
+    except gh_board.BoardError as e:
+        print(f"gh-sync: ERROR - {e}", file=sys.stderr)
 
 
 # ---------- parsing (same hand-rolled discipline as the rest of bin/ — stdlib only) ----------
@@ -178,6 +258,9 @@ def parse_tasks(feat_dir):
                 "traces": ", ".join(str(x) for x in traces) if isinstance(traces, list)
                           else str(traces),
                 "absorbs": [str(a).lstrip("#") for a in (t_.get("absorbs") or [])],
+                # T-03 (FEAT-18): an absent status is legal in plan.yaml and reads as pending
+                # (harness-backend-dev, D-03's precedent in gh_board.derive_station).
+                "status": t_.get("status") or "pending",
             })
         return out
 
@@ -190,9 +273,11 @@ def parse_tasks(feat_dir):
             f = re.search(rf"^\s*-?\s*{name}:\s*(.+)$", body, re.M)
             return f.group(1).strip() if f else ""
         absorbs = re.findall(r"#(\d+)", field("absorbs"))
+        # This corpus predates the status field entirely — there is no third value to
+        # read here, so every PLAN.md task is unconditionally pending (T-03, FEAT-18).
         tasks.append({"id": tid, "title": title or tid, "body": body.strip(),
                       "change_type": field("change_type"), "traces": field("traces"),
-                      "absorbs": absorbs})
+                      "absorbs": absorbs, "status": "pending"})
     if not tasks:
         die(f"no T-NN tasks parse from {feat_dir}/PLAN.md")
     return tasks
@@ -475,11 +560,36 @@ def cmd_open(feat_dir, repo, parent_arg=None):
     save_recorded(feat_dir, rec)
 
 
-def cmd_close_task(feat_dir, tid, repo):
+def cmd_start_task(feat_dir, tid, repo, board):
+    """`start-task <feature-dir> T-NN` — the orchestrator fires this in the same act it
+    records the task's status as `building` in plan.yaml (D-04). Sets T-NN's OWN sub-issue
+    station to Building, then applies the parent rule (step 3) — never routed through gh(),
+    since a failed station write must not terminate the process (D-02)."""
+    rec = load_recorded(feat_dir)
+    if tid not in rec["issues"]:
+        skip(f"{tid} has no recorded issue — nothing to start (was `open` run?)")
+    if board is not None:
+        issue_num = rec["issues"][tid]
+        try:
+            gh_board.set_station(board, repo, issue_num, "Building")
+            print(f"gh-sync: issue #{issue_num} ({tid}) -> Building")
+        except gh_board.BoardError as e:
+            print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+        _apply_parent_rule(feat_dir, repo, board)
+
+
+def cmd_close_task(feat_dir, tid, repo, board):
     rec = load_recorded(feat_dir)
     if tid not in rec["issues"]:
         skip(f"{tid} has no recorded issue — nothing to close (was `open` run?)")
     tasks = {t["id"]: t for t in parse_tasks(feat_dir)}
+    # THE PARENT WRITE IS ORDERED BEFORE THE ISSUE CLOSE (T-03 step 4, D-02). gh() calls
+    # skip() on a failing close, and skip() calls sys.exit(0) — terminating the process
+    # immediately. Writing the parent's station first means a failing close can never
+    # swallow it. close-task writes NO station for its OWN sub-issue: closing it is what
+    # lands it in Done through the board's own Item-closed workflow (measured, D-03).
+    if board is not None:
+        _apply_parent_rule(feat_dir, repo, board)
     gh(["issue", "close", str(rec["issues"][tid]), "--repo", repo], capture=False)
     print(f"gh-sync: closed issue #{rec['issues'][tid]} for {tid}")
     absorbed = tasks.get(tid, {}).get("absorbs", [])
@@ -611,19 +721,23 @@ def main():
         body_file = argv[i + 1]
         argv = argv[:i] + argv[i + 2:]
     if len(argv) < 2:
-        die("usage: gh-sync.py open|close-task|abandon|ship|backlog <feature-dir> "
+        die("usage: gh-sync.py open|start-task|close-task|abandon|ship|backlog <feature-dir> "
             "[T-NN | nature:title ...] [--parent <n>] [--reason-file <path>] [--body-file <path>]")
     cmd, feat_dir = argv[0], argv[1]
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
     root = os.path.abspath(os.path.join(feat_dir, "..", "..", ".."))
-    repo = load_config(root)
+    repo, board = load_config(root)
     if cmd == "open":
         cmd_open(feat_dir, repo, parent_arg)
+    elif cmd == "start-task":
+        if len(argv) < 3:
+            die("start-task needs a T-NN")
+        cmd_start_task(feat_dir, argv[2], repo, board)
     elif cmd == "close-task":
         if len(argv) < 3:
             die("close-task needs a T-NN")
-        cmd_close_task(feat_dir, argv[2], repo)
+        cmd_close_task(feat_dir, argv[2], repo, board)
     elif cmd == "abandon":
         cmd_abandon(feat_dir, repo, reason_file)
     elif cmd == "ship":

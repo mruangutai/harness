@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Building",
   "review_sha": "none",
-  "cycles_used": 1,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -25,6 +25,11 @@
     },
     {
       "id": "2026-08-13-03-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-13-04-eng",
       "squad": "eng",
       "verdict": "PASS"
     }
