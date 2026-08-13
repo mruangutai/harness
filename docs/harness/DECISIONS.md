@@ -4701,6 +4701,33 @@ This is left open because retargeting the board is a separate decision with its 
 at `mruangutai/harness` for the issue mirror, which is a different mechanism from the factory station
 board. It is recorded here as OWED, not as an accepted state.
 
+### DEC-174 amendment 2 (2026-08-12) — the station board is declared per repository, and am.1's board loose end is closed
+
+FEAT-16 closes the loose end the section above records as OWED. That section describes the
+pre-FEAT-16 tree — a fleet-level `board.number: 3` pointed at a board holding no kaya-ai issue — and
+it is superseded by this amendment. It is left standing unedited: the record is appended to, never
+rewritten.
+
+**The station board is declared PER REPOSITORY.** Each `repos:` entry in
+`.harness/factory/fleet.yaml` carries its own `board:` mapping, with `number`, `station_field` and
+`stations` together in that one block, so a repository's board and the field the factory moves cards
+in are read from the same place as the repository itself.
+
+**There is no fleet-level board, and a leftover top-level key is REJECTED, not ignored.**
+`load_fleet` in `.claude/skills/harness/bin/factory_config.py` raises on a top-level `board` key
+naming the offending key and telling the author to move it under the `repos[]` entry. Ignoring it
+would let a fleet declare a board nobody reads and get silence back.
+
+**`mruangutai/kaya-ai` is paired with board 2.** Its Status options were brought to the same
+six-value vocabulary board 3 carries — `Backlog, Plan, Ready, Building, Review, Done`, in that order
+— by RENAMING `Todo` to `Backlog` and `In Progress` to `Building`, retaining `Done`, and adding the
+three that were missing. That cost **zero item writes** against the 118 finished issues: renaming a
+Projects v2 option keeps its id, so no card moved. The verbatim capture the figures come from — 211
+items, 118 `Done`, 82 `Backlog`, 11 `Building`, zero in each of `Plan`, `Ready` and `Review` — is
+`.harness/features/FEAT-16-factory-per-repo-board/notes/board2-capture.md`, taken at T-07 before any
+factory run. `Ready` is deliberately empty: on this board `Backlog` means filed-and-untriaged and
+`Ready` means promoted for the factory, so a claim run that finds nothing has found the truth.
+
 ## DEC-175 — The engineering return declares which task it is answering: `task: T-NN|none` gates `task_verify`, and a self-reported gate FAILURE stops being a pass
 
 Three things ship together and each is unintelligible without the others: the `task_verify` field, the
@@ -5394,6 +5421,22 @@ and both are named here as work a later increment owns.
 
 **The rejected alternative: issues as the post-approval source of truth**, rejected because it
 reopens signed choices through a surface with no signature.
+
+### DEC-186 amendment 1 (2026-08-12) — one board per repository served, with the three-purpose read-back bound unchanged
+
+**The control plane is one board PER REPOSITORY SERVED.** FEAT-16 declares the station board inside
+each `repos:` entry of `.harness/factory/fleet.yaml`, so the ruling clause above beginning "GitHub
+Issues and one Projects v2 board are the factory's INTERFACE and control plane" is superseded in its
+"one Projects v2 board" framing only. Everything else in that clause stands: the three purposes
+remain exactly three — whether an item is claimed, which station it is at, whether a blocker issue
+is finished — the set stays closed, and this amendment neither widens nor narrows it. The
+approval-gated `plan.yaml` remains the source of truth for what the work is.
+
+**The read-back cost model changes shape, not size.** The clause above beginning "The cost is a
+blocker-state read PER BLOCKER PER CANDIDATE" states the board read as one server-side query on the
+ready station option per poll; it becomes one such query per repository served per poll. That scales
+with FLEET SIZE and not with board size — a fleet of one repository pays exactly what the original
+model priced, and each repository added costs one more server-side query, whatever its board holds.
 
 ## DEC-187 — The test matrix is per-project, and a kind with no runner is excluded by decision, never by inference
 
