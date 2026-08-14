@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-20-migration-detector",
   "pr": null,
   "status": "Review",
-  "review_sha": "ea476fd",
+  "review_sha": "434307a",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
@@ -37,6 +37,11 @@
       "id": "2026-08-14-1-validator",
       "squad": "validator",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-14-2-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
     }
   ],
   "github": {
