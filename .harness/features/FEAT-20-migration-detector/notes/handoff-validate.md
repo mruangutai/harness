@@ -1,60 +1,58 @@
-# Handoff — FEAT-20-migration-detector, validate → ship — written at 434307a, seq-2
+# Handoff — FEAT-20-migration-detector, ship → operator gate — written at 1b7702b, seq-3
 
 ## Next
 
-**Dispatch nothing until the operator's ruling arrives.** Both gates passed and 14 of 15 criteria
-are met; the last cannot be met as written and only the operator can settle it. The main session
-writes `notes/answers-<runid>.md`; pass that **path** into the resumed run.
+**Nothing to dispatch. The feature is complete and the only remaining act is the operator's.**
+15 of 15 criteria met, both gates passed, close-out done, briefing written and rendered at
+`notes/ship-review-2026-08-14.md`. Merge and ship acceptance are user-gated and no agent performs
+either. On acceptance the **main session** — not an orchestrator — runs `gh-sync.py ship` (closes
+milestone 11 and parent #360, posts the briefing) and `gh-sync.py backlog` for the unstruck rows.
 
-- **Branch A — the operator signs the shipped-surface reading (pm's recommendation).** The answers
-  file IS the ruling record: cite it, treat SC-10 as closed, and go straight to close-out —
-  ship-refresh and distillation as **two dispatches in ONE message** — then the briefing at
-  `notes/ship-review-<runid>.md` plus `render-brief.py`. Do not edit `BRIEF.md`.
-- **Branch B — the operator amends the wording.** That is a re-plan: pm, via product-lead, under the
-  operator's approval. Re-verify SC-10 only; a wording change touches no code. Then close-out.
+If a fix cycle respawns an orchestrator here: read STATE.md `## Current` first, re-pin `review_sha`
+at a commit containing the fix before any validator run, and do **not** re-run distillation — it is
+once per feature and it is done.
 
 ## Trust
 
-- 14/15 SCs met, verified first-hand at this pin — pm re-ran both suites and read assertion bodies,
-  not `ok` labels — `notes/uat-goalcheck-c0.md` — verified-at 434307a
-- **SC-10 is unmet AS WRITTEN and unmeetable by any harness feature**: its closed set forbids the
-  `.harness/` bookkeeping every feature necessarily writes. The shipped surface is still exactly the
-  8 permitted files with zero renames — I re-derived this rather than inherit it:
-  `git diff --name-only 88b1182..434307a` = 27 paths, 8 outside `.harness/`, `--diff-filter=R` empty
-  — verified-at 434307a
-- Blocking qa gate PASS, `matrix_ok: true`, union `{unit,integration}` green with registration greps
-  fired — `runs/qa-gate-validator/digest.md` — verified-at ea476fd
-- Panel PASS, `must_fix: []`, `severity_max: med` under `advisory_unless_high` — nothing gates —
-  `runs/2026-08-14-1-validator/digest.md` — verified-at ea476fd
-- The suite is **correct-today, not pinned against regression**. R-1: `check-state.sh:1302-1318`
-  dispatches INV-27's wording across four `if/elif` branches on `_srep.cause` with **no trailing
-  `else`**, only one cause rendered by any test — missing `else` confirmed by me at source. R-2:
-  `_evidence()`'s count feeds only the printed `examined` line, never the verdict —
-  `runs/2026-08-14-1-validator/digest.md` — verified-at ea476fd
-- `review_sha` moved `ea476fd` → `434307a`, the tree the goal-check verified; qa measured the two
-  identical across all 8 source files — `feature.json` — verified-at 434307a
-- `cycles_used` 3/10 (plan 2, qa's in-run send-back 1); an ESCALATE is not rework. `len(runs)` 7/20,
-  a floor — T-01/T-02 were main-session-direct — `feature.json` — verified-at 434307a
+- 15/15 criteria met, each verified first-hand at the pin, not read from a receipt —
+  `notes/uat-goalcheck-c0.md` — verified-at 434307a
+- SC-10 ruled by the operator as the shipped surface; signed text stands. Recorded twice and
+  consistently — `notes/answers-sc10-ruling.md`, `notes/answers-2026-08-14-2-product.md` —
+  verified-at 1b7702b
+- Blocking qa gate PASS and review panel PASS with `must_fix: []`, `severity_max: med` under
+  `advisory_unless_high` — `runs/qa-gate-validator/digest.md`, `runs/2026-08-14-1-validator/digest.md`
+  — verified-at ea476fd
+- Close-out distillation: 38 ops over 12 files, net 269 → 293 entries, **no entry id lost**, measured
+  against `8cd251a` which predates every distillation write; `check-expertise.sh` exits 0 over all 13
+  files — commit `072be78` — verified-at 1b7702b
+- The `2026-08-14-3-validator` run is recorded `BLOCKED` and that is honest, not a stuck feature: its
+  work landed in full, and `validate-digest.py` binds `qa` to gate fields a distillation never runs,
+  so a retry returns BLOCKED forever — briefing row **B-7** — verified-at 1b7702b
+- `cycles_used` 4/10, `len(runs)` 10/20 and a floor — T-01/T-02 were main-session-direct —
+  `feature.json` — verified-at 1b7702b
+- The detector is live and non-vacuous: `features: CLEAN`, `docs: CLEAN`,
+  `examined 20 feature dir(s), 1 doc root(s), 7 reader file(s)`, exit 0; zero renames across the
+  feature — run directly — verified-at 1b7702b
 
 ## Dead ends
 
-- The unguarded CI step is settled: accepted at signature under DEC-183, and
-  `test_matrix.config.always` is `[]`, so the row is satisfied, not unsatisfiable — `BRIEF.md`
-  `## Approval` notes — verified-at 434307a
-- The doc-root assertion absent from unit cases 1 and 15 is redundant, not a hole: `n == 0` implies
-  CANNOT_VERIFY implies exit 2, reddening case 1 — `runs/qa-gate-validator/digest.md` V-1 —
-  verified-at 434307a
-- Do not edit `.github/workflows/tests.yml:110-114`; its false guard claim is pre-existing, byte-
-  unchanged here, owned by issue #279 — `git diff 88b1182..434307a` — verified-at 434307a
+- Do not re-run ship-refresh. There is no `.harness/map/` and no `INDEX.md` anywhere, so no map can
+  be stale — checked, not assumed — verified-at 1b7702b
+- Do not re-open SC-10. The operator ruled it; a re-plan was offered and declined —
+  `notes/answers-sc10-ruling.md` — verified-at 1b7702b
+- Do not fix any backlog row inside FEAT-20. B-1 through B-11 are out of scope by the coordinator's
+  explicit instruction — `notes/ship-review-2026-08-14.md` — verified-at 1b7702b
+- Do not edit `.github/workflows/tests.yml:110-114`; pre-existing, byte-unchanged, owned by issue
+  #279 — `git diff 88b1182..HEAD` shows zero deletions in that file — verified-at 1b7702b
 - Never `git add -A`: two deleted `.harness/members/backend-dev/FEAT-02-*.md` and two untracked files
-  under `.harness/logs/` and `.harness/notes/` predate this feature — `git status` — verified-at 434307a
+  under `.harness/logs/` and `.harness/notes/` predate this feature — `git status` — verified-at 1b7702b
 - `verify:` clauses are not runnable verbatim — the write guard refuses redirects to a shell
-  variable, so `>"$(mktemp)"` is blocked; use a literal path — verified-at 434307a
+  variable, so `>"$(mktemp)"` is blocked; use a literal path — verified-at 1b7702b
 
 ## Working set
 
+- `.harness/features/FEAT-20-migration-detector/notes/ship-review-2026-08-14.md`
+- `.harness/features/FEAT-20-migration-detector/STATE.md`
+- `.harness/features/FEAT-20-migration-detector/feature.json`
 - `.harness/features/FEAT-20-migration-detector/notes/uat-goalcheck-c0.md`
-- `.harness/features/FEAT-20-migration-detector/runs/2026-08-14-1-validator/digest.md`
-- `.harness/features/FEAT-20-migration-detector/runs/qa-gate-validator/digest.md`
-- `.harness/features/FEAT-20-migration-detector/runs/plan-product/digest.md`
-- `.harness/features/FEAT-20-migration-detector/BRIEF.md`
+- `.harness/features/FEAT-20-migration-detector/notes/answers-sc10-ruling.md`
