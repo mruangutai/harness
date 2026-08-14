@@ -5894,3 +5894,29 @@ Lineage: DEC-174, which is why the detector and its session-entry call site are 
 than dispatched through the gates they change; and DEC-183, which is why the CI step carrying this
 check is a second signal and not its guarantee — nothing in this tree asserts that step is still
 wired.
+
+### DEC-194 amendment 1 (2026-08-14) — the applicability marker is the fleet declaration, and an undeclared segment is loud
+
+Two pre-merge review findings, both probe-verified, both fixed before PR #376 landed.
+
+**The marker moved from `check-state.sh`'s own path to `.harness/factory/fleet.yaml`.** The first
+marker was wrong by construction: `harness-init` installs the whole `bin/` — marker included — into
+product repositories, so every onboarded product became "applicable," held no layout evidence of
+either shape, and reported CANNOT VERIFY at exit 1 forever, which onboarding's own exit-0
+requirement cannot survive. The fleet declaration is the one file only the control plane carries:
+products are declared IN it, never holders OF it. Applicability and segment authority now come from
+the same fact.
+
+**A migrated repo root must be a DECLARED repository's segment.** The first evidence glob accepted
+ANY first-level `.harness/` subdirectory as a repo root, so a non-repo sibling growing the wrong
+shape — `.harness/archive/features/…` was the probe — forced a MIXED verdict no reader edit could
+clear. Now only fleet-declared segments (name-after-owner, the `workspace_path` rule) plus the
+repository named in `harness.json` `github.repo` count as migrated evidence. Evidence under any
+other segment is not silently ignored — it is a fifth CANNOT_VERIFY cause, `undeclared-segment`,
+naming the offending paths, because a misfiled migration is exactly what this detector exists to
+catch.
+
+**The cause table at the session-entry call site is closed and fails loud.** The wording dispatch
+was four `if/elif` branches with no `else`; a fifth cause value would have appended nothing and the
+operator-facing gate would have passed clean while CI stayed red. It is now a dict lookup whose
+miss appends an "unrecognised cause" violation.

@@ -45,10 +45,13 @@ validate-feature-json.py, factory_claim.py, the gitignore snippet, and prose. Ma
 """
 
 import glob
+import json
 import os
 import re
 import sys
 from collections import namedtuple
+
+import harness_yaml  # a missing PyYAML is a LOUD error (DEC-171); no fallback exists
 
 # THE SURFACES ARE A FIXED ENUM, declared INDEPENDENTLY of the reader table. Every
 # member is judged on every applicable scan: iterate this tuple, never the table. A
@@ -98,20 +101,28 @@ READER_TABLE = [
         r'\.harness/[^/"]+/docs/\*\*'),
 ]
 
-# The one positive control for applicability (D-04): a root without this marker is
-# not a harness control-plane checkout and the scan is NOT APPLICABLE. Inside harness
-# the marker is present by construction, and test case 1 scans the real root and
-# demands non-zero counts — that unit case, not the CI step, is what turns a renamed
-# marker into a red suite (DEC-183 leaves CI steps unguarded).
-MARKER = os.path.join(".claude", "skills", "harness", "bin", "check-state.sh")
+# The one positive control for applicability (D-04, amended post-review): a root
+# without this marker is not the harness CONTROL PLANE and the scan is NOT
+# APPLICABLE. The first marker was check-state.sh's own path — wrong, because
+# harness-init installs the whole bin/ into product repos, so every onboarded
+# product became "applicable" with no layout evidence and went cannot-verify
+# forever. The fleet declaration is the one file only the control plane carries:
+# products are DECLARED IN it, never holders OF it. It also feeds the
+# migrated-evidence scan below, so applicability and segment authority come from
+# the same fact. Case 1 scans the real root and demands non-zero counts — that
+# unit case, not the CI step, is what turns a renamed marker into a red suite
+# (DEC-183 leaves CI steps unguarded).
+MARKER = os.path.join(".harness", "factory", "fleet.yaml")
 
 CLEAN, MIXED, CANNOT_VERIFY = "CLEAN", "MIXED", "CANNOT_VERIFY"
 
 SurfaceReport = namedtuple("SurfaceReport",
-                           "surface verdict evidence readers cause")
+                           "surface verdict evidence readers cause detail",
+                           defaults=(None,))
 # readers: list of (relpath, formset) with formset one of exactly:
 #   legacy | migrated | both | neither | unreadable
-# cause (CANNOT_VERIFY only): no-rows | no-evidence | unreadable | neither
+# cause (CANNOT_VERIFY only): no-rows | no-evidence | unreadable | neither |
+#   undeclared-segment (detail carries the offending relative paths)
 
 Result = namedtuple("Result", "root applicable surfaces feature_dirs doc_roots reader_files")
 
@@ -130,26 +141,49 @@ def validate_table(table):
                 % (row.path, row.surface, SURFACES))
 
 
-def _evidence(root, surface):
-    """Return (shapes present, count of evidence hits) for one surface."""
+def _declared_segments(root):
+    """The segments that may hold a migrated repo root: every fleet-declared
+    repository's name-after-owner (the same rule factory_config.workspace_path owns),
+    plus harness's own segment from harness.json github.repo when present. A parse
+    failure raises — the fleet IS the applicability marker, so an unreadable fleet at
+    an applicable root is a tree defect, reported loudly by the caller."""
+    fleet = harness_yaml.load_file(os.path.join(root, MARKER)) or {}
+    segs = {str(r.get("name", "")).split("/", 1)[-1]
+            for r in (fleet.get("repos") or []) if isinstance(r, dict) and r.get("name")}
+    try:
+        hj = json.load(open(os.path.join(root, ".harness", "harness.json"),
+                            encoding="utf-8"))
+        own = ((hj.get("github") or {}).get("repo") or "")
+        if own:
+            segs.add(own.split("/", 1)[-1])
+    except (OSError, ValueError):
+        pass  # a product-shaped or minimal tree has no harness.json; the fleet rules
+    return {s for s in segs if s}
+
+
+def _evidence(root, surface, segments):
+    """Return (shapes present, count, undeclared paths) for one surface. A migrated
+    repo root is a DECLARED repository's segment (code-review blocker 2): any other
+    .harness/ sibling growing the same shape is not evidence — it is a misfiling,
+    returned separately so the caller reports it loudly instead of as a false MIXED
+    no reader edit could clear."""
     if surface == "features":
         legacy = glob.glob(os.path.join(root, ".harness", "features", "*", "feature.json"))
-        migrated = glob.glob(os.path.join(root, ".harness", "*", "features", "*", "feature.json"))
-        shapes = set()
-        if legacy:
-            shapes.add("legacy")
-        if migrated:
-            shapes.add("migrated")
-        return shapes, len(legacy) + len(migrated)
-    legacy = [p for p in [os.path.join(root, "docs", "harness", "SPEC.md")]
-              if os.path.isfile(p)]
-    migrated = glob.glob(os.path.join(root, ".harness", "*", "docs", "SPEC.md"))
+        candidates = glob.glob(os.path.join(root, ".harness", "*", "features", "*", "feature.json"))
+    else:
+        legacy = [p for p in [os.path.join(root, "docs", "harness", "SPEC.md")]
+                  if os.path.isfile(p)]
+        candidates = glob.glob(os.path.join(root, ".harness", "*", "docs", "SPEC.md"))
+    migrated, undeclared = [], []
+    for p in candidates:
+        seg = os.path.relpath(p, os.path.join(root, ".harness")).split(os.sep)[0]
+        (migrated if seg in segments else undeclared).append(os.path.relpath(p, root))
     shapes = set()
     if legacy:
         shapes.add("legacy")
     if migrated:
         shapes.add("migrated")
-    return shapes, len(legacy) + len(migrated)
+    return shapes, len(legacy) + len(migrated), undeclared
 
 
 def _reader_formset(root, row):
@@ -184,9 +218,10 @@ def scan(root, table=None):
 
     surfaces = {}
     feature_dirs = doc_roots = reader_files = 0
+    segments = _declared_segments(root)
     for surface in SURFACES:                     # iterate the ENUM, never the table
         rows = [r for r in table if r.surface == surface]
-        shapes, n = _evidence(root, surface)
+        shapes, n, undeclared = _evidence(root, surface, segments)
         if surface == "features":
             feature_dirs = n
         else:
@@ -196,6 +231,10 @@ def scan(root, table=None):
 
         if not rows:
             surfaces[surface] = SurfaceReport(surface, CANNOT_VERIFY, shapes, [], "no-rows")
+            continue
+        if undeclared:
+            surfaces[surface] = SurfaceReport(surface, CANNOT_VERIFY, shapes, readers,
+                                              "undeclared-segment", tuple(undeclared))
             continue
         if any(f == "unreadable" for _p, f in readers):
             surfaces[surface] = SurfaceReport(surface, CANNOT_VERIFY, shapes, readers, "unreadable")
@@ -257,6 +296,9 @@ def render(result):
             line += "; no evidence of either shape under %s" % result.root
         if rep.verdict == CANNOT_VERIFY and rep.cause == "no-rows":
             line += "; no reader rows for this surface"
+        if rep.verdict == CANNOT_VERIFY and rep.cause == "undeclared-segment":
+            line += ("; evidence under undeclared segment: "
+                     + ", ".join(rep.detail or ()))
         if rep.verdict in (MIXED, CANNOT_VERIFY):
             blame = [(p, f) for p, f in rep.readers
                      if f in ("both", "neither", "unreadable")

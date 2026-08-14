@@ -23,6 +23,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+sys.path.insert(0, HERE)  # the module imports harness_yaml, which lives beside it
 
 results = []
 
@@ -50,7 +51,11 @@ except FileNotFoundError:
 # One stub body per (reader file, form). The text carries the FRAGMENT the row's
 # pattern matches, in the spelling the real file uses at 88b1182 — a join, a grant
 # path, a glob — never a copy of the real script.
-MARKER_REL = os.path.join(".claude", "skills", "harness", "bin", "check-state.sh")
+MARKER_REL = os.path.join(".harness", "factory", "fleet.yaml")
+# The marker doubles as the fleet declaration the migrated-evidence scan reads:
+# only segments of DECLARED repositories count as migrated repo roots.
+FLEET_TEXT = ("schema: factory-fleet/1\nrepos:\n  - name: org/repoA\n"
+              "workspace_root: /tmp/harness-fixture-workspaces\n")
 
 STUB = {
     ".harness/team-config.yaml": {
@@ -117,10 +122,12 @@ def build(root, marker=True, features_evidence=("legacy",), docs_evidence=("lega
         p = os.path.join(root, ".harness", "repoA", "docs")
         os.makedirs(p, exist_ok=True)
         open(os.path.join(p, "SPEC.md"), "w").write("# spec\n")
+    if marker:
+        mp = os.path.join(root, MARKER_REL)
+        os.makedirs(os.path.dirname(mp), exist_ok=True)
+        open(mp, "w").write(FLEET_TEXT)
     for rel in FEATURES_READERS + DOCS_READERS:
         form = forms.get(rel, "legacy")
-        if rel == MARKER_REL.replace(os.sep, "/") and not marker:
-            continue
         if form == "absent":
             continue
         path = os.path.join(root, *rel.split("/"))
@@ -135,12 +142,7 @@ def build(root, marker=True, features_evidence=("legacy",), docs_evidence=("lega
             f.write(text)
         if form == "unreadable":
             os.chmod(path, 0)
-    # The marker doubles as the check-state.sh reader; ensure it exists when asked for.
-    if marker:
-        mp = os.path.join(root, MARKER_REL)
-        if not os.path.exists(mp):
-            os.makedirs(os.path.dirname(mp), exist_ok=True)
-            open(mp, "w").write(STUB[".claude/skills/harness/bin/check-state.sh"]["legacy"])
+
 
 
 def run(root, table=None):
@@ -278,10 +280,13 @@ with tempfile.TemporaryDirectory() as tmp:
 # of THIS suite, not the CI step: the CI step's zero-count assertion is protected by
 # nothing (DEC-183), whereas these cases redden the required unit suite.
 with tempfile.TemporaryDirectory() as tmp:
-    build(tmp, marker=False,
-          forms={".claude/skills/harness/bin/check-state.sh": "absent"})
+    # THE ONBOARDED-PRODUCT SHAPE (code-review blocker 1): harness-init installs the
+    # whole bin/ into products, so every reader file EXISTS here — what a product
+    # lacks is the fleet declaration. This tree must be NOT APPLICABLE, not
+    # cannot-verify-forever.
+    build(tmp, marker=False)
     code, out = run(tmp)
-    check("case 14: no marker -> exit 0 with the pinned NOT APPLICABLE literal",
+    check("case 14: readers present but no fleet marker -> exit 0, NOT APPLICABLE",
           code == 0 and "NOT APPLICABLE: no harness control-plane marker at " in out, out)
     m = re.search(r"examined (\d+) feature dir\(s\), (\d+) doc root\(s\), (\d+) reader file\(s\)", out)
     s = re.search(r"layout: (\d+) surface\(s\) clean, (\d+) mixed, (\d+) cannot-verify", out)
@@ -343,6 +348,26 @@ with tempfile.TemporaryDirectory() as tmp:
 with tempfile.TemporaryDirectory() as tmp:
     build(tmp, forms={".claude/skills/harness/bin/check-domain.sh": "neither"})
     check("case 18: cannot-verify -> exit_code 2", lm.exit_code(lm.scan(tmp)) == 2)
+
+# ------------------------------------------------------------------- case 19
+# Code-review blocker 2: a NON-REPO .harness/ sibling growing a features/ or docs/
+# shape must not fake migrated evidence. An undeclared segment is a LOUD
+# cannot-verify naming the path — never silent, never an unclearable MIXED.
+with tempfile.TemporaryDirectory() as tmp:
+    build(tmp)  # legacy everywhere, fleet declares only repoA
+    p = os.path.join(tmp, ".harness", "archive", "features", "FEAT-old")
+    os.makedirs(p)
+    open(os.path.join(p, "feature.json"), "w").write("{}")
+    code, out = run(tmp)
+    check("case 19: evidence under an UNDECLARED segment -> exit 2, phrase + path named",
+          code == 2 and "undeclared segment" in out and "archive" in out, out)
+with tempfile.TemporaryDirectory() as tmp:
+    # The declared twin: the same shape under a DECLARED segment is ordinary
+    # migrated evidence (here: mixed with the legacy evidence, exit 1 not 2).
+    build(tmp, features_evidence=("legacy", "migrated"))
+    code, out = run(tmp)
+    check("case 19: the same shape under a DECLARED segment stays ordinary evidence",
+          code == 1, out)
 
 # ---------------------------------------------------------------------- report
 fails = 0

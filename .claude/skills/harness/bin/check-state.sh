@@ -1288,6 +1288,33 @@ if _lmod is not None:
         # without the tag.
         _lrem = ("Finish or revert this surface inside one atomic commit; the form "
                  "rows are data in layout_migration.py.")
+        # THE CAUSE TABLE IS CLOSED AND THE LOOKUP FAILS LOUD (code-review finding:
+        # the earlier if/elif chain had no else, so a fifth cause value would have
+        # appended nothing and this gate — the surface operators actually see —
+        # would have passed clean while CI stayed red).
+        def _cv_wording(_sname, _srep):
+            def _tagged(_form):
+                return ", ".join("%s [%s]" % (p, f) for p, f in _srep.readers
+                                 if f == _form)
+            _table = {
+                "unreadable": lambda: (f"a coupled reader could not be read — "
+                                       f"{_tagged('unreadable')}"),
+                "neither": lambda: (f"a coupled reader matches neither form — "
+                                    f"{_tagged('neither')}"),
+                "no-evidence": lambda: f"no evidence of either shape under {root}",
+                "no-rows": lambda: "no reader rows for this surface",
+                "undeclared-segment": lambda: (
+                    "evidence under an UNDECLARED segment: "
+                    + ", ".join(_srep.detail or ())
+                    + " — declare the repository in .harness/factory/fleet.yaml "
+                      "or move this out of .harness/"),
+            }
+            _fmt = _table.get(_srep.cause)
+            if _fmt is None:
+                return (f"unrecognised cause {_srep.cause!r} — layout_migration.py "
+                        f"and check-state.sh disagree; update INV-27's cause table")
+            return _fmt()
+
         for _sname in sorted(_lres.surfaces):
             _srep = _lres.surfaces[_sname]
             if _srep.verdict == "MIXED":
@@ -1300,22 +1327,8 @@ if _lmod is not None:
                 bad.append(f"INV-27 {_sname}: layout is MIXED — evidence {_ev}; "
                            f"readers {_rd}. {_lrem}")
             elif _srep.verdict == "CANNOT_VERIFY":
-                if _srep.cause == "unreadable":
-                    _rd = ", ".join("%s [%s]" % (p, f) for p, f in _srep.readers
-                                    if f == "unreadable")
-                    bad.append(f"INV-27 CANNOT VERIFY {_sname}: a coupled reader could "
-                               f"not be read — {_rd}. {_lrem}")
-                elif _srep.cause == "neither":
-                    _rd = ", ".join("%s [%s]" % (p, f) for p, f in _srep.readers
-                                    if f == "neither")
-                    bad.append(f"INV-27 CANNOT VERIFY {_sname}: a coupled reader "
-                               f"matches neither form — {_rd}. {_lrem}")
-                elif _srep.cause == "no-evidence":
-                    bad.append(f"INV-27 CANNOT VERIFY {_sname}: no evidence of either "
-                               f"shape under {root}. {_lrem}")
-                elif _srep.cause == "no-rows":
-                    bad.append(f"INV-27 CANNOT VERIFY {_sname}: no reader rows for "
-                               f"this surface. {_lrem}")
+                bad.append(f"INV-27 CANNOT VERIFY {_sname}: "
+                           f"{_cv_wording(_sname, _srep)}. {_lrem}")
 
 # INV-10 IS GONE, AND THE NUMBER IS RETIRED WITH IT. It ran check-docs.sh, the
 # propagation checker, which no longer exists: the operator struck the whole

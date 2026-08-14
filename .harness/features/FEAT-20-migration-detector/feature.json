@@ -2,7 +2,7 @@
   "feature_id": "FEAT-20-migration-detector",
   "branch": "feat/FEAT-20-migration-detector",
   "pr": null,
-  "status": "Review",
+  "status": "Done",
   "review_sha": "434307a",
   "cycles_used": 4,
   "max_total_cycles": 10,

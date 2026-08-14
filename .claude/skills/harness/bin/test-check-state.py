@@ -1592,7 +1592,9 @@ def case_x():
     on purpose (a stub in it would put an INV-27 verdict inside every unrelated case).
     """
     results = []
-    MARKER_REL = os.path.join(".claude", "skills", "harness", "bin", "check-state.sh")
+    MARKER_REL = os.path.join(".harness", "factory", "fleet.yaml")
+    FLEET_TEXT = ("schema: factory-fleet/1\nrepos:\n  - name: org/repoA\n"
+                  "workspace_root: /tmp/harness-fixture-workspaces\n")
     STUBS = {
         ".harness/team-config.yaml":
             "agents:\n  x:\n    write:\n      - { path: .harness/features/*/notes/n.md }\n",
@@ -1627,11 +1629,13 @@ def case_x():
             dd = os.path.join(tmp, "docs", "harness")
             os.makedirs(dd, exist_ok=True)
             open(os.path.join(dd, "SPEC.md"), "w").write("# spec\n")
+        if marker:
+            mp = os.path.join(tmp, MARKER_REL)
+            os.makedirs(os.path.dirname(mp), exist_ok=True)
+            open(mp, "w").write(FLEET_TEXT)
         overrides = overrides or {}
         for rel, text in STUBS.items():
             if rel == ".harness/team-config.yaml":
-                continue
-            if rel == MARKER_REL.replace(os.sep, "/") and not marker:
                 continue
             p = os.path.join(tmp, *rel.split("/"))
             os.makedirs(os.path.dirname(p), exist_ok=True)
