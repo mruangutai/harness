@@ -1,0 +1,810 @@
+schema: plan/1
+feature: FEAT-19-central-product-config
+
+approval:
+  status: pending
+  approved_by: none
+  date: none
+
+lanes:
+  resolved_at: 63b83c7c1cbd99089548c8f1930a087f9d32e35c
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/README.md
+      lane: team
+      agent: harness-documentor
+    - surface: docs/harness/**
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/products/**
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 63b83c7, so the surface is granted to no agent (DEC-179)
+    - surface: .claude/skills/harness-init/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 63b83c7, so the surface is granted to no agent (DEC-179)
+    - surface: .claude/skills/harness-qa-gate/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 63b83c7, so the surface is granted to no agent (DEC-179)
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+
+decisions:
+  - id: D-01
+    choice: Harness keeps its own project data in .harness/harness.json rather than taking a fleet.yaml entry
+    because: giving harness an entry turns a workspace checkout's exit 2 into NOBODY, which is quieter, and this is the only option adding zero tasks
+    dec: none
+  - id: D-02
+    choice: A session's product is derived from its position under workspace_root using the existing fleet map, never from a marker file, an env var or a second key
+    because: the same map already decides which domain base a write resolves against, and a second key could disagree with the guard about which product a path belongs to
+    dec: none
+  - id: D-03
+    choice: Kaya's test kinds ship with status unresolved, and DEC-187 closure is enforced at the first factory run rather than signed at approval
+    because: nobody has run kaya's commands from here, so marking any kind active would be the unverified claim DEC-187 exists to stop
+    dec: DEC-187
+  - id: D-04
+    choice: >-
+      A product board block requires all three of owner, number and station_field, which
+      factory_config._validate_board already enforces at 63b83c7; the ruling records why that
+      enforcement is right rather than adding it, and names harness's own board — where
+      gh_board.load_board returns None on a missing station_field — as an unchanged residual
+    because: >-
+      DEC-192 prescribes the six station values but not the field name holding them, and a pinned
+      field name is a string that otherwise goes stale in silence; the first draft's claim that
+      this made something newly required was false about the code
+    dec: DEC-192
+  - id: D-05
+    choice: The per-product directory is the repo segment after the slash, matching factory_config.workspace_path
+    because: glob_to_re translates star to a class that cannot cross a path segment, so a two-segment product path would force every future domain glob over it to use a double star
+    dec: none
+  - id: D-06
+    choice: >-
+      This effort rewires exactly one consumer, the qa gate, to take test_matrix and test_kinds
+      from the resolver; gh-sync.py keeps joining .harness/harness.json for github data and its
+      rewiring is a named follow-on, with the Goal and REQ-02 narrowed to match
+    because: >-
+      the qa gate is the consumer the Goal's own sentence names and it is prose, so it costs one
+      task and no code-review surface, while a resolver with no consumer at all would leave the
+      Goal unreached by every task in the plan
+    dec: none
+  - id: D-07
+    choice: >-
+      The resolver's CLI flag is --which-config, not --resolve, and every place naming it names
+      the tool with it
+    because: >-
+      check-domain.sh --resolve already answers which agent owns a path, in plain text including
+      the literal NOBODY, so a second --resolve answering which config file applies, in JSON, is a
+      homonym on an adjacent tool
+    dec: none
+  - id: D-08
+    choice: >-
+      The containment rule is COPIED into the resolver with longest-match-wins stated explicitly,
+      and the divergence from harness_boundary.select_base is recorded as accepted, rather than
+      shared by lifting select_base's inside closure to module scope
+    because: >-
+      sharing changes harness_boundary.py, which both write guards import and which DEC-193 names
+      as the one shared rule, raising an unresolved question about whether it is inside DEC-174's
+      carve-out in substance; a recorded divergence is findable while an open carve-out question
+      stops the build
+    dec: DEC-193
+
+tasks:
+  - id: T-01
+    title: Add factory_product_config.py, its unit tests, and register the test file in the suite arrays
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_product_config.py
+      - .claude/skills/harness/bin/test-factory-product-config.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      grep -q test-factory-product-config.py .claude/skills/harness/bin/run-unit-tests.sh \
+        && .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Create .claude/skills/harness/bin/factory_product_config.py, the ONLY resolver of which
+      config file answers for a given session root. Every future consumer takes its config from
+      this module and never from a hand-joined path.
+
+      THE MODULE NAME IS LOAD-BEARING. test-factory-config.py enumerates only files matching
+      factory_*.py when it asserts that exactly one scope anywhere in the tree opens or parses the
+      fleet file. A module named product_config.py would sit outside that enumeration permanently.
+      Named factory_product_config.py, it is inside it — which means: NEVER call open() or
+      harness_yaml.load_file() on a fleet-bearing path in this module. Read the fleet ONLY by
+      calling factory_config.load_fleet(). That invariant now watches this file, and a bypass will
+      redden test-factory-config.py rather than pass unseen.
+
+      PUBLIC SURFACE, exactly three names.
+
+      class ProductConfigError(Exception) — constructed the way factory_config.FleetError is, via
+      factory_cli.body(what, value, next_step), so factory_cli.run prints it verbatim. Two slot
+      rules, both binding, from this feature's DESIGN.md:
+        - value is ALWAYS a path or a repository name the operator can act on, never a class name
+          and never merely where the operator was standing when a path was already computed.
+        - next_step is ALWAYS the operator's NEXT ACTION, never the cause. Naming two roots is
+          context; telling the operator to run from inside one of them is an action.
+      Every refusal exits 2 with empty stdout via factory_cli.run, so on a refusal the value slot
+      is the ONLY place the operator learns which config file was at issue.
+
+      def resolve(session_root) -> dict — returns a mapping with exactly these keys:
+        product: the fleet name (owner/repo) when a product answered, otherwise None
+        config_path: the absolute path of the file that answered
+        config: the parsed JSON mapping from that file
+        source: the string "harness" or the string "product"
+      Never returns a partial mapping and never returns None. product is None if and only if
+      source is "harness" — the two encode one fact twice, so a test asserts they agree.
+
+      def main() — an argparse CLI exposing --which-config <path>. NOT --resolve: check-domain.sh
+      --resolve already answers a different question (which agent owns a path) in a different
+      shape (plain text, including the literal NOBODY), and a homonym on an adjacent tool is what
+      D-07 rules out. The path argument accepts a RELATIVE path and is resolved the way every
+      other path in this module is, os.path.realpath(os.path.abspath(p)), so that
+      --which-config . works from inside the checkout under test.
+      On success print exactly one stdout line via factory_cli.payload: a JSON object with
+      exactly the three keys source, config_path and product, and no others. product is JSON null
+      when harness answered — the key is present and null, never omitted, because an absent key is
+      indistinguishable from a tool that forgot to set it. The parsed config body is NOT printed:
+      the question is which file answered, and a matrix dump buries the answer.
+      Wire it with factory_cli.run("product-config", main, expected=(ProductConfigError,)).
+
+      THE RESOLUTION ALGORITHM, in this order and no other. The ORDER is the specification: an
+      earlier draft evaluated the fleet before the harness-root test, which returned the harness
+      config to a session standing outside both roots whenever fleet.yaml happened to be absent.
+
+      1. Compute the harness root exactly as factory_config.harness_root() does. Do not
+         reimplement it — import factory_config and call it, so the two can never disagree about
+         which checkout is the control plane.
+      2. Take the real (absolute AND symlink-resolved, via os.path.realpath(os.path.abspath(p)))
+         form of session_root and of the harness root. Containment is compared on path SEGMENTS,
+         never on string prefixes — use os.path.commonpath([child, parent]) == parent, catching
+         ValueError (different drives or unrelated roots) as False, which is what
+         harness_boundary.select_base does.
+      3. IF session_root is inside the harness root -> go straight to step 6. This test runs
+         FIRST and needs no fleet at all. A harness session resolves the harness config whether or
+         not a fleet declaration exists.
+      4. session_root is NOT inside the harness root, so the answer can only come from a product,
+         which means the fleet must load. Build the path explicitly:
+         fleet_path = os.path.join(harness_root, ".harness", "factory", "fleet.yaml").
+         4a. NEVER call factory_config.load_fleet() with no argument. Its default is
+             factory_config.FLEET_PATH, a module-level constant computed at IMPORT time from that
+             module's OWN root probe — not from the root this function just computed. Under a
+             fixture root the two disagree and the default names the LIVE repository, so a fixture
+             test would read the real fleet.yaml and pass for the wrong reason.
+             harness_boundary.resolve_fleet documents this exact trap and passes the path
+             explicitly for the same reason. Call factory_config.load_fleet(fleet_path).
+         4b. Test ABSENCE separately from FAILURE, with os.path.exists(fleet_path), BEFORE
+             calling load_fleet. load_fleet raises the same error type for an absent file and a
+             malformed one, so a try/except around it cannot tell them apart, and a bare
+             except that fell through to the harness config would convert an unreadable fleet
+             into a silent fallback.
+             If the fleet is ABSENT: raise ProductConfigError. There are no products and this
+             session is not in the harness checkout, so nothing can answer. what is "no fleet
+             declaration and the session is not in the harness checkout", value is the session
+             root, next_step tells the operator to run from inside <harness root> or to declare a
+             fleet at <fleet_path>.
+             If the fleet is present but load_fleet raises ANYTHING: raise ProductConfigError.
+             what is "the fleet declaration does not load", value is fleet_path, next_step tells
+             the operator to fix that file. Chain the original error's text into the message so
+             the reason is not swallowed. An unloadable fleet CLOSES rather than degrades: the
+             value that identifies product paths is the one that failed.
+      5. Realpath fleet["workspace_root"] and branch on segment containment:
+         5a. session_root is NOT inside workspace_root: raise ProductConfigError. what is "session
+             root is in neither the harness checkout nor the factory workspace", value is the
+             session root, next_step is an ACTION parameterized by both roots — tell the operator
+             to run from inside <harness root>, or from a registered checkout under
+             <workspace_root>. Both roots appear, as the instruction rather than as an
+             observation. DO NOT fall through to step 6: returning the harness config for a
+             session that is not in the harness checkout is a fall-back to another repository's
+             config, which is the exact failure this module exists to prevent.
+         5b. session_root IS inside workspace_root. Compute every registered base as
+             os.path.realpath(factory_config.workspace_path(fleet, entry["name"])) and keep the
+             entries whose base contains session_root by segment containment.
+             LONGEST MATCH WINS: when more than one base contains the session root, take the one
+             with the longest base path, so a product checked out beneath another's path resolves
+             against its own base rather than its parent's. This is a DELIBERATE COPY of
+             harness_boundary.select_base's rule, not an import (D-08); the copy is recorded as an
+             accepted divergence in T-05, and the test file below — not this module — imports
+             select_base read-only to assert the two agree on the nested fixture. Stating it explicitly is what stops the guard and the
+             config from disagreeing about a nested checkout, which is the merit D-02 was chosen
+             for. Segment containment also makes /ws/kaya-ai-old not match /ws/kaya-ai.
+             5b-i. NO entry contains it: raise ProductConfigError. what is "checkout belongs to no
+                   registered repository", value is the session root, next_step says to add a
+                   repos entry to <fleet_path>. This is the state that already exits 2 today and
+                   it must keep doing so.
+             5b-ii. An entry wins. The config path is
+                   <harness root>/.harness/products/<segment>/harness.json, where <segment> is
+                   os.path.basename(factory_config.workspace_path(fleet, entry["name"])) — reuse
+                   that function's own rule so the derivation exists in one place only.
+                   If that file does not exist: raise ProductConfigError. what is "registered
+                   repository has no product config", value is THE CONFIG PATH THAT WAS LOOKED
+                   FOR — not the session root; an operator told only where they were standing has
+                   to re-derive a path the tool already computed — and next_step says to create
+                   it. DO NOT fall back to the harness config. This fallback is the single worst
+                   outcome this module can produce and its absence is the point of the module.
+                   If the file exists but is not valid JSON, or does not parse to a mapping: raise
+                   ProductConfigError. value is the file path, next_step says to repair the file
+                   to a JSON object.
+                   Otherwise return product=entry["name"], config_path, config, source="product".
+      6. The harness's own config: <harness root>/.harness/harness.json. Missing, unparseable or
+         not a mapping raises ProductConfigError with value the file path and next_step the
+         repair. Otherwise return product=None, config_path, config, source="harness".
+
+      A product config directory that has no matching fleet entry is unreachable by construction —
+      step 5b keys on the fleet entry and never lists the products directory. Do not add a
+      directory scan; the unreachability IS the requirement.
+
+      Read JSON with json.load and YAML only through factory_config, which uses harness_yaml. No
+      line scanning anywhere (DEC-171).
+
+      Then create .claude/skills/harness/bin/test-factory-product-config.py, a stdlib-unittest
+      file in the same shape as test-factory-config.py, building fixture trees under
+      tempfile.TemporaryDirectory.
+
+      HOW A FIXTURE BECOMES THE HARNESS ROOT, since resolve() takes only a session root and gets
+      the harness root from factory_config.harness_root(): that function returns
+      os.environ["CLAUDE_PROJECT_DIR"] when that directory holds a readable docs/harness/SPEC.md,
+      and otherwise derives the root from its own file location. So each fixture root must contain
+      docs/harness/SPEC.md, and each test sets CLAUDE_PROJECT_DIR to that fixture root and
+      restores the previous value in a finally block — the same save-set-restore shape
+      test-factory-config.py already uses for this variable. Do NOT add a root= parameter to
+      resolve(); the public surface is fixed at three names and a second way to name the control
+      plane is exactly the disagreement D-02 exists to prevent.
+      No test may depend on this repository's own fleet.yaml.
+      Cases, one test method each, and each raising case asserts on the raised message text as
+      well as the type:
+        - session root IS the harness root, fleet absent -> source harness
+        - session root IS the harness root, fleet present -> source harness
+        - session root IS the harness root and the harness's own .harness/harness.json is MISSING
+          -> ProductConfigError whose message names the harness CONFIG path
+          (<fixture root>/.harness/harness.json), and assert it is that config path and NOT the
+          session root. The fixture root still carries docs/harness/SPEC.md, which is what
+          factory_config.harness_root() keys on, so step 3 is reached and step 6 is the raiser.
+          Nothing else forces this branch: without this case a resolver that returned an empty
+          mapping here would pass the whole suite
+        - same fixture, harness.json PRESENT but malformed JSON, and a third case where it parses
+          to a LIST rather than a mapping -> ProductConfigError naming that same config path in
+          both. Missing and unreadable are separate code paths (existence versus parse), so one
+          case leaves the other unasserted
+        - session root inside workspace_root under a registered repo WITH a product config ->
+          source product, and the returned config is the product file's content, asserted by a
+          sentinel key that exists ONLY in the product file
+        - same, and assert the returned config is NOT the harness config, by asserting the harness
+          file's own sentinel key is absent
+        - FIXTURE INDEPENDENCE: a fixture fleet declaring a repository name that appears in NO
+          entry of this repository's live .harness/factory/fleet.yaml, resolving to that fixture's
+          own product config. This case fails outright if the module ever reads FLEET_PATH instead
+          of the explicit path, which is the failure mode that would otherwise make every case
+          above pass for the wrong reason
+        - registered repo, product config MISSING -> ProductConfigError whose message names the
+          missing CONFIG path, and assert it is the config path and not the session root
+        - checkout under workspace_root registered nowhere -> ProductConfigError
+        - a products directory present for a name that is NOT in fleet.yaml, session rooted in a
+          sibling registered checkout -> the orphan is never returned
+        - workspace_root sibling whose name shares a prefix with a registered repo
+          (kaya-ai-old beside kaya-ai) -> ProductConfigError, not a false match
+        - NESTED CHECKOUTS: two registered repos whose workspace paths nest, the session rooted in
+          the inner one -> the INNER repo's config answers, not the outer's. This is the
+          longest-match-wins rule and it is the one D-02's merit rests on
+        - product config present but malformed JSON -> ProductConfigError naming the file
+        - session root outside BOTH the harness root and workspace_root, fleet PRESENT ->
+          ProductConfigError, never source harness. Assert the message names both roots
+        - session root outside the harness root and fleet ABSENT -> ProductConfigError, never
+          source harness. This is the case an earlier draft answered "harness" for, and without
+          it the outside-both criterion passes over the hole
+        - fleet present but MALFORMED (unparseable YAML, or a repos entry missing its board) ->
+          ProductConfigError naming the fleet path, never a fall-through to the harness config
+        - resolve's own consistency: across the harness-source and product-source cases, assert
+          product is None if and only if source == "harness"
+        - the LIVE kaya config in this repository, located as
+          os.path.join(factory_config.harness_root(), ".harness", "products", "kaya-ai",
+          "harness.json") — NOT a path relative to the process working directory, which is correct
+          only under run-unit-tests.sh and wrong under a direct invocation. Assert: every value in
+          that file's test_kinds is a MAPPING (a string sibling would break every consumer that
+          iterates the object); every kind named in any change type's always list exists in that
+          file's own test_kinds; every when clause names either an existing kind or a predicate
+          placeholder beginning with a double underscore; and bugfix.always does not contain
+          __bug_class__. This is the permanent proof of the matrix-closure criterion; the same
+          assertions exist as a one-shot command on T-02 and that command dies with the task, so
+          this case is what survives to be cited
+        - GUARD AGREEMENT, nested fixture only: import harness_boundary and assert that
+          harness_boundary.select_base picks the SAME base, for the same session root, as the
+          resolver's own longest-match step on the NESTED-checkout fixture above. Every input is
+          an argument, so the fixture drives it with no monkeypatching:
+          select_base(abs_target, root, workspace_root, workspace_bases, fleet_path, label) — pass
+          the realpath'd session root as abs_target (containment is the same test for a target as
+          for a session root), the FIXTURE's harness root as root, the fixture's workspace_root and
+          its realpath'd registered bases, and the fixture fleet path. It returns a 3-TUPLE; the
+          base is element 0, and that is what the assertion compares. The import is
+          READ-ONLY and lives in the test file alone — factory_product_config.py itself still must
+          NOT import it (D-08 stands: the rule is copied, not shared). Scope this to the nested
+          case and to no other: select_base calls sys.exit(2) on the unregistered-checkout branch,
+          so pointing it at the registered-nowhere fixture aborts the test process rather than
+          failing a case. This case deliberately couples the resolver's tests to select_base's
+          signature — that coupling is the point, because it is what turns a future divergence
+          between the two containment implementations into a reddening test instead of a silent
+          drift
+        - CLI SURFACE, four cases against main() rather than resolve(), because SC-12 is uat and
+          ships not_met, so without these the CLI has no build-time proof at all:
+            - a success invocation returns exactly three top-level keys in its one JSON line and no
+              others: product, config_path, source. Assert the key SET, not just presence, so an
+              extra key is a failure — T-07's rewired qa gate reads config_path out of this payload
+            - on the harness branch the payload's product is JSON null, present as a key rather
+              than omitted
+            - --which-config with a RELATIVE path (".") invoked with the process working directory
+              set to the fixture root resolves the same as the absolute path does. DESIGN Contract
+              5 accepts a relative path and nothing else asserts it
+            - one refusal branch (a checkout registered nowhere) exits 2 with EMPTY stdout, the
+              diagnostic going to stderr, per factory_cli.run's contract
+
+      Finally register the new file in .claude/skills/harness/bin/run-unit-tests.sh by appending
+      "test-factory-product-config.py" to the UNIT_SCRIPTS array. The runner's drift detector runs
+      over the union of both arrays and fails the WHOLE run on an unregistered test file, so this
+      registration belongs in this task and not a later one.
+
+  - id: T-02
+    title: Write the central config for mruangutai/kaya-ai
+    traces: [REQ-01, REQ-05]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for .harness/products/** at 63b83c7 (DEC-179)
+    depends_on: []
+    status: pending
+    files:
+      - .harness/products/kaya-ai/harness.json
+    verify: |
+      python3 - <<'PY'
+      import json, sys
+      d = json.load(open(".harness/products/kaya-ai/harness.json"))
+      kinds = set(d["test_kinds"])
+      bad = []
+      for ct, spec in d["test_matrix"].items():
+          for k in spec.get("always", []):
+              if k not in kinds:
+                  bad.append(ct + ".always names " + k)
+          for w in spec.get("when", []):
+              if w["kind"] not in kinds and not w["kind"].startswith("__"):
+                  bad.append(ct + ".when names " + w["kind"])
+      if "github" not in d or d["github"].get("repo") != "mruangutai/kaya-ai":
+          bad.append("github.repo is not mruangutai/kaya-ai")
+      for name, spec in d["test_kinds"].items():
+          if name.startswith("_"):
+              bad.append("test_kinds carries a note key " + name + "; notes go at top level")
+              continue
+          if not isinstance(spec, dict):
+              bad.append(name + " is not a mapping")
+          elif spec.get("status") != "unresolved":
+              bad.append(name + " status is " + repr(spec.get("status"))
+                         + ", must be unresolved (D-03 option A, DEC-187)")
+      if "_test_kinds_note" not in d:
+          bad.append("no top-level _test_kinds_note")
+      print("\n".join(bad) if bad else "OK")
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Create .harness/products/kaya-ai/harness.json — the central config for the repository
+      registered in .harness/factory/fleet.yaml as mruangutai/kaya-ai. The directory name kaya-ai
+      is the segment after the slash, matching factory_config.workspace_path.
+
+      This is a REAL config, not a fixture. Start from
+      .claude/skills/harness/templates/examples/harness.kaya-ai.json — copy its test_kinds and
+      test_matrix — then make exactly the changes below. Do not copy its _comment key.
+
+      CHANGE 1, mandatory under every option of D-03. The example's bugfix.always is
+      ["__bug_class__"]. __bug_class__ is a predicate placeholder that exists in no test_kinds, so
+      kaya's bugfix change type can never resolve — DEC-187 names this file and this defect by
+      name. Write bugfix as always ["unit"] with a when clause of kind __bug_class__ and if
+      match_bug_class, which is the shape .harness/harness.json already uses for the same
+      predicate.
+
+      CHANGE 2, D-03 option A. Add a "status" key to every entry in test_kinds with the value
+      "unresolved". Nobody has run kaya's commands from this repository and this effort does not
+      clone kaya, so "active" would be a claim that a cmd was run and seen pass when it was not.
+      Add a note key "_test_kinds_note" at the TOP LEVEL of the file, a sibling of test_kinds and
+      NOT a key inside it — the same placement .harness/harness.json already uses for its own
+      note. Every consumer that iterates test_kinds expects each value to be a mapping, and a
+      string sibling inside that object hands each of them a value they cannot read. One
+      sentence: the statuses are unresolved because no kind's cmd has been run from the control
+      plane, and DEC-187 closure is resolved at the first factory run against this repository.
+      test_kinds itself must contain NO key beginning with an underscore.
+
+      CHANGE 3. Add a "github" block with EXACTLY two keys, because project and repo data belongs
+      with the product:
+        sync: true
+        repo: "mruangutai/kaya-ai"
+
+      DO NOT add a board block here. Kaya's board is already declared in .harness/factory/fleet.yaml
+      under its repos entry, where FEAT-16 put it and where factory_config._validate_board already
+      requires owner, number and station_field. Copying it into this file would put one board in two
+      files with nothing checking that they agree — which is the precise defect this whole feature
+      exists to remove, reintroduced in the file that removes it. A product's board lives in
+      fleet.yaml and nowhere else.
+
+      CHANGE 4. Carry schema_version and cli_min_version across from the example unchanged.
+
+      DO NOT add budgets, gates, log_retention_days or team-config data. Those are harness runtime
+      metadata and stay in .harness/harness.json (D-01). The example's "gates" key is NOT copied.
+
+      Do not modify .claude/skills/harness/templates/examples/harness.kaya-ai.json. It stays as the
+      template example it is; this new file is the live config.
+
+  - id: T-03
+    title: Rewrite harness-init's skill for the central model
+    traces: [REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at 63b83c7 (DEC-179)
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness-init/SKILL.md
+    verify: |
+      python3 - <<'PY'
+      import re, subprocess, sys
+      P = ".claude/skills/harness-init/SKILL.md"
+      cur = open(P).read()
+      old = subprocess.run(["git", "show", "63b83c7:" + P], capture_output=True, text=True).stdout
+      def steps(t):
+          out, k, buf = [], None, []
+          for ln in t.splitlines():
+              if re.match(r"^#{2,3} ", ln):
+                  if k is not None: out.append((k, "\n".join(buf)))
+                  m = re.match(r"^### \d+\. (.*)$", ln)
+                  k, buf = (m.group(1), []) if m else (None, [])
+              elif k is not None: buf.append(ln)
+          if k is not None: out.append((k, "\n".join(buf)))
+          return out
+      o, n = steps(old), steps(cur)
+      body = cur.partition("## Fresh init")[2].partition("\n## ")[0]
+      bad = [] if len(o) == 9 else ["baseline did not parse to 9 steps, this check cannot run"]
+      if len(n) != 7: bad.append("expected 7 steps after the rewrite, found %d" % len(n))
+      else: bad += ["kept step %d changed" % (i + 3) for i, (w, g) in enumerate(zip(o[2:8], n[1:])) if w != g]
+      bad += ["survives in Fresh init: " + g for g in ("eight prerequisites", "restart") if g in body]
+      bad += ["red-flag row survives: " + g for g in ("must restart before anything works", "Not until they restart") if g in cur]
+      bad += ["Fresh init never names " + g for g in ("fleet.yaml", ".harness/products/") if g not in body]
+      print("\n".join(bad) or "OK"); sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Rewrite .claude/skills/harness-init/SKILL.md so it describes what the factory actually does.
+      At 63b83c7 the file is 286 lines with nine numbered steps under "## Fresh init".
+
+      DELETE these three steps entirely, heading and body:
+        - step 1, "Install the eight prerequisites"
+        - step 2, "Scaffold .harness/ from the templates"
+        - step 9, "Verify, then warn about the restart"
+      They describe writing into a product repository, which the factory no longer does. The
+      prerequisite gate itself is not deleted from the world — it is a control-plane concern and
+      the "## Preflight" section above the steps already carries the stop-if-this-fails framing.
+      Leave "## Preflight" alone.
+
+      ADD a new step 1, "Register the repository with the factory". Its body:
+        - the operator adds a repos entry to .harness/factory/fleet.yaml in the harness repository,
+          with name as owner/repo, default_branch, and a board block carrying owner, number and
+          station_field (all three required — a board without station_field fails loudly, because
+          DEC-192 prescribes the six station values but nothing prescribes the field name holding
+          them), plus a stations mapping since a product board may name its columns anything
+        - then a central config at .harness/products/<repo segment after the slash>/harness.json,
+          holding that repository's test_matrix, test_kinds and github block
+        - state plainly that nothing is written into the product repository at all
+        - state that the config a session resolves can be checked by running
+          .claude/skills/harness/bin/factory_product_config.py with --which-config and a path,
+          which accepts a relative path so a dot works from inside the checkout. Name the tool
+          with the flag every time: check-domain.sh has its own --resolve answering a different
+          question, and a bare flag name is ambiguous between the two (D-07)
+
+      RENUMBER the six surviving steps from 3-8 to 2-7, changing ONLY the digit in each heading.
+      Their heading TEXT after the digit, and their bodies, stay BYTE FOR BYTE what they are at
+      63b83c7. Do not tidy them, do not reflow them, do not fix a typo in them. The file must end
+      with exactly seven numbered steps: the new step 1, then the six survivors in their original
+      order. The result is a deliberate
+      hybrid — its first step central, its later steps still writing into the product — and that
+      hybrid is the signed outcome of the grilling, chosen over leaving the page instructing a
+      reader to do a thing the factory no longer does. A partial rewrite of steps 3 to 8 would be
+      scope creep, and the verify command for this task compares them against the 63b83c7 blob and
+      fails on any difference.
+
+      The two UNNUMBERED subsections that sit between the numbered steps — the one about mapping
+      the codebase and the one about the GitHub Issues mirror — are left completely untouched.
+      They are not steps, the verify command does not parse them, and nothing in this task moves
+      or reworks them.
+
+      Add one short paragraph directly under "## Fresh init" saying the skill is mid-migration:
+      registration is central, the later steps still address a product checkout, and the remaining
+      re-homing is a later effort.
+
+      Leave the "## --upgrade" section untouched. Whether --upgrade applies to a product config is
+      explicitly out of scope for this feature.
+
+      TWO ROWS IN "## Red flags" MUST GO, because they instruct a user about a step this task
+      deletes: the row whose reality column reads that only newly-written agent files need the
+      restart, and the row whose thought column is that they can run a team now. Both are keyed to
+      the deleted step 9. Remove those two rows and nothing else in that table.
+
+      The word "restart" also appears once inside step 2, which is deleted with the step. After
+      this task the "## Fresh init" section must contain neither "restart" nor "eight
+      prerequisites", and must contain both "fleet.yaml" and ".harness/products/". The verify
+      command asserts exactly that, scoped to that section so the untouched parts of the file are
+      not dragged into the check.
+
+  - id: T-04
+    title: Add the product config location to the .harness layout record
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .harness/README.md
+    verify: |
+      grep -q 'products/' .harness/README.md && test -f .harness/products/kaya-ai/harness.json
+    intent: |
+      .harness/README.md is the layout record — what each thing under .harness/ holds and who
+      writes it. It has a table whose harness.json row reads test_matrix, test_kinds, gates,
+      budgets, log_retention_days, written by /harness-init and dev-ops.
+
+      Add a row for products/<repo>/harness.json. What it holds: a registered repository's own
+      test_matrix, test_kinds and github block. Who writes it: the operator, when registering the
+      repository with the factory.
+
+      Amend the harness.json row in the same edit so the two rows do not contradict each other:
+      harness.json holds harness runtime metadata — budgets, gates, log_retention_days,
+      schema_version, cli_min_version — and, by the exception recorded as this feature's D-01, this
+      repository's OWN test_matrix, test_kinds and github block. Say the exception is an exception
+      in one clause: harness is the control plane and is deliberately absent from fleet.yaml, so it
+      has no product entry to hold them.
+
+      Add one sentence after the table: which config answers for a session is resolved by
+      .claude/skills/harness/bin/factory_product_config.py, and by nothing else joining a path by
+      hand.
+
+      Do not restate the resolution algorithm here. The README is a layout record, not a spec.
+
+  - id: T-05
+    title: Record the central product config decision in the authority and its index
+    traces: [REQ-01, REQ-02, REQ-04]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01, T-02, T-03]
+    status: pending
+    files:
+      - docs/harness/DECISIONS.md
+      - docs/harness/DECISIONS-INDEX.md
+    verify: |
+      python3 - <<'PY'
+      import re, subprocess, sys
+      A = open("docs/harness/DECISIONS.md").read()
+      I = open("docs/harness/DECISIONS-INDEX.md").read()
+      new = [int(m) for m in re.findall(r"^## DEC-(\d+) ", A, re.M) if int(m) > 193]
+      bad = []
+      if not new: bad.append("no decision above DEC-193 was appended to the authority")
+      for n in new:
+          if not re.search(r"^- DEC-%d @" % n, I, re.M):
+              bad.append("DEC-%d has no index row" % n)
+          elif " :: " not in re.search(r"^- DEC-%d @.*$" % n, I, re.M).group(0):
+              bad.append("DEC-%d row carries no hand-written ruling" % n)
+      g = subprocess.run(["python3", ".claude/skills/harness/bin/gen-decisions-index.py",
+                          "--stdout"], capture_output=True, text=True)
+      if g.returncode or g.stdout != I:
+          bad.append("the index is not what the generator produces")
+      print("\n".join(bad) or "OK"); sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Append one new decision entry to docs/harness/DECISIONS.md, numbered one above the highest
+      existing entry — read the file's last heading to get that number rather than assuming it, and
+      use the exact heading shape the neighbouring entries use.
+
+      Its title states the ruling: a registered repository is configured centrally at
+      .harness/products/<repo>/harness.json, resolution is derived from the session's position
+      under workspace_root, and a registered repository with no config refuses rather than falling
+      back.
+
+      The body must carry, and nothing else:
+        - the rule, in the operator's own terms: harness.json holds harness runtime metadata, while
+          project, repo and GitHub data belongs with the product
+        - the named exception and why it exists: mruangutai/harness is deliberately absent from
+          fleet.yaml because the absence is what makes a workspace checkout of harness exit 2
+          rather than resolve to NOBODY. Satisfying the rule for harness would require an entry,
+          which makes a guard quieter, so harness keeps its own project data local. Cite DEC-174
+          am.1 for the absence.
+        - the resolution rule as one paragraph, and the rejected alternatives with the reason each
+          was declined, so a future scan does not re-propose them: a marker file in the product
+          checkout (repos carry almost nothing of the harness), an env override (an override that
+          can silently point a session at the wrong product's matrix), and a second key on the
+          fleet entry (two things that could disagree with the guard about which product a path
+          belongs to)
+        - the no-fallback rule, stated as the load-bearing half: a registered repository with no
+          product config raises, and never returns the harness config. A silent fallback to the
+          control plane's own test matrix is the worst outcome the mechanism can produce
+        - the per-directory naming rule and its measured reason: the segment after the slash,
+          because glob_to_re translates a single star to a character class that cannot cross a path
+          segment, so a two-segment product path would force every future domain glob over it to
+          use a double star. Record the inherited collision — two owners with the same repo name
+          collide, which is already true of workspace_root — as accepted, not fixed
+        - the three board keys ruled per key: number required because nothing else identifies a
+          board; owner required rather than derived from the repo owner, because deriving it for
+          one repository and reading it for another is two rules for one field; station_field
+          required and validated, because DEC-192 prescribes the six station values but not the
+          field name holding them, and a pinned field name is a string that otherwise goes stale
+          in silence.
+          STATE PLAINLY THAT ALL THREE ARE ALREADY ENFORCED FOR A PRODUCT BOARD and that this
+          entry records why, rather than adding enforcement. Verify it before writing it:
+          factory_config._validate_board raises FleetError on a missing or empty owner, on a
+          number that is not an int, and on a missing or empty station_field. Do not write that
+          this ruling makes anything newly required — that claim is false about the code and an
+          earlier draft of this plan carried it
+        - the residual this ruling does NOT close, named so nobody reads the entry as closing it:
+          on HARNESS's own board, gh_board.load_board returns None when owner, number or
+          station_field is missing or empty. Not configured, not an error — station writes are
+          silently skipped. No task in FEAT-19 changes that
+        - the containment rule is COPIED, not shared, and that is an accepted divergence: the
+          resolver states longest-match-wins itself rather than importing
+          harness_boundary.select_base's containment, because sharing would change a file both
+          write guards import and that DEC-193 names as the one shared rule. Record what a future
+          change must do: a change to the guard's containment rule has to be mirrored in the
+          resolver by hand. Record the mitigation too, and do not overstate it:
+          test-factory-product-config.py imports select_base read-only and asserts the two
+          implementations agree on the NESTED-checkout fixture, so a divergence on that shape
+          reddens the unit suite. It is one fixture, not a proof of general agreement, and the
+          mirroring is still a hand edit
+        - the inherited platform behaviour, so it is not rediscovered as a defect: containment is
+          commonpath over realpath'd paths, which compares case-sensitively while APFS is
+          case-insensitive by default, so a session root spelled with different case refuses
+          rather than resolving, and a symlinked product checkout that realpaths outside the
+          workspace also refuses. Both fail closed, both are exactly what the write guard already
+          does, and both are inherited rather than introduced here
+        - the consumer scope, because the alternative is a reader assuming the wiring is complete:
+          this effort rewires the qa gate only. gh-sync.py still joins .harness/harness.json for
+          github data, and rewiring it is a named follow-on, not an oversight
+        - the flag name and why: the resolver's CLI flag is --which-config, because
+          check-domain.sh --resolve already answers which agent owns a path, in plain text
+          including the literal NOBODY, and a second --resolve answering which config file
+          applies, in JSON, would be a homonym on an adjacent tool. Documentation naming the flag
+          names the tool with it
+        - the accepted cost, stated plainly: kaya's test kinds ship with status unresolved, so
+          DEC-187 closure is not satisfied for kaya until someone runs its commands from a real
+          checkout. That is DEC-187 working as designed, and nothing active will prompt it
+
+      Then add the matching row to docs/harness/DECISIONS-INDEX.md. Everything before the double
+      colon on a row is generated and everything after it is hand-written and preserved across
+      regeneration: run .claude/skills/harness/bin/gen-decisions-index.py with no arguments to
+      rewrite the index in place, then write the ruling text after the double colon by hand. There
+      is no --check flag on that script; the drift form is --stdout piped into diff, which is what
+      this task's verify runs. Tag the row with plan, state, github and domain, and list the
+      references DEC-174, DEC-187, DEC-192 and DEC-193 in its refs graph.
+
+      Do not amend or strike any existing entry. DEC-174 am.1 stays exactly as it is — this
+      decision records an exception that preserves it, not a change to it.
+
+  - id: T-06
+    title: Remove the temporary-placement claim from harness.json's board note
+    traces: [REQ-09]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-05]
+    status: pending
+    files:
+      - .harness/harness.json
+    verify: |
+      python3 - <<'PY'
+      import json, sys
+      P = ".harness/harness.json"
+      raw = open(P).read()
+      bad = []
+      for token in ("PLACEMENT IS TEMPORARY", "moves github, test_matrix and test_kinds"):
+          if token in raw:
+              bad.append("the temporary-placement claim survives: " + token)
+      d = json.load(open(P))
+      note = d.get("github", {}).get("board", {}).get("_note", "")
+      if not note:
+          bad.append("positive control failed: github.board._note is absent or empty")
+      elif "resolved BY NAME" not in note:
+          bad.append("positive control failed: the note no longer explains name resolution")
+      for k in ("test_matrix", "test_kinds", "github"):
+          if k not in d:
+              bad.append("D-01 option A keeps " + k + " in harness.json, and it is gone")
+      print("\n".join(bad) or "OK"); sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      .harness/harness.json's github.board._note ends with a sentence asserting that the placement
+      of github, test_matrix and test_kinds in that file is temporary and that issue 206 moves
+      them to the product. This feature's D-01 rules the opposite: harness keeps its own project
+      data in .harness/harness.json, because harness is the control plane and is deliberately
+      absent from fleet.yaml, so it has no product entry to hold them. Ship the feature without
+      this edit and the file asserts the negation of the decision the same feature signs.
+
+      Edit github.board._note only. Delete the final sentence beginning "PLACEMENT IS TEMPORARY"
+      and replace it with one sentence stating that this block stays here by ruling: harness's own
+      project data lives in this file because harness is deliberately absent from
+      .harness/factory/fleet.yaml, while a registered repository's config lives at
+      .harness/products/<repo>/harness.json. Cite the decision by its number, which T-05 has
+      already appended to docs/harness/DECISIONS.md — read the entry's number from that file
+      rather than guessing it, and do not invent a number.
+
+      Everything else in the note is a measured statement about how the board's three keys are
+      resolved by name and why no ids are pinned. Leave every one of those sentences byte for
+      byte as they are, and change no other key anywhere in the file.
+
+  - id: T-07
+    title: Rewire the qa gate to take its matrix from the resolver
+    traces: [REQ-02, REQ-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-qa-gate/SKILL.md at 63b83c7 (DEC-179)
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness-qa-gate/SKILL.md
+    verify: |
+      python3 - <<'PY'
+      import sys
+      P = ".claude/skills/harness-qa-gate/SKILL.md"
+      t = open(P).read()
+      head = "### 3. Look up required kinds"
+      bad = []
+      if head not in t:
+          bad.append("positive control failed: the look-up section is gone")
+      else:
+          sec = t.split(head, 1)[1].split("\n### ", 1)[0]
+          if "factory_product_config.py" not in sec:
+              bad.append("the look-up section does not name the resolver")
+          if "--which-config" not in sec:
+              bad.append("the look-up section does not name the flag")
+          if "harness.json" in sec:
+              bad.append("the look-up section still names a config file directly")
+          if "floor, not a ceiling" not in sec:
+              bad.append("positive control failed: the floor-not-a-ceiling rule was dropped")
+          if "reproduces the bug" not in sec:
+              bad.append("positive control failed: the bugfix regression rule was dropped")
+      print("\n".join(bad) or "OK"); sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      This is the task that gives the resolver a consumer. Without it the mechanism FEAT-19 builds
+      is called by nothing and the feature's Goal is reached by no task in the plan (D-06).
+
+      In .claude/skills/harness-qa-gate/SKILL.md, rewrite the section headed
+      "### 3. Look up required kinds" and nothing else outside the two spots named at the end.
+
+      Today that section opens by telling qa to read test_matrix and test_kinds from
+      .harness/harness.json — a hand-joined path, which is correct only when the session under
+      test is the harness repository itself. For a session in a registered product's checkout it
+      is the wrong file, silently: harness's matrix would demand kinds whose runners do not exist
+      in that repository.
+
+      Replace that instruction with this one, keeping the section's voice and its brevity:
+        - resolve the config for the session under test by running
+          .claude/skills/harness/bin/factory_product_config.py with --which-config and the path of
+          the checkout under test. Name the tool with the flag: check-domain.sh has its own
+          --resolve answering a different question (D-07)
+        - the command prints one JSON line carrying source, config_path and product. Read
+          test_matrix and test_kinds from the file named by config_path
+        - if the command exits non-zero, STOP and say so, quoting its stderr line. A refusal means
+          the session's config could not be identified, and inventing a matrix — or falling back
+          to the harness repository's own — is the failure the resolver exists to prevent. This
+          replaces today's "if it is absent, stop and say so", which covered only one of the ways
+          resolution can fail
+        - state that config_path is the authority and is applied as read, never restated or
+          paraphrased here
+
+      KEEP, unchanged in substance and in place within the section: the floor-not-a-ceiling rule
+      (the phrase "floor, not a ceiling" must survive verbatim) and the bugfix rule that the
+      required test is a regression test which reproduces the bug, matching its class (the phrase
+      "reproduces the bug" must survive verbatim). The sentence that today says "The matrix in
+      harness.json is the authority" is the one being reworded — its parenthetical about a
+      hardcoded copy having already drifted from the config stays, because it is the reason the
+      rule exists.
+
+      No mention of harness.json may survive inside this section. The point of the change is that
+      qa no longer knows the name of any config file; it knows the resolver.
+
+      ONE SPOT OUTSIDE THE SECTION, and no others. In "### 5", the misconfigured-cmd message
+      names the fix location as .harness/harness.json — change it to the resolved config file,
+      named by config_path, since for a product the cmd is defined in that repository's config
+      and not in harness's. Leave the rest of that sentence, and the whole of every other section,
+      exactly as it is.

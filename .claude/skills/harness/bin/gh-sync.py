@@ -169,7 +169,7 @@ def _apply_parent_rule(feat_dir, repo, board):
     from which subcommand called it, because that would make the subcommand a second status
     record, which is exactly the drift D-03 removes.
     """
-    if _feature_status(feat_dir) == "Done":
+    if _feature_status(feat_dir) in ("Done", "Abandoned"):
         # Terminal exemption: `ship` already closed the parent and GitHub's own Item
         # closed workflow landed it in Done; the derivation would still say Review.
         return

@@ -402,7 +402,9 @@ def process_plan(path, findings):
 # so a future value could join it without changing the comparison below. Do NOT add
 # "shipped" or "abandoned" back as aliases — that would be the old-to-new mapping layer
 # D-09 forbids.
-FINISHED_STATUSES = ("Done",)
+# `Abandoned` joins `Done` here: a plan that will never be executed is not actionable,
+# which is the same reason shipped plans are skipped. Added 2026-08-14 with the enum.
+FINISHED_STATUSES = ("Done", "Abandoned")
 
 # A DIFFERENT VOCABULARY FROM THE ONE ABOVE, deliberately placed beside it so a reader
 # sees both and does not conflate them. FINISHED_STATUSES is the board's feature.json

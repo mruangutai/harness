@@ -87,7 +87,21 @@ def has_approval_block(txt):
 # a freshly-onboarded project legitimately has zero features yet.
 if not os.path.isfile(os.path.join(H, "harness.json")):
     bad.append(".harness/harness.json missing — not onboarded (or half-onboarded). Run /harness-init.")
+# AN ABANDONED FEATURE'S BRIEF IS NEVER APPROVED, and that is the point rather than a
+# defect: it was planned and retired without being signed. Halting /harness entry over an
+# unapproved brief on a feature nobody will build trains the operator to ignore the gate,
+# which is the failure a gate exists to prevent. Read from feature.json, not inferred.
+_abandoned = set()
+for _f in sorted(os.listdir(os.path.join(H, "features"))) if os.path.isdir(os.path.join(H, "features")) else []:
+    try:
+        _fj_p = os.path.join(H, "features", _f, "feature.json")
+        if os.path.isfile(_fj_p) and json.load(open(_fj_p, encoding="utf-8")).get("status") == "Abandoned":
+            _abandoned.add(_f)
+    except Exception:
+        pass   # unreadable feature.json is INV-6's finding, not this loop's
 for feat, brief in briefs.items():
+    if feat in _abandoned:
+        continue
     if not has_approval_block(brief):
         bad.append(f"{feat}/BRIEF.md has no '## Approval' section — cannot tell if the goal is signed.")
     elif not approved(brief):
@@ -460,7 +474,9 @@ import subprocess
 # above. It is left that way deliberately: status is schema-required with a closed value
 # set, so an unknown value is already denied at write time, and adding a branch here would
 # be a second enforcement point for a rule the schema owns.
-STATUS_ORDER = ["Backlog", "Plan", "Ready", "Building", "Review", "Done"]
+# Despite the name, STATUS_ORDER is used as a SET — `:548` tests membership and nothing
+# indexes it. So `Abandoned` sitting at the end implies no progression past `Done`.
+STATUS_ORDER = ["Backlog", "Plan", "Ready", "Building", "Review", "Done", "Abandoned"]
 SEAM_NOTES = {
     "Backlog":  [],
     "Plan":     [],
@@ -468,6 +484,12 @@ SEAM_NOTES = {
     "Building": ["plan"],
     "Review":   ["plan", "build"],
     "Done":     ["plan", "build", "validate"],
+    # ABANDONED REQUIRES NO HANDOFF, and that is the whole difference from Done. A feature
+    # planned and never built crossed no seam, so there is no honest handoff note to write
+    # and none will be fabricated. Listed EXPLICITLY rather than omitted: an omitted status
+    # falls through `:548`'s membership test and skips the feature silently, which is the
+    # shape the comment above that line already flags.
+    "Abandoned": [],
 }
 HANDOFF_HEADINGS = ["## next", "## trust", "## dead ends", "## working set"]
 
@@ -1137,7 +1159,7 @@ if _inv26_board:
                 _fj = json.load(open(os.path.join(_fp, "feature.json"), encoding="utf-8"))
             except Exception:
                 _fj = {}
-            if str(_fj.get("status") or "").split()[:1] == ["Done"]:
+            if str(_fj.get("status") or "").split()[:1] in (["Done"], ["Abandoned"]):
                 continue
 
             _derived = _gb.derive_station(_pdoc)
