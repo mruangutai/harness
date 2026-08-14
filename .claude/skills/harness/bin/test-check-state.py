@@ -1492,6 +1492,61 @@ def case_v():
     return allok
 
 
+def case_w():
+    """ABANDONED: the terminal state for a feature planned and never built (2026-08-14).
+
+    THE NON-VACUITY PAIR IS THE POINT. w.1 and w.2 differ in ONE byte-range — the status
+    value — and nothing else. An abandoned feature's BRIEF is never approved BY DESIGN, so
+    the exemption must silence that violation; but an exemption that silenced it for every
+    feature would be the same blindness facing the other way, which w.2 is here to catch.
+
+    FEAT-19 was the first: planned, reviewed through three engineering passes, retired
+    unsigned when map #336 superseded its scope. Before this, the enum had no terminal
+    state for that, and every one of the 18 features on disk was Done.
+    """
+    results = []
+
+    def build(status):
+        tmp = tempfile.mkdtemp()
+        h = os.path.join(tmp, ".harness")
+        fd = os.path.join(h, "features", "FEAT-Z")
+        os.makedirs(fd, exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write(HARNESS_JSON_SYNC_OFF)
+        with open(os.path.join(h, "team-config.yaml"), "w") as f:
+            f.write("agents: {}\n")
+        json.dump({"feature_id": "FEAT-Z", "branch": "b", "pr": None,
+                   "status": status, "review_sha": "abc1234",
+                   "cycles_used": 0, "max_total_cycles": 10, "runs": []},
+                  open(os.path.join(fd, "feature.json"), "w"))
+        with open(os.path.join(fd, "BRIEF.md"), "w") as f:
+            f.write("# BRIEF\n\n## Approval\n\nstatus: pending\n")
+        return tmp
+
+    def approval_lines(tmp):
+        env = dict(os.environ); env["CLAUDE_PROJECT_DIR"] = tmp
+        r = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
+        return [l for l in r.stdout.splitlines() if "NOT approved" in l]
+
+    # w.1 ABANDONED: the unapproved brief must NOT be reported.
+    ls = approval_lines(build("Abandoned"))
+    results.append(("(w.1) an Abandoned feature's unapproved BRIEF raises NOTHING",
+                    not ls, "\n".join(ls)))
+
+    # w.2 THE TWIN: same fixture, status Plan. It MUST be reported, or w.1 proves nothing.
+    ls = approval_lines(build("Plan"))
+    results.append(("(w.2) the same fixture at status Plan IS reported",
+                    any("FEAT-Z" in l for l in ls), "\n".join(ls) or "(no line)"))
+
+    allok = True
+    for name, ok, detail in results:
+        print(f"{'ok' if ok else 'FAIL'} - {name}")
+        if not ok and detail:
+            print("      " + detail.replace("\n", "\n      "))
+        allok = allok and ok
+    return allok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -1517,6 +1572,7 @@ def main():
     ok_t = case_t()
     ok_u = case_u()
     ok_v = case_v()
+    ok_w = case_w()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -1525,7 +1581,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

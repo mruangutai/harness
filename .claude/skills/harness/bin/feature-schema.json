@@ -29,8 +29,8 @@
     },
     "status": {
       "type": "string",
-      "enum": ["Backlog", "Plan", "Ready", "Building", "Review", "Done"],
-      "description": "The feature's position on the GitHub board, spelled and CASED exactly like the board's own column names — D-11 makes the comparison case sensitive, so no lowercase alias is legal. Read by check-plan-routes.py's finished-feature skip and by check-state.sh INV-17's seam table."
+      "enum": ["Backlog", "Plan", "Ready", "Building", "Review", "Done", "Abandoned"],
+      "description": "The feature's position on the GitHub board, spelled and CASED exactly like the board's own column names — D-11 makes the comparison case sensitive, so no lowercase alias is legal. Read by check-plan-routes.py's finished-feature skip and by check-state.sh INV-17's seam table. `Abandoned` is the one value with NO board column: it is the terminal state for a feature that was planned and never built, added 2026-08-14 when FEAT-19 became the first. It is terminal like `Done` everywhere terminality is tested, but unlike `Done` it asserts no seam was crossed, so it requires no handoff notes and its BRIEF need never be approved."
     },
     "review_sha": {
       "type": "string",
