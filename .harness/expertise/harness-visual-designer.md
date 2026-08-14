@@ -13,6 +13,12 @@
 - P-04: WHEN writing a cross-file pointer DO anchor it on a heading or unique string, never a line
   number. Targets move inside a single run and your own edits are a common cause, so a numeric
   anchor rots while the content it points at is intact.
+- P-05: WHEN the values a contract would state are already pinned normatively elsewhere and
+  something machine-couples to them — greps, parsers, assertions — DO decline to restate them and
+  point at the pinned copy instead. A duplicate turns one reword into an N-place edit.
+- P-06: WHEN you scope yourself out and every deliverable is n/a DO still review the surface inside
+  your remit and return findings on it. Declining to produce an artifact is not declining to judge;
+  a null return is the tempting failure at exactly that spawn.
 
 ## Gotchas (max 15)
 

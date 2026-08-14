@@ -5,9 +5,9 @@
 - P-02: WHEN dispatching any validator run DO re-pin `review_sha` at a commit that CONTAINS the work
   under review, and move the pin again after every commit. An inherited pin from an earlier phase
   reviews a tree the work is absent from and returns PASS on nothing.
-- P-03: WHEN a plan cites a line number inside `feature.yaml` DO treat the anchor as already rotten and
-  cite the FIELD instead — the orchestrator rewrites that file every run, so nobody can keep the
-  reference true.
+- P-03: WHEN your dispatch asserts a fact about a member — its tools, its domain grants, or which
+  runs it already did — DO read the agent file and the org config first. A guessed premise costs
+  the lead its run correcting you instead of doing the work.
 - P-04: WHEN dispatching a fix DO pass the discriminating RULE plus an explicit LEAVE list rather than a
   survey of sites. The LEAVE list does the work: unnamed near-misses are where a member spends a spawn
   re-judging what is already settled.

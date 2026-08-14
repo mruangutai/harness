@@ -40,6 +40,9 @@
   argument value at each call site, not just that the call happened — an argument-blind fake
   returns fixed data regardless, so dropping a field stays green while the real callee refuses
   the request.
+- P-13: WHEN citing a test count that mixes plan-required and self-added cases DO break down the
+  provenance — how many the plan requires versus how many are additions — rather than reporting
+  one merged total, which overstates plan compliance.
 
 ## Gotchas (max 15)
 - G-01: WHEN proving a test runner's MISCONFIGURED exit path live by creating a stray
@@ -57,6 +60,9 @@
 - G-05: WHEN every gate on a diff is token- or phrase-based (grep/sweep) DO recognize none of
   them can confirm replacement prose is actually true — only that a token is present or absent.
   A false statement that satisfies every sweep is caught only by reading the prose directly.
+- G-06: WHEN writing a caveat that claims you did NOT do something DO check it against what your
+  own artifact's prose actually describes before including it — an inaccurate caveat, even one
+  that errs toward modesty, is still a falsified record.
 
 ## Outcomes (max 10)
 - O-01: WHEN an amendment deletes a fixture that was the sole source of some coverage and the loss
@@ -68,5 +74,12 @@
 - O-03: WHEN a finding is settled by reasoning rather than by mutation (e.g. an audit/
   author-nothing dispatch) DO label it explicitly as reasoned, not measured, in your digest — the
   tier above needs to know that assurance is weaker than a mutation-proven verdict.
+- O-04: WHEN a criterion's literal wording is stricter than the artifact scoping it DO report two
+  distinct findings — intent-satisfied and text-unmet — and route the verdict up, rather than
+  recording the criterion as satisfied under your own reading.
+- O-05: WHEN Phase 1's expected coverage list matches the built suite almost exactly DO check
+  whether the plan pinned test cases by number or verbatim string before crediting the match to
+  independent derivation — a prescriptive plan collapses the gap structurally, not a stronger
+  anti-bias signal.
 
 ## Open (max 5)

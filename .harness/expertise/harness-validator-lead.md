@@ -1,9 +1,9 @@
 # Expertise — harness-validator-lead
 
 ## Patterns (max 15)
-- P-01: WHEN promoting a member's cited anchor into your digest DO open the file and confirm the
-  line yourself — anchors drift by a line or two even in honest reports, and yours is the tier
-  where a citation becomes a measurement two tiers up.
+- P-01: WHEN a member's cited anchors drift from source DO republish the lines you measured and
+  keep its mechanism — drift of several lines coexists with exactly-correct reasoning, so
+  re-measure rather than discount, and never promote an unverified anchor into your digest.
 - P-02: WHEN ranking advisory findings for a backlog DO order by irreversibility before
   severity — a low-severity defect whose failure cannot be undone outranks a medium that is
   cheaply reversible, and no member can see that axis from inside its own lens.
@@ -32,6 +32,9 @@
 - P-10: WHEN carrying a task's verify clause verbatim DO also establish which command the coverage
   gate itself rests on — the configured per-kind command can be strictly broader than the task's
   own clause, so a faithful carry can satisfy the task and still not be what makes the gate true.
+- P-11: WHEN a dispatch hands down an equivalence, count or SHA relation you cannot check
+  without a shell DO fold the measuring command into a member's step rather than relay it — a
+  lead with no shell either routes the measurement or publishes an assumption.
 
 ## Gotchas (max 15)
 - G-01: WHEN the blocking gate passes and an advisory gate carries the only defect DO headline
@@ -52,15 +55,19 @@
 - G-06: WHEN a member's role field carries a placeholder you would not have chosen DO check the
   digest validator's per-persona table before recording a convention mismatch — a scoped-out
   reviewer's `n/a` is the sanctioned spelling there, not drift.
-- G-07: WHEN narrating a member's verdict or its reasoning DO have its artifact open, or be
-  quoting its returned digest, before the sentence is written — a completion notification is not
-  the content, and prose shaped by what you expected can be true purely by luck.
+- G-07: WHEN narrating a member's conduct or re-rating its finding DO re-read the passage and
+  quote its words in that sentence — a completion notification is not the content, and an
+  artifact read earlier then recalled is how a false claim about a member enters a signed
+  record.
 - G-08: WHEN the work lives in a worktree DO check the worktree prefix on every read path before
   using the result — the main checkout holds a stale copy at the identical path, and a conclusion
   drawn from it is wrong in exactly the way that looks right.
 - G-09: WHEN relaying a handed-down candidate that characterises a member's conduct DO check it
   against that member's own artifact first — the account reaching you is a hypothesis, and a
   member forced to reject a false premise spends its distillation slot on your error.
+- G-10: WHEN a member reports a signed criterion met under a narrowed reading DO record the
+  literal status and the reading as two findings and route the reading up — endorsing it adopts
+  an approval-gated decision, and the tier owning the goal can reject the reading outright.
 
 ## Outcomes (max 10)
 - O-01: WHEN dispatching a review panel DO name the already-ruled items in the prompt —

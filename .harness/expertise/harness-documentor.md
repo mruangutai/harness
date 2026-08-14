@@ -19,9 +19,9 @@
 - P-06: WHEN a task's stated intent mandates prose containing a token that same task's `verify:`
   clause counts or forbids DO write around the token — name the mechanism, not the filename or ID —
   and raise the conflict; the grep clause is the tie-breaker, not the prose.
-- P-07: WHEN a gate stays green either way DO still follow the wording an approved plan mandated —
-  a silent gate is not approval, and an attribution or a name someone signed off is a decision, not
-  a reversible call of yours.
+- P-07: WHEN an approved plan mandates wording DO follow it for names and attributions — those are
+  signed decisions, not yours to revise — but verify any factual claim in it against the code
+  before transcribing; approval covers the choice, not the truth.
 - P-08: WHEN a bound says neighbouring text "stays verbatim" DO make the hunk list from
   `git diff -U1` your receipt — absence and count clauses cannot see collateral damage to text that
   never contained the token they watch.

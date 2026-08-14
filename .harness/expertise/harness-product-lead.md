@@ -10,9 +10,10 @@
 - P-03: WHEN the member who owns a gate decision was skipped DO make that call yourself and report
   it as overridable in either direction — a gate nobody fired is indistinguishable in the record
   from a gate that passed.
-- P-04: WHEN relaying a distillation candidate DO read the member's own observations log first and
-  drop anything already in it — a duplicate candidate measures nothing about relay and inflates the
-  acceptance rate that judges it.
+- P-04: WHEN relaying a distillation candidate DO drop anything the member already carries at
+  spawn — its observations log, its injected Expertise, or a preloaded role rule. A candidate
+  restating what is already in context cannot change behaviour, and its acceptance rate measures
+  the relay, not the lesson.
 - P-05: WHEN a dispatch hands you an enumerated set of sites DO re-run the enumeration yourself with
   a wider pattern before dispatching — until it is re-run wide the set is a sample, and a
   pre-measured baseline makes the post-edit check sound by construction rather than by report.

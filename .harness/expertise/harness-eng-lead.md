@@ -29,15 +29,21 @@
 - P-09: WHEN a dispatch states what a file contains — an anchor, a justification, a relayed
   finding's premise — DO open the file before relaying it: an unchecked claim is copied verbatim
   into source, tests and records, and survives every gate green.
-- P-10: WHEN a feature's value depends on an agent choosing to invoke a checker DO say at review
-  that no code gate verifies it — inspecting the rule text proves the rule exists, never that
-  it fires.
+- P-10: WHEN a gap's remedy is an obligation recorded in prose DO propose the instrument that
+  reddens instead — and where none can exist, say at review that no code gate verifies it:
+  inspecting a rule proves it exists, never that it fires.
 - P-11: WHEN a member's finding would be remedied only by contradicting a signed decision DO
   route it up as a decision question and keep the verdict PASS — dispatching the fix would make
   the squad amend an approved plan without approval.
 - P-12: WHEN a member is barred from running the checker that validates its own output DO read
   the checker and apply its rule yourself before accepting — the carve-out moves the check to
   you, it does not remove it.
+- P-13: WHEN a verify command asserts a generator's output matches the tree DO ask what makes it
+  red — `generate && git diff --exit-code` passes when the author wrote nothing; pair it with a
+  stdout diff and a grep for a mandated literal.
+- P-14: WHEN a plan declares a pattern that detects a stale form DO audit it against every real
+  occurrence in the target file — a pattern generalised from the commonest site misses the
+  variants, and the file then reports clean while carrying dead sites.
 
 ## Gotchas (max 15)
 - G-01: `.claude/skills/harness/bin/**` sits in both backend-dev's and dev-ops's domain in
@@ -56,6 +62,10 @@
   against the main checkout's current copy before writing, never IDs — a worktree branched
   before the last distillation carries a stale base whose write reverts the prior feature's
   entries, every format check green.
+- G-06: WHEN two agents disagree about HEAD and you hold no shell DO read `.git/HEAD`,
+  `.git/refs/heads/<branch>` and `.git/logs/HEAD` directly — a mid-run fast-forward means
+  measurements taken earlier were taken against a different tree, so re-measure what the
+  decision turns on.
 
 ## Outcomes (max 10)
 

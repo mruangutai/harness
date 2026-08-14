@@ -25,7 +25,10 @@
 - G-05: WHEN about to mark an open question blocking DO first name the single measurement that would settle it and check whether you can run it now — a cheap unrun check escalated as a question costs the chain more than running it.
 - G-06: WHEN a test double is the only thing exercising a production call's arguments DO check whether the double actually reads them — a fake returning fixed values regardless of its `fields`/`args` parameter leaves that argument list unpinned, so deleting a required field stays fully green.
 - G-07: WHEN sweeping a deletion feature for removed terminology DO scan the whole repo, not just diff-touched files — a diff-scoped sweep can pass while live surfaces outside it (commands, docs, injected Expertise) still carry the term.
+- G-08: WHEN citing file:line anchors from memory or your own notes DO re-verify each against source before publishing rather than trust recall — anchors can drift several lines even when the underlying claim is correct, so mark all approximations consistently or verify every one.
 
 ## Outcomes (max 10)
+- O-01: WHEN reporting a coverage gap via a hand-built mutant DO add one non-shipped probe case that fails on it before reporting the shipped suite passes — an executed failing probe distinguishes a real gap from an unexecuted claim, usually a broken harness.
+- O-02: WHEN a downstream artifact states something false DO trace it to its authoring source before attributing the error — the nearest producer may have faithfully reproduced an upstream defect, and the correct remedy fixes the origin too, not just the surface where it was found.
 
 ## Open (max 5)
