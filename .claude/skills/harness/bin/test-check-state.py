@@ -1306,7 +1306,7 @@ def case_u():
 
 def _inv26_fixture(root, feat, task_status, card_status, parent_status,
                    issues=None, feature_status="Building", second_status=None,
-                   second_card=None):
+                   second_card=None, factory=None):
     """One INV-26 fixture: harness.json with sync+repo+board, one feature with a plan,
     a feature.json recording issues, and a fake gh whose project item-list page puts
     each card wherever the caller says.
@@ -1340,11 +1340,21 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
                     "    intent: |\n      x\n" % second_status)
     if issues is None:
         issues = {"T-01": 41} if second_status is None else {"T-01": 41, "T-02": 42}
+    _doc = {"feature_id": feat, "branch": "b", "pr": None,
+            "status": feature_status, "review_sha": "abc1234",
+            "cycles_used": 0, "max_total_cycles": 10, "runs": [],
+            "github": {"milestone": 1, "parent": 40, "issues": issues}}
+    if factory is not None:
+        # A factory-lane feature: published by factory_decompose, so its issues live
+        # under `factory`, in a repository fleet.yaml must declare or INV-24 fires
+        # instead of the clause under test.
+        _doc["factory"] = factory
+        os.makedirs(os.path.join(h, "factory"), exist_ok=True)
+        with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
+            f.write("schema: factory-fleet/1\nrepos:\n  - name: %s\n"
+                    "workspace_root: %s\n" % (factory["repo"], root))
     with open(os.path.join(fd, "feature.json"), "w") as f:
-        json.dump({"feature_id": feat, "branch": "b", "pr": None,
-                   "status": feature_status, "review_sha": "abc1234",
-                   "cycles_used": 0, "max_total_cycles": 10, "runs": [],
-                   "github": {"milestone": 1, "parent": 40, "issues": issues}}, f)
+        json.dump(_doc, f)
 
     items = [{"content": {"repository": "org/repo", "number": 41}, "status": card_status},
              {"content": {"repository": "org/repo", "number": 40}, "status": parent_status}]
@@ -1482,6 +1492,31 @@ def case_v():
         ls = _lines(out)
         results.append(("(v.10) an all-pending plan reports NOTHING even with every card "
                         "wrong", not ls, "\n".join(ls)))
+
+    # --- v.11/v.12 THE LANE PAIR (issue #349's caveat). The mirror-never-ran clause read
+    # only `github.issues`, so a feature published by factory_decompose — issues recorded
+    # under `factory.issues`, nothing under `github.issues` — fired a FALSE violation
+    # instructing the operator to mirror product work onto harness's board. The pair
+    # differs in the factory block alone: v.11 must stay silent, v.12 keeps the teeth.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "building", "Building", "Building",
+                              issues={},
+                              factory={"repo": "org/prod", "issues": {"T-01": 7}})
+        _c, out = _run_with_gh(tmp, fake)
+        ls = [l for l in _lines(out) if "no mirrored issues" in l]
+        results.append(("(v.11) a factory-published feature (factory.issues recorded, "
+                        "github.issues empty) raises NO mirror-never-ran violation",
+                        not ls, "\n".join(ls)))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "building", "Building", "Building",
+                              issues={},
+                              factory={"repo": "org/prod", "issues": {}})
+        _c, out = _run_with_gh(tmp, fake)
+        ls = [l for l in _lines(out) if "no mirrored issues" in l]
+        results.append(("(v.12) the same fixture with an EMPTY factory.issues still "
+                        "fires — the exemption keys on recorded issues, not the block",
+                        bool(ls), "(no INV-26 line)"))
 
     allok = True
     for name, ok, detail in results:
