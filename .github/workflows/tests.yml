@@ -179,3 +179,55 @@ jobs:
           # alone.
           echo "route gate entered ${examined} feature dir(s), checked ${plans} live plan(s); checker exit ${rc}"
           exit "$rc"
+
+      # THE LAYOUT GATE (FEAT-20/T-03, REQ-06). Nothing in the repository asserts this
+      # step is present or unneutered.
+      - name: Layout gate
+        env:
+          CLAUDE_PROJECT_DIR: ${{ github.workspace }}
+        run: |
+          rc=0
+          out=$(python3 .claude/skills/harness/bin/layout_migration.py . 2>&1) || rc=$?
+          printf '%s\n' "$out"
+
+          # THE REGEXES ARE COUPLED to `layout_migration.py`'s `render()` — the "layout:"
+          # and "examined" format strings, which carry a comment pointing back here. A
+          # reword there makes these greps miss, which fails the step CLOSED (nothing
+          # merges silently) but reports "the checker could not run" about a checker that
+          # ran fine. Change both together.
+          #
+          # `|| true` IS LOAD-BEARING: steps run under `bash -e {0}`, so a grep that
+          # matches nothing would kill the step HERE, at the assignment, before any of
+          # the messages below could print.
+          summary=$(printf '%s\n' "$out" | grep -E '^layout: [0-9]+ surface\(s\) clean, [0-9]+ mixed, [0-9]+ cannot-verify$' | tail -1) || true
+
+          if [ -z "$summary" ]; then
+            echo "::error::layout_migration.py printed no 'layout: N surface(s) clean, ...' summary line and exited ${rc} — the CHECKER COULD NOT RUN. This is not a clean tree; nothing was checked." >&2
+            exit 1
+          fi
+
+          examined=$(printf '%s\n' "$out" | sed -nE 's/^examined ([0-9]+) feature dir\(s\), ([0-9]+) doc root\(s\), ([0-9]+) reader file\(s\)$/\1 \2 \3/p' | tail -1)
+          if [ -z "$examined" ]; then
+            echo "::error::layout_migration.py printed no 'examined N feature dir(s), M doc root(s), R reader file(s)' line. The gate cannot tell broken discovery from a clean tree without it, so it refuses to pass rather than guess." >&2
+            exit 1
+          fi
+
+          feature_dirs=$(printf '%s' "$examined" | awk '{print $1}')
+          doc_roots=$(printf '%s' "$examined" | awk '{print $2}')
+          reader_files=$(printf '%s' "$examined" | awk '{print $3}')
+
+          zero=""
+          if [ "$feature_dirs" -eq 0 ]; then
+            zero="feature dir(s)"
+          elif [ "$doc_roots" -eq 0 ]; then
+            zero="doc root(s)"
+          elif [ "$reader_files" -eq 0 ]; then
+            zero="reader file(s)"
+          fi
+          if [ -n "$zero" ]; then
+            echo "::error::layout_migration.py examined 0 ${zero}. Discovery did not run — an empty search is indistinguishable from a clean tree and would pass forever. Check CLAUDE_PROJECT_DIR and the feature/doc roots." >&2
+            exit 1
+          fi
+
+          echo "layout gate examined ${feature_dirs} feature dir(s), ${doc_roots} doc root(s), ${reader_files} reader file(s); checker exit ${rc}"
+          exit "$rc"
