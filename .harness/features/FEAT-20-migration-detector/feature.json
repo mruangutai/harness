@@ -1,0 +1,39 @@
+{
+  "feature_id": "FEAT-20-migration-detector",
+  "branch": "feat/FEAT-20-migration-detector",
+  "pr": null,
+  "status": "Building",
+  "review_sha": "88b1182",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 11,
+    "parent": 360,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 361,
+      "T-02": 362,
+      "T-03": 363,
+      "T-04": 364
+    }
+  }
+}
