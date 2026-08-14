@@ -75,17 +75,23 @@ READER_TABLE = [
     Row("features", ".claude/skills/harness/bin/check-domain.sh",
         r"\.harness/features/",
         r"\.harness/(\*|\[\^/\]\+)/features/"),
+    # The trailing `# balance:` comments below are LOAD-BEARING for a meta-gate, not
+    # decoration: test-check-plan-routes.py case_20 joins physical lines until paren
+    # depth balances, counting parens INSIDE string literals too. Regex rows with
+    # unmatched ( or ) inside their pattern strings would merge the whole table into
+    # one logical line that swallows this module's real marker probe and misreports
+    # it. Each comment restores that row's textual paren balance to zero.
     Row("features", ".claude/skills/harness/bin/check-plan-routes.py",
         r'"\.harness", "features"',
-        r'"\.harness", [^,)]+, "features"'),
+        r'"\.harness", [^,)]+, "features"'),  # balance: (
     Row("features", ".claude/skills/harness/bin/check-state.sh",
-        r'os\.path\.join\(H, "features"',
+        r'os\.path\.join\(H, "features"',  # balance: )
         r'os\.path\.join\(H, [^,)]+, "features"'),
     Row("docs", ".claude/skills/harness/bin/factory_config.py",
-        r'os\.path\.join\("docs", "harness"',
+        r'os\.path\.join\("docs", "harness"',  # balance: )
         r'os\.path\.join\("\.harness", [^,)]+, "docs"'),
     Row("docs", ".claude/skills/harness/bin/gen-decisions-index.py",
-        r'os\.path\.join\("docs", "harness"|docs/harness/',
+        r'os\.path\.join\("docs", "harness"|docs/harness/',  # balance: )
         r'os\.path\.join\("\.harness", [^,)]+, "docs"|\.harness/[^/ ]+/docs/'),
     Row("docs", ".claude/skills/harness/bin/harness_boundary.py",
         r"docs/harness/\*\*",

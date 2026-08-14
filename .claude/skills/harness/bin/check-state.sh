@@ -1253,6 +1253,70 @@ if cj:
         bad.append("github.sync is ON but github.repo is not pinned — every sync will "
                    "silently SKIP. Pin the repo (from `gh repo view`) or turn sync off.")
 
+# --- INV-27 (FEAT-20): every layout surface speaks one language. The detector is
+# layout_migration.py; this block composes findings from its STRUCTURED RESULT and
+# never re-parses its CLI text. A NOT APPLICABLE root (no control-plane marker —
+# a product checkout, or a test fixture) appends nothing, and a clean result appends
+# nothing. The verdict is computed by the module, which is a DEC-174 carve-out by
+# content for exactly that reason.
+#
+# THE IMPORT IS A VIOLATION WHEN IT FAILS — INV-25's precedent, and for its reason:
+# the module ships with the repository, so it being unimportable is a defect in the
+# tree, never a property of the environment.
+try:
+    import layout_migration as _lmod
+except Exception as _lme:
+    _lmod = None
+    bad.append("INV-27 CANNOT RUN: layout_migration.py did not import (%s: %s), so a "
+               "half-migrated layout would go unreported. The module ships with this "
+               "repository — restore .claude/skills/harness/bin/layout_migration.py."
+               % (type(_lme).__name__, _lme))
+
+if _lmod is not None:
+    try:
+        _lres = _lmod.scan(root)
+    except Exception as _lse:
+        _lres = None
+        bad.append("INV-27 CANNOT RUN: the layout scan raised (%s: %s) — fix "
+                   "layout_migration.py or its reader table before trusting this gate."
+                   % (type(_lse).__name__, _lse))
+    if _lres is not None and _lres.applicable:
+        # Every entry ends with a remedy — house style; a finding an operator cannot
+        # act on is a finding they will learn to skip. The form-set tag on each reader
+        # path is load-bearing: [legacy] on a migrated tree means FINISH the reader,
+        # [migrated] on a legacy tree means REVERT it, and the paths are identical
+        # without the tag.
+        _lrem = ("Finish or revert this surface inside one atomic commit; the form "
+                 "rows are data in layout_migration.py.")
+        for _sname in sorted(_lres.surfaces):
+            _srep = _lres.surfaces[_sname]
+            if _srep.verdict == "MIXED":
+                _ev = "+".join(sorted(_srep.evidence)) if _srep.evidence else "none"
+                _blame = [(p, f) for p, f in _srep.readers
+                          if f == "both"
+                          or (len(_srep.evidence) == 1
+                              and f != next(iter(_srep.evidence)))] or _srep.readers
+                _rd = ", ".join("%s [%s]" % (p, f) for p, f in _blame)
+                bad.append(f"INV-27 {_sname}: layout is MIXED — evidence {_ev}; "
+                           f"readers {_rd}. {_lrem}")
+            elif _srep.verdict == "CANNOT_VERIFY":
+                if _srep.cause == "unreadable":
+                    _rd = ", ".join("%s [%s]" % (p, f) for p, f in _srep.readers
+                                    if f == "unreadable")
+                    bad.append(f"INV-27 CANNOT VERIFY {_sname}: a coupled reader could "
+                               f"not be read — {_rd}. {_lrem}")
+                elif _srep.cause == "neither":
+                    _rd = ", ".join("%s [%s]" % (p, f) for p, f in _srep.readers
+                                    if f == "neither")
+                    bad.append(f"INV-27 CANNOT VERIFY {_sname}: a coupled reader "
+                               f"matches neither form — {_rd}. {_lrem}")
+                elif _srep.cause == "no-evidence":
+                    bad.append(f"INV-27 CANNOT VERIFY {_sname}: no evidence of either "
+                               f"shape under {root}. {_lrem}")
+                elif _srep.cause == "no-rows":
+                    bad.append(f"INV-27 CANNOT VERIFY {_sname}: no reader rows for "
+                               f"this surface. {_lrem}")
+
 # INV-10 IS GONE, AND THE NUMBER IS RETIRED WITH IT. It ran check-docs.sh, the
 # propagation checker, which no longer exists: the operator struck the whole
 # stale-marker mechanism and replaced detection with deletion — a decision the tree

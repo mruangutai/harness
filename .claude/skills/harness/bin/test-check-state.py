@@ -1582,6 +1582,146 @@ def case_w():
     return allok
 
 
+def case_x():
+    """INV-27 (FEAT-20 T-02): the layout invariant at the session-entry call site.
+
+    Existing fixtures hold no coupled reader and no control-plane marker, so under
+    D-04 they are NOT APPLICABLE and INV-27 appends nothing — which is exactly why
+    every case above keeps passing. The applicable trees are built ONLY here, by
+    writing the marker and reader stubs explicitly; the shared helper is untouched
+    on purpose (a stub in it would put an INV-27 verdict inside every unrelated case).
+    """
+    results = []
+    MARKER_REL = os.path.join(".claude", "skills", "harness", "bin", "check-state.sh")
+    STUBS = {
+        ".harness/team-config.yaml":
+            "agents:\n  x:\n    write:\n      - { path: .harness/features/*/notes/n.md }\n",
+        ".claude/skills/harness/bin/check-domain.sh":
+            "SWEEP_GLOBS=('.harness/features/*/plan.yaml')\n",
+        ".claude/skills/harness/bin/check-plan-routes.py":
+            'plans = glob.glob(os.path.join(root, ".harness", "features", "*", "plan.yaml"))\n',
+        ".claude/skills/harness/bin/check-state.sh":
+            'for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):\n',
+        ".claude/skills/harness/bin/factory_config.py":
+            '_PROBE = os.path.join("docs", "harness", "SPEC.md")\n',
+        ".claude/skills/harness/bin/gen-decisions-index.py":
+            'HEADER = "the authority is docs/harness/DECISIONS.md"\n',
+        ".claude/skills/harness/bin/harness_boundary.py":
+            'HARNESS_CONTROL_PLANE = ("docs/harness/**",)\n',
+    }
+
+    def build(tmp, marker=True, overrides=None, evidence=True):
+        h = os.path.join(tmp, ".harness")
+        os.makedirs(h, exist_ok=True)
+        with open(os.path.join(h, "harness.json"), "w") as f:
+            f.write(HARNESS_JSON_SYNC_OFF)
+        with open(os.path.join(h, "team-config.yaml"), "w") as f:
+            f.write(STUBS[".harness/team-config.yaml"])
+        if evidence:
+            fd = os.path.join(h, "features", "FEAT-Z")
+            os.makedirs(fd, exist_ok=True)
+            open(os.path.join(fd, "feature.json"), "w").write(
+                json.dumps({"feature_id": "FEAT-Z", "branch": "b", "pr": None,
+                            "status": "Done", "review_sha": "abc1234",
+                            "cycles_used": 0, "max_total_cycles": 10, "runs": []}))
+            dd = os.path.join(tmp, "docs", "harness")
+            os.makedirs(dd, exist_ok=True)
+            open(os.path.join(dd, "SPEC.md"), "w").write("# spec\n")
+        overrides = overrides or {}
+        for rel, text in STUBS.items():
+            if rel == ".harness/team-config.yaml":
+                continue
+            if rel == MARKER_REL.replace(os.sep, "/") and not marker:
+                continue
+            p = os.path.join(tmp, *rel.split("/"))
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            open(p, "w").write(overrides.get(rel, text))
+        return tmp
+
+    def run_cs(tmp):
+        env = dict(os.environ)
+        env["CLAUDE_PROJECT_DIR"] = tmp
+        r = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
+        return r.returncode, r.stdout
+
+    inv = lambda out: [l for l in out.splitlines() if "INV-27" in l]
+
+    # x.1 a tree the detector REDDENS: legacy evidence, one reader migrated. Assert the
+    # tag AND the remedy here, not only in the unit suite — this is the only automated
+    # evidence the session-entry call site renders them at all.
+    with tempfile.TemporaryDirectory() as tmp:
+        build(tmp, overrides={
+            ".claude/skills/harness/bin/gen-decisions-index.py":
+                'HEADER = "the authority is .harness/repoA/docs/DECISIONS.md"\n'})
+        code, out = run_cs(tmp)
+        ls = inv(out)
+        ok = (code == 1 and ls
+              and any("gen-decisions-index.py" in l and "[migrated]" in l
+                      and "atomic commit" in l for l in ls))
+        results.append(("(x.1) a mixed tree -> exit 1, INV-27 names the reader, its "
+                        "form-set tag and the remedy", ok, "\n".join(ls) or out[-400:]))
+
+    # x.2 a tree it CANNOT JUDGE: one reader carries neither form.
+    with tempfile.TemporaryDirectory() as tmp:
+        build(tmp, overrides={
+            ".claude/skills/harness/bin/factory_config.py": "nothing relevant\n"})
+        code, out = run_cs(tmp)
+        ls = inv(out)
+        ok = code == 1 and any("CANNOT VERIFY" in l and "[neither]" in l for l in ls)
+        results.append(("(x.2) an unjudgeable tree -> exit 1, INV-27 CANNOT VERIFY",
+                        ok, "\n".join(ls) or out[-400:]))
+
+    # x.3 an APPLICABLE clean tree: marker present, every reader legacy, legacy
+    # evidence on both surfaces. Assert the ABSENCE of INV-27 specifically, not merely
+    # exit 0 — a case that passes because the invariant never ran must be
+    # distinguishable from one that passes because it ran clean.
+    with tempfile.TemporaryDirectory() as tmp:
+        build(tmp)
+        _code, out = run_cs(tmp)
+        ls = inv(out)
+        results.append(("(x.3) an applicable clean tree -> NO INV-27 line",
+                        not ls, "\n".join(ls)))
+
+    # x.4 no marker: the product-repository and existing-fixture case, pinned
+    # deliberately rather than left as an emergent property.
+    with tempfile.TemporaryDirectory() as tmp:
+        build(tmp, marker=False)
+        _code, out = run_cs(tmp)
+        ls = inv(out)
+        results.append(("(x.4) no control-plane marker -> NO INV-27 line",
+                        not ls, "\n".join(ls)))
+
+    # x.5 layout_migration unimportable -> the CANNOT RUN wording, exit 1. The script
+    # prepends ITS OWN dir to PYTHONPATH, so a shadow dir cannot outrank the real
+    # module. Faithful route: run a COPY of check-state.sh from a bin dir holding its
+    # one hard import (harness_yaml) and NO layout_migration.py — the same failure an
+    # operator gets when the module is deleted from the tree.
+    with tempfile.TemporaryDirectory() as tmp:
+        build(tmp)
+        import shutil
+        bindir = os.path.join(tmp, "binx")
+        os.makedirs(bindir)
+        shutil.copy(SCRIPT, os.path.join(bindir, "check-state.sh"))
+        shutil.copy(os.path.join(os.path.dirname(SCRIPT), "harness_yaml.py"),
+                    os.path.join(bindir, "harness_yaml.py"))
+        env = dict(os.environ)
+        env["CLAUDE_PROJECT_DIR"] = tmp
+        r = subprocess.run([os.path.join(bindir, "check-state.sh")],
+                           cwd=tmp, capture_output=True, text=True, env=env)
+        ls = inv(r.stdout)
+        ok = r.returncode == 1 and any("CANNOT RUN" in l for l in ls)
+        results.append(("(x.5) unimportable layout_migration -> INV-27 CANNOT RUN, "
+                        "exit 1", ok, "\n".join(ls) or r.stdout[-400:]))
+
+    allok = True
+    for name, ok, detail in results:
+        print(f"{'ok' if ok else 'FAIL'} - {name}")
+        if not ok and detail:
+            print("      " + detail.replace("\n", "\n      "))
+        allok = allok and ok
+    return allok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -1608,6 +1748,7 @@ def main():
     ok_u = case_u()
     ok_v = case_v()
     ok_w = case_w()
+    ok_x = case_x()
 
     ok_exit_unchanged = code_a == code_b
     print(
@@ -1616,7 +1757,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

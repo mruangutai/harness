@@ -325,6 +325,25 @@ with tempfile.TemporaryDirectory() as tmp:
         check("case 17: a row keyed to a non-enum surface is a LOUD error",
               "typo-surface" in str(e), str(e))
 
+# ------------------------------------------------------------------- case 18
+# T-02 pins the exit-code contract the invariant depends on: 0/1/2 for
+# clean/mixed/cannot-verify, and scan() neither prints nor exits. Without this the
+# invariant's dependency on those three values is asserted nowhere.
+with tempfile.TemporaryDirectory() as tmp:
+    build(tmp)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        r_clean = lm.scan(tmp)
+    check("case 18: scan() prints nothing and does not exit", buf.getvalue() == "",
+          repr(buf.getvalue()))
+    check("case 18: clean -> exit_code 0", lm.exit_code(r_clean) == 0)
+with tempfile.TemporaryDirectory() as tmp:
+    build(tmp, features_evidence=("legacy", "migrated"))
+    check("case 18: mixed -> exit_code 1", lm.exit_code(lm.scan(tmp)) == 1)
+with tempfile.TemporaryDirectory() as tmp:
+    build(tmp, forms={".claude/skills/harness/bin/check-domain.sh": "neither"})
+    check("case 18: cannot-verify -> exit_code 2", lm.exit_code(lm.scan(tmp)) == 2)
+
 # ---------------------------------------------------------------------- report
 fails = 0
 for name, ok, detail in results:
