@@ -34,8 +34,32 @@ You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch ex
 ## The entry format — rules, not stories
 
 Every entry is **WHEN <situation> DO <action>**, at most **50 words**, and names **no feature or
-task IDs** — no `FEAT-NN`, `T-NN`, issue `#NN`. Durable repo facts ("`tests/` is not type-checked
-here") qualify without the WHEN/DO shape, but the caps still hold.
+task IDs** — no `FEAT-NN`, `T-NN`, issue `#NN`.
+
+## Two layers — decide this BEFORE you write the entry
+
+Your Expertise is split by **what the knowledge is about**, not by what you were working on.
+
+| Layer | Holds | Lives at | Budget |
+|---|---|---|---|
+| **Craft** | how you work, true wherever you work | `.harness/expertise/<agent>.md` | 150 lines |
+| **Repository** | what is true of ONE repository | `.harness/<repo>/expertise/<agent>.md` | 40 lines |
+
+**The default is craft, and the test is one question: could this entry be true and useful in a
+repository you have never seen?** If yes, it is craft. It is repository-layer only when it turns on
+a path, file, decision or invariant that exists in **one** repository.
+
+**The default matches what you already write.** Measured across all 267 entries in this tree: **10
+are repository-specific — 3.7%.** Seven of thirteen files have none. The `WHEN/DO` shape was already
+pushing you toward craft before the layer had a name.
+
+**Durable repo facts — "`tests/` is not type-checked here" — are the repository layer**, and they
+still qualify without the `WHEN/DO` shape. They were previously written beside craft entries; they
+no longer are.
+
+**The failure this prevents:** a role that learns one repository's answers and carries them to the
+next one. A craft entry mentioning a path as an *example* is still craft — `check-expertise.sh`
+flags such entries **advisorily**, for a human to rule on, and a flag is not a violation.
 
 A **recipe** (setup steps, config values, field names) rots with the code — it qualifies only as a
 pointer to a living in-repo exemplar, never as inlined values recalled from an old run.
@@ -57,9 +81,12 @@ A `merge` result is **no longer than the longer input**; instance lists are bann
 ## Open (max 5)
 ```
 
-These four section names are the only legal ones, the file budget is **150 lines**, and
-`check-expertise.sh` enforces all of it. The spawn hook hard-truncates at 150 lines, so an
-over-budget file silently loses its tail — the budget is physics, not advice.
+These four section names are the only legal ones in **both** layers, and `check-expertise.sh`
+enforces all of it. The spawn hook hard-truncates at the budget, so an over-budget file silently
+loses its tail — the budget is physics, not advice. **Craft is 150 lines; the repository layer is
+40.** The repository budget is deliberately small: the measured worst case is 4 entries in one file,
+and both layers are injected at every spawn, so a generous second budget would double a per-spawn
+cost DEC-105 already treats as expensive.
 
 Updates are **ops**, each naming its target:
 
@@ -84,4 +111,7 @@ let the tier above decide.
 | Thought | Reality |
 |---|---|
 | "I'll add the new instance to the matching entry" | That is a story, not a rule. The rule either already covers it or gets *replaced* by a sharper one, same length |
+| "I learned this while working on repo X, so it is repository-layer" | The layer is about what the knowledge is ABOUT, never where you happened to learn it. Most of what you learn on one repository is craft |
+| "It mentions a path, so it must be repository-layer" | Not if the path is an example. "WHEN a guard gates on an env var DO enumerate every other route" is craft even if its reason cites a real file |
+| "The repository layer is where the detail goes" | It is 40 lines and the measured need is a handful. If it is filling up, you are writing stories or recipes — both are already banned above |
 | "My Expertise block is missing, nothing to do" | The file may not exist yet. During distillation, create it (DEC-125) |
