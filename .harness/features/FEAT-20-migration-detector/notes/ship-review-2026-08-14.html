@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-20 — migration detector — ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-20-migration-detector-ship-review">FEAT-20 — migration detector — ship review</h1>
+<p><strong>FEAT-20 is ready to ship.</strong> All 15 success criteria are met, the one blocking gate passed, the review panel found nothing that gates, and the four tasks landed as four commits on <code>feat/FEAT-20-migration-detector</code>. Merge is yours; nothing else waits on anyone.</p>
+<p><strong>What you now have.</strong> A detector that says whether this tree is half-migrated between the old <code>.harness/features/…</code> + <code>docs/harness/…</code> layout and the per-repository root — judged <strong>per coupled surface</strong>, so a tree with features migrated and docs not is a sanctioned state that passes rather than a false alarm. It runs at session entry and in the required CI job, and a reader it cannot classify is <strong>cannot-verify, never clean</strong>. On today&#x27;s tree it reports <code>features: CLEAN</code>, <code>docs: CLEAN</code>, <code>examined 20 feature dir(s), 1 doc root(s), 7 reader file(s)</code>, exit 0.</p>
+<p><strong>Why that last line matters more than the verdict.</strong> This feature exists because of issue #148 — a check that passes forever. A detector that searched nothing would also print CLEAN. The examined counts are what distinguish the two, and both call sites refuse to pass when any of the three reads zero.</p>
+<h2 id="how-this-was-assembled">How this was assembled</h2>
+<p><strong>No report round was spawned.</strong> Every claim below is drawn from a digest already on disk, cited by path, so this costs zero extra spawns — and so you can tell a complete briefing from one missing a phase:</p>
+<ul><li><code>runs/plan-product/digest.md</code> — the plan phase (the eng review is nested inside it)</li><li><code>runs/plan-eng/review-architecture.md</code>, <code>-c2.md</code>, <code>-c3-delta.md</code> — <strong>this run wrote no <code>digest.md</code></strong>; those three files are its entire record</li><li><code>runs/t03-eng/digest.md</code>, <code>runs/t04-product/digest.md</code> — the two dispatched build tasks</li><li><code>runs/qa-gate-validator/digest.md</code> — the blocking gate</li><li><code>runs/2026-08-14-1-validator/digest.md</code> — the review panel</li><li><code>runs/2026-08-14-2-product/digest.md</code> and <code>notes/uat-goalcheck-c0.md</code> — the goal-check</li><li><code>runs/2026-08-14-3-{eng,product,validator}/digest.md</code> — close-out distillation</li><li>Receipts for the two hand-built tasks: <code>notes/receipt-main-session-t-01.md</code>, <code>-t-02.md</code></li></ul>
+<p><strong>Ship-refresh was skipped, correctly:</strong> no codebase map exists in this repo, so there is nothing to mark stale. Verified, not assumed — there is no <code>.harness/map/</code> and no <code>INDEX.md</code> anywhere.</p>
+<h2 id="the-record-by-phase">The record, by phase</h2>
+<p><strong>Plan.</strong> Two send-backs killed two silent-pass holes. One mattered enormously: <code>CLEAN</code> was <strong>vacuously true over an empty reader set</strong> — issue #148&#x27;s own shape inside the feature built to eliminate #148. It was found by the UI reviewer as advisory and promoted to blocking by the product lead, which that digest calls &quot;the one call that changed what this squad shipped.&quot;</p>
+<p><strong>Build.</strong> T-01 and T-02 were hand-built by you under the enforcement-layer carve-out, red-first, with the red run recorded. T-03 and T-04 went out concurrently and both returned clean first-pass. Both are pure additions — 52 and 65 insertions, <strong>zero deletions between them</strong>. I re-ran every task&#x27;s verification here rather than trust a receipt.</p>
+<p><strong>Validate.</strong> The blocking test gate passed with both registration greps firing — the part that matters, since a suite exiting 0 without running the new file is this feature&#x27;s own subject. The panel passed with nothing gating, and it earned that: the code reviewer <strong>built a live mutant and proved it live</strong> before claiming the shipped cases survive it; security <strong>timed the regexes against a 400k-character adversarial string</strong>; QA re-ran both kinds in a throwaway worktree rather than relay the gate that had already passed.</p>
+<p><strong>Goal-check.</strong> 15 of 15, each verified first-hand at the pinned commit. One criterion needed your ruling and got it — recorded twice, at <code>notes/answers-sc10-ruling.md</code> and <code>notes/answers-2026-08-14-2-product.md</code>. Both records agree; the duplication is harmless.</p>
+<p><strong>Close-out.</strong> Three squads distilled cold and concurrently. <strong>38 operations across twelve files — 25 additions, 12 replacements, 1 deletion — for a net 269 to 293 entries</strong>, measured against the commit predating every distillation write rather than taken on three leads&#x27; word. Eight candidates were rejected with reasons. Most sections were already at cap, which is why a third of the ops had to kill something to land. The one deletion is the most valuable line here: a dev-ops rule asserting this repo has no <code>.github/</code> and that hooks are its only wiring mechanism — both clauses false, and the same squad had just edited a CI workflow. No entry present before the close-out is missing after it.</p>
+<h2 id="the-one-thing-i-would-not-ship-quietly">The one thing I would not ship quietly</h2>
+<p><strong>The suite is correct today; it is not pinned against regression.</strong> No mutation proof exists, so a green run cannot distinguish a suite that discriminates from one that would pass on a broken module. The panel turned that from a worry into two named, specific holes — see B-3. This does not gate, and it is the item most likely to cost you later, because units 3 through 7 are told to lean on this detector.</p>
+<h2 id="three-corrections-to-the-record">Three corrections to the record</h2>
+<p>Rather than quietly absorb these: <strong>two leads caught false premises in my own dispatches.</strong> I wrote that three reviewers hold no <code>Write</code> on their Expertise files (they do — their agent files and the org config both say so), that the UI reviewer ran once (it ran twice), and I credited a member with a check its lead had actually run. Each cost part of a lead&#x27;s run to correct. That failure is now the replacing entry in my own Expertise file.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on your acceptance. <strong>Anything not listed here dies silently</strong>, so this is everything that survived collation and does not gate.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-1</td><td>bug</td><td><code>check-state.sh</code> runs <code>cd &quot;$root&quot;</code> before its heredoc, so the scanned tree precedes <code>PYTHONPATH</code> on <code>sys.path</code> and a planted <code>harness_yaml.py</code> or <code>layout_migration.py</code> executes at <strong>every session entry</strong>. Pre-existing and byte-identical before this feature — not a regression here, but RCE-shaped on any root not fully trusted.</td></tr><tr><td>B-2</td><td>chore</td><td><code>plan.yaml:663-665</code> and DEC-194 both claim every finding names the reader path; two cannot-verify causes correctly name none. <strong>Narrow both</strong> — a docs-only fix leaves the approved plan contradicting the code. Wanted before unit 3, which is told to cite DEC-194 as its maintenance contract.</td></tr><tr><td>B-3</td><td>chore</td><td>Mutation follow-up, first target named: <code>check-state.sh:1302-1318</code> dispatches the finding&#x27;s wording across four <code>if/elif</code> branches with <strong>no trailing <code>else</code></strong>, and only one of four causes is rendered by any test. Delete the <code>no-rows</code> branch and every suite stays green while session entry reports a clean tree over a surface nobody verified.</td></tr><tr><td>B-4</td><td>chore</td><td>Containment criteria that <strong>enumerate permitted files</strong> will trip on the harness&#x27;s own bookkeeping every time, as SC-10 just did. Consider stating the outcome instead — &quot;nothing is renamed, no reader is migrated&quot; — which this feature&#x27;s own detector can verify. Includes rewording SC-10 if you want the trap closed rather than ruled around.</td></tr><tr><td>B-5</td><td>bug</td><td><code>bash-write-guard</code> refuses redirects whose target is a shell variable, so the plan&#x27;s <code>verify:</code> clauses — which redirect to <code>$(mktemp)</code> — are <strong>not runnable verbatim by the agent required to run them</strong>. Every clause here was run with literal paths instead. It also cost the code reviewer a detour through another tool.</td></tr><tr><td>B-6</td><td>bug</td><td>The orchestrator playbook says to record the phase in <code>feature.json</code> <code>phase:</code>; <code>feature-schema.json</code> sets <code>additionalProperties: false</code> and defines no <code>phase</code>, so that write fails validation. One of the two is wrong.</td></tr><tr><td>B-7</td><td>bug</td><td><code>validate-digest.py:92</code> binds <code>qa</code> to gate fields and <code>:612-615</code> rejects a placeholder alongside <code>PASS</code>. A distillation dispatch runs no gate, so <strong>every feature-close distillation returns BLOCKED</strong> and drags its lead up with it. The file already has the mechanism to fix it — the <code>CONDITIONAL</code> table governs one field&#x27;s obligation by another&#x27;s.</td></tr><tr><td>B-8</td><td>bug</td><td>The repository layer of Expertise, <code>.harness/&lt;repo&gt;/expertise/&lt;agent&gt;.md</code>, appears in <strong>no domain grant</strong>, so no agent at any tier can write it. The craft/repository split shipped without the grant that makes its second half usable; one entry this feature was returned unwritten because of it.</td></tr><tr><td>B-9</td><td>chore</td><td>The ops schema has no verb for a rejection, and a member reached for <code>op: reject</code> unprompted. Either add one so rejections are machine-visible receipts, or say in the skill that prose is the intended home.</td></tr><tr><td>B-10</td><td>chore</td><td>A member&#x27;s runs can sit outside its owning lead&#x27;s view at distillation. The UI reviewer is a validator-squad member whose plan-time run was hosted by the product lead; the product lead correctly refused to distill it and the validator lead caught it, but a missed run is a lesson lost permanently.</td></tr><tr><td>B-11</td><td>chore</td><td>Shared <code>.harness/expertise/</code> has <strong>no concurrency or lineage protection</strong>. Two features distilling at once would silently revert each other. Met as a near-miss this run and avoided by a lead&#x27;s judgement, not by a mechanism.</td></tr></tbody></table></div>
+<p><strong>Already ticketed, not a new row:</strong> <code>.github/workflows/tests.yml:110-114</code> carries a comment falsely claiming a test asserts the neighbouring CI step is wired. Pre-existing, byte-unchanged here, and owned by issue #279 — deliberately left standing.</p>
+<p><strong>Considered and dropped:</strong> the new decision entry&#x27;s line wrapping is wider than the file&#x27;s average. Measured before deciding — 16% of the file&#x27;s existing lines already exceed 100 characters against 25% of the new entry&#x27;s. Within existing practice; not worth a row.</p>
+<h2 id="numbers">Numbers</h2>
+<ul><li><strong>4 cycles of 10.</strong> Two from the plan phase, one from a QA send-back, one from a distillation send-back. Every dispatched run was otherwise clean first-pass.</li><li><strong>10 runs of 20</strong> — inside the informational tripwire, and a <strong>floor</strong>: T-01 and T-02 were hand-built and are not counted.</li><li><strong>8 files shipped</strong>, zero renames, 4 tagged commits.</li></ul>
+<h2 id="what-is-left-for-you">What is left for you</h2>
+<p>Merge, and accept the ship. Both stay yours — nothing in the harness does either. On acceptance the unstruck backlog rows become issues, the milestone closes, and this document is posted to the parent issue as its ship review.</p><p class='derived'>Derived from <code>ship-review-2026-08-14.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
