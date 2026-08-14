@@ -1185,6 +1185,15 @@ if _inv26_board:
             # INV-21 warns on a DIFFERENT shape (recorded issues, no parent); these stay
             # two findings and neither restates the other.
             if not _issues:
+                # THE OTHER LANE (issue #349). A feature published by factory_decompose
+                # records its issues under `factory.issues` and nothing under
+                # `github.issues` — its cards live on the PRODUCT's board, which this
+                # invariant does not read. Without this, the clause below orders the
+                # operator to run `gh-sync.py open` on product work, mirroring it onto
+                # harness's own board. Keys on RECORDED issues, not the block's presence:
+                # a factory block with an empty map is still a feature nobody published.
+                if ((_fj.get("factory") or {}).get("issues")):
+                    continue
                 _claim = (f"plan derives {_derived}" if _derived is not None
                           else "the plan has tasks under way")
                 bad.append(f"INV-26 {_feat}: tasks are in flight or finished ({_claim}"
