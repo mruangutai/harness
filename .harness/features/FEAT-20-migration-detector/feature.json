@@ -2,9 +2,9 @@
   "feature_id": "FEAT-20-migration-detector",
   "branch": "feat/FEAT-20-migration-detector",
   "pr": null,
-  "status": "Building",
-  "review_sha": "88b1182",
-  "cycles_used": 2,
+  "status": "Review",
+  "review_sha": "11cb644",
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -16,6 +16,21 @@
     {
       "id": "plan-eng",
       "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t03-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t04-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "qa-gate-validator",
+      "squad": "validator",
       "verdict": "PASS"
     }
   ],
