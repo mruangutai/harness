@@ -71,3 +71,37 @@
   `reader_files` at `:199`, actual `:195`; `_evidence` returns at `~146/~156`, actual `:143/:152`),
   though it marked some approximate with a tilde and every MECHANISM I spot-checked was exactly
   right. P-01 earned its keep: I published the anchors I measured, not the ones it reported.
+
+## Pre-merge pass, run `2026-08-14-4-validator` @ `045dcd9`
+
+- 2026-08-14: DISPATCH-GUARD BLOCKED MY OWN WAVE. I passed `model: sonnet` on all four Agent calls
+  and `dispatch-guard.sh` rejected every one, citing DEC-152/155 — a model pin is org design, not a
+  dispatch option. The guard was right and cost one wave of latency, nothing else. I had no reason
+  to set it; I added it reflexively while composing four prompts at once. Re-dispatched verbatim
+  minus the parameter and all four launched.
+
+- 2026-08-14: THE SHA GAP NOBODY IN THE SHIP LOOP COULD HAVE CLOSED. The panel and every review
+  artifact are pinned at `ea476fd`; the operator's merge candidate is `045dcd9`. The blocking qa
+  gate is pinned earlier still, at `11cb644` (`runs/qa-gate-validator/digest.md:1`). Three
+  different SHAs carry the three pieces of assurance. The transitive chain that makes them apply to
+  the merge candidate is assembled from two INDEPENDENT member measurements, one per link, and no
+  member holds both:
+  - `11cb644..ea476fd` — zero of the 8 source files (panel qa, `review-harness-qa-c0.md:45`)
+  - `ea476fd..045dcd9` — zero of the 8 source files (premerge security,
+    `review-harness-security-reviewer-premerge.md:7-14`; 22 files, all `.harness/expertise/*` and
+    FEAT-20 bookkeeping)
+  Therefore the 8-file source tree at `045dcd9` is byte-identical to `11cb644`, and the blocking
+  gate's green plus every panel finding transfer to the merge candidate. This is the synthesis the
+  lead tier exists for: each member measured one link and neither could state the conclusion.
+
+- 2026-08-14: SEAM IN THE PRIOR PANEL'S OWN COVERAGE (P-06, applied to a panel rather than to code).
+  `review-harness-code-reviewer-c0.md`'s headline claims "spec compliance clean across all 8 files",
+  but its Stage 1 enumerates SEVEN: `layout_migration.py`, `test-layout-migration.py`,
+  `check-state.sh`, `test-check-state.py`, `tests.yml`, `DECISIONS.md`, `DECISIONS-INDEX.md`.
+  `run-unit-tests.sh` — the registration file that decides whether the new test file runs at all,
+  i.e. this feature's own subject — is absent, confirmed by grep over the whole notes directory.
+  It is NOT uncovered in the panel's union: security described it (`review-harness-security-reviewer-c0.md:88`,
+  "one-line array addition (test registration)") and qa executed through it with both registration
+  greps firing. So the defect is a MIS-STATED SCOPE CLAIM in one member's headline, not a hole —
+  which is exactly the distinction that stops it becoming a must_fix. Check the enumeration against
+  the count whenever a member's headline asserts "all N files".
