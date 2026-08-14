@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-20-migration-detector",
   "pr": null,
   "status": "Review",
-  "review_sha": "11cb644",
+  "review_sha": "ea476fd",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
@@ -30,6 +30,11 @@
     },
     {
       "id": "qa-gate-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-14-1-validator",
       "squad": "validator",
       "verdict": "PASS"
     }
