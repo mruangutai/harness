@@ -137,7 +137,7 @@ tasks:
       DEC-174 carve-out by content - check-state.sh computes INV-27's verdict from this module's
       return value. Lane row above, FEAT-18 gh_board.py precedent.
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/layout_migration.py
       - .claude/skills/harness/bin/test-layout-migration.py
@@ -478,7 +478,7 @@ tasks:
       DEC-174 carve-out named in CLAUDE.md - check-state.sh is the state gate, and
       test-check-state.py co-changes with it in the same diff a human reads.
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
@@ -567,7 +567,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .github/workflows/tests.yml
     verify: |
@@ -623,7 +623,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - docs/harness/DECISIONS.md
       - docs/harness/DECISIONS-INDEX.md
