@@ -3,57 +3,55 @@
 ## Current
 
 - feature: FEAT-20-migration-detector
-- run: close-out — ship-refresh and distillation dispatched concurrently
-- squad: eng + product + validator
-- status: closing-out
+- run: none in flight — the feature is complete and the briefing is written
+- squad: none
+- status: in_review — awaiting the operator's ship acceptance
 
-**All 15 success criteria are MET. The feature's goal is achieved.** The operator ruled on the
-one open criterion on 2026-08-14: SC-10 binds the *shipped surface*, which is exactly the eight
-files it enumerates; the harness's own per-feature bookkeeping is outside its subject, not a
-violation of it. `BRIEF.md`'s text stands as signed — no edit, no re-plan. The ruling and the
-evidence it rests on are recorded at `notes/answers-2026-08-14-2-product.md`.
+**All 15 success criteria MET, both gates passed, close-out done, briefing written.** The operator
+ruled SC-10 as the shipped surface on 2026-08-14; the signed text stands. The ruling is recorded
+twice and consistently — `notes/answers-sc10-ruling.md` (the main session's) and
+`notes/answers-2026-08-14-2-product.md` (mine, carrying the evidence). Duplicate, not conflicting.
 
-**Built and verified.** Four tasks — `14ca661` T-01, `d3207e7` T-02, `2c35398` T-03, `396f1ad`
-T-04 — with every `verify:` re-run in this session rather than read from a receipt. Issues
-#361-#364 closed, parent #360 on `Review`. **Blocking qa gate PASS** (matrix union
-`{unit, integration}`, both green, both registration greps fired). **Review panel PASS**,
-`must_fix: []`, `severity_max: med` under `advisory_unless_high`, so nothing gated.
-**Goal-check: 15 of 15**, each verified first-hand at `434307a`.
+**The briefing is `notes/ship-review-2026-08-14.md`**, with its rendered sibling `.html`. Assembled
+from every run's digest read off disk including the plan phase this orchestrator never ran, with **no
+report round spawned** — disclosed in the document, which names each digest by path and flags that
+`plan-eng` wrote no `digest.md` at all. It carries **11 backlog rows, B-1 to B-11**; anything not in
+that table dies silently on acceptance.
 
-**Live evidence, re-measured at HEAD.** The detector prints `features: CLEAN — evidence legacy`,
-`docs: CLEAN — evidence legacy`, `examined 20 feature dir(s), 1 doc root(s), 7 reader file(s)`,
-exit 0. Zero renames across the whole feature. `check-state.sh` exits 0 with zero INV-27 lines.
-The feature's own tool confirms the feature stayed in its lane.
+**Ship-refresh was skipped and the skip is verified, not assumed** — no `.harness/map/` and no
+`INDEX.md` exists anywhere, so there is no map to mark stale.
 
-**Budget: `cycles_used` 3 of 10** — two from the plan phase, one from qa's in-run send-back. Both
-build dispatches, the panel and the goal-check were clean first passes; the operator's ruling is
-not rework and added none. **`len(runs)` 7 of 20**, and a floor, since T-01 and T-02 were
-main-session-direct and are not runs.
+**Close-out distillation: 38 ops across 12 Expertise files — 25 additions, 12 replacements, 1
+deletion, net 269 → 293 entries.** Measured against `8cd251a`, which predates every distillation
+write, rather than taken on three leads' word: no entry id present before is missing after, and
+`check-expertise.sh` exits 0 over all 13 files. The single deletion was a dev-ops rule falsified at
+HEAD. I applied 17 returned ops verbatim myself, surgically, never rewriting a file whole.
 
-**Next: the CEO briefing**, assembled from every run's digest read off disk — including the plan
-phase this orchestrator did not run — with no report round spawned, disclosed in the briefing
-itself. Then it returns to the operator for ship acceptance. Merge stays user-gated.
+**One run returned BLOCKED and it is not a work failure.** The validator squad's distillation
+completed — all four members distilled, qa's four ops on disk — but `validate-digest.py` binds `qa`
+to gate fields and rejects a placeholder alongside `PASS`, and a distillation dispatch runs no gate.
+Recorded as `BLOCKED` in `runs:` because that is what it returned; retrying would return it forever.
+It is **B-7** in the briefing.
+
+**Budget: `cycles_used` 4 of 10** — plan 2, one qa send-back, one distillation send-back. **`len(runs)`
+10 of 20**, and a floor: T-01 and T-02 were main-session-direct and are not runs.
+
+**14 commits on the branch since `88b1182`.** The tree is clean apart from held dirt that predates
+this feature — two deleted `.harness/members/backend-dev/FEAT-02-*.md` and two untracked files under
+`.harness/logs/` and `.harness/notes/`. Never staged; never `git add -A`.
+
+**What remains is the operator's alone:** merge, and ship acceptance. On acceptance the main session
+runs `gh-sync.py ship` (closing milestone 11 and parent #360, posting the briefing) and
+`gh-sync.py backlog` for the unstruck rows.
 
 ## Open Questions
 
-None blocking. Seven residual items carry to the briefing's backlog:
+None blocking. Everything residual is in the briefing's backlog table as **B-1 through B-11** and
+dies silently if struck there — the two worth reading first are B-1, a session-entry import path that
+executes files out of the tree it scans, and B-3, the named mutation the suite would survive.
 
-- **A session-entry path executes files from the tree it scans.** `check-state.sh` runs
-  `cd "$root"` before its heredoc, so `sys.path[0]` precedes `PYTHONPATH`; a planted
-  `harness_yaml.py` or `layout_migration.py` at `CLAUDE_PROJECT_DIR` runs at every session entry.
-  Byte-identical at `88b1182` — pre-existing, not this feature's regression, but RCE-shaped.
-- **The approved plan contradicts its own code, and DEC-194 now repeats it.** Both assert every
-  finding names the reader path, while the `no-evidence` and `no-rows` causes correctly name none.
-  Narrow both, before unit 3 opens — units 3-7 cite DEC-194 as their maintenance contract.
-- **The suite is correct-today, not pinned against regression.** First mutation target named:
-  `check-state.sh:1302-1318` dispatches INV-27's wording across four `if/elif` branches on
-  `_srep.cause` with **no trailing `else`**, and only one cause is rendered by any test.
-- **SC-10's wording is deliberately left unimproved** by the ruling and will trip the same way on
-  the next feature. The broader question — should containment criteria state an outcome ("nothing
-  is renamed, no reader is migrated") rather than enumerate permitted files — is live and unowned.
-- **`.github/workflows/tests.yml:110-114` carries a false guard claim**, pre-existing and
-  byte-unchanged here. Issue #279 owns it.
-- **Harness defect:** `bash-write-guard` refuses redirects whose target is a shell variable, so the
-  plan's `verify:` clauses are not runnable verbatim by the agent that must run them.
-- **Harness defect:** the playbook says to record the phase in `feature.json` `phase:`, which
-  `feature-schema.json` forbids via `additionalProperties: false`.
+**Three corrections to my own conduct**, recorded rather than absorbed, and now the replacing entry
+in my Expertise: I asserted in dispatches that three reviewers hold no `Write` (they do — verified at
+their agent files and at `team-config.yaml:245/256/266`), that the UI reviewer ran once (it ran
+twice), and I credited a member with a check its lead had run. Two leads spent part of their runs
+correcting me.
