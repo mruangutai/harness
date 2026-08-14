@@ -12,11 +12,15 @@
 - P-09: WHEN a rewritten message diagnoses one specific system/repo state as an error DO trace which real invocations reach that branch and confirm the post-feature normal state is not among them — a message can be textually accurate yet fire on the case the feature just made normal.
 - P-10: WHEN sibling CLI commands enforce the same refusal condition through different code paths (an explicit refuse call vs. a raised-and-caught exception) DO verify both resolve to the same exit code and message grammar — this cross-tool consistency check is invisible to a per-call-site code-review lens.
 - P-11: WHEN a message-wording defect already exists unchanged in a pre-existing sibling message DO record the new instance as a non-gating note rather than filing a fix against the untouched sibling — extending remedy scope into code the diff never touched is not this role's call.
+- P-12: WHEN a contract clause requires a property for 'every' item in a collection DO check the zero-cardinality case — vacuous truth over an empty set can make a broken/empty collection compute a clean verdict, silently reintroducing the exact defect class the contract exists to prevent.
+- P-13: WHEN you find a contract gap in one task or document's wording DO sweep sibling tasks/documents that independently restate the same intent for the identical gap before scoping a fix — a fix landing in only one instance leaves the other reading the same ambiguity.
+- P-14: WHEN filing a completeness/consistency finding that cites an unstated house convention DO grep multiple live examples of that convention in the codebase and quote them before filing — a consistency finding needs the convention confirmed to exist, not assumed from general style expectations.
 
 ## Gotchas (max 15)
 - G-01: WHEN closing a prior FAIL's must_fix in a Mode A recheck DO verify the fix's literal text in the document itself (grep the actual wording/query/value) before marking closed — a closing review's own narration, or the plan's stated intent, is not evidence until the artifact is read directly.
+- G-02: WHEN a surface under review is batch/CLI text with no colour-only state encoding DO state the accessibility and theme-parity sections as explicitly not-applicable with the reasoning, rather than omitting them — an omitted section reads as unchecked, not confirmed inapplicable.
 
 ## Outcomes (max 10)
-- O-01: A scoped-out verdict backed by a file-extension census plus a confirmed-absent contract check held up under cross-review scrutiny as a reviewed finding, distinct from predicting in advance that nothing would be found.
+- O-01: WHEN a scoped-out verdict rests on a measured check (extension census, direct object check) rather than a prediction DO record it as such — a scoped-out review that looked holds up under cross-review scrutiny; one that merely predicted absence does not.
 
 ## Open (max 5)

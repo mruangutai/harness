@@ -1,0 +1,714 @@
+schema: plan/1
+feature: FEAT-20-migration-detector
+
+approval:
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: "2026-08-14"
+
+lanes:
+  resolved_at: 88b1182
+  rows:
+    - surface: .claude/skills/harness/bin/layout_migration.py
+      lane: main-session-direct
+      reason: >-
+        New module. check-domain.sh --resolve at 88b1182 answers harness-backend-dev and
+        harness-dev-ops, the same pair the four carve-out files answer, but check-state.sh
+        computes INV-27's verdict from its return value, so it is a DEC-174 carve-out BY
+        CONTENT on FEAT-18's gh_board.py precedent, itself on FEAT-17's harness_boundary.py.
+    - surface: .claude/skills/harness/bin/test-layout-migration.py
+      lane: main-session-direct
+      reason: co-changes with the module a gate verdict is computed from, in the same diff a human reads
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out named in CLAUDE.md - the state gate
+    - surface: .claude/skills/harness/bin/test-check-state.py
+      lane: main-session-direct
+      reason: co-changes with check-state.sh, in the same diff a human reads
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: main-session-direct
+      reason: >-
+        --resolve answers harness-backend-dev and harness-dev-ops, but the only edit is
+        registering test-layout-migration.py in the same task that creates it, and that task is
+        main-session-direct. Splitting one array append into a second lane buys nothing.
+    - surface: .github/workflows/tests.yml
+      lane: team
+      agent: harness-dev-ops
+      reason: >-
+        NOT a DEC-174 carve-out. CLAUDE.md names four scripts and this is not one of them.
+        Recorded because a reader may assume every gate-adjacent file is a carve-out, and
+        because it is the only team-lane surface in this feature.
+    - surface: docs/harness/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: docs/harness/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: >-
+      Failure is judged PER COUPLED SURFACE over a closed reader set, never tree-wide. Surface
+      FEATURES takes its disk evidence from .harness/features/*/feature.json against
+      .harness/*/features/*/feature.json, and its coupled readers are exactly unit 3's atomic
+      cluster - team-config.yaml write grants, check-domain.sh SWEEP_GLOBS, check-domain.sh's four
+      shape regexes, check-plan-routes.py's discovery join, check-state.sh's discovery globs.
+      Surface DOCS takes its evidence from docs/harness/SPEC.md against .harness/*/docs/SPEC.md,
+      and its coupled readers are exactly unit 4's atomic trio - factory_config._PROBE,
+      harness_boundary.HARNESS_CONTROL_PLANE, gen-decisions-index.DOCS_DIR. Deliberately excluded
+      from both sets, and named so a later reader does not add them back - gh-sync.py line 729,
+      branch-create-gate.sh line 77, validate-feature-json.py, factory_claim.py line 43, the
+      gitignore snippet, and all prose.
+    because: >-
+      Map 336 makes unit 3 one commit and unit 4 its own atomic unit with no ordering tie, so
+      features-moved-docs-not is a SANCTIONED state and a tree-wide definition reddens on it. The
+      excluded readers land anytime under unit 9, so reading them reddens a sanctioned state from
+      the other direction.
+    dec: none
+  - id: D-02
+    choice: >-
+      Building the detector is main-session-direct. The module, its unit test, check-state.sh,
+      test-check-state.py and the run-unit-tests.sh registration are all built by hand. Only the CI
+      step is dispatched, to harness-dev-ops.
+    because: >-
+      check-state.sh computes a gate verdict from the module's return value, which FEAT-18 already
+      ruled a DEC-174 carve-out by content for gh_board.py on identical --resolve output. The
+      rejected alternative was invoking the detector only from CI to keep a team lane, and it was
+      rejected because session entry is the higher-value call site - check-state.sh going quiet is
+      the defect this feature exists to prevent. The cost is stated, not argued away - two of the
+      four tasks, and five of the eight files, are hand-built.
+    dec: DEC-174
+  - id: D-03
+    choice: >-
+      Each coupled reader carries a DATA row of two forms, legacy and migrated. A reader file
+      matching neither form exits 2, cannot-verify, which both call sites treat as a violation. A
+      reader file matching BOTH forms exits 1. The check asserts which forms appear per file and
+      never asserts a site count, and never anchors on a line number. A legacy pattern is written
+      as THE WEAKEST FRAGMENT EVERY STALE SITE NECESSARILY CONTAINS, audited against the real file
+      before the row is written. The residual bound is stated rather than argued away - the
+      detector proves per-file FORM AGREEMENT, never per-site COMPLETENESS - and it is carried in
+      the module comment and the decision entry because units 3 through 7 lean on it. Units 3 and
+      4 update their own rows inside their one atomic commit, and are not done until the detector
+      exits 0 on their migrated tree inside that same commit - that maintenance contract is part
+      of what this hands to the next planner, and it is why the table must be data rather than
+      logic. Because the table is data, CLEAN additionally requires a NON-EMPTY reader set for the
+      surface being judged - over an empty set the clause every reader carries that one form is
+      vacuously true, so a later edit dropping a surface's rows would report CLEAN forever. A
+      surface whose table holds no rows is cannot-verify, and the two surfaces are a fixed enum
+      declared independently of the table, so a surface can never be skipped ahead of its verdict
+      either.
+    because: >-
+      The migrated form is anticipated, not observed, because nothing has moved yet. Degrading an
+      unrecognised reader to clean is how issue 148's check passed forever. The site count was read
+      as 13, 14 and 15 in three good-faith surveys of the same file, so a count assertion rots
+      inside one cycle.
+    dec: none
+  - id: D-04
+    choice: >-
+      Applicability is decided before any surface is judged, by one positive control - the presence
+      of .claude/skills/harness/bin/check-state.sh at the scanned root. A root without it is
+      reported as NOT APPLICABLE with zero examined counts and exit 0, and no surface is judged at
+      all.
+    because: >-
+      Every coupled reader is a harness control-plane file. check-state.sh also runs at session
+      entry in onboarded product repositories, and test-check-state.py's existing fixtures are bare
+      .harness skeletons - neither holds any reader file, so D-03 alone would exit 2 on a healthy
+      product repo and on every existing test case. What keeps the branch from becoming a silent
+      pass inside harness is T-01 CASE 1, not the CI step: case 1 scans the real repository root
+      and asserts non-zero examined counts, so a missing or renamed marker turns NOT APPLICABLE
+      into a red case in the required unit suite. The CI step's zero-count assertion is a second
+      signal, not the guarantee - DEC-183 records the whole CI step class as unguarded by owner
+      decision, nothing protects the gate, settled, and no .py in the tree reads
+      .github/workflows/tests.yml at 88b1182, so that bound is one PR deep. The marker is also
+      invariant across the migration it gates - .claude/skills/harness/bin/** moves in no unit of
+      map 336 - and presence of the marker is a different property from agreement of the forms,
+      so the control is sound rather than circular. Session entry is genuinely unbounded and
+      silent on NOT APPLICABLE by design (SC-12 mandates that silence); case 1 is what keeps the
+      harness tree from ever reaching that branch unnoticed.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Build the layout-migration detector module and its red-first unit suite
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-07, REQ-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-174 carve-out by content - check-state.sh computes INV-27's verdict from this module's
+      return value. Lane row above, FEAT-18 gh_board.py precedent.
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/layout_migration.py
+      - .claude/skills/harness/bin/test-layout-migration.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      u=$(mktemp); ru=0
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >"$u" 2>&1 || ru=$?
+      cat "$u"
+      grep -q '^PASS test-layout-migration\.py$' "$u" || { echo "the new suite did not run at all"; exit 1; }
+      exit "$ru"
+    intent: |
+      Create layout_migration.py, an importable module plus a thin CLI, and
+      test-layout-migration.py, its in-process unit suite. Register
+      "test-layout-migration.py" in the UNIT_SCRIPTS array of run-unit-tests.sh in this same
+      task: run-unit-tests.sh runs a drift detector over the union of both arrays and an
+      unregistered test file fails the WHOLE run.
+
+      WRITE THE TESTS FIRST AND RUN THEM RED BEFORE THE MODULE EXISTS OR IS COMPLETE. Record
+      the red run in the receipt. A detector that has never been observed failing is issue 148
+      inside the fix for issue 148, and that is the whole reason this feature is unit 0.
+
+      APPLICABILITY, DECIDED FIRST. Before any surface is judged, test whether the scanned root
+      holds .claude/skills/harness/bin/check-state.sh. If it does not, the root is not a harness
+      control-plane checkout: report NOT APPLICABLE, print zero for all three examined counts, and
+      exit 0 without judging a surface. This is what keeps a healthy onboarded product repository
+      and every existing check-state.sh fixture from reddening, since neither holds any coupled
+      reader file at all. It is not a hole: inside harness the marker is present by construction,
+      and case 1 of this suite scans the real root and asserts non-zero counts, so a missing or
+      renamed marker reddens the unit suite. Do not describe the CI step as the guarantee - see
+      D-04. The exact text this branch prints is pinned in the OUTPUT CONTRACT below, including
+      the NOT APPLICABLE literal and the two zero-count lines; do not invent wording for it here.
+
+      THE MODEL. Two surfaces, judged independently and never combined into one tree-wide
+      verdict:
+
+      SURFACE features
+        disk evidence, two disjoint glob shapes relative to the scanned root:
+          legacy   = .harness/features/*/feature.json
+          migrated = .harness/*/features/*/feature.json
+        The shapes differ in segment count, so they cannot both match one path and no list of
+        reserved directory names is needed.
+        coupled readers, each with a two-form data row. EVERY PATTERN IS A REGEX, with literal
+        characters escaped in the pattern as written - a literal-substring row cannot express a
+        migrated form whose repository segment is not yet known, so the whole table is regex or
+        the table is inconsistent. Patterns audited against the real files at 88b1182; the audit
+        result is quoted per row so a later editor can re-run it:
+
+          .harness/team-config.yaml
+            legacy   = \.harness/features/
+            migrated = \.harness/[^/ ]+/features/
+            audited: every write-grant line and the features: path setting carry the legacy
+            fragment; there is no prose-only mention of it in this file.
+          .claude/skills/harness/bin/check-domain.sh
+            legacy   = \.harness/features/
+            migrated = \.harness/(\*|\[\^/\]\+)/features/
+            audited: the four SWEEP_GLOBS entries spell it as glob text and the four shape
+            regexes spell it as regex source \.harness/features/, which contains the legacy
+            fragment as a substring, so ONE pattern covers all eight sites. The migrated
+            alternation exists because those two spellings diverge once a segment is inserted -
+            glob text takes * and regex source takes [^/]+.
+          .claude/skills/harness/bin/check-plan-routes.py
+            legacy   = "\.harness", "features"
+            migrated = "\.harness", [^,)]+, "features"
+            audited: exactly one discovery join carries this. Six further mentions of
+            .harness/features are docstring and diagnostic-message prose, and the join-shaped
+            pattern excludes all six by construction - that is deliberate, see the MIXED-FOREVER
+            rule below.
+          .claude/skills/harness/bin/check-state.sh
+            legacy   = os\.path\.join\(H, "features"
+            migrated = os\.path\.join\(H, [^,)]+, "features"
+            audited: 15 of 15 discovery sites match this legacy fragment, INCLUDING the two that
+            carry no trailing "*" - os.path.join(H, "features") inside os.listdir, and
+            os.path.join(H, "features", _f, "feature.json"). An earlier draft of this plan
+            specified the legacy form as the join of H then "features" then "*", which misses
+            exactly those two: unit 3 could have migrated the thirteen starred sites, left those
+            two stale, and the file would then carry the migrated form and no matching legacy
+            form - CLEAN with two broken discovery sites, the precise silent pass this feature
+            exists to prevent. The sixteenth mention is a DEC-129 comment spelling
+            .harness/features/<FEAT>/, which this pattern does not match, by design.
+
+      THE PATTERN RULE THAT PRODUCED THAT TABLE, and which any future row must obey: A LEGACY
+      PATTERN IS THE WEAKEST FRAGMENT EVERY STALE SITE NECESSARILY CONTAINS. Not the shape of the
+      commonest site, and not the shape a survey of the file happened to notice. Write the
+      candidate, then grep the real file with it and with a broader pattern for the same concept,
+      and confirm the only lines the broader pattern adds are prose. A row that has not been
+      audited that way is not written.
+
+      THE RESIDUAL BOUND, AND IT IS NOT A DEFECT TO BE ARGUED AWAY: this detector proves PER-FILE
+      FORM AGREEMENT, never PER-SITE COMPLETENESS. It answers "does this file speak one layout
+      language, and the same one its evidence and its siblings speak" - it does not and cannot
+      answer "did every site in this file get updated". A file whose stale sites all still match
+      the legacy pattern is caught; a file migrated so thoroughly that no fragment of the legacy
+      pattern survives, yet holding a stale site the pattern was too narrow to name, is not. That
+      is why the pattern rule above is stated as a rule rather than left to judgement, and why
+      units 3 and 4 owe the acceptance clause in T-04. State this bound VERBATIM IN A MODULE
+      COMMENT: units 3 through 7 will lean on this detector and must know exactly what it does
+      not promise.
+
+      SURFACE docs
+        disk evidence:
+          legacy   = docs/harness/SPEC.md
+          migrated = .harness/*/docs/SPEC.md
+        coupled readers, same regex rule and same audit duty:
+          .claude/skills/harness/bin/factory_config.py
+            legacy   = os\.path\.join\("docs", "harness"
+            migrated = os\.path\.join\("\.harness", [^,)]+, "docs"
+            audited: one site, the _PROBE assignment. The module docstring mentions
+            docs/harness/SPEC.md twice as prose; the join-shaped pattern excludes both.
+          .claude/skills/harness/bin/gen-decisions-index.py
+            legacy   = os\.path\.join\("docs", "harness"|docs/harness/
+            migrated = os\.path\.join\("\.harness", [^,)]+, "docs"|\.harness/[^/ ]+/docs/
+            audited: this is the ONE ROW WHOSE PATTERN IS DELIBERATELY NOT CODE-SHAPED, and the
+            reason is the second exception to the MIXED-FOREVER rule below. Two spellings carry
+            the path. Line 20 is the DOCS_DIR join, code-shaped. Line 76 is a literal
+            docs/harness/DECISIONS.md inside the HEADER template string that this script EMITS
+            INTO the committed docs/harness/DECISIONS-INDEX.md - slash-shaped, and invisible to a
+            join-shaped pattern. If unit 4 updated DOCS_DIR and left HEADER, the file would match
+            the migrated form only: CLEAN, while the shipped index tells every agent to open a
+            path that no longer exists. That is the MF-3 defect class this plan already closed for
+            check-state.sh, in a second row. The alternation is therefore run at both spellings.
+            The cost is stated and accepted, not argued away: the same slash-shaped alternative
+            also matches the module docstring at lines 2, 5 and 10, which no pattern can separate
+            from line 76 because they are spelled identically. Audited at 88b1182, which is HEAD
+            and matches the working tree for this file: the legacy alternation matches exactly
+            lines 2, 5, 10, 20 and 76 and nothing else, and the migrated alternation matches ZERO
+            lines, so case 1 stays CLEAN on today's tree rather than going instantly MIXED.
+          .claude/skills/harness/bin/harness_boundary.py
+            legacy   = docs/harness/\*\*
+            migrated = \.harness/[^/"]+/docs/\*\*
+            audited: three occurrences, and only one of them is the HARNESS_CONTROL_PLANE entry
+            itself. The other two are comments that QUOTE the entry verbatim, so no pattern can
+            separate them from the code. This is the one row where the MIXED-FOREVER rule below
+            has real work to do, and it is ruled there rather than papered over here.
+
+      THE READER TABLE IS DATA - one module-level structure of (surface, file, legacy_pattern,
+      migrated_pattern) rows that a future task edits without touching logic. Do not inline the
+      patterns into control flow. EVERY PATTERN IS MATCHED AGAINST THE FILE'S WHOLE TEXT, not
+      against a named section or a parsed structure. Do not use line numbers, do not count
+      occurrences, do not assert how many sites a file has: the same file was surveyed as 13, 14
+      and 15 glob sites in three good-faith readings, and any count assertion is stale inside one
+      cycle.
+
+      THE MIXED-FOREVER RULE, ruled here so no reviewer reopens it as an oversight, and stated in
+      a module comment: because matching is whole-text, a purely HISTORICAL mention of a legacy
+      form inside a coupled reader holds that file MIXED forever, long after every live site is
+      migrated. The table above resolves this in three ways, and all three are deliberate:
+        - For five of the seven rows the pattern is CODE-SHAPED - a join expression, a grant path,
+          a glob or regex source - so docstring narrative and diagnostic-message prose fall
+          outside it without anyone relocating a word of text. Prefer this resolution when a row
+          is written or edited. It is also why factory_config.py's two docstring mentions of
+          docs/harness/SPEC.md stay excluded - they narrate, they are emitted nowhere, and no
+          missed defect has been demonstrated through them. That exclusion is ruled here, not
+          overlooked.
+        - For gen-decisions-index.py the code-shaped pattern MISSES A REAL DEFECT and is therefore
+          overruled, and this is the second exception rather than an inconsistency. Its HEADER
+          template string carries a slash-shaped docs/harness/DECISIONS.md that is EMITTED INTO
+          the committed DECISIONS-INDEX.md, so a stale HEADER points every agent at a path that no
+          longer exists while a join-shaped pattern reports the file cleanly migrated. Detection
+          beats an unenforced obligation in a docs task, which is the remedy this ruling rejected.
+          THE PRICE IS STATED AND ACCEPTED: the same alternation also holds the file MIXED for its
+          module docstring at lines 2, 5 and 10, spelled identically to line 76 and inseparable
+          from it by any pattern. That is not a false positive. All four lines are PRESENT-TENSE
+          OPERATIONAL CLAIMS about the paths this script reads and writes, and unit 4 falsifies
+          all four at once - line 10 instructs a reader to diff against a file that will not
+          exist. Rewriting them inside unit 4's atomic commit is correct maintenance, on exactly
+          the harness_boundary reasoning below. The residual risk, recorded rather than hidden:
+          this row costs unit 4 four extra line edits in one file, and if the rewritten HEADER
+          matches neither form the file exits 2 loudly at that commit, which is D-03's intended
+          way to discover it.
+        - For harness_boundary.py it is unreachable: its comments at the two audited sites quote
+          the HARNESS_CONTROL_PLANE entry docs/harness/** character for character. THE RULING IS
+          THAT UNIT 4 REWRITES THOSE COMMENTS inside its own atomic commit, and this feature does
+          not touch them. That is correctness rather than history-laundering: both comments assert
+          a PRESENT-TENSE fact about the closed list - that docs/harness/** is not widened to
+          docs/** and that a glob key holds no docs/harness/** entry - and the migration makes
+          both statements false about the code beneath them. The detector holding the file MIXED
+          until they are corrected is the behaviour we want, not a false positive.
+
+      DO NOT READ these files under any surface, and say so in a module comment naming them:
+      gh-sync.py, branch-create-gate.sh, validate-feature-json.py, factory_claim.py, the
+      gitignore snippet, and prose. Map 336 lands them anytime under unit 9, so reading them
+      would redden a sanctioned state.
+
+      PER-SURFACE VERDICT. THE SURFACES ARE A FIXED ENUM - features and docs - declared in the
+      module INDEPENDENTLY OF THE READER TABLE, and every member of that enum is judged on every
+      applicable scan. A surface is never skipped: iterate the enum, not the table. If the table
+      yields ZERO rows for a surface, that surface is CANNOT_VERIFY, not absent from the report.
+      A surface declared and then not judged must be exactly as loud as one judged cannot-verify.
+
+      Compute the set of evidence roots present on disk, and for each coupled reader the set of
+      forms present in its text. Then:
+        CANNOT_VERIFY  if the surface has no coupled reader rows at all; or a reader file is
+                       unreadable; or a reader's text matches neither of its two forms; or the
+                       surface has no disk evidence of either shape at all.
+        MIXED          if both evidence shapes are present; or a reader's text matches both of
+                       its forms; or the single form a reader carries disagrees with the single
+                       evidence shape on disk.
+        CLEAN          a NON-EMPTY reader set for this surface, exactly one evidence shape, and
+                       every reader carrying exactly that form.
+      THE NON-EMPTY PRECONDITION IS NOT DECORATION. Over an empty reader set "every reader carries
+      exactly that form" is VACUOUSLY TRUE, so a later edit that drops a surface's rows from the
+      data table - and the table is data by D-03, precisely so that later units edit it - would
+      make this detector report CLEAN forever. That is issue 148 reappearing inside the verdict
+      logic of the feature that exists to eliminate issue 148, and it is why the emptiness check
+      and the fixed-enum iteration are both specified rather than left to the implementation.
+
+      PROCESS EXIT CODES, and nothing else may be returned:
+        0  the root is NOT APPLICABLE, or every surface CLEAN
+        1  any surface MIXED and none CANNOT_VERIFY
+        2  any surface CANNOT_VERIFY, which outranks MIXED because a verdict computed over
+           something unreadable is not a verdict
+
+      OUTPUT CONTRACT, copied in spirit from check-plan-routes.py because its CI step is the
+      working precedent for a check that can prove it looked. The CLI prints, on their own lines
+      and in this order:
+        one line per surface naming the surface, its verdict, the evidence shape or shapes found,
+          and for a MIXED or CANNOT_VERIFY verdict the reader files responsible, by path.
+          EVERY NAMED READER PATH CARRIES ITS MATCHED FORM-SET AS A TRAILING TAG, one of exactly
+          these five pinned literals: [legacy] [migrated] [both] [neither] [unreadable]. Without
+          the tag the line is not actionable, and this is a correctness defect rather than a
+          polish item: a reader carrying the LEGACY form on a migrated tree must be FINISHED, and
+          one carrying the MIGRATED form on a legacy tree must be REVERTED - opposite remedies
+          that render as the identical line without the tag.
+        the two CANNOT_VERIFY causes that have no reader file to name get their own wording, so
+          that all four causes are distinguishable in the text and not only in the exit code:
+            no disk evidence at all  -> the exact phrase: no evidence of either shape under <root>
+            the table holds no rows  -> the exact phrase: no reader rows for this surface
+        a line of the exact form:
+          examined N feature dir(s), M doc root(s), R reader file(s)
+        a final summary line of the exact form:
+          layout: X surface(s) clean, Y mixed, Z cannot-verify
+      BOTH OF THOSE TWO LINES PRINT ON EVERY BRANCH, INCLUDING NOT APPLICABLE, where N, M, R, X, Y
+      and Z all read 0. The trailer is branch-invariant so that no consumer needs a second parser
+      and so that a NOT APPLICABLE result reaching CI trips the zero-count error rather than the
+      missing-line error.
+      On the NOT APPLICABLE branch, and before those two lines, the CLI prints one further line
+      whose leading token is the pinned literal NOT APPLICABLE, of the exact form:
+          NOT APPLICABLE: no harness control-plane marker at <root>/.claude/skills/harness/bin/check-state.sh
+      NOT APPLICABLE is a pinned string exactly like every other format string in this contract,
+      and case 14 asserts that literal as well as the three zero counts.
+      Put a comment above these format strings saying that .github/workflows/tests.yml greps the
+      examined and layout lines and that a reword must change both places together.
+
+      Expose for import: a function that takes a root path and returns a structured result
+      carrying the per-surface verdicts, the counts, and the responsible reader paths EACH WITH
+      ITS MATCHED FORM-SET - the same five values the CLI tag renders, carried as data and not as
+      preformatted text - plus, for a CANNOT_VERIFY surface, which of the four causes fired; and a
+      function returning the exit code for that result. check-state.sh imports these in T-02, so
+      neither may print to stdout or call sys.exit. THE FORM-SET AND THE CAUSE MUST BE ON THE
+      STRUCTURED RESULT, not only in the CLI text: T-02 composes INV-27's wording from this object
+      and never re-parses stdout, so a fix that lands only in the CLI leaves the session-entry
+      operator - the higher-value call site under D-02 - reading the same ambiguity CI no longer
+      has.
+
+      THE UNIT SUITE. Every fixture is a sandboxed temporary tree built and torn down by the
+      test itself, via tempfile.TemporaryDirectory. NOTHING is written into the repository tree
+      and no file in the repository is moved - fixture creation is not a layout change and the
+      suite must not be readable as one. Build each fixture by writing small stub files that
+      carry the relevant form text; do not copy the real scripts. Cases required, each asserting
+      the exit code AND the responsible surface or reader named in the output, never the exit
+      code alone. CASES ARE NEVER RENUMBERED - cases 1, 14 and 15 are cited by number in D-04, in
+      T-02 and in the brief, so a new case is appended at the end. Where a case below names a
+      form-set tag, assert that exact tag on that exact reader path in the output, because the tag
+      is what tells an operator whether to finish the reader or revert it:
+        1  the REAL repository root, scanned in-process, gives exit 0 and both a non-zero
+           feature-dir count and a non-zero reader-file count. Assert the counts are non-zero
+           rather than equal to a literal, so the case does not rot as features land. Assert also
+           that the summary line's X plus Y plus Z equals 2, so that a surface dropped or skipped
+           before its verdict is computed reddens here rather than vanishing quietly from a report
+           that still says clean.
+           LOAD-BEARING, in the same sense as cases 7 and 8 and for a sharper reason: this case
+           is the positive control that keeps D-04's not-applicable branch honest. If the marker
+           file is ever renamed or moved, the harness tree itself becomes NOT APPLICABLE and the
+           detector goes silent everywhere at once - and case 1 is what turns that into a red
+           unit case, because a NOT APPLICABLE scan reports zero counts and this case demands
+           non-zero. It also proves the marker is a SOUND rather than a circular control:
+           presence of the marker and agreement of the forms are different properties, and case
+           1 asserts the second on the real tree while only assuming the first.
+        2  features evidence split across both shapes  -> exit 1, FEATURES named
+        3  all features under a repository root, one FEATURES reader still carrying the legacy
+           form -> exit 1, that reader file named and tagged [legacy]. Assert the tag: this is
+           the reader that needs FINISHING, and without the tag it is indistinguishable in the
+           output from case 5's mirror, which needs the opposite remedy.
+        4  docs evidence split across both shapes      -> exit 1, DOCS named
+        5  docs evidence migrated, one DOCS reader still legacy -> exit 1, that reader named and
+           tagged [legacy]. Assert the MIRROR IMAGE in this same case: docs evidence LEGACY with
+           one DOCS reader carrying the MIGRATED form -> exit 1, that reader named and tagged
+           [migrated]. Both halves are required, because they are the two OPPOSITE remedies -
+           finish, and revert - and asserting only one leaves a constant tag passing the case
+        6  everything migrated, both surfaces, every reader migrated -> exit 0
+        7  FEATURES fully migrated and DOCS fully legacy -> exit 0
+        8  DOCS fully migrated and FEATURES fully legacy -> exit 0
+        9  a reader file carrying NEITHER form -> exit 2, that file named and tagged [neither].
+           Assert in the same case that 2 differs from both 0 and 1.
+       10  a reader file that cannot be read at all -> exit 2, that file named and tagged
+           [unreadable], distinguishing it from case 9 in the text and not only in the exit code
+       11  a surface with no disk evidence of either shape -> exit 2, and the output carries the
+           phrase "no evidence of either shape under" for that surface. Assert the phrase: this
+           cause has no reader file to name, so an assertion on a named path would not fire and
+           the case would prove only the exit code.
+       12  a reader file carrying BOTH forms -> exit 1, that file named and tagged [both]
+       13  a tree that is MIXED on one surface and CANNOT_VERIFY on the other -> exit 2, proving
+           cannot-verify outranks mixed
+       14  a tree with no .claude/skills/harness/bin/check-state.sh -> exit 0, the output carries
+           the PINNED NOT APPLICABLE LITERAL exactly as the OUTPUT CONTRACT spells it, and both
+           trailer lines still print with all three examined counts and all three surface counts
+           at zero. Assert the literal and the counts, not just the exit code. What stands between this branch and a silent pass inside harness is cases
+           1 and 15 of this same suite, NOT the CI step: the CI step's zero-count assertion is
+           protected by nothing (DEC-183), so it can be deleted in one PR, whereas these two
+           cases redden the required unit suite.
+       15  the same tree with the marker file added and every reader stub written in its legacy
+           form, AND LEGACY DISK EVIDENCE PRESENT ON BOTH SURFACES - at least one
+           .harness/features/<any>/feature.json and a docs/harness/SPEC.md - so that each surface
+           has exactly one evidence shape. Without that evidence the verdict is 2, not CLEAN, for
+           the no-disk-evidence cause, and the case would prove the opposite of what it is for.
+           Expected: the verdict changes to CLEAN with non-zero counts, proving case 14 passed
+           because of the marker and not because the scan found nothing to do
+       16  THE EMPTY READER SET. Override the module's reader table so that one surface has ZERO
+           rows while its disk evidence still shows exactly one shape - patching or injecting the
+           data table is the only way to instantiate this state, and the case is written that way
+           deliberately. Expected: that surface is CANNOT_VERIFY, not CLEAN, the exit is 2, the
+           output carries the phrase "no reader rows for this surface", and the surface is still
+           REPORTED - it is never silently absent from the output. Assert all four. This case is
+           the one that keeps the CLEAN predicate from being vacuously true, which is issue 148
+           inside this feature's own verdict logic; a green suite without it means nothing about
+           that hazard. Case 1 additionally asserts, on the real tree, that the summary line's
+           X plus Y plus Z equals 2 - every declared surface judged, none skipped.
+      Cases 7 and 8 are load-bearing and are not padding: map 336 sanctions both states, and a
+      detector that reddens on them blocks the sequence it exists to unblock. Case 16 is
+      load-bearing for the reason stated in it.
+
+  - id: T-02
+    title: Wire the detector into check-state.sh as INV-27 and prove it against fixtures
+    traces: [REQ-01, REQ-05, REQ-06, REQ-08]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-174 carve-out named in CLAUDE.md - check-state.sh is the state gate, and
+      test-check-state.py co-changes with it in the same diff a human reads.
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+      - .claude/skills/harness/bin/test-layout-migration.py
+    verify: |
+      u=$(mktemp); i=$(mktemp); ru=0; ri=0
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >"$u" 2>&1 || ru=$?
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration >"$i" 2>&1 || ri=$?
+      cat "$u" "$i"
+      grep -q '^PASS test-layout-migration\.py$' "$u" || { echo "unit suite did not run test-layout-migration.py"; exit 1; }
+      grep -q '^PASS test-check-state\.py$' "$i" || { echo "integration suite did not run test-check-state.py"; exit 1; }
+      [ "$ru" -eq 0 ] && [ "$ri" -eq 0 ]
+    intent: |
+      Add INV-27 to check-state.sh. INV-27 is free at 88b1182, verified by grep; do not reuse
+      INV-10, which is retired.
+
+      INV-27 imports layout_migration inside the heredoc, the same way INV-25 imports
+      harness_boundary and INV-26 imports gh_board, calls its scan function on `root`, and
+      appends to `bad`:
+        - one entry per MIXED surface, naming the surface, the evidence shapes found and the
+          responsible reader files, EACH READER PATH FOLLOWED BY ITS MATCHED FORM-SET - [legacy],
+          [migrated] or [both] - read off the structured result, never re-derived here. The tag is
+          load-bearing at this call site too: a reader carrying the legacy form on a migrated tree
+          must be finished and one carrying the migrated form on a legacy tree must be reverted,
+          and an operator at session entry cannot tell those apart from an untagged path.
+        - one entry per CANNOT_VERIFY surface, worded as a CANNOT VERIFY finding, and covering all
+          four causes distinguishably rather than collapsing them into one sentence: a reader that
+          could not be read, named and tagged [unreadable]; a reader matching neither form, named
+          and tagged [neither]; a surface with no disk evidence of either shape, which has NO FILE
+          TO NAME and instead carries the phrase no evidence of either shape under the root; and a
+          surface whose reader table holds no rows, carrying the phrase no reader rows for this
+          surface. Read the cause off the structured result.
+        - EVERY ENTRY ENDS WITH A REMEDY, matching the house style of every other bad.append in
+          this file, each of which ends in an action. Use: finish or revert this surface inside one
+          atomic commit; the form rows are data in layout_migration.py. A finding an operator
+          cannot act on is a finding they will learn to skip.
+      A FAILED IMPORT IS ITSELF A VIOLATION, worded like INV-25's and INV-26's CANNOT RUN
+      branches and appended to `bad`, never a silent skip. A clean result appends nothing.
+
+      Do NOT call the CLI as a subprocess and do not read its exit code inside check-state.sh:
+      import the two functions T-01 exposes.
+
+      WATCH WHAT YOU WRITE INTO check-state.sh, WHICH IS ITSELF A COUPLED READER. INV-27's new
+      code and comments must not contain the MIGRATED form of check-state.sh's own row - a
+      join of H with a segment before "features". If they do, this file matches both forms and
+      the detector reddens the live tree. Case 1 of test-layout-migration.py catches it, so the
+      failure is loud, but write it right the first time.
+
+      EXISTING CASES MUST STAY GREEN, AND THE REASON MATTERS. test-check-state.py builds sandboxed
+      fixture trees - a shared make_fixture helper near the top of the file, plus many cases that
+      call os.makedirs directly under a TemporaryDirectory. None of those trees holds any coupled
+      reader file, and none holds .claude/skills/harness/bin/check-state.sh. Under D-04 they are
+      therefore NOT APPLICABLE and INV-27 appends nothing, which is exactly why the existing cases
+      keep passing. Do NOT make them applicable by adding reader stubs to the shared helper: that
+      would put an INV-27 verdict inside every unrelated case. Build the applicable trees only in
+      the new cases below, by writing the marker file and the reader stubs explicitly there.
+
+      Add to test-check-state.py at minimum:
+        - a fixture tree that the detector reddens, asserting check-state.sh exits 1 and its
+          output carries INV-27, the responsible reader path, THAT PATH'S FORM-SET TAG, and the
+          remedy clause. Assert the tag and the remedy here and not only in the unit suite: this
+          is the only automated evidence that the session-entry call site renders them at all,
+          and the unit suite cannot stand in for it
+        - a fixture tree the detector cannot judge, asserting check-state.sh exits 1 and its
+          output carries INV-27 and the CANNOT VERIFY wording
+        - an APPLICABLE clean fixture tree - marker file present, every reader stub written in its
+          legacy form, features under the legacy root - asserting no INV-27 line appears in the
+          output. It must be applicable, or the case passes vacuously. Assert the ABSENCE of
+          INV-27 specifically, not merely exit 0, so a case that passes because the invariant
+          never ran is distinguishable from one that passes because it ran clean.
+        - a fixture with no marker file, asserting no INV-27 line appears - the product-repository
+          and existing-fixture case, pinned deliberately rather than left as an emergent property
+        - a fixture where layout_migration cannot be imported, asserting the CANNOT RUN wording
+          appears and the run exits 1
+      Follow the file's existing fixture idiom rather than inventing a second one.
+
+      Add to test-layout-migration.py one case pinning the exit-code contract the invariant
+      depends on: that the exit-code function returns 0, 1 and 2 for clean, mixed and
+      cannot-verify results respectively, and that the scan function neither prints nor exits.
+      Without it the invariant's dependency on those three values is asserted nowhere.
+
+  - id: T-03
+    title: Add the layout gate as a step of the required integration CI job
+    traces: [REQ-06]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-01]
+    status: done
+    files:
+      - .github/workflows/tests.yml
+    verify: |
+      python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/tests.yml')); J=[j for j in d['jobs'].values() if any(x.get('name')=='Plan-route gate' for x in j.get('steps',[]))]; assert len(J)==1, 'Plan-route gate job not found exactly once'; s=[x for x in J[0]['steps'] if x.get('name')=='Layout gate']; assert len(s)==1, 'Layout gate is not a step of the job holding Plan-route gate'; assert sum(1 for j in d['jobs'].values() for x in j.get('steps',[]) if x.get('name')=='Layout gate')==1, 'Layout gate appears in more than one job'; r=s[0]['run']; assert 'layout_migration' in r; assert 'examined' in r; assert '|| true' in r; assert r.count('::error::')>=3, 'fewer than three distinct error messages'; print('ok')"
+    intent: |
+      Add a step named exactly "Layout gate" to the SAME job that already holds the step named
+      "Plan-route gate" in .github/workflows/tests.yml - the required integration job under
+      DEC-183. Place it immediately after the Plan-route gate step. Set the same
+      CLAUDE_PROJECT_DIR env the neighbouring steps set.
+
+      COPY THE PLAN-ROUTE GATE'S FULL PATTERN, because a gate step that cannot tell a broken
+      checker from a clean tree is the defect this feature exists to prevent:
+        - run the detector CLI, capturing stdout and stderr and its exit code, with the failure
+          not killing the step at the assignment
+        - print the captured output unconditionally
+        - grep for the summary line, with `|| true` on the grep, because steps run under bash -e
+          and a grep that matches nothing would kill the step before any diagnosis could print
+        - if the summary line is absent, emit an ::error:: saying the checker could not run and
+          that nothing was checked, and exit 1
+        - grep for the "examined N feature dir(s), M doc root(s), R reader file(s)" line. If it
+          is absent, emit a second, differently worded ::error:: saying the gate cannot tell
+          broken discovery from a clean tree and refuses to guess, and exit 1
+        - if the examined feature-dir count, the doc-root count OR the reader-file count is 0,
+          emit a third ::error:: naming which of the three read zero, saying discovery did not run
+          and that an empty search is indistinguishable from a clean tree, and exit 1. ALL THREE
+          COUNTS, NOT TWO: an earlier draft hedged N and R but not M, and D-01 gives the two
+          surfaces coequal status, so nothing justifies DOCS getting less defence than FEATURES.
+          The doc root is a single file today, which makes a zero there cheap to detect and just
+          as fatal - it means the DOCS surface was judged over nothing.
+        - otherwise echo a one-line summary and exit with the detector's own exit code, so both
+          1 and 2 fail the step
+      Put a comment above the greps stating that the patterns are coupled to layout_migration.py's
+      format strings, which carry a comment pointing back here, and that a reword changes both.
+
+      ONE THING YOU MUST NOT COPY FORWARD. The comment block sitting immediately above the
+      Plan-route gate step claims that a case in test-check-plan-routes.py asserts that step is
+      present and unneutered. That claim is FALSE at 88b1182 - the cited case is about status:
+      values, and no .py in the tree reads .github/workflows/tests.yml at all. Do not write any
+      equivalent claim about the Layout gate step, and do not restate the existing one. Write no
+      comment asserting that anything guards this step; if you want to say something about its
+      protection, say only that nothing in the repository asserts the presence of this step. The
+      false comment itself is a pre-existing defect, out of scope here - leave it standing, do not
+      edit it. It is tracked as GitHub issue 279, "A required CI step runs eight criteria and
+      nothing asserts it is still wired", verified OPEN on 2026-08-14; the plan reviewers had no gh
+      at their tier and correctly refused to assert the ticket existed.
+
+      Do not add a new job and do not touch branch protection.
+
+  - id: T-04
+    title: Record the surface partition and the cannot-verify posture as a decision
+    traces: [REQ-01, REQ-04, REQ-05]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-01]
+    status: done
+    files:
+      - docs/harness/DECISIONS.md
+      - docs/harness/DECISIONS-INDEX.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff -q - docs/harness/DECISIONS-INDEX.md &&
+      grep -q "per coupled surface" docs/harness/DECISIONS.md &&
+      grep -q "cannot-verify, never clean" docs/harness/DECISIONS.md &&
+      grep -q "form agreement, never per-site completeness" docs/harness/DECISIONS.md &&
+      grep -q "inside the same atomic commit that migrates it" docs/harness/DECISIONS.md &&
+      grep -E "^- DEC-" docs/harness/DECISIONS-INDEX.md | grep -qi "layout migration"
+    intent: |
+      Append one decision entry to docs/harness/DECISIONS.md, taking the NEXT FREE DEC NUMBER
+      read from the end of docs/harness/DECISIONS-INDEX.md at the time you write it. Do not
+      assume a number from this plan; none is allocated here.
+
+      The decision to record, in the document's own voice and in its existing entry format. FIVE
+      PHRASES ARE MANDATED VERBATIM because this task's verify greps for them - reproduce them
+      character for character: "per coupled surface", "cannot-verify, never clean", "form
+      agreement, never per-site completeness", "inside the same atomic commit that migrates it",
+      and the words "layout migration" somewhere in the one-line index summary. Each of the four
+      DECISIONS.md phrases returns zero matches in that file at 88b1182, so a green grep can only
+      mean you wrote the entry.
+
+      The substance to record:
+
+        A partial layout migration is detected per coupled surface, never tree-wide. Two surfaces
+        exist - features, whose coupled readers are team-config.yaml's write grants,
+        check-domain.sh's SWEEP_GLOBS and shape regexes, check-plan-routes.py's discovery join and
+        check-state.sh's discovery globs; and docs, whose coupled readers are factory_config's
+        probe, harness_boundary's control-plane entry and gen-decisions-index's docs directory.
+        The two surfaces have no ordering tie, so a tree with one migrated and the other not is a
+        sanctioned state and passes. Each reader carries a two-form data row, and a reader
+        matching neither form is cannot-verify, never clean - the exit code is 2 and both call
+        sites treat it as a violation. Because those rows are data that later units edit, a surface
+        is judged clean only over a non-empty reader set, and the surfaces are a fixed enum judged
+        independently of the table: a surface whose rows are dropped is cannot-verify rather than
+        vacuously clean, and can never be skipped ahead of its verdict. Every finding names the
+        reader path with the form it matched, so that finishing a reader and reverting one - which
+        are opposite remedies - are not reported by the same line.
+
+        WHAT THE CHECK PROVES, AND WHAT IT DOES NOT. It proves per-file form agreement, never
+        per-site completeness: it answers whether a file speaks one layout language and the same
+        one its evidence speaks, not whether every site inside it was updated. A legacy pattern is
+        therefore written as the weakest fragment every stale site necessarily contains, audited
+        against the real file rather than inferred from the commonest site - an earlier draft
+        specified check-state.sh's legacy form with a trailing wildcard and would have missed the
+        two discovery sites that carry none, reporting a clean tree with two dead call sites.
+
+        THE MAINTENANCE CONTRACT ON EVERY LATER UNIT. Any unit that changes a reader's form
+        updates that reader's row inside the same atomic commit that migrates it, and that unit is
+        not done until the detector exits 0 on its own migrated tree in that same commit. Nothing
+        else converts the migrated pattern from an anticipated form into an observed one; a
+        pattern written too tight matches neither form and exits 2 loudly at that commit, which is
+        the intended way to discover the mistake.
+
+        HISTORICAL MENTIONS. Because every pattern is matched against a file's whole text, a
+        purely historical mention of a legacy form inside a coupled reader holds that file mixed
+        forever. Five of the seven rows avoid this because their patterns are code-shaped - a join
+        expression, a grant path, a glob or regex source - so docstring and diagnostic prose falls
+        outside them. Two rows are exceptions, both ruled deliberately and both resolved the same
+        way, by correcting the text rather than excusing it.
+
+        The first is harness_boundary.py, whose comments quote the docs/harness/** control-plane
+        entry verbatim. Those comments assert a present-tense fact the migration falsifies, so the
+        unit that moves docs REWRITES THEM TO DESCRIBE THE MIGRATED CONTROL-PLANE ENTRY. Rewritten,
+        never deleted: deleting them would make the file clean just as cheaply and would erase the
+        signed risk-acceptance recorded in the comment above HARNESS_CONTROL_PLANE, which is a
+        record loss rather than a migration.
+
+        The second is gen-decisions-index.py, and its row is the one place a code-shaped pattern
+        was overruled. That script emits a HEADER template into the committed DECISIONS-INDEX.md
+        carrying a literal docs/harness/DECISIONS.md, which no join-shaped pattern sees; updating
+        the docs directory constant and leaving HEADER stale would report the file cleanly migrated
+        while the shipped index pointed every agent at a path that no longer exists. The row
+        therefore matches the slash-shaped spelling too, which also catches that script's module
+        docstring - inseparably, since the two are spelled identically. That is accepted rather
+        than worked around, because every one of those lines is a present-tense operational claim
+        about paths the script reads and writes, and the unit that moves docs falsifies all of them
+        at once. Detection was preferred to an unenforced obligation recorded in prose.
+
+      Say why in one clause: a tree-wide definition reddens on a state the release sequence
+      sanctions, and degrading an unrecognised reader to clean is how a check passes forever.
+
+      Cross-reference DEC-174 (why the detector and its call site are built by hand) and DEC-183
+      (why the CI step carrying this check is a second signal and not its guarantee). Then
+      regenerate the index with gen-decisions-index.py and commit both files together. Verify with
+      --stdout piped to diff against the committed index; this script has no --check flag and
+      never had one, and running git diff --exit-code instead would pass on an empty edit.

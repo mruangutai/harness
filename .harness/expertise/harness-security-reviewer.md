@@ -51,6 +51,13 @@
   by the diff DO record it in the review as assessed-and-dismissed rather than
   omitting it — a recorded non-finding stops a later reviewer re-raising it; a
   silent drop does not.
+- P-13: WHEN a diff adds one instance to a pre-existing exposure (e.g. one more shadowable name)
+  without an obvious mechanism change DO diff the surrounding code against the pre-diff commit
+  before dismissing as pre-existing — only a proven-unchanged mechanism, reachability, and
+  affected-party set earns the dismissal.
+- P-14: WHEN a dispatch names specific files to check DO also grep the full diff for
+  secrets/credentials, not only the named files — docs, config, and workflow changes carry
+  credential-shaped strings too, and a narrowed sweep misses them.
 
 ## Gotchas (max 15)
 - G-01: Only `exit 2` blocks a hook (DEC-100); any other exit — including an
@@ -80,11 +87,19 @@
 - G-07: WHEN a diff is scoped IN and returns zero findings DO set severity_max
   to info, not n/a — n/a is reserved for scoped-out diffs; conflating them
   misreports whether the surface was actually assessed.
+- G-08: WHEN a diff introduces a comment asserting a safety property DO verify it now, not defer
+  to 'next touch' — a pre-existing false claim can wait; one the diff itself introduces is this
+  review's finding, at info severity, since a later reviewer may cite it to close a question
+  unfixed.
 
 ## Outcomes (max 10)
 - O-01: WHEN a surface looks clean on first read DO close with identity-level
   evidence (assertions proving equality, consumers traced to their actual write)
   not a read-and-conclude — a zero-finding review is otherwise indistinguishable
   from a shallow pass to anyone downstream.
+- O-02: WHEN closing a theoretical vulnerability class (ReDoS backtracking, path-precedence,
+  race ordering) DO produce a runnable measurement — timed adversarial input, printed resolved
+  value — rather than a structural argument alone; complexity-class and language-semantics
+  arguments are cheap to get wrong and expensive to trust.
 
 ## Open (max 5)

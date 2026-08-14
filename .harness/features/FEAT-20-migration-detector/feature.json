@@ -1,0 +1,79 @@
+{
+  "feature_id": "FEAT-20-migration-detector",
+  "branch": "feat/FEAT-20-migration-detector",
+  "pr": null,
+  "status": "Done",
+  "review_sha": "434307a",
+  "cycles_used": 4,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t03-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t04-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "qa-gate-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-14-1-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-14-2-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-14-3-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-14-3-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-14-3-validator",
+      "squad": "validator",
+      "verdict": "BLOCKED"
+    }
+  ],
+  "github": {
+    "milestone": 11,
+    "parent": 360,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04"
+    ],
+    "issues": {
+      "T-01": 361,
+      "T-02": 362,
+      "T-03": 363,
+      "T-04": 364
+    }
+  }
+}

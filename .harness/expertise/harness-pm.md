@@ -18,28 +18,29 @@
 - P-05: WHEN grading a criterion DO grade its own full text: a leading claim broader than its
   enumerated list still binds, and an enumeration delivered in part is not met, never partial.
   Met on a method that cannot detect the failure it exists to detect is worse than unmet.
-- P-06: WHEN judging whether an unmet criterion is undischargeable DO read the signed proof
-  standard. If it forbids the only technique that could instantiate the condition, it cannot also
-  demand it: the strongest proof permitted inside the standard is the proof, and the route is a
-  fix cycle.
+- P-06: WHEN a criterion cannot be met DO decide whether the defect is in the code or in the
+  sentence. If a retry could make it true, route a fix cycle. Otherwise escalate — never adopt a
+  narrower reading yourself, even one a downstream gate upheld.
 - P-07: WHEN drafting a criterion DO read it for presupposition against the criteria already
   written. A clause asserting something about surviving occurrences presupposes they survive,
   which negates any absence check over the same files. Each reads sound alone.
-- P-08: WHEN a task's `verify:` counts or forbids a token DO grep that same task's own intent prose
-  for the token before shipping the task. You author both halves, and the conflict is invisible on
-  reading — it appears only when someone runs the clause.
+- P-08: WHEN a task's `verify:` counts or forbids a token DO run that verify's exact command — same
+  flags, same case — against the task's own intent prose before shipping. You author both halves,
+  and a friendlier-flagged trial hides a collision the shipped clause will redden correct work on.
 - P-09: WHEN handed a claim that a test already covers a property DO mutate the tool to violate the
   property and see which cases redden. Cited lines are often comments, not assertions. A mutant
   that reddens every case is broken, not evidence of strong coverage.
-- P-10: WHEN a criterion, task step, or carried-forward evidence pointer cites a location DO anchor
-  it on content text, never a line number or an ordinal such as a test-case number. Both rot within
-  one cycle as files shift, leaving verdicts standing while every pointer under them lands wrong.
+- P-10: WHEN a criterion, task step, or carried-forward pointer cites a location DO anchor it on
+  content text, unless an ordinal is pinned by a recorded no-renumber constraint the graders share.
+  An unpinned line number or ordinal rots within one cycle, leaving verdicts standing over pointers
+  that land wrong.
 - P-11: WHEN a criterion names the mechanism behind a behaviour DO confirm the code uses that
   mechanism before signature, or state the observable outcome instead. A criterion false only in
   its mechanism routes as a fix cycle against working code, never as a re-signature.
-- P-12: WHEN tasks partition a token sweep DO run the widest verify pattern tree-wide at plan time,
-  assign every hit to an owning task, and order the sweeping task after them. A narrower pathspec
-  upstream is a blind pass; the widest grep is the real survey.
+- P-12: WHEN specifying a detector or sweep pattern DO derive it from the weakest fragment every
+  target site necessarily contains, greped against the real file — never from the shape of the
+  commonest site. An optional trailing fragment makes variant sites invisible, and the sweep then
+  reports clean over them.
 - P-13: WHEN a criterion's clauses are verified DO count techniques, not clauses. Several source
   greps share one blind spot, and a single idiom change defeats them together. Balanced clause and
   fixture counts hide this. Give at least one clause a behavioural check.
@@ -69,9 +70,9 @@
 - G-06: A sibling worktree under `.claude/worktrees/` is a full second copy inside the search path:
   `.gitignore` hides it from `git grep` but not `grep -r`, and the same path resolves to different
   content there with no error. Confirm which checkout resolved any file:line you cite.
-- G-07: WHEN confirming a criterion built from several tokens DO enumerate every hit with the full
-  pattern and confirm each sits inside text the change removes. Greping one token of five verifies
-  one fifth of the claim; file-level arithmetic is not evidence.
+- G-07: WHEN citing gate or panel evidence produced before the commit you are grading DO diff the
+  range for source changes and re-run the suites at that commit. An earlier green proves the earlier
+  tree, and the provenance rots silently because the verdict text stays true-looking.
 - G-08: WHEN a task adds a file to a suite that keeps an explicit registration list DO register it
   in that same task. A drift detector fails the WHOLE run on an unregistered file, reddening every
   other task's verify. Exemplar: the SCRIPTS array in this repo's unit-test runner.

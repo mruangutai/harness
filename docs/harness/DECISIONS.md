@@ -5830,3 +5830,93 @@ the enforcement layer, so this landed as direct main-session edits with the test
 rather than through a run whose gates were the thing changing; and DEC-189, the two-base target-keyed
 resolution this rule sits on top of, whose filed Bash-route asymmetry this closes for the boundary
 case alone. DEC-150 for the shape caps, and DEC-180 for why a rooted session is already governed.
+
+## DEC-194 — A partial layout migration is judged per coupled surface, and a reader matching neither form is cannot-verify
+
+The layout migration moves `.harness/features/…` and `docs/harness/…` under a per-repository root, one
+unit at a time. A tree-wide definition of "half migrated" reddens on a state the release sequence
+sanctions, and degrading an unrecognised reader to clean is how a check passes forever. Both are
+closed here.
+
+**Failure is judged per coupled surface, never tree-wide.** Two surfaces exist. FEATURES, whose
+coupled readers are `team-config.yaml`'s write grants, `check-domain.sh`'s `SWEEP_GLOBS` and shape
+regexes, `check-plan-routes.py`'s discovery join and `check-state.sh`'s discovery globs. DOCS, whose
+coupled readers are `factory_config`'s probe, `harness_boundary`'s control-plane entry and
+`gen-decisions-index`'s docs directory. The two surfaces carry no ordering tie between them, so a tree
+with one migrated and the other not is a sanctioned state and passes.
+
+**Each reader carries a two-form data row.** A reader matching neither form is
+cannot-verify, never clean — the exit code is 2, and both call sites, session entry and the required
+CI job, treat it as a violation. Because those rows are data that later units edit, a surface is judged clean only over a
+non-empty reader set, and the surfaces are a fixed enum judged independently of the table: a surface
+whose rows are dropped is cannot-verify rather than vacuously clean, and can never be skipped ahead of
+its verdict. Every finding names the reader path with the form it matched, because finishing a reader
+and reverting one are opposite remedies and must not arrive as the same line.
+
+**What the check proves, and what it does not.** It proves per-file
+form agreement, never per-site completeness: it answers whether a file speaks one layout language and
+the same one its evidence speaks, not whether every site inside it was updated. A legacy pattern is
+therefore written as the weakest fragment every stale site necessarily contains, audited against the
+real file rather than inferred from the commonest site. An earlier draft specified `check-state.sh`'s
+legacy form with a trailing wildcard and would have missed the two discovery sites that carry none,
+reporting a clean tree with two dead call sites.
+
+**The maintenance contract on every later unit.** Any unit that changes a reader's form updates that
+reader's row inside the same atomic commit that migrates it, and that unit is not done until the
+detector exits 0 on its own migrated tree in that same commit. Nothing else converts the migrated
+pattern from an anticipated form into an observed one; a pattern written too tight matches neither
+form and exits 2 loudly at that commit, which is the intended way to discover the mistake.
+
+**Historical mentions, and the two rows that pay for them.** Because every pattern is matched against a
+file's whole text, a purely historical mention of a legacy form inside a coupled reader holds that file
+mixed forever. Five of the seven rows avoid this because their patterns are code-shaped — a join
+expression, a grant path, a glob or regex source — so docstring and diagnostic prose falls outside
+them. Two rows are exceptions, both ruled deliberately and both resolved the same way, by correcting
+the text rather than excusing it.
+
+The first is `harness_boundary.py`, whose comments quote the `docs/harness/**` control-plane entry
+verbatim. Those comments assert a present-tense fact the migration falsifies, so the unit that moves
+docs rewrites them to describe the migrated control-plane entry. Rewritten, never deleted: deleting
+them would make the file clean just as cheaply and would erase the signed risk-acceptance recorded in
+the comment above `HARNESS_CONTROL_PLANE`, which is a record loss rather than a migration.
+
+The second is `gen-decisions-index.py`, and its row is the one place a code-shaped pattern was
+overruled. That script emits a header template into the committed index carrying a literal
+`docs/harness/DECISIONS.md`, which no join-shaped pattern sees; updating the docs directory constant
+and leaving that template stale would report the file cleanly migrated while the shipped index pointed
+every agent at a path that no longer exists. The row therefore matches the slash-shaped spelling too,
+which also catches that script's module docstring — inseparably, since the two are spelled
+identically. That is accepted rather than worked around, because every one of those lines is a
+present-tense operational claim about paths the script reads and writes, and the unit that moves docs
+falsifies all of them at once. Detection was preferred to an unenforced obligation recorded in prose.
+
+Lineage: DEC-174, which is why the detector and its session-entry call site are built by hand rather
+than dispatched through the gates they change; and DEC-183, which is why the CI step carrying this
+check is a second signal and not its guarantee — nothing in this tree asserts that step is still
+wired.
+
+### DEC-194 amendment 1 (2026-08-14) — the applicability marker is the fleet declaration, and an undeclared segment is loud
+
+Two pre-merge review findings, both probe-verified, both fixed before PR #376 landed.
+
+**The marker moved from `check-state.sh`'s own path to `.harness/factory/fleet.yaml`.** The first
+marker was wrong by construction: `harness-init` installs the whole `bin/` — marker included — into
+product repositories, so every onboarded product became "applicable," held no layout evidence of
+either shape, and reported CANNOT VERIFY at exit 1 forever, which onboarding's own exit-0
+requirement cannot survive. The fleet declaration is the one file only the control plane carries:
+products are declared IN it, never holders OF it. Applicability and segment authority now come from
+the same fact.
+
+**A migrated repo root must be a DECLARED repository's segment.** The first evidence glob accepted
+ANY first-level `.harness/` subdirectory as a repo root, so a non-repo sibling growing the wrong
+shape — `.harness/archive/features/…` was the probe — forced a MIXED verdict no reader edit could
+clear. Now only fleet-declared segments (name-after-owner, the `workspace_path` rule) plus the
+repository named in `harness.json` `github.repo` count as migrated evidence. Evidence under any
+other segment is not silently ignored — it is a fifth CANNOT_VERIFY cause, `undeclared-segment`,
+naming the offending paths, because a misfiled migration is exactly what this detector exists to
+catch.
+
+**The cause table at the session-entry call site is closed and fails loud.** The wording dispatch
+was four `if/elif` branches with no `else`; a fifth cause value would have appended nothing and the
+operator-facing gate would have passed clean while CI stayed red. It is now a dict lookup whose
+miss appends an "unrecognised cause" violation.
