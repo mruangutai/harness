@@ -14,7 +14,11 @@ Memory has **two layers**, and confusing them is the failure this skill exists t
 | Layer | File | Written | Injected at spawn |
 |---|---|---|---|
 | **Observations** — hot, granular, this feature | `.harness/features/<FEAT>/observations/<your-agent-name>.md` | by you, mid-run, freely | **never** |
-| **Expertise** — cold, rule-form, durable | `.harness/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
+| **Expertise, craft** — how you work, anywhere | `.harness/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
+| **Expertise, repository** — true of ONE repo | `.harness/<repo>/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
+
+Craft is the default: **could this be true and useful in a repository you have never seen?** If yes,
+it is craft. The full rule is in `harness-distill`, which you read when you are told to distill.
 
 Why the split: mid-run-written Expertise bloated into incident narrative that taxed every spawn
 (DEC-145). Mid-run you only *observe*; distillation happens later, cold.
