@@ -89,3 +89,24 @@
   green. Checking a comment's factual claims costs two greps and is the only thing standing between
   a plausible-sounding false premise and permanent residence in the tree.
 
+- 2026-08-14: A review panel I did not dispatch found the one defect nine turns of my own verification
+  missed, and the shape is worth keeping. Every task verify was green, every gate was green, and
+  T-05's signed two-sided trade had been half-built: the deferral delivered, the delivery dropped,
+  the task marked done. No gate could see it — T-05's verify binds only the discovery-join form and
+  T-09's greps only for INV-27 absence. What found it was a reviewer reading the PLAN's intent prose
+  against the source. My own checking was all behavioural; a clause that promises a benefit nobody
+  tests for is invisible to behaviour. When a decision records a TRADE, check both sides landed.
+
+- 2026-08-14: That panel pinned review_sha at a commit the work was absent from and reviewed the
+  working tree instead. It got the right answer, which is exactly why it is worth recording: the pin
+  being wrong did not change this outcome and will not always be so harmless. A panel run against an
+  uncommitted tree also cannot clear any criterion that asserts a landed shape — SC-12 here — so
+  pre-commit review buys real findings but never a complete verdict, and the panel has to run again
+  where the pin contains the work.
+
+- 2026-08-14: I incremented cycles_used for a FAIL I never routed — the operator's panel failed, the
+  builder fixed it before committing, and the loop closed without passing through me. DEC-157 counts
+  the rework, not who dispatched it, so recording 2 would have understated the feature. The general
+  rule: reconcile the counters against what HAPPENED on disk, not against what you personally
+  dispatched, or a parallel actor's work silently leaves the record.
+

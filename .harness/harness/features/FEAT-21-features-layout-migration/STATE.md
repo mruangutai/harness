@@ -3,61 +3,65 @@
 ## Current
 
 - feature: FEAT-21-features-layout-migration
-- phase: build — nine of ten tasks done in the working tree; T-09 lands the cluster as one commit
-- run: none (main-session-direct segments are not runs)
-- squad: none
-- status: awaiting-user
+- phase: validate — all ten tasks landed; qa gate and review panel next, then goal-check
+- run: .harness/harness/features/FEAT-21-features-layout-migration/runs/2026-08-14-1-validator/
+- squad: validator
+- status: in_progress
 
-THE MOVE IS DONE AND THE BOUNDARY IS GREEN. I verified every claim myself at this tree, not from
-the builder's report: `.harness/features` no longer exists, 21 feature dirs sit under
-`.harness/harness/features/`, the detector exits 0 printing `features: CLEAN — evidence migrated`
-and `docs: CLEAN — evidence legacy` with `2 surface(s) clean, 0 mixed, 0 cannot-verify`, and
-`check-state.sh` exits 0 with zero INV-27 lines. T-08's verify ran verbatim to exit 0.
+THE CLUSTER IS LANDED AT `d033b9d` AND I RE-DERIVED IT FROM DISK. Subject `[harness:t-09]`, body
+carrying all nine tags on one line so `git log --grep='harness:t-05'` still resolves; 617 files,
+1315 insertions, 664 deletions, 567 pure renames. T-09's `verify:` re-ran verbatim to exit 0 at the
+landed commit. The boundary note gained 50 insertions and ZERO deletions — the pre-move capture
+taken at 5afa7e3 survives intact beside the post-move one.
 
-MY OWN Q2 CHECKS, which nothing in T-09's verify covers, both pass. The argv-less
-`check-plan-routes.py` sweep now reports `examined 21 feature dir(s); 20 skipped as shipped` with
-`0 violation(s) across 1 plan(s)` — examined > 0 AND plans > 0, where mid-cluster it reported 0.
-`check-state.sh` re-emits exactly 39 note lines, matching the committed pre-move capture to the
-line, where mid-cluster it emitted zero. Both gates were passing their own checks while examining
-nothing; they are examining again.
+THE STOP CONDITION IS SATISFIED AT A LANDED COMMIT for the first time since ea937b1: the detector
+exits 0 with `features: CLEAN — evidence migrated` and `docs: CLEAN — evidence legacy`,
+`2 surface(s) clean, 0 mixed, 0 cannot-verify`; `check-state.sh` exits 0 with zero INV-27 lines and
+its note body at baseline. feature.json now reads `status: Review`, `review_sha: d033b9d`.
 
-ALL ELEVEN SUITES ARE GREEN, including the three that were red on schedule through the cluster
-(test-no-distribution, test-factory-cli, test-layout-migration). The ignore window T-07 opened has
-closed: 19 run directories are ignored again at the new path and the only untracked entries are
-FEAT-20's three review notes, which predate this feature.
+A PRE-COMMIT VALIDATOR PANEL RAN THAT I DID NOT DISPATCH — the operator spawned it, and its run dir
+was the orphaned-work note check-state was reporting. It is now recorded in feature.json with its
+real verdict, FAIL. It found ONE must-fix and it was a real one: T-05/D-08's finding-label clause
+was never built while T-05 was marked done. The build delivered the deferral (dict keys stay bare
+basenames) and dropped the delivery (labels carrying the discovered path). I verified the remedy at
+source myself — `_feat_dirs` and `fpath()` at check-state.sh:55-59, 18 call sites, keys unchanged.
+That is a FAIL routed back and fixed, so cycles_used goes 2 -> 3 under DEC-157. Three of the four
+panelists returned PASS; qa mutation-proved the feature's three new assertions non-vacuous.
 
-BOOKKEEPING IS ON DISK AGAIN. My write access returned with the move (`--resolve` on the new path
-answers harness-orchestrator; it answered NOBODY at the old one for six turns). plan.yaml records
-T-01..T-08 and T-10 `done` and T-09 `building`; all nine mirror calls ran — issues #390-#397 closed,
-#398 moved to Building — each after the plan already carried its new status. cycles_used stays 2:
-nothing in this feature has been rework.
+TWO THINGS ABOUT THAT PANEL BELONG IN THE RECORD RATHER THAN IN A DEFENCE OF IT. Its pin read
+`ea937b1`, a commit the work was absent from, so INV-6 was not satisfied — the reviewers read the
+working tree and the finding is sound, but the pin was wrong. And the panel could not clear SC-12,
+which asserts a landed commit shape that did not exist while it looked. Both are why I am running
+the panel again at `d033b9d`, where the pin contains the work and the must-fix resolution has never
+been reviewed by anyone.
 
-WHAT IS LEFT IS T-09 ALONE. It writes the post-move capture and the depth sweep into
-`notes/layout-boundary-2026-08-14.md`, runs the full suites and the route check, and lands
-T-02..T-08, T-10 and itself as ONE commit by explicit pathspec. `review_sha` still reads `ea937b1`
-and I re-pin it to that commit before qa and the review panel.
+NEXT, and the first two go out together because they share no files and no squad: the qa segment
+(test authoring plus the blocking `test_matrix` gate, validator) and pm's goal-check against the 14
+SCs (product). Then the review team at `d033b9d`. Then docs, then the CEO briefing.
 
 ## Open Questions
 
-- Q-C (harness defect, for the owner, not blocking, unchanged): `bash-write-guard.sh` refuses any
-  plan `verify:` clause that redirects into a `mktemp` file. It cannot resolve shell variables and
-  reported the target as the literal `xx`, which is a wrong verdict rather than a conservative one.
-  Every such clause is unrunnable as written by a governed agent; I ran each from a scratch script
-  instead. Either the guard should treat an unresolvable target as not-a-domain-verdict, or plans
-  should stop writing redirect-bearing verify clauses.
-- Q-D (raised by this feature's own evidence, for the owner): T-09's verify greps for the ABSENCE of
-  an INV-27 line and tests exit 0, and invokes `check-plan-routes.py` with an explicit plan path,
-  which never calls `discover_plans()`. Mid-cluster I measured both gates exiting 0 while examining
-  nothing — the exact fail-open this unit exists to remove — and neither the plan's verify chain nor
-  any criterion would have caught it. I added the two checks myself this turn. Whether they become a
-  criterion is pm's to write, not mine.
-- Q-E (record hygiene, resolved, kept for the panel's benefit): a comment added to `gh-sync.py`
-  during T-06 justified the walk-up's manifest probe with a `$HOME/.harness` hazard that is not live
-  ($HOME/.harness holds two .tgz backups and neither `harness.json` nor `team-config.yaml`) and cited
-  "B-7 verbatim", which resolves to at least four different rows across FEAT-03, FEAT-08, FEAT-20 and
-  team-config.yaml, none about root resolution. The code was right; the reasoning was not. Corrected
-  before the move — the comment now cites the root-probe convention by file. Briefing row IDs are
-  unique only within one briefing and should never be cited from source.
-- Q9 (the harness owner's, not this feature's): a lead hosting a team cannot yield its turn while
-  backgrounded members are in flight, and leads hold no SendMessage, so a lead cannot resume a
-  member to clear that member's own FAIL. Backlog.
+- Q-C (harness defect, owner's): `bash-write-guard.sh` refuses any plan `verify:` clause redirecting
+  into a `mktemp` file — it cannot resolve shell variables and reported the target as the literal
+  `xx`, a wrong verdict rather than a conservative one. Every such clause in this plan was unrunnable
+  as written by a governed agent; I ran each from a scratch script.
+- Q-D (this feature's own evidence, owner's): mid-cluster both `check-state.sh` and
+  `check-plan-routes.py` exited 0 while examining nothing, and neither the plan's verify chain nor
+  any criterion would have caught it. I added the discovery checks myself. Promoting them to a
+  criterion is pm's, not mine.
+- Q-E (Expertise hygiene, needs a ruling): `.harness/expertise/harness-pm.md:7` carried the legacy
+  path and was corrected inside this feature's commit. The content is a path re-anchor, not a
+  lesson, and leaving it would have broken every pm spawn — but it is still a mid-run write to an
+  Expertise file, which the rule forbids, and shared `.harness/expertise/` has no lineage protection
+  against two features distilling at once. The operator should say whether path re-anchoring is a
+  sanctioned exception.
+- Q-F (scope smudge, recorded not repaired): three FEAT-20 `hygiene-c3` review notes were untracked
+  before this feature and rode into `d033b9d`. Harmless, but FEAT-20's record now has a commit in
+  FEAT-21's history. Rewriting a landed 617-file commit to drop three notes costs more than it saves.
+- Panel advisories carried to the briefing, none blocking: branch-create-gate's segment should be
+  derived rather than hardcoded; check-plan-routes has no segment-level readability guard; the
+  walk-up probes `team-config.yaml` where T-10's intent named `harness.json` and no test
+  discriminates; and NOTHING anywhere exercises two repository segments, which is the panel's
+  headline coverage gap and the whole point of the sequence.
+- Q9 (owner's, unchanged): a lead hosting a team cannot yield its turn while backgrounded members
+  are in flight, and leads hold no SendMessage, so a lead cannot resume a member to clear its FAIL.

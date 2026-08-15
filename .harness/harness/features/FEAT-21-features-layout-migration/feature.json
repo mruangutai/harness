@@ -2,9 +2,9 @@
   "feature_id": "FEAT-21-features-layout-migration",
   "branch": "feat/FEAT-21-features-layout-migration",
   "pr": null,
-  "status": "Building",
-  "review_sha": "ea937b1",
-  "cycles_used": 2,
+  "status": "Review",
+  "review_sha": "d033b9d",
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -17,6 +17,11 @@
       "id": "2026-08-14-1-eng",
       "squad": "eng",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-14-1-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
     }
   ],
   "github": {

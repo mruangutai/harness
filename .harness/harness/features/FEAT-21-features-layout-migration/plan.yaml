@@ -1050,7 +1050,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "verification of DEC-174 carve-out scripts by a human reading one diff"
     depends_on: [T-08, T-10]
-    status: building
+    status: done
     files:
       - .harness/harness/features/FEAT-21-features-layout-migration/notes/layout-boundary-2026-08-14.md
     verify: |
