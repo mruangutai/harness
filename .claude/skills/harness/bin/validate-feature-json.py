@@ -9,7 +9,7 @@ Usage:
   validate-feature-json.py [path ...]
 
 With no arguments, sweeps every execution-state file on disk: globs
-`.harness/features/*/feature.*` and keeps only the `.json`, `.yaml` and
+`.harness/*/features/*/feature.*` and keeps only the `.json`, `.yaml` and
 `.yml` suffixes — never two literal filenames — because the corpus spans the
 migration window from the old per-feature block-scalar execution-state
 format to this JSON one (this schema is live before every file is
@@ -38,7 +38,7 @@ KEEP_SUFFIXES = ("json", "yaml", "yml")
 
 def discover_paths():
     root = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
-    pattern = os.path.join(root, ".harness", "features", "*", "feature.*")
+    pattern = os.path.join(root, ".harness", "*", "features", "*", "feature.*")
     paths = sorted(
         p for p in glob.glob(pattern)
         if p.rsplit(".", 1)[-1] in KEEP_SUFFIXES
@@ -48,7 +48,7 @@ def discover_paths():
     # reasoning check-plan-routes.py's discover_plans() states: a scan that
     # matches nothing must not look identical to a scan that ran and found a
     # clean corpus. This does not add a fourth exit code; exit stays 0.
-    print(f"scanning {root}/.harness/features/*/feature.{{json,yaml,yml}} "
+    print(f"scanning {root}/.harness/*/features/*/feature.{{json,yaml,yml}} "
           f"— {len(paths)} file(s)", file=sys.stderr)
     return paths
 

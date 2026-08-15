@@ -13,7 +13,7 @@ Memory has **two layers**, and confusing them is the failure this skill exists t
 
 | Layer | File | Written | Injected at spawn |
 |---|---|---|---|
-| **Observations** — hot, granular, this feature | `.harness/features/<FEAT>/observations/<your-agent-name>.md` | by you, mid-run, freely | **never** |
+| **Observations** — hot, granular, this feature | `.harness/harness/features/<FEAT>/observations/<your-agent-name>.md` | by you, mid-run, freely | **never** |
 | **Expertise, craft** — how you work, anywhere | `.harness/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
 | **Expertise, repository** — true of ONE repo | `.harness/<repo>/expertise/<your-agent-name>.md` | only under a **distillation dispatch** | every spawn |
 

@@ -74,8 +74,8 @@ leaf="${name#*/}"
 # ---- form 1: harness flow branch — the flow must exist on disk
 flow=$(printf '%s' "$leaf" | sed -nE 's/^((FEAT|BUG)-[0-9]+[a-z0-9-]*).*/\1/p')
 if [ -n "$flow" ]; then
-  match=$(ls -d "$root/.harness/features/${flow}"* 2>/dev/null | head -1)
-  [ -n "$match" ] || deny "Branch \"${name}\" names flow ${flow}, but no .harness/features/${flow}* exists. Flows are created by /harness-plan — plan first, then branch."
+  match=$(ls -d "$root/.harness/harness/features/${flow}"* 2>/dev/null | head -1)
+  [ -n "$match" ] || deny "Branch \"${name}\" names flow ${flow}, but no .harness/harness/features/${flow}* exists. Flows are created by /harness-plan — plan first, then branch."
   python3 -c 'import sys,json; print(json.dumps({"systemMessage":"[work-tracking] Branch maps to flow "+sys.argv[1]+"."}))' "$flow"
   exit 0
 fi

@@ -36,7 +36,7 @@ def cpr():
     spec.loader.exec_module(mod)
     return mod
 UNGRANTED_PATH = "some/totally/nonexistent/zzz-surface.md"  # granted to nobody
-CASE17_PATH = ".harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.md"
+CASE17_PATH = ".harness/harness/features/FEAT-09-plan-time-route-check/runs/1-eng/notes.md"
 
 failures = []
 
@@ -171,7 +171,7 @@ def case_17():
     This is the exact bug check-domain.sh:190-197 records: a hand-rolled prefix
     comparison on the text before `/**` answers False for a pattern with an earlier
     wildcard segment. The path string below is granted ONLY through
-    `.harness/features/*/runs/*-eng/**` (team-config.yaml:278) and must stay verbatim.
+    `.harness/*/features/*/runs/*-eng/**` (team-config.yaml) and must stay verbatim.
     """
     with tempfile.TemporaryDirectory() as td:
         plan = write_plan(td, "# PLAN\n\n" + task_block("T-01", CASE17_PATH, "team"))
@@ -189,10 +189,10 @@ def case_17():
 
         # (17b) THE CLAUSE THAT CAN ACTUALLY FAIL. The three assertions above pass under a
         # hand-rolled prefix comparison too, because that comparison OVER-grants rather than
-        # under-granting: `.harness/features/` is a prefix of every feature file, so the path
+        # under-granting: `.harness/harness/features/` is a prefix of every feature file, so the path
         # still resolves to somebody, still reports OK and still exits 0. Measured, this path
         # resolves to exactly {harness-eng-lead, harness-orchestrator} through the mid-pattern
-        # grant `.harness/features/*/runs/*-eng/**`, while a prefix implementation grants it to
+        # grant `.harness/*/features/*/runs/*-eng/**`, while a prefix implementation grants it to
         # most of the org. Asserting the EXACT set is what discriminates, and it fails on any
         # reimplementation regardless of how its variables are spelled.
         ok_line = next((l for l in lines if l.startswith("OK") and "T-01" in l), "")
@@ -352,7 +352,7 @@ def case_19():
     # `return root, []` reports 0 where 1 is expected; a discoverer that ignored
     # `_is_shipped` reports 2. The count is exact for that reason, never `> 0`.
     with tempfile.TemporaryDirectory() as _td3:
-        _f3 = os.path.join(_td3, ".harness", "features")
+        _f3 = os.path.join(_td3, ".harness", "harness", "features")
         os.makedirs(_f3)
         with open(os.path.join(_td3, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
@@ -419,7 +419,7 @@ def case_19():
               "IGNORING it" in r.stderr and "does-not-exist" in r.stderr,
               f"stderr={r.stderr[:300]!r}")
         # ...and a VALID one is not warned about, or the message becomes noise on every run.
-        os.makedirs(os.path.join(td, ".harness", "features"))
+        os.makedirs(os.path.join(td, ".harness", "harness", "features"))
         with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
         r2 = run(project_dir=td)
@@ -450,7 +450,7 @@ def case_19():
     # decoys that a sloppier glob would swallow — a sibling BRIEF.md, and a PLAN.md nested
     # under runs/ where `**` or `*/*.md` would reach it.
     with tempfile.TemporaryDirectory() as td:
-        feats = os.path.join(td, ".harness", "features")
+        feats = os.path.join(td, ".harness", "harness", "features")
         os.makedirs(feats)
         with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
@@ -481,14 +481,14 @@ def case_19():
         # place", so a line that describes a different search is worse than none.
         check("case_19a5_the_scan_line_matches_the_glob_that_ran",
               r.stdout.splitlines()[0]
-              == f"scanning {td}/.harness/features/*/{{plan.yaml,PLAN.md}}",
+              == f"scanning {td}/.harness/*/features/*/{{plan.yaml,PLAN.md}}",
               f"first line={r.stdout.splitlines()[:1]!r}")
 
     # (c) The other direction. A manifest is present, so the root IS known; there simply
     # are no features yet. Must be exit 0 and must scan the FIXTURE, not the real repo —
     # which is also what fails if the env-var/derived precedence is ever flipped.
     with tempfile.TemporaryDirectory() as td:
-        os.makedirs(os.path.join(td, ".harness", "features"))
+        os.makedirs(os.path.join(td, ".harness", "harness", "features"))
         with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
         r = run(project_dir=td)
@@ -531,7 +531,7 @@ def case_22():
     directory modes, so a leaked chmod silently poisons every later run in the worktree.
     """
     def build(td):
-        feats = os.path.join(td, ".harness", "features", "FEAT-A")
+        feats = os.path.join(td, ".harness", "harness", "features", "FEAT-A")
         os.makedirs(feats)
         with open(os.path.join(td, ".harness", "team-config.yaml"), "w") as f:
             f.write("agents: {}\n")
@@ -547,7 +547,9 @@ def case_22():
             os.chmod(feats, 0o000)
             r = run(project_dir=td)
             check("case_22a_unreadable_feature_dir_exits_2",
-                  r.returncode == 2 and "FEAT-A" in r.stderr and "0 violation(s)" not in r.stdout,
+                  r.returncode == 2 and "FEAT-A" in r.stderr
+                  and ".harness/*/features/" in r.stderr
+                  and "0 violation(s)" not in r.stdout,
                   f"exit {r.returncode} stdout={r.stdout[:150]!r} stderr={r.stderr[:200]!r}")
         finally:
             os.chmod(feats, 0o755)
@@ -665,7 +667,7 @@ def _yaml_project(td, files=".harness/harness.json", extra="", status="pending")
     field entirely (the absent-status shape). Default is the original template value, so
     every existing caller is unaffected.
     """
-    fd = os.path.join(td, ".harness", "features", "FEAT-A")
+    fd = os.path.join(td, ".harness", "harness", "features", "FEAT-A")
     os.makedirs(fd, exist_ok=True)
     import shutil as _sh
     _sh.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
@@ -836,7 +838,7 @@ def case_23():
         "    intent: |\n" + "".join(f"      line {i}\n" for i in range(12))
     )
     with tempfile.TemporaryDirectory() as td:
-        fd = os.path.join(td, ".harness", "features", "FEAT-A")
+        fd = os.path.join(td, ".harness", "harness", "features", "FEAT-A")
         os.makedirs(fd)
         shutil.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
                      os.path.join(td, ".harness", "team-config.yaml"))

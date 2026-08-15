@@ -150,7 +150,7 @@ check("body(): builds 'what: value — next_step'", got == want, f"got={got!r}")
 # trusting this file's own literal.
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _PLAN = os.path.join(_HERE, "..", "..", "..", "..",
-                      ".harness", "features", "FEAT-10-software-factory", "plan.yaml")
+                      ".harness", "harness", "features", "FEAT-10-software-factory", "plan.yaml")
 with open(_PLAN, encoding="utf-8") as _f:
     _plan_text = _f.read()
 _plan_dash_idx = _plan_text.find("with an em")

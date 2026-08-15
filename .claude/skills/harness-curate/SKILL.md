@@ -26,7 +26,7 @@ asks for a cleanup.
      the six-spawns test hardest: rules that fire on every dispatch beat rules for rare shapes.
    - Preserve entry IDs where the entry survives recognizably; renumber only on merge.
 3. **Move, don't destroy:** anything distilled away that is still feature-specific context worth
-   keeping goes to `.harness/features/<FEAT>/observations/<agent>.md` if the feature dir exists;
+   keeping goes to `.harness/harness/features/<FEAT>/observations/<agent>.md` if the feature dir exists;
    otherwise it is dropped — it already failed the durability test.
 4. **Verify:** re-run `check-expertise.sh` until every file passes. Report per-file entry and
    word counts before and after — counted, not estimated.

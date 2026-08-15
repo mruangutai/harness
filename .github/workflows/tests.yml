@@ -84,7 +84,7 @@ jobs:
         run: .claude/skills/harness/bin/run-unit-tests.sh --kind integration
 
       # VALIDATE EVERY FEATURE'S EXECUTION STATE (FEAT-14/T-03, REQ-06/REQ-07). No
-      # arguments: the CLI sweeps every .harness/features/*/feature.{json,yaml,yml} file
+      # arguments: the CLI sweeps every .harness/*/features/*/feature.{json,yaml,yml} file
       # on disk and exits non-zero if any fails the schema. This is the CI backstop for
       # a session where check-domain.sh's write-time gate is not registered at all.
       - name: Validate feature execution state
@@ -115,14 +115,14 @@ jobs:
       #
       # M IS ASSERTED, NOT JUST THE EXIT CODE. The checker's last line is
       # `N violation(s) across M plan(s)`; a step that read only $? passes when M is 0 — a green
-      # tick from a gate that examined nothing, issue #133's named ordering trap. Not a live hole
-      # today: all 8 plan files are git-tracked and `.harness/features/` is not ignored, so
+      # tick from a gate that examined nothing, issue #133's named ordering trap. Not a live hole as of 62fef85, pre-move:
+      # all 19 plan files are git-tracked and `.harness/features/` is not ignored, so
       # `actions/checkout@v4` cannot
       # produce M=0, and B-7 (PR #153) derives the root from the manifest rather than the cwd. It
       # is a guard against a future `.gitignore` entry, sparse checkout or root-derivation change
       # making it reachable again — cheap, and this repo's most-repeated defect is exactly "the
-      # guard is right and nothing calls it correctly". Both halves measured, not assumed:
-      # `git ls-files '.harness/features/*/PLAN.md' '.harness/features/*/plan.yaml'` returns 8, and
+      # guard is right and nothing calls it correctly". Both halves measured at 62fef85, pre-move, not assumed:
+      # `git ls-files '.harness/features/*/PLAN.md' '.harness/features/*/plan.yaml'` returns 19, and
       # `git check-ignore -v .harness/features` exits 1.
       #
       # THREE OUTCOMES, THREE MESSAGES. Exit 2 with no summary means the checker could not run at
@@ -168,7 +168,7 @@ jobs:
             exit 1
           fi
           if [ "$examined" -eq 0 ]; then
-            echo "::error::check-plan-routes.py entered 0 feature directories, and this repository has features. Discovery did not run — an empty search is indistinguishable from a clean tree and would pass forever, the exact trap issue #133 names. Check CLAUDE_PROJECT_DIR and .harness/features/." >&2
+            echo "::error::check-plan-routes.py entered 0 feature directories, and this repository has features. Discovery did not run — an empty search is indistinguishable from a clean tree and would pass forever, the exact trap issue #133 names. Check CLAUDE_PROJECT_DIR and .harness/*/features/." >&2
             exit 1
           fi
 

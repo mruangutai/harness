@@ -67,7 +67,7 @@ override this — the guard will deny it, correctly (#216).
 
 The receipt is the fallback for the personas that own no other per-feature path — the five engineers
 and the documentor. Only those six write
-`.harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`. **Not your observations log.**
+`.harness/harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`. **Not your observations log.**
 That log is the Expertise hot layer — it is never injected into any spawn, so anything a successor
 must read is lost there. Use it only for lessons about *how you work*.
 

@@ -4,7 +4,7 @@
 - P-01: WHEN a `verify:` grep would already have passed before the change DO label it
   non-discriminating and name a substitute command whose result only the change can produce.
   An absence-grep that was already empty proves nothing. Exemplar: the `## Verify receipts`
-  section of a shipped plan under `.harness/features/`.
+  section of a shipped plan under `.harness/harness/features/`.
 - P-02: WHEN a criterion will cite automated evidence from a test kind DO check that kind's detect
   globs match files on the surface being changed: a non-null runner matching zero files here is a
   gate that proves nothing. Widen the runner as a task rather than downgrading the criterion to

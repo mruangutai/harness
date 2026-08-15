@@ -69,15 +69,15 @@ DIGEST:
   status: in_progress|in_review|shipped|blocked|awaiting_user
   runs: [{ id, squad, verdict }]
   cycles_used: <n>
-  briefing: <path|none>           # .harness/features/<FEAT>/notes/ship-review-<runid>.md when written
+  briefing: <path|none>           # .harness/harness/features/<FEAT>/notes/ship-review-<runid>.md when written
   open_questions:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none — non-empty means the
                                                              # main session must ask the user
   files_touched: [<paths>]        # [] if none
   expertise_update: [<ops>]       # [] if nothing durable
-artifact: .harness/features/<FEAT>/feature.json
+artifact: .harness/harness/features/<FEAT>/feature.json
 ```
 ````
 
 `status: awaiting_user` + non-empty `open_questions` is the question round-trip: the main session
-asks, writes `.harness/features/<FEAT>/notes/answers-<runid>.md`, and re-delegates you with that path.
+asks, writes `.harness/harness/features/<FEAT>/notes/answers-<runid>.md`, and re-delegates you with that path.

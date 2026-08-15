@@ -67,7 +67,7 @@ onto harness machinery:
 3. **Verify adversarially** (validator-lead): each candidate gets the review-panel treatment — is
    the friction real, does the deletion test actually concentrate complexity, what breaks? Killed
    candidates die with a reason.
-4. **Report:** survivors land in `.harness/features/` as a notes artifact — per candidate: files,
+4. **Report:** survivors land in `.harness/harness/features/` as a notes artifact — per candidate: files,
    problem, solution in plain English, benefits as locality/leverage, recommendation strength
    (Strong / Worth exploring / Speculative) — topped by ONE top recommendation. Human-readable
    rendering follows the render-map pattern (offline, derived, never authored HTML). No interfaces

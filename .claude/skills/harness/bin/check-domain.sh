@@ -594,10 +594,10 @@ ROUTING = ("Routing: current truth REPLACES STATE.md ## Current; per-run finding
 # via `_norm`; the sweep did not.
 _SWEEP_PATTERNS = (
     "CLAUDE.md",
-    ".harness/features/*/feature.json",
-    ".harness/features/*/runs/*/state.yaml",
-    ".harness/features/*/notes/handoff-*.md",
-    ".harness/features/*/STATE.md",
+    ".harness/*/features/*/feature.json",
+    ".harness/*/features/*/runs/*/state.yaml",
+    ".harness/*/features/*/notes/handoff-*.md",
+    ".harness/*/features/*/STATE.md",
 )
 SWEEP_GLOBS = tuple(_p for _p in _SWEEP_PATTERNS) + tuple(
     os.path.join(".claude", "worktrees", "*", _p) for _p in _SWEEP_PATTERNS)
@@ -660,10 +660,10 @@ VERB = "OVER BUDGET (already written)" if _post else "BLOCKED"
 # whole file. Measured by review on a 200 MB non-state path: 228 ms, against 37 ms once the
 # pattern is consulted first. Two uses, one definition — duplicating them as a fast-path
 # guard would create exactly the silent drift `test-check-state.py` case (o) exists to catch.
-RE_FEATURE_JSON = re.compile(r"^\.harness/features/[^/]+/feature\.json$")
-RE_STATE_YAML   = re.compile(r"^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$")
-RE_HANDOFF      = re.compile(r"^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$")
-RE_STATE_MD     = re.compile(r"^\.harness/features/[^/]+/STATE\.md$")
+RE_FEATURE_JSON = re.compile(r"^\.harness/[^/]+/features/[^/]+/feature\.json$")
+RE_STATE_YAML   = re.compile(r"^\.harness/[^/]+/features/[^/]+/runs/[^/]+/state\.yaml$")
+RE_HANDOFF      = re.compile(r"^\.harness/[^/]+/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$")
+RE_STATE_MD     = re.compile(r"^\.harness/[^/]+/features/[^/]+/STATE\.md$")
 # CLAUDE.md (issue #139). Not a state file, and included here anyway because this is
 # where the four-route machinery already lives — the alternative was a fifth gate.
 RE_CLAUDE_MD    = re.compile(r"^CLAUDE\.md$")

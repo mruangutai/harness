@@ -3,7 +3,7 @@
 
 Plain assert, python3, stdlib only, shaped after test-check-plan-routes.py's
 check()/main()-returns-0/1 convention. Every fixture is a tempfile — nothing
-here reads, writes or depends on any real file under .harness/features/*/.
+here reads, writes or depends on any real file under .harness/*/features/*/.
 
 jsonschema must be importable for these tests to mean anything: they prove
 the schema's SHAPE, not merely that the module imports.
@@ -302,6 +302,25 @@ def case_problems_for_text_jsonschema_forced_unavailable():
           "pip install jsonschema" in problems[0], problems)
 
 
+def case_migrated_depth_discovery_scans_the_segment_layout():
+    """The no-argument sweep must examine a feature.json one segment deep - the CI
+    backstop's only proof it still examines anything, since zero matches and a
+    correct empty tree print the same exit code."""
+    with tempfile.TemporaryDirectory() as tmp:
+        fd = os.path.join(tmp, ".harness", "repoA", "features", "FEAT-77-x")
+        os.makedirs(fd)
+        with open(os.path.join(fd, "feature.json"), "w", encoding="utf-8") as f:
+            json.dump(full_doc(), f)
+        env = dict(os.environ)
+        env["CLAUDE_PROJECT_DIR"] = tmp
+        r = subprocess.run([VALIDATE_CLI], capture_output=True, text=True,
+                           timeout=30, env=env)
+        check("case_migrated_depth: the sweep reports ONE file, not zero",
+              "1 file(s)" in r.stderr, r.stderr)
+        check("case_migrated_depth: the scanning line names the migrated glob",
+              ".harness/*/features/" in r.stderr, r.stderr)
+
+
 def main():
     case_accepted_all_eleven_keys()
     case_accepted_only_eight_required_keys()
@@ -322,6 +341,7 @@ def main():
     case_json_extension_rejects_yaml_content_yaml_extension_accepts_it()
     case_problems_for_text_names_real_display_path_in_every_line()
     case_problems_for_text_jsonschema_forced_unavailable()
+    case_migrated_depth_discovery_scans_the_segment_layout()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

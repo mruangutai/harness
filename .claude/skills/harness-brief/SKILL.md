@@ -1,6 +1,6 @@
 ---
 name: harness-brief
-description: Write or update .harness/features/<FEAT>/BRIEF.md for a feature — requirements (REQ-NN) and success criteria (SC-NN) where every criterion declares how it will be verified. Use when starting a feature, when "done" is ambiguous, or when asked to define scope or acceptance criteria.
+description: Write or update .harness/harness/features/<FEAT>/BRIEF.md for a feature — requirements (REQ-NN) and success criteria (SC-NN) where every criterion declares how it will be verified. Use when starting a feature, when "done" is ambiguous, or when asked to define scope or acceptance criteria.
 ---
 
 # Harness: Brief
@@ -14,7 +14,7 @@ A criterion with no method is not verifiable, and discovering that at ship time 
 
 ### 1. Read what exists
 
-- `.harness/features/<FEAT>/BRIEF.md` if present — you are updating, not replacing.
+- `.harness/harness/features/<FEAT>/BRIEF.md` if present — you are updating, not replacing.
 - The repo's `CLAUDE.md` for project context.
 - Do **not** explore the whole codebase. This is a scope document, not a research task.
 
@@ -36,7 +36,7 @@ below).
 ## The feature id — you coin it, once
 
 `FEAT-NN-<kebab-slug>` for features, **`BUG-NN-<kebab-slug>` for defects** (independent number
-sequences, same rules; both live under `.harness/features/`). Slug from the goal, 2–4 words — a
+sequences, same rules; both live under `.harness/harness/features/`). Slug from the goal, 2–4 words — a
 bare number tells the user nothing (DEC-133). **Immutable once created**: recorded references
 break on rename.
 
@@ -148,7 +148,7 @@ Do not set `## Approval` yourself. Ever.
 Report in plain English, not IDs:
 
 ```
-BRIEF written — .harness/features/<FEAT>/BRIEF.md
+BRIEF written — .harness/harness/features/<FEAT>/BRIEF.md
 
 Goal      Reviewers can narrow a long transcript to one author.
 2 requirements, 3 success criteria.

@@ -48,19 +48,30 @@ if not os.path.isdir(H):
     print("harness: no .harness/ — project not onboarded. Run /harness-init.")
     sys.exit(1)
 
+# D-08 (FEAT-21 T-05), the OTHER half of the signed trade: dict KEYS stay bare basenames
+# (qualify one of the two name-derivation shapes and not the other and the station mirror
+# silently skips every feature), but a finding that names a PATH carries the DISCOVERED
+# segment-qualified path, so a reader can open exactly what the label names.
+_feat_dirs = {os.path.basename(_d): os.path.relpath(_d, root)
+              for _d in glob.glob(os.path.join(H, "*", "features", "*"))
+              if os.path.isdir(_d)}
+def fpath(feat, tail=""):
+    _b = _feat_dirs.get(feat) or os.path.join(".harness", "?", "features", feat)
+    return _b + (os.sep + tail if tail else "")
+
 # BRIEF/PLAN are PER-FEATURE since DEC-129 — .harness/features/<FEAT>/{BRIEF,PLAN}.md.
 # Root-level singletons collided the moment a second feature existed.
 briefs = {os.path.basename(os.path.dirname(p)): read(p)
-          for p in glob.glob(os.path.join(H, "features", "*", "BRIEF.md"))}
+          for p in glob.glob(os.path.join(H, "*", "features", "*", "BRIEF.md"))}
 plans  = {os.path.basename(os.path.dirname(p)): read(p)
-          for p in glob.glob(os.path.join(H, "features", "*", "PLAN.md"))}
+          for p in glob.glob(os.path.join(H, "*", "features", "*", "PLAN.md"))}
 # plan.yaml (DEC-182) is loaded, never read as text. Kept in a SEPARATE dict rather than
 # merged into `plans`: every check below either reads markdown or reads a mapping, and one
 # dict holding both shapes is how a regex ends up running over a dict repr. A feature with
 # both files is refused by check-plan-routes; here the yaml simply wins, because a feature
 # mid-migration should be judged by the artifact its author is maintaining.
 plan_docs = {}
-for _p in glob.glob(os.path.join(H, "features", "*", "plan.yaml")):
+for _p in glob.glob(os.path.join(H, "*", "features", "*", "plan.yaml")):
     _feat = os.path.basename(os.path.dirname(_p))
     try:
         plan_docs[_feat] = harness_yaml.load_plan(_p)
@@ -68,11 +79,12 @@ for _p in glob.glob(os.path.join(H, "features", "*", "plan.yaml")):
     except harness_yaml.YamlParseError as _e:
         # A plan that does not load is a VIOLATION, never a silent skip — the whole point
         # of DEC-182 is that a malformed plan stops being something a regex half-reads.
-        bad.append(f"{_feat}/plan.yaml does not load, so INV-3/4/5 cannot be checked "
+        bad.append(f"{fpath(_feat, 'plan.yaml')} does not load, so INV-3/4/5 cannot be checked "
                    f"for it: {_e}")
 # STATE.md is per-feature since DEC-120; read them all.
 states = {os.path.basename(os.path.dirname(p)): read(p)
-          for p in glob.glob(os.path.join(H, "features", "*", "STATE.md"))}
+          for p in glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))}
+
 
 def approved(txt):
     if not txt: return False
@@ -92,9 +104,12 @@ if not os.path.isfile(os.path.join(H, "harness.json")):
 # unapproved brief on a feature nobody will build trains the operator to ignore the gate,
 # which is the failure a gate exists to prevent. Read from feature.json, not inferred.
 _abandoned = set()
-for _f in sorted(os.listdir(os.path.join(H, "features"))) if os.path.isdir(os.path.join(H, "features")) else []:
+for _fd in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
+    if not os.path.isdir(_fd):
+        continue
+    _f = os.path.basename(_fd)
     try:
-        _fj_p = os.path.join(H, "features", _f, "feature.json")
+        _fj_p = os.path.join(_fd, "feature.json")
         if os.path.isfile(_fj_p) and json.load(open(_fj_p, encoding="utf-8")).get("status") == "Abandoned":
             _abandoned.add(_f)
     except Exception:
@@ -103,9 +118,9 @@ for feat, brief in briefs.items():
     if feat in _abandoned:
         continue
     if not has_approval_block(brief):
-        bad.append(f"{feat}/BRIEF.md has no '## Approval' section — cannot tell if the goal is signed.")
+        bad.append(f"{fpath(feat, 'BRIEF.md')} has no '## Approval' section — cannot tell if the goal is signed.")
     elif not approved(brief):
-        bad.append(f"{feat}/BRIEF.md is NOT approved — halt that flow and surface to the user.")
+        bad.append(f"{fpath(feat, 'BRIEF.md')} is NOT approved — halt that flow and surface to the user.")
 for feat in states:
     if feat not in briefs:
         bad.append(f"{feat} has STATE.md but no BRIEF.md — a flow is running with no goal of record.")
@@ -118,25 +133,25 @@ for feat in states:
 for feat, doc in plan_docs.items():
     _appr = doc.get("approval")
     if not isinstance(_appr, dict):
-        bad.append(f"{feat}/plan.yaml has no `approval:` block — cannot tell if the goal "
+        bad.append(f"{fpath(feat, 'plan.yaml')} has no `approval:` block — cannot tell if the goal "
                    f"is signed.")
     elif str(_appr.get("status", "")).strip().lower() != "approved":
-        warn.append(f"{feat}/plan.yaml approval is pending — awaiting the user.")
+        warn.append(f"{fpath(feat, 'plan.yaml')} approval is pending — awaiting the user.")
 
     _plan_ids = {str(t["id"]) for t in doc["tasks"]}
     _state = states.get(feat)
     if _state:
         for _tid in set(re.findall(r"\bT-[0-9A-Za-z]+\b", _state)):
             if _tid not in _plan_ids:
-                bad.append(f"{feat}/STATE.md references {_tid}, which is absent from its "
+                bad.append(f"{fpath(feat, 'STATE.md')} references {_tid}, which is absent from its "
                            f"plan.yaml.")
 
 # --- INV-3: a plan must be signed too, and re-planning must reset that signature.
 for feat, plan in plans.items():
     if not has_approval_block(plan):
-        bad.append(f"{feat}/PLAN.md has no '## Approval' section.")
+        bad.append(f"{fpath(feat, 'PLAN.md')} has no '## Approval' section.")
     elif not approved(plan):
-        warn.append(f"{feat}/PLAN.md approval is pending — awaiting the user.")
+        warn.append(f"{fpath(feat, 'PLAN.md')} approval is pending — awaiting the user.")
 
     # --- INV-4: every task must carry change_type or the qa gate cannot apply.
     # Tasks may be list items (`- T-01:`) or headings (`### T-01 —`) — the smoke's pm
@@ -144,7 +159,7 @@ for feat, plan in plans.items():
     tasks = re.findall(r"^(?:-\s*|#+\s*)(T-\d+)\b(.*?)(?=^(?:-\s*|#+\s*)T-\d+\b|\Z)",
                        plan, re.M | re.S)
     if not tasks and re.search(r"\bT-\d+\b", plan):
-        bad.append(f"{feat}/PLAN.md mentions T-NN ids but none parse as tasks — "
+        bad.append(f"{fpath(feat, 'PLAN.md')} mentions T-NN ids but none parse as tasks — "
                    f"INV-4/5 would be vacuous. Fix the task format.")
     for tid, body in tasks:
         if "change_type:" not in body:
@@ -156,10 +171,10 @@ for feat, plan in plans.items():
         plan_ids = {tid for tid, _ in tasks}
         for tid in set(re.findall(r"\bT-\d+\b", state)):
             if tid not in plan_ids:
-                bad.append(f"{feat}/STATE.md references {tid}, which is absent from its PLAN.md.")
+                bad.append(f"{fpath(feat, 'STATE.md')} references {tid}, which is absent from its PLAN.md.")
 
 # --- INV-6..8: per-feature execution facts.
-for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
+for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
     # T-07 / issue #11 — a REAL parser, not a regex over two hand-listed shapes.
     #
@@ -177,11 +192,11 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
         # A file that does not parse is a VIOLATION, never a silent skip — the whole
         # point of DEC-171 am.1 is that there is no quieter mode. Report and move on
         # so one broken feature cannot hide every other feature's invariants.
-        bad.append(f"{feat}/feature.json does not parse, so INV-6..8 and INV-12 "
+        bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-6..8 and INV-12 "
                    f"cannot be checked for it: {e}")
         continue
     if not isinstance(doc, dict):
-        bad.append(f"{feat}/feature.json is not a YAML mapping.")
+        bad.append(f"{fpath(feat, 'feature.json')} is not a YAML mapping.")
         continue
 
     def val(k):
@@ -555,7 +570,7 @@ def _handoff_exempt(fdir):
     return (f"every task in its plan.yaml is execution_mode main-session-direct (DEC-174), "
             f"so no squad ran and no seam was crossed"), ""
 
-for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
+for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
     # F-02: parsed, not regex-scanned. `^status:\s*(\S+)` misses a quoted value and a
     # block scalar, both legal YAML — and a miss here is silent: the feature is skipped
@@ -563,7 +578,7 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
     try:
         _doc = harness_yaml.load_file(fy) or {}
     except Exception as e:
-        bad.append(f"{feat}/feature.json does not parse, so its seam invariants "
+        bad.append(f"{fpath(feat, 'feature.json')} does not parse, so its seam invariants "
                    f"cannot be checked: {e}")
         continue
     _status = str(_doc.get("status", "")).strip() if isinstance(_doc, dict) else ""
@@ -615,7 +630,7 @@ for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
 # --- INV-18 (DEC-160): a feature with run dirs but no feature.json is invisible to
 # every feature-keyed invariant (INV-8/12/17) — a whole phase can run unchecked.
 # Observed live: FEAT-03's plan phase ran to completion before feature.json existed.
-for rd in glob.glob(os.path.join(H, "features", "*", "runs")):
+for rd in glob.glob(os.path.join(H, "*", "features", "*", "runs")):
     fdir = os.path.dirname(rd)
     # isdir FIRST: glob matches a plain file named `runs` too, and os.listdir on it raises
     # NotADirectoryError — exit 1, empty stdout, every later invariant skipped.
@@ -640,12 +655,12 @@ for rd in glob.glob(os.path.join(H, "features", "*", "runs")):
 #
 # VOCABULARY stays in sync with check-domain.sh; the MECHANISM deliberately does not
 # (D-02) — that one measures a payload, this one measures a file.
-for fy in sorted(glob.glob(os.path.join(H, "features", "*", "feature.json"))):
+for fy in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
     fl = (read(fy) or "").splitlines()
     feat = os.path.basename(os.path.dirname(fy))
     # 300, not 200: FEAT-10 measures 173 lines with 32 runs, roughly 5 lines per run.
     if len(fl) > 300:
-        warn.append(f"INV-23 {feat}/feature.json is {len(fl)} lines — budget is 300. It is "
+        warn.append(f"INV-23 {fpath(feat, 'feature.json')} is {len(fl)} lines — budget is 300. It is "
                     f"data a script parses, not a journal (DEC-150).")
     # The comment-line budget is GONE, not relaxed: JSON has no comments, so it could never
     # fire, and a check that cannot fire is a check a reader trusts.
@@ -660,16 +675,16 @@ if _cml and len(_cml) > 80:
                 f"preloaded into EVERY session, so a line here costs more than a line "
                 f"anywhere else; rationale belongs in docs/harness/DECISIONS.md.")
 
-for sm in sorted(glob.glob(os.path.join(H, "features", "*", "STATE.md"))):
+for sm in sorted(glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))):
     sl = (read(sm) or "").splitlines()
     feat = os.path.basename(os.path.dirname(sm))
     if len(sl) > 120:
-        warn.append(f"INV-23 {feat}/STATE.md is {len(sl)} lines — budget is 120. It holds no "
+        warn.append(f"INV-23 {fpath(feat, 'STATE.md')} is {len(sl)} lines — budget is 120. It holds no "
                     f"history: ## Current is replaced, never appended (DEC-150).")
     illegal = [l.strip() for l in sl
                if l.startswith("## ") and l.strip() not in ("## Current", "## Open Questions")]
     if illegal:
-        warn.append(f"INV-23 {feat}/STATE.md has illegal section(s) {illegal} — STATE.md is "
+        warn.append(f"INV-23 {fpath(feat, 'STATE.md')} has illegal section(s) {illegal} — STATE.md is "
                     f"`## Current` + `## Open Questions` and nothing else (SPEC §2).")
 
 # --- INV-15 (DEC-156): a complete lead-hosted run's digest.md is the durable copy a
@@ -717,7 +732,7 @@ if os.path.isfile(vd):
             _vd_mod, _vd_import_err = None, "it defines no validate() function"
     except Exception as _e:
         _vd_mod, _vd_import_err = None, str(_e)
-for sy in glob.glob(os.path.join(H, "features", "*", "runs", "*", "state.yaml")):
+for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.yaml")):
     rel = os.path.relpath(sy, H)
     rundir = os.path.dirname(sy)
     # F-02, and this one had a LIVE fail-open the panel reproduced: `status: "complete"`
@@ -846,7 +861,7 @@ if cj:
 # GitHub Issues sync is never a gate, and a re-run of `open` fixes it (INV-20's
 # precedent). Vacuous when github.sync is off — the check costs nothing then.
 if cj and (cj.get("github") or {}).get("sync"):
-    for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
+    for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         feat = os.path.basename(os.path.dirname(fy))
         # F-02: the last of the seven. This carried the SAME four defects gh-sync.py's
         # reader did, and T-06 fixed them there while leaving the twin here — which is
@@ -859,7 +874,7 @@ if cj and (cj.get("github") or {}).get("sync"):
         try:
             gdoc = harness_yaml.load_file(fy) or {}
         except Exception as e:
-            bad.append(f"{feat}/feature.json does not parse, so INV-21 cannot be "
+            bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-21 cannot be "
                        f"checked for it: {e}")
             continue
         gblk = gdoc.get("github") if isinstance(gdoc, dict) else None
@@ -885,7 +900,7 @@ if cj and (cj.get("github") or {}).get("sync"):
 # parents and issues in one list is the only place in this increment it becomes visible.
 # A feature.json with no `factory` block contributes nothing and is not a violation.
 _fac_pairs = {}
-for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):
+for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     feat = os.path.basename(os.path.dirname(fy))
     try:
         fdoc = harness_yaml.load_file(fy) or {}
@@ -1142,7 +1157,7 @@ if _inv26_board:
         # is where gh-sync's `open` lands every issue and nothing moves it until start-task.
         _EXPECT = {"building": "Building", "done": "Done", "pending": "Backlog"}
 
-        for _fp in sorted(glob.glob(os.path.join(H, "features", "*"))):
+        for _fp in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
             _feat = os.path.basename(_fp)
             _pdoc = plan_docs.get(_feat)
             if not _pdoc:

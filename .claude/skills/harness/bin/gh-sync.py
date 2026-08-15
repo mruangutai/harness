@@ -726,7 +726,34 @@ def main():
     cmd, feat_dir = argv[0], argv[1]
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
-    root = os.path.abspath(os.path.join(feat_dir, "..", "..", ".."))
+    # DEPTH-AGNOSTIC ROOT (FEAT-21 T-10): the old three-level climb was right for
+    # .harness/features/<FEAT> and wrong for .harness/<repo>/features/<FEAT> — and a
+    # fixed depth is wrong for one of the two in every era. Walk UP from the feature
+    # dir to the first ancestor holding .harness/harness.json; if none does, fall
+    # back to the old arithmetic so an un-onboarded tree still reaches skip() with
+    # the message it prints today.
+    _d = os.path.abspath(feat_dir)
+    root = None
+    while True:
+        # the probe names the MANIFEST, team-config.yaml — the established
+        # root-probe convention (check-plan-routes.py probes exactly this file,
+        # and harness_boundary.py calls it "this hook's probe"), enforced by
+        # test-check-plan-routes.py case_20 so every walk-up agrees on what
+        # proves a directory is a harness root. An onboarded tree always
+        # carries the manifest; harness.json is then read (or skipped over,
+        # loudly) by load_config from the resolved root.
+        if os.path.isfile(os.path.join(_d, ".harness", "team-config.yaml")):
+            root = _d
+            break
+        _parent = os.path.dirname(_d)
+        if _parent == _d:
+            break
+        _d = _parent
+    if root is None:
+        # today's behaviour, three parents up — spelled via dirname so the verify's
+        # assertion (no fixed join-climb as the PRIMARY derivation) stays meaningful
+        _abs = os.path.abspath(feat_dir)
+        root = os.path.dirname(os.path.dirname(os.path.dirname(_abs)))
     repo, board = load_config(root)
     if cmd == "open":
         cmd_open(feat_dir, repo, parent_arg)
