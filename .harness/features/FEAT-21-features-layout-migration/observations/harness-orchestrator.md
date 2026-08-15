@@ -31,3 +31,16 @@
   from `fleet.yaml`, but `layout_migration.py:144-161` derives harness's own segment from
   `harness.json` instead — so a fleet edit that would have contradicted DEC-174 am.1 never entered
   the plan. Reading the resolver beat reasoning about the config.
+
+- 2026-08-14: Opening the build phase, I had to flip one task's `status:` inside a 74KB plan.yaml
+  holding tasks at 50/50 and 49/50 against DEC-182's `MACHINE_LINES_PER_TASK`. A `yaml.safe_load` →
+  `safe_dump` round-trip would have re-wrapped every block scalar in the file and could red
+  `check-plan-routes.py` on a plan whose meaning did not change. I replaced the single line by index
+  after asserting its exact text, then re-ran the route check (0 violations). Whole-file rewrite is
+  the only write tool I hold, so "surgical" has to mean read-lines / assert / replace-one / write.
+
+- 2026-08-14: `check-plan-routes.py` printed T-07's OK line naming 20 files where the task declares
+  21 — `.claude/skills/harness/bin/branch-create-gate.sh` is absent from the listing. Nothing in
+  this feature turns on it (DEVIATION vs OK is informational; the gate reported 0 violations either
+  way), but a checker that silently drops a file from its own per-task report is the shape where a
+  real finding would go unprinted. Worth a look when the route checker is next touched.

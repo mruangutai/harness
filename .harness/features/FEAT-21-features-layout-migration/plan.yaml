@@ -242,7 +242,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "co-changes with layout_migration.py, a DEC-174 carve-out by content (FEAT-20 D-02)"
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/test-layout-migration.py
     verify: |
@@ -290,7 +290,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "check-domain.sh --resolve answers NOBODY at 62fef85"
     depends_on: [T-01]
-    status: pending
+    status: building
     files:
       - .harness/team-config.yaml
     verify: |
@@ -341,7 +341,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out named in CLAUDE.md"
     depends_on: [T-01]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/check-domain.sh
     verify: |
@@ -399,7 +399,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "carve-out by content - it is the CI plan-route gate and shells out to check-domain.sh --resolve"
     depends_on: [T-01]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/check-plan-routes.py
     verify: |
@@ -494,7 +494,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "DEC-174 carve-out named in CLAUDE.md - the state gate"
     depends_on: [T-01]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/check-state.sh
     verify: |
@@ -581,7 +581,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "each co-changes with a DEC-174 carve-out script in the same human-read diff"
     depends_on: [T-02, T-03, T-04, T-05]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/test-check-state.py
       - .claude/skills/harness/bin/test-check-domain.py
@@ -731,7 +731,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "every file here resolves to NOBODY, and branch-create-gate.sh is a gate script edited in the same human-read diff"
     depends_on: [T-02]
-    status: pending
+    status: building
     files:
       - .claude/agents/harness-frontend-dev.md
       - .claude/agents/harness-orchestrator.md
@@ -805,7 +805,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "moves .harness/features/**, which resolves to the orchestrator and to NOBODY per path; the move is inseparable from the carve-out edits it lands with"
     depends_on: [T-06, T-07]
-    status: pending
+    status: building
     files:
       - .harness/features
       - .harness/harness/features
@@ -862,7 +862,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: "every file here is granted - the two resolvers and their suites to harness-backend-dev and harness-dev-ops, the workflow to harness-dev-ops - but all of them are pulled into the DEC-174 cluster commit by D-07 and reviewed in the same human-read diff"
     depends_on: [T-01]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
