@@ -660,9 +660,11 @@ tasks:
         sites treat it as a violation. Because those rows are data that later units edit, a surface
         is judged clean only over a non-empty reader set, and the surfaces are a fixed enum judged
         independently of the table: a surface whose rows are dropped is cannot-verify rather than
-        vacuously clean, and can never be skipped ahead of its verdict. Every finding names the
-        reader path with the form it matched, so that finishing a reader and reverting one - which
-        are opposite remedies - are not reported by the same line.
+        vacuously clean, and can never be skipped ahead of its verdict. Every finding that has a
+        responsible reader names its path with the form it matched, so that finishing a reader and
+        reverting one - opposite remedies - are not reported by the same line; the no-evidence,
+        no-rows and undeclared-segment causes correctly name no reader, because none is responsible
+        (narrowed post-ship under issue #366 - the original sentence overclaimed).
 
         WHAT THE CHECK PROVES, AND WHAT IT DOES NOT. It proves per-file form agreement, never
         per-site completeness: it answers whether a file speaks one layout language and the same

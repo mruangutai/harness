@@ -5850,8 +5850,11 @@ cannot-verify, never clean — the exit code is 2, and both call sites, session 
 CI job, treat it as a violation. Because those rows are data that later units edit, a surface is judged clean only over a
 non-empty reader set, and the surfaces are a fixed enum judged independently of the table: a surface
 whose rows are dropped is cannot-verify rather than vacuously clean, and can never be skipped ahead of
-its verdict. Every finding names the reader path with the form it matched, because finishing a reader
-and reverting one are opposite remedies and must not arrive as the same line.
+its verdict. Every finding that has a responsible reader names its path with the form it matched,
+because finishing a reader and reverting one are opposite remedies and must not arrive as the same
+line; the no-evidence, no-rows and undeclared-segment causes correctly name no reader, because none
+is responsible (narrowed under issue #366 — the sentence originally overclaimed, and units 3–7 cite
+this entry as their maintenance contract).
 
 **What the check proves, and what it does not.** It proves per-file
 form agreement, never per-site completeness: it answers whether a file speaks one layout language and

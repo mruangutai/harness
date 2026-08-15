@@ -258,6 +258,22 @@ def scan(root, table=None):
     return Result(root, True, surfaces, feature_dirs, doc_roots, reader_files)
 
 
+def blame(rep):
+    """THE ONE BLAME POLICY (issue #379): which readers a finding names, with their
+    form-set tags. Both call sites — render() below and check-state.sh's INV-27 —
+    compose from this, so CI and session entry can never name different readers for
+    the same tree. A reader is blamed when its form-set is itself defective (both,
+    neither, unreadable) or disagrees with a single evidence shape; on a MIXED
+    surface with no such reader (evidence split, readers unanimous) every reader is
+    named, because the disagreement is between them and the disk."""
+    named = [(p, f) for p, f in rep.readers
+             if f in ("both", "neither", "unreadable")
+             or (len(rep.evidence) == 1 and f != next(iter(rep.evidence)))]
+    if not named and rep.verdict == MIXED:
+        named = list(rep.readers)
+    return named
+
+
 def exit_code(result):
     """0 not-applicable or every surface CLEAN; 1 any MIXED and none CANNOT_VERIFY;
     2 any CANNOT_VERIFY — it outranks MIXED because a verdict computed over something
@@ -300,12 +316,7 @@ def render(result):
             line += ("; evidence under undeclared segment: "
                      + ", ".join(rep.detail or ()))
         if rep.verdict in (MIXED, CANNOT_VERIFY):
-            blame = [(p, f) for p, f in rep.readers
-                     if f in ("both", "neither", "unreadable")
-                     or (len(rep.evidence) == 1 and f != next(iter(rep.evidence)))]
-            if not blame and rep.verdict == MIXED:
-                blame = rep.readers
-            for p, f in blame:
+            for p, f in blame(rep):
                 line += "; %s [%s]" % (p, f)
         lines.append(line)
     lines.append("examined %d feature dir(s), %d doc root(s), %d reader file(s)"

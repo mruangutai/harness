@@ -51,54 +51,13 @@ except FileNotFoundError:
 # One stub body per (reader file, form). The text carries the FRAGMENT the row's
 # pattern matches, in the spelling the real file uses at 88b1182 — a join, a grant
 # path, a glob — never a copy of the real script.
-MARKER_REL = os.path.join(".harness", "factory", "fleet.yaml")
-# The marker doubles as the fleet declaration the migrated-evidence scan reads:
-# only segments of DECLARED repositories count as migrated repo roots.
-FLEET_TEXT = ("schema: factory-fleet/1\nrepos:\n  - name: org/repoA\n"
-              "workspace_root: /tmp/harness-fixture-workspaces\n")
+import layout_fixtures as lf
 
-STUB = {
-    ".harness/team-config.yaml": {
-        "legacy":   "agents:\n  x:\n    write:\n      - { path: .harness/features/*/notes/n.md }\n",
-        "migrated": "agents:\n  x:\n    write:\n      - { path: .harness/repoA/features/*/notes/n.md }\n",
-    },
-    ".claude/skills/harness/bin/check-domain.sh": {
-        "legacy":   "SWEEP_GLOBS=('.harness/features/*/plan.yaml')\n",
-        "migrated": "SWEEP_GLOBS=('.harness/*/features/*/plan.yaml')\n",
-    },
-    ".claude/skills/harness/bin/check-plan-routes.py": {
-        "legacy":   'plans = glob.glob(os.path.join(root, ".harness", "features", "*", "plan.yaml"))\n',
-        "migrated": 'plans = glob.glob(os.path.join(root, ".harness", repo, "features", "*", "plan.yaml"))\n',
-    },
-    ".claude/skills/harness/bin/check-state.sh": {
-        "legacy":   'for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):\n',
-        "migrated": 'for fy in glob.glob(os.path.join(H, _repo, "features", "*", "feature.json")):\n',
-    },
-    ".claude/skills/harness/bin/factory_config.py": {
-        "legacy":   '_PROBE = os.path.join("docs", "harness", "SPEC.md")\n',
-        "migrated": '_PROBE = os.path.join(".harness", _name, "docs", "SPEC.md")\n',
-    },
-    ".claude/skills/harness/bin/gen-decisions-index.py": {
-        "legacy":   'HEADER = "the authority is docs/harness/DECISIONS.md"\n',
-        "migrated": 'HEADER = "the authority is .harness/repoA/docs/DECISIONS.md"\n',
-    },
-    ".claude/skills/harness/bin/harness_boundary.py": {
-        "legacy":   'HARNESS_CONTROL_PLANE = ("docs/harness/**",)\n',
-        "migrated": 'HARNESS_CONTROL_PLANE = (".harness/*/docs/**",)\n',
-    },
-}
-
-FEATURES_READERS = [
-    ".harness/team-config.yaml",
-    ".claude/skills/harness/bin/check-domain.sh",
-    ".claude/skills/harness/bin/check-plan-routes.py",
-    ".claude/skills/harness/bin/check-state.sh",
-]
-DOCS_READERS = [
-    ".claude/skills/harness/bin/factory_config.py",
-    ".claude/skills/harness/bin/gen-decisions-index.py",
-    ".claude/skills/harness/bin/harness_boundary.py",
-]
+MARKER_REL = lm.MARKER  # the path is never restated (#382)
+FLEET_TEXT = lf.FLEET_TEXT
+STUB = lf.STUB
+FEATURES_READERS = lf.FEATURES_READERS
+DOCS_READERS = lf.DOCS_READERS
 
 
 def build(root, marker=True, features_evidence=("legacy",), docs_evidence=("legacy",),

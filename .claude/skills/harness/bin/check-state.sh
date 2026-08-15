@@ -1293,14 +1293,15 @@ if _lmod is not None:
         # appended nothing and this gate — the surface operators actually see —
         # would have passed clean while CI stayed red).
         def _cv_wording(_sname, _srep):
-            def _tagged(_form):
-                return ", ".join("%s [%s]" % (p, f) for p, f in _srep.readers
-                                 if f == _form)
             _table = {
-                "unreadable": lambda: (f"a coupled reader could not be read — "
-                                       f"{_tagged('unreadable')}"),
-                "neither": lambda: (f"a coupled reader matches neither form — "
-                                    f"{_tagged('neither')}"),
+                # No per-form filtering here: the finding renders blame() WHOLE, the
+                # same list render() prints, or the two call sites drift again (#379).
+                "unreadable": lambda: (
+                    "a coupled reader could not be read — "
+                    + ", ".join("%s [%s]" % (p, f) for p, f in _lmod.blame(_srep))),
+                "neither": lambda: (
+                    "a coupled reader matches neither form — "
+                    + ", ".join("%s [%s]" % (p, f) for p, f in _lmod.blame(_srep))),
                 "no-evidence": lambda: f"no evidence of either shape under {root}",
                 "no-rows": lambda: "no reader rows for this surface",
                 "undeclared-segment": lambda: (
@@ -1319,11 +1320,9 @@ if _lmod is not None:
             _srep = _lres.surfaces[_sname]
             if _srep.verdict == "MIXED":
                 _ev = "+".join(sorted(_srep.evidence)) if _srep.evidence else "none"
-                _blame = [(p, f) for p, f in _srep.readers
-                          if f == "both"
-                          or (len(_srep.evidence) == 1
-                              and f != next(iter(_srep.evidence)))] or _srep.readers
-                _rd = ", ".join("%s [%s]" % (p, f) for p, f in _blame)
+                # ONE blame policy, owned by the module (issue #379): CI and session
+                # entry must never name different readers for the same tree.
+                _rd = ", ".join("%s [%s]" % (p, f) for p, f in _lmod.blame(_srep))
                 bad.append(f"INV-27 {_sname}: layout is MIXED — evidence {_ev}; "
                            f"readers {_rd}. {_lrem}")
             elif _srep.verdict == "CANNOT_VERIFY":
