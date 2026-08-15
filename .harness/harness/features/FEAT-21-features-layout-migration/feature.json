@@ -32,6 +32,31 @@
       "id": "2026-08-14-2-goalcheck-product",
       "squad": "product",
       "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-14-3-panel-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-14-3-sc10recheck-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-15-1-distill-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-1-distill-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-1-distill-validator",
+      "squad": "validator",
+      "verdict": "PASS"
     }
   ],
   "github": {

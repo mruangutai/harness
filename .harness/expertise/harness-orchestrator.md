@@ -20,12 +20,13 @@
 - P-07: WHEN a shipped team file is named for a phase DO check it covers every gate the config marks
   blocking before dispatching it — a team missing a blocking step exits the phase with that gate never
   run, and the roll-up still reads PASS.
-- P-08: WHEN a narrowing conditional is added anywhere DO require a guard assertion for the over-scoped
-  version of it, emitted inside the case that version would suppress. Before the branch existed there
-  was nothing to over-scope, so the fix's own tests are the only place it is catchable.
-- P-09: WHEN checking that a prose clause landed in a wrapped file DO flatten whitespace before
-  matching. A line-wise grep cannot see across a wrap: it false-negatives a correct edit and
-  false-negatives a prose-correct fix whose wrap splits the counted tokens. Both buy cycles for nothing.
+- P-08: WHEN a plan edits the enforcement layer that governs you DO work out when your own write access
+  changes before choosing the turn cadence. Front-load every status write into the last writable
+  moment; mid-cluster the plan-before-subcommand rule is unsatisfiable and your digest is the only
+  record.
+- P-09: WHEN a change moves what a gate DISCOVERS DO compare its output volume against a baseline
+  captured before the change. The exit code stops being evidence: a gate whose discovery finds nothing
+  passes every check it has, silently.
 - P-10: WHEN dispatching distillation to a member DO hand it the paths to its own prior artifacts and
   say self-derived candidates count as its own material. Without that, every entry in its file traces
   to your relay and the acceptance rate grades your dispatch rather than its judgement.
@@ -38,9 +39,9 @@
 - P-13: WHEN a criterion pins a measured COUNT or a line ANCHOR taken at the base commit DO expect it
   red at the goal-check with correct delivery behind it. New directories inflate globs and edits move
   lines inside one feature's lifetime. Anchor on content strings instead.
-- P-14: WHEN two features are in flight DO derive the collision surface from the peer's PLAN `files:`
-  union, never from its grilling artifact — the artifact predates the plan by definition, and the file
-  it omits is the shared one every task's verify rides on.
+- P-14: WHEN a decision records a two-sided TRADE DO verify both sides landed before accepting the task
+  as done. The deferral gets delivered and the delivery dropped, and each task's verify binds only its
+  own mechanical form, so every gate stays green.
 - P-15: WHEN a gate, a gate's test or a fixture reports green DO check that it CAN report red.
   Reachability and assertion strength are separate from logic and neither is visible in the code you
   are reading, so an all-green verify is not an absent defect.
@@ -71,9 +72,9 @@
 - G-07: A run dir's squad suffix must match the owning lead's domain glob exactly, and a trailing
   comment on a run entry's `squad:` line silently drops that run from the invariant checker's
   block-form parse. Put comments on the verdict line instead.
-- G-08: WHEN a guard rejects a shell command for a redirect you did not write DO look for `>` inside
-  quoted or heredoc PROSE — the scan does not respect quoting. Pass commit messages by file, and write
-  any prose containing angle brackets with the file-write tool rather than a heredoc.
+- G-08: WHEN a guard rejects a shell command for a redirect DO note that it masks quoted spans
+  wholesale, so ANY quoted target blocks — literal or variable, including an approved plan's own
+  `verify:`. Re-express it as a script file, and pass commit messages by file.
 - G-09: WHEN a dispatch prescribes digest field VALUES DO check the pair against the digest validator
   first, then re-run it on the returned FILE — a re-return after a stop-hook rejection passes through
   unvalidated, so an accepted return is no evidence its artifact is contract-valid.
@@ -132,9 +133,11 @@
 
 ## Open (max 5)
 
-- OQ-01: A review panel and a human diff read have disjoint blind spots: the panel caught a rotted
-  in-file anchor the human read passed over, while the human ruled on intent the panel could not. Two
-  features suggest the split is route-versus-coverage, but neither has been run with the panel absent.
-- OQ-02: Shared `.harness/expertise/` has no concurrency or lineage protection, and two features
-  distilling at once silently revert each other. Whether the fix is a lineage check, a lock, or keeping
-  Expertise off feature branches entirely is undecided; this feature only established the hazard.
+- OQ-01: A review panel and an orchestrator's own checking have disjoint blind spots. The panel caught
+  a signed clause shipped half-built that behavioural checking missed; the same checking caught two
+  gates passing while discovering nothing. Three features suggest intent-versus-mechanism, and none has
+  run with the panel absent.
+- OQ-02: Shared `.harness/expertise/` has no lineage protection. Nothing reconciles a landed diff
+  against the plan's declared files, so an undeclared edit to a per-spawn-injected file rides any
+  cluster commit and only a human notices. Whether the fix is diff-vs-plan reconciliation, write-guard
+  scoping, or keeping Expertise off feature branches is undecided.

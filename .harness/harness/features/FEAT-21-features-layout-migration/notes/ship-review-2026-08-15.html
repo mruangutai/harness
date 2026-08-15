@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-21 — the features layout migration, ready to ship with one decision for you</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-21-the-features-layout-migration-ready-to-ship-with-one-decision-for-you">FEAT-21 — the features layout migration, ready to ship with one decision for you</h1>
+<p><strong>The move is done and proven. Every one of the 14 success criteria is met. One criterion, SC-12, is true of the code and false of the commit count, because fixing a late defect cost a third commit where it asked for two. That is the single thing I need you to rule on — ratify the deviation, or have pm amend SC-12&#x27;s wording. Nothing else is blocking.</strong></p>
+<p><code>.harness/features/</code> now lives at <code>.harness/harness/features/</code> — a repository segment, the shape the multi-repo control plane needs. Twenty-one feature directories moved, and the twelve readers that resolve that path moved with them <strong>in one commit</strong>, so no landed state exists where the tree and its readers disagree. The layout detector reads <code>features: CLEAN — evidence migrated</code>, <code>docs: CLEAN — evidence legacy</code> — docs deliberately stay behind, and unit 4 moves them.</p>
+<h2 id="what-it-took">What it took</h2>
+<p>Ten tasks, all <code>main-session-direct</code>, because the files this feature edits include four DEC-174 carve-out scripts — the gates themselves. No squad executed any of it; squads planned, reviewed and verified. Three commits carry the work: <code>5afa7e3</code> (the parity test alone), <code>d033b9d</code> (the atomic cluster: the move plus all twelve readers, 617 files, 567 renames), <code>b1d3925</code> (the SC-10 fix).</p>
+<p><strong>Seven runs, four rework cycles, against budgets of 20 and 10.</strong> No crossing. Each cycle bought something: the eng architecture review&#x27;s cycle-0 FAIL, the pre-commit panel&#x27;s must-fix, and the goal-check&#x27;s SC-10 miss were all real defects found before they shipped.</p>
+<h2 id="what-actually-caught-things-worth-reading-because-the-pattern-repeats">What actually caught things — worth reading, because the pattern repeats</h2>
+<p><strong>The defects that mattered were invisible to every green gate.</strong> The eng review&#x27;s three must-fixes were feature-path resolvers carrying no <code>.harness/features/</code> literal at all — a fixed <code>../../..</code> climb, a glob whose zero-match case exits 0, and a module-scope <code>open()</code> on a joined tuple. A literal sweep sees none of them; one would have killed the whole unit suite at import, and two would have gone silently green.</p>
+<p><strong>A signed decision shipped half-built with its task marked done.</strong> D-08 was a two-sided trade — do <em>not</em> qualify the dictionary keys, <em>do</em> qualify the finding labels. The build took the deferral and dropped the delivery. Every gate was green, because each task&#x27;s <code>verify:</code> bound only its own mechanical form. A human reading the diff caught it. That is DEC-174&#x27;s compensating control working exactly as designed, and it is also the control that has no backup.</p>
+<p><strong>Two gates spent the whole cluster passing while examining nothing.</strong> Mid-build, <code>check-state.sh</code> exited 0 with zero findings and <code>check-plan-routes.py</code> reported <code>examined 0</code> — correct at the time, but nothing in the plan&#x27;s verification chain would have noticed if they had stayed that way. I caught it by comparing the note-line count against a baseline captured before the move, not by reading an exit code. When a change moves what a gate <em>discovers</em>, its exit code stops being evidence.</p>
+<p><strong>And the last one was the parity test itself.</strong> SC-10 asked for a test proving the CI rendering and the session-entry rendering agree. The test that shipped composed the session-entry side <em>itself</em>, in a helper its own comment called &quot;mirrored&quot; — so it proved the module against a copy of the gate. pm found it by mutation. The fix deletes the mirror and runs the real <code>check-state.sh</code> as a subprocess. It is now proven in both directions: I killed the gate-side mutant, qa killed the <code>render()</code>-side one.</p>
+<h2 id="the-decision-i-need">The decision I need</h2>
+<p><strong>SC-12</strong> says everything beyond this feature&#x27;s own planning record lands in <strong>exactly two</strong> commits. It was met at <code>d033b9d</code>. Fixing SC-10 made it three. I did not edit either criterion — that is yours alone — and I did not skip the fix, because shipping a mutation-proven gap in the exact seam this feature exists to guard is the worse trade.</p>
+<p><strong>My read: the deviation is cosmetic and the purpose survives.</strong> SC-12 exists so no landed commit shows a half-moved tree. The cluster still landed atomically; <code>b1d3925</code> lands <em>after</em> it, touches one test file, and adds nothing to the migration. The validation panel reached the same conclusion independently. <strong>Options:</strong> ratify the deviation as recorded, or have pm amend SC-12 to admit a fix commit against an already-landed task. I recommend the first — amending a criterion after the fact to match what happened is the weaker record.</p>
+<h2 id="two-corrections-to-my-own-record-before-you-read-anything-else">Two corrections to my own record, before you read anything else</h2>
+<p>The panel caught both, and they are mine, not the builders&#x27;.</p>
+<ol><li>I told two squads the review range held <strong>five</strong> commits. It holds <strong>eight</strong> — I forgot my own three state-record commits. It misled nobody: two reviewers re-measured and corrected it. The figure that matters, three commits touching anything outside this feature&#x27;s record, I re-verified mechanically and it stands.</li><li>I reported <strong>18</strong> segment-qualified finding labels. It is <strong>17</strong> — my grep counted the function definition alongside its call sites.</li></ol>
+<h2 id="where-each-squad-s-verdict-comes-from">Where each squad&#x27;s verdict comes from</h2>
+<p><strong>No report round was spawned.</strong> I assembled this from the digests on disk, and I name them so you can tell a complete briefing from one missing a phase:</p>
+<div class="scroll"><table><thead><tr><th>Squad</th><th>Run</th><th>Verdict</th><th>Digest</th></tr></thead><tbody><tr><td>product</td><td>plan revision</td><td>PASS</td><td><code>runs/2026-08-14-1-product/digest.md</code></td></tr><tr><td>eng</td><td>architecture review</td><td>FAIL → PASS</td><td><code>runs/2026-08-14-1-eng/digest.md</code>, <code>digest-recheck.md</code></td></tr><tr><td>validator</td><td>pre-commit panel</td><td>FAIL (1 must-fix, fixed)</td><td><code>runs/2026-08-14-1-validator/digest.md</code></td></tr><tr><td>validator</td><td>qa gate</td><td>PASS</td><td><code>runs/2026-08-14-2-qa-validator/digest.md</code></td></tr><tr><td>product</td><td>goal-check</td><td>FAIL (SC-10)</td><td><code>runs/2026-08-14-2-goalcheck-product/digest.md</code></td></tr><tr><td>validator</td><td>review panel</td><td>PASS, severity med</td><td><code>runs/2026-08-14-3-panel-validator/digest.md</code></td></tr><tr><td>product</td><td>SC-10 re-check</td><td>SC-10 met, escalates SC-12</td><td><code>runs/2026-08-14-3-sc10recheck-product/digest.md</code></td></tr></tbody></table></div>
+<p>The blocking <code>test_matrix</code> gate passed and <strong>earned it</strong>: the matrix floor for this change is <code>unit</code> alone, which runs none of the three suites that actually bind the gate scripts. qa added <code>integration</code> under the floor-not-ceiling clause. A future gate run reading the floor literally would pass while binding nothing — that is row B-3 below.</p>
+<p>No UAT was required: the BRIEF declares no UAT criteria, and all 14 criteria verify by automation or inspection.</p>
+<h2 id="memory-what-the-org-learned">Memory: what the org learned</h2>
+<p>Distillation ran for all three squads and <strong>every member applied its own entries</strong> — nothing was stranded. I ran <code>check-expertise.sh</code> myself afterwards: <strong>13 of 13 files OK</strong>, every one inside budget.</p>
+<ul><li><strong>validator</strong> — five files updated; the digest-skim contributed 9 of 24 accepted entries, so it earned its cycle. The lead flags the real caveat honestly: 11 of 12 relayed candidates were accepted and three of four members rejected nothing, so this round&#x27;s filtering signal comes almost entirely from one member. Worth watching — a member that accepts everything is deferring, not judging.</li><li><strong>product</strong> — twelve entries across pm and the lead, six by displacement against capped sections; exactly one entry came from the skim rather than pm&#x27;s own artifacts.</li><li><strong>eng</strong> — three ops, all self-derived, no member spawns. The correct result: every task here was layer-0, so no engineer produced anything to distil and none was invented.</li><li><strong>mine</strong> — three patterns displaced by stronger ones, one gotcha sharpened now that I know the write-guard&#x27;s actual mechanism, and both open questions updated with this feature&#x27;s evidence.</li></ul>
+<h2 id="the-honest-limits">The honest limits</h2>
+<ul><li><strong>Nothing anywhere stages two repository segments.</strong> Multi-repo is this sequence&#x27;s entire purpose, and every fixture builds one segment. Both of the panel&#x27;s unresolved coverage findings are invisible to every green gate for exactly this reason. B-1.</li><li><strong>Six of 186 test cases have been mutation-probed.</strong> Suite-green cannot distinguish broad coverage from narrow anywhere outside those six.</li><li><strong>Four criteria are inspection-only</strong> by the BRIEF&#x27;s own statement — a reviewer reading an artifact is the whole control, and that control already failed once here.</li></ul>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on your acceptance; anything not listed dies silently, so this is all of it.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Item</th></tr></thead><tbody><tr><td>B-1</td><td>enhancement</td><td><strong>Nothing stages two repository segments.</strong> One fixture change to <code>test-check-state.py</code> and <code>test-check-plan-routes.py</code> closes this, pins D-08&#x27;s delivery half, and adds the segment-level readability guard together. qa&#x27;s recommendation and mine — the strongest row here.</td></tr><tr><td>B-2</td><td>bug</td><td><strong>D-08&#x27;s delivery half is correct today and pinned by nothing.</strong> Neutering <code>fpath()</code> leaves the suite at exit 0; code-reviewer adds that <code>test-check-state.py</code> carries a weakened assertion. The half that was previously missed is the half still untested.</td></tr><tr><td>B-3</td><td>bug</td><td><strong><code>check-state.sh</code> has no zero-discovery guard.</strong> <code>check-plan-routes.py</code> has one in CI; check-state is the higher-consequence gate — six invariants, the budgets and the station mirror all evaluate over its discovery set — and nothing bounds it.</td></tr><tr><td>B-4</td><td>bug</td><td><strong><code>check-plan-routes.py</code> has no segment-level readability guard.</strong> A <code>chmod 000</code> segment directory silently vanishes from the scan; demonstrated live by code-reviewer.</td></tr><tr><td>B-5</td><td>chore</td><td><strong><code>branch-create-gate.sh</code> hardcodes the segment.</strong> It should derive it; a bare wildcard is wrong, because feature ids are coined per-BRIEF with no cross-repo uniqueness.</td></tr><tr><td>B-6</td><td>chore</td><td><strong>The gh-sync walk-up probes <code>team-config.yaml</code> where T-10&#x27;s intent named <code>harness.json</code>.</strong> The choice is right — it matches every other root probe — but no test discriminates, and it deserves a decision record.</td></tr><tr><td>B-7</td><td>bug</td><td><strong><code>bash-write-guard.sh</code> blocks quoted redirect targets.</strong> It masks quoted spans, so any <code>&gt;&quot;$tmp&quot;</code> blocks, literal or variable. It blocked an <strong>approved</strong> plan <code>verify:</code> clause; every one had to be re-run from a script file.</td></tr><tr><td>B-8</td><td>enhancement</td><td><strong>Nothing reconciles a landed diff against the plan&#x27;s declared files.</strong> <code>.harness/expertise/harness-pm.md</code> — injected into every pm spawn — was path-corrected inside a cluster commit with no task naming it. Benign this time and verified so; the gap is structural. Raised independently by two reviewers.</td></tr><tr><td>B-9</td><td>chore</td><td><strong>The <code>no-rows</code> comment points at the wrong file.</strong> It credits <code>test-check-state.py</code>&#x27;s <code>case_x</code>; the real coverage is case 16 of <code>test-layout-migration.py</code>. Cosmetic now, misleading on the next edit.</td></tr><tr><td>B-10</td><td>chore</td><td><strong>Turn SC-06&#x27;s manual <code>--resolve</code> pair into a standing test case</strong> in <code>test-check-domain.py</code>. pm&#x27;s suggestion.</td></tr><tr><td>B-11</td><td>enhancement</td><td><strong>Give the INV-27 composition one owner.</strong> Moving it into <code>layout_migration.py</code> is the structural fix for the parity seam; deferred because it re-opens carve-out gate code after review.</td></tr><tr><td>B-12</td><td>chore</td><td><strong>Four criterion-wording drifts, reported and deliberately not rewritten:</strong> SC-02&#x27;s post-move capture cannot name the commit it lands in; SC-06 declares <code>unit</code> where the pinning suite is <code>integration</code>; SC-05 declares <code>integration</code> where its check is a plan verify; T-01&#x27;s intent still forbids the fixture tree the sanctioned fix uses.</td></tr><tr><td>B-13</td><td>chore</td><td><strong>Three FEAT-20 review notes rode into <code>d033b9d</code>.</strong> Untracked before this feature, harmless, recorded rather than repaired — rewriting a landed 617-file commit to drop three notes costs more than it saves.</td></tr><tr><td>B-14</td><td>enhancement</td><td><strong>Raise mutation coverage past six of 186 cases</strong>, or accept explicitly that suite-green is a weak signal outside them.</td></tr></tbody></table></div>
+<p>| B-15 | bug | <strong><code>harness-distill</code> describes a check <code>check-expertise.sh</code> does not implement.</strong> The doc says path-mentioning craft entries are flagged advisorily for a human; the checker has no advisory category and no such rule. The craft/repository split has no checker support. |</p>
+<p>| B-16 | chore | <strong>No repository-layer Expertise file exists anywhere</strong>, and the ops schema names one target so it cannot express a cross-file move. Three of eng-lead&#x27;s gotchas are repository-layer material with nowhere to go. |</p>
+<h2 id="what-happens-on-your-acceptance">What happens on your acceptance</h2>
+<p>The branch <code>feat/FEAT-21-features-layout-migration</code> is ready; merge and PR stay yours. On acceptance the milestone closes, parent issue #388 closes, and the unstruck rows above become backlog issues.</p><p class='derived'>Derived from <code>ship-review-2026-08-15.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

@@ -26,9 +26,14 @@
 - G-06: WHEN a test double is the only thing exercising a production call's arguments DO check whether the double actually reads them — a fake returning fixed values regardless of its `fields`/`args` parameter leaves that argument list unpinned, so deleting a required field stays fully green.
 - G-07: WHEN sweeping a deletion feature for removed terminology DO scan the whole repo, not just diff-touched files — a diff-scoped sweep can pass while live surfaces outside it (commands, docs, injected Expertise) still carry the term.
 - G-08: WHEN citing file:line anchors from memory or your own notes DO re-verify each against source before publishing rather than trust recall — anchors can drift several lines even when the underlying claim is correct, so mark all approximations consistently or verify every one.
+- G-09: WHEN auditing a claimed partial fix DO trace whether the data it needs was already discarded upstream by a dict or collection comprehension keyed on a derived value (e.g. basename) — if the full value was never retained, the fix is structurally blocked, not merely unfinished.
+- G-10: WHEN a per-item readability guard sits inside a loop over a directory listing DO check the listing call itself for the same silent-swallow behavior — `os.path.isdir()` and similar stat calls swallow `PermissionError` and just omit the entry, so unreadable items vanish before any downstream guard runs.
+- G-11: WHEN a diff replaces one exact-substring test assertion with several independent membership checks DO verify the split still requires adjacency — a wrong or fallback value containing every fragment separately still passes, so the assertion silently stops pinning the real output.
+- G-12: WHEN rating severity for a finding about an edited carrier injected into every spawn of a persona DO weight the carrier's blast radius, not just this instance's content — correct-today content does not bound future edits through the same unguarded channel.
 
 ## Outcomes (max 10)
 - O-01: WHEN reporting a coverage gap via a hand-built mutant DO add one non-shipped probe case that fails on it before reporting the shipped suite passes — an executed failing probe distinguishes a real gap from an unexecuted claim, usually a broken harness.
 - O-02: WHEN a downstream artifact states something false DO trace it to its authoring source before attributing the error — the nearest producer may have faithfully reproduced an upstream defect, and the correct remedy fixes the origin too, not just the surface where it was found.
+- O-03: WHEN closing a must_fix by verifying the code now reads correctly DO check separately whether a test would fail if it regressed — "reads correctly" and "is held to it" are different claims, and only a discriminating test sustains the second past the next edit.
 
 ## Open (max 5)

@@ -65,3 +65,29 @@
   mutant never touched its fixtures while reddening two unrelated cases. A mutation that reddens
   OTHER cases but not the one under test is evidence the mutant missed, not evidence of coverage.
   Aim the mutant at the fixture the case actually builds.
+
+- 2026-08-15 (goal-check cycle 2, SC-10 alone): "Reddens if EITHER rendering changes alone" is only
+  answerable once you know which side consumes which function. `check-state.sh:1313-1323` calls
+  `blame_text`/`cause_text` and assembles its own line; it never calls `render()`. That asymmetry is
+  what makes both directions mutable at all — a module-level mutation moves BOTH sides together and
+  stays green, which would have read as a blind spot if I had only mutated the shared owner. Read the
+  consumer relationship before designing the mutation, or you measure the design instead of the test.
+
+- 2026-08-15 (cycle 2): Five mutations, one per branch, was worth far more than one per side. M1 and M2
+  hit the same gate file and reddened DIFFERENT assertion sets (1 vs 2) because MIXED and CANNOT_VERIFY
+  are separate branches there. One mutation per *side* would have left a whole branch unprobed while
+  reporting the side covered.
+
+- 2026-08-15 (cycle 2): The test's own comment claimed an uncovered case was "covered by check-state's
+  `case_x` and by `cause_text`'s unit coverage". Half true: `cause_text`'s wording is asserted
+  (`test-layout-migration.py:266-274`), `case_x` never mentions it (`grep -n no-rows
+  test-check-state.py` -> no hits). A comment naming its own compensating coverage is a claim to grep,
+  not a mitigation to accept — even when the comment is honest about the gap existing.
+
+- 2026-08-15 (cycle 2): `bash-write-guard.sh` blocked a plan's own approved `verify:` on `>"$u"`,
+  reporting target "xx". My first diagnosis — "the variable was not resolved" — was wrong, and I only
+  caught it because I greped the guard before filing it. `mask_quoted` (:155-179) blanks the contents
+  of EVERY quoted span to `x`s on purpose, so any QUOTED redirect target blocks, literal or variable.
+  Designed fail-closed behaviour, not a parsing bug. Two lessons: a `verify:` I author with a quoted
+  redirect is unrunnable by the role that authored it (use an unquoted target), and a defect report
+  filed on a plausible-sounding mechanism ages worse than no report.

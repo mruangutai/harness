@@ -43,6 +43,12 @@
 - P-13: WHEN citing a test count that mixes plan-required and self-added cases DO break down the
   provenance — how many the plan requires versus how many are additions — rather than reporting
   one merged total, which overstates plan compliance.
+- P-14: WHEN a required kind's `detect` glob matches a changed file DO also confirm that kind's
+  `cmd` actually runs the file, via an explicit script list — a glob match without list membership
+  means the kind reports satisfied while the binding suite never executes.
+- P-15: WHEN the floor kind for a change type would leave part of the diff structurally unbound DO
+  add the kind that actually executes those files, not just report the shortfall — a boolean like
+  `matrix_ok` cannot itself show whether it passed on the floor or on an addition.
 
 ## Gotchas (max 15)
 - G-01: WHEN proving a test runner's MISCONFIGURED exit path live by creating a stray
@@ -63,6 +69,15 @@
 - G-06: WHEN writing a caveat that claims you did NOT do something DO check it against what your
   own artifact's prose actually describes before including it — an inaccurate caveat, even one
   that errs toward modesty, is still a falsified record.
+- G-07: WHEN a suite's own fixtures never invoke the real binary against production data DO run
+  that binary directly against the live tree too — a green fixture suite is evidence only for the
+  synthetic cases it built, not for the real-tree behavior a criterion actually requires.
+- G-08: WHEN a dispatch flags an apparent discrepancy against a prior artifact (e.g. a commit
+  missing from a range) DO check the prior segment's own note before filing it as a new defect —
+  the earlier record may already explain what looks like a gap.
+- G-09: WHEN caveating a success criterion as narrower than it looks (e.g. "form-checked only")
+  DO re-check the criterion's own stated scope first — a hedge on a criterion met exactly as
+  written is false doubt a later reader must spend a cycle re-clearing.
 
 ## Outcomes (max 10)
 - O-01: WHEN an amendment deletes a fixture that was the sole source of some coverage and the loss
@@ -81,5 +96,11 @@
   whether the plan pinned test cases by number or verbatim string before crediting the match to
   independent derivation — a prescriptive plan collapses the gap structurally, not a stronger
   anti-bias signal.
+- O-06: WHEN a fix's soundness rests on two call sites staying in parity DO mutate each site
+  independently, not just one — a combined PASS can hide that only one side was ever probed, and
+  drift on the other side would pass unnoticed.
+- O-07: WHEN a fix for a raised finding lands after the review round that raised it DO state
+  plainly that only your own evidence has examined it — the independence a second reviewer
+  provides was not applied, however strong your own proof is.
 
 ## Open (max 5)

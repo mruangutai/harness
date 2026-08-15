@@ -3,67 +3,61 @@
 ## Current
 
 - feature: FEAT-21-features-layout-migration
-- phase: validate — SC-10 fixed and proven; panel and the narrow SC re-check are the last gates
-- run: none in flight at this write; panel and SC-10 re-check dispatching next
-- squad: validator and product
-- status: in_progress
+- phase: ship — every gate passed, briefing written, awaiting the operator's acceptance
+- run: .harness/harness/features/FEAT-21-features-layout-migration/runs/2026-08-15-1-distill-validator/
+- squad: none in flight
+- status: awaiting-user
 
-SC-10'S FIX LANDED AT `b1d3925` AND I KILLED THE MUTANT MYSELF RATHER THAN ACCEPTING THE REPORT.
-`_inv27_text` is gone — zero occurrences. The session-entry side is now the ACTUAL `check-state.sh`
-run as a subprocess against a fixture tree (`test-layout-migration.py:343,358`), the CI side is
-`render()` over `lm.scan()` of the same tree, and no composed expectation exists anywhere in the
-test. My probe copied `bin/` to scratch, BASELINED it first (case 20: 10 assertions, 0 failures),
-then dropped the blamed-reader clause from the scratch gate's MIXED branch and re-ran: case 20 goes
-RED on `MIXED, one migrated reader on legacy evidence — real gate and render name the same reader
-set`. The mutant that survived the mirror dies against the real gate. The live tree was never
-touched — `git status` carries only the pre-existing held dirt.
+EVERY GATE IS PASSED AND THE BRIEFING IS WRITTEN at `notes/ship-review-2026-08-15.md`, with its
+reading view rendered beside it. The review panel returned PASS with no must-fix and severity med;
+the blocking `test_matrix` gate passed and earned it; all 14 criteria are met. The only thing
+outstanding is the operator's decision, and it is one question.
 
-Two honesty notes about that probe, because a mutation proof that lies is worse than none. The
-scratch copy shows three case-1 failures at BASELINE: case 1 scans the real repository root, which a
-copy outside the repo cannot see. That is a property of the scratch location, not of the fix, which
-is exactly why I scoped the verdict to case 20's own assertions rather than to an exit code. And I
-asserted the mutation applied before believing its result.
+THE DECISION: SC-12 asks for exactly two commits beyond the planning record and there are three —
+`5afa7e3`, `d033b9d`, `b1d3925` — because fixing SC-10 cost a commit after the cluster had landed. I
+verified the count mechanically, per commit: six of the nine commits touch nothing outside this
+feature's own record. No criterion was edited by me or by anyone. My recommendation, which the panel
+reached independently, is to ratify the deviation rather than amend the criterion: SC-12 exists so
+no landed commit shows a half-moved tree, the cluster still landed atomically, and `b1d3925` touches
+one test file and adds nothing to the migration.
 
-EVERYTHING ELSE IS GREEN AT THIS TREE: T-01's `verify:` exit 0 (it still governs this file and still
-requires a `parity` label through the runner), unit and integration both exit 0, the detector exits
-0 on `features: CLEAN — evidence migrated`, `check-state.sh` exits 0 with no INV-27 line.
+THE LAST TWO GATES BOTH CAME BACK CLEAN AT A CORRECT PIN. The panel reviewed the range
+`62fef85..b1d3925` and confirmed at source what nobody had reviewed before: D-08's label fix is
+complete on both halves of the signed trade, and the SC-10 parity case is SOUND rather than merely
+passing — qa killed the `render()`-side mutant to complement the gate-side one I killed. pm
+re-verified SC-10 met and answered the reading I asked for: the criterion quantifies over inputs, not
+over the module's cause enum, so no `check-state.sh` hook is needed and the carve-out question never
+opens. `no-rows` turned out to be covered by case 16 all along; the test's own comment pointed at the
+wrong file, which is a briefing row.
 
-THE SC-12 DEVIATION IS NOW REAL AND RECORDED, NOT PREDICTED. The feature stands at three commits
-beyond its planning record — 5afa7e3, d033b9d, b1d3925 — where SC-12 asks for two. No criterion has
-been edited and none will be by me. SC-12 was met at d033b9d and is unmet-as-written from b1d3925;
-its PURPOSE survives, because the cluster still landed atomically and the third commit is
-post-cluster and purely additive to a test. This is the briefing's top decision row and the operator
-ratifies or amends it.
+DISTILLATION IS DONE FOR ALL THREE SQUADS and every member applied its own entries — nothing was
+stranded with me. I ran `check-expertise.sh` myself: 13 of 13 OK, all inside budget. My dispatch had
+told eng-lead to hand me its ops; I ran the domain hook rather than trusting the playbook's wording,
+found `.harness/expertise/harness-eng-lead.md` resolves to eng-lead and nobody else, and sent it back
+to self-apply. My own file is distilled too — three patterns displaced by stronger ones.
 
-`review_sha` is pinned to `b1d3925`, the commit containing the code under review. cycles_used is 4
-of 10, runs 5 of 20 — no crossing, and every run so far has resolved something.
+TWO ERRORS OF MINE ARE CORRECTED IN THE BRIEFING RATHER THAN QUIETLY FIXED: I told two squads the
+review range held five commits when it holds eight (I forgot my own state commits — reviewers
+re-measured and caught it), and I reported 18 segment-qualified labels when there are 17 (my grep
+counted the function definition).
 
-LAST TWO GATES, dispatched together because they share no squad and no files: the review panel at
-the correct pin — it has never run at one that contains the work, and both d033b9d's D-08 label fix
-and b1d3925's SC-10 fix have had no second reader — and pm's narrow SC-10 re-verdict, because I
-proved the behaviour but I never mark a criterion met. Then distillation, then the briefing. Docs
-stay untouched because SC-11 requires it; ship-refresh is a skip because no codebase map exists.
+Ten runs against a budget of 20, four cycles against 10 — no crossing, and every cycle bought a real
+defect: three literal-blind path resolvers, a signed clause shipped half-built, and a parity test
+that proved the module against a copy of the gate.
+
+WHAT REMAINS IS THE OPERATOR'S: ratify or amend SC-12, accept the ship, strike any backlog rows.
+Merge, PR, `gh-sync.py ship` and backlog creation are all main-session acts, not mine.
 
 ## Open Questions
 
-- Q-H (qa's, no gate covers it): D-08's halves are asymmetric — neutering `fpath()` leaves
-  test-check-state.py at exit 0, so the delivery half is correct and pinned by nothing, while
-  violating the deferral half reddens seven INV-26 cases. The half previously missed is the half
-  still untested. Strongest briefing row.
-- Q-C (harness defect, owner's): `bash-write-guard.sh` cannot resolve shell variables and denies on
-  the unresolved text — it blocked a plan `verify:` redirecting to `mktemp` (target reported as the
-  literal `xx`) and an `rm` on a scratch path (reported as `$M`). Both were legitimate; both had to
-  be re-expressed as script files.
-- Q-E (Expertise hygiene, needs a ruling): `.harness/expertise/harness-pm.md` was path-corrected
-  inside d033b9d — a re-anchor rather than a lesson, but still a mid-run write to an injected file
-  on a branch with no lineage protection.
-- Q-F (recorded, not repaired): three FEAT-20 `hygiene-c3` notes were untracked before this feature
-  and rode into d033b9d.
-- Criterion-wording drifts pm reported and did not rewrite: SC-02's post-move capture cannot name
-  the commit it lands in; SC-06 declares evidence kind `unit` where the pinning suite is registered
-  `integration`; SC-05 declares `integration` where its establishing check is T-08's plan verify.
-- Coverage advisories for the briefing: nothing exercises two repository segments; the SC-10 case
-  covers six of seven cause paths because `no-rows` cannot be staged through a real tree without a
-  table override — flag it if pm reads SC-10 as requiring all of them; branch-create-gate's segment
-  is hardcoded rather than derived; the walk-up probes team-config.yaml where T-10's intent named
-  harness.json and no test discriminates; 181 of 186 cases are un-mutation-probed.
+- Q-SHIP (blocking, the operator's): ratify SC-12's recorded deviation, or have pm amend its wording
+  under signature. Everything else is ready.
+- The briefing carries 16 backlog rows, all of them. The three I would keep if forced to choose:
+  nothing anywhere stages two repository segments, which is the whole sequence's purpose and the
+  reason two coverage gaps are invisible to every green gate; D-08's delivery half is correct today
+  and pinned by nothing; and nothing reconciles a landed diff against the plan's declared files, so
+  an undeclared edit to a per-spawn-injected file rides any cluster commit with only a human to
+  notice.
+- Distillation caveat worth watching rather than acting on: validator's members accepted 11 of 12
+  relayed candidates and three of four rejected nothing. The digest-skim earned its cycle by count,
+  but near-universal acceptance looks more like deference than judgement.

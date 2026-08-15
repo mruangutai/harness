@@ -35,6 +35,12 @@
 - P-11: WHEN a dispatch hands down an equivalence, count or SHA relation you cannot check
   without a shell DO fold the measuring command into a member's step rather than relay it — a
   lead with no shell either routes the measurement or publishes an assumption.
+- P-12: WHEN a review panel is pinned before the work is committed DO name which criteria assert a
+  landed shape and mark them unclearable by any reviewer — reading the working tree still buys
+  real findings, but no pre-commit verdict is complete.
+- P-13: WHEN a change moves what a gate DISCOVERS DO require a reported non-zero discovery count
+  before accepting its exit code — a sweep over an empty set exits 0 exactly like a clean sweep,
+  and no fixture binds the real tree.
 
 ## Gotchas (max 15)
 - G-01: WHEN the blocking gate passes and an advisory gate carries the only defect DO headline
@@ -68,6 +74,12 @@
 - G-10: WHEN a member reports a signed criterion met under a narrowed reading DO record the
   literal status and the reading as two findings and route the reading up — endorsing it adopts
   an approval-gated decision, and the tier owning the goal can reject the reading outright.
+- G-11: WHEN a signed decision records a two-sided trade DO verify the delivery half at source
+  rather than from the task's status or its verify — each verify binds only its own mechanical
+  form, so the deferral can ship while the delivery is dropped with every gate green.
+- G-12: WHEN a dispatch states which capabilities or grants a member holds DO check the manifest
+  and the agent definition yourself before routing around them — a routing branch built on an
+  assumed missing capability spends your spawn on work its owner could have applied directly.
 
 ## Outcomes (max 10)
 - O-01: WHEN dispatching a review panel DO name the already-ruled items in the prompt —
@@ -76,5 +88,8 @@
 - O-02: WHEN judging relay quality DO require each member to record rejections with reasons — a
   member rejecting a candidate as already covered by a preloaded rule is filtering, and a round
   with zero rejections anywhere is the signal to distrust.
+- O-03: WHEN a reviewer self-scopes out DO require the census or object check it actually measured
+  before crediting the decline — a decline that looked survives cross-review, one that predicted
+  absence does not, and only the first is evidence.
 
 ## Open (max 5)

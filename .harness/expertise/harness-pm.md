@@ -21,9 +21,9 @@
 - P-06: WHEN a criterion cannot be met DO decide whether the defect is in the code or in the
   sentence. If a retry could make it true, route a fix cycle. Otherwise escalate — never adopt a
   narrower reading yourself, even one a downstream gate upheld.
-- P-07: WHEN drafting a criterion DO read it for presupposition against the criteria already
-  written. A clause asserting something about surviving occurrences presupposes they survive,
-  which negates any absence check over the same files. Each reads sound alone.
+- P-07: WHEN a criterion admits two readings DO test each against the remedies already sanctioned
+  for it. A reading that makes every sanctioned remedy non-compliant on arrival is the wrong one.
+  That is external evidence for narrowing, which your own preference never is.
 - P-08: WHEN a task's `verify:` counts or forbids a token DO run that verify's exact command — same
   flags, same case — against the task's own intent prose before shipping. You author both halves,
   and a friendlier-flagged trial hides a collision the shipped clause will redden correct work on.
@@ -34,9 +34,9 @@
   content text, unless an ordinal is pinned by a recorded no-renumber constraint the graders share.
   An unpinned line number or ordinal rots within one cycle, leaving verdicts standing over pointers
   that land wrong.
-- P-11: WHEN a criterion names the mechanism behind a behaviour DO confirm the code uses that
-  mechanism before signature, or state the observable outcome instead. A criterion false only in
-  its mechanism routes as a fix cycle against working code, never as a re-signature.
+- P-11: WHEN a criterion requires a test to detect drift between two renderings DO require one
+  side to execute the real artifact, or both call sites to import one owner. A mirror inside the
+  test cannot detect drift in the thing it copies, and grades met while blind one way.
 - P-12: WHEN specifying a detector or sweep pattern DO derive it from the weakest fragment every
   target site necessarily contains, greped against the real file — never from the shape of the
   commonest site. An optional trailing fragment makes variant sites invisible, and the sweep then
@@ -61,9 +61,9 @@
 - G-03: WHEN collecting command evidence for an automated criterion DO redirect the run to a file
   and grep it. Piping a multi-script runner to `tail`/`head` truncates the earlier output away and
   reports the pipe's exit status, not the runner's — the evidence disappears silently.
-- G-04: WHEN re-deriving counts, lists or partitions in a revision pass DO include the items you
-  added earlier in that same pass. Your own additions are the likeliest staleness source, and a
-  self-describing list that under-counts itself still reads as authoritative.
+- G-04: WHEN a verify slices a region anchored on a label's FIRST occurrence DO bound the region
+  on both sides, or assert the label occurs once. A stray earlier mention relocates the region onto
+  unrelated code that already satisfies the count, and the clause greens on work never done.
 - G-05: WHEN an amendment widens the scope of an already-executed task DO carry the re-dispatch
   signal in your DIGEST. A filed receipt proves only what it ran against, and no plan file can
   re-open a task that already passed.
@@ -76,9 +76,9 @@
 - G-08: WHEN a task adds a file to a suite that keeps an explicit registration list DO register it
   in that same task. A drift detector fails the WHOLE run on an unregistered file, reddening every
   other task's verify. Exemplar: the SCRIPTS array in this repo's unit-test runner.
-- G-09: WHEN a step you write will mutate live state DO trace the tool's resolution of its target
-  from its entry point first. A CLI can take the target from a config file while the flags name
-  something else, sending your one live measurement at the wrong system.
+- G-09: WHEN routing a fix cycle DO name which met verdicts the remedy commit itself will falsify.
+  A criterion quantifying over the whole change set goes stale underneath a later commit, the grade
+  was correct when taken, and nothing can unland the commit that broke it.
 - G-10: WHEN a check compares a field looked up by a name discovered at runtime DO add an explicit
   key-absent branch reporting CANNOT VERIFY. A wrong key makes both sides None, the comparison
   reports clean for every record, and its silence reads as proof.
@@ -99,5 +99,11 @@
   no commit evidence, so a missing capture is unrecoverable and stays invisible until goal-check.
 
 ## Outcomes (max 10)
+- O-01: WHEN proving a test reddens if either side changes alone DO mutate one branch at a time,
+  never one per side. Separate branches behind the same rendering redden different assertion sets,
+  so a per-side proof reports the side covered while a whole branch stays unprobed.
+- O-02: WHEN designing a mutation DO first read which side consumes which function, then aim it at
+  the fixture the case itself builds. A mutant that reddens other cases but not the one under test
+  missed its target, and that reads as coverage.
 
 ## Open (max 5)
