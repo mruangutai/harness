@@ -329,6 +329,77 @@ with tempfile.TemporaryDirectory() as tmp:
     check("case 19: the same shape under a DECLARED segment stays ordinary evidence",
           code == 1, out)
 
+# ------------------------------------------------------------------- case 20
+# FEAT-21 T-01 (issue #387): CI/session-entry PARITY, pinned. The two renderings of
+# a verdict — layout_migration.render() for CI and check-state.sh's INV-27 block at
+# session entry — must name the same readers and carry the same cause wording. This
+# seam diverged twice on 2026-08-14 with nothing holding it; these cases construct
+# SurfaceReports DIRECTLY (no fixture tree) and compare the two texts. The INV-27
+# side is composed here exactly as check-state.sh composes it, from the same
+# blame_text/cause_text pair — so if render() ever grows its own filtering again,
+# the named sets diverge and this reddens.
+def _ci_text(rep):
+    res = lm.Result("/parity-root", True, {rep.surface: rep}, 1, 1, len(rep.readers))
+    return lm.render(res)
+
+
+def _inv27_text(rep):
+    # check-state.sh's composition, mirrored: MIXED names blame_text inline;
+    # CANNOT_VERIFY is cause_text plus a "; readers: " suffix when blame is non-empty.
+    if rep.verdict == lm.MIXED:
+        ev = "+".join(sorted(rep.evidence)) if rep.evidence else "none"
+        return "INV-27 %s: layout is MIXED — evidence %s; readers %s." % (
+            rep.surface, ev, lm.blame_text(rep))
+    if rep.verdict == lm.CANNOT_VERIFY:
+        named = lm.blame_text(rep)
+        suffix = "; readers: %s" % named if named else ""
+        return "INV-27 CANNOT VERIFY %s: %s%s." % (
+            rep.surface, lm.cause_text(rep, "/parity-root"), suffix)
+    return ""  # clean appends nothing at session entry
+
+
+ALL_READER_PATHS = [r.path for r in lm.READER_TABLE]
+
+
+def _named_in(text, readers):
+    return {p for p, _f in readers if p in text}
+
+
+def _parity(label, rep):
+    ci, inv = _ci_text(rep), _inv27_text(rep)
+    check("case 20 parity: %s — both renderings name the same reader set" % label,
+          _named_in(ci, rep.readers) == _named_in(inv, rep.readers),
+          "CI: %r\nINV-27: %r" % (ci, inv))
+    if rep.verdict == lm.CANNOT_VERIFY:
+        clause = lm.cause_text(rep, "/parity-root").split(" — ")[0]
+        check("case 20 parity: %s — the cause token is identical in both" % label,
+              clause in ci and clause in inv, "CI: %r\nINV-27: %r" % (ci, inv))
+
+
+_R = lm.SurfaceReport
+_parity("MIXED, two readers, different formsets",
+        _R("features", lm.MIXED, {"legacy"},
+           [(ALL_READER_PATHS[0], "migrated"), (ALL_READER_PATHS[1], "legacy")], None))
+_parity("CANNOT_VERIFY unreadable",
+        _R("features", lm.CANNOT_VERIFY, {"legacy"},
+           [(ALL_READER_PATHS[0], "unreadable"), (ALL_READER_PATHS[1], "legacy")],
+           "unreadable"))
+_parity("CANNOT_VERIFY neither",
+        _R("docs", lm.CANNOT_VERIFY, {"legacy"},
+           [(ALL_READER_PATHS[4], "neither")], "neither"))
+_parity("CANNOT_VERIFY no-evidence with a both-tagged reader",
+        _R("docs", lm.CANNOT_VERIFY, set(),
+           [(ALL_READER_PATHS[5], "both")], "no-evidence"))
+_parity("CANNOT_VERIFY no-rows",
+        _R("features", lm.CANNOT_VERIFY, {"legacy"}, [], "no-rows"))
+_parity("CANNOT_VERIFY undeclared-segment (carries detail)",
+        _R("features", lm.CANNOT_VERIFY, {"legacy"},
+           [(ALL_READER_PATHS[0], "legacy")], "undeclared-segment",
+           (".harness/archive/features/FEAT-old/feature.json",)))
+_parity("CLEAN names nobody anywhere",
+        _R("features", lm.CLEAN, {"legacy"},
+           [(ALL_READER_PATHS[0], "legacy")], None))
+
 # ---------------------------------------------------------------------- report
 fails = 0
 for name, ok, detail in results:
