@@ -17,7 +17,6 @@ import importlib.util
 import io
 import os
 import re
-import stat
 import sys
 import tempfile
 
@@ -303,10 +302,12 @@ with tempfile.TemporaryDirectory() as tmp:
     check("case 18: clean -> exit_code 0", lm.exit_code(r_clean) == 0)
 with tempfile.TemporaryDirectory() as tmp:
     build(tmp, features_evidence=("legacy", "migrated"))
-    check("case 18: mixed -> exit_code 1", lm.exit_code(lm.scan(tmp)) == 1)
+    r_mixed = lm.scan(tmp)
+    check("case 18: mixed -> exit_code 1", lm.exit_code(r_mixed) == 1)
 with tempfile.TemporaryDirectory() as tmp:
     build(tmp, forms={".claude/skills/harness/bin/check-domain.sh": "neither"})
-    check("case 18: cannot-verify -> exit_code 2", lm.exit_code(lm.scan(tmp)) == 2)
+    r_cv = lm.scan(tmp)
+    check("case 18: cannot-verify -> exit_code 2", lm.exit_code(r_cv) == 2)
 
 # ------------------------------------------------------------------- case 19
 # Code-review blocker 2: a NON-REPO .harness/ sibling growing a features/ or docs/

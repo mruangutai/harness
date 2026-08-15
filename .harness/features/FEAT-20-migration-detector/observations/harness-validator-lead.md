@@ -106,7 +106,7 @@
   which is exactly the distinction that stops it becoming a must_fix. Check the enumeration against
   the count whenever a member's headline asserts "all N files".
 
-## Detector-hygiene pass, run `2026-08-14-5-validator` @ `a714bd0` (PR #385)
+## Detector-hygiene pass, run `2026-08-14-5-validator` @ `a714bd0` (PR #385) — the FAIL
 
 - 2026-08-14: A GREEN SUITE HID A 1134-LINE DUPLICATE PASTE, and the thing that made it visible was
   reading the code the orientation agent had already summarised. `test-check-state.py` at `a714bd0`
@@ -191,3 +191,56 @@
   replacing the else-less `if/elif` chain I filed at `ea476fd`. Worth checking a handed-down residual
   list against source before briefing a panel to ignore its items — briefing a reviewer past a FIXED
   defect costs nothing, but briefing it past a defect that has MOVED costs the finding.
+
+## Confirmation pass, run `2026-08-14-6-validator` @ `6296149` (PR #385) — the PASS
+
+- 2026-08-14: THE FIX RE-CREATED THE EXACT TRAP THAT MADE THE FAIL HARD, and the only reason I did
+  not fall into it twice is that I had recorded the trap's shape. At `6296149` the surviving
+  `case_x` sits at `:1585` — the SAME line the chimera occupied at `a714bd0`, because deleting the
+  1134-line shadow moved the real function up to where the fake one had been — and it opens with the
+  identical INV-27 docstring and `lf` preamble. Every surface sign I checked first (one def per
+  name, imports `layout_fixtures`, uses `lm.MARKER`) was ALSO true of the chimera. What separates
+  them is only the BODY: `:1601-1644` is `build(tmp, marker, overrides, evidence)` and the x.N
+  assertions, where the chimera had `build(tmp, n, declared, budget)` and `(l1)`-`(l8)`. GENERAL
+  RULE: when a fix deletes a duplicate, the survivor inherits the deleted one's line numbers, so
+  every anchor in the FAIL digest silently re-points. Verify the body, never the header, and never
+  the anchor.
+
+- 2026-08-14: THE ONE PROBE THAT CONVERTED "GREEN" BACK INTO EVIDENCE. In the FAIL round I ruled the
+  green suite non-evidence because the shadow meant it passed identically with two copies — a
+  correct ruling that left an obligation nobody would otherwise have discharged. I put the
+  discharge in qa's dispatch as an explicit mutation requirement, and qa mutated
+  `lf.STUB[".harness/team-config.yaml"]["legacy"]` in a scratch export, saw `test-check-state.py`
+  go to exit 1 with subcase `(x.3)` failing, restored it, and returned to exit 0 — asserting both
+  that the mutation applied and that the suite ran. Without that step this PASS would have rested
+  on the same green I had already ruled worthless. A ruling that green is non-evidence creates a
+  debt that must be named in the NEXT dispatch or it is silently forgiven.
+
+- 2026-08-14: RAISING THE REPRODUCTION BAR BETWEEN ROUNDS PAID. c1 proved M-1 with a synthetic
+  `SurfaceReport`; I asked for the same probe again and code-reviewer instead built a real tree and
+  ran the real `check-state.sh`, showing both sites naming `check-state.sh [migrated]`. "The
+  function returns the same list" and "the gate an operator runs prints the same readers" are
+  different claims, and only the second is what the merge decision needs. Similarly, M-3's
+  restoration went from my line-level comparison against the c1 diff's recorded `-` lines to
+  code-reviewer's SHA-256 of the whole entry body, and the index from a read of row 212 to a
+  `gen-decisions-index.py --stdout | diff` round-trip that also explained the tag reorder I had
+  noticed and could not account for.
+
+- 2026-08-14: I RE-RANKED MY OWN PRIOR ADVISORY UPWARD, WHICH IS A MOVE I HAD NOT MADE BEFORE. In c1
+  I rated A-2 (nothing pins the blame policy) LOW, citing the operator's standing precedent for the
+  correct-today-not-pinned class. At c2 the same finding is unchanged in content but the evidence
+  around it moved: the seam has now produced TWO divergences in one day, and the M-1 fix CHANGED the
+  policy without adding a test. I raised it to med. A precedent covers a class of finding, not a
+  specific seam's track record — when a seam empirically breaks twice, its own history outranks the
+  class precedent, and re-rating an advisory I previously filed is not inconsistency.
+
+- 2026-08-14: PANEL CALIBRATION, c2. ui refused the comfortable answer: a fix landed adjacent to its
+  c1 med, and it executed both paths, found the `neither`-cause string byte-identical, and returned
+  PRESERVED with a concrete one-line alternative — then improved that alternative on its second look
+  by finding the sibling MIXED branch at `check-state.sh:1328-1329` already uses `"; readers {_rd}"`,
+  which turns "invented wording" into "the file's own convention". Its artifact and digest disagree
+  on a file count (14 vs 16), so I cited no count. The `files_touched: []` defect MOVED rather than
+  went away — security fixed it after three rounds, code-reviewer committed it this round.
+  Security's and qa's duplicate counts differed (14 vs 17) and were NOT in conflict: `case_*` only
+  versus all top-level defs, 14 + 3 helpers = 17. Resolving that at my tier is cheaper than sending
+  either back.

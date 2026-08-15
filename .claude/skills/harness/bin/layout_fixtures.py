@@ -9,11 +9,13 @@ failure that looked like a detector bug. Edit the table -> edit the stubs HERE, 
 
 The marker path itself is NOT restated anywhere: read `layout_migration.MARKER`.
 
-Not a test file (the run-unit-tests.sh drift detector scans only test-*.py), and
-every string below keeps its parens textually balanced — test-check-plan-routes.py
-case_20 joins physical lines until paren depth balances, counting parens inside
-string literals (issue #380 owns fixing that at the right altitude).
+Not a test file (the run-unit-tests.sh drift detector scans only test-*.py). The
+paren-balance constraint that binds layout_migration.py's table (issue #380) is NOT
+load-bearing here — this file contains none of case_20's probe predicates, so it is
+skipped by that scanner. Do not inherit that audit into fixture edits.
 """
+
+import layout_migration as _lm
 
 # What the fleet-declaration marker holds in fixtures: one declared repository,
 # org/repoA, whose segment `repoA` is the migrated root the evidence stubs use.
@@ -54,14 +56,16 @@ STUB = {
     },
 }
 
-FEATURES_READERS = [
-    ".harness/team-config.yaml",
-    ".claude/skills/harness/bin/check-domain.sh",
-    ".claude/skills/harness/bin/check-plan-routes.py",
-    ".claude/skills/harness/bin/check-state.sh",
-]
-DOCS_READERS = [
-    ".claude/skills/harness/bin/factory_config.py",
-    ".claude/skills/harness/bin/gen-decisions-index.py",
-    ".claude/skills/harness/bin/harness_boundary.py",
-]
+# The path->surface grouping is DERIVED from the detector's own table, never
+# restated (reuse review, 2026-08-14): restating it here recreated one layer down
+# the drift class #382 fixed — a renamed table row would silently stop being
+# covered by the fixtures.
+FEATURES_READERS = [r.path for r in _lm.READER_TABLE if r.surface == "features"]
+DOCS_READERS = [r.path for r in _lm.READER_TABLE if r.surface == "docs"]
+
+# And the stub set must cover the table exactly — a drifted key is a LOUD import
+# error, not a quietly narrowed suite.
+if set(STUB) != {r.path for r in _lm.READER_TABLE}:
+    raise RuntimeError(
+        "layout_fixtures.STUB keys do not match layout_migration.READER_TABLE: "
+        + repr(set(STUB) ^ {r.path for r in _lm.READER_TABLE}))

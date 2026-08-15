@@ -1292,44 +1292,20 @@ if _lmod is not None:
         # the earlier if/elif chain had no else, so a fifth cause value would have
         # appended nothing and this gate — the surface operators actually see —
         # would have passed clean while CI stayed red).
-        def _cv_wording(_sname, _srep):
-            # EVERY cause appends blame() (operator ruling, 2026-08-14, validator M-1):
-            # the cause clause explains WHY the surface cannot be verified, the blame
-            # list names WHICH readers carry a defective or disagreeing form — the
-            # same list render() prints. No per-cause or per-form filtering anywhere;
-            # re-filtering is what created this drift twice. blame() may be empty for
-            # the reader-less causes, and an empty list appends nothing.
-            _table = {
-                "unreadable": "a coupled reader could not be read",
-                "neither": "a coupled reader matches neither form",
-                "no-evidence": lambda: f"no evidence of either shape under {root}",
-                "no-rows": "no reader rows for this surface",
-                "undeclared-segment": lambda: (
-                    "evidence under an UNDECLARED segment: "
-                    + ", ".join(_srep.detail or ())
-                    + " — declare the repository in .harness/factory/fleet.yaml "
-                      "or move this out of .harness/"),
-            }
-            _fmt = _table.get(_srep.cause)
-            if _fmt is None:
-                return (f"unrecognised cause {_srep.cause!r} — layout_migration.py "
-                        f"and check-state.sh disagree; update INV-27's cause table")
-            _text = _fmt() if callable(_fmt) else _fmt
-            _named = ", ".join("%s [%s]" % (p, f) for p, f in _lmod.blame(_srep))
-            return _text + (" — " + _named if _named else "")
-
+        # Wording and blame both come from the module — cause_text/blame_text are
+        # the single owners (see layout_migration.blame, #379); this block adds only
+        # the INV-27 framing and the remedy.
         for _sname in sorted(_lres.surfaces):
             _srep = _lres.surfaces[_sname]
             if _srep.verdict == "MIXED":
                 _ev = "+".join(sorted(_srep.evidence)) if _srep.evidence else "none"
-                # ONE blame policy, owned by the module (issue #379): CI and session
-                # entry must never name different readers for the same tree.
-                _rd = ", ".join("%s [%s]" % (p, f) for p, f in _lmod.blame(_srep))
                 bad.append(f"INV-27 {_sname}: layout is MIXED — evidence {_ev}; "
-                           f"readers {_rd}. {_lrem}")
+                           f"readers {_lmod.blame_text(_srep)}. {_lrem}")
             elif _srep.verdict == "CANNOT_VERIFY":
+                _named = _lmod.blame_text(_srep)
+                _suffix = f"; readers: {_named}" if _named else ""
                 bad.append(f"INV-27 CANNOT VERIFY {_sname}: "
-                           f"{_cv_wording(_sname, _srep)}. {_lrem}")
+                           f"{_lmod.cause_text(_srep, root)}{_suffix}. {_lrem}")
 
 # INV-10 IS GONE, AND THE NUMBER IS RETIRED WITH IT. It ran check-docs.sh, the
 # propagation checker, which no longer exists: the operator struck the whole

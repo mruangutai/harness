@@ -662,8 +662,9 @@ tasks:
         independently of the table: a surface whose rows are dropped is cannot-verify rather than
         vacuously clean, and can never be skipped ahead of its verdict. Which readers a finding names
         is one exported policy, blame(), rendered whole at both call sites with no per-cause or
-        per-form filtering; reader-less causes yield an empty list, which appends nothing
-        (settled post-ship under issue #366 and validator finding M-1 - see DEC-194 am.2).
+        per-form filtering; blame() may return an empty list (always for no-rows), and an empty
+        list appends nothing (settled post-ship under issue #366 and validator finding M-1 -
+        see DEC-194 am.2).
 
         WHAT THE CHECK PROVES, AND WHAT IT DOES NOT. It proves per-file form agreement, never
         per-site completeness: it answers whether a file speaks one layout language and the same

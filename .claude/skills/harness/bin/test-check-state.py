@@ -1594,8 +1594,6 @@ def case_x():
     results = []
     import layout_fixtures as lf
     import layout_migration as lm
-    MARKER_REL = lm.MARKER          # never restated (#382)
-    FLEET_TEXT = lf.FLEET_TEXT
     STUBS = {rel: forms["legacy"] for rel, forms in lf.STUB.items()}
 
     def build(tmp, marker=True, overrides=None, evidence=True):
@@ -1616,9 +1614,9 @@ def case_x():
             os.makedirs(dd, exist_ok=True)
             open(os.path.join(dd, "SPEC.md"), "w").write("# spec\n")
         if marker:
-            mp = os.path.join(tmp, MARKER_REL)
+            mp = os.path.join(tmp, lm.MARKER)
             os.makedirs(os.path.dirname(mp), exist_ok=True)
-            open(mp, "w").write(FLEET_TEXT)
+            open(mp, "w").write(lf.FLEET_TEXT)
         overrides = overrides or {}
         for rel, text in STUBS.items():
             if rel == ".harness/team-config.yaml":

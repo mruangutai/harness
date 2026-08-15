@@ -5936,8 +5936,11 @@ every reader named when a MIXED surface has no such individual. Both call sites 
 and `check-state.sh`'s INV-27 at session entry — render that list WHOLE, on every verdict that is
 not clean, with no per-cause or per-form filtering at either site. Filtering is what produced two
 divergences in one day; the rule is therefore stated as an absence: there is no second place where
-naming is decided. For the three reader-less causes `blame()` may return an empty list, and an
-empty list appends nothing — that, not a filtered sentence, is how "names no reader" happens.
+naming is decided. `blame()` may return an empty list — structurally always for no-rows, and
+whenever no reader's form is defective or disagreeing for the other causes — and an empty list
+appends nothing. That, not a filtered sentence or a per-cause label, is how "names no reader"
+happens; only no-rows is reader-less by construction, and labelling causes reader-less is the
+thinking that invites the per-cause filtering this amendment removes.
 
 Units 3–7 cite this entry as their maintenance contract; the body's sentence is read through this
 amendment.

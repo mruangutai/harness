@@ -274,6 +274,33 @@ def blame(rep):
     return named
 
 
+def blame_text(rep):
+    """The one FORMAT for a blamed-reader list, as blame() is the one policy: both
+    call sites print this string, so neither the list nor its rendering can drift
+    (#379, validator A-1/Q2). Empty when blame() is empty."""
+    return ", ".join("%s [%s]" % (p, f) for p, f in blame(rep))
+
+
+def cause_text(rep, root):
+    """The one wording per CANNOT_VERIFY cause, module-owned so render() and
+    check-state.sh's INV-27 cannot drift a clause apart (the cause table used to
+    live twice). An unrecognised cause returns a loud sentence rather than nothing."""
+    if rep.cause == "unreadable":
+        return "a coupled reader could not be read"
+    if rep.cause == "neither":
+        return "a coupled reader matches neither form"
+    if rep.cause == "no-evidence":
+        return "no evidence of either shape under %s" % root
+    if rep.cause == "no-rows":
+        return "no reader rows for this surface"
+    if rep.cause == "undeclared-segment":
+        return ("evidence under undeclared segment: " + ", ".join(rep.detail or ())
+                + " — declare the repository in .harness/factory/fleet.yaml "
+                  "or move this out of .harness/")
+    return ("unrecognised cause %r — layout_migration.py and its call sites "
+            "disagree; update cause_text" % (rep.cause,))
+
+
 def exit_code(result):
     """0 not-applicable or every surface CLEAN; 1 any MIXED and none CANNOT_VERIFY;
     2 any CANNOT_VERIFY — it outranks MIXED because a verdict computed over something
@@ -308,16 +335,12 @@ def render(result):
             z += 1
         ev = "+".join(sorted(rep.evidence)) if rep.evidence else "none"
         line = "%s: %s — evidence %s" % (surface, rep.verdict, ev)
-        if rep.verdict == CANNOT_VERIFY and rep.cause == "no-evidence":
-            line += "; no evidence of either shape under %s" % result.root
-        if rep.verdict == CANNOT_VERIFY and rep.cause == "no-rows":
-            line += "; no reader rows for this surface"
-        if rep.verdict == CANNOT_VERIFY and rep.cause == "undeclared-segment":
-            line += ("; evidence under undeclared segment: "
-                     + ", ".join(rep.detail or ()))
+        if rep.verdict == CANNOT_VERIFY:
+            line += "; " + cause_text(rep, result.root)
         if rep.verdict in (MIXED, CANNOT_VERIFY):
-            for p, f in blame(rep):
-                line += "; %s [%s]" % (p, f)
+            named = blame_text(rep)
+            if named:
+                line += "; readers: " + named
         lines.append(line)
     lines.append("examined %d feature dir(s), %d doc root(s), %d reader file(s)"
                  % (result.feature_dirs, result.doc_roots, result.reader_files))
