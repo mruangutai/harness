@@ -1592,25 +1592,9 @@ def case_x():
     on purpose (a stub in it would put an INV-27 verdict inside every unrelated case).
     """
     results = []
-    MARKER_REL = os.path.join(".harness", "factory", "fleet.yaml")
-    FLEET_TEXT = ("schema: factory-fleet/1\nrepos:\n  - name: org/repoA\n"
-                  "workspace_root: /tmp/harness-fixture-workspaces\n")
-    STUBS = {
-        ".harness/team-config.yaml":
-            "agents:\n  x:\n    write:\n      - { path: .harness/features/*/notes/n.md }\n",
-        ".claude/skills/harness/bin/check-domain.sh":
-            "SWEEP_GLOBS=('.harness/features/*/plan.yaml')\n",
-        ".claude/skills/harness/bin/check-plan-routes.py":
-            'plans = glob.glob(os.path.join(root, ".harness", "features", "*", "plan.yaml"))\n',
-        ".claude/skills/harness/bin/check-state.sh":
-            'for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):\n',
-        ".claude/skills/harness/bin/factory_config.py":
-            '_PROBE = os.path.join("docs", "harness", "SPEC.md")\n',
-        ".claude/skills/harness/bin/gen-decisions-index.py":
-            'HEADER = "the authority is docs/harness/DECISIONS.md"\n',
-        ".claude/skills/harness/bin/harness_boundary.py":
-            'HARNESS_CONTROL_PLANE = ("docs/harness/**",)\n',
-    }
+    import layout_fixtures as lf
+    import layout_migration as lm
+    STUBS = {rel: forms["legacy"] for rel, forms in lf.STUB.items()}
 
     def build(tmp, marker=True, overrides=None, evidence=True):
         h = os.path.join(tmp, ".harness")
@@ -1630,9 +1614,9 @@ def case_x():
             os.makedirs(dd, exist_ok=True)
             open(os.path.join(dd, "SPEC.md"), "w").write("# spec\n")
         if marker:
-            mp = os.path.join(tmp, MARKER_REL)
+            mp = os.path.join(tmp, lm.MARKER)
             os.makedirs(os.path.dirname(mp), exist_ok=True)
-            open(mp, "w").write(FLEET_TEXT)
+            open(mp, "w").write(lf.FLEET_TEXT)
         overrides = overrides or {}
         for rel, text in STUBS.items():
             if rel == ".harness/team-config.yaml":
@@ -1641,12 +1625,6 @@ def case_x():
             os.makedirs(os.path.dirname(p), exist_ok=True)
             open(p, "w").write(overrides.get(rel, text))
         return tmp
-
-    def run_cs(tmp):
-        env = dict(os.environ)
-        env["CLAUDE_PROJECT_DIR"] = tmp
-        r = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
-        return r.returncode, r.stdout
 
     inv = lambda out: [l for l in out.splitlines() if "INV-27" in l]
 
@@ -1657,7 +1635,7 @@ def case_x():
         build(tmp, overrides={
             ".claude/skills/harness/bin/gen-decisions-index.py":
                 'HEADER = "the authority is .harness/repoA/docs/DECISIONS.md"\n'})
-        code, out = run_cs(tmp)
+        code, out = run(tmp)
         ls = inv(out)
         ok = (code == 1 and ls
               and any("gen-decisions-index.py" in l and "[migrated]" in l
@@ -1669,7 +1647,7 @@ def case_x():
     with tempfile.TemporaryDirectory() as tmp:
         build(tmp, overrides={
             ".claude/skills/harness/bin/factory_config.py": "nothing relevant\n"})
-        code, out = run_cs(tmp)
+        code, out = run(tmp)
         ls = inv(out)
         ok = code == 1 and any("CANNOT VERIFY" in l and "[neither]" in l for l in ls)
         results.append(("(x.2) an unjudgeable tree -> exit 1, INV-27 CANNOT VERIFY",
@@ -1681,7 +1659,7 @@ def case_x():
     # distinguishable from one that passes because it ran clean.
     with tempfile.TemporaryDirectory() as tmp:
         build(tmp)
-        _code, out = run_cs(tmp)
+        _code, out = run(tmp)
         ls = inv(out)
         results.append(("(x.3) an applicable clean tree -> NO INV-27 line",
                         not ls, "\n".join(ls)))
@@ -1690,7 +1668,7 @@ def case_x():
     # deliberately rather than left as an emergent property.
     with tempfile.TemporaryDirectory() as tmp:
         build(tmp, marker=False)
-        _code, out = run_cs(tmp)
+        _code, out = run(tmp)
         ls = inv(out)
         results.append(("(x.4) no control-plane marker -> NO INV-27 line",
                         not ls, "\n".join(ls)))

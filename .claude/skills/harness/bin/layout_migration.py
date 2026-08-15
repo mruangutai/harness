@@ -258,6 +258,49 @@ def scan(root, table=None):
     return Result(root, True, surfaces, feature_dirs, doc_roots, reader_files)
 
 
+def blame(rep):
+    """THE ONE BLAME POLICY (issue #379): which readers a finding names, with their
+    form-set tags. Both call sites — render() below and check-state.sh's INV-27 —
+    compose from this, so CI and session entry can never name different readers for
+    the same tree. A reader is blamed when its form-set is itself defective (both,
+    neither, unreadable) or disagrees with a single evidence shape; on a MIXED
+    surface with no such reader (evidence split, readers unanimous) every reader is
+    named, because the disagreement is between them and the disk."""
+    named = [(p, f) for p, f in rep.readers
+             if f in ("both", "neither", "unreadable")
+             or (len(rep.evidence) == 1 and f != next(iter(rep.evidence)))]
+    if not named and rep.verdict == MIXED:
+        named = list(rep.readers)
+    return named
+
+
+def blame_text(rep):
+    """The one FORMAT for a blamed-reader list, as blame() is the one policy: both
+    call sites print this string, so neither the list nor its rendering can drift
+    (#379, validator A-1/Q2). Empty when blame() is empty."""
+    return ", ".join("%s [%s]" % (p, f) for p, f in blame(rep))
+
+
+def cause_text(rep, root):
+    """The one wording per CANNOT_VERIFY cause, module-owned so render() and
+    check-state.sh's INV-27 cannot drift a clause apart (the cause table used to
+    live twice). An unrecognised cause returns a loud sentence rather than nothing."""
+    if rep.cause == "unreadable":
+        return "a coupled reader could not be read"
+    if rep.cause == "neither":
+        return "a coupled reader matches neither form"
+    if rep.cause == "no-evidence":
+        return "no evidence of either shape under %s" % root
+    if rep.cause == "no-rows":
+        return "no reader rows for this surface"
+    if rep.cause == "undeclared-segment":
+        return ("evidence under undeclared segment: " + ", ".join(rep.detail or ())
+                + " — declare the repository in .harness/factory/fleet.yaml "
+                  "or move this out of .harness/")
+    return ("unrecognised cause %r — layout_migration.py and its call sites "
+            "disagree; update cause_text" % (rep.cause,))
+
+
 def exit_code(result):
     """0 not-applicable or every surface CLEAN; 1 any MIXED and none CANNOT_VERIFY;
     2 any CANNOT_VERIFY — it outranks MIXED because a verdict computed over something
@@ -292,21 +335,12 @@ def render(result):
             z += 1
         ev = "+".join(sorted(rep.evidence)) if rep.evidence else "none"
         line = "%s: %s — evidence %s" % (surface, rep.verdict, ev)
-        if rep.verdict == CANNOT_VERIFY and rep.cause == "no-evidence":
-            line += "; no evidence of either shape under %s" % result.root
-        if rep.verdict == CANNOT_VERIFY and rep.cause == "no-rows":
-            line += "; no reader rows for this surface"
-        if rep.verdict == CANNOT_VERIFY and rep.cause == "undeclared-segment":
-            line += ("; evidence under undeclared segment: "
-                     + ", ".join(rep.detail or ()))
+        if rep.verdict == CANNOT_VERIFY:
+            line += "; " + cause_text(rep, result.root)
         if rep.verdict in (MIXED, CANNOT_VERIFY):
-            blame = [(p, f) for p, f in rep.readers
-                     if f in ("both", "neither", "unreadable")
-                     or (len(rep.evidence) == 1 and f != next(iter(rep.evidence)))]
-            if not blame and rep.verdict == MIXED:
-                blame = rep.readers
-            for p, f in blame:
-                line += "; %s [%s]" % (p, f)
+            named = blame_text(rep)
+            if named:
+                line += "; readers: " + named
         lines.append(line)
     lines.append("examined %d feature dir(s), %d doc root(s), %d reader file(s)"
                  % (result.feature_dirs, result.doc_roots, result.reader_files))

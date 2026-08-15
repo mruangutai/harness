@@ -5920,3 +5920,27 @@ catch.
 was four `if/elif` branches with no `else`; a fifth cause value would have appended nothing and the
 operator-facing gate would have passed clean while CI stayed red. It is now a dict lookup whose
 miss appends an "unrecognised cause" violation.
+
+
+### DEC-194 amendment 2 (2026-08-14) — blame is one exported policy, rendered whole at both call sites
+
+Issue #366 found the body's sentence "every finding names the reader path" overclaiming: three
+cannot-verify causes — no-evidence, no-rows, undeclared-segment — have no responsible reader file to
+name. A first correction narrowed the sentence by rewriting the body in place; that edit violated
+this file's append-only rule and is reverted, with the ruling recorded here instead.
+
+**The settled behaviour, ruled by the operator after validator finding M-1 (2026-08-14):**
+`layout_migration.blame()` is the ONE policy for which readers a finding names — a reader whose
+form-set is defective (both, neither, unreadable) or disagrees with a single evidence shape, with
+every reader named when a MIXED surface has no such individual. Both call sites — `render()` for CI
+and `check-state.sh`'s INV-27 at session entry — render that list WHOLE, on every verdict that is
+not clean, with no per-cause or per-form filtering at either site. Filtering is what produced two
+divergences in one day; the rule is therefore stated as an absence: there is no second place where
+naming is decided. `blame()` may return an empty list — structurally always for no-rows, and
+whenever no reader's form is defective or disagreeing for the other causes — and an empty list
+appends nothing. That, not a filtered sentence or a per-cause label, is how "names no reader"
+happens; only no-rows is reader-less by construction, and labelling causes reader-less is the
+thinking that invites the per-cause filtering this amendment removes.
+
+Units 3–7 cite this entry as their maintenance contract; the body's sentence is read through this
+amendment.
