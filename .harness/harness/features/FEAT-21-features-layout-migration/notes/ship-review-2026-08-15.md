@@ -73,6 +73,12 @@ The panel caught both, and they are mine, not the builders'.
    mechanically and it stands.
 2. I reported **18** segment-qualified finding labels. It is **17** — my grep counted the function
    definition alongside its call sites.
+3. My distillation dispatch to the validator squad asserted three things about its members that were
+   false: that its reviewers are write-less (all four hold `Write` and own their Expertise grant, so
+   no ops needed me), that they kept observation logs this feature (none did), and it named a file
+   pattern that would have dropped two of the ui reviewer's three notes — the two from which it drew
+   four of its seven entries. The lead corrected all three rather than routing around them. This is
+   my own recorded rule about dispatch premises, and I did not follow it.
 
 ## Where each squad's verdict comes from
 
@@ -148,7 +154,8 @@ it.
 | B-14 | enhancement | **Raise mutation coverage past six of 186 cases**, or accept explicitly that suite-green is a weak signal outside them. |
 
 | B-15 | bug | **`harness-distill` describes a check `check-expertise.sh` does not implement.** The doc says path-mentioning craft entries are flagged advisorily for a human; the checker has no advisory category and no such rule. The craft/repository split has no checker support. |
-| B-16 | chore | **No repository-layer Expertise file exists anywhere**, and the ops schema names one target so it cannot express a cross-file move. Three of eng-lead's gotchas are repository-layer material with nowhere to go. |
+| B-16 | bug | **The repository Expertise layer is documented but unwritable.** `harness-distill` specifies `.harness/<repo>/expertise/<agent>.md` with a 40-line budget; no grant in `team-config.yaml` covers it. I ran the domain hook: that path resolves to **NOBODY** for every agent. The split shipped without its grant, and nothing exercised it, so nothing caught it. |
+| B-17 | chore | **Four of five validator-squad Expertise files now sit at Patterns 15/15.** Every future distillation for those roles is displacement-only. A cap raise, a periodic curation pass, or accepting it — worth deciding before the next feature closes. |
 
 ## What happens on your acceptance
 

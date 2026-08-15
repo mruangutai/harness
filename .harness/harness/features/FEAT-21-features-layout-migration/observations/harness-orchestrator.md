@@ -110,3 +110,25 @@
   rule: reconcile the counters against what HAPPENED on disk, not against what you personally
   dispatched, or a parallel actor's work silently leaves the record.
 
+- 2026-08-15: I broke my own rule about dispatch premises three times in ONE distillation prompt —
+  asserted the reviewers were write-less (all four hold Write and own their expertise grant), that
+  they kept observation logs (none did), and used a filename pattern that would have hidden two of
+  three notes a member then drew four of seven entries from. The lead corrected all three instead of
+  routing around them, which is the outcome the rule is supposed to make unnecessary. The tell I
+  missed: I was reasoning about member capabilities from the PLAYBOOK's description of them rather
+  than from the agent definitions and the manifest. A playbook describes the design; the manifest is
+  the deployment, and they drift.
+
+- 2026-08-15: The playbook told me to collect a lead's expertise ops and apply them myself. I ran the
+  domain hook first and it answered that the file resolves to the lead alone — applying them would
+  have been denied and the ops stranded. Resuming the same lead to self-apply cost one message and
+  kept the ops verbatim. Where a written procedure and the live guard disagree about who may write a
+  path, the guard is the deployment and the procedure is the intention.
+
+- 2026-08-15: Two documented mechanisms turned out not to exist when I measured them: a repository
+  Expertise layer with its own budget that no grant makes writable (resolves to NOBODY), and an
+  advisory check in the distill doc that the checker implements nowhere. Both shipped as prose in the
+  same change that defined them, and neither had been exercised, so no gate noticed. When a change
+  introduces a new LAYER or PATH, resolving one example path through the live guard is a two-second
+  check that distinguishes a built mechanism from a described one.
+
