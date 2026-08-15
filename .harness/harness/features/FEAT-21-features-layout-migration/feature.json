@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-21-features-layout-migration",
   "pr": null,
   "status": "Review",
-  "review_sha": "d033b9d",
+  "review_sha": "5c39f8c",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
@@ -21,6 +21,16 @@
     {
       "id": "2026-08-14-1-validator",
       "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-14-2-qa-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-14-2-goalcheck-product",
+      "squad": "product",
       "verdict": "FAIL"
     }
   ],

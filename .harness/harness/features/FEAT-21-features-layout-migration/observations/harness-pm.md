@@ -51,3 +51,17 @@
   anything, features simply accumulated. I nearly stamped "measured at 62fef85" onto the 8, which
   would have converted honest drift into a false dated claim. Re-run the quoted command before
   attaching a sha to its result.
+
+- 2026-08-14 (goal-check): SC-10 asked a parity test to redden when EITHER of two renderings changes
+  alone, and it only reddens on one side. Case 20 in `test-layout-migration.py` compares
+  `layout_migration.render()` against a helper that MIRRORS `check-state.sh`'s INV-27 composition
+  rather than executing it — a copy cannot detect drift in the thing it copies. Two mutations settled
+  it in five minutes: dropping the last blamed reader on the module side reddened 4 assertions; the
+  same drop inside `check-state.sh` left case 20 at 0 FAIL. A parity criterion needs one side to be
+  the REAL artifact, or the composition needs a single owner both call sites import.
+
+- 2026-08-14 (goal-check): My first mutation was ill-chosen and read as "the test is fine" — I
+  filtered readers containing `check-domain`, but case 20 constructs synthetic reader paths, so the
+  mutant never touched its fixtures while reddening two unrelated cases. A mutation that reddens
+  OTHER cases but not the one under test is evidence the mutant missed, not evidence of coverage.
+  Aim the mutant at the fixture the case actually builds.
