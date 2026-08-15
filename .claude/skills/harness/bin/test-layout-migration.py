@@ -17,6 +17,7 @@ import importlib.util
 import io
 import os
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -328,6 +329,64 @@ with tempfile.TemporaryDirectory() as tmp:
     code, out = run(tmp)
     check("case 19: the same shape under a DECLARED segment stays ordinary evidence",
           code == 1, out)
+
+# ------------------------------------------------------------------- case 20
+# FEAT-21 SC-10 (issue #387): CI/session-entry PARITY, pinned against the REAL gate.
+# The first draft of this case hand-mirrored check-state.sh's INV-27 composition in a
+# helper — and a copy cannot detect drift in the thing it copies: dropping a blamed
+# reader inside check-state.sh left the case green while reddening the integration
+# suite. THERE IS NO SECOND MIRROR HERE: the session-entry side is the actual
+# check-state.sh run against a fixture tree, and the CI side is layout_migration's
+# render() over a scan of the SAME tree. If either call site grows its own filtering
+# or wording, the named reader sets diverge and this reddens.
+_CHECK_STATE = os.path.join(HERE, "check-state.sh")
+ALL_READER_PATHS = [r.path for r in lm.READER_TABLE]
+
+
+def _parity(label, build_kwargs, extra=None):
+    """One parity comparison: the REAL gate vs render(), over the same tree."""
+    with tempfile.TemporaryDirectory() as tmp:
+        build(tmp, **build_kwargs)
+        with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
+            f.write('{"github": {"sync": false, "repo": null}}')
+        if extra:
+            extra(tmp)
+        env = dict(os.environ)
+        env["CLAUDE_PROJECT_DIR"] = tmp
+        r = subprocess.run([_CHECK_STATE], cwd=tmp, capture_output=True, text=True,
+                           env=env)
+        gate = "\n".join(l for l in r.stdout.splitlines() if "INV-27" in l)
+        res = lm.scan(tmp)
+        ci = lm.render(res)
+    gate_named = {p for p in ALL_READER_PATHS if p in gate}
+    ci_named = {p for p in ALL_READER_PATHS if p in ci}
+    check("case 20 parity: %s — real gate and render name the same reader set" % label,
+          gate_named == ci_named, "GATE: %r\nCI: %r" % (gate, ci))
+    rep = res.surfaces.get("features") if res.applicable else None
+    if rep is not None and rep.verdict == lm.CANNOT_VERIFY:
+        clause = lm.cause_text(rep, res.root).split(" — ")[0]
+        check("case 20 parity: %s — the cause clause is identical in both" % label,
+              clause in gate and clause in ci, "GATE: %r\nCI: %r" % (gate, ci))
+
+
+_parity("MIXED, one migrated reader on legacy evidence",
+        dict(forms={".harness/team-config.yaml": "migrated"}))
+_parity("CANNOT_VERIFY neither",
+        dict(forms={".claude/skills/harness/bin/check-domain.sh": "neither"}))
+_parity("CANNOT_VERIFY unreadable",
+        dict(forms={".claude/skills/harness/bin/check-domain.sh": "unreadable"}))
+_parity("CANNOT_VERIFY no-evidence",
+        dict(features_evidence=(), docs_evidence=("legacy",)))
+_parity("CANNOT_VERIFY undeclared-segment (carries detail)",
+        dict(),
+        extra=lambda tmp: (
+            os.makedirs(os.path.join(tmp, ".harness", "archive", "features", "F-old")),
+            open(os.path.join(tmp, ".harness", "archive", "features", "F-old",
+                              "feature.json"), "w").write("{}")))
+_parity("CLEAN names nobody at either site", dict())
+# no-rows cannot be produced through a fixture tree (it requires a reader-table
+# override, and the REAL gate runs the real module) — its wording remains covered by
+# check-state's own case_x and by cause_text's unit coverage; noted, not mirrored.
 
 # ---------------------------------------------------------------------- report
 fails = 0

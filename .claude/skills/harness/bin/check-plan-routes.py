@@ -19,6 +19,7 @@ Task blocks are found with the SAME regex check-state.sh uses (D-08), copied
 rather than shared because check-state.sh belongs to the in-flight FEAT-08 and
 PLAN.md is markdown, not YAML.
 """
+import glob
 import os
 import re
 import subprocess
@@ -536,7 +537,7 @@ def discover_plans():
     # because the filename below is a literal: switch it to a pattern like `PLAN*.md` and
     # listing becomes necessary again — measured, `PLAN*.md` at 0311 silently loses a
     # feature. If you ever generalise that name, R_OK comes back with it.
-    feats = os.path.join(root, ".harness", "features")
+    feats = os.path.join(root, ".harness", "*", "features")
     plans, unreadable = [], []
     # TWO COUNTS, BECAUSE ONE CANNOT TELL THE TWO ZEROES APART. `0 plan(s)` used to mean
     # either "discovery is broken" or "every feature has shipped", and the CI gate had to
@@ -546,12 +547,18 @@ def discover_plans():
     # fail-open issue #133 names. examined > 0 with no plans is an all-shipped tree, which
     # is legitimate and says so.
     examined = 0
-    if os.path.isdir(feats):
-        try:
-            entries = sorted(os.scandir(feats), key=lambda e: e.path)
-        except OSError as e:
-            print(f"check-plan-routes: cannot list {feats}: {e}", file=sys.stderr)
-            sys.exit(2)
+    # ONE SEGMENT LEVEL, then features. glob's `*` never matches a leading dot, so the
+    # dot-exclusion the comment below demands at the feature level holds at the segment
+    # level too, by the same mechanism rather than a second rule.
+    seg_dirs = sorted(d for d in glob.glob(feats) if os.path.isdir(d))
+    if seg_dirs:
+        entries = []
+        for _fd in seg_dirs:
+            try:
+                entries.extend(sorted(os.scandir(_fd), key=lambda e: e.path))
+            except OSError as e:
+                print(f"check-plan-routes: cannot list {_fd}: {e}", file=sys.stderr)
+                sys.exit(2)
         for entry in entries:
             # DOTTED ENTRIES ARE NOT FEATURES, and this restores glob's semantics rather
             # than reinterpreting them. `glob`'s `*` never matched a leading dot; `scandir`
@@ -629,7 +636,7 @@ def discover_plans():
             # the indirect one (a symlink into an unreadable directory) land above.
             plans.append(plan)
     if unreadable:
-        print(f"check-plan-routes: {len(unreadable)} path(s) under .harness/features/ cannot "
+        print(f"check-plan-routes: {len(unreadable)} path(s) under .harness/*/features/ cannot "
               f"be read — {', '.join(sorted(unreadable))}. A path I cannot read is "
               f"indistinguishable from one that holds nothing, so reporting a total would "
               f"be a lie about the tree.", file=sys.stderr)
@@ -648,7 +655,7 @@ def main(argv):
         root, paths, examined = discover_plans()
         # Naming the root is the whole distinction. Without it a legitimate zero-feature
         # project and the wrong-directory defect print the same line.
-        print(f"scanning {root}/.harness/features/*/{{plan.yaml,PLAN.md}}")
+        print(f"scanning {root}/.harness/*/features/*/{{plan.yaml,PLAN.md}}")
 
     findings = []
     total_violations = 0

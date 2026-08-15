@@ -38,11 +38,13 @@ def feature_yaml(parent_line):
 
 
 def make_fixture(tmp, harness_json, parent_line):
+    """Fixtures sit at .harness/harness/features/FEAT-TEST/ — one segment name,
+    used consistently across every builder in this file (FEAT-21 T-06)."""
     h = os.path.join(tmp, ".harness")
-    os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+    os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
         f.write(harness_json)
-    with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
+    with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
         f.write(feature_yaml(parent_line))
     return h
 
@@ -164,10 +166,10 @@ def case_e():
     """
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
+        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write(RUNS_WITH_TRAILING_COMMENTS)
         code, out = run(tmp)
         ok = "review_sha is not pinned" in out
@@ -187,10 +189,10 @@ def case_f():
     """
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
+        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write("runs: [ {id: a, squad: b ## eaten\nnext_key: 1\n")
         code, out = run(tmp)
         ok = "does not parse" in out and code == 1
@@ -227,7 +229,7 @@ def case_g():
         """
         tmp = tempfile.mkdtemp()
         h = os.path.join(tmp, ".harness")
-        fd = os.path.join(h, "features", feat)
+        fd = os.path.join(h, "harness", "features", feat)
         os.makedirs(os.path.join(fd, "notes"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
@@ -326,10 +328,10 @@ def case_h():
     """
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
+        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write("feature_id: FEAT-TEST\n"
                     "review_sha: none\n"
                     "runs:\n"
@@ -355,10 +357,10 @@ def case_i():
     """
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
+        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write("feature_id: FEAT-TEST\n"
                     "review_sha: 1ce886a\n"
                     "runs:\n"
@@ -385,10 +387,10 @@ def case_j():
     """
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
+        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write("feature_id: FEAT-TEST\n"
                     "review_sha: none\n"
                     "runs:\n"
@@ -426,11 +428,11 @@ def case_k():
     for label, cost_block in (("no cost: block", ""), ("with a cost: block", "cost:\n  usd: 12.83\n")):
         with tempfile.TemporaryDirectory() as tmp:
             h = os.path.join(tmp, ".harness")
-            rundir = os.path.join(h, "features", "FEAT-TEST", "runs", "2026-08-05-01-product")
+            rundir = os.path.join(h, "harness", "features", "FEAT-TEST", "runs", "2026-08-05-01-product")
             os.makedirs(rundir, exist_ok=True)
             with open(os.path.join(h, "harness.json"), "w") as f:
                 f.write(HARNESS_JSON_SYNC_OFF)
-            with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
+            with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
                 f.write("feature_id: FEAT-TEST\nreview_sha: none\nruns: []\n")
             with open(os.path.join(rundir, "state.yaml"), "w") as f:
                 f.write("schema_version: 1\n"
@@ -466,13 +468,13 @@ def case_l():
     """
     def build(tmp, n, declared="", budget='"budgets": {"max_total_runs": 20}'):
         h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "features", "FEAT-TEST"), exist_ok=True)
+        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"), exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write('{\n  "github": {"sync": false, "repo": null}'
                     + (",\n  " + budget if budget else "") + "\n}\n")
         runs = "\n".join(f"  - {{ id: r{i}, squad: eng, verdict: PASS }}"
                          for i in range(n))
-        with open(os.path.join(h, "features", "FEAT-TEST", "feature.json"), "w") as f:
+        with open(os.path.join(h, "harness", "features", "FEAT-TEST", "feature.json"), "w") as f:
             f.write(f"feature_id: FEAT-TEST\ncycles_used: 2\n"
                     f"review_sha: abc1234\n{declared}runs:\n{runs}\n")
         return run(tmp)
@@ -665,7 +667,7 @@ def case_n():
     ):
         with tempfile.TemporaryDirectory() as tmp:
             h = make_fixture(tmp, '{}', "  parent: 40")
-            fd = os.path.join(h, "features", "FEAT-TEST")
+            fd = os.path.join(h, "harness", "features", "FEAT-TEST")
             # EXACTLY `fl` lines, header included — the boundary is the whole point of the
             # second fixture, so the padding is sized against the header rather than added
             # to it. Written the naive way, "within" came out at 205 lines and reported a
@@ -677,8 +679,8 @@ def case_n():
             with open(os.path.join(fd, "STATE.md"), "w") as f:
                 f.write("## Current\n" + "\n".join(f"line {i}" for i in range(sl - 1)) + "\n")
             _code, out = run(tmp)
-            got_f = "INV-23 FEAT-TEST/feature.json is" in out
-            got_s = "INV-23 FEAT-TEST/STATE.md is" in out
+            got_f = "INV-23 " in out and "FEAT-TEST" in out and "feature.json is" in out
+            got_s = "INV-23 " in out and "FEAT-TEST" in out and "STATE.md is" in out
             ok = (got_f == want_f) and (got_s == want_s)
             results.append(ok)
             print(f"{'ok' if ok else 'FAIL'} - case (n/{label}): at {fl} feature.json / "
@@ -783,7 +785,7 @@ def case_q():
     for status, want_note in (("approved", False), ("pending", True)):
         with tempfile.TemporaryDirectory() as tmp:
             h = make_fixture(tmp, '{}', "  parent: 40")
-            fd = os.path.join(h, "features", "FEAT-TEST")
+            fd = os.path.join(h, "harness", "features", "FEAT-TEST")
             os.remove(os.path.join(fd, "feature.json"))
             with open(os.path.join(fd, "feature.json"), "w") as f:
                 f.write("feature_id: FEAT-TEST\nstatus: in_review\n")
@@ -799,7 +801,7 @@ def case_q():
     # A plan.yaml that does not LOAD is a violation naming the file — never a silent skip.
     with tempfile.TemporaryDirectory() as tmp:
         h = make_fixture(tmp, '{}', "  parent: 40")
-        fd = os.path.join(h, "features", "FEAT-TEST")
+        fd = os.path.join(h, "harness", "features", "FEAT-TEST")
         with open(os.path.join(fd, "plan.yaml"), "w") as f:
             f.write("tasks:\n  - id: T-01\n   bad: indent\n")
         _code, out = run(tmp)
@@ -811,7 +813,7 @@ def case_q():
     # INV-5 across the yaml path: STATE.md naming a task the plan lacks.
     with tempfile.TemporaryDirectory() as tmp:
         h = make_fixture(tmp, '{}', "  parent: 40")
-        fd = os.path.join(h, "features", "FEAT-TEST")
+        fd = os.path.join(h, "harness", "features", "FEAT-TEST")
         with open(os.path.join(fd, "plan.yaml"), "w") as f:
             f.write(PLAN_YAML_OK)
         with open(os.path.join(fd, "STATE.md"), "w") as f:
@@ -870,7 +872,7 @@ def case_t():
 
     with tempfile.TemporaryDirectory() as tmp:
         make_fixture(tmp, '{}', "  parent: 40")
-        fdir = os.path.join(tmp, ".harness", "features", "FEAT-CRASH")
+        fdir = os.path.join(tmp, ".harness", "harness", "features", "FEAT-CRASH")
         os.makedirs(fdir, exist_ok=True)
         with open(os.path.join(fdir, "runs"), "w") as f:   # a FILE, not a directory
             f.write("not a directory\n")
@@ -899,7 +901,7 @@ def case_r():
     """
     with tempfile.TemporaryDirectory() as tmp:
         h = os.path.join(tmp, ".harness")
-        os.makedirs(os.path.join(h, "features", "FEAT-TEST"))
+        os.makedirs(os.path.join(h, "harness", "features", "FEAT-TEST"))
         # deliberately NO harness.json
         _code, out = run(tmp)
         # ASSERT ON WHAT A HEALTHY RUN PRODUCES, not on the absence of a traceback.
@@ -947,7 +949,7 @@ def _factory_tree(tmp, features, fleet=FLEET_YAML):
         with open(os.path.join(h, "factory", "fleet.yaml"), "w") as f:
             f.write(fleet)
     for feat, block in features.items():
-        d = os.path.join(h, "features", feat)
+        d = os.path.join(h, "harness", "features", feat)
         os.makedirs(d, exist_ok=True)
         with open(os.path.join(d, "feature.json"), "w") as f:
             f.write(block if block else "branch: none\n")
@@ -1104,12 +1106,12 @@ def case_o():
     checks, ok_all = [], True
     for what, dpat, spat in (
         ("feature.json lines",  r"feature\.json is \{len\(lines\)\} lines — budget is (\d+)",
-                                r"feature\.json is \{len\(fl\)\} lines — budget is (\d+)"),
+                                r"feature\.json'\)\} is \{len\(fl\)\} lines — budget is (\d+)"),
         # The comment-line budget pair is GONE, not relaxed. T-06 removed the check from
         # both files because JSON has no comments, so it could never fire — and a pair of
         # numbers that can never be printed is a duplicate this case cannot police.
         ("STATE.md lines",      r"STATE\.md is \{len\(lines\)\} lines — budget is (\d+)",
-                                r"STATE\.md is \{len\(sl\)\} lines — budget is (\d+)"),
+                                r"STATE\.md'\)\} is \{len\(sl\)\} lines — budget is (\d+)"),
         # Issue #139 made this the fourth number in both files, so it joins the detector in
         # the same commit that duplicates it — not in a later one nobody writes.
         ("CLAUDE.md lines",     r"CLAUDE\.md is \{len\(lines\)\} lines — budget is (\d+)",
@@ -1316,7 +1318,7 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
     or INV-26 gates out and every assertion below passes vacuously.
     """
     h = os.path.join(root, ".harness")
-    fd = os.path.join(h, "features", feat)
+    fd = os.path.join(h, "harness", "features", feat)
     os.makedirs(fd, exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
         json.dump({"github": {"sync": True, "repo": "org/repo",
@@ -1544,7 +1546,7 @@ def case_w():
     def build(status):
         tmp = tempfile.mkdtemp()
         h = os.path.join(tmp, ".harness")
-        fd = os.path.join(h, "features", "FEAT-Z")
+        fd = os.path.join(h, "harness", "features", "FEAT-Z")
         os.makedirs(fd, exist_ok=True)
         with open(os.path.join(h, "harness.json"), "w") as f:
             f.write(HARNESS_JSON_SYNC_OFF)
@@ -1604,6 +1606,10 @@ def case_x():
         with open(os.path.join(h, "team-config.yaml"), "w") as f:
             f.write(STUBS[".harness/team-config.yaml"])
         if evidence:
+            # LEGACY on purpose: case_x's reader stubs are all legacy-form, so its
+            # evidence must be legacy too — a legacy sandbox is a valid detector
+            # input in every era, and segmenting only the evidence made x.3's
+            # "clean" tree an undeclared-segment cannot-verify.
             fd = os.path.join(h, "features", "FEAT-Z")
             os.makedirs(fd, exist_ok=True)
             open(os.path.join(fd, "feature.json"), "w").write(

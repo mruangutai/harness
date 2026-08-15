@@ -58,6 +58,10 @@
 - P-14: WHEN a dispatch names specific files to check DO also grep the full diff for
   secrets/credentials, not only the named files — docs, config, and workflow changes carry
   credential-shaped strings too, and a narrowed sweep misses them.
+- P-15: WHEN severity-rating an unmitigated boundary whose sole compensating control is human
+  diff review DO check whether that control already produced, then caught, a real defect
+  within this same review scope — a demonstrated near-miss justifies rating above a purely
+  hypothetical gap.
 
 ## Gotchas (max 15)
 - G-01: Only `exit 2` blocks a hook (DEC-100); any other exit — including an
@@ -91,6 +95,17 @@
   to 'next touch' — a pre-existing false claim can wait; one the diff itself introduces is this
   review's finding, at info severity, since a later reviewer may cite it to close a question
   unfixed.
+- G-09: WHEN a migration adopts a derived or wildcard pattern across many enforcement sites but
+  one site keeps a hardcoded literal DO check whether it is correct only by coincidence for
+  today's single value — tests scoped to that value cannot catch the future divergence.
+- G-10: WHEN proposing a remedy for an authorization or matching gap DO state it as a
+  constraint — the exact derivation or invariant — not a direction like 'use a wildcard': a
+  neighboring form can satisfy the direction while creating a false grant if identifiers
+  aren't actually globally unique.
+- G-11: WHEN a threat-model boundary is marked mitigated:false because its firing precondition
+  does not exist yet (e.g. only one tenant onboarded) DO label it precondition-absent next to
+  the entry — otherwise it reads identical to an active, currently-exploitable gap to a later
+  reader.
 
 ## Outcomes (max 10)
 - O-01: WHEN a surface looks clean on first read DO close with identity-level
@@ -101,5 +116,9 @@
   race ordering) DO produce a runnable measurement — timed adversarial input, printed resolved
   value — rather than a structural argument alone; complexity-class and language-semantics
   arguments are cheap to get wrong and expensive to trust.
+- O-03: WHEN a diff bulk-touches injected or preloaded instruction content for one intended
+  edit-class (e.g. a path rename) DO diff-filter every touched file for the known substitution
+  and inspect the residual — an empty residual across the full set bounds a suspicion into a
+  dated finding.
 
 ## Open (max 5)

@@ -74,7 +74,7 @@ teams:
         domain:
           - { path: allowed/**, upsert: true }
           - { path: .harness/allowed/**, upsert: true }
-          - { path: .harness/features/*/runs/*/state.yaml, upsert: true }
+          - { path: .harness/*/features/*/runs/*/state.yaml, upsert: true }
           - { path: ".", read: true }
 shared:
   - { path: package.json }
@@ -221,7 +221,7 @@ def run_t12():
 
     # --- the state.yaml shape gate, now loader-driven (D-02) ---
     root = fixture(FIXTURE_MANIFEST)
-    sp = ".harness/features/FEAT-01/runs/r1/state.yaml"
+    sp = ".harness/harness/features/FEAT-01/runs/r1/state.yaml"
 
     r = fire(root, sp, "run_id: r1\nstatus: complete\n")
     t12("a well-formed state.yaml with checkpoint keys passes",
@@ -380,7 +380,7 @@ def run_t12():
     # These two cases pin the RULED behaviour so nobody "fixes" it back: during a grant
     # the write is allowed, and the entry gate is the backstop.
     grant = fixture(FIXTURE_MANIFEST)
-    sp2 = ".harness/features/FEAT-01/runs/r1/state.yaml"
+    sp2 = ".harness/harness/features/FEAT-01/runs/r1/state.yaml"
     rbad = fire_noyaml(grant, sp2, "sess-shape",
                        content="run_id: r1\nfindings: a notebook of prose\n")
     t12("grant: a malformed state.yaml is ALLOWED (no fallback — BRIEF Goal :20-21)",
@@ -995,10 +995,10 @@ def _legal_feature_json(nlines):
 
 def run_post():
     d = fixture(FIXTURE_MANIFEST)
-    fdir = os.path.join(d, ".harness", "features", "FEAT-X")
+    fdir = os.path.join(d, ".harness", "harness", "features", "FEAT-X")
     os.makedirs(fdir)
     fy = os.path.join(fdir, "feature.json")
-    rel_fy = ".harness/features/FEAT-X/feature.json"
+    rel_fy = ".harness/harness/features/FEAT-X/feature.json"
 
     def write(nlines):
         # A LEGAL eleven-key document, padded with blank lines to an exact length.
@@ -1110,7 +1110,7 @@ def run_post():
     # --- F-06: `_norm`'s worktree strip is load-bearing, and the sweep's worktree tier
     # with it. A live agent worktree in this repo held 38 files matching the sweep globs
     # and the sweep reached NONE of them before this. Every harness agent works in one.
-    wt = os.path.join(d, ".claude", "worktrees", "wt1", ".harness", "features", "FEAT-W")
+    wt = os.path.join(d, ".claude", "worktrees", "wt1", ".harness", "harness", "features", "FEAT-W")
     os.makedirs(wt, exist_ok=True)
     write(10)
     fire_post(d, bash_payload)                      # advance the stamp past everything
@@ -1178,9 +1178,9 @@ def run_post():
     # findings naming identical FEAT strings. Stripping collapses every checkout onto one
     # name for state files as much as for CLAUDE.md.
     _wt = os.path.join(d, ".claude", "worktrees", "wt1")
-    os.makedirs(os.path.join(_wt, ".harness", "features", "FEAT-W"), exist_ok=True)
+    os.makedirs(os.path.join(_wt, ".harness", "harness", "features", "FEAT-W"), exist_ok=True)
     _wcm = os.path.join(_wt, "CLAUDE.md")
-    _wfy = os.path.join(_wt, ".harness", "features", "FEAT-W", "feature.json")
+    _wfy = os.path.join(_wt, ".harness", "harness", "features", "FEAT-W", "feature.json")
     with open(_wcm, "w") as f:
         f.write("\n".join(f"x{i}" for i in range(81)) + "\n")
     with open(_wfy, "w") as f:
@@ -1380,7 +1380,7 @@ def run_post():
 SCHEMA_MANIFEST = FIXTURE_MANIFEST.replace(
     "- { path: .harness/allowed/**, upsert: true }",
     "- { path: .harness/allowed/**, upsert: true }\n"
-    "          - { path: .harness/features/*/feature.json, upsert: true }")
+    "          - { path: .harness/*/features/*/feature.json, upsert: true }")
 
 
 def run_schema():
@@ -1400,8 +1400,8 @@ def run_schema():
     import shutil
     fails = 0
     root = fixture(SCHEMA_MANIFEST)
-    os.makedirs(os.path.join(root, ".harness", "features", "FEAT-X"), exist_ok=True)
-    rel = ".harness/features/FEAT-X/feature.json"
+    os.makedirs(os.path.join(root, ".harness", "harness", "features", "FEAT-X"), exist_ok=True)
+    rel = ".harness/harness/features/FEAT-X/feature.json"
     legal = _legal_feature_json(0)
     illegal = json.dumps({"feature_id": "FEAT-X", "invented_key": 1}, indent=2)
 

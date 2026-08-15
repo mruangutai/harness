@@ -35,9 +35,9 @@ COLLECT_FIXTURE = {
             ".claude/skills/harness/bin/**",
             ".harness/codebase/api-surface.md",
             ".harness/codebase/domains/**",
-            ".harness/features/*/notes/receipt-harness-backend-dev-*.md",
+            ".harness/*/features/*/notes/receipt-harness-backend-dev-*.md",
             ".harness/expertise/harness-backend-dev.md",
-            ".harness/features/*/observations/harness-backend-dev.md",
+            ".harness/*/features/*/observations/harness-backend-dev.md",
         ],
         [
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
@@ -51,9 +51,9 @@ COLLECT_FIXTURE = {
             ".harness/harness.json",
             ".claude/skills/harness/bin/**",
             ".harness/codebase/stack.md",
-            ".harness/features/*/notes/receipt-harness-dev-ops-*.md",
+            ".harness/*/features/*/notes/receipt-harness-dev-ops-*.md",
             ".harness/expertise/harness-dev-ops.md",
-            ".harness/features/*/observations/harness-dev-ops.md",
+            ".harness/*/features/*/observations/harness-dev-ops.md",
         ],
         [
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
@@ -62,16 +62,16 @@ COLLECT_FIXTURE = {
     ),
     "harness-pm": (
         [
-            ".harness/features/*/BRIEF.md",
-            ".harness/features/*/PLAN.md",
-        ".harness/features/*/plan.yaml",
-            ".harness/features/*/notes/research-*.md",
+            ".harness/*/features/*/BRIEF.md",
+            ".harness/*/features/*/PLAN.md",
+        ".harness/*/features/*/plan.yaml",
+            ".harness/*/features/*/notes/research-*.md",
             ".harness/notes/research-*.md",
-            ".harness/features/*/notes/uat-*.md",
+            ".harness/*/features/*/notes/uat-*.md",
             ".harness/codebase/product-surface.md",
             ".harness/codebase/glossary.md",
             ".harness/expertise/harness-pm.md",
-            ".harness/features/*/observations/harness-pm.md",
+            ".harness/*/features/*/observations/harness-pm.md",
         ],
         [
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
@@ -85,9 +85,9 @@ COLLECT_FIXTURE = {
             ".harness/README.md",
             ".harness/codebase/INDEX.md",
             ".harness/codebase/architecture.md",
-            ".harness/features/*/notes/receipt-harness-documentor-*.md",
+            ".harness/*/features/*/notes/receipt-harness-documentor-*.md",
             ".harness/expertise/harness-documentor.md",
-            ".harness/features/*/observations/harness-documentor.md",
+            ".harness/*/features/*/observations/harness-documentor.md",
         ],
         [
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
@@ -102,9 +102,9 @@ COLLECT_FIXTURE = {
     # about nesting, so it must not either.
     "harness-eng-lead": (
         [
-            ".harness/features/*/runs/*-eng/**",
+            ".harness/*/features/*/runs/*-eng/**",
             ".harness/expertise/harness-eng-lead.md",
-            ".harness/features/*/observations/harness-eng-lead.md",
+            ".harness/*/features/*/observations/harness-eng-lead.md",
         ],
         [
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
@@ -113,11 +113,11 @@ COLLECT_FIXTURE = {
     ),
     "harness-orchestrator": (
         [
-            ".harness/features/**",
-            ".harness/features/*/notes/answers-*.md",
-            ".harness/features/*/notes/ship-review-*.md",
+            ".harness/*/features/**",
+            ".harness/*/features/*/notes/answers-*.md",
+            ".harness/*/features/*/notes/ship-review-*.md",
             ".harness/expertise/harness-orchestrator.md",
-            ".harness/features/*/observations/harness-orchestrator.md",
+            ".harness/*/features/*/observations/harness-orchestrator.md",
         ],
         [
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",

@@ -39,17 +39,17 @@ case("a quoted string mentioning a redirect",
 # `cp a b 2>/dev/null` was read as the cp destination, and a legal in-domain copy was
 # denied naming "2>/dev/null" as the path. Hit twice during FEAT-11.
 case("stderr redirection is not the cp destination",
-     'cp .harness/features/F/runs/r-eng/a.md .harness/features/F/runs/r-eng/b.md 2>/dev/null', 0)
+     'cp .harness/harness/features/F/runs/r-eng/a.md .harness/harness/features/F/runs/r-eng/b.md 2>/dev/null', 0)
 case("stderr redirection is not an rm target",
-     'rm .harness/features/F/runs/r-eng/b.md 2>/dev/null', 0)
+     'rm .harness/harness/features/F/runs/r-eng/b.md 2>/dev/null', 0)
 # The other half, and the reason dropping redirect tokens is safe: every REAL redirect is
 # still caught by the redirect scan. If these three ever pass, the fix has gone too far.
 case("a redirect after cp still blocks, glued",
-     'cp .harness/features/F/runs/r-eng/a.md .harness/features/F/runs/r-eng/b.md >src/evil.py', 2)
+     'cp .harness/harness/features/F/runs/r-eng/a.md .harness/harness/features/F/runs/r-eng/b.md >src/evil.py', 2)
 case("a redirect after cp still blocks, spaced",
-     'cp .harness/features/F/runs/r-eng/a.md .harness/features/F/runs/r-eng/b.md > src/evil.py', 2)
+     'cp .harness/harness/features/F/runs/r-eng/a.md .harness/harness/features/F/runs/r-eng/b.md > src/evil.py', 2)
 case("an out-of-domain cp destination still blocks",
-     'cp .harness/features/F/runs/r-eng/a.md src/evil.py', 2)
+     'cp .harness/harness/features/F/runs/r-eng/a.md src/evil.py', 2)
 # #241: `-f` is a SCRIPT-FILE flag for sed/perl/awk and a FORCE flag for rm. The skip was
 # unconditional, so `rm -f <path>` arrived with an empty target list and no deny fired —
 # the most common deletion idiom was the one that got through. `rm -rf dir` was never
@@ -62,8 +62,8 @@ case("rm -rf still blocks, unchanged", 'rm -rf src/', 2)
 case("sed -i -f still names the target, not the script", 'sed -i -f /tmp/s.sed src/main.py', 2)
 case("awk -i inplace -f still names the target", 'awk -i inplace -f /tmp/p.awk src/main.py', 2)
 # In-domain forms must not become collateral: a fix that blanket-denies rm -f is not a fix.
-case("rm -f in-domain passes", 'rm -f .harness/features/F/runs/r-eng/a.md', 0)
-case("sed -i -f in-domain passes", 'sed -i -f /tmp/s.sed .harness/features/F/runs/r-eng/a.md', 0)
+case("rm -f in-domain passes", 'rm -f .harness/harness/features/F/runs/r-eng/a.md', 0)
+case("sed -i -f in-domain passes", 'sed -i -f /tmp/s.sed .harness/harness/features/F/runs/r-eng/a.md', 0)
 # Reviewers are read-only everywhere and never reach the path check at all.
 case("plain read commands pass", 'git status --porcelain', 0)
 

@@ -16,7 +16,7 @@ Wrong-thing-built-well is the costlier failure, and finding it second wastes the
 
 ## Stage 1 — spec compliance
 
-Read `.harness/features/<FEAT>/BRIEF.md` and the plan's decisions — `plan.yaml`'s `decisions:` list,
+Read `.harness/harness/features/<FEAT>/BRIEF.md` and the plan's decisions — `plan.yaml`'s `decisions:` list,
 or `PLAN.md ## Decisions` for a feature still on the pre-DEC-182 format — then the diff. Ask four
 questions:
 
@@ -76,7 +76,7 @@ Every finding states **specific inputs or state → specific wrong outcome.**
 
 ## Review a pinned SHA
 
-Diff `base..review_sha` from `.harness/features/<FEAT>/review_sha` — **never `..HEAD`**. A commit landing
+Diff `base..review_sha` from `.harness/harness/features/<FEAT>/review_sha` — **never `..HEAD`**. A commit landing
 mid-review must not change what you reviewed.
 
 Check for `[harness:human]` commits since the last pin: those are hand edits that **inherit no earlier

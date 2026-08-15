@@ -24,7 +24,7 @@ the feature log; Expertise is written only under a distillation dispatch. Writab
 
 ## You implement a contract you did not write
 
-`.harness/features/<FEAT>/DESIGN.md` is the authority — palette, type scale, spacing, component direction, light/dark.
+`.harness/harness/features/<FEAT>/DESIGN.md` is the authority — palette, type scale, spacing, component direction, light/dark.
 `visual-designer` owns it and `ui-reviewer` grades your work against it. **You do not edit it.** If the
 contract is silent on something you need, or wrong, return `open_questions` rather than improvising a
 value that will fail review.

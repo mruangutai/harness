@@ -1213,5 +1213,31 @@ with tempfile.TemporaryDirectory() as tmpR:
     check("no board configured: close-task actually closed T-01's issue — the lifecycle ran",
           t1R is not None and any(l.startswith(f"issue close {t1R}") for l in logR), str(logR))
 
+# ---- FEAT-21 T-10: the root walk-up is depth-agnostic ----------------------------
+# migrated_depth: a feature dir one segment deeper than the old arithmetic assumed.
+# The fixed three-level climb would resolve <tmp>/.harness and find no harness.json
+# (SKIP "not onboarded"); the walk-up must find <tmp> and proceed past that skip.
+with tempfile.TemporaryDirectory() as tmpM:
+    featM = os.path.join(tmpM, ".harness", "repoA", "features", "FEAT-77-migrated")
+    os.makedirs(featM)
+    with open(os.path.join(tmpM, ".harness", "team-config.yaml"), "w") as f:
+        f.write("agents: {}\n")
+    with open(os.path.join(tmpM, ".harness", "harness.json"), "w") as f:
+        json.dump({"github": {"sync": False, "repo": None}}, f)
+    rM = run(["open", featM], tmpM)
+    check("migrated_depth: a segment-deep feature dir resolves the root rather than skipping",
+          "project not onboarded" not in (rM.stdout + rM.stderr), rM.stdout + rM.stderr)
+
+# not_onboarded: NO harness.json anywhere above the feature dir — the fallback branch
+# must still reach skip() with the message gh-sync.py prints today (taken from source).
+with tempfile.TemporaryDirectory() as tmpN:
+    featN = os.path.join(tmpN, ".harness", "features", "FEAT-78-bare")
+    os.makedirs(featN)
+    rN = run(["open", featN], tmpN)
+    check("not_onboarded: no harness.json above -> the fallback reaches skip() at exit 0",
+          rN.returncode == 0
+          and "no .harness/harness.json — project not onboarded" in (rN.stdout + rN.stderr),
+          rN.stdout + rN.stderr)
+
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

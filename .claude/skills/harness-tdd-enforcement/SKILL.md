@@ -118,7 +118,7 @@ and those are different questions — a green suite has never meant a green `ver
 Your dispatch carries the task's `T-NN` id and its `verify:` command **verbatim** (the lead is
 required to quote both). Run the command before you return, report the result as `task_verify`, and
 paste the command together with its **verbatim** output into your B-7 receipt at
-`.harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`.
+`.harness/harness/features/<FEAT>/notes/receipt-<your-agent-name>-<runid>.md`.
 
 Why the receipt and not just the field: `task_verify: pass` is a claim, and a claim with nothing
 behind it converts a skipped check into an unfalsifiable one. The receipt is what a reviewer checks

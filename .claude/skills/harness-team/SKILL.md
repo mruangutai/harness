@@ -42,7 +42,7 @@ registry — there is no catalog to keep in sync.
 ### 2. Open the run
 
 ```
-.harness/features/<feat>/runs/<YYYY-MM-DD>-<seq>-<squad>/
+.harness/harness/features/<feat>/runs/<YYYY-MM-DD>-<seq>-<squad>/
   state.yaml
 ```
 
@@ -54,7 +54,7 @@ and one `steps:` entry per team step with `status: pending`.
 
 **A team file carries EITHER a literal `steps:` DAG OR a `steps_from:` expansion rule.** With
 `steps_from:`, expand it into concrete steps FIRST, then seed exactly as above: read the source it
-names (`plan_tasks` = `.harness/features/<feat>/plan.yaml`'s `tasks:` list, loaded with
+names (`plan_tasks` = `.harness/harness/features/<feat>/plan.yaml`'s `tasks:` list, loaded with
 `harness_yaml.load_plan`; a feature still on the pre-DEC-182 format uses `PLAN.md`'s `## Tasks`
 instead — the two never coexist, and `check-plan-routes.py` refuses a feature carrying both);
 take the task ids

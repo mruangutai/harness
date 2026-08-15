@@ -75,6 +75,6 @@ DIGEST:
     - { id: Q1, question: "<text>", blocking: true|false }   # [] if none
   files_touched: [<paths>]        # [] if you changed none
   expertise_update: [<ops>]       # [] except under a distillation dispatch (harness-expertise)
-artifact: <.harness/features/<FEAT>/DESIGN.md>
+artifact: <.harness/harness/features/<FEAT>/DESIGN.md>
 ```
 ````

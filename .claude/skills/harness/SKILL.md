@@ -8,7 +8,7 @@ user-invocable: false
 
 You are `harness-orchestrator`, running **one feature**. The main session spawned you with a feature
 id and a goal; several of you may be running at once, one per flow, which is why everything you own
-is namespaced under `.harness/features/<FEAT>/` (DEC-120).
+is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
 
 ## The loop
 
@@ -132,7 +132,7 @@ feature goes BLOCKED with nothing wrong. The defaults live in harness.json —
 Members raise `open_questions` → their lead unions them upward → **you** either answer from
 context you hold (BRIEF, PLAN, a peer lead), or return `awaiting_user`. You cannot ask the user
 anything. When the main session re-delegates you with an answers file
-(`.harness/features/<FEAT>/notes/answers-<runid>.md`), pass its **path** into the re-dispatched run —
+(`.harness/harness/features/<FEAT>/notes/answers-<runid>.md`), pass its **path** into the re-dispatched run —
 `resume_from` semantics: the run picks up from its checkpointed `state.yaml`, not from scratch.
 
 **A question a measurement can close is not a question for the user.** Before you return
@@ -265,7 +265,7 @@ Dispatched in the SAME turn as ship-refresh, never as a following round:
 1. Dispatch **each lead that ran this feature** once: "distill — **read
    `.claude/skills/harness-distill/SKILL.md` first (NOT preloaded, DEC-158) and tell each member to
    read it too**, read your members' observation logs under
-   `.harness/features/<FEAT>/observations/`, **and skim the feature's run digests for
+   `.harness/harness/features/<FEAT>/observations/`, **and skim the feature's run digests for
    lessons the member never logged**, then have each member distill what passes the six-spawns
    test into its Expertise file, run
    `bin/check-expertise.sh .harness/expertise/`, report per-section counts before and after."
@@ -353,7 +353,7 @@ wholesale sweep (DEC-150).
    nature (`bug`/`chore`/enhancement). The ID exists so the user can strike rows by name rather than
    by quoting them. On the user's ship acceptance the unstruck ones become backlog issues
    (DEC-138 am.4); anything not listed here dies silently, so list them all.
-3. Write it to `.harness/features/<FEAT>/notes/ship-review-<runid>.md` — plain English, bounded length,
+3. Write it to `.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md` — plain English, bounded length,
    conclusions first. It is the one artifact addressed to a human. Then render the reading view:
    `python3 .claude/skills/harness/bin/render-brief.py <that path>` writes the `.html` sibling. The
    markdown stays the record; **never hand-author the HTML** — same law as `render-map.py` (DEC-141).

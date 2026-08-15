@@ -14,7 +14,7 @@ The last gate, and the only one that is not an agent's opinion.
 
 ### 1. Collect the criteria that need a human
 
-Read `.harness/features/<FEAT>/BRIEF.md`. Take every `SC-NN` with `verify: uat`.
+Read `.harness/harness/features/<FEAT>/BRIEF.md`. Take every `SC-NN` with `verify: uat`.
 
 **If there are none, say so and stop.** A change with no human-judgeable criteria needs no UAT — do not
 manufacture one. That is a legitimate and common outcome for backend-only work.
@@ -68,7 +68,7 @@ Rules for steps:
   are probably too vague; go back to the BRIEF.
 - **Include the failure you most suspect.** If something feels fragile, make it a step.
 
-Write to `.harness/features/<FEAT>/notes/uat.md`. Committed, so what was accepted and when is on the record.
+Write to `.harness/harness/features/<FEAT>/notes/uat.md`. Committed, so what was accepted and when is on the record.
 
 ### 4. Hand it over
 
@@ -90,7 +90,7 @@ A failed UAT consumes a fix cycle. Do not argue with the result or reinterpret i
 
 ```
 UAT ready — 2 steps, about 3 minutes.
-.harness/features/FEAT-01/notes/uat.md
+.harness/harness/features/FEAT-01/notes/uat.md
 
 Everything else is already green: 14 unit tests, 31 python tests,
 review passed with 2 non-blocking notes.

@@ -72,7 +72,7 @@ steps_from:
   #     `on_fail: loop_back`, and harness-team/SKILL.md step 3.5 (DEC-117) requires
   #     cycle-namespaced outputs on anything that re-runs: a PASS on cycle 2 would
   #     otherwise overwrite the FAIL report that justified the cycle.
-  outputs: [".harness/features/{{feat}}/notes/receipt-harness-{{persona}}-{{task_id}}-c{{cycle}}.md"]
+  outputs: [".harness/harness/features/{{feat}}/notes/receipt-harness-{{persona}}-{{task_id}}-c{{cycle}}.md"]
 
   # Forces one-at-a-time dispatch even where the DAG would allow parallelism
   # (harness-team/SKILL.md step (c), DEC-85).

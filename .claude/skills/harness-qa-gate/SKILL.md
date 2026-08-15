@@ -22,7 +22,7 @@ git diff --stat <merge-base>..HEAD
 git diff <merge-base>..HEAD
 ```
 
-If `.harness/features/<FEAT>/review_sha` exists, diff `base..<review_sha>` instead — reviewing a pinned
+If `.harness/harness/features/<FEAT>/review_sha` exists, diff `base..<review_sha>` instead — reviewing a pinned
 SHA, not a moving `HEAD`.
 
 ### 2. Classify each changed path

@@ -22,7 +22,7 @@ git merge-base HEAD <base>              # this is base
 Record it:
 
 ```
-.harness/features/<FEAT>/review_sha     # contains the SHA and the timestamp
+.harness/harness/features/<FEAT>/review_sha     # contains the SHA and the timestamp
 ```
 
 Every subsequent step diffs `base..<review_sha>`. **Never `..HEAD`.** If a `review_sha` already exists
@@ -49,7 +49,7 @@ user's change is worse than halting.
 **Ordered first deliberately** — wrong-thing-built-well is the costlier failure, and finding it
 second wastes the quality pass.
 
-Read `.harness/features/<FEAT>/BRIEF.md`. For each `REQ-NN` and each `SC-NN`:
+Read `.harness/harness/features/<FEAT>/BRIEF.md`. For each `REQ-NN` and each `SC-NN`:
 
 - Is it delivered by this diff, or explicitly out of scope for this change?
 - For `verify: automated` criteria — does the named test kind actually exercise it? (`harness-qa-gate`

@@ -38,12 +38,15 @@
 - P-12: WHEN a member is barred from running the checker that validates its own output DO read
   the checker and apply its rule yourself before accepting — the carve-out moves the check to
   you, it does not remove it.
-- P-13: WHEN a verify command asserts a generator's output matches the tree DO ask what makes it
-  red — `generate && git diff --exit-code` passes when the author wrote nothing; pair it with a
-  stdout diff and a grep for a mandated literal.
-- P-14: WHEN a plan declares a pattern that detects a stale form DO audit it against every real
-  occurrence in the target file — a pattern generalised from the commonest site misses the
-  variants, and the file then reports clean while carrying dead sites.
+- P-13: WHEN a verify rests on a generator diff or a glob-driven scan DO ask what its empty
+  case returns — `generate && git diff --exit-code` passes when nothing was written, a
+  zero-match glob exits 0; pair each with an assertion on content
+- P-14: WHEN a sweep or detector keys on one spelling of the thing it hunts DO enumerate the
+  other spellings — joined tuples, depth arithmetic, wildcards — before trusting its file list
+  or its clean report; sites it cannot spell are absent from both
+- P-15: WHEN a must-fix has to land inside one atomic commit DO specify the remedy's SHAPE, not
+  just its presence — a fix that reddens existing fixtures for a brand-new reason cannot ship in
+  that commit, so the shape leaving them green is the requirement
 
 ## Gotchas (max 15)
 - G-01: `.claude/skills/harness/bin/**` sits in both backend-dev's and dev-ops's domain in

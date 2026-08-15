@@ -87,7 +87,7 @@ TOKEN_RE = re.compile(r"harness-deploy|deploy\.sh|harness-registry|registry\.jso
 
 # Historical records that stay true as written — excluded from the sweep, and nothing else.
 EXCLUDED_EXACT = {"docs/harness/DECISIONS.md"}
-EXCLUDED_PREFIXES = (".harness/logs/", ".harness/notes/", ".harness/features/")
+EXCLUDED_PREFIXES = (".harness/logs/", ".harness/notes/", ".harness/harness/features/")
 
 # EXACTLY TWO ENTRIES. Declared here, never derived from what happens to be present, so a new
 # unswept site fails rather than being silently absorbed. Path-scoped: an entry exempts its path

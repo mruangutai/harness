@@ -10,10 +10,9 @@
 - P-03: WHEN the member who owns a gate decision was skipped DO make that call yourself and report
   it as overridable in either direction — a gate nobody fired is indistinguishable in the record
   from a gate that passed.
-- P-04: WHEN relaying a distillation candidate DO drop anything the member already carries at
-  spawn — its observations log, its injected Expertise, or a preloaded role rule. A candidate
-  restating what is already in context cannot change behaviour, and its acceptance rate measures
-  the relay, not the lesson.
+- P-04: WHEN relaying a distillation candidate DO grep the member's OWN prior artifacts for it, not
+  only what it carries at spawn. A candidate restating a member's own note is graded as its
+  material, and its acceptance rate then measures your relay rather than the lesson.
 - P-05: WHEN a dispatch hands you an enumerated set of sites DO re-run the enumeration yourself with
   a wider pattern before dispatching — until it is re-run wide the set is a sample, and a
   pre-measured baseline makes the post-edit check sound by construction rather than by report.
@@ -35,6 +34,13 @@
 - P-11: WHEN a member re-anchors a stale citation set DO count the clauses each pointer covers
   before and after, not merely their currency — a thinner-but-current pointer that folds two
   clauses onto one head silently deletes evidence, and it rides in on the fix for staleness.
+- P-12: WHEN a handed-down constraint carries its own justification DO check what that justification
+  is ABOUT against what the constraint claims — a reason naming one tool's reading scope says
+  nothing about what breaks at runtime, and a rationale contradicting its own constraint settles
+  the question with no new evidence.
+- P-13: WHEN you are about to credit your own tier with seeing something first DO grep the member's
+  artifact for it before the claim is filed. A finding the member raised and declined to act on
+  reads like one it missed, and the digest is what the record keeps.
 
 ## Gotchas (max 15)
 - G-01: WHEN a test name or label is offered as evidence DO read the invocation it wraps — labels
@@ -55,6 +61,12 @@
 - G-06: WHEN a member reports a cycle count DO recount it as send-backs you yourself issued and
   check what the tier above already charged — a member cannot see another squad's rework, so an
   inherited cycle gets double-counted against the feature budget.
+- G-07: WHEN a fix cycle lands a commit after a goal-check DO re-check the criteria graded met at
+  the earlier commit, not just the one the cycle targeted — those grades are stale, not wrong, and
+  a criterion constraining commit shape is falsified by the very commit that closed another.
+- G-08: WHEN a member's output appears to be missing a standard artifact DO check which role's
+  domain owns that path before flagging it — a file another tier creates at a later stage is
+  indistinguishable on disk from an omission, and the member cannot create it at all.
 
 ## Outcomes (max 10)
 - O-01: WHEN a cosmetic defect sits in a file a human is already about to open DO fold it into that
@@ -63,5 +75,8 @@
 - O-02: WHEN a member's receipt disagrees with the artifact it wrote and the artifact is correct DO
   rebuild the receipt from the file and state in your digest that you did — a re-spawn over a
   report-only defect is waste, and normalising it silently is the worse error.
+- O-03: WHEN a member's displacement choice during distillation looks arguable DO record the
+  reservation and let it stand — the judgment is the member's by rule, and a send-back over one
+  entry costs a spawn to overturn a call you were not given.
 
 ## Open (max 5)
