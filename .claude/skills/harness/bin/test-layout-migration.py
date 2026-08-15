@@ -330,75 +330,72 @@ with tempfile.TemporaryDirectory() as tmp:
           code == 1, out)
 
 # ------------------------------------------------------------------- case 20
-# FEAT-21 T-01 (issue #387): CI/session-entry PARITY, pinned. The two renderings of
-# a verdict — layout_migration.render() for CI and check-state.sh's INV-27 block at
-# session entry — must name the same readers and carry the same cause wording. This
-# seam diverged twice on 2026-08-14 with nothing holding it; these cases construct
-# SurfaceReports DIRECTLY (no fixture tree) and compare the two texts. The INV-27
-# side is composed here exactly as check-state.sh composes it, from the same
-# blame_text/cause_text pair — so if render() ever grows its own filtering again,
-# the named sets diverge and this reddens.
-def _ci_text(rep):
-    res = lm.Result("/parity-root", True, {rep.surface: rep}, 1, 1, len(rep.readers))
-    return lm.render(res)
+# FEAT-21 SC-10 (issue #387): CI/session-entry PARITY, pinned against the REAL gate.
+# The first draft of this case hand-mirrored check-state.sh's INV-27 composition in a
+# helper — and a copy cannot detect drift in the thing it copies: dropping a blamed
+# reader inside check-state.sh left the case green while reddening the integration
+# suite. THERE IS NO SECOND MIRROR HERE: the session-entry side is the actual
+# check-state.sh run against a fixture tree, and the CI side is layout_migration's
+# render() over a scan of the SAME tree. If either call site grows its own filtering
+# or wording, the named reader sets diverge and this reddens.
+import subprocess as _sp
 
-
-def _inv27_text(rep):
-    # check-state.sh's composition, mirrored: MIXED names blame_text inline;
-    # CANNOT_VERIFY is cause_text plus a "; readers: " suffix when blame is non-empty.
-    if rep.verdict == lm.MIXED:
-        ev = "+".join(sorted(rep.evidence)) if rep.evidence else "none"
-        return "INV-27 %s: layout is MIXED — evidence %s; readers %s." % (
-            rep.surface, ev, lm.blame_text(rep))
-    if rep.verdict == lm.CANNOT_VERIFY:
-        named = lm.blame_text(rep)
-        suffix = "; readers: %s" % named if named else ""
-        return "INV-27 CANNOT VERIFY %s: %s%s." % (
-            rep.surface, lm.cause_text(rep, "/parity-root"), suffix)
-    return ""  # clean appends nothing at session entry
-
-
+_CHECK_STATE = os.path.join(HERE, "check-state.sh")
 ALL_READER_PATHS = [r.path for r in lm.READER_TABLE]
 
 
-def _named_in(text, readers):
-    return {p for p, _f in readers if p in text}
+def _parity_tree(build_kwargs, extra=None):
+    """One parity comparison: REAL gate vs render(), same tree."""
+    tmp = tempfile.mkdtemp()
+    try:
+        build(tmp, **build_kwargs)
+        with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
+            f.write('{"github": {"sync": false, "repo": null}}')
+        if extra:
+            extra(tmp)
+        env = dict(os.environ)
+        env["CLAUDE_PROJECT_DIR"] = tmp
+        r = _sp.run([_CHECK_STATE], cwd=tmp, capture_output=True, text=True, env=env)
+        gate = "\n".join(l for l in r.stdout.splitlines() if "INV-27" in l)
+        res = lm.scan(tmp)
+        ci = lm.render(res)
+        return gate, ci, res
+    finally:
+        import shutil
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
-def _parity(label, rep):
-    ci, inv = _ci_text(rep), _inv27_text(rep)
-    check("case 20 parity: %s — both renderings name the same reader set" % label,
-          _named_in(ci, rep.readers) == _named_in(inv, rep.readers),
-          "CI: %r\nINV-27: %r" % (ci, inv))
-    if rep.verdict == lm.CANNOT_VERIFY:
-        clause = lm.cause_text(rep, "/parity-root").split(" — ")[0]
-        check("case 20 parity: %s — the cause token is identical in both" % label,
-              clause in ci and clause in inv, "CI: %r\nINV-27: %r" % (ci, inv))
+def _parity(label, build_kwargs, extra=None):
+    gate, ci, res = _parity_tree(build_kwargs, extra)
+    gate_named = {p for p in ALL_READER_PATHS if p in gate}
+    ci_named = {p for p in ALL_READER_PATHS if p in ci}
+    check("case 20 parity: %s — real gate and render name the same reader set" % label,
+          gate_named == ci_named, "GATE: %r\nCI: %r" % (gate, ci))
+    rep = res.surfaces.get("features") if res.applicable else None
+    if rep is not None and rep.verdict == lm.CANNOT_VERIFY:
+        clause = lm.cause_text(rep, res.root).split(" — ")[0]
+        check("case 20 parity: %s — the cause clause is identical in both" % label,
+              clause in gate and clause in ci, "GATE: %r\nCI: %r" % (gate, ci))
 
 
-_R = lm.SurfaceReport
-_parity("MIXED, two readers, different formsets",
-        _R("features", lm.MIXED, {"legacy"},
-           [(ALL_READER_PATHS[0], "migrated"), (ALL_READER_PATHS[1], "legacy")], None))
-_parity("CANNOT_VERIFY unreadable",
-        _R("features", lm.CANNOT_VERIFY, {"legacy"},
-           [(ALL_READER_PATHS[0], "unreadable"), (ALL_READER_PATHS[1], "legacy")],
-           "unreadable"))
+_parity("MIXED, one migrated reader on legacy evidence",
+        dict(forms={".harness/team-config.yaml": "migrated"}))
 _parity("CANNOT_VERIFY neither",
-        _R("docs", lm.CANNOT_VERIFY, {"legacy"},
-           [(ALL_READER_PATHS[4], "neither")], "neither"))
-_parity("CANNOT_VERIFY no-evidence with a both-tagged reader",
-        _R("docs", lm.CANNOT_VERIFY, set(),
-           [(ALL_READER_PATHS[5], "both")], "no-evidence"))
-_parity("CANNOT_VERIFY no-rows",
-        _R("features", lm.CANNOT_VERIFY, {"legacy"}, [], "no-rows"))
+        dict(forms={".claude/skills/harness/bin/check-domain.sh": "neither"}))
+_parity("CANNOT_VERIFY unreadable",
+        dict(forms={".claude/skills/harness/bin/check-domain.sh": "unreadable"}))
+_parity("CANNOT_VERIFY no-evidence",
+        dict(features_evidence=(), docs_evidence=("legacy",)))
 _parity("CANNOT_VERIFY undeclared-segment (carries detail)",
-        _R("features", lm.CANNOT_VERIFY, {"legacy"},
-           [(ALL_READER_PATHS[0], "legacy")], "undeclared-segment",
-           (".harness/archive/features/FEAT-old/feature.json",)))
-_parity("CLEAN names nobody anywhere",
-        _R("features", lm.CLEAN, {"legacy"},
-           [(ALL_READER_PATHS[0], "legacy")], None))
+        dict(),
+        extra=lambda tmp: (
+            os.makedirs(os.path.join(tmp, ".harness", "archive", "features", "F-old")),
+            open(os.path.join(tmp, ".harness", "archive", "features", "F-old",
+                              "feature.json"), "w").write("{}")))
+_parity("CLEAN names nobody at either site", dict())
+# no-rows cannot be produced through a fixture tree (it requires a reader-table
+# override, and the REAL gate runs the real module) — its wording remains covered by
+# check-state's own case_x and by cause_text's unit coverage; noted, not mirrored.
 
 # ---------------------------------------------------------------------- report
 fails = 0
