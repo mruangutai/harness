@@ -1,0 +1,1133 @@
+schema: plan/1
+feature: FEAT-21-features-layout-migration
+
+approval:
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: "2026-08-14"
+
+lanes:
+  resolved_at: 62fef85
+  measurement: >-
+    Every row below was MEASURED, not inferred: check-domain.sh --resolve was run on one
+    representative path per row with the working tree at 62fef85 (git rev-parse HEAD confirmed
+    before and unchanged), and the verbatim answer is quoted in each row's resolve field. The eng
+    review could not take these measurements because leads hold no Bash (Read, Glob, Grep, Agent
+    per DEC-116); pm took them here.
+  rows:
+    - surface: .harness/team-config.yaml
+      lane: main-session-direct
+      resolve: NOBODY
+      reason: "measured NOBODY: no agent may write the file that declares the grants."
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "DEC-174 carve-out named in CLAUDE.md - a registered PreToolUse gate script. The measured grant is overridden by the carve-out, which is why the measurement does not settle the lane on its own."
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "DEC-174 carve-out named in CLAUDE.md - the state gate. Carve-out overrides the measured grant."
+    - surface: .claude/skills/harness/bin/check-plan-routes.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "Carve-out by content on the FEAT-20 precedent: it shells out to check-domain.sh --resolve and is the CI plan-route gate, so its own green cannot vouch for it. Carve-out overrides the measured grant."
+    - surface: .claude/skills/harness/bin/layout_migration.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "Carve-out by content, ruled in FEAT-20: check-state.sh computes INV-27's verdict from this module's return value. Carve-out overrides the measured grant."
+    - surface: .claude/skills/harness/bin/test-layout-migration.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "co-changes with the module a gate verdict is computed from, in the same diff a human reads. Carve-out overrides the measured grant."
+    - surface: .claude/skills/harness/bin/test-check-state.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "co-changes with check-state.sh, in the same diff a human reads. Measured on this path as the representative for every test-*.py row below, all of which share the bin/** grant."
+    - surface: .claude/skills/harness/bin/test-check-domain.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "co-changes with check-domain.sh, in the same diff a human reads"
+    - surface: .claude/skills/harness/bin/test-check-plan-routes.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "co-changes with check-plan-routes.py and with the grant it quotes verbatim"
+    - surface: .claude/skills/harness/bin/test-bash-write-guard.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "asserts the live grants through bash-write-guard.sh, itself a DEC-174 carve-out"
+    - surface: .claude/skills/harness/bin/test-harness-yaml.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "its COLLECT_FIXTURE inlines the real team-config.yaml grant strings, so it moves with the grants"
+    - surface: .claude/skills/harness/bin/test-no-distribution.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "its sweep exclusion is a literal .harness/features/ prefix, coupled to the move"
+    - surface: .claude/skills/harness/bin/test-factory-cli.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "opens a real feature's plan.yaml at module scope, so the move breaks its import; it is in UNIT_SCRIPTS and reddens the whole unit suite. Edited in the same human-read diff as the move."
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "pulled forward from unit 9 per D-07; it derives the control-plane root by path-depth arithmetic and fails silently after the move. Edited in the same human-read diff as the move."
+    - surface: .claude/skills/harness/bin/validate-feature-json.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "pulled forward from unit 9 per D-07; it is the CI backstop for an unregistered write-time gate and would tick green over zero files after the move."
+    - surface: .claude/skills/harness/bin/branch-create-gate.sh
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: "a registered gate script that hard-denies branch creation post-move; edited in the same human-read diff as the move. Carve-out by content overrides the measured grant."
+    - surface: .github/workflows/tests.yml
+      lane: main-session-direct
+      resolve: harness-dev-ops
+      reason: "measured harness-dev-ops at 62fef85, and the grant is real rather than overridden by any carve-out. It goes main-session-direct anyway because its only edit here is the comment and the operator message describing the two steps D-07 pulls forward, which are meaningless outside that diff. This is the one row in the feature whose lane is chosen against a live grant."
+    - surface: .gitignore
+      lane: main-session-direct
+      resolve: NOBODY
+      reason: "measured NOBODY"
+    - surface: .claude/agents/**
+      lane: main-session-direct
+      resolve: NOBODY
+      reason: "deliberately unowned - team-config.yaml records that an agent editing agent definitions is self-modification. Measured NOBODY on .claude/agents/harness-orchestrator.md."
+    - surface: .claude/skills/**
+      lane: main-session-direct
+      resolve: NOBODY
+      reason: >-
+        Measured NOBODY on four representatives spanning every shape this feature touches -
+        .claude/skills/harness-handoff/SKILL.md, .claude/skills/harness/references/missions.md,
+        .claude/skills/harness/teams/build.yaml and .claude/commands/harness.md. The one exception
+        is .claude/skills/harness/bin/**, granted to harness-backend-dev and harness-dev-ops and
+        declared row by row above.
+    - surface: .harness/features/FEAT-21-features-layout-migration/**
+      lane: main-session-direct
+      resolve: harness-orchestrator harness-pm on plan.yaml; harness-backend-dev harness-orchestrator on a notes/receipt path
+      reason: >-
+        The feature's own record moves inside the same commit; from that commit its path is
+        .harness/harness/features/FEAT-21-features-layout-migration/. The measured grants are
+        per-artifact rather than whole-directory, which is why no single agent can be handed the
+        move; it goes main-session-direct with the cluster.
+
+decisions:
+  - id: D-01
+    choice: >-
+      Grants, globs and regexes take a WILDCARD repository segment
+      (.harness/*/features/... and .harness/[^/]+/features/...), never a hardcoded harness segment.
+      Prose instructions, which must name a path an agent can actually write, take the literal
+      .harness/harness/features/... .
+    because: >-
+      team-config.yaml is one global file (issue 346), so a hardcoded segment grows a line per
+      repository forever in a hand-edited shared file, and harness_boundary.glob_to_re supports no
+      placeholder. Accepted cost, recorded rather than argued away - until unit 7's agent_id
+      mechanism lands, a write into an undeclared segment is grantable; the layout buys locality
+      and per-repo resolution, not write isolation.
+    dec: none
+  - id: D-02
+    choice: >-
+      The atomic commit is WIDER than the five-item cluster issue 344 named. It also carries the
+      test suites pinned to the old path, the guard-enforced instruction paths in agents, skills,
+      team definitions and the harness command, branch-create-gate.sh, this repository's own
+      .gitignore, the three path-depth resolvers pulled forward by D-07 - test-factory-cli.py,
+      gh-sync.py and validate-feature-json.py - and the one CI comment that describes the sweep
+      D-07 pulls forward, in .github/workflows/tests.yml. In task terms, stated identically
+      wherever this plan states it: exactly one commit carrying T-02 through T-08, T-10 and T-09;
+      T-01 is its own earlier commit.
+    because: >-
+      Each of those is enforced by the same grants or globs that move, or resolves a feature path by
+      arithmetic over the same depth. Leave the suites and the landed commit is red; leave the
+      instruction paths and every doer's own bookkeeping write is denied at the next dispatch; leave
+      branch-create-gate.sh and no branch can be created for any feature; leave .gitignore and every
+      run directory becomes untracked, which halts a team run on a dirty tree; leave
+      test-factory-cli.py and the unit suite dies on import; leave gh-sync.py and every GitHub
+      mirror command succeeds while doing nothing; leave validate-feature-json.py and the CI schema
+      backstop ticks green over zero files.
+    dec: none
+  - id: D-03
+    choice: >-
+      The blame and cause parity test of issue 387 lands FIRST, as its own commit, before anything
+      moves.
+    because: >-
+      This feature makes the detector's rendered finding a stop condition at two call sites, and the
+      validator recommended pinning that seam before unit 3 leans on it. It is test-only and touches
+      no file the move touches, so it costs the atomic commit nothing.
+    dec: none
+  - id: D-04
+    choice: >-
+      Issue 356 is NOT folded in. Only its two literals that name .harness/features/ are re-anchored
+      here, as move-coupling. The ticket stays open and whole.
+    because: >-
+      Its defect is that a relative path in prose resolves against the agent's working directory,
+      which in a factory workspace is not the control plane - orthogonal to which literal the prose
+      names. Its own closing comment records the design as unruled on three counts, and no factory
+      worker has ever run, so nothing regresses by deferring it. Folding an unruled design into an
+      atomic migration commit is how a reviewable diff stops being reviewable.
+    dec: none
+  - id: D-05
+    choice: >-
+      .claude/skills/harness-init/SKILL.md and everything under .claude/skills/harness/templates/
+      KEEP the legacy .harness/features/ literal, unchanged.
+    because: >-
+      Both describe a path inside the tree being ONBOARDED, not inside harness's control plane, and
+      an onboarded product's own .harness/ does not move in this unit. Neither is in the detector's
+      reader table, so neither reddens it. Recorded because a scan for surviving literals will
+      re-suggest them.
+    dec: none
+  - id: D-06
+    choice: Every task in this feature is main-session-direct. No squad is dispatched.
+    because: >-
+      Two of DEC-174's four named carve-out scripts are in the cluster, layout_migration.py is one
+      by content, and every remaining surface resolves to NOBODY. The cost, stated rather than
+      argued away - the whole feature is built by hand and no team-lane review runs over it; the
+      compensating control is the human reading one diff, which is the same control DEC-174 exists
+      to preserve.
+    dec: DEC-174
+  - id: D-07
+    choice: >-
+      gh-sync.py's root derivation and validate-feature-json.py's discovery glob are PULLED FORWARD
+      out of unit 9 into this atomic commit, alongside test-factory-cli.py's module-scope plan read.
+      The rest of unit 9 - factory_claim.py, templates/gitignore.snippet, merge-gitignore.sh and
+      informational prose - stays in unit 9 and is untouched here, with ONE named exception: the
+      comment in .github/workflows/tests.yml that describes what the pulled-forward
+      validate-feature-json.py sweep globs. That comment is informational prose by form, but it
+      describes the very step this decision moves, so leaving it behind would tell a CI reader the
+      sweep globs a path nothing occupies - the defect class T-04 and T-10 exist to close, one file
+      over. It rides here, in T-10.
+    because: >-
+      Map 336 files the first two under unit 9 "anytime", which is a DEPENDENCY-ORDER claim rather
+      than a prohibition, and this plan already applied the override test once when it pulled
+      branch-create-gate.sh forward for hard-blocking post-move. That test selects for LOUD, but the
+      BRIEF's own severity ordering says SILENT is worse, and both of these are silent. Measured at
+      62fef85 - gh-sync.py:729 derives root as feat_dir/../../.., which post-move resolves to
+      <repo>/.harness, load_config finds no harness.json and takes skip(), documented at gh-sync.py
+      lines 72-75 as "one loud line, exit 0. The mirror never gates", so all six mirror commands
+      succeed while doing nothing; validate-feature-json.py:41 globs the legacy path and keeps exit
+      0 on zero matches by its own comment, so the CI backstop - the step named "Validate feature
+      execution state" in .github/workflows/tests.yml, the only backstop for a write-time gate that
+      is not registered - becomes a green tick over zero files.
+      test-factory-cli.py is not a judgement call at all - it opens a real feature's plan.yaml at
+      module scope and is in UNIT_SCRIPTS, so post-move the whole unit suite dies on import and
+      T-09's own suite check fails. The cost is diff size, not correctness - measured at 62fef85,
+      none of the three is a row in layout_migration.READER_TABLE (lines 74-101, whose four features
+      rows are team-config.yaml, check-domain.sh, check-plan-routes.py and check-state.sh), so the
+      detector reads none of them either way and none reddens it at any commit. Two of the three,
+      gh-sync.py and validate-feature-json.py, are ADDITIONALLY on the module's explicit
+      DO-NOT-READ list at lines 42-44; test-factory-cli.py is NOT on that list and does not need to
+      be, because the list constrains only which files a row may name.
+    dec: none
+  - id: D-08
+    choice: >-
+      check-state.sh's feature dictionaries KEEP keying on the bare directory basename. Only the
+      finding LABEL gains its repository segment, built from the discovered path rather than from
+      the key. The key-collision defect proper is deferred to unit 5 or unit 8.
+    because: >-
+      Once discovery globs a segment, two repositories holding a same-named feature directory
+      collapse last-write-wins - and DEC-133 coins ids per-BRIEF with no cross-repo uniqueness rule
+      while every onboarded repo starts at FEAT-01, so the collision is likely rather than exotic.
+      It cannot fire at this feature's landed commit, because one repository exists. Qualifying the
+      KEY is the tempting fix and is the one measured hazard here - check-state.sh derives the
+      feature name in two different shapes, os.path.basename(os.path.dirname(p)) at ten sites and
+      os.path.basename(_fp) at the station-mirror site whose lookup is plan_docs.get(_feat). Qualify
+      one shape and not the other and every station-mirror check silently continues past every
+      feature - a fail-open of exactly the class this feature exists to prevent, introduced inside
+      an already-large atomic commit for a defect that cannot yet fire. The label change carries the
+      operator benefit at none of that risk, and it is what T-05 already promised.
+    dec: DEC-133
+
+tasks:
+  - id: T-01
+    title: Pin the blame and cause parity between the CI and session-entry renderings
+    traces: [REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "co-changes with layout_migration.py, a DEC-174 carve-out by content (FEAT-20 D-02)"
+    depends_on: []
+    status: building
+    files:
+      - .claude/skills/harness/bin/test-layout-migration.py
+    verify: |
+      u=$(mktemp); ru=0
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >"$u" 2>&1 || ru=$?
+      grep -q '^PASS test-layout-migration\.py$' "$u" || { echo "the layout suite did not run"; cat "$u"; exit 1; }
+      grep -qi 'parity' "$u" || { echo "no parity case ran"; cat "$u"; exit 1; }
+      exit "$ru"
+    intent: |
+      Close issue 387. Nothing today asserts that layout_migration.render (the CI rendering) and the
+      INV-27 rendering consumed by check-state.sh name the same reader set and the same cause for
+      the same input. That seam produced two divergences on 2026-08-14 and the fix that followed
+      changed the policy without adding a test, so a third divergence would be equally silent.
+
+      Add cases to test-layout-migration.py that construct SurfaceReport values directly - do not go
+      through a fixture tree - and compare the two renderings for the same input. Read
+      layout_migration.py first and use whatever the two call sites actually consume today: both
+      were converted to a shared blame_text/cause_text pair, so the parity surface is one function
+      pair. Cover, at minimum: a MIXED report naming two readers with different formsets; a
+      CANNOT_VERIFY report for each cause value the module defines, including the one that carries
+      detail; and a CLEAN report. For each, assert that the set of reader paths named by one
+      rendering equals the set named by the other, and that the cause token is the same in both.
+
+      Name at least one case with the word parity in its case label - the verify greps for it, and a
+      case that runs under a label nobody can find is a case that silently stops running.
+
+      This task lands as its OWN COMMIT, before anything moves. It touches no file the migration
+      touches.
+
+      THEN, WITH THAT COMMIT LANDED, capture the PRE-MOVE boundary state - this is the only moment in
+      the sequence at which it can be captured, because from T-02 onward the working tree is half
+      edited. Run and save the verbatim output of both, together with git rev-parse HEAD, to a
+      scratch file T-09 will read:
+        python3 .claude/skills/harness/bin/layout_migration.py
+        bash .claude/skills/harness/bin/check-state.sh
+      The detector must print features: CLEAN with evidence legacy, docs: CLEAN with evidence legacy,
+      and a summary of 0 mixed, 0 cannot-verify; check-state.sh must exit 0 emitting no INV-27 line at
+      all. If either is not true, STOP: the base has drifted and this plan's audits were taken against
+      a different tree.
+
+  - id: T-02
+    title: Move the write grants in team-config.yaml onto a wildcard repository segment
+    traces: [REQ-02, REQ-04]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: "check-domain.sh --resolve answers NOBODY at 62fef85"
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .harness/team-config.yaml
+    verify: |
+      python3 - <<'PY'
+      import re, sys
+      t = open('.harness/team-config.yaml', encoding='utf-8').read()
+      bad = [l for l in t.splitlines() if re.search(r'\.harness/features/', l)]
+      if bad:
+          print('legacy form survives on %d line(s):' % len(bad)); print('\n'.join(bad[:5])); sys.exit(1)
+      if not re.search(r'\.harness/\*/features/', t):
+          print('migrated form absent - a deletion would also pass the check above'); sys.exit(1)
+      import subprocess
+      subprocess.run([sys.executable, '-c',
+                      'import yaml,sys; yaml.safe_load(open(".harness/team-config.yaml", encoding="utf-8"))'],
+                     check=True)
+      print('OK')
+      PY
+    intent: |
+      Rewrite every occurrence of the literal .harness/features/ in .harness/team-config.yaml to
+      .harness/*/features/ - a wildcard repository segment, per D-01, never a hardcoded harness.
+
+      THE ROW AUDIT, re-taken at 62fef85 so a later editor can re-run it. The detector's reader-table
+      row for this file has legacy pattern \.harness/features/ and migrated pattern
+      \.harness/[^/ ]+/features/ . At 62fef85:
+        git grep -c '\.harness/features/' 62fef85 -- .harness/team-config.yaml  ->  43
+        git grep -c '\.harness/features'  62fef85 -- .harness/team-config.yaml  ->  43
+      The broader pattern adds no line, so the narrow pattern names every stale site and there is no
+      prose-only occurrence to exclude. All 43 are grant paths or the paths block.
+
+      Every one of the 43 is in scope, including the three that are easy to miss:
+        - the main_session.writes list, whose entries carry a section suffix after the path
+          (BRIEF.md ## Approval and PLAN.md ## Approval);
+        - the orchestrator domain's bare .harness/features/** entry, whose failure is in the literal
+          prefix and not in the wildcard;
+        - the paths block key features: .harness/features/ . Issue 344 verified that NO SCRIPT READS
+          this key - it is decorative - but the detector matches whole text, so a stale value here
+          holds the file MIXED and reddens the landed commit.
+
+      Do not widen any grant to accept both shapes. The gate moves with the files; a grant that
+      accepts the old path as well is a gate that never notices a stale writer.
+
+      Leave .claude/skills/harness/templates/team-config.yaml alone (D-05).
+
+  - id: T-03
+    title: Move check-domain.sh's sweep globs and its four shape regexes onto a repository segment
+    traces: [REQ-02]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out named in CLAUDE.md"
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+    verify: |
+      set -e
+      python3 - <<'PY'
+      import re, sys
+      p = '.claude/skills/harness/bin/check-domain.sh'
+      t = open(p, encoding='utf-8').read()
+      bad = [l for l in t.splitlines() if re.search(r'\.harness/features/', l)]
+      if bad:
+          print('legacy form survives on %d line(s):' % len(bad)); print('\n'.join(bad)); sys.exit(1)
+      if len(re.findall(r"\.harness/\*/features/", t)) != 4:
+          print('expected 4 migrated SWEEP_GLOBS entries'); sys.exit(1)
+      if len(re.findall(r"\\\.harness/\[\^/\]\+/features/", t)) != 4:
+          print('expected 4 migrated shape regexes'); sys.exit(1)
+      print('OK')
+      PY
+      bash -n .claude/skills/harness/bin/check-domain.sh
+    intent: |
+      Rewrite the eight stale sites in check-domain.sh onto a wildcard repository segment (D-01).
+
+      THE ROW AUDIT, re-taken at 62fef85. The detector's row for this file has legacy pattern
+      \.harness/features/ and migrated pattern \.harness/(\*|\[\^/\]\+)/features/ - it accepts
+      either the glob spelling or the regex spelling, because this file carries both. At 62fef85:
+        git grep -c '\.harness/features/' 62fef85 -- .../check-domain.sh  ->  8
+        git grep -c 'features'           62fef85 -- .../check-domain.sh  ->  8
+      The broader pattern adds nothing: there is no prose occurrence in this file, and all eight
+      sites are code. They are, by content rather than by line number:
+
+        SWEEP_GLOBS (four array entries):
+          ".harness/features/*/feature.json"
+          ".harness/features/*/runs/*/state.yaml"
+          ".harness/features/*/notes/handoff-*.md"
+          ".harness/features/*/STATE.md"
+        the four anchored shape regexes:
+          RE_FEATURE_JSON  ^\.harness/features/[^/]+/feature\.json$
+          RE_STATE_YAML    ^\.harness/features/[^/]+/runs/[^/]+/state\.yaml$
+          RE_HANDOFF       ^\.harness/features/[^/]+/notes/handoff-[a-z0-9-]+\.md$
+          RE_STATE_MD      ^\.harness/features/[^/]+/STATE\.md$
+
+      Give the four globs the segment as *, so .harness/*/features/... . Give the four regexes the
+      segment as [^/]+, so ^\.harness/[^/]+/features/[^/]+/... . The existing [^/]+ groups are
+      anchored and by construction cannot cross a path segment, which is why they are rewritten
+      rather than adjusted.
+
+      These regexes are the SILENT half of the failure: if they stop matching, the feature.json
+      budget, the state.yaml key vocabulary and the STATE.md and handoff budgets all stop being
+      enforced with no error, while the sweep still advances the shape-sweep stamp as if the tree
+      were clean. T-09 is what proves they still fire.
+
+  - id: T-04
+    title: Move check-plan-routes.py's feature discovery onto a repository segment
+    traces: [REQ-02]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "carve-out by content - it is the CI plan-route gate and shells out to check-domain.sh --resolve"
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-plan-routes.py
+    verify: |
+      set -e
+      python3 - <<'PY'
+      import re, sys
+      p = '.claude/skills/harness/bin/check-plan-routes.py'
+      t = open(p, encoding='utf-8').read()
+      if re.search(r'"\.harness", "features"', t):
+          print('legacy discovery join survives'); sys.exit(1)
+      if not re.search(r'"\.harness", [^,)]+, "features"', t):
+          print('migrated discovery join absent'); sys.exit(1)
+      lines = t.splitlines()
+      stale = [l for l in lines if 'print(' in l and '.harness/features/' in l]
+      if stale:
+          print('a diagnostic message still names the pre-move path on %d line(s):' % len(stale))
+          print('\n'.join(stale)); sys.exit(1)
+      shown = [l for l in lines if 'print(' in l and '.harness/*/features/' in l]
+      if len(shown) != 2:
+          print('expected exactly 2 message lines naming the migrated path, found %d' % len(shown))
+          print('\n'.join(shown)); sys.exit(1)
+      print('OK')
+      PY
+      python3 -c "import py_compile; py_compile.compile('.claude/skills/harness/bin/check-plan-routes.py', doraise=True)"
+      python3 .claude/skills/harness/bin/check-plan-routes.py --help >/dev/null 2>&1 || true
+    intent: |
+      Rewrite check-plan-routes.py's feature discovery so it finds plans under a repository segment.
+
+      THE ROW AUDIT, re-taken at 62fef85. The detector's row for this file is CODE-SHAPED: legacy
+      pattern "\.harness", "features" and migrated pattern "\.harness", [^,)]+, "features" . At
+      62fef85 the narrow pattern matches exactly ONE site:
+        feats = os.path.join(root, ".harness", "features")
+      The broader pattern os\.path\.join\(root, "\.harness" adds exactly one further line - the
+      team-config.yaml root probe, os.path.join(root, ".harness", "team-config.yaml") - which is not
+      a features site and must NOT be touched. So the narrow pattern names every stale site.
+
+      Change the discovery so that instead of scanning one level under .harness/features it scans
+      one level under each repository segment: build the root as
+      os.path.join(root, ".harness", "*", "features") and enumerate through glob, keeping the
+      existing per-feature-directory logic unchanged. The discovery must still count what it will
+      check - the examined and plans counters - and must still exit 0 on a tree that legitimately
+      has zero features, which is a case the file already documents.
+
+      Also update the two DIAGNOSTIC STRINGS that tell a reader where the scan looked, so each names
+      the path actually scanned. There are exactly two, and the verify counts them, so the wording
+      below is pinned rather than suggested:
+
+        the unreadable-path message, today reading
+          f"check-plan-routes: {len(unreadable)} path(s) under .harness/features/ cannot "
+        becomes .harness/*/features/ , the rest of the sentence unchanged;
+
+        the scanning line, today reading
+          print(f"scanning {root}/.harness/features/*/{{plan.yaml,PLAN.md}}")
+        becomes
+          print(f"scanning {root}/.harness/*/features/*/{{plan.yaml,PLAN.md}}")
+
+      WHY THE VERIFY IS SHAPED THE WAY IT IS, and why a whole-file literal sweep would be wrong
+      here. The verify fails on any line carrying BOTH print( and .harness/features/ , then requires
+      exactly two lines carrying print( and .harness/*/features/ . That pair discriminates the two
+      message sites from the narrative comments, which say "prints" or "printed" but never contain
+      print( . Measured at 62fef85: the file carries the legacy literal on six lines, four of them
+      comments (anchored by content, not by number - the module docstring's wildcard-segment example,
+      the classification comment about the .harness/features/ prefix, the malformed-file comment,
+      and the "the glob used to be" history note) and two of them these prints. A blanket sweep would
+      demand edits to all six, and the four comments are a record of a past state, true as written.
+
+      One comment is NOT in that skippable group and must be judged under this instruction rather
+      than under it. The comment above the scan loop - "The scan line still advertises
+      `features/*/PLAN.md`, so the search must keep meaning what that says" - is present-tense
+      NORMATIVE, not historical: it states a constraint the dot-exclusion below it exists to honour.
+      Keep it true. It stays true if the dot-exclusion is preserved through the new segment level as
+      well as the feature level, which is what the change must do; if you find yourself needing to
+      edit that sentence to make it true, the discovery change is wrong, not the sentence.
+
+      Note for whoever verifies this: T-09 invokes check-plan-routes.py with an explicit plan path,
+      which by the file's own comment is the ARGV-LESS-ONLY exception - that form never calls
+      discover_plans(), so neither message is exercised by anything downstream. This verify is their
+      only guard. The scanning line is separately backstopped by test-check-plan-routes.py, whose
+      case case_19a5_the_scan_line_matches_the_glob_that_ran asserts it verbatim; the unreadable-path
+      message is not backstopped by anything, because its case asserts only that "cannot be read" is
+      absent from stderr and never inspects the path text.
+
+      This file is the one issue 344 named as DEFEATED BY EXACTLY THIS SHAPE: a repository segment
+      makes it examine repo directories that contain no plan file, giving examined greater than zero
+      with plans equal to zero, a case its own comment names as uncaught. After this change the
+      counters must count feature directories again.
+
+  - id: T-05
+    title: Move check-state.sh's fifteen feature-discovery sites onto a repository segment
+    traces: [REQ-02]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "DEC-174 carve-out named in CLAUDE.md - the state gate"
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+    verify: |
+      set -e
+      python3 - <<'PY'
+      import re, sys
+      p = '.claude/skills/harness/bin/check-state.sh'
+      t = open(p, encoding='utf-8').read()
+      bad = re.findall(r'.*os\.path\.join\(H, "features".*', t)
+      if bad:
+          print('legacy discovery form survives at %d site(s):' % len(bad)); print('\n'.join(bad)); sys.exit(1)
+      if not re.search(r'os\.path\.join\(H, [^,)]+, "features"', t):
+          print('migrated discovery form absent'); sys.exit(1)
+      print('OK')
+      PY
+      bash -n .claude/skills/harness/bin/check-state.sh
+    intent: |
+      Rewrite every feature-discovery site in check-state.sh so it finds features under a repository
+      segment. This is the highest-value silent failure in the repository: if these sites stop
+      matching, INV-8, INV-12, INV-15, INV-17, INV-18 and INV-26, the budgets and the station mirror
+      all evaluate over an empty set and the gate that session entry runs reports a healthy tree.
+
+      THE ROW AUDIT, re-taken at 62fef85. The detector's row for this file has legacy pattern
+      os\.path\.join\(H, "features" and migrated pattern os\.path\.join\(H, [^,)]+, "features" . At
+      62fef85:
+        git grep -c 'os\.path\.join(H, "features"' 62fef85 -- .../check-state.sh  ->  15
+        git grep -c 'join(H,'                      62fef85 -- .../check-state.sh  ->  23
+      The broader pattern adds exactly eight lines, and every one of them joins a SIBLING of
+      features - harness.json three times, codebase four times, factory/fleet.yaml once. None is a
+      features site and none moves in this unit. So the narrow pattern names every stale site, all
+      fifteen of them.
+
+      Anchor your edits on CODE FRAGMENTS, never on line numbers - this file is edited often and an
+      ordinal rots within a cycle. The fifteen sites are, by the fragment each contains:
+
+        glob sites, one per artifact kind:
+          "features", "*", "BRIEF.md"
+          "features", "*", "PLAN.md"
+          "features", "*", "plan.yaml"
+          "features", "*", "STATE.md"
+          "features", "*", "feature.json"   - FIVE separate sites carry this fragment
+          "features", "*", "runs"
+          "features", "*", "runs", "*", "state.yaml"
+          "features", "*"                   - the trailing bare enumeration
+        and the two that carry NO trailing wildcard segment, which are the ones a narrower pattern
+        would have missed:
+          os.listdir(os.path.join(H, "features"))  - guarded by an isdir test on the same line
+          os.path.join(H, "features", _f, "feature.json")  - inside that listdir loop
+
+      Convert every glob site to carry the segment as a wildcard: os.path.join(H, "*", "features",
+      ...). Convert the listdir pair: it enumerates feature directory NAMES, so replace it with a
+      glob over os.path.join(H, "*", "features", "*") and derive the name with os.path.basename,
+      keeping the isdir guard and keeping the loop's ordering stable with sorted(). Its inner
+      feature.json join must then be built from the directory path the glob returned, never
+      re-joined from H and a bare name.
+
+      THE FINDING LABEL, and the one thing you must NOT do to the keys (D-08). Every finding today
+      identifies a feature by a bare directory name, and most build a path from it - "FEAT-21/
+      BRIEF.md". Under a segment that string names no file on disk and, once a second repository
+      lands, does not say which repository is meant. So: where a finding names a path, build the
+      label FROM THE DISCOVERED PATH - the segment-qualified relative path the glob returned - so a
+      reader can open exactly what the finding names. Where a finding names a feature and not a
+      path, leave it as the bare name.
+
+      Do NOT put the segment into the DICTIONARY KEYS. The dicts stay keyed on the bare basename.
+      The reason is measured, not stylistic: this file derives the feature name in TWO different
+      shapes - os.path.basename(os.path.dirname(p)) at ten sites, and os.path.basename of the
+      feature directory itself at the station-mirror site, whose next line is a plan_docs.get()
+      lookup. Qualify one shape and not the other and that lookup misses for every feature, the
+      loop continues past all of them, and the station mirror silently checks nothing at exit 0 -
+      a fail-open of exactly the class this unit exists to remove. The cross-repository key
+      collision is real and deferred to unit 5 or unit 8, where a second repository actually lands;
+      it cannot fire here, because one repository exists.
+
+      NAMED COST: label changes may break exact-match assertions in test-check-state.py. T-06 opens
+      that file anyway. Its substring-style assertions - the ones checking that a feature name
+      appears somewhere in a finding line - are tolerant of a segment prefix and need no change;
+      only an assertion comparing a whole finding line does. Fix those in T-06, not here.
+
+  - id: T-06
+    title: Move the test suites whose fixtures and literal expectations are pinned to the old path
+    traces: [REQ-02, REQ-03]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "each co-changes with a DEC-174 carve-out script in the same human-read diff"
+    depends_on: [T-02, T-03, T-04, T-05]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-check-state.py
+      - .claude/skills/harness/bin/test-check-domain.py
+      - .claude/skills/harness/bin/test-check-plan-routes.py
+      - .claude/skills/harness/bin/test-bash-write-guard.py
+      - .claude/skills/harness/bin/test-harness-yaml.py
+      - .claude/skills/harness/bin/test-no-distribution.py
+      - .claude/skills/harness/bin/test-factory-cli.py
+      - .claude/skills/harness/bin/test-validate-digest.py
+    verify: |
+      set -e
+      python3 - <<'PY'
+      import sys
+      b = '.claude/skills/harness/bin/'
+      owned = ['test-check-state.py', 'test-check-domain.py', 'test-check-plan-routes.py',
+               'test-bash-write-guard.py', 'test-harness-yaml.py', 'test-no-distribution.py']
+      bad = [f for f in owned if '.harness/features/' in open(b + f, encoding='utf-8').read()]
+      assert not bad, 'legacy form survives in: %s' % bad
+      pos = [f for f in owned if '/features/' in open(b + f, encoding='utf-8').read()]
+      assert len(pos) == len(owned), 'a feature path vanished entirely from: %s' % (set(owned) - set(pos))
+      # test-factory-cli.py carries NO slash-form literal - its path is a comma-joined tuple, so the
+      # sweep above is blind to it and would pass unchanged before and after the fix. Assert the
+      # join form directly, in both directions.
+      fc = open(b + 'test-factory-cli.py', encoding='utf-8').read()
+      assert '".harness", "features", "FEAT-10' not in fc, \
+          'test-factory-cli.py still joins the pre-move depth'
+      assert '".harness", "harness", "features", "FEAT-10' in fc, \
+          'test-factory-cli.py does not join the migrated path'
+      # case_22a's own assertion expression, not the whole file - see this task's intent.
+      cpr = open(b + 'test-check-plan-routes.py', encoding='utf-8').read()
+      i = cpr.find('case_22a_unreadable_feature_dir_exits_2')
+      e = [p for p in (cpr.find('check(', i), cpr.find('finally:', i)) if p != -1] if i >= 0 else []
+      if not e or cpr[i:min(e)].count('.harness/*/features/') != 1:
+          print('case_22a: label missing, or its assertion expression does not name .harness/*/features/ exactly once'); sys.exit(1)
+      print('OK')
+      PY
+      for f in test-check-state test-check-domain test-check-plan-routes test-bash-write-guard test-harness-yaml test-no-distribution test-factory-cli; do
+        python3 -c "import py_compile,sys; py_compile.compile('.claude/skills/harness/bin/$f.py', doraise=True)"
+      done
+    intent: |
+      These suites are pinned to the old path in two different ways, and the difference decides
+      whether each one changes. Audit each file before editing it.
+
+      A suite that builds its OWN synthetic tree and its own team-config text is SELF-CONSISTENT and
+      still tests what it always tested - unless the code under test now looks for a segment, in
+      which case its fixture must grow one. A suite that inlines a literal from the REAL
+      team-config.yaml, or that exercises the real shape regexes, moves with them.
+
+      Per file, what to do and why:
+
+        test-check-state.py - its fixture builder writes feature directories at
+        .harness/features/FEAT-TEST/ , and check-state.sh now discovers under a segment, so every
+        case would evaluate over an empty set and assert findings that no longer appear. Give the
+        fixture builder a repository segment - one segment name, used consistently - so the fixtures
+        sit at .harness/<seg>/features/FEAT-TEST/ . Change the builder, not each call site, wherever
+        the file already funnels through a helper.
+
+        test-check-domain.py - its run_post fixture writes a feature.json and asserts the SHAPE
+        REGEX verdict on the relative path .harness/features/FEAT-X/feature.json . That path no
+        longer matches the regex, so the case would pass for the wrong reason. Move the fixture path
+        under a segment. Cases that construct their own team-config manifest text and assert
+        classify against it are self-consistent: leave any whose grants and asserted paths agree.
+
+        test-check-plan-routes.py - TWO sites, and the second is the one this task's verify silently
+        forces. First: CASE17_PATH is granted ONLY through the mid-pattern grant
+        .harness/features/*/runs/*-eng/** and its case asserts the EXACT granting set. Move the path
+        under a segment so it is granted through the moved grant, and update the comment that quotes
+        the grant so the quote stays true. Second, and NOT optional: the case labelled
+        case_19a5_the_scan_line_matches_the_glob_that_ran asserts the scan line VERBATIM, as an
+        equality against an f-string. T-04 rewrites that line, so this assertion must be rewritten to
+        match or the suite reddens at T-09 for a reason nobody planned. Its expected string becomes
+        f"scanning {td}/.harness/*/features/*/{{plan.yaml,PLAN.md}}" - the same wording T-04 pins,
+        and if the two disagree T-04's wording is authoritative. Anchor on the case label, not on a
+        line number. The fixture tree that case builds must gain a segment too, or the assertion
+        will be true of a scan that found nothing. THIRD, and the one that ADDS coverage rather than
+        preserving it: the case labelled case_22a_unreadable_feature_dir_exits_2 already stages an
+        unreadable feature directory with chmod 0o000 and reads the resulting stderr, but asserts
+        only the exit code and the feature name - never the path text. That stderr is T-04's
+        unreadable-path message, and it is otherwise backed by nothing. Add one conjunct to that
+        case's assertion requiring the migrated path shape .harness/*/features/ to appear in stderr.
+        This is what makes the criterion covering operator scan messages automated rather than a
+        reviewer's reading. This task's verify enforces it and is REGION-ANCHORED to case_22a's own
+        assertion expression - from the label string to whichever comes first of the next check( or
+        the next finally: - because a whole-file grep for the migrated shape in this suite is
+        already satisfied by case_19a5's rewritten expected string above, and would therefore pass
+        with case_22a untouched. Inside that slice the shape must appear exactly once, so the
+        clause reds on a missing conjunct and on a deleted one alike. Keep the label spelled
+        exactly as it is today; the verify finds the region by that string.
+
+        test-bash-write-guard.py - its command fixtures copy and remove files under
+        .harness/features/F/runs/r-eng/ and assert exit 0, meaning granted. Those paths are
+        ungranted after T-02. Move them under a segment.
+
+        test-harness-yaml.py - COLLECT_FIXTURE inlines, as literals, the grant strings this repo's
+        real team-config.yaml carries, deliberately not derived. Update those literals to the moved
+        grants. Do not convert them into anything derived: literals are the point of that fixture.
+
+        test-no-distribution.py - EXCLUDED_PREFIXES exempts historical records from the token sweep
+        and carries the literal .harness/features/ . Update it to the moved location, so the
+        exemption keeps covering the same records. Do not add a second prefix alongside the old one:
+        an exemption that covers a path nothing can occupy is a sweep hole nobody will notice.
+
+        test-factory-cli.py - the one file here that is not a fixture problem. At module scope it
+        opens a REAL feature's plan.yaml, joined as os.path.join(_HERE, "..", "..", "..", "..",
+        ".harness", "features", "FEAT-10-software-factory", "plan.yaml"), and reads it as an
+        independent source of truth for a dash codepoint. It is in UNIT_SCRIPTS in
+        run-unit-tests.sh, so after the move the import raises FileNotFoundError, the whole unit
+        suite dies, and T-09's own suite check fails. Insert the literal harness segment: ".harness",
+        "harness", "features", "FEAT-10-software-factory". The literal, not the wildcard - this is a
+        concrete file path being opened, which is D-01's prose side. Change nothing else in the file;
+        the cross-check it performs is still the cross-check it performed.
+
+        KEEP THE FOUR-ELEMENT JOIN ".harness", "harness", "features", "FEAT-10-software-factory" ON
+        ONE PHYSICAL LINE. This task's verify matches that fragment contiguously, so a rewrap that
+        breaks the line between any two of those elements - legal Python, correct code - fails the
+        verify. If the line grows past your formatter's width, break it BEFORE ".harness" or AFTER
+        the feature-id element, never inside the run of four.
+
+        This one cannot be proven by running the suite at this task - the file it opens does not
+        move until T-08, so the fixed path resolves to nothing until then and the suite is red on
+        purpose between here and T-09. That is why this task's verify asserts the join FORM in both
+        directions rather than running the file. T-09 is what proves it.
+
+        test-validate-digest.py - AUDIT ONLY, and change nothing unless the audit says otherwise.
+        validate-digest.py is path-agnostic - it resolves from the digest's own artifact field - so
+        its fixture paths need not exist. If every occurrence is inert fixture text, leave the file
+        untouched and say so in the receipt; if any case requires the path to resolve or to be
+        granted, move that one.
+
+      Do NOT touch test-factory-claim.py, test-factory-integration.py or merge-gitignore.sh. Map 336
+      places them in unit 9, landing anytime, and the detector deliberately does not read them -
+      editing them here would redden a state the sequence sanctions or grow scope the review cannot
+      hold. The verify allows their literals to survive. validate-feature-json.py and
+      test-validate-feature-json.py were on this list in cycle 0 and are NO LONGER: D-07 pulls them
+      forward, and they are T-10's, not yours. Do not edit them here either - a file edited by two
+      tasks has no owner.
+
+      layout_fixtures.py needs NO edit: its STUB texts are synthetic fragments chosen to match the
+      reader-table patterns, not copies of the real scripts, its migrated stubs already carry a
+      segment, and this feature adds and removes no table row - so its import-time key guard stays
+      quiet. Confirm that by running the suites in T-09 rather than by editing the file.
+
+  - id: T-07
+    title: Re-anchor the guard-enforced instruction paths, the branch gate and the run-dir ignore rule
+    traces: [REQ-04]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: "every file here resolves to NOBODY, and branch-create-gate.sh is a gate script edited in the same human-read diff"
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/agents/harness-frontend-dev.md
+      - .claude/agents/harness-orchestrator.md
+      - .claude/agents/harness-visual-designer.md
+      - .claude/commands/harness.md
+      - .claude/skills/harness-brief/SKILL.md
+      - .claude/skills/harness-code-review/SKILL.md
+      - .claude/skills/harness-curate/SKILL.md
+      - .claude/skills/harness-digest-dev/SKILL.md
+      - .claude/skills/harness-expertise/SKILL.md
+      - .claude/skills/harness-handoff/SKILL.md
+      - .claude/skills/harness-qa-gate/SKILL.md
+      - .claude/skills/harness-review/SKILL.md
+      - .claude/skills/harness-tdd-enforcement/SKILL.md
+      - .claude/skills/harness-team/SKILL.md
+      - .claude/skills/harness-uat/SKILL.md
+      - .claude/skills/harness/SKILL.md
+      - .claude/skills/harness/references/missions.md
+      - .claude/skills/harness/teams/build.yaml
+      - .claude/skills/harness/teams/review.yaml
+      - .claude/skills/harness/bin/branch-create-gate.sh
+      - .gitignore
+    verify: |
+      set -e
+      python3 - <<'PY'
+      import subprocess, sys
+      ex = ('.claude/skills/harness-init/SKILL.md', '.claude/skills/harness/templates/',
+            '.claude/skills/harness/bin/')
+      out = subprocess.run(['git', 'grep', '-l', r'\.harness/features/', '--', '.claude/agents',
+                            '.claude/commands', '.claude/skills'], capture_output=True, text=True)
+      bad = [p for p in out.stdout.split() if not p.startswith(ex)]
+      assert not bad, 'legacy instruction path survives in: %s' % bad
+      assert '.harness/harness/features/' in open('.claude/skills/harness-handoff/SKILL.md').read(), \
+          'positive control failed: the receipt instruction names no migrated path'
+      gi = open('.gitignore').read()
+      assert '.harness/features/*/runs/**' not in gi and '/features/*/runs/**' in gi, 'ignore rule not moved'
+      assert '.harness/features/' not in open('.claude/skills/harness/bin/branch-create-gate.sh').read()
+      print('OK')
+      PY
+      bash -n .claude/skills/harness/bin/branch-create-gate.sh
+    intent: |
+      After the move, an agent following its own written instructions must still be able to do its
+      bookkeeping, and a branch must still be creatable for a feature. Three groups.
+
+      GROUP 1 - the instruction paths. In each of the nineteen agent, skill, team-definition and
+      command files listed, rewrite every occurrence of the literal .harness/features/ to
+      .harness/harness/features/ . These are LITERAL paths an agent is told to read or write, so they
+      take the real segment, not the wildcard the grants take (D-01). Two are the families issue 356
+      measured as reaching every agent: the receipt path in harness-handoff and the observations path
+      in harness-expertise. Do not restructure a sentence, fix anything else, or introduce a
+      root-resolution mechanism - that is issue 356's own work, deliberately not folded in (D-04).
+      DO NOT TOUCH harness-init/SKILL.md or anything under harness/templates/ : both describe a path
+      inside the tree being ONBOARDED, which does not move in this unit (D-05).
+
+      GROUP 2 - branch-create-gate.sh. Its flow check lists "$root/.harness/features/${flow}"* and
+      DENIES branch creation when nothing matches, so after the move no branch could be created at
+      all - the rare LOUD one in issue 344's survey. Point the lookup under the repository segment,
+      keep the deny path intact and keep its message naming the path actually searched. Map 336 files
+      this under unit 9 as landing anytime; it lands here because it hard-blocks post-move, and the
+      detector does not read it, so moving it early reddens nothing.
+
+      GROUP 3 - .gitignore. Its rule .harness/features/*/runs/** stops matching after the move, so
+      every run directory becomes untracked and halts the next team run on a dirty tree. Move that
+      rule under a repository segment and change nothing else. Leave templates/gitignore.snippet
+      alone - it ships into product repositories, whose trees do not move (D-05).
+
+  - id: T-08
+    title: Move every feature directory under the harness segment, with nothing left behind
+    traces: [REQ-01, REQ-03]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: "moves .harness/features/**, which resolves to the orchestrator and to NOBODY per path; the move is inseparable from the carve-out edits it lands with"
+    depends_on: [T-06, T-07]
+    status: pending
+    files:
+      - .harness/features
+      - .harness/harness/features
+    verify: |
+      set -e
+      if [ -e .harness/features ]; then echo "FAIL: .harness/features still exists"; exit 1; fi
+      test -d .harness/harness/features
+      test -f .harness/harness/features/FEAT-21-features-layout-migration/BRIEF.md
+      test -f .harness/harness/features/FEAT-21-features-layout-migration/plan.yaml
+      test -f .harness/harness/features/FEAT-20-migration-detector/feature.json
+      python3 - <<'PY'
+      import glob, sys
+      new = glob.glob('.harness/harness/features/*/feature.json')
+      old = glob.glob('.harness/features/*/feature.json')
+      if old or not new:
+          print('old=%d new=%d' % (len(old), len(new))); sys.exit(1)
+      print('OK: %d feature dir(s) under the harness segment' % len(new))
+      PY
+      git status --porcelain --ignored .harness/harness/features | grep -q . && echo "note: ignored/untracked content present at the new location" || true
+    intent: |
+      Move the whole directory in one filesystem rename, and land it in the cluster commit. THE
+      COMMIT SHAPE, stated identically wherever this plan states it: exactly one commit carrying
+      T-02 through T-08, T-10 and T-09; T-01 is its own earlier commit. Do NOT commit at the end of
+      this task - T-10 may still be outstanding, and T-09 is what commits.
+
+        mkdir -p .harness/harness
+        git mv .harness/features .harness/harness/features
+
+      Use the DIRECTORY rename, not a per-file move. git mv on a directory renames it on the
+      filesystem, so untracked and git-ignored contents travel with it and are staged where they are
+      tracked. A tracked-files-only move would leave the untracked review notes and every ignored
+      run directory sitting under .harness/features/ , and ANY surviving feature.json there is legacy
+      evidence on the features surface, which makes the surface MIXED and reddens the landed commit -
+      a stop, not a note. At the time this plan was written, three untracked review notes sat under
+      FEAT-20-migration-detector/notes/ and several features carried ignored run directories; do not
+      plan around that specific list - assert the directory is gone.
+
+      Anchor the acceptance on EVERY DIRECTORY UNDER .harness/features/ , never on a count. This
+      feature's own directory is created under the legacy layout and moves with the rest, so a count
+      recorded when this plan was written is already stale.
+
+      From this commit onward the path of this feature's own record is
+      .harness/harness/features/FEAT-21-features-layout-migration/ - its BRIEF.md, plan.yaml,
+      feature.json, STATE.md and notes/. Every dispatch, grant and gate reference after this commit
+      uses that path, including the orchestrator's own state writes and the goal-check.
+
+      If the rename fails because .harness/harness already exists as something else, STOP and report
+      it rather than merging directories by hand.
+
+  - id: T-10
+    title: Re-root the two resolvers that derive the control plane by path arithmetic
+    traces: [REQ-02]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "every file here is granted - the two resolvers and their suites to harness-backend-dev and harness-dev-ops, the workflow to harness-dev-ops - but all of them are pulled into the DEC-174 cluster commit by D-07 and reviewed in the same human-read diff"
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+      - .claude/skills/harness/bin/validate-feature-json.py
+      - .claude/skills/harness/bin/test-validate-feature-json.py
+      - .github/workflows/tests.yml
+    verify: |
+      set -e
+      python3 - <<'PY'
+      import re, sys
+      b = '.claude/skills/harness/bin/'
+      gs = open(b + 'gh-sync.py', encoding='utf-8').read()
+      assert 'os.path.join(feat_dir, "..", "..", "..")' not in gs, \
+          'gh-sync.py still derives the root by a fixed three-level climb'
+      vf = open(b + 'validate-feature-json.py', encoding='utf-8').read()
+      stale = [l for l in vf.splitlines() if '.harness/features/' in l or '".harness", "features"' in l]
+      if stale:
+          print('validate-feature-json.py still names the pre-move path on %d line(s):' % len(stale))
+          print('\n'.join(stale)); sys.exit(1)
+      assert '".harness", "*", "features"' in vf, 'validate-feature-json.py glob has no segment'
+      shown = [l for l in vf.splitlines() if 'print(' in l or 'scanning' in l]
+      assert any('.harness/*/features/' in l for l in shown), \
+          'the scanning line does not name the migrated path'
+      tg = open(b + 'test-gh-sync.py', encoding='utf-8').read()
+      assert 'migrated_depth' in tg, 'no case named for the migrated depth was added'
+      assert 'not_onboarded' in tg, 'no case named for the un-onboarded fallback was added'
+      tv = open(b + 'test-validate-feature-json.py', encoding='utf-8').read()
+      k = tv.find('migrated_depth')  # the case's own body, not the whole file - see intent
+      m = re.search(r'^def ', tv[k:], re.M) if k >= 0 else None
+      if k < 0 or tv[k:(k + m.start()) if m else len(tv)].count('.harness/*/features/') != 1:
+          print('test-validate-feature-json.py: no migrated_depth case, or its body does not name .harness/*/features/ exactly once'); sys.exit(1)
+      wf = open('.github/workflows/tests.yml', encoding='utf-8').read()
+      for text, gone, here, what in [
+              (tv, '.harness/features/*/.', '.harness/*/features/*/.', 'the test docstring'),
+              (wf, '.harness/features/*/feature.{json,yaml,yml}',
+               '.harness/*/features/*/feature.{json,yaml,yml}', 'the CI sweep comment'),
+              (wf, 'and .harness/features/.', 'and .harness/*/features/.', 'the CI error message')]:
+          assert gone not in text, '%s still names the pre-move path' % what
+          assert here in text, '%s names no migrated path - deleting it would also pass' % what
+      print('OK')
+      PY
+      python3 -c "import yaml; yaml.safe_load(open('.github/workflows/tests.yml', encoding='utf-8'))"
+      python3 .claude/skills/harness/bin/test-gh-sync.py
+      python3 .claude/skills/harness/bin/test-validate-feature-json.py
+    intent: |
+      Two mechanisms resolve the control plane by ARITHMETIC over the path depth rather than by any
+      literal a sweep can find, so both go silently green after the move and neither is visible to
+      the detector, which is forbidden from reading them. D-07 pulls both forward from unit 9 for
+      that reason. Both are behaviour-testable mid-sequence, because both suites build their own
+      temporary trees and depend on no real file - which is why this task, unlike T-02 through T-08,
+      runs its tests rather than only checking form.
+
+      GROUP 1 - gh-sync.py. It derives the repository root as
+      os.path.abspath(os.path.join(feat_dir, "..", "..", "..")), which is correct for
+      .harness/features/<FEAT> and lands on <repo>/.harness for .harness/harness/features/<FEAT>.
+      load_config then finds no harness.json and calls skip(), which its own docstring describes as
+      "Environmental no-go: one loud line, exit 0. The mirror never gates" - so open, start-task,
+      close-task, abandon, ship and backlog all print a SKIP and succeed while mirroring nothing.
+
+      DO NOT FIX THIS BY CHANGING THE DEPTH. A fourth ".." is correct for this repository and wrong
+      for the fixtures, which stage <tmp>/.harness/features/<FEAT> with harness.json at
+      <tmp>/.harness/ - so a depth-only fix reddens test-gh-sync.py for a brand-new reason inside the
+      atomic commit. Replace the arithmetic with a derivation that is depth-agnostic: walk UP from
+      the absolute feature directory and return the first ancestor holding .harness/harness.json ,
+      falling back to today's behaviour only if no ancestor does, so a genuinely un-onboarded tree
+      still reaches skip() with the message it prints today. Walking up satisfies both depths at
+      once: from <tmp>/.harness/features/<FEAT> the first such ancestor is <tmp>, and from
+      <repo>/.harness/harness/features/<FEAT> it is <repo>. Line 122's
+      os.path.join(root, ".harness", "harness.json") is correct as written and does not move.
+
+      Then ADD one case to test-gh-sync.py - additive, changing no existing fixture - that stages a
+      feature at <tmp>/.harness/<seg>/features/<FEAT> with harness.json still at <tmp>/.harness/ and
+      asserts the root resolves to <tmp> rather than skipping. Without it the walk-up ships unproven:
+      the existing fixtures stay green under BOTH the bug and the fix, because they only ever
+      reproduce the legacy depth. Put the string migrated_depth in the case label - the verify greps
+      for it, and a case running under a label nobody can find is a case that silently stops running.
+
+      ADD A SECOND CASE, also additive, for the FALLBACK BRANCH - the one the walk-up takes when no
+      ancestor holds .harness/harness.json. Nothing exercises it today: every existing fixture
+      writes harness.json before any run, so the walk-up always finds a root and the fallback is
+      preserved by construction rather than by evidence. Stage a feature directory in a tmp tree
+      with NO harness.json anywhere above it, run a mirror command against it, and assert that it
+      reaches skip() - the not-onboarded outcome, asserted on the SKIP text the command prints
+      today, taken from gh-sync.py rather than invented. Label it with the string not_onboarded;
+      the verify greps for that too. If the walk-up is implemented so that it cannot reach the
+      fallback at all from a tmp tree, say so in the receipt rather than weakening the case.
+
+      GROUP 2 - validate-feature-json.py. discover_paths() globs
+      os.path.join(root, ".harness", "features", "*", "feature.*") and, by the comment directly
+      beneath it, KEEPS EXIT 0 on zero matches - deliberately, so a legitimate zero-feature checkout
+      is not a failure. After the move that glob matches nothing here, and the CI step "Validate every
+      feature's execution state" - which the workflow's own comment names as the backstop for a
+      session where check-domain.sh's write-time gate is not registered at all - becomes a green tick
+      over zero files. Give the glob a wildcard repository segment: .harness/*/features/*/feature.* .
+
+      Three further sites in the same file must move with it, or the fix repeats the defect T-04
+      exists to close - a scan that discovers under one shape while telling the operator it searched
+      another:
+        - the scanning line printed to stderr, which names the pattern it globbed;
+        - the module docstring's sentence describing what the no-argument sweep globs, which is
+          present-tense normative rather than historical;
+        - any other line in the file carrying the legacy literal. The verify fails on every one of
+          them and requires the scanning line to name the migrated path, so there is no partial pass.
+
+      Then ADD one case to test-validate-feature-json.py - again additive - that builds a tmp tree at
+      <tmp>/.harness/<seg>/features/<FEAT>/feature.json , runs the CLI with CLAUDE_PROJECT_DIR set to
+      <tmp> and no arguments, and asserts the scan reports one file rather than zero. Label it with
+      migrated_depth. This is the only assertion in the plan that proves the CI backstop still
+      examines anything; a form check cannot, because zero matches and a correct empty tree print the
+      same exit code.
+
+      That case already reads the CLI's stderr, so give it ONE MORE CONJUNCT: assert that the
+      scanning line names the migrated shape .harness/*/features/ . It is nearly free, it is exactly
+      parallel to the conjunct T-06 adds to case_22a_unreadable_feature_dir_exits_2, and it is what
+      makes SC-14 true as written rather than resting the validator's scan line on this task's own
+      source-form check. The verify enforces that conjunct and is REGION-ANCHORED to the case's own
+      body - from the first occurrence of migrated_depth to the next top-level def - because GROUP 3
+      below re-anchors this file's module docstring to the same migrated shape, and the docstring
+      sits above every def, so a whole-file grep would go green on the docstring edit plus a bare
+      label. Starting the region at migrated_depth is what excludes the docstring. Inside that
+      slice the shape must appear exactly once, so the clause reds on a missing conjunct and on a
+      deleted one alike, and it reds with a readable message rather than a traceback if the label
+      is absent altogether.
+
+      GROUP 3 - the two stale texts that describe this task's own work, one in each remaining file.
+
+        test-validate-feature-json.py, module docstring: it says nothing here "reads, writes or
+        depends on any real file under .harness/features/*/." Re-anchor that path to
+        .harness/*/features/*/ . It is the file's own independence claim, so it must name the layout
+        it is independent of. KNOWING SURVIVOR, do not touch it: the string
+        ".harness/features/FEAT-99-x/feature.json" in the display-path case is a synthetic argument
+        passed to problems_for_text and is never resolved against the filesystem, so it is
+        self-consistent fixture text. The verify's absence check is written narrowly enough to let it
+        stand.
+
+        .github/workflows/tests.yml, TWO present-tense reader-facing texts. First, the comment above
+        the step "Validate feature execution state", which tells a CI reader the sweep globs
+        .harness/features/*/feature.{json,yaml,yml} - the very glob this task moves. Re-anchor it to
+        .harness/*/features/*/feature.{json,yaml,yml} and keep the comment at its current line count.
+        Second, the operator-facing error string in the plan-route step, which today ends "Check
+        CLAUDE_PROJECT_DIR and .harness/features/." - re-anchor it to .harness/*/features/. and
+        change nothing else in that sentence.
+
+        THE M-IS-ASSERTED COMMENT BLOCK - one carve-out, stated exactly, because this block is both
+        a knowing survivor and the one place in the file that gains a further edit.
+
+        Its three legacy path literals are KNOWING SURVIVORS and do NOT move: they name the paths
+        the measurement was taken against, so they stay true as taken - the same rule T-04 applies
+        to check-plan-routes.py's four historical comments. What DOES change is the block's
+        undated, present-tense NUMBERS, one of which has already drifted: the ls-files command it
+        quotes returns 19 at 62fef85, not 8. It returned 8 at eafc8ad, where the comment was
+        written; plan files have accumulated since. Post-move it returns something different again,
+        so an undated figure here is unfalsifiable and already wrong.
+
+        Make exactly these three verbatim substitutions, anchored on the content strings and never
+        on line numbers. Each sits inside a wrapped # comment, so rewrap as needed and keep every
+        line's # prefix:
+          - "Not a live hole today:" becomes "Not a live hole as of 62fef85, pre-move:"
+          - "all 8 plan files are git-tracked" becomes "all 19 plan files are git-tracked"
+          - "Both halves measured, not assumed:" becomes
+            "Both halves measured at 62fef85, pre-move, not assumed:"
+        The third one is what carries the sha anchor onto BOTH quoted commands - the ls-files count
+        and the check-ignore exit - which is the whole requirement. The first two move the count in
+        both of the places it appears; moving only one leaves the block contradicting itself two
+        sentences apart.
+
+        Do NOT re-measure either command yourself. T-10 may run after T-08 has moved the tree, and
+        a figure re-taken post-move under a pre-move label is precisely the defect this edit closes.
+        The numbers above were measured at 62fef85 with the tree unmoved and are quoted here so
+        this is a pure text substitution.
+
+        Change nothing else in this file - no step name, no env: block; inside that run: block only
+        the path text of that one message, and inside the M-is-asserted block only the three
+        substitutions above. The verify re-parses the workflow as YAML, because an edit inside a
+        block scalar is the one that can break it.
+
+      THE COMMIT SHAPE, stated identically wherever this plan states it: exactly one commit carrying
+      T-02 through T-08, T-10 and T-09; T-01 is its own earlier commit. This task is inside that one
+      commit. It depends only on T-01 and may be done at any point after it; T-09 is what commits.
+
+  - id: T-09
+    title: Prove the boundary state at both commits and land the cluster as one commit
+    traces: [REQ-02, REQ-03, REQ-05, REQ-07]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: "verification of DEC-174 carve-out scripts by a human reading one diff"
+    depends_on: [T-08, T-10]
+    status: pending
+    files:
+      - .harness/harness/features/FEAT-21-features-layout-migration/notes/layout-boundary-2026-08-14.md
+    verify: |
+      set -e
+      o=$(mktemp)
+      rc=0; python3 .claude/skills/harness/bin/layout_migration.py >"$o" 2>&1 || rc=$?
+      cat "$o"
+      test "$rc" = 0
+      grep -qxF 'features: CLEAN — evidence migrated' "$o"
+      grep -qxF 'docs: CLEAN — evidence legacy' "$o"
+      grep -qF '0 mixed, 0 cannot-verify' "$o"
+      s=$(mktemp); sc=0
+      bash .claude/skills/harness/bin/check-state.sh >"$s" 2>&1 || sc=$?
+      if grep -q 'INV-27' "$s"; then echo "INV-27 finding present"; cat "$s"; exit 1; fi
+      test "$sc" = 0
+      u=$(mktemp); ru=0
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >"$u" 2>&1 || ru=$?
+      i=$(mktemp); ri=0
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration >"$i" 2>&1 || ri=$?
+      grep -c '^PASS ' "$u"; grep -c '^PASS ' "$i"
+      grep -q '^PASS test-check-state\.py$' "$i" || { cat "$i"; exit 1; }
+      grep -q '^PASS test-check-plan-routes\.py$' "$i" || { cat "$i"; exit 1; }
+      test "$ru" = 0 && test "$ri" = 0
+      python3 .claude/skills/harness/bin/check-plan-routes.py .harness/harness/features/FEAT-21-features-layout-migration/plan.yaml
+      n=.harness/harness/features/FEAT-21-features-layout-migration/notes/layout-boundary-2026-08-14.md
+      test -f "$n"
+      grep -q 'depth sweep' "$n"
+    intent: |
+      This task is the boundary evidence and the landing, and it is the only task that runs the
+      suites - every earlier task's verify is a form check, because between T-02 and T-08 the working
+      tree is deliberately half edited and the suites cannot pass.
+
+      The PRE-MOVE capture was taken in T-01, immediately after its commit landed, and is held in a
+      scratch file - it cannot be retaken here, because the working tree is now half edited. Read it.
+      The pre-move boundary state it must record is:
+        features: CLEAN - evidence legacy
+        docs: CLEAN - evidence legacy
+        layout: 2 surface(s) clean, 0 mixed, 0 cannot-verify
+      with check-state.sh exiting 0 and emitting no INV-27 line. If T-01's capture is missing or does
+      not read that way, STOP and report it rather than reconstructing it from memory.
+
+      AFTER the move, with T-02 through T-08 and T-10 applied in the working tree, run both again. The
+      expected post-move boundary state is:
+        features: CLEAN - evidence migrated
+        docs: CLEAN - evidence legacy
+        layout: 2 surface(s) clean, 0 mixed, 0 cannot-verify
+      That features-migrated-with-docs-legacy pair is the state FEAT-20 sanctions explicitly; docs
+      move in unit 4. Do NOT record the examined-count line as an expectation - this feature's own
+      directory moves inside the migration, so any count is stale within one cycle.
+
+      A red detector is a STOP. If a surface reports MIXED, the named reader carries the wrong form
+      and is unfinished; if CANNOT_VERIFY, a reader matches neither form. Fix the reader; do not
+      widen a pattern to make the finding go away.
+
+      Then run the full unit and integration suites and check-plan-routes.py over this plan at its
+      new path. All must pass before anything is committed.
+
+      Write the two captures, verbatim, with the commit sha each was taken at, to
+      .harness/harness/features/FEAT-21-features-layout-migration/notes/layout-boundary-2026-08-14.md
+      and commit it with the cluster, so the record shows what the detector said on both sides of the
+      move.
+
+      THE DEPTH SWEEP, into that same note, under a heading containing the words "depth sweep" - the
+      verify greps for it. Three of this feature's findings were mechanisms that resolve a feature
+      path and carry NO .harness/features/ literal at all: a fixed climb of "..", a comma-joined
+      tuple, a join over a root variable. A literal sweep cannot see them, and neither can the
+      detector, whose stated residual bound is per-file form agreement rather than per-site
+      completeness - so the sweep that finds them is for PATH-DEPTH ARITHMETIC, run alongside the
+      literal one. Run it once over .claude/skills/harness/bin/ and record, in the note, the command
+      you ran, the hits it returned, and for each hit whether it resolves a control-plane path or is
+      unrelated. Patterns worth running at minimum: a chain of two or more ".." inside an
+      os.path.join; any join whose second element is a literal ".harness"; and any comma-joined tuple
+      containing "features". Units 4 through 7 face the same shape, so the value of this note is that
+      the next unit inherits a worked example instead of rediscovering the class.
+
+      THE COMMIT SHAPE, stated identically wherever this plan states it: exactly one commit carrying
+      T-02 through T-08, T-10 and T-09; T-01 is its own earlier commit. This task is T-09, and it is
+      the only task that commits the cluster. Splitting them
+      leaves a landed tree where either every write is denied or the shape gate is silently off,
+      which is the failure this unit is built to avoid. T-01 is its own earlier commit.

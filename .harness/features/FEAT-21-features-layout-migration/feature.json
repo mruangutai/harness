@@ -1,0 +1,51 @@
+{
+  "feature_id": "FEAT-21-features-layout-migration",
+  "branch": "feat/FEAT-21-features-layout-migration",
+  "pr": null,
+  "status": "Building",
+  "review_sha": "62fef85",
+  "cycles_used": 2,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-14-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-14-1-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 12,
+    "parent": 388,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-10",
+      "T-09"
+    ],
+    "issues": {
+      "T-01": 389,
+      "T-02": 390,
+      "T-03": 391,
+      "T-04": 392,
+      "T-05": 393,
+      "T-06": 394,
+      "T-07": 395,
+      "T-08": 396,
+      "T-09": 398,
+      "T-10": 397
+    }
+  }
+}
