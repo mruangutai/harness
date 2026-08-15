@@ -115,15 +115,15 @@ jobs:
       #
       # M IS ASSERTED, NOT JUST THE EXIT CODE. The checker's last line is
       # `N violation(s) across M plan(s)`; a step that read only $? passes when M is 0 — a green
-      # tick from a gate that examined nothing, issue #133's named ordering trap. Not a live hole as of 62fef85, pre-move:
-      # all 19 plan files are git-tracked and `.harness/features/` is not ignored, so
+      # tick from a gate that examined nothing, issue #133's named ordering trap. Not a live hole as of 1c95e81, post-move:
+      # all 20 plan files are git-tracked and `.harness/harness/features/` is not ignored, so
       # `actions/checkout@v4` cannot
       # produce M=0, and B-7 (PR #153) derives the root from the manifest rather than the cwd. It
       # is a guard against a future `.gitignore` entry, sparse checkout or root-derivation change
       # making it reachable again — cheap, and this repo's most-repeated defect is exactly "the
-      # guard is right and nothing calls it correctly". Both halves measured at 62fef85, pre-move, not assumed:
-      # `git ls-files '.harness/features/*/PLAN.md' '.harness/features/*/plan.yaml'` returns 19, and
-      # `git check-ignore -v .harness/features` exits 1.
+      # guard is right and nothing calls it correctly". Both halves measured at 1c95e81, post-move, not assumed:
+      # `git ls-files '.harness/harness/features/*/PLAN.md' '.harness/harness/features/*/plan.yaml'` returns 20, and
+      # `git check-ignore -v .harness/harness/features` exits 1.
       #
       # THREE OUTCOMES, THREE MESSAGES. Exit 2 with no summary means the checker could not run at
       # all; a summary with M=0 means it ran and looked at nothing; anything else is a real verdict

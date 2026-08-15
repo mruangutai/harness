@@ -59,7 +59,7 @@ def fpath(feat, tail=""):
     _b = _feat_dirs.get(feat) or os.path.join(".harness", "?", "features", feat)
     return _b + (os.sep + tail if tail else "")
 
-# BRIEF/PLAN are PER-FEATURE since DEC-129 — .harness/features/<FEAT>/{BRIEF,PLAN}.md.
+# BRIEF/PLAN are PER-FEATURE since DEC-129 — .harness/<repo>/features/<FEAT>/{BRIEF,PLAN}.md.
 # Root-level singletons collided the moment a second feature existed.
 briefs = {os.path.basename(os.path.dirname(p)): read(p)
           for p in glob.glob(os.path.join(H, "*", "features", "*", "BRIEF.md"))}

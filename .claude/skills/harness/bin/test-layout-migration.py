@@ -17,6 +17,7 @@ import importlib.util
 import io
 import os
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -338,16 +339,13 @@ with tempfile.TemporaryDirectory() as tmp:
 # check-state.sh run against a fixture tree, and the CI side is layout_migration's
 # render() over a scan of the SAME tree. If either call site grows its own filtering
 # or wording, the named reader sets diverge and this reddens.
-import subprocess as _sp
-
 _CHECK_STATE = os.path.join(HERE, "check-state.sh")
 ALL_READER_PATHS = [r.path for r in lm.READER_TABLE]
 
 
-def _parity_tree(build_kwargs, extra=None):
-    """One parity comparison: REAL gate vs render(), same tree."""
-    tmp = tempfile.mkdtemp()
-    try:
+def _parity(label, build_kwargs, extra=None):
+    """One parity comparison: the REAL gate vs render(), over the same tree."""
+    with tempfile.TemporaryDirectory() as tmp:
         build(tmp, **build_kwargs)
         with open(os.path.join(tmp, ".harness", "harness.json"), "w") as f:
             f.write('{"github": {"sync": false, "repo": null}}')
@@ -355,18 +353,11 @@ def _parity_tree(build_kwargs, extra=None):
             extra(tmp)
         env = dict(os.environ)
         env["CLAUDE_PROJECT_DIR"] = tmp
-        r = _sp.run([_CHECK_STATE], cwd=tmp, capture_output=True, text=True, env=env)
+        r = subprocess.run([_CHECK_STATE], cwd=tmp, capture_output=True, text=True,
+                           env=env)
         gate = "\n".join(l for l in r.stdout.splitlines() if "INV-27" in l)
         res = lm.scan(tmp)
         ci = lm.render(res)
-        return gate, ci, res
-    finally:
-        import shutil
-        shutil.rmtree(tmp, ignore_errors=True)
-
-
-def _parity(label, build_kwargs, extra=None):
-    gate, ci, res = _parity_tree(build_kwargs, extra)
     gate_named = {p for p in ALL_READER_PATHS if p in gate}
     ci_named = {p for p in ALL_READER_PATHS if p in ci}
     check("case 20 parity: %s — real gate and render name the same reader set" % label,
