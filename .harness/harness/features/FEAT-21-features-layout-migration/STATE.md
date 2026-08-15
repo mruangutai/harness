@@ -10,7 +10,8 @@
 
 EVERY GATE IS PASSED AND THE BRIEFING IS WRITTEN at `notes/ship-review-2026-08-15.md`, with its
 reading view rendered beside it. The review panel returned PASS with no must-fix and severity med;
-the blocking `test_matrix` gate passed and earned it; all 14 criteria are met. The only thing
+the blocking `test_matrix` gate passed and earned it; 13 of 14 criteria are met and the
+fourteenth, SC-12, is unmet as written by the deliberate deviation below. The only thing
 outstanding is the operator's decision, and it is one question.
 
 THE DECISION: SC-12 asks for exactly two commits beyond the planning record and there are three —
@@ -52,7 +53,7 @@ Merge, PR, `gh-sync.py ship` and backlog creation are all main-session acts, not
 
 - Q-SHIP (blocking, the operator's): ratify SC-12's recorded deviation, or have pm amend its wording
   under signature. Everything else is ready.
-- The briefing carries 16 backlog rows, all of them. The three I would keep if forced to choose:
+- The briefing carries 18 backlog rows, all of them. The three I would keep if forced to choose:
   nothing anywhere stages two repository segments, which is the whole sequence's purpose and the
   reason two coverage gaps are invisible to every green gate; D-08's delivery half is correct today
   and pinned by nothing; and nothing reconciles a landed diff against the plan's declared files, so

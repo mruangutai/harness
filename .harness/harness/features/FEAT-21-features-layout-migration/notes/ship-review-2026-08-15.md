@@ -1,8 +1,8 @@
 # FEAT-21 — the features layout migration, ready to ship with one decision for you
 
-**The move is done and proven. Every one of the 14 success criteria is met. One criterion, SC-12, is
-true of the code and false of the commit count, because fixing a late defect cost a third commit
-where it asked for two. That is the single thing I need you to rule on — ratify the deviation, or
+**The move is done and proven. Thirteen of the 14 success criteria are met. The fourteenth, SC-12, is
+UNMET AS WRITTEN — true of the code and false of the commit count, because fixing a late defect cost
+a third commit where it asked for two, deliberately and on the record. That is the single thing I need you to rule on — ratify the deviation, or
 have pm amend SC-12's wording. Nothing else is blocking.**
 
 `.harness/features/` now lives at `.harness/harness/features/` — a repository segment, the shape the
@@ -18,7 +18,8 @@ carve-out scripts — the gates themselves. No squad executed any of it; squads 
 verified. Three commits carry the work: `5afa7e3` (the parity test alone), `d033b9d` (the atomic
 cluster: the move plus all twelve readers, 617 files, 567 renames), `b1d3925` (the SC-10 fix).
 
-**Seven runs, four rework cycles, against budgets of 20 and 10.** No crossing. Each cycle bought
+**Ten runs — seven through validation, three distilling at close — and four rework cycles, against
+budgets of 20 and 10.** No crossing. Each cycle bought
 something: the eng architecture review's cycle-0 FAIL, the pre-commit panel's must-fix, and the
 goal-check's SC-10 miss were all real defects found before they shipped.
 
@@ -55,6 +56,10 @@ subprocess. It is now proven in both directions: I killed the gate-side mutant, 
 It was met at `d033b9d`. Fixing SC-10 made it three. I did not edit either criterion — that is yours
 alone — and I did not skip the fix, because shipping a mutation-proven gap in the exact seam this
 feature exists to guard is the worse trade.
+
+Proceeding with the SC-10 fix at all was settled under your standing authorization while you were
+away — it was code on a feature branch. SC-12's disposition was expressly reserved for you, because
+amending a criterion means editing an artifact you signed.
 
 **My read: the deviation is cosmetic and the purpose survives.** SC-12 exists so no landed commit
 shows a half-moved tree. The cluster still landed atomically; `b1d3925` lands *after* it, touches one
@@ -156,6 +161,8 @@ it.
 | B-15 | bug | **`harness-distill` describes a check `check-expertise.sh` does not implement.** The doc says path-mentioning craft entries are flagged advisorily for a human; the checker has no advisory category and no such rule. The craft/repository split has no checker support. |
 | B-16 | bug | **The repository Expertise layer is documented but unwritable.** `harness-distill` specifies `.harness/<repo>/expertise/<agent>.md` with a 40-line budget; no grant in `team-config.yaml` covers it. I ran the domain hook: that path resolves to **NOBODY** for every agent. The split shipped without its grant, and nothing exercised it, so nothing caught it. |
 | B-17 | chore | **Four of five validator-squad Expertise files now sit at Patterns 15/15.** Every future distillation for those roles is displacement-only. A cap raise, a periodic curation pass, or accepting it — worth deciding before the next feature closes. |
+
+| B-18 | bug | **A role card and the manifest disagree about who writes a lead's Expertise, and the failure mode is silent.** `.claude/agents/harness-product-lead.md:27` says "The orchestrator applies them"; `team-config.yaml:277` grants that lead `upsert` Write on the same path and the domain hook resolves it to the lead. Follow both and the ops apply twice. Two of three leads hit this in one close-out. |
 
 ## What happens on your acceptance
 
