@@ -5850,11 +5850,8 @@ cannot-verify, never clean — the exit code is 2, and both call sites, session 
 CI job, treat it as a violation. Because those rows are data that later units edit, a surface is judged clean only over a
 non-empty reader set, and the surfaces are a fixed enum judged independently of the table: a surface
 whose rows are dropped is cannot-verify rather than vacuously clean, and can never be skipped ahead of
-its verdict. Every finding that has a responsible reader names its path with the form it matched,
-because finishing a reader and reverting one are opposite remedies and must not arrive as the same
-line; the no-evidence, no-rows and undeclared-segment causes correctly name no reader, because none
-is responsible (narrowed under issue #366 — the sentence originally overclaimed, and units 3–7 cite
-this entry as their maintenance contract).
+its verdict. Every finding names the reader path with the form it matched, because finishing a reader
+and reverting one are opposite remedies and must not arrive as the same line.
 
 **What the check proves, and what it does not.** It proves per-file
 form agreement, never per-site completeness: it answers whether a file speaks one layout language and
@@ -5923,3 +5920,24 @@ catch.
 was four `if/elif` branches with no `else`; a fifth cause value would have appended nothing and the
 operator-facing gate would have passed clean while CI stayed red. It is now a dict lookup whose
 miss appends an "unrecognised cause" violation.
+
+
+### DEC-194 amendment 2 (2026-08-14) — blame is one exported policy, rendered whole at both call sites
+
+Issue #366 found the body's sentence "every finding names the reader path" overclaiming: three
+cannot-verify causes — no-evidence, no-rows, undeclared-segment — have no responsible reader file to
+name. A first correction narrowed the sentence by rewriting the body in place; that edit violated
+this file's append-only rule and is reverted, with the ruling recorded here instead.
+
+**The settled behaviour, ruled by the operator after validator finding M-1 (2026-08-14):**
+`layout_migration.blame()` is the ONE policy for which readers a finding names — a reader whose
+form-set is defective (both, neither, unreadable) or disagrees with a single evidence shape, with
+every reader named when a MIXED surface has no such individual. Both call sites — `render()` for CI
+and `check-state.sh`'s INV-27 at session entry — render that list WHOLE, on every verdict that is
+not clean, with no per-cause or per-form filtering at either site. Filtering is what produced two
+divergences in one day; the rule is therefore stated as an absence: there is no second place where
+naming is decided. For the three reader-less causes `blame()` may return an empty list, and an
+empty list appends nothing — that, not a filtered sentence, is how "names no reader" happens.
+
+Units 3–7 cite this entry as their maintenance contract; the body's sentence is read through this
+amendment.

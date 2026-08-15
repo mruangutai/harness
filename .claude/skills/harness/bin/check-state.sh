@@ -1293,17 +1293,17 @@ if _lmod is not None:
         # appended nothing and this gate — the surface operators actually see —
         # would have passed clean while CI stayed red).
         def _cv_wording(_sname, _srep):
+            # EVERY cause appends blame() (operator ruling, 2026-08-14, validator M-1):
+            # the cause clause explains WHY the surface cannot be verified, the blame
+            # list names WHICH readers carry a defective or disagreeing form — the
+            # same list render() prints. No per-cause or per-form filtering anywhere;
+            # re-filtering is what created this drift twice. blame() may be empty for
+            # the reader-less causes, and an empty list appends nothing.
             _table = {
-                # No per-form filtering here: the finding renders blame() WHOLE, the
-                # same list render() prints, or the two call sites drift again (#379).
-                "unreadable": lambda: (
-                    "a coupled reader could not be read — "
-                    + ", ".join("%s [%s]" % (p, f) for p, f in _lmod.blame(_srep))),
-                "neither": lambda: (
-                    "a coupled reader matches neither form — "
-                    + ", ".join("%s [%s]" % (p, f) for p, f in _lmod.blame(_srep))),
+                "unreadable": "a coupled reader could not be read",
+                "neither": "a coupled reader matches neither form",
                 "no-evidence": lambda: f"no evidence of either shape under {root}",
-                "no-rows": lambda: "no reader rows for this surface",
+                "no-rows": "no reader rows for this surface",
                 "undeclared-segment": lambda: (
                     "evidence under an UNDECLARED segment: "
                     + ", ".join(_srep.detail or ())
@@ -1314,7 +1314,9 @@ if _lmod is not None:
             if _fmt is None:
                 return (f"unrecognised cause {_srep.cause!r} — layout_migration.py "
                         f"and check-state.sh disagree; update INV-27's cause table")
-            return _fmt()
+            _text = _fmt() if callable(_fmt) else _fmt
+            _named = ", ".join("%s [%s]" % (p, f) for p, f in _lmod.blame(_srep))
+            return _text + (" — " + _named if _named else "")
 
         for _sname in sorted(_lres.surfaces):
             _srep = _lres.surfaces[_sname]

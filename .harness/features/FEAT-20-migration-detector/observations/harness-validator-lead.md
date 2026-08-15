@@ -25,7 +25,7 @@
   deleted — makes that surface append NOTHING to `bad`, while the module still returns exit 2 that
   the session-entry call site never reads. Result: `check-state.sh` reports a clean tree over a
   surface the detector could not verify. Issue #148's shape at the call site, not in the verdict
-  logic the feature hardened.
+  logic the feature hardened. [FIXED — see the 2026-08-14 entry under the detector-hygiene pass.]
 
 - 2026-08-14: CONFIRMED that gap with the discriminating measurement rather than leaving it as
   reasoning (Evidence rule). `test-check-state.py` carries exactly five INV-27 cases, x.1-x.5
@@ -105,3 +105,89 @@
   greps firing. So the defect is a MIS-STATED SCOPE CLAIM in one member's headline, not a hole —
   which is exactly the distinction that stops it becoming a must_fix. Check the enumeration against
   the count whenever a member's headline asserts "all N files".
+
+## Detector-hygiene pass, run `2026-08-14-5-validator` @ `a714bd0` (PR #385)
+
+- 2026-08-14: A GREEN SUITE HID A 1134-LINE DUPLICATE PASTE, and the thing that made it visible was
+  reading the code the orientation agent had already summarised. `test-check-state.py` at `a714bd0`
+  defines 17 top-level names TWICE — `case_m`(528/1662) … `case_x`(1585/2719). Python binds the
+  last, so the executing `case_x` is the one WITHOUT the `layout_fixtures` import: the #382
+  consolidation the commit is named for never took effect in this file. 84 `ok`, exit 0. No gate in
+  the repo detects a shadowed duplicate definition — `run-unit-tests.sh`'s drift detector checks
+  file REGISTRATION, never in-file redefinition.
+
+- 2026-08-14: THE ORIENTATION SUMMARY WAS RIGHT ABOUT THE DEFECT AND WRONG ABOUT THE REMEDY, and
+  only opening the lines separated the two. It reported the first `case_x` (`:1585`) as "the
+  refactored one" and offered "keep copy 1, keep #382; or keep copy 2, keep #383" as a symmetric
+  choice. Reading `:1585-1659` shows copy 1's `case_x` is a CHIMERA — INV-27 docstring plus the
+  `lf`/`FLEET_TEXT`/`STUBS` preamble (`:1595-1599`), then the body of `case_l` (assertions `(l1)`-`(l8)`,
+  the INV-22 run-budget case that also lives intact at `:456-525`). `STUBS`, `FLEET_TEXT` and
+  `MARKER_REL` are bound and never read; `results = []` is assigned twice (`:1594`, `:1614`). So
+  there is no salvageable refactored INV-27 case to keep, and "delete copy 2" would delete INV-27
+  coverage outright. G-07 generalises past artifacts: a SUMMARY of code is a hypothesis about the
+  code, including one I commissioned myself.
+
+- 2026-08-14: The cut is clean and worth recording as coordinates rather than prose: `case_l` ends
+  at `:525`, the shadow region is exactly `[528, 1661]`, and the live region is `[1662, 2899]`
+  (qa's per-pair SHA-256 measurement; 16 of 17 pairs byte-identical, only `case_x` differing).
+  Deleting `[528, 1661]` restores the intended file; #382 then still has to be applied by hand to
+  the surviving `case_x` at what is currently `:2719`. The swap is mechanical: I byte-compared all
+  seven inline stubs at `:2732-2747` against `layout_fixtures.STUB[rel]["legacy"]` and they are
+  identical.
+
+- 2026-08-14: MY OWN OBSERVATIONS LOG CONTAMINATED A MEMBER'S INDEPENDENCE, which I did not
+  anticipate and which is structural rather than a one-off. I appended the duplication finding to
+  THIS FILE mid-run, while qa was still investigating. It is a repo path and qa holds `Read`, so qa
+  found it and wrote in its artifact that my diagnosis "independently corroborated" its own — citing
+  the log by path and noting the working tree had gained a third modification mid-run. The log is
+  never INJECTED into a spawn, but it is READABLE by every member with source access, so a lead who
+  observes mid-run is publishing to the panel it is about to assess. qa's per-pair SHA-256 hashes
+  and its `3c75aa6` reproduction were genuinely new; its COORDINATES were not. Whenever a member
+  claims independent corroboration of a finding I have already written down, check what my own log
+  already held before relaying the claim.
+
+- 2026-08-14: I ALMOST SIGNED VERDICTS FOR MEMBERS THAT NEVER SPOKE. My first `state.yaml` for this
+  run recorded `status: complete, verdict: PASS, severity_max: info` for security and ui as "lead
+  scope-out" entries, before either had been spawned. My reasoning was that a non-UI, non-auth diff
+  makes both spawns waste — which may even be true — but the record would have attributed a verdict
+  to an agent that never ran, in a file a successor reads as fact. Rule 15 is not only about
+  softening failures; inventing a PASS is the same defect with a friendlier face. I dispatched both
+  instead, and BOTH EARNED IT: security scoped IN and traced 17 subprocess sites, and ui produced
+  the only finding nobody else framed. The cheap honest option and the informative one were the same
+  option. A scope-out is the MEMBER's finding to return, never the lead's to record on its behalf.
+
+- 2026-08-14: THE DECISIVE FINDING ARRIVED BY TWO ROUTES AT ONCE, and neither route alone would have
+  gated. I derived from the branch order in `layout_migration.scan` (`:235` undeclared-segment and
+  `:245` no-evidence both fire BEFORE the `both`-reader test at `:248`) that DEC-194's amended
+  sentence overclaims — which I was going to file as a LOW advisory about doc wording, since the
+  three cause-wordings were byte-unchanged by the diff. code-reviewer independently constructed a
+  `SurfaceReport(cause="undeclared-segment")` and observed `blame()` return non-empty, filing it as a
+  CODE divergence. Put together they are one high finding: `render()` (`layout_migration.py:318-320`)
+  composes blame for EVERY `CANNOT_VERIFY` cause while `check-state.sh:_cv_wording` (`:1295-1312`)
+  calls it in only two of five lambdas, so CI and session entry still name different readers — the
+  exact claim #379 says it closed. THE LESSON: a doc-wording advisory of mine and a code finding of a
+  member can be the same defect seen from two ends, and the merge upgrades both. I nearly filed mine
+  as low because the DIFF did not touch those lines — "unchanged by this diff" is an argument about
+  provenance, never about whether the claim being shipped is true.
+
+- 2026-08-14: A FIX ORDER THAT NO MEMBER COULD HAVE SET. M-3 (restore DEC-194 and append amendment 2)
+  must happen AFTER M-1 (resolve the blame divergence), because the amendment's text has to state the
+  settled behaviour and the current narrowing is false whichever way M-1 resolves. code-reviewer
+  filed both and ordered neither; ordering is only visible once you hold the doc finding and the code
+  finding together.
+
+- 2026-08-14: THE VACUITY QUESTION PAID OFF ON `case_20` (G-03). `layout_fixtures.py`'s docstring
+  credits its own paren balance for not tripping `test-check-plan-routes.py` case_20. The parens ARE
+  balanced — I checked all seven pairs — but that is not what protects it. case_20 scans every
+  `.py`/`.sh` in `bin/` excluding only `test-*` (`:1167-1169`), so the file IS in scope; it survives
+  because it carries none of the `PREDICATES` tokens at `:1120-1121`, leaving `probes` empty at
+  `:1180`. The docstring therefore hands units 3-7 the WRONG invariant to preserve, and the stubs are
+  literal fragments of the very reader files case_20 audits. "Does not trip the gate" and "the reason
+  the author gives for not tripping it" are separate claims, and only the second is what a
+  maintainer will act on.
+
+- 2026-08-14: #367 IS FIXED and the dispatch's accepted-residual list is stale on it.
+  `check-state.sh:1313-1316` is now a closed cause table with a loud `unrecognised cause` fallback,
+  replacing the else-less `if/elif` chain I filed at `ea476fd`. Worth checking a handed-down residual
+  list against source before briefing a panel to ignore its items — briefing a reviewer past a FIXED
+  defect costs nothing, but briefing it past a defect that has MOVED costs the finding.
