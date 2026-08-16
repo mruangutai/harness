@@ -1718,7 +1718,7 @@ approval:                          # orchestrator-only; reset to pending by any 
   approved_by: <name>
   date: 2026-08-06
 
-decisions:                         # pointers; reasoning lives in docs/harness/DECISIONS.md
+decisions:                         # pointers; reasoning lives in .harness/harness/docs/DECISIONS.md
   - id: D-03
     choice: Use Supabase social login rather than hand-rolled OAuth
     because: auth is not our differentiator and Supabase is already our DB

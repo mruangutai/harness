@@ -788,7 +788,7 @@ teams:
         f"stdout={r_undec.stdout.strip()!r}, exit {r_undec.returncode}")
 
     # Against the LIVE root, not a fixture — this is what guards the tree-wide
-    # check-plan-routes.py run that CI requires on main. Under a glob-keyed rule this
+    # check-plan-routes.py run that CI requires on main.
     # Since FEAT-22's T-02 the documentor holds `.harness/*/docs/**`, so the moved
     # SPEC resolves through a real grant; the named-entry half of the rule is
     # exercised by the fleet cases above.

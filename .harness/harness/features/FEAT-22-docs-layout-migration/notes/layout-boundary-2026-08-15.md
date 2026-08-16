@@ -232,3 +232,37 @@ RECONCILIATION
    No. 42 note lines at this capture vs 42 in the PRE-MOVE capture — unchanged.
    Command: bash .claude/skills/harness/bin/check-state.sh | grep -c '^  note'.
 Close-out commit: 5faa832449529554361c23bd3efebb14ca2e7d1c
+
+## CORRECTION — the SC-10 fix, appended 2026-08-16
+
+Pre-fix SHA: e26e628. This section and the fix it describes land in the same commit.
+
+WHAT THE DEPTH SWEEP GOT WRONG. The docs partition above reads "2 under
+.harness/harness/docs/ — DECISIONS.md's own history plus DEC-189 am.1". That names one file
+twice: am.1 lives INSIDE DECISIONS.md. The genuine second file was SPEC.md, never named — and
+it was the one carrying a DEFECT rather than a survivor. SPEC.md:1721 read
+`decisions: # pointers; reasoning lives in docs/harness/DECISIONS.md`: a present-tense claim in
+live instruction, naming the dead path. By the partition rule that is not historical prose, so it
+was misclassified. It is now repointed to `.harness/harness/docs/DECISIONS.md`, matching the
+template it specifies (templates/plan.yaml:44), which had already been corrected — spec and
+template had disagreed since the cluster landed.
+
+WHY T-10'S OWN VERIFY COULD NOT CATCH IT. The live-surface control is an exact per-file table
+over .claude, CLAUDE.md and .harness/expertise. The moved docs are in none of those three, so no
+clause of the sweep ever examined .harness/harness/docs/ for present-tense claims. The sweep's
+positive control and its survivor arithmetic were both green while the defect sat inside a class
+the table does not reach. The goal-check's inspection of SC-10 is what found it.
+
+RE-DERIVED AT THE FIXED TREE, with plan.yaml's own two-spelling command, not carried:
+
+  git grep -lE 'docs/harness|"docs", ?"harness"' -- . ':!<this feature dir>' | wc -l
+
+survivors (post-fix): 173 — and the classes reconcile exactly, 158 + 6 + 3 + 1 + 5 = 173:
+- 158 shipped feature records · 6 under .harness/notes/ · 3 under .harness/logs/ (unchanged)
+- 1 under .harness/harness/docs/ — DECISIONS.md alone, was 2 before SPEC.md was fixed out
+- 5 under .claude/skills/harness/bin/ (unchanged; the live-surface table is undisturbed)
+
+THE `survivors: 174` LINE ABOVE IS LEFT STANDING AND IS NOT AN ERROR. It was true at e26e628,
+when it was measured. Consequently `feat22-verify-T10.sh` reds if re-run at or after this commit,
+comparing its recorded 174 against a tree that now holds 173. That red is the tree changing, not
+a regression: a task verify binds its own tree at acceptance and is not a standing gate.

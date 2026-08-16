@@ -82,7 +82,7 @@ def matches(path, pat):
 # check-plan-routes.py exists to prevent.
 #
 # The operator's verbatim four, and the list is CLOSED. The docs entry
-# `.harness/*/docs/**` is logically dead: the `.harness/` short-circuit in
+# `.harness/*/docs/**` is logically redundant: the `.harness/` short-circuit in
 # `is_control_plane_glob` fires first. Kept so this list remains the complete
 # statement of what harness owns. It is
 # not widened to `docs/**` and no fifth entry is added. The accepted risk, signed: a
