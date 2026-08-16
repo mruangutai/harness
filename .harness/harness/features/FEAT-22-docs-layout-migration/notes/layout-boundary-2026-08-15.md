@@ -231,3 +231,4 @@ RECONCILIATION
 3. Did check-state's note count move for any reason other than this feature?
    No. 42 note lines at this capture vs 42 in the PRE-MOVE capture — unchanged.
    Command: bash .claude/skills/harness/bin/check-state.sh | grep -c '^  note'.
+Close-out commit: 5faa832449529554361c23bd3efebb14ca2e7d1c
