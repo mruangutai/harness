@@ -42,6 +42,8 @@ reported explicitly rather than silently narrowing "every one of the five" from 
 """
 import json
 import os
+
+import factory_config
 import re
 import stat
 import subprocess
@@ -330,8 +332,8 @@ def make_root(base):
     redirection needs (FEAT-22: the probe moved with the docs).
     Never carries .harness/factory/fleet.yaml — every case passes --fleet explicitly."""
     root = os.path.join(base, "root")
-    os.makedirs(os.path.join(root, ".harness", "harness", "docs"), exist_ok=True)
-    with open(os.path.join(root, ".harness", "harness", "docs", "SPEC.md"), "w", encoding="utf-8") as f:
+    os.makedirs(os.path.join(root, os.path.dirname(factory_config._PROBE)), exist_ok=True)
+    with open(os.path.join(root, factory_config._PROBE), "w", encoding="utf-8") as f:
         f.write("stub probe for T-12\n")
     return root
 

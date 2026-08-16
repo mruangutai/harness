@@ -20,8 +20,9 @@ import tempfile
 
 BIN_DIR = os.path.dirname(os.path.realpath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
-REAL_DECISIONS = os.path.join(REPO_ROOT, ".harness", "harness", "docs", "DECISIONS.md")
-REAL_INDEX = os.path.join(REPO_ROOT, ".harness", "harness", "docs", "DECISIONS-INDEX.md")
+DOCS_DIR = os.path.join(".harness", "harness", "docs")  # mirrors the generator's own constant
+REAL_DECISIONS = os.path.join(REPO_ROOT, DOCS_DIR, "DECISIONS.md")
+REAL_INDEX = os.path.join(REPO_ROOT, DOCS_DIR, "DECISIONS-INDEX.md")
 
 # Overridable so a fix can be proven RED against a reverted copy — the same
 # CHECK_STATE_BIN escape test-check-state.py uses.
@@ -91,7 +92,7 @@ def make_authority(tmp, decisions, bodies=None):
     for the cases where the BODY is what is under test (supersession prose, B-3).
     """
     bodies = bodies or {}
-    docs_dir = os.path.join(tmp, ".harness", "harness", "docs")
+    docs_dir = os.path.join(tmp, DOCS_DIR)
     os.makedirs(docs_dir, exist_ok=True)
     body = []
     for n, title in decisions:
@@ -160,7 +161,7 @@ def test_row_per_distinct_dec_matches_authority():
             return False
 
         with tempfile.TemporaryDirectory() as tmp:
-            docs_dir = os.path.join(tmp, ".harness", "harness", "docs")
+            docs_dir = os.path.join(tmp, DOCS_DIR)
             os.makedirs(docs_dir, exist_ok=True)
             shutil.copy(REAL_DECISIONS, os.path.join(docs_dir, "DECISIONS.md"))
             index_path = os.path.join(docs_dir, "DECISIONS-INDEX.md")

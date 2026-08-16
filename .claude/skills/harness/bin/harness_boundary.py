@@ -81,12 +81,10 @@ def matches(path, pat):
 # a resolver that granted a base the hook refuses is the build-time discovery
 # check-plan-routes.py exists to prevent.
 #
-# The operator's verbatim four, and the list is CLOSED. The docs entry is
-# `.harness/*/docs/**` since the unit-4 move — which makes it logically REDUNDANT:
-# `is_control_plane_glob` already short-circuits True for any `.harness/` first
-# segment before this list is consulted. It stays because the deny message
-# advertises this list as the closed statement of what harness owns, and a list
-# that silently under-states ownership teaches readers the wrong boundary. It is
+# The operator's verbatim four, and the list is CLOSED. The docs entry
+# `.harness/*/docs/**` is logically dead: the `.harness/` short-circuit in
+# `is_control_plane_glob` fires first. Kept so this list remains the complete
+# statement of what harness owns. It is
 # not widened to `docs/**` and no fifth entry is added. The accepted risk, signed: a
 # future harness-owned path starting with neither `.harness/` nor `.claude/` must be
 # added here or it silently becomes a product path. No machinery detects the
@@ -222,11 +220,9 @@ def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path, l
 def is_control_plane_target(rel):
     """The TARGET-side test, used only in the harness base.
 
-    Target-keyed, not glob-keyed, and that is load-bearing: team-config.yaml's
-    documentor block now grants `.harness/*/docs/**` (unit 4), so the old claim that
-    no grant names a control-plane docs path is gone — but a glob-keyed
-    classifier would still have literally nothing to match two of the four named entries
-    against. Anchored through the same `matches` idiom, so `README.md` means the
+    Target-keyed, not glob-keyed, and that is load-bearing: two of the four named
+    entries appear in no team-config grant, so a glob-keyed classifier would have
+    literally nothing to match them against. Anchored through the same `matches` idiom, so `README.md` means the
     repository-root readme and never `docs/README.md`, and `.github/**` never matches
     `vendor/.github/x`.
     """
@@ -318,7 +314,7 @@ def classify(abs_target, root, globs, shared, label):
     # base that test is constant-True and the filtering already happened on the globs;
     # in the harness base every glob is live but only a control-plane target may be
     # granted by one. Discarding the match here rather than filtering globs above is
-    # what makes `.harness/*/docs/**` grant <harness>/.harness/harness/docs/guide.md AND `docs/**` grant <product>/docs/x.md
+    # what makes `.harness/*/docs/**` grant <harness>/.harness/harness/docs/guide.md
     # while refusing <harness>/src/main.py under a `src/**` grant.
     if any(matches(r, g) for r in rel_candidates for g in applicable_globs
            if target_side_test(r)):

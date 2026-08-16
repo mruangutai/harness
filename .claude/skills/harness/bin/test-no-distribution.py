@@ -231,20 +231,21 @@ def case4():
     docs_dirs = [os.path.join(ROOT, ".harness", "harness", "docs"),
                  os.path.join(ROOT, "docs")]
     ref_hits = []
-    walked = []
+    saw_decisions = False
     for _dd in docs_dirs:
-      for dirpath, _dirnames, filenames in os.walk(_dd):
-        for fn in filenames:
-            full = os.path.join(dirpath, fn)
-            rel = os.path.relpath(full, ROOT)
-            walked.append(rel)
-            try:
-                with open(full, "r", encoding="utf-8", errors="ignore") as fh:
-                    text = fh.read()
-            except OSError:
-                continue
-            if DEC12_REF_RE.search(text):
-                ref_hits.append(rel)
+        for dirpath, _dirnames, filenames in os.walk(_dd):
+            for fn in filenames:
+                full = os.path.join(dirpath, fn)
+                rel = os.path.relpath(full, ROOT)
+                if rel.endswith("DECISIONS.md"):
+                    saw_decisions = True
+                try:
+                    with open(full, "r", encoding="utf-8", errors="ignore") as fh:
+                        text = fh.read()
+                except OSError:
+                    continue
+                if DEC12_REF_RE.search(text):
+                    ref_hits.append(rel)
     check("case4_absence_no_dec12_references_under_docs", ref_hits == [],
           f"found in: {ref_hits}")
     # POSITIVE CONTROL (FEAT-22 T-04): the walk above proves an ABSENCE, and an
@@ -252,8 +253,7 @@ def case4():
     # moved once already and could move again. Assert the walk actually visited the
     # authority file, so a silent re-point reds here instead of greening everything.
     check("case4_control_docs_walk_reached_decisions",
-          any(rel.endswith("DECISIONS.md") for rel in walked),
-          f"walk visited {len(walked)} file(s), none of them DECISIONS.md")
+          saw_decisions, "the walk never visited DECISIONS.md")
 
     index_path = os.path.join(ROOT, ".harness", "harness", "docs", "DECISIONS-INDEX.md")
     with open(index_path, "r", encoding="utf-8") as fh:

@@ -789,10 +789,9 @@ teams:
 
     # Against the LIVE root, not a fixture — this is what guards the tree-wide
     # check-plan-routes.py run that CI requires on main. Under a glob-keyed rule this
-    # prints NOBODY, which is precisely the defect that would redden CI. Since
-    # FEAT-22's T-02 the documentor holds `.harness/*/docs/**`, so the moved SPEC
-    # resolves through a real grant; the named-entry half of the rule is exercised
-    # by the fleet cases above.
+    # Since FEAT-22's T-02 the documentor holds `.harness/*/docs/**`, so the moved
+    # SPEC resolves through a real grant; the named-entry half of the rule is
+    # exercised by the fleet cases above.
     r_live = subprocess.run([HOOK, "--resolve", ".harness/harness/docs/SPEC.md"],
                             capture_output=True, text=True, stdin=subprocess.DEVNULL,
                             timeout=20, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT))
