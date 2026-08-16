@@ -115,6 +115,7 @@ teams:
           READMEs, guides, reference docs, changelogs, user-facing explanation.
         domain:
           - { path: docs/**, upsert: true }
+          - { path: .harness/*/docs/**, upsert: true }
           - { path: README.md, upsert: true }
           - { path: .harness/README.md, upsert: true }
           - { path: .harness/codebase/INDEX.md, upsert: true }            # skeleton ONLY (DEC-137)

@@ -5,7 +5,7 @@
 # DECISIONS — index
 
 **A row is an open-or-skip filter, never the rule itself.** Its only job is to answer "do I open this
-entry?" Never act on a ruling here: open `docs/harness/DECISIONS.md` at the `@line` anchor and read
+entry?" Never act on a ruling here: open `.harness/harness/docs/DECISIONS.md` at the `@line` anchor and read
 the entry. Rows written during the one-time backfill are second-hand paraphrase.
 
 **Never read the authority whole (DEC-150).** Grep this index, then open the two or three entries that
@@ -204,9 +204,9 @@ A row ending `— SUPERSEDED BY DEC-NN` is one you must not act on.
 - DEC-186 @5349 am.1 [plan,github,state,approval] refs: DEC-138 DEC-168 DEC-179 DEC-182 :: GitHub Issues and the per-repository board are the factory's control plane; read-back is bounded to exactly three purposes and never writes an approval-gated artifact.
 - DEC-187 @5441 [state,tests,qa] refs: DEC-35 DEC-36 DEC-163 :: The test matrix is per-project: every kind it names must be `active` or `excluded` with a signed decision, and a null `cmd` is BLOCKED, never an inferred skip.
 - DEC-188 @5515 [state,docs,digest] refs: DEC-103 DEC-104 DEC-161 DEC-165 DEC-181 :: A decision the tree flatly contradicts is STRUCK from the record and removed from every gate, never marked stale; the propagation checker is deleted with it.
-- DEC-189 @5549 [docs,state,plan,deploy] refs: DEC-85 DEC-151 DEC-174 :: The write guard resolves a target against TWO bases, harness and a declared product checkout, chosen from the TARGET; the four named harness paths are target-side only.
+- DEC-189 @5549 am.1 [docs,state,plan,deploy] refs: DEC-85 DEC-151 DEC-174 :: The write guard resolves a target against TWO bases, harness and a declared product checkout, chosen from the TARGET; the four named harness paths are target-side only.
 - DEC-190 @5617 [skills,gates,github,map] refs: DEC-101 DEC-171 :: `jsonschema` is a required dependency, declared in `harness-init`'s prerequisite gate and CI rather than a manifest; a missing import is a loud error, never a quieter mode.
 - DEC-191 @5648 [state,github,cost,domain] refs: DEC-150 DEC-154 DEC-160 DEC-174 DEC-178 DEC-183 DEC-190 :: A feature's execution state has a closed key set — eleven top-level keys, `additionalProperties: false`, eight required — enforced on `check-domain.sh`'s write path and in CI.
 - DEC-192 @5688 [state,cost,plan,github] refs: DEC-148 DEC-159 DEC-172 DEC-191 :: `phase` and `status` collapse into one `status` field whose six case-sensitive values are the GitHub board's column names; no alias, no translation, and `blocked` is deliberately dropped.
 - DEC-193 @5730 am.1 [worktree,domain,state,map] refs: DEC-150 DEC-151 DEC-153 DEC-174 DEC-180 DEC-188 DEC-189 :: Exactly two locations hold code under harness authority; any other checkout cannot be created, written into, or host a governed session; one shared module decides both write routes, divergences recorded.
-- DEC-194 @5834 am.1-am.2 [docs,state,plan,dispatch] refs: DEC-174 DEC-183 :: A partial layout migration is judged per coupled surface — features and docs independently, with no ordering tie — and a coupled reader matching neither form is cannot-verify, never clean.
+- DEC-194 @5834 am.1-am.2 [docs,state,plan,dispatch] refs: DEC-174 DEC-183 DEC-189 :: A partial layout migration is judged per coupled surface — features and docs independently, with no ordering tie — and a coupled reader matching neither form is cannot-verify, never clean.

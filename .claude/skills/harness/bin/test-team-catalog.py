@@ -42,7 +42,7 @@ REPO = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
 TEAMS = os.path.join(REPO, ".claude", "skills", "harness", "teams")
 BIN = os.path.join(REPO, ".claude", "skills", "harness", "bin")
 SKILL_MD = os.path.join(REPO, ".claude", "skills", "harness", "SKILL.md")
-SPEC_MD = os.path.join(REPO, "docs", "harness", "SPEC.md")
+SPEC_MD = os.path.join(REPO, ".harness", "harness", "docs", "SPEC.md")
 
 fails = 0
 ran = 0

@@ -12,8 +12,8 @@ Computes what reading 4,600 lines cannot reliably do by hand:
 """
 import re, pathlib, collections, sys
 
-D = pathlib.Path("docs/harness/DECISIONS.md").read_text(encoding="utf-8")
-I = pathlib.Path("docs/harness/DECISIONS-INDEX.md").read_text(encoding="utf-8")
+D = pathlib.Path(".harness/harness/docs/DECISIONS.md").read_text(encoding="utf-8")
+I = pathlib.Path(".harness/harness/docs/DECISIONS-INDEX.md").read_text(encoding="utf-8")
 
 # --- fence-guard: a ## DEC- inside a code fence is an example, not a decision.
 lines, in_fence, tops = D.split("\n"), False, []

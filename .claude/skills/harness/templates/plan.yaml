@@ -41,7 +41,7 @@ lanes:
       reason: <why, one clause>
 
 decisions:
-  # POINTERS, not essays. The reasoning lives in docs/harness/DECISIONS.md; a plan-local
+  # POINTERS, not essays. The reasoning lives in .harness/harness/docs/DECISIONS.md; a plan-local
   # choice that never becomes a DEC keeps `dec: none` and dies with the feature.
   # DEC-158's rule applies: carry the rule and one clause of why, not the biography.
   - id: D-01

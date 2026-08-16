@@ -21,7 +21,7 @@ REPO_ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
 # The two normative templates (DEC-123) must validate — extracted from their
 # SOURCE FILES and run through the validator, not eyeballed. (name, file, heading)
 TEMPLATES = [
-    ("SPEC §10.4", os.path.join(REPO_ROOT, "docs/harness/SPEC.md"),
+    ("SPEC §10.4", os.path.join(REPO_ROOT, ".harness/harness/docs/SPEC.md"),
      "### 10.4 The team digest"),
     ("harness-team \"Reporting up\"",
      os.path.join(REPO_ROOT, ".claude/skills/harness-team/SKILL.md"),
@@ -1305,7 +1305,7 @@ case("a documentor digest carries neither new field and is still accepted",
 VERDICT: PASS
 DIGEST:
   headline: x
-  docs_updated: [docs/harness/SPEC.md]
+  docs_updated: [.harness/harness/docs/SPEC.md]
   gaps: []
   open_questions: []
   files_touched: []

@@ -388,6 +388,16 @@ _parity("CLEAN names nobody at either site", dict())
 # override, and the REAL gate runs the real module) — its wording remains covered by
 # check-state's own case_x and by cause_text's unit coverage; noted, not mirrored.
 
+# ------------------------------------------------------------------- case 21
+# FEAT-22 T-05: the REAL tree's DOCS surface post-move. Case 1 already scans the
+# real root; this pins the docs half specifically — evidence at the migrated root
+# (.harness/harness/docs/SPEC.md) and every DOCS reader speaking the migrated form —
+# so a partial docs rollback or a stray legacy re-introduction reds here by name.
+code, out = run(REPO_ROOT)
+docs_line = next((l for l in out.splitlines() if l.startswith("docs:")), "")
+check("case 21: real root's harness/docs surface is CLEAN with migrated evidence",
+      code == 0 and "docs: CLEAN — evidence migrated" in docs_line, out)
+
 # ---------------------------------------------------------------------- report
 fails = 0
 for name, ok, detail in results:

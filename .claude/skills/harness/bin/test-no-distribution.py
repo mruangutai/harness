@@ -86,7 +86,7 @@ def case1():
 TOKEN_RE = re.compile(r"harness-deploy|deploy\.sh|harness-registry|registry\.json")
 
 # Historical records that stay true as written — excluded from the sweep, and nothing else.
-EXCLUDED_EXACT = {"docs/harness/DECISIONS.md"}
+EXCLUDED_EXACT = {".harness/harness/docs/DECISIONS.md"}
 EXCLUDED_PREFIXES = (".harness/logs/", ".harness/notes/", ".harness/harness/features/")
 
 # EXACTLY TWO ENTRIES. Declared here, never derived from what happens to be present, so a new
@@ -207,7 +207,7 @@ def slice_section(text, heading_re):
 
 
 def case4():
-    dec_path = os.path.join(ROOT, "docs", "harness", "DECISIONS.md")
+    dec_path = os.path.join(ROOT, ".harness", "harness", "docs", "DECISIONS.md")
     with open(dec_path, "r", encoding="utf-8") as fh:
         dec_text = fh.read()
 
@@ -225,12 +225,19 @@ def case4():
           dec113_slice is not None and DEC113_PRECEDENCE_SUBSTRING in dec113_slice,
           f"substring {DEC113_PRECEDENCE_SUBSTRING!r} not found within DEC-113's sliced section")
 
-    docs_dir = os.path.join(ROOT, "docs")
+    # The sweep covers BOTH the moved harness docs and the surviving global docs/
+    # (PRINCIPLES.md stays there by map ruling) — the control below proves the
+    # authority file was actually visited.
+    docs_dirs = [os.path.join(ROOT, ".harness", "harness", "docs"),
+                 os.path.join(ROOT, "docs")]
     ref_hits = []
-    for dirpath, _dirnames, filenames in os.walk(docs_dir):
+    walked = []
+    for _dd in docs_dirs:
+      for dirpath, _dirnames, filenames in os.walk(_dd):
         for fn in filenames:
             full = os.path.join(dirpath, fn)
             rel = os.path.relpath(full, ROOT)
+            walked.append(rel)
             try:
                 with open(full, "r", encoding="utf-8", errors="ignore") as fh:
                     text = fh.read()
@@ -240,8 +247,15 @@ def case4():
                 ref_hits.append(rel)
     check("case4_absence_no_dec12_references_under_docs", ref_hits == [],
           f"found in: {ref_hits}")
+    # POSITIVE CONTROL (FEAT-22 T-04): the walk above proves an ABSENCE, and an
+    # absence over a mis-pointed or empty directory is vacuously true — the docs
+    # moved once already and could move again. Assert the walk actually visited the
+    # authority file, so a silent re-point reds here instead of greening everything.
+    check("case4_control_docs_walk_reached_decisions",
+          any(rel.endswith("DECISIONS.md") for rel in walked),
+          f"walk visited {len(walked)} file(s), none of them DECISIONS.md")
 
-    index_path = os.path.join(ROOT, "docs", "harness", "DECISIONS-INDEX.md")
+    index_path = os.path.join(ROOT, ".harness", "harness", "docs", "DECISIONS-INDEX.md")
     with open(index_path, "r", encoding="utf-8") as fh:
         index_text = fh.read()
     dec113_rows = INDEX_DEC113_ROW_RE.findall(index_text)

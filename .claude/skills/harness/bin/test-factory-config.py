@@ -396,7 +396,7 @@ try:
         check("(21) discarding it is announced on stderr", err.getvalue().strip() != "",
               "stderr was empty")
         check("(21) the returned root still has a readable probe file",
-              os.access(os.path.join(root, "docs", "harness", "SPEC.md"), os.R_OK), root)
+              os.access(os.path.join(root, ".harness", "harness", "docs", "SPEC.md"), os.R_OK), root)
 finally:
     if _saved_env is None:
         os.environ.pop("CLAUDE_PROJECT_DIR", None)

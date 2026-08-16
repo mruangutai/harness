@@ -673,7 +673,7 @@ _cml = (read(_cm) or "").splitlines()
 if _cml and len(_cml) > 80:
     warn.append(f"INV-23 CLAUDE.md is {len(_cml)} lines — budget is 80 (DEC-181). It is "
                 f"preloaded into EVERY session, so a line here costs more than a line "
-                f"anywhere else; rationale belongs in docs/harness/DECISIONS.md.")
+                f"anywhere else; rationale belongs in .harness/harness/docs/DECISIONS.md.")
 
 for sm in sorted(glob.glob(os.path.join(H, "*", "features", "*", "STATE.md"))):
     sl = (read(sm) or "").splitlines()

@@ -25,7 +25,7 @@ by recorder in test-factory-workspace.py, and are exercised for REAL only in the
 
 CLAUDE_PROJECT_DIR IS THE ROOT-REDIRECT SEAM, NOT A WORKAROUND: factory_config.harness_root()
 documents (and test-factory-config.py exercises) a three-tier resolution — CLAUDE_PROJECT_DIR
-wins when `<it>/docs/harness/SPEC.md` is readable. Every case sets CLAUDE_PROJECT_DIR to its own
+wins when `<it>/.harness/harness/docs/SPEC.md` is readable. Every case sets CLAUDE_PROJECT_DIR to its own
 temp root with a stub SPEC.md, so `factory_claim.py`'s import-time FEATURES_ROOT (a documented,
 carried, non-blocking finding — see the receipt) resolves under the temp root instead of this
 checkout's real `.harness/features`. This is also why a case's own `.harness/factory/fleet.yaml`
@@ -326,11 +326,12 @@ def read_state(path):
 
 
 def make_root(base):
-    """A temp root with the docs/harness/SPEC.md probe CLAUDE_PROJECT_DIR redirection needs.
+    """A temp root with the .harness/harness/docs/SPEC.md probe CLAUDE_PROJECT_DIR
+    redirection needs (FEAT-22: the probe moved with the docs).
     Never carries .harness/factory/fleet.yaml — every case passes --fleet explicitly."""
     root = os.path.join(base, "root")
-    os.makedirs(os.path.join(root, "docs", "harness"), exist_ok=True)
-    with open(os.path.join(root, "docs", "harness", "SPEC.md"), "w", encoding="utf-8") as f:
+    os.makedirs(os.path.join(root, ".harness", "harness", "docs"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness", "docs", "SPEC.md"), "w", encoding="utf-8") as f:
         f.write("stub probe for T-12\n")
     return root
 

@@ -51,16 +51,16 @@ harness code is being changed, so a stale copy silently tests the wrong logic.
 | Rule skills | `.claude/skills/harness-<name>/` — **flat**, one level under `.claude/skills/` |
 | Agents | `.claude/agents/harness-*.md` |
 | The constitution | `docs/PRINCIPLES.md` — what the factory is FOR. States intent, not mechanism; parts describe the destination, not what is built. Reaches all 16 agents distilled, as the preloaded `harness-principles` skill |
-| Design docs | `docs/harness/SPEC.md` (what it is) · `DECISIONS-INDEX.md` (**the entry point** — one row per decision) · `DECISIONS.md` (why — **the authority**) · `BUILD.md` (what is left) |
+| Design docs | `.harness/harness/docs/SPEC.md` (what it is) · `DECISIONS-INDEX.md` (**the entry point** — one row per decision) · `DECISIONS.md` (why — **the authority**) · `BUILD.md` (what is left) |
 
 **The org is 16 agents in four tiers:** main session (layer 0, the only user channel) →
 `harness-orchestrator` (layer 1, one per in-flight feature) → three domain leads (layer 2) →
 members (layer 3, always leaves). Rules reach agents by native `skills:` preload, and Expertise by
 a `SubagentStart` hook — nothing needs to be told to go read a file.
 
-**Before changing any harness doc, read `docs/harness/DECISIONS-INDEX.md`**, grep it for the
+**Before changing any harness doc, read `.harness/harness/docs/DECISIONS-INDEX.md`**, grep it for the
 surface you are touching, and open the two or three entries it names. The authority
-`docs/harness/DECISIONS.md` is never read in its entirety (DEC-150) — the index exists so that it
+`.harness/harness/docs/DECISIONS.md` is never read in its entirety (DEC-150) — the index exists so that it
 need not be. Cited decisions are a floor, not a ceiling: go broader via the index when a cited entry
 points at one nobody named. A row is an open-or-skip filter, so open the entry before acting on it.
 

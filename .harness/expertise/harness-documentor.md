@@ -4,7 +4,7 @@
 - P-01: WHEN a dispatch or plan hands down a `file:line` anchor or a count of things DO grep it
   yourself and write the named list rather than the count — handed-down anchors and counts are the
   least trustworthy input you receive.
-- P-02: WHEN appending an amendment to a decision in `docs/harness/DECISIONS.md` DO grep the new
+- P-02: WHEN appending an amendment to a decision in `.harness/harness/docs/DECISIONS.md` DO grep the new
   amendment number for a collision and append at the file's last amendment, not beside its parent
   decision — amendments are not contiguous with the decision they amend.
 - P-03: WHEN you edit on a dirty working tree DO read `git diff -U0` hunk headers to bound your own
@@ -28,7 +28,7 @@
 - P-09: WHEN you report that a structural or parse check passed DO first run it against a
   deliberately broken copy of the same input — lenient parsers accept malformed input, so "it
   parsed" is evidence of nothing until the checker is shown rejecting something.
-- P-10: WHEN adding an entry to `docs/harness/DECISIONS.md` DO append at end-of-file and regenerate
+- P-10: WHEN adding an entry to `.harness/harness/docs/DECISIONS.md` DO append at end-of-file and regenerate
   the index rather than hand-writing the new row — appending keeps every existing `@line` anchor
   stable, and the generator emits a sentinel telling you the one place to write.
 - P-11: WHEN a `verify:` clause is your evidence that a criterion about a section's body is met DO
@@ -40,7 +40,7 @@
 - P-13: WHEN you narrow a claim in one file after disproving its broad form DO grep every file you
   touched for the stronger phrasing too — verify coverage is per-file, so the same claim restated
   in an uncovered file exits 0 and ships false.
-- P-14: WHEN you strike or shrink a section of `docs/harness/DECISIONS.md` DO expect the
+- P-14: WHEN you strike or shrink a section of `.harness/harness/docs/DECISIONS.md` DO expect the
   regenerated index row to lose `refs:` and `[tags]` — the generator recomputes both from the
   section's body text — and report that as an effect of your edit, never as a generator defect.
 
@@ -56,7 +56,7 @@
   exists (DEC-188), so a falsified sentence standing is caught only by a human reading the diff.
   Live: CLAUDE.md, docs/, .claude/{skills,commands,agents}, .harness/expertise; .harness/features
   is historical record, leave them.
-- G-05: WHEN you edit a ruling in `docs/harness/DECISIONS-INDEX.md` DO run the unit-test runner, not
+- G-05: WHEN you edit a ruling in `.harness/harness/docs/DECISIONS-INDEX.md` DO run the unit-test runner, not
   just the generator diff — the index's length budgets are asserted only in
   `test-gen-decisions-index.py` and stated nowhere in the index itself.
 - G-06: WHEN a `grep -c` detector must go from 0 to >=1 in a hard-wrapped file DO re-flow so the

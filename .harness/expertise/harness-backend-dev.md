@@ -70,7 +70,7 @@
   to fire on legitimate unrelated uses too (e.g. parsing subprocess output, not path matching) — the
   check is textual not semantic; rewrite to satisfy it even when the change is cosmetic.
 - G-08: WHEN building a negative-path ("ungranted") fixture against the domain manifest DO check
-  team-config.yaml for broad top-level globs (e.g. `docs/harness/**`) before assuming a path
+  team-config.yaml for broad top-level globs (e.g. the documentor's `docs/**`) before assuming a path
   resolves to NOBODY — pick a path outside every domain prefix instead.
 - G-09: WHEN validating a live or side-effecting measurement against changed code DO confirm the
   loaded module's `__file__` resolves under the worktree being tested, not a stale main-checkout
