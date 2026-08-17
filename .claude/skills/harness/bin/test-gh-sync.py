@@ -623,7 +623,8 @@ with tempfile.TemporaryDirectory() as tmpB:
           str(logB))
 
 # --- abandon: parent recorded with no parent_origin line at all — the specified default,
-#     and cmd_abandon must write no receipt so the absent line is never back-filled
+#     and cmd_abandon must not back-fill the absent parent_origin line (it now writes a
+#     top-level status field, T-01/FEAT-23, but the github block's parent_origin stays absent)
 with tempfile.TemporaryDirectory() as tmpC:
     install_gh(tmpC)
     featC = stage(tmpC, feat_name="FEAT-06-abandon-noorigin")
@@ -708,6 +709,7 @@ with tempfile.TemporaryDirectory() as tmpE:
     write_feature_json(
         os.path.join(featE, "feature.json"),
         feature_id="FEAT-06-abandon-nomilestone",
+        status="Review",
         github={"milestone": None, "parent": None, "attached": [], "issues": {"T-01": 41}},
     )
     reasonE = os.path.join(tmpE, "reason.txt")
@@ -719,6 +721,13 @@ with tempfile.TemporaryDirectory() as tmpE:
           and not any("milestones/None" in l for l in logE)
           and any("issues/41" in l and "state_reason=not_planned" in l for l in logE),
           str(logE))
+    # T-01/FEAT-23: the exact conjunction the write must not be re-gated on — no milestone
+    # (which alone would `skip()` if abandon had no issues) but WITH issues recorded, so
+    # cmd_abandon's real early exit (milestone is None AND no issues) does not fire, and a
+    # milestone-only guard on the status write would wrongly skip it here.
+    docE = read_feature_json(os.path.join(featE, "feature.json"))
+    check("abandon with no milestone but WITH issues still records status Abandoned",
+          docE.get("status") == "Abandoned", docE)
 
 # --- abandon: sync disabled is still a SKIP, exit 0 (SC-12)
 with tempfile.TemporaryDirectory() as tmpF:
@@ -1238,6 +1247,93 @@ with tempfile.TemporaryDirectory() as tmpN:
           rN.returncode == 0
           and "no .harness/harness.json — project not onboarded" in (rN.stdout + rN.stderr),
           rN.stdout + rN.stderr)
+
+# ---- T-01 (FEAT-23): ship and abandon record feature.json's own terminal status ---------
+# The fixture is SCHEMA-VALID AND FULLY POPULATED — all eight feature-schema.json required
+# keys plus a github block — so the key-survival case below quantifies over the real key
+# set instead of passing vacuously against a two-key fixture.
+def _full_fixture(path, feat_name, status, issue_num):
+    write_feature_json(
+        path,
+        feature_id=feat_name,
+        branch=f"feat/{feat_name}",
+        pr=None,
+        status=status,
+        review_sha="none",
+        cycles_used=1,
+        max_total_cycles=10,
+        runs=[],
+        github={"milestone": 7, "parent": 41, "parent_origin": "created",
+                "attached": ["T-01"], "issues": {"T-01": issue_num}},
+    )
+
+# --- ship records feature.json status Done
+with tempfile.TemporaryDirectory() as tmpS:
+    install_gh(tmpS)
+    featS = stage(tmpS, feat_name="FEAT-23-ship-status")
+    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+              open(os.path.join(tmpS, ".harness", "harness.json"), "w"))
+    fjS = os.path.join(featS, "feature.json")
+    _full_fixture(fjS, "FEAT-23-ship-status", "Review", 900141)
+    r = run(["ship", featS], tmpS)
+    docS = read_feature_json(fjS)
+    check("ship records feature.json status Done",
+          r.returncode == 0 and docS.get("status") == "Done",
+          f"rc={r.returncode} status={docS.get('status')!r}")
+
+# --- abandon records feature.json status Abandoned
+with tempfile.TemporaryDirectory() as tmpT:
+    install_gh(tmpT)
+    featT = stage(tmpT, feat_name="FEAT-23-abandon-status")
+    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+              open(os.path.join(tmpT, ".harness", "harness.json"), "w"))
+    fjT = os.path.join(featT, "feature.json")
+    _full_fixture(fjT, "FEAT-23-abandon-status", "Review", 900142)
+    reasonT = os.path.join(tmpT, "reason.txt")
+    open(reasonT, "w").write("cutting scope")
+    r = run(["abandon", featT, "--reason-file", reasonT], tmpT)
+    docT = read_feature_json(fjT)
+    check("abandon records feature.json status Abandoned",
+          r.returncode == 0 and docT.get("status") == "Abandoned",
+          f"rc={r.returncode} status={docT.get('status')!r}")
+
+# --- every other top-level key present before ship/abandon ran is unchanged afterward —
+#     over the FULLY POPULATED fixture, so the claim quantifies over the real key set
+with tempfile.TemporaryDirectory() as tmpU:
+    install_gh(tmpU)
+    featU = stage(tmpU, feat_name="FEAT-23-ship-keys")
+    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+              open(os.path.join(tmpU, ".harness", "harness.json"), "w"))
+    fjU = os.path.join(featU, "feature.json")
+    _full_fixture(fjU, "FEAT-23-ship-keys", "Review", 900143)
+    before_docU = read_feature_json(fjU)
+    r = run(["ship", featU], tmpU)
+    after_docU = read_feature_json(fjU)
+    other_keys_U = [k for k in before_docU if k != "status"]
+    check("ship leaves every other top-level key unchanged",
+          r.returncode == 0
+          and all(after_docU.get(k) == before_docU.get(k) for k in other_keys_U)
+          and set(after_docU.keys()) == set(before_docU.keys()),
+          f"before={before_docU} after={after_docU}")
+
+with tempfile.TemporaryDirectory() as tmpV:
+    install_gh(tmpV)
+    featV = stage(tmpV, feat_name="FEAT-23-abandon-keys")
+    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+              open(os.path.join(tmpV, ".harness", "harness.json"), "w"))
+    fjV = os.path.join(featV, "feature.json")
+    _full_fixture(fjV, "FEAT-23-abandon-keys", "Review", 900144)
+    before_docV = read_feature_json(fjV)
+    reasonV = os.path.join(tmpV, "reason.txt")
+    open(reasonV, "w").write("cutting scope")
+    r = run(["abandon", featV, "--reason-file", reasonV], tmpV)
+    after_docV = read_feature_json(fjV)
+    other_keys_V = [k for k in before_docV if k != "status"]
+    check("abandon leaves every other top-level key unchanged",
+          r.returncode == 0
+          and all(after_docV.get(k) == before_docV.get(k) for k in other_keys_V)
+          and set(after_docV.keys()) == set(before_docV.keys()),
+          f"before={before_docV} after={after_docV}")
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

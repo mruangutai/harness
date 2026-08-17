@@ -127,7 +127,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
@@ -583,7 +583,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/board-station.py
       - .claude/skills/harness/bin/test-board-station.py
