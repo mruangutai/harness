@@ -7,9 +7,9 @@
 - P-02: WHEN a claim of yours turns out false DO grep your own artifact for every restatement of
   the same premise before returning. The widest and most misleading form is usually somewhere other
   than the sentence you were sent to fix — often the summary at the top.
-- P-03: WHEN handed a premise that some string, token or asset is unused and can be deleted DO
-  enumerate its live readers yourself, including ones the request never named. Looking like a
-  marker is not being read as one; the deletion is safe only on the reader list you built.
+- P-03: WHEN certifying an asset unused, deletable or safe to relocate DO enumerate its reference
+  graph in both directions yourself — inbound readers, and outbound links and path-shaped strings.
+  Looking like a marker is not being read as one; safety holds only on the lists you built.
 - P-04: WHEN writing a cross-file pointer DO anchor it on a heading or unique string, never a line
   number. Targets move inside a single run and your own edits are a common cause, so a numeric
   anchor rots while the content it points at is intact.
@@ -19,8 +19,14 @@
 - P-06: WHEN you scope yourself out and every deliverable is n/a DO still review the surface inside
   your remit and return findings on it. Declining to produce an artifact is not declining to judge;
   a null return is the tempting failure at exactly that spawn.
+- P-07: WHEN a verification sweep greps for a moved or renamed literal DO separately check for
+  relative references, which contain no literal and are therefore invisible to it. A green sweep
+  proves nothing about links written as `./` or `../`.
 
 ## Gotchas (max 15)
+- G-01: WHEN a rendered artifact is hand-maintained with no generator DO check its content against
+  current reality whenever you touch it. Such files sit outside every task's scope by default, so
+  they keep advertising deleted or renamed things long after the change.
 
 ## Outcomes (max 10)
 
