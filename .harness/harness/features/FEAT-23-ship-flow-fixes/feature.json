@@ -1,0 +1,52 @@
+{
+  "feature_id": "FEAT-23-ship-flow-fixes",
+  "branch": "none",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "b7ae135",
+  "cycles_used": 3,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-17-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-2-archreview-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-2-uireview-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-3-foldin-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-3-revise-product",
+      "squad": "product",
+      "verdict": "INCOMPLETE"
+    },
+    {
+      "id": "2026-08-17-4-revise-product",
+      "squad": "product",
+      "verdict": "INCOMPLETE"
+    },
+    {
+      "id": "2026-08-17-5-foldin2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-5-revise-product",
+      "squad": "product",
+      "verdict": "INCOMPLETE"
+    }
+  ]
+}

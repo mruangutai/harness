@@ -1,0 +1,822 @@
+schema: plan/1
+feature: FEAT-23-ship-flow-fixes
+
+approval:
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: "2026-08-17"
+
+lanes:
+  resolved_at: b7ae135
+  rows:
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-gh-sync.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/harness-simplify/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returned NOBODY at b7ae135; no persona is granted any path under .claude/skills
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returned NOBODY at b7ae135
+    - surface: .claude/commands/harness-plan.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returned NOBODY at b7ae135
+    - surface: .claude/skills/harness/bin/board-station.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-board-station.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: team
+      agent: harness-backend-dev
+  resolved_but_not_written:
+    - surface: .harness/harness.json
+      resolve: harness-dev-ops
+      reason: >-
+        Resolved because it is a config surface with its own write rules, then ruled out of scope
+        by D-05. No task writes it, and no stations map is added.
+    - surface: .harness/factory/fleet.yaml
+      resolve: NOBODY
+      reason: >-
+        Resolved, then ruled out of scope by D-05. The ruling is harness-board-only, so no plan key
+        is added here.
+    - surface: .claude/skills/harness/bin/gh_board.py
+      resolve: harness-backend-dev
+      reason: >-
+        Resolved because D-05 turns on its behaviour. derive_station is unchanged and set_station is
+        called, not edited.
+
+decisions:
+  - id: D-01
+    choice: >-
+      cmd_ship and cmd_abandon in gh-sync.py write the terminal status into feature.json
+      themselves, through the same atomic read-modify-write that save_recorded already uses;
+      the ship checklist prose is not the fix site.
+    because: >-
+      A checklist step is unexecutable by any gate and the identical procedure gap already
+      produced this defect three times running; the code path is the only site both callers share.
+    dec: none
+  - id: D-02
+    choice: >-
+      The four-angle methodology ships as a skill at .claude/skills/harness-simplify/SKILL.md and
+      the step is an orchestrator-sequenced segment run by harness-eng-lead on the existing eng
+      squad. No seventeenth agent is added and team-config.yaml is not changed.
+    because: >-
+      A dedicated harness-simplifier agent would supersede DEC-107 and DEC-86, which declare the
+      roster complete, for a seat that needs no write domain of its own and accumulates no
+      expertise; measured at b7ae135, no script in the tree validates the roster, so the price of a
+      new agent is doctrinal rather than mechanical, and doctrinal is the expensive kind.
+    dec: DEC-195
+  - id: D-03
+    choice: >-
+      The plan-flow variant of the simplify pass is flag-only. The eng squad produces findings and
+      harness-pm applies them to its own draft before the signature; no eng seat edits plan.yaml or
+      BRIEF.md.
+    because: >-
+      check-domain.sh --resolve at b7ae135 returns harness-pm alone for plan.yaml and BRIEF.md, so
+      an eng applier would be denied mid-run. This is forced by the domain guard, not chosen.
+    dec: DEC-195
+  - id: D-04
+    choice: >-
+      The simplify skill is named by the playbook step at the point of use and is not added to any
+      agent's skills frontmatter.
+    because: >-
+      A preload would tax every eng-lead spawn with a skill used once per feature; progressive
+      disclosure prefers reading it on demand. Reversible in one line if the step is ever skipped.
+    dec: none
+  - id: D-05
+    choice: >-
+      The harness DOES move a ticket it did not create. A new bin, board-station.py, moves one named
+      issue to one named station, and /harness-plan calls it at kickoff when the operator names a
+      source ticket. No stations map is added to harness.json and no plan key to fleet.yaml, and
+      neither derive_station nor gh-sync.py is changed.
+    because: >-
+      The alternative ruling, that the harness never touches tickets it did not create, is already
+      false in the tree: the parent station write inside gh-sync.py's _apply_parent_rule carries no
+      parent_origin check, so adopted parents' cards are moved today, while only the CLOSE is
+      origin-gated, by the parent_origin equals created branch in cmd_ship and the matching branch in
+      cmd_abandon (observed at b7ae135; cited by symbol because T-01 shifts every line below
+      save_recorded). The boundary the code actually enforces is move any card it
+      is pointed at, close only cards it created, and DEC-186 already lists setting a station among
+      the three sanctioned read-back purposes. Declaring the station is separately vacuous, measured,
+      because set_station passes the name through and the board resolves it by name, and board 3
+      already carries the Plan option. The writer cannot live in gh-sync.py because its main
+      requires an existing feature directory as argv1 before any subcommand dispatch, and at plan
+      kickoff there is none. Accepted cost, stated: a second board-writing entry point, and one more
+      call site to update when the closed ruling that declares stations for every board is
+      implemented; that ruling is not implemented and has no open ticket, so half-landing it here
+      would leave a declaration only one writer reads.
+    dec: DEC-196
+
+tasks:
+  - id: T-01
+    title: gh-sync ship and abandon record the terminal status in feature.json
+    traces: [REQ-01, REQ-02]
+    absorbs: ["#417"]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/test-gh-sync.py 2>&1); rc=$?
+      say() { printf '%s\n' "$out"; }
+      say | grep -qF "ok    ship records feature.json status Done" || { echo "T-01: the ship status case did not pass or did not run"; exit 1; }
+      say | grep -qF "ok    abandon records feature.json status Abandoned" || { echo "T-01: the abandon status case did not pass or did not run"; exit 1; }
+      say | grep -qF "ok    ship closes the milestone regardless of parent origin" || { echo "T-01: the pre-existing milestone case vanished"; exit 1; }
+      say | grep -qF "ok    ship leaves an adopted parent open" || { echo "T-01: the pre-existing adopted-parent case vanished"; exit 1; }
+      say | grep -E "^FAIL" && { echo "T-01: a case failed"; exit 1; }
+      test "$rc" = 0 || { echo "T-01: the suite exited $rc"; exit 1; }
+      echo "T-01 GREEN"
+    intent: |
+      Two subcommands of .claude/skills/harness/bin/gh-sync.py close a feature out on GitHub but
+      leave the feature's own recorded state pre-terminal, so the first gate run on merged main is
+      red until somebody lands a one-field follow-up commit. This has happened on FEAT-20, FEAT-21
+      and FEAT-22. Fix both, and add the cases that prove it.
+
+      WHAT MUST BE TRUE AFTERWARDS
+
+      1. cmd_ship, after it has closed the milestone and resolved the parent, sets feature.json's
+         top-level status key to the exact string Done.
+      2. cmd_abandon, after it has closed the sub-issues, the milestone and the parent, sets
+         feature.json's top-level status key to the exact string Abandoned.
+      3. Both spellings are exact and case-sensitive. INV-26's terminal exemption in check-state.sh
+         and the parent rule at gh-sync.py:172 both compare against Done and Abandoned literally,
+         and DEC-192 makes that case sensitivity deliberate. Do not lowercase, alias or translate.
+      4. Neither write happens on a path that exits early — and the way to guarantee that is
+         STRUCTURAL, not a guard of your own. skip() calls sys.exit(0), so reaching the end of a
+         subcommand body is itself the proof that no early-exit branch fired. Write the status as
+         the last statement of each subcommand's successful path, after the close has run. Do NOT
+         re-test the milestone before writing: the two guards are not the same shape. cmd_ship
+         exits on milestone is None, but cmd_abandon exits only on milestone is None AND no
+         recorded issues — a CONJUNCTION, observed at b7ae135. A milestone-gated write would leave
+         a feature abandoned with issues but no milestone sitting at Review, which is precisely the
+         defect this task exists to end, and none of the prescribed fixtures would catch it because
+         they all stage a milestone.
+      5. The write reuses the atomic shape already in this file. save_recorded at gh-sync.py:418
+         loads the whole document with json.load, mutates one key, dumps to a tempfile created in
+         the same directory, fsyncs and os.replace-s it onto feature.json, so no observer ever sees
+         a partial or zero-byte file. Factor out the ATOMIC WRITE ONLY — serialise, tempfile in the
+         same directory, fsync, os.replace — and call that helper from all three sites rather than
+         writing a third copy of it. The read-and-decide policy does NOT move into the helper:
+         save_recorded deliberately starts from an empty document when feature.json is absent,
+         because the first-sync path needs it, and the status write must never create a document
+         that way. feature-schema.json requires eight top-level keys with additionalProperties
+         false (DEC-191), so a fresh single-key document fails CI, and a write that drops or adds a
+         key fails it too. Every other top-level key must survive untouched.
+      6. A feature.json that is absent or unreadable is not an error here. Both subcommands are
+         idempotent and the mirror never gates: if the file cannot be read, print one plain line and
+         carry on with exit 0. Do not raise. This item is about the STATUS write only and is not
+         licence to relax load_recorded, whose existing behaviour stays as it is.
+      7. The docstrings of cmd_ship and cmd_abandon both currently end with the sentence that
+         feature.json is untouched. That sentence becomes false with this change. Correct it in
+         both, and grep the whole file for any other statement of the same claim and correct those
+         too, so the file does not end up asserting both things. The sweep extends to the OTHER file
+         this task edits: the comment above the abandon-no-origin case in test-gh-sync.py, which
+         reads that cmd_abandon must write no receipt, becomes stale for the same reason. Correct
+         the comment only — the behavioural assertion below it reads the github block, so it
+         survives a top-level status write and must not be changed.
+
+      THE TESTS, in .claude/skills/harness/bin/test-gh-sync.py
+
+      Add two cases using the file's own existing helpers stage(), write_feature_json(), run() and
+      read_feature_json(). Do not build new fixture machinery. Each case stages a feature whose
+      feature.json is SCHEMA-VALID AND FULLY POPULATED, and that is a requirement of the fixture, not
+      a nicety. Stage all eight keys feature-schema.json requires — feature_id, branch, pr, status
+      set to Review, review_sha, cycles_used, max_total_cycles and runs — plus a github block with
+      milestone 7, parent 41, parent_origin created, attached as a LIST OF STRINGS (the schema types
+      github.attached as an array of string, observed at b7ae135, so a bare true is schema-invalid
+      and load_recorded drops it silently) and one recorded issue in the issues map. Then run the
+      subcommand against the fake gh, read feature.json back and assert the status field.
+
+      The two case labels must be exactly these strings, because the task's verify greps for them:
+        ship records feature.json status Done
+        abandon records feature.json status Abandoned
+
+      Add a third case asserting that every other top-level key present before the subcommand ran
+      is still present and unchanged afterwards, so a regression that rewrites the document instead
+      of mutating one key is caught here rather than by CI's schema validation. That assertion is
+      only as strong as the document it runs over: against a two-key fixture it passes vacuously, so
+      this case uses the fully populated fixture above and its survival claim then quantifies over
+      the real key set.
+
+      Do not register a new file anywhere: test-gh-sync.py already exists and is already listed in
+      the integration bucket of run-unit-tests.sh.
+
+      RED-RUN EVIDENCE this task must reproduce and then invert: at b7ae135 both new assertions were
+      observed to fail, with gh-sync exiting 0 and the status still reading Review. The receipt is
+      .harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-verify-red-runs.md.
+
+  - id: T-02
+    title: Ship the four-angle simplify methodology as a harness skill
+    traces: [REQ-05, REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      check-domain.sh --resolve returned NOBODY for .claude/skills/harness-simplify/SKILL.md at
+      b7ae135; no persona is granted any path under .claude/skills, so a dispatched write would be
+      refused mid-run.
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness-simplify/SKILL.md
+    verify: |
+      S=.claude/skills/harness-simplify/SKILL.md
+      test -f "$S" || { echo "T-02: $S does not exist"; exit 1; }
+      for a in REUSE SIMPLIFICATION EFFICIENCY ALTITUDE; do
+        grep -qE "^## .*$a" "$S" || { echo "T-02: no heading for angle $a"; exit 1; }
+      done
+      grep -qF "research-FEAT-23-simplify-angles-source.md" "$S" || { echo "T-02: the skill does not cite its in-repo source note"; exit 1; }
+      grep -qF "plan surface" "$S" || { echo "T-02: the plan-surface variant is absent"; exit 1; }
+      grep -qF "code surface" "$S" || { echo "T-02: the code-surface variant is absent"; exit 1; }
+      grep -qF "four separate, parallel, read-only dispatches" "$S" || { echo "T-02: the skill does not pin the dispatch discipline; the literal <four separate, parallel, read-only dispatches> is absent, so a one-reviewer checklist would pass"; exit 1; }
+      grep -qF "harness-validator-lead" "$S" && { echo "T-02: the skill names the validator lead"; exit 1; }
+      grep -qF "code-simplifier" "$S" && { echo "T-02: the skill names the out-of-repo code-simplifier plugin"; exit 1; }
+      echo "T-02 GREEN"
+    intent: |
+      Write a new skill at .claude/skills/harness-simplify/SKILL.md that carries the four-angle
+      quality pass as a shipped, repository-native procedure. Today the methodology exists only as
+      one session's dispatch prompts; nothing in the repository holds it, so it cannot be run
+      without the operator reconstructing it from memory.
+
+      THE SOURCE, and the only source. Read
+      .harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-simplify-angles-source.md.
+      It holds all eight dispatch prompts verbatim: four over a plan surface and four over a code
+      surface. Port the angles from there. Do NOT invent a fifth angle, do NOT rename the four, and
+      do NOT port anything from the code-simplifier plugin agent file, which is generic guidance
+      containing none of the four angles and which ships outside this repository.
+
+      STRUCTURE. Open with YAML frontmatter in the shape every sibling carries — measured at
+      b7ae135, all 21 directories matching .claude/skills/harness-*/SKILL.md begin with a fenced
+      frontmatter block holding a name and a description, the name matching the directory. So:
+      name harness-simplify, and a description saying what the pass is and when to run it, in the
+      when-to-use voice the siblings use. Then a first-level heading in their style.
+
+      Then four second-level headings, one per angle, each heading containing the angle's name
+      in capitals so the verify can find it: REUSE, SIMPLIFICATION, EFFICIENCY, ALTITUDE. Under each
+      angle, state what it looks for on a plan surface and what it looks for on a code surface. The
+      literal phrases "plan surface" and "code surface" must both appear. Cite the source note by
+      filename in the skill so a later reader can reach the original prompts.
+
+      WHAT EACH ANGLE ASKS, distilled from the source prompts, not restated from them:
+        REUSE — flag work that re-implements something the tree already has, naming the existing
+        helper by file and line and the concrete cost of two spellings drifting.
+        SIMPLIFICATION — flag unnecessary complexity: the same fact asserted twice through different
+        spellings, one rule restated in two places that can drift, dead references to shapes that no
+        longer exist, and pipelines with simpler equivalents THAT PRESERVE the anchoring semantics
+        the original fought for.
+        EFFICIENCY — flag wasted work the change would actually do, costed honestly. Judge minutes
+        and hot-path milliseconds; deliberate full-suite runs at boundary steps are not waste.
+        ALTITUDE — judge depth: is the capability at the right home, is there one authoritative
+        statement or N that can drift, are the accepted residuals right to accept, and for each
+        finding give an explicit recommendation of fold-in, briefing-row, or leave.
+
+      THE DISCIPLINE the skill must state plainly:
+        - Each angle is a SEPARATE read-only dispatch. They run in parallel and none of them edits.
+          The value came from four independent readers, not one reader with four checklists. The
+          skill must contain this literal string, byte-exact, because the verify greps for it and a
+          skill that lists the four angles as one reviewer's checklist would otherwise pass the whole
+          clause:
+            four separate, parallel, read-only dispatches
+        - WHO THE FOUR READERS ARE, stated so the lead never has to invent it mid-run. They are
+          drawn from the eng squad by adjacency to the domains the diff touches — one spawn per
+          angle, four spawns, each read-only. The lead does not read the angles itself and does not
+          collapse two angles into one spawn; a squad smaller than four angles still gets four
+          spawns, with the nearest specialist taking more than one angle in separate dispatches.
+        - Each finding is: file, line, summary, cost, and the concrete alternative. An empty return
+          is a real and expected result; say so, so a reviewer does not manufacture findings.
+        - Every dispatch names its scope as a concrete diff or file set, and names what is already
+          settled and therefore NOT flaggable. A signed decision re-litigated as a finding is noise.
+        - On a plan surface the pass is FLAG-ONLY and the findings go back to harness-pm, which
+          applies them to its own draft. No other seat may edit plan.yaml or BRIEF.md: the domain
+          guard grants those to harness-pm alone, and this is forced, not stylistic (D-03).
+        - On a code surface the findings are applied by the build side, by whichever specialist owns
+          the touched file, and the suites are re-run after the apply. Where two specialists both
+          hold a touched path — bin/ resolves to backend-dev AND dev-ops — the lead picks one and
+          records which it picked and why in the segment digest. That is a rule, not a habit: an
+          unattributed pick is unreviewable.
+        - THE BRANCH FOR SURFACES NOBODY OWNS, and it is not optional. Where the domain guard
+          resolves a touched path to NOBODY, the finding is FLAG-ONLY: it is returned to the
+          orchestrator with its concrete alternative and is not applied by the pass. No apply is
+          attempted, because a dispatched write to an ungranted surface is refused mid-run and the
+          segment returns with nothing applied and the findings lost. This is the same shape the
+          plan surface already gets, for the same reason. Say plainly in the skill that this is an
+          implementation gap in the rule that the simplify pass is a build-side step applied before
+          review_sha pins — it does not weaken that rule, and it does not move the step.
+        - The pass is NEVER run by harness-validator-lead or by any validator-squad member. The
+          fixer is never the judge; the validator's authority comes from being read-only on source.
+          Do not name harness-validator-lead anywhere in the file, including as a negative example,
+          because the verify asserts its absence as the cheapest available proof of this rule.
+        - The skill depends on nothing outside this repository. Name no plugin, no slash command and
+          no file outside the tree. In particular the string code-simplifier must not appear
+          anywhere in the file, not even in a sentence disclaiming it: the verify asserts its
+          absence, and a disclaimer would redden correct work.
+
+      Keep it about one screen of prose plus the four angle sections. It is read on demand at the
+      point of use, not preloaded.
+
+  - id: T-03
+    title: Sequence the simplify step into the build and plan playbooks
+    traces: [REQ-03, REQ-04, REQ-06]
+    absorbs: ["#430"]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      check-domain.sh --resolve returned NOBODY for both .claude/skills/harness/SKILL.md and
+      .claude/commands/harness-plan.md at b7ae135.
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/SKILL.md
+      - .claude/commands/harness-plan.md
+    verify: |
+      K=.claude/skills/harness/SKILL.md
+      P=.claude/commands/harness-plan.md
+      for anchor in "the build is not done until the matrix" "is pinned before any validator run"; do
+        n=$(grep -cF "$anchor" "$K")
+        [ "$n" = 1 ] || { echo "T-03: anchor <$anchor> occurs $n times in $K, expected exactly 1 — ANCHOR DRIFT, not a work failure"; exit 1; }
+      done
+      qa=$(grep -nF "the build is not done until the matrix" "$K" | cut -d: -f1)
+      pin=$(grep -nF "is pinned before any validator run" "$K" | cut -d: -f1)
+      simp=$(grep -nF "SIMPLIFY, the last build step" "$K" | head -1 | cut -d: -f1)
+      test -n "$simp" || { echo "T-03: $K carries no simplify step; the marker SIMPLIFY, the last build step is absent (qa=$qa pin=$pin)"; exit 1; }
+      test "$qa" -lt "$simp" -a "$simp" -lt "$pin" || { echo "T-03: the simplify step at line $simp is not between qa=$qa and pin=$pin"; exit 1; }
+      grep -qF "harness-simplify" "$K" || { echo "T-03: the build step does not name the skill"; exit 1; }
+      grep -qE "squad plans,.*simplif.*eng-lead reviews architecture" "$P" || { echo "T-03: $P does not sequence the simplify pass between the plan draft and the architecture review"; exit 1; }
+      grep -qF "harness-simplify" "$P" || { echo "T-03: the plan step does not name the skill"; exit 1; }
+      echo "T-03 GREEN"
+    intent: |
+      Put the four-angle simplify pass into both playbooks, at the two positions the operator ruled
+      on issue #430. Today it is run ad hoc and has twice landed too late to change anything: on
+      FEAT-20 after the validator PASS, which invalidated a pinned verdict, and on FEAT-22 after the
+      signature, where zero findings could be applied.
+
+      EDIT 1 — the build flow, in .claude/skills/harness/SKILL.md, inside the numbered loop step
+      that sequences the qa segment. Insert the new step AFTER the sentence ending "the build is not
+      done until the matrix passes" and BEFORE the sentence "The INV-6 pin above applies unchanged:
+      review_sha is pinned before any validator run." Each of those two sentences occurs exactly
+      once; the verify asserts that uniqueness and reports anchor drift distinctly from a work
+      failure, so if either sentence has moved or been reworded, stop and report rather than
+      guessing a new home.
+
+      THE TWO ANCHORS ARE NOT ADJACENT, and inserting between them literally is a trap. The qa
+      sentence ends mid-line, and a THIRD sentence — the one saying the step is not part of the
+      build team because a team is single-squad (DEC-118) — closes that same line before the pin
+      sentence begins. Insert AFTER the DEC-118 sentence and leave that line intact; do not split
+      it. The verify orders line numbers only and is green either way, so nothing would catch an
+      orphaned half-sentence.
+
+      The inserted text must contain the literal marker phrase, exactly:
+        SIMPLIFY, the last build step
+      and must state, in the file's own voice:
+        - It runs once the qa matrix is green and before review_sha is pinned. That order is the
+          whole point: run it after the pin and the apply commit moves the tip and invalidates the
+          verdict the panel just gave.
+        - The orchestrator sequences it as its own squad segment, dispatched to harness-eng-lead,
+          which runs the four angles as four parallel read-only passes — one spawn per angle, drawn
+          from the eng squad by adjacency to the domains the diff touches — and then routes the
+          apply to the specialist that owns each touched file. Where the domain guard resolves a
+          touched path to NOBODY, that finding is FLAG-ONLY and returns to the orchestrator instead
+          of being applied; attempting the apply there is refused mid-run and loses the finding.
+          It is a squad segment rather than part of the
+          build team because a team is single-squad by construction (DEC-118), and the same
+          reasoning already makes the qa segment orchestrator-sequenced.
+        - The procedure is .claude/skills/harness-simplify/SKILL.md. Name it by path; it is read at
+          the point of use and is deliberately not preloaded on any agent.
+        - The suites are re-run after the apply, before the pin.
+        - THE APPLY MAY NOT DELETE OR WEAKEN AN ASSERTION. The step runs after the qa gate has
+          PASSed, and the qa gate is more than a green suite — it is the test-matrix judgement and
+          coverage adequacy, which nothing re-assesses afterwards. So a finding of the form "this
+          conjunct asserts the same fact twice" becomes a backlog row, never an apply. Everything
+          else about the step's position is unchanged.
+        - THE APPLY HAS A CEILING OF ONE FIX. If the apply reddens the suites and one fix does not
+          restore green, revert the apply and file the finding as a backlog row. This is the only
+          permanent build step with no max_cycles of its own — that value lives in a team file and
+          this is an orchestrator-sequenced squad segment — so without the ceiling the loop is
+          unbounded at the last step before the pin.
+        - It is never dispatched to the validator lead.
+        - An empty pass is a real outcome. Nothing is invented to justify the step.
+
+      EDIT 2 — the plan flow, in .claude/commands/harness-plan.md, in the Target state bullet. Its
+      sequence currently sits on ONE line reading, verbatim: product-lead's squad plans, eng-lead
+      reviews architecture, ui-reviewer checks the design contract.
+
+      Insert the simplify segment between the first and second of those, ON THAT SAME LINE. Leave
+      the two existing clauses byte-identical: the text "squad plans," and the text "eng-lead
+      reviews architecture" are both anchors the verify matches, and rewording either one reddens
+      the clause even though the work was done. So the line becomes: product-lead's squad plans, the
+      eng squad runs the four-angle simplify pass over the plan surface, eng-lead reviews
+      architecture, ui-reviewer checks the design contract. Name
+      .claude/skills/harness-simplify/SKILL.md in the bullet.
+
+      State on that bullet that the plan-surface pass is FLAG-ONLY: the findings return to
+      harness-pm, which applies them to its own draft before the signature. This is not a style
+      choice — check-domain.sh grants plan.yaml and BRIEF.md to harness-pm alone, so any other seat
+      applying them would be refused mid-run (D-03). And it is the entire point of moving the pass
+      earlier: on FEAT-22 the pass ran after the signature and not one finding could be applied.
+
+      Keep both edits short. These are two of the most-read files in the repository and CLAUDE.md's
+      context-budget constraint binds here.
+
+  - id: T-04
+    title: Record DEC-195 and DEC-196 and regenerate the decisions index
+    traces: [REQ-07, REQ-09]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-03, T-06]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      D=.harness/harness/docs/DECISIONS.md
+      I=.harness/harness/docs/DECISIONS-INDEX.md
+      grep -qE "^## DEC-195 " "$D" || { echo "T-04: $D carries no DEC-195 entry"; exit 1; }
+      grep -qE "^## DEC-196 " "$D" || { echo "T-04: $D carries no DEC-196 entry"; exit 1; }
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff -q - "$I" > /dev/null || { echo "T-04: the index has drifted from DECISIONS.md — regenerate it"; exit 1; }
+      grep -qE "^- DEC-195 @[0-9]+ " "$I" || { echo "T-04: no DEC-195 row in the index"; exit 1; }
+      grep -qE "^- DEC-196 @[0-9]+ " "$I" || { echo "T-04: no DEC-196 row in the index"; exit 1; }
+      echo "T-04 GREEN"
+    intent: |
+      Record TWO decisions, so the next planner re-litigates neither: where the simplify step lives
+      and which seat was rejected for it, and which tickets the harness may move on the board.
+
+      Append a new entry to .harness/harness/docs/DECISIONS.md, numbered DEC-195, following the
+      file's existing entry format exactly: a second-level heading beginning with the literal
+      DEC-195 followed by an em-dash and a title, then the body. The heading must match the regular
+      expression that the generator uses, which is a line starting with two hashes, a space, then
+      DEC-195 followed by a word boundary.
+
+      Suggested title, adjust the wording but not the substance: the four-angle simplify pass is the
+      last build step and a plan-flow step, harness-native, never the validator lead.
+
+      THE BODY MUST CARRY, and nothing beyond what a future reader needs:
+        - The position. Build flow: build, qa gate, simplify with apply and suite re-run, then pin
+          review_sha, then the panel, then goal-check. Plan flow: the plan draft, simplify over the
+          plan surface, then the architecture and design reviews, then the operator's signature.
+        - THE APPLY IS CONDITIONAL ON SURFACE OWNERSHIP, and the entry must say so wherever it
+          states the apply, or the decision record contradicts the skill it records. On a code
+          surface the findings are applied by the specialist that owns each touched file and the
+          suites are re-run. Where the domain guard resolves a touched path to NOBODY — everything
+          under .claude/ except skills/harness/bin/**, which is where a self-hosted feature does
+          much of its work — the finding is FLAG-ONLY and returns to the orchestrator; no apply is
+          attempted, because a dispatched write to an ungranted surface is refused mid-run and the
+          segment would return with nothing applied. Record this as an implementation gap in the
+          build-side apply, NOT as a weakening of the ruling that the pass is the last build step
+          owned by the build side and applied before review_sha pins. The position is unchanged.
+        - THE BOUND ON THE APPLY, recorded here because the step runs after the qa gate has PASSed
+          and nothing re-assesses the matrix judgement or coverage adequacy afterwards: the build-side
+          apply may not delete or weaken an assertion. A finding of that class becomes a backlog row
+          rather than an apply. The step's position is unchanged by this.
+        - THE RECURRING COST, recorded as a decision so a later cost review does not read the
+          omission as an oversight: the step adds roughly a dozen spawns per feature — two lead
+          segments, eight read-only passes, the appliers and a suite re-run — against the roughly
+          33 a feature already spends, and there is deliberately NO condition under which a feature
+          may skip it. Accepted, on the two measurements below: a pass that runs at the wrong moment
+          costs a validator round or delivers zero applicable findings, which is worse than its
+          spawns.
+        - Who reads the angles: four spawns, one per angle, drawn from the eng squad by adjacency to
+          the domains the diff touches, all read-only. Four independent readers is the load-bearing
+          part; one reader with four checklists is not the same pass.
+        - The two measurements that forced the position. On FEAT-20 the pass ran after the
+          validator's PASS at 6296149; the apply commit moved the tip, invalidated the pinned
+          verdict and cost a third validator round. On FEAT-22 the pass ran after the operator's
+          signature and zero findings could be applied; four binding notes now sit beside the signed
+          text in notes/simplify-pass-2026-08-16.md instead of inside it.
+        - Why never the validator lead: the fixer is never the judge. The validator's FAILs stick
+          precisely because it is read-only on source and could not have quietly fixed and forgiven.
+        - Why harness-native: the methodology previously existed only in one session's dispatch
+          prompts and in a plugin that ships outside this repository. A workflow step depending on
+          either breaks silently on a machine that lacks it, which is the quiet-degradation shape
+          the files-only constraint exists to prevent. The prompts are preserved verbatim in
+          .harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-simplify-angles-source.md
+          and the procedure ships at .claude/skills/harness-simplify/SKILL.md.
+        - The rejected alternative and the load-bearing reason: a dedicated harness-simplifier agent
+          was considered and refused. DEC-107 and DEC-86 declare the roster complete at three leads,
+          nine doers and three reviewers, and the seat needs no write domain of its own and
+          accumulates no expertise, so the price would be superseding a signed decision for nothing
+          mechanical. Measured at b7ae135: no script in the tree validates the roster, so the cost
+          of a seventeenth agent is doctrinal, not CI breakage. Record this so a future scan does
+          not re-suggest it.
+        - That the plan-surface pass is flag-only because check-domain.sh grants plan.yaml and
+          BRIEF.md to harness-pm alone. This is forced by the guard, not chosen.
+        - References to DEC-107, DEC-86, DEC-118 and DEC-174 in the body, so the generator picks
+          them up as refs on the index row.
+
+      THEN THE SECOND ENTRY, DEC-196, in the same file and the same heading format: two hashes, a
+      space, DEC-196, an em-dash, a title. Suggested title, adjust the wording but not the substance:
+      the harness moves any board card it is pointed at and closes only the cards it created, and its
+      own board declares no stations.
+
+      DEC-196'S BODY MUST CARRY:
+        - The boundary as a rule: the harness MOVES any card it is pointed at, and CLOSES only cards
+          it created. Both halves are measured, not asserted. CITE THE MEASUREMENTS BY SYMBOL, NEVER
+          BY LINE NUMBER: the parent station write inside gh-sync.py's _apply_parent_rule carries no
+          parent_origin check, so an adopted parent's card is moved today; the close is origin-gated
+          by the parent_origin equals created branch in cmd_ship and by the matching branch in
+          cmd_abandon. This is a permanent decision record and T-01 of this same feature inserts
+          statements into gh-sync.py that shift every line below save_recorded, so a line-numbered
+          citation would be false the moment T-01 lands and nothing in the tree detects a falsified
+          statement left standing. If a number is unavoidable anywhere in this entry, qualify it as
+          of b7ae135.
+        - The consequence for the kickoff step: /harness-plan moves a source ticket the operator
+          names, and that ticket is usually a wayfinding ticket the harness did not create. That is
+          consistent with the rule above rather than an exception to it, and DEC-186 already lists
+          setting a station among its three sanctioned read-back purposes.
+        - Why no stations map is declared for harness's own board, which is the thing a future scan
+          will try to add. gh_board.set_station takes the station as a plain string and
+          factory_gh.project_field_set resolves the option BY NAME at runtime; nothing validates it
+          against a list, and the Plan option already exists on board 3, so declaring it would buy
+          nothing. Name issue 350, which is CLOSED carrying a ruling that every board gains an
+          explicit stations map and that derive_station's hardcoded literals go, and record that the
+          ruling has no open implementing ticket. Half-landing it here would leave a declaration only
+          one writer reads.
+        - Why the writer is a new bin rather than a gh-sync subcommand, the other shape a future scan
+          will re-suggest. gh-sync.py's main reads argv1 as a feature directory and exits when it is
+          not one, before any subcommand dispatch, and derives the harness root by walking up from
+          it. At plan kickoff there is no feature directory at all, which is the same fact that makes
+          gh-sync open unrunnable that early. Forced by the file's structure, not chosen.
+        - The accepted cost, stated as cost: a second board-writing entry point, and one more call
+          site to update when 350's restructure lands.
+        - References to DEC-186, DEC-192 and DEC-174 in the body, so the generator picks them up as
+          refs on the index row.
+
+      THEN THE INDEX, in the same task, in this order and no other:
+        1. Append the DEC-195 entry, then the DEC-196 entry, to DECISIONS.md as above.
+        2. Run python3 .claude/skills/harness/bin/gen-decisions-index.py from the repository root.
+           This adds the DEC-195 and DEC-196 rows with their generated left-hand sides.
+        3. Write the summary that goes to the RIGHT of the double-colon on each new row, by hand,
+           as one sentence a reader can open-or-skip on. Every row's right-hand side is hand-written
+           by design and the generator preserves it verbatim across future regenerations; the
+           generated left-hand side is the part that is never hand-crafted.
+        4. Re-run the generator in its read-only mode and confirm no diff:
+           python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+           Preservation means step 3 does not reintroduce drift; if it does, the row was written in
+           the wrong shape, so fix the row rather than editing around the generator.
+
+      Never hand-craft the generated left-hand side of a row, and never add a row without running
+      the generator. The verify diffs the generator's output against the file on disk, and that
+      conjunct was proved to redden on exactly this mistake: an entry added without a regeneration.
+      The receipt is
+      .harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-verify-red-runs.md.
+      DEC-196's own conjunct was red-run separately; that receipt is
+      .harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-453-station.md.
+
+  - id: T-05
+    title: A kickoff writer moves one named issue to one named station
+    traces: [REQ-08]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/board-station.py
+      - .claude/skills/harness/bin/test-board-station.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      B=.claude/skills/harness/bin/board-station.py
+      T=.claude/skills/harness/bin/test-board-station.py
+      R=.claude/skills/harness/bin/run-unit-tests.sh
+      test -f "$B" || { echo "T-05: $B does not exist"; exit 1; }
+      grep -qF "test-board-station.py" "$R" || { echo "T-05: the new test file is not registered in run-unit-tests.sh; the drift detector fails the WHOLE run and would redden every other task"; exit 1; }
+      out=$(python3 "$T" 2>&1); rc=$?
+      say() { printf '%s\n' "$out"; }
+      say | grep -qF "PASS  board-station moves the named issue to the named station" || { echo "T-05: the station-write case did not pass or did not run"; exit 1; }
+      say | grep -qF "PASS  board-station with no board configured writes nothing and exits 0" || { echo "T-05: the unconfigured-board case did not pass or did not run"; exit 1; }
+      say | grep -qF "PASS  board-station reports a BoardError on stderr naming issue and station and exits 0" || { echo "T-05: the board-failure case did not pass or did not run"; exit 1; }
+      say | grep -qF "PASS  board-station rejects a missing argument with exit 2" || { echo "T-05: the usage case did not pass or did not run"; exit 1; }
+      say | grep -qF "PASS  board-station outside a harness root writes nothing and exits 0" || { echo "T-05: the no-harness-root case did not pass or did not run"; exit 1; }
+      say | grep -qF "PASS  board-station with github.sync false writes nothing and exits 0" || { echo "T-05: the sync-off case did not pass or did not run"; exit 1; }
+      say | grep -qF "PASS  board-station exits 0 when set_station raises a non-BoardError exception" || { echo "T-05: the non-BoardError case did not pass or did not run"; exit 1; }
+      say | grep -E "^FAIL" && { echo "T-05: a case failed"; exit 1; }
+      test "$rc" = 0 || { echo "T-05: the suite exited $rc"; exit 1; }
+      u=$(bash "$R" --kind unit 2>&1) || { echo "T-05: the unit bucket is not green with the new file registered"; exit 1; }
+      echo "T-05 GREEN"
+    intent: |
+      At /harness-plan kickoff a ticket sits in Backlog while its feature is actively being planned,
+      and moving it to Plan is manual: it was done by hand for issue 417 and issue 430 in one
+      session. No writer runs that early. gh_board.derive_station reads plan.yaml task statuses alone
+      and there is no plan.yaml yet; gh-sync open parses a BRIEF and tasks that do not exist yet; and
+      the ticket being planned FROM is usually a wayfinding ticket, not the feature's own parent
+      card, which is created later by open. So the write is a kickoff act on a named source ticket
+      and belongs to neither of those. Build the writer.
+
+      WHY A NEW FILE RATHER THAN A gh-sync SUBCOMMAND, so this is not re-argued mid-build: gh-sync.py
+      main reads argv1 as a feature directory and exits when it is not one, BEFORE any subcommand
+      dispatch, and derives the harness root by walking up from that directory. At plan kickoff there
+      is no feature directory. Do not modify gh-sync.py in this task.
+
+      THE TOOL, at .claude/skills/harness/bin/board-station.py
+
+      Usage: python3 .claude/skills/harness/bin/board-station.py <issue-number> <station>
+      Run from the repository root. The usage line must say that the issue number is an issue of
+      harness.json's github.repo — the repository is resolved implicitly from that field and is not
+      a parameter, so a source ticket belonging to a different repository would silently move THIS
+      repository's issue of the same number. Naming the binding in the usage text is the whole fix;
+      do not add a --repo option in this task.
+
+      1. Two positional arguments, both required. A missing or extra argument, or an issue number
+         that is not a positive integer, prints one usage line to STDERR and exits 2. That is a
+         caller mistake, not an environmental condition, and it is the ONLY non-zero exit.
+         Exit 2 diverges deliberately from gh-sync.py, whose die() resolves the same class — a
+         wrong invocation — as exit 1. This tool is a new tool rather than a gh-sync subcommand and
+         2 is the conventional usage-error code; the divergence is recorded here so a later reader
+         does not read it as an oversight in a contract that otherwise mirrors that file.
+      2. The station is taken as a plain string and is NOT validated against any list. This is
+         deliberate and is D-05: gh_board.set_station passes the name to
+         factory_gh.project_field_set, which resolves the option BY NAME at runtime, so a wrong
+         value fails loudly at the board instead of silently against a stale local list. Do not add
+         an allowlist, an enum or a stations map anywhere.
+      3. Resolve the harness root the way gh-sync.py already does: walk UP from the current working
+         directory to the first ancestor holding .harness/team-config.yaml, the established
+         root-probe convention. Do not add a fixed-depth climb. If no ancestor qualifies, print one
+         plain line and exit 0.
+      3a. EVERY line this tool prints, on stdout or stderr, carries the prefix "board-station: ",
+         with no exception — including the environmental lines of items 3 and 4, which items 5 and 6
+         already require of the success and failure lines. The sibling is universal in this: every
+         one of gh-sync.py's own output lines carries its "gh-sync: " prefix, and the exact parallel
+         case, its no-board-configured line, is a plain prefixed line printed on stdout. Match that
+         shape, and do NOT reach for gh-sync.py's skip() token form for the environmental lines:
+         skip() emits a SKIP marker and exits, which is a different contract from print-and-continue.
+      4. Read the repository and the board with the machinery that already exists. The repository is
+         harness.json's github.repo; the board is gh_board.load_board(root). load_board returning
+         None means the station feature is not configured for this project, which is an
+         environmental precondition and NOT an error: print one plain line naming that, write
+         nothing, and exit 0. Same for github.sync being false or absent, and for github.repo being
+         absent or carrying no slash.
+      4a. THE harness.json READ MUST USE THE VARIABLE-FIRST FORM, and a standing gate enforces it
+         that this task's own verify cannot see. test-check-plan-routes.py case_20 scans every
+         non-test .py and .sh in .claude/skills/harness/bin/ for a LOGICAL line that pairs the string
+         .harness with a filesystem predicate — os.path.isfile(, os.path.exists(, Path( and the
+         rest — and fails any such line that does not also name team-config.yaml. Written as one
+         expression, os.path.isfile(os.path.join(root, ".harness", "harness.json")) is a violation.
+         Assemble the path into a variable FIRST and test the variable on the next statement, which
+         is exactly how load_config escapes the same case at gh-sync.py:122-123, observed at b7ae135.
+         The reason this must be stated here rather than left to the gate: test-check-plan-routes.py
+         is in INTEGRATION_SCRIPTS (run-unit-tests.sh:18), so this task's --kind unit conjunct will
+         not execute it and the task can report green with the violation in the tree, surfacing later
+         as a qa-matrix fix cycle.
+      5. On the configured path, call gh_board.set_station(board, repo, issue_number, station) and on
+         success print one plain line naming the issue and the station, in gh-sync.py's shape:
+         board-station: #<n> -> <station>
+      6. THE BOARD WRITE IS WRAPPED SO THAT EVERY EXCEPTION EXITS 0. Catching gh_board.BoardError
+         alone does not satisfy item 1: set_station catches only factory_gh.GhError, while
+         run_gh with json_out=True calls json.loads unguarded, so an exit-0 non-JSON response
+         raises ValueError, and OSError is unguarded too. Either would reach the top as a traceback
+         at the head of an operator's planning session, which is a second non-zero exit and makes
+         item 1 unsatisfiable as a contract. So wrap the call in a broad except: report ONE line on
+         STDERR beginning board-station: ERROR - and naming the issue and the station, and EXIT 0,
+         whatever the exception class. Report a BoardError and anything else through the same line,
+         so no failure of the board write can ever abort planning. Do not let the broad except
+         swallow the usage error of item 1, which is raised before the board write is attempted.
+         The reason is the same one written at gh-sync.py's parent write: a station failure is loud
+         on stderr and the run continues. This tool is called at the head of an operator's planning
+         session, and a mirror write must never abort planning. Do not call
+         factory_gh.preflight(), whose callers exit non-zero.
+      7. Import gh_board and read harness.json; do not re-implement either. Do not import gh-sync.py
+         (its filename is not an importable module name and it has command-line side effects).
+
+      THE TESTS, at .claude/skills/harness/bin/test-board-station.py
+
+      Model the file on test-gh-board.py, which is its nearest sibling: same check() helper shape,
+      printing PASS followed by TWO spaces and the case name on success, and a line beginning FAIL
+      on failure, and the same write_harness_json() style of temporary-root fixture. The verify
+      greps those exact labels, so they must be byte-identical:
+        board-station moves the named issue to the named station
+        board-station with no board configured writes nothing and exits 0
+        board-station reports a BoardError on stderr naming issue and station and exits 0
+        board-station rejects a missing argument with exit 2
+        board-station outside a harness root writes nothing and exits 0
+        board-station with github.sync false writes nothing and exits 0
+        board-station exits 0 when set_station raises a non-BoardError exception
+
+      THE LAST THREE COVER SPECIFIED BRANCHES THAT NOTHING ELSE WOULD EVER EXERCISE, and they are
+      why the case list is seven rather than four. The no-harness-root case runs the tool from a
+      directory no ancestor of which holds .harness/team-config.yaml, and asserts exit 0 with no
+      board call recorded by the fake. The sync-off case stages a harness.json whose github.sync is
+      false and asserts the same. The non-BoardError case makes the board write raise something
+      that is NOT a BoardError — monkeypatch gh_board.set_station in the child, or drive the fake gh
+      to return an exit-0 body that is not JSON, whichever is simpler in this file's fixture style —
+      and asserts exit 0 with the error line on stderr. That last case is the only thing that can
+      prove item 6's widened catch; without it item 1's exit contract is asserted and never tested.
+
+      THE FAKE-BINARY TRAP, and it is not optional. gh_board.py's module docstring records it:
+      factory_gh.run_gh finds gh through the FACTORY_GH environment variable. A test that injects a
+      fake through GH_SYNC_GH alone leaves every call this module makes going to the REAL gh, with
+      real network and real writes to board 3. EVERY case here sets FACTORY_GH, and sets GH_SYNC_GH
+      to the same fake as well. No case in this file may reach the real gh binary or the real board.
+
+      The first case asserts the field-set actually happened, by having the fake record the
+      invocation it received and asserting the issue number and the station reached it. Asserting
+      only the exit code would pass on a tool that writes nothing.
+
+      REGISTER THE FILE IN THE SAME TASK. Add "test-board-station.py" to the UNIT_SCRIPTS array in
+      .claude/skills/harness/bin/run-unit-tests.sh. Two reasons, both measured, and the bucket is not
+      a free choice: run-unit-tests.sh carries a drift detector over the UNION of both arrays that
+      exits 2 with MISCONFIGURED on any unregistered test-*.py, failing the whole run and reddening
+      every other task's verify; and test_kinds.integration.detect in harness.json is an EXPLICIT
+      four-file allowlist while test_kinds.unit.detect carries the glob
+      .claude/skills/harness/bin/test-*.py, which matches this file. Registering it in the
+      integration array instead would leave the qa matrix detecting it as unit, running --kind unit,
+      and never executing it. The unit bucket already holds tests that fork the real script
+      (test-validate-feature-json.py, test-branch-create-gate.py), so this is precedent, not an
+      exception. Do not edit .harness/harness.json.
+
+      RED-RUN EVIDENCE this task must invert, with the receipt at
+      .harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-453-station.md:
+      conjunct 1 observed red on the pre-change tree; the registration conjunct observed red against
+      the real run-unit-tests.sh; the drift detector proved by mutation, exit 0 unmutated and exit 2
+      MISCONFIGURED with one on-disk test file unlisted; and the label conjuncts proved to pass on a
+      green suite and to redden both when a case FAILs and when a case is silently deleted. The
+      three labels added later, with the revised clause re-run in full, are receipted separately at
+      .harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-foldin-red-runs.md.
+
+  - id: T-06
+    title: The plan playbook moves its source ticket to Plan at kickoff
+    traces: [REQ-08]
+    absorbs: ["#453"]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      check-domain.sh --resolve returned NOBODY for .claude/commands/harness-plan.md at b7ae135.
+    depends_on: [T-03, T-05]
+    status: pending
+    files:
+      - .claude/commands/harness-plan.md
+    verify: |
+      P=.claude/commands/harness-plan.md
+      m="KICKOFF: the source ticket moves to Plan"
+      n=$(grep -cF "$m" "$P")
+      [ "$n" = 1 ] || { echo "T-06: the marker <$m> occurs $n times in $P, expected exactly 1"; exit 1; }
+      s=$(grep -cF "squad plans," "$P")
+      [ "$s" = 1 ] || { echo "T-06: the anchor <squad plans,> occurs $s times in $P, expected exactly 1 — ANCHOR DRIFT, not a work failure"; exit 1; }
+      grep -qF "board-station.py" "$P" || { echo "T-06: the kickoff step does not name the writer tool by path"; exit 1; }
+      grep -qF "no ticket is named" "$P" || { echo "T-06: the no-source-ticket branch is not stated"; exit 1; }
+      grep -qE "squad plans,.*simplif.*eng-lead reviews architecture" "$P" || { echo "T-06: T-03's plan-surface simplify clause no longer matches — the two edits to this file collided"; exit 1; }
+      k=$(grep -nF "$m" "$P" | cut -d: -f1)
+      t=$(grep -nF "squad plans," "$P" | cut -d: -f1)
+      test "$k" -lt "$t" || { echo "T-06: the kickoff step at line $k does not precede the plan sequence at line $t"; exit 1; }
+      echo "T-06 GREEN"
+    intent: |
+      Give /harness-plan the kickoff step that moves its source ticket to the board's Plan column, so
+      the board stops showing Backlog while a feature is actively being planned. The writer built in
+      T-05 exists; nothing calls it yet. This task carries the absorbs for the issue because it is
+      the one that delivers the outcome the issue asks for — T-05's tool is unwired without it, and
+      the same shape already holds for T-02 and T-03.
+
+      THIS FILE IS EDITED BY TWO TASKS AND T-03 GOES FIRST. T-03 inserts the simplify segment into
+      the Target state bullet's sequence line, and its verify greps that line's content. This task
+      must therefore leave that line ALONE except for reading it: the strings "squad plans," and
+      "eng-lead reviews architecture" and the simplify clause between them all stay byte-identical.
+      This task's own verify re-asserts T-03's regex on the same file, so a collision reddens here
+      rather than passing silently. If T-03 has not landed, stop and report rather than editing.
+
+      THE EDIT. Add ONE new bullet to .claude/commands/harness-plan.md, positioned AFTER the step
+      zero grilling bullet and BEFORE the Target state bullet. Its ordering is asserted: the marker
+      must appear on an earlier line than the sequence line.
+
+      The bullet must contain the literal marker phrase, exactly:
+        KICKOFF: the source ticket moves to Plan
+
+      and must state, in the file's own voice and in the file's bullet style:
+        - When the operator names the ticket this planning session started from, run
+          python3 .claude/skills/harness/bin/board-station.py <issue-number> Plan
+          from the repository root, before the BRIEF work begins. Name that path literally; the
+          verify greps for board-station.py. Say that the number is an issue of harness.json's
+          github.repo: the tool resolves the repository from that field and takes no repo argument,
+          so a ticket from another repository would move this repository's issue of that number.
+        - How the ticket is recognised, in one clause so a session does not have to guess: it is the
+          issue the operator names in the opening ask or in answer to the step-zero grilling. No
+          separate question is asked for it.
+        - When no ticket is named, nothing is written and nothing is asked. Use the literal phrase
+          "no ticket is named" so the branch is greppable — a step that only describes its happy
+          path reads as mandatory and stalls a session that has no source ticket.
+        - The source ticket is usually a wayfinding or effort ticket the harness did not create.
+          Moving it is deliberate and is the harness's rule: it moves any card it is pointed at, and
+          closes only the cards it created.
+        - The write is best-effort. A board failure prints one line and planning continues; it never
+          blocks the session.
+
+      Keep it to about four lines. This is one of the most-read files in the repository and
+      CLAUDE.md's context-budget constraint binds here.
+
+      RED-RUN EVIDENCE this task must invert, with the receipt at
+      .harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-453-station.md: the
+      clause was run against four states — the prescribed post-edit text (GREEN), the current tree
+      (red on the missing marker), a reworded marker (red on the marker), and T-03's simplify clause
+      reverted (red on the collision conjunct, naming the collision distinctly).
