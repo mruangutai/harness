@@ -2,7 +2,7 @@
   "feature_id": "FEAT-22-docs-layout-migration",
   "branch": "feat/FEAT-22-docs-layout-migration",
   "pr": null,
-  "status": "Review",
+  "status": "Done",
   "review_sha": "b479afd",
   "cycles_used": 10,
   "max_total_cycles": 10,
@@ -11,35 +11,148 @@
     "milestone": 13,
     "parent": 418,
     "parent_origin": "created",
-    "attached": ["T-01", "T-02", "T-03", "T-04", "T-05", "T-06", "T-07", "T-08", "T-09", "T-10", "T-11"],
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11"
+    ],
     "issues": {
-      "T-01": 419, "T-02": 420, "T-03": 421, "T-04": 422, "T-05": 423, "T-06": 424,
-      "T-07": 425, "T-08": 426, "T-09": 427, "T-10": 428, "T-11": 429
+      "T-01": 419,
+      "T-02": 420,
+      "T-03": 421,
+      "T-04": 422,
+      "T-05": 423,
+      "T-06": 424,
+      "T-07": 425,
+      "T-08": 426,
+      "T-09": 427,
+      "T-10": 428,
+      "T-11": 429
     }
   },
   "runs": [
-    { "id": "2026-08-15-1-product", "squad": "product", "verdict": "PASS" },
-    { "id": "2026-08-15-1-archreview-eng", "squad": "eng", "verdict": "FAIL" },
-    { "id": "2026-08-15-2-archreview-eng", "squad": "eng", "verdict": "FAIL" },
-    { "id": "2026-08-15-3-product", "squad": "product", "verdict": "PASS" },
-    { "id": "2026-08-15-4-archreview-eng", "squad": "eng", "verdict": "PASS" },
-    { "id": "2026-08-15-5-validator", "squad": "validator", "verdict": "FAIL" },
-    { "id": "2026-08-15-6-validator", "squad": "validator", "verdict": "PASS" },
-    { "id": "2026-08-15-6-product", "squad": "product", "verdict": "PASS" },
-    { "id": "2026-08-15-7-archreview-eng", "squad": "eng", "verdict": "PASS" },
-    { "id": "2026-08-15-8-archreview-eng", "squad": "eng", "verdict": "PASS" },
-    { "id": "2026-08-15-7-validator", "squad": "validator", "verdict": "PASS" },
-    { "id": "2026-08-15-9-product", "squad": "product", "verdict": "PASS" },
-    { "id": "2026-08-15-10-archreview-eng", "squad": "eng", "verdict": "PASS" },
-    { "id": "2026-08-15-10-validator", "squad": "validator", "verdict": "FAIL" },
-    { "id": "2026-08-16-11-product", "squad": "product", "verdict": "PASS" },
-    { "id": "2026-08-16-11-archreview-eng", "squad": "eng", "verdict": "PASS" },
-    { "id": "2026-08-16-12-qa-validator", "squad": "validator", "verdict": "PASS" },
-    { "id": "2026-08-16-13-panel-validator", "squad": "validator", "verdict": "PASS" },
-    { "id": "2026-08-16-13-goalcheck-product", "squad": "product", "verdict": "FAIL" },
-    { "id": "2026-08-16-14-regrade-product", "squad": "product", "verdict": "PASS" },
-    { "id": "2026-08-16-15-distill-eng", "squad": "eng", "verdict": "PASS" },
-    { "id": "2026-08-16-15-distill-product", "squad": "product", "verdict": "INCOMPLETE" },
-    { "id": "2026-08-16-15-distill-validator", "squad": "validator", "verdict": "INCOMPLETE" }
+    {
+      "id": "2026-08-15-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-1-archreview-eng",
+      "squad": "eng",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-15-2-archreview-eng",
+      "squad": "eng",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-15-3-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-4-archreview-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-5-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-15-6-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-6-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-7-archreview-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-8-archreview-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-7-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-9-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-10-archreview-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-15-10-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-16-11-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-16-11-archreview-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-16-12-qa-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-16-13-panel-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-16-13-goalcheck-product",
+      "squad": "product",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-16-14-regrade-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-16-15-distill-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-16-15-distill-product",
+      "squad": "product",
+      "verdict": "INCOMPLETE"
+    },
+    {
+      "id": "2026-08-16-15-distill-validator",
+      "squad": "validator",
+      "verdict": "INCOMPLETE"
+    }
   ]
 }
