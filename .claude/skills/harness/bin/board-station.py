@@ -29,8 +29,8 @@ board configured) prints one plain line and exits 0 having written nothing. The 
 itself is wrapped in a broad `except Exception`: a `gh_board.BoardError` is the documented
 failure, but `factory_gh.run_gh(json_out=True)` also calls `json.loads` UNGUARDED, so a
 non-JSON exit-0 response raises `ValueError`, and `OSError` is unguarded too — any of these
-reaching the top as a traceback would abort an operator's planning session, which item 1's exit
-contract forbids. So every exception class from the write is reported as ONE line on stderr and
+reaching the top as a traceback would abort an operator's planning session, which the EXIT CONTRACT
+paragraph above forbids. So every exception class from the write is reported as ONE line on stderr and
 the process still exits 0 (D-02's mirror-write rule, applied here). `factory_gh.preflight()` is
 never called — its callers exit non-zero, and this tool's callers must not.
 """

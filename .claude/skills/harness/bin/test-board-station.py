@@ -73,8 +73,9 @@ exit 0
 
 # Same board reads, but the ISSUE-ITEM lookup call returns exit-0 with a NON-JSON body —
 # `factory_gh.run_gh(json_out=True)` calls `json.loads` UNGUARDED on that response, so this
-# raises a bare `ValueError`, never a `gh_board.BoardError`. This is what item 6's widened
-# `except Exception` exists to catch, and nothing else in this file exercises that branch.
+# raises a bare `ValueError`, never a `gh_board.BoardError`. This is what board-station.py's
+# broad `except Exception` — documented in its module docstring's EXIT CONTRACT paragraph —
+# exists to catch, and nothing else in this file exercises that branch.
 FAKE_GH_NON_JSON = """#!/bin/bash
 echo "$*" | tr ' ' '\\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
 case "$*" in
