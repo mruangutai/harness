@@ -755,7 +755,7 @@ tasks:
     execution_reason: >-
       check-domain.sh --resolve returned NOBODY for .claude/commands/harness-plan.md at b7ae135.
     depends_on: [T-03, T-05]
-    status: building
+    status: done
     files:
       - .claude/commands/harness-plan.md
     verify: |
