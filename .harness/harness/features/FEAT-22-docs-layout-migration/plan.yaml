@@ -1,0 +1,1316 @@
+schema: plan/1
+feature: FEAT-22-docs-layout-migration
+
+approval:
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: "2026-08-16"
+
+lanes:
+  resolved_at: 0f12f14
+  measurement: >-
+    Every row was MEASURED, not inferred. check-domain.sh --resolve was run on one representative
+    path per row with the working tree at 0f12f14 (git rev-parse HEAD confirmed before and
+    unchanged), and the verbatim answer is quoted in each resolve field. Leads hold no Bash
+    (DEC-116), so pm took these measurements at plan time.
+  rows:
+    - surface: .harness/harness/docs/**
+      lane: main-session-direct
+      resolve: NOBODY
+      reason: >-
+        THE GAP THAT SHAPES THIS FEATURE. The destination is ungranted at the pin, so no team agent
+        may write it. The grant lands in T-02 and only becomes true mid-cluster, which is after
+        check-plan-routes.py resolves this plan.
+    - surface: .harness/team-config.yaml
+      lane: main-session-direct
+      resolve: NOBODY
+      reason: "measured NOBODY: no agent may write the file that declares the grants."
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: >-
+        DEC-174 carve-out named in CLAUDE.md, the state gate. One diagnostic prose line at :676
+        names docs/harness/DECISIONS.md. The carve-out overrides the measured grant.
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: >-
+        DEC-174 carve-out named in CLAUDE.md, a registered PreToolUse gate script. One diagnostic
+        prose line at :953 names docs/harness/DECISIONS.md. The carve-out overrides the grant.
+    - surface: .claude/skills/harness/bin/harness_boundary.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: >-
+        Carve-out by content under DEC-193, the one shared module both PreToolUse write routes
+        import; its classify decides the hook verdict and the --resolve answer alike, so its own
+        green cannot vouch for it. Carve-out overrides the measured grant.
+    - surface: .claude/skills/harness/bin/layout_migration.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: >-
+        Carve-out by content, ruled in FEAT-20: check-state.sh computes INV-27's verdict from this
+        module's return value. Carve-out overrides the measured grant.
+    - surface: .claude/skills/harness/bin/factory_config.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: >-
+        Co-changes with harness_boundary.py inside the atomic cluster, in the same diff a human
+        reads. Splitting the lane would split the commit.
+    - surface: .claude/skills/harness/bin/gen-decisions-index.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: >-
+        Same cluster, and it is the only program that WRITES into the docs directory, so its edit
+        and the regenerated index must ride in one human-read diff.
+    - surface: .claude/skills/harness/bin/test-*.py
+      lane: main-session-direct
+      resolve: harness-backend-dev harness-dev-ops
+      reason: >-
+        Each co-changes with a gate or a carve-out module in the same diff a human reads. Measured
+        on test-check-domain.py as the representative; all share the bin/** grant.
+    - surface: CLAUDE.md
+      lane: main-session-direct
+      resolve: NOBODY
+      reason: "measured NOBODY: instruction-side root file, granted to no agent."
+    - surface: .claude/skills/harness-principles/SKILL.md
+      lane: main-session-direct
+      resolve: NOBODY
+      reason: "measured NOBODY: skill instruction text is granted to no agent."
+    - surface: .claude/skills/harness/templates/plan.yaml
+      lane: main-session-direct
+      resolve: NOBODY
+      reason: "measured NOBODY: the template tree is granted to no agent."
+    - surface: .harness/expertise/harness-backend-dev.md
+      lane: main-session-direct
+      resolve: harness-backend-dev
+      reason: >-
+        Measured to the owning role, but Expertise writes are distillation-only (DEC-125, DEC-145)
+        and this is a path correction, not a distillation. D-04 rules the lane.
+    - surface: .harness/expertise/harness-documentor.md
+      lane: main-session-direct
+      resolve: harness-documentor
+      reason: "same as harness-backend-dev.md; D-04 rules the lane."
+    - surface: .harness/harness/features/FEAT-22-docs-layout-migration/notes/**
+      lane: main-session-direct
+      resolve: harness-orchestrator
+      reason: >-
+        The boundary captures must be taken by whoever holds the tree at the boundary, and every
+        surrounding task is main-session-direct.
+
+decisions:
+  - id: D-01
+    choice: >-
+      The docs grant and the control-plane entry both take a WILDCARD repository segment,
+      .harness/*/docs/** , not the literal .harness/harness/docs/** .
+    because: >-
+      It mirrors the shape FEAT-21 already signed for the features surface
+      (.harness/*/features/** in team-config.yaml), and the detector's migrated regex for
+      harness_boundary.py accepts it. A second shape for the same idea is a second thing to
+      remember.
+    dec: none
+  - id: D-02
+    choice: >-
+      The HARNESS_CONTROL_PLANE docs entry is REWRITTEN in place and kept, even though it becomes
+      logically redundant once the path starts with .harness.
+    because: >-
+      The list has TWO consumers and the entry is redundant in both. is_control_plane_target
+      short-circuits on is_control_plane_glob, which returns true for any first segment of
+      .harness; and the deny-message advertise filter in classify — the comprehension over
+      applicable_globs that also iterates HARNESS_CONTROL_PLANE — accepts any glob the migrated
+      entry could match on its own is_control_plane_glob call, on the same line. So the entry
+      decides nothing anywhere in the file. It is kept because the detector's migrated pattern
+      requires the string to be present, and deleting it makes the file match neither form, which
+      is CANNOT_VERIFY. The redundancy is recorded in the rewritten comment rather than silently
+      carried.
+    dec: none
+  - id: D-03
+    choice: Every task in this feature is main-session-direct. No squad is dispatched.
+    because: >-
+      Two DEC-174 carve-out scripts are touched, harness_boundary.py is a carve-out by content
+      under DEC-193, and six surfaces including the destination itself resolve to NOBODY at the
+      pin. Mixing lanes inside one atomic commit would split the commit.
+    dec: DEC-174
+  - id: D-04
+    choice: >-
+      The two Expertise files carrying present-tense docs-path claims are corrected by a NAMED
+      TASK inside the cluster commit, not by a distillation pass and not silently.
+    because: >-
+      They are injected into every spawn of their role, so a stale path becomes a false premise on
+      every future run. FEAT-21 made this identical correction inside a cluster commit with no task
+      naming it, and two reviewers raised the unnamed edit as a structural gap (ship review B-8).
+      Naming it is the fix that finding asks for. This lane needs the user's signature because it
+      writes an Expertise file outside distillation.
+    dec: DEC-145
+  - id: D-05
+    choice: >-
+      DEC-189 receives a recorded AMENDMENT stating the new spelling of its docs entry, authored in
+      the cluster commit under this plan's approval.
+    because: >-
+      DEC-189's ruling enumerates docs/harness/** as one of four named control-plane paths, and the
+      move makes that sentence false of the tree. DEC-188 strikes only a decision the tree flatly
+      contradicts; this rule survives with a changed spelling, so it amends. Amending a signed
+      decision is not pm's to do unilaterally, which is why it is a decision here and a task below.
+    dec: DEC-189
+  - id: D-06
+    choice: .github/workflows/tests.yml is NOT changed by this feature.
+    because: >-
+      Measured at :183-233, the Layout gate asserts only the two line shapes, non-zero counts and
+      the checker exit code. No per-surface string is asserted anywhere in the file, so the
+      upstream premise that an expectation must flip is false. Recorded so a future scan does not
+      re-propose the edit.
+    dec: none
+  - id: D-07
+    choice: >-
+      161 of the 196 files mentioning the docs path at 0f12f14 are left untouched as knowing
+      survivors, by a stated rule rather than by a sweep. Both figures are the pin's, not a target:
+      T-10 derives the survivor count fresh from the landed tree.
+    because: >-
+      Shipped feature records and dated logs are records of what was true, not claims about what
+      is. Rewriting them falsifies the factory's own history, and the detector is explicit that it
+      proves per-file form agreement and never per-site completeness, so a sweep buys no verdict it
+      does not already have.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Capture the pre-move boundary and name the red states the cluster passes through
+    traces: [REQ-03]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      The capture must be taken by whoever holds the tree at the boundary, and every surrounding
+      task is main-session-direct under D-03.
+    depends_on: []
+    status: done
+    files:
+      - .harness/harness/features/FEAT-22-docs-layout-migration/notes/layout-boundary-2026-08-15.md
+    verify: |
+      f=.harness/harness/features/FEAT-22-docs-layout-migration/notes/layout-boundary-2026-08-15.md
+      test -s "$f" || { echo "no boundary note"; exit 1; }
+      grep -q 'PRE-MOVE' "$f" || { echo "no PRE-MOVE section"; exit 1; }
+      grep -q 'docs: CLEAN — evidence legacy' "$f" || { echo "pre-state not verbatim"; exit 1; }
+      grep -q 'features: CLEAN — evidence migrated' "$f" || { echo "features pre-state missing"; exit 1; }
+      grep -qE '^HEAD: [0-9a-f]{7,40}' "$f" || { echo "no SHA line"; exit 1; }
+      grep -q '^SUITES' "$f" || { echo "no SUITES section in the pre-move capture"; exit 1; }
+      grep -qE '^(PASS|FAIL) test-layout-migration\.py' "$f" \
+        || { echo "no verbatim unit-suite result line in the capture"; exit 1; }
+      grep -qE '^(PASS|FAIL) test-check-domain\.py' "$f" \
+        || { echo "no verbatim integration-suite result line in the capture"; exit 1; }
+      echo OK
+    intent: |
+      Create the boundary note and record the PRE-MOVE state. This is the only moment in the
+      sequence at which it can be taken, because from T-02 onward the working tree is half edited.
+
+      Write a heading line reading exactly:
+        HEAD: <output of git rev-parse HEAD>
+      then a section headed PRE-MOVE holding the VERBATIM stdout of both commands, each in its own
+      fenced block, each followed by a line reading exit: <code>:
+        python3 .claude/skills/harness/bin/layout_migration.py
+        bash .claude/skills/harness/bin/check-state.sh
+
+      The detector must print features: CLEAN — evidence migrated, docs: CLEAN — evidence legacy,
+      1 doc root(s), 7 reader file(s), and a summary of 2 surface(s) clean, 0 mixed, 0
+      cannot-verify, at exit 0. If any of those differs, STOP: the base has drifted from 0f12f14
+      and this plan's audits were taken against a different tree.
+
+      ALSO CAPTURE BOTH SUITES, in a section headed SUITES, immediately after PRE-MOVE:
+        .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+        .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      Record, for each, every line matching ^PASS test- or ^FAIL test- and the exit code. This is a
+      VERBATIM CAPTURE, not a gate: record what you see, including any FAIL, and do not fix
+      anything here. It exists because SC-07 and SC-08 are stated as after-the-move claims about
+      the two suites and had no recorded before. Measured at 0f12f14 the expected reading is zero
+      FAIL lines in each, 15 PASS in unit and 12 in integration, both exit 0; a FAIL here is a
+      finding about the base, not about this feature, and it changes what T-05's expected-FAIL pin
+      may assume, so report it rather than absorbing it.
+
+      THE FEATURE-DIR COUNT IS THE ONE FIGURE THAT MAY LEGITIMATELY DIFFER, so record it and do not
+      compare it. It was 21 at 0f12f14 and will normally read 22 here, because the count is a
+      filesystem glob over .harness/*/features/*/feature.json (layout_migration.py:171-172, reached
+      from :224-226) and this feature's own feature.json is created at instantiation, after the pin.
+      A larger number is expected; anything at all below 21 is the drift signal. The other four
+      figures are stable until T-02 moves the docs, which is exactly why they are the ones the STOP
+      hangs on: the reader-file count is the length of READER_TABLE and the doc-root count is the
+      single SPEC.md evidence marker. This is the rule stated in layout_migration.py:70-71 — any
+      count is stale inside a cycle — applied to the one count a cycle can move.
+
+      Also record, in a section headed RED STATES, the states the cluster passes through between
+      the two green boundaries, so a reviewer reading a mid-cluster failure knows it is expected
+      rather than a defect. They are, in order:
+        1. After the physical move alone: the docs surface has BOTH shapes absent or migrated while
+           all three readers still carry the legacy form, so every reader formset disagrees with
+           the evidence and the surface reads MIXED. The checker exits non-zero.
+        2. After factory_config._PROBE moves but before harness_boundary and gen-decisions-index:
+           readers disagree with each other, still MIXED.
+        3. ONCE T-04 AND T-05 HAVE LANDED, and until T-09 regenerates the index, the INTEGRATION
+           SUITE is red on exactly one script, test-gen-decisions-index.py, and the unit suite is
+           green. The detector has nothing to say about either. That script FAILs in two successive
+           ways: between T-02 and T-04's repoint because the real index is absent at the path it
+           still points to — it FAILs on absence, it does not skip — and from T-04's repoint until
+           the regeneration because the committed index's header still names the legacy
+           DECISIONS.md, so a fresh generation differs from the committed file. T-05's verify
+           encodes exactly the landed state: zero unit FAILs, integration red on that one script
+           and no other.
+           THE INTERVAL BEFORE THAT IS WIDER, and quantifying it as one script would mislead the
+           reviewer this section exists to reassure. Between T-02 and T-04 completing, the suites
+           are additionally red on T-04's six files — test-team-catalog.py, test-no-distribution.py
+           and test-factory-config.py in the unit suite, test-harness-yaml.py,
+           test-validate-digest.py and test-gen-decisions-index.py in the integration suite — five
+           of which read a real file that T-02 moved. test-harness-yaml.py reads one too, AND has
+           a SECOND, different reason: its COLLECT_FIXTURE at :81-96 mirrors the documentor's grant
+           list and :185 compares it for exact equality, so T-02's grant EDIT reds it independently
+           of the move. T-04 clears both reasons in the one task, which is why this file is not a
+           second expected FAIL at T-05. ADDITIONALLY, and on a DIFFERENT interval
+           from the five below: the unit suite is red on test-layout-migration.py from T-02 until
+           T-03 lands, and green from T-03 onward. Its case 1 asserts the detector exits 0 against
+           the real repository root (test-layout-migration.py:131); the physical move alone takes
+           the docs surface to MIXED and the exit non-zero, which is exactly what RED STATES 1 and
+           2 above describe, and T-03's rewritten readers restore agreement. T-05 only ADDS cases
+           to that file; it does not clear its red, because the red is already gone by then.
+           Between T-03 and T-05 completing they are additionally red on the OTHER FOUR of T-05's
+           five — test-check-domain.py, test-bash-write-guard.py, test-check-plan-routes.py and
+           test-factory-integration.py, ALL FOUR IN THE INTEGRATION SUITE — which assert the
+           pre-move verdicts against T-03's rewritten classifier. T-05's five therefore split four
+           integration to one unit, and the one unit file is the one whose window is earlier.
+           Every one of those reds IS the subject of the task that clears it, and each clears as
+           that task lands. A red outside those eleven files plus test-gen-decisions-index.py is
+           collateral breakage, not an expected state.
+           NOTE what this state is NOT: once T-03 rewrites both gen-decisions-index.py's DOCS_DIR
+           and its HEADER line in the one task, the FILE reads migrated, so the detector's row for
+           it is not the mid-cluster red. The stale committed ARTIFACT is.
+      State plainly that the FEATURES surface must read CLEAN — evidence migrated at every one of
+      these points; if it ever does not, the move has touched the wrong surface and the work stops.
+
+      Do not commit anything else in this step. This note is feature record, not migration content.
+
+  - id: T-02
+    title: Grant the destination and physically move the five tracked docs
+    traces: [REQ-01, REQ-04]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: >-
+      team-config.yaml resolves NOBODY and the destination resolves NOBODY at the pin (D-03).
+    depends_on: [T-01]
+    status: done
+    files:
+      - .harness/team-config.yaml
+    verify: |
+      n=$(git ls-files docs/harness | wc -l | tr -d ' ')
+      m=$(git ls-files .harness/harness/docs | wc -l | tr -d ' ')
+      test "$n" = 0 || { echo "legacy still tracked: $n"; exit 1; }
+      test "$m" = 5 || { echo "expected 5 tracked docs at destination, got $m"; exit 1; }
+      git ls-files .harness/harness/docs | grep -q 'org\.html$' || { echo "org.html missing"; exit 1; }
+      bash .claude/skills/harness/bin/check-domain.sh --resolve .harness/harness/docs/SPEC.md \
+        | grep -qx 'harness-documentor' || { echo "destination still ungranted"; exit 1; }
+      echo OK
+    intent: |
+      Two edits, in this order, and NOTHING is committed in this task.
+
+      FIRST, add the docs grant to .harness/team-config.yaml. The harness-documentor role currently
+      holds a grant on docs/** and nothing else that reaches the destination; measured at 0f12f14,
+      check-domain.sh --resolve .harness/harness/docs/SPEC.md returns NOBODY. Add, alongside the
+      documentor's existing docs/** entry, an entry of the same form as the features grants already
+      in the file:
+        - { path: .harness/*/docs/**, upsert: true }
+      POSITION IS PINNED, not free: insert it IMMEDIATELY AFTER the documentor's docs/** entry at
+      team-config.yaml:117, so it becomes the SECOND entry in that role's domain list. T-04 must
+      mirror this index in test-harness-yaml.py's COLLECT_FIXTURE, which asserts exact list
+      equality in manifest order, and an unpinned position makes that fixture unwritable.
+      Use the WILDCARD segment, not the literal harness, per D-01: it mirrors the shape already
+      signed for .harness/*/features/** on line 28 and the rows around line 88. Keep the existing
+      docs/** entry: it is what grants a PRODUCT checkout's own docs, and removing it would take
+      the documentor's real job away.
+
+      Confirm with check-domain.sh --resolve before proceeding. If it still says NOBODY, stop.
+
+      SECOND, move the five tracked files with git mv, preserving rename detection:
+        git mv docs/harness/SPEC.md            .harness/harness/docs/SPEC.md
+        git mv docs/harness/DECISIONS.md       .harness/harness/docs/DECISIONS.md
+        git mv docs/harness/DECISIONS-INDEX.md .harness/harness/docs/DECISIONS-INDEX.md
+        git mv docs/harness/BUILD.md           .harness/harness/docs/BUILD.md
+        git mv docs/harness/org.html           .harness/harness/docs/org.html
+      Create the destination directory first if git mv requires it.
+
+      org.html is included deliberately. It is hand-maintained with no generator and no template,
+      measured at
+      .harness/harness/features/FEAT-08-remove-cost-tracking/observations/harness-documentor.md:250,
+      and it is tracked, so it moves and it counts.
+
+      docs/harness/.DS_Store and docs/.DS_Store exist and are UNTRACKED. Do not add them, do not
+      remove them, and do not use directory absence as evidence of anything: the criterion is
+      tracked-files-empty precisely because those two files make the directory outlive the move.
+
+      SPEC.md must land at exactly .harness/harness/docs/SPEC.md. It is the detector's sole DOCS
+      evidence marker (layout_migration.py:174-176), so any other spelling takes doc_roots to 0 and
+      reds the CI Layout gate on its non-zero-count assertion.
+
+  - id: T-03
+    title: Move the three coupled resolvers and the four detector-invisible claims beside them
+    traces: [REQ-02, REQ-07]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: >-
+      harness_boundary.py is a carve-out by content under DEC-193; the other two co-change inside
+      the same atomic commit (D-03).
+    depends_on: [T-02]
+    status: done
+    files:
+      - .claude/skills/harness/bin/factory_config.py
+      - .claude/skills/harness/bin/harness_boundary.py
+      - .claude/skills/harness/bin/gen-decisions-index.py
+    verify: |
+      B=.claude/skills/harness/bin
+      grep -qE 'os\.path\.join\("\.harness", [^,)]+, "docs"' $B/factory_config.py \
+        || { echo "factory_config does not match the migrated row"; exit 1; }
+      grep -qE '\.harness/[^/"]+/docs/\*\*' $B/harness_boundary.py \
+        || { echo "harness_boundary does not match the migrated row"; exit 1; }
+      grep -qE 'os\.path\.join\("\.harness", [^,)]+, "docs"|\.harness/[^/ ]+/docs/' $B/gen-decisions-index.py \
+        || { echo "gen-decisions-index does not match the migrated row"; exit 1; }
+      for f in factory_config.py harness_boundary.py gen-decisions-index.py; do
+        if grep -qE 'docs/harness|"docs", ?"harness"' $B/$f; then
+          echo "legacy spelling survives in $f"; grep -nE 'docs/harness|"docs", ?"harness"' $B/$f; exit 1
+        fi
+      done
+      HB=$B/harness_boundary.py
+      grep -B20 'HARNESS_CONTROL_PLANE = \[' $HB | grep -qi 'redundant' \
+        || { echo "the comment above the control-plane list records no redundancy clause"; exit 1; }
+      if grep -qE 'holds no.*entry anywhere' $HB; then
+        echo "site 221: the claim team-config.yaml holds no such entry survives, and T-02 makes it false"
+        grep -nE 'holds no.*entry anywhere' $HB; exit 1
+      fi
+      grep -qF -- '-> ../../../.claude' $HB \
+        || { echo "site 111: the symlink example does not climb three segments from the new base"; exit 1; }
+      if grep -qF -- '-> ../../.claude' $HB; then
+        echo "site 111: a two-climb chain survives; from a three-segment base it no longer escapes"
+        grep -nF -- '-> ../../.claude' $HB; exit 1
+      fi
+      awk '{a[NR]=$0} /guide\.md/{g=NR;c++} END{
+        if (c!=1) {print "site 315: guide.md is not a unique anchor, count " c+0; exit 1}
+        for (i=g-8;i<=g+3;i++) if (index(a[i],".harness/*/docs/**")) exit 0
+        print "site 315: the paragraph around guide.md does not name .harness/*/docs/** as the grantor"
+        exit 1}' $HB || exit 1
+      echo OK
+    intent: |
+      Rewrite the three coupled resolvers so they resolve .harness/harness/docs. Nothing is
+      committed in this task. These three must change together or root resolution silently picks a
+      different checkout than the classifier is judging against (map #336 handoff, line 295).
+
+      WHY THIS TASK RUNS AFTER T-02 AND NOT BEFORE IT, since the dependency alone does not say:
+      gen-decisions-index's main preserves every hand-written ruling by READING the existing index
+      at INDEX_PATH before it regenerates. If DOCS_DIR moved before the files did, INDEX_PATH would
+      point at an empty location, the read would find nothing to preserve, and the next regeneration
+      would silently drop every ruling in the index. The files move first, always.
+
+      factory_config.py
+        :32  _PROBE = os.path.join("docs", "harness", "SPEC.md")
+             becomes os.path.join(".harness", "harness", "docs", "SPEC.md")
+        It is read at :41 and :45; neither call site changes shape.
+        Also correct the module docstring at :11 and :13, which name docs/harness/SPEC.md as the
+        probe in the present tense and state why it is the probe rather than a script file. Keep
+        that reasoning; change only the path.
+        REQUIRED SHAPE: the result must match the detector's migrated regex for this row,
+        os\.path\.join\("\.harness", [^,)]+, "docs" . A string literal ".harness/harness/docs/SPEC.md"
+        would NOT match and would take the file to formset neither, which is CANNOT_VERIFY.
+
+      harness_boundary.py
+        :90  the HARNESS_CONTROL_PLANE entry "docs/harness/**" becomes ".harness/*/docs/**" (D-01).
+        :84  the comment above the list quotes the entry character for character. Rewrite it, and
+             add one clause recording that the entry is now logically REDUNDANT: is_control_plane_glob
+             already returns true for any first segment of .harness, so the entry decides nothing.
+             It is kept because the detector's migrated pattern requires the string to be present
+             (D-02). Say so; do not delete the entry.
+             USE THE WORD redundant, in any case, AND PUT THE CLAUSE IN THIS COMMENT BLOCK — the
+             one within the twenty lines above HARNESS_CONTROL_PLANE = [ , which is the window
+             the verify slices. It greps for the word because a clause that is purely ADDED leaves
+             no legacy string behind for an absence check to catch: without that word the addition
+             is invisible to every check in this plan. The window rather than the whole file so the
+             word cannot be satisfied by prose written at one of the other three sites.
+        :221 the is_control_plane_target docstring asserts team-config.yaml "grants docs/** and
+             holds no docs/harness/** entry anywhere, so a glob-keyed classifier would have
+             literally nothing to match two of the four named entries against". After T-02 that
+             sentence is false twice over: a .harness/*/docs/** entry now exists, and the target it
+             justifies has moved. Rewrite it to state the rule that survives, which is that the
+             test is TARGET-keyed, and drop the claim about what team-config.yaml does not contain.
+             THE PHRASE holds no ... entry anywhere MUST NOT SURVIVE IN ANY SPELLING. The verify
+             greps for holds no.*entry anywhere and fails if it matches. Respelling the glob token
+             while leaving that phrase standing manufactures a sentence that is FALSE the moment
+             T-02 lands, and nothing else in this plan can see it. The verify can force the false
+             claim out but cannot prove the replacement is right; the replacement sentence is yours
+             to get right, and a reviewer reads it.
+        PATTERN AUDIT, so a later editor can re-run it. Candidate docs/harness/\*\* over the file at
+        0f12f14 returns exactly :84, :90, :221 — three sites, not the two the dispatch named, and
+        :221 is a docstring rather than a comment. The broader pattern docs/harness adds :111,
+        :143, :151, :315. The broadest, docs["/ ,]{1,4}harness , adds nothing over that, so no
+        third spelling exists in this file.
+        THE LEGACY SPELLINGS QUOTED BELOW LOCATE THE SITES; THEY ARE NEVER COPIED INTO THE FILE.
+        The instructions that follow have to name each site's current text to identify it, so they
+        contain the legacy path. Every one of those fragments contains docs/harness, and this
+        task's own verify fails the file if that fragment survives anywhere in it. Where a
+        rewritten comment needs to describe the behaviour that ENDED, describe it without writing
+        the old path.
+
+        THE FOUR THE DETECTOR CANNOT SEE, and this task owns them because no sweep should be their
+        only net:
+          :111 a symlink-escape example, docs/harness/<link>/agents/x.md with <link> -> ../../.claude.
+               RE-ANCHORING THE BASE DIRECTORY ALONE IS THE WRONG FIX, and it is the one a careful
+               editor makes. The climb count is load-bearing: docs/harness/<link> sits TWO segments
+               deep, so two ../ reach the repository root and the link escapes to .claude/ — which
+               is the whole point of the paragraph. The new base .harness/harness/docs/<link> sits
+               THREE segments deep, so the example needs THREE climbs to escape. Write the link
+               target as exactly -> ../../../.claude . The verify requires that literal and fails
+               if any -> ../../.claude survives, because a two-climb example under the new base
+               demonstrates the opposite of what the paragraph exists to show. Keep :112's
+               following clause consistent with the new base rather than carrying it verbatim.
+          :143 and :151 both name docs/harness/SPEC.md as factory_config's root probe. Both go
+               stale the instant _PROBE moves above; update both to the new probe path.
+          :315 states that docs/** grants <harness>/docs/harness/guide.md. That is the exact
+               behaviour this change ENDS: once the entry names .harness/*/docs/**, docs/harness/x
+               is no longer a control-plane target, so in the harness base the documentor's docs/**
+               match is discarded. Rewrite the sentence to describe what the code now does, using
+               <harness>/.harness/harness/docs/guide.md as the granted example.
+               NAME THE NEW GRANTOR IN THAT SAME PARAGRAPH, as the literal .harness/*/docs/** .
+               The GRANTOR is what changes here, not the path spelling: a pure token swap produces
+               <harness>/.harness/harness/docs/guide.md granted by docs/**, which is a
+               misattribution no absence check can see. The verify slices the paragraph around the
+               guide.md example and requires that literal inside it, so keep the mention within
+               eight lines above and three below the example. KEEP guide.md TO EXACTLY ONE
+               OCCURRENCE IN THIS FILE — the verify uses it as a unique anchor and fails if a
+               second appears. The product half of the sentence still belongs to docs/**; do not
+               remove it.
+
+      gen-decisions-index.py
+        :20  DOCS_DIR = os.path.join("docs", "harness")
+             becomes os.path.join(".harness", "harness", "docs")
+        :21 DECISIONS_PATH and :22 INDEX_PATH derive from it and need no edit.
+        :76  is inside the HEADER string literal and emits a slash-shaped docs/harness/DECISIONS.md
+             into the committed index. Rewrite it to .harness/harness/docs/DECISIONS.md. This is
+             the real defect the detector's docstring says this row exists to catch; leaving it
+             would ship a committed artifact advertising a dead path.
+        :2, :5, :10 are module-docstring lines making present-tense operational claims about where
+             the index is generated from and written to. The detector's docstring assigns exactly
+             these to unit 4 by name. Rewrite all three.
+
+  - id: T-04
+    title: Repoint the six test files that read the real docs and break at runtime
+    traces: [REQ-02]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: Each co-changes with a gate or a carve-out module in the same human-read diff (D-03).
+    depends_on: [T-03]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-harness-yaml.py
+      - .claude/skills/harness/bin/test-team-catalog.py
+      - .claude/skills/harness/bin/test-validate-digest.py
+      - .claude/skills/harness/bin/test-gen-decisions-index.py
+      - .claude/skills/harness/bin/test-no-distribution.py
+      - .claude/skills/harness/bin/test-factory-config.py
+    verify: |
+      B=.claude/skills/harness/bin
+      P='docs/harness|"docs", ?"harness"'
+      Q='\.harness/harness/docs|"\.harness", ?"harness", ?"docs"'
+      for f in test-harness-yaml test-team-catalog test-validate-digest \
+               test-gen-decisions-index test-no-distribution test-factory-config; do
+        if grep -qE "$P" $B/$f.py; then
+          echo "legacy read survives in $f"; grep -nE "$P" $B/$f.py; exit 1
+        fi
+        grep -qE "$Q" $B/$f.py || { echo "$f names no destination"; exit 1; }
+      done
+      grep -qF '".harness/*/docs/**"' $B/test-harness-yaml.py \
+        || { echo "COLLECT_FIXTURE does not carry T-02's ninth documentor grant"; exit 1; }
+      grep -q 'case4_control_docs_walk_reached_decisions' $B/test-no-distribution.py \
+        || { echo "the docs walk has no positive control"; exit 1; }
+      python3 $B/test-no-distribution.py >/dev/null || { echo "test-no-distribution is red"; exit 1; }
+      echo OK
+    intent: |
+      Nothing is committed in this task. Six test files. All six share ONE class: each opens a REAL
+      file under the repository's docs directory and will fail at import or at first read after
+      T-02 moved it. One of the six, test-harness-yaml.py, ALSO carries a second and different
+      break — a fixture that mirrors the grant manifest T-02 edits — and this task clears both of
+      them; see the COLLECT_FIXTURE block below. The other class, whose expected VERDICT inverts
+      rather than whose path changes, is T-05 and is deliberately a separate diff.
+
+      Repoint each of these, keeping the join style the file already uses:
+        test-harness-yaml.py:686        the real SPEC.md, via a "..", "..", "..", ".." climb
+        test-team-catalog.py:45         SPEC_MD, the real SPEC.md
+        test-validate-digest.py:24      the real SPEC.md, in a slash-spelled join
+        test-gen-decisions-index.py:23  REAL_DECISIONS
+        test-gen-decisions-index.py:24  REAL_INDEX
+        test-no-distribution.py:210     the real DECISIONS.md
+        test-no-distribution.py:244     the real DECISIONS-INDEX.md
+        test-no-distribution.py:89      EXCLUDED_EXACT, the literal "docs/harness/DECISIONS.md"
+        test-factory-config.py:399      the probe-readability assertion against the real root
+      AND THESE SEVEN, which the verify forbids and an earlier draft of this task did not name.
+      Every one was read at 0f12f14; none is a deliberate legacy fixture, and all seven break or
+      go stale once T-03 moves DOCS_DIR:
+        test-gen-decisions-index.py:94 and :163  temp-tree fixtures that write DECISIONS.md where
+                                   the generator will look. After T-03 the generator reads
+                                   .harness/harness/docs under the temp root, so these fixtures
+                                   must be built there or the cases fail at runtime.
+        test-gen-decisions-index.py:8, :88, :382  docstring and failure-message prose naming the
+                                   committed index and what make_authority writes.
+        test-gen-decisions-index.py:678  a POSITIONAL-argument case; the string is arbitrary but
+                                   must not advertise a dead path.
+        test-validate-digest.py:1308  a sample digest body carrying docs_updated:
+                                   [docs/harness/SPEC.md].
+      COLLECT_FIXTURE — test-harness-yaml.py:81-96, the second break in that file, and the one no
+      grep in this plan would otherwise see. COLLECT_FIXTURE["harness-documentor"] holds the
+      documentor's EIGHT write grants as a literal list mirroring team-config.yaml:117-127
+      entry-for-entry, and :185 asserts list(mine) == expected_mine — EXACT LIST EQUALITY, not a
+      subset and not a set comparison. T-02 adds a ninth grant to the manifest, so mine gains an
+      entry the fixture does not have and the assertion fails. The file runs in the INTEGRATION
+      suite (run-unit-tests.sh:18).
+      ADD THE NINTH ENTRY, ".harness/*/docs/**", AS THE SECOND ELEMENT of that list — immediately
+      after "docs/**" and before "README.md". The index is not free: the assertion compares order,
+      and T-02 pins the manifest insertion to the same position, immediately after the
+      documentor's docs/** entry. If the manifest and the fixture disagree on position the
+      assertion fails on ordering while every entry is present, which reads as a mystery.
+      Change nothing else in COLLECT_FIXTURE: the shared-list half and the other agents' rows are
+      untouched by T-02.
+
+      NOTE FOR THE REVIEWER, not a defect this task fixes: test-gen-decisions-index.py:361-363
+      FAILs when the real index is absent while :399-401 SKIPs on the same condition. If a repoint
+      here goes wrong, one of the two tests goes quiet rather than red. Pre-existing.
+      THE POSITIVE CONTROL ACCEPTS TWO SPELLINGS ON PURPOSE. Most sites here are comma joins
+      (test-harness-yaml.py:686, test-team-catalog.py:45, test-gen-decisions-index.py:23), whose
+      migrated form carries no harness/docs substring at all. Keep the join style each file already
+      uses; the verify matches either .harness/harness/docs or the comma-joined triple.
+      test-no-distribution.py:228 joins ROOT with "docs" alone and carries NO legacy literal, so
+      this task's grep pair cannot see it. It is the walk behind
+      case4_absence_no_dec12_references_under_docs, an ABSENCE assertion over every file under the
+      docs tree. After the move that walk reaches docs/PRINCIPLES.md and nothing else, so the
+      assertion goes near-vacuous: green over an almost-empty set, which is the exact class T-10's
+      resolver method exists to catch. WIDEN IT rather than leaving it: walk both ROOT/docs and the
+      migrated harness docs directory, so the case still scans DECISIONS.md, DECISIONS-INDEX.md,
+      SPEC.md and BUILD.md as it did before.
+      AND ADD A POSITIVE CONTROL, named exactly case4_control_docs_walk_reached_decisions: collect
+      the relative paths the walk visited and assert the migrated DECISIONS.md is among them. The
+      verify greps for that name. Without it, a later re-aiming of the walk can empty it again and
+      the absence assertion stays green over nothing.
+
+      DO NOT TOUCH layout_fixtures.py or layout_migration.py here. Their legacy strings are how the
+      detector recognises a pre-migration tree; T-05 says the same thing at more length.
+
+  - id: T-05
+    title: Invert the tests whose expected verdict flips, and add the two standing cases
+    traces: [REQ-02, REQ-04]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: Each co-changes with a gate or a carve-out module in the same human-read diff (D-03).
+    depends_on: [T-04]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-check-domain.py
+      - .claude/skills/harness/bin/test-bash-write-guard.py
+      - .claude/skills/harness/bin/test-check-plan-routes.py
+      - .claude/skills/harness/bin/test-factory-integration.py
+      - .claude/skills/harness/bin/test-layout-migration.py
+    verify: |
+      u=$(mktemp); i=$(mktemp)
+      B=.claude/skills/harness/bin
+      P='docs/harness|"docs", ?"harness"'
+      $B/run-unit-tests.sh --kind unit >"$u" 2>&1 || true
+      $B/run-unit-tests.sh --kind integration >"$i" 2>&1 || true
+      grep -q '^PASS test-layout-migration\.py$' "$u" || { cat "$u"; exit 1; }
+      for s in test-check-domain test-check-state; do
+        grep -q "^PASS $s\.py$" "$i" || { echo "$s did not pass"; cat "$i"; exit 1; }
+      done
+      test "$(grep -cE '^FAIL test-' "$u")" = 0 || { echo "unit collateral breakage"; grep -E '^FAIL test-' "$u"; exit 1; }
+      test "$(grep -cE '^FAIL test-' "$i")" = 1 || { echo "integration FAILs are not the one expected"; grep -E '^FAIL test-' "$i"; exit 1; }
+      grep -q '^FAIL test-gen-decisions-index\.py$' "$i" || { echo "the one expected FAIL is not the stale-index one"; exit 1; }
+      grep -qi 'harness/docs' "$u" || { echo "no new case ran in unit"; exit 1; }
+      grep -qi 'harness/docs' "$i" || { echo "no new case ran in integration"; exit 1; }
+      n=$(grep -cE "$P" $B/test-check-domain.py)
+      test "$n" = 1 || { echo "test-check-domain.py must keep EXACTLY 1 legacy line, got $n"; \
+        grep -nE "$P" $B/test-check-domain.py; exit 1; }
+      grep -q 'docs/harness/guide\.md' $B/test-check-domain.py \
+        || { echo "the refused-direction subject was deleted, not kept"; exit 1; }
+      if grep -qE 'entry exists anywhere|nothing to match' $B/test-check-domain.py; then
+        echo "site 785-788: the no-such-entry glob-keyed claim survives, and T-02 makes it false"
+        grep -nE 'entry exists anywhere|nothing to match' $B/test-check-domain.py; exit 1
+      fi
+      grep -qF 'hook(".harness/harness/docs/SPEC.md", "harness-documentor")' $B/test-check-domain.py \
+        || { echo "case (h) at :924: the hook subject is not pinned to the migrated docs path"; exit 1; }
+      m=$(grep -cE "$P" $B/test-check-state.py)
+      test "$m" = 1 || { echo "test-check-state.py legacy sandbox must stay at 1 line, got $m"; exit 1; }
+      for f in test-bash-write-guard test-check-plan-routes test-factory-integration; do
+        if grep -qE "$P" $B/$f.py; then echo "legacy survives in $f"; grep -nE "$P" $B/$f.py; exit 1; fi
+      done
+      echo OK
+    intent: |
+      Nothing is committed in this task. Five test files whose EXPECTED VERDICT changes. For most of
+      them the path string changes too, but repointing the path alone would leave them asserting
+      nothing, which is why they are separated from T-04's runtime breaks.
+
+      READ THE SURVIVING LEGACY LITERALS BLOCK AT THE END OF THIS INTENT BEFORE YOU START. Two
+      legacy strings are meant to remain, on exactly one line each, and T-10's sweep asserts that
+      count exactly. Deleting either to make a grep go green is the one failure this task is
+      shaped to prevent.
+
+      After T-03, docs/harness/x is no longer a control-plane target, so
+      in the HARNESS base the documentor's docs/** grant match is discarded by the target-side
+      filter in harness_boundary.classify. These cases assert the OLD verdict, and repointing the
+      path alone would leave them asserting nothing:
+        test-check-domain.py:35    documentor writing docs/harness/guide.md, expects exit 0. After
+                                   the change that path must be REFUSED and .harness/harness/docs/guide.md
+                                   granted. Keep both directions as separate cases so the pair
+                                   proves the boundary rather than one side of it. THE REFUSED CASE
+                                   IS THE ONE SURVIVING LEGACY LITERAL IN THIS FILE — see the block
+                                   at the end, and observe its one-line shape rule.
+        test-check-domain.py:58    a repo path reached via a long .. chain, expecting 2. Its prefix
+                                   must start inside a GRANTED directory or the case passes for a
+                                   reason it does not name. Repoint to
+                                   .harness/harness/docs/../../../src/main.py, which is three
+                                   levels and still resolves to ROOT/src/main.py.
+        test-check-domain.py:712-732  the "all four named entries resolve" case and the case
+                                   asserting docs/harness/** was NOT widened to docs/**. The second
+                                   still holds, with .harness/*/docs/** as its subject: the same
+                                   persona permitted .harness/harness/docs/guide.md must still be
+                                   REFUSED docs/guide.md.
+                                   THE FIXTURE'S OWN MANIFEST MUST GAIN THE GRANT. c_root is built
+                                   from an inline team-config at :698-712 whose documentor holds
+                                   docs/** and README.md only. Add
+                                   - { path: .harness/*/docs/**, upsert: true } to that documentor
+                                   and KEEP docs/**: the not-widened half needs the same persona to
+                                   still hold docs/** and still be refused bare docs/guide.md.
+                                   Without the added entry the granted half is refused for want of
+                                   a grant, not by the rule, and the pair proves nothing.
+        test-check-domain.py:789   the LIVE-tree --resolve case. It expects harness-documentor for
+                                   docs/harness/SPEC.md. Change the subject to
+                                   .harness/harness/docs/SPEC.md and keep the expectation.
+                                   ITS COMMENT AT :785-788 MUST BE REWRITTEN, NOT CARRIED. It argues
+                                   the case is discriminating because no docs/harness/** entry
+                                   exists anywhere in team-config.yaml, so a glob-keyed classifier
+                                   would find nothing to match. T-02 makes that false: a
+                                   .harness/*/docs/** domain entry now exists, and a glob-keyed
+                                   classifier WOULD match it. Say what the case still proves — the
+                                   live tree resolves the docs path to harness-documentor — and
+                                   drop the glob-keyed claim rather than leaving a stale reason
+                                   standing over a case that keeps passing.
+                                   REWRITTEN MEANS REWRITTEN, NOT RESPELLED. Swapping the glob
+                                   token inside that sentence and leaving its reasoning standing
+                                   is the exact build the verify's negative grep on this file
+                                   catches: it forbids the fragments "entry exists anywhere" and
+                                   "nothing to match" from surviving ANYWHERE in this file, in any
+                                   spelling of the glob, and any retelling of the claim — past
+                                   tense, negated, hedged — reds it too. The claim shape goes, not
+                                   just its token. That grep can force the false claim out but
+                                   cannot prove the replacement is right; the replacement sentence
+                                   is yours to get right, and a reviewer reads it.
+        test-check-domain.py, the muzzle case (e)  its COMMENT, which says factory_config's import
+                                   prints a discard notice under "a fixture root that holds no
+                                   docs/harness/SPEC.md". It is prose about a root holding NO probe,
+                                   not a fixture tree building one; the case itself keeps working
+                                   unchanged. Rewrite the comment to name the new probe path. An
+                                   earlier draft of this task called it a fixture tree; that was
+                                   wrong and is withdrawn.
+        test-check-domain.py:801-826  the fixture tree that builds a docs/harness directory,
+                                   including the symlink-escape fixture. Rebuild it at the new
+                                   location so it still exercises a control-plane target. The
+                                   escape fixture's inline manifest at :811-817 needs the same
+                                   added entry as c_root above, for the same reason: its legit half
+                                   writes .harness/harness/docs/guide.md and its link must live at
+                                   .harness/harness/docs/esc so it still points out of a granted,
+                                   control-plane directory.
+        test-check-domain.py:924   case (h), the HOOK half of the same pair as :789. The call is
+                                   hook(docs SPEC path, harness-documentor) with no --resolve, and
+                                   :925-926 asserts exit 0. After T-03 the legacy path is no longer
+                                   a control-plane target, so the target-side filter in
+                                   harness_boundary.classify discards the documentor's docs/** match
+                                   and the hook exits 2 — case (h) FAILs unless its subject moves.
+                                   REPOINT THE SUBJECT TO EXACTLY .harness/harness/docs/SPEC.md and
+                                   keep the exit-0 expectation. THE SUBJECT IS PINNED, not free: any
+                                   other in-domain path also turns the case green and the count
+                                   green, while silently dropping hook-path coverage of the DOCS
+                                   surface, which is the only thing this case exists to hold. The
+                                   verify greps for the migrated call text.
+                                   KEEP THE PAIR DISTINGUISHABLE: :924 is the hook half, :789 is the
+                                   --resolve half, and after the move both name the same path. Two
+                                   entry points to one rule is what proves the boundary; one of them
+                                   proves half of it. This case does NOT become a refused-direction
+                                   case — it keeps asserting exit 0 on the granted new path, and the
+                                   file's single refused-direction survivor stays docs/harness/guide.md.
+        test-bash-write-guard.py:85, :87, :89, :107, :110  the comment at :107 states the reason in
+                                   the file's own words: the path is "granted AND control-plane, so
+                                   it exits 0 alone". Repoint the paths and update that comment.
+        test-check-plan-routes.py:117, :224-283  these assert a docs path is GRANTED to a plan
+                                   task. Repoint to the new location; the granted/ungranted
+                                   expectations are unchanged once the subject moves.
+        test-factory-integration.py:28, :329-333  builds the SPEC.md probe fixture. It must build
+                                   the fixture at whatever _PROBE now names, or CLAUDE_PROJECT_DIR
+                                   redirection stops being exercised at all.
+
+      SURVIVING LEGACY LITERALS — the exact set, per file, with the rule that makes each a knowing
+      survivor. T-10 asserts this table as a COUNT, not as an exclusion, so a sixth file or a second
+      line in either of the two below turns T-10 red, and so does deleting one.
+        test-check-domain.py            EXACTLY 1 line: the refused-direction case's path argument,
+          docs/harness/guide.md. RULE: a negative-direction test subject is a survivor for the same
+          reason the detector's own fixtures are — the string IS the assertion. A test that the
+          legacy path is now REFUSED cannot be written without naming the legacy path.
+          SHAPE PIN, because the count is exact: the literal appears on that case's path argument
+          and NOWHERE else in this file. Write the case label, the comment above it and any detail
+          string without it — say "the legacy docs path" instead. Every other site listed above is
+          repointed, including :787's comment and the detail f-strings at :720 and :732.
+        test-check-state.py             EXACTLY 1 line: :1619's os.path.join(tmp, "docs", "harness")
+          evidence marker. RULE: it is a DELIBERATE legacy sandbox, and the comment at :1610-1614
+          says so in the file's own words — case_x's reader stubs are all legacy-form (lf.STUB
+          legacy at :1599), so its evidence must be legacy too, and segmenting only the evidence
+          made x.3's clean tree an undeclared-segment cannot-verify. Migrating it would pair
+          migrated evidence with legacy readers and silently change x.1 and x.3 from the verdicts
+          they were written to pin. THIS FILE IS THEREFORE NOT IN THIS TASK'S files: LIST AND HAS NO
+          EDIT IN THIS FEATURE. Its only other docs site, :1643, is already migrated form. An
+          earlier draft of this task said to rebuild it at the new location; that was wrong and is
+          withdrawn.
+        layout_fixtures.py 3 lines, layout_migration.py 6, test-layout-migration.py 1 — untouched
+          by this task, listed so T-10's table is complete.
+        ZERO in every other file this task touches. test-bash-write-guard.py,
+          test-check-plan-routes.py and test-factory-integration.py keep no legacy literal at all:
+          each was read at 0f12f14 and none holds a negative-direction subject. In particular
+          test-bash-write-guard.py:107-110 needs a path that is granted AND control-plane so the
+          first operand exits 0 alone — after T-03 only the NEW path is both, so repointing is what
+          keeps that case's weight where its name says it is.
+
+      THE VERIFY EXPECTS EXACTLY ONE SCRIPT-LEVEL FAILURE, and this is deliberate. At this position
+      the integration suite runs test-gen-decisions-index.py against a committed index that still
+      carries the legacy header, so that ONE script FAILs and no other may.
+      THE OTHER CANDIDATE IS ALREADY CLEARED BY THIS POINT, and the count stays at one because of
+      it: test-harness-yaml.py is red from T-02 for two independent reasons — its read of the real
+      SPEC.md at :686, and its COLLECT_FIXTURE at :81-96 which asserts exact equality against the
+      documentor's grant list that T-02 edits. T-04 fixes both, so the file is GREEN when this
+      verify runs and the stale committed index is the sole remaining integration red. The index cannot be
+      regenerated here — it is not this task's file, and T-08 shifts every @line anchor afterwards,
+      so any earlier regeneration goes stale again. T-09 regenerates it and gates BOTH suites on the
+      tree it commits, which is where the whole-suite proof belongs. Do NOT widen the expected-FAIL
+      set to make a red go away: if a second script FAILs, the verify has found collateral breakage
+      from T-03, T-04 or T-05, and the fix is that breakage. If it is in a file no task in this
+      feature owns, stop and report it rather than editing outside the plan.
+
+      IN test-check-domain.py, ws_c/widget/docs/guide.md MUST STAY UNTOUCHED — it is the product-base
+      half of the pair proving docs/** still reaches a product checkout, and no verify forces it
+      either way, so nothing would catch its loss. It carries no legacy literal (its path is
+      docs/guide.md, not docs/harness/...), so leaving it alone cannot disturb this file's
+      exactly-one-legacy-line count.
+
+      DO NOT TOUCH, and this is not an oversight. layout_fixtures.py:46, :50, :54 hold the LEGACY
+      side of three two-sided fixtures; test-layout-migration.py:77 builds the legacy fixture tree;
+      layout_migration.py:94, :97, :100 and :174 are the detector's own legacy patterns and its
+      evidence marker. Those strings are how the detector recognises a pre-migration tree. Removing
+      them would blind it to the state this feature starts from.
+      layout_migration.py:6 and :34 ARE PART OF THAT SET, and the research note's earlier suggestion
+      that :34 may need touching is withdrawn. :34 is the docstring's account of why the
+      gen-decisions-index row deliberately runs at BOTH spellings — the HEADER-template defect T-03
+      fixes. The rule that makes it a survivor is the rule already exempting :94 through :174: this
+      module's subject IS the legacy layout, so a legacy path named inside it describes the
+      pre-migration shape rather than claiming anything about this tree, and the row must keep
+      matching legacy trees after this feature lands. It is also invisible to every verdict —
+      layout_migration.py is not in READER_TABLE, so its own text is never matched by anything.
+      Rewriting :34 would delete the recorded reason for a both-spellings row and invite a later
+      editor to simplify the row away, and it would take the file to 5 lines and red T-10's table.
+
+      TWO STANDING CASES TO ADD, because two success criteria would otherwise rest on a shell
+      command in this plan rather than on a test, which is not automated evidence at goal-check.
+
+      1. In test-check-domain.py (integration suite, run-unit-tests.sh:18), pin that
+         check-domain.sh --resolve .harness/harness/docs/SPEC.md names harness-documentor. This
+         also closes FEAT-21 ship-review row B-10 for the docs surface: it turns a pair someone
+         measured once by hand into a case that runs on every push.
+         THIS IS THE REPOINTED :789 CASE, NOT A SECOND ONE. :789 already fires --resolve against
+         the LIVE tree for the docs path; once its subject moves it IS this pin. Do not add a
+         duplicate case beside it. Give the repointed case a label containing harness/docs and
+         rewrite its comment as instructed above.
+      2. In test-layout-migration.py (unit suite, run-unit-tests.sh:17), append a case that scans
+         the REAL repository root and asserts BOTH surfaces read CLEAN with evidence migrated, and
+         that the doc-root count is non-zero. Case 1 already scans the real root and asserts
+         non-zero feature-dir and reader-file counts, so the precedent and the helper both exist;
+         extend that pattern rather than inventing a second one. The non-zero doc-root assertion is
+         what gives the CI Layout gate's only real count constraint a test of its own.
+         This is an ADDITION. Do not modify the legacy fixture builder at :77, and do not write the
+         legacy literal anywhere in the added case: :77 must remain this file's only line carrying
+         it, because T-10's table pins the file at exactly 1.
+
+      Give both cases a label containing the string harness/docs. The verify greps each runner's
+      output for it, and a case running under a label nobody can find is a case that silently stops
+      running.
+
+  - id: T-06
+    title: Correct the instruction-side literals and the two gate diagnostics
+    traces: [REQ-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      Four surfaces resolve NOBODY, and check-state.sh and check-domain.sh are DEC-174 carve-outs
+      (D-03).
+    depends_on: [T-04]
+    status: done
+    files:
+      - CLAUDE.md
+      - .claude/skills/harness-principles/SKILL.md
+      - .claude/skills/harness/templates/plan.yaml
+      - .claude/skills/harness/bin/check-plan-routes.py
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/check-domain.sh
+      - .harness/notes/audit-decisions.py
+    verify: |
+      for f in CLAUDE.md .claude/skills/harness-principles/SKILL.md \
+               .claude/skills/harness/templates/plan.yaml \
+               .claude/skills/harness/bin/check-plan-routes.py \
+               .claude/skills/harness/bin/check-state.sh \
+               .claude/skills/harness/bin/check-domain.sh \
+               .harness/notes/audit-decisions.py; do
+        if grep -qE 'docs/harness|"docs", ?"harness"' "$f"; then
+          echo "legacy spelling survives in $f"; grep -nE 'docs/harness' "$f"; exit 1
+        fi
+        grep -q 'harness/docs' "$f" || { echo "$f names no new path"; exit 1; }
+      done
+      echo OK
+    intent: |
+      Nothing is committed in this task. Seven files: six are a present-tense claim in live
+      instruction or live code, and the seventh is a live tool that READS the moved docs at import.
+      Rewrite the path only; preserve every rule and every reason.
+
+      CLAUDE.md  the design-docs table row and the surrounding paragraph naming
+        docs/harness/SPEC.md, DECISIONS-INDEX.md, DECISIONS.md and BUILD.md, and the instruction to
+        read the index before changing any harness doc. Take the literal new segment,
+        .harness/harness/docs/, because CLAUDE.md addresses this repository specifically.
+        IT IS A PATH SUBSTITUTION, NOT A REFLOW. The file is 75 lines against check-state.sh's
+        INV-23 budget of 80, so five lines of headroom; a reflow that adds six turns a green gate
+        red for a reason unrelated to this feature. Substitute in place and add no lines.
+      .claude/skills/harness-principles/SKILL.md  its pointer to docs/harness/DECISIONS.md as the
+        authority on what exists. Same literal.
+      .claude/skills/harness/templates/plan.yaml:44  the comment telling a plan author that
+        reasoning lives in docs/harness/DECISIONS.md. Same literal.
+      .claude/skills/harness/bin/check-plan-routes.py:44  a comment using docs/harness/SPEC.md as
+        its worked example of a granted path. After T-03 that path is no longer granted, so the
+        example must move or it teaches the opposite of the truth.
+      .claude/skills/harness/bin/check-state.sh:676  a diagnostic string ending "rationale belongs
+        in docs/harness/DECISIONS.md." This file is a DEC-174 carve-out; the edit is one string and
+        no logic changes, and it is folded here rather than deferred to unit 9 because a gate
+        message pointing an operator at a directory that no longer exists is user-facing staleness
+        that this feature creates.
+      .claude/skills/harness/bin/check-domain.sh:953  the same diagnostic string, same reasoning.
+      .harness/notes/audit-decisions.py:15-16  the ONLY entry here that is not prose. Two
+        MODULE-SCOPE reads execute the moment the file is imported or run:
+          :15  pathlib.Path("docs/harness/DECISIONS.md").read_text(encoding="utf-8")
+          :16  pathlib.Path("docs/harness/DECISIONS-INDEX.md").read_text(encoding="utf-8")
+        Repoint both to .harness/harness/docs/DECISIONS.md and
+        .harness/harness/docs/DECISIONS-INDEX.md respectively. After T-02 these raise
+        FileNotFoundError at import, so the tool is dead rather than stale; it is a used tool
+        (.harness/logs/2026-08-03.md:10 names it) and it belongs to no test suite, so no gate reds
+        on it and nothing but this task will find it. Those two lines are its only occurrences of
+        the legacy spelling, measured at 0f12f14, and both are the paths themselves rather than
+        prose about them: change the two string literals and nothing else in the file. The
+        docstring above them describes what the audit computes, not where the files live.
+        THE PATHS ARE RELATIVE TO THE PROCESS'S WORKING DIRECTORY both before and after, which is
+        the repository root; do not convert them to a __file__-relative climb while you are here.
+        This task is inside the atomic cluster and T-09's commit audit admits this exact path.
+
+      docs/PRINCIPLES.md does not move and must not be repathed anywhere. It is not under the docs
+      directory being migrated, and map #336 rules it global.
+
+  - id: T-07
+    title: Correct the two Expertise files that carry a stale docs path into every spawn
+    traces: [REQ-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: D-04 rules this lane; the write is outside distillation, so it needs the plan's signature.
+    depends_on: [T-06]
+    status: done
+    files:
+      - .harness/expertise/harness-backend-dev.md
+      - .harness/expertise/harness-documentor.md
+    verify: |
+      for f in .harness/expertise/harness-backend-dev.md .harness/expertise/harness-documentor.md; do
+        if grep -q 'docs/harness' "$f"; then
+          echo "stale path survives in $f"; grep -n 'docs/harness' "$f"; exit 1
+        fi
+      done
+      bash .claude/skills/harness/bin/check-expertise.sh || exit 1
+      echo OK
+    intent: |
+      Nothing is committed in this task. These two files are injected into every spawn of their
+      role by the SubagentStart hook, so a stale path in them becomes a false premise on every
+      future run of those roles.
+
+      Grep each file for docs/harness and read every hit in place. For each hit decide, and say in
+      the diff which it was:
+        - a PRESENT-TENSE claim about where something lives: correct the path to
+          .harness/harness/docs/ and change nothing else about the entry.
+        - a claim that is now WRONG for a reason beyond the path, for example an entry whose
+          subject was that a docs path is control-plane-granted: weaken the entry to the statement
+          the evidence still supports, or delete it. Do not invent a replacement lesson.
+
+      This is a PATH CORRECTION, not a distillation. Do not add entries, do not reorder sections,
+      do not touch any entry that does not mention the path, and do not renumber. The caps are
+      unchanged, so check-expertise.sh must still report every file OK.
+
+      Why this is a named task at all: FEAT-21 made this identical correction to
+      .harness/expertise/harness-pm.md inside a cluster commit with NO task naming it, and two
+      reviewers independently raised the unnamed edit as a structural gap (its ship review, row
+      B-8). Naming it is the fix that finding asks for.
+
+  - id: T-08
+    title: Record the DEC-189 amendment that the move makes necessary
+    traces: [REQ-05, REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The decisions authority has just moved and is mid-cluster; D-03.
+    depends_on: [T-07]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+    verify: |
+      d=.harness/harness/docs/DECISIONS.md
+      awk '/^## DEC-189 /{f=1} f&&/^### DEC-189 amendment 1/{print "FOUND"; exit}' "$d" \
+        | grep -q FOUND || { echo "no DEC-189 amendment 1"; exit 1; }
+      awk '/^### DEC-189 amendment 1/{f=1} f&&/\.harness\/\*\/docs\/\*\*/{print "SPELL"; exit}' "$d" \
+        | grep -q SPELL || { echo "amendment does not carry the new spelling"; exit 1; }
+      awk '/^### DEC-189 amendment 1/{f=1} f&&/two of the four/{print "ARITH"; exit}' "$d" \
+        | grep -q ARITH || { echo "amendment does not quote 'two of the four', the phrase being corrected"; exit 1; }
+      # Clauses 2-4 anchor f=1 at ^### DEC-189 amendment 1, NOT ^## DEC-189, and that alone keeps
+      # clause 3 non-vacuous: at 0f12f14 the sentence being corrected is DECISIONS.md:5585, inside
+      # DEC-189 (:5549) but above where the amendment lands (DEC-190 opens :5617) — raise the anchor
+      # one level and clause 3 greens on text T-08 never wrote. Clause 4 buffers and joins newlines
+      # to spaces because DECISIONS.md wraps at ~100 cols: the corrective sentence will wrap too.
+      awk '/^### DEC-189 amendment 1/{f=1} f{b=b" "$0} END{gsub(/[ \t]+/," ",b); if (b ~ /[Tt]he correct figure is [Oo][Nn][Ee] of the four/) print "FIGURE"}' "$d" \
+        | grep -q FIGURE || { echo "amendment does not carry the mandated corrective phrase 'the correct figure is ONE of the four'"; exit 1; }
+      echo OK
+    intent: |
+      Nothing is committed in this task. Append an amendment to DEC-189 in
+      .harness/harness/docs/DECISIONS.md. The heading is exact apart from the date, which is the day
+      the amendment lands, in YYYY-MM-DD:
+        ### DEC-189 amendment 1 (<today>) — the docs entry moves into the repository segment
+      Take the date from date +%F on the machine making the edit, not from this plan; every other
+      character of the heading is fixed. The shape matches the amendments already in the file —
+      DEC-174 amendment 1 (2026-08-11) and DEC-186 amendment 1 (2026-08-12) both carry a date.
+
+      What it must say, and no more. DEC-189's ruling enumerates four named harness control-plane
+      paths, the first of which is docs/harness/**. Map #336 unit 4 moved that directory to
+      .harness/harness/docs/, so the entry now reads .harness/*/docs/** . The two-sided rule is
+      unchanged: in the harness checkout every entry is matched and a match is accepted only for a
+      control-plane target; in a product checkout the named paths are not consulted.
+
+      Record the consequence honestly, because it is the part a reader will otherwise rediscover as
+      a defect: the entry is now LOGICALLY REDUNDANT IN THE FILE, not merely in one function, and
+      say so about BOTH of the list's consumers. is_control_plane_target short-circuits on
+      is_control_plane_glob, which returns true for any first segment of .harness. The other
+      consumer is the deny-message advertise filter inside classify — the comprehension over
+      applicable_globs that also iterates HARNESS_CONTROL_PLANE — and there too any glob the
+      migrated entry could match already starts with .harness and is accepted by that same
+      comprehension's own is_control_plane_glob call on the same line. The entry is kept because the
+      layout detector's migrated pattern for harness_boundary.py requires the string to be present,
+      and a file matching neither form is CANNOT_VERIFY rather than clean. Benign side effect, worth
+      one clause: docs/** was advertised partly via the old entry and is still advertised via
+      docs/PRINCIPLES.md, so the deny message loses nothing.
+
+      Also record that DEC-189's own worked example, which said a docs/** grant reaches
+      <harness>/docs/harness/guide.md, no longer holds in the harness base: that path is no longer
+      a control-plane target. The product-side half of the example is untouched.
+
+      ONE MORE CLAUSE, and write it to the ARITHMETIC rather than to the broader claim. DEC-189's
+      original ruling justifies a TARGET-keyed test over a glob-keyed one with a two-sentence
+      argument, found in the paragraph ending at DECISIONS.md:5585 and anchored by the phrase
+      "nothing to match two of the four named paths against". Amend it as follows, and no further:
+        - The first half stays LITERALLY TRUE and must not be reported as falsified. The file
+          team-config.yaml still contains no docs/harness/** entry anywhere after the move — the
+          entry T-02 adds is spelled .harness/*/docs/** , which is a different string. Do not
+          write that the sentence is now false; it is not.
+        - What the move breaks is the COUNT. T-02 grants exactly .harness/*/docs/** and this
+          amendment renames the first of the four named control-plane paths to that same string,
+          so a glob-keyed classifier WOULD now have something to match that one path against.
+          "two of the four" therefore overstates: the correct figure is ONE of the four. USE THAT
+          LITERAL SPAN — the correct figure is ONE of the four — inside the amendment; sentence case
+          on the leading The and lower-case one are both accepted, and the sentence may wrap across
+          lines, but no other paraphrase is. The verify greps the amendment section for that span,
+          because the bare figure also occurs in the docs/PRINCIPLES.md clause below and a check on
+          the figure alone cannot tell the two sentences apart. Measured
+          at 0f12f14, the four named paths are docs/harness/** , docs/PRINCIPLES.md , README.md
+          and .github/** ; README.md and .github/** appear verbatim as grant paths in
+          team-config.yaml and so never made the argument, while docs/harness/** and
+          docs/PRINCIPLES.md are the two that had nothing to match against. The move supplies a
+          match for the first of those two and for it alone. Record that the argument for
+          target-keying still holds, on docs/PRINCIPLES.md: team-config.yaml grants docs/** ,
+          which is a different string, so a glob-keyed classifier still has nothing to match that
+          path against.
+      USE THE LITERAL PHRASE two of the four inside the amendment, quoting what is being corrected.
+      The verify greps the amendment section for it, because a correction that never names the
+      figure it corrects leaves a reader unable to find which sentence moved.
+      This clause is an APPEND inside the existing ### DEC-189 amendment 1 section, not a second
+      amendment heading and not an edit to the original ruling's text.
+
+      This is an AMENDMENT, not a strike. DEC-188 strikes a decision the tree flatly contradicts;
+      DEC-189's rule survives intact and only its spelling changed. Do not add a strike record, do
+      not edit the original ruling text in place, and do not touch any other decision.
+
+  - id: T-09
+    title: Regenerate the index, prove both boundaries, and land the cluster as one commit
+    traces: [REQ-02, REQ-03, REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: It closes the atomic commit every preceding main-session-direct task fed (D-03).
+    depends_on: [T-08, T-05]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      o=$(mktemp); rg=0
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout >"$o" 2>&1 || rg=$?
+      test "$rg" = 0 || { echo "generator failed"; cat "$o"; exit 1; }
+      diff -u "$o" .harness/harness/docs/DECISIONS-INDEX.md || { echo "index is stale"; exit 1; }
+      grep -q '\.harness/harness/docs/DECISIONS\.md' .harness/harness/docs/DECISIONS-INDEX.md \
+        || { echo "index header still legacy"; exit 1; }
+      d=$(mktemp); rd=0
+      python3 .claude/skills/harness/bin/layout_migration.py >"$d" 2>&1 || rd=$?
+      grep -q '^docs: CLEAN — evidence migrated$' "$d" || { cat "$d"; exit 1; }
+      grep -q '^features: CLEAN — evidence migrated$' "$d" || { cat "$d"; exit 1; }
+      grep -qE '^examined [0-9]+ feature dir\(s\), [1-9][0-9]* doc root\(s\), [1-9][0-9]* reader file\(s\)$' "$d" \
+        || { cat "$d"; exit 1; }
+      test "$rd" = 0 || { cat "$d"; exit 1; }
+      B=.claude/skills/harness/bin
+      $B/run-unit-tests.sh --kind unit || { echo "unit suite red on the committed tree"; exit 1; }
+      $B/run-unit-tests.sh --kind integration || { echo "integration suite red on the committed tree"; exit 1; }
+      c=$(mktemp); git show --name-only --format= HEAD >"$c"
+      grep -q 'FEAT-22-docs-layout-migration' "$c" && { echo "the cluster commit swept the feature dir"; exit 1; }
+      grep -qx '\.harness/harness/docs/SPEC\.md' "$c" || { echo "HEAD is not the cluster commit"; exit 1; }
+      while read -r p; do
+        [ -z "$p" ] && continue
+        case "$p" in
+          .claude/skills/harness/bin/*|.claude/skills/harness/templates/plan.yaml) ;;
+          .claude/skills/harness-principles/SKILL.md|CLAUDE.md) ;;
+          .harness/team-config.yaml|.harness/expertise/*|.harness/harness/docs/*) ;;
+          .harness/notes/audit-decisions.py) ;;
+          docs/harness/*) ;;
+          *) echo "stray file in the cluster commit, outside every path this plan names: $p"; exit 1;;
+        esac
+      done <"$c"
+      k=$(grep -v '^docs/harness/' "$c" | grep -c .)
+      test "$k" -ge 29 || { echo "cluster commit carries $k destination-side files, below the enumerated 29-file floor"; cat "$c"; exit 1; }
+      echo OK
+    intent: |
+      Close the cluster. Everything T-02 through T-08 changed is still uncommitted; this task
+      regenerates the one derived artifact, proves the post-state, and makes the single commit.
+
+      FIRST regenerate the index in place:
+        python3 .claude/skills/harness/bin/gen-decisions-index.py
+      It must be run AFTER T-08, because T-08 appends an amendment and every @line anchor below
+      DEC-189 shifts. Everything right of ' :: ' on a row is hand-written and preserved verbatim
+      across regeneration; if any hand-written ruling text is lost, stop and restore it. Confirm
+      the regenerated header now names .harness/harness/docs/DECISIONS.md rather than the legacy
+      spelling, which is the committed-artifact defect this unit was assigned.
+
+      THEN run the two gates and read them, do not merely exit on them:
+        python3 .claude/skills/harness/bin/layout_migration.py
+        bash .claude/skills/harness/bin/check-state.sh
+      The detector must print docs: CLEAN — evidence migrated AND features: CLEAN — evidence
+      migrated, a summary of 2 surface(s) clean, 0 mixed, 0 cannot-verify, and a non-zero doc-root
+      count, at exit 0. A non-zero doc-root count is one of the CI Layout gate's only two real
+      constraints; the other is this exit code. If the docs surface is MIXED, find which reader
+      disagrees before changing anything: the detector names the file and its formset, and the
+      answer is almost always a site T-03, T-04 or T-05 left behind.
+
+      Compare check-state.sh's note-line count against the PRE-MOVE capture in T-01's note rather
+      than reading its exit code alone. A gate that has stopped discovering anything exits 0 too;
+      FEAT-21 recorded both of its gates passing mid-cluster while examining nothing. READ
+      check-state.sh, do not gate on it: its verdict also moves with this feature's own approval and
+      task statuses, so its mid-feature exit code is not a figure this plan can pin. The verify
+      asserts the two suites, which are what SC-07 and SC-08 name.
+
+      THEN run BOTH suites and require each to exit 0, before committing anything:
+        .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+        .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      This is the only point in the feature where the whole suite is expected green: T-05 runs with
+      test-gen-decisions-index.py FAILing on the stale committed index, and the regeneration above
+      is what clears it. If either suite is red, the cluster does NOT get committed — find the
+      reader or fixture the earlier tasks left behind and fix it first. The verify re-runs both
+      against HEAD after the commit, which is the same tree, so the commit is what carries the
+      evidence SC-07 and SC-08 rest on.
+
+      THEN make ONE commit containing every change from T-02 through T-09: the grant, the five
+      renames, the three resolvers, the four detector-invisible sites, the eleven test files, the
+      six instruction-side files, the notes audit tool .harness/notes/audit-decisions.py, the two
+      Expertise files, the DEC-189 amendment and this regenerated index — and NOTHING under this
+      feature's own directory. Nothing from this cluster lands in any other commit.
+      The audit tool is listed as its own item and not folded into the instruction-side six: it is
+      an executable that reads the moved docs at module scope, so it breaks at import rather than
+      going stale as prose.
+
+      STAGE IT LIKE THIS, exactly:
+        git add -u -- . ':!.harness/harness/features/FEAT-22-docs-layout-migration'
+      git add -A and git add . are FORBIDDEN here. Every file in the cluster is already tracked —
+      the five docs were staged as renames by T-02's git mv, and everything else is a modification —
+      so -u stages the whole cluster and nothing else. -A would additionally sweep the untracked
+      boundary note and this feature's run directories into the commit, which breaks SC-04's claim
+      that the commit's tree carries no feature record and leaves T-11 with nothing to commit. The
+      pathspec exclusion is not belt-and-braces: plan.yaml and feature.json under the feature
+      directory are TRACKED and get rewritten as tasks complete, so a bare git add -u would sweep
+      them too.
+
+      Use a subject naming the unit and the migration, and confirm with git show --stat that the
+      five docs appear as RENAMES rather than as a delete-plus-add pair.
+
+      THE VERIFY AUDITS THE COMMIT'S FILE LIST, not just its exclusions. -u stages every modified
+      tracked file in the repository, and the pathspec excludes only this feature's directory, so
+      an unrelated edit sitting in the tree — a dated log, a stray fixture — would ride along and
+      the exclusion check would not see it. The verify therefore requires every committed path to
+      fall under a prefix this plan names, and requires at least 29 files. 29 is the enumerated
+      cluster: team-config.yaml, the three resolvers, T-04's six, T-05's five, T-06's six
+      instruction-side files, T-06's seventh file .harness/notes/audit-decisions.py, the two
+      Expertise files, and the five docs at their new path counted as renames — 1+3+6+5+6+1+2+5.
+      It is a FLOOR, not an equality, so a task that legitimately touches one more file inside
+      those prefixes does not red it; a file outside them reds it whatever the count.
+      The allow-list above admits .harness/notes/audit-decisions.py by its exact path rather than
+      by a .harness/notes/* glob, deliberately: dated grillings and handoff notes are written into
+      that directory routinely, and a glob would let an unrelated one ride the cluster commit
+      silently — the exact class this audit exists to catch.
+
+  - id: T-10
+    title: Depth-sweep the tree with a resolver rather than a literal, and name every survivor
+    traces: [REQ-05, REQ-07]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: It reads and judges the just-landed cluster commit; D-03.
+    depends_on: [T-09]
+    status: done
+    files:
+      - .harness/harness/features/FEAT-22-docs-layout-migration/notes/layout-boundary-2026-08-15.md
+    verify: |
+      f=.harness/harness/features/FEAT-22-docs-layout-migration/notes/layout-boundary-2026-08-15.md
+      P='docs/harness|"docs", ?"harness"'
+      F=.harness/harness/features/FEAT-22-docs-layout-migration
+      grep -q 'DEPTH SWEEP' "$f" || { echo "no depth sweep section"; exit 1; }
+      grep -q 'RESOLVER' "$f" || { echo "the resolver method is not recorded"; exit 1; }
+      ctl=$(git grep -lE "$P" -- .harness/harness | wc -l | tr -d ' ')
+      test "$ctl" -ge 150 || { echo "positive control failed: only $ctl survivor files"; exit 1; }
+      rec=$(sed -n 's/^survivors: \([0-9][0-9]*\)$/\1/p' "$f" | head -1)
+      test -n "$rec" || { echo "no audited survivor count"; exit 1; }
+      fresh=$(git grep -lE "$P" -- . ":!$F" | wc -l | tr -d ' ')
+      test "$rec" = "$fresh" || { echo "note says $rec survivors, tree has $fresh"; exit 1; }
+      exp=".claude/skills/harness/bin/layout_fixtures.py:3
+      .claude/skills/harness/bin/layout_migration.py:6
+      .claude/skills/harness/bin/test-check-domain.py:1
+      .claude/skills/harness/bin/test-check-state.py:1
+      .claude/skills/harness/bin/test-layout-migration.py:1"
+      exp=$(echo "$exp" | sed 's/^ *//')
+      got=$(git grep -cE "$P" -- .claude CLAUDE.md .harness/expertise | sort)
+      test "$got" = "$exp" || { echo "live-surface survivor table differs."; \
+        echo "EXPECTED:"; echo "$exp"; echo "GOT:"; echo "$got"; exit 1; }
+      echo OK
+    intent: |
+      Run the depth sweep on FEAT-21's worked-example method, recorded in
+      .harness/harness/features/FEAT-21-features-layout-migration/notes/layout-boundary-2026-08-14.md,
+      and append a section headed DEPTH SWEEP to this feature's boundary note.
+
+      THE METHOD IS LITERAL-FREE. Do not sweep for the string. FEAT-21's three worst defects carried
+      no legacy literal at all: a fixed ../../.. climb, a glob whose zero-match case exits 0, and a
+      module-scope open() on a joined tuple. Instead, find the places that RESOLVE the docs location
+      and ask each whether it still resolves. Concretely, for every Python file under
+      .claude/skills/harness/bin/ , look for: relative climbs from __file__ that are counted rather
+      than derived; glob or listdir calls whose empty result is not distinguished from a clean
+      result; module-scope opens of a joined path; and any hard-coded depth that changed when the
+      docs went from two segments below the root to three. Record the method you used in a line
+      containing the word RESOLVER, so a later reader can tell a resolver sweep from a grep.
+
+      SEPARATELY, run the literal grep as a cross-check and PARTITION its hits, do not sweep them.
+      Both spellings are needed; neither subsumes the other:
+        git grep -lE 'docs/harness|"docs", ?"harness"' -- .
+      PATTERN AUDIT for that pattern, on the rule in layout_migration.py's docstring at :20-25 — a
+      pattern is the weakest fragment every stale site necessarily contains, and the only lines a
+      broader pattern for the same concept may add are prose. Candidate: the two-spelling union
+      above. Broader: docs["/ ,]{1,4}harness . Run over .claude , CLAUDE.md and .harness/expertise
+      at 0f12f14, the two produce IDENTICAL per-file counts across all 25 files, so no third
+      spelling of the concept exists on the live surfaces and the union is not merely the commonest
+      shape.
+      At 0f12f14 the tree-wide grep returned 196 files. Audited: 22 under .claude , 7 under
+      .harness/notes , 2 under .harness/expertise , 3 the docs themselves, 1 CLAUDE.md. Survivors:
+      the shipped feature records under .harness/harness/ , the dated entries under .harness/logs/ ,
+      and the five live-surface files named in T-05's surviving-literals table.
+      Write a line reading exactly:
+        survivors: <count>
+      and, beneath it, one line per survivor CLASS naming the rule that makes it a survivor. A
+      shipped record is a record of what was true; a dated log entry likewise; the detector's
+      legacy patterns are how it recognises a pre-migration tree; a negative-direction test subject
+      is a survivor because the string IS the assertion.
+      DERIVE THE COUNT, DO NOT CARRY ONE. Once the migration has landed, every file still matching
+      IS a survivor, so the number is exactly:
+        git grep -lE 'docs/harness|"docs", ?"harness"' -- . \
+          ':!.harness/harness/features/FEAT-22-docs-layout-migration' | wc -l
+      The exclusion keeps this feature's own record — this note, the research note — out of the
+      figure, so the same command still reproduces it after T-11 commits them. An earlier draft
+      pinned a decade range instead; that anchor was stale by construction, because this feature's
+      own artifacts and the moved docs both add literal-carrying files.
+
+      THE LIVE-SURFACE CONTROL IS A TABLE, NOT AN EXCLUSION, and this is the point of the whole
+      task. The verify asserts an exact per-file line count over .claude , CLAUDE.md and
+      .harness/expertise:
+        layout_fixtures.py 3, layout_migration.py 6, test-check-domain.py 1, test-check-state.py 1,
+        test-layout-migration.py 1, and every other file absent.
+      Excluding a whole file would blind the sweep to a genuinely stale site inside it — a false
+      GREEN, which is worse than a false RED. The counts come from git grep -c at 0f12f14 (measured:
+      layout_fixtures 3, layout_migration 6, test-check-state 1, test-layout-migration 1) minus the
+      per-task deltas, and the arithmetic must reproduce the table exactly or one of the two is
+      wrong. The grep returns 25 files on these three surfaces at 0f12f14. T-03 takes 3 to zero,
+      T-04 takes 6, T-06 takes 6 — fifteen files. T-05 takes a further THREE to zero
+      (test-bash-write-guard.py 5 lines, test-check-plan-routes.py 6, test-factory-integration.py 4,
+      each holding no negative-direction subject) and takes test-check-domain.py from 19 to 1 while
+      leaving test-check-state.py untouched. T-07 takes the two Expertise files to zero.
+      25 - 15 - 3 - 2 = 5, which is the table. If the table differs, read WHICH file differs before changing anything: a count that is
+      one too high is a stale site the migration missed, and a count that is one too low is a
+      knowing survivor somebody deleted to make a grep go green.
+
+      A hit is a DEFECT only if it is a present-tense claim in live instruction or live code. If
+      the sweep finds one, fix it and say so; do not fold it silently into the survivor list.
+
+      Note for the reviewer, in the section: the detector proves per-file form agreement and never
+      per-site completeness, by its own module docstring. This sweep is the only control over the
+      sites the patterns are too narrow to name, and four such sites were already known and fixed
+      in T-03.
+
+  - id: T-11
+    title: Capture the post-move boundary against the landed commit
+    traces: [REQ-03]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: The capture must be taken by whoever holds the landed tree; D-03.
+    depends_on: [T-10]
+    status: done
+    files:
+      - .harness/harness/features/FEAT-22-docs-layout-migration/notes/layout-boundary-2026-08-15.md
+    verify: |
+      f=.harness/harness/features/FEAT-22-docs-layout-migration/notes/layout-boundary-2026-08-15.md
+      grep -q 'POST-MOVE' "$f" || { echo "no POST-MOVE section"; exit 1; }
+      grep -q 'docs: CLEAN — evidence migrated' "$f" || { echo "post-state not verbatim"; exit 1; }
+      grep -qE '^POST-MOVE HEAD: [0-9a-f]{7,40}' "$f" || { echo "no landed SHA"; exit 1; }
+      n=$(git ls-files docs/harness | wc -l | tr -d ' ')
+      m=$(git ls-files .harness/harness/docs | wc -l | tr -d ' ')
+      test "$n" = 0 || { echo "legacy still tracked: $n"; exit 1; }
+      test "$m" = 5 || { echo "expected 5 tracked docs, got $m"; exit 1; }
+      echo OK
+    intent: |
+      Append a POST-MOVE section to the boundary note, mirroring T-01's PRE-MOVE section exactly so
+      the two can be read side by side.
+
+      Write a line reading exactly:
+        POST-MOVE HEAD: <output of git rev-parse HEAD>
+      This is the cluster commit from T-09, and naming it is what makes the capture falsifiable: an
+      untracked capture with no SHA cannot be told apart from one taken at a different tree.
+
+      Then the VERBATIM stdout of both commands, each fenced, each followed by exit: <code>:
+        python3 .claude/skills/harness/bin/layout_migration.py
+        bash .claude/skills/harness/bin/check-state.sh
+
+      Then a short RECONCILIATION paragraph answering three questions in order, each with the
+      command whose output settles it:
+        1. Did the docs surface go from CLEAN — evidence legacy to CLEAN — evidence migrated, with
+           the features surface reading CLEAN — evidence migrated at BOTH captures?
+        2. Is the tracked-file count under the legacy location 0, and 5 at the destination, org.html
+           included? git ls-files answers both; use tracked files, never directory existence, since
+           two untracked .DS_Store files keep the old directory on disk.
+        3. Did check-state.sh's note-line count move for any reason other than this feature? A gate
+           that stopped discovering anything also exits 0.
+
+      If any answer is no, do NOT record the capture as clean. Record what you saw and stop.
+
+      FINALLY, COMMIT THE NOTE. It has been untracked since T-01 and the cluster commit deliberately
+      carried none of it, so until this step the artifact SC-11 rests on has no durable home and no
+      SHA anyone can check out. Commit it, together with T-10's depth-sweep section, as the feature's
+      close-out commit — separate from the cluster, and carrying nothing but this feature's own
+      record. Then state, in the note's last line, the SHA that commit landed at.
