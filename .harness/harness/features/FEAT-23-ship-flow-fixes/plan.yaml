@@ -583,7 +583,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/board-station.py
       - .claude/skills/harness/bin/test-board-station.py
