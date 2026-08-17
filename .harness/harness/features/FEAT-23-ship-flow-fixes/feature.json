@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-23-ship-flow-fixes",
-  "branch": "none",
+  "branch": "feat/FEAT-23-ship-flow-fixes",
   "pr": null,
-  "status": "Plan",
+  "status": "Building",
   "review_sha": "b7ae135",
   "cycles_used": 3,
   "max_total_cycles": 10,
@@ -48,5 +48,26 @@
       "squad": "product",
       "verdict": "INCOMPLETE"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 14,
+    "parent": 454,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 455,
+      "T-02": 456,
+      "T-03": 457,
+      "T-04": 458,
+      "T-05": 459,
+      "T-06": 460
+    }
+  }
 }

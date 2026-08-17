@@ -230,7 +230,7 @@ tasks:
       b7ae135; no persona is granted any path under .claude/skills, so a dispatched write would be
       refused mid-run.
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-simplify/SKILL.md
     verify: |
