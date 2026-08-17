@@ -113,3 +113,14 @@
   receipt, wrote a forensic `c2` and touched nothing. **A tripwire that says "if the verify passes on
   an untouched tree, that is a finding" is what turned a concurrent-write collision into a no-op.**
   Put it in every build dispatch; it cost one sentence and prevented two writers on three files.
+- 2026-08-17: **`grep -cF` on a prose phrase returns a FALSE ZERO when the phrase spans a wrapped
+  line.** Checking T-03's substantive points I got 0 for "may not delete or weaken an assertion" and
+  nearly reported the point missing; the file wraps between "may" and "not". The fix is one line:
+  read the file, `re.sub(r'\s+',' ',text)`, then count. Every verify clause in this repo greps
+  single-line literals for exactly this reason — but a REVIEWER checking prose coverage is not
+  bound by that, and must normalise whitespace or it will manufacture findings against correct work.
+- 2026-08-17: when two tasks edit one file, the SECOND task's verify should re-assert the first's
+  clause. T-06 does this — it greps T-03's simplify regex on `harness-plan.md` and reports "the two
+  edits to this file collided" distinctly from its own failures. That is what makes serial cards on
+  a shared file safe: the collision reddens at the second task rather than passing silently. Worth
+  asking pm for on any plan where two tasks share a `files:` entry.
