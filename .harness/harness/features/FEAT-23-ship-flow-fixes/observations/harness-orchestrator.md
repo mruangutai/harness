@@ -124,3 +124,25 @@
   edits to this file collided" distinctly from its own failures. That is what makes serial cards on
   a shared file safe: the collision reddens at the second task rather than passing silently. Worth
   asking pm for on any plan where two tasks share a `files:` entry.
+- 2026-08-17: **the goal-check earned its spawn by catching what six green task-verifies structurally
+  could not.** SC-05 requires each of four angles present "in both their plan-surface and
+  code-surface forms". T-02's `verify:` greps the two literals **file-globally**, so three conforming
+  angles satisfy it and a fourth missing both is invisible. Six tasks green, panel PASS, qa PASS —
+  and the criterion still false. The general rule: **a DISTRIBUTIVE clause ("each of N carries X")
+  cannot be verified by a file-global grep**, and when a plan's verify uses one, the SC is unguarded
+  no matter how green the task goes. Worth asking pm for a per-section check at plan time whenever an
+  SC quantifies over a set.
+- 2026-08-17: qa graded that same SC `met` by the same file-global method, so the two tiers failed
+  identically and independently. Agreement between two readers using the SAME METHOD is not
+  corroboration — it is one measurement counted twice. What broke the tie was the goal-check lead
+  re-opening the file and counting PER SECTION.
+- 2026-08-17: running the review panel and pm's goal-check CONCURRENTLY against one pin saved a full
+  round-trip and cost nothing, because both are read-only. But it created a hazard neither could see:
+  the goal-check FAILED, and its fix moves the tip the panel just passed. The product lead caught it;
+  I had not. **If you parallelise a read-only panel with a goal-check, decide in advance what happens
+  to the panel's verdict when the goal-check fails** — the answer is measure the delta, never assume
+  the PASS transfers.
+- 2026-08-17: four leads in a row (qa, simplify, panel, goal-check) defeated the premature-verdict
+  hook by **holding the turn open with read-only Read/Grep/Glob calls until their members returned**.
+  Zero cost, zero recurrences, after eight recurrences earlier in the feature. Put that instruction in
+  every lead dispatch until the hook is fixed; it is the cheapest mitigation found.
