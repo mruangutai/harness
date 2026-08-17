@@ -47,3 +47,69 @@
 - 2026-08-17: a finding whose remedy would edit a file a decision scopes as "called, not edited" is
   a decision question, not a must_fix. Arch finding G was correctly left unapplied by two fold-in
   runs; I nearly counted it as a gap before reading the reviewer's own routing of it.
+- 2026-08-17: **the playbook's close-task ordering and CLAUDE.md's "check-state before committing"
+  are in direct tension, and the window between them is a guaranteed VIOLATION.** The playbook says
+  record `done` in `plan.yaml` FIRST, then run `close-task`, and separately that `close-task` runs
+  when the `[harness:t-NN]` commit is recorded. Doing it literally — plan write, commit, close-task
+  — puts `check-state.sh` inside the window where the plan says `done` and the board still says
+  `Building`, and INV-26 fires: "plan says done, so the card should read Done — the board reads
+  Building." Exit 1. Resolution that satisfies both rules: plan write → `close-task` → `check-state`
+  → commit. The load-bearing constraint is only that the PLAN carries the new status before the
+  subcommand runs, because the parent station is derived from it; git has no part in that
+  derivation, so moving the commit to last costs nothing. I lost a cycle treating the violation as
+  a real defect before reading which of the two orderings was actually forced.
+- 2026-08-17: `check-state.sh` prints ~30 `note` lines from OTHER features on every run, and the one
+  `VIOLATION` line for mine was invisible in the tail. `grep -v "^  note "` reduced it to a single
+  line. Reading the tail of a repo-wide checker is how a violation about your own feature gets
+  missed; filter to severity first, then grep your feature id.
+- 2026-08-17: a lane row naming an `execution_agent` is doing real work, not restating
+  `consult-when`. Every file in T-01 and T-05 sits under `.claude/skills/harness/bin/` and
+  `check-domain.sh --resolve` returns TWO owners for all four — `harness-backend-dev` AND
+  `harness-dev-ops`. Routing by `consult-when` alone is a coin flip there. Telling the lead that the
+  PLAN picked the persona, and to attribute the pick, is cheaper than letting it rediscover the
+  ambiguity mid-run.
+- 2026-08-17: **a lead's blocking question about who wrote a file is almost always answerable with
+  `stat` birth times plus one earlier `git status` I already ran.** Run -7-t05-eng returned BLOCKED
+  with two blocking `open_questions` asking whether a concurrent writer existed outside its run. I
+  had a clean `git status -- .claude/skills/harness/bin/` at 09:38:43 in my own transcript and the
+  dispatch time at 10:16; every file's birth time fell between 10:18 and 10:26. That closed both
+  questions in one command. The lead could not do this — it lacked the earlier measurement and a
+  shell — which is the general shape: **the orchestrator holds the timeline a member cannot see, so
+  provenance doubts route DOWN to a measurement, not UP to the operator.**
+- 2026-08-17: a lead's own `state.yaml` "pre-dispatch" note can be written retrospectively and be
+  FALSE. Run -7's note claimed `test-board-station.py` was present-and-unregistered before dispatch;
+  the file's birth time is two minutes AFTER dispatch, and the state.yaml mtime is 17 minutes after
+  that. Treat checkpoint prose as written-at-file-mtime, never at the seq it claims.
+- 2026-08-17: **serializing a two-task team costs a whole extra lead run, and the team file makes it
+  unavoidable.** I dispatched T-01+T-05 as one build team; `mutates_repo: true` forces one-at-a-time,
+  the lead correctly ran T-01 and held T-05, and its turn ended — so T-05 needed a second full
+  lead spawn. Two tasks with disjoint file sets still cost two lead runs. If tasks are file-disjoint
+  and both mutate, dispatching them as two runs from the start is the same spend with less confusion;
+  bundling them only pays when the lead can actually finish both in one turn.
+- 2026-08-17: `gh` GraphQL 503s made `close-task` fail twice and left the plan at `done` with the
+  card open — which INV-26 correctly reported as a VIOLATION and which blocks the
+  check-state-before-commit convention. A plain retry loop on `gh issue close` succeeded on attempt
+  2. Worth knowing: the mirror's "never re-attempt" rule is about the SCRIPT, not about me; retrying
+  by hand is correct and is the difference between a clean gate and committing over a known drift.
+- 2026-08-17 **CORRECTION to the entry above about settling provenance with `stat`.** The
+  measurement was right and my CONCLUSION from it was wrong. I inferred "reading (a): the lead's own
+  member wrote everything, in two dispatches." The truth: run `-6-t01t05-eng` was STILL ALIVE and
+  dispatched T-05 itself at seq-2, so run `-7-t05-eng` — which I spawned — was a duplicate I created.
+  Birth times were consistent with both readings and could not discriminate; **the file that could
+  was run 6's own `state.yaml`, which I never opened before re-dispatching.** I had written the
+  lesson in this same log at 07:xx — "the completion signal to watch is the run's own `state.yaml`
+  step status, not the absence of a return notification" — and then did not apply it four hours
+  later. The generalisation: **a lead's digest is not a terminal signal even when it is fenced and
+  carries a VERDICT.** Run 6's digest at 09:49 said PROVISIONAL in its own headline and its state.yaml
+  said T-05 `dispatched_at` set / `completed_at` null. Before dispatching ANY successor run, `cat`
+  the predecessor run's `state.yaml` and treat a step with `completed_at: null` as live.
+- 2026-08-17: the cost of that duplicate: one lead run and two member spawns, ~146k subagent tokens,
+  producing zero lines of code. It was not a cycle under DEC-157 — no send-back, no rework of failed
+  work — so **the cycle budget is structurally blind to it.** A budget that counts only rework cannot
+  see waste caused by the orchestrator's own misread, which is an argument for reading `len(runs)`
+  as the signal it was designed to be rather than as bookkeeping.
+- 2026-08-17: the duplicate was not free of value — the second lead's member hit the
+  green-on-untouched-tree tripwire my dispatch installed, refused to overwrite the authentic `c1`
+  receipt, wrote a forensic `c2` and touched nothing. **A tripwire that says "if the verify passes on
+  an untouched tree, that is a finding" is what turned a concurrent-write collision into a no-op.**
+  Put it in every build dispatch; it cost one sentence and prevented two writers on three files.

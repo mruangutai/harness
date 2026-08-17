@@ -47,6 +47,16 @@
       "id": "2026-08-17-5-revise-product",
       "squad": "product",
       "verdict": "INCOMPLETE"
+    },
+    {
+      "id": "2026-08-17-6-t01t05-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-7-t05-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
     }
   ],
   "github": {
