@@ -114,7 +114,7 @@ def case_05():
 def case_06_07():
     """(6): a wildcard entry produces UNRESOLVED-GLOB. (7): exit status matches the wildcard task removed."""
     with tempfile.TemporaryDirectory() as td:
-        wildcard_body = "# PLAN\n\n" + task_block("T-01", "docs/harness/*.md", "team")
+        wildcard_body = "# PLAN\n\n" + task_block("T-01", ".harness/harness/docs/*.md", "team")
         plan_wild = write_plan(td, wildcard_body, name="WILD.md")
         r_wild = run(plan_wild)
         check("case_06_wildcard_produces_unresolved_glob", "UNRESOLVED-GLOB" in r_wild.stdout, r_wild.stdout)
@@ -221,14 +221,14 @@ def case_18():
         block = write_plan(td, "# PLAN\n\n" + (
             "- T-01: block form\n"
             "  files:\n"
-            "    - docs/harness/SPEC.md\n"
+            "    - .harness/harness/docs/SPEC.md\n"
             "    - .gitignore\n"
             "  execution_mode: team\n"
             "  status: pending\n"))
         r = run(block)
         out = r.stdout
         results.append(("case_18a_block_form_first_entry_not_falsely_rejected",
-                        "- docs/harness/SPEC.md ungranted" not in out, out))
+                        "- .harness/harness/docs/SPEC.md ungranted" not in out, out))
         results.append(("case_18b_block_form_LATER_entry_is_checked_the_fail_open",
                         ".gitignore ungranted" in out, out))
     # (18d) THE POSITIVE ASSERTION. 18a is NEGATIVE — "SPEC.md is not reported
@@ -239,7 +239,7 @@ def case_18():
         allg = write_plan(td, "# PLAN\n\n" + (
             "- T-01: block form, every path granted\n"
             "  files:\n"
-            "    - docs/harness/SPEC.md\n"
+            "    - .harness/harness/docs/SPEC.md\n"
             "    - .claude/skills/harness/bin/check-domain.sh\n"
             "  execution_mode: team\n"
             "  status: pending\n"))
@@ -257,7 +257,7 @@ def case_18():
     with tempfile.TemporaryDirectory() as td:
         wrapped = write_plan(td, "# PLAN\n\n" + (
             "- T-01: wrapped same-line\n"
-            "  files: `docs/harness/SPEC.md`,\n"
+            "  files: `.harness/harness/docs/SPEC.md`,\n"
             "    `.gitignore`\n"
             "  execution_mode: team\n"
             "  status: pending\n"))
@@ -280,7 +280,7 @@ def case_18():
     with tempfile.TemporaryDirectory() as td:
         same = write_plan(td, "# PLAN\n\n" + (
             "- T-01: same-line form\n"
-            "  files: `docs/harness/SPEC.md`, `.gitignore`\n"
+            "  files: `.harness/harness/docs/SPEC.md`, `.gitignore`\n"
             "  execution_mode: team\n"
             "  status: pending\n"))
         r2 = run(same)

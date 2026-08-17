@@ -44,9 +44,9 @@
 - P-13: WHEN a criterion's clauses are verified DO count techniques, not clauses. Several source
   greps share one blind spot, and a single idiom change defeats them together. Balanced clause and
   fixture counts hide this. Give at least one clause a behavioural check.
-- P-14: WHEN a brief names a hazard DO probe the opposite input condition as well before planning
-  against it. The named half is the half someone already noticed; the unnamed half often fails
-  open, exiting clean where the named one fails loudly.
+- P-14: WHEN a dispatch hands you a count that a plan step must assert DO recompute it against the
+  tree that step will run in. A handed-down count can describe the unremedied state, and earlier
+  steps of the same remedy often remove one — a stale count manufactures a mid-sequence halt.
 - P-15: WHEN a task's intent directs the doer to write a factual claim about the codebase DO verify
   that claim at source before shipping the task. You author both halves, no sweep catches a false
   claim that is correctly spelled, and the doer either refuses or propagates it.
@@ -67,9 +67,9 @@
 - G-05: WHEN an amendment widens the scope of an already-executed task DO carry the re-dispatch
   signal in your DIGEST. A filed receipt proves only what it ran against, and no plan file can
   re-open a task that already passed.
-- G-06: A sibling worktree under `.claude/worktrees/` is a full second copy inside the search path:
-  `.gitignore` hides it from `git grep` but not `grep -r`, and the same path resolves to different
-  content there with no error. Confirm which checkout resolved any file:line you cite.
+- G-06: WHEN your count contradicts a recorded one DO reproduce the recorded invocation before
+  calling it drift. Two totals under one label are often two different measurements, and the
+  invocation the plan or criterion mandates is the one that defines the quantity being graded.
 - G-07: WHEN citing gate or panel evidence produced before the commit you are grading DO diff the
   range for source changes and re-run the suites at that commit. An earlier green proves the earlier
   tree, and the provenance rots silently because the verdict text stays true-looking.
@@ -105,5 +105,8 @@
 - O-02: WHEN designing a mutation DO first read which side consumes which function, then aim it at
   the fixture the case itself builds. A mutant that reddens other cases but not the one under test
   missed its target, and that reads as coverage.
+- O-03: WHEN proving a multi-grep verify block against a mutated file DO give every grep its own
+  process substitution. One shared `<(...)` is a one-shot stream: the first grep drains it, so later
+  absence checks pass and presence checks fail, inverting the whole ladder.
 
 ## Open (max 5)

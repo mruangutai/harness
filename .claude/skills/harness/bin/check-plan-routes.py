@@ -41,7 +41,7 @@ TASK_RE = re.compile(
 #
 # That produced a false positive AND a fail-open at once, which is why this is worth
 # the comment. Measured on a three-path fixture before the fix:
-#   VIOLATION T-01: - docs/harness/SPEC.md ungranted   <- granted; the dash broke it
+#   VIOLATION T-01: - .harness/harness/docs/SPEC.md ungranted   <- granted; the dash broke it
 #   ...and .gitignore, which genuinely resolves to NOBODY, was NEVER CHECKED.
 # One bogus violation masking one real one. The visible symptom was the false
 # rejection; the dangerous half was the four other entries nobody ever looked at.

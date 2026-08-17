@@ -5944,3 +5944,25 @@ thinking that invites the per-cause filtering this amendment removes.
 
 Units 3–7 cite this entry as their maintenance contract; the body's sentence is read through this
 amendment.
+
+### DEC-189 amendment 1 (2026-08-16) — the docs entry moves into the repository segment
+
+The named entry `docs/harness/**` becomes `.harness/*/docs/**` — FEAT-22 moved the harness
+design docs to `.harness/harness/docs/`, and the entry follows the files. The two-sided rule
+this decision established is unchanged; only the spelling of one named path moved.
+
+The entry is now logically redundant in the file, for both of its consumers:
+`is_control_plane_target` short-circuits on `is_control_plane_glob` (any `.harness/` first
+segment answers True before this list is read), and the deny-message advertise filter inside
+`classify` reaches the same result on the same line. The entry is kept because the layout
+detector's migrated pattern requires the string to be present, and because the list is
+advertised in deny messages as the closed statement of what harness owns — a list that
+silently under-states ownership teaches readers the wrong boundary.
+
+One arithmetic in the original justification is corrected rather than left to mislead. The
+ruling said a glob-keyed classifier would have nothing to match "two of the four" named
+entries against. That overstates. `README.md` and `.github/**` are verbatim grant paths and
+never made the argument; `docs/harness/**` and `docs/PRINCIPLES.md` were the two with
+nothing to match — and the move supplies a match for the first alone, through the documentor's
+new `.harness/*/docs/**` grant. The correct figure is ONE of the four. Target-keying still
+holds on `docs/PRINCIPLES.md`, because team-config grants `docs/**`, a different string.

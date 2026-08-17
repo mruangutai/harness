@@ -13,6 +13,9 @@
 - G-05: `.claude/skills/harness/templates/harness.json` is merged additively into `.harness/harness.json` by `.claude/skills/harness/bin/upgrade-config.py`, and copied verbatim on init — editing one without the other creates silent drift on the next upgrade or init.
 - G-06: WHEN wrapping a CLI tool that has more than two meaningful exit codes DO pass its exit code through (`exit "$rc"`) rather than normalizing to 0/1 — normalizing silently drops a real outcome (e.g. cannot-verify) at that call site.
 - G-07: WHEN leaving an adjacent pre-existing comment or config untouched because it's out of scope DO byte-check it before and after rather than assume, and write any nearby new comment only on grounds you personally verified — not by copying its phrasing.
+- G-08: WHEN a verify script inspects `git show --name-only` output for a renamed path DO expect only the destination path — the source path never appears there; use `--name-status` instead when the old path itself must be matched.
+- G-09: WHEN a verify clause collapses whitespace with `awk`/`gsub` to match a literal prose phrase DO test it against fixtures with inline markup (bold, code span, blockquote prefix) landing inside the phrase — those break contiguity and false-RED even though the visible text matches.
+- G-10: WHEN judging whether a script's outcome can gate on its exit code DO run it and inspect the exit code directly — some audit/lint tools print findings to stdout while always exiting 0, and reading for `sys.exit()` in source is not a substitute for measuring.
 
 ## Outcomes (max 10)
 

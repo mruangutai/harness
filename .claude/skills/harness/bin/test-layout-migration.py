@@ -122,7 +122,7 @@ def reader_line(out, rel):
 # ------------------------------------------------------------------- case 1
 # The REAL repository root, scanned in-process. Positive control for D-04's
 # not-applicable branch: a renamed marker turns the whole tree NOT APPLICABLE with
-# zero counts, and this case demands non-zero. It also proves the marker is a SOUND
+# zero counts, and this case demands non-zero on all three counts. It also proves the marker is a SOUND
 # rather than circular control: presence of the marker and agreement of the forms are
 # different properties, and this case asserts the second while only assuming the first.
 code, out = run(REPO_ROOT)
@@ -130,6 +130,7 @@ m = re.search(r"examined (\d+) feature dir\(s\), (\d+) doc root\(s\), (\d+) read
 s = re.search(r"layout: (\d+) surface\(s\) clean, (\d+) mixed, (\d+) cannot-verify", out)
 check("case 1: real root exits 0", code == 0, out)
 check("case 1: non-zero feature-dir count", m and int(m.group(1)) > 0, out)
+check("case 1: non-zero doc-root count", m and int(m.group(2)) > 0, out)
 check("case 1: non-zero reader-file count", m and int(m.group(3)) > 0, out)
 check("case 1: X+Y+Z == 2 — every declared surface judged, none skipped",
       s and int(s.group(1)) + int(s.group(2)) + int(s.group(3)) == 2, out)
@@ -387,6 +388,16 @@ _parity("CLEAN names nobody at either site", dict())
 # no-rows cannot be produced through a fixture tree (it requires a reader-table
 # override, and the REAL gate runs the real module) — its wording remains covered by
 # check-state's own case_x and by cause_text's unit coverage; noted, not mirrored.
+
+# ------------------------------------------------------------------- case 21
+# FEAT-22 T-05: the REAL tree's DOCS surface post-move. Case 1 already scans the
+# real root; this pins the docs half specifically — evidence at the migrated root
+# (.harness/harness/docs/SPEC.md) and every DOCS reader speaking the migrated form —
+# so a partial docs rollback or a stray legacy re-introduction reds here by name.
+code, out = run(REPO_ROOT)
+docs_line = next((l for l in out.splitlines() if l.startswith("docs:")), "")
+check("case 21: real root's harness/docs surface is CLEAN with migrated evidence",
+      code == 0 and "docs: CLEAN — evidence migrated" in docs_line, out)
 
 # ---------------------------------------------------------------------- report
 fails = 0

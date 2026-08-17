@@ -5,7 +5,7 @@ per FEAT-04-decisions-index T-01 — this is the RED deliverable.
 Six tests. Four of them exercise the generator directly and fail-by-design at
 T-01 because `gen-decisions-index.py` does not exist yet. Test 4 exercises the
 already-shipped generator and is expected to be green today. Test 5
-exercises the committed `docs/harness/DECISIONS-INDEX.md`, which does not
+exercises the committed `.harness/harness/docs/DECISIONS-INDEX.md`, which does not
 exist yet either, and SKIPs by design (file-absence only — see its docstring).
 
 Each test is wrapped in its own try/except in main() so one test's exception
@@ -20,8 +20,9 @@ import tempfile
 
 BIN_DIR = os.path.dirname(os.path.realpath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
-REAL_DECISIONS = os.path.join(REPO_ROOT, "docs", "harness", "DECISIONS.md")
-REAL_INDEX = os.path.join(REPO_ROOT, "docs", "harness", "DECISIONS-INDEX.md")
+DOCS_DIR = os.path.join(".harness", "harness", "docs")  # mirrors the generator's own constant
+REAL_DECISIONS = os.path.join(REPO_ROOT, DOCS_DIR, "DECISIONS.md")
+REAL_INDEX = os.path.join(REPO_ROOT, DOCS_DIR, "DECISIONS-INDEX.md")
 
 # Overridable so a fix can be proven RED against a reverted copy — the same
 # CHECK_STATE_BIN escape test-check-state.py uses.
@@ -85,13 +86,13 @@ def run_gen(tree, extra_env=None, args=None):
 
 
 def make_authority(tmp, decisions, bodies=None):
-    """decisions: list of (number:int, title:str). Writes docs/harness/DECISIONS.md.
+    """decisions: list of (number:int, title:str). Writes .harness/harness/docs/DECISIONS.md.
 
     bodies: optional {number: body_text} to override a decision's placeholder body,
     for the cases where the BODY is what is under test (supersession prose, B-3).
     """
     bodies = bodies or {}
-    docs_dir = os.path.join(tmp, "docs", "harness")
+    docs_dir = os.path.join(tmp, DOCS_DIR)
     os.makedirs(docs_dir, exist_ok=True)
     body = []
     for n, title in decisions:
@@ -160,7 +161,7 @@ def test_row_per_distinct_dec_matches_authority():
             return False
 
         with tempfile.TemporaryDirectory() as tmp:
-            docs_dir = os.path.join(tmp, "docs", "harness")
+            docs_dir = os.path.join(tmp, DOCS_DIR)
             os.makedirs(docs_dir, exist_ok=True)
             shutil.copy(REAL_DECISIONS, os.path.join(docs_dir, "DECISIONS.md"))
             index_path = os.path.join(docs_dir, "DECISIONS-INDEX.md")
@@ -379,7 +380,7 @@ def test_committed_index_matches_a_fresh_regeneration():
                 detail += f" rows in the file the generator does not produce: {only_committed[:3]}"
             if only_fresh:
                 detail += f" rows the generator produces that the file lacks: {only_fresh[:3]}"
-            print(f"FAIL - {name}: docs/harness/DECISIONS-INDEX.md is not what the generator "
+            print(f"FAIL - {name}: .harness/harness/docs/DECISIONS-INDEX.md is not what the generator "
                   f"produces.{detail or ' (difference is outside the DEC rows)'} "
                   f"Fix: .claude/skills/harness/bin/gen-decisions-index.py")
             return False
@@ -675,7 +676,7 @@ def test_argv_is_validated_and_only_the_write_path_writes():
         # keyed on a leading `--` never sees it.
         with tempfile.TemporaryDirectory() as tmp:
             path, before = fixture(tmp)
-            r = run_gen(tmp, args=["docs/harness/DECISIONS-INDEX.md"])
+            r = run_gen(tmp, args=[".harness/harness/docs/DECISIONS-INDEX.md"])
             if open(path, encoding="utf-8").read() != before:
                 print(f"FAIL - {name} (b3): a positional argument REWROTE the index")
                 return False

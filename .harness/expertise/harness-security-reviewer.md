@@ -106,6 +106,9 @@
   does not exist yet (e.g. only one tenant onboarded) DO label it precondition-absent next to
   the entry — otherwise it reads identical to an active, currently-exploitable gap to a later
   reader.
+- G-12: WHEN classifying a finding's remedy routing DO classify by which file or layer the
+  stated remedy would change, not by where the defect was found — a data-file defect can still
+  need an enforcement-layer fix under a carve-out, while a narrower same-layer remedy would not.
 
 ## Outcomes (max 10)
 - O-01: WHEN a surface looks clean on first read DO close with identity-level
@@ -120,5 +123,8 @@
   edit-class (e.g. a path rename) DO diff-filter every touched file for the known substitution
   and inspect the residual — an empty residual across the full set bounds a suspicion into a
   dated finding.
+- O-04: WHEN a guard denies a probe, or an anomaly can't be reproduced, DO record it rather
+  than smoothing it over — an unreproducible symptom one agent records can match an independent
+  one another records, revealing a shared infrastructure defect neither could see alone.
 
 ## Open (max 5)

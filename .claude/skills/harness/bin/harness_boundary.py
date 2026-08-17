@@ -81,13 +81,16 @@ def matches(path, pat):
 # a resolver that granted a base the hook refuses is the build-time discovery
 # check-plan-routes.py exists to prevent.
 #
-# The operator's verbatim four, and the list is CLOSED. `docs/harness/**` is not
-# widened to `docs/**` and no fifth entry is added. The accepted risk, signed: a
+# The operator's verbatim four, and the list is CLOSED. The docs entry
+# `.harness/*/docs/**` is logically redundant: the `.harness/` short-circuit in
+# `is_control_plane_glob` fires first. Kept so this list remains the complete
+# statement of what harness owns. It is
+# not widened to `docs/**` and no fifth entry is added. The accepted risk, signed: a
 # future harness-owned path starting with neither `.harness/` nor `.claude/` must be
 # added here or it silently becomes a product path. No machinery detects the
 # omission — that was ruled out deliberately. This is one more place to remember.
 HARNESS_CONTROL_PLANE = [
-    "docs/harness/**",
+    ".harness/*/docs/**",
     "docs/PRINCIPLES.md",
     "README.md",
     ".github/**",
@@ -108,8 +111,8 @@ def real(path):
     """Absolute AND symlink-resolved.
 
     `abspath` alone normalises `..` textually but follows no link, so
-    `docs/harness/<link>/agents/x.md` with `<link> -> ../../.claude` stayed inside
-    `docs/` for every comparison while the write landed in `.claude/agents/`.
+    `.harness/harness/docs/<link>/agents/x.md` with `<link> -> ../../../.claude` stayed inside
+    `.harness/` for every comparison while the write landed in `.claude/agents/`.
     Reproduced before this fix: through the link exit 0, the same file named directly
     exit 2. The gap predates the two-base rule — `docs/**` matched with no target-side
     test — so this closes a live escape rather than a regression.
@@ -140,7 +143,7 @@ def resolve_fleet(root, label):
         return None, [], fleet_path
     try:
         # LAZY, and stderr-muzzled for the import statement ONLY. Measured: under a root
-        # holding no docs/harness/SPEC.md, importing factory_config prints a discard
+        # holding no .harness/harness/docs/SPEC.md, importing factory_config prints a discard
         # notice to stderr — which would reach the agent on every governed write from a
         # fixture root, as noise indistinguishable from a real verdict.
         import io
@@ -148,7 +151,7 @@ def resolve_fleet(root, label):
         with contextlib.redirect_stderr(io.StringIO()):
             import factory_config
         # The EXPLICIT path, never factory_config.FLEET_PATH: that constant is computed
-        # at import time from that module's own root probe (docs/harness/SPEC.md), which
+        # at import time from that module's own root probe (.harness/harness/docs/SPEC.md), which
         # is not this hook's probe (.harness/team-config.yaml). Under a fixture root the
         # two disagree and the constant names the live repository.
         fleet = factory_config.load_fleet(fleet_path)
@@ -217,10 +220,9 @@ def select_base(abs_target, root, workspace_root, workspace_bases, fleet_path, l
 def is_control_plane_target(rel):
     """The TARGET-side test, used only in the harness base.
 
-    Target-keyed, not glob-keyed, and that is load-bearing: team-config.yaml grants
-    `docs/**` and holds no `docs/harness/**` entry anywhere, so a glob-keyed
-    classifier would have literally nothing to match two of the four named entries
-    against. Anchored through the same `matches` idiom, so `README.md` means the
+    Target-keyed, not glob-keyed, and that is load-bearing: two of the four named
+    entries appear in no team-config grant, so a glob-keyed classifier would have
+    literally nothing to match them against. Anchored through the same `matches` idiom, so `README.md` means the
     repository-root readme and never `docs/README.md`, and `.github/**` never matches
     `vendor/.github/x`.
     """
@@ -312,7 +314,7 @@ def classify(abs_target, root, globs, shared, label):
     # base that test is constant-True and the filtering already happened on the globs;
     # in the harness base every glob is live but only a control-plane target may be
     # granted by one. Discarding the match here rather than filtering globs above is
-    # what makes `docs/**` grant <harness>/docs/harness/guide.md AND <product>/docs/x.md
+    # what makes `.harness/*/docs/**` grant <harness>/.harness/harness/docs/guide.md
     # while refusing <harness>/src/main.py under a `src/**` grant.
     if any(matches(r, g) for r in rel_candidates for g in applicable_globs
            if target_side_test(r)):

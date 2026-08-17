@@ -8,9 +8,9 @@ never derived from the current directory.
 
 ROOT RESOLUTION, THREE TIERS — the same rule check-plan-routes.py's _resolve_root and
 run-unit-tests.sh's header comment already standardise on, copied here rather than re-derived:
-prefer CLAUDE_PROJECT_DIR when it is set AND `docs/harness/SPEC.md` is readable under it;
+prefer CLAUDE_PROJECT_DIR when it is set AND `.harness/harness/docs/SPEC.md` is readable under it;
 otherwise derive the root from this file's own location, walking up out of the bin directory.
-`docs/harness/SPEC.md` is the probe, never `bin/` or a script file: no mechanism copies the skill
+`.harness/harness/docs/SPEC.md` is the probe, never `bin/` or a script file: no mechanism copies the skill
 directory (scripts, no docs) to `$HOME/.claude/skills` any more, and the probe stays a docs path
 because the derived root must be a full checkout of this repository, which a bare skills tree is
 not — probing for the bin directory or for a script would re-accept that tree and read a fleet
@@ -29,7 +29,7 @@ import factory_cli
 import harness_yaml
 
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
-_PROBE = os.path.join("docs", "harness", "SPEC.md")
+_PROBE = os.path.join(".harness", "harness", "docs", "SPEC.md")
 
 _STATION_KEYS = ("ready", "building", "review")
 

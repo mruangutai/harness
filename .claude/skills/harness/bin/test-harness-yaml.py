@@ -81,6 +81,7 @@ COLLECT_FIXTURE = {
     "harness-documentor": (
         [
             "docs/**",
+            ".harness/*/docs/**",
             "README.md",
             ".harness/README.md",
             ".harness/codebase/INDEX.md",
@@ -683,7 +684,7 @@ def test_the_shipped_template_and_the_SPEC_example_both_satisfy_load_plan():
     tmpl = os.path.join(here, "..", "templates", "plan.yaml")
     hy.load_plan(tmpl)  # raises on any drift
 
-    spec = open(os.path.join(here, "..", "..", "..", "..", "docs", "harness", "SPEC.md"),
+    spec = open(os.path.join(here, "..", "..", "..", "..", ".harness", "harness", "docs", "SPEC.md"),
                 encoding="utf-8").read()
     m = re.search(r"```yaml\n(# plan\.yaml.*?)\n```", spec, re.S)
     assert m, "SPEC.md no longer carries a normative plan.yaml example"

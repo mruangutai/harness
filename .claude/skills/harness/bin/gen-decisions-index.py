@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Generate docs/harness/DECISIONS-INDEX.md from docs/harness/DECISIONS.md.
+"""Generate .harness/harness/docs/DECISIONS-INDEX.md from .harness/harness/docs/DECISIONS.md.
 
 Usage:
-    gen-decisions-index.py            write docs/harness/DECISIONS-INDEX.md in place
+    gen-decisions-index.py            write .harness/harness/docs/DECISIONS-INDEX.md in place
     gen-decisions-index.py --stdout   write the index to stdout, touch nothing
     gen-decisions-index.py --help     print this and exit, touch nothing (also -h)
 
 There is no --check: to check for drift without writing, pipe the read-only mode into
-diff — `gen-decisions-index.py --stdout | diff - docs/harness/DECISIONS-INDEX.md`.
+diff — `gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md`.
 
 See FEAT-04-decisions-index PLAN.md T-02 for the full contract. Everything left
 of ' :: ' on a row is generated; everything right of it is hand-written and
@@ -17,7 +17,7 @@ import os
 import re
 import sys
 
-DOCS_DIR = os.path.join("docs", "harness")
+DOCS_DIR = os.path.join(".harness", "harness", "docs")
 DECISIONS_PATH = os.path.join(DOCS_DIR, "DECISIONS.md")
 INDEX_PATH = os.path.join(DOCS_DIR, "DECISIONS-INDEX.md")
 
@@ -73,7 +73,7 @@ HEADER = """<!-- index-contract v1 -->
 # DECISIONS — index
 
 **A row is an open-or-skip filter, never the rule itself.** Its only job is to answer "do I open this
-entry?" Never act on a ruling here: open `docs/harness/DECISIONS.md` at the `@line` anchor and read
+entry?" Never act on a ruling here: open `.harness/harness/docs/DECISIONS.md` at the `@line` anchor and read
 the entry. Rows written during the one-time backfill are second-hand paraphrase.
 
 **Never read the authority whole (DEC-150).** Grep this index, then open the two or three entries that

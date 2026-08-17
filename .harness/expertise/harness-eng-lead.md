@@ -69,6 +69,18 @@
   `.git/refs/heads/<branch>` and `.git/logs/HEAD` directly — a mid-run fast-forward means
   measurements taken earlier were taken against a different tree, so re-measure what the
   decision turns on.
+- G-07: WHEN a task's intent presents an enumeration of sites as exact and its verify counts the
+  remainder DO re-derive the set yourself — one missed site reds a correct execution, and the
+  executor's cheapest way green is deleting the literal the gate exists to protect.
+- G-08: WHEN a verify clause scans from a heading anchor to EOF for text the task must write DO
+  measure that string's pre-existing occurrences in the target file — nonzero, or an anchor one
+  heading level higher, greens the clause on text nobody wrote.
+- G-09: WHEN a review would raise a pinned expected-FAIL count DO first enumerate which modules
+  actually read the changed real input — a pin above the true count reds a correct tree and
+  manufactures a mid-cluster halt, worse than the looseness it fixes.
+- G-10: WHEN your re-derivation of a stated count disagrees DO read what each of its terms names
+  before reporting the record wrong — a derivation enumerating the finished artifact reproduces
+  where a sum of per-task file lists does not, and a second route to the same number corroborates.
 
 ## Outcomes (max 10)
 

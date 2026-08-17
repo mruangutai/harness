@@ -82,11 +82,11 @@ case("an unquoted heredoc tag is still a heredoc",
 # break never fired and the NEXT command's name was collected as an operand: `rm -f
 # docs/a.md; echo ok` was refused for "rm targets echo".
 case("rm in-domain followed by another command",
-     'rm -f docs/harness/a.md; echo ok', 0, agent="harness-documentor")
+     'rm -f .harness/harness/docs/a.md; echo ok', 0, agent="harness-documentor")
 case("mv within domain followed by another command",
-     'mv docs/harness/a.md docs/harness/b.md; ls', 0, agent="harness-documentor")
+     'mv .harness/harness/docs/a.md .harness/harness/docs/b.md; ls', 0, agent="harness-documentor")
 case("in-domain redirect followed by a read command",
-     'echo x > docs/harness/a.md; git status', 0, agent="harness-documentor")
+     'echo x > .harness/harness/docs/a.md; git status', 0, agent="harness-documentor")
 
 # ---------------- MUST BLOCK: the loosening above must not open a hole ----------------
 # A heredoc fed to a SHELL is code, not data — its body really does redirect.
@@ -104,10 +104,10 @@ case("an out-of-domain redirect in the SECOND segment still blocks",
 # src/main.py is refused either way. That is the problem: this case's NAME says the SECOND
 # segment is scanned, and once classify refuses docs/a.md in its own right the FIRST operand
 # carries the whole refusal, so it would pass even if second-segment scanning regressed
-# entirely. docs/harness/a.md is granted AND control-plane, so it exits 0 alone, which puts
+# entirely. .harness/harness/docs/a.md is granted AND control-plane, so it exits 0 alone, which puts
 # the weight of the expected 2 back where the name says it is.
 case("an out-of-domain rm in the second segment still blocks",
-     'rm docs/harness/a.md; rm src/main.py', 2, agent="harness-documentor")
+     'rm .harness/harness/docs/a.md; rm src/main.py', 2, agent="harness-documentor")
 case("an out-of-domain write after && still blocks",
      'git status && echo x > src/main.py', 2, agent="harness-documentor")
 # A shell anywhere in the pipeline makes the body code. Looking only at the first word

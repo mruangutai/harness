@@ -23,9 +23,10 @@
   message — not just a token's presence or an exit code. A different code path, or an
   over-permissive implementation, can produce the identical token, so presence-only assertions
   pass under both correct and incorrect code.
-- P-08: WHEN a success criterion names multiple required distinctions DO confirm each one has its
-  own comparison, not just an area with some passing assertion — inequality is not transitive, so
-  "A distinct from B" plus "A distinct from C" does not follow from asserting only one of the two.
+- P-08: WHEN a test asserts a live enumeration contains an expected member (e.g. `x in
+  out.split()`) DO also assert the set's exact membership or count, not just presence — a
+  membership check passes even when an extra, unauthorized member is also present, hiding an
+  over-grant the equality check would have caught.
 - P-09: WHEN judging whether an assertion is vacuous DO run a substring/mutation probe rather than
   reading the message text — reading generalizes from one message to a sibling whose wording
   differs just enough to already discriminate, producing a false vacuity claim.
@@ -78,6 +79,13 @@
 - G-09: WHEN caveating a success criterion as narrower than it looks (e.g. "form-checked only")
   DO re-check the criterion's own stated scope first — a hedge on a criterion met exactly as
   written is false doubt a later reader must spend a cycle re-clearing.
+- G-10: WHEN a perturbation proof reddens a test over a walked or scanned set DO independently
+  establish that set's size (e.g. instrument the walk) rather than trusting the test's report —
+  a redden over an empty or near-empty set is not the same evidence as one over a substantial
+  set.
+- G-11: WHEN a dispatch claims the test-matrix floor is empty because every task shares one
+  change_type DO re-derive each task's change_type from plan.yaml directly — dispatch framing is
+  inherited, not measured, and one stale count can silently empty a real floor.
 
 ## Outcomes (max 10)
 - O-01: WHEN an amendment deletes a fixture that was the sole source of some coverage and the loss

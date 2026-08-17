@@ -950,7 +950,7 @@ def shape_problems(rel, content, display=None):
             out.append(_head(f"CLAUDE.md is {len(lines)} lines — budget is 80 (DEC-181)."))
             out.append("  It is preloaded into EVERY session, so a line here costs more than "
                        "a line anywhere else. Carry the rule and one clause of why, not the "
-                       "biography (DEC-158); rationale belongs in docs/harness/DECISIONS.md.")
+                       "biography (DEC-158); rationale belongs in .harness/harness/docs/DECISIONS.md.")
 
     if RE_STATE_MD.match(rel):
         problems = []

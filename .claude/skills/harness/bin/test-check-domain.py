@@ -32,7 +32,7 @@ case("/var/folders temp dir (macOS mktemp)", "/var/folders/ab/cd/T/x.py", 0)
 case("an absolute path in another checkout", "/Users/someone/other-repo/x.py", 0)
 
 # ---------------- MUST PASS: inside its own domain ----------------
-case("documentor writing docs/", f"{ROOT}/docs/harness/guide.md", 0)
+case("documentor writing the moved harness docs", f"{ROOT}/.harness/harness/docs/guide.md", 0)
 case("documentor writing its own expertise",
      f"{ROOT}/.harness/expertise/harness-documentor.md", 0)
 # EXPECTATION CHANGED by FEAT-15 T-02, and it is the only one in this file that moved.
@@ -55,7 +55,12 @@ case("documentor may not write bin/", f"{ROOT}/.claude/skills/harness/bin/x.py",
 case("a repo path reached via .. still blocks",
      f"{ROOT}/docs/../src/main.py", 2)
 case("a repo path reached via a long .. chain still blocks",
-     f"{ROOT}/docs/harness/../../src/main.py", 2)
+     f"{ROOT}/.harness/harness/docs/../../../src/main.py", 2)
+# THE REFUSED DIRECTION (FEAT-22): the OLD docs location is no longer granted to
+# anybody — a writer still aimed at the pre-move path must be told no, loudly,
+# not silently landed in a directory nothing reads any more.
+case("the pre-move docs path is REFUSED after the migration",
+     f"{ROOT}/docs/harness/guide.md", 2)
 
 
 # ================= T-12: the manifest is PARSED, not skimmed ==================
@@ -516,7 +521,7 @@ def run_fleet():
         f"(want 2)")
 
     # (e) the muzzle. factory_config's import prints a discard notice to stderr under a
-    # fixture root that holds no docs/harness/SPEC.md. It must not reach the agent on a
+    # fixture root that holds no .harness/harness/docs/SPEC.md probe. It must not reach the agent on a
     # write that PASSES — noise on an exit-0 path is indistinguishable from a verdict.
     fleet_case(
         "(e) the lazy factory_config import leaks nothing to stderr on a passing write",
@@ -703,33 +708,34 @@ teams:
       - name: harness-documentor
         domain:
           - { path: docs/**, upsert: true }
+          - { path: .harness/*/docs/**, upsert: true }
           - { path: README.md, upsert: true }
       - name: harness-dev-ops
         domain:
           - { path: .github/**, upsert: true }
 """, two_base_fleet_for(ws_c))
     DOC, OPS = "harness-documentor", "harness-dev-ops"
-    c_h_docs = fire_abs(c_root, os.path.join(c_root, "docs", "harness", "guide.md"), DOC)
+    c_h_docs = fire_abs(c_root, os.path.join(c_root, ".harness", "harness", "docs", "guide.md"), DOC)
     c_h_prin = fire_abs(c_root, os.path.join(c_root, "docs", "PRINCIPLES.md"), DOC)
     c_h_read = fire_abs(c_root, os.path.join(c_root, "README.md"), DOC)
     c_h_gh = fire_abs(c_root, os.path.join(c_root, ".github", "workflows", "tests.yml"), OPS)
     fleet_case(
-        "C harness base: all four named entries resolve — docs/harness/**, "
+        "C harness base: all four named entries resolve — .harness/*/docs/**, "
         "docs/PRINCIPLES.md, README.md, .github/**",
         all(r.returncode == 0 for r in (c_h_docs, c_h_prin, c_h_read, c_h_gh)),
-        f"docs/harness {c_h_docs.returncode}, PRINCIPLES {c_h_prin.returncode}, "
+        f".harness/*/docs {c_h_docs.returncode}, PRINCIPLES {c_h_prin.returncode}, "
         f"README {c_h_read.returncode}, .github {c_h_gh.returncode} (all want 0)")
 
     # THE NOT-WIDENED ASSERTION, and the persona is part of it. Fired against a persona
     # never granted docs/**, this exits 2 for the wrong reason and would pass under
     # exactly the rule it exists to catch. It must be the SAME persona that is permitted
-    # docs/harness/guide.md above.
+    # the granted docs path above.
     c_h_bare = fire_abs(c_root, os.path.join(c_root, "docs", "guide.md"), DOC)
     fleet_case(
-        "C harness base: docs/harness/** was NOT widened to docs/** — the same persona "
-        "permitted docs/harness/guide.md is REFUSED docs/guide.md",
+        "C harness base: .harness/*/docs/** was NOT widened to docs/** — the same persona "
+        "permitted .harness/harness/docs/guide.md is REFUSED docs/guide.md",
         c_h_docs.returncode == 0 and c_h_bare.returncode == 2,
-        f"docs/harness/guide.md got {c_h_docs.returncode} (want 0), docs/guide.md got "
+        f".harness/harness/docs/guide.md got {c_h_docs.returncode} (want 0), docs/guide.md got "
         f"{c_h_bare.returncode} (want 2), same persona {DOC}")
 
     c_p_read = fire_abs(c_root, os.path.join(ws_c, "widget", "README.md"), DOC)
@@ -782,15 +788,15 @@ teams:
         f"stdout={r_undec.stdout.strip()!r}, exit {r_undec.returncode}")
 
     # Against the LIVE root, not a fixture — this is what guards the tree-wide
-    # check-plan-routes.py run that CI requires on main. Under a glob-keyed rule this
-    # prints NOBODY, which is precisely the defect that would redden CI: no
-    # `docs/harness/**` entry exists anywhere in team-config.yaml, so a glob-keyed
-    # classifier would have nothing to match it against.
-    r_live = subprocess.run([HOOK, "--resolve", "docs/harness/SPEC.md"],
+    # check-plan-routes.py run that CI requires on main.
+    # Since FEAT-22's T-02 the documentor holds `.harness/*/docs/**`, so the moved
+    # SPEC resolves through a real grant; the named-entry half of the rule is
+    # exercised by the fleet cases above.
+    r_live = subprocess.run([HOOK, "--resolve", ".harness/harness/docs/SPEC.md"],
                             capture_output=True, text=True, stdin=subprocess.DEVNULL,
                             timeout=20, env=dict(os.environ, CLAUDE_PROJECT_DIR=ROOT))
     fleet_case(
-        "T-04 resolve, LIVE tree: docs/harness/SPEC.md names harness-documentor — the "
+        "T-04 resolve, LIVE tree: .harness/harness/docs/SPEC.md names harness-documentor — the "
         "named entries hold target-side",
         "harness-documentor" in r_live.stdout.split(),
         f"stdout={r_live.stdout.strip()!r} (want harness-documentor, NOBODY means the "
@@ -798,7 +804,7 @@ teams:
 
     # ---- THE SYMLINK ESCAPE, surfaced by the review panel 2026-08-11 ----
     #
-    # A link inside a granted directory pointing OUT of it: docs/harness/<link> ->
+    # A link inside a granted directory pointing OUT of it: <granted docs>/<link> ->
     # ../../.claude let harness-documentor write .claude/agents/*. Reproduced against
     # the live tree before the fix — through the link exit 0, the same file named
     # directly exit 2.
@@ -815,15 +821,15 @@ teams:
     members:
       - name: harness-documentor
         domain:
-          - { path: docs/**, upsert: true }
+          - { path: .harness/*/docs/**, upsert: true }
 """)
-    os.makedirs(os.path.join(esc_root, "docs", "harness"))
+    os.makedirs(os.path.join(esc_root, ".harness", "harness", "docs"))
     os.makedirs(os.path.join(esc_root, ".claude", "agents"))
     os.symlink(os.path.join(esc_root, ".claude"),
-               os.path.join(esc_root, "docs", "harness", "esc"))
-    esc = fire_abs(esc_root, os.path.join(esc_root, "docs", "harness", "esc",
+               os.path.join(esc_root, ".harness", "harness", "docs", "esc"))
+    esc = fire_abs(esc_root, os.path.join(esc_root, ".harness", "harness", "docs", "esc",
                                           "agents", "pwned.md"), "harness-documentor")
-    legit = fire_abs(esc_root, os.path.join(esc_root, "docs", "harness", "guide.md"),
+    legit = fire_abs(esc_root, os.path.join(esc_root, ".harness", "harness", "docs", "guide.md"),
                      "harness-documentor")
     fleet_case(
         "SYMLINK PAIR: a link out of a granted directory is REFUSED at its real "
@@ -833,7 +839,7 @@ teams:
         f"legitimate got {legit.returncode} (want 0)")
     fleet_case(
         "SYMLINK: the refusal names the REAL target, not the link path — an agent "
-        "told it may not write docs/… would file a bug against the wrong file",
+        "told it may not write the docs path would file a bug against the wrong file",
         ".claude/agents/pwned.md" in esc.stderr,
         f"stderr={esc.stderr.strip()[:200]!r}")
 
@@ -921,7 +927,7 @@ def run_resolve():
     r = hook(".claude/skills/harness/bin/check-domain.sh", "harness-documentor")
     check("(g) no --resolve: an out-of-domain Write still exits 2",
           r.returncode == 2, f"got {r.returncode}")
-    r = hook("docs/harness/SPEC.md", "harness-documentor")
+    r = hook(".harness/harness/docs/SPEC.md", "harness-documentor")
     check("(h) no --resolve: an in-domain Write still exits 0",
           r.returncode == 0, f"got {r.returncode}")
 

@@ -41,6 +41,10 @@
 - P-13: WHEN a change moves what a gate DISCOVERS DO require a reported non-zero discovery count
   before accepting its exit code — a sweep over an empty set exits 0 exactly like a clean sweep,
   and no fixture binds the real tree.
+- P-14: WHEN a sweep for a defect class returns zero or a small count DO first confirm the pattern
+  matches a known positive instance — a pattern anchored on a detail the real instances lack
+  reports an absence indistinguishable from cleanliness, and your own sweep is the one nobody
+  re-runs.
 
 ## Gotchas (max 15)
 - G-01: WHEN the blocking gate passes and an advisory gate carries the only defect DO headline
@@ -55,9 +59,9 @@
 - G-04: WHEN your own finding names N instances DO run the discriminating test on each one
   separately — a vacuity claim is a substring claim, and reading the first message then
   generalising to its siblings produces a remedy that is half unwarranted.
-- G-05: WHEN relaying a member's own prior work into its distillation DO list its notes directory
-  yourself rather than trusting the dispatch's account of how many times it ran — a missed run is
-  a lesson lost permanently, since Expertise is written once per feature.
+- G-05: WHEN a dispatch hands you a count, a premise or a figure DO re-derive it from the
+  artifacts before building on it — narration is the least reliable input you receive, and in a
+  distillation dispatch a wrong count loses a lesson permanently, since Expertise is written once.
 - G-06: WHEN a member's role field carries a placeholder you would not have chosen DO check the
   digest validator's per-persona table before recording a convention mismatch — a scoped-out
   reviewer's `n/a` is the sanctioned spelling there, not drift.
@@ -80,6 +84,13 @@
 - G-12: WHEN a dispatch states which capabilities or grants a member holds DO check the manifest
   and the agent definition yourself before routing around them — a routing branch built on an
   assumed missing capability spends your spawn on work its owner could have applied directly.
+- G-13: WHEN two members return apparently contradictory answers to a probe you assigned DO check
+  whether your question was direction-dependent before adjudicating either — a question with two
+  correct answers reads as a contradiction, and the defect is in your dispatch rather than in
+  either member.
+- G-14: WHEN a plan's verify clauses are the evidence a gate rests on DO exercise each as an
+  artifact in its own right — that it can fail, that it can pass, and that no later commit
+  falsified the word it greps.
 
 ## Outcomes (max 10)
 - O-01: WHEN dispatching a review panel DO name the already-ruled items in the prompt —

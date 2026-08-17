@@ -41,6 +41,12 @@
 - P-13: WHEN you are about to credit your own tier with seeing something first DO grep the member's
   artifact for it before the claim is filed. A finding the member raised and declined to act on
   reads like one it missed, and the digest is what the record keeps.
+- P-14: WHEN checking whether a member folded your instructions in DO grep for the fact each names —
+  the cited line, the identifier — never your own wording. A member writes its own prose but carries
+  the anchor verbatim, so a phrasing-grep reports absent what is there.
+- P-15: WHEN two constraints you read separately could contradict DO compose them against each
+  other before dispatch — reading both halves of a contradiction is not checking them, and the
+  composition is where an unsatisfiable gate hides from every reader who saw only one half.
 
 ## Gotchas (max 15)
 - G-01: WHEN a test name or label is offered as evidence DO read the invocation it wraps — labels
@@ -67,6 +73,9 @@
 - G-08: WHEN a member's output appears to be missing a standard artifact DO check which role's
   domain owns that path before flagging it — a file another tier creates at a later stage is
   indistinguishable on disk from an omission, and the member cannot create it at all.
+- G-09: WHEN two records report different numbers under one label DO compare the invocations that
+  produced them before calling either drift — differing commands make agreement and disagreement
+  equally uninformative, and a spelling or exclusion gap is settleable without a shell.
 
 ## Outcomes (max 10)
 - O-01: WHEN a cosmetic defect sits in a file a human is already about to open DO fold it into that
@@ -78,5 +87,8 @@
 - O-03: WHEN a member's displacement choice during distillation looks arguable DO record the
   reservation and let it stand — the judgment is the member's by rule, and a send-back over one
   entry costs a spawn to overturn a call you were not given.
+- O-04: WHEN dispatching a member on a remedy you have already endorsed DO require it to say why
+  with evidence rather than adopt deferentially — an overturn arriving with primary-source evidence
+  costs one return, and a deferential pass costs the cycle that discovers the remedy was wrong.
 
 ## Open (max 5)
