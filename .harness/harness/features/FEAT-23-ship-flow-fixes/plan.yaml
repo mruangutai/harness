@@ -338,7 +338,7 @@ tasks:
       check-domain.sh --resolve returned NOBODY for both .claude/skills/harness/SKILL.md and
       .claude/commands/harness-plan.md at b7ae135.
     depends_on: [T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
       - .claude/commands/harness-plan.md
