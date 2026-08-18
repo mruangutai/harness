@@ -3,8 +3,8 @@
   "branch": "feat/FEAT-23-ship-flow-fixes",
   "pr": null,
   "status": "Review",
-  "review_sha": "18a2e05",
-  "cycles_used": 4,
+  "review_sha": "1d49644",
+  "cycles_used": 5,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -102,6 +102,11 @@
       "id": "2026-08-17-13-distill-validator",
       "squad": "validator",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-14-finalpass-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
     }
   ],
   "github": {

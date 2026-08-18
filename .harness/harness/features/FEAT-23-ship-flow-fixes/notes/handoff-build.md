@@ -1,4 +1,4 @@
-# Handoff — FEAT-23, build → ship acceptance — written at 9885670
+# Handoff — FEAT-23, build → ship acceptance — written at 9885670, refreshed at 1d49644
 
 ## Next
 
@@ -18,13 +18,16 @@ pm re-plan under a fresh signature, not a fix cycle.
   `plan surface` 1 / `code surface` 1 — my own script, not T-02's file-global verify — verified-at 9885670
 - Suites green: `--kind unit` 16/16 exit 0, `--kind integration` 12/12 exit 0 — re-run by me at the
   final tip, not carried from qa's pin — verified-at 9885670
-- **The panel's PASS was pinned at `490c37c` and the tip has moved twice since.** It transfers
-  because I measured the delta: **zero** `.py`/`.sh`/`.ts` files changed between `490c37c` and
-  `bba5551`; the only non-markdown file was `feature.json`, my own bookkeeping — `git diff --name-only`
-  — verified-at bba5551. **Re-measure if the tip moves again before acceptance.**
+- **The operator's final validator pass re-took the panel-transfer measurement independently and
+  upheld it** — executables in `git diff --name-only 490c37c afc8cfd` is EMPTY — and then found the
+  one must_fix the earlier panel and qa both missed — `runs/2026-08-17-14-finalpass-validator/` —
+  verified-at 1d49644
+- **`board-station.py`'s Unicode-digit gate is fixed and red-first proved AFTER the fact by me**:
+  reverting the one line reddens the new case with `rc4=1 (1 means int() raised)`, restoring greens
+  it, file byte-identical by SHA — my own probe — verified-at 1d49644
 - `check-expertise.sh` exits 0 over all 15 files after 30 distilled entries — verified-at 9885670
 - Parent #454 is at `Review`; `check-state.sh` exits 0 — verified-at 9885670
-- `cycles_used` 4 of 10, `len(runs)` 19 of 20 — the run budget is INFORMATIONAL and must not stop
+- `cycles_used` 5 of 10, `len(runs)` 20 of 20 (AT the bound) — the run budget is INFORMATIONAL and must not stop
   anything (INV-22) — `feature.json` — verified-at 9885670
 
 ## Dead ends

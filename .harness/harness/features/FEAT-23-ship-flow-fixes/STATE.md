@@ -7,13 +7,13 @@
 - squad: none
 - status: awaiting-user
 
-**The feature is complete.** Branch `feat/FEAT-23-ship-flow-fixes`, tip `bc498e4`. Six tasks landed,
+**The feature is complete.** Branch `feat/FEAT-23-ship-flow-fixes`, tip `1d49644`. Six tasks landed,
 all 13 success criteria met or deliberately deferred, the blocking qa gate and the review panel both
 PASSED, the four-angle simplify pass ran as the last build step, and Expertise is distilled across
 all three squads. Three tickets close with it: #417, #430, #453.
 
-**The briefing is `notes/ship-review-2026-08-17-13.md`** (rendered sibling `.html`). It carries **26**
-proposed backlog rows, B-1 to B-26; anything the operator does not strike becomes an issue on
+**The briefing is `notes/ship-review-2026-08-17-13.md`** (rendered sibling `.html`). It carries **30**
+proposed backlog rows, B-1 to B-30; anything the operator does not strike becomes an issue on
 acceptance, and anything not listed dies silently.
 
 Verified by me at the final tip, not relayed: `--kind unit` 16/16 scripts exit 0; `--kind integration`
@@ -23,8 +23,9 @@ at `plan surface` 1 / `code surface` 1; `check-expertise.sh` exit 0 over all 15 
 
 **The panel's PASS was taken at `490c37c` and the tip has moved five times since.** It transfers on
 measurement, re-taken at the FINAL tip: **zero** `.py`/`.sh`/`.ts` files changed between `490c37c`
-and `18a2e05`, the only non-markdown file in the whole delta being my own `feature.json`. Everything
-since the pin is prose, Expertise, notes and one generated HTML. Re-measure if the tip moves again.
+and `1d49644`. All three records — briefing, this file and `review_sha` — now name `1d49644`, the last
+commit carrying reviewable product; INV-6 asserts the pin is SET, never that it equals the tip, so
+their agreement is a discipline nothing enforces (row B-27).
 
 Two criteria are **deferred by `BRIEF.md:149-152`**, not missed: SC-04 (the next feature to ship needs
 no follow-up commit to clear INV-26) and SC-13 (the next feature planned from a named ticket lands it
@@ -63,6 +64,6 @@ Next: the main session presents the briefing. On acceptance it runs `gh-sync.py 
   its cycle exactly where members write no log. Rows B-18, B-19.
 - All remaining residuals — the untested fail-open branches, `_atomic_write`'s third copy, the D-05
   `argv1` prose error, the index tag-row regression, the `§4.4` naming defect, the scratchpad guard,
-  the missing `Agent` tool, the missing `SendMessage` — are enumerated as B-2 to B-26 in the briefing
+  the missing `Agent` tool, the missing `SendMessage` — are enumerated as B-2 to B-30 in the briefing
   with their evidence. They are not repeated here; the briefing is the artifact addressed to a human.
 - Arch finding G remains deliberately unapplied by the operator's signature.
