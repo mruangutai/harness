@@ -40,9 +40,12 @@
 - P-13: WHEN you narrow a claim in one file after disproving its broad form DO grep every file you
   touched for the stronger phrasing too — verify coverage is per-file, so the same claim restated
   in an uncovered file exits 0 and ships false.
-- P-14: WHEN you strike or shrink a section of `.harness/harness/docs/DECISIONS.md` DO expect the
-  regenerated index row to lose `refs:` and `[tags]` — the generator recomputes both from the
-  section's body text — and report that as an effect of your edit, never as a generator defect.
+- P-14: WHEN any edit changes a section's body in `DECISIONS.md` DO expect the regenerated index
+  row's tags, refs and anchor offsets to recompute, and report that as an effect of your edit,
+  never as a generator defect; defects in generated rows are fixed at the generator, never by hand.
+- P-15: WHEN a claim in an approved plan or brief proves false against the code DO write the true
+  shape into your own record, raise the signed prose for re-signature as a non-blocking question,
+  and neither transcribe it nor silently edit the signed text.
 
 ## Gotchas (max 15)
 - G-01: WHEN you intend to claim a checker's output is unchanged DO run that checker before your

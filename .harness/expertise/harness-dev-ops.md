@@ -4,6 +4,9 @@
 - P-02: WHEN a test runner combines an explicit list with a glob-based drift detector DO keep the two mechanisms separate — collapsing to glob-and-run erases the case that makes a specific exit code reachable and silently disables drift detection.
 - P-03: WHEN a domain guard denies a write DO accept the denial as final — never retry through a command shape the guard doesn't parse. A coverage gap is not permission — return the denial and let the tier above route it.
 - P-04: WHEN a CI step's `run:` body can't be exercised until it lands on a runner DO extract it into a standalone script and execute it against the real tool's live output locally first — untestable-until-merged is a gap to close, not accept.
+- P-05: WHEN capturing a git status snapshot as verification evidence DO record it unfiltered rather than trimmed to what the dispatch pre-warned about — an unexpected modified-not-untracked file is exactly what an unfiltered capture catches and a filtered one would silently miss.
+- P-06: WHEN verifying in a shared working tree DO re-check git status at the end and diff it against the opening snapshot — a verification window spans real time other agents can write into, so the tree is read at two points, not one, and the run should say so.
+- P-07: WHEN a dispatch names a gate as a risk without stating whether it currently passes DO run that gate standalone and report the result explicitly — a risk left unmeasured in the record reads later as unknown status, not as verified green.
 
 ## Gotchas (max 15)
 - G-01: Nothing invokes check-state.sh automatically — it is manual-only, so a green session is not evidence it ran. (This gotcha used to also cover check-docs.sh's exec-bit fail-open; that script and INV-10 were struck under DEC-188.)

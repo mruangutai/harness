@@ -81,6 +81,9 @@
 - G-10: WHEN your re-derivation of a stated count disagrees DO read what each of its terms names
   before reporting the record wrong — a derivation enumerating the finished artifact reproduces
   where a sum of per-task file lists does not, and a second route to the same number corroborates.
+- G-11: WHEN relaying a closed run's finding into permanent memory DO re-measure its premise at
+  the current tree first — a finding is dated at its pin, the tree moves past it, and a remedied
+  one distilled as fact teaches something false that no gate can catch.
 
 ## Outcomes (max 10)
 

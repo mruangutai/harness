@@ -41,9 +41,9 @@
   argument value at each call site, not just that the call happened — an argument-blind fake
   returns fixed data regardless, so dropping a field stays green while the real callee refuses
   the request.
-- P-13: WHEN citing a test count that mixes plan-required and self-added cases DO break down the
-  provenance — how many the plan requires versus how many are additions — rather than reporting
-  one merged total, which overstates plan compliance.
+- P-13: WHEN citing a test count DO break down both its provenance (plan-required vs self-added)
+  and its unit granularity (file-level vs case-level) before reporting a total — mixing either
+  axis produces a merged figure that overstates compliance or coverage.
 - P-14: WHEN a required kind's `detect` glob matches a changed file DO also confirm that kind's
   `cmd` actually runs the file, via an explicit script list — a glob match without list membership
   means the kind reports satisfied while the binding suite never executes.
@@ -86,6 +86,12 @@
 - G-11: WHEN a dispatch claims the test-matrix floor is empty because every task shares one
   change_type DO re-derive each task's change_type from plan.yaml directly — dispatch framing is
   inherited, not measured, and one stale count can silently empty a real floor.
+- G-12: WHEN a criterion requires each of several items to satisfy two properties DO check
+  per-item, not via a file-global aggregate phrase count — a global count can pass even when one
+  item has neither property, because the other items' totals mask the gap.
+- G-13: WHEN reddening a test before a fix DO confirm the red state reproduces the actual
+  regression precondition, not merely a trivially-absent state — a red run over an empty
+  precondition proves the clause CAN fail, not that it catches the specific defect it targets.
 
 ## Outcomes (max 10)
 - O-01: WHEN an amendment deletes a fixture that was the sole source of some coverage and the loss
