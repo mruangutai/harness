@@ -453,7 +453,7 @@ def file_at_ref(repo, path, ref):
             "gh returned no content field",
         )
     try:
-        decoded = base64.b64decode(raw, validate=True)
+        decoded = base64.b64decode("".join(raw.split()), validate=True)
     except (binascii.Error, ValueError):
         raise GhError(
             argv, None, raw, "",

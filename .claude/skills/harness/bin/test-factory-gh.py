@@ -945,6 +945,26 @@ except fgh.GhError as e:
 restore()
 check("file_at_ref: undecodable content raises rather than returning empty", raised, f"exc={exc}")
 
+# GitHub's real contents endpoint line-wraps base64 at 60 chars (embedded newlines, not just a
+# trailing one) — a fake that returns unwrapped base64 can never catch a decoder that chokes on
+# that wrapping.
+_wrap_text = b"the quick brown fox jumps over the lazy dog " * 5
+_wrap_enc = base64.b64encode(_wrap_text).decode()
+_wrap_body = "\n".join(_wrap_enc[i:i + 60] for i in range(0, len(_wrap_enc), 60)) + "\n"
+fake, calls = recorder([Result(0, stdout=_wrap_body)])
+fgh.subprocess.run = fake
+try:
+    wrapped_text = fgh.file_at_ref("o/r", "path/to/wrapped.txt", "main")
+except fgh.GhError as e:
+    wrapped_text = None
+    _wrap_exc = e
+else:
+    _wrap_exc = None
+restore()
+check("file_at_ref: decodes GitHub's line-wrapped base64 content",
+      wrapped_text == _wrap_text.decode(),
+      f"wrapped_text={wrapped_text!r} exc={_wrap_exc}")
+
 fake, calls = recorder([Result(0, stdout="null")])
 fgh.subprocess.run = fake
 try:
