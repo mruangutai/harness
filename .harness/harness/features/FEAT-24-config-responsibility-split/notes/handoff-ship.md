@@ -3,13 +3,13 @@
 ## Next
 
 Read the operator's ruling on `notes/segment-02-ordering-decision.md` (options A/B/C for the T-02
-cutover) and confirm T-09 has merged before acting. Under **A**: dispatch T-02 alone to
-`harness-eng-lead`, with the constraint that the member's tests and receipt are written BEFORE its
-final write, that its final write is `.claude/skills/harness/bin/factory_config.py`, and that it
-returns immediately after running the verify read-only. Then stop and have the operator delete the
-board block from `.harness/factory/fleet.yaml`'s kaya entry (T-07 Part A items 1, 4, 5) before any
-further agent write. Then a continuation run for T-02's post-migration mutation proofs, then T-03,
-T-06, T-04.
+cutover) and confirm T-09 has merged before acting. Under **A**, in this order: write `STATE.md`,
+`feature.json` and this note describing the post-T-02 state BEFORE dispatching, because a governed
+agent cannot `Write` once the window opens; dispatch T-02 alone to `harness-eng-lead` with the
+member's tests and receipt written before its FINAL write, which is
+`.claude/skills/harness/bin/factory_config.py`; commit on its return (commits survive the window) and
+return to the operator for the `fleet.yaml` deletion — T-07 Part A item 1 only. Then a continuation
+run for T-02's post-migration mutation proofs, then T-03, T-06, T-04.
 
 ## Trust
 
@@ -25,8 +25,8 @@ T-06, T-04.
 - T-09 has NOT merged: kaya's `master` still carries `project_number`, `project_id`, `status_field`
   and `in_progress_option` — `gh api repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master`
   — verified-at 22814c7
-- Board 2's Status options are `Backlog, Plan, Ready, Building, Review, Done` — all five names T-09
-  writes exist — `gh project field-list 2 --owner mruangutai` — verified-at ada8e99
+- `git add`/`git commit` SURVIVE the lockout while `Write`/`Edit` do not: `bash-write-guard.sh:375`
+  records that `git` produces no findings, and `classify` runs per finding at `:551` — verified-at 202cbc5
 - That the write LANDING the new loader is itself permitted (PreToolUse imports the pre-edit module)
   is **UNVERIFIED** — inferred from hook ordering. Probing it would lock the prober out. If wrong,
   the write is refused and nothing is half-done.

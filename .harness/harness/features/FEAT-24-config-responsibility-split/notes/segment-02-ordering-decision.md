@@ -33,37 +33,55 @@ the harness root; `harness_boundary.py:263` contradicts that scoping.
 
 Confirmed separately: the main session is **not** governed — `check-domain.sh:271`,
 `_governed = bool(agent) and agent.startswith("harness-")`, and the whole domain phase is gated on
-it. Your hands still work while every agent's are tied. That is what makes every option below
-possible.
+it. Your hands still work while every agent's are tied. That is what makes every option possible.
+
+**And I am inside the blast radius too.** `harness-orchestrator` is a governed agent, so during the
+window I cannot write `STATE.md`, `feature.json` or a handoff note either. I measured what survives:
+`bash-write-guard.sh:375` records that `git` produces no write findings, and `classify` is only
+reached per finding (`:551`, after `if not findings: sys.exit(0)` at `:475`) — so **`git add` and
+`git commit` still work while `Write` and `Edit` do not.** That is what makes option A survivable
+rather than a trap for me as well, and it is why A's procedure below front-loads my state writes.
 
 ## Your options
 
-**A — agent lands the code, you make one 7-line edit. My recommendation.**
-Merge T-09 first. Then I dispatch T-02 with a hard write-ordering constraint: the member writes its
-tests and its receipt *first*, its **final** write is `factory_config.py`, then it runs the verify
-(read-only, still permitted) and returns. The moment it returns you delete the board block from
-`fleet.yaml`'s kaya entry — T-07 Part A items 1, 4 and 5. Writes reopen; a continuation run finishes
-T-02's post-migration mutation proofs and carries on into T-03, T-06, T-04.
-*Costs:* a lockout window lasting from the agent's return to your edit — minutes, with nothing
-running in it. One extra run for T-02's mutation proofs, which cannot happen before the fleet edit.
-T-07 splits, its Part A pulled forward.
+**A — agent lands the code, you delete seven lines. My recommendation.**
+Merge T-09 first. Then, in order:
+1. I write `STATE.md`, `feature.json` and the handoff **ahead of the dispatch**, describing the
+   post-T-02 state and naming your `fleet.yaml` edit as the next action — because I cannot write
+   them once the window opens.
+2. I dispatch T-02 with a hard constraint: the member writes its tests and its receipt *first*, its
+   **final** write is `factory_config.py`, then it runs the verify (read-only, still permitted) and
+   returns.
+3. On its return I commit (commits survive) and return to you immediately, recording nothing else.
+4. You delete the `board:` block from `fleet.yaml`'s kaya entry — **T-07 Part A item 1 only**, the
+   seven lines from `board:` to the last station. Items 4 and 5 of Part A rewrite the header
+   paragraph and add a pointer line; they are not needed to unblock the loader and stay with T-07
+   proper. Keep `name` and `default_branch`.
+5. Writes reopen. A continuation run finishes T-02's post-migration mutation proofs and carries on
+   into T-03, T-06, T-04.
+
+*Costs:* a window in which no agent — me included — can Write, lasting from the T-02 member's final
+write to your deletion. One extra run for T-02's mutation proofs, which cannot happen before that
+deletion. T-07's Part A item 1 is pulled forward, splitting the task.
 *One inference, flagged:* that the write landing the new loader is itself permitted, because
 PreToolUse runs before the write and therefore imports the pre-edit module. I did not measure it —
-probing it would have locked me out mid-session. If it is wrong the write is simply refused and
-nothing is half-done, so the downside is bounded.
+probing it would have locked me out mid-session. If it is wrong, the write is refused and nothing is
+half-done, so the downside is bounded.
 
 **B — re-lane T-02 as a second carve-out.** You hand-write the `factory_config.py` migration and the
-`fleet.yaml` deletion back to back. No lockout at all, no split run.
+`fleet.yaml` deletion back to back. No window at all, no split run.
 *Cost:* you hand-write this feature's largest change — nine specified items plus twenty-six named
 test cases — and the feature's core code leaves the lane that tests it.
 
 **C — make the transition crossable instead of atomic.** T-02 lands with `load_fleet` **ignoring** a
 board key in a repos entry rather than rejecting it; you then remove the board from `fleet.yaml`
-normally; a later task adds the rejection. `fleet.yaml` loads at every instant, so no lockout ever
-exists and no hand edit is needed in a window.
-*Cost:* it contradicts T-02 item 3 and D-01's "no intermediate state in which a board consolidates
-while a silent failure mode survives" — the silent acceptance would be real, though confined to this
-feature and closed by the later task. This is a plan amendment and needs pm, not just your word.
+normally; a later task in this same feature adds the rejection. `fleet.yaml` loads at every instant,
+so no window ever exists and nothing has to be hand-edited inside one.
+*Cost, stated accurately:* it changes T-02 item 3, so it is a plan amendment and needs pm. What it
+does **not** cost is D-01's silent-failure concern: the failure mode D-01 targets is `load_board`
+returning `None`, which T-04 still removes, and after T-02 nothing reads `repos[].board` at all — so
+a temporarily tolerated key is inert rather than silently wrong, and the rejection lands before this
+feature ships.
 
 ## The window D-10 describes, and how to make it zero
 
@@ -77,16 +95,17 @@ to you as segment 01 and depends on nothing; it is now on the critical path for 
 1. Your ruling: A, B or C.
 2. T-09 executed and merged (segment 01, `notes/segment-01-main-session.md` — unchanged and still
    accurate).
-3. Under A: your `fleet.yaml` edit at the moment I tell you the T-02 run has returned.
+3. Under A: your `fleet.yaml` deletion the moment I tell you the T-02 run has returned.
 
 ## State right now
 
 - Committed on `feat/FEAT-24-config-responsibility-split`: `000934b` `[harness:t-01]`,
-  `22814c7` `[harness:t-08]`. Working tree clean apart from untracked feature dirs.
+  `22814c7` `[harness:t-08]`, plus the state commits. Full unit suite green, zero FAIL lines.
 - `plan.yaml`: T-01 and T-08 `done`; T-02, T-03, T-04, T-06 put **back to `pending`** — they were
   marked `building` at dispatch and never ran, and a status the receipts do not support is a lie to
   my successor. Their board cards were returned to `Backlog` with `board-station.py` — INV-26 caught
   the drift as four real violations before I did, which is the check earning its place.
+- `check-state.sh`: FEAT-24 is back to its one expected violation, the unpinned `review_sha`.
 - Cycles: **1 of 10, unchanged.** The lead reported zero send-backs; a blocked-before-dispatch task
   is not rework.
 - Runs: 7 of 20.
