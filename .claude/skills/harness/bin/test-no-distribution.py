@@ -167,6 +167,17 @@ def case3():
           bool(kaya) and kaya.get("default_branch") == "master",
           f"kaya-ai entry: {kaya}")
 
+    # FEAT-24: THE BOARD LEFT THIS FILE. `fleet.yaml` declares which repositories the factory
+    # serves and nothing about how their cards move; each repository's board lives in its own
+    # `.harness/harness.json`. `load_fleet` REJECTS a board here, so a re-added one closes
+    # every write outside the harness root through resolve_fleet — assert the absence, at both
+    # levels, so it fails a test instead of a whole session.
+    check("case3_absence_no_board_in_fleet",
+          "board" not in data
+          and not any(isinstance(r, dict) and "board" in r for r in repos),
+          f"top-level board: {data.get('board')!r}; repos carrying one: "
+          f"{[r.get('name') for r in repos if isinstance(r, dict) and 'board' in r]}")
+
     registry_hits = []
     harness_dir = os.path.join(ROOT, ".harness")
     for dirpath, _dirnames, filenames in os.walk(harness_dir):
@@ -279,38 +290,12 @@ def case5():
           "board" not in data,
           f"top-level 'board' key still present in fleet.yaml: {data.get('board')}")
 
-    repos = data.get("repos", [])
-    STATION_KEYS = {"ready", "building", "review"}
-    bad_repos = []
-    for r in repos:
-        if not isinstance(r, dict):
-            bad_repos.append(r)
-            continue
-        board = r.get("board")
-        if not isinstance(board, dict):
-            bad_repos.append(r.get("name"))
-            continue
-        number = board.get("number")
-        station_field = board.get("station_field")
-        stations = board.get("stations")
-        if (
-            not isinstance(number, int) or isinstance(number, bool)
-            or not isinstance(station_field, str) or station_field == ""
-            or not isinstance(stations, dict)
-            or set(stations.keys()) != STATION_KEYS
-        ):
-            bad_repos.append(r.get("name"))
-    check("every_repo_declares_its_own_board", bad_repos == [],
-          f"repos entries with an invalid or missing board: {bad_repos}")
-
-    kaya = next((r for r in repos if isinstance(r, dict) and r.get("name") == "mruangutai/kaya-ai"), None)
-    kaya_board_number = (kaya or {}).get("board", {}).get("number") if isinstance(kaya, dict) else None
-    check("kaya_ai_is_paired_with_board_2",
-          bool(kaya) and kaya_board_number == 2,
-          "board 2 is the kaya-ai board — the live Projects v2 board number 2 on the "
-          "mruangutai account, whose Status options were renamed to the factory stations on "
-          "2026-08-11 — and changing one side of the pairing without the other is what this "
-          f"assertion exists to catch. kaya-ai entry: {kaya}")
+    # THE PER-REPOSITORY BOARD ASSERTIONS MOVED OUT OF THIS FILE (FEAT-24). They asserted
+    # that every repos entry declares a board and that kaya-ai is paired with board 2 — both
+    # true of the fleet-level shape this feature removed, and both now unassertable here
+    # because the board is not in this file. The absence is asserted as
+    # `case3_absence_no_board_in_fleet`; the pairing is asserted where it now lives, in
+    # kaya-ai's own `.harness/harness.json` on `master`, by T-07's verify over `gh api`.
 
 
 def main():

@@ -1,7 +1,11 @@
 schema: factory-fleet/1
-# THE BOARD IS PER-REPOSITORY (FEAT-16). There is no top-level `board:` any more: a single
-# board for the whole fleet meant every product's stations were read off whichever board the
-# fleet happened to name, so a second product would have moved cards on the first one's board.
+# THIS FILE IS THE FLEET DECLARATION AND NOTHING ELSE (FEAT-24): which repositories the
+# factory serves, where their checkouts go, and what branch they are cut from. A board
+# declared here at ANY level — top-level or inside a repos entry — is REJECTED by load_fleet,
+# because each repository's board lives in that repository's own `.harness/harness.json`.
+#
+# `default_branch` stays because `factory_workspace` reads it in order to CREATE the checkout,
+# so it cannot live inside the checkout.
 #
 # mruangutai/harness is DELIBERATELY ABSENT (DEC-174 am.1). Harness develops itself in the
 # live checkout and in worktrees under it — both sit INSIDE the repository root, resolve in
@@ -16,11 +20,6 @@ schema: factory-fleet/1
 repos:
   - name: mruangutai/kaya-ai
     default_branch: master
-    # Board 2 is kaya-ai's own board. Its `Done` option is RETAINED on purpose — 118 items
-    # sit there and the enabled `Item closed` workflow keeps landing cards in it.
-    #
-    # `ready: Ready` is deliberate even though Ready is EMPTY today (0 of 211 items). On this
-    # board `Backlog` means filed-and-untriaged and `Ready` means promoted for the factory, so
-    # a claim run that finds nothing has found the truth rather than hit a misconfiguration
-    # (D-08). Pointing intake at `Backlog` instead would hand the factory 82 untriaged items.
+    # kaya-ai's board and the rationale for its station choices live in kaya-ai's own
+    # `.harness/harness.json` on `master`. Not restated here — one statement, one home.
 workspace_root: /Users/molchairuangutai/GitHub/harness-factories
