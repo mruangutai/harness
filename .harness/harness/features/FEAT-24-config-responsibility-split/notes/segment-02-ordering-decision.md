@@ -44,7 +44,7 @@ rather than a trap for me as well, and it is why A's procedure below front-loads
 
 ## Your options
 
-**A — agent lands the code, you delete seven lines. My recommendation.**
+**A — agent lands the code, you delete eight lines. My recommendation.**
 Merge T-09 first. Then, in order:
 1. I write `STATE.md`, `feature.json` and the handoff **ahead of the dispatch**, describing the
    post-T-02 state and naming your `fleet.yaml` edit as the next action — because I cannot write
@@ -54,7 +54,9 @@ Merge T-09 first. Then, in order:
    returns.
 3. On its return I commit (commits survive) and return to you immediately, recording nothing else.
 4. You delete the `board:` block from `fleet.yaml`'s kaya entry — **T-07 Part A item 1 only**, the
-   seven lines from `board:` to the last station. Items 4 and 5 of Part A rewrite the header
+   EIGHT lines, 26-33 inclusive, from `board:` down to `review: Review` — I said seven earlier and
+   the eng lead caught it; deleting seven leaves `review: Review` orphaned and the file still will
+   not load. Line 34 is `workspace_root` and stays. Items 4 and 5 of Part A rewrite the header
    paragraph and add a pointer line; they are not needed to unblock the loader and stay with T-07
    proper. Keep `name` and `default_branch`.
 5. Writes reopen. A continuation run finishes T-02's post-migration mutation proofs and carries on

@@ -33,6 +33,9 @@ then T-03 and T-06, then T-04. T-04 must NOT be committed without T-05, which is
   is **UNVERIFIED** — inferred from hook ordering. If wrong, the write is refused and nothing is
   half-done.
 - Cycles 1 of 10, runs 7 recorded of 20 — `feature.json` — verified-at 7a00255
+- The run-5 digest at 12:22 is FALSE — VERDICT BLOCKED, "wrote nothing", files_touched [] while the
+  member had already written 371 test lines and its receipt. If still false, CORRECT IT: the path
+  resolves to harness-orchestrator too — verified-at 559dc9a
 
 ## Dead ends
 
@@ -45,7 +48,6 @@ then T-03 and T-06, then T-04. T-04 must NOT be committed without T-05, which is
 - Do not re-raise D-10's `because` or D-06's reversibility cost — both applied pre-signature — source: above
 - Do not touch `FEAT-25-claim-feature-root`, `FEAT-25-expertise-repository-tier`,
   `FEAT-26-pr-linkage-recorded`, `FEAT-27-expertise-repository-tier` — source: this dispatch
-- Do not add `harness` to `fleet.yaml`; `test-no-distribution.py:160` must keep passing — verified-at ada8e99
 - `review_sha` stays `none` until the build ends; FEAT-24's single `check-state.sh` violation is
   expected until then — source: INV-6
 
