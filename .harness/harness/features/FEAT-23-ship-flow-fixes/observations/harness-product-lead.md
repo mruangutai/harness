@@ -23,3 +23,21 @@
   in flight, demanding a DIGEST I could not honestly write. Recurrence of a defect already in
   STATE.md. The correct response is to keep taking tool-call turns rather than fabricate a verdict
   for a member that has not returned — a stop hook must not be able to extract a premature verdict.
+
+- 2026-08-17: I tried to send a mid-flight correction to a dispatched member and there is NO channel.
+  Leads hold `Read, Glob, Grep, Agent, Write` only — no `SendMessage`. My attempt spawned one no-op
+  agent (~88k tokens, zero work). A correction discovered after dispatch has exactly two homes: the
+  next dispatch, or my own assessment when the member returns. Queue it; do not try to deliver it.
+
+- 2026-08-17: a member's evidence table is pinned to the commit it ran at, and that pin goes stale
+  silently. qa graded the SCs at `83e769b` while `review_sha` had moved to `490c37c`. Before
+  consuming any prior gate's per-SC grades, read the header for ITS pin and diff it against the
+  current one — then bound the delta from the intervening run's digest rather than assuming it is
+  either harmless or fatal. Here it was comment-text-only in two files, which made the risk small
+  and checkable instead of unknown.
+
+- 2026-08-17: a task's `verify:` can be structurally blind to the SC it traces. T-02's clause grepped
+  "plan surface"/"code surface" FILE-GLOBALLY while SC-05 required the pair under EACH of four
+  angles — three angles satisfied the grep and the fourth was missing both. Green task verifies are
+  not evidence for a distributive SC. When an SC quantifies over N items, check whether its task's
+  clause quantifies too, or only existentially.

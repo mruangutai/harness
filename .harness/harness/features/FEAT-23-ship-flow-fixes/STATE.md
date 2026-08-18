@@ -3,91 +3,65 @@
 ## Current
 
 - feature: FEAT-23-ship-flow-fixes
-- run: none in flight — awaiting the operator on one question, with one fix card out
+- run: none — the briefing is written and the feature awaits the operator's ship acceptance
 - squad: none
 - status: awaiting-user
 
-Mission `build`, at the goal-check seam. Branch `feat/FEAT-23-ship-flow-fixes`, tip **`490c37c`**,
-`review_sha` pinned there. **All six tasks are landed, committed and green; the qa gate PASSED; the
-review panel PASSED advisory; and the feature still does NOT meet its goal — SC-05 is unmet.** That
-divergence is the whole reason a goal-check exists.
+**The feature is complete.** Branch `feat/FEAT-23-ship-flow-fixes`, tip `9885670`. Six tasks landed,
+all 13 success criteria met or deliberately deferred, the blocking qa gate and the review panel both
+PASSED, the four-angle simplify pass ran as the last build step, and Expertise is distilled across
+all three squads. Three tickets close with it: #417, #430, #453.
 
-Seven commits: T-02 `9016628`, T-01 `d96ab5e`, T-05 `e50b8b4`, T-03 `17b7a9d`, T-06 `ceee94a`,
-T-04 `83e769b`, simplify apply `490c37c`.
+**The briefing is `notes/ship-review-2026-08-17-13.md`** (rendered sibling `.html`). It carries 23
+proposed backlog rows, B-1 to B-23; anything the operator does not strike becomes an issue on
+acceptance, and anything not listed dies silently.
 
-**SC-05 is NOT MET, verified at source by me and independently by pm and the product lead.** The
-skill gives REUSE (`:41`,`:44`), SIMPLIFICATION (`:53`,`:57`) and EFFICIENCY (`:73`,`:76`) an
-explicit plan-surface/code-surface pair. **ALTITUDE (`:79-92`) carries neither** — my own
-per-section whitespace-normalised count is `plan surface` 0, `code surface` 0 against 1/1 for each
-of the other three. **T-02's `verify:` structurally cannot see this**: it greps the two literals
-**file-globally**, so three conforming angles satisfy the clause and a fourth missing both is
-invisible. Six green tasks, one false criterion, and qa graded it `met` by the same file-global
-method. A method failure against a distributive clause, not a diligence failure.
+Verified by me at `9885670`, not relayed: `--kind unit` 16/16 scripts exit 0; `--kind integration`
+12/12 exit 0; SC-05 measured **per section** — the only method that can see it — with all four angles
+at `plan surface` 1 / `code surface` 1; `check-expertise.sh` exit 0 over all 15 files;
+`check-state.sh` exit 0; parent `#454` at `Review`.
 
-Gate results at this pin, each verified by me on disk:
-- **qa gate PASS**, `matrix_ok: true`, `severity_max: low`, one applied-and-killed mutant. Binds
-  only 2 of 6 tasks — `docs.always` is `[]` and four tasks are docs.
-- **Panel PASS**, advisory (`gates.review: advisory_unless_high`), `severity_max: low`, zero
-  `must_fix`. It measured the `83e769b..490c37c` delta as **zero executable lines** and so carried
-  qa's green forward rather than assuming it.
-- **Goal-check FAIL** — 10 met, 2 deferred by BRIEF design (SC-04, SC-13 at `BRIEF.md:149-152`,
-  provable only on the next feature shipped and the next planned from a named ticket), 1 unmet.
+**The panel's PASS was taken at `490c37c` and the tip has moved since.** It transfers on measurement,
+not assumption: **zero** `.py`/`.sh` files changed between `490c37c` and `bba5551`, the only
+non-markdown file being my own `feature.json`. Re-measure if the tip moves again before acceptance.
 
-Budget: `cycles_used` **4 of 10** — incremented for the unmet-SC re-dispatch (DEC-157 counts that as
-rework). It sat at 3 for the entire build: no task was ever routed back and every lead reported zero
-send-backs. 15 runs of 20.
+Two criteria are **deferred by `BRIEF.md:149-152`**, not missed: SC-04 (the next feature to ship needs
+no follow-up commit to clear INV-26) and SC-13 (the next feature planned from a named ticket lands it
+in `Plan`). They are the real test of this feature and they are answered on the *next* one.
+
+Budget: `cycles_used` **4 of 10** — one cycle, spent on the unmet SC-05. `len(runs)` **19 of 20**, an
+informational bound that never stops a feature. My read: the runs earned their place with two
+exceptions, both mine — the duplicate T-05 dispatch and the reviewer-ops correction round.
+
+Next: the main session presents the briefing. On acceptance it runs `gh-sync.py ship` and
+`gh-sync.py backlog` for the unstruck rows. Merge stays user-gated; nothing has merged. See
+`notes/handoff-build.md`.
 
 ## Open Questions
 
-- **AWAITING THE OPERATOR — the emergent criterion.** `.claude/skills/harness-simplify/SKILL.md`
-  carries **neither** bound on the apply: whitespace-normalised, `delete or weaken` 0,
-  `ceiling of one` 0, `one fix` 0, against 1/1/2 in `.claude/skills/harness/SKILL.md`. DEC-195
-  carries the assertion bound at `:6002` and no ceiling clause. So an eng-lead running the step from
-  the skill alone learns neither rule — on this feature's own first execution, my dispatch had to
-  carry both by hand. **pm judged it genuinely NEW, not covered**: REQ-05 only requires no file
-  *outside this repository*, and no SC or task intent requires the bounds. It therefore does **not**
-  gate. Adopting it amends an approved BRIEF, so it is the operator's signature. pm recommends
-  folding it into SC-05's edit at near-zero marginal cost. **The remedy spans two ownership
-  regimes** — the two `.claude/` files are NOBODY/main-session-direct, the DEC-195 half is
-  documentor-owned — and half-landing it leaves the drift it exists to end.
-- **THE PANEL'S PASS IS PINNED AT `490c37c` AND THE SC-05 FIX WILL MOVE THE TIP.** Raised by the
-  product lead; neither pm nor the panel could see it. This is the FEAT-20 failure DEC-195 exists to
-  prevent, arriving from the goal-check side. After the fix I re-pin and **measure the delta** the
-  way the panel itself did — it validated exactly this reasoning for `83e769b..490c37c` by showing
-  zero executable-line change. I will not assert the transfer without measuring it.
-- **THIS ORCHESTRATOR'S OWN ERROR.** I dispatched T-05 **twice**. Run `-6-t01t05-eng` returned a
-  PROVISIONAL digest while its member was in flight; I waited out T-01 correctly, then wrongly read
-  the run as finished and spawned `-7-t05-eng` for a task run 6 went on to dispatch itself. **Run 6's
-  own `state.yaml`** would have stopped me and I never opened it. Cost: one lead run, two member
-  spawns, ~146k tokens, zero code. Not a cycle under DEC-157, so the budget is blind to it.
-- **Harness defect, EIGHT recurrences, the single largest cost driver.** `validate-digest.py --hook`
-  fires on a lead's turn-end while its member is still in flight; a lead has no await primitive and
-  no sleep, so its only exits are a premature verdict or a fabrication. It manufactures the disk
-  state that caused my duplicate dispatch. **A mitigation now works reliably** — hold the turn open
-  with read-only calls until members return — and it held for the qa, simplify, panel and goal-check
-  leads, four in a row, at zero cost. DEC-174 surface: operator-only.
-- Advisory, panel, low: `gh-sync.py:445-466` — `_record_status`'s **write**-failure path re-raises;
-  intent item 6 made only the *read* path non-raising. A disk error after GitHub's close succeeds
-  leaves `feature.json` non-terminal against a terminal board — this feature's own defect class. Not
-  a regression; `save_recorded`'s six call sites share the shape.
-- Record fidelity, panel: the security reviewer's digest YAML says `mitigated: true` where its own
-  prose says "Unmitigated in code … out of scope". Both agree it does not gate; they disagree in the
-  machine-readable field.
-- **`grep -F` on prose is a false-negative machine** — zero on a phrase spanning a wrapped line, and
-  case-sensitive. It nearly made me report three correct points as missing today.
-- `plan.yaml` D-05's `because:` says `gh-sync.py` takes the feature dir as `argv1`; it is the SECOND
-  positional (`:752`, `:777`). D-05's conclusion is unaffected and DEC-196 records the true shape.
-  Correcting signed prose needs re-signature — flagged, not edited.
-- `harness/SKILL.md:98` cites "§4.4's significance rubric"; `SPEC.md:720` §4.4 is titled "Autonomy is
-  scoped by reversibility" and "significance" appears nowhere. Naming defect, still resolves.
-- Backlog from qa and simplify: `board-station.py:100-102` and `:106-109` untested;
-  `_record_status`'s absent-file branch untested; `_atomic_write`'s third copy at
-  `factory_decompose.py:173-186` falsifies its own docstring; `board-station.py`'s double
-  `harness.json` read; `board-station.py` missing from the call-site inventory at
-  `harness/SKILL.md:188-195`.
-- A simplify-angle member reached the **real** `gh` with one read-only GraphQL lookup against my
-  no-gh bound, self-disclosed. Blast radius verified at source: `set_station` raises before
-  `project_field_set`, so nothing was written to board 3.
-- **RESOLVED this phase:** parent `#454` is now at `Review` after seven failed station writes;
-  GitHub's GraphQL 503s cleared and `check-state.sh` exits 0.
+- **The largest cost of this feature was a harness defect, not the work.** `validate-digest.py --hook`
+  fires on a lead's turn-end while its dispatched member is still in flight; a lead has no wait
+  primitive, so its only exits are a premature verdict or a fabrication. **Eight recurrences.** It does
+  not merely produce false returns — it manufactures a disk state that reads exactly like an abandoned
+  run, and I misread one and dispatched T-05 twice (~146k tokens, zero code). **A mitigation now holds:
+  leads that keep the turn open with read-only calls until members return have defeated it seven
+  consecutive times.** DEC-174 surface — operator-only. Briefing row B-1.
+- **THIS ORCHESTRATOR'S TWO ERRORS, recorded as failures.** (1) The duplicate T-05 dispatch above: the
+  file that would have stopped me is the run's own `state.yaml`, which records `dispatched_at` and
+  `completed_at` per step, and I never opened it. (2) I dispatched the three panel reviewers as
+  "write-less", following the playbook's close-out wording, when `check-domain --resolve` grants each
+  its own Expertise file — costing a correction round. The playbook wording is briefing row B-16.
+- **`check-expertise.sh` cannot detect a wipe** — it validates sections, caps, word counts and the line
+  budget, all of which a file reduced to one entry would pass. The no-wipe evidence for this feature is
+  before/after count pairs taken independently by each lead and member, not the checker.
+  `harness-security-reviewer.md` sits at 134 of its 150-line budget and the spawn hook truncates
+  silently rather than erroring.
+- **The digest-skim's value split by squad and the split is the finding.** Engineering accepted 11
+  entries, all 11 from the skim; validation 9, 8 from the skim — because no member of either squad kept
+  an observation log. Product accepted 10 and **zero** came from another agent's digest. The skim earns
+  its cycle exactly where members write no log. Rows B-18, B-19.
+- All remaining residuals — the untested fail-open branches, `_atomic_write`'s third copy, the D-05
+  `argv1` prose error, the index tag-row regression, the `§4.4` naming defect, the scratchpad guard,
+  the missing `Agent` tool, the missing `SendMessage` — are enumerated as B-2 to B-23 in the briefing
+  with their evidence. They are not repeated here; the briefing is the artifact addressed to a human.
 - Arch finding G remains deliberately unapplied by the operator's signature.
