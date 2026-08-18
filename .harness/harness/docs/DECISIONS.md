@@ -4728,6 +4728,39 @@ items, 118 `Done`, 82 `Backlog`, 11 `Building`, zero in each of `Plan`, `Ready` 
 factory run. `Ready` is deliberately empty: on this board `Backlog` means filed-and-untriaged and
 `Ready` means promoted for the factory, so a claim run that finds nothing has found the truth.
 
+### DEC-174 amendment 3 (2026-08-18) — the fleet declares no board at all, at any level
+
+FEAT-24 moved every fleet member's board out of `.harness/factory/fleet.yaml` entirely. That
+falsifies one paragraph of amendment 2 above, which is left standing unedited: the record is appended
+to, never rewritten.
+
+**What became false.** Amendment 2's paragraph headed *"The station board is declared PER
+REPOSITORY"* states that each `repos:` entry in `.harness/factory/fleet.yaml` carries its own
+`board:` mapping, with `number`, `station_field` and `stations` together in that one block. No
+`repos:` entry carries a board now, and one that does is refused.
+
+**What is true now.** A board declared anywhere in `fleet.yaml` is REJECTED by `load_fleet` in
+`.claude/skills/harness/bin/factory_config.py` — at the top level as before, and now inside a
+`repos[]` entry too, each raising a message that names where the board moved to. Every repository's
+board lives in that repository's own `.harness/harness.json` under `github.board`, read from that
+repository's **default branch** by `product_config`/`board_for` and validated by `validate_board` —
+the one board validator in the tree, which `gh_board.load_board` calls directly, and which RAISES
+rather than returning a verdict.
+
+**This is a change of FILE, not a return to a fleet-level board.** What amendment 2 ruled otherwise
+stands and is not swept away with the paragraph above: the board is still declared PER REPOSITORY;
+`mruangutai/kaya-ai` is still paired with **board 2** — read back live through `board_for` at this
+tree as `owner mruangutai, number 2, station_field Status`, now from kaya-ai's own
+`.harness/harness.json` on `master` rather than from `fleet.yaml`; and the six-value Status
+vocabulary and the zero-item-writes rename record stand exactly as amendment 2 recorded them.
+
+**`default_branch` did NOT move with the board,** and the reason is mechanical: `factory_workspace`
+reads it in order to CREATE the checkout, so it cannot live inside the checkout.
+
+**Not a strike:** DEC-188 strikes what the tree flatly contradicts in whole, and what this tree
+contradicts is one paragraph. DEC-174's carve-out ruling, amendment 1, and the rest of amendment 2
+are untouched.
+
 ## DEC-175 — The engineering return declares which task it is answering: `task: T-NN|none` gates `task_verify`, and a self-reported gate FAILURE stops being a pass
 
 Three things ship together and each is unintelligible without the others: the `task_verify` field, the
@@ -6093,3 +6126,31 @@ update when 350's restructure lands.
 Lineage: DEC-186 for the control plane and the three sanctioned read-back purposes this sits inside;
 DEC-192 for the status values the board columns carry; DEC-174, because the board writer is harness
 code the harness plans but the enforcement-layer carve-out bounds what may be dispatched against it.
+
+**Amendment 1 (2026-08-18) — the harness's own board now declares its stations**
+
+DEC-196 amendment 1. FEAT-24 declared a stations map for the harness's own board, falsifying one
+paragraph above. That paragraph is left standing unedited: the record is appended to, never
+rewritten.
+
+*What became false.* The paragraph headed *"No stations map is declared for the harness's own
+board"*. Measured at `ada8e99`, `.harness/harness.json`'s `github.board` carried three keys —
+`owner`, `number`, `station_field`. It carries a `stations` map now.
+
+*This is the follow-on DEC-196 named, not a reversal of it.* That clause was conditioned explicitly
+on issue 350's ruling — every board gains an explicit stations map — having **no open implementing
+ticket**. FEAT-24 is that ticket, so the condition the clause rested on is gone rather than
+overruled. The accepted-cost line about one more call site to update when 350's restructure lands is
+now SPENT: the call site was `board-station.py`, and it was updated inside this same feature.
+
+*What is declared.* Five station keys under `github.board.stations` in `.harness/harness.json` —
+`backlog`, `ready`, `building`, `review`, `done`. `plan` is deliberately NOT declared:
+`board-station.py` takes the station as a plain CLI string, `gh_board.set_station` hands it to
+`factory_gh.project_field_set`, and the option is resolved BY NAME at the board, so a wrong value
+still fails loudly there and a name nobody declares is still writable. That is DEC-196's own rule and
+it is unchanged.
+
+*What did NOT change.* The harness still MOVES any card it is pointed at and CLOSES only the cards it
+created — `_apply_parent_rule` still carries no origin check, and the close is still gated on the
+`parent_origin == "created"` branch in `cmd_ship` and `cmd_abandon`. This amendment touches the
+stations paragraph alone.

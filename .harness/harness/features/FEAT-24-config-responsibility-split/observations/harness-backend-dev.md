@@ -28,6 +28,26 @@
   and land never validates at all (direct `board["stations"]["review"]` index). Same five-key
   requirement, three different blast radii depending on which tool's own (unrelated to this
   task) validation breadth you're fixturing against.
+- 2026-08-18: fix-c2. Writing a RED case that calls `file_at_ref` bare (no try/except) and asserts
+  on the return value crashes the whole test script with an unhandled `GhError` traceback the
+  moment the mutation makes it raise — every case after it in file order never runs, and the runner
+  still reports the earlier cases as `ok`, which can misleadingly look like a clean single-case
+  reddening in a truncated view. Wrap ANY new happy-path `file_at_ref`/similar call in
+  try/except and compare against a sentinel, even when you expect it never to raise post-fix —
+  that's what let the actual RED run (`1 of 163 FAILING`) stay legible instead of stopping the
+  script partway through.
+- 2026-08-18: fix-c2. Setting `validate=False` in the b64decode call (even briefly, to test whether
+  the existing "undecodable content" case discriminates the `validate` flag) tripped the auto-mode
+  Bash classifier — it blocked running the test suite while that line was in place. Verified the
+  discrimination question a different way instead (`base64.b64decode(s, validate=False)` on the
+  bare string in an isolated `python3 -c` snippet, not touching the source file): `"not-valid-base64!!!"`
+  raises under BOTH `validate=True` and `validate=False` (a padding error either way), so that
+  existing case proves nothing about the `validate` flag itself.
+- 2026-08-18: fix-c2. The commit an orchestrator makes after a member's edits stabilize can land
+  faster than the member's own return — `git log` showed my exact 2-line diff already committed as
+  HEAD mid-session, before I'd called advisor() or returned anything. Don't assume "the tree is
+  still uncommitted, per my dispatch" without checking `git status`/`git log` again right before
+  reporting; the dispatch's stated branch/commit can go stale during your own run.
 - 2026-08-18: T-03. `test-factory-integration.py`'s `factory_config.py --show` path does not
   call `board_for`/`product_config` at all — it just echoes `fleet["repos"]` verbatim. The
   D-config integration case therefore needed NO gh stubbing once the fleet fixture stopped

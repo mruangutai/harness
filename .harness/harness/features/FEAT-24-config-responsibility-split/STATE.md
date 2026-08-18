@@ -3,53 +3,51 @@
 ## Current
 
 - feature: FEAT-24-config-responsibility-split
-- run: .harness/harness/features/FEAT-24-config-responsibility-split/runs/2026-08-18-6-eng/
-- squad: eng
+- run: .harness/harness/features/FEAT-24-config-responsibility-split/runs/2026-08-19-2-product/
+- squad: product
 - status: in-progress
 
-Phase: **ship, building. The cutover is crossed and the write lock is open.** I confirmed it from my
-own side with a probe write, and `load_fleet` returns cleanly with kaya's entry at exactly
-`name` + `default_branch` — **SC-01 is met.**
+Phase: **ship, building. Nine of ten tasks are done, committed and verified; T-10 is in flight.**
+The record was reconciled first — `plan.yaml` said `pending` for five committed tasks and their
+cards sat in `Backlog`; all five are now `done` and #504-#508 are closed. `check-state.sh` is back
+to its seven pre-existing violations with none added.
 
-Landed and committed: **T-01** `000934b`, **T-08** `22814c7`, **T-09** kaya PR #335 merged `692672d`,
-**T-02** `962417a` (verify GREEN, 78/78, re-run by me), **T-07 Part A item 1** `d177bab` (the
-operator's eight-line `fleet.yaml` deletion). All three bookkeeping debts the lock made unwritable
-are discharged.
+**The feature's central path now works, and it did not before.** `board_for` against the live API
+returns kaya's board with all five stations. Two defects in `factory_gh.file_at_ref` had shipped
+past 208 passing checks: `gh api -f` forced a POST (404), and `validate=True` rejected GitHub's
+line-wrapped base64 (285 newlines in kaya's payload). Both were invisible because every case drives
+a fake `gh` that models argv but not the real response. Fixed at `574f73c`, with a case that feeds
+wrapped base64 through the fake — I proved it reddens by restoring the pre-fix decoder at runtime,
+one FAIL, the named case, no file edited. **SC-06 is met and was checked live, not from the suite.**
 
-**In flight — run 6-eng, four steps:** T-02's mutation proofs (the half the lock prevented: its
-assertions are proven able to fail on a missing symbol, never on a wrong implementation), then T-03,
-T-06, T-04.
+Commits: `000934b` T-01 · `22814c7` T-08 · `692672d` T-09 (kaya PR #335) · `962417a` T-02 ·
+`d177bab` T-07 part A item 1 · `0ee0124` T-03/T-04/T-05/T-06 · `b88cbfd` T-07 · `574f73c` the
+base64 fix · `d80f1c4` the record reconciliation.
 
-**Two scope corrections found by measuring the red set myself — seven suites, not five.**
-1. `test-factory-workspace.py` is a fleet fixture in **no task's `files:` list anywhere in the plan**.
-   T-03's title is universal ("every fleet fixture outside `factory_config`"), so I extended T-03's
-   dispatch to six files as an execution-time call and said so in the dispatch. Mine, and recorded.
-2. `test-no-distribution.py`'s `every_repo_declares_its_own_board` and `kaya_ai_is_paired_with_board_2`
-   are assertions this design **deliberately falsifies**, in a file T-07 owns and never mentions
-   them. That is the operator's, not the squad's. Q1 below.
+**Next, in order:** T-10 returns → commit → the qa `test_matrix` segment (validator squad, the
+project's only blocking gate) → the four-angle simplify pass (eng-lead, read-only, before the pin)
+→ pin `review_sha` → the review panel → pm's goal-check on all 13 SCs → close-out (ship-refresh and
+distillation in ONE turn, two dispatches) → the CEO briefing.
 
-**Next after run 6:** T-05 to the operator (DEC-174 carve-out, lands in the SAME commit as T-04),
-then T-07's remainder, then T-10, then the qa `test_matrix` segment, simplify, pin `review_sha`, the
-review panel, pm's goal-check.
+**Simplify hazard, carried:** before applying any finding to a file a verify clause reads, check
+whether the clause greps words the edit changes. A pass did exactly that today and gates stayed
+green.
 
-Cycles: 1 of 10. Runs: 8 recorded of 20, plus this one.
+Cycles: **3 of 10** — the plan-phase architecture fix, and two live-defect fix cycles.
+Runs: 11 recorded of 20.
 
 ## Open Questions
 
-- Q1 (operator, BLOCKING before T-07 completes): `test-no-distribution.py`'s
-  `every_repo_declares_its_own_board` and `kaya_ai_is_paired_with_board_2` assert a board in the
-  fleet entry, which SC-01 now forbids. T-07's Part B adds one case and names two others as
-  untouchable; these two are neither. Delete, invert, or repoint at kaya's remote config?
-- Q2 (settled, recorded): the orphaned `ready:`/`Done:` rationale comments left in `fleet.yaml` are
-  **already in T-07 Part A item 5's scope** — it requires one line pointing a reader at kaya's own
-  config, where those rationales now live as `_board_*_note` keys. Not a residual, not SC-11.
-- Q3 (harness defect, backlog B-12): `factory_land.py` does not commit — T-09 failed with
+- Q1 (harness defect, backlog): a lead returned BLOCKED with no digest while its member was still
+  in flight and the fix was landing — issue #461, now the ninth instance. Do not re-file.
+- Q2 (harness defect, backlog B-12): `factory_land.py` does not commit; T-09 failed with
   `No commits between master and factory/issue-334` until the operator committed by hand.
-- Q4 (harness defect, filed as #461, backlog row only): a lead returned a verdict while its member
-  was in flight — eighth recorded instance. Do not re-file.
-- Q5 (harness defect, backlog B-4): `feature.json`'s schema declares no `phase` property under
+- Q3 (harness defect, backlog B-4): `feature.json`'s schema declares no `phase` property under
   `additionalProperties: false`, so the playbook's "record your phase there" is unsatisfiable.
-- Q6 (harness defect, backlog B-11): `gh-sync.py` has no un-start subcommand.
-- Q7 (main session): four paused feature dirs carry six of `check-state.sh`'s seven violations.
+- Q4 (harness defect, backlog B-11): `gh-sync.py` has no un-start subcommand.
+- Q5 (new, for the briefing): the fake `gh` recorder models argv but not the HTTP method or the
+  real response shape, and shipped two defects past a green suite. A live smoke check for
+  `file_at_ref` is the candidate fix; qa should rule on it at the matrix gate.
+- Q6 (main session): four paused feature dirs carry six of `check-state.sh`'s seven violations.
 
-Briefing: `notes/ship-review-2026-08-18-ship-01.md` (rendered `.html` beside it).
+Briefing: `notes/ship-review-2026-08-18-ship-01.md` — stale, rewritten at the ship decision.
