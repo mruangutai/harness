@@ -76,3 +76,19 @@
   until I diffed it and matched it to the text I had proposed. Fold "check the tree for the
   operator's own landings" into the post-run reconciliation instead of treating any unexpected diff
   as a member's.
+
+- 2026-08-19: When a task's own edit will revoke your write access, the state files must be written
+  BEFORE the dispatch, describing the state that will exist after it. Written afterwards they cannot
+  be written at all. Two things make this survivable: commits still work (the bash guard extracts no
+  write target from `git`), and the note must name the debts the successor discharges — the run
+  entry, the task status, the close-task — because none of them can be recorded in the window.
+
+- 2026-08-19: An open-questions list carried across sessions goes stale silently. Two of mine had
+  been closed by a pm pass before signature and I re-raised both; the coordinator's greps settled it
+  in one command each. Re-run the check that would falsify a carried question before repeating it —
+  a stale question costs the reader more than a missing one, because it looks like new information.
+
+- 2026-08-19: The write guard resolves the LITERAL text of a `sed -i` target, so a relative path
+  after `cd` is refused as "outside your domain" exactly like a variable is. Absolute paths in every
+  in-place edit, always — the refusal message names the basename and reads like a domain verdict
+  rather than a path-resolution failure, which sends you looking in the wrong place.

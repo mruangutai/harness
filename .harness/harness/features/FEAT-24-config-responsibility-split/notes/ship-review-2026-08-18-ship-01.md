@@ -16,7 +16,7 @@ to enter it rather than discovering it halfway through a migration.
 |---|---|
 | Done, verified, committed | T-01 (`000934b`), T-08 (`22814c7`) |
 | Blocked on your ruling | T-02, and T-03/T-04/T-06 behind it |
-| Out to you, not yet done | T-09 (kaya's config — never started), T-05, T-07 |
+| Out to you, not yet done | T-05, T-07 — T-09 landed after this table was first written (PR #335, merged `692672d`, verify GREEN) |
 | Not started | T-10 |
 | Cycles | **1 of 10** — zero send-backs this build; the one cycle was the plan phase's architecture-review fix |
 | Runs | 7 of 20 |
@@ -44,7 +44,7 @@ tied. That is what makes all three routes possible.
 - Measured what survives the lockout instead of assuming: `git add`/`git commit` do, `Write`/`Edit`
   do not (`bash-write-guard.sh:375`, `:475`, `:551`). That correction changed my recommendation's
   procedure — the first draft would have stranded the run with no state file.
-- Confirmed T-09 has **not** merged: kaya's `master` still carries all four pre-FEAT-18 pinned ids.
+- Confirmed T-09 had **not** merged when this was written; it has since merged as `692672d` and I re-ran its verify myself against kaya master: GREEN.
 - Re-probed board 2's Status options before you spend a cross-repository pull request on them —
   all five names T-09 writes exist.
 
@@ -76,6 +76,7 @@ module the write guard itself imports.
 | B-9 | A reviewed operator-facing text contract with no `DESIGN.md` behind it, now a standing pattern across two features on effort #336 | chore |
 | B-10 | T-06 and T-07 each sit at 49 of 50 permitted machine-field lines; the next edit to either breaks the budget | chore |
 | B-11 | `gh-sync.py` has no un-start subcommand, so a card cannot be returned to `Backlog` when a dispatch is abandoned. I moved four by hand with `board-station.py` after INV-26 caught them | enhancement |
+| B-12 | `factory_land.py` does NOT commit — it failed on T-09 with `No commits between master and factory/issue-334` until the operator committed by hand. The first real factory run hit this, and the documented command sequence implies otherwise | bug |
 
 ## Also yours, and not FEAT-24's
 

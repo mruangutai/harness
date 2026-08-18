@@ -29,6 +29,10 @@ python3 /Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/factor
 
 # ---- hand-edit the file (diff below) ----
 
+# CORRECTION, recorded 2026-08-19 after the operator ran this: factory_land.py does NOT commit.
+# It failed with `No commits between master and factory/issue-334` until the operator committed
+# by hand in the checkout. Add `git -C <workspace>/kaya-ai commit` before factory_land. Backlog B-12.
+
 python3 /Users/molchairuangutai/GitHub/harness/.claude/skills/harness/bin/factory_land.py \
   --repo mruangutai/kaya-ai --issue <n>
 # pushes and opens the pull request

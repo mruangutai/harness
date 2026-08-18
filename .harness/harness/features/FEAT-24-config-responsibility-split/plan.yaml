@@ -360,7 +360,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
@@ -1247,7 +1247,7 @@ tasks:
       that permanent - a manifest entry whose first segment is .harness is excluded when the target
       resolves in a product checkout, so no seat can ever hold this path. D-04 records the route.
     depends_on: []
-    status: building
+    status: done
     files:
       - /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
     verify: |
