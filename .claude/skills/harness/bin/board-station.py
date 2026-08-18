@@ -62,11 +62,10 @@ def main(argv):
         err(USAGE)
         return 2
     issue_arg, station = argv
-    # ASCII digits ONLY, and the order matters. `str.isdigit()` answers True for
-    # superscripts and other Unicode digit forms that `int()` then refuses, so the
-    # bare isdigit check reached int() and raised — exit 1 with a traceback, where
-    # this tool's contract is that 2 is its only non-zero exit. Found by the final
-    # validator pass (FEAT-23), reproduced with '\u00b2'.
+    # ASCII-ONLY, and both halves earn their place: str.isdigit() is True for Unicode
+    # digit forms int() REJECTS (raises, exit 1 — and 2 is this tool's only non-zero
+    # exit) and for forms int() ACCEPTS (parses to another number, moving the wrong
+    # card). Two failure modes, one guard.
     if not (issue_arg.isascii() and issue_arg.isdigit()) or int(issue_arg) <= 0:
         err(USAGE)
         return 2

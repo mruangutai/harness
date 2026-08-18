@@ -84,8 +84,7 @@ Ask: is the capability at the right home, or bolted onto a caller? Is there **on
 authoritative statement of a rule, or several that can drift? Are the accepted residuals right
 to accept — and does a deeper fix exist that does not reopen a settled scope?
 
-A special case layered on shared infrastructure is a sign the fix is not deep enough. So is a
-methodology that lives only in one session's prompts.
+A methodology that lives only in one session's prompts is the same smell.
 
 On a **plan surface**: a rule stated in several task intents where one authority should carry
 it, a residual accepted without its compensating control named, and a capability planned into

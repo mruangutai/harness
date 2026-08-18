@@ -181,17 +181,22 @@ with tempfile.TemporaryDirectory() as tmp:
     r, log = run(tmp, ["326"])
     r2, _ = run(tmp, ["326", "Plan", "extra"])
     r3, _ = run(tmp, ["not-a-number", "Plan"])
-    # A UNICODE DIGIT, and it is not decoration: `str.isdigit()` answers True for
-    # superscript two while `int()` refuses it, so the pre-fix gate reached int()
-    # and raised — exit 1 with a traceback, against a contract naming 2 as the only
-    # non-zero exit. "not-a-number" cannot catch this: it fails isdigit() first.
+    # "not-a-number" cannot catch this class: it fails isdigit() first. Superscript
+    # two passes isdigit() and int() refuses it.
     r4, _ = run(tmp, ["\u00b2", "Plan"])
+    # THE SECOND CLASS, and the worse one. int() RETURNS 2 for Arabic-Indic two, so the
+    # pre-fix gate did not crash here — it moved issue 2's card. A silent write to the
+    # wrong target. Drop isascii() and the traceback case above still passes; only this
+    # one fails.
+    r5, _ = run(tmp, ["\u0662", "Plan"])
     check("board-station rejects a missing argument with exit 2",
           r.returncode == 2 and r2.returncode == 2 and r3.returncode == 2
           and r.stderr.startswith("board-station: "),
           f"rc1={r.returncode} rc2={r2.returncode} rc3={r3.returncode} stderr={r.stderr!r}")
     check("board-station rejects a UNICODE-digit argument with exit 2, not a traceback",
           r4.returncode == 2, f"rc4={r4.returncode} (1 means int() raised)")
+    check("board-station rejects a Unicode digit int() ACCEPTS, so no card moves silently",
+          r5.returncode == 2, f"rc5={r5.returncode} (0 means it moved issue 2's card)")
 
 # ---------------- case 5: outside a harness root ----------------
 
