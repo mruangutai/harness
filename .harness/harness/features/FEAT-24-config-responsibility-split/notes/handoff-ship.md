@@ -31,7 +31,7 @@ T-06, T-04.
   is **UNVERIFIED** — inferred from hook ordering. Probing it would lock the prober out. If wrong,
   the write is refused and nothing is half-done.
 - `plan.yaml` now matches what ran: T-01/T-08 `done`, T-02/T-03/T-04/T-06 back to `pending`, and
-  their four board cards returned to `Backlog` with `board-station.py` — verified-at ce50f91
+  their four board cards returned to `Backlog` with `board-station.py` — verified-at 202cbc5
 - Cycles 1 of 10 (zero send-backs this run), runs 7 of 20 — `feature.json` — verified-at 22814c7
 
 ## Dead ends
