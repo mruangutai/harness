@@ -3,7 +3,7 @@
 ## Patterns (max 15)
 - P-01: WHEN a test's label or comment describes what it covers DO verify that claim against the actual invocation and assertion at that line — a label is prose, not a measurement, and can advertise coverage that doesn't exist.
 - P-02: WHEN hunting fail-open DO trace whether the exit happens before or after the state-write it guards — an exit inside the failing call blocks the write, turning the miss into a clean re-runnable skip rather than corruption.
-- P-03: WHEN a durable record (commit message, decisions-doc entry) asserts a fact about the code — what a change did, or which consumers depend on what — DO verify it against the code it names, not the record itself — records assert intent, not ground truth.
+- P-03: WHEN a record or a prior gate's result asserts a fact about the code — including that a green result still applies at a moved pin — DO verify against the code, diffing for executable, assertion, fixture or import changes — both assert intent, not ground truth.
 - P-04: WHEN a PLAN task's `verify:` clause checks only for presence of new content on its named surface DO check whether sibling duplication-risk tasks pair that with an absence check elsewhere — a missing absence check is a structural tell for duplication.
 - P-05: WHEN a diff's deliverable is removal DO treat repo-wide sweep/grep evidence as the removal proof, not the test suite — a green suite only shows nothing broke, not that the target is gone.
 - P-06: WHEN a signed verify clause exists for code under review DO re-run it against HEAD rather than trust that it once passed — a later commit can silently invalidate a signed verify without re-signing it, and report any deviation found regardless of whether it is beneficial.
@@ -37,5 +37,6 @@
 - O-01: WHEN reporting a coverage gap via a hand-built mutant DO add one non-shipped probe case that fails on it before reporting the shipped suite passes — an executed failing probe distinguishes a real gap from an unexecuted claim, usually a broken harness.
 - O-02: WHEN a downstream artifact states something false DO trace it to its authoring source before attributing the error — the nearest producer may have faithfully reproduced an upstream defect, and the correct remedy fixes the origin too, not just the surface where it was found.
 - O-03: WHEN closing a must_fix by verifying the code now reads correctly DO check separately whether a test would fail if it regressed — "reads correctly" and "is held to it" are different claims, and only a discriminating test sustains the second past the next edit.
+- O-04: WHEN writing a finding DO name the defect class it belongs to, especially if it matches the class the feature under review exists to close — severity alone doesn't convey that; the class-match sets lead-tier rank.
 
 ## Open (max 5)

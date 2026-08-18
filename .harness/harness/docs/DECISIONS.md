@@ -5966,3 +5966,130 @@ never made the argument; `docs/harness/**` and `docs/PRINCIPLES.md` were the two
 nothing to match — and the move supplies a match for the first alone, through the documentor's
 new `.harness/*/docs/**` grant. The correct figure is ONE of the four. Target-keying still
 holds on `docs/PRINCIPLES.md`, because team-config grants `docs/**`, a different string.
+
+## DEC-195 — The four-angle simplify pass is the last build step and a plan-flow step, harness-native, never the validator lead
+
+A simplification pass had been run twice by hand, at a different moment each time, and both
+placements cost something measurable. The step's position in both flows is fixed here, together
+with the seat that was rejected for it, so no later planner re-litigates either.
+
+**The position, build flow.** Build, then the `test_matrix` qa gate, then SIMPLIFY — whose findings
+are applied **only where the domain guard grants the touched file to a specialist**, with the suites
+re-run after the apply — then pin `review_sha`, then the review panel, then goal-check. It sits
+before the pin because the apply moves the tip: run after the pin and the commit invalidates the
+verdict the panel just gave. It is sequenced as its own squad segment to `harness-eng-lead` rather
+than folded into the `build` team, because a team is single-squad by construction (DEC-118).
+
+**The position, plan flow.** The plan draft, then simplify over the plan surface, then the
+architecture and design reviews, then the operator's signature. Reviews read the simplified draft,
+and the operator signs what the reviews read.
+
+**The apply is conditional on surface ownership.** On a code surface the findings are applied by the
+specialist that owns each touched file, and the suites are re-run. **Where the domain guard resolves
+a touched path to NOBODY the finding is FLAG-ONLY**: it returns to the orchestrator with its
+concrete alternative and no apply is attempted, because a dispatched write to an ungranted surface
+is refused mid-run and the segment would come back with nothing applied and the finding lost. That
+NOBODY region is everything under `.claude/` except `skills/harness/bin/**` — which is precisely
+where a self-hosted feature does much of its work, so the gap is not a corner case here. **This is
+an implementation gap in the build-side apply, not a weakening of the ruling.** The pass remains the
+last build step, owned by the build side, applied before `review_sha` pins. The position is
+unchanged.
+
+**The plan-surface pass is flag-only for the same reason, and permanently.** `check-domain.sh`
+grants `plan.yaml` and `BRIEF.md` to `harness-pm` alone, so the eng squad produces findings and
+`harness-pm` applies them to its own draft. Forced by the guard, not chosen.
+
+**The bound on the apply: it may not delete or weaken an assertion.** The step runs after the qa
+gate has PASSed, and nothing afterwards re-assesses the test-matrix judgement or coverage adequacy.
+So "this asserts the same fact twice" is a backlog row, never an apply.
+
+**The second bound: the apply carries a ceiling of one fix.** Where an apply reddens the suites and
+a single fix does not restore green, the apply is reverted and the finding is filed as a backlog
+row. The ceiling is needed because this is the only permanent build step with no `max_cycles` of its
+own — `max_cycles` is an `on_fail` field of the team schema and this pass is an
+orchestrator-sequenced squad segment, so no file grants it one — and without a ceiling the repair
+loop is unbounded at the last step before `review_sha` pins. Both bounds are stated authoritatively
+in `.claude/skills/harness-simplify/SKILL.md` under `## Applying what comes back`; that section
+governs if the two ever drift. The step's position is unchanged by either bound.
+
+**The recurring cost, accepted, and there is deliberately no skip condition.** The step adds roughly
+a dozen spawns per feature — two lead segments, eight read-only passes, the appliers and a suite
+re-run — against the roughly 33 a feature already spends. No feature may skip it. Recorded as a
+decision so a later cost review reads the absence of a skip clause as a ruling rather than an
+oversight: a pass that runs at the wrong moment costs a validator round or delivers zero applicable
+findings, and both are worse than the spawns.
+
+**Who reads the angles: four spawns, one per angle, all read-only**, drawn from the eng squad by
+adjacency to the domains the diff touches. Four independent readers is the load-bearing part. One
+reader carrying four checklists is not the same pass and must not be substituted for it.
+
+**The two measurements that forced the position.** On FEAT-20 the pass ran after the validator's
+PASS at `6296149`; the apply commit moved the tip, invalidated the pinned verdict and cost a third
+validator round. On FEAT-22 the pass ran after the operator's signature and zero findings could be
+applied — four binding notes now sit beside the signed text in
+`notes/simplify-pass-2026-08-16.md` instead of inside it.
+
+**Why never the validator lead: the fixer is never the judge.** The validation tier's FAILs stick
+precisely because it is read-only on the source it rules on and could not have quietly fixed
+something and then forgiven it. A seat that has applied edits to a diff cannot certify that diff.
+
+**Why harness-native.** The methodology previously existed only in one session's dispatch prompts
+and in a plugin shipping outside this repository. A workflow step that depends on either breaks
+silently on a machine lacking it, which is the quiet-degradation shape the files-only constraint
+exists to prevent. The prompts are preserved verbatim in
+`.harness/harness/features/FEAT-23-ship-flow-fixes/notes/research-FEAT-23-simplify-angles-source.md`
+and the procedure ships at `.claude/skills/harness-simplify/SKILL.md`, read at the point of use and
+deliberately not preloaded.
+
+**The rejected alternative: a dedicated `harness-simplifier` agent.** Considered and refused. DEC-107
+and DEC-86 declare the roster complete at three leads, nine doers and three reviewers; the seat needs
+no write domain of its own and accumulates no expertise, so the price would be superseding a signed
+decision to buy nothing mechanical. Measured at `b7ae135`: no script in the tree validates roster
+composition — `check-domain.sh` harvests the names from `team-config.yaml` only to resolve domains,
+and the per-agent validation DEC-107 records checks each agent file's properties, not the size or
+shape of the roster. So the cost of a seventeenth agent is doctrinal, not CI breakage, and doctrinal
+is the expensive kind. Recorded here so a future scan does not re-suggest it.
+
+Lineage: DEC-118 for why this is a squad segment rather than part of the `build` team; DEC-107 and
+DEC-86 for the roster this refuses to grow; DEC-174, because the pass reads and applies across the
+harness's own tree and the enforcement-layer carve-out still governs what it may touch there.
+
+## DEC-196 — The harness moves any board card it is pointed at and closes only the cards it created, and its own board declares no stations
+
+Two shapes a future scan will try to add are refused here, and the boundary they would be added
+against is stated as the rule the code already enforces rather than the rule the doctrine assumed.
+
+**The rule: the harness MOVES any card it is pointed at, and CLOSES only cards it created.** Both
+halves are measured in the tree, not asserted. The parent station write inside `gh-sync.py`'s
+`_apply_parent_rule` carries no `parent_origin` check at all, so an adopted parent's card is moved
+today. The close is origin-gated, by the `parent_origin == "created"` branch in `cmd_ship` and by
+the matching branch in `cmd_abandon`. Cited by symbol deliberately and never by line number: this is
+a permanent record, the same feature that records it inserts statements into `gh-sync.py` that shift
+every line below `save_recorded`, and nothing in the tree detects a falsified statement left
+standing. Observed at `b7ae135`.
+
+**The consequence for the kickoff step.** `/harness-plan` moves the source ticket the operator names,
+and that ticket is usually a wayfinding ticket the harness did not create. That is consistent with
+the rule above, not an exception to it, and DEC-186 already lists setting a station among its three
+sanctioned read-back purposes.
+
+**No stations map is declared for the harness's own board.** `gh_board.set_station` takes the station
+as a plain string and `factory_gh.project_field_set` resolves the option BY NAME at runtime; nothing
+validates the string against a declared list, and the `Plan` option already exists on the harness
+board, so a declaration would buy nothing today. Issue 350 is CLOSED carrying a ruling that every
+board gains an explicit stations map and that `derive_station`'s hardcoded literals go — and that
+ruling has no open implementing ticket. Half-landing it here would leave a declaration that exactly
+one writer reads, which is worse than none.
+
+**The writer is a new bin, not a `gh-sync` subcommand.** `gh-sync.py`'s `main` takes the feature
+directory as a positional argument and exits when it is not a directory, before any subcommand
+dispatch, and derives the harness root by walking up from it. At plan kickoff there is no feature
+directory at all — the same fact that makes `gh-sync open` unrunnable that early. Forced by the
+file's structure, not chosen.
+
+**The accepted cost, stated as cost:** a second board-writing entry point, and one more call site to
+update when 350's restructure lands.
+
+Lineage: DEC-186 for the control plane and the three sanctioned read-back purposes this sits inside;
+DEC-192 for the status values the board columns carry; DEC-174, because the board writer is harness
+code the harness plans but the enforcement-layer carve-out bounds what may be dispatched against it.

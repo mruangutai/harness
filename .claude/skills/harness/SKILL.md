@@ -56,6 +56,22 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    hard gate (`harness.json` `gates.qa_gate: blocking`, the project's only blocking gate). On
    failure, `loop_back` to the dev that owns the task; the build is not done until the matrix
    passes. It is not a step the `build` team contains, because a team is single-squad (DEC-118).
+   Then **SIMPLIFY, the last build step**: once the matrix is green and BEFORE `review_sha` is
+   pinned — run it after the pin and the apply commit moves the tip, invalidating the verdict the
+   panel just gave. You sequence it as its own squad segment to `harness-eng-lead`, which runs the
+   four angles as four parallel read-only passes (one spawn per angle, drawn from the eng squad by
+   adjacency to the domains the diff touches) and routes each apply to the specialist owning the
+   touched file. Where the domain guard resolves a touched path to NOBODY the finding is
+   FLAG-ONLY and returns to you — attempting the apply there is refused mid-run and loses the
+   finding. A squad segment, not part of the `build` team, for DEC-118's reason above. The
+   procedure is `.claude/skills/harness-simplify/SKILL.md`, read at the point of use and
+   deliberately not preloaded. Re-run the suites after the apply, before the pin. **The apply may
+   not delete or weaken an assertion** — the qa gate has already PASSed on test-matrix judgement
+   and coverage adequacy, which nothing re-assesses afterwards, so "this asserts the same fact
+   twice" is a backlog row, never an apply. **The apply has a ceiling of one fix**: if it reddens
+   the suites and one fix does not restore green, revert and file the finding — this is the only
+   permanent build step with no `max_cycles` of its own. Never dispatched to the validator lead.
+   An empty pass is a real outcome; nothing is invented to justify the step.
    The INV-6 pin above applies unchanged: `review_sha` is pinned before any validator run.
 4. **Receive the team digest.** The `SubagentStop` hook has checked its shape and roll-up at source,
    but shape is not truth: spot-check `files_touched` against the artifacts when a claim matters.

@@ -415,6 +415,57 @@ def load_recorded(feat_dir):
     return rec
 
 
+def _atomic_write(path, text):
+    """ATOMIC WRITE ONLY (T-01/FEAT-23): serialise text into a tempfile created in the SAME
+    DIRECTORY as `path`, fsync it, then os.replace it onto `path`. No observer ever sees a
+    partial or zero-byte file. This is the write shape `save_recorded` already used below —
+    factored out so it has exactly one implementation instead of a second (or third) copy.
+
+    Deliberately NOT the read-and-decide policy: callers still load-modify-dump the document
+    themselves. `save_recorded`'s "start from an empty document when feature.json is absent"
+    behaviour stays in `save_recorded`, because the status write below must never create a
+    document that way — a fresh single-key document fails feature-schema.json's
+    additionalProperties: false (DEC-191)."""
+    dirpath = os.path.dirname(path) or "."
+    fd, tmp = tempfile.mkstemp(prefix=".feature.json.", suffix=".tmp", dir=dirpath)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def _record_status(feat_dir, status):
+    """Set feature.json's top-level `status` to the exact string `status` (Done or Abandoned,
+    T-01/FEAT-23) — the STATUS WRITE ONLY, via `_atomic_write`. A feature.json that is absent
+    or unreadable is not an error here (mirrors `_feature_status`'s own tolerance): both
+    `cmd_ship` and `cmd_abandon` are idempotent and the mirror never gates, so this prints one
+    plain line and returns rather than raising. This does NOT create a document when one is
+    absent — the schema's eight required keys (DEC-191) make a fresh single-key document
+    invalid, and creating one from a status write would be a second, incompatible
+    first-sync path alongside `save_recorded`'s own."""
+    path = os.path.join(feat_dir, "feature.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, ValueError):
+        print(f"gh-sync: {path} could not be read — status not recorded")
+        return
+    if not isinstance(doc, dict):
+        print(f"gh-sync: {path} is not a JSON mapping — status not recorded")
+        return
+    doc["status"] = status
+    _atomic_write(path, json.dumps(doc, indent=2) + "\n")
+    print(f"gh-sync: feature.json status -> {status}")
+
+
 def save_recorded(feat_dir, rec):
     """Read-modify-write the `github:` key into feature.json, ATOMICALLY (fix1 Part A).
 
@@ -446,21 +497,7 @@ def save_recorded(feat_dir, rec):
         "issues": dict(sorted(rec["issues"].items())),
     }
     text = json.dumps(doc, indent=2) + "\n"
-
-    dirpath = os.path.dirname(p) or "."
-    fd, tmp = tempfile.mkstemp(prefix=".feature.json.", suffix=".tmp", dir=dirpath)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(text)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp, p)
-    except BaseException:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
-        raise
+    _atomic_write(p, text)
 
 
 # ---------- commands ----------
@@ -600,8 +637,11 @@ def cmd_close_task(feat_dir, tid, repo, board):
 def cmd_abandon(feat_dir, repo, reason_file):
     """Terminal state: closes every recorded sub-issue not_planned, closes the milestone,
     posts the reason on the parent, and closes the parent itself only if `open` created it
-    (D-01) — an adopted parent, or one with no recorded origin, is left open. Writes no
-    receipt: this is a closing action, not a recording one, so `feature.json` is untouched."""
+    (D-01) — an adopted parent, or one with no recorded origin, is left open. After every
+    close has run, records feature.json's top-level `status` as `Abandoned` (T-01/FEAT-23) —
+    the write is the LAST STATEMENT of this function's successful path, structurally: the
+    early exit above is a CONJUNCTION (milestone is None AND no recorded issues), not a
+    single milestone check, so the status write is never re-gated on the milestone alone."""
     reason_file = post_body_path(reason_file, "--reason-file")
     rec = load_recorded(feat_dir)
     if rec["milestone"] is None and not rec["issues"]:
@@ -636,6 +676,11 @@ def cmd_abandon(feat_dir, repo, reason_file):
             print(f"gh-sync: parent #{rec['parent']} left open "
                   f"(origin={rec['parent_origin'] or 'none'})")
 
+    # LAST STATEMENT of the successful path (T-01/FEAT-23) — structural, not re-gated on
+    # the milestone check above (that guard is a conjunction with the issues check, not
+    # this write's business). Reaching here already proves `skip()` did not fire.
+    _record_status(feat_dir, "Abandoned")
+
 
 def cmd_backlog(feat_dir, repo, items):
     """User-accepted residual findings -> plain backlog issues (DEC-138 am.4).
@@ -662,8 +707,10 @@ def cmd_backlog(feat_dir, repo, items):
 def cmd_ship(feat_dir, repo, body_file=None):
     """Terminal state: PATCHes the milestone closed unconditionally, and — the mirror image
     of `abandon` step 4 — closes the parent only if `open` created it (D-01, SC-04): an
-    adopted parent, or one with no recorded origin, is left open. Writes no receipt: this is
-    a closing action, not a recording one, so `feature.json` is untouched."""
+    adopted parent, or one with no recorded origin, is left open. After the close has run,
+    records feature.json's top-level `status` as `Done` (T-01/FEAT-23) — the write is the
+    LAST STATEMENT of this function's successful path, structurally: `skip()` calls
+    sys.exit(0), so reaching this point is itself the proof no early-exit branch fired."""
     if body_file is not None:
         body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)
@@ -691,6 +738,10 @@ def cmd_ship(feat_dir, repo, body_file=None):
     gh(["api", "-X", "PATCH", f"repos/{repo}/milestones/{rec['milestone']}",
         "-f", "state=closed"])
     print(f"gh-sync: milestone #{rec['milestone']} closed")
+
+    # LAST STATEMENT of the successful path (T-01/FEAT-23) — structural, not re-gated on
+    # the milestone check above. Reaching here already proves `skip()` did not fire.
+    _record_status(feat_dir, "Done")
 
 
 def main():

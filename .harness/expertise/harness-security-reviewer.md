@@ -109,12 +109,16 @@
 - G-12: WHEN classifying a finding's remedy routing DO classify by which file or layer the
   stated remedy would change, not by where the defect was found — a data-file defect can still
   need an enforcement-layer fix under a carve-out, while a narrower same-layer remedy would not.
+- G-13: WHEN a threat_model entry is unmitigated in prose (assessed-and-dismissed,
+  precondition-absent, or scope-closed) DO set its structured `mitigated` field to false, not
+  true — a downstream reader routes on the YAML field, never the prose; a mismatched field
+  misroutes even when the prose reasoning is correct.
 
 ## Outcomes (max 10)
-- O-01: WHEN a surface looks clean on first read DO close with identity-level
-  evidence (assertions proving equality, consumers traced to their actual write)
-  not a read-and-conclude — a zero-finding review is otherwise indistinguishable
-  from a shallow pass to anyone downstream.
+- O-01: WHEN a review closes clean DO require identity-level evidence — assertions proving
+  equality, consumers traced to their actual write, or an applied-and-killed mutant — not a
+  read-and-conclude. Re-executing an already-green suite is confirmatory, not identity-level: it
+  re-confirms what was never in doubt and discriminates nothing.
 - O-02: WHEN closing a theoretical vulnerability class (ReDoS backtracking, path-precedence,
   race ordering) DO produce a runnable measurement — timed adversarial input, printed resolved
   value — rather than a structural argument alone; complexity-class and language-semantics

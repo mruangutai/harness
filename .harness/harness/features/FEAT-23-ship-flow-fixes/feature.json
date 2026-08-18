@@ -1,0 +1,133 @@
+{
+  "feature_id": "FEAT-23-ship-flow-fixes",
+  "branch": "feat/FEAT-23-ship-flow-fixes",
+  "pr": null,
+  "status": "Done",
+  "review_sha": "1d49644",
+  "cycles_used": 5,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-17-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-2-archreview-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-2-uireview-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-3-foldin-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-3-revise-product",
+      "squad": "product",
+      "verdict": "INCOMPLETE"
+    },
+    {
+      "id": "2026-08-17-4-revise-product",
+      "squad": "product",
+      "verdict": "INCOMPLETE"
+    },
+    {
+      "id": "2026-08-17-5-foldin2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-5-revise-product",
+      "squad": "product",
+      "verdict": "INCOMPLETE"
+    },
+    {
+      "id": "2026-08-17-6-t01t05-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-7-t05-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-17-8-t04-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-9-qa-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-10-simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-11-panel-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-11-goalcheck-product",
+      "squad": "product",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-17-12-dec195-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-13-distill-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-13-distill-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-13-distill-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-17-14-finalpass-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    }
+  ],
+  "github": {
+    "milestone": 14,
+    "parent": 454,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 455,
+      "T-02": 456,
+      "T-03": 457,
+      "T-04": 458,
+      "T-05": 459,
+      "T-06": 460
+    }
+  }
+}

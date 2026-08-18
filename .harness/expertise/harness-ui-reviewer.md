@@ -30,5 +30,6 @@
 - O-01: WHEN a scoped-out verdict rests on a measured check (extension census, direct object check) rather than a prediction DO record it as such — a scoped-out review that looked holds up under cross-review scrutiny; one that merely predicted absence does not.
 - O-02: WHEN declining a sub-question because it sits outside your lens (e.g. path arithmetic, message semantics, test-mutation correctness) DO name the peer lens that should cover it in your return — a decline that names the receiving lens produced real coverage under panel review; a silent decline would not.
 - O-03: WHEN citing a peer artifact as covering ground your own remit scoped out DO check whether that artifact predates the change it is cited for, and raise it as an open question rather than assume — provenance is checkable from any lens, and panel review confirmed this call correct.
+- O-04: WHEN a Mode A census measured no UI surface but your Mode A note left opens unresolved DO treat the opens as in-remit Mode B work, not grounds to decline — lead review confirmed: a census answers whether a surface exists, not whether prior opens are discharged.
 
 ## Open (max 5)

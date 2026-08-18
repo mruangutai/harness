@@ -17,9 +17,9 @@
 - P-05: WHEN raising a review finding about a structural gap DO phrase it as the gap itself, not a
   proposed fix — a finding named this way survived a later redirect that changed the whole fix
   mechanism, while a fix-shaped finding would not have.
-- P-06: WHEN a task extracts text via an awk/sed line-range or tail-anchored match DO verify the
-  anchor pattern occurs exactly once in the target file — a second match silently shifts the
-  extracted range with no error.
+- P-06: WHEN the mandated pre-edit RED run passes on an untouched tree DO stop — a green RED means
+  the premise is stale or the test is vacuous, not permission to proceed — and establish provenance
+  from on-disk artifacts before writing or overwriting anything.
 - P-07: WHEN adding or fixing an assertion to close a vacuous-pass gap DO prove it with a mutant,
   predicting by name which checks redden before the run — and treat "a different check reddened
   instead" as a FAIL of the fix, not a pass.
@@ -39,12 +39,14 @@
 - P-12: WHEN naming a test assertion for a property DO name it only for what the assertion can
   actually distinguish — a call-tuple equality check named "no state scoping" asserts nothing about
   state and passes vacuously even after the real state-scoping property breaks.
-- P-13: WHEN production code was edited before RED was watched DO disclose the lapse, then
-  reconstruct RED as evidence: hash the edited file, swap in `git show HEAD:<path>` over it,
-  confirm the expected failures, restore, and re-verify the hash — never treat it as harmless.
-- P-14: WHEN asserting on recorded subprocess argv against this repo's gh-call fakes DO scope
-  comparisons to argv[1:3], not argv[0:2] — argv[0] is always the gh binary, so a [0:2]-anchored
-  assertion against a subcommand pair can never match and passes vacuously.
+- P-13: WHEN production code was edited before RED was watched DO reconstruct RED: hash the file,
+  restore its pre-edit state (`git show HEAD:<path>` if tracked, moved out of the tree if
+  untracked), confirm the expected failures, restore, and re-verify the hash — never treat the
+  lapse as harmless.
+- P-14: WHEN a side-effecting write must not fire on an early-exit path DO place it as the
+  unconditional last statement reached after every exit primitive (e.g. `sys.exit`), not behind a
+  conditional guard enumerating exit cases — reaching that statement is itself the proof no early
+  exit fired.
 - P-15: WHEN measuring a live call's cost or side effects DO bracket it with a null-control read
   taken before the window and derive any independent reference value only after the window closes —
   deriving the reference inside the window risks contaminating the number being measured.

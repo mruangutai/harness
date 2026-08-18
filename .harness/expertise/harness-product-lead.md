@@ -76,6 +76,18 @@
 - G-09: WHEN two records report different numbers under one label DO compare the invocations that
   produced them before calling either drift — differing commands make agreement and disagreement
   equally uninformative, and a spelling or exclusion gap is settleable without a shell.
+- G-10: WHEN a fix you are about to route will move the commit a gate is currently running against
+  DO sequence the fix and re-pin before accepting that gate's verdict — a concurrent panel's PASS
+  covers the tree it started on, and neither party sees the collision.
+- G-11: WHEN grepping for an anchor phrase inside a YAML block scalar or hard-wrapped prose DO
+  search one distinctive token rather than the multi-word phrase — a line wrap splits the phrase
+  across two physical lines, and grep then reports ABSENT what is present and correctly written.
+- G-12: WHEN a grep over your own run directories returns zero DO confirm the tool honours ignore
+  rules before calling it absent — run state is commonly gitignored as ephemeral, and a
+  ripgrep-backed search silently reports nothing over exactly the artifacts your tier verifies.
+- G-13: WHEN a dispatch names one digest by path DO enumerate the run dir before quoting from it —
+  concurrent passes write sibling filenames rather than overwriting, so a run dir is not guaranteed
+  to hold exactly one, and findings in the sibling reach nobody.
 
 ## Outcomes (max 10)
 - O-01: WHEN a cosmetic defect sits in a file a human is already about to open DO fold it into that

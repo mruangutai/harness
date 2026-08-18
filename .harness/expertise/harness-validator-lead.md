@@ -96,9 +96,9 @@
 - O-01: WHEN dispatching a review panel DO name the already-ruled items in the prompt —
   pre-briefing suppressed every re-discovery without suppressing new probing, so it buys back
   reviewer attention at no cost to independence.
-- O-02: WHEN judging relay quality DO require each member to record rejections with reasons — a
-  member rejecting a candidate as already covered by a preloaded rule is filtering, and a round
-  with zero rejections anywhere is the signal to distrust.
+- O-02: WHEN a distillation round returns zero member rejections DO check your own relay before
+  distrusting it — a lead that filtered already-covered or false candidates pre-relay produces
+  zero legitimately, so record your pre-relay rejections beside the members'.
 - O-03: WHEN a reviewer self-scopes out DO require the census or object check it actually measured
   before crediting the decline — a decline that looked survives cross-review, one that predicted
   absence does not, and only the first is evidence.

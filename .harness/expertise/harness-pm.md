@@ -12,9 +12,9 @@
 - P-03: WHEN a criterion declares automated verification DO NOT admit a source-code reading as its
   evidence — that converts it to inspection, and the method is fixed at approval. Name the passing
   test, or return the criterion not met.
-- P-04: WHEN a criterion enumerates N distinctions or shapes DO map each to an assertion of its own
-  and read that assertion, never matching counts. Equal counts hide a miscredited neighbour, and
-  inequality is not transitive — the enumeration can be half-covered while every count agrees.
+- P-04: WHEN a criterion quantifies over N items DO give each item its own assertion, in the verify
+  you author and again when grading. A file-global search or a matching count is satisfied by the
+  conformers alone, blind to the one item that conforms to nothing.
 - P-05: WHEN grading a criterion DO grade its own full text: a leading claim broader than its
   enumerated list still binds, and an enumeration delivered in part is not met, never partial.
   Met on a method that cannot detect the failure it exists to detect is worse than unmet.
@@ -41,9 +41,9 @@
   target site necessarily contains, greped against the real file — never from the shape of the
   commonest site. An optional trailing fragment makes variant sites invisible, and the sweep then
   reports clean over them.
-- P-13: WHEN a criterion's clauses are verified DO count techniques, not clauses. Several source
-  greps share one blind spot, and a single idiom change defeats them together. Balanced clause and
-  fixture counts hide this. Give at least one clause a behavioural check.
+- P-13: WHEN judging whether a criterion is covered DO count independent methods, not clauses or
+  concurring readers. Checks sharing one method share one blind spot, and a second reader who
+  repeats that method is one measurement counted twice. Give at least one clause a behavioural check.
 - P-14: WHEN a dispatch hands you a count that a plan step must assert DO recompute it against the
   tree that step will run in. A handed-down count can describe the unremedied state, and earlier
   steps of the same remedy often remove one — a stale count manufactures a mid-sequence halt.
@@ -58,9 +58,10 @@
 - G-02: WHEN resolving which lane may write a path DO run the domain guard on the path and read its
   exit code. Reading the team config gave the wrong lane where the live hook gave the right one,
   and a dispatch naming a path is not evidence the path is granted.
-- G-03: WHEN collecting command evidence for an automated criterion DO redirect the run to a file
-  and grep it. Piping a multi-script runner to `tail`/`head` truncates the earlier output away and
-  reports the pipe's exit status, not the runner's — the evidence disappears silently.
+- G-03: WHEN collecting command evidence for an automated criterion DO capture output by command
+  substitution and grep the variable. Piping to `tail`/`head` truncates earlier output and reports
+  the pipe's exit status, not the runner's; a redirect captures whole but is a write, refusable
+  where the path is not granted.
 - G-04: WHEN a verify slices a region anchored on a label's FIRST occurrence DO bound the region
   on both sides, or assert the label occurs once. A stray earlier mention relocates the region onto
   unrelated code that already satisfies the count, and the clause greens on work never done.
@@ -108,5 +109,8 @@
 - O-03: WHEN proving a multi-grep verify block against a mutated file DO give every grep its own
   process substitution. One shared `<(...)` is a one-shot stream: the first grep drains it, so later
   absence checks pass and presence checks fail, inverting the whole ladder.
+- O-04: WHEN proving a NEW conjunct of an and-chained verify can turn green DO build a temp tree
+  where every earlier conjunct passes, then mutate only the new one. On the pre-change tree an
+  earlier conjunct exits first, so the new one never runs and its green is assumed, never observed.
 
 ## Open (max 5)
