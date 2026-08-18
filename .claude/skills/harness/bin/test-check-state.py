@@ -1306,9 +1306,12 @@ def case_u():
 
 
 
+_SENTINEL = object()
+
+
 def _inv26_fixture(root, feat, task_status, card_status, parent_status,
                    issues=None, feature_status="Building", second_status=None,
-                   second_card=None, factory=None):
+                   second_card=None, factory=None, board_override=_SENTINEL):
     """One INV-26 fixture: harness.json with sync+repo+board, one feature with a plan,
     a feature.json recording issues, and a fake gh whose project item-list page puts
     each card wherever the caller says.
@@ -1321,9 +1324,19 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
     fd = os.path.join(h, "harness", "features", feat)
     os.makedirs(fd, exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
+        # THE FIVE STATIONS ARE REQUIRED NOW (FEAT-24 T-04/T-05). Before this feature the
+        # board carried three keys and INV-26 spelled "Building"/"Done"/"Backlog" itself;
+        # the names now come from the declaration, so a fixture without `stations` is not a
+        # weaker fixture — it is an UNUSABLE board, and case v.13 asserts that it is
+        # reported as one. `board_override` lets a case ship a deliberately broken board.
+        _board = {"owner": "org", "number": 3, "station_field": "status",
+                  "stations": {"backlog": "Backlog", "ready": "Ready",
+                               "building": "Building", "review": "Review",
+                               "done": "Done"}}
+        if board_override is not _SENTINEL:
+            _board = board_override
         json.dump({"github": {"sync": True, "repo": "org/repo",
-                              "board": {"owner": "org", "number": 3,
-                                        "station_field": "status"}}}, f)
+                              "board": _board}}, f)
     with open(os.path.join(fd, "plan.yaml"), "w") as f:
         f.write("schema: plan/1\nfeature: %s\napproval:\n  status: approved\n"
                 "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
@@ -1519,6 +1532,56 @@ def case_v():
         results.append(("(v.12) the same fixture with an EMPTY factory.issues still "
                         "fires — the exemption keys on recorded issues, not the block",
                         bool(ls), "(no INV-26 line)"))
+
+    # --- v.13 THE INVERSE OF THE OLD BEHAVIOUR (FEAT-24 T-05). A board that is present but
+    # broken used to make load_board return None, which made INV-26 vacuous and left the gate
+    # GREEN — the silent mode this feature exists to remove. It must now be REPORTED, and the
+    # gate must COMPLETE rather than traceback: a crashed gate reports no invariant at all,
+    # which is a worse silence than the one being fixed.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review",
+                              board_override={"owner": "org", "number": 3,
+                                              "station_field": "status"})
+        c, out = _run_with_gh(tmp, fake)
+        ls = [l for l in _lines(out) if "CANNOT RUN" in l]
+        named = bool(ls) and "stations" in ls[0]
+        results.append(("(v.13) a board missing `stations` is REPORTED, naming the offending "
+                        "key, and the gate still completes",
+                        bool(ls) and named and c == 1 and "Traceback" not in out,
+                        "lines=%r exit=%s traceback=%s"
+                        % (ls[:1], c, "Traceback" in out)))
+
+    # --- v.14 THE NULL TWIN. v.13 and v.14 differ in the board value ALONE. Without this,
+    # v.13 is satisfied by an invariant that reports every board it sees, including the one
+    # shape that is a deliberate declaration rather than a defect: `board: null` means this
+    # project HAS no board and is not misconfigured.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review",
+                              board_override=None)
+        c, out = _run_with_gh(tmp, fake)
+        results.append(("(v.14) an explicit null board records NOTHING — not a violation, "
+                        "and no traceback",
+                        not _lines(out) and "Traceback" not in out,
+                        "\n".join(_lines(out)) or "(unexpected INV-26 line)"))
+
+    # --- v.15 THE STATION NAMES COME FROM THE BOARD, NOT FROM check-state.sh. The fixture
+    # renames every column, so a build that still spells "Building"/"Done"/"Backlog" itself
+    # reports a violation against a card that is in fact correctly placed. Deleting the
+    # _EXPECT lookup and restoring the literals reddens exactly this case and nothing else.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Shipped", "Review",
+                              board_override={"owner": "org", "number": 3,
+                                              "station_field": "status",
+                                              "stations": {"backlog": "Icebox",
+                                                           "ready": "Primed",
+                                                           "building": "WIP",
+                                                           "review": "Review",
+                                                           "done": "Shipped"}})
+        c, out = _run_with_gh(tmp, fake)
+        results.append(("(v.15) a done card in this board's OWN `done` column (Shipped) is "
+                        "not a violation — the expected column is read from the declaration",
+                        not [l for l in _lines(out) if "CANNOT RUN" not in l],
+                        "\n".join(_lines(out)) or "(unexpected INV-26 line)"))
 
     allok = True
     for name, ok, detail in results:

@@ -446,23 +446,15 @@ def run_fleet():
     # allow here would flip to exit 2 then — collapsing case (a) and case (b) into
     # both-halves-refuse, which is exactly the degenerate pair these cases exist to
     # rule out.
-    # A fleet that load_fleet actually ACCEPTS. The first draft of this fixture omitted
-    # board.station_field and board.stations, and case (d) caught it by failing — which
-    # is the assertion doing its job: an under-specified fixture would otherwise have
-    # tested the failure path twice and never the success path.
+    # A fleet that load_fleet actually ACCEPTS. The board no longer lives here (T-02/T-03) — a
+    # fleet member's board is read remotely, through factory_config.product_config, and never
+    # from a repos[] entry. This fixture exercises the write guard through resolve_fleet, which
+    # reads name and workspace_root only, so nothing about it needs a board at all.
     good_repos = ("schema: factory-fleet/1\n"
                   "workspace_root: /tmp/harness-fixture-workspaces\n"
                   "repos:\n"
                   "  - name: nobody/example\n"
-                  "    default_branch: main\n"
-                  "    board:\n"
-                  "      owner: nobody\n"
-                  "      number: 1\n"
-                  "      station_field: Status\n"
-                  "      stations:\n"
-                  "        ready: Ready\n"
-                  "        building: Building\n"
-                  "        review: Review\n")
+                  "    default_branch: main\n")
 
     # (a) NO fleet file — the no-factory project. Paired with (b) below, because an
     # allow-all guard passes (a) alone and a block-all guard passes (b) alone.
@@ -500,9 +492,7 @@ def run_fleet():
         FIXTURE_MANIFEST,
         "schema: factory-fleet/1\n"
         "repos:\n"
-        "  - { name: nobody/example, default_branch: main, board: { owner: nobody, "
-        "number: 1, station_field: Status, stations: { ready: Ready, building: "
-        "Building, review: Review } } }\n")
+        "  - { name: nobody/example, default_branch: main }\n")
     c = fire(nows_root, ".harness/allowed/x.md")
     fleet_case(
         "(c) a fleet that parses but omits workspace_root refuses the owned write",
@@ -551,15 +541,7 @@ shared:
                       f"workspace_root: {ws}\n"
                       "repos:\n"
                       "  - name: acme/widget\n"
-                      "    default_branch: main\n"
-                      "    board:\n"
-                      "      owner: nobody\n"
-                      "      number: 1\n"
-                      "      station_field: Status\n"
-                      "      stations:\n"
-                      "        ready: Ready\n"
-                      "        building: Building\n"
-                      "        review: Review\n")
+                      "    default_branch: main\n")
     tb = fixture_fleet(two_base_manifest, two_base_fleet)
     prod_src = os.path.join(ws, "widget", "src", "main.py")
 
@@ -640,15 +622,7 @@ shared:
                 f"workspace_root: {workspace}\n"
                 "repos:\n"
                 "  - name: acme/widget\n"
-                "    default_branch: main\n"
-                "    board:\n"
-                "      owner: nobody\n"
-                "      number: 1\n"
-                "      station_field: Status\n"
-                "      stations:\n"
-                "        ready: Ready\n"
-                "        building: Building\n"
-                "        review: Review\n")
+                "    default_branch: main\n")
 
     # PAIR A — the PRODUCT half. One persona, exactly one writable glob, product-shaped.
     ws_a = tempfile.mkdtemp()

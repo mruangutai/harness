@@ -525,6 +525,41 @@ with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
         _ok = _result["number"] == 3
     check("product_config never falls back to a checkout", _ok, _result)
 
+# (iii-b) FIX-C1 F-5: a failing remote read raises, even with a checkout PRESENT on disk carrying
+# a valid board — D-03's clause is "no cached value is consulted when a read fails", and this is
+# the one cell that clause depends on that no fixture in this file previously exercised. The
+# checkout's board number (777333) is a value used nowhere else in this file, so a fallback would
+# be caught either by the raise not happening or by the value leaking into the message.
+with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
+    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict(workspace_root=ws)))
+    _repo = "mruangutai/harness"
+    _stale_checkout_board = board_dict(777333)
+    _checkout_dir = fc.workspace_path(fleet, _repo)
+    os.makedirs(os.path.join(_checkout_dir, ".harness"), exist_ok=True)
+    with open(os.path.join(_checkout_dir, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump(config_doc(_stale_checkout_board), f)
+
+    _stub_calls = []
+
+    def _raising_stub_with_checkout(repo, path, ref, _calls=_stub_calls):
+        _calls.append((repo, path, ref))
+        raise fc.factory_gh.GhError(
+            ["gh", "api", "repos/mruangutai/harness/contents/.harness/harness.json"],
+            1, "", "500", "gh call failed", repo, "retry",
+        )
+
+    with patched_file_at_ref(_raising_stub_with_checkout):
+        try:
+            got = fc.board_for(fleet, _repo)
+            _raised, _msg = False, "did not raise"
+        except fc.FleetError as e:
+            got, _raised, _msg = None, True, str(e)
+    _ok = (_raised
+           and len(_stub_calls) >= 1
+           and "777333" not in _msg)
+    check("product_config never falls back to a checkout on disk when the remote read fails",
+          _ok, (got, _msg, _stub_calls))
+
 # (iv) memoisation: a second board_for makes no second remote read; a failing read is never
 # cached (both required by THE MEMO TRAP).
 with tempfile.TemporaryDirectory() as td:

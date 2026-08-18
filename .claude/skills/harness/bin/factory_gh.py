@@ -436,7 +436,7 @@ def file_at_ref(repo, path, ref):
     ref not found, unauthenticated gh, and a `content` field that is absent or does not
     base64-decode. A caller must never mistake "not there" for "empty file" (D-02).
     """
-    argv = ["api", f"repos/{repo}/contents/{path}", "-f", f"ref={ref}", "--jq", ".content"]
+    argv = ["api", f"repos/{repo}/contents/{path}?ref={ref}", "--jq", ".content"]
     value = f"{repo} {path}@{ref}"
     try:
         raw = run_gh(argv)

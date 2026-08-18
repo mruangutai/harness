@@ -22,20 +22,26 @@ wrong value fails loudly at the board instead of silently against a stale local 
 EVERY line this tool prints, on stdout or stderr, carries the "board-station: " prefix — the
 environmental lines below included, matching `gh-sync.py`'s own universal prefix discipline.
 
-EXIT CONTRACT, scoped to what code can hold: for any argument list this tool receives on the
-command line, 2 is the ONLY non-zero exit, and it is reserved for a caller mistake — a missing
-or extra argument, or an issue number that is not a positive integer. Outside that scope the
+EXIT CONTRACT, scoped to what code can hold: 2 means EITHER a caller mistake — a missing or
+extra argument, or an issue number that is not a positive integer — OR an unusable board
+declaration (FEAT-24 T-04): `github.board` absent, present but not a mapping, or malformed in
+any field `factory_config.validate_board` checks. Both are refusals a human must fix, so they
+share one exit code and one stream: for the board case, one line on stderr, `str(exc)`
+verbatim, already carrying the offending key and the next step. Outside that scope the
 interpreter still owns the exit: a closed stdout ends in 120 at shutdown flush, which no guard
-in this file can prevent and none pretends to. Every environmental
-precondition (no harness root, no harness.json, no github block, sync off, no repo pinned, no
-board configured) prints one plain line and exits 0 having written nothing. The board write
-itself is wrapped in a broad `except Exception`: a `gh_board.BoardError` is the documented
-failure, but `factory_gh.run_gh(json_out=True)` also calls `json.loads` UNGUARDED, so a
-non-JSON exit-0 response raises `ValueError`, and `OSError` is unguarded too — any of these
-reaching the top as a traceback would abort an operator's planning session, which the EXIT CONTRACT
-paragraph above forbids. So every exception class from the write is reported as ONE line on stderr and
-the process still exits 0 (D-02's mirror-write rule, applied here). `factory_gh.preflight()` is
-never called — its callers exit non-zero, and this tool's callers must not.
+in this file can prevent and none pretends to. The remaining environmental preconditions — no
+harness root, no harness.json, no github block, sync off, no repo pinned, or `github.board`
+declared as an EXPLICIT null — still print one plain line and exit 0 having written nothing;
+an explicit null is a project's own declaration that it has no board, never the same state as
+a misconfiguration. The board write itself is wrapped in a broad `except Exception`: a
+`gh_board.BoardError` is the documented failure, but `factory_gh.run_gh(json_out=True)` also
+calls `json.loads` UNGUARDED, so a non-JSON exit-0 response raises `ValueError`, and `OSError`
+is unguarded too — any of these reaching the top as a traceback would abort an operator's
+planning session, which the EXIT CONTRACT paragraph above forbids. So every exception class
+from the write is reported as ONE line on stderr and the process still exits 0 (D-02's
+mirror-write rule, applied here — this is a STATION WRITE failure, not an unusable
+declaration, and the two exit differently on purpose). `factory_gh.preflight()` is never
+called — its callers exit non-zero, and this tool's callers must not.
 """
 import json
 import os
@@ -44,6 +50,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+import factory_config  # noqa: E402
 import gh_board  # noqa: E402
 
 USAGE = (
@@ -129,7 +136,15 @@ def main(argv):
         out("github.repo is not pinned — nothing written")
         return 0
 
-    board = gh_board.load_board(root)
+    try:
+        board = gh_board.load_board(root)
+    except factory_config.FleetError as exc:
+        # An unusable board declaration is a caller-mistake-class refusal (D-01, D-07),
+        # not an environmental precondition — str(exc) is printed VERBATIM, not composed,
+        # because it already carries the offending key and the next step from
+        # factory_cli.body(what, value, next_step).
+        err(str(exc))
+        return 2
     if board is None:
         out("no github.board configured — nothing written")
         return 0

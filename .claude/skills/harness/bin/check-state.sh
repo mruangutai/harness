@@ -1111,8 +1111,14 @@ if _wt_seg:
 # unconfigured environment must never become a red gate.
 try:
     import gh_board as _gb
+    # factory_config comes with it because load_board now RAISES FleetError rather than
+    # returning None on an unusable declaration (T-04), and a caller that wants to catch it
+    # must import the module that defines it. One try, not two: both ship with this
+    # repository, so either being unimportable is the same defect in the tree.
+    import factory_config as _fc26
 except Exception as _gbe:
     _gb = None
+    _fc26 = None
     bad.append("INV-26 CANNOT RUN: gh_board.py did not import (%s: %s), so a board that "
                "disagrees with the plan would go unreported. The module ships with this "
                "repository — restore .claude/skills/harness/bin/gh_board.py."
@@ -1128,7 +1134,20 @@ if _gb is not None:
     _g26 = cj.get("github") if isinstance(cj, dict) else None
     _repo26 = (_g26 or {}).get("repo")
     if isinstance(_g26, dict) and _g26.get("sync") is True and _repo26:
-        _inv26_board = _gb.load_board(root)
+        # AN UNUSABLE BOARD IS A VIOLATION, NOT SILENCE — the exact inverse of the behaviour
+        # this task removes. load_board used to return None for both "no board declared" and
+        # "board declared and broken", so a typo made INV-26 vacuous and left the gate GREEN.
+        # It now raises for everything except an explicit null, and the gate must COMPLETE
+        # and report rather than abort: one entry, then the rest of INV-26 is skipped.
+        try:
+            _inv26_board = _gb.load_board(root)
+        except Exception as _be26:
+            _inv26_board = None
+            if _fc26 is not None and isinstance(_be26, _fc26.FleetError):
+                bad.append("INV-26 CANNOT RUN: %s — the board declaration is unusable, so a "
+                           "card that disagrees with the plan would go unreported." % _be26)
+            else:
+                raise
 
 if _inv26_board:
     # gh absent or unauthenticated is an environmental precondition (DEC-138's verbatim
@@ -1153,9 +1172,13 @@ if _inv26_board:
             _stations = None
 
     if _stations is not None:
-        # plan status -> the column that status means. `pending` is Backlog because Backlog
-        # is where gh-sync's `open` lands every issue and nothing moves it until start-task.
-        _EXPECT = {"building": "Building", "done": "Done", "pending": "Backlog"}
+        # plan status -> the column that status means, NAMED BY THE BOARD ITSELF rather
+        # than by a literal spelled here (FEAT-24 T-05). `pending` maps to the declared
+        # `backlog` station because that station is where gh-sync's `open` lands every issue
+        # and nothing moves it until start-task.
+        _st26 = _inv26_board["stations"]
+        _EXPECT = {"building": _st26["building"], "done": _st26["done"],
+                   "pending": _st26["backlog"]}
 
         for _fp in sorted(glob.glob(os.path.join(H, "*", "features", "*"))):
             _feat = os.path.basename(_fp)
@@ -1177,7 +1200,7 @@ if _inv26_board:
             if str(_fj.get("status") or "").split()[:1] in (["Done"], ["Abandoned"]):
                 continue
 
-            _derived = _gb.derive_station(_pdoc)
+            _derived = _gb.derive_station(_pdoc, _inv26_board)
 
             # A None derivation silences the PARENT claim ONLY. It used to `continue` here
             # and skip the whole feature, which took the per-task comparison with it — and

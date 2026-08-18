@@ -111,3 +111,24 @@
   problems — one an unowned fixture, one a pair of assertions the design deliberately falsifies,
   living in a file another task owns. A count alone would have routed both to the same place.
 
+- 2026-08-19: RUN THE FEATURE'S CENTRAL PATH LIVE BEFORE ACCEPTING A GREEN SUITE. Four member PASSes,
+  a 13-mutation proof table and 78/78 all held while `board_for(kaya)` — the one call the whole
+  feature exists to make — raised against a file that was demonstrably readable. Cause:
+  `factory_gh.file_at_ref` built `gh api <url> -f ref=<branch>`, and `-f` adds a BODY parameter, which
+  makes gh switch the method to POST; the contents endpoint then 404s. Every test drove a fake gh
+  recorder that models argv but not the HTTP method, and the one assertion about the ref was
+  `any("ref=main" in a for a in argv)` — satisfied by the broken form. A fake that cannot represent
+  the dimension the bug lives in produces green that means nothing, and no amount of mutation testing
+  inside that fake can see it.
+
+- 2026-08-19: The generalisable check is cheap: for any task whose product is an integration, call
+  the real thing once, at the orchestrator tier, before committing. One `python3 -c` importing the
+  module and invoking the top-level function found what six spawns and two review passes did not.
+  Prefer the invocation the FEATURE promises over the one the tests exercise.
+
+- 2026-08-19: When a lead escalates a finding as "a scope change I cannot authorize", check whether
+  the requirement is already approved and merely unproven. F-5 was an untested cell of a signed
+  decision's clause — approved-but-unmet routes as a fix cycle on my authority, not as a plan
+  amendment needing a signature. Leads are correctly conservative here; resolving it is my job, and
+  saying WHICH of the two it is settles the routing in one step.
+

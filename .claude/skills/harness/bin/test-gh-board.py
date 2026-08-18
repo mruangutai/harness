@@ -21,6 +21,7 @@ sys.path.insert(0, HERE)
 
 import gh_board  # noqa: E402
 import factory_gh  # noqa: E402
+import factory_config  # noqa: E402
 
 FAILURES = []
 
@@ -62,20 +63,102 @@ def fake_gh_failing(tmp):
 
 # ---------------- load_board ----------------
 
+FULL_STATIONS = {
+    "backlog": "Backlog", "ready": "Ready", "building": "Building",
+    "review": "Review", "done": "Done",
+}
+
+
+def full_board(**overrides):
+    board = {"owner": "mruangutai", "number": 3, "station_field": "Status",
+              "stations": dict(FULL_STATIONS)}
+    board.update(overrides)
+    return board
+
+
+def raised_exc(root):
+    """Call load_board(root), returning the raised FleetError, or None if it did not raise."""
+    try:
+        gh_board.load_board(root)
+    except factory_config.FleetError as exc:
+        return exc
+    return None
+
+
 with tempfile.TemporaryDirectory() as tmp:
+    write_harness_json(tmp, {"sync": True, "repo": "o/r", "board": None})
+    check("load_board: an explicit null board is accepted and returns None",
+          gh_board.load_board(tmp) is None)
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, ".harness", "harness.json")
     write_harness_json(tmp, {"sync": True, "repo": "o/r"})
-    check("load_board: no board key -> None", gh_board.load_board(tmp) is None)
+    exc = raised_exc(tmp)
+    check("load_board raises naming the file and the key: no board key",
+          exc is not None and "github.board" in str(exc) and path in str(exc), str(exc))
 
 with tempfile.TemporaryDirectory() as tmp:
-    write_harness_json(tmp, {"board": {"owner": "mruangutai", "number": 3}})
-    check("load_board: board missing station_field -> None", gh_board.load_board(tmp) is None)
+    path = os.path.join(tmp, ".harness", "harness.json")
+    write_harness_json(tmp, {"board": "not-a-mapping"})
+    exc = raised_exc(tmp)
+    check("load_board raises naming the file and the key: board is not a mapping",
+          exc is not None and "github.board" in str(exc) and path in str(exc), str(exc))
 
 with tempfile.TemporaryDirectory() as tmp:
-    write_harness_json(tmp, {"board": {"owner": "m", "number": "three", "station_field": "Status"}})
-    check("load_board: non-numeric number -> None", gh_board.load_board(tmp) is None)
+    path = os.path.join(tmp, ".harness", "harness.json")
+    board = full_board()
+    del board["owner"]
+    write_harness_json(tmp, {"board": board})
+    exc = raised_exc(tmp)
+    exc_text = str(exc) if exc else ""
+    check("load_board raises naming the file and the key: owner missing",
+          exc is not None and "github.board.owner" in exc_text and path in exc_text
+          and "github.board.board" not in exc_text, exc_text)
 
 with tempfile.TemporaryDirectory() as tmp:
-    write_harness_json(tmp, {"board": {"owner": "m", "number": "3", "station_field": "Status"}})
+    path = os.path.join(tmp, ".harness", "harness.json")
+    write_harness_json(tmp, {"board": full_board(number=2.5)})
+    exc = raised_exc(tmp)
+    check("load_board raises naming the file and the key: number not an int",
+          exc is not None and "github.board.number" in str(exc) and path in str(exc), str(exc))
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, ".harness", "harness.json")
+    board = full_board()
+    del board["station_field"]
+    write_harness_json(tmp, {"board": board})
+    exc = raised_exc(tmp)
+    check("load_board raises naming the file and the key: station_field missing",
+          exc is not None and "github.board.station_field" in str(exc) and path in str(exc),
+          str(exc))
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, ".harness", "harness.json")
+    board = full_board()
+    del board["stations"]
+    write_harness_json(tmp, {"board": board})
+    exc = raised_exc(tmp)
+    check("load_board raises naming the file and the key: stations missing",
+          exc is not None and "github.board.stations" in str(exc) and path in str(exc), str(exc))
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, ".harness", "harness.json")
+    board = full_board(stations={"backlog": "Backlog", "ready": "Ready", "building": "Building"})
+    write_harness_json(tmp, {"board": board})
+    exc = raised_exc(tmp)
+    check("load_board raises naming the file and the key: stations key set wrong",
+          exc is not None and "github.board.stations" in str(exc) and path in str(exc), str(exc))
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, ".harness", "harness.json")
+    board = full_board(stations={**FULL_STATIONS, "review": ""})
+    write_harness_json(tmp, {"board": board})
+    exc = raised_exc(tmp)
+    check("load_board raises naming the file and the key: a station value is empty",
+          exc is not None and "github.board.stations" in str(exc) and path in str(exc), str(exc))
+
+with tempfile.TemporaryDirectory() as tmp:
+    write_harness_json(tmp, {"board": full_board(number="3")})
     b = gh_board.load_board(tmp)
     check("load_board: digit string '3' -> int 3",
           b is not None and b["number"] == 3 and isinstance(b["number"], int),
@@ -87,16 +170,31 @@ def plan(*statuses):
     return {"tasks": [{"id": f"T-{i:02d}", "status": s} for i, s in enumerate(statuses, 1)]}
 
 
+# Cases 1 and 2 assert the literal DEC-192 names in both label and assertion, so they use a
+# board declaring those exact names — label and assertion stay true.
+DEC192_BOARD = full_board()
+
 check("derive_station: one building among three -> Building",
-      gh_board.derive_station(plan("done", "building", "done")) == "Building")
+      gh_board.derive_station(plan("done", "building", "done"), DEC192_BOARD) == "Building")
 check("derive_station: three of three done -> Review",
-      gh_board.derive_station(plan("done", "done", "done")) == "Review")
+      gh_board.derive_station(plan("done", "done", "done"), DEC192_BOARD) == "Review")
 check("derive_station: two done one pending -> None",
-      gh_board.derive_station(plan("done", "done", "pending")) is None)
+      gh_board.derive_station(plan("done", "done", "pending"), DEC192_BOARD) is None)
 check("derive_station: empty task list -> None",
-      gh_board.derive_station({"tasks": []}) is None)
+      gh_board.derive_station({"tasks": []}, DEC192_BOARD) is None)
 check("derive_station: task with NO status key counts as pending -> None",
-      gh_board.derive_station({"tasks": [{"id": "T-01"}, {"id": "T-02", "status": "done"}]}) is None)
+      gh_board.derive_station(
+          {"tasks": [{"id": "T-01"}, {"id": "T-02", "status": "done"}]}, DEC192_BOARD) is None)
+
+# The two new lookup cases use a board whose station names are DELIBERATELY not the DEC-192
+# names, so a case can only pass by actually reading board["stations"], not by a reintroduced
+# literal in gh_board.py.
+LOOKUP_BOARD = full_board(stations={**FULL_STATIONS, "building": "Col-B", "review": "Col-R"})
+
+check("derive_station returns the declared building station",
+      gh_board.derive_station(plan("done", "building", "done"), LOOKUP_BOARD) == "Col-B")
+check("derive_station returns the declared review station",
+      gh_board.derive_station(plan("done", "done", "done"), LOOKUP_BOARD) == "Col-R")
 
 # ---------------- board_stations ----------------
 

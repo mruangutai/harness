@@ -913,7 +913,10 @@ fgh.file_at_ref("o/r", "path/to/file.txt", "main")
 restore()
 check("file_at_ref: hits the contents path with the ref",
       any("repos/o/r/contents/path/to/file.txt" in a for a in calls[0]["argv"])
-      and any("ref=main" in a for a in calls[0]["argv"]), f"calls={calls}")
+      and any("ref=main" in a for a in calls[0]["argv"])
+      and any("repos/o/r/contents/path/to/file.txt" in a and "?ref=main" in a
+              for a in calls[0]["argv"])
+      and "-f" not in calls[0]["argv"], f"calls={calls}")
 
 fake, calls = recorder([Result(1, stdout="", stderr="404 Not Found")])
 fgh.subprocess.run = fake

@@ -134,7 +134,10 @@ with tempfile.TemporaryDirectory() as tmp:
     write_team_config(tmp)
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
-                                        "station_field": "Status"}})
+                                        "station_field": "Status",
+                                        "stations": {"backlog": "Backlog", "ready": "Ready",
+                                                     "building": "Building", "review": "Review",
+                                                     "done": "Done"}}})
     r, log = run(tmp, ["326", "Plan"])
     check("board-station moves the named issue to the named station",
           r.returncode == 0 and "board-station: #326 -> Plan" in r.stdout,
@@ -149,15 +152,26 @@ with tempfile.TemporaryDirectory() as tmp:
           and "ITEM_326" in edit_calls[0],
           repr(edit_calls))
 
-# ---------------- case 2: no board configured ----------------
+# ---------------- case 2: an explicit null board ----------------
+
+with tempfile.TemporaryDirectory() as tmp:
+    write_team_config(tmp)
+    write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness", "board": None})
+    r, log = run(tmp, ["326", "Plan"])
+    check("an explicitly null board still exits 0 having written nothing",
+          r.returncode == 0 and not log and r.stdout.startswith("board-station: "),
+          f"rc={r.returncode} stdout={r.stdout!r} log={log}")
+
+# ---------------- case 2b: an unusable board config ----------------
 
 with tempfile.TemporaryDirectory() as tmp:
     write_team_config(tmp)
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness"})
     r, log = run(tmp, ["326", "Plan"])
-    check("board-station with no board configured writes nothing and exits 0",
-          r.returncode == 0 and not log and r.stdout.startswith("board-station: "),
-          f"rc={r.returncode} stdout={r.stdout!r} log={log}")
+    check("an unusable board config exits 2 with one line naming the key",
+          r.returncode == 2 and not log
+          and r.stderr.startswith("board-station: ") and "github.board" in r.stderr,
+          f"rc={r.returncode} stderr={r.stderr!r} log={log}")
 
 # ---------------- case 3: BoardError on stderr ----------------
 
@@ -165,7 +179,10 @@ with tempfile.TemporaryDirectory() as tmp:
     write_team_config(tmp)
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
-                                        "station_field": "Status"}})
+                                        "station_field": "Status",
+                                        "stations": {"backlog": "Backlog", "ready": "Ready",
+                                                     "building": "Building", "review": "Review",
+                                                     "done": "Done"}}})
     r, log = run(tmp, ["327", "Ready"], gh_script=FAKE_GH_NOT_ON_BOARD)
     check("board-station reports a BoardError on stderr naming issue and station and exits 0",
           r.returncode == 0
@@ -221,7 +238,10 @@ with tempfile.TemporaryDirectory() as tmp:
     write_team_config(tmp)
     write_harness_json(tmp, {"sync": False, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
-                                        "station_field": "Status"}})
+                                        "station_field": "Status",
+                                        "stations": {"backlog": "Backlog", "ready": "Ready",
+                                                     "building": "Building", "review": "Review",
+                                                     "done": "Done"}}})
     r, log = run(tmp, ["326", "Plan"])
     check("board-station with github.sync false writes nothing and exits 0",
           r.returncode == 0 and not log and r.stdout.startswith("board-station: "),
@@ -233,7 +253,10 @@ with tempfile.TemporaryDirectory() as tmp:
     write_team_config(tmp)
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
-                                        "station_field": "Status"}})
+                                        "station_field": "Status",
+                                        "stations": {"backlog": "Backlog", "ready": "Ready",
+                                                     "building": "Building", "review": "Review",
+                                                     "done": "Done"}}})
     r, log = run(tmp, ["326", "Plan"], gh_script=FAKE_GH_NON_JSON)
     check("board-station exits 0 when set_station raises a non-BoardError exception",
           r.returncode == 0

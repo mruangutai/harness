@@ -28,6 +28,38 @@ import factory_config as fc
 FAILS = 0
 RAN = 0
 
+# --------------------------------------------------------------------------
+# The board no longer lives inside a repos[] fleet entry (T-02/T-03) — it is read remotely
+# through `factory_config.product_config`. This tool is in-process (no subprocess), so
+# `product_config` itself is monkeypatched, once, at module scope, keyed by repo name. Fixture
+# builders below register each repository's board here as a SIDE EFFECT of being written to
+# disk (see `write_fleet`); a case needing a non-default board mutates the entry before calling
+# `write_fleet`, and the next `write_fleet` call for that repo name resets it.
+# --------------------------------------------------------------------------
+_STUB_BOARDS = {}
+
+
+def _fake_product_config(fleet, repo_name):
+    return {"github": {"board": _STUB_BOARDS.get(repo_name)}}
+
+
+fc.product_config = _fake_product_config
+
+
+def write_fleet(fleet_path, fleet_dict):
+    """Writes `fleet_dict` to disk with no repos[].board key, and registers each repository's
+    board in `_STUB_BOARDS` so the module-scope `product_config` stub above returns it."""
+    clean_repos = []
+    for r in fleet_dict["repos"]:
+        r = dict(r)
+        board = r.pop("board", None)
+        if board is not None:
+            _STUB_BOARDS[r["name"]] = board
+        clean_repos.append(r)
+    clean = dict(fleet_dict)
+    clean["repos"] = clean_repos
+    write_yaml(fleet_path, clean)
+
 
 def check(name, cond, detail=""):
     global FAILS, RAN
@@ -59,8 +91,10 @@ class Recorder:
         self._item_seq = 5000
         self.raise_on = {}   # name -> exception instance, or callable(args) -> exception|None
         # Matches good_fleet_dict's station option names exactly, so every existing fixture's
-        # stations validate clean by default.
-        self.field_options = ["Ready", "Building", "Review"]
+        # stations validate clean by default. Five, not three: D-06's required key set, and
+        # _validate_stations (factory_decompose.py:228-241) refuses any declared station whose
+        # value the live board does not offer, backlog and done included.
+        self.field_options = ["Ready", "Building", "Review", "Backlog", "Done"]
         self.board_items = []   # project_items() return value, set per-test
         # issue_board_item_id() return value: number -> item id, set per-test. Consulted only
         # for the issue number asked; anything not in this map means "no item" (returns None).
@@ -158,7 +192,10 @@ def good_fleet_dict(workspace_root):
                 "owner": "acme",
                 "number": 3,
                 "station_field": "Status",
-                "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+                "stations": {
+                    "backlog": "Backlog", "ready": "Ready", "building": "Building",
+                    "review": "Review", "done": "Done",
+                },
             },
         }],
         "workspace_root": workspace_root,
@@ -170,7 +207,9 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
     board 3 (matching good_fleet_dict's numbers/options so most existing assertions keep
     working when repo_a is what a test publishes against); repo_b is on a different board
     number with its own distinct station names, so a test can prove a call landed on A's
-    board and never B's by inspecting the option names alone."""
+    board and never B's by inspecting the option names alone. `board` is a test-side carrier
+    only (T-02/T-03) — `write_fleet` strips it before the fleet reaches disk and registers it
+    in `_STUB_BOARDS` for the `product_config` stub instead."""
     return {
         "schema": "factory-fleet/1",
         "repos": [
@@ -182,7 +221,8 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
                     "number": 3,
                     "station_field": "Status",
                     "stations": {
-                        "ready": "Ready", "building": "Building", "review": "Review",
+                        "backlog": "Backlog", "ready": "Ready", "building": "Building",
+                        "review": "Review", "done": "Done",
                     },
                 },
             },
@@ -194,8 +234,9 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
                     "number": 7,
                     "station_field": "Stage",
                     "stations": {
-                        "ready": "Other-Ready", "building": "Other-Building",
-                        "review": "Other-Review",
+                        "backlog": "Other-Backlog", "ready": "Other-Ready",
+                        "building": "Other-Building", "review": "Other-Review",
+                        "done": "Other-Done",
                     },
                 },
             },
@@ -271,7 +312,7 @@ def make_feature(td, tasks=None, approved=True, feature_json_extra="{}", brief=G
     fleet_dir = os.path.join(td, "fleet")
     os.makedirs(fleet_dir, exist_ok=True)
     fleet_path = os.path.join(fleet_dir, "fleet.yaml")
-    write_yaml(fleet_path, good_fleet_dict(os.path.join(td, "workspaces")))
+    write_fleet(fleet_path, good_fleet_dict(os.path.join(td, "workspaces")))
     return feat_dir, fleet_path
 
 
@@ -299,7 +340,7 @@ def make_feature_bad_feature_key(td, mode, tasks=None):
     fleet_dir = os.path.join(td, "fleet")
     os.makedirs(fleet_dir, exist_ok=True)
     fleet_path = os.path.join(fleet_dir, "fleet.yaml")
-    write_yaml(fleet_path, good_fleet_dict(os.path.join(td, "workspaces")))
+    write_fleet(fleet_path, good_fleet_dict(os.path.join(td, "workspaces")))
     return feat_dir, fleet_path
 
 
@@ -1106,7 +1147,7 @@ with tempfile.TemporaryDirectory() as td:
     fleet_path = os.path.join(fleet_dir, "fleet.yaml")
     bad_fleet = good_fleet_dict(os.path.join(td, "workspaces"))
     bad_fleet["repos"][0]["board"]["stations"]["ready"] = "Redy"
-    write_yaml(fleet_path, bad_fleet)
+    write_fleet(fleet_path, bad_fleet)
 
     rec = Recorder()
     code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])
@@ -1135,7 +1176,7 @@ with tempfile.TemporaryDirectory() as td:
     fleet_dir = os.path.join(td, "fleet")
     os.makedirs(fleet_dir, exist_ok=True)
     fleet_path = os.path.join(fleet_dir, "fleet.yaml")
-    write_yaml(fleet_path, two_repo_fleet_dict(os.path.join(td, "workspaces")))
+    write_fleet(fleet_path, two_repo_fleet_dict(os.path.join(td, "workspaces")))
 
     rec = Recorder()
     code, out, err = run_publish(feat_dir, fleet_path, rec, extra_args=["--parent", "1"])

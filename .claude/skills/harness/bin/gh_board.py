@@ -19,6 +19,7 @@ is loud on stderr and the run continues).
 import json
 import os
 
+import factory_config
 import factory_gh
 
 
@@ -41,16 +42,23 @@ class BoardError(Exception):
 
 
 def load_board(root):
-    """The board config from `harness.json`'s `github.board`, or None.
+    """The board config from `harness.json`'s `github.board`, validated, or None.
 
-    **None means the station feature is not configured for this project** — an environmental
-    precondition (D-02), never an error and never a violation. Returns None when the `github`
-    block is absent, when `board` is absent or is not a mapping, or when any of `owner`,
-    `number`, `station_field` is missing or empty.
+    **None means this project has explicitly declared it has no board** — `github.board: null`,
+    the shape `templates/harness.json` ships (D-07). That is the ONLY non-error path.
 
-    `number` is returned as an **int**, accepting an int or a digit string; anything else is
-    unusable and returns None rather than raising, because an unusable config is the same
-    not-configured state to every caller.
+    Every other unusable shape RAISES `factory_config.FleetError` naming the harness.json path
+    and the offending key: the `github` block absent, the `board` key absent (indistinguishable
+    from a typo — never treated the same as an explicit null), `board` present but not a
+    mapping, or any field `factory_config.validate_board` rejects (`owner`, `number`,
+    `station_field`, `stations`). A caller that wants to catch this must import
+    `factory_config` and catch `factory_config.FleetError`.
+
+    Field validation itself — including the digit-string-to-int coercion for `number` — is
+    delegated ENTIRELY to `factory_config.validate_board`, the one board validator in the tree
+    (FEAT-24 D-05); nothing here re-implements or re-coerces any of it. The returned mapping is
+    exactly what that function returns: `owner`, `number` (normalised to an int), `station_field`
+    and `stations`.
     """
     path = os.path.join(root, ".harness", "harness.json")
     try:
@@ -63,41 +71,30 @@ def load_board(root):
     github = cfg.get("github")
     if not isinstance(github, dict):
         return None
-    board = github.get("board")
-    if not isinstance(board, dict):
+    if "board" not in github:
+        raise factory_config.FleetError(
+            "board key missing", "github.board", f"declare github.board in {path}",
+        )
+    board = github["board"]
+    if board is None:
         return None
-
-    owner = board.get("owner")
-    station_field = board.get("station_field")
-    number = board.get("number")
-    if not owner or not isinstance(owner, str):
-        return None
-    if not station_field or not isinstance(station_field, str):
-        return None
-    if isinstance(number, bool):
-        # bool is a subclass of int; `true` is not a board number.
-        return None
-    if isinstance(number, int):
-        pass
-    elif isinstance(number, str) and number.strip().isdigit():
-        number = int(number.strip())
-    else:
-        return None
-
-    return {"owner": owner, "number": number, "station_field": station_field}
+    return factory_config.validate_board(board, "github.board", path)
 
 
-def derive_station(plan_doc):
-    """The parent's station, from `plan.yaml` task statuses ALONE (D-03).
+def derive_station(plan_doc, board):
+    """The parent's station, from `plan.yaml` task statuses ALONE (D-03), named through the
+    board's OWN declared station options rather than a hardcoded literal (FEAT-24 T-04).
 
-    Returns `"Building"` if any task is building; otherwise `"Review"` if there is at least one
-    task and every task is done; otherwise **None**, meaning no verdict and no write.
+    Returns `board["stations"]["building"]` if any task is building; otherwise
+    `board["stations"]["review"]` if there is at least one task and every task is done;
+    otherwise **None**, meaning no verdict and no write. The derivation rule itself is
+    unchanged; only the station NAMES now come from the board rather than being spelled here.
 
     An absent `status` counts as `pending` — the PLAN.md corpus predates the field.
 
-    It reads NOTHING from `feature.json` and takes no other argument. **The `Done` terminal
-    exemption is the CALLER's**, deliberately, so that both callers apply it somewhere a reader
-    can see rather than inheriting it invisibly from here.
+    It reads NOTHING from `feature.json`. **The `Done` terminal exemption is the CALLER's**,
+    deliberately, so that both callers apply it somewhere a reader can see rather than
+    inheriting it invisibly from here.
     """
     if not isinstance(plan_doc, dict):
         return None
@@ -112,9 +109,9 @@ def derive_station(plan_doc):
         statuses.append(t.get("status") or "pending")
 
     if any(s == "building" for s in statuses):
-        return "Building"
+        return board["stations"]["building"]
     if all(s == "done" for s in statuses):
-        return "Review"
+        return board["stations"]["review"]
     return None
 
 

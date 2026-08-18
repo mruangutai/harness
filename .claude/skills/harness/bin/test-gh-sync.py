@@ -52,7 +52,9 @@ def stage(tmp, sync=True, repo="implentio/fake", phrase="reliable csv export",
           feat_name="FEAT-05-export-fix"):
     feat = os.path.join(tmp, ".harness", "features", feat_name)
     os.makedirs(feat)
-    g = {"sync": sync}
+    # board is an EXPLICIT null (FEAT-24 D-07): an absent board key now raises FleetError
+    # from gh_board.load_board, and this fixture is about the OPEN lifecycle, not boards.
+    g = {"sync": sync, "board": None}
     if repo:
         g["repo"] = repo
     json.dump({"github": g}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
@@ -282,13 +284,20 @@ exit 0
 """
 
 
+FULL_STATIONS = {"backlog": "Backlog", "ready": "Ready", "building": "Building",
+                  "review": "Review", "done": "Done"}
+
+
 def write_harness_json_board(tmp, sync=True, repo="implentio/fake", board=True):
-    """harness.json's github block, optionally carrying T-02's `board` sub-mapping."""
+    """harness.json's github block, carrying T-02's `board` sub-mapping when `board` is True,
+    or an EXPLICIT null (FEAT-24 D-07 — the one non-error "no board" shape) when `board` is
+    False. An absent `board` key is a different, REJECTED shape (FleetError) and is not what
+    this helper's `board=False` means; nothing in this file drives that shape through here."""
     g = {"sync": sync}
     if repo:
         g["repo"] = repo
-    if board:
-        g["board"] = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
+    g["board"] = ({"owner": "mruangutai", "number": 3, "station_field": "Status",
+                    "stations": dict(FULL_STATIONS)} if board else None)
     json.dump({"github": g}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
 
 
@@ -387,7 +396,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check("bad feature dir -> ERROR, exit 1", r.returncode == 1, r.stdout)
 
     # --- the real open
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmp, ".harness", "harness.json"), "w"))
     r = run(["open", feat], tmp)
     log = calls(tmp)
@@ -480,7 +489,7 @@ with tempfile.TemporaryDirectory() as tmp:
 with tempfile.TemporaryDirectory() as tmp2:
     install_gh(tmp2)
     feat2 = stage(tmp2, phrase=None)
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmp2, ".harness", "harness.json"), "w"))
     r = run(["open", feat2], tmp2)
     log2 = calls(tmp2)
@@ -495,7 +504,7 @@ with tempfile.TemporaryDirectory() as tmp2:
 with tempfile.TemporaryDirectory() as tmp3:
     install_gh(tmp3)
     feat3 = stage(tmp3)
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmp3, ".harness", "harness.json"), "w"))
     r = run(["open", feat3, "--parent", "55"], tmp3)
     log3 = calls(tmp3)
@@ -511,7 +520,7 @@ with tempfile.TemporaryDirectory() as tmp3:
 with tempfile.TemporaryDirectory() as tmp4:
     install_gh(tmp4)
     feat4 = stage(tmp4)
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmp4, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(feat4, "feature.json"),
@@ -540,7 +549,7 @@ with tempfile.TemporaryDirectory() as tmp4:
 with tempfile.TemporaryDirectory() as tmp5:
     install_gh(tmp5)
     feat5 = stage(tmp5, phrase="streaming export — v2")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmp5, ".harness", "harness.json"), "w"))
     r = run(["open", feat5], tmp5)
     log5 = calls(tmp5)
@@ -555,7 +564,7 @@ with tempfile.TemporaryDirectory() as tmp5:
 with tempfile.TemporaryDirectory() as tmp6:
     install_gh(tmp6, FAKE_GH_ATTACH_FAILS)
     feat6 = stage(tmp6)
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmp6, ".harness", "harness.json"), "w"))
     r = run(["open", feat6], tmp6)
     doc6 = read_feature_json(os.path.join(feat6, "feature.json"))
@@ -569,7 +578,7 @@ with tempfile.TemporaryDirectory() as tmp6:
 with tempfile.TemporaryDirectory() as tmpA:
     install_gh(tmpA)
     featA = stage(tmpA, feat_name="FEAT-06-abandon-adopted")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpA, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featA, "feature.json"),
@@ -602,7 +611,7 @@ with tempfile.TemporaryDirectory() as tmpA:
 with tempfile.TemporaryDirectory() as tmpB:
     install_gh(tmpB)
     featB = stage(tmpB, feat_name="FEAT-06-abandon-created")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpB, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featB, "feature.json"),
@@ -628,7 +637,7 @@ with tempfile.TemporaryDirectory() as tmpB:
 with tempfile.TemporaryDirectory() as tmpC:
     install_gh(tmpC)
     featC = stage(tmpC, feat_name="FEAT-06-abandon-noorigin")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpC, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featC, "feature.json"),
@@ -652,7 +661,7 @@ with tempfile.TemporaryDirectory() as tmpC:
 with tempfile.TemporaryDirectory() as tmpD:
     install_gh(tmpD)
     featD = stage(tmpD, feat_name="FEAT-06-abandon-badfile")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpD, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featD, "feature.json"),
@@ -704,7 +713,7 @@ with tempfile.TemporaryDirectory() as tmpD:
 with tempfile.TemporaryDirectory() as tmpE:
     install_gh(tmpE)
     featE = stage(tmpE, feat_name="FEAT-06-abandon-nomilestone")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpE, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featE, "feature.json"),
@@ -743,7 +752,7 @@ with tempfile.TemporaryDirectory() as tmpF:
 with tempfile.TemporaryDirectory() as tmpG:
     install_gh(tmpG)
     featG = stage(tmpG, feat_name="FEAT-07-ship-created")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpG, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featG, "feature.json"),
@@ -768,7 +777,7 @@ with tempfile.TemporaryDirectory() as tmpG:
 with tempfile.TemporaryDirectory() as tmpH:
     install_gh(tmpH)
     featH = stage(tmpH, feat_name="FEAT-07-ship-adopted")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpH, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featH, "feature.json"),
@@ -791,7 +800,7 @@ with tempfile.TemporaryDirectory() as tmpH:
 with tempfile.TemporaryDirectory() as tmpI:
     install_gh(tmpI)
     featI = stage(tmpI, feat_name="FEAT-07-ship-noorigin")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpI, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featI, "feature.json"),
@@ -815,7 +824,7 @@ with tempfile.TemporaryDirectory() as tmpI:
 with tempfile.TemporaryDirectory() as tmpJ:
     install_gh(tmpJ)
     featJ = stage(tmpJ, feat_name="FEAT-07-ship-bodyfile")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpJ, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featJ, "feature.json"),
@@ -837,7 +846,7 @@ with tempfile.TemporaryDirectory() as tmpJ:
 with tempfile.TemporaryDirectory() as tmpK:
     install_gh(tmpK)
     featK = stage(tmpK, feat_name="FEAT-07-ship-nobodyfile")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpK, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featK, "feature.json"),
@@ -855,7 +864,7 @@ with tempfile.TemporaryDirectory() as tmpK:
 with tempfile.TemporaryDirectory() as tmpL:
     install_gh(tmpL)
     featL = stage(tmpL, feat_name="FEAT-07-ship-emptybodyfile")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpL, ".harness", "harness.json"), "w"))
     write_feature_json(
         os.path.join(featL, "feature.json"),
@@ -888,7 +897,7 @@ with tempfile.TemporaryDirectory() as tmpM:
         max_total_runs=20,
         runs=[],
     )
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpM, ".harness", "harness.json"), "w"))
     r = run(["open", featM], tmpM)
     docM = read_feature_json(os.path.join(featM, "feature.json"))
@@ -1222,6 +1231,26 @@ with tempfile.TemporaryDirectory() as tmpR:
     check("no board configured: close-task actually closed T-01's issue — the lifecycle ran",
           t1R is not None and any(l.startswith(f"issue close {t1R}") for l in logR), str(logR))
 
+# --- an UNUSABLE board config (github.board missing station_field) is a LOUD failure of the
+#     WHOLE invocation — exit 2, the offending key on stderr — not an environmental
+#     precondition and not a skipped station write (FEAT-24 T-04, Part B item 4).
+with tempfile.TemporaryDirectory() as tmpW:
+    install_gh(tmpW, FAKE_GH_STATIONS)
+    featW = stage_station(
+        tmpW, "FEAT-24-unusable-board",
+        [("T-01", "done")],
+        issues={},
+    )
+    json.dump(
+        {"github": {"sync": True, "repo": "implentio/fake",
+                     "board": {"owner": "mruangutai", "number": 3}}},
+        open(os.path.join(tmpW, ".harness", "harness.json"), "w"),
+    )
+    r = run(["open", featW], tmpW, {"FACTORY_GH": os.path.join(tmpW, "gh")})
+    check("an unusable board config is a loud failure, not a skipped station write",
+          r.returncode == 2 and "station_field" in r.stderr and "station_field" not in r.stdout,
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
 # ---- FEAT-21 T-10: the root walk-up is depth-agnostic ----------------------------
 # migrated_depth: a feature dir one segment deeper than the old arithmetic assumed.
 # The fixed three-level climb would resolve <tmp>/.harness and find no harness.json
@@ -1271,7 +1300,7 @@ def _full_fixture(path, feat_name, status, issue_num):
 with tempfile.TemporaryDirectory() as tmpS:
     install_gh(tmpS)
     featS = stage(tmpS, feat_name="FEAT-23-ship-status")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpS, ".harness", "harness.json"), "w"))
     fjS = os.path.join(featS, "feature.json")
     _full_fixture(fjS, "FEAT-23-ship-status", "Review", 900141)
@@ -1285,7 +1314,7 @@ with tempfile.TemporaryDirectory() as tmpS:
 with tempfile.TemporaryDirectory() as tmpT:
     install_gh(tmpT)
     featT = stage(tmpT, feat_name="FEAT-23-abandon-status")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpT, ".harness", "harness.json"), "w"))
     fjT = os.path.join(featT, "feature.json")
     _full_fixture(fjT, "FEAT-23-abandon-status", "Review", 900142)
@@ -1302,7 +1331,7 @@ with tempfile.TemporaryDirectory() as tmpT:
 with tempfile.TemporaryDirectory() as tmpU:
     install_gh(tmpU)
     featU = stage(tmpU, feat_name="FEAT-23-ship-keys")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpU, ".harness", "harness.json"), "w"))
     fjU = os.path.join(featU, "feature.json")
     _full_fixture(fjU, "FEAT-23-ship-keys", "Review", 900143)
@@ -1319,7 +1348,7 @@ with tempfile.TemporaryDirectory() as tmpU:
 with tempfile.TemporaryDirectory() as tmpV:
     install_gh(tmpV)
     featV = stage(tmpV, feat_name="FEAT-23-abandon-keys")
-    json.dump({"github": {"sync": True, "repo": "implentio/fake"}},
+    json.dump({"github": {"sync": True, "repo": "implentio/fake", "board": None}},
               open(os.path.join(tmpV, ".harness", "harness.json"), "w"))
     fjV = os.path.join(featV, "feature.json")
     _full_fixture(fjV, "FEAT-23-abandon-keys", "Review", 900144)

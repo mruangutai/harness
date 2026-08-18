@@ -175,19 +175,46 @@ def unpatch_gh(saved):
 # --------------------------------------------------------------------------
 
 def repo_board(owner=OWNER, number=BOARD, station_field=STATION_FIELD,
-               ready="Ready", building="Building", review="Review"):
-    """One repos[] entry's own `board:` block (FEAT-16 T-01/T-02) — the per-repo shape, never a
-    fleet-level fallback."""
+               ready="Ready", building="Building", review="Review",
+               backlog="Backlog", done="Done"):
+    """A repository's own `github.board` block (FEAT-24 T-02/T-03) — read remotely through
+    `factory_config.product_config`, never nested under a `repos[]` fleet entry. The five-key
+    stations map is D-06's required set: backlog and done are read by no case in this file, but
+    validate_board now requires all five to be present."""
     return {
         "owner": owner,
         "number": number,
         "station_field": station_field,
-        "stations": {"ready": ready, "building": building, "review": review},
+        "stations": {
+            "backlog": backlog, "ready": ready, "building": building,
+            "review": review, "done": done,
+        },
     }
 
 
 def repo_dict(name, default_branch=DEFAULT_BRANCH, board=None):
+    """The fleet entry itself carries no `board` key (T-02/T-03) — `board` here is a TEST-SIDE
+    carrier only, stripped by `_split_boards` before the fleet is written to disk, and used to
+    build the `factory_config.product_config` stub that stands in for each repository's own
+    remote `.harness/harness.json`."""
     return {"name": name, "default_branch": default_branch, "board": board or repo_board()}
+
+
+def _split_boards(fleet_dict):
+    """Splits a test-side fleet dict into (yaml-safe fleet dict with no repos[].board,
+    {repo_name: board_mapping}). The board never reaches fleet.yaml; it becomes the shape
+    `factory_config.product_config` is monkeypatched to return for that repository."""
+    boards = {}
+    clean_repos = []
+    for r in fleet_dict["repos"]:
+        r = dict(r)
+        board = r.pop("board", None)
+        if board is not None:
+            boards[r["name"]] = board
+        clean_repos.append(r)
+    clean = dict(fleet_dict)
+    clean["repos"] = clean_repos
+    return clean, boards
 
 
 def good_fleet_dict(workspace_root, repos=None):
@@ -332,15 +359,23 @@ FEATURES_ROOT = build_features_root()
 def run_main(rec, extra_args, workspace_root=None, fleet_dict=None):
     workspace_root = workspace_root or tempfile.mkdtemp(prefix="claim-ws-")
     fleet_dir = tempfile.mkdtemp(prefix="claim-fleet-")
-    fleet_path = write_yaml(
-        os.path.join(fleet_dir, "fleet.yaml"),
-        fleet_dict if fleet_dict is not None else good_fleet_dict(workspace_root),
-    )
+    raw_fleet = fleet_dict if fleet_dict is not None else good_fleet_dict(workspace_root)
+    clean_fleet, boards_by_repo = _split_boards(raw_fleet)
+    fleet_path = write_yaml(os.path.join(fleet_dir, "fleet.yaml"), clean_fleet)
     argv_saved = sys.argv
     sys.argv = ["factory_claim.py", "--fleet", fleet_path] + extra_args
     saved_gh = patch_gh(rec)
     saved_features_root = claim.FEATURES_ROOT
     claim.FEATURES_ROOT = FEATURES_ROOT
+    # The board is resolved through factory_config.product_config, never from fleet.yaml
+    # (T-02/T-03) — this tool is in-process (no subprocess), so the module-level function itself
+    # is monkeypatched rather than faking a `gh` call.
+    saved_product_config = fc.product_config
+
+    def fake_product_config(fleet, repo_name):
+        return {"github": {"board": boards_by_repo.get(repo_name)}}
+
+    fc.product_config = fake_product_config
     out, err = io.StringIO(), io.StringIO()
     code = None
     try:
@@ -358,6 +393,7 @@ def run_main(rec, extra_args, workspace_root=None, fleet_dict=None):
         sys.argv = argv_saved
         unpatch_gh(saved_gh)
         claim.FEATURES_ROOT = saved_features_root
+        fc.product_config = saved_product_config
     return code, out.getvalue(), err.getvalue()
 
 
@@ -653,6 +689,26 @@ check("(R8) poll query names the ready station and is:open, unchanged",
       poll_calls and poll_calls[0][1][2] == f'{STATION_FIELD}:"Ready" is:open', poll_calls)
 check("(R8) poll mode never calls issue_board_item_id",
       not any(c[0] == "issue_board_item_id" for c in rec.calls), rec.calls)
+
+
+# D-02. factory_claim.py:355 calls factory_gh.default_branch_sha(repo_name,
+# entry["default_branch"]) with no checkout in existence — default_branch is read from the fleet
+# ENTRY, not the product config, and it deliberately does not move (D-02). The branch asserted is
+# read from the fleet fixture itself, not respelled as a literal.
+rec = Recorder()
+db_ws = tempfile.mkdtemp(prefix="claim-ws-db-")
+# A non-default default_branch, deliberately not the DEFAULT_BRANCH constant every other fixture
+# in this file uses — a call site that hardcoded "main" instead of reading entry["default_branch"]
+# would still pass against DEFAULT_BRANCH, and this case exists to catch exactly that (P-01).
+db_fleet = good_fleet_dict(db_ws, repos=[repo_dict(REPO, default_branch="trunk-fixture")])
+rec.items = [board_item("i1", 940, REPO)]
+rec.issue_data[940] = issue_data(940, "issue 940", labels=["harness"])
+code, out, err = run_main(rec, ["--as", AS_LOGIN], fleet_dict=db_fleet)
+db_calls = [c for c in rec.calls if c[0] == "default_branch_sha"]
+expected_branch = next(r["default_branch"] for r in db_fleet["repos"] if r["name"] == REPO)
+check("factory_claim reads default_branch from the fleet entry before any clone exists",
+      code == 0 and db_calls and db_calls[0][1] == (REPO, expected_branch),
+      (code, db_calls, expected_branch))
 
 
 # ==========================================================================

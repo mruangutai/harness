@@ -53,7 +53,10 @@ def good_fleet_dict(workspace_root, default_branch=DEFAULT_BRANCH, repos=None):
         "owner": OWNER,
         "number": BOARD,
         "station_field": STATION_FIELD,
-        "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+        "stations": {
+            "backlog": "Backlog", "ready": "Ready", "building": "Building",
+            "review": "Review", "done": "Done",
+        },
     }
     return {
         "schema": "factory-fleet/1",
@@ -87,7 +90,10 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b=REPO_B,
                     "owner": OWNER,
                     "number": BOARD,
                     "station_field": STATION_FIELD,
-                    "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
+                    "stations": {
+                        "backlog": "Backlog", "ready": "Ready", "building": "Building",
+                        "review": "Review", "done": "Done",
+                    },
                 },
             },
             {
@@ -98,8 +104,9 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b=REPO_B,
                     "number": BOARD_B,
                     "station_field": STATION_FIELD_B,
                     "stations": {
-                        "ready": "Other-Ready", "building": "Other-Building",
-                        "review": "Other-Review",
+                        "backlog": "Other-Backlog", "ready": "Other-Ready",
+                        "building": "Other-Building", "review": "Other-Review",
+                        "done": "Other-Done",
                     },
                 },
             },
@@ -113,6 +120,24 @@ def write_yaml(path, data):
     with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(data, f)
     return path
+
+
+def _split_boards(fleet_dict):
+    """Splits a test-side fleet dict into (yaml-safe fleet dict with no repos[].board,
+    {repo_name: board_mapping}) — the board no longer lives in fleet.yaml (T-02/T-03); it is
+    read remotely through `factory_config.product_config`, which `run_main` monkeypatches for
+    the duration of the call using the mapping this returns."""
+    boards = {}
+    clean_repos = []
+    for r in fleet_dict["repos"]:
+        r = dict(r)
+        board = r.pop("board", None)
+        if board is not None:
+            boards[r["name"]] = board
+        clean_repos.append(r)
+    clean = dict(fleet_dict)
+    clean["repos"] = clean_repos
+    return clean, boards
 
 
 # --------------------------------------------------------------------------
@@ -206,13 +231,21 @@ def unpatch(saved_gh, saved_run_git):
 def run_main(rec, extra_args, workspace_root=None, fleet_dict=None):
     workspace_root = workspace_root or tempfile.mkdtemp(prefix="land-ws-")
     fleet_dir = tempfile.mkdtemp(prefix="land-fleet-")
-    fleet_path = write_yaml(
-        os.path.join(fleet_dir, "fleet.yaml"),
-        fleet_dict if fleet_dict is not None else good_fleet_dict(workspace_root),
-    )
+    raw_fleet = fleet_dict if fleet_dict is not None else good_fleet_dict(workspace_root)
+    clean_fleet, boards_by_repo = _split_boards(raw_fleet)
+    fleet_path = write_yaml(os.path.join(fleet_dir, "fleet.yaml"), clean_fleet)
     argv_saved = sys.argv
     sys.argv = ["factory_land.py", "--fleet", fleet_path] + extra_args
     saved_gh, saved_run_git = patch(rec)
+    # The board is resolved through factory_config.product_config, never from fleet.yaml
+    # (T-02/T-03) — this tool is in-process (no subprocess), so the module-level function itself
+    # is monkeypatched rather than faking a `gh` call.
+    saved_product_config = fc.product_config
+
+    def fake_product_config(fleet, repo_name):
+        return {"github": {"board": boards_by_repo.get(repo_name)}}
+
+    fc.product_config = fake_product_config
     out, err = io.StringIO(), io.StringIO()
     code = None
     try:
@@ -229,6 +262,7 @@ def run_main(rec, extra_args, workspace_root=None, fleet_dict=None):
     finally:
         sys.argv = argv_saved
         unpatch(saved_gh, saved_run_git)
+        fc.product_config = saved_product_config
     return code, out.getvalue(), err.getvalue(), workspace_root
 
 
