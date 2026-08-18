@@ -181,10 +181,17 @@ with tempfile.TemporaryDirectory() as tmp:
     r, log = run(tmp, ["326"])
     r2, _ = run(tmp, ["326", "Plan", "extra"])
     r3, _ = run(tmp, ["not-a-number", "Plan"])
+    # A UNICODE DIGIT, and it is not decoration: `str.isdigit()` answers True for
+    # superscript two while `int()` refuses it, so the pre-fix gate reached int()
+    # and raised — exit 1 with a traceback, against a contract naming 2 as the only
+    # non-zero exit. "not-a-number" cannot catch this: it fails isdigit() first.
+    r4, _ = run(tmp, ["\u00b2", "Plan"])
     check("board-station rejects a missing argument with exit 2",
           r.returncode == 2 and r2.returncode == 2 and r3.returncode == 2
           and r.stderr.startswith("board-station: "),
           f"rc1={r.returncode} rc2={r2.returncode} rc3={r3.returncode} stderr={r.stderr!r}")
+    check("board-station rejects a UNICODE-digit argument with exit 2, not a traceback",
+          r4.returncode == 2, f"rc4={r4.returncode} (1 means int() raised)")
 
 # ---------------- case 5: outside a harness root ----------------
 

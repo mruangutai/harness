@@ -62,7 +62,12 @@ def main(argv):
         err(USAGE)
         return 2
     issue_arg, station = argv
-    if not issue_arg.isdigit() or int(issue_arg) <= 0:
+    # ASCII digits ONLY, and the order matters. `str.isdigit()` answers True for
+    # superscripts and other Unicode digit forms that `int()` then refuses, so the
+    # bare isdigit check reached int() and raised — exit 1 with a traceback, where
+    # this tool's contract is that 2 is its only non-zero exit. Found by the final
+    # validator pass (FEAT-23), reproduced with '\u00b2'.
+    if not (issue_arg.isascii() and issue_arg.isdigit()) or int(issue_arg) <= 0:
         err(USAGE)
         return 2
     issue_number = int(issue_arg)
