@@ -87,6 +87,14 @@ to accept — and does a deeper fix exist that does not reopen a settled scope?
 A special case layered on shared infrastructure is a sign the fix is not deep enough. So is a
 methodology that lives only in one session's prompts.
 
+On a **plan surface**: a rule stated in several task intents where one authority should carry
+it, a residual accepted without its compensating control named, and a capability planned into
+a caller that belongs in the module it calls.
+
+On a **code surface**: a special case bolted onto shared infrastructure, a check living inside
+one call site where a shared home already exists, and a workaround that patches a symptom the
+underlying mechanism should refuse.
+
 **Every altitude finding ends with one of three words: fold-in, briefing-row, or leave.** A
 finding with no recommendation makes the reader decide twice.
 
@@ -108,6 +116,16 @@ it touches.
   back with nothing applied and the findings lost. State this plainly — it is an implementation
   gap in the rule that this pass is a build-side step applied before `review_sha` pins. It does
   not weaken that rule and it does not move the step.
+
+**The apply may not delete or weaken an assertion.** This step runs after the qa gate has
+PASSed, and that gate is more than a green suite — it is the test-matrix judgement and coverage
+adequacy, which nothing re-assesses afterwards. So a finding of the form "this conjunct asserts
+the same fact twice" becomes a backlog row, never an apply.
+
+**The apply has a ceiling of one fix.** If an apply reddens the suites and one fix does not
+restore green, revert the apply and file the finding as a backlog row. This is the only
+permanent build step with no `max_cycles` of its own, so without the ceiling the loop is
+unbounded at the last step before the pin.
 
 Skip any finding whose fix would change intended behaviour, reach well outside the reviewed
 scope, or that you judge a false positive — and **note the skip with its reason** rather than
