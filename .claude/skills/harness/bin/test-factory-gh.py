@@ -7,6 +7,7 @@ so FACTORY_GH cannot be silently bypassed (the T-12 stub-gh escape named in the 
 case here monkeypatches subprocess.run or run_gh with an in-process recorder; nothing spawns a
 real gh (run-unit-tests.sh classifies this as UNIT for exactly that reason).
 """
+import base64
 import contextlib
 import io
 import json
@@ -897,6 +898,60 @@ restore()
 check("default_branch_sha: returns the sha", sha == "deadbeef", f"sha={sha!r}")
 check("default_branch_sha: hits the ref/heads path",
       any("git/ref/heads/main" in a for a in calls[0]["argv"]), f"calls={calls}")
+
+
+# ---------------- file_at_ref ----------------
+fake, calls = recorder([Result(0, stdout=base64.b64encode(b"hello world").decode() + "\n")])
+fgh.subprocess.run = fake
+text = fgh.file_at_ref("o/r", "path/to/file.txt", "main")
+restore()
+check("file_at_ref: returns the decoded file body", text == "hello world", f"text={text!r}")
+
+fake, calls = recorder([Result(0, stdout=base64.b64encode(b"x").decode())])
+fgh.subprocess.run = fake
+fgh.file_at_ref("o/r", "path/to/file.txt", "main")
+restore()
+check("file_at_ref: hits the contents path with the ref",
+      any("repos/o/r/contents/path/to/file.txt" in a for a in calls[0]["argv"])
+      and any("ref=main" in a for a in calls[0]["argv"]), f"calls={calls}")
+
+fake, calls = recorder([Result(1, stdout="", stderr="404 Not Found")])
+fgh.subprocess.run = fake
+try:
+    fgh.file_at_ref("o/r", "missing/file.txt", "release-branch")
+    raised, exc = False, None
+except fgh.GhError as e:
+    raised, exc = True, e
+    RAISED.append(e)
+restore()
+check("file_at_ref: a missing file raises GhError naming repo, path and ref",
+      raised
+      and "o/r" in str(exc)
+      and "missing/file.txt" in str(exc)
+      and "release-branch" in str(exc),
+      f"exc={exc}")
+
+fake, calls = recorder([Result(0, stdout="not-valid-base64!!!")])
+fgh.subprocess.run = fake
+try:
+    fgh.file_at_ref("o/r", "path/x", "main")
+    raised, exc = False, None
+except fgh.GhError as e:
+    raised, exc = True, e
+    RAISED.append(e)
+restore()
+check("file_at_ref: undecodable content raises rather than returning empty", raised, f"exc={exc}")
+
+fake, calls = recorder([Result(0, stdout="null")])
+fgh.subprocess.run = fake
+try:
+    fgh.file_at_ref("o/r", "adir", "main")
+    raised, exc = False, None
+except fgh.GhError as e:
+    raised, exc = True, e
+    RAISED.append(e)
+restore()
+check("file_at_ref: an absent content field raises rather than defaulting", raised, f"exc={exc}")
 
 
 # ---------------- delete_ref ----------------
