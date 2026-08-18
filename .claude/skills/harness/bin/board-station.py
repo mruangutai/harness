@@ -22,8 +22,11 @@ wrong value fails loudly at the board instead of silently against a stale local 
 EVERY line this tool prints, on stdout or stderr, carries the "board-station: " prefix — the
 environmental lines below included, matching `gh-sync.py`'s own universal prefix discipline.
 
-EXIT CONTRACT: 2 is the ONLY non-zero exit, and it is reserved for a caller mistake — a missing
-or extra argument, or an issue number that is not a positive integer. Every environmental
+EXIT CONTRACT, scoped to what code can hold: for any argument list this tool receives on the
+command line, 2 is the ONLY non-zero exit, and it is reserved for a caller mistake — a missing
+or extra argument, or an issue number that is not a positive integer. Outside that scope the
+interpreter still owns the exit: a closed stdout ends in 120 at shutdown flush, which no guard
+in this file can prevent and none pretends to. Every environmental
 precondition (no harness root, no harness.json, no github block, sync off, no repo pinned, no
 board configured) prints one plain line and exits 0 having written nothing. The board write
 itself is wrapped in a broad `except Exception`: a `gh_board.BoardError` is the documented
@@ -68,7 +71,14 @@ def main(argv):
     # predicate each shipped with one class still open. The ASCII test stays because it
     # catches a DIFFERENT failure — a Unicode digit int() happily PARSES, which would
     # move the wrong card silently rather than raise. Everything else int() rejects is
-    # caught here, including edges nobody has met yet: 2 is this tool's only non-zero exit.
+    # caught here, including edges nobody has met yet: for a command-line argument, 2 is
+    # this tool's only non-zero exit.
+    #
+    # THE TWO CONJUNCTS READ DIFFERENT VARIABLES AND MUST KEEP DOING SO. isascii() and
+    # isdigit() read the ORIGINAL STRING; only the positivity test reads the parsed
+    # number. Merge them onto the parsed value — the tidier-looking form — and a
+    # Unicode digit int() accepts sails through, moving the wrong card at exit 0. That
+    # variant was built and measured; the Arabic-Indic case below is what pins this.
     try:
         issue_number = int(issue_arg)
     except ValueError:
