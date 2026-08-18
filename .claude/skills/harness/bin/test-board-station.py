@@ -189,6 +189,11 @@ with tempfile.TemporaryDirectory() as tmp:
     # wrong target. Drop isascii() and the traceback case above still passes; only this
     # one fails.
     r5, _ = run(tmp, ["\u0662", "Plan"])
+    # THE CLASS PREDICATES CANNOT REACH. All ASCII digits, so both string tests pass;
+    # int() then refuses it on CPython's 4300-digit conversion cap. This case exists to
+    # pin the try/except, not the predicates — it is why the parse is caught rather
+    # than enumerated.
+    r6, _ = run(tmp, ["9" * 4301, "Plan"])
     check("board-station rejects a missing argument with exit 2",
           r.returncode == 2 and r2.returncode == 2 and r3.returncode == 2
           and r.stderr.startswith("board-station: "),
@@ -197,6 +202,8 @@ with tempfile.TemporaryDirectory() as tmp:
           r4.returncode == 2, f"rc4={r4.returncode} (1 means int() raised)")
     check("board-station rejects a Unicode digit int() ACCEPTS, so no card moves silently",
           r5.returncode == 2, f"rc5={r5.returncode} (0 means it moved issue 2's card)")
+    check("board-station rejects an over-cap digit string with exit 2, not a traceback",
+          r6.returncode == 2, f"rc6={r6.returncode} (1 means int() raised uncaught)")
 
 # ---------------- case 5: outside a harness root ----------------
 

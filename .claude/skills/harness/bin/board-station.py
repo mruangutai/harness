@@ -62,14 +62,21 @@ def main(argv):
         err(USAGE)
         return 2
     issue_arg, station = argv
-    # ASCII-ONLY, and both halves earn their place: str.isdigit() is True for Unicode
-    # digit forms int() REJECTS (raises, exit 1 — and 2 is this tool's only non-zero
-    # exit) and for forms int() ACCEPTS (parses to another number, moving the wrong
-    # card). Two failure modes, one guard.
-    if not (issue_arg.isascii() and issue_arg.isdigit()) or int(issue_arg) <= 0:
+    # CATCH THE FAILURE, DO NOT ENUMERATE IT. int() refuses more inputs than any list
+    # of predicates keeps up with: Unicode digit forms str.isdigit() accepts, and
+    # anything past CPython's 4300-digit conversion cap. Two rounds of adding one more
+    # predicate each shipped with one class still open. The ASCII test stays because it
+    # catches a DIFFERENT failure — a Unicode digit int() happily PARSES, which would
+    # move the wrong card silently rather than raise. Everything else int() rejects is
+    # caught here, including edges nobody has met yet: 2 is this tool's only non-zero exit.
+    try:
+        issue_number = int(issue_arg)
+    except ValueError:
         err(USAGE)
         return 2
-    issue_number = int(issue_arg)
+    if not (issue_arg.isascii() and issue_arg.isdigit()) or issue_number <= 0:
+        err(USAGE)
+        return 2
 
     # DEPTH-AGNOSTIC ROOT, the established root-probe convention (same walk-up gh-sync.py
     # uses): the first ancestor of the CURRENT WORKING DIRECTORY holding the manifest,
