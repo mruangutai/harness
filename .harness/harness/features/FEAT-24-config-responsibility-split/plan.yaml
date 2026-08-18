@@ -592,7 +592,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-factory-claim.py
       - .claude/skills/harness/bin/test-factory-decompose.py
@@ -695,7 +695,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02, T-06]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh_board.py
       - .claude/skills/harness/bin/test-gh-board.py
@@ -904,7 +904,7 @@ tasks:
       changes what it treats as a violation. Its fixture file is carried in the same task because
       the invariant and the fixture change together.
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
@@ -995,7 +995,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .harness/harness.json
     verify: |
@@ -1089,7 +1089,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returned NOBODY for .harness/factory/fleet.yaml at ada8e99
     depends_on: [T-02, T-09]
-    status: pending
+    status: done
     files:
       - .harness/factory/fleet.yaml
       - .claude/skills/harness/bin/test-no-distribution.py
