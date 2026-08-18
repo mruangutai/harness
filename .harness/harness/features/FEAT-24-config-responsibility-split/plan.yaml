@@ -1,0 +1,1451 @@
+schema: plan/1
+feature: FEAT-24-config-responsibility-split
+
+approval:
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: "2026-08-18"
+
+lanes:
+  resolved_at: ada8e99
+  rows:
+    - surface: .claude/skills/harness/bin/factory_gh.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-gh.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/factory_config.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-config.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/gh_board.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-gh-board.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-gh-sync.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/board-station.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-board-station.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-claim.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-decompose.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-land.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-integration.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-check-domain.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-no-distribution.py
+      lane: main-session-direct
+      reason: >-
+        check-domain.sh --resolve returned harness-backend-dev at ada8e99, so the path is granted.
+        It is carried in T-07 all the same, because its new case asserts the shape of the same
+        fleet.yaml edit and splitting them would leave a red assertion between two tasks.
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: >-
+        DEC-174 carve-out. check-domain.sh --resolve returned harness-backend-dev at ada8e99, but
+        the script is one of the four registered gate scripts, and green gates cannot vouch for the
+        code that produces them.
+    - surface: .claude/skills/harness/bin/test-check-state.py
+      lane: main-session-direct
+      reason: >-
+        Carried with check-state.sh in one task. The fixture and the invariant change together and
+        splitting them would put a red gate between two tasks.
+    - surface: .harness/factory/fleet.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returned NOBODY at ada8e99
+    - surface: .claude/skills/harness/templates/harness.json
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returned NOBODY at ada8e99
+    - surface: /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
+      lane: main-session-direct
+      reason: >-
+        check-domain.sh --resolve returned NOBODY at ada8e99. Forced by DEC-189, which excludes
+        every manifest entry whose first segment is .harness or .claude when the target resolves in
+        a product checkout, so no seat can ever hold this path. See D-04.
+  resolved_but_not_written:
+    - surface: .claude/skills/harness/bin/factory_claim.py
+      resolve: harness-backend-dev
+      reason: >-
+        Resolved because it reads board_for and default_branch before any clone exists, and D-02
+        and D-03 both turn on that fact. Neither call site changes shape, so no task edits it. Its
+        fleet fixtures are migrated in T-03 instead.
+    - surface: .claude/skills/harness/bin/factory_decompose.py
+      resolve: harness-backend-dev
+      reason: >-
+        Resolved for the same reason as factory_claim.py. board_for and board_station keep their
+        signatures, so the file's SOURCE is unchanged and only its fixtures move. Its BEHAVIOUR
+        does change, and that is recorded here rather than discovered at build time:
+        _validate_stations at :228-241, called at :333, refuses any declared station whose value is
+        not a real option on the live board, so under D-06's five-key set it goes from validating
+        three option names to five. Onboarding any fleet member now requires all five options to
+        exist on that member's board, enforced by a live refuse at decompose time. It fails closed
+        and both live boards were probed on 2026-08-18 as carrying all six options, so nothing in
+        this plan trips it.
+    - surface: .claude/skills/harness/bin/factory_land.py
+      resolve: harness-backend-dev
+      reason: >-
+        Resolved because it indexes board stations review directly, one lookup deep. The validator
+        still guarantees the key set, so the direct index stays correct and the file is unchanged.
+    - surface: .claude/skills/harness/bin/harness_boundary.py
+      resolve: harness-backend-dev
+      reason: >-
+        Resolved because resolve_fleet is the reason repos[].name and workspace_root cannot move.
+        Neither key moves, so the module is untouched and no DEC-193 carve-out task is needed.
+    - surface: .claude/skills/harness/bin/wayfind.py
+      resolve: harness-backend-dev
+      reason: >-
+        Resolved because a board-or-station grep matched it. Re-grepped at ada8e99 for every moved
+        key and every station literal: zero matches. Not a reader.
+    - surface: .claude/skills/harness/bin/layout_migration.py
+      resolve: harness-backend-dev
+      reason: Resolved and re-grepped at ada8e99 for every moved key. Zero matches. Not a reader.
+    - surface: .claude/skills/harness/bin/branch-create-gate.sh
+      resolve: harness-backend-dev
+      reason: >-
+        Resolved and re-grepped at ada8e99. Zero matches for any moved key. The four pinned ids it
+        is tested against are asserted absent from the SCRIPT, not from kaya's config, so the kaya
+        migration does not touch it.
+    - surface: .claude/skills/harness/bin/check-plan-routes.py
+      resolve: harness-backend-dev
+      reason: >-
+        Resolved because it contains the string Building at :336. That is a comment about plan
+        status values, not a board read. Not a reader.
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      resolve: harness-backend-dev
+      reason: >-
+        Resolved because its UNIT_SCRIPTS and INTEGRATION_SCRIPTS arrays are an explicit
+        registration list and an unregistered new test file fails the whole run. This plan adds no
+        new test file, so no registration change is due.
+
+decisions:
+  - id: D-01
+    choice: >-
+      Rulings 1 and 3 land as ONE change, split across T-02, T-04 and T-05 only because the routing
+      differs. Ruling 1's consolidation lands in T-02 and T-04 as a single shared validator that
+      raises; T-05 carries the same cutover into check-state.sh, which is a DEC-174 carve-out and
+      therefore cannot be dispatched. There is no task in which the board consolidates while a
+      silent None survives, and no later or optional task removes it.
+    because: >-
+      Issue 350's own words are that any consolidation inherits the silent loader unless it is
+      fixed in the same change. The execution_mode enum has two values and no split mode, so a
+      change spanning a team surface and a carve-out surface is two task records of one cutover.
+    dec: none
+  - id: D-02
+    choice: >-
+      default_branch STAYS in fleet.yaml and does not move into harness.json, reversing that one
+      clause of 350's resolution while keeping the rule the resolution derives from.
+    because: >-
+      Measured at ada8e99, factory_workspace.py:115 reads default_branch in order to CREATE the
+      checkout, and factory_claim.py:355 and factory_land.py:45,49,67 read it with no checkout
+      present, while factory_config.py:146 validates it. 350 moved it on an explicitly stated
+      premise, that central placement makes the product config readable without a clone, and the
+      2026-08-18 comment on 493 killed central placement. Ruling 1's operative rule is that no
+      value appears in BOTH files, and default_branch appears in exactly one. Which branch a
+      checkout is cut from is a fact about where the checkout comes from, which is the fleet
+      declaration's own responsibility.
+    dec: none
+  - id: D-03
+    choice: >-
+      A fleet member's configuration is read FROM THE REMOTE at its default_branch, by one gh api
+      contents call, and never from a checkout. A failed read raises naming the repository, the
+      path and the ref. There is no checkout fallback, and no cached value is consulted when a read
+      fails - a failure is always a fresh, loud failure. A SUCCESSFUL read is memoised per
+      repository and ref for the life of the process, which is a success-path optimisation and
+      never a fallback: nothing is memoised on the failure path and nothing is persisted to disk.
+    because: >-
+      In-repo placement means a product config needs a checkout, and factory_decompose.py:329,399
+      and factory_claim.py:226 both resolve a product's board BEFORE any clone exists, with no
+      issue number available at decompose time, so factory_workspace cannot be ordered ahead of
+      them. The rejected alternative is a checkout read with clone-on-demand: it needs an issue
+      number that does not exist yet, adds stale-checkout semantics, and makes a read mutate the
+      disk. The accepted cost, stated rather than argued away, is that a product's config is
+      visible only as merged on its default branch, and that a network failure now stops a claim
+      that a local file used to serve. Reading always-remote rather than checkout-if-present is
+      deliberate: the second is the silent dual mode this feature exists to remove. A second
+      accepted cost, stated here rather than discovered at build time: factory_decompose resolves a
+      product's board TWICE in one run, at factory_decompose.py:329 and again at :399 through
+      board_station, while factory_claim.py:226 and factory_land.py:85 resolve it once each. The
+      success-path memo makes that one network read per process; a failed read is never memoised, so a
+      run against an unreachable remote pays one loud failure per call site rather than one per
+      run. That is accepted: cheap retries matter less than never serving a stale or invented
+      board.
+    dec: none
+  - id: D-04
+    choice: >-
+      The pen for kaya's .harness/harness.json is the MAIN SESSION, and the route is the existing
+      factory one: an issue on mruangutai/kaya-ai, factory_workspace to materialise the checkout at
+      workspace_root/kaya-ai, a main-session-direct edit there, factory_land to push and open the
+      pull request, and the operator merges it. No new grant is added to team-config.yaml.
+    because: >-
+      check-domain.sh --resolve returned NOBODY for that path at ada8e99, and that is forced rather
+      than an omission: DEC-189 excludes every manifest entry whose first segment is .harness or
+      .claude when the target resolves in a product checkout, so no seat can hold it. DEC-193 names
+      workspace_root/<product> as one of exactly two locations code is written under harness
+      authority, so the checkout itself is sanctioned. The rejected alternative is granting a seat,
+      most plausibly harness-dev-ops, a .harness/** path inside product checkouts: that reverses
+      DEC-189's target-side exclusion permanently, for every product and every agent, to buy one
+      one-time edit. The accepted cost of the chosen route is that it needs an issue on a product
+      repository and an operator merge, and that the main session hand-edits a file in a checkout
+      it did not create.
+    dec: none
+  - id: D-05
+    choice: >-
+      There is ONE board validator, factory_config.validate_board, and every board reader on either
+      side goes through it. gh_board.load_board calls it and propagates FleetError. The class is
+      not renamed.
+    because: >-
+      Two validators with two failure modes is the trap 350 recorded verbatim. FleetError's string
+      is built by factory_cli.body from a what, a value and a next step, so the message names the
+      offending key and the file path and the class name never reaches the operator; a rename would
+      touch every catch site in six tools for no change in what anyone reads.
+    dec: none
+  - id: D-06
+    choice: >-
+      The required stations key set is FIVE - backlog, ready, building, review, done - not the
+      three the fleet schema requires today and not the six DEC-192 names. plan is deliberately not
+      declared.
+    because: >-
+      Every one of the five has at least one code reader at ada8e99: ready in
+      factory_decompose.py:399, building and review in gh_board.derive_station:115,117, and
+      building, done and backlog in check-state.sh's INV-26 _EXPECT map. plan has none, because
+      board-station.py takes the station as a plain CLI string resolved by name at the board
+      (DEC-196), so declaring it would be a declaration no writer reads, which is DEC-196's own
+      objection. Probed live on 2026-08-18: boards 2 and 3 both carry all six options, so five is
+      satisfiable on both. The accepted cost of one uniform key set is that each board declares one
+      or two keys its own writers never resolve; a per-board key set was rejected because it is a
+      second schema, which is the thing being removed. Reversibility: a sixth required key later is
+      one pull request per fleet repository, each needing an operator merge.
+    dec: none
+  - id: D-07
+    choice: >-
+      A board declared as an explicit null is ACCEPTED and writes no station. A board key that is
+      absent, or present and incomplete, is an error. For a fleet member the board is required, so
+      null and absent are both errors there.
+    because: >-
+      templates/harness.json:155 ships board: null with a note saying this project has no board, so
+      an unconditional error would make a boardless project unonboardable. An explicit null is a
+      declaration a reader can see, not the hidden default ruling 2 removes; an absent key is
+      indistinguishable from a typo, which is precisely the shape ruling 3 kills.
+    dec: none
+  - id: D-08
+    choice: >-
+      load_fleet REJECTS a repos[].board key with a message naming where the board moved to, and
+      the fleet schema string stays factory-fleet/1.
+    because: >-
+      This is the exact pattern already used for the leftover top-level board key at
+      factory_config.py:127-132, and a targeted message telling an author which file the block
+      belongs in is more actionable than a version mismatch. A bump to factory-fleet/2 was
+      considered and declined: it would replace a specific instruction with a generic one for a
+      declaration that has one machine and one consumer.
+    dec: none
+  - id: D-09
+    choice: >-
+      This feature amends DEC-174 amendment 2 and DEC-196 in the same plan, as T-10.
+    because: >-
+      DEC-188 requires that a decision the tree flatly contradicts is not left standing, and there
+      is no propagation checker, so the amendment happens here or nowhere. DEC-174 am.2 states that
+      each repos entry carries its own board mapping, and DEC-196 states that no stations map is
+      declared for the harness's own board; T-06 and T-07 make both false. DEC-196 conditions its
+      clause on 350's ruling having no implementing ticket, so this is the pre-authorised follow-on
+      it names, not a reversal of it.
+    dec: DEC-196
+  - id: D-10
+    choice: >-
+      Kaya's pull request (T-09) must be MERGED before T-07 removes the board block from
+      fleet.yaml, and the plan orders them that way.
+    because: >-
+      Between the harness-side cutover and that merge, every factory_decompose and factory_claim
+      run against kaya fails loudly on a config with no board. That is correct behaviour and is
+      stated as designed rather than discovered, but it is a cross-repository sequencing
+      constraint, and T-07's verify enforces it: a gh api read of kaya's config at master that
+      exits non-zero when T-09 is unmerged.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: factory_gh gains a single-file read of a repository at a ref
+    traces: [REQ-04]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/factory_gh.py
+      - .claude/skills/harness/bin/test-factory-gh.py
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/test-factory-gh.py 2>&1); rc=$?
+      has() { printf '%s\n' "$out" | sed -E 's/^(ok|PASS)[ -]+//' | grep -qxF "$1"; }
+      has "file_at_ref: returns the decoded file body" || { echo "T-01: the happy-path case did not pass or did not run"; exit 1; }
+      has "file_at_ref: hits the contents path with the ref" || { echo "T-01: the argv case did not pass or did not run"; exit 1; }
+      has "file_at_ref: a missing file raises GhError naming repo, path and ref" || { echo "T-01: the missing-file case did not pass or did not run"; exit 1; }
+      has "file_at_ref: undecodable content raises rather than returning empty" || { echo "T-01: the undecodable case did not pass or did not run"; exit 1; }
+      has "default_branch_sha: returns the sha" || { echo "T-01: a pre-existing case vanished"; exit 1; }
+      printf '%s\n' "$out" | grep -E "^FAIL" && { echo "T-01: a case failed"; exit 1; }
+      test "$rc" = 0 || { echo "T-01: the suite exited $rc"; exit 1; }
+      echo "T-01 GREEN"
+    intent: |
+      Harness must be able to read one file out of a repository it has not cloned. Add that
+      primitive to .claude/skills/harness/bin/factory_gh.py and nothing else. This task adds no
+      caller; T-02 is the caller.
+
+      WHAT MUST BE TRUE AFTERWARDS
+
+      1. A new module-level function file_at_ref(repo, path, ref) returns the file's contents as a
+         str. repo is the owner/name form, path is repository-relative with no leading slash, ref
+         is a branch name.
+      2. It goes through run_gh, exactly as every other function in this module does, so that
+         FACTORY_GH keeps selecting the binary at call time and a fake binary keeps working. The
+         invocation is the REST contents endpoint with the ref as a query parameter, and the
+         response body is base64 in the content field, so the function decodes it. Ask gh for the
+         content field alone rather than the whole object.
+      3. EVERY failure raises GhError and none returns a sentinel. A repository that does not
+         exist, a path that does not exist at that ref, a ref that does not exist, an
+         unauthenticated gh, and a content field that is absent or does not base64-decode are all
+         raises. A caller must never be able to mistake "not there" for "empty file", which is the
+         silent-None class this whole feature removes.
+      4. The GhError message names the repository, the path and the ref, in that order, and it is
+         built the way this module already builds them so that factory_cli prints it verbatim.
+      5. The function returns text and parses nothing. JSON parsing belongs to the caller in T-02.
+      6. The module docstring gains one sentence placing this function among the others: it is the
+         only function here that reads repository CONTENT rather than issue, board or ref
+         metadata.
+
+      TESTS, in .claude/skills/harness/bin/test-factory-gh.py, using the recorder harness the file
+      already uses for default_branch_sha. Four new cases, with these exact ok-line texts:
+        file_at_ref: returns the decoded file body
+        file_at_ref: hits the contents path with the ref
+        file_at_ref: a missing file raises GhError naming repo, path and ref
+        file_at_ref: undecodable content raises rather than returning empty
+      The third case asserts all three of the repository, the path and the ref appear in str(exc) -
+      three separate assertions in one case, not one substring check on a concatenation. Do not
+      remove or renumber any existing case; the verify names default_branch_sha: returns the sha
+      specifically to catch that.
+
+  - id: T-02
+    title: One loud board validator, and a fleet member's config is read from its remote
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05]
+    absorbs: ["#493"]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_config.py
+      - .claude/skills/harness/bin/test-factory-config.py
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/test-factory-config.py 2>&1); rc=$?
+      has() { printf '%s\n' "$out" | sed -E 's/^(ok|PASS)[ -]+//' | grep -qxF "$1"; }
+      for k in backlog ready building review done; do
+        has "validate_board accepts the five-key stations map: $k" || { echo "T-02: the $k station case did not pass or did not run"; exit 1; }
+        has "validate_board rejects a stations map missing $k" || { echo "T-02: the missing-$k case did not pass or did not run"; exit 1; }
+      done
+      has "load_fleet rejects a repos entry carrying a board key" || { echo "T-02: the fleet board rejection case did not pass or did not run"; exit 1; }
+      has "load_fleet still requires repos[].name, repos[].default_branch and workspace_root" || { echo "T-02: the surviving-keys case did not pass or did not run"; exit 1; }
+      has "product_config reads the remote at default_branch with no checkout on disk" || { echo "T-02: the no-checkout case did not pass or did not run"; exit 1; }
+      has "product_config raises naming repo, path and ref when the remote read fails" || { echo "T-02: the remote-failure case did not pass or did not run"; exit 1; }
+      has "product_config never falls back to a checkout" || { echo "T-02: the no-fallback case did not pass or did not run"; exit 1; }
+      has "product_config memoises a successful read: a second board_for makes no second remote read" || { echo "T-02: the memoisation case did not pass or did not run"; exit 1; }
+      has "board_for resolves through product_config" || { echo "T-02: the board_for case did not pass or did not run"; exit 1; }
+      has "board_for raises when the product config declares no board" || { echo "T-02: the absent-board case did not pass or did not run"; exit 1; }
+      for shape in "no board key" "board is not a mapping" "owner missing" "number not an int" "station_field missing" "stations missing" "stations key set wrong" "a station value is empty"; do
+        has "board_for raises naming the file and the key: $shape" || { echo "T-02: the board_for raise case for '$shape' did not pass or did not run"; exit 1; }
+      done
+      has "(16) repo_entry finds the listed repo" || { echo "T-02: a pre-existing case vanished"; exit 1; }
+      printf '%s\n' "$out" | grep -E "^FAIL" && { echo "T-02: a case failed"; exit 1; }
+      test "$rc" = 0 || { echo "T-02: the suite exited $rc"; exit 1; }
+      echo "T-02 GREEN"
+    intent: |
+      This task and T-04 and T-05 are ONE cutover. The board leaves the fleet declaration and the
+      single surviving validator is the loud one; there is no intermediate state in which a board
+      consolidates while a silent failure mode survives. Do not defer any part of the loudness.
+
+      A RED WINDOW BETWEEN THIS TASK AND T-03 IS EXPECTED, AND IT IS NOT A REGRESSION. This task's
+      verify runs test-factory-config.py alone. The moment a board inside a repos entry becomes a
+      rejected shape, five other suites - test-factory-claim.py, test-factory-decompose.py,
+      test-factory-land.py, test-factory-integration.py and test-check-domain.py - go red on
+      fixtures that still nest one there, and T-03 is what repairs them. Return on this task's own
+      verify; do not migrate another file's fixtures here, and do not read a red full suite between
+      the two as evidence that this task is wrong. T-02 and T-03 land in ONE commit, so the red
+      window never exists in recorded history.
+
+      Edit .claude/skills/harness/bin/factory_config.py.
+
+      WHAT MUST BE TRUE AFTERWARDS
+
+      1. _STATION_KEYS becomes the five-tuple backlog, ready, building, review, done. Not three,
+         not the six DEC-192 names. plan is deliberately excluded: no code resolves it, because
+         board-station.py takes the station as a plain CLI string resolved by name at the board.
+      2. _validate_board becomes PUBLIC as validate_board(board, where, path), keeping its current
+         three-argument signature and its current FleetError shape, and gaining the five-key
+         stations check. It is the ONLY board validator in the tree after this feature; gh_board
+         imports it in T-04. Its docstring says so, and says that the where argument is a
+         caller-supplied prefix so the same validator serves a fleet entry and a harness.json
+         github block.
+      2a. THE where CONTRACT CHANGES, and this is not cosmetic. Today factory_config.py:77 reads
+         key_base = f"{where}.board", which made sense only for the deleted load_fleet caller that
+         passed repos[<name>]. After item 3 that caller is gone and both surviving callers - item 7
+         here and T-04 item 1 - pass the FULL prefix github.board. So: where is the FULL key
+         prefix, and key_base becomes where itself with NO appended segment. Leaving the append in
+         place would make every message name github.board.board.owner, a key that exists in no
+         file, in the feature whose stated goal is naming the offending key. Correct the
+         docstring's own examples in the same edit: they spell repos[owner/name].board and
+         ...board.owner and must spell what the surviving callers actually produce.
+      2b. THE PER-FIELD MESSAGES ARE KEPT IN SHAPE, NOT VERBATIM. The stations message at
+         factory_config.py:106-107 currently reads "set exactly ready, building and review, each a
+         non-empty option name" - falsified by item 1's five-key set. Rewrite it to name all five:
+         backlog, ready, building, review and done, each a non-empty option name, in that path.
+         The owner, number and station_field messages keep their current wording.
+      2c. THE number COERCION MOVES INSIDE validate_board. Today gh_board.load_board coerces a
+         digit string to an int at gh_board.py:80-85 while factory_config._validate_board:88
+         rejects any non-int, so the same bytes are accepted through one entry point and rejected
+         through the other - two acceptance sets behind one validator, which is the defect class
+         this feature exists to remove. validate_board therefore accepts an int OR a string whose
+         stripped form is all digits, coerces the latter to an int, and rejects everything else
+         including a bool, a float and a non-digit string. Because the function validates a mapping
+         in place, it must make the coerced value visible to the caller: mutate board["number"] to
+         the int, and say in the docstring that a valid board comes back with number normalised to
+         an int. AND validate_board RETURNS the validated mapping. Today _validate_board returns
+         None because raising was its whole job, but item 7 here and T-04 item 1 both CONSUME its
+         return value, so a strict reading of "keeping its current signature" that also kept the
+         None return would make board_for return None. That is what settles T-04 item 1's coerce-then-validate order - there is no order
+         left to choose, because there is only one place the coercion happens.
+      2d. NO ASSERTION MAY BE DELETED OR WEAKENED TO SATISFY 2c. The pinned case whose ok-line
+         names number not an int stays, under that exact ok-line text, and its DRIVER changes to a
+         value that is still invalid under the widened acceptance set - a float such as 2.5, or a
+         non-digit string such as "two". Deleting that case, renaming it, or softening any other
+         case is a send-back, not a cheaper green.
+      3. load_fleet REJECTS a repos entry carrying a board key, raising FleetError with the key
+         named as repos[<name>].board and a next step saying the board now lives in that
+         repository's own .harness/harness.json under github.board. Model it exactly on the
+         existing top-level board rejection. The old requirement that every repos entry MUST carry
+         a board is DELETED - it inverts.
+      4. Everything else load_fleet enforces stays exactly as it is: the schema string
+         factory-fleet/1 unchanged, the top-level board rejection, repos non-empty, repos[].name
+         containing a slash, repos[].default_branch non-empty, workspace_root absolute and not a
+         filesystem root. default_branch is NOT removed and NOT moved. Say why in one comment above
+         its check: factory_workspace reads it to create the checkout, so it cannot live inside the
+         checkout.
+      5. A new function product_config(fleet, repo_name) returns that repository's parsed
+         .harness/harness.json as a dict. It resolves the entry through repo_entry, takes
+         default_branch from it, and calls factory_gh.file_at_ref(repo_name,
+         ".harness/harness.json", default_branch) - the REMOTE, always, with no checkout involved
+         and no checkout consulted. It json-parses the result. Any failure, including a GhError, a
+         JSON parse failure and a document that is not a mapping, raises FleetError naming the
+         repository, the path and the ref. There is no fallback to workspace_path and no default,
+         and NO CACHED VALUE IS CONSULTED WHEN THE READ FAILS - a failure is always a fresh, loud
+         failure. The success-path memo is item 6, and the two do not conflict: item 5 governs the
+         failure path, item 6 the success path.
+      6. SUCCESSFUL results only are memoised per (repo_name, ref) for the life of the process, in
+         a module-level dict, so that a tool calling board_for twice makes one network call. A
+         raise is never memoised and never served from the memo. The memo is never persisted to
+         disk. Give the dict a module-level name, and add a module-level function
+         clear_product_config_memo() that empties it - that function is the memo's only sanctioned
+         reset, and the test file's guard in the TESTS section below is its one caller.
+      7. board_for(fleet, repo_name) now returns
+         validate_board(product_config(fleet, repo_name)["github"]["board"], where, path) where
+         where is the string github.board and path is the human-readable
+         <repo_name>@<default_branch>:.harness/harness.json. It raises FleetError when the github
+         block or the board key is absent - for a fleet member a board is REQUIRED, and an explicit
+         null is an error here too, because a repository the factory serves with no board is a
+         misconfiguration, not a declaration.
+      8. board_station(fleet, repo_name, key) is unchanged in signature and behaviour; it now
+         resolves through the new board_for.
+      9. The module docstring's opening line, which calls this module the only reader of fleet.yaml,
+         stays true and gains one sentence: it is also the only reader of a fleet member's own
+         configuration, and that read is remote. Grep the whole file for any other sentence
+         asserting that a repos entry carries a board and correct every one in this same edit.
+
+      TESTS, in .claude/skills/harness/bin/test-factory-config.py.
+
+      THE FIXTURE TRAP, and it is not optional. load_fleet() called with NO argument reads the LIVE
+      repository's fleet.yaml, because FLEET_PATH binds at import at factory_config.py:52. Every
+      new case passes an explicit path to a temporary fixture file. A case that omits the argument
+      passes for the wrong reason.
+
+      The remote read is faked by monkeypatching factory_gh.file_at_ref on the imported module
+      object, never by invoking gh. One case must assert the no-checkout property positively:
+      build a fleet whose workspace_root points at an empty temporary directory, assert that
+      workspace_path(fleet, repo) does NOT exist on disk, and then assert board_for returns the
+      expected board anyway.
+
+      THE MEMO TRAP, and it is not optional either. Item 6's memo is keyed on (repo_name, ref), and
+      this file's existing convention is that good_fleet_dict() reuses the SAME owner/name and the
+      SAME default_branch main across cases - see the fixture at :44-52 and its callers at :238 and
+      :410-413. Two cases that stub different product_config results for one (repo_name, ref) would
+      therefore cross-contaminate through the memo, and the second would pass or fail for a reason
+      that has nothing to do with what it asserts.
+      GUARD IT STRUCTURALLY, NOT BY CONVENTION. A rule saying "each case clears the dict" is an
+      obligation on every future author of every future case in this file, enforced by nothing,
+      whose violation produces a case that passes or fails for a reason unrelated to what it
+      asserts. This file has no setUp, no tearDown and no fixture mechanism - cases are inline, top
+      to bottom - so the guard goes where every case already passes through. Two required pieces:
+        - factory_config.py gains a module-level function clear_product_config_memo() that empties
+          the memo dict introduced in item 6. It is the memo's only sanctioned reset, so no test
+          reaches into the dict by name.
+        - test-factory-config.py's check() function, defined at :30 and called by every case in
+          the file, calls factory_config.clear_product_config_memo() as its first statement. Every
+          case therefore begins with an empty memo, because the previous case's check() emptied
+          it, and contamination becomes impossible rather than remembered.
+      The one constraint this creates, and it must be stated in a comment above that call: a case
+      making more than one memo-sensitive call must make ALL of them before its check() call. The
+      memoisation case below already does.
+      A case may still use a repository name or a default_branch unique to itself, and that remains
+      good practice, but it is no longer what correctness rests on.
+
+      New cases, with these exact ok-line texts:
+        validate_board accepts the five-key stations map: backlog
+        validate_board accepts the five-key stations map: ready
+        validate_board accepts the five-key stations map: building
+        validate_board accepts the five-key stations map: review
+        validate_board accepts the five-key stations map: done
+        validate_board rejects a stations map missing backlog
+        validate_board rejects a stations map missing ready
+        validate_board rejects a stations map missing building
+        validate_board rejects a stations map missing review
+        validate_board rejects a stations map missing done
+        load_fleet rejects a repos entry carrying a board key
+        load_fleet still requires repos[].name, repos[].default_branch and workspace_root
+        product_config reads the remote at default_branch with no checkout on disk
+        product_config raises naming repo, path and ref when the remote read fails
+        product_config never falls back to a checkout
+        product_config memoises a successful read: a second board_for makes no second remote read
+        board_for resolves through product_config
+        board_for raises when the product config declares no board
+        board_for raises naming the file and the key: no board key
+        board_for raises naming the file and the key: board is not a mapping
+        board_for raises naming the file and the key: owner missing
+        board_for raises naming the file and the key: number not an int
+        board_for raises naming the file and the key: station_field missing
+        board_for raises naming the file and the key: stations missing
+        board_for raises naming the file and the key: stations key set wrong
+        board_for raises naming the file and the key: a station value is empty
+      The eight board_for raise cases are the SAME eight malformed shapes T-04 drives through
+      load_board, driven here through the other entry point instead, so that one validator is
+      proved loud from both of its callers rather than from one. Each stubs a product config whose
+      github.board carries that shape, and asserts that the human-readable path
+      <repo>@<branch>:.harness/harness.json AND the offending key name are both present in
+      str(exc) - two assertions per case, not one substring check on a concatenation.
+      THE number not an int CASE DRIVES A FLOAT OR A NON-DIGIT STRING, never a digit string:
+      item 2c makes a digit string VALID at both entry points, so a digit-string driver would
+      assert the opposite of what the validator now does. The ok-line text is unchanged - a float
+      is still not an int - and the case is not removed.
+      AT LEAST ONE of these eight cases pins the FULL key path rather than a bare field name: it
+      asserts the exact string github.board.owner is present in str(exc) AND that the string
+      github.board.board does NOT appear. A bare owner assertion is satisfied by
+      github.board.board.owner as a substring, so it cannot see item 2a's defect at all. T-04's
+      matching load_board case carries the same pinned pair, so the contract is proved at both
+      entry points and not merely at one. Keep the
+      existing board_for raises when the product config declares no board case alongside them: it
+      covers an absent github block, where the no board key case covers a github block present with
+      the board key missing.
+      The memoisation case monkeypatches factory_gh.file_at_ref with a counting stub, calls
+      board_for twice for one (repo_name, ref), and asserts the stub was invoked exactly once and
+      both calls returned equal boards. It must also assert that a FAILING read is not memoised:
+      point the stub at a raising function, assert board_for raises, then repoint it at a working
+      one and assert the next call succeeds - a memo that cached the failure would keep raising.
+      The five accepts cases each assert the returned mapping's own value for that one key, so a
+      reverted lookup for exactly one station reddens exactly one case. A single case asserting the
+      whole map is not acceptable and will be sent back.
+      The never-falls-back case writes a DIFFERENT, valid board into a checkout at workspace_path
+      and asserts the value returned is the remote one, so a fallback that silently works is
+      caught rather than hidden.
+      Keep every existing case. The verify names (16) repo_entry finds the listed repo to catch a
+      deletion. Existing fixtures that put a board inside a repos entry must be migrated to the new
+      shape in this same edit, or this file's own suite goes red.
+
+  - id: T-03
+    title: Every fleet fixture outside factory_config moves off repos[].board
+    traces: [REQ-01, REQ-07]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-factory-claim.py
+      - .claude/skills/harness/bin/test-factory-decompose.py
+      - .claude/skills/harness/bin/test-factory-land.py
+      - .claude/skills/harness/bin/test-factory-integration.py
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      fail=0
+      claim_out=""; dec_out=""; land_out=""; integ_out=""
+      for s in test-factory-claim.py test-factory-decompose.py test-factory-land.py test-factory-integration.py test-check-domain.py; do
+        o=$(python3 ".claude/skills/harness/bin/$s" 2>&1); r=$?
+        printf '%s\n' "$o" | grep -qE "^ok" || { echo "T-03: $s produced no ok lines - it did not run"; fail=1; }
+        printf '%s\n' "$o" | grep -E "^FAIL" && { echo "T-03: $s reported a failing case"; fail=1; }
+        test "$r" = 0 || { echo "T-03: $s exited $r"; fail=1; }
+        case "$s" in
+          test-factory-claim.py) claim_out="$o" ;;
+          test-factory-decompose.py) dec_out="$o" ;;
+          test-factory-land.py) land_out="$o" ;;
+          test-factory-integration.py) integ_out="$o" ;;
+        esac
+      done
+      hasin() { printf '%s\n' "$2" | sed -E 's/^(ok|PASS)[ -]+//' | grep -qxF "$1"; }
+      hasin "(M1) pr create base is the fleet's default_branch" "$land_out" || { echo "T-03: the factory_land default_branch base case vanished or was renamed - default_branch must not move"; fail=1; }
+      hasin "(M1) sets the station to Review" "$land_out" || { echo "T-03: the review-station case vanished - the stub must return the same station values"; fail=1; }
+      hasin "factory_claim reads default_branch from the fleet entry before any clone exists" "$claim_out" || { echo "T-03: the factory_claim default_branch case did not pass or did not run"; fail=1; }
+      hasin "(2) both stations set to the fleet's ready option" "$dec_out" || { echo "T-03: the factory_decompose ready-station case vanished - the stub must return the same station value"; fail=1; }
+      hasin "(D-workspace) success: exits 0" "$integ_out" || { echo "T-03: the factory_workspace end-to-end case did not pass - it cuts its branch from the fleet entry's default_branch, so it fails if that key left the entry"; fail=1; }
+      test "$fail" = 0 || exit 1
+      echo "T-03 GREEN"
+    intent: |
+      THIS TASK'S VERIFY IS GREEN AT HEAD AND THAT IS DELIBERATE. It runs five suites that pass
+      today; it only discriminates once T-02 has landed, because that is when a fixture nesting a
+      board under a repos entry starts being rejected. depends_on encodes that. Do not treat the
+      green as evidence the work is done.
+
+      THIS TASK LANDS IN THE SAME COMMIT AS T-02. Between them five suites are red on fixtures a
+      correct loader now rejects; that window is expected and is repaired here, and committing it
+      separately would put a red full suite into recorded history.
+
+      T-02 made a board inside a repos entry a REJECTED shape. Five test files build fleet fixtures
+      that still nest one there, so their suites now fail on a correct loader. Migrate every
+      fixture, add the ONE case item 1b names, and add nothing else.
+
+      WHAT MUST BE TRUE AFTERWARDS, per file
+
+      1. test-factory-claim.py - repo_dict at :189-190 builds {name, default_branch, board}. Drop
+         the board from the fleet entry. The tool under test resolves the board through
+         factory_config.board_for, so the fixture instead monkeypatches
+         factory_config.product_config to return a config document whose github.board is the
+         previous board mapping, with the five stations. Every case that asserted a station value
+         keeps asserting the same value.
+      1b. test-factory-claim.py gains ONE new case - the single addition this task authorises, and
+         the only exception to the add-nothing-else rule below. Its ok-line text is exactly:
+           factory_claim reads default_branch from the fleet entry before any clone exists
+         factory_claim.py:355 calls factory_gh.default_branch_sha(repo_name,
+         entry["default_branch"]) with no checkout in existence. The case asserts, against the
+         existing recorder, that a default_branch_sha call was recorded and that its branch
+         argument equals the value the fleet FIXTURE declares - not a literal spelled again in the
+         test. It exists because default_branch deliberately does NOT move (D-02), and until now
+         factory_claim was the one of its three consumers with no named assertion of that fact.
+      2. test-factory-decompose.py - the three fixtures at :156, :179 and :191 lose their board
+         keys, with the same product_config stub. The ready-station case must keep asserting the
+         same option name it asserts today.
+      3. test-factory-land.py - good_fleet_dict at :51-61 and the fixtures at :85 and :95 lose
+         their board keys, same stub. (M1) pr create base is the fleet's default_branch must keep
+         passing UNCHANGED, because default_branch does not move - if that case needs any edit,
+         stop and report it, because it means something moved that should not have.
+      4. test-factory-integration.py - fleet_dict at :345-349 and the two entries at :1013 and
+         :1020, same treatment.
+      5. test-check-domain.py - the inline fleet strings at :457, :503, :554 and :643 carry
+         default_branch and a board block. Remove the board block from each; keep default_branch.
+         These fixtures exercise the write guard through resolve_fleet, which reads name and
+         workspace_root only, so nothing about their assertions changes.
+
+      RULES THAT BIND ALL FIVE
+
+      - Do not weaken, delete or renumber a single existing assertion, and do not RENAME one. The
+         only permitted changes are where the board comes from and the one new case in item 1b.
+         This task's verify names these four existing ok-lines verbatim, because each is the
+         per-consumer or per-file evidence a success criterion rests on:
+           (M1) pr create base is the fleet's default_branch
+           (M1) sets the station to Review
+           (2) both stations set to the fleet's ready option
+           (D-workspace) success: exits 0
+         Renaming any of them reddens this task.
+         The decompose and land labels say "the fleet's" and now mean the product config's; that
+         wording is left alone deliberately, because the pin is worth more than the tidy.
+      - Every fixture that loads a fleet passes an explicit path. load_fleet() with no argument
+         reads the LIVE fleet.yaml because FLEET_PATH binds at import, and a fixture written that
+         way passes for the wrong reason.
+      - The product_config stub returns a full-shaped document - a dict with a github key holding a
+         board key - not a bare board mapping, because that is what the real function returns.
+      - No test in this task may make a network call. If a case cannot be migrated without one,
+         stop and report it rather than adding one.
+
+  - id: T-04
+    title: load_board raises, and derive_station reads its station names from the board
+    traces: [REQ-02, REQ-03, REQ-07, REQ-09]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02, T-06]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh_board.py
+      - .claude/skills/harness/bin/test-gh-board.py
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+      - .claude/skills/harness/bin/board-station.py
+      - .claude/skills/harness/bin/test-board-station.py
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/test-gh-board.py 2>&1); rc=$?
+      has() { printf '%s\n' "$out" | sed -E 's/^(ok|PASS)[ -]+//' | grep -qxF "$1"; }
+      has "load_board: an explicit null board is accepted and returns None" || { echo "T-04: the null-board case did not pass or did not run"; exit 1; }
+      for shape in "no board key" "board is not a mapping" "owner missing" "number not an int" "station_field missing" "stations missing" "stations key set wrong" "a station value is empty"; do
+        has "load_board raises naming the file and the key: $shape" || { echo "T-04: the raise case for '$shape' did not pass or did not run"; exit 1; }
+      done
+      has "derive_station returns the declared building station" || { echo "T-04: the building lookup case did not pass or did not run"; exit 1; }
+      has "derive_station returns the declared review station" || { echo "T-04: the review lookup case did not pass or did not run"; exit 1; }
+      has "derive_station: two done one pending -> None" || { echo "T-04: a pre-existing derivation case vanished"; exit 1; }
+      printf '%s\n' "$out" | grep -E "^FAIL" && { echo "T-04: a gh_board case failed"; exit 1; }
+      test "$rc" = 0 || { echo "T-04: test-gh-board.py exited $rc"; exit 1; }
+      grep -nE '"(Building|Review|Backlog|Ready|Done|Plan)"' .claude/skills/harness/bin/gh_board.py && { echo "T-04: a station name is still a literal in gh_board.py, in code or in a docstring"; exit 1; }
+      grep -qF "def derive_station" .claude/skills/harness/bin/gh_board.py || { echo "T-04: positive control failed - the grep is not reading gh_board.py"; exit 1; }
+      sync_out=$(python3 .claude/skills/harness/bin/test-gh-sync.py 2>&1); sync_rc=$?
+      bs_out=$(python3 .claude/skills/harness/bin/test-board-station.py 2>&1); bs_rc=$?
+      test "$sync_rc" = 0 || { echo "T-04: test-gh-sync.py exited $sync_rc"; exit 1; }
+      test "$bs_rc" = 0 || { echo "T-04: test-board-station.py exited $bs_rc"; exit 1; }
+      printf '%s\n' "$sync_out" "$bs_out" | grep -E "^FAIL" && { echo "T-04: a gh-sync or board-station case failed"; exit 1; }
+      hasin() { printf '%s\n' "$2" | sed -E 's/^(ok|PASS)[ -]+//' | grep -qxF "$1"; }
+      hasin "an unusable board config exits 2 with one line naming the key" "$bs_out" || { echo "T-04: the board-station loud-exit case did not pass or did not run"; exit 1; }
+      hasin "an explicitly null board still exits 0 having written nothing" "$bs_out" || { echo "T-04: the board-station null case did not pass or did not run"; exit 1; }
+      hasin "an unusable board config is a loud failure, not a skipped station write" "$sync_out" || { echo "T-04: the gh-sync loud-failure case did not pass or did not run"; exit 1; }
+      for nr in wayfind.py layout_migration.py check-plan-routes.py branch-create-gate.sh; do
+        f=".claude/skills/harness/bin/$nr"
+        grep -qE '^(def |#!/)' "$f" || { echo "T-04: positive control failed - the non-reader search is not reading $nr"; exit 1; }
+        grep -nE 'board_for|load_board|station_field|stations|\["board"\]' "$f" && { echo "T-04: $nr now reads a moved board key - it was surveyed as a non-reader"; exit 1; }
+      done
+      echo "T-04 GREEN"
+    intent: |
+      This is the half of the cutover that removes the silent loader. It is one change with T-02
+      and T-05; nothing here may be deferred to a follow-up.
+
+      THIS TASK AND T-05 LAND IN ONE COMMIT, AND check-state.sh IS EXPECTED TO EXIT 1 BETWEEN
+      THEM. Read this before running any gate. Item 2 below changes derive_station's arity.
+      check-state.sh calls it unwrapped at :1180, and that whole file is a single python3 heredoc
+      running from :24 to :1343, so an uncaught TypeError kills the script: exit 1, effectively no
+      stdout, and EVERY invariant unreported rather than just INV-26. The file's own comment at
+      :636 records that exact failure shape. So after this task and before T-05, a run of
+      bin/check-state.sh will exit 1 with an empty report. That is expected, it is not a defect you
+      introduced, and it is not evidence that this task is wrong.
+
+      YOU MUST NOT EDIT check-state.sh TO CLEAR IT. That file is a DEC-174 carve-out - one of the
+      four registered gate scripts, which green gates cannot vouch for - and T-05 is the
+      main-session-direct task that repairs the call site by hand. Return on THIS task's own verify
+      alone, which does not run check-state.sh. If you find yourself reaching for check-state.sh,
+      stop and report instead. The other exposed call site, gh-sync.py:185, IS yours and is Part B
+      item 6 below.
+
+      PART A - .claude/skills/harness/bin/gh_board.py
+
+      1. load_board(root) no longer returns None on an unusable config. It reads
+         <root>/.harness/harness.json, and then:
+         - github block absent, or board key ABSENT: raise. An absent board key is
+           indistinguishable from a typo.
+         - board is an explicit null: return None. This is the ONE non-error path, and it means
+           this project has declared that it has no board. templates/harness.json ships exactly
+           this shape, so an unconditional raise would make a boardless project unonboardable.
+         - anything else: delegate to factory_config.validate_board(board, "github.board", path)
+           and return the validated mapping, which now includes stations. Do not re-implement any
+           field check here, and do not coerce anything here either. Import factory_config at
+           module level; its only import-time I/O is one filesystem probe (os.access at
+           factory_config.py:41) to resolve the harness root.
+         THE DIGIT-STRING COERCION MOVES OUT OF THIS FILE. gh_board.py:80-85 currently accepts a
+         string whose stripped form is all digits and converts it to an int, while
+         factory_config._validate_board:88 rejects the same bytes - two acceptance sets behind what
+         is supposed to be one validator. T-02 item 2c moves that coercion INSIDE validate_board,
+         so there is no coerce-then-validate order left to choose here: delegate, and the validated
+         mapping comes back with number already normalised to an int. Delete this file's own
+         coercion branch rather than keeping a second copy of it.
+         The returned mapping keeps owner, number and station_field, and gains stations.
+         THE DIGIT-STRING CASE IS NOT DELETED. It stays a passing case, asserting that a board
+         declaring number as "2" still loads and yields the int 2 - it just passes for a new
+         reason, because the validator now performs the coercion. Deleting or weakening it is a
+         send-back.
+         Rewrite the docstring completely: the paragraph saying None means the station feature is
+         not configured, an environmental precondition, never an error, is now FALSE for every case
+         except the explicit null and must not survive in any form.
+      2. derive_station gains a second parameter: derive_station(plan_doc, board). It returns
+         board["stations"]["building"] where it returned the literal "Building", and
+         board["stations"]["review"] where it returned "Review". The derivation rule itself - any
+         task building wins, otherwise all done means review, otherwise None - is UNCHANGED. After
+         this task no station name appears as a string literal anywhere in this file.
+      3. board_stations, read_station and set_station are unchanged.
+      3b. derive_station's DOCSTRING quotes "Building" and "Review" today. The verify greps this
+         whole file for quoted station names and does not exempt docstrings, so reword it to
+         describe the lookup - the declared building station, the declared review station - rather
+         than the values. The module docstring's own references to station behaviour get the same
+         treatment. This is not incidental tidying: a docstring naming a value the code no longer
+         hardcodes is the falsified-prose class DEC-188 exists for.
+
+      PART B - .claude/skills/harness/bin/gh-sync.py
+
+      4. load_config at :112 catches factory_config.FleetError from load_board and turns it into a
+         LOUD failure of the invocation, not a printed note followed by business as usual. The
+         contract is pinned in all three of its parts, because leaving any one open lets this tool
+         and board-station.py ship different answers to the same misconfiguration:
+         - STREAM: stderr. This tool has no stderr primitive to inherit - both skip() at :74 and
+           die() at :80 call bare print(), which is stdout - so write to stderr explicitly. Pinning
+           the exit code without the stream would leave the line on stdout where no wrapper reads
+           it, which is worse than the divergence being fixed.
+         - EXIT CODE: 2, matching board-station.py's pinned value in Part C item 7 and the wider
+           factory_cli.EXIT_REFUSED convention at factory_cli.py:28,85-87 for exactly this class of
+           expected refusal. Do NOT route it through skip(), which exits 0, and do NOT route it
+           through die(), which exits 1 and whose docstring says caller error - a malformed config
+           is not a caller mistake, and reusing die() would falsify its own docstring.
+         - MESSAGE: print str(exc) VERBATIM, prefixed gh-sync: as every line in this tool is. Do
+           not compose a new line naming the file and the key. FleetError's string is already built
+           by factory_cli.body(what, value, next_step) - factory_cli.py:77 records that an expected
+           exception is printed verbatim, not re-wrapped - so composing one drops the next_step the
+           error already computed, which is the half that tells the operator what to do.
+         The explicit-null case keeps the current behaviour exactly: one plain line saying no board
+         is configured, and the issue lifecycle still runs with station writes skipped.
+      5. The load_config docstring's sentence that a missing board is an environmental precondition
+         (D-02), never a reason to skip the whole invocation, is now true only of the explicit null.
+         Rewrite it to say exactly that, and grep the whole file for every other statement of the
+         same claim and correct each one in this edit.
+      6. _apply_parent_rule at :185 passes the board to derive_station.
+
+      PART C - .claude/skills/harness/bin/board-station.py
+
+      7. The no-board branch at :132-135 splits. An explicit null keeps printing one line and
+         exiting 0. A FleetError from load_board prints one line on stderr, prefixed
+         board-station: as every line in this tool is, and exits 2. That line is str(exc) printed
+         VERBATIM, not a newly composed line naming the file and the key: FleetError's string
+         already carries the what, the value and the next step from factory_cli.body, and composing
+         a replacement drops the next step. Same rule, same reason, as Part B item 4.
+      8. The EXIT CONTRACT paragraph in the module docstring currently reserves 2 for a caller
+         mistake and says every environmental precondition prints one line and exits 0. Both
+         sentences become false. Rewrite the paragraph so it states the new contract: 2 means a
+         caller mistake OR an unusable board declaration, and the remaining environmental
+         preconditions - no harness root, no harness.json, no github block, sync off, no repo
+         pinned, an explicitly null board - still exit 0. Do not leave the old sentences standing
+         beside the new ones.
+
+      TESTS
+
+      test-gh-board.py, with these exact ok-line texts:
+        load_board: an explicit null board is accepted and returns None
+        load_board raises naming the file and the key: no board key
+        load_board raises naming the file and the key: board is not a mapping
+        load_board raises naming the file and the key: owner missing
+        load_board raises naming the file and the key: number not an int
+        load_board raises naming the file and the key: station_field missing
+        load_board raises naming the file and the key: stations missing
+        load_board raises naming the file and the key: stations key set wrong
+        load_board raises naming the file and the key: a station value is empty
+        derive_station returns the declared building station
+        derive_station returns the declared review station
+      Each raise case asserts the harness.json path AND the offending key name are both present in
+      str(exc) - two assertions, not one substring check.
+      THE owner missing CASE PINS THE FULL KEY PATH, not a bare field name: it asserts the exact
+      string github.board.owner is present in str(exc) AND that the string github.board.board does
+      NOT appear. A bare owner assertion is satisfied as a substring by github.board.board.owner,
+      so it cannot see the where-contract defect T-02 item 2a fixes. T-02's matching board_for case
+      carries the same pinned pair, so the contract is proved at BOTH entry points.
+      THE number not an int CASE DRIVES A FLOAT OR A NON-DIGIT STRING - 2.5 or "two" - never a
+      digit string, because T-02 item 2c makes a digit string valid at both entry points. The
+      ok-line text is unchanged and the case is not removed.
+      The four existing load_board cases at
+      :63-81 assert None returns for shapes that now raise; convert each into the matching raise
+      case above rather than deleting it, and keep the digit-string coercion case as a passing
+      case that now asserts the int 2 comes back from a declared "2". The two derive_station lookup cases use a board whose stations values are DELIBERATELY
+      not the DEC-192 names - use building: Col-B and review: Col-R - so a case cannot pass against
+      a reintroduced literal.
+
+      test-gh-sync.py gains one case, ok-line text exactly:
+        an unusable board config is a loud failure, not a skipped station write
+      It stages a harness.json whose github.board is a mapping missing station_field, runs the
+      subcommand, and asserts EXIT STATUS 2 EXACTLY - not merely a non-zero exit - AND that the
+      offending key name appears on STDERR, not stdout. Both halves matter: a non-zero assertion
+      cannot tell 1 from 2, so it cannot see the sibling-tool divergence Part B item 4 pins, and a
+      stream-blind assertion passes on a line printed where no wrapper reads it.
+
+      test-board-station.py gains one case, ok-line text exactly:
+        an unusable board config exits 2 with one line naming the key
+      and one more, ok-line text exactly:
+        an explicitly null board still exits 0 having written nothing
+
+      ONE THING THE VERIFY CHECKS THAT THIS TASK DOES NOT EDIT. It greps four files the reader
+      survey classified as non-readers - wayfind.py, layout_migration.py, check-plan-routes.py and
+      branch-create-gate.sh - and fails if any of them has acquired a board read, each with a
+      positive control proving the search ran. All four match zero moved keys at ada8e99, so this
+      clause is a regression guard, not evidence of migration; it is here because it is the only
+      repeatable form the non-reader half of SC-10 can take. Do not add a board read to any of
+      them, and do not silence the clause if it fires - a firing means the survey is now wrong.
+
+      THE FAKE-BINARY TRAP, and it is not optional. factory_gh.run_gh reads FACTORY_GH; gh-sync.py
+      reads GH_SYNC_GH. A test that sets only one leaves the other calling the REAL gh against the
+      REAL board. Every test here that could reach a board sets BOTH to the same fake.
+
+  - id: T-05
+    title: INV-26 reads its station names from the board and reports an unusable one
+    traces: [REQ-02, REQ-03, REQ-07]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-174 carve-out. check-state.sh is one of the four registered gate scripts, and this task
+      changes what it treats as a violation. Its fixture file is carried in the same task because
+      the invariant and the fixture change together.
+    depends_on: [T-04]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/test-check-state.py 2>&1); rc=$?
+      has() { printf '%s\n' "$out" | sed -E 's/^(ok|PASS)[ -]+//' | grep -qxF "$1"; }
+      has "INV-26 reports a violation when the board declaration is unusable" || { echo "T-05: the unusable-board case did not pass or did not run"; exit 1; }
+      has "INV-26 completes the gate rather than aborting on an unusable board" || { echo "T-05: the gate-completes case did not pass or did not run"; exit 1; }
+      for k in backlog building done; do
+        has "INV-26 expects the declared station for status: $k" || { echo "T-05: the declared-$k case did not pass or did not run"; exit 1; }
+      done
+      printf '%s\n' "$out" | grep -E "^FAIL" && { echo "T-05: a case failed"; exit 1; }
+      test "$rc" = 0 || { echo "T-05: the suite exited $rc"; exit 1; }
+      sed -n '/INV-26 BEGINS/,/INV-26 ENDS/p' .claude/skills/harness/bin/check-state.sh > /tmp/inv26.$$
+      grep -qF "derive_station" /tmp/inv26.$$ || { echo "T-05: positive control failed - the slice does not contain the INV-26 block, so the greps below prove nothing"; rm -f /tmp/inv26.$$; exit 1; }
+      grep -nE '"(Building|Review|Backlog|Ready|Plan)"' /tmp/inv26.$$ && { echo "T-05: a station name is still a literal inside INV-26"; rm -f /tmp/inv26.$$; exit 1; }
+      grep -nE '_EXPECT[^=]*=[^#]*"(Building|Review|Backlog|Ready|Done|Plan)"' /tmp/inv26.$$ && { echo "T-05: _EXPECT still carries a quoted station value"; rm -f /tmp/inv26.$$; exit 1; }
+      rm -f /tmp/inv26.$$
+      echo "T-05 GREEN"
+    intent: |
+      This is the carve-out half of the cutover T-02 and T-04 carry. It lands with them, not after
+      them: between T-04 and this task derive_station's signature has changed and INV-26 calls it
+      with the old arity, so this task is what makes the gate correct again. T-04 AND THIS TASK
+      LAND IN ONE COMMIT: in the window between them check-state.sh raises TypeError at :1180 and,
+      because the whole file is one python3 heredoc, exits 1 with every invariant unreported - so
+      the two must not be committed apart, and T-04's executor is told not to reach for this
+      carve-out file.
+
+      Edit the INV-26 block of .claude/skills/harness/bin/check-state.sh, which begins at the
+      comment naming issue #277 and today spans roughly lines 1100 to 1200.
+
+      WHAT MUST BE TRUE AFTERWARDS
+
+      1. The load_board call now raises rather than returning None on an unusable declaration. Wrap
+         it. On factory_config.FleetError, append ONE entry to bad naming the invariant, the
+         harness.json path and the offending key, and skip the rest of INV-26. The gate must
+         COMPLETE - never abort, never traceback - and it must report a violation rather than
+         silence. This is the exact inverse of today's behaviour, where an unusable board made
+         INV-26 vacuous and the gate green, and it is the whole reason this task exists.
+      2. An explicit null board still records nothing at all and is not a violation. A project that
+         has declared it has no board is not misconfigured.
+      3. The _EXPECT mapping's three literals go. It becomes a mapping built from the loaded
+         board's stations: building maps to stations building, done maps to stations done, pending
+         maps to stations backlog. The comment above it, which explains that pending is Backlog
+         because Backlog is where gh-sync's open lands every issue, stays and is reworded to name
+         the declared backlog station rather than the literal.
+      4. derive_station is called with the board as its second argument. The None-derivation
+         handling below it is unchanged.
+      5. The terminal exemption comparing feature.json status against Done and Abandoned sits
+         INSIDE this block, is NOT a board station, and does NOT change. Those are DEC-192 status
+         values read off disk, not board column names resolved through a board, and the existing
+         case-sensitivity comment stays. The verify deliberately omits Done from its literal
+         search for exactly this reason, and adds a narrower assertion that _EXPECT itself carries
+         no quoted station value.
+      6. After this edit the only quoted station-shaped strings left inside the block are that
+         exemption's Done and Abandoned. Backlog, Ready, Building, Review and Plan appear nowhere
+         in it.
+      7. The block gains two marker comments so the verify can slice it without guessing at what
+         follows: a line containing INV-26 BEGINS immediately above the existing issue #277
+         comment, and a line containing INV-26 ENDS immediately after the block's last statement.
+         The verify slices between them and asserts the slice contains derive_station as its
+         positive control, so a mis-placed marker fails loudly instead of silently selecting
+         nothing. Place them as shell comments; they change no behaviour.
+
+      TESTS, in .claude/skills/harness/bin/test-check-state.py. The fleet fixture at :932 carries
+      default_branch and must keep it; if it carries a board block, remove it. New cases, exact
+      ok-line texts:
+        INV-26 reports a violation when the board declaration is unusable
+        INV-26 completes the gate rather than aborting on an unusable board
+        INV-26 expects the declared station for status: backlog
+        INV-26 expects the declared station for status: building
+        INV-26 expects the declared station for status: done
+      The three declared-station cases each stage a board whose stations values are DELIBERATELY
+      not the DEC-192 names - backlog: Col-A, building: Col-B, done: Col-D - and assert the
+      violation text names the declared value, so a case cannot pass against a reintroduced
+      literal. One assertion per status key; a single case covering all three is not acceptable.
+      The completes case asserts the process exit status and that other invariants still reported,
+      so an abort is distinguishable from a violation.
+
+      RUN THE TESTS EXPLICITLY AND READ THE DIFF. This is a DEC-174 surface: the gate cannot vouch
+      for itself, so run test-check-state.py and the full suite by hand before recording this task
+      done.
+
+  - id: T-06
+    title: The harness board declares its five stations
+    traces: [REQ-02]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .harness/harness.json
+    verify: |
+      python3 - <<'PY' || exit 1
+      import json, sys
+      sys.path.insert(0, ".claude/skills/harness/bin")
+      import factory_config as fc
+      cfg = json.load(open(".harness/harness.json"))
+      b = cfg["github"]["board"]
+      fail = 0
+      try:
+          fc.validate_board(b, "github.board", ".harness/harness.json")
+      except fc.FleetError as e:
+          print("T-06: the one shared validator rejects this board: %s" % e); fail = 1
+      want = {"backlog": "Backlog", "ready": "Ready", "building": "Building",
+              "review": "Review", "done": "Done"}
+      st = b.get("stations")
+      if not isinstance(st, dict):
+          print("T-06: github.board.stations is absent or not a mapping"); sys.exit(1)
+      for k, v in want.items():
+          if st.get(k) != v:
+              print("T-06: stations.%s is %r, expected %r" % (k, st.get(k), v)); fail = 1
+      if "plan" in st:
+          print("T-06: plan must not be declared - no code resolves it (D-06)"); fail = 1
+      note = b.get("_note", "")
+      if "INV-26 is vacuous" in note or "station writes are not attempted" in note:
+          print("T-06: the _note still claims an incomplete board is silently tolerated"); fail = 1
+      if "loud" not in note and "error" not in note:
+          print("T-06: the _note does not say an incomplete board is now a loud error"); fail = 1
+      if "null" not in note:
+          print("T-06: the _note does not say that only an explicit null means no board"); fail = 1
+      if "PLACEMENT IS TEMPORARY" not in note:
+          print("T-06: the PLACEMENT IS TEMPORARY sentence was dropped - #206's business, out of scope here"); fail = 1
+      if "project_id" not in note:
+          print("T-06: the no-pinned-id sentence was dropped - it is still true"); fail = 1
+      if "Three keys" in note:
+          print("T-06: the _note still says three keys; the board now declares four"); fail = 1
+      for k in ("owner", "number", "station_field"):
+          if not b.get(k):
+              print("T-06: pre-existing key %s was lost" % k); fail = 1
+      sys.exit(fail)
+      PY
+      echo "T-06 GREEN"
+    intent: |
+      Harness's own board record has no stations key at ada8e99, so gh_board.derive_station and
+      check-state.sh's INV-26 carry the column names as literals and a reader cannot tell what
+      harness's columns are without knowing DEC-192 by heart. Declare them.
+
+      Edit .harness/harness.json and nothing else. The EDIT itself could be made at any time -
+      adding a key the current loader ignores is harmless - but this task depends on T-02 because
+      its verify calls factory_config.validate_board, which T-02 is what makes public and
+      five-key-aware. There is exactly one board validator in the tree after T-02 and this check
+      uses it rather than spelling the key set a third time. The ordering that matters is
+      unchanged: this key must be in place before T-04 makes the loader require it, and T-04
+      depends on both this task and T-02.
+
+      WHAT MUST BE TRUE AFTERWARDS
+
+      1. github.board gains a stations mapping with exactly five keys and these exact values,
+         which are the live option names on board 3 probed on 2026-08-18:
+           backlog: Backlog
+           ready: Ready
+           building: Building
+           review: Review
+           done: Done
+      2. plan is NOT declared, even though the Plan option exists on the board. No code resolves
+         it: board-station.py takes the station as a plain CLI string resolved by name at the
+         board. Declaring it would be a declaration no writer reads.
+      3. owner, number and station_field keep their current values unchanged.
+      4. The board's _note currently ends with the sentence that an absent or incomplete board
+         means station writes are not attempted and INV-26 is vacuous. That is the behaviour this
+         feature deletes. Replace that sentence with one saying that an incomplete board
+         declaration is now a loud error naming the offending key, and that only an explicitly null
+         board means this project has no board. Use the words loud or error, and the word null, in
+         that replacement - the verify asserts the new sentence is PRESENT, not merely that the old
+         one is gone, because a dropped note would satisfy an absence check trivially.
+      4b. The note's opening sentence says "Three keys, resolved BY NAME at runtime". After item 1
+         the board declares four - owner, number, station_field and stations. Correct that count in
+         the same edit; the by-name clause itself is still true and stays. The verify asserts the
+         string Three keys is gone.
+      4c. Keep the rest of the note verbatim, including the sentence about no project_id, field_id
+         or option id being pinned, which stays true, and the PLACEMENT IS TEMPORARY sentence,
+         which is issue 206's business and is out of scope here. The verify asserts both survive.
+      5. Change nothing else in this file. test_matrix, test_kinds, budgets and gates are not this
+         feature's business.
+
+  - id: T-07
+    title: fleet.yaml becomes the roster, the path and the branch, and nothing else
+    traces: [REQ-01, REQ-05]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returned NOBODY for .harness/factory/fleet.yaml at ada8e99
+    depends_on: [T-02, T-09]
+    status: pending
+    files:
+      - .harness/factory/fleet.yaml
+      - .claude/skills/harness/bin/test-no-distribution.py
+    verify: |
+      python3 - <<'PY' || exit 1
+      import sys, yaml
+      d = yaml.safe_load(open(".harness/factory/fleet.yaml"))
+      fail = 0
+      if set(d) != {"schema", "repos", "workspace_root"}:
+          print("T-07: top-level keys are %r, expected schema, repos, workspace_root" % sorted(d)); fail = 1
+      for e in d["repos"]:
+          if set(e) != {"name", "default_branch"}:
+              print("T-07: repos entry keys are %r, expected name and default_branch" % sorted(e)); fail = 1
+          if "board" in e:
+              print("T-07: %s still carries a board" % e.get("name")); fail = 1
+      kaya = [e for e in d["repos"] if e.get("name") == "mruangutai/kaya-ai"]
+      if not kaya or kaya[0].get("default_branch") != "master":
+          print("T-07: kaya default_branch is not master"); fail = 1
+      if any(e.get("name") == "mruangutai/harness" for e in d["repos"]):
+          print("T-07: harness must not be a fleet member"); fail = 1
+      sys.exit(fail)
+      PY
+      python3 - <<'PY' || exit 1
+      import base64, json, subprocess, sys
+      sys.path.insert(0, ".claude/skills/harness/bin")
+      import factory_config as fc
+      r = subprocess.run(["gh", "api", "repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master", "--jq", ".content"], capture_output=True, text=True)
+      if r.returncode != 0: sys.exit("T-07: kaya's config is unreadable on master, so T-09 is not merged: %s" % r.stderr.strip())
+      b = (json.loads(base64.b64decode(r.stdout)).get("github") or {}).get("board")
+      if not isinstance(b, dict): sys.exit("T-07: kaya's board is absent on master - T-09 must be MERGED before this task removes the fleet copy (D-10)")
+      try: fc.validate_board(b, "github.board", "mruangutai/kaya-ai@master:.harness/harness.json")
+      except fc.FleetError as e: sys.exit("T-07: the one shared validator rejects kaya's board on master: %s" % e)
+      PY
+      out=$(python3 .claude/skills/harness/bin/test-no-distribution.py 2>&1); rc=$?
+      has() { printf '%s\n' "$out" | sed -E 's/^(ok|PASS)[ -]+//' | grep -qxF "$1"; }
+      has "case3_absence_harness_is_not_a_fleet_member" || { echo "T-07: case3_absence_harness_is_not_a_fleet_member did not pass or did not run"; exit 1; }
+      has "case3_presence_kaya_default_branch_is_master" || { echo "T-07: case3_presence_kaya_default_branch_is_master did not pass or did not run"; exit 1; }
+      has "case3_absence_no_board_in_fleet" || { echo "T-07: the new no-board case did not pass or did not run"; exit 1; }
+      printf '%s\n' "$out" | grep -E "^FAIL" && { echo "T-07: a case failed"; exit 1; }
+      test "$rc" = 0 || { echo "T-07: the suite exited $rc"; exit 1; }
+      echo "T-07 GREEN"
+    intent: |
+      DO NOT START THIS TASK UNTIL T-09'S PULL REQUEST IS MERGED ON kaya-ai's master. Between this
+      edit and that merge, every factory_decompose and factory_claim run against kaya fails loudly
+      on a config with no board. That is correct behaviour, and the ordering is what keeps the
+      window at zero. Check the pull request state before editing.
+
+      AND THE VERIFY NOW ENFORCES THAT ORDERING RATHER THAN ASKING FOR IT. This task's verify reads
+      kaya's .harness/harness.json at master over gh api and runs it through
+      factory_config.validate_board - the same validator that will judge the file at runtime. It
+      fails if the file is unreadable, if the board is absent, or if the merged board is malformed.
+      So a run of this task before T-09's pull request is merged goes red instead of quietly
+      opening the window D-10 describes. That check needs network and gh auth; a failure there is
+      reported as a failure, never skipped.
+
+      PART A - .harness/factory/fleet.yaml
+
+      1. Delete the whole board block from the mruangutai/kaya-ai entry - owner, number,
+         station_field and the three stations. The entry keeps exactly name and default_branch.
+      2. Keep default_branch: master. It does not move. factory_workspace reads it to CREATE the
+         checkout, so it cannot live inside the checkout.
+      3. Keep workspace_root and schema: factory-fleet/1 exactly as they are.
+      4. The header comment's first sentence, THE BOARD IS PER-REPOSITORY (FEAT-16), followed by
+         the claim that there is no top-level board any more, is now half false. Rewrite the whole
+         opening paragraph to say what is true: this file is the fleet declaration - which
+         repositories the factory serves, where their checkouts go and what branch they are cut
+         from - and a board declared here at any level is REJECTED by load_fleet, because each
+         repository's board lives in that repository's own .harness/harness.json.
+      5. The two rationale comments inside the deleted block must not die with it. Their content -
+         that board 2's Done option is retained on purpose because 118 items sit there and the
+         Item closed workflow keeps landing cards in it, and that ready: Ready is deliberate even
+         though Ready is empty, because on this board Backlog means filed-and-untriaged and Ready
+         means promoted for the factory, so a claim run that finds nothing has found the truth
+         (D-08) - is carried into kaya's own config by T-09 as _note keys. Leave ONE line here
+         pointing a reader at kaya's .harness/harness.json on master for the board and its
+         rationale. Do not restate the rationale in both places.
+      6. The DEC-174 am.1 absence comment about mruangutai/harness stays exactly as it is, verbatim.
+         It is load-bearing and this feature does not touch it.
+
+      PART B - .claude/skills/harness/bin/test-no-distribution.py
+
+      7. case3 gains one check, ok-line text exactly:
+           case3_absence_no_board_in_fleet
+         It asserts that no repos entry carries a board key and that the document has no top-level
+         board key. It must be a check() call in case3 beside the existing ones.
+      8. case3_presence_kaya_default_branch_is_master and
+         case3_absence_harness_is_not_a_fleet_member are NOT modified. If either needs an edit,
+         stop and report it - both are load-bearing absences and this feature must not disturb
+         them.
+
+      RUN check-state.sh AND THE FULL SUITE BY HAND after this edit. fleet.yaml is read by the
+      write guard through resolve_fleet, so a malformed file closes every write outside the harness
+      root (DEC-193 amendment 1).
+
+  - id: T-08
+    title: The config template shows a declared board, stations and all
+    traces: [REQ-02, REQ-09]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returned NOBODY for .claude/skills/harness/templates/harness.json at ada8e99
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/templates/harness.json
+    verify: |
+      python3 - <<'PY' || exit 1
+      import json, sys
+      cfg = json.load(open(".claude/skills/harness/templates/harness.json"))
+      g = cfg["github"]
+      fail = 0
+      if g.get("board") is not None:
+          print("T-08: the template must still ship board: null"); fail = 1
+      note = g.get("_board_note", "")
+      for term in ("stations", "backlog", "ready", "building", "review", "done"):
+          if term not in note:
+              print("T-08: _board_note does not name %s" % term); fail = 1
+      if "null = this project has no board" not in note:
+          print("T-08: the explicit-null meaning was dropped from _board_note"); fail = 1
+      if "loud" not in note and "error" not in note:
+          print("T-08: _board_note does not say an incomplete board is an error"); fail = 1
+      sys.exit(fail)
+      PY
+      echo "T-08 GREEN"
+    intent: |
+      A project onboarded from the template must land on the new shape, and a project that
+      genuinely has no board must still be onboardable.
+
+      Edit .claude/skills/harness/templates/harness.json and nothing else.
+
+      WHAT MUST BE TRUE AFTERWARDS
+
+      1. github.board STAYS null. An explicit null is the declared no-board state and is the one
+         non-error path, so the template must keep shipping it rather than a half-filled block that
+         would now raise on first use.
+      2. The _board_note beside it is rewritten to describe the full shape a real board declares:
+         owner, number, station_field, and a stations mapping with exactly the five keys backlog,
+         ready, building, review and done, each naming an option that exists on that board,
+         resolved by name at runtime. Name all five keys explicitly in the note - a reader filling
+         this in has no other source.
+      3. The note keeps the sentence that null means this project has no board and no station is
+         ever written, and gains a sentence saying that a board which is present but incomplete is
+         a loud error naming the offending key, never a silently disabled feature.
+      4. Do not add a board block, a commented-out example object or a placeholder with fake ids.
+         A template that ships a plausible-looking value someone forgets to replace is the pinned-id
+         defect FEAT-18 removed.
+      5. Change nothing else in the file.
+
+  - id: T-09
+    title: kaya-ai's own config moves onto the by-name board shape
+    traces: [REQ-01, REQ-06]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: >-
+      check-domain.sh --resolve returned NOBODY for the target path at ada8e99, and DEC-189 makes
+      that permanent - a manifest entry whose first segment is .harness is excluded when the target
+      resolves in a product checkout, so no seat can ever hold this path. D-04 records the route.
+    depends_on: []
+    status: building
+    files:
+      - /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
+    verify: |
+      python3 - <<'PY' || exit 1
+      import base64, json, subprocess, sys
+      raw = subprocess.run(["gh", "api",
+          "repos/mruangutai/kaya-ai/contents/.harness/harness.json?ref=master",
+          "--jq", ".content"], capture_output=True, text=True)
+      if raw.returncode != 0:
+          print("T-09: could not read kaya's config from master: %s" % raw.stderr.strip()); sys.exit(1)
+      cfg = json.loads(base64.b64decode(raw.stdout))
+      g = cfg.get("github") or {}
+      fail = 0
+      for dead in ("project_number", "project_id", "status_field", "in_progress_option"):
+          if dead in g:
+              print("T-09: the pre-FEAT-18 key %s is still on master" % dead); fail = 1
+      b = g.get("board")
+      if not isinstance(b, dict):
+          print("T-09: github.board is absent or not a mapping on master"); sys.exit(1)
+      if b.get("owner") != "mruangutai" or b.get("number") != 2 or b.get("station_field") != "Status":
+          print("T-09: board owner, number or station_field is wrong: %r" % b); fail = 1
+      want = {"backlog": "Backlog", "ready": "Ready", "building": "Building",
+              "review": "Review", "done": "Done"}
+      st = b.get("stations")
+      if not isinstance(st, dict):
+          print("T-09: github.board.stations is absent or not a mapping on master"); sys.exit(1)
+      for k, v in want.items():
+          if st.get(k) != v:
+              print("T-09: stations.%s is %r, expected %r" % (k, st.get(k), v)); fail = 1
+      if set(st) != set(want):
+          print("T-09: stations key set is %r, expected exactly the five" % sorted(st)); fail = 1
+      if "plan" in st:
+          print("T-09: plan must not be declared - no code resolves it (D-06)"); fail = 1
+      if "default_branch" in cfg or "default_branch" in g:
+          print("T-09: default_branch must not appear in a product config (D-02)"); fail = 1
+      sys.exit(fail)
+      PY
+      echo "T-09 GREEN"
+    intent: |
+      Kaya's .harness/harness.json on master still pins project_id, status_field and
+      in_progress_option - the pre-FEAT-18 flat keys D-05 killed, which do nothing at all, silently,
+      when fed to a loader - and it carries no board block. Once T-02 and T-04 land, harness reads
+      that file to resolve kaya's board, so it must be valid before T-07 removes the fleet copy.
+      THIS TASK MUST BE MERGED BEFORE T-07 IS STARTED.
+
+      THIS TASK DEPENDS ON NOTHING, DELIBERATELY. An earlier draft made it depend on T-02 so its
+      verify could call factory_config.validate_board. That coupling bought zero defect discovery:
+      the verify reads kaya's config at ?ref=master, which is AFTER the operator merge, so under
+      either design the shared validator can only detect a malformed hand-edit, never prevent one -
+      and a malformed edit costs a second cross-repository pull request either way. What the
+      coupling did buy was delay, on the plan's only human-latency route - an issue, a workspace,
+      a hand-edit, a pull request and an operator merge - queued behind the plan's largest task.
+      So this route starts first, and the shared-validator check moves to where it can actually
+      gate something: T-07's verify reads kaya's config at master through validate_board and
+      refuses to pass until the merged board is there, which is also what makes D-10's
+      merge-before-T-07 ordering enforceable instead of a prose obligation.
+      The verify below therefore carries its own literal oracle - owner, number and station_field
+      compared literally, a five-key want map checked key by key, the key set compared for
+      exactness, and plan asserted absent - and imports no production code. That oracle answers a
+      different question from the validator's ("is this the shape we specified?" rather than "would
+      the real loader accept it?"), and both are now asked, in different tasks.
+
+      THE ROUTE, AND IT IS THE WHOLE POINT OF THIS TASK BEING MAIN-SESSION-DIRECT. No agent seat
+      can write a path under a product checkout's .harness/ - DEC-189 excludes it by target, so
+      check-domain.sh --resolve returns NOBODY and always will. The operator, in the main session,
+      performs these steps in order:
+
+        1. Open an issue on mruangutai/kaya-ai describing this migration.
+        2. Run factory_workspace.py --repo mruangutai/kaya-ai --issue <n> to materialise the
+           checkout at workspace_root/kaya-ai and cut factory/issue-<n>. That directory is one of
+           the two locations DEC-193 sanctions for writing code under harness authority.
+        3. Edit .harness/harness.json in that checkout, as below.
+        4. Run factory_land.py --repo mruangutai/kaya-ai --issue <n> to push and open the pull
+           request.
+        5. Merge it. Only then may T-07 start.
+
+      WHAT THE EDIT MUST DO
+
+      1. Delete project_number, project_id, status_field and in_progress_option from the github
+         block. All four are inert, and a wrong pinned id does nothing at all, silently.
+      2. Add a board mapping to the github block:
+           owner: mruangutai
+           number: 2
+           station_field: Status
+           stations: backlog Backlog, ready Ready, building Building, review Review, done Done
+         Those five values are the live option names on board 2, probed on 2026-08-18. plan is NOT
+         declared: no code resolves it.
+      3. Carry the two rationales that die with fleet.yaml's board block into this file as _note
+         keys beside the board, in this file's own existing _note convention, because JSON has no
+         comments and losing them loses the reasoning entirely:
+         - Board 2's Done option is retained on purpose: 118 items sit there and the enabled Item
+           closed workflow keeps landing cards in it.
+         - ready: Ready is deliberate even though Ready is empty. On this board Backlog means
+           filed-and-untriaged and Ready means promoted for the factory, so a claim run that finds
+           nothing has found the truth rather than hit a misconfiguration. Pointing intake at
+           Backlog instead would hand the factory 82 untriaged items.
+      4. Do NOT add default_branch to this file. It stays in fleet.yaml, because factory_workspace
+         reads it to create the checkout that holds this file (D-02).
+      5. Change nothing else: test_matrix, test_kinds, gates, budgets, cost_model and
+         dirty_tree_whitelist are kaya's own and are not this feature's business. Kaya's test kinds
+         stay unresolved (#336 D-03).
+      6. keep sync: true and repo: mruangutai/kaya-ai exactly as they are.
+
+  - id: T-10
+    title: The two falsified decision statements are amended
+    traces: [REQ-08]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-05, T-06, T-07]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      python3 - <<'PY' || exit 1
+      import re, sys
+      src = open(".harness/harness/docs/DECISIONS.md").read()
+      fail = 0
+      if "DEC-174 amendment 3" not in src:
+          print("T-10: DEC-174 has no amendment 3"); fail = 1
+      if "DEC-196 amendment 1" not in src:
+          print("T-10: DEC-196 has no amendment 1"); fail = 1
+      i174 = src.find("## DEC-174")
+      i175 = src.find("## DEC-175")
+      if i174 < 0 or i175 < 0 or "amendment 3" not in src[i174:i175]:
+          print("T-10: DEC-174's amendment 3 is not inside DEC-174's own section"); fail = 1
+      i196 = src.find("## DEC-196")
+      i197 = src.find("## DEC-", i196 + 1) if i196 >= 0 else -1
+      if i197 < 0:
+          i197 = len(src)
+      if i196 < 0 or "amendment 1" not in src[i196:i197]:
+          print("T-10: DEC-196's amendment 1 is not inside DEC-196's own section"); fail = 1
+      for anchor, section in (("FEAT-24", src[i174:i175]), ("FEAT-24", src[i196:i197])):
+          if anchor not in section:
+              print("T-10: an amendment does not name the feature that falsified it"); fail = 1
+      sys.exit(fail)
+      PY
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout > /tmp/decidx.$$ || { echo "T-10: the index generator failed"; exit 1; }
+      diff -u /tmp/decidx.$$ .harness/harness/docs/DECISIONS-INDEX.md || { rm -f /tmp/decidx.$$; echo "T-10: DECISIONS-INDEX.md has drifted from DECISIONS.md"; exit 1; }
+      rm -f /tmp/decidx.$$
+      grep -qE "^- DEC-174 .*am\.1-am\.3" .harness/harness/docs/DECISIONS-INDEX.md || { echo "T-10: the DEC-174 index row does not record am.3"; exit 1; }
+      grep -qE "^- DEC-196 .*am\.1" .harness/harness/docs/DECISIONS-INDEX.md || { echo "T-10: the DEC-196 index row does not record am.1"; exit 1; }
+      echo "T-10 GREEN"
+    intent: |
+      Two recorded statements are flatly contradicted by what this feature shipped. DEC-188 says a
+      contradicted statement is not left standing, and there is no propagation checker in the tree,
+      so this happens here or nowhere.
+
+      Write two amendments in .harness/harness/docs/DECISIONS.md, each inside its own entry's
+      section, and update the two index rows in .harness/harness/docs/DECISIONS-INDEX.md.
+
+      AMENDMENT ONE - DEC-174 amendment 3, dated the day it is written, headed with one clause
+      saying the fleet no longer declares any board.
+
+      1. Quote what became false: amendment 2 states that each repos entry in
+         .harness/factory/fleet.yaml carries its own board mapping, with number, station_field and
+         stations together in that one block.
+      2. State what is true now: a board declared anywhere in fleet.yaml is REJECTED by load_fleet,
+         at the top level as before and now inside a repos entry too, with a message naming where
+         the board moved to. Every repository's board lives in that repository's own
+         .harness/harness.json under github.board, on that repository's default branch, and is
+         validated by one shared validator that raises.
+      3. State what amendment 2 said that is STILL true and must not be swept away with it: the
+         board is still declared per repository, mruangutai/kaya-ai is still paired with board 2,
+         and the six-value Status vocabulary and the zero-item-writes rename record stand. This is
+         a change of FILE, not a return to a fleet-level board.
+      4. Record that default_branch did NOT move with the board, and why in one clause:
+         factory_workspace reads it to create the checkout, so it cannot live inside the checkout.
+      5. Amendment, not a strike: DEC-188 strikes what the tree flatly contradicts in whole, and
+         DEC-174's carve-out ruling and amendment 1 are untouched. Say so.
+
+      AMENDMENT TWO - DEC-196 amendment 1, same date, headed with one clause saying the harness
+      board now declares its stations.
+
+      6. Quote what became false: no stations map is declared for the harness's own board.
+      7. State that DEC-196 conditioned that clause explicitly on issue 350's ruling having no open
+         implementing ticket, and that FEAT-24 is that ticket - so this is the follow-on DEC-196
+         named, not a reversal of it. The accepted-cost line about one more call site to update
+         when 350's restructure lands is now SPENT: the call site was board-station.py and it was
+         updated in the same feature.
+      8. State what is declared: five station keys - backlog, ready, building, review, done - and
+         that plan is deliberately NOT declared, because board-station.py takes the station as a
+         plain CLI string resolved by name at the board, which is DEC-196's own rule and is
+         unchanged.
+      9. State what did NOT change: the harness still moves any card it is pointed at and closes
+         only cards it created. This amendment touches the stations paragraph alone.
+
+      RULES
+
+      - Cite by symbol and by heading, never by line number. This is a permanent record and the
+        same feature that writes it shifts lines below it.
+      - Do not rewrite either original paragraph. The record is appended to.
+      - Update both index rows: DEC-174's am range becomes am.1-am.3 and DEC-196 gains am.1. Then
+        check for drift with gen-decisions-index.py --stdout piped into diff against
+        .harness/harness/docs/DECISIONS-INDEX.md, exactly as this task's verify does, and fix
+        anything it reports rather than hand-editing around it. There is NO --check flag: the
+        script's own docstring says so and it exits 2 on any argv other than --stdout.
+      - Do not open a new DEC number. Both of these are amendments to existing entries; the
+        feature's own decisions live in this plan's decisions block and become a DEC at ship if the
+        operator calls for one.

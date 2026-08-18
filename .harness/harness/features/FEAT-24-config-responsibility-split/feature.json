@@ -1,0 +1,76 @@
+{
+  "feature_id": "FEAT-24-config-responsibility-split",
+  "branch": "feat/FEAT-24-config-responsibility-split",
+  "pr": null,
+  "status": "Building",
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-18-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-18-1-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-18-2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-18-1-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-18-2-eng",
+      "squad": "eng",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-18-3-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-18-4-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
+    }
+  ],
+  "github": {
+    "milestone": 15,
+    "parent": 501,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 502,
+      "T-02": 503,
+      "T-03": 504,
+      "T-04": 505,
+      "T-05": 506,
+      "T-06": 507,
+      "T-07": 508,
+      "T-08": 509,
+      "T-09": 510,
+      "T-10": 511
+    }
+  }
+}
