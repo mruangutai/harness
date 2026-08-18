@@ -6001,8 +6001,16 @@ grants `plan.yaml` and `BRIEF.md` to `harness-pm` alone, so the eng squad produc
 
 **The bound on the apply: it may not delete or weaken an assertion.** The step runs after the qa
 gate has PASSed, and nothing afterwards re-assesses the test-matrix judgement or coverage adequacy.
-So "this asserts the same fact twice" is a backlog row, never an apply. The step's position is
-unchanged by this bound.
+So "this asserts the same fact twice" is a backlog row, never an apply.
+
+**The second bound: the apply carries a ceiling of one fix.** Where an apply reddens the suites and
+a single fix does not restore green, the apply is reverted and the finding is filed as a backlog
+row. The ceiling is needed because this is the only permanent build step with no `max_cycles` of its
+own — `max_cycles` is an `on_fail` field of the team schema and this pass is an
+orchestrator-sequenced squad segment, so no file grants it one — and without a ceiling the repair
+loop is unbounded at the last step before `review_sha` pins. Both bounds are stated authoritatively
+in `.claude/skills/harness-simplify/SKILL.md` under `## Applying what comes back`; that section
+governs if the two ever drift. The step's position is unchanged by either bound.
 
 **The recurring cost, accepted, and there is deliberately no skip condition.** The step adds roughly
 a dozen spawns per feature — two lead segments, eight read-only passes, the appliers and a suite
