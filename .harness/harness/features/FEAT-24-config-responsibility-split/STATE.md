@@ -36,6 +36,8 @@ dispatch and never executed, so they are back to `pending`. Their board cards we
 
 Cycles: 1 of 10, unchanged — zero send-backs reported. Runs: 7 of 20.
 
+Briefing for the operator: `notes/ship-review-2026-08-18-ship-01.md` (rendered `.html` beside it).
+
 ## Open Questions
 
 - Q1 (operator, BLOCKING): which of the three orderings for the T-02 cutover —
