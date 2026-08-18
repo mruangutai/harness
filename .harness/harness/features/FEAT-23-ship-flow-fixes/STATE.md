@@ -21,9 +21,10 @@ Verified by me at `9885670`, not relayed: `--kind unit` 16/16 scripts exit 0; `-
 at `plan surface` 1 / `code surface` 1; `check-expertise.sh` exit 0 over all 15 files;
 `check-state.sh` exit 0; parent `#454` at `Review`.
 
-**The panel's PASS was taken at `490c37c` and the tip has moved since.** It transfers on measurement,
-not assumption: **zero** `.py`/`.sh` files changed between `490c37c` and `bba5551`, the only
-non-markdown file being my own `feature.json`. Re-measure if the tip moves again before acceptance.
+**The panel's PASS was taken at `490c37c` and the tip has moved five times since.** It transfers on
+measurement, re-taken at the FINAL tip: **zero** `.py`/`.sh`/`.ts` files changed between `490c37c`
+and `18a2e05`, the only non-markdown file in the whole delta being my own `feature.json`. Everything
+since the pin is prose, Expertise, notes and one generated HTML. Re-measure if the tip moves again.
 
 Two criteria are **deferred by `BRIEF.md:149-152`**, not missed: SC-04 (the next feature to ship needs
 no follow-up commit to clear INV-26) and SC-13 (the next feature planned from a named ticket lands it
