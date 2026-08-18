@@ -11,9 +11,9 @@
 - P-04: WHEN dispatching a fix DO pass the discriminating RULE plus an explicit LEAVE list rather than a
   survey of sites. The LEAVE list does the work: unnamed near-misses are where a member spends a spawn
   re-judging what is already settled.
-- P-05: WHEN a fix task names N sites carrying a defect DO grep the behaviour word across brief and plan
-  yourself first — the count is habitually low, and the two layers a site list forgets are the
-  REQUIREMENT and the verification CRITERION, which would otherwise go green on wrong prose.
+- P-05: WHEN a criterion quantifies over N items DO verify each item separately — a file-global grep is
+  satisfied by N-1 conforming ones and cannot see the Nth, and a second reader using the same method
+  corroborates nothing, it only repeats the measurement.
 - P-06: WHEN a review panel returns a finding that would cost a fix cycle DO verify its central premise
   at the pinned base commit first. "This surface is new" is one grep against the approval commit, and a
   finding resting on a false premise buys a cycle for nothing.
@@ -54,9 +54,9 @@
 - G-01: WHEN routing Expertise ops DO check the owner's own domain grant first. The domain hook blocks
   the orchestrator from writing ANOTHER agent's file, but leads and members hold their own with
   `upsert: true` — telling a lead not to self-apply strands its ops with no owner at all.
-- G-02: Dispatch prompts must not name `.harness/notes/**` as an output path for a lead or a
-  documentor — their domains exclude it. Member and reviewer artifacts belong under the path that
-  member's own grant names; a member with no such grant writes to its observations log.
+- G-02: WHEN checking that prose carries a required phrase DO normalise whitespace before counting, and
+  mind case. A fixed-string grep returns zero when the phrase spans a wrapped line, which reads exactly
+  like missing work and reverses a correct verdict.
 - G-03: WHEN a task arrives naming a defect as small housekeeping DO verify the premise on disk and
   refuse on the MERITS with a citation, not on domain alone. Two tells: the target text is
   unspecified so any edit invents approved content, or the file is approval-gated.
@@ -69,9 +69,9 @@
 - G-06: WHEN crossing a phase seam DO write the handoff note even when continuing in the same session
   instead of relaying — the invariant checker reads the phase field and reports a missing seam note as a
   VIOLATION, not as advice.
-- G-07: A run dir's squad suffix must match the owning lead's domain glob exactly, and a trailing
-  comment on a run entry's `squad:` line silently drops that run from the invariant checker's
-  block-form parse. Put comments on the verdict line instead.
+- G-07: WHEN a lead's digest reports its run finished DO open that run's own state file and treat any
+  step with an unset completion time as still live. A digest can be fenced, verdict-bearing and
+  premature; re-dispatching over a live run duplicates the work.
 - G-08: WHEN a guard rejects a shell command for a redirect DO note that it masks quoted spans
   wholesale, so ANY quoted target blocks — literal or variable, including an approved plan's own
   `verify:`. Re-express it as a script file, and pass commit messages by file.
@@ -127,9 +127,9 @@
 - O-09: WHEN a constraint names a resource to protect DO verify what the tool reads at RUNTIME before
   handing anyone the procedure. The target usually comes from a config file rather than a flag, so a
   carefully protected fixture and the resource actually written are routinely different ones.
-- O-10: WHEN two squad segments share no files DO dispatch them in one message rather than in sequence.
-  Concurrency is free and nothing surfaces the wait, so serial dispatch looks identical to correct
-  while costing a full lead round-trip per segment.
+- O-10: WHEN two read-only segments share no files DO dispatch them in one message, since concurrency is
+  free and nothing surfaces the wait — but settle first what happens to one segment's verdict if the
+  other's outcome moves the tip, because neither can see that collision.
 
 ## Open (max 5)
 
