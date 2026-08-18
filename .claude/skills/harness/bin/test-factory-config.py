@@ -9,6 +9,13 @@ ANOTHER REPOSITORY; and (2) an unlisted repository read as though it were config
 nothing rejects it. Both are asserted here directly, along with the C-3 stream contract on
 --show and the nine ways a fleet file can be malformed. Nothing here spawns a subprocess (this
 file is UNIT, not INTEGRATION, for exactly that reason).
+
+FEAT-24 T-02: the board no longer lives in fleet.yaml. A fleet member's board is read from ITS
+OWN repository's .harness/harness.json at its default_branch — factory_config.product_config /
+board_for — via one gh api read, faked here by monkeypatching factory_gh.file_at_ref on the
+imported module object (fc.factory_gh.file_at_ref). No case in this file may invoke gh or make a
+network call, and no case may call load_fleet() with no argument — FLEET_PATH binds at import to
+the LIVE repository's fleet.yaml, so an omitted path passes for the wrong reason.
 """
 import ast
 import contextlib
@@ -29,6 +36,14 @@ RAN = 0
 
 def check(name, cond, detail=""):
     global FAILS, RAN
+    # FEAT-24 T-02 MEMO TRAP GUARD: clear_product_config_memo() is the FIRST statement, so every
+    # case begins with an empty memo — the PREVIOUS case's check() call already emptied it here.
+    # This is structural, not conventional: a case that wants two (or more) memo-sensitive calls
+    # counted together (e.g. two board_for calls whose combined call count it asserts) MUST make
+    # ALL of them before invoking check(), because Python evaluates the `cond` argument before
+    # calling check() — so the calls happen, then the memo clears. The memoisation case below
+    # already does this.
+    fc.clear_product_config_memo()
     RAN += 1
     if cond:
         print(f"ok    {name}")
@@ -37,22 +52,26 @@ def check(name, cond, detail=""):
         print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
 
 
+@contextlib.contextmanager
+def patched_file_at_ref(func):
+    """Monkeypatch factory_gh.file_at_ref on the imported module object — never gh, never a
+    network call — for the life of the `with` block."""
+    saved = fc.factory_gh.file_at_ref
+    fc.factory_gh.file_at_ref = func
+    try:
+        yield
+    finally:
+        fc.factory_gh.file_at_ref = saved
+
+
 def good_fleet_dict(workspace_root="/tmp/does-not-need-to-exist/factories"):
-    """The board is PER-REPO (FEAT-16 T-08) — there is no top-level `board:` any more. Every
-    repos entry carries its own board mapping."""
+    """FEAT-24 T-02: the board is no longer part of a fleet declaration at all. Every repos entry
+    here carries only name and default_branch; the board is read remotely per repository (see
+    board_for / product_config below)."""
     return {
         "schema": "factory-fleet/1",
         "repos": [
-            {
-                "name": "mruangutai/harness",
-                "default_branch": "main",
-                "board": {
-                    "owner": "mruangutai",
-                    "number": 3,
-                    "station_field": "Status",
-                    "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
-                },
-            },
+            {"name": "mruangutai/harness", "default_branch": "main"},
         ],
         "workspace_root": workspace_root,
     }
@@ -69,19 +88,54 @@ def deep_copy(d):
     return json.loads(json.dumps(d))
 
 
+FIVE_STATIONS = ("backlog", "ready", "building", "review", "done")
+
+
+def full_stations(**overrides):
+    st = {k: k.capitalize() for k in FIVE_STATIONS}
+    st.update(overrides)
+    return st
+
+
+def board_dict(number, **station_overrides):
+    """A valid five-key board mapping (FEAT-24 T-02 / D-06)."""
+    return {
+        "owner": "mruangutai",
+        "number": number,
+        "station_field": "Status",
+        "stations": full_stations(**station_overrides),
+    }
+
+
+def config_doc(board):
+    """The shape product_config returns: a full document with a github block holding board —
+    never a bare board mapping, because that is what the real remote file looks like."""
+    return {"github": {"board": board}}
+
+
 # --- 1. a well-formed fleet loads and its values round-trip -----------------------------
 with tempfile.TemporaryDirectory() as td:
     good = good_fleet_dict()
     path = write_fleet(td, good)
     fleet = fc.load_fleet(path)
-    check("(1) load_fleet round-trips board.owner",
-          fleet["repos"][0]["board"]["owner"] == "mruangutai")
     check("(1) load_fleet round-trips repos[0].name",
           fleet["repos"][0]["name"] == "mruangutai/harness")
     check("(1) load_fleet round-trips workspace_root",
           fleet["workspace_root"] == good["workspace_root"])
+    # NOTE: "(1) load_fleet round-trips board.owner" is REMOVED — load_fleet no longer carries a
+    # board at all (repos[].board is now a REJECTED shape, see (load_fleet rejects a repos entry
+    # carrying a board key) below). Its coverage relocates to "board_for resolves through
+    # product_config", which asserts the returned board's owner field against a remote stub.
 
-# --- 2-10. the nine validation failures --------------------------------------------------
+# --- (3) INVERTED: a repos entry with no board is now the CORRECT shape -------------------
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    check("(3) a repos entry has no board — this is the correct shape now",
+          "board" not in fleet["repos"][0])
+    # Also folds old (25)'s "'board' is absent from the loaded fleet" assertion — there is no
+    # per-repo board in the loaded fleet at all any more, not merely no top-level block.
+
+# --- 2-10 (subset). the surviving fleet-shape validation failures --------------------------
 BAD_CASES = []
 
 
@@ -93,32 +147,9 @@ def mut_schema(d):
     d["schema"] = "factory-fleet/2"
 
 
-def mut_board_missing(d):
-    del d["repos"][0]["board"]
-
-
-def mut_board_not_mapping(d):
-    d["repos"][0]["board"] = "not-a-mapping"
-
-
-def mut_owner_empty(d):
-    d["repos"][0]["board"]["owner"] = ""
-
-
-def mut_number_not_int(d):
-    d["repos"][0]["board"]["number"] = "3"
-
-
-def mut_station_field_empty(d):
-    d["repos"][0]["board"]["station_field"] = ""
-
-
-def mut_stations_wrong_keys(d):
-    d["repos"][0]["board"]["stations"] = {"ready": "Ready", "building": "Building"}
-
-
 def mut_top_level_board_present(d):
-    # A leftover top-level `board:` key is now an ERROR, never an ignored key (FEAT-16 T-08).
+    # A leftover top-level `board:` key is still an ERROR, never an ignored key (FEAT-16 T-08,
+    # kept unchanged by FEAT-24 T-02 item 4).
     d["board"] = {
         "owner": "mruangutai",
         "number": 9,
@@ -150,18 +181,14 @@ def mut_workspace_root_is_filesystem_root(d):
 
 add_bad_case("(2) schema is not factory-fleet/1", mut_schema)
 add_bad_case("(2b) workspace_root is a filesystem root", mut_workspace_root_is_filesystem_root)
-add_bad_case("(3) a repos entry has no board", mut_board_missing)
-add_bad_case("(4) repos[].board is not a mapping", mut_board_not_mapping)
-add_bad_case("(5) repos[].board.owner is empty", mut_owner_empty)
-add_bad_case("(6) repos[].board.number is not an int", mut_number_not_int)
-add_bad_case("(7) repos[].board.station_field is empty", mut_station_field_empty)
-add_bad_case(
-    "(8) repos[].board.stations does not carry exactly ready/building/review",
-    mut_stations_wrong_keys)
 add_bad_case("(8b) a leftover top-level board key raises FleetError", mut_top_level_board_present)
 add_bad_case("(9) repos is missing", mut_repos_missing)
 add_bad_case("(10) a repo entry lacks a slash in its name", mut_repo_entry_bad)
 add_bad_case("(11) workspace_root is not absolute", mut_workspace_root_relative)
+# REMOVED from this loop: (3) [inverted, see above], (4)-(8) [repos[].board.* shapes — that
+# entire code path is GONE from load_fleet after T-02 item 3; their coverage relocates to the
+# eight "board_for raises naming the file and the key: <shape>" cases below, which drive the SAME
+# eight malformed shapes through the surviving entry point, board_for/validate_board].
 
 RAISED_MESSAGES = []
 
@@ -192,22 +219,18 @@ with tempfile.TemporaryDirectory() as td:
         # Discriminating, not "board" / "repos" substrings (those appear in almost every
         # FleetError this loader raises). "invalid: board —" pins the key to exactly "board"
         # (em dash U+2014, matching factory_cli.body / the C-3 checks above); "repos[].board"
-        # appears only in THIS next_step — the per-repo-missing-board error says
+        # appears only in THIS next_step — the per-repo-carries-a-board error says
         # "repos[<name>].board", never the bracket-empty form.
         check("(8b) the message names key 'board' exactly", "invalid: board —" in str(e), str(e))
         check("(8b) the next_step mentions repos[].board", "repos[].board" in str(e), str(e))
 
-# also cover: repos is empty, repos is not a list, a repo lacks default_branch
+# also cover: repos is empty, repos is not a list, a repo lacks default_branch, workspace_root
+# is missing
 for name, mutate in [
     ("(12) repos is empty", lambda d: d.__setitem__("repos", [])),
     ("(13) repos is not a list", lambda d: d.__setitem__("repos", {"a": 1})),
     ("(14) a repo entry lacks default_branch",
      lambda d: d.__setitem__("repos", [{"name": "o/r"}])),
-    ("(14b) repos[].board.stations carries an empty value",
-     lambda d: d["repos"][0]["board"].__setitem__(
-         "stations", {"ready": "", "building": "Building", "review": "Review"})),
-    ("(14c) repos[].board.number is a bool, not an int",
-     lambda d: d["repos"][0]["board"].__setitem__("number", True)),
     ("(14d) workspace_root is missing", lambda d: d.pop("workspace_root")),
 ]:
     with tempfile.TemporaryDirectory() as td:
@@ -222,8 +245,38 @@ for name, mutate in [
             check(name, True)
         except Exception as e:
             check(name, False, f"raised {type(e).__name__}: {e}")
+# REMOVED from this loop: (14b) repos[].board.stations empty value, (14c) repos[].board.number is
+# a bool. Both drove board shapes through load_fleet, a path that is gone. (14b)'s coverage
+# relocates to "board_for raises naming the file and the key: a station value is empty" below.
+# (14c)'s coverage relocates to the direct validate_board() bool-rejection case below (kept under
+# its own name, driven through the surviving public validator directly rather than through
+# board_for, since it is testing validate_board's own isinstance/bool guard, not the remote-read
+# plumbing).
 
-# --- 13 (grammar): every collected FleetError message obeys C-3 ---------------------------
+# --- (14c) RELOCATED: validate_board still rejects a bool for number, driven directly -------
+_bool_board = board_dict(3)
+_bool_board["number"] = True
+try:
+    fc.validate_board(_bool_board, "github.board", "test-path")
+    check("(14c) repos[].board.number is a bool, not an int", False, "did not raise")
+except fc.FleetError:
+    check("(14c) repos[].board.number is a bool, not an int", True)
+except Exception as e:
+    check("(14c) repos[].board.number is a bool, not an int", False, f"{type(e).__name__}: {e}")
+
+# --- (6)/(28b) RELOCATED: a digit string is now VALID and is coerced to an int (item 2c) -----
+_digit_board = board_dict(3)
+_digit_board["number"] = "3"
+try:
+    _digit_result = fc.validate_board(_digit_board, "github.board", "test-path")
+    _digit_ok = (_digit_result["number"] == 3 and isinstance(_digit_result["number"], int)
+                 and not isinstance(_digit_result["number"], bool))
+except Exception as e:
+    _digit_ok, _digit_result = False, f"{type(e).__name__}: {e}"
+check("(6)/(28b) validate_board coerces a digit string number to an int",
+      _digit_ok, _digit_result)
+
+# --- (15) (grammar): every collected FleetError message obeys C-3 -------------------------
 check("(15) at least 9 FleetError messages were collected", len(RAISED_MESSAGES) >= 9,
       f"n={len(RAISED_MESSAGES)}")
 for m in RAISED_MESSAGES:
@@ -231,7 +284,7 @@ for m in RAISED_MESSAGES:
           "—" in m and "FleetError" not in m and "Traceback" not in m,
           f"msg={m!r}")
 
-# --- 11. repo_entry on an unlisted name ----------------------------------------------------
+# --- (16)/(17). repo_entry on a listed and an unlisted name ---------------------------------
 with tempfile.TemporaryDirectory() as td:
     fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
     entry = fc.repo_entry(fleet, "mruangutai/harness")
@@ -244,135 +297,312 @@ with tempfile.TemporaryDirectory() as td:
         check("(17) the message names the unlisted name", "someone/unlisted" in str(e), str(e))
 
 # NOTE: the two-argument station(fleet, key) was deleted in FEAT-16 T-08 — board_station is now
-# the only station lookup (see the "(29)/(30) board_station" checks below), so there is no
-# standalone "(18)/(19) station" case here any more.
+# the only station lookup (see the "(29)/(30)/(31) board_station"/"board_for" checks below), so
+# there is no standalone "(18)/(19) station" case here any more.
 
-# --- 12b. per-repo board: board_for, board_station, and the four repos-prefixed field rules --
-
-
-def board_dict(number, ready="Ready", building="Building", review="Review"):
-    return {
-        "owner": "mruangutai",
-        "number": number,
-        "station_field": "Status",
-        "stations": {"ready": ready, "building": building, "review": review},
-    }
-
-
-def per_repo_fleet_dict(workspace_root="/tmp/does-not-need-to-exist/factories"):
-    """A fleet whose single repos entry carries its own board."""
-    return {
-        "schema": "factory-fleet/1",
-        "repos": [
-            {"name": "mruangutai/harness", "default_branch": "main", "board": board_dict(3)},
-        ],
-        "workspace_root": workspace_root,
-    }
-
-
-def two_repo_fleet_dict(workspace_root="/tmp/does-not-need-to-exist/factories"):
-    """Two repos entries, each carrying its own board on a different board number."""
-    return {
-        "schema": "factory-fleet/1",
-        "repos": [
-            {"name": "mruangutai/harness", "default_branch": "main", "board": board_dict(3)},
-            {
-                "name": "mruangutai/kaya-ai",
-                "default_branch": "master",
-                "board": board_dict(2, ready="Todo"),
-            },
-        ],
-        "workspace_root": workspace_root,
-    }
-
-
+# --- load_fleet REJECTS a repos entry carrying a board key (FEAT-24 T-02 item 3, D-08) --------
+# This is the INVERSION of old (27)/(27b): under FEAT-16 T-08 an ABSENT per-repo board raised;
+# under FEAT-24 T-02 a PRESENT one does. Same underlying "the board's home is enforced" property,
+# proved in the opposite direction now that the home moved off fleet.yaml entirely.
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, per_repo_fleet_dict()))
-    check("(25) a fleet whose single repos entry carries its own board loads",
-          fleet["repos"][0]["board"]["number"] == 3)
-    check("(25) 'board' is absent from the loaded fleet — there is no top-level block",
-          "board" not in fleet)
-
-with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, two_repo_fleet_dict()))
-    check("(26) board_for returns repos[0]'s own board number",
-          fc.board_for(fleet, "mruangutai/harness")["number"] == 3)
-    check("(26) board_for returns repos[1]'s own board number",
-          fc.board_for(fleet, "mruangutai/kaya-ai")["number"] == 2)
-
-with tempfile.TemporaryDirectory() as td:
-    d = deep_copy(two_repo_fleet_dict())
-    del d["repos"][1]["board"]
+    d = deep_copy(good_fleet_dict())
+    d["repos"][0]["board"] = board_dict(3)
     path = write_fleet(td, d)
     try:
         fc.load_fleet(path)
-        check("(27) a repos entry with no board raises FleetError", False, "did not raise")
+        check("load_fleet rejects a repos entry carrying a board key", False, "did not raise")
     except fc.FleetError as e:
-        check("(27) a repos entry with no board raises FleetError", True)
-        check("(27) the message names the repository missing its board",
-              "repos[mruangutai/kaya-ai].board" in str(e), str(e))
-        check("(27b) the next_step names all four required board fields, owner included",
-              "with owner, number, station_field and stations" in str(e), str(e))
+        msg = str(e)
+        check("load_fleet rejects a repos entry carrying a board key",
+              "repos[mruangutai/harness].board" in msg and "github.board" in msg
+              and ".harness/harness.json" in msg, msg)
+    except Exception as e:
+        check("load_fleet rejects a repos entry carrying a board key", False,
+              f"{type(e).__name__}: {e}")
 
-REPO_BOARD_BAD_CASES = []
-
-
-def add_repo_board_bad_case(name, mutate):
-    REPO_BOARD_BAD_CASES.append((name, mutate))
+# --- load_fleet still requires repos[].name, repos[].default_branch and workspace_root --------
 
 
-def mut_repo_board_owner_empty(d):
-    d["repos"][0]["board"]["owner"] = ""
-
-
-def mut_repo_board_number_not_int(d):
-    d["repos"][0]["board"]["number"] = "3"
-
-
-def mut_repo_board_station_field_empty(d):
-    d["repos"][0]["board"]["station_field"] = ""
-
-
-def mut_repo_board_stations_wrong_keys(d):
-    d["repos"][0]["board"]["stations"] = {"ready": "Ready", "building": "Building"}
-
-
-add_repo_board_bad_case("(28a) repos[].board.owner is empty", mut_repo_board_owner_empty)
-add_repo_board_bad_case("(28b) repos[].board.number is not an int", mut_repo_board_number_not_int)
-add_repo_board_bad_case(
-    "(28c) repos[].board.station_field is empty", mut_repo_board_station_field_empty)
-add_repo_board_bad_case(
-    "(28d) repos[].board.stations does not carry exactly ready/building/review",
-    mut_repo_board_stations_wrong_keys)
-
-for name, mutate in REPO_BOARD_BAD_CASES:
+def _raises_fleeterror(mutate_fn):
     with tempfile.TemporaryDirectory() as td:
-        d = deep_copy(per_repo_fleet_dict())
-        mutate(d)
+        d = deep_copy(good_fleet_dict())
+        mutate_fn(d)
         path = write_fleet(td, d)
         try:
             fc.load_fleet(path)
-            check(name, False, "did not raise FleetError")
-        except fc.FleetError as e:
-            check(name, "repos[mruangutai/harness].board." in str(e), str(e))
-        except Exception as e:
-            check(name, False, f"raised {type(e).__name__}: {e}")
+            return False
+        except fc.FleetError:
+            return True
+        except Exception:
+            return False
 
-with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, two_repo_fleet_dict()))
-    check("(29) board_station returns the per-repo ready option when the entry has its own "
-          "board", fc.board_station(fleet, "mruangutai/kaya-ai", "ready") == "Todo")
 
-with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, per_repo_fleet_dict()))
+_name_bad = _raises_fleeterror(lambda d: d["repos"][0].__setitem__("name", "no-slash"))
+_default_branch_missing = _raises_fleeterror(lambda d: d["repos"][0].pop("default_branch"))
+_workspace_root_missing = _raises_fleeterror(lambda d: d.pop("workspace_root"))
+check("load_fleet still requires repos[].name, repos[].default_branch and workspace_root",
+      _name_bad and _default_branch_missing and _workspace_root_missing,
+      (_name_bad, _default_branch_missing, _workspace_root_missing))
+
+# --- validate_board: the five-key stations map, accept/reject per key -----------------------
+# Independent oracle, per-key distinctive values (the same shape T-04 uses for derive_station's
+# Col-B/Col-R) — comparing the RETURNED mapping to the INPUT mapping is x == x, since item 2c
+# mutates the board in place and returns it, and cannot redden for any implementation that fails
+# to preserve a key. _EXPECTED_STATIONS is the oracle instead.
+_EXPECTED_STATIONS = {
+    "backlog": "Col-BK", "ready": "Col-RD", "building": "Col-BL",
+    "review": "Col-RV", "done": "Col-DN",
+}
+for _key in FIVE_STATIONS:
+    _board = board_dict(3, **_EXPECTED_STATIONS)
     try:
-        fc.board_station(fleet, "mruangutai/harness", "nonexistent")
-        check("(30) board_station raises FleetError on an unknown key", False, "did not raise")
-    except fc.FleetError as e:
-        check("(30) board_station raises FleetError on an unknown key", True)
+        _result = fc.validate_board(_board, "github.board", "test-path")
+        _ok = _result["stations"][_key] == _EXPECTED_STATIONS[_key]
+    except Exception as e:
+        _ok, _result = False, f"{type(e).__name__}: {e}"
+    check(f"validate_board accepts the five-key stations map: {_key}", _ok, _result)
+
+for _key in FIVE_STATIONS:
+    _board = board_dict(3)
+    del _board["stations"][_key]
+    try:
+        fc.validate_board(_board, "github.board", "test-path")
+        check(f"validate_board rejects a stations map missing {_key}", False, "did not raise")
+    except fc.FleetError:
+        check(f"validate_board rejects a stations map missing {_key}", True)
+    except Exception as e:
+        check(f"validate_board rejects a stations map missing {_key}", False,
+              f"{type(e).__name__}: {e}")
+
+# --- board_for: the eight malformed shapes, driven through product_config + board_for ---------
+# The SAME eight shapes T-04 drives through gh_board.load_board, driven here through the OTHER
+# surviving validate_board caller, so the one validator is proved loud from both entry points.
+
+
+def board_for_raise_case(shape_name, doc, present, absent=None,
+                          repo="mruangutai/harness", branch="main"):
+    with tempfile.TemporaryDirectory() as td:
+        fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+        with patched_file_at_ref(lambda r, p, ref, _doc=doc: json.dumps(_doc)):
+            try:
+                fc.board_for(fleet, repo)
+                ok, msg = False, "did not raise"
+            except fc.FleetError as e:
+                msg = str(e)
+                ok = (f"{repo}@{branch}:.harness/harness.json" in msg) and (present in msg)
+                if absent is not None:
+                    ok = ok and (absent not in msg)
+            except Exception as e:
+                ok, msg = False, f"{type(e).__name__}: {e}"
+    check(f"board_for raises naming the file and the key: {shape_name}", ok, msg)
+
+
+_b_owner_missing = board_dict(3)
+del _b_owner_missing["owner"]
+_b_number_not_int = board_dict(3)
+_b_number_not_int["number"] = 2.5  # a FLOAT, never a digit string — item 2c makes "3" valid.
+_b_station_field_missing = board_dict(3)
+_b_station_field_missing["station_field"] = ""
+_b_stations_missing = board_dict(3)
+del _b_stations_missing["stations"]
+_b_stations_key_set_wrong = board_dict(3)
+del _b_stations_key_set_wrong["stations"]["done"]
+_b_station_value_empty = board_dict(3)
+_b_station_value_empty["stations"]["done"] = ""
+
+board_for_raise_case("no board key", {"github": {}}, present="github.board")
+board_for_raise_case("board is not a mapping", {"github": {"board": "not-a-mapping"}},
+                      present="github.board")
+# THE where-CONTRACT PAIR (item 2a) is pinned on THIS shape — "owner missing" — matching T-04's
+# load_board case on the SAME shape, so the contract is proved at both entry points.
+board_for_raise_case("owner missing", config_doc(_b_owner_missing),
+                      present="github.board.owner", absent="github.board.board")
+board_for_raise_case("number not an int", config_doc(_b_number_not_int),
+                      present="github.board.number")
+board_for_raise_case("station_field missing", config_doc(_b_station_field_missing),
+                      present="github.board.station_field")
+board_for_raise_case("stations missing", config_doc(_b_stations_missing),
+                      present="github.board.stations")
+board_for_raise_case("stations key set wrong", config_doc(_b_stations_key_set_wrong),
+                      present="github.board.stations")
+board_for_raise_case("a station value is empty", config_doc(_b_station_value_empty),
+                      present="github.board.stations")
+
+# --- board_for raises when the product config declares no board (github block absent) --------
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    with patched_file_at_ref(lambda r, p, ref: json.dumps({})):
+        try:
+            fc.board_for(fleet, "mruangutai/harness")
+            ok, msg = False, "did not raise"
+        except fc.FleetError as e:
+            ok, msg = True, str(e)
+        except Exception as e:
+            ok, msg = False, f"{type(e).__name__}: {e}"
+    check("board_for raises when the product config declares no board", ok, msg)
+
+# --- board_for resolves through product_config (relocates old (26), and (1)'s owner round-trip)
+with tempfile.TemporaryDirectory() as td:
+    _two_repo_fleet = {
+        "schema": "factory-fleet/1",
+        "repos": [
+            {"name": "mruangutai/harness", "default_branch": "main"},
+            {"name": "mruangutai/kaya-ai", "default_branch": "master"},
+        ],
+        "workspace_root": "/tmp/does-not-need-to-exist/factories",
+    }
+    fleet = fc.load_fleet(write_fleet(td, _two_repo_fleet))
+    _boards_by_repo = {
+        "mruangutai/harness": board_dict(3),
+        "mruangutai/kaya-ai": board_dict(2, ready="Todo"),
+    }
+
+    def _stub(repo, path, ref, _boards=_boards_by_repo):
+        return json.dumps(config_doc(_boards[repo]))
+
+    with patched_file_at_ref(_stub):
+        _b1 = fc.board_for(fleet, "mruangutai/harness")
+        _b2 = fc.board_for(fleet, "mruangutai/kaya-ai")
+        _ok = (_b1["number"] == 3 and _b1["owner"] == "mruangutai"
+               and _b2["number"] == 2 and _b2["stations"]["ready"] == "Todo")
+    check("board_for resolves through product_config", _ok, (_b1, _b2))
+
+# --- product_config: no-checkout, remote-failure, no-fallback, memoisation (THE FIXTURE TRAP
+# and THE MEMO TRAP) -------------------------------------------------------------------------
+
+# (i) reads the remote at default_branch, with NO checkout present on disk.
+with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
+    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict(workspace_root=ws)))
+    _repo = "mruangutai/harness"
+    _board = board_dict(3)
+    with patched_file_at_ref(lambda r, p, ref, _b=_board: json.dumps(config_doc(_b))):
+        _no_checkout = not os.path.exists(fc.workspace_path(fleet, _repo))
+        _result = fc.board_for(fleet, _repo)
+        _ok = _no_checkout and _result["number"] == 3
+    check("product_config reads the remote at default_branch with no checkout on disk",
+          _ok, (_no_checkout, _result))
+
+# (ii) a failing remote read raises FleetError naming repo, path and ref.
+with tempfile.TemporaryDirectory() as td:
+    # A distinctive default_branch (P-01: pick a value absent from every message's fixed prose)
+    # so the ref assertion below cannot pass as a false-positive substring of unrelated text —
+    # "main" is a 4-character token that could appear in ordinary next_step prose.
+    _d = deep_copy(good_fleet_dict())
+    _d["repos"][0]["default_branch"] = "trunk-xyzzy"
+    fleet = fc.load_fleet(write_fleet(td, _d))
+
+    def _boom(repo, path, ref):
+        raise fc.factory_gh.GhError(
+            ["gh", "api", "repos/mruangutai/harness/contents/.harness/harness.json"],
+            1, "", "404", "gh call failed", "mruangutai/harness", "check gh auth and the ref",
+        )
+
+    with patched_file_at_ref(_boom):
+        try:
+            fc.product_config(fleet, "mruangutai/harness")
+            _ok, _msg = False, "did not raise"
+        except fc.FleetError as e:
+            _msg = str(e)
+            _ok = ("mruangutai/harness" in _msg and ".harness/harness.json" in _msg
+                   and "trunk-xyzzy" in _msg)
+        except Exception as e:
+            _ok, _msg = False, f"{type(e).__name__}: {e}"
+    check("product_config raises naming repo, path and ref when the remote read fails",
+          _ok, _msg)
+
+# (iii) never falls back to a checkout, even when one exists on disk with a DIFFERENT board.
+with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:
+    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict(workspace_root=ws)))
+    _repo = "mruangutai/harness"
+    _remote_board = board_dict(3)
+    _checkout_board = board_dict(9)
+    _checkout_dir = fc.workspace_path(fleet, _repo)
+    os.makedirs(os.path.join(_checkout_dir, ".harness"), exist_ok=True)
+    with open(os.path.join(_checkout_dir, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump(config_doc(_checkout_board), f)
+    with patched_file_at_ref(lambda r, p, ref, _b=_remote_board: json.dumps(config_doc(_b))):
+        _result = fc.board_for(fleet, _repo)
+        _ok = _result["number"] == 3
+    check("product_config never falls back to a checkout", _ok, _result)
+
+# (iv) memoisation: a second board_for makes no second remote read; a failing read is never
+# cached (both required by THE MEMO TRAP).
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    _repo = "mruangutai/harness"
+    _board = board_dict(3)
+    _calls = []
+
+    def _counting_stub(repo, path, ref, _b=_board, _calls=_calls):
+        _calls.append((repo, path, ref))
+        return json.dumps(config_doc(_b))
+
+    with patched_file_at_ref(_counting_stub):
+        # Both memo-sensitive calls happen BEFORE the check() below, per the MEMO TRAP comment on
+        # check() above — the cond is computed here, and only then does check() clear the memo.
+        _b1 = fc.board_for(fleet, _repo)
+        _b2 = fc.board_for(fleet, _repo)
+        _mono_ok = len(_calls) == 1 and _b1 == _b2
+    check("product_config memoises a successful read: a second board_for makes no second "
+          "remote read", _mono_ok, (len(_calls), _b1, _b2))
+
+    # A failing read must never be memoised: point the stub at a raiser, assert board_for raises,
+    # then repoint it at a working stub and assert the NEXT call succeeds — WITHOUT an
+    # intervening check() call, per the MEMO TRAP comment on check() above. An intervening
+    # check() would clear the memo itself and let this assertion pass even if product_config
+    # wrongly cached the failure, since the wipe (not the correct no-cache behaviour) would be
+    # what makes the recovery call succeed.
+    def _raising_stub(repo, path, ref):
+        raise fc.factory_gh.GhError(["gh"], 1, "", "500", "gh call failed", repo, "retry")
+
+    with patched_file_at_ref(_raising_stub):
+        try:
+            fc.board_for(fleet, _repo)
+            _raised = False
+        except fc.FleetError:
+            _raised = True
+        except Exception:
+            _raised = False
+    with patched_file_at_ref(lambda r, p, ref, _b=_board: json.dumps(config_doc(_b))):
+        try:
+            _recovered = fc.board_for(fleet, _repo)["number"] == 3
+        except Exception:
+            _recovered = False
+    check("product_config memoisation: a failing read is not cached and the next call succeeds",
+          _raised and _recovered, (_raised, _recovered))
+
+# --- (29)/(30)/(31): board_station and board_for, via product_config stub -------------------
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, {
+        "schema": "factory-fleet/1",
+        "repos": [
+            {"name": "mruangutai/harness", "default_branch": "main"},
+            {"name": "mruangutai/kaya-ai", "default_branch": "master"},
+        ],
+        "workspace_root": "/tmp/does-not-need-to-exist/factories",
+    }))
+    _boards_by_repo = {
+        "mruangutai/harness": board_dict(3),
+        "mruangutai/kaya-ai": board_dict(2, ready="Todo"),
+    }
+    with patched_file_at_ref(
+            lambda repo, path, ref, _boards=_boards_by_repo: json.dumps(config_doc(_boards[repo]))):
+        _val = fc.board_station(fleet, "mruangutai/kaya-ai", "ready")
+    check("(29) board_station returns the per-repo ready option when the entry has its own board",
+          _val == "Todo", _val)
 
 with tempfile.TemporaryDirectory() as td:
-    fleet = fc.load_fleet(write_fleet(td, per_repo_fleet_dict()))
+    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
+    with patched_file_at_ref(
+            lambda r, p, ref, _b=board_dict(3): json.dumps(config_doc(_b))):
+        try:
+            fc.board_station(fleet, "mruangutai/harness", "nonexistent")
+            check("(30) board_station raises FleetError on an unknown key", False, "did not raise")
+        except fc.FleetError:
+            check("(30) board_station raises FleetError on an unknown key", True)
+
+with tempfile.TemporaryDirectory() as td:
+    fleet = fc.load_fleet(write_fleet(td, good_fleet_dict()))
     try:
         fc.board_for(fleet, "someone/unlisted")
         check("(31) board_for on an unlisted repository raises FleetError", False, "did not raise")
