@@ -23,12 +23,4 @@ repos:
     # board `Backlog` means filed-and-untriaged and `Ready` means promoted for the factory, so
     # a claim run that finds nothing has found the truth rather than hit a misconfiguration
     # (D-08). Pointing intake at `Backlog` instead would hand the factory 82 untriaged items.
-    board:
-      owner: mruangutai
-      number: 2
-      station_field: Status
-      stations:
-        ready: Ready
-        building: Building
-        review: Review
 workspace_root: /Users/molchairuangutai/GitHub/harness-factories

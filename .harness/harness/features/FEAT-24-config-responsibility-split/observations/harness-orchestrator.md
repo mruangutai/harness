@@ -92,3 +92,22 @@
   after `cd` is refused as "outside your domain" exactly like a variable is. Absolute paths in every
   in-place edit, always — the refusal message names the basename and reads like a domain verdict
   rather than a path-resolution failure, which sends you looking in the wrong place.
+
+- 2026-08-19: The lock-probe is worth doing as the FIRST act of the session after a blocking window
+  is reported cleared. One append to a file I own either succeeds or returns the guard's own refusal
+  text; both are unambiguous, and it costs one call. Taking "the lock is open" on report and then
+  discovering otherwise three writes into a dispatch is the expensive version.
+
+- 2026-08-19: A plan's per-file enumeration can be arithmetically false about the tree while its
+  title is exactly right. T-03 said "five test files build fleet fixtures"; seven suites were red and
+  six were fixture migrations, with `test-factory-workspace.py` in NO task's files list anywhere in
+  the plan. The discriminator for whether that is mine or pm's: does the task's own TITLE/goal cover
+  the extra work? If yes it is approved-but-unenumerated and extending the dispatch is
+  execution-time; if the goal itself has to widen, it is pm's. Say which reading you took, in the
+  dispatch and the return.
+
+- 2026-08-19: Measure the red set yourself before re-deriving a task's scope from it. The operator
+  reported seven failing files and was right, but the two beyond the plan's five were DIFFERENT
+  problems — one an unowned fixture, one a pair of assertions the design deliberately falsifies,
+  living in a file another task owns. A count alone would have routed both to the same place.
+
