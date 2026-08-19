@@ -24,6 +24,7 @@ import os
 import subprocess
 
 import factory_cli
+import gh_cost_log
 import gh_issues
 
 _LABEL_COLOR = "5319e7"
@@ -147,16 +148,18 @@ def run_gh(args, json_out=False):
     cannot block on an interactive prompt.
     """
     gh = _gh_binary()
-    try:
-        r = subprocess.run(
-            [gh] + list(args), capture_output=True, text=True, stdin=subprocess.DEVNULL,
-        )
-    except FileNotFoundError:
-        raise GhError(
-            args, None, "", "",
-            "gh not found", gh,
-            "install gh, or point FACTORY_GH at its path",
-        )
+    with gh_cost_log.measured(args) as _cost:
+        try:
+            r = subprocess.run(
+                [gh] + list(args), capture_output=True, text=True, stdin=subprocess.DEVNULL,
+            )
+        except FileNotFoundError:
+            raise GhError(
+                args, None, "", "",
+                "gh not found", gh,
+                "install gh, or point FACTORY_GH at its path",
+            )
+        _cost.returncode = r.returncode
     if r.returncode != 0:
         if not _is_rate_limit_query(list(args)) and _looks_like_rate_limit(r.stdout, r.stderr):
             raise _rate_limit_budget_error(list(args), r.stdout, r.stderr)

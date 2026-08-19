@@ -17,6 +17,13 @@ import sys
 import factory_gh as fgh
 import gh_issues
 
+# FEAT-29 T-03, amendment 4: run_gh now wraps its subprocess call with gh_cost_log.measured(),
+# which (when enabled) makes TWO extra `gh api rate_limit` calls per invocation to read the
+# GraphQL counter before and after. This file asserts on calls[0] in ~28 places — those extra
+# calls would shift every one of them. Set BEFORE any test runs, at true module scope, so no
+# recorder here ever sees a counter-read call.
+os.environ["HARNESS_GH_COST_LOG"] = "0"
+
 FAILS = 0
 RAN = 0
 RAISED = []  # every GhError caught below — the "every GhError" invariant is asserted once, at the end

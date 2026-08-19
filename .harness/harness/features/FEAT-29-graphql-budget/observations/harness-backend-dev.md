@@ -81,3 +81,32 @@
   ran the mutation once with a failing spare (target check stayed green, only a different, unnamed
   check reddened) before switching the spare to success and re-running, which is what finally
   reddened the named discriminator itself.
+- 2026-08-19 (T-03): wrote full gh_cost_log.py before writing test-gh-cost-log.py — caught it
+  myself before running anything, deleted the production file, and restarted test-first. The
+  Iron Law violation happened even with the rule fully in context at spawn time; the trigger was
+  reading a long, detailed intent block and mentally "designing the module" while reading it,
+  which slid straight into writing it. Worth watching for on any task whose intent paragraph
+  reads like a spec — the more complete the spec in the dispatch, the stronger the pull to
+  transcribe it directly into the implementation file first.
+- 2026-08-19 (T-03): my own test's first mutation attempt (an early return in record() on
+  non-zero rc) produced a bare FileNotFoundError traceback that killed the whole suite before
+  reaching the two later checks that depended on the same read_lines() call, not a clean FAIL —
+  the P-04 pattern, but self-inflicted this time rather than found in someone else's fixture.
+  read_lines() had no try/except and every block indexed lines[0]/lines[N] unguarded. Fixed by
+  making read_lines() itself never raise (returns [] on OSError/JSONDecodeError) and switching
+  every subsequent index into a guarded `non_cov[0] if non_cov else {}` plus `.get()` reads, then
+  re-ran the same mutation and got a clean named FAIL with a trailing "N of M FAILING." line.
+  Lesson for next time: build the crash-proofing into read helpers in test files from the start,
+  not after the first mutation already proves the suite is fragile to it.
+- 2026-08-19 (T-03): confirmed live that HARNESS_GH_COST_LOG defaulting ON, wired into
+  factory_gh.run_gh, causes PRE-EXISTING unit tests outside my file list (test-board-station.py,
+  test-gh-board.py — both reach run_gh for real, one via a forked subprocess, one in-process)
+  to write a real .harness/logs/gh-cost-<date>.jsonl into the ACTUAL checkout, not a tmp root —
+  because factory_config.harness_root() silently falls back to the real checkout root whenever
+  CLAUDE_PROJECT_DIR is unset (it is, in this shell), and neither of those two test files sets
+  it to a tmp path. Reproduced twice (unit and integration runs each recreate/append to the
+  file). I could not clean it up myself — bash-write-guard correctly blocked my own `rm` on that
+  path as outside my domain, which is itself confirmation this is a real domain boundary, not a
+  false alarm. Raised as a blocking open_question rather than silently patched (no file in scope
+  can fix it without either changing factory_config.py's fallback or the two test files, both
+  out of my file list).

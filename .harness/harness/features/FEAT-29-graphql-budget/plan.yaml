@@ -37,6 +37,26 @@ approval:
         exists. Replaced with three assertions on rule one's substance: the prescribed tool
         (Monitor), the reason (a Bash timeout detaches rather than kills), and the
         single-notification alternative (run_in_background).
+    - date: 2026-08-19
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: T-03 files gains two entries; T-07 verify gains the positive-control assertions
+      why_t03: >-
+        Verified at source, not relayed. run-unit-tests.sh:41 loops every test-*.py under BIN_DIR
+        and exits 2 for any not in its explicit arrays, over the union REGARDLESS of --kind. T-03
+        creates test-gh-cost-log.py, so without registering it every task's verify goes red, not
+        only T-03's. And test-factory-gh.py asserts on calls[0]; cost logging injects
+        `gh api rate_limit` into run_gh and shifts that first recorded call.
+      why_t07: >-
+        MAIN-SESSION ERROR, caught by the orchestrator as its Q4. Amendment 2 extended T-07's
+        intent with the positive control and left its verify untouched, so the gate still diffed
+        two blocks that both hold zero INV-26 lines and reported OK whether the control reproduced
+        or not. That is the identical vacuity caught in T-08's rule-two assertion one message
+        earlier. The verify now reads the control baseline and requires all seven surviving lines.
+      why_seven: >-
+        The control was captured expecting 8 lines. Closing #586 for T-08 moved that card to Done,
+        so its line can never reproduce - measured by reading every card directly, not inferred.
+        The T-08 line is struck; the rejection rule stays ABSOLUTE over the surviving seven, because
+        a broken read yields zero lines and seven discriminates perfectly.
 
 lanes:
   resolved_at: 3920513
@@ -211,12 +231,14 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh_cost_log.py
       - .claude/skills/harness/bin/test-gh-cost-log.py
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/skills/harness/bin/test-factory-gh.py
     verify: |
       .claude/skills/harness/bin/run-unit-tests.sh --kind unit
     intent: |
@@ -456,6 +478,17 @@ tasks:
       if va is None or vb is None: bad.append("a gate output block is missing")
       elif va!=vb and "EXPLAINED-DIFFERENCE" not in sa:
           bad.append("violation sets differ and no EXPLAINED-DIFFERENCE section is present")
+
+      # POSITIVE CONTROL (am.4): the diff above holds zero INV-26 lines on BOTH sides, so it
+      # passes whether the cheap read works or silently breaks (#588). These can fail.
+      c=".harness/harness/features/FEAT-29-graphql-budget/notes/measurement-before-positive.md"
+      sc=io.open(c,encoding="utf-8").read()   # missing baseline -> raises, and that is correct
+      if "POSITIVE-CONTROL" not in sa: bad.append("after file has no POSITIVE-CONTROL section")
+      i=sc.find("INV26-BEGIN"); j=sc.find("INV26-END")
+      exp=[l.strip() for l in sc[i:j].splitlines() if "INV-26" in l and "T-08" not in l]
+      if len(exp)!=7: bad.append("expected 7 control lines (T-08 struck), found %d"%len(exp))
+      miss=[l for l in exp if l not in sa]
+      if miss: bad.append("CONTROL FAILED - %d/7 INV-26 lines absent; the cheap read is not reading the board. REJECT, do not explain: %s"%(len(miss), miss[0][:80]))
       print("\n".join(bad) if bad else "OK")
       sys.exit(1 if bad else 0)
       PY
