@@ -55,3 +55,41 @@
   token counts" — as the one remaining budget claim in the file whose relationship to the enforced
   LINE caps is questionable. Doing that read before the return arrives is what makes the assessment
   a check rather than a restatement.
+- 2026-08-19 (goalcheck-product): the dispatch named the qa gate as the thing to verify
+  independently, but did NOT say qa had graded a different commit. qa's digest headline (`:6`) and
+  every `sc_status` evidence string say `252fa72`; the commit under grade was `9b929de`. That is a
+  stronger objection than "same method twice" — two readers at different commits are not measuring
+  the same object at all, so an inherited `met` describes a tree nobody is shipping. The habit worth
+  keeping: when a dispatch tells me to verify a prior gate independently, grep that gate's own
+  artifact for the SHA it graded before dispatching, because the framing "verify it independently"
+  quietly presumes both parties looked at one tree.
+- 2026-08-19 (goalcheck-product): `SendMessage` is unavailable at the lead tier — I tried to relay
+  the commit-mismatch to an in-flight pm and the tool errored as disabled for the session including
+  subagents. `runs/qa-final-validator/digest.md:131` records the same absence independently, so this
+  is not a one-off. The operational consequence: a lead cannot course-correct a member mid-flight at
+  all, so anything discovered after dispatch has to become a written acceptance criterion (P-05) and
+  then a fresh dispatch. Writing send-back criteria before the return is not merely good hygiene
+  here — it is the ONLY channel a lead has once a spawn is away.
+- 2026-08-19 (goalcheck-product): my turn was ended by the stop hook while the member was still in
+  flight, and the digest contract still had to be satisfied. The right return was `BLOCKED` with
+  `sc_status: []` — the honest value — plus `state.yaml` carrying `dispatched_at` with
+  `completed_at: none`, which is exactly the checkpoint-before-dispatch rule paying off: the run is
+  recoverable rather than undecidable, and nobody downstream can mistake an ungraded run for a
+  passing one. The temptation to fill `sc_status` from qa's eleven was real and would have been the
+  worst available act, because it would have laundered a stale measurement into a fresh-looking grade.
+- 2026-08-19 (goalcheck-product): the commit-mismatch I could not relay turned out to be moot, and
+  the reason is worth keeping. pm hit the same staleness class from a different direction on its
+  own: its first SC-03 pass FAILED on `documentor/P-02` because it had built anchors from entry text
+  at `ada8e99`, and the craft files had been re-distilled between `ada8e99` and the move commit. It
+  rebuilt all thirty-two anchors from `532806c`'s own removed lines. A member that anchors to the
+  commit which PERFORMED the change is immune to the staleness I was worrying about upstream of it —
+  so when the worry is "which tree was this measured against", the fix to ask for is not a diff
+  range, it is "derive your anchors from the change's own commit".
+- 2026-08-19 (goalcheck-product): a member's evidence method can be simultaneously the right fix and
+  a new blind spot, and the pairing is what to look for at this tier. pm anchored SC-03 on BODY text
+  — correct, and the fix for its own earlier anchoring failure — which made it structurally unable
+  to see that entry IDs are renumbered in the destination (craft documentor leaves gaps at exactly
+  P-02/P-10/G-03/G-04/G-05, while the repository file renumbers them P-01/P-02/G-01/G-02/G-03). I
+  found it by reading the destination file directly rather than by re-running pm's check. When a
+  member reports fixing an evidence method mid-run, ask what the NEW method cannot distinguish; the
+  answer is usually one dimension of the thing it deliberately stopped comparing.

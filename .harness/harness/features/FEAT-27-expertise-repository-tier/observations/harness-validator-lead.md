@@ -111,3 +111,50 @@
   whose SUBJECT is test quality and which has now surfaced six assertions that cannot fail. Mine was
   the feature's first pushback. A review tier that never sends anything back is not evidence of
   flawless work; on this feature the census is direct evidence of the other reading.
+
+- 2026-08-19 (panel): Dispatching the reviewer I fully expected to scope out was the highest-yield
+  decision of the run, and I nearly skipped it. I told `ui-reviewer` there was no UI and no
+  `DESIGN.md` — both true, and it confirmed them by census — but I also named an ADJACENT surface in
+  its remit (the hook's emitted header text and the checker's advisory line). It came back with the
+  panel's most interesting finding: the precedence line is emitted only when a repository block is
+  present, so a global+project spawn now gets two un-arbitrated Expertise blocks where the pre-diff
+  project header carried "authoritative on conflict" unconditionally. Generalise: a scoped-out
+  reviewer is worth dispatching WITH a named adjacent surface, because the decline costs little and
+  the adjacency is where its lens still reaches. Skipping it on my own prediction would have cost
+  the finding outright.
+
+- 2026-08-19 (panel): A finding gets stronger when I read it against a document the member did not
+  have. `ui` rated the precedence gap `low` as a coverage gap. Reading it beside
+  `arch-review.md:117-121` — "Emit one precedence line WITH THE BLOCKS", no condition, with the
+  rationale at `:107-109` that an agent holding two blocks has only the headers to arbitrate with —
+  turns it into a deviation from a REVIEWED RESOLUTION, which is a different and heavier finding.
+  The member could not have done this: the arch review was not in the file set I gave it. Lesson:
+  when a member reports a design-adjacent gap, check it against the review that settled the design,
+  and consider whether my own file set omitted the document that would have re-rated it.
+
+- 2026-08-19 (panel): I routed two measurements to a member that its own log said could not make
+  them. C-2 and C-4 both needed FIXTURES, and `code-reviewer`'s c0 observations stated its Bash
+  writes were blocked "even against the scratchpad". `qa` holds `Write` and `Bash` outright and was
+  the correct owner. The measurements only landed because that blanket claim was itself wrong — the
+  guard fires on shell REDIRECT syntax, not on an inline `python3 -c` write — and the member
+  corrected its own log. I got four reproductions by luck. Before routing a measurement, check the
+  member's CAPABILITY against the manifest rather than against its own prose summary of the
+  capability, which is exactly the failure my G-12 already names in the opposite direction.
+
+- 2026-08-19 (panel): The most valuable ranking move at this tier is re-ordering against WHAT
+  HAPPENS NEXT, not against severity. This feature's next acts are goal-check, close-out and
+  distillation — so a stale `STATE.md` and a wrong budget in the checklist a distiller is about to
+  follow (`harness-curate/SKILL.md:34` says 150 where the repository tier is 40) both outrank three
+  `med`s touching nothing imminent. No member can see the next step; every one of them ranks inside
+  its own lens. Related and worth carrying: look for the SINGLE remedy that closes several findings
+  — here one fixture writing `$HOME/.harness/expertise/<agent>.md` closes two handed-down census
+  items and makes a third finding testable at all, and that leverage was invisible from every
+  individual lens including, at first, my own.
+
+- 2026-08-19 (panel): An interim prose reply at the lead tier is a TURN END, and the digest
+  validator rejects it — I posted a "waiting on the panel" status and got a contract violation
+  naming every missing DIGEST field. There is no way for a lead to yield mid-run: I must either
+  return a complete digest or keep making tool calls. Combined with the earlier lesson that polling
+  buys no wall-clock, the honest conclusion is that a lead waiting on members should spend the wait
+  on independent source reading it can later use to ADJUDICATE, because that is the only activity
+  that converts the unavoidable burn into value. Half this run's findings came out of that wait.

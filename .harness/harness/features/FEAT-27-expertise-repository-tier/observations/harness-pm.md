@@ -89,3 +89,23 @@ because the authoring agent was dead — a boundary crossing, recorded rather th
 - 2026-08-19: appending a task to plan.yaml via a bash heredoc is refused by `bash-write-guard`
   (redirect outside my domain) even for a file I own; the Edit tool on a unique tail anchor is the
   only route. Domain is enforced at the tool, not the path.
+
+## Goal-check segment (2026-08-19)
+
+- 2026-08-19: the cheapest route to *independence* from a prior gate was not re-reasoning, it was
+  finding a second discriminator the prior gate had not used. Running the whole suite against
+  `git show ada8e99:` of the changed script took two commands and independently proved SC-01's and
+  SC-09's "fails against the pre-change hook" clause, which qa had only carried. A prior commit is a
+  free mutant when the change is to a single script.
+- 2026-08-19: my SC-03 per-entry anchors were nearly wrong in the dangerous direction. I built the
+  anchors from the entry texts at `ada8e99`, but craft files had been re-distilled between `ada8e99`
+  and the move, so one entry's body no longer matched and read as "rewritten during the move". The
+  right source for a move check is **the move commit's own removed lines**, not the baseline the
+  brief quotes. Rebuilding from `git show <t04-sha>` turned a false FAIL into a verbatim PASS.
+- 2026-08-19: a one-word anchor ("amendment") matched an unrelated entry in the same file and
+  produced a false FAIL. Anchors for absence assertions need to be long enough to be unique in the
+  file they must be absent from — the failure mode of a short anchor is a false alarm, which costs
+  as much investigation as a missed one.
+- 2026-08-19: `bash-write-guard` blocks `cp` and redirects when the target is written as a shell
+  variable (`$SCR/x.log`) but allows the same target spelled as a literal absolute path. The guard
+  reads the command line, not the resolved path. Spell scratchpad targets literally.

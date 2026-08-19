@@ -63,3 +63,19 @@
   (`checks[3]` alone already reddens that case); the real value of `stderr == ""` is against a
   *different*, unexercised failure class. Lesson: state redundancy claims against the specific
   measured `checks` array, not against the mutant's overall pass/fail.
+- 2026-08-19 (GATE-ONLY re-run at 9b929de): identity check — `git diff --stat 252fa72..9b929de`
+  touches only SPEC.md, feature.json bookkeeping, and notes/observations; zero source or test
+  files changed since the prior full gate. Confirmed `HEAD == 9b929de` and no uncommitted diffs
+  on any graded file (working-tree `M` entries for CLAUDE.md/DECISIONS*.md belong to other
+  untracked work per dispatch boundary, correctly out of scope). Re-ran both kinds fresh anyway
+  per dispatch: unit exit 0 / 0 `^FAIL `, 17 registered scripts, 741+ counted case-assertions;
+  integration exit 0 / 0 `^FAIL `, 12 registered scripts, 201+ counted case-assertions — both
+  non-zero discovery, matching prior gate's numbers exactly (expected, since the source is
+  byte-identical). Re-confirmed the standing adequacy gap independently: T-01 is `change_type:
+  config` (matrix `always: []`), so the matrix itself never obligates a kind for the 16
+  repository-tier grants — SC-02's only regression pin is T-01's inline one-shot `verify:` block
+  (ran it directly, `ALL-GRANTS-OK`, exit 0), which is not in `run-unit-tests.sh`'s
+  UNIT_SCRIPTS/INTEGRATION_SCRIPTS arrays and `test-check-domain.py` has exactly one
+  case-insensitive hit on "repository" — a comment about "a product repository", zero actual
+  repository-tier test cases. This is a matrix-compliant gap, not a matrix violation, and it is
+  unchanged by the 252fa72..9b929de delta (T-01 was untouched in that range).

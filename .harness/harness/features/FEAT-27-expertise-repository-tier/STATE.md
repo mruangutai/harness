@@ -3,83 +3,59 @@
 ## Current
 
 - feature: FEAT-27-expertise-repository-tier
-- run: none — awaiting the main session's layer-0 batch and two adoption rulings
-- squad: none
-- status: awaiting-layer-0
+- run: .harness/harness/features/FEAT-27-expertise-repository-tier/runs/distill-*/state.yaml
+- squad: all three (distillation)
+- status: in-flight
 
-Mission ship, build phase, **paused at the layer-0 boundary, not blocked.** Branch
-`feat/FEAT-27-expertise-repository-tier`; `review_sha` pinned at `2117a46`. Mirror: milestone 17,
-parent #494 adopted, sub-issues T-01 #565, T-02 #566 (closed), T-03 #567 (closed), T-04 #568,
-T-05 #569, T-06 #570. `cycles_used` 0 of 10; four runs recorded against a 20-run budget.
+Mission ship, close-out. Branch `feat/FEAT-27-expertise-repository-tier`, **`review_sha` pinned at
+`9b929de`** — the tip the panel and the goal-check both graded. `cycles_used` 3 of 10; 12 runs
+against an informational budget of 20. Mirror: milestone 17, parent #494 adopted and now at
+`Review`; all seven sub-issues closed (#565, #566, #567, #568, #569, #570, #573).
 
-**T-02 and T-03 are done and the blocking gate is discharged for them.** Eng returned PASS with zero
-send-backs (`6edb911`, `2117a46`); qa returned PASS with `matrix_ok: true`, `must_fix: []`,
-`severity_max: med`, zero send-backs. SC-01, SC-04, SC-05, SC-06, SC-09 and SC-10 were shown to bind
-by MUTATION, not by reading assertions. I re-measured both suites at my own tier (unit exit 0, 137
-PASS, 0 FAIL; integration exit 0, 90 PASS, 0 FAIL) and probed the hook end to end in a temp root: two
-segments inject under scope-only headers in sorted order, the precedence line appears exactly once
-before the first repository block, and the 40- and 150-line truncation notices each name their own
-budget.
+**All seven tasks are done and every gate has passed.** The blocking qa gate returned `matrix_ok:
+true` for the whole feature. The review panel — the feature's first, four reviewers including a
+security reviewer that stayed in scope and a ui reviewer that looked before scoping out — returned
+`severity_max: med`, `must_fix: []`, which is ADVISORY under `gates.review:
+advisory_unless_high`. The goal-check returned **all eleven criteria met**, nine of eleven on
+measurements pm took itself rather than inherited, and judged the BRIEF's goal and effort #336's
+DC-3 closed.
 
-**What is NOT proven: the feature.** SC-02, SC-03, SC-07 and SC-08 depend on T-01 and T-04, which are
-unbuilt. A qa PASS here is a PASS on two tasks.
+Verified at my own tier, not relayed: both suites green at the pin (`unit` exit 0, `integration`
+exit 0, zero `FAIL` lines, exit status captured in a variable); sixteen `--resolve` calls each
+returning the agent's own name with a `NOBODY` negative control; fifteen craft and six repository
+Expertise files each named `OK`.
 
-**E1 is ruled (`runs/e1-judgment-product/digest.md`).** Neither coverage gap qa raised is a delivery
-gap — no approved criterion is unmet and both tasks' code is correct as shipped. Gap (a), the `[ -r ]`
-guard, SPLITS: REQ-05 commits the behaviour ("never blocked or **degraded** ... **including** when no
-repository tier exists" — non-exhaustive), but no SC operationalizes it, and `plan.yaml:240`
-specifies "nullglob semantics **or** an `[ -r "$f" ]` guard", so a fully conforming implementation
-could carry no unreadable-file protection at all. Gap (b), the suffix rule, is NEW at every level and
-its unique catch is narrower than first reported — path traversal with a valid prefix, which case 12
-already carries and one fixture file would make discriminate. pm recommends ONE NEW FOLLOW-UP TASK this cycle
-(lane team/`harness-dev-ops`, `change_type: logic`), using a **dangling symlink** rather than
-`chmod 000`, which is a no-op as root and not preserved by git. It is a recommendation only — no
-task id is coined here, and none exists in `plan.yaml` until pm authors one under the operator's
-signature. The sketch lives in `notes/research-FEAT-27-e1-coverage-gaps.md`. Adoption of either criterion is the
-operator's. I verified all four of pm's anchors at source myself.
+**Remaining:** distillation (three leads, dispatched in one turn), then the CEO briefing. Ship-refresh
+is SKIPPED with reason — `.harness/codebase/` does not exist, so there is no map to intersect.
 
-**Next, and it is the main session's:** the layer-0 batch — T-01, then T-04, then T-06, in that
-order, per `notes/layer0-segments-FEAT-27.md`. No agent may write those surfaces. Leave the result
-UNCOMMITTED; the commit pen is the orchestrator's, and the `[harness:t-NN]` commit, the `plan.yaml`
-status write and `gh-sync close-task` must happen as one ordered act per task.
+**Two things the operator must settle**, both carried in the briefing: whether `plan.yaml` needed
+re-signature after T-07 joined the task set post-signature (the artifact carries one flat `approved`
+with a single same-day date and no amendment field, so it cannot evidence its own amendment either
+way), and the disposition of ~20 non-gating backlog rows.
 
-**Then, on resume:** T-05 (documentor, needs T-01), any follow-up task the operator adopts, simplify over the full diff,
-re-pin `review_sha`, review panel, goal-check, close-out (ship-refresh and distillation in ONE
-turn), CEO briefing.
-
-Two plan-phase reconciliations, so a resume does not re-litigate them. `runs:` omits the
-`2026-08-18-1-eng` dir: the architecture review it holds was a STEP INSIDE the product run (step
-S-04), not a second run, and that dir holds no digest or state of its own. `cycles_used` stays 0 —
-that phase's step cycles were reported to the plan-phase orchestrator, and the crashed E1 attempt
-wrote nothing and is not a cycle either.
-
-The qa digest was REVISED after I first read it: the copy I read carried `severity_max: low` and
-`escalations: []`; the final artifact carries `med` and E1. My first STATE.md write repeated the
-stale value and is corrected. `med` changes no routing — `gates.review` is `advisory_unless_high`.
-`validate-digest.py validator-lead <path>` reports `digest ok`.
-
-`notes/handoff-plan.md` was written by me at build time, not at the seam; INV-17 reported the missing
-seam note as a VIOLATION. It is labelled reconstructed, with per-claim evidence pointers.
+**Distillation output must NOT be committed to this branch.** Writes to `.harness/expertise/**` and
+`.harness/harness/expertise/**` fall outside every task's `files:` list except T-04's migration, and
+committing them here repeats FEAT-25's B-18. They are left in the working tree for the operator to
+land separately.
 
 ## Open Questions
 
-- **Q1 (blocking the amendment, not the ship).** Adopt a new success criterion under REQ-05 pinning
-  the `[ -r ]` guard against an unreadable-but-present repository-tier file? Declining ships a
-  hard-constraint behaviour correct-but-unpinned, on a hook that fires at every `SubagentStart`
-  including nested spawns.
-- **Q2 (non-blocking).** Adopt a discriminating test for T-02 intent 1c's `^harness-[a-z0-9-]+$`
-  suffix rule? Cheap to close, thin to decline.
-- The `[ -r ]` guard is double-covered for its specified duty and uncovered for its unspecified one:
-  the segment filter at `inject-expertise.sh:75-77` independently rejects an unexpanded glob word,
-  which is why the guard-removal mutant survived all 18 cases. Verified at source. Mutation survival
-  there means masked by a sibling guard, not dead code.
-- `harness.json`'s `integration.detect` omits `test-check-expertise.py` and `test-check-domain.py`
-  though `run-unit-tests.sh --kind integration` executes both — measured, not inferred. Stale
-  metadata, not a gate; the file belongs to another live flow. Backlog.
-- T-03 case 2's `FEAT-\d+` sub-assertion cannot discriminate the new advisory from the pre-existing
-  hard violation; 9 of 10 token sub-cases bind. Follows from the approved intent. Backlog.
-- T-03's `verify:` greps the LIVE craft corpus for `^ADVISORY `. It survives T-04 only because five
-  entries were adjudicated to REMAIN craft. Nothing pins that coupling.
-- All sixteen of T-04's anchor strings were re-verified at `253287f`. Re-check before T-04 executes.
-- A plan-seam handoff note was authored after the fact. If that reads as closing the gap rather than
-  recording it, the operator should say so.
+- **Blocking, operator only:** was `plan.yaml` re-signed after T-07 was added? I proceeded on the
+  operator's explicit "Q4 is ADOPTED … one follow-up task this cycle" instruction, which named the
+  lane, `change_type` and mechanism, and on `plan.yaml` reading `approved` so the step-0 gate passed.
+  product-lead had flagged it blocking before T-07 dispatched. Recorded as a judgement I made, not a
+  formality that was satisfied.
+- `check-state.sh:149`'s comment names an approval-reset rule that neither `:133-139` nor `:150-154`
+  implements — an amended-but-unsigned plan reports green. Under the DEC-174 carve-out, so a human
+  fixes it directly.
+- `DEC-27` is falsified on two clauses by this feature's own shipped code and carries no strike
+  record, which DEC-188 requires. Not fixed here: `DECISIONS.md` and `DECISIONS-INDEX.md` are
+  uncommitted under another flow carrying DEC-174 amendment 4, so editing them would collide.
+- Six assertions that cannot redden, plus seven new panel findings, all outside every SC's text and
+  none a delivery gap. Ranked in the briefing.
+- SC-02's declared `evidence: integration` names a suite with no case for it; the criterion is met by
+  direct measurement, the declaration is aspirational.
+- Entry ids are renumbered in the DESTINATION on migration, which no criterion checks and which
+  dents DEC-66's stable-reference rationale. A constraint reading, so approval-gated.
+- `SendMessage` is unavailable at the lead tier, so a lead cannot course-correct an in-flight member.
+  Raised independently by two leads. Harness defect, not Expertise.

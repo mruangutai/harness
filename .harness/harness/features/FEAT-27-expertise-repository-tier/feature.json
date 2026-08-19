@@ -2,9 +2,9 @@
   "feature_id": "FEAT-27-expertise-repository-tier",
   "branch": "feat/FEAT-27-expertise-repository-tier",
   "pr": null,
-  "status": "Building",
-  "review_sha": "2117a46",
-  "cycles_used": 2,
+  "status": "Review",
+  "review_sha": "9b929de",
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -51,6 +51,21 @@
     {
       "id": "qa-final-validator",
       "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "specfix-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "panel-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "goalcheck-product",
+      "squad": "product",
       "verdict": "PASS"
     }
   ],
