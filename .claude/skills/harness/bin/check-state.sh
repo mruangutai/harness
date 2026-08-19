@@ -1097,6 +1097,10 @@ if _wt_seg:
                     # defect.
                     bad.append(_where + f" Remove it with `git worktree remove {_wpath}`.")
 
+# --- INV-26 BEGINS — the marker T-05's verify slices on. Without it the slice is EMPTY and
+# every literal-absence grep below trivially passes, which is the vacuous-grep failure this
+# feature exists to remove. The verify's positive control requires derive_station INSIDE the
+# slice for exactly that reason.
 # --- INV-26 (issue #277): the board must agree with the plan on disk.
 #
 # THIS INVARIANT CARRIES THE GUARANTEE. A failed station write is loud only on stderr, and
@@ -1277,6 +1281,7 @@ if _inv26_board:
                 elif _pfound != _derived:
                     bad.append(f"INV-26 {_feat} parent (issue #{_parent}): the plan derives "
                                f"{_derived} — the board reads {_pfound}.")
+# --- INV-26 ENDS
 
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
 # (DEC-138). `sync: true` with no pinned repo would make every gh-sync call skip

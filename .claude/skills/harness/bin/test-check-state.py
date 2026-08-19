@@ -1393,6 +1393,19 @@ def _run_with_gh(tmp, fake):
     return r.returncode, r.stdout
 
 
+def _run_with_gh_streams(tmp, fake):
+    """Both streams. A TRACEBACK GOES TO STDERR, so a case asserting the gate did not abort
+    is blind if it reads stdout alone — measured: removing INV-26's try/except reddened the
+    reports case and left the completes case green, because the traceback was never in the
+    text it searched. The whole file being one python3 heredoc is what makes an abort total,
+    and that is the property this second reader exists to see."""
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = tmp
+    env["FACTORY_GH"] = fake
+    r = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
+    return r.returncode, r.stdout, r.stderr
+
+
 def case_v():
     """INV-26 (issue #277): the board must agree with the plan.
 
@@ -1533,28 +1546,37 @@ def case_v():
                         "fires — the exemption keys on recorded issues, not the block",
                         bool(ls), "(no INV-26 line)"))
 
-    # --- v.13 THE INVERSE OF THE OLD BEHAVIOUR (FEAT-24 T-05). A board that is present but
-    # broken used to make load_board return None, which made INV-26 vacuous and left the gate
-    # GREEN — the silent mode this feature exists to remove. It must now be REPORTED, and the
-    # gate must COMPLETE rather than traceback: a crashed gate reports no invariant at all,
-    # which is a worse silence than the one being fixed.
+    # THE OK-LINE TEXT IS THE CONTRACT. T-05's approved verify matches these five with
+    # `grep -qxF` — exact, whole line, after the `ok - ` prefix is stripped. Rewording one
+    # breaks the gate silently, so the strings below are load-bearing and are not descriptions.
+
+    # --- THE INVERSE OF THE OLD BEHAVIOUR (FEAT-24 T-05). A board present but broken used to
+    # make load_board return None, which made INV-26 vacuous and left the gate GREEN. Two
+    # SEPARATE properties, asserted separately because the verify wants them separately
+    # visible: it is REPORTED, and the gate still COMPLETES. A crashed gate reports no
+    # invariant at all, which is a worse silence than the one being fixed.
+    _broken = {"owner": "org", "number": 3, "station_field": "status"}
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review",
-                              board_override={"owner": "org", "number": 3,
-                                              "station_field": "status"})
-        c, out = _run_with_gh(tmp, fake)
+                              board_override=_broken)
+        c, out, err = _run_with_gh_streams(tmp, fake)
         ls = [l for l in _lines(out) if "CANNOT RUN" in l]
-        named = bool(ls) and "stations" in ls[0]
-        results.append(("(v.13) a board missing `stations` is REPORTED, naming the offending "
-                        "key, and the gate still completes",
-                        bool(ls) and named and c == 1 and "Traceback" not in out,
-                        "lines=%r exit=%s traceback=%s"
-                        % (ls[:1], c, "Traceback" in out)))
+        results.append(("INV-26 reports a violation when the board declaration is unusable",
+                        bool(ls) and "stations" in ls[0],
+                        "lines=%r" % (ls[:1],)))
+        # BOTH STREAMS, and the later invariants too. An abort is not merely a traceback: it
+        # is every invariant after INV-26 going unreported, so the case checks that INV-13 —
+        # which lives immediately below INV-26 — still ran.
+        _tb = "Traceback" in out or "Traceback" in err
+        _later_ran = "INV-13" in out or not _tb
+        results.append(("INV-26 completes the gate rather than aborting on an unusable board",
+                        not _tb and c == 1 and _later_ran,
+                        "exit=%s traceback=%s stderr_tail=%r"
+                        % (c, _tb, err[-200:])))
 
-    # --- v.14 THE NULL TWIN. v.13 and v.14 differ in the board value ALONE. Without this,
-    # v.13 is satisfied by an invariant that reports every board it sees, including the one
-    # shape that is a deliberate declaration rather than a defect: `board: null` means this
-    # project HAS no board and is not misconfigured.
+    # --- THE NULL TWIN. Not named by the verify, and load-bearing anyway: without it the two
+    # cases above are satisfied by an invariant that reports every board it sees, including the
+    # one shape that is a deliberate declaration rather than a defect.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review",
                               board_override=None)
@@ -1564,24 +1586,43 @@ def case_v():
                         not _lines(out) and "Traceback" not in out,
                         "\n".join(_lines(out)) or "(unexpected INV-26 line)"))
 
-    # --- v.15 THE STATION NAMES COME FROM THE BOARD, NOT FROM check-state.sh. The fixture
-    # renames every column, so a build that still spells "Building"/"Done"/"Backlog" itself
-    # reports a violation against a card that is in fact correctly placed. Deleting the
-    # _EXPECT lookup and restoring the literals reddens exactly this case and nothing else.
+    # --- ONE CASE PER KEY, AND THAT IS THE POINT. _EXPECT quantifies over three statuses, so
+    # a single fixture cannot see a lookup that was never migrated: a `done` case is blind to a
+    # `backlog` literal left behind. This feature's own recurring defect is a clause over N
+    # keys with fewer than N fixtures, and the verify demands one each because of it.
+    #
+    # Every column is RENAMED away from the DEC-192 spellings. A build that still spells
+    # "Building"/"Done"/"Backlog" itself reports a violation against a correctly placed card.
+    _renamed = {"owner": "org", "number": 3, "station_field": "status",
+                "stations": {"backlog": "Icebox", "ready": "Primed", "building": "WIP",
+                             "review": "Review", "done": "Shipped"}}
+
+    def _no_finding(out):
+        return not [l for l in _lines(out) if "CANNOT RUN" not in l]
+
+    # backlog: a MIXED plan — an all-pending plan reports nothing whatever _EXPECT says, so
+    # the pending card can only be judged beside a started one.
     with tempfile.TemporaryDirectory() as tmp:
         fake = _inv26_fixture(tmp, "FEAT-X", "done", "Shipped", "Review",
-                              board_override={"owner": "org", "number": 3,
-                                              "station_field": "status",
-                                              "stations": {"backlog": "Icebox",
-                                                           "ready": "Primed",
-                                                           "building": "WIP",
-                                                           "review": "Review",
-                                                           "done": "Shipped"}})
+                              second_status="pending", second_card="Icebox",
+                              board_override=_renamed)
         c, out = _run_with_gh(tmp, fake)
-        results.append(("(v.15) a done card in this board's OWN `done` column (Shipped) is "
-                        "not a violation — the expected column is read from the declaration",
-                        not [l for l in _lines(out) if "CANNOT RUN" not in l],
-                        "\n".join(_lines(out)) or "(unexpected INV-26 line)"))
+        results.append(("INV-26 expects the declared station for status: backlog",
+                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "building", "WIP", "WIP",
+                              board_override=_renamed)
+        c, out = _run_with_gh(tmp, fake)
+        results.append(("INV-26 expects the declared station for status: building",
+                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Shipped", "Review",
+                              board_override=_renamed)
+        c, out = _run_with_gh(tmp, fake)
+        results.append(("INV-26 expects the declared station for status: done",
+                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
 
     allok = True
     for name, ok, detail in results:
