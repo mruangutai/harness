@@ -197,24 +197,63 @@ check("derive_station returns the declared review station",
       gh_board.derive_station(plan("done", "done", "done"), LOOKUP_BOARD) == "Col-R")
 
 # ---------------- board_stations ----------------
+# `board_stations` now calls `factory_gh.project_item_stations`, a GraphQL call whose fake
+# payload is the `{"data": {"user": {"projectV2": {"items": {...}}}}}` envelope, never the flat
+# `{"totalCount", "items"}` shape `project_items` used. `pageInfo.hasNextPage` is always False
+# here — True would make `fake_gh`'s "same page for any argv" answer loop `project_item_stations`
+# forever (its pagination reads `hasNextPage` off every response).
+#
+# Each block below gets its OWN fixture and its OWN `board_stations` call, wrapped in try/except
+# per P-04: a mutation that makes the call raise must redden only the block whose fixture
+# provokes it, never crash the whole suite and take out unrelated checks (the T-01 fixture-
+# isolation lesson, repeated here for the content-null case).
 
 with tempfile.TemporaryDirectory() as tmp:
     fake_gh(tmp, json.dumps({
-        "totalCount": 3,
-        "items": [
-            {"content": {"repository": "mruangutai/harness", "number": 326}, "status": "Building"},
-            {"content": {"repository": "someone/else", "number": 99}, "status": "Done"},
-            {"content": {"repository": "mruangutai/harness", "number": 327}},
-        ],
+        "data": {"user": {"projectV2": {"items": {
+            "totalCount": 3,
+            "pageInfo": {"hasNextPage": False, "endCursor": None},
+            "nodes": [
+                {"content": {"number": 326, "repository": {"nameWithOwner": "mruangutai/harness"}},
+                 "fieldValueByName": {"name": "Building"}},
+                {"content": {"number": 99, "repository": {"nameWithOwner": "someone/else"}},
+                 "fieldValueByName": {"name": "Done"}},
+                {"content": {"number": 327, "repository": {"nameWithOwner": "mruangutai/harness"}},
+                 "fieldValueByName": None},
+            ],
+        }}}}
     }))
-    board = {"owner": "mruangutai", "number": 3, "station_field": "status"}
-    st = gh_board.board_stations(board, "mruangutai/harness")
+    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
+    try:
+        st = gh_board.board_stations(board, "mruangutai/harness")
+    except Exception as exc:  # noqa: BLE001 — a mutation that raises IS the failure, caught here
+        st = f"<raised {exc!r}>"
     check("board_stations: item from another repository is EXCLUDED",
-          99 not in st, repr(st))
+          isinstance(st, dict) and 99 not in st, repr(st))
     check("board_stations: item with a station is present with its value",
-          st.get(326) == "Building", repr(st))
+          isinstance(st, dict) and st.get(326) == "Building", repr(st))
     check("board_stations: item with NO status key is present with value None, not dropped",
-          327 in st and st[327] is None, repr(st))
+          isinstance(st, dict) and 327 in st and st[327] is None, repr(st))
+
+with tempfile.TemporaryDirectory() as tmp:
+    # Isolated fixture: exactly one node, content null, nothing else — a mutation that crashes
+    # on null content reddens only this block, never the three checks above.
+    fake_gh(tmp, json.dumps({
+        "data": {"user": {"projectV2": {"items": {
+            "totalCount": 1,
+            "pageInfo": {"hasNextPage": False, "endCursor": None},
+            "nodes": [
+                {"content": None, "fieldValueByName": None},
+            ],
+        }}}}
+    }))
+    board = {"owner": "mruangutai", "number": 3, "station_field": "Status"}
+    try:
+        st = gh_board.board_stations(board, "mruangutai/harness")
+    except Exception as exc:  # noqa: BLE001
+        st = f"<raised {exc!r}>"
+    check("board_stations: item with content null does not crash and is not in output",
+          isinstance(st, dict) and len(st) == 0, repr(st))
 
 # ---------------- read_station ----------------
 

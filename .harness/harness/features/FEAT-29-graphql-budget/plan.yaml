@@ -22,6 +22,21 @@ approval:
         T-07 now reproduces a POSITIVE control captured at 506 points while the expensive read still
         existed: notes/measurement-before-positive.md, 8 INV-26 lines, plan.yaml restored
         byte-identical under cmp. If the cheap read skips, those 8 lines vanish and the diff is loud.
+    - date: 2026-08-19
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: T-08 rule two dropped, and its verify assertions replaced
+      why: >-
+        Rule two restated the cost-recording rule that T-05 had already written into
+        .harness/notes/grilling-graphql-cost-2026-08-10.md. A second copy of a rule is the failure
+        mode that falsified DEC-11's frontmatter list, DEC-152's tier census and DEC-174's
+        enforcement enumeration, all on 2026-08-19. One statement, one home.
+      why_verify: >-
+        The signed verify tested `"graphql" not in s.lower()` for rule two. Rule one cites the
+        360-point burn and therefore contains the word "GraphQL", so that assertion would have
+        PASSED with rule two absent — a check that cannot fail, asserting a rule that no longer
+        exists. Replaced with three assertions on rule one's substance: the prescribed tool
+        (Monitor), the reason (a Bash timeout detaches rather than kills), and the
+        single-notification alternative (run_in_background).
 
 lanes:
   resolved_at: 3920513
@@ -88,7 +103,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/test-factory-gh.py
@@ -156,7 +171,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh_board.py
       - .claude/skills/harness/bin/test-gh-board.py
@@ -265,7 +280,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/test-factory-gh.py
@@ -495,7 +510,7 @@ tasks:
     execution_reason: DEC-174 keeps operator doctrine off the dispatch path and DEC-181 budgets
       CLAUDE.md at 80 lines on all four write routes
     depends_on: [T-07]
-    status: pending
+    status: done
     files:
       - CLAUDE.md
     verify: |
@@ -505,8 +520,9 @@ tasks:
       n=len(s.splitlines())
       bad=[]
       if n>80: bad.append("CLAUDE.md is %d lines, budget is 80"%n)
-      if "gh pr checks" not in s: bad.append("polling rule absent")
-      if "graphql" not in s.lower(): bad.append("graphql budget rule absent")
+      if "Monitor" not in s: bad.append("rule one absent: the prescribed tool is not named")
+      if "detach" not in s.lower(): bad.append("rule one absent: the REASON (a Bash timeout detaches rather than kills) is not stated")
+      if "run_in_background" not in s: bad.append("rule one absent: the single-notification alternative is not named")
       print("\n".join(bad) if bad else "OK lines=%d"%n)
       sys.exit(1 if bad else 0)
       PY
@@ -524,16 +540,20 @@ tasks:
       leak slower, not shorter. Use Monitor, whose timeout_ms actually terminates, or Bash with
       run_in_background for a single completion notification. Operator ruling, 2026-08-19.
 
-      Rule two, cost figures: any GraphQL cost recorded anywhere in this repository carries the board
-      it was measured on, that board's item count, and the commit — a bare number cannot be shown to
-      be wrong, and a bare 31 stood for nine days while a check-state.sh run measured 490 to 506
-      points on board 3 with 473 items at commit 6bbd706. Do not write 608 into CLAUDE.md: that
-      sample was taken with another agent run in flight and is a contaminated upper bound, and a
-      contaminated single number presented as the real figure is the exact failure this rule exists
-      to prevent.
+      Rule two is DROPPED — operator ruling, 2026-08-19, approval amendment 3. The cost-recording
+      rule (board, item count, commit) already lives in
+      `.harness/notes/grilling-graphql-cost-2026-08-10.md` under "Recording rule, learned here",
+      written by T-05. Restating it in CLAUDE.md would make a second copy of a rule, and a
+      duplicated statement drifting from its original is the exact failure mode that falsified
+      DEC-11, DEC-152 and DEC-174's enumeration on this same day. One statement, one home.
 
       Keep the existing before-committing check-state.sh convention. After T-07 that run is cheap,
       so the convention itself is not the problem and must not be weakened.
+
+      EXECUTED BY THE OPERATOR DIRECTLY, 2026-08-19. The operator wrote rule one into CLAUDE.md by
+      hand and placed it under `## Conventions`, alongside the two existing operating rules. Wording
+      is theirs, unedited. The verify passes against it: `OK lines=55`, all three substance
+      assertions green. The main session wrote nothing to CLAUDE.md at any point in this feature.
 
       If adding both rules would exceed 80 lines, tighten existing prose in the same edit rather than
       dropping a rule, and say in the digest what was tightened.

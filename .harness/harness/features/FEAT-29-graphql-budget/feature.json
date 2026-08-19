@@ -2,43 +2,23 @@
   "feature_id": "FEAT-29-graphql-budget",
   "branch": "feat/FEAT-29-graphql-budget",
   "pr": null,
-  "status": "Ready",
+  "status": "Building",
   "review_sha": "none",
-  "cycles_used": 1,
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "github": {
     "milestone": 18,
     "parent": 571,
     "parent_origin": "adopted",
-    "attached": [
-      "T-01",
-      "T-02",
-      "T-03",
-      "T-04",
-      "T-05",
-      "T-06",
-      "T-07",
-      "T-08",
-      "T-09"
-    ],
+    "attached": ["T-01", "T-02", "T-03", "T-04", "T-05", "T-06", "T-07", "T-08", "T-09"],
     "issues": {
-      "T-01": 579,
-      "T-02": 580,
-      "T-03": 581,
-      "T-04": 582,
-      "T-05": 583,
-      "T-06": 584,
-      "T-07": 585,
-      "T-08": 586,
-      "T-09": 587
+      "T-01": 579, "T-02": 580, "T-03": 581, "T-04": 582, "T-05": 583,
+      "T-06": 584, "T-07": 585, "T-08": 586, "T-09": 587
     }
   },
   "runs": [
-    {
-      "id": "plan-product",
-      "squad": "product",
-      "verdict": "PASS"
-    }
+    { "id": "plan-product", "squad": "product", "verdict": "PASS" },
+    { "id": "2026-08-19-01-eng", "squad": "eng", "verdict": "BLOCKED" }
   ]
 }

@@ -30,9 +30,25 @@
 - 2026-08-19: `gh-sync.py open` cost 40 GraphQL points for a milestone, 9 issues and 9 sub-issue
   attachments (3676 → 3716, board 3, 2026-08-19). About 2 points per issue-shaped write. It also
   printed no board-station line, so whether the new cards reach the board is not observable from
-  its stdout.
+  its stdout — the operator's positive control later showed they DO land, in `Backlog`.
 
 - 2026-08-19: INV-26 skips a feature entirely while every task reads `pending`
   (`check-state.sh:1218-1221`). A baseline/after comparison of gate output that straddles the first
   status write is therefore comparing two different INV-26 regimes, not two states of one gate —
   the before/after must both be taken on the same side of that line.
+
+- 2026-08-19: **a positive control captured from BOARD STATE silently conflicts with the gh-sync
+  protocol.** The operator captured 8 INV-26 lines whose text reads "the board reads Backlog" for
+  seven specific cards, to be reproduced verbatim after the change. Running the ordinary
+  `start-task`/`close-task` sync points would move those cards to `Building`/`Done` and change the
+  line text, making the control unreproducible — and it could not be recaptured, because capturing
+  it required the expensive read the feature removes. Nothing in either procedure mentions the
+  other. I froze the mirror for the whole feature until the after-measurement lands. The general
+  shape: when a control's expected output quotes MUTABLE EXTERNAL STATE, work out who else writes
+  that state before the control is relied on, and freeze them.
+
+- 2026-08-19: an amendment can move a task's `intent:` without moving its `verify:`. Amendment 2
+  added the positive control to T-07's intent — "all 8 INV-26 lines must reappear VERBATIM" — while
+  the `verify:` block still only diffs two files that both contain zero INV-26 lines. The gate is
+  green and incapable of failing on precisely the defect the amendment was written to catch. When a
+  plan is amended mid-flight, diff BOTH fields of the amended task, not the prose of the amendment.
