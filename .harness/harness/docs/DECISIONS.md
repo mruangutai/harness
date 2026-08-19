@@ -146,6 +146,42 @@ them into the manifest would create text that drifts. No file `path` in the mani
 Claude Code resolves agents by name.
 **Tradeoff accepted:** an agent's full picture requires reading two files.
 
+**Amendment 1 (2026-08-19) — the capability enumeration is corrected: `hooks` struck, `skills` and
+`effort` added**
+
+DEC-11 amendment 1. This entry's `Chose:` line enumerates the frontmatter half of the split as
+`name`, `description`, `tools`, `model`, `color`, `hooks`. One of those six names a field that does
+not work at all, and two fields every agent carries are missing from the list. **The `Chose:` line
+is left standing unedited**, struck token and all: the record is appended to, never rewritten.
+This amendment is what a citation to the old enumeration lands on.
+
+*How it was found.* An operator asked where else a frontmatter change would need to land, and the
+enumeration did not survive the question. No gate caught it, and none could — there is no
+propagation checker between a decision and the tree it governs (DEC-188).
+
+*`hooks` is STRUCK from the capability set.* It is not an unused capability, it is not a capability
+at all: agent-frontmatter `PreToolUse` hooks **do not fire** for spawned subagents in this
+environment, proven across three attempts (DEC-110). Domain enforcement is registered in
+`.claude/settings.json` instead. Measured in the working tree at `d1ffd7f` (three lead agent files
+modified and uncommitted, none of them for this): `grep -c '^hooks:' .claude/agents/*.md` returns 0
+for all 16 agent files.
+
+*`skills` is a capability field.* Rule delivery is frontmatter's job (DEC-63) — the native `skills:`
+field preloads full rule content at spawn. `grep -c '^skills:' .claude/agents/harness-*.md` returns
+1 for each of the 16 agent files.
+
+*`effort` is a capability field, and it was never enumerated here at all.* It is carried by all 16
+agent files (`grep -c '^effort:' .claude/agents/harness-*.md` returns 1 for each) and always has
+been since it was introduced. Which value each agent carries is per-tier policy, and that policy
+lives in DEC-152, not here.
+
+*What did NOT change.* The rule this entry decided — manifest holds policy, frontmatter holds
+capability, nothing is declared twice — is untouched, along with its `Because:` and
+`Tradeoff accepted:` reasoning. Only the enumeration of which fields sit on the frontmatter side was
+wrong. `SPEC.md` §4.0 restated the enumeration with its own divergence (`skills` swapped in for
+`hooks`, `effort` absent, "six of them"); it is corrected to follow this amendment in the same
+change. No DEC number is opened, superseded or retired here.
+
 ## DEC-13 — Template versioning; upgrades are user-triggered, not a deploy side effect
 
 **Chose:** templates carry `schema_version`; deploy pushes the new template but leaves the project's

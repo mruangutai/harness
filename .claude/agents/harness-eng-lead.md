@@ -4,7 +4,7 @@ description: Engineering lead — routes each task to one of five specialists by
 tools: [Read, Glob, Grep, Agent, Write]
 color: cyan
 model: opus
-effort: high
+effort: medium
 skills:
   - harness-handoff
   - harness-expertise
