@@ -6087,7 +6087,7 @@ Lineage: DEC-118 for why this is a squad segment rather than part of the `build`
 DEC-86 for the roster this refuses to grow; DEC-174, because the pass reads and applies across the
 harness's own tree and the enforcement-layer carve-out still governs what it may touch there.
 
-## DEC-196 — The harness moves any board card it is pointed at and closes only the cards it created, and its own board declares no stations
+## DEC-196 — The harness moves any board card it is pointed at and closes only the cards it created
 
 Two shapes a future scan will try to add are refused here, and the boundary they would be added
 against is stated as the rule the code already enforces rather than the rule the doctrine assumed.
@@ -6154,3 +6154,31 @@ it is unchanged.
 created — `_apply_parent_rule` still carries no origin check, and the close is still gated on the
 `parent_origin == "created"` branch in `cmd_ship` and `cmd_abandon`. This amendment touches the
 stations paragraph alone.
+
+**Amendment 2 (2026-08-18) — the heading's third clause is struck**
+
+DEC-196 amendment 2. FEAT-24 declared a stations map for the harness's own board, and that same
+fact falsified a clause of this entry's own `##` heading. The clause is struck from the heading;
+this record is what a citation to the old wording lands on.
+
+*What the heading said.* It ended `..., and its own board declares no stations` — three clauses,
+the third of which `.harness/harness.json` now contradicts directly: `github.board.stations`
+declares five keys, `backlog`, `ready`, `building`, `review`, `done`, landed by this feature.
+
+*What it says now.* Two clauses, both measured in the tree at this commit and both unchanged by
+FEAT-24. The harness MOVES any card it is pointed at: `_apply_parent_rule` in `gh-sync.py` reaches
+its station write with no origin check between the entry point and `gh_board.derive_station`. The
+harness CLOSES only cards it created: both close paths are gated on the `parent_origin == "created"`
+branch, one inside `cmd_abandon` and one inside `cmd_ship`.
+
+*Why the heading is rewritten when amendment 1 deliberately left the false body paragraph standing.*
+The two are not the same kind of text and do not take the same treatment. A body paragraph is dated
+prose — it records what was true when written, and rewriting it would erase the record, so it stands
+and is amended around. The heading is neither dated nor prose: it is the citation target every
+reference to this entry resolves through, and the source the index row is generated from, so a false
+clause there is repeated by every reader and every regeneration. The record is preserved by this
+amendment quoting the struck clause, not by leaving it in the position where it is read as live.
+
+*What did NOT change.* The body of DEC-196, including the paragraph amendment 1 identified as false
+and the amendment-1 record itself, is untouched. No DEC number is opened, superseded or retired
+here, and the entry's rule is the same rule.

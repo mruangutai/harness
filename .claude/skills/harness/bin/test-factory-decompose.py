@@ -94,7 +94,7 @@ class Recorder:
         # stations validate clean by default. Five, not three: D-06's required key set, and
         # _validate_stations (factory_decompose.py:228-241) refuses any declared station whose
         # value the live board does not offer, backlog and done included.
-        self.field_options = ["Ready", "Building", "Review", "Backlog", "Done"]
+        self.field_options = ["Promoted", "Building", "Review", "Backlog", "Done"]
         self.board_items = []   # project_items() return value, set per-test
         # issue_board_item_id() return value: number -> item id, set per-test. Consulted only
         # for the issue number asked; anything not in this map means "no item" (returns None).
@@ -193,7 +193,7 @@ def good_fleet_dict(workspace_root):
                 "number": 3,
                 "station_field": "Status",
                 "stations": {
-                    "backlog": "Backlog", "ready": "Ready", "building": "Building",
+                    "backlog": "Backlog", "ready": "Promoted", "building": "Building",
                     "review": "Review", "done": "Done",
                 },
             },
@@ -221,7 +221,7 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
                     "number": 3,
                     "station_field": "Status",
                     "stations": {
-                        "backlog": "Backlog", "ready": "Ready", "building": "Building",
+                        "backlog": "Backlog", "ready": "Promoted", "building": "Building",
                         "review": "Review", "done": "Done",
                     },
                 },
@@ -410,7 +410,7 @@ with tempfile.TemporaryDirectory() as td:
     field_calls = [c for c in rec.calls if c[0] == "project_field_set"]
     check("(2) two stations set", len(field_calls) == 2, field_calls)
     check("(2) both stations set to the fleet's ready option",
-          all(c[1][4] == "Ready" for c in field_calls), field_calls)
+          all(c[1][4] == "Promoted" for c in field_calls), field_calls)
     fblock = read_factory_block(feat_dir)
     check("(2) feature.json records two issue numbers", len(fblock.get("issues") or {}) == 2,
           fblock)
@@ -516,7 +516,7 @@ with tempfile.TemporaryDirectory() as td:
     check("(7) resume: project_item_add IS called", len(item_calls) >= 1, rec2.calls)
     field_calls = [c for c in rec2.calls if c[0] == "project_field_set"]
     check("(7) resume: the item's station is set to the ready option",
-          any(c[1][4] == "Ready" for c in field_calls), field_calls)
+          any(c[1][4] == "Promoted" for c in field_calls), field_calls)
     fblock_after = read_factory_block(feat_dir)
     check("(7) resume: feature.json now carries an item id",
           len(fblock_after.get("items") or {}) >= 1, fblock_after)
@@ -1158,7 +1158,7 @@ with tempfile.TemporaryDirectory() as td:
     check("(D4-4) typo fleet: stderr names the offending station key", "ready" in err, err)
     check("(D4-4) typo fleet: stderr names the configured (wrong) value", "Redy" in err, err)
     check("(D4-4) typo fleet: stderr names the board's real options",
-          "Ready" in err and "Building" in err and "Review" in err, err)
+          "Promoted" in err and "Building" in err and "Review" in err, err)
     check("(D4-4) typo fleet: nothing on stdout", out == "", repr(out))
 
 
@@ -1195,8 +1195,8 @@ with tempfile.TemporaryDirectory() as td:
           field_calls)
     check("(T-03) project_field_set issues no call against B's board (other-org, 7)",
           all(c[1][0] != "other-org" and c[1][1] != 7 for c in field_calls), field_calls)
-    check("(T-03) the station set to A's own ready option (Ready), never B's (Other-Ready)",
-          all(c[1][4] == "Ready" for c in field_calls)
+    check("(T-03) the station set to A's own ready option (Promoted), never B's (Other-Ready)",
+          all(c[1][4] == "Promoted" for c in field_calls)
           and not any(c[1][4] == "Other-Ready" for c in field_calls), field_calls)
 
     options_calls = [c for c in rec.calls if c[0] == "project_field_options"]
