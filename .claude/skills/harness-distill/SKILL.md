@@ -49,8 +49,10 @@ Your Expertise is split by **what the knowledge is about**, not by what you were
 repository you have never seen?** If yes, it is craft. It is repository-layer only when it turns on
 a path, file, decision or invariant that exists in **one** repository.
 
-**The default matches what you already write.** Measured across all 267 entries in this tree: **10
-are repository-specific — 3.7%.** Seven of thirteen files have none. The `WHEN/DO` shape was already
+**The default matches what you already write.** Measured at `ada8e99` across all 374 entries in the
+15 craft files: **16 name a repository-specific token — 4.3%** — and eight of the fifteen files name
+none. Adjudicated under the rule above, 11 moved to the repository tier and 5 stayed craft, because
+the token was an example rather than the thing the rule turned on. The `WHEN/DO` shape was already
 pushing you toward craft before the layer had a name.
 
 **Durable repo facts — "`tests/` is not type-checked here" — are the repository layer**, and they
