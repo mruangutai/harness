@@ -1,0 +1,722 @@
+schema: plan/1
+feature: FEAT-27-expertise-repository-tier
+
+approval:
+  status: pending
+  approved_by: none
+  date: none
+
+lanes:
+  resolved_at: ada8e99
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/team-config.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY for it, and it is the enforcement data check-domain.sh reads
+    - surface: .harness/expertise/harness-<agent>.md
+      lane: main-session-direct
+      reason: the guard grants each craft file to its owning agent alone, and three of the six owners are a lead, a reviewer and the orchestrator, none of which is a dispatchable task executor
+    - surface: .harness/harness/expertise/harness-<agent>.md
+      lane: main-session-direct
+      reason: resolves to NOBODY before T-01 lands and to the owning agent alone after it, so no single doer is ever granted all six files
+    - surface: .claude/skills/harness-distill/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY for everything under .claude/ except skills/harness/bin
+    - surface: .claude/skills/harness-curate/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY for everything under .claude/ except skills/harness/bin
+    - surface: .harness/README.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/SPEC.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: >-
+      inject-expertise.sh injects EVERY repository tier it finds by globbing
+      .harness/*/expertise/<agent>.md, each under its own header naming the path segment, rather
+      than selecting one repository from the spawn payload.
+    because: >-
+      the hook receives only agent_type and nothing tells it which repository the spawn serves;
+      the alternatives were reading fleet.yaml to pick a segment, which is a no-touch surface this
+      cycle and would give a hook that must never block a spawn a YAML parse dependency, and an
+      environment variable, which nothing in the spawn path sets. The cost, stated in full: every
+      repository tier present on disk rides every spawn, nested spawns included, so the per-spawn
+      payload is 40 lines times N, not 40. N is the number of first-level directories under
+      .harness/ that hold an expertise/ subdirectory, and because the glob is over .harness/*/ it
+      counts every such directory, not only fleet-declared repository segments. Measured at ada8e99
+      the tree has five first-level directories under .harness/ — expertise, factory, harness, logs,
+      notes — of which only harness will hold a tier after T-04, so N is 1 today and grows by one
+      per repository the control plane takes on. At ten repositories that is 400 lines on top of
+      craft 150, global 150 and the 80-line codebase index, on every spawn, and nothing in the tree
+      measures total injected size. The segment filter T-02 adds, [a-z0-9-]+, is name hygiene only:
+      it keeps traversal and shell metacharacters out of the emitted header, and it does NOT stop a
+      legitimately named stray such as .harness/backup/expertise/harness-qa.md from being injected
+      into every qa spawn. Only the aggregate bound covers that. Revisit trigger: unit 7, when
+      grants become repo-aware and the hook can be told which segment a spawn serves. A hook-side
+      aggregate cap across all repository blocks is available then and is deliberately not built
+      now, because a cap that silently truncates an unpredictable subset of blocks is worse than a
+      bound the operator signed with its multiplier visible.
+    dec: none
+  - id: D-02
+    choice: >-
+      the repository-tier grant is written as the per-repository wildcard
+      .harness/*/expertise/harness-<agent>.md, not pinned to the harness segment.
+    because: >-
+      harness_boundary.glob_to_re emits a no-slash-crossing class for a single star
+      (harness_boundary.py:56-57), measured at ada8e99, so .harness/*/expertise/harness-<agent>.md
+      cannot reach .harness/a/b/... and still isolates by agent and by exactly one segment. A second
+      isolation property holds too: select_base filters control-plane globs out entirely in a
+      product base (harness_boundary.py:200-205), so this grant can never reach a product
+      checkout's own .harness/. The wildcard is chosen for symmetry with D-01's read side, which
+      globs .harness/*/, and to avoid widening sixteen grant lines a second time at unit 7. It is
+      NOT justified by issue 372: pinning the segment to harness would close 372 completely, and a
+      second repository's tier is unwritable today regardless of what this line says. The cost,
+      stated: per-repository write isolation is forfeited until unit 7 makes grants repo-aware, and
+      that isolation is unreachable today anyway because the guard sees only agent_type.
+    dec: none
+  - id: D-03
+    choice: >-
+      the sixteen entries flagged by the token scan are adjudicated at plan time, and the eleven
+      ruled repository-specific are moved by one main-session-direct task, rather than by
+      distillation dispatches to the owning agents. The other five are ruled craft and are not
+      moved: sixteen flagged, eleven moved, five left where they are.
+    because: >-
+      the guard grants each craft file to its owning agent alone and three of the six owners are
+      not dispatchable task executors; the harness-expertise rule preloaded into every agent also
+      trains them to refuse a mid-run Expertise write, so a normal dispatch would correctly return
+      BLOCKED. The operator's signature on this plan is the human ruling that issue 340 requires.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Grant every agent its repository-tier Expertise path in the team manifest
+    traces: [REQ-02]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: >-
+      check-domain.sh --resolve prints NOBODY for .harness/team-config.yaml at ada8e99, and the
+      file is the enforcement data check-domain.sh itself reads
+    depends_on: []
+    status: pending
+    files:
+      - .harness/team-config.yaml
+    verify: |
+      set -u
+      R=.claude/skills/harness/bin/check-domain.sh
+      fail=0
+      for a in harness-orchestrator harness-product-lead harness-eng-lead harness-validator-lead \
+               harness-pm harness-visual-designer harness-documentor harness-frontend-dev \
+               harness-backend-dev harness-ai-dev harness-data-engineer harness-dev-ops \
+               harness-qa harness-code-reviewer harness-security-reviewer harness-ui-reviewer; do
+        repo=$($R --resolve ".harness/harness/expertise/$a.md")
+        craft=$($R --resolve ".harness/expertise/$a.md")
+        [ "$repo" = "$a" ] || { echo "FAIL repo-tier $a resolved to [$repo]"; fail=1; }
+        [ "$craft" = "$a" ] || { echo "FAIL craft $a resolved to [$craft]"; fail=1; }
+      done
+      other=$($R --resolve ".harness/kaya/expertise/harness-qa.md")
+      [ "$other" = "harness-qa" ] || { echo "FAIL second segment resolved to [$other]"; fail=1; }
+      deep=$($R --resolve ".harness/a/b/expertise/harness-qa.md")
+      [ "$deep" = "NOBODY" ] || { echo "FAIL two-segment path resolved to [$deep]"; fail=1; }
+      [ "$fail" = 0 ] && echo ALL-GRANTS-OK
+      exit $fail
+    intent: |
+      Edit .harness/team-config.yaml so every agent that already holds a craft Expertise grant also
+      holds a repository-tier grant.
+
+      For each of the sixteen agents that currently carry a line of the form
+
+        - { path: .harness/expertise/harness-<agent>.md, upsert: true }
+
+      add, immediately beneath it, a sibling line
+
+        - { path: .harness/*/expertise/harness-<agent>.md, upsert: true }
+
+      with a trailing comment reading: repository tier, 40-line budget.
+
+      The star is deliberate and its behaviour is measured: harness_boundary.matches does not let a
+      single star cross a slash, so this grants exactly one path segment and exactly that agent's
+      own file. Do not write .harness/**/expertise/, and do not pin the segment to harness.
+
+      Sixteen agents carry a craft grant at ada8e99, including harness-frontend-dev, which has a
+      grant but no craft file on disk yet. Work from the grep result, not from a remembered list:
+      every line matching .harness/expertise/harness- gets a sibling, and there must be sixteen of
+      each afterwards.
+
+      Leave the top-level paths: block ALONE. An earlier draft of this task added
+      expertise_repo: .harness/*/expertise/ there; it is dropped deliberately, because no code
+      reads that key and this task's verify cannot assert it — unverified prose inside enforcement
+      data is worse than an absent key, and the repository path is already stated in the sixteen
+      domain lines, in SPEC.md (T-05) and in README.md (T-05). Do not re-add it.
+
+      Change nothing else in the file. In particular do not touch any domain: entry that is not an
+      expertise path, and do not reorder existing entries.
+
+      Note for the write: this file is loaded with safe_load and one unquoted hash inside a plain
+      scalar has already broken a resolver here. Keep every added comment after a value, never
+      inside one.
+
+  - id: T-02
+    title: Add the repository-tier read path to the spawn injection hook, with its own budget and a test
+    traces: [REQ-01, REQ-05]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    execution_reason: none
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/inject-expertise.sh
+      - .claude/skills/harness/bin/test-inject-expertise.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      set -u
+      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind unit 2>&1)
+      echo "$out"
+      echo "$out" | grep -q '^PASS test-inject-expertise.py$' || exit 1
+      echo "$out" | grep -q '^FAIL ' && exit 1
+      exit 0
+    intent: |
+      Give inject-expertise.sh a third read path and build the test it has never had.
+
+      PART 1 — the hook, .claude/skills/harness/bin/inject-expertise.sh.
+
+      Today it reads exactly two files (lines 27-29 at ada8e99): $HOME/.harness/expertise/$agent.md
+      emitted under the header "## Your Expertise — cross-project craft (global tier)", and
+      $root/.harness/expertise/$agent.md under "## Your Expertise — this codebase (project tier,
+      authoritative on conflict)". Keep both read paths and their order. CHANGE the second header,
+      and add a precedence line — see 1a, which is the part of this task with the largest blast
+      radius.
+
+      1a — HEADERS LABEL SCOPE, PRECEDENCE IS STATED ONCE BY NAME.
+      The shipped project header claims "authoritative on conflict". A repository header claiming
+      "most specific" would contradict it, and those headers are the only interface an agent has
+      for arbitrating between two blocks of instructions — an agent following craft where a
+      repository rule applied fails silently and no gate can see it. Position cannot carry the rule
+      either: once two segments are present, ordering decides precedence by alphabetical accident.
+
+      So: label each block by SCOPE only, and state precedence once, in words.
+
+      The three headers become exactly:
+
+        ## Your Expertise — cross-project craft (global tier)
+        ## Your Expertise — this checkout's craft (project tier)
+        ## Your Expertise — <segment> repository (repository tier)
+
+      The first is unchanged. The second loses "authoritative on conflict" — remove that phrase from
+      the script entirely. The third is new.
+
+      Immediately BEFORE the first repository block — and only when at least one repository block
+      will be emitted, because with no repository tier there is nothing to arbitrate — emit this
+      line verbatim, followed by a blank line:
+
+        Expertise precedence: repository over project over global, by specificity. A repository
+        block whose segment is not the one you were dispatched against is not authoritative for
+        your work — read the segment name.
+
+      Emit it as ONE line of output (no internal newline); it is wrapped here only for this
+      document. Emit it exactly once per spawn even when several repository blocks are present.
+      The second sentence is not optional: the hook cannot know which repository a spawn serves, so
+      it must tell the agent to check the segment itself.
+
+      1b — THE REPOSITORY BLOCKS.
+      After the two craft blocks, and before the codebase-map index block, emit every repository
+      tier found by globbing $root/.harness/*/expertise/$agent.md, in sorted order by segment name.
+      For each hit, derive the segment as the directory name between .harness/ and /expertise, and
+      emit the header form above, followed by a blank line and the file body, then two newlines,
+      exactly as the two existing blocks do. Repository blocks come last because they are the most
+      specific tier and the precedence line says so; do NOT justify the order by later text
+      carrying more weight, and do not leave that rationale anywhere in the script.
+
+      Update the script's own comment above the emit group (lines 56-57 at ada8e99, "project wins
+      on conflict, and later text carries more weight, so ordering encodes the precedence rule") —
+      it is false after this change. Replace it with a comment saying precedence is stated
+      explicitly in the emitted precedence line, and ordering is presentation only.
+
+      Use a plain shell glob with nullglob semantics or an [ -r "$f" ] guard inside the loop, so a
+      non-matching glob never emits a literal star as a filename. Do not read fleet.yaml,
+      harness.json or team-config.yaml: this hook fires on every SubagentStart including nested
+      spawns and must never block, and it must not acquire a YAML parse dependency.
+
+      1c — VALIDATE THE AGENT NAME BEFORE ANY PATH IS BUILT.
+      Today the script accepts any agent matching the shell case pattern harness-* and interpolates
+      it straight into two fixed paths. The new glob widens that: agent_type values containing a
+      slash, a dot-dot or a shell metacharacter now reach a globbed path. Before building any path,
+      require the agent to match the extended-regex anchor ^harness-[a-z0-9-]+$; anything else
+      exits 0 with no output, exactly as a non-harness agent does today. Note precisely what this
+      buys, and do not overstate it in any comment: it is name hygiene for the value interpolated
+      into paths and headers. It does not filter which directories under .harness/ are injected —
+      a stray but legitimately named directory is still read, and that cost is D-01's, not this
+      filter's.
+
+      1d — SEGMENT NAMES.
+      Skip any globbed hit whose derived segment does not match ^[a-z0-9-]+$, for the same
+      interpolation-hygiene reason and no other. Skipping is silent; the hook never warns and never
+      blocks.
+
+      cap_body currently hardcodes 150. Change it to take the budget as its second argument:
+      cap_body <file> <budget>. Call it with 150 for the two craft blocks and with 40 for every
+      repository block. The truncation notice must name the budget it actually applied, so it reads
+
+        [TRUNCATED at 40 lines — this Expertise file violates its budget; distillation is overdue (DEC-145)]
+
+      for a repository tier and keeps saying 150 for craft. A notice naming the wrong number tells
+      an agent to curate to a budget that is not its own.
+
+      The script must still exit 0 on every path, and must still emit nothing at all when no file
+      is readable and no index exists.
+
+      PART 2 — the test, a new file .claude/skills/harness/bin/test-inject-expertise.py.
+
+      Follow the shape of the existing test-check-expertise.py: plain python3, no framework, a
+      module-level constant pointing at the script under test overridable by an environment
+      variable, temp directories built per case, a printed PASS or FAIL per case, and sys.exit(1)
+      if any case failed. Each case invokes the real script as a subprocess with CLAUDE_PROJECT_DIR
+      set to a temp root and the hook JSON on stdin, then json.loads stdout and reads
+      hookSpecificOutput.additionalContext.
+
+      Cases, all required:
+
+      1. Both tiers present, and the precedence rule. Temp root has .harness/expertise/harness-qa.md
+         and .harness/harness/expertise/harness-qa.md with distinguishable bodies. Assert the
+         injected context contains the literal substring
+         "## Your Expertise — harness repository (repository tier)", contains the repository file's
+         body text, and contains the literal project header
+         "## Your Expertise — this checkout's craft (project tier)". Assert it contains the literal
+         substring "repository over project over global, by specificity" and the literal substring
+         "read the segment name". Assert it does NOT contain "authoritative on conflict" and does
+         NOT contain "most specific". Assert the precedence substring's index is LESS than the
+         repository header's index. This case is the discriminator on two counts: it fails against
+         the pre-change hook, which emits no repository header at all and still ships
+         "authoritative on conflict".
+      2. Two repository segments present (harness and kaya). Assert both segment headers appear,
+         both bodies appear, and the harness header precedes the kaya header (sorted order). Assert
+         the precedence substring "repository over project over global" occurs EXACTLY ONCE in the
+         output — count occurrences, do not test for presence.
+      3. No repository tier, craft only. Assert exit status 0, assert the project-tier header
+         appears, and assert the string "repository" does NOT appear anywhere in the output — that
+         covers both the repository header and the precedence line, neither of which may be emitted
+         when there is nothing to arbitrate.
+      4. Nothing on disk at all. Assert exit status 0 and stdout is empty or contains no
+         hookSpecificOutput.
+      5. agent_type missing from the payload, and a payload that is not valid JSON. Assert exit
+         status 0 for both and no traceback on stderr.
+      6. agent_type is "some-other-agent" (not harness-prefixed). Assert exit status 0 and empty
+         stdout, even with expertise files present.
+      7. Repository-tier budget. Write a 41-line repository file and assert the output contains
+         "[TRUNCATED at 40 lines" and does NOT contain "TRUNCATED at 150". Write a 41-line craft
+         file with no repository tier and assert neither truncation notice appears.
+      8. A 151-line craft file still truncates at 150 and says so.
+      9. The codebase-map index block survives. Temp root has both Expertise tiers AND
+         .harness/codebase/INDEX.md with a distinguishable body. Assert the injected context
+         contains the literal substring "## Codebase map — index" and the index body, and that its
+         index in the string is GREATER than every Expertise header's index. Then a second sub-case
+         with INDEX.md present and NO expertise file of any tier: assert exit 0 and that the index
+         header and body are still emitted. This block is DEC-137's only delivery path for the
+         third knowledge tier and this change edits inside the same emit group, so without these
+         assertions a dropped or reordered index block passes every other case.
+      10. Repository tier with NO craft tier. Temp root has .harness/harness/expertise/harness-qa.md
+         only — no .harness/expertise/harness-qa.md and no global file. Assert exit 0, the
+         repository header and body appear, the precedence line appears, and the project-tier header
+         does NOT appear. This is a live state, not a hypothetical: harness-frontend-dev holds a
+         craft grant and has no craft file on disk at ada8e99.
+      11. Never blocks, and never parses YAML. Temp root has both tiers plus a
+         .harness/team-config.yaml whose contents are deliberately unparseable (an unterminated
+         quote and a bare tab-indented line) and NO fleet.yaml anywhere. Assert exit status 0, that
+         the full injection is present — both headers, both bodies, the precedence line — and that
+         stderr contains no traceback. The intent's constraint that this hook acquires no YAML parse
+         dependency is otherwise only prose, and nothing reddens if a successor adds one.
+      12. Agent-name validation. Invoke with agent_type values "harness-", "harness-qa/../../etc",
+         "harness-*" and "harness-qa;id", with expertise files present on disk for harness-qa.
+         Assert exit status 0 and EMPTY stdout for each — none matches ^harness-[a-z0-9-]+$ — and
+         assert no file body text appears in the output for any of them.
+
+      Case bodies must avoid incidental collisions with the strings the cases assert absent: in
+      particular case 3's craft body must not itself contain the word "repository".
+
+      Do not renumber cases 1-8; the BRIEF cites case 3 by ordinal.
+
+      PART 3 — registration. Add "test-inject-expertise.py" to the UNIT_SCRIPTS array in
+      .claude/skills/harness/bin/run-unit-tests.sh. The runner has a drift detector that exits 2 on
+      any test-*.py not present in one of its two arrays, which would redden every other task's
+      verify, so this must land in the same commit as the test file.
+
+  - id: T-03
+    title: Give the expertise checker the repository-tier budget and the advisory craft-token scan
+    traces: [REQ-04]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    execution_reason: none
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-expertise.sh
+      - .claude/skills/harness/bin/test-check-expertise.py
+    verify: |
+      set -u
+      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1)
+      echo "$out"
+      echo "$out" | grep -q '^PASS test-check-expertise.py$' || exit 1
+      echo "$out" | grep -q '^FAIL ' && exit 1
+      live=$(.claude/skills/harness/bin/check-expertise.sh .harness/expertise/ 2>&1)
+      rc=$?
+      echo "$live"
+      [ "$rc" = 0 ] || { echo "live craft dir no longer exits 0"; exit 1; }
+      echo "$live" | grep -q '^ADVISORY ' || { echo "no advisory line on the live craft dir"; exit 1; }
+      exit 0
+    intent: |
+      Two changes to .claude/skills/harness/bin/check-expertise.sh, plus the cases that prove them.
+
+      CHANGE 1 — the line budget becomes per tier. The Python body currently has
+      LINE_BUDGET = 150 applied to every file. Replace it with a per-path budget: a file whose path
+      matches the craft form, a path ending in .harness/expertise/<name>.md, keeps 150; a file whose
+      path matches the repository form, .harness/<segment>/expertise/<name>.md, gets 40. Decide by
+      the path, not by a flag: the checker is invoked with bare paths from the distill skill, the
+      curate skill and by hand. A path matching neither form keeps 150 and is not an error — the
+      checker is also run against files in temp directories by its own tests.
+
+      Classify on os.path.abspath(path), never on the argument as typed. This matters and is not a
+      tidiness point: this task's own intent says the checker is invoked by hand, and
+      cd .harness/harness/expertise && check-expertise.sh harness-qa.md matches neither form as
+      typed, so it would keep 150 and print OK over a 41-line file that is over budget — the new
+      budget silently unenforced by the only gate that enforces it. abspath resolves that
+      invocation to the repository form. It is compatible with cases 4 and 5 below, which build
+      <tmp>/.harness/... paths that abspath preserves, and it keeps the neither-form default for
+      genuinely out-of-tree fixtures.
+
+      The over-budget message must name the budget it applied, so a repository file reads
+      "41 lines — over the 40-line budget (the spawn hook truncates the rest)".
+
+      CHANGE 2 — the advisory scan that harness-distill already promises. For CRAFT-tier files only,
+      report every entry naming a repository-specific token. The token set is issue 340's, verbatim:
+      the regex alternation DEC-\d+, INV-\d+, FEAT-\d+, \.harness/, \.claude/, check-[a-z-]*\.sh,
+      factory_[a-z]*\.py, gh-sync, harness\.json, team-config.
+
+      Three properties, all mandatory:
+
+      a. It is ADVISORY. It must never make the script exit non-zero and must never be appended to
+         the per-file problems list, because that list drives both the FAIL verdict and the exit
+         status. Issue 340 rejected a blocking gate explicitly: a legitimate craft entry may cite a
+         path as an example, and a false-positive gate teaches the operator to work around it.
+      b. It NAMES THE TOKEN. The output line must carry the file, the line number, the entry id and
+         the exact matched token, in the form
+         ADVISORY <path>:<line>: <id> names '<token>' — repository-layer candidate; rule on it (issue 340)
+         Printing a count, or naming only the entry, is not enough: the human ruling on it must see
+         the evidence rather than re-derive it.
+      c. It is emitted for files that otherwise pass. Today a clean file prints only "OK <path>".
+         Advisory lines must print for a clean file too, after the OK line.
+
+      Note that FEAT-\d+ is already a hard violation under the existing FEATURE_TOKEN_RE, so an
+      entry naming one produces both a problem and an advisory. That is correct and must not be
+      special-cased.
+
+      Repository-tier files are NOT scanned: naming a repository token is what that tier is for.
+
+      CASES — add to .claude/skills/harness/bin/test-check-expertise.py, following its existing
+      shape. Every one of these must be present:
+
+      1. Redden proof for the advisory. A craft-form temp file, otherwise valid, whose entry text
+         contains DEC-042. Assert exit status 0, assert stdout contains "ADVISORY", assert stdout
+         contains the literal "DEC-042", and assert stdout contains "OK " for that file. Then assert
+         the same file with DEC-042 removed produces NO line starting with ADVISORY. Both
+         directions, so the check is proven able to redden and proven able to stay silent.
+      2. One case per token class. Ten temp craft files, each carrying exactly one of the ten token
+         forms, each asserted individually to produce an advisory naming that exact token. Assert
+         them one at a time — a single file carrying all ten, or a count of advisory lines, is
+         satisfied by nine matching and cannot see the tenth.
+      3. The advisory never blocks. A craft file carrying a token AND a real format violation exits
+         1; a craft file carrying a token and no violation exits 0. Assert the exit statuses
+         directly.
+      4. Repository-tier files are exempt: a file at <tmp>/.harness/harness/expertise/harness-qa.md
+         carrying DEC-042 produces no ADVISORY line.
+      5. Budget by tier: a 41-line repository-form file is reported over budget and the message
+         names 40; a 41-line craft-form file is not reported; a 151-line craft-form file is reported
+         and the message names 150.
+      6. Budget by tier under a bare-path invocation. Run the checker with cwd set to
+         <tmp>/.harness/harness/expertise and the single argument harness-qa.md, over the same
+         41-line repository-form file as case 5. Assert it is reported over budget and the message
+         names 40. Without abspath classification this case passes OK and is the documented
+         by-hand invocation, so it is the discriminator for CHANGE 1's path rule.
+
+  - id: T-04
+    title: Move the eleven adjudicated repository-specific entries into the harness repository tier
+    traces: [REQ-03]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      each craft file is granted to its owning agent alone and three of the six owners are a lead, a
+      reviewer and the orchestrator, none of which is a dispatchable task executor, so no single
+      doer can be dispatched to move all eleven (see D-03)
+    depends_on: [T-01, T-03]
+    status: pending
+    files:
+      - .harness/expertise/harness-backend-dev.md
+      - .harness/expertise/harness-dev-ops.md
+      - .harness/expertise/harness-documentor.md
+      - .harness/expertise/harness-eng-lead.md
+      - .harness/expertise/harness-orchestrator.md
+      - .harness/expertise/harness-security-reviewer.md
+      - .harness/harness/expertise/harness-backend-dev.md
+      - .harness/harness/expertise/harness-dev-ops.md
+      - .harness/harness/expertise/harness-documentor.md
+      - .harness/harness/expertise/harness-eng-lead.md
+      - .harness/harness/expertise/harness-orchestrator.md
+      - .harness/harness/expertise/harness-security-reviewer.md
+    verify: |
+      set -u
+      python3 - <<'PY'
+      import sys, os
+      O=".harness/expertise/%s.md"; N=".harness/harness/expertise/%s.md"
+      ROWS=[("m","harness-backend-dev","fake-gh test harness"),("m","harness-dev-ops","Nothing invokes check-state.sh automatically"),
+       ("m","harness-dev-ops","merged additively into"),("m","harness-documentor","amended decision's own section"),
+       ("m","harness-documentor","DO append at end-of-file and regenerate"),("m","harness-documentor","removed the superseded-pattern marker"),
+       ("m","harness-documentor","sweep every live surface by hand"),("m","harness-documentor","length budgets are asserted only in"),
+       ("m","harness-eng-lead","cannot keep their writes disjoint"),("m","harness-orchestrator","has no lineage protection"),
+       ("m","harness-security-reviewer","untrusted-input boundary is the hook payload"),("s","harness-backend-dev","broad top-level globs"),
+       ("s","harness-dev-ops","3.2.57"),("s","harness-orchestrator","escapes the root"),("s","harness-pm","non-discriminating"),
+       ("s","harness-security-reviewer","Rate hook crashes as fail-open")]
+      def has(p,s):
+          try: return s in open(p,encoding="utf-8").read()
+          except OSError: return False
+      bad=0
+      for a in sorted(set(r[1] for r in ROWS)):
+          if not (os.path.isfile(O%a) and os.path.getsize(O%a)>0):
+              print("FAIL craft file missing or empty: %s"%(O%a)); bad=1
+      for x,a,s in ROWS:
+          n=has(N%a,s); o=has(O%a,s)
+          if not ((n and not o) if x=="m" else (o and not n)):
+              print("FAIL %s %s :: %s (repo=%s craft=%s)"%(x,a,s,n,o)); bad=1
+      print("MIGRATION-OK" if not bad else "MIGRATION-FAILED"); sys.exit(bad)
+      PY
+      rc=$?
+      .claude/skills/harness/bin/check-expertise.sh .harness/expertise/ || rc=1
+      .claude/skills/harness/bin/check-expertise.sh .harness/harness/expertise/ || rc=1
+      exit $rc
+    intent: |
+      Create .harness/harness/expertise/ and move eleven entries into it from six craft files. The
+      adjudication is done: it was made at plan time under issue 340's rule and the operator's
+      signature on this plan is the human ruling that rule requires. Do not re-adjudicate, and do
+      not move anything not listed here.
+
+      For each of the six agents below, create .harness/harness/expertise/<agent>.md whose line 1 is
+      exactly
+
+        # Expertise — <agent>
+
+      followed by the four canonical sections in order, each with its cap suffix, exactly as the
+      craft files have them:
+
+        ## Patterns (max 15)
+        ## Gotchas (max 15)
+        ## Outcomes (max 10)
+        ## Open (max 5)
+
+      Then move each listed entry, VERBATIM including its continuation lines and its wording, out of
+      the craft file and into the same-named section of the repository file, renumbering it within
+      the destination section only, starting at 01 in destination order.
+
+      THE ENTRIES, by the anchor text that identifies each one uniquely at ada8e99:
+
+      harness-backend-dev — Gotchas:
+        - the entry containing "fake-gh test harness"
+
+      harness-dev-ops — Gotchas:
+        - the entry containing "Nothing invokes check-state.sh automatically"
+        - the entry containing "merged additively into"
+
+      harness-documentor — Patterns:
+        - the entry containing "amended decision's own section"
+        - the entry containing "DO append at end-of-file and regenerate"
+      harness-documentor — Gotchas:
+        - the entry containing "removed the superseded-pattern marker"
+        - the entry containing "sweep every live surface by hand"
+        - the entry containing "length budgets are asserted only in"
+
+      harness-eng-lead — Gotchas:
+        - the entry containing "cannot keep their writes disjoint"
+
+      harness-orchestrator — Open:
+        - the entry containing "has no lineage protection"
+
+      harness-security-reviewer — Patterns:
+        - the entry containing "untrusted-input boundary is the hook payload"
+
+      DO NOT MOVE these five, which were flagged by the token scan and ruled CRAFT because the token
+      is an example rather than the thing the rule turns on. They stay exactly where they are:
+      backend-dev's "broad top-level globs" entry, dev-ops's bash "3.2.57" entry, orchestrator's
+      "escapes the root" worktree entry, pm's "non-discriminating" entry, and security-reviewer's
+      "Rate hook crashes as fail-open" entry.
+
+      DO NOT RENUMBER the craft files. Removing an entry leaves a numbering gap in its section and
+      that is correct: check-expertise.sh requires the id prefix, not contiguity, and DEC-66 makes
+      the ids stable references that other entries and notes cite.
+
+      This task's verify was probed in both directions at plan time before it shipped, so its green
+      is a result and not an assumption: on the unmigrated repository it exits 1 with one FAIL line
+      per mover, and on a scratch tree with the eleven entries moved it prints MIGRATION-OK and
+      exits 0. Each of the sixteen entries is its own assertion, so ten conforming entries cannot
+      green over the eleventh. The probe and its exit codes are recorded in
+      notes/research-FEAT-27-expertise-tier.md.
+
+      Leave every craft file's title, section headers and section cap suffixes untouched. Do not
+      rewrite the wording of any entry, in either direction — a reworded entry cannot be checked
+      against the anchors this task is verified with, and rewording is a distillation act that this
+      plan does not authorise.
+
+      Ten agents have no repository-specific entries at all: ai-dev, code-reviewer, data-engineer,
+      frontend-dev, pm, product-lead, qa, ui-reviewer, validator-lead, visual-designer. Do NOT create
+      empty repository-tier files for them. An absent file is the correct state and the hook treats
+      it as normal.
+
+  - id: T-05
+    title: Correct the Expertise layout in the harness README and SPEC
+    traces: [REQ-06]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    execution_reason: none
+    depends_on: [T-01, T-02, T-03]
+    status: pending
+    files:
+      - .harness/README.md
+      - .harness/harness/docs/SPEC.md
+    verify: |
+      set -u
+      fail=0
+      R=.harness/README.md
+      S=.harness/harness/docs/SPEC.md
+      grep -q -F '<repo>/expertise/' "$R" || { echo "FAIL README names no repository tier"; fail=1; }
+      grep -q -F 'expertise/<agent>.md' "$R" || { echo "FAIL README lost its craft row"; fail=1; }
+      grep -q -F '.harness/<repo>/expertise/' "$S" || { echo "FAIL SPEC names no repository tier"; fail=1; }
+      grep -q -F '.harness/expertise/' "$S" || { echo "FAIL SPEC lost the craft path"; fail=1; }
+      grep -q -F '40-line' "$S" || { echo "FAIL SPEC does not state the repository budget"; fail=1; }
+      grep -q -F '150-line' "$S" || { echo "FAIL SPEC does not state the craft budget"; fail=1; }
+      grep -q -F 'repository over project over global, by specificity' "$S" \
+        || { echo "FAIL SPEC does not state the precedence rule"; fail=1; }
+      grep -q -F 'read the segment name' "$S" \
+        || { echo "FAIL SPEC omits the not-your-segment caveat"; fail=1; }
+      if grep -n -F 'authoritative on conflict' "$S"; then
+        echo "FAIL SPEC still calls the project tier authoritative on conflict"; fail=1
+      fi
+      if grep -n -F 'carries more weight' "$S"; then
+        echo "FAIL SPEC still explains precedence by position"; fail=1
+      fi
+      for f in "$R" "$S"; do
+        if grep -n -E 'expertise/<repo>|\*\*/expertise' "$f"; then
+          echo "FAIL a third path form appears in $f"; fail=1
+        fi
+      done
+      [ "$fail" = 0 ] && echo DOCS-OK
+      exit $fail
+    intent: |
+      Two documents describe the Expertise layout and both now understate it.
+
+      .harness/README.md is the layout-and-ownership map for .harness/. Its table uses paths relative
+      to .harness/, and at ada8e99 line 18 carries exactly one Expertise row, keyed
+      expertise/<agent>.md, described as per-agent durable knowledge injected at every spawn and
+      owned by each agent for its own file only. Keep that row and add a SECOND row beneath it, keyed
+      <repo>/expertise/<agent>.md, in the same three-column shape. Between the two rows the
+      description must convey: craft in the first, 150 lines, true wherever the agent works;
+      repository-specific in the second, 40 lines, true of one repository only; the same owner rule
+      for both, that agent and its own file alone; and that BOTH are injected at every spawn by the
+      SubagentStart hook and neither is ever read by the agent itself.
+
+      .harness/harness/docs/SPEC.md line 806 at ada8e99 says check-expertise.sh enforces the format
+      mechanically and that the injection hook hard-truncates. Extend that passage so it states: the
+      two tiers and their two paths; the two budgets, 150 for craft and 40 for repository, enforced
+      both at authoring time by check-expertise.sh and as a truncation backstop in the hook; that the
+      hook injects global craft, then project craft, then every repository tier present; and
+      that check-expertise.sh reports craft entries naming a repository-specific token as ADVISORY
+      only, never as a violation.
+
+      The precedence rule must be stated in SPEC with the same words the hook emits, and must not be
+      stated as an ordering rationale. Write, in the passage's own voice, that each injected block is
+      labelled by scope only, that precedence is repository over project over global, by
+      specificity, and that because the hook cannot know which repository a spawn serves, a
+      repository block whose segment is not the one the agent was dispatched against is not
+      authoritative for that agent's work — the agent reads the segment name. Do NOT write that
+      later text carries more weight, and do not describe the project tier as authoritative on
+      conflict; the hook stops saying both in T-02 and a document that keeps saying either
+      contradicts what the agent is handed. The literal phrase "repository over project over global,
+      by specificity" must appear in SPEC.md verbatim, because T-02's test asserts the hook emits it
+      and this task's verify asserts the document states it.
+
+      Write exactly two path forms and no third. In SPEC use the absolute forms .harness/expertise/
+      and .harness/<repo>/expertise/, and state both budgets with the literal words 150-line and
+      40-line. In README use the table's existing relative convention, expertise/<agent>.md and
+      <repo>/expertise/<agent>.md. Do not write **/expertise or expertise/<repo> in either file.
+
+      Do not restate the token list; point at check-expertise.sh for it. Do not add a decision record
+      — this task documents what exists, and the decisions live in the plan and in DECISIONS.md if
+      the operator promotes them.
+
+  - id: T-06
+    title: Refresh the stale corpus measurement and the audit scope in the two Expertise skills
+    traces: [REQ-04, REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      check-domain.sh --resolve prints NOBODY for everything under .claude/ except
+      skills/harness/bin, so no agent may write either skill file
+    depends_on: [T-03, T-04]
+    status: pending
+    files:
+      - .claude/skills/harness-distill/SKILL.md
+      - .claude/skills/harness-curate/SKILL.md
+    verify: |
+      set -u
+      D=.claude/skills/harness-distill/SKILL.md
+      C=.claude/skills/harness-curate/SKILL.md
+      fail=0
+      grep -q -F '267' "$D" && { echo "FAIL the superseded 267-entry measurement survives"; fail=1; }
+      grep -q -i -F 'of thirteen files' "$D" && { echo "FAIL the superseded file count survives"; fail=1; }
+      grep -q -F '374' "$D" || { echo "FAIL the re-derived total is absent"; fail=1; }
+      grep -q -F 'ada8e99' "$D" || { echo "FAIL the measurement names no sha"; fail=1; }
+      grep -q -F '.harness/*/expertise/' "$C" || { echo "FAIL curate still audits one tier"; fail=1; }
+      grep -q -F 'for d in .harness/*/expertise/' "$C" \
+        || { echo "FAIL curate does not iterate the repository tiers"; fail=1; }
+      grep -q -F '[ -d "$d" ]' "$C" \
+        || { echo "FAIL curate has no exists guard, so a bare glob would exit 2"; fail=1; }
+      [ "$fail" = 0 ] && echo SKILLS-OK
+      exit $fail
+    intent: |
+      Two skill files carry claims that this feature falsifies.
+
+      .claude/skills/harness-distill/SKILL.md, in the Two layers section, states: "Measured across
+      all 267 entries in this tree: 10 are repository-specific — 3.7%. Seven of thirteen files have
+      none." That measurement was taken on a 13-file tree and the tree now has 15 files. Replace the
+      sentence with the re-derived figure and make it falsifiable by naming its sha and its unit:
+
+        Measured at ada8e99 across all 374 entries in the 15 craft files: 16 name a
+        repository-specific token — 4.3% — and eight of the fifteen files name none. Adjudicated
+        under the rule above, 11 moved to the repository tier and 5 stayed craft, because the token
+        was an example rather than the thing the rule turned on.
+
+      Keep the surrounding paragraph's argument intact: the default is craft, and the default matches
+      what writers already produce. Change no other section, and do not touch the layer table at
+      lines 43-46 — it is already correct and is the authority this feature was built on.
+
+      .claude/skills/harness-curate/SKILL.md step 1 audits .harness/expertise/ only, and step 4
+      re-runs the same. Both tiers now exist, so an out-of-band audit that reads one of them reports
+      clean over the other. Change both steps to run the checker over the craft directory AND every
+      repository tier that exists.
+
+      Do NOT write it as the two bare arguments .harness/expertise/ .harness/*/expertise/. In a
+      project with no repository tier the glob passes through as a literal star, the checker treats
+      it as a missing path and exits 2 (check-expertise.sh:26-27) — correct in this repository after
+      T-04, broken as shipped guidance for every other project this skill runs in. Write instead the
+      literal command block
+
+        .claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+        for d in .harness/*/expertise/; do
+          [ -d "$d" ] && .claude/skills/harness/bin/check-expertise.sh "$d"
+        done
+
+      in both step 1 and step 4, and say in one clause why the second path is audited at all: the
+      repository tier has its own 40-line budget and the checker applies it by path. Do not change the skill's frontmatter description beyond adding the second
+      path where it names the first.
