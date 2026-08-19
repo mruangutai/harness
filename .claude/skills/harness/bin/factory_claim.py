@@ -19,12 +19,14 @@ is never claimed, but a candidate this agent already owns is never re-gated. The
 `plan.yaml`'s `depends_on` — read-only, never GitHub's rendered `blocked_by` edge — resolved to an
 issue number through that feature's `feature.json` `factory.issues` map, and finished-ness is
 that issue's state. An issue with no resolvable `feature:` label has no plan task and is not
-gated at all (D-09's tolerant read); a `feature:` label that resolves but whose title yields no
-matching plan task is edge (i) and counts as blocked.
+gated at all (D-09's tolerant read); a `feature:` label that resolves but whose plan.yaml cannot
+be read reports the absolute path that was tried (D-03), while one whose plan loads but holds no
+matching task is edge (i).
 
-FEATURES_ROOT is resolved under `factory_config.harness_root()`, never the current working
-directory — this tool runs from inside a workspace checkout of ANOTHER repository (T-06), and a
-cwd-relative path would silently read the wrong DAG or none at all (R-03).
+FEATURES_ROOT resolves to `.harness/harness/features` under `factory_config.harness_root()`, never
+the current working directory — this tool runs from inside a workspace checkout of ANOTHER
+repository (T-06), and a cwd-relative path would silently read the wrong DAG or none at all
+(R-03).
 """
 import argparse
 import os
@@ -40,7 +42,7 @@ TOOL = "claim"
 
 # Overridable for tests — read as a module global inside _main/_BlockerCache, never bound as a
 # default argument value, so a test monkeypatching this attribute after import is honoured.
-FEATURES_ROOT = os.path.join(factory_config.harness_root(), ".harness", "features")
+FEATURES_ROOT = os.path.join(factory_config.harness_root(), ".harness", "harness", "features")
 
 _TASK_ID_RE = re.compile(r"(T-\d+)")
 
@@ -94,17 +96,37 @@ class _BlockerCache:
         self._plans = {}
         self._issue_maps = {}
 
-    def task(self, feature, task_id):
-        """The plan task dict for (feature, task_id), or None when the feature's plan.yaml
-        cannot be read, or contains no task with that id."""
+    def plan_path(self, feature):
+        """The absolute path to feature's plan.yaml under this cache's features root — the only
+        place absoluteness is established (REQ-02, SC-04)."""
+        return os.path.abspath(os.path.join(self._features_root, feature, "plan.yaml"))
+
+    def _plan(self, feature):
+        """The cached plan dict for feature, or None when it cannot be read. The sole file-reading
+        path: task() and plan_loaded() both reach plan.yaml only through this method, so one poll
+        reads each feature's plan.yaml exactly once no matter which of them is asked first or how
+        often."""
         if feature not in self._plans:
-            path = os.path.join(self._features_root, feature, "plan.yaml")
+            path = self.plan_path(feature)
             try:
                 plan = harness_yaml.load_plan(path)
             except harness_yaml.YamlParseError:
                 plan = None
             self._plans[feature] = plan
-        plan = self._plans[feature]
+        return self._plans[feature]
+
+    def plan_loaded(self, feature):
+        """True when feature's plan.yaml was read successfully."""
+        return self._plan(feature) is not None
+
+    def root_exists(self):
+        """True when this cache's features root directory exists."""
+        return os.path.isdir(self._features_root)
+
+    def task(self, feature, task_id):
+        """The plan task dict for (feature, task_id), or None when the feature's plan.yaml
+        cannot be read, or contains no task with that id."""
+        plan = self._plan(feature)
         if plan is None or task_id is None:
             return None
         for t in plan["tasks"]:
@@ -132,11 +154,14 @@ class _BlockerCache:
 
 def _blocker_gate(cache, repo, feature, task_id):
     """Return None when the candidate is clear, or a tuple describing why it is blocked:
-    ("edge_i", task_id) — the feature resolves but the title yields no matching plan task;
+    ("no_plan", path, root_exists) — the feature resolves but its plan.yaml could not be read;
+    ("edge_i", task_id) — the plan DID load but the title yields no matching plan task;
     ("unresolvable", dep) — a depends_on entry has no feature.json issue-map entry;
     ("open", dep, blocker_num) — the LAST depends_on entry (in order) whose blocker issue is
     still open — scanning every entry, never stopping at the first, is what MIXED BLOCKER SET
     requires (T-05 intent, SC-22)."""
+    if not cache.plan_loaded(feature):
+        return ("no_plan", cache.plan_path(feature), cache.root_exists())
     task = cache.task(feature, task_id)
     if task is None:
         return ("edge_i", task_id)
@@ -161,6 +186,17 @@ def _blocker_gate(cache, repo, feature, task_id):
 
 def _blocker_reason_text(gate, num):
     kind = gate[0]
+    if kind == "no_plan":
+        path, root_exists = gate[1], gate[2]
+        if not root_exists:
+            return (
+                f"issue #{num} carries a feature: label that resolves, but no plan could be "
+                f"read at {path} - the feature root does not exist"
+            )
+        return (
+            f"issue #{num} carries a feature: label that resolves, but no plan could be read "
+            f"at {path} - the feature directory or its plan.yaml is missing or unparseable"
+        )
     if kind == "edge_i":
         return (
             f"issue #{num} carries a feature: label that resolves, but its title yields no "

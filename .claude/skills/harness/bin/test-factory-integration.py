@@ -26,13 +26,13 @@ by recorder in test-factory-workspace.py, and are exercised for REAL only in the
 CLAUDE_PROJECT_DIR IS THE ROOT-REDIRECT SEAM, NOT A WORKAROUND: factory_config.harness_root()
 documents (and test-factory-config.py exercises) a three-tier resolution — CLAUDE_PROJECT_DIR
 wins when `<it>/.harness/harness/docs/SPEC.md` is readable. Every case sets CLAUDE_PROJECT_DIR to its own
-temp root with a stub SPEC.md, so `factory_claim.py`'s import-time FEATURES_ROOT (a documented,
-carried, non-blocking finding — see the receipt) resolves under the temp root instead of this
-checkout's real `.harness/features`. This is also why a case's own `.harness/factory/fleet.yaml`
-is never created next to the probe — every case passes `--fleet` explicitly and the DEFAULT
-FLEET_PATH is left to 404, which is exactly what the "no arguments" and "missing --fleet" cases
-need. Every case asserts stderr never contains "IGNORING it" — that phrase means the probe missed
-and harness_root() silently fell back to this checkout's own root, which would make the case's
+temp root with a stub SPEC.md, so `factory_claim.py`'s import-time FEATURES_ROOT resolves under
+the temp root instead of this checkout's real `.harness/harness/features`. This is also why a case's
+own `.harness/factory/fleet.yaml` is never created next to the probe — every case passes `--fleet`
+explicitly and the DEFAULT FLEET_PATH is left to 404, which is exactly what the "no arguments" and
+"missing --fleet" cases need. Every case asserts stderr never contains "IGNORING it" — that phrase
+means the probe missed and harness_root() silently fell back to this checkout's own root, which
+would make the case's
 CLAUDE_PROJECT_DIR redirect a no-op without ever failing loudly.
 
 TWO OF THE FIVE TOOLS NEVER CALL gh AT ALL (grep-verified: factory_config.py and
@@ -710,9 +710,9 @@ with tempfile.TemporaryDirectory() as td:
     env["FACTORY_GIT_LOG"] = git_log
 
     # The fixture plan lives exactly where factory_claim's (import-time) FEATURES_ROOT will
-    # look for it under this case's CLAUDE_PROJECT_DIR: <root>/.harness/features/<feature>.
+    # look for it under this case's CLAUDE_PROJECT_DIR: <root>/.harness/harness/features/<feature>.
     feat = "FEAT-INTEG-HAPPY"
-    feat_dir = os.path.join(root, ".harness", "features", feat)
+    feat_dir = os.path.join(root, ".harness", "harness", "features", feat)
     os.makedirs(feat_dir, exist_ok=True)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), {
         "schema": "plan/1", "feature": feat, "approval": {"status": "approved"},
@@ -1076,7 +1076,7 @@ with tempfile.TemporaryDirectory() as td:
     env["GH_CALL_LOG"] = call_log
 
     feat = "FEAT-INTEG-TWOBOARD"
-    feat_dir = os.path.join(root, ".harness", "features", feat)
+    feat_dir = os.path.join(root, ".harness", "harness", "features", feat)
     os.makedirs(feat_dir, exist_ok=True)
     write_yaml(os.path.join(feat_dir, "plan.yaml"), {
         "schema": "plan/1", "feature": feat, "approval": {"status": "approved"},
