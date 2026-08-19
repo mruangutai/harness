@@ -14,7 +14,7 @@ T-05 #569, T-06 #570.
 
 **Two of six tasks are done and the blocking gate is discharged for them.** The eng segment returned
 PASS with zero send-backs (`6edb911` T-02, `2117a46` T-03); the qa segment returned PASS with
-`matrix_ok: true`, `must_fix: []`, `severity_max: low` and zero send-backs. Six success criteria —
+`matrix_ok: true`, `must_fix: []`, `severity_max: med` and zero send-backs. Six success criteria —
 SC-01, SC-04, SC-05, SC-06, SC-09, SC-10 — were shown to bind by MUTATION, not by reading
 assertions. I independently re-measured both suites at my own tier (unit exit 0, 137 PASS, 0 FAIL;
 integration exit 0, 90 PASS, 0 FAIL) and probed the hook end to end in a temp root: two segments
@@ -40,6 +40,12 @@ Two plan-phase reconciliations, recorded so a resume does not re-litigate them. 
 `cycles_used` stays 0 — the plan run's internal step cycles were reported to the plan-phase
 orchestrator, not to me, and DEC-157 counts only rework I route or a lead reports from inside a run I
 dispatched.
+
+The qa digest was REVISED after I first read it: the copy I read at ~06:32 carried
+`severity_max: low` and `escalations: []`; the final artifact (mtime 06:45) carries `severity_max:
+med` and escalation E1 routed to pm. My first STATE.md write repeated the stale `low` and is
+corrected above. `med` does not change routing — `gates.review` is `advisory_unless_high` — but the
+record was wrong and is now right. `validate-digest.py validator-lead <path>` reports `digest ok`.
 
 ## Open Questions
 

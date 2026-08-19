@@ -79,3 +79,18 @@
   integration` executes the file (it is in `INTEGRATION_SCRIPTS`, and the run prints `PASS
   test-check-expertise.py`). Rule of thumb: when config metadata and a runner disagree about what
   runs, RUN IT — the runner is the authority, and the metadata becomes a backlog row, not a gate.
+
+- 2026-08-19: A lead's digest file CHANGED between my reading it and the return notification
+  arriving. I read it off disk the moment it appeared and acted on `severity_max: low` /
+  `escalations: []`; the final artifact carries `severity_max: med` and an escalation routed to pm.
+  I had already committed a STATE.md sentence quoting the stale value, which made the record false
+  until I corrected it. The rule: a digest appearing on disk is not the return — re-read the
+  artifact when the notification lands, and treat anything quoted from the early copy as unverified
+  until then. The inverse of G-07, and it costs a falsified record rather than a duplicated run.
+
+- 2026-08-19: `validate-digest.py` takes a PERSONA as its first argument, then the path. Invoked
+  with the path alone it prints `VERDICT: BLOCKED (contract violation) — unknown persona
+  '<the path>'`, which reads exactly like the digest being malformed and is really a usage error;
+  `--help` produces the same shape. `validate-digest.py validator-lead <path>` returned `digest ok`
+  on the very file the malformed call appeared to reject. Never route a contract-violation verdict
+  without re-running the validator with the persona argument first.
