@@ -67,9 +67,9 @@
 - G-05: WHEN a probe returns a plausible value DO confirm the CALL SHAPE matches the function's
   contract before treating it as evidence — a probe that exercises the wrong branch returns a real
   value and is indistinguishable from a measurement.
-- G-06: WHEN crossing a phase seam DO write the handoff note even when continuing in the same session
-  instead of relaying — the invariant checker reads the phase field and reports a missing seam note as a
-  VIOLATION, not as advice.
+- G-06: WHEN about to write a phase-advancing or terminal `status` into feature.json DO write the
+  ending phase's handoff note in the same act. Keyed to crossing the seam this rule failed twice in
+  one feature; keyed to the status write it fires with the file already open.
 - G-07: WHEN a lead's digest reports its run finished DO open that run's own state file and treat any
   step with an unset completion time as still live. A digest can be fenced, verdict-bearing and
   premature; re-dispatching over a live run duplicates the work.

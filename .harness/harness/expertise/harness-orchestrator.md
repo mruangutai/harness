@@ -12,9 +12,9 @@
 - G-02: WHEN invoking `validate-digest.py` DO pass the PERSONA first and the path second. Path-only
   prints `BLOCKED (contract violation) — unknown persona '<the path>'`, which reads exactly like a
   malformed digest and will make you reject a valid one.
-- G-03: WHEN a distillation returns ops for the three read-only reviewers DO route them to layer 0,
-  not to yourself. Every Expertise path resolves to its owning agent ALONE, so the orchestrator
-  cannot apply another agent's ops and the playbook's instruction to do so is unexecutable here.
+- G-03: WHEN a distillation returns ops for an agent you think holds no write path DO check the
+  grant first — all three reviewers hold `Write` and both Expertise tiers, so ops go back to the
+  owner via its lead; the orchestrator can write no Expertise file but its own.
 
 ## Outcomes (max 10)
 
