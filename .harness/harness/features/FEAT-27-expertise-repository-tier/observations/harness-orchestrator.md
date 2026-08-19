@@ -94,3 +94,19 @@
   `--help` produces the same shape. `validate-digest.py validator-lead <path>` returned `digest ok`
   on the very file the malformed call appeared to reject. Never route a contract-violation verdict
   without re-running the validator with the persona argument first.
+
+- 2026-08-19: Writing a RECOMMENDED task's id into STATE.md tripped a real VIOLATION —
+  "STATE.md references T-07, which is absent from its plan.yaml." pm had recommended a follow-up
+  task and I recorded it by the id pm sketched. The invariant is right and the fix is mine: a task
+  id is coined when pm authors the task under the operator's signature, not when someone recommends
+  one. Describe an unapproved task by what it would do and point at the note holding the sketch;
+  never give it an id in a state file. The same trap waits for any digest field that names a task.
+
+- 2026-08-19: Routing a plan-domain escalation to pm BEFORE returning it to the operator changed
+  the answer materially, and cost one spawn. qa had ranked two coverage gaps and implied both were
+  simply missing tests. pm's ruling split them: one is committed at requirement level but
+  operationalized by no criterion, the other is uncommitted at every level, and neither is a
+  delivery gap. It also killed the framing I would have relayed — "this delays the ship" is not a
+  cost when the feature is already gated on four unbuilt tasks, so both options need a signature and
+  only the timing differs. An escalation relayed raw asks the operator to do the adjudication the
+  owning squad exists to do.

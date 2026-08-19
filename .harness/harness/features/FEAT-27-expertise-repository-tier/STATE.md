@@ -31,9 +31,11 @@ repository tier exists" — non-exhaustive), but no SC operationalizes it, and `
 specifies "nullglob semantics **or** an `[ -r "$f" ]` guard", so a fully conforming implementation
 could carry no unreadable-file protection at all. Gap (b), the suffix rule, is NEW at every level and
 its unique catch is narrower than first reported — path traversal with a valid prefix, which case 12
-already carries and one fixture file would make discriminate. pm recommends one T-07 this cycle
+already carries and one fixture file would make discriminate. pm recommends ONE NEW FOLLOW-UP TASK this cycle
 (lane team/`harness-dev-ops`, `change_type: logic`), using a **dangling symlink** rather than
-`chmod 000`, which is a no-op as root and not preserved by git. Adoption of either criterion is the
+`chmod 000`, which is a no-op as root and not preserved by git. It is a recommendation only — no
+task id is coined here, and none exists in `plan.yaml` until pm authors one under the operator's
+signature. The sketch lives in `notes/research-FEAT-27-e1-coverage-gaps.md`. Adoption of either criterion is the
 operator's. I verified all four of pm's anchors at source myself.
 
 **Next, and it is the main session's:** the layer-0 batch — T-01, then T-04, then T-06, in that
@@ -41,7 +43,7 @@ order, per `notes/layer0-segments-FEAT-27.md`. No agent may write those surfaces
 UNCOMMITTED; the commit pen is the orchestrator's, and the `[harness:t-NN]` commit, the `plan.yaml`
 status write and `gh-sync close-task` must happen as one ordered act per task.
 
-**Then, on resume:** T-05 (documentor, needs T-01), any adopted T-07, simplify over the full diff,
+**Then, on resume:** T-05 (documentor, needs T-01), any follow-up task the operator adopts, simplify over the full diff,
 re-pin `review_sha`, review panel, goal-check, close-out (ship-refresh and distillation in ONE
 turn), CEO briefing.
 
