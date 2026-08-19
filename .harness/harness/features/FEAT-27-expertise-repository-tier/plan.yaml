@@ -168,7 +168,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: none
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/inject-expertise.sh
       - .claude/skills/harness/bin/test-inject-expertise.py
@@ -353,7 +353,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: none
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-expertise.sh
       - .claude/skills/harness/bin/test-check-expertise.py

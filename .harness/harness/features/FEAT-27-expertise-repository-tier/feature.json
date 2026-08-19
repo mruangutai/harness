@@ -1,18 +1,35 @@
 {
   "feature_id": "FEAT-27-expertise-repository-tier",
-  "branch": "none",
+  "branch": "feat/FEAT-27-expertise-repository-tier",
   "pr": null,
-  "status": "Plan",
-  "review_sha": "none",
+  "status": "Building",
+  "review_sha": "2117a46",
   "cycles_used": 0,
   "max_total_cycles": 10,
   "max_total_runs": 20,
-  "runs": [],
+  "runs": [
+    { "id": "2026-08-18-1-product", "squad": "product", "verdict": "PASS" },
+    { "id": "t02t03-eng", "squad": "eng", "verdict": "PASS" }
+  ],
   "github": {
-    "milestone": null,
+    "milestone": 17,
     "parent": 494,
     "parent_origin": "adopted",
-    "attached": [],
-    "issues": {}
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06"
+    ],
+    "issues": {
+      "T-01": 565,
+      "T-02": 566,
+      "T-03": 567,
+      "T-04": 568,
+      "T-05": 569,
+      "T-06": 570
+    }
   }
 }
