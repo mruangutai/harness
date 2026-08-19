@@ -42,3 +42,16 @@
   flips in its working diff as the orchestrator's pre-existing uncommitted work. A member cannot
   tell an uncommitted third-party change from its own; when dispatching concurrently, say which
   files are the OTHER member's so the disclaimer is cheap rather than a re-derivation.
+- 2026-08-19 (specfix-product): the dispatch offered the member an out — "if it concludes the line
+  is already correct, change nothing, an empty result is a real outcome". I checked the premise at
+  source first (`inject-expertise.sh:100` and `:104` both `cap_body ... 150`; `SPEC.md:963` gives
+  150/150/40) and found it foreclosed, so I encoded "already correct is not an available outcome,
+  but overturn me with your own evidence if you disagree" (P-06 + O-04). An unqualified escape
+  hatch on a premise the lead can settle in two Reads buys a member spawn that may return nothing.
+- 2026-08-19 (specfix-product): before judging a sweep's COMPLETENESS I have to have read the
+  surface myself (G-14) — a member's "I found N" is unfalsifiable otherwise. My own read of
+  `SPEC.md` found §5.2 (`:807-825`) already correct and consistent (two *kinds*, craft/repository,
+  150/40, precedence by specificity), and flagged `:2260` — "Expertise caps are *entry counts*, not
+  token counts" — as the one remaining budget claim in the file whose relationship to the enforced
+  LINE caps is questionable. Doing that read before the return arrives is what makes the assessment
+  a check rather than a restatement.

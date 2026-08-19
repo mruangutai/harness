@@ -970,9 +970,11 @@ All are injected at task start and written by the agent that owns them (§5.2).
 - **Precedence is by specificity, not by tier age or position** — see §5.2 for the rule as the hook
   states it, and for the caveat that a repository block may belong to a repository the agent was not
   dispatched against.
-- **Global entries stay short.** They are heuristics about *how to work*, never facts about a
-  codebase, and they load on every spawn in every repo — so the global cap is tighter than the
-  project one.
+- **Global and project share one budget, because both are craft.** They hold heuristics about *how
+  to work*, never facts about a codebase, so `bin/check-expertise.sh` classifies both as the craft
+  tier and gives each 150 lines. Only the repository tier is tighter, at 40 lines — it is the one
+  that carries codebase facts, and the one that multiplies: every repository segment present adds
+  another block to the same spawn.
 - **Risk to accept:** a wrong global entry silently misleads every project at once.
 
 ---
@@ -2256,8 +2258,10 @@ same as absence of oversight.
 
 Recorded as known-absent rather than left to be discovered:
 
-- **No token, dollar or latency budget exists anywhere.** Every "budget" in this document is a retry
-  counter. Expertise caps are *entry counts*, not token counts, and entries have no length limit.
+- **No token, dollar or latency budget exists anywhere.** Expertise is bounded by proxies, not
+  tokens: a per-file line budget (150 craft, 40 repository), a per-section entry count, and a
+  50-word cap per entry, all enforced by `bin/check-expertise.sh`. Every other "budget" in this
+  document is a retry counter.
 - Every spawn loads the **full CLAUDE.md hierarchy** (measured: ~19KB ≈ 5k tokens) plus all preloaded
   rule content plus injected Expertise plus `BRIEF`/`PLAN`/`STATE`, before doing any work.
 - **A feature costs 19–45 spawns**, largely serialized. Nothing in the system logs or bounds this, and
