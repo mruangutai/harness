@@ -135,6 +135,7 @@ this is everything that survived.
 | B-15 | chore | No member wrote an observation log this feature, so **every** distilled entry traces to a lead's recall rather than a member's own record. Memory quality is currently a function of one relay. Nothing requires members to log. |
 | B-16 | chore | pm removed from its own memory the rule "a source reading is not admissible evidence for a `verify: automated` criterion — name the passing test or return it not met", while the reading that rule embodies is the open question in section 2 above. If you rule strict, re-add it. |
 | B-17 | chore | An untracked note, `.harness/notes/dec-11-frontmatter-enumeration-2026-08-19.md`, was present in my capture at branch-cut and gone minutes later. Untracked, so git holds no copy and it is unrecoverable. No agent's git captures ever saw it and no member touched that path. Stated as a fact, without a theory. |
+| B-18 | chore | **The distillation writes to `.harness/expertise/` are NOT committed, deliberately.** Ten Expertise files carry this feature's distilled entries in the working tree. They sit outside the feature directory and in no task's `files:` list, so committing them on this branch would fail SC-08 clause (a) on any re-grade of a criterion the goal-check already passed. They are durable on disk and format-checked (`check-expertise.sh` exit 0, all 15 files, counts held). **Where they land is your call** — a separate commit outside the feature branch is the clean option, and my own memory already carries this as an open question: shared Expertise has no lineage protection and nothing reconciles it against a plan's declared files. |
 
 ## Numbers
 
@@ -154,3 +155,15 @@ this is everything that survived.
 2. **Strike any backlog row you do not want**, by ID.
 3. **B-1 needs a decision from you before unit 8 is dispatched**, and it is the only row that blocks
    other work.
+4. **Tell me where the Expertise writes should land (B-18).** They are uncommitted on purpose and
+   they are the one piece of this feature's output with no home yet.
+
+## One note on the criterion that nearly caught me
+
+SC-08 grades the three-dot diff **minus this feature's own directory**, and says in as many words
+that prose in the feature's own notes naming a forbidden file or the `load_board` symbol cannot fail
+either clause. Re-grading at the final commit I ran clause (b) over the full diff and got a failure —
+`load_board` appears in 21 added lines, every one of them inside the feature directory, in the
+digests and receipts that discuss the constraint. Restricted to the graded set it is clean, as are
+all five forbidden files, checked individually. The criterion anticipated the exact mistake its
+grader would make, which is worth knowing the next time someone is tempted to simplify its wording.
