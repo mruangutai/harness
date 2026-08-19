@@ -40,8 +40,10 @@ rewrites them in its own commit, and the detector holding the file MIXED until t
 the behaviour we want, not a false positive.
 
 DO NOT READ these files under any surface: gh-sync.py, branch-create-gate.sh,
-validate-feature-json.py, factory_claim.py, the gitignore snippet, and prose. Map
+validate-feature-json.py, the gitignore snippet, and prose. Map
 #336 lands them anytime under unit 9, so reading them would redden a sanctioned state.
+The feature-claiming tool's features row landed with the unit that fixed its root
+(FEAT-25 T-03), so it is no longer on this list.
 """
 
 import glob
@@ -85,6 +87,9 @@ READER_TABLE = [
     # one logical line that swallows this module's real marker probe and misreports
     # it. Each comment restores that row's textual paren balance to zero.
     Row("features", ".claude/skills/harness/bin/check-plan-routes.py",
+        r'"\.harness", "features"',
+        r'"\.harness", [^,)]+, "features"'),  # balance: (
+    Row("features", ".claude/skills/harness/bin/factory_claim.py",
         r'"\.harness", "features"',
         r'"\.harness", [^,)]+, "features"'),  # balance: (
     Row("features", ".claude/skills/harness/bin/check-state.sh",
