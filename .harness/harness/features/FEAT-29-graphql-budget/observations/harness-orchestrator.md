@@ -105,3 +105,48 @@
   zero. Deleting either `with` block left 164/0 and 90/0 untouched. Test-count and pass-rate metrics
   are structurally blind to it. The discriminating question is not "is there a test for X" but "which
   edit would this suite fail to notice".
+
+- 2026-08-19: **I re-dispatched over a live run and caused two leads to work the same fix
+  concurrently.** Run 05's digest said `BLOCKED ... still in flight, no return collected` — an
+  explicit statement that its member had not returned. I checked `git diff --stat` on the source
+  directory, measured it empty, concluded nothing had landed, and re-dispatched. The orphaned member
+  was still alive: it wrote a MUTATION PROBE into `factory_gh.py` minutes AFTER my measurement,
+  leaving production recording dead in the tree, then completed and overwrote its own run dir. Run
+  06 found and reverted the probe. My own gotcha G-07 already says to treat a step with no
+  `completed_at` as live and resume rather than re-dispatch — I had the rule and did not apply it.
+  **An emptiness measurement has a timestamp; a live agent invalidates it a second later.** The
+  discriminator is the run's `state.yaml` completion time, never the tree.
+
+- 2026-08-19: when two runs duplicate one logical unit of work, their reported `cycles_used` must be
+  combined by MAX, not SUM. Summing charges the feature twice for one cycle and is how a healthy
+  feature goes BLOCKED on a tooling failure. Record the ambiguity in the digest rather than resolving
+  it silently either way.
+
+- 2026-08-19: a lead reporting `cycles_used: N` may be reporting the STEP's inherited cycle counter
+  rather than send-backs it issued in this run. The discriminator is artifacts: N send-backs in a run
+  implies N member attempts, so if no receipt and no source diff exists, the number is inherited and
+  double-counting it is wrong. Ask for "send-backs issued inside this run" explicitly in the dispatch.
+
+- 2026-08-19: **I cited a PASS count for four dispatches before checking what it counted.**
+  `grep -c '^PASS '` on `run-unit-tests.sh` output returned 139/160/164/172 and I reported those as
+  suite sizes. The runner emits exactly ONE `PASS <script>` line per script (18 for `--kind unit`,
+  `run-unit-tests.sh:58-67`); every other match came from individual scripts printing their own
+  `PASS` lines. A second measurer summing per-script totals got 806 on the same suite. The DELTA was
+  always sound (+8 = eight new checks) and no decision turned on the absolute — but I put an
+  unexamined number into a commit message and three dispatches. Before citing a count, run the
+  command that shows WHAT is being counted, not just how many.
+
+- 2026-08-19: **a conflict between two agents' reports about an enforcement hook was settled by
+  running the hook.** qa reported one member denied an Edit on `factory_gh.py` and another completing
+  the same mutation, and concluded all mutation evidence on the feature was of uncertain
+  admissibility. `check-domain.sh --resolve` on that path returns `harness-backend-dev,
+  harness-dev-ops` and not `harness-qa` — so the denial was correct and the other member reached the
+  file through Bash, which the hook cannot see (DEC-85). Both were honest; neither was wrong. The
+  evidence in question was authored by an agent that IS granted, so it stood. **When two agents
+  disagree about what a guard does, run the guard — do not adjudicate their reports.**
+
+- 2026-08-19: a validator returning ESCALATE with `must_fix: []` and the blocking item in
+  `open_questions` is the correct shape when the only remedy edits a signed artifact. Asking for that
+  routing explicitly in the dispatch — "if you disagree, return an open_question, NOT a FAIL, because
+  a FAIL routes a cycle to a squad that may not touch the file" — produced it. Naming the routing
+  consequence, not just the preference, is what made it land.

@@ -3,52 +3,56 @@
 ## Current
 
 - feature: FEAT-29-graphql-budget
-- run: none in flight — `runs/2026-08-19-02-eng/` returned PASS for T-03
+- run: none in flight — `runs/2026-08-19-07-validator/` returned ESCALATE
 - squad: none
-- status: Building — blocked on two layer-0 items before the qa gate can run
+- status: Building — the blocking qa gate reads `matrix_ok: false` on a question no squad can fix
 
-**All nine tasks are written.** T-03 landed in its six amendment-4 files: unit **160 PASS / 0 FAIL /
-exit 0**, up from the 139 baseline, both mandated mutations proven red on named checks and reverted
-under sha256 verification. Send-backs 0, so `cycles_used` stays 3. Branch tip `29c3e9d`.
+All nine tasks are written. **Both suites are green**, measured by me at the pin: `--kind unit`
+exit 0, 0 FAIL, 18 unit scripts all passing; `--kind integration` exit 0, 90 PASS / 0 FAIL. The
+INV-26 fixture regression is repaired and 13 INV-26 cases execute again.
 
-**THE BRANCH IS RED ON `--kind integration` AND THE CAUSE IS OURS.** Six named INV-26 checks in
-`test-check-state.py` fail, each reporting `(no INV-26 line)` — the invariant goes silent where it
-must speak, issue #588's shape. The squad reported them pre-existing; I bisected in a throwaway
-worktree instead of relaying: `bee6234` 0 FAIL → `9fd11d7` 6 FAIL → `29c3e9d` 6 FAIL. **T-01/T-02
-caused it, not T-03.** The member's baseline was taken at `d610822`, which already contained T-02, so
-its claim was honest in its own frame and wrong in the feature's.
+**The 164 → 172 "PASS" figure I have been citing is a counting convention, not a suite-native
+number.** `run-unit-tests.sh:58-67` emits exactly one `PASS <script>` line per script — 18 for
+`--kind unit` — and the rest of the matches come from individual scripts printing their own `PASS`
+lines. A second measurer summing per-script totals got 806 on the same suite. **Only the delta is
+load-bearing, and it held: +8, exactly the eight new checks.**
 
-**Production is not at fault.** The fixture's fake `gh` serves `project item-list`
-(`test-check-state.py:1315-1322`), the call T-02 replaced; `project_item_stations` raises and
-`check-state.sh` swallows it. A live read returned all 486 board-3 cards with correct stations for 5
-points. The fixture is stale. `test-check-state.py` is the test file of `check-state.sh`, so under
-DEC-174 am.4 its repair is main-session-direct. Nothing could have caught this earlier: T-02 is
-`change_type: logic` → unit only, and `test-check-state.py` is in `INTEGRATION_SCRIPTS`.
+`review_sha` pinned at **`3fbfd0a`**, verified equal to the branch tip.
 
-Second layer-0 item: `.harness/logs/gh-cost-2026-08-19.jsonl` is untracked in the tree, written by the
-*existing* suite because T-03's signed default is ON and `harness_root()` falls back to the real
-checkout. `--resolve` is `NOBODY`. Not staged by me.
+**Q2 is SETTLED by measurement, and it clears the feature's mutation evidence.** qa reported two of
+its own members disagreeing about whether `check-domain.sh` permits mutating `factory_gh.py`.
+`--resolve` returns `harness-backend-dev, harness-dev-ops` and **not** `harness-qa`. So the denied
+member was correctly enforced and the other reached the file through Bash, which the hook cannot see
+(DEC-85). Both were honest. **Run 06's three mutation proofs were performed by `harness-backend-dev`,
+which IS granted, so they are authorised and admissible** — the doubt does not extend to them.
 
-**THE MIRROR REMAINS FROZEN** — no `start-task`, no `close-task`, for any task until T-07's
-after-measurement lands. Seven positive-control lines depend on cards reading `Backlog`. `plan.yaml`
-records T-03 `done` with its subcommand deliberately unrun.
+**THE MIRROR REMAINS FROZEN.** No `start-task`, no `close-task`, until T-07's after-measurement
+lands. Seven positive-control lines depend on cards reading `Backlog`.
 
-Next once both clear: qa segment (blocking `test_matrix`; T-03 is `change_type: feature` → unit AND
-integration, which is why the fixture must be green first) → SIMPLIFY → re-run suites → pin
-`review_sha` at the tip → panel → goal-check → close-out.
+Three questions block progress and all three are the operator's — see `## Open Questions`. Once they
+clear: SIMPLIFY → re-run suites → re-pin → panel → batch B (T-07 then T-09) → goal-check → close-out.
 
-Budget: GraphQL 6/5000 at this window's start; 46 points spent all session. 3 cycles of 10; 3 runs
-of 20.
+Budget: GraphQL 46 points spent all session; the window has since reset. **5 cycles of 10; 8 runs of
+20.** Two runs bought no artifact (a premature close and a duplicate dispatch, both my error).
 
 ## Open Questions
 
-- Q1 (blocking, operator): repair `test-check-state.py`'s INV-26 fake to answer the GraphQL query
-  T-02 introduced. Carve-out file, so main-session-direct. Evidence in
-  `notes/layer0-batch-b-FEAT-29.md` §A.
-- Q2 (blocking, operator): `.harness/logs/gh-cost-<date>.jsonl` is written into the real checkout by
-  the test suite. Four routes named in §B; all four are layer-0.
-- Q3 (non-blocking): `--kind integration` runtime rose materially — two extra `rate_limit` forks per
-  wrapped `gh` call. Pass/fail unchanged. Accept, or sample the counter rather than read per call?
-- Q4 (non-blocking): T-02's `change_type: logic` maps to `unit` alone, so a change to the function an
-  integration-tested invariant depends on had no path to its own test. A matrix question, not a
-  member's error.
+- Q1 (blocking, operator): `matrix_ok: false` — integration reads `missing` for T-03. The gate
+  resolves each required kind by whether a test covering *this change* exists in it, and all four
+  files in `test_kinds.integration.detect` contain zero `gh_cost_log` references. But the signed
+  artifacts already nominate unit: `BRIEF.md:83-90` gives SC-05 `evidence: unit`, re-signed in
+  amendment 5, and not one `integration.detect` file appears anywhere in `plan.yaml`. Rule the
+  criterion satisfied as signed, or amend T-03's `files:` to admit `test-gh-sync.py`.
+- Q2 (settled, no longer blocking): see above. Recorded for the panel's benefit.
+- Q3 (blocking, operator): a cycle grant. `_cost.returncode = r.returncode` at `factory_gh.py:162`
+  is pinned by nothing — deleting it alone leaves `--kind unit` fully green, measured. SC-05
+  explicitly requires a failing wrapped invocation be recorded *with its exit code*. Both files are
+  inside T-03's `files:`; only the step's `max_cycles: 3` ceiling blocks the fix. The feature has 5
+  of 10 cycles left.
+- Q4 (non-blocking, harness defect): nothing serialises two leads' members against one checkout.
+  `mutates_repo` is per-lead-DAG, so a re-dispatch over a live run put two members mutating the same
+  three production files concurrently, leaving a probe unreverted for a window.
+- Q5 (non-blocking, config defect, independent of this feature):
+  `test_kinds.integration.detect` names 4 files while `INTEGRATION_SCRIPTS` runs 12, and
+  `unit.detect` matches all 30 bin test files including every integration one. The gate's discovery
+  over-reports unit and under-reports integration.

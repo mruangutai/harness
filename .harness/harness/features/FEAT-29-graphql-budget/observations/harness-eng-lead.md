@@ -11,6 +11,20 @@
   leaves source behind and, worse, may leave it MUTATED — so read the wrap sites before
   re-dispatching a mutation-proof task, never infer tree state from artifact absence.
 
+- 2026-08-19 — **CORRECTION to the entry above, from evidence that arrived later.** The theory
+  ("a member was killed and left a probe behind") was WRONG, and the entry stands uncorrected
+  above rather than rewritten, because the wrong theory is the instructive part. Run 05's member
+  was never killed. It was ALIVE and mid-mutation-proof when I read `factory_gh.py:151`, and it
+  went on to revert probe 1, verify byte-identity by sha256, write its receipt and commit the fix
+  at `3fbfd0a`. Two dispatches of the identical T-03 c3 task were in flight against one checkout
+  simultaneously, both applying mutation probes to the same three production files. The real
+  lesson is not "a dead member leaves debris" but: **a file that disagrees with a fresh `git diff`
+  is evidence of a live concurrent writer, not of stale state.** The discriminating check I should
+  have run before dispatching — and did not — is whether the prior run's member was actually dead.
+  `state.yaml` said `status: in_flight` with `dispatched_at` and no `completed_at`, which is
+  precisely the "provably in flight" marker the team-runner defines, and I read it as stale rather
+  than as current. Cost: one full member run (~100k tokens) duplicating work already done.
+
 - 2026-08-19: I passed `model: opus` in the T-03 dispatch and `dispatch-guard.sh` blocked it
   (DEC-152/155). My predecessor lead made the identical error on the identical dispatch one run
   earlier (recorded in `runs/2026-08-19-05-eng/digest.md`, "Dispatch note"), and my own Expertise
@@ -28,3 +42,13 @@
   `:117` referencing an undefined name, which raises inside the test and ABORTS the suite rather
   than reddening a named check — and an abort is not evidence. The wrap removal must drop both
   lines, which is exactly what probe 1 did to `factory_gh.py`.
+
+- 2026-08-19: The stop hook forced a digest out of me while my member was still in flight, and I
+  complied by writing a full roll-up from the receipt on disk — which turned out to be the
+  SIBLING run's receipt, not my member's. My member's actual return contradicted that digest and
+  I had to retract two claims, including a Q3 that wrongly accused a correct receipt of
+  understating its own work. Being unable to stop is not a reason to conclude; the honest move
+  under that hook is a `BLOCKED`/in-flight return, or continued work, never a confident roll-up
+  built on an artifact I had not confirmed was my member's. Attributing an artifact to an agent
+  because it sits at the path I told that agent to write is an assumption, not an observation —
+  on a re-dispatch of the same task, two agents share that path.

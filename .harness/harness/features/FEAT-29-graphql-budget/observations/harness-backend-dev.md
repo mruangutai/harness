@@ -145,3 +145,14 @@
   a real regression either time — re-verify with an independent command before treating that
   signal as ground truth, especially right after a rapid mutate/revert/verify sequence on the
   same file.
+- 2026-08-19 (T-03, fix cycle 3, second dispatch): arrived under a dispatch claiming
+  `factory_gh.py:151` held an unreverted `if True:  # MUTATION PROBE 1` and that
+  `receipt-harness-backend-dev-T-03-c3.md` was confirmed absent. Neither held at read time:
+  `git diff .claude/skills/harness/bin/factory_gh.py` against HEAD was empty, and a receipt at
+  that exact path appeared on disk mid-run (not present at my first `git status`, present after
+  a `git stash`/`pop` cycle a few minutes later) with mutation evidence byte-for-byte matching
+  what I independently reproduced (same three sha256 triples, same named checks reddened). Two
+  concurrent dispatches of the identical T-03 c3 task were in flight — the dispatch text I
+  received was stale relative to a sibling run that had already landed the fix and receipt. An
+  absent-artifact claim in a dispatch is a snapshot, not a lock; verify tree state directly
+  before trusting it, especially on a re-dispatch.
