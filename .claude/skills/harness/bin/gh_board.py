@@ -44,14 +44,18 @@ class BoardError(Exception):
 def load_board(root):
     """The board config from `harness.json`'s `github.board`, validated, or None.
 
-    **None means this project has explicitly declared it has no board** — `github.board: null`,
-    the shape `templates/harness.json` ships (D-07). That is the ONLY non-error path.
+    **`github.board: null` is the only DECLARED no-board path** — the shape
+    `templates/harness.json` ships (D-07). It is NOT the only path returning None, and an earlier
+    version of this docstring said it was: measured 2026-08-19, five of six non-error paths mean
+    "no board". The four undeclared ones return None without raising — no `github` key at all,
+    `github` not a mapping, the whole file not a mapping, and the file absent or unparseable.
+    The last is arguably correct: a project with no `harness.json` genuinely has no board.
 
-    Every other unusable shape RAISES `factory_config.FleetError` naming the harness.json path
-    and the offending key: the `github` block absent, the `board` key absent (indistinguishable
-    from a typo — never treated the same as an explicit null), `board` present but not a
-    mapping, or any field `factory_config.validate_board` rejects (`owner`, `number`,
-    `station_field`, `stations`). A caller that wants to catch this must import
+    EXACTLY ONE unusable shape RAISES `factory_config.FleetError` naming the harness.json path
+    and the offending key: a `github` block that IS a mapping and carries no `board` key
+    (indistinguishable from a typo — never treated the same as an explicit null). A `board`
+    present but not a mapping, or carrying any field `factory_config.validate_board` rejects
+    (`owner`, `number`, `station_field`, `stations`), raises as well. A caller that wants to catch this must import
     `factory_config` and catch `factory_config.FleetError`.
 
     Field validation itself — including the digit-string-to-int coercion for `number` — is

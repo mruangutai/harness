@@ -72,8 +72,8 @@ config stops being stale, so the new loud error cannot fire on a foreign config 
   caller can be loud while the other is silent.
   verify: automated      evidence: unit
 - SC-05: A board declared as an explicit `null` is accepted, writes no station, and is the only
-  non-error path; a board key that is absent entirely from a fleet member's config is an error.
-  Both asserted separately.
+  declared no-board path; a board key that is absent entirely from a fleet member's config is
+  an error. Both asserted separately.
   verify: automated      evidence: unit
 - SC-06: `board_for` on a fleet member returns that repository's board with **no checkout present**
   on disk, and a failed remote read — missing file, unparseable JSON, `gh` unauthenticated —
