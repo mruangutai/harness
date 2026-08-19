@@ -945,6 +945,20 @@ except fgh.GhError as e:
 restore()
 check("file_at_ref: undecodable content raises rather than returning empty", raised, f"exc={exc}")
 
+# "aGV!sbG8=" reduces to 8 base64-alphabet chars (8 % 4 == 0), so it never trips a padding
+# error — it can only be caught by validate=True rejecting the embedded "!". A padding-error
+# fixture (like "not-valid-base64!!!" above) cannot see the validate flag at all.
+fake, calls = recorder([Result(0, stdout="aGV!sbG8=")])
+fgh.subprocess.run = fake
+try:
+    fgh.file_at_ref("o/r", "path/lax", "main")
+    raised, exc = False, None
+except fgh.GhError as e:
+    raised, exc = True, e
+    RAISED.append(e)
+restore()
+check("file_at_ref: non-alphabet character in otherwise valid-length base64 raises", raised, f"exc={exc}")
+
 # GitHub's real contents endpoint line-wraps base64 at 60 chars (embedded newlines, not just a
 # trailing one) — a fake that returns unwrapped base64 can never catch a decoder that chokes on
 # that wrapping.

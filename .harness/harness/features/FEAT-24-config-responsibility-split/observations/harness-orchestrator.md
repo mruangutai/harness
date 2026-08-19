@@ -132,3 +132,24 @@
   amendment needing a signature. Leads are correctly conservative here; resolving it is my job, and
   saying WHICH of the two it is settles the routing in one step.
 
+- 2026-08-19: I stated two premises confidently in a fix dispatch and BOTH were false, and the lead
+  caught them by reading the file. (a) I justified a secondary fix by a trailing newline that
+  `run_gh` already strips at `factory_gh.py:107`. (b) I called it the dispatch's most important
+  constraint that switching to `validate=False` would gut the undecodable-content case — false:
+  `"not-valid-base64!!!"` reduces to 14 alphabet characters, 14 % 4 == 2, so it raises a padding
+  error under BOTH modes. The fix I asked for was still right, for a reason I had not established.
+  A dispatch premise stated with certainty is the input most likely to be wrong, and mine are wrong
+  often enough that the reading cost belongs to me before the dispatch, not to the lead after it.
+
+- 2026-08-19: A confidently wrong constraint has a second cost beyond being wrong — it TELLS the
+  member which alternative not to consider. Had `validate=False` been the correct fix, my sentence
+  would have foreclosed it. Prefer stating the property that must hold ("undecodable content must
+  still raise") over the mechanism I believe delivers it ("keep validate=True because otherwise X").
+
+- 2026-08-19: The lead flagged that I committed before its assessment existed, inverting the gate.
+  True, and the reason was sound — its previous return was BLOCKED with no digest while the member
+  was in flight, and I had verified the work independently — but the general rule stands: a commit
+  that lands before the lead's read means the lead's read can no longer change what shipped. When a
+  lead returns BLOCKED-without-digest and the work is on disk, say in the record that the commit
+  rests on the ORCHESTRATOR's verification and not on a lead assessment.
+
