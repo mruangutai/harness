@@ -1,6 +1,6 @@
 ---
 name: harness-curate
-description: Out-of-band Expertise distillation — audit every .harness/expertise/ file against the format contract and distill violators into rule-form entries. Use when expertise files have bloated, when check-expertise.sh fails, or for a one-time retrofit of files written under the old mid-run rules.
+description: Out-of-band Expertise distillation — audit every .harness/expertise/ and .harness/*/expertise/ file against the format contract and distill violators into rule-form entries. Use when expertise files have bloated, when check-expertise.sh fails, or for a one-time retrofit of files written under the old mid-run rules.
 ---
 
 # /harness-curate — distill Expertise out-of-band
@@ -12,8 +12,17 @@ asks for a cleanup.
 
 ## Procedure
 
-1. **Audit:** run `.claude/skills/harness/bin/check-expertise.sh .harness/expertise/`. Files
-   reported `OK` are done — do not touch them.
+1. **Audit:** run both tiers — the repository tier carries its own 40-line budget and the checker
+   applies it by path, so an audit that reads one tier reports clean over the other.
+
+   ```
+   .claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+   for d in .harness/*/expertise/; do
+     [ -d "$d" ] && .claude/skills/harness/bin/check-expertise.sh "$d"
+   done
+   ```
+
+   Files reported `OK` are done — do not touch them.
 2. **Distill each failing file.** The contract lives in `.claude/skills/harness-distill/SKILL.md`
    — **read it first; it is NOT preloaded** (DEC-158). The summary below is a checklist, not the
    contract, and the ops schema and read-modify-write rule are only in that file. For each:
@@ -28,8 +37,16 @@ asks for a cleanup.
 3. **Move, don't destroy:** anything distilled away that is still feature-specific context worth
    keeping goes to `.harness/harness/features/<FEAT>/observations/<agent>.md` if the feature dir exists;
    otherwise it is dropped — it already failed the durability test.
-4. **Verify:** re-run `check-expertise.sh` until every file passes. Report per-file entry and
-   word counts before and after — counted, not estimated.
+4. **Verify:** re-run the same two-tier audit until every file passes:
+
+   ```
+   .claude/skills/harness/bin/check-expertise.sh .harness/expertise/
+   for d in .harness/*/expertise/; do
+     [ -d "$d" ] && .claude/skills/harness/bin/check-expertise.sh "$d"
+   done
+   ```
+
+   Report per-file entry and word counts before and after — counted, not estimated.
 5. Distillation may be delegated (one agent per file) or done inline for small sets; the checker
    is the gate either way.
 

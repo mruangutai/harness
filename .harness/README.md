@@ -15,7 +15,8 @@ onboarding; everything after that is written by the agents that own each path (s
 | `DESIGN.md` | The visual design contract: palette in both themes, type scale, spacing, component direction | `visual-designer` |
 | `team-config.yaml` | **The org as data** — membership, `consult-when` routing, and each agent's writable `domain`. Read by `check-domain.sh` on every write | `/harness-init`, seeded from detection |
 | `harness.json` | `test_matrix`, `test_kinds`, `gates`, `budgets`, `log_retention_days` | `/harness-init` · `dev-ops` fills `test_kinds` |
-| `expertise/<agent>.md` | Per-agent durable knowledge, injected at every spawn by the `SubagentStart` hook | each agent, its own file only |
+| `expertise/<agent>.md` | Per-agent durable **craft** — how that agent works, true wherever it works. Budget **150 lines**. Injected at every spawn by the `SubagentStart` hook; the agent never reads it itself | each agent, its own file only |
+| `<repo>/expertise/<agent>.md` | Per-agent knowledge **specific to one repository** — true of that repository and nowhere else. Budget **40 lines**. Injected at every spawn by the same hook, alongside the craft file; the agent never reads it itself | each agent, its own file only |
 | `efforts/<slug>/` | A pre-feature **wayfinding map** (`MAP.md` + `tickets/`): a vague idea being taken to plannable clarity across sittings. Local markdown, never the issue tracker (DEC-165). Retired or archived once its effort hands off to `/harness-plan` | the **main session** |
 | `notes/grilling-*.md` | A single-sitting dialog-to-clarity record: destination, settled decisions, fog, out-of-scope, facts verified — pm's BRIEF input (DEC-164) | the **main session** |
 | `features/<FEAT>/notes/` | That feature's durable artifacts: `research-*`, `review-<persona>-c<cycle>.md`, `qa-*`, `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `mockups/`, `prototypes/` — **the path carries the feature id** (DEC-130) | the owning agent |

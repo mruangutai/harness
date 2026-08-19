@@ -28,7 +28,7 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 | `.harness/` file layout, the question round-trip, state-consistency matrix, writer ownership, commit policy | **2** | 1.3k |
 | The 16-agent org, `team-config.yaml` manifest, `consult-when` routing, team conventions (Supabase/Astryx), the fleet — how a repository reaches the harness, the roster table | **3** | 2.5k |
 | Agent frontmatter (what Claude Code parses, and what to avoid), tool grants per tier, the domain hook, reviewer verdict mapping, autonomy | **4** | 2.0k |
-| Expertise — injection hook, entry IDs, update ops, curation, CEO feedback, project vs global tiers | **5** | 2.0k |
+| Expertise — injection hook, entry IDs, update ops, curation, CEO feedback, the global / project / repository tiers | **5** | 2.0k |
 | Rules vs Expertise — which is which, who writes each | **6** | 0.3k |
 | Rule delivery via native `skills:` preload | **7** | 0.4k |
 | **The handoff contract** — three-part return, normative DIGEST schemas, conditional routing, malformed returns, git/PR lifecycle | **8** | 1.1k |
@@ -752,8 +752,9 @@ every spawn.
 > and the governing rule is the `harness-expertise` skill. The terms "mental model" and
 > "institutional memory" are not used — they described the same artifact and the drift was a defect.
 
-**Location:** `.harness/expertise/<agent>.md` — **per-project** (because `.harness/` is) and
-committed, so learned knowledge is versioned and visible in PRs.
+**Location:** under `.harness/` (so it is per-project) and committed, so learned knowledge is
+versioned and visible in PRs. Two tiers live there — craft and repository-specific — plus an
+uncommitted global craft file on your machine; the paths and their budgets are in §5.2 and §5.6.
 
 ### 5.1 Delivery — injected, not read
 
@@ -803,9 +804,25 @@ than being silently replaced by a different fact under the same name.
 
 **Entries are rules, not stories** (DEC-145): `WHEN <situation> DO <action>` or a durable repo
 fact, at most 50 words, naming no feature/task/issue IDs, no nested bullets or instance lists. The
-four section names above are the only legal ones, and the file budget is **150 lines** —
-`bin/check-expertise.sh` enforces all of it mechanically, and the injection hook hard-truncates at
-150 lines with a loud warning so a bloated file cannot silently tax every spawn.
+four section names above are the only legal ones. Every Expertise file sits in one of **two
+tiers**, told apart by its path:
+
+- **craft** — `.harness/expertise/<agent>.md`: how that agent works, true wherever it works.
+  A **150-line** budget.
+- **repository** — `.harness/<repo>/expertise/<agent>.md`, one directory per repository segment:
+  true of that repository and nowhere else. A **40-line** budget.
+
+`bin/check-expertise.sh` enforces the format and the tier's budget at authoring time, classifying
+the tier from the resolved absolute path, and the injection hook re-applies the same 150-line and
+40-line caps as a truncation backstop — loudly, naming the budget it applied, so a bloated file
+cannot silently tax every spawn.
+
+Craft entries naming a repository-specific token are reported by `bin/check-expertise.sh` as
+**ADVISORY only** — never a violation, never a change to its exit code. The token set lives in that
+script; it is not restated here.
+
+The hook injects **global craft, then project craft, then every repository tier present** (sorted by
+segment name), and labels each block by scope alone. Precedence is repository over project over global, by specificity — and the hook says so in the injected text whenever a repository block is present. Because the hook cannot know which repository a spawn serves, a repository block whose segment is not the one the agent was dispatched against is **not authoritative** for that agent's work — the agent must read the segment name.
 
 **Decision vs observation — a hard boundary:**
 
@@ -937,22 +954,27 @@ be:
 *"frontend work keeps missing accessibility"*; `eng-lead` records it and enforces it in how it
 delegates.
 
-### 5.6 Two tiers of Expertise — project and global
+### 5.6 Where Expertise lives — global, project, repository
 
-| | `.harness/expertise/<agent>.md` | `~/.harness/expertise/<agent>.md` |
-|---|---|---|
-| Holds | *this codebase* — "migrations fail before the seed script" | **craft that generalizes** — "vague specs cause loop-backs" |
-| Scope | one project | all your repos |
-| Committed | yes, versioned with the project | no, local to your machine |
+| | `~/.harness/expertise/<agent>.md` | `.harness/expertise/<agent>.md` | `.harness/<repo>/expertise/<agent>.md` |
+|---|---|---|---|
+| Holds | **craft that generalizes** — "vague specs cause loop-backs" | this checkout's craft — how the agent works here | facts true of **one repository** — "migrations fail before the seed script" |
+| Scope | all your repos | one checkout | one repository |
+| Budget | 150 lines | 150 lines | 40 lines |
+| Committed | no, local to your machine | yes, versioned with the project | yes, versioned with the project |
 
-Both are read at task start and written by the agent that owns them.
+All are injected at task start and written by the agent that owns them (§5.2).
 
 - **Promotion is deliberate, not automatic.** An observation earns a place in the global file only
   after it has held in **more than one project**.
-- **Project wins on conflict.** A concrete local observation beats a general heuristic.
-- **Global entries stay short.** They are heuristics about *how to work*, never facts about a
-  codebase, and they load on every spawn in every repo — so the global cap is tighter than the
-  project one.
+- **Precedence is by specificity, not by tier age or position** — see §5.2 for the rule as the hook
+  states it, and for the caveat that a repository block may belong to a repository the agent was not
+  dispatched against.
+- **Global and project share one budget, because both are craft.** They hold heuristics about *how
+  to work*, never facts about a codebase, so `bin/check-expertise.sh` classifies both as the craft
+  tier and gives each 150 lines. Only the repository tier is tighter, at 40 lines — it is the one
+  that carries codebase facts, and the one that multiplies: every repository segment present adds
+  another block to the same spawn.
 - **Risk to accept:** a wrong global entry silently misleads every project at once.
 
 ---
@@ -2236,8 +2258,10 @@ same as absence of oversight.
 
 Recorded as known-absent rather than left to be discovered:
 
-- **No token, dollar or latency budget exists anywhere.** Every "budget" in this document is a retry
-  counter. Expertise caps are *entry counts*, not token counts, and entries have no length limit.
+- **No token, dollar or latency budget exists anywhere.** Expertise is bounded by proxies, not
+  tokens: a per-file line budget (150 craft, 40 repository), a per-section entry count, and a
+  50-word cap per entry, all enforced by `bin/check-expertise.sh`. Every other "budget" in this
+  document is a retry counter.
 - Every spawn loads the **full CLAUDE.md hierarchy** (measured: ~19KB ≈ 5k tokens) plus all preloaded
   rule content plus injected Expertise plus `BRIEF`/`PLAN`/`STATE`, before doing any work.
 - **A feature costs 19–45 spawns**, largely serialized. Nothing in the system logs or bounds this, and

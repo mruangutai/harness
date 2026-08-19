@@ -10,7 +10,11 @@
 #   - entry format `- XX-NN: ...` at column 0; no nested bullets
 #   - per-entry word cap: 50
 #   - no feature/task/issue tokens (FEAT-NN, T-NN, #NN) — those belong in observations
-#   - file budget: 150 lines (the spawn hook truncates there)
+#   - file budget: 150 lines for a CRAFT-tier file (.harness/expertise/<name>.md),
+#     40 lines for a REPOSITORY-tier file (.harness/<segment>/expertise/<name>.md)
+#     (the spawn hook truncates there); classified by the resolved absolute path
+#   - CRAFT-tier files only: an ADVISORY (never blocking) scan for repository-specific
+#     tokens (DEC-NN, .harness/, check-*.sh, ...) — see issue 340
 #
 # Exit 0 = all files clean. Exit 1 = violations (listed). Exit 2 = usage error.
 set -uo pipefail
@@ -33,19 +37,46 @@ python3 - "${files[@]}" <<'PY'
 import re, sys, os
 
 CAPS = {"Patterns": 15, "Gotchas": 15, "Outcomes": 10, "Open": 5}
-LINE_BUDGET = 150
+CRAFT_LINE_BUDGET = 150
+REPO_LINE_BUDGET = 40
 WORD_CAP = 50
 SECTION_RE = re.compile(r"^## (\w+)(?: \(max (\d+)\))?\s*$")
 ENTRY_RE = re.compile(r"^- ([A-Z]{1,3}-\d+): ")
 FEATURE_TOKEN_RE = re.compile(r"\bFEAT-\d+\b|\bT-\d+\b|#\d+\b")
 
+# The repository-specific token set (issue 340), verbatim. Advisory-only, CRAFT-tier only.
+REPO_TOKEN_RE = re.compile(
+    r"DEC-\d+|INV-\d+|FEAT-\d+|\.harness/|\.claude/|check-[a-z-]*\.sh|"
+    r"factory_[a-z]*\.py|gh-sync|harness\.json|team-config"
+)
+
+# CRAFT tier: a path ending in .harness/expertise/<name>.md
+CRAFT_TIER_RE = re.compile(r"(^|/)\.harness/expertise/[^/]+\.md$")
+# REPOSITORY tier: a path ending in .harness/<segment>/expertise/<name>.md
+REPO_TIER_RE = re.compile(r"(^|/)\.harness/[^/]+/expertise/[^/]+\.md$")
+
+
+def classify_tier(path):
+    """Classify by the resolved absolute path, never the argument as typed —
+    a bare-path invocation from a cwd under .harness/... must still resolve
+    to its true tier (see check-expertise.sh's CHANGE 1 note)."""
+    ap = os.path.abspath(path)
+    if CRAFT_TIER_RE.search(ap):
+        return "craft", CRAFT_LINE_BUDGET
+    if REPO_TIER_RE.search(ap):
+        return "repo", REPO_LINE_BUDGET
+    return None, CRAFT_LINE_BUDGET
+
+
 failed = False
 for path in sys.argv[1:]:
     problems = []
+    advisories = []
+    tier, line_budget = classify_tier(path)
     lines = open(path, encoding="utf-8").read().splitlines()
 
-    if len(lines) > LINE_BUDGET:
-        problems.append(f"{len(lines)} lines — over the {LINE_BUDGET}-line budget (the spawn hook truncates the rest)")
+    if len(lines) > line_budget:
+        problems.append(f"{len(lines)} lines — over the {line_budget}-line budget (the spawn hook truncates the rest)")
 
     # --- TITLE (B-10). This file is injected whole into its agent's context at every
     # spawn, so line 1 is what tells the agent whose memory it is reading. A missing
@@ -116,6 +147,15 @@ for path in sys.argv[1:]:
         if tok:
             problems.append(f"line {lno}: {label} names '{tok.group(0)}' — feature/issue tokens belong in observations, not Expertise")
 
+        # CHANGE 2 (issue 340): advisory-only repository-token scan, CRAFT-tier only.
+        # Never appended to `problems` — must never fail the gate or flip the exit code.
+        if tier == "craft":
+            for rm in REPO_TOKEN_RE.finditer(text):
+                advisories.append(
+                    f"ADVISORY {path}:{lno}: {label} names '{rm.group(0)}' — "
+                    f"repository-layer candidate; rule on it (issue 340)"
+                )
+
     if problems:
         failed = True
         print(f"FAIL {path}")
@@ -123,6 +163,8 @@ for path in sys.argv[1:]:
             print(f"  - {p}")
     else:
         print(f"OK   {path}")
+    for a in advisories:
+        print(a)
 
 sys.exit(1 if failed else 0)
 PY

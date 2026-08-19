@@ -60,9 +60,6 @@
 - G-02: WHEN a test suite's docstring or label claims a specific contract DO treat it as an
   unverified claim and check the adjacent assertion actually matches it — a stale label can
   propagate across review tiers as if it were a measurement.
-- G-03: WHEN writing fixtures against the fake-gh test harness DO read its logging and
-  issue-numbering behavior in `.claude/skills/harness/bin/test-gh-sync.py` first — assumptions
-  about counters, log format, or which calls get logged fail loudly but still cost a debug cycle.
 - G-04: WHEN a task's stated intent and its verify command assert opposite rules DO treat the
   verify command as what binds downstream behavior, not the intent prose — the executor acts on
   verify, so a contradiction there is a live defect even if the intent reads correctly.
