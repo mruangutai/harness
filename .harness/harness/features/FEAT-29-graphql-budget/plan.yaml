@@ -5,6 +5,23 @@ approval:
   status: approved
   approved_by: operator (Mike Ruangutai), via main session
   date: 2026-08-19
+  amendments:
+    - date: 2026-08-19
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: T-08 rule one, and T-07 gains a positive control
+      why_t08: >-
+        The signed rule prescribed "an interval of at least 60 seconds". A 45-minute runaway the
+        same day falsified the remedy: the defect is that a Bash foreground timeout DETACHES rather
+        than kills, so any interval leaks. The operator additionally ruled that shell wait loops are
+        not to be used at all. Rewritten to name Monitor and run_in_background.
+      why_t07: >-
+        SC-04 grades "identical violation set before and after". The plain baseline holds ZERO
+        INV-26 lines because the board agreed, and #588 records that INV-26 is ALSO silent when the
+        board read fails. After the cutover a working cheap read and a silent break both print
+        nothing, so SC-04 passed either way — vacuous for the one invariant this feature changes.
+        T-07 now reproduces a POSITIVE control captured at 506 points while the expensive read still
+        existed: notes/measurement-before-positive.md, 8 INV-26 lines, plan.yaml restored
+        byte-identical under cmp. If the cheap read skips, those 8 lines vanish and the diff is loud.
 
 lanes:
   resolved_at: 3920513
@@ -288,7 +305,7 @@ tasks:
     execution_reason: the repo-root notes path is granted to no agent domain, so a dispatched write
       is rejected mid-run; DEC-179 makes it a declared main-session step instead
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/notes/grilling-graphql-cost-2026-08-10.md
     verify: |
@@ -350,7 +367,7 @@ tasks:
     execution_reason: DEC-174 carve-out — this runs check-state.sh, a registered state gate, and its
       output is the evidence SC-01 and SC-04 are graded against
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/harness/features/FEAT-29-graphql-budget/notes/measurement-before.md
     verify: |
@@ -452,6 +469,22 @@ tasks:
       If board_items differs between the two files, say so: the board is live, and a card added
       between the runs is a legitimate reason for one differing line.
 
+      THEN RUN THE POSITIVE CONTROL. Amendment 2, 2026-08-19. The diff above compares a
+      before-block holding ZERO INV-26 lines against an after-block that will also hold zero, and
+      per issue #588 INV-26 prints nothing when the board read FAILS as well as when it agrees. So
+      that comparison passes whether the cheap read works or is silently broken, which is vacuous
+      for the one invariant this feature changes.
+
+      notes/measurement-before-positive.md was captured at 506 points while the expensive read
+      still existed. Reproduce it: copy plan.yaml aside, flip every `status: pending` task to
+      `done` so derive_station yields review against a board reading Building, run the gate,
+      capture, then restore plan.yaml and PROVE the restore with `cmp -s`, recording the exit code.
+
+      All 8 INV-26 lines between INV26-BEGIN and INV26-END must reappear VERBATIM, at a cost of
+      1 to 2 points instead of 506. If any line is missing, the cheap read is not reading the
+      board and the change is rejected — do not explain it away. Record the perturbation, the cost
+      and the byte-identical restore in measurement-after.md under a heading POSITIVE-CONTROL.
+
       This is executed directly by the main session. It is not dispatched.
 
   - id: T-08
@@ -482,9 +515,14 @@ tasks:
       the budget allows. Fold them into the Conventions section rather than adding a new heading if
       that is what keeps the file under budget.
 
-      Rule one, polling: never poll gh pr checks on a short interval. It costs 2 GraphQL points per
-      invocation, measured 2026-08-19, so a 10-second poll costs 12 points per minute. Use a single
-      blocking gh pr checks --watch, or an interval of at least 60 seconds.
+      Rule one, waiting: NEVER write a shell wait loop — no `until`, no `while true`, no capped
+      `for` retry. A Bash foreground timeout DETACHES the command, it does not kill it, so a loop
+      outlives its own bound. Measured 2026-08-19: an `until gh pr checks ...; sleep 15; done` on a
+      PR that had gone CONFLICTING ran 45 minutes past its 420s timeout and burned about 360
+      GraphQL points, and the drift it caused made a real budget investigation look unexplainable
+      for an hour. Interval guidance is NOT the fix — a 60-second interval would have made the same
+      leak slower, not shorter. Use Monitor, whose timeout_ms actually terminates, or Bash with
+      run_in_background for a single completion notification. Operator ruling, 2026-08-19.
 
       Rule two, cost figures: any GraphQL cost recorded anywhere in this repository carries the board
       it was measured on, that board's item count, and the commit — a bare number cannot be shown to
