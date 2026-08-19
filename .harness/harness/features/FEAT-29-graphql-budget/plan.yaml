@@ -1,0 +1,571 @@
+schema: plan/1
+feature: FEAT-29-graphql-budget
+
+approval:
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: 2026-08-19
+
+lanes:
+  resolved_at: 3920513
+  rows:
+    - surface: .claude/skills/harness/bin/gh_board.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/factory_gh.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-gh-board.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-gh.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out, a registered state gate whose own output is the evidence
+    - surface: .harness/harness/features/FEAT-29-graphql-budget/notes/**
+      lane: main-session-direct
+      reason: measurement evidence captured by the same step that runs the gate
+    - surface: CLAUDE.md
+      lane: main-session-direct
+      reason: DEC-181 budgets it and DEC-174 keeps operator doctrine off the dispatch path
+    - surface: .harness/notes/grilling-graphql-cost-2026-08-10.md
+      lane: main-session-direct
+      reason: granted to no agent domain, so a dispatched write is rejected mid-run (DEC-179)
+
+decisions:
+  - id: D-01
+    choice: The cheap board read is a targeted GraphQL query returning issue number plus the status
+      field value for every item, never a station-filtered gh project item-list --query.
+    because: A station filter drops unstationed cards, which is the exact distinction INV-26 exists
+      to report, and --query only caps the cost at about 102 points rather than removing it.
+    dec: DEC-146
+  - id: D-02
+    choice: The cost of check-state.sh is proven by a one-shot differenced measurement recorded with
+      raw before and after values, not by a CI gate.
+    because: A CI cost gate spends the budget it measures on every run and reads concurrent agents'
+      traffic as its own.
+    dec: none
+  - id: D-03
+    choice: Every recorded GraphQL cost figure carries the board it was measured on and that board's
+      item count.
+    because: The 2026-08-10 figure of 31 points was recorded without its condition, could therefore
+      never be falsified, and an exclusion decision was built on it.
+    dec: none
+  - id: D-04
+    choice: The gh invocation counter wraps factory_gh.run_gh and gh-sync.py's own wrapper, and is
+      not a Bash PreToolUse hook.
+    because: A PreToolUse gate script falls inside the DEC-174 carve-out, and the two wrappers are
+      ordinary modules the team may build and unit test.
+    dec: DEC-174
+
+tasks:
+  - id: T-01
+    title: Add a targeted low-cost board station read to factory_gh
+    traces: [REQ-01, REQ-02]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_gh.py
+      - .claude/skills/harness/bin/test-factory-gh.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Add a function project_item_stations(owner, number, field_name) to factory_gh.py that returns
+      a list of dicts, one per board item, each carrying exactly two keys: "content" (a dict with
+      "number" as an int and "repository" as the owner/name string, or an empty dict when the item
+      has no issue content) and "station" (the item's value for the named single-select field as a
+      string, or None when the item has no value for that field).
+
+      It must issue ONE gh api graphql call, not gh project item-list. Use the same shell path as
+      the rest of the module, run_gh, with args of the form:
+        ["api", "graphql", "-F", "owner=<owner>", "-F", "number=<number>", "-F",
+         "field=<field_name>", "-F", "cursor=<cursor-or-null>", "-f", "query=<query>"]
+      The query walks user(login: $owner) { projectV2(number: $number) { items(first: 100, after:
+      $cursor) { totalCount pageInfo { hasNextPage endCursor } nodes { content { ... on Issue {
+      number repository { nameWithOwner } } ... on PullRequest { number repository { nameWithOwner
+      } } } fieldValueByName(name: $field) { ... on ProjectV2ItemFieldSingleSelectValue { name } }
+      } } } }. Request ONLY those fields.
+
+      This shape is MEASURED, not assumed: run live against board 3 on 2026-08-19 at commit 6bbd706
+      with 474 items, one 100-node page cost exactly 1 GraphQL point (counter 1683 to 1684). Five
+      pages therefore cover the board for about 5 points against the 506 a check-state.sh run costs
+      today. The driver is the SELECTION, not the node count — gh project item-list requests the
+      full fieldValues connection for every item, and that is what inflates it. Do not widen the
+      selection; widening it is what reintroduces the cost.
+
+      Paginate on pageInfo.hasNextPage using endCursor until exhausted, accumulating nodes.
+
+      Keep the truncation guarantee that project_items provides: after pagination completes, compare
+      the accumulated node count against totalCount from the first page. If the accumulated count is
+      LESS than totalCount, raise GhError with the same argument shape the existing project_items
+      truncation branch uses at factory_gh.py:193-197, message "project item stations truncated",
+      detail "<owner> project <number>: totalCount=<total> items=<count>", remedy "the paginated
+      read did not reach totalCount". If totalCount is missing from the first page, raise GhError
+      with message "project item stations response has no totalCount" and remedy "cannot verify the
+      read was not truncated" — do NOT default it to 0, for the same reason project_items does not.
+
+      An item whose fieldValueByName is null, or whose fieldValueByName carries no "name" key, gets
+      station None. An item whose content is null gets an empty dict for "content". Neither is
+      dropped.
+
+      If the response's user, projectV2 or items path is null at any level, raise GhError with
+      message "project item stations unreadable" naming which level was null. An organization-owned
+      board resolves user() to null and must therefore fail loudly rather than returning an empty
+      list.
+
+      Add tests to test-factory-gh.py, following the fake-gh pattern already used there. Assert at
+      minimum: a single-page response maps a stationed item to its station string; an item with a
+      null fieldValueByName maps to station None and is PRESENT in the output; a two-page response
+      is fully accumulated and the second page's items appear; a response whose accumulated count is
+      below totalCount raises GhError; a response missing totalCount raises GhError; a response with
+      a null user raises GhError. Each assertion must be able to go red — write it so that removing
+      the corresponding branch in the implementation fails that specific test and no other.
+
+      Do not change project_items. It has a separate caller at factory_claim.py:304 and is out of
+      scope here.
+
+  - id: T-02
+    title: Point board_stations at the low-cost read without changing its contract
+    traces: [REQ-01, REQ-02]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh_board.py
+      - .claude/skills/harness/bin/test-gh-board.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      In gh_board.py, change board_stations(board, repo) at line 122 so that its single data call is
+      factory_gh.project_item_stations(board["owner"], board["number"], board["station_field"])
+      instead of factory_gh.project_items(board["owner"], board["number"]).
+
+      The RETURN VALUE MUST NOT CHANGE. board_stations still returns {int issue number: station
+      string or None} covering exactly the items whose content.repository.nameWithOwner equals repo.
+      Three behaviours documented at gh_board.py:124-131 are contractual and must survive verbatim:
+      an item belonging to another repository is EXCLUDED; an item with a station is present with
+      its value; an item with NO station value is present with the value None and is NOT dropped.
+      Compare on content.repository.nameWithOwner, never on the item's own repository key — the URL
+      form and the owner/name form name the same repository but only the latter compares equal.
+
+      Because project_item_stations already returns the station directly, the field-name lookup that
+      board_stations currently performs against the raw item dict is removed. Do not add a --query
+      filter of any kind: a station-filtered query would drop unstationed cards, which is the exact
+      distinction this function exists to preserve.
+
+      A raised GhError from the new call must propagate unchanged, so a truncated or unreadable read
+      still raises rather than reporting an empty column.
+
+      Update test-gh-board.py's board_stations tests at lines 199-217 to feed the new call's return
+      shape. Keep all three existing assertions with their current names and meanings, and add one
+      that an item with content set to null does not crash and does not appear in the output. The
+      unstationed-card assertion must be able to go red: verify by hand that replacing the None
+      branch with a drop makes exactly that test fail.
+
+  - id: T-03
+    title: Record every wrapped gh invocation and its GraphQL cost
+    traces: [REQ-03, REQ-06]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh_cost_log.py
+      - .claude/skills/harness/bin/test-gh-cost-log.py
+      - .claude/skills/harness/bin/factory_gh.py
+      - .claude/skills/harness/bin/gh-sync.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Create gh_cost_log.py exposing record(argv, graphql_before, graphql_after, returncode) and a
+      context manager measured(argv) that reads the GraphQL counter before and after a call and
+      calls record.
+
+      Reading the counter is itself a subprocess call to gh api rate_limit --jq
+      .resources.graphql.used. That endpoint is REST and costs ZERO GraphQL points — this was proven
+      by taking three consecutive reads and observing graphql.used unchanged at 1057 each time. Read
+      it that exact way and no other.
+
+      record appends ONE line of JSON per invocation to .harness/logs/gh-cost-<YYYY-MM-DD>.jsonl,
+      relative to the harness root the module already resolves. Keys, all required: "ts" (UTC ISO
+      8601), "argv" (the gh argument list, with any -f or -F value longer than 80 characters
+      truncated and suffixed with an ellipsis so a query body does not bloat the line), "before"
+      (int), "after" (int), "cost" (after minus before, int), "rc" (int).
+
+      A FAILED INVOCATION IS RECORDED, with its non-zero rc and its real cost. Skipping failures
+      would hide the case where a call burns points and then errors, which is precisely the incident
+      shape this exists to explain.
+
+      If the counter read itself fails, record the line with "before" and "after" set to null and
+      "cost" set to null rather than dropping the record, and never raise: the counter must never be
+      able to break a harness command.
+
+      Wire measured() around the subprocess call in factory_gh.run_gh at factory_gh.py:79 and around
+      the subprocess call in gh-sync.py's gh wrapper at gh-sync.py:114. Do not wrap the counter's own
+      rate_limit call — guard against that with an explicit check on argv, or it recurses.
+
+      THE RECORD MUST DECLARE ITS OWN BLIND SPOT. Define a module-level constant in gh_cost_log.py
+      named COVERAGE_NOTICE whose text states, in one sentence, that this record covers only gh
+      invocations made through factory_gh.run_gh and gh-sync.py's wrapper, and that a gh command
+      typed directly into Bash by the main session or by an agent is INVISIBLE to it, so the file is
+      not a complete account of GraphQL spend. When record() creates a new
+      .harness/logs/gh-cost-<YYYY-MM-DD>.jsonl file — that is, when the file does not yet exist — it
+      writes as the FIRST line a JSON object {"coverage": COVERAGE_NOTICE} before any invocation
+      line. Every daily file therefore carries the notice at its head, and a reader who opens one
+      file sees the limit without having to find any other document. Do not put the notice only in a
+      comment or a README: a comment is not in the artifact the reader opens.
+
+      Make it opt-outable with an environment variable HARNESS_GH_COST_LOG set to 0, defaulting to
+      ON. Two extra rate_limit calls per gh invocation are REST calls against a 5000/hour budget that
+      measured 16 used across an entire session, so the default is on.
+
+      Write test-gh-cost-log.py asserting: a successful invocation writes exactly one line with the
+      right keys and a cost equal to after minus before; a failing invocation with rc 1 is STILL
+      recorded and carries rc 1; a counter read that raises produces a line with null before, after
+      and cost and does not propagate the exception; a -f value longer than 80 characters is
+      truncated in the recorded argv; HARNESS_GH_COST_LOG=0 writes no line; a fresh log file's FIRST
+      line parses as JSON carrying a "coverage" key whose value mentions both run_gh and gh typed
+      directly into Bash; and appending a second invocation to an existing file does NOT write the
+      coverage line again. Prove the
+      failure-recorded assertion can go red by confirming that an early return on non-zero rc makes
+      exactly that test fail.
+
+  - id: T-04
+    title: Name the GraphQL budget and its reset when gh fails on rate limit
+    traces: [REQ-04]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/factory_gh.py
+      - .claude/skills/harness/bin/test-factory-gh.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      In factory_gh.py, when run_gh returns a non-zero exit and the combined stdout and stderr
+      contain either "API rate limit exceeded" or "was submitted too quickly" or "rate limit", do
+      not surface the raw gh text alone. Query gh api rate_limit once, and raise GhError whose
+      message reads exactly:
+
+        GraphQL budget exhausted: <used> of <limit> points used, resets at <UTC ISO 8601 of reset>
+
+      and whose remedy names the two facts an operator needs: that this is the GraphQL budget and
+      not the REST one, and that REST currently sits at <core.used> of <core.limit>. Include the
+      original gh stderr as the detail so nothing is lost.
+
+      If the rate_limit query itself fails, raise GhError with message "gh reported a rate limit and
+      the budget could not be read" and the original stderr as detail. Never swallow the original
+      error.
+
+      Detection must be on the message text, not on the exit code alone: gh exits 1 for many
+      reasons, and treating every exit 1 as a budget exhaustion would mislabel ordinary failures.
+
+      Add tests to test-factory-gh.py driving a fake gh that returns exit 1 with an API rate limit
+      exceeded body plus a fake rate_limit response, and assert the raised GhError message contains
+      the word GraphQL, the used and limit numbers, and the reset timestamp. Add a second test that
+      an exit 1 with an unrelated message such as "could not resolve to a Repository" does NOT
+      produce the budget message. That second test is what proves the first can go red rather than
+      matching every failure.
+
+  - id: T-05
+    title: Correct the 31-point figure and record every cost with its condition
+    traces: [REQ-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: the repo-root notes path is granted to no agent domain, so a dispatched write
+      is rejected mid-run; DEC-179 makes it a declared main-session step instead
+    depends_on: []
+    status: pending
+    files:
+      - .harness/notes/grilling-graphql-cost-2026-08-10.md
+    verify: |
+      python3 - <<'PY'
+      import sys,io
+      p=".harness/notes/grilling-graphql-cost-2026-08-10.md"
+      s=io.open(p,encoding="utf-8").read()
+      bad=[]
+      if "31 points once per invocation" in s and "STRUCK" not in s:
+          bad.append("stale exclusion claim survives unstruck")
+      if "506" not in s: bad.append("corrected per-run figure absent")
+      if "473" not in s and "474" not in s: bad.append("board item count condition absent")
+      if "board 3" not in s: bad.append("board identity condition absent")
+      if "6bbd706" not in s: bad.append("commit condition absent")
+      print("\n".join(bad) if bad else "OK")
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Correct the cost record in .harness/notes/grilling-graphql-cost-2026-08-10.md without
+      falsifying it. The note is a dated record, so nothing already written is deleted or reworded to
+      look better; a correction block is added and the falsified claims are struck through in place.
+
+      Three specific claims are now false and must be struck, each with the replacement beside it:
+
+      1. Under "Settled", the bullet beginning "project_items (gh project item-list) → out of
+         scope." Its reasoning was "31 points once per invocation is not the burn." Strike the whole
+         bullet. Replacement text: check-state.sh INV-26 calls this read once per run and the whole
+         run measures 506 GraphQL points, on board 3 with 473 items, at commit 6bbd706, measured
+         2026-08-19 by differencing gh api rate_limit --jq .resources.graphql.used. The standalone
+         read read 608 in one sample, but check-state.sh CONTAINS it, so the call cannot exceed the
+         run: quote 490 to 506 and treat 608 as a contaminated upper bound. Per item that is roughly
+         1.05 to 1.29 points. It IS the burn.
+
+      2. Under "Facts I verified", the sentence "gh project item-list --limit 500 costs 31." Strike
+         it. State that the 31 could not be reconciled on 2026-08-19: board 6 holds 4 items and would
+         cost about 5, and board 3 was plausibly around 140 items on 2026-08-10 which predicts about
+         150 to 180, so neither explains 31. Do not invent a reconciliation. Recording it as
+         unreconciled is the honest entry.
+
+      3. Under "Out of scope", the entry "project_items / gh project item-list — wrong order of
+         magnitude, and never looped." Strike it: the order of magnitude was wrong by a factor of
+         about 20, and cost per call is what matters here, not looping.
+
+      Then add a section titled "Recording rule, learned here" stating that every GraphQL cost figure
+      recorded anywhere in this repository must carry the board it was measured on, that board's item
+      count, and the commit it was measured at — because the 31 carried none of those, could
+      therefore never be shown to be wrong, and an exclusion decision was built on it. Add that a
+      figure taken while another agent run was in flight is an upper bound and must be recorded as a
+      range, citing that on 2026-08-19 the shared counter moved about 300 points with no call from
+      the measuring session in between.
+
+      Do not touch any other file. Do not edit .harness/harness/docs/DECISIONS.md or its index.
+
+  - id: T-06
+    title: Capture the pre-change gate baseline before any code moves
+    traces: [REQ-01]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out — this runs check-state.sh, a registered state gate, and its
+      output is the evidence SC-01 and SC-04 are graded against
+    depends_on: []
+    status: pending
+    files:
+      - .harness/harness/features/FEAT-29-graphql-budget/notes/measurement-before.md
+    verify: |
+      python3 - <<'PY'
+      import sys,io,re
+      p=".harness/harness/features/FEAT-29-graphql-budget/notes/measurement-before.md"
+      try: s=io.open(p,encoding="utf-8").read()
+      except OSError: print("baseline file missing"); sys.exit(1)
+      bad=[k for k in ("before:","after:","delta:","board_items:","sha:") if k not in s]
+      if "VIOLATIONS-BEGIN" not in s or "VIOLATIONS-END" not in s:
+          bad.append("gate output block missing")
+      print("\n".join(bad) if bad else "OK")
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      THIS TASK MUST RUN BEFORE T-01 AND T-02 LAND. Once the read is made cheap the pre-change state
+      is gone and SC-01 and SC-04 have nothing to be graded against.
+
+      Run .claude/skills/harness/bin/check-state.sh once, with no other agent run in flight. On
+      2026-08-19 the shared GraphQL counter moved about 300 points with no call from the measuring
+      session in between, and a contaminated reading proves nothing — so confirm nothing else is
+      running before starting, and say in the file that you did.
+
+      Difference gh api rate_limit --jq .resources.graphql.used immediately either side of the run.
+      That endpoint is REST and costs zero GraphQL points, proven by three consecutive reads showing
+      graphql.used unchanged at 1057.
+
+      Write .harness/harness/features/FEAT-29-graphql-budget/notes/measurement-before.md containing,
+      each on its own line with these exact key prefixes: before: <int>, after: <int>,
+      delta: <int>, board_items: <totalCount of board 3 from gh project view 3 --owner mruangutai>,
+      sha: <git rev-parse --short HEAD>. Then the gate's COMPLETE stdout and stderr, verbatim,
+      between a line reading VIOLATIONS-BEGIN and a line reading VIOLATIONS-END.
+
+      The expected delta is about 506. A materially different number is itself a finding: record it
+      as measured and do not adjust it to match.
+
+      This is executed directly by the main session. It is not dispatched.
+
+  - id: T-07
+    title: Cut INV-26 over to the cheap read and prove the identical violation set
+    traces: [REQ-01, REQ-02]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out — check-state.sh is a registered state gate and its own
+      output is the evidence, so a team run whose gates are the thing being changed cannot vouch
+      for it
+    depends_on: [T-01, T-02, T-06]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .harness/harness/features/FEAT-29-graphql-budget/notes/measurement-after.md
+    verify: |
+      python3 - <<'PY'
+      import sys,io,re
+      a=".harness/harness/features/FEAT-29-graphql-budget/notes/measurement-after.md"
+      b=".harness/harness/features/FEAT-29-graphql-budget/notes/measurement-before.md"
+      bad=[]
+      try: sa=io.open(a,encoding="utf-8").read()
+      except OSError: print("after file missing"); sys.exit(1)
+      try: sb=io.open(b,encoding="utf-8").read()
+      except OSError: print("before file missing"); sys.exit(1)
+      m=re.search(r"^delta:\s*(\d+)\s*$", sa, re.M)
+      if not m: bad.append("after file has no delta: line")
+      elif int(m.group(1))>100: bad.append("delta %s exceeds the 100-point ceiling"%m.group(1))
+      for k in ("before:","after:","board_items:","sha:"):
+          if k not in sa: bad.append("after file missing "+k)
+      def viol(t):
+          i=t.find("VIOLATIONS-BEGIN"); j=t.find("VIOLATIONS-END")
+          return None if i<0 or j<0 else t[i:j]
+      va, vb = viol(sa), viol(sb)
+      if va is None or vb is None: bad.append("a gate output block is missing")
+      elif va!=vb and "EXPLAINED-DIFFERENCE" not in sa:
+          bad.append("violation sets differ and no EXPLAINED-DIFFERENCE section is present")
+      print("\n".join(bad) if bad else "OK")
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      INV-26 at check-state.sh:1130-1176 calls _gb.board_stations, which T-02 has already made
+      cheap. Read that block and confirm no further edit is needed. Make no edit to check-state.sh
+      unless one is genuinely required; if one is, a human reads the diff and it is not dispatched.
+
+      With no other agent run in flight, run check-state.sh once and difference gh api rate_limit
+      --jq .resources.graphql.used either side of it.
+
+      Write .harness/harness/features/FEAT-29-graphql-budget/notes/measurement-after.md in exactly
+      the format T-06 used: before:, after:, delta:, board_items:, sha:, each on its own line, then
+      the gate's COMPLETE stdout and stderr verbatim between VIOLATIONS-BEGIN and VIOLATIONS-END.
+
+      The delta must be at most 100. The projected value is about 5, since a 100-node page of the
+      targeted query measured 1 point and the board needs 5 pages.
+
+      Then diff the VIOLATIONS block against measurement-before.md line by line. THE VIOLATION SET
+      MUST BE IDENTICAL. If it is not, either revert the change or add a section headed
+      EXPLAINED-DIFFERENCE to measurement-after.md naming every differing line and why the new
+      behaviour is correct. Do not adjust the captured output to make them match — INV-26's
+      detection behaviour is fixed by REQ-01 and REQ-02, and a silently changed violation set is the
+      failure this task exists to catch.
+
+      If board_items differs between the two files, say so: the board is live, and a card added
+      between the runs is a legitimate reason for one differing line.
+
+      This is executed directly by the main session. It is not dispatched.
+
+  - id: T-08
+    title: Record the polling and measurement operating rules in CLAUDE.md
+    traces: [REQ-03, REQ-05]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 keeps operator doctrine off the dispatch path and DEC-181 budgets
+      CLAUDE.md at 80 lines on all four write routes
+    depends_on: [T-07]
+    status: pending
+    files:
+      - CLAUDE.md
+    verify: |
+      python3 - <<'PY'
+      import sys,io
+      s=io.open("CLAUDE.md",encoding="utf-8").read()
+      n=len(s.splitlines())
+      bad=[]
+      if n>80: bad.append("CLAUDE.md is %d lines, budget is 80"%n)
+      if "gh pr checks" not in s: bad.append("polling rule absent")
+      if "graphql" not in s.lower(): bad.append("graphql budget rule absent")
+      print("\n".join(bad) if bad else "OK lines=%d"%n)
+      sys.exit(1 if bad else 0)
+      PY
+    intent: |
+      Add to CLAUDE.md, within the existing 80-line budget, two operating rules stated as briefly as
+      the budget allows. Fold them into the Conventions section rather than adding a new heading if
+      that is what keeps the file under budget.
+
+      Rule one, polling: never poll gh pr checks on a short interval. It costs 2 GraphQL points per
+      invocation, measured 2026-08-19, so a 10-second poll costs 12 points per minute. Use a single
+      blocking gh pr checks --watch, or an interval of at least 60 seconds.
+
+      Rule two, cost figures: any GraphQL cost recorded anywhere in this repository carries the board
+      it was measured on, that board's item count, and the commit — a bare number cannot be shown to
+      be wrong, and a bare 31 stood for nine days while a check-state.sh run measured 490 to 506
+      points on board 3 with 473 items at commit 6bbd706. Do not write 608 into CLAUDE.md: that
+      sample was taken with another agent run in flight and is a contaminated upper bound, and a
+      contaminated single number presented as the real figure is the exact failure this rule exists
+      to prevent.
+
+      Keep the existing before-committing check-state.sh convention. After T-07 that run is cheap,
+      so the convention itself is not the problem and must not be weakened.
+
+      If adding both rules would exceed 80 lines, tighten existing prose in the same edit rather than
+      dropping a rule, and say in the digest what was tightened.
+
+  - id: T-09
+    title: Prove the saving is the query shape by measuring both reads on the same four-item board
+    traces: [REQ-01]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 — this takes live GraphQL measurements alongside the gate runs of T-06
+      and T-07 and writes into the same feature notes path, which is granted to no agent domain
+    depends_on: [T-01, T-02]
+    status: pending
+    files:
+      - .harness/harness/features/FEAT-29-graphql-budget/notes/measurement-board6.md
+    verify: |
+      python3 - <<'PY2'
+      import sys,io,re
+      p=".harness/harness/features/FEAT-29-graphql-budget/notes/measurement-board6.md"
+      try: s=io.open(p,encoding="utf-8").read()
+      except OSError: print("board6 measurement file missing"); sys.exit(1)
+      bad=[]
+      for k in ("old_before:","old_after:","old_delta:","new_before:","new_after:","new_delta:",
+                "board_items:","sha:"):
+          if k not in s: bad.append("missing "+k)
+      m=re.search(r"^new_delta:\s*(\d+)\s*$", s, re.M)
+      if not m: bad.append("no parseable new_delta: line")
+      elif int(m.group(1))>10: bad.append("new_delta %s exceeds the 10-point ceiling"%m.group(1))
+      o=re.search(r"^old_delta:\s*(\d+)\s*$", s, re.M)
+      if o and m and int(o.group(1))<=int(m.group(1)):
+          bad.append("old read is not more expensive than the new one, so nothing is proven")
+      n=re.search(r"^board_items:\s*(\d+)\s*$", s, re.M)
+      if n and n.group(1)!="4": bad.append("board 6 item count is %s, not the 4-item fixture"%n.group(1))
+      print("\n".join(bad) if bad else "OK")
+      sys.exit(1 if bad else 0)
+      PY2
+    intent: |
+      Prove that the new read is cheaper because of its SHAPE, not because a board returned fewer
+      items. Both sides of this measurement run against the SAME board with the SAME item count, so
+      item count cannot explain the difference. Board 6 (owner mruangutai, title factory-smoke-a1) is
+      the fixture: it holds 4 items and is a retained smoke fixture, so its count is stable, and a
+      whole-board read there costs single-digit points.
+
+      Run this with no other agent run in flight. The GraphQL counter is shared across sessions, and
+      on 2026-08-19 it moved about 300 points with no call from the measuring session in between; a
+      contaminated reading proves nothing here. Difference gh api rate_limit --jq
+      .resources.graphql.used immediately either side of each call — that endpoint is REST and costs
+      zero GraphQL points.
+
+      Measurement A, the OLD read shape, already taken on 2026-08-19 at commit 6bbd706:
+        gh project item-list 6 --owner mruangutai --limit 500 --format json
+        before 1790, after 1892, delta 102, on 4 items.
+      Re-take it if you wish; if you re-take it, record YOUR numbers, not these. Do not adjust a
+      re-taken number to match.
+
+      Measurement B, the NEW read shape: call
+      factory_gh.project_item_stations("mruangutai", 6, "Station") from python3 with the repo's bin
+      directory on sys.path, and confirm it returns 4 entries. Difference the counter either side of
+      that one call.
+
+      Write .harness/harness/features/FEAT-29-graphql-budget/notes/measurement-board6.md with each of
+      these on its own line, exact key prefixes: old_before:, old_after:, old_delta:, new_before:,
+      new_after:, new_delta:, board_items: (the totalCount board 6 reports, expected 4), sha: (git
+      rev-parse --short HEAD). Then one short paragraph naming what is held constant — same board,
+      same item count, same session, nothing else in flight — and therefore why the difference is
+      attributable to the query selection.
+
+      new_delta must be at most 10. The projected value is 1: the targeted single-page query measured
+      exactly 1 point against board 3 on 2026-08-19 and board 6 needs one page. If new_delta exceeds
+      10, do not soften it — record the number and report it as a finding, because it would mean the
+      selection is still pulling the expensive fieldValues connection.
+
+      This is executed directly by the main session. It is not dispatched.
