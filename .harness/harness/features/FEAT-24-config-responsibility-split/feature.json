@@ -2,7 +2,7 @@
   "feature_id": "FEAT-24-config-responsibility-split",
   "branch": "feat/FEAT-24-config-responsibility-split",
   "pr": null,
-  "status": "Review",
+  "status": "Done",
   "review_sha": "91884f9",
   "cycles_used": 9,
   "max_total_cycles": 10,
