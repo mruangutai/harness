@@ -82,6 +82,7 @@ def check(name, cond, detail=""):
 _FAKE_GH_SRC = r'''#!/usr/bin/env python3
 """A stateful fake `gh`, driven by env var GH_STATE (a JSON file) and argv matching against
 the exact surface factory_gh.py / gh_issues.py emit. Never touches the network."""
+import base64
 import json
 import os
 import re
@@ -234,9 +235,11 @@ def main():
             "field": {
                 "id": "FIELD_STATUS", "name": field_name,
                 "options": [
+                    {"id": "OPT_BACKLOG", "name": "Backlog"},
                     {"id": "OPT_READY", "name": "Ready"},
                     {"id": "OPT_BUILDING", "name": "Building"},
                     {"id": "OPT_REVIEW", "name": "Review"},
+                    {"id": "OPT_DONE", "name": "Done"},
                 ],
             },
         }}}}))
@@ -248,7 +251,10 @@ def main():
         if project_id != "PVT_kwFAKE":
             bad(f"fake_gh: item-edit --project-id was {project_id!r}, want the node id "
                 f"from the graphql field-resolve call, not the bare board number", 1)
-        mapping = {"OPT_READY": "Ready", "OPT_BUILDING": "Building", "OPT_REVIEW": "Review"}
+        mapping = {
+            "OPT_BACKLOG": "Backlog", "OPT_READY": "Ready", "OPT_BUILDING": "Building",
+            "OPT_REVIEW": "Review", "OPT_DONE": "Done",
+        }
         rec = state["items"].setdefault(item_id, {"number": None, "repo": None})
         rec["station"] = mapping.get(option_id, option_id)
         ok()
@@ -263,6 +269,19 @@ def main():
                 ok()
         if rest and re.match(r"^repos/.+/git/ref/heads/.+$", rest[0]):
             ok("deadbeefcafefeed0123456789abcdef01234567")
+        # factory_config.product_config: repos/<owner>/<name>/contents/<path> — a fleet
+        # member's own remote .harness/harness.json, read at its default_branch (T-02/T-03).
+        # gh api asks for the `.content` field alone (--jq .content), which is base64.
+        cm = re.match(r"^repos/([^/]+/[^/]+)/contents/(.+)$", rest[0]) if rest else None
+        if cm:
+            repo = cm.group(1)
+            doc = state.get("product_configs", {}).get(repo)
+            if doc is None:
+                bad(f"404 Not Found: no product config staged for {repo}", 1)
+            b64 = base64.b64encode(json.dumps(doc).encode("utf-8")).decode("ascii")
+            if "--jq" in rest and rest[rest.index("--jq") + 1] == ".content":
+                ok(b64)
+            ok(json.dumps({"content": b64}))
         m = re.match(r"^repos/.+/issues/(\d+)$", rest[0]) if rest else None
         if m and "--jq" in rest:
             ok(str(int(m.group(1)) + 100000))
@@ -309,11 +328,35 @@ def write_yaml(path, data):
         yaml.safe_dump(data, f, sort_keys=False)
 
 
+REPO = "acme/widget"
+DEFAULT_BRANCH = "main"
+
+
+def default_board(owner="acme", number=9, station_field="Status", **stations_kw):
+    """The five-key stations map (D-06), returned by every fixture as a fleet member's own
+    `github.board` — T-02/T-03 moved the board out of fleet.yaml, so this is what
+    `factory_config.product_config` resolves to, never a `repos[].board` key."""
+    stations = {
+        "backlog": "Backlog", "ready": "Ready", "building": "Building",
+        "review": "Review", "done": "Done",
+    }
+    stations.update(stations_kw)
+    return {"owner": owner, "number": number, "station_field": station_field, "stations": stations}
+
+
+def default_product_configs(repo=REPO, board=None):
+    """The {repo_name: {"github": {"board": ...}}} shape the fake gh's `contents` endpoint
+    (state["product_configs"]) serves — the full-shaped document `product_config` itself
+    returns, never a bare board mapping."""
+    return {repo: {"github": {"board": board or default_board()}}}
+
+
 def write_state(path, **overrides):
     state = {
         "auth_fail": False, "ref_conflict": False,
         "next_issue": 500, "next_item": 1,
         "issues": {}, "items": {},
+        "product_configs": default_product_configs(),
     }
     state.update(overrides)
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -338,19 +381,14 @@ def make_root(base):
     return root
 
 
-REPO = "acme/widget"
-DEFAULT_BRANCH = "main"
-
-
 def fleet_dict(workspace_root, repo=REPO, default_branch=DEFAULT_BRANCH):
+    """The board no longer lives here (T-02/T-03) — it is read remotely, through
+    `factory_config.product_config`, and served by the fake gh's `contents` endpoint from
+    `state["product_configs"]` (see `default_product_configs` above)."""
     return {
         "schema": "factory-fleet/1",
         "repos": [{
             "name": repo, "default_branch": default_branch,
-            "board": {
-                "owner": "acme", "number": 9, "station_field": "Status",
-                "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
-            },
         }],
         "workspace_root": workspace_root,
     }
@@ -491,10 +529,14 @@ with tempfile.TemporaryDirectory() as td:
     try:
         payload = json.loads(r.stdout)
         check("(D-config) success: stdout is one JSON object", True)
-        check("(D-config) success: payload carries repos, each with its own board, and no "
-              "fleet-level board",
+        # T-02 item 3 deleted the requirement that a repos entry carries a board — the board
+        # now lives remotely, in that repository's own .harness/harness.json. This case
+        # inverts the old assertion (which pinned a board["number"] that no longer exists) and
+        # pins absence at BOTH levels rather than one, per the T-03 dispatch.
+        check("(D-config) success: payload carries repos, and no board on either the fleet or "
+              "any repos entry",
               "repos" in payload and "board" not in payload
-              and payload["repos"][0]["board"]["number"] == 9, payload)
+              and "board" not in payload["repos"][0], payload)
     except Exception as e:
         check("(D-config) success: stdout is one JSON object", False, str(e))
     not_ignored("(D-config)", r)
@@ -657,7 +699,7 @@ with tempfile.TemporaryDirectory() as td:
     fleet_path = os.path.join(td, "fleet", "fleet.yaml")
     fleet_data = fleet_dict(workspace_root)
     write_yaml(fleet_path, fleet_data)
-    ready_option = fleet_data["repos"][0]["board"]["stations"]["ready"]
+    ready_option = default_board()["stations"]["ready"]
     cwd = os.path.join(td, "cwd")
     os.makedirs(cwd, exist_ok=True)
     gh_state = write_state(os.path.join(td, "gh_state.json"), next_issue=500)
@@ -1006,23 +1048,14 @@ with tempfile.TemporaryDirectory() as td:
     other_repo = "acme/gadget"
     other_number = 42
     served_number = 9
+    # The board no longer lives in either repos[] entry (T-02/T-03) — each repository's own
+    # board is read remotely, and the two are registered separately below so a call landing on
+    # the served repository's contents endpoint can never see the other's.
     fleet_two = {
         "schema": "factory-fleet/1",
         "repos": [
-            {
-                "name": REPO, "default_branch": DEFAULT_BRANCH,
-                "board": {
-                    "owner": "acme", "number": served_number, "station_field": "Status",
-                    "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
-                },
-            },
-            {
-                "name": other_repo, "default_branch": "main",
-                "board": {
-                    "owner": "acme", "number": other_number, "station_field": "Status",
-                    "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
-                },
-            },
+            {"name": REPO, "default_branch": DEFAULT_BRANCH},
+            {"name": other_repo, "default_branch": "main"},
         ],
         "workspace_root": workspace_root,
     }
@@ -1030,7 +1063,14 @@ with tempfile.TemporaryDirectory() as td:
     write_yaml(fleet_path, fleet_two)
     cwd = os.path.join(td, "cwd")
     os.makedirs(cwd, exist_ok=True)
-    gh_state = write_state(os.path.join(td, "gh_state.json"), next_issue=500)
+    two_board_product_configs = {
+        **default_product_configs(repo=REPO, board=default_board(number=served_number)),
+        **default_product_configs(repo=other_repo, board=default_board(number=other_number)),
+    }
+    gh_state = write_state(
+        os.path.join(td, "gh_state.json"), next_issue=500,
+        product_configs=two_board_product_configs,
+    )
     call_log = os.path.join(td, "gh_call_log.jsonl")
     env = base_env(root, gh_bin=gh, git_bin=gitb, gh_state=gh_state)
     env["GH_CALL_LOG"] = call_log

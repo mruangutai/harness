@@ -44,18 +44,15 @@ DEFAULT_BRANCH = "main"
 
 
 def good_fleet_dict(workspace_root):
+    # No board here (T-02/T-03) — this file's own recorder shows nothing here resolves one:
+    # grepped for board_for, product_config and board_station, zero matches. factory_workspace
+    # reads only name and default_branch.
     return {
         "schema": "factory-fleet/1",
         "repos": [
             {
                 "name": REPO,
                 "default_branch": DEFAULT_BRANCH,
-                "board": {
-                    "owner": "acme",
-                    "number": 3,
-                    "station_field": "Status",
-                    "stations": {"ready": "Ready", "building": "Building", "review": "Review"},
-                },
             },
         ],
         "workspace_root": workspace_root,

@@ -5,9 +5,9 @@
 - P-02: WHEN dispatching any validator run DO re-pin `review_sha` at a commit that CONTAINS the work
   under review, and move the pin again after every commit. An inherited pin from an earlier phase
   reviews a tree the work is absent from and returns PASS on nothing.
-- P-03: WHEN your dispatch asserts a fact about a member — its tools, its domain grants, or which
-  runs it already did — DO read the agent file and the org config first. A guessed premise costs
-  the lead its run correcting you instead of doing the work.
+- P-03: WHEN you restate another agent's claim in your own voice DO attribute it or check it
+  first — restating launders a report into a fact, and every dispatch you write afterwards carries
+  it as established.
 - P-04: WHEN dispatching a fix DO pass the discriminating RULE plus an explicit LEAVE list rather than a
   survey of sites. The LEAVE list does the work: unnamed near-misses are where a member spends a spawn
   re-judging what is already settled.
@@ -63,9 +63,9 @@
 - G-04: WHEN reconciling a resume DO diff every digest's `files_touched` against `find` over the feature
   dir, never `git status` — an untracked feature dir shows as one bare `??` line and hides every
   artifact inside it. A digest can be well-formed, hook-passing and still false about its own writes.
-- G-05: State-file caps are PreToolUse BLOCKs and the only write tool is whole-file, so every overrun
-  costs a redraft rather than an edit. Draft a seam handoff at ~50 lines against its 60 cap and the
-  state file at ~105 against its 120; fixed headers and blank lines eat the rest.
+- G-05: WHEN a probe returns a plausible value DO confirm the CALL SHAPE matches the function's
+  contract before treating it as evidence — a probe that exercises the wrong branch returns a real
+  value and is indistinguishable from a measurement.
 - G-06: WHEN crossing a phase seam DO write the handoff note even when continuing in the same session
   instead of relaying — the invariant checker reads the phase field and reports a missing seam note as a
   VIOLATION, not as advice.
@@ -124,9 +124,9 @@
 - O-08: WHEN a finding's only remedy would contradict a SIGNED decision DO route it up as a decision
   question with a recommendation and keep the verdict PASS. Dispatching the fix makes a squad amend an
   approved plan without approval, and no fix cycle can legitimately close it.
-- O-09: WHEN a constraint names a resource to protect DO verify what the tool reads at RUNTIME before
-  handing anyone the procedure. The target usually comes from a config file rather than a flag, so a
-  carefully protected fixture and the resource actually written are routinely different ones.
+- O-09: WHEN a task's product is an integration DO invoke the real dependency once yourself before
+  accepting a green suite — a fake that cannot model the dimension a defect lives in produces green
+  that means nothing.
 - O-10: WHEN two read-only segments share no files DO dispatch them in one message, since concurrency is
   free and nothing surfaces the wait — but settle first what happens to one segment's verdict if the
   other's outcome moves the tip, because neither can see that collision.

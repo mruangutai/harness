@@ -1306,9 +1306,12 @@ def case_u():
 
 
 
+_SENTINEL = object()
+
+
 def _inv26_fixture(root, feat, task_status, card_status, parent_status,
                    issues=None, feature_status="Building", second_status=None,
-                   second_card=None, factory=None):
+                   second_card=None, factory=None, board_override=_SENTINEL):
     """One INV-26 fixture: harness.json with sync+repo+board, one feature with a plan,
     a feature.json recording issues, and a fake gh whose project item-list page puts
     each card wherever the caller says.
@@ -1321,9 +1324,19 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
     fd = os.path.join(h, "harness", "features", feat)
     os.makedirs(fd, exist_ok=True)
     with open(os.path.join(h, "harness.json"), "w") as f:
+        # THE FIVE STATIONS ARE REQUIRED NOW (FEAT-24 T-04/T-05). Before this feature the
+        # board carried three keys and INV-26 spelled "Building"/"Done"/"Backlog" itself;
+        # the names now come from the declaration, so a fixture without `stations` is not a
+        # weaker fixture — it is an UNUSABLE board, and case v.13 asserts that it is
+        # reported as one. `board_override` lets a case ship a deliberately broken board.
+        _board = {"owner": "org", "number": 3, "station_field": "status",
+                  "stations": {"backlog": "Backlog", "ready": "Ready",
+                               "building": "Building", "review": "Review",
+                               "done": "Done"}}
+        if board_override is not _SENTINEL:
+            _board = board_override
         json.dump({"github": {"sync": True, "repo": "org/repo",
-                              "board": {"owner": "org", "number": 3,
-                                        "station_field": "status"}}}, f)
+                              "board": _board}}, f)
     with open(os.path.join(fd, "plan.yaml"), "w") as f:
         f.write("schema: plan/1\nfeature: %s\napproval:\n  status: approved\n"
                 "tasks:\n  - id: T-01\n    title: t\n    change_type: logic\n"
@@ -1378,6 +1391,19 @@ def _run_with_gh(tmp, fake):
     env["FACTORY_GH"] = fake
     r = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
     return r.returncode, r.stdout
+
+
+def _run_with_gh_streams(tmp, fake):
+    """Both streams. A TRACEBACK GOES TO STDERR, so a case asserting the gate did not abort
+    is blind if it reads stdout alone — measured: removing INV-26's try/except reddened the
+    reports case and left the completes case green, because the traceback was never in the
+    text it searched. The whole file being one python3 heredoc is what makes an abort total,
+    and that is the property this second reader exists to see."""
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = tmp
+    env["FACTORY_GH"] = fake
+    r = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
+    return r.returncode, r.stdout, r.stderr
 
 
 def case_v():
@@ -1519,6 +1545,84 @@ def case_v():
         results.append(("(v.12) the same fixture with an EMPTY factory.issues still "
                         "fires — the exemption keys on recorded issues, not the block",
                         bool(ls), "(no INV-26 line)"))
+
+    # THE OK-LINE TEXT IS THE CONTRACT. T-05's approved verify matches these five with
+    # `grep -qxF` — exact, whole line, after the `ok - ` prefix is stripped. Rewording one
+    # breaks the gate silently, so the strings below are load-bearing and are not descriptions.
+
+    # --- THE INVERSE OF THE OLD BEHAVIOUR (FEAT-24 T-05). A board present but broken used to
+    # make load_board return None, which made INV-26 vacuous and left the gate GREEN. Two
+    # SEPARATE properties, asserted separately because the verify wants them separately
+    # visible: it is REPORTED, and the gate still COMPLETES. A crashed gate reports no
+    # invariant at all, which is a worse silence than the one being fixed.
+    _broken = {"owner": "org", "number": 3, "station_field": "status"}
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review",
+                              board_override=_broken)
+        c, out, err = _run_with_gh_streams(tmp, fake)
+        ls = [l for l in _lines(out) if "CANNOT RUN" in l]
+        results.append(("INV-26 reports a violation when the board declaration is unusable",
+                        bool(ls) and "stations" in ls[0],
+                        "lines=%r" % (ls[:1],)))
+        # BOTH STREAMS, and the later invariants too. An abort is not merely a traceback: it
+        # is every invariant after INV-26 going unreported, so the case checks that INV-13 —
+        # which lives immediately below INV-26 — still ran.
+        _tb = "Traceback" in out or "Traceback" in err
+        _later_ran = "INV-13" in out or not _tb
+        results.append(("INV-26 completes the gate rather than aborting on an unusable board",
+                        not _tb and c == 1 and _later_ran,
+                        "exit=%s traceback=%s stderr_tail=%r"
+                        % (c, _tb, err[-200:])))
+
+    # --- THE NULL TWIN. Not named by the verify, and load-bearing anyway: without it the two
+    # cases above are satisfied by an invariant that reports every board it sees, including the
+    # one shape that is a deliberate declaration rather than a defect.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review",
+                              board_override=None)
+        c, out = _run_with_gh(tmp, fake)
+        results.append(("(v.14) an explicit null board records NOTHING — not a violation, "
+                        "and no traceback",
+                        not _lines(out) and "Traceback" not in out,
+                        "\n".join(_lines(out)) or "(unexpected INV-26 line)"))
+
+    # --- ONE CASE PER KEY, AND THAT IS THE POINT. _EXPECT quantifies over three statuses, so
+    # a single fixture cannot see a lookup that was never migrated: a `done` case is blind to a
+    # `backlog` literal left behind. This feature's own recurring defect is a clause over N
+    # keys with fewer than N fixtures, and the verify demands one each because of it.
+    #
+    # Every column is RENAMED away from the DEC-192 spellings. A build that still spells
+    # "Building"/"Done"/"Backlog" itself reports a violation against a correctly placed card.
+    _renamed = {"owner": "org", "number": 3, "station_field": "status",
+                "stations": {"backlog": "Icebox", "ready": "Primed", "building": "WIP",
+                             "review": "Review", "done": "Shipped"}}
+
+    def _no_finding(out):
+        return not [l for l in _lines(out) if "CANNOT RUN" not in l]
+
+    # backlog: a MIXED plan — an all-pending plan reports nothing whatever _EXPECT says, so
+    # the pending card can only be judged beside a started one.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Shipped", "Review",
+                              second_status="pending", second_card="Icebox",
+                              board_override=_renamed)
+        c, out = _run_with_gh(tmp, fake)
+        results.append(("INV-26 expects the declared station for status: backlog",
+                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "building", "WIP", "WIP",
+                              board_override=_renamed)
+        c, out = _run_with_gh(tmp, fake)
+        results.append(("INV-26 expects the declared station for status: building",
+                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Shipped", "Review",
+                              board_override=_renamed)
+        c, out = _run_with_gh(tmp, fake)
+        results.append(("INV-26 expects the declared station for status: done",
+                        _no_finding(out), "\n".join(_lines(out)) or "(unexpected line)"))
 
     allok = True
     for name, ok, detail in results:

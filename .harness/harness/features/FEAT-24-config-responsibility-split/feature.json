@@ -1,0 +1,161 @@
+{
+  "feature_id": "FEAT-24-config-responsibility-split",
+  "branch": "feat/FEAT-24-config-responsibility-split",
+  "pr": null,
+  "status": "Done",
+  "review_sha": "91884f9",
+  "cycles_used": 9,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-18-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-18-1-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-18-2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-18-1-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-18-2-eng",
+      "squad": "eng",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-18-3-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-18-4-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-18-5-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-18-6-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-18-7-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-1-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-2-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-3-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-19-4-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-3-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-5-validator",
+      "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-19-7-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-8-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-9-validator",
+      "squad": "validator",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-19-10-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-11-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-19-12-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-12-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-12-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 15,
+    "parent": 501,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 502,
+      "T-02": 503,
+      "T-03": 504,
+      "T-04": 505,
+      "T-05": 506,
+      "T-06": 507,
+      "T-07": 508,
+      "T-08": 509,
+      "T-09": 510,
+      "T-10": 511
+    }
+  }
+}

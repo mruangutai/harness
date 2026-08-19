@@ -9,9 +9,9 @@
   can pass vacuously if unrelated output happens to contain the same text.
 - P-03: WHEN a fixture's premise is "this code path is never reached" DO grep the function body
   directly for the call in question rather than trusting the fixture's own comment or name.
-- P-04: WHEN a gate reports a single boolean like `matrix_ok: true` DO also state what fraction of
-  the diff's tasks the matrix actually required a kind for — a gate can be matrix-correct while
-  binding one task and asserting nothing about the rest; the denominator is the finding.
+- P-04: WHEN a gate reports a single boolean like `matrix_ok: true` DO check each task's
+  change_type against the matrix's `always` list — an empty list means no kind obligation at
+  all, so it structurally cannot fail the floor; only the task's own `verify:` block gates it.
 - P-05: WHEN crediting a test as coverage for a change DO confirm the test file is itself part of
   the diff, not pre-existing — only a test added or changed alongside the code demonstrates it
   exercises this change rather than merely happening to exist nearby.
@@ -92,6 +92,10 @@
 - G-13: WHEN reddening a test before a fix DO confirm the red state reproduces the actual
   regression precondition, not merely a trivially-absent state — a red run over an empty
   precondition proves the clause CAN fail, not that it catches the specific defect it targets.
+- G-14: WHEN a fake stands in for an HTTP-like external call DO model the distinguishing method
+  or verb, not just the path — a fake that only branches on endpoint path passes identically
+  whether the real call would GET or POST, hiding the exact recorder-blindness class it exists
+  to catch.
 
 ## Outcomes (max 10)
 - O-01: WHEN an amendment deletes a fixture that was the sole source of some coverage and the loss
@@ -116,5 +120,9 @@
 - O-07: WHEN a fix for a raised finding lands after the review round that raised it DO state
   plainly that only your own evidence has examined it — the independence a second reviewer
   provides was not applied, however strong your own proof is.
+- O-08: WHEN crediting a test as evidence a per-key behavior is read from data rather than
+  hardcoded DO confirm the tested function itself branches on that key — a key-agnostic
+  passthrough (e.g. `dict[key]`) proves nothing about the real, revertable call site; mutate
+  that call site directly instead of the accessor.
 
 ## Open (max 5)

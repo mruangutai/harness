@@ -7,6 +7,8 @@
 - P-05: WHEN capturing a git status snapshot as verification evidence DO record it unfiltered rather than trimmed to what the dispatch pre-warned about — an unexpected modified-not-untracked file is exactly what an unfiltered capture catches and a filtered one would silently miss.
 - P-06: WHEN verifying in a shared working tree DO re-check git status at the end and diff it against the opening snapshot — a verification window spans real time other agents can write into, so the tree is read at two points, not one, and the run should say so.
 - P-07: WHEN a dispatch names a gate as a risk without stating whether it currently passes DO run that gate standalone and report the result explicitly — a risk left unmeasured in the record reads later as unknown status, not as verified green.
+- P-08: WHEN a verify clause asserts only that old required text is ABSENT DO also assert the new required content is literally PRESENT, mirroring any correct positive-check instance already in the same file — a negative-only clause passes unconditionally on an emptied or deleted field.
+- P-09: WHEN judging near-identical blocks for dead-code deletion DO locate the exception by an adjacent comment, never by line number (deletions shift lines below), and prove no case is lost via the ordered SET of ok-line texts before/after — a bare count hides a case lost behind a coincidental addition.
 
 ## Gotchas (max 15)
 - G-01: Nothing invokes check-state.sh automatically — it is manual-only, so a green session is not evidence it ran. (This gotcha used to also cover check-docs.sh's exec-bit fail-open; that script and INV-10 were struck under DEC-188.)

@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-24 — the config responsibility split. Mid-build stop, your ruling needed.</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-24-the-config-responsibility-split-mid-build-stop-your-ruling-needed">FEAT-24 — the config responsibility split. Mid-build stop, your ruling needed.</h1>
+<h2 id="the-decision-in-front-of-you">The decision in front of you</h2>
+<p><strong>Fix the ordering, then continue.</strong> Not ship, not stop. Two of ten tasks are done and committed; the third cannot be executed by any agent as the approved plan orders it, and unblocking it needs one edit only you can make. Three costed routes are in <code>notes/segment-02-ordering-decision.md</code>; my recommendation is <strong>A</strong>.</p>
+<p>Nothing is broken and nothing is half-migrated. The engineering lead measured the trap and refused to enter it rather than discovering it halfway through a migration.</p>
+<h2 id="where-the-feature-stands">Where the feature stands</h2>
+<div class="scroll"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>Done, verified, committed</td><td>T-01 (<code>000934b</code>), T-08 (<code>22814c7</code>)</td></tr><tr><td>Blocked on your ruling</td><td>T-02, and T-03/T-04/T-06 behind it</td></tr><tr><td>Out to you, not yet done</td><td>T-05, T-07 — T-09 landed after this table was first written (PR #335, merged <code>692672d</code>, verify GREEN)</td></tr><tr><td>Not started</td><td>T-10</td></tr><tr><td>Cycles</td><td><strong>1 of 10</strong> — zero send-backs this build; the one cycle was the plan phase&#x27;s architecture-review fix</td></tr><tr><td>Runs</td><td>7 of 20</td></tr><tr><td>Full unit suite</td><td>green at the branch tip, zero FAIL lines</td></tr><tr><td><code>check-state.sh</code></td><td>FEAT-24 down to its one expected violation, the unpinned <code>review_sha</code></td></tr></tbody></table></div>
+<h2 id="what-blocks-it-in-one-paragraph">What blocks it, in one paragraph</h2>
+<p><code>fleet.yaml</code> is validated by the write guard through the very loader T-02 rewrites. Today&#x27;s loader <strong>requires</strong> a <code>board</code> key in every fleet repo entry; T-02&#x27;s loader <strong>rejects</strong> it; the file has one. So no state of that file satisfies both loaders, and from the instant T-02 lands until a human edits <code>fleet.yaml</code>, every agent — including me — is refused on every write to every path. The plan assumed the guard only reads two keys from that file. True of what it <em>consumes</em>; false of what it <em>validates</em>. That gap is the whole defect, and it is a plan-ordering defect rather than anyone&#x27;s mistake in execution.</p>
+<p>The main session is not a governed agent, which is why your hands still work when every agent&#x27;s are tied. That is what makes all three routes possible.</p>
+<h2 id="what-i-checked-myself-rather-than-taking-on-report">What I checked myself rather than taking on report</h2>
+<ul><li>Re-read all five links of the lead&#x27;s chain in the source — <code>harness_boundary.py:263</code> and <code>:157-169</code>, <code>factory_config.py:151-156</code>, T-02 item 3, <code>fleet.yaml:26</code>. The finding holds.</li><li>Re-ran T-01&#x27;s and T-08&#x27;s verify clauses on disk: <code>T-01 GREEN</code>, <code>T-08 GREEN</code>.</li><li>Measured what survives the lockout instead of assuming: <code>git add</code>/<code>git commit</code> do, <code>Write</code>/<code>Edit</code> do not (<code>bash-write-guard.sh:375</code>, <code>:475</code>, <code>:551</code>). That correction changed my recommendation&#x27;s procedure — the first draft would have stranded the run with no state file.</li><li>Confirmed T-09 had <strong>not</strong> merged when this was written; it has since merged as <code>692672d</code> and I re-ran its verify myself against kaya master: GREEN.</li><li>Re-probed board 2&#x27;s Status options before you spend a cross-repository pull request on them — all five names T-09 writes exist.</li></ul>
+<p><strong>No report round was spawned.</strong> This briefing is assembled from the digests already on disk: <code>runs/2026-08-18-1-product/digest.md</code>, <code>1-eng</code>, <code>2-product</code>, <code>1-validator</code>, <code>2-eng</code>, <code>3-product</code> and <code>4-eng</code>, each at <code>runs/&lt;id&gt;/digest.md</code>, plus <code>notes/handoff-plan.md</code>. Three lead spawns to re-narrate files I can open would buy nothing.</p>
+<h2 id="what-the-plan-phase-already-cost-and-what-it-bought">What the plan phase already cost, and what it bought</h2>
+<p>Six runs, one cycle. The four-angle simplify pass found ten plan defects including one genuinely vacuous verify clause; the architecture review then failed the plan on three more, all in how the shared validator&#x27;s interface was specified. Every one was closed before signature. Today&#x27;s blocker is the one thing none of those passes was positioned to see: nobody asked whether a task edits a module the write guard itself imports.</p>
+<h2 id="proposed-backlog-none-of-these-gate">Proposed backlog — none of these gate</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Item</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td><code>gh-sync.py</code>&#x27;s loud-failure exit code, stream and prefix are unspecified while <code>board-station.py</code> pins two of three; sibling tools can ship different answers to the same misconfiguration and every gate stays green</td><td>enhancement</td></tr><tr><td>B-2</td><td><code>validate_board</code>&#x27;s <code>what</code> slot reads &quot;fleet key invalid&quot; at five raise sites; after T-02 neither caller reads <code>fleet.yaml</code>. A misnomer, not a missing fact</td><td>chore</td></tr><tr><td>B-3</td><td>T-04&#x27;s rewritten <code>load_board</code> docstring should state it raises <code>FleetError</code> — a caller cannot learn from the signature that it must import <code>factory_config</code> to catch it</td><td>chore</td></tr><tr><td>B-4</td><td><code>feature.json</code>&#x27;s schema declares no <code>phase</code> property under <code>additionalProperties: false</code>, so the orchestrator playbook&#x27;s &quot;record your phase there&quot; is unsatisfiable</td><td>bug</td></tr><tr><td>B-5</td><td><code>validate-digest.py</code> rejects read-only members&#x27; returns over <code>suite: n/a</code> / <code>task: none</code>; one member ran a full suite purely to populate the field</td><td>bug</td></tr><tr><td>B-6</td><td>The <code>SubagentStop</code> contract forces a complete return from a lead whose member is provably still in flight, manufacturing a transient BLOCKED indistinguishable from a real one</td><td>bug</td></tr><tr><td>B-7</td><td>SC-10&#x27;s non-reader clause is non-discriminating — all four matched zero moved keys before this feature started, so it is a regression guard, not migration evidence</td><td>chore</td></tr><tr><td>B-8</td><td>Plan-time route checking asks who may write a path, never whether the write changes who may write the next one. That is exactly today&#x27;s blocker</td><td>enhancement</td></tr><tr><td>B-9</td><td>A reviewed operator-facing text contract with no <code>DESIGN.md</code> behind it, now a standing pattern across two features on effort #336</td><td>chore</td></tr><tr><td>B-10</td><td>T-06 and T-07 each sit at 49 of 50 permitted machine-field lines; the next edit to either breaks the budget</td><td>chore</td></tr><tr><td>B-11</td><td><code>gh-sync.py</code> has no un-start subcommand, so a card cannot be returned to <code>Backlog</code> when a dispatch is abandoned. I moved four by hand with <code>board-station.py</code> after INV-26 caught them</td><td>enhancement</td></tr><tr><td>B-12</td><td><code>factory_land.py</code> does NOT commit — it failed on T-09 with <code>No commits between master and factory/issue-334</code> until the operator committed by hand. The first real factory run hit this, and the documented command sequence implies otherwise</td><td>bug</td></tr></tbody></table></div>
+<h2 id="also-yours-and-not-feat-24-s">Also yours, and not FEAT-24&#x27;s</h2>
+<p>Four paused feature directories account for six of <code>check-state.sh</code>&#x27;s seven violations: <code>FEAT-25-claim-feature-root</code> and <code>FEAT-25-expertise-repository-tier</code> both claim FEAT-25, alongside <code>FEAT-27-expertise-repository-tier</code>; one has <code>runs/</code> but no <code>feature.json</code>. I have not touched any of them. Two of them look like a split-brain awaiting your reconciliation.</p>
+<h2 id="what-happens-next-under-each-ruling">What happens next, under each ruling</h2>
+<ul><li><strong>A</strong> — I pre-write my state, dispatch T-02, hand you a seven-line <code>fleet.yaml</code> deletion, then run the continuation into T-03, T-06, T-04. Roughly two more of my sessions to the review panel.</li><li><strong>B</strong> — you hand-write T-02&#x27;s migration; I resume at T-03. Removes the window entirely; costs you the feature&#x27;s largest single change.</li><li><strong>C</strong> — pm amends T-02, you re-sign, and nothing ever needs hand-editing inside a window.</li></ul>
+<p>Under all three, <strong>merge T-09 first</strong>: it makes the kaya outage window zero rather than merely short.</p><p class='derived'>Derived from <code>ship-review-2026-08-18-ship-01.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

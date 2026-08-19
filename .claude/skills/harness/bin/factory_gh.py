@@ -6,6 +6,9 @@ deliberate contrast to gh-sync.py's SKIP-and-exit-0 behaviour, which is correct 
 mirror and wrong for a control plane (D-02): a mirror that skips loses a copy, a control plane
 that skips leaves the board asserting a state that is not true.
 
+file_at_ref is the only function here that reads repository CONTENT rather than issue, board or
+ref metadata.
+
 Every function takes the repository or the board owner/number as an argument. No function reads
 git remotes, the current directory, or any environment variable other than FACTORY_GH. Importing
 this module has no side effects. It is a library with no command-line entry of its own, so it
@@ -13,6 +16,8 @@ never calls factory_cli.run — its share of the C-3 contract is the GhError mes
 plus the rule that no function here mutates anything its caller did not ask for, plus the rule
 that no function here writes to stdout — callers own stdout for their own payload.
 """
+import base64
+import binascii
 import json
 import os
 import subprocess
@@ -418,6 +423,44 @@ def issue_board_item_id(repo, number, board_number):
 
 def default_branch_sha(repo, branch):
     return run_gh(["api", f"repos/{repo}/git/ref/heads/{branch}", "--jq", ".object.sha"]).strip()
+
+
+def file_at_ref(repo, path, ref):
+    """Read one file's content from `repo` (owner/name) at `path` (repository-relative, no
+    leading slash) as it exists at `ref` (a branch name). Returns the decoded text and parses
+    nothing else — JSON handling belongs to the caller. Hits the REST contents endpoint with
+    `ref` as a query parameter and asks gh for the `content` field alone via --jq, never the
+    whole object.
+
+    Every failure raises GhError, never a sentinel: repo not found, path not found at that ref,
+    ref not found, unauthenticated gh, and a `content` field that is absent or does not
+    base64-decode. A caller must never mistake "not there" for "empty file" (D-02).
+    """
+    argv = ["api", f"repos/{repo}/contents/{path}?ref={ref}", "--jq", ".content"]
+    value = f"{repo} {path}@{ref}"
+    try:
+        raw = run_gh(argv)
+    except GhError as e:
+        raise GhError(
+            e.argv, e.status, e.stdout, e.stderr,
+            "gh api contents failed", value,
+            "check the repository, path and ref",
+        ) from e
+    if not raw or raw == "null":
+        raise GhError(
+            argv, None, raw, "",
+            "file content missing from response", value,
+            "gh returned no content field",
+        )
+    try:
+        decoded = base64.b64decode("".join(raw.split()), validate=True)
+    except (binascii.Error, ValueError):
+        raise GhError(
+            argv, None, raw, "",
+            "file content could not be decoded", value,
+            "gh returned invalid base64",
+        )
+    return decoded.decode("utf-8")
 
 
 def create_ref(repo, ref, sha):

@@ -94,5 +94,22 @@
   `-E` breaks alternation, and `/usr/bin/grep -E` honours `\b`, so the trap is git grep's.
 
 ## Outcomes (max 10)
+- O-01: WHEN correcting a record whose existing text scopes itself ("this amendment touches X
+  alone") DO append a separate new record instead of extending that one — extending falsifies its
+  own scoping sentence, creating a fresh false statement while removing one; a two-hunk diff proves
+  the old record untouched.
+- O-02: WHEN a constraint says never hand-edit a generated file DO check which regions the
+  generator actually preserves across a run, and report the narrower constraint — a blanket ban
+  orphans hand-written content regeneration cannot reach, leaving a falsified statement there with
+  no owner at all.
+- O-03: WHEN a task's verify clause checks only literals, placement and counts DO state in your
+  return that no clause tested the intent's substance and name what only your own reading covered —
+  a green run stays compatible with prose reversing the decision it was meant to change.
+- O-04: WHEN you quote a heading or identifier inside text a parser or verify uses to locate
+  section boundaries DO strip the delimiter prefix from the quotation — an embedded delimiter makes
+  the scan see a boundary that is not there and truncate the section under check.
+- O-05: WHEN you strike or retitle a decision DO run two sweeps, not one — the struck wording
+  across live surfaces, and the decision's own identifier — only the citation sweep shows the change
+  orphaned no reference, which is the harm a strike record exists to prevent.
 
 ## Open (max 5)

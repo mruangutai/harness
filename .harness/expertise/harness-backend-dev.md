@@ -11,12 +11,13 @@
 - P-03: WHEN asserting a call was removed via a log grep DO scope the grep to the payload, not the
   path — a path-only absence grep can vacuously "prove" removal while unrelated calls sharing that
   path remain.
-- P-04: WHEN a new gate binds every persona sharing a return contract DO check whether your own
-  review's return would satisfy it — a PASS accepted only because the change hasn't landed yet is
-  itself proof of the gap it is reviewing.
-- P-05: WHEN raising a review finding about a structural gap DO phrase it as the gap itself, not a
-  proposed fix — a finding named this way survived a later redirect that changed the whole fix
-  mechanism, while a fix-shaped finding would not have.
+- P-04: WHEN a test case's call could raise under a mutation DO wrap it in try/except and compare
+  against a sentinel, never call it bare — an unguarded raise crashes the whole suite, silently
+  skipping every later case, and the surviving output still looks like a clean partial pass.
+- P-05: WHEN a function mutates its argument in place and also returns it DO never assert
+  `fixture == result` as the proof of correctness — compare against an independent,
+  distinctively-valued oracle instead. Comparing the fixture to itself cannot redden for any
+  implementation, including one that silently drops a required field.
 - P-06: WHEN the mandated pre-edit RED run passes on an untouched tree DO stop — a green RED means
   the premise is stale or the test is vacuous, not permission to proceed — and establish provenance
   from on-disk artifacts before writing or overwriting anything.
@@ -77,6 +78,25 @@
 - G-09: WHEN validating a live or side-effecting measurement against changed code DO confirm the
   loaded module's `__file__` resolves under the worktree being tested, not a stale main-checkout
   copy — a silently wrong root produces a plausible but false measurement.
+- G-10: WHEN a fake HTTP double models a call by argv TEXT DO also assert its METHOD — list
+  membership like `any(x in a for a in argv)` is blind to structure, so a correct call form and a
+  broken one forcing the wrong verb can both satisfy it.
+- G-11: WHEN an assertion searches a tool's stdout for a failure message DO first confirm which
+  stream the tool actually writes it to — a check written against stdout is permanently blind to a
+  message the tool writes to stderr, and its pass/fail is unrelated to what the tool actually does.
+- G-12: WHEN an assertion slices a string between two marker substrings DO confirm both markers
+  exist in the target first — if neither is present, the slice is silently empty and any search or
+  comparison run over it can vacuously pass without inspecting real content.
+- G-13: WHEN restoring a mutation probe mid-cycle, nothing committed yet, DO NOT use
+  `git checkout -- <path>` as the restore step — it resets to HEAD, the pre-fix defect state, not
+  the prior cycle's fix, and can silently revert still-live work. Restore by hand and re-verify
+  the hash instead.
+- G-14: WHEN a contract states a negative invariant over two conditions (no fallback on remote
+  failure AND a local copy present) DO enumerate the 2x2 and name the untested cell — two fixtures
+  covering disjoint cells leave it untested, and the code fails open under a matching mutation.
+- G-15: WHEN a test double returns a payload DO shape it like the real wire response — encoding,
+  line wrapping, envelope — not a synthetic clean value; a synthetic fixture leaves the decode
+  path untested, so a real response differing in form ships as a live, unguarded defect.
 
 ## Outcomes (max 10)
 

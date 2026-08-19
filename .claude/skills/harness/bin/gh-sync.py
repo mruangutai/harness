@@ -16,15 +16,20 @@ TRUTH DIRECTION IS THE POINT. PLAN.md is approval-gated and is the only source; 
 script projects it outward. It never reads GitHub state back into harness state —
 a wiki-editable UI feeding an approval-gated artifact is the DEC-19 bypass shape.
 
-NEVER A GATE, and since FEAT-18 that is a THREE-WAY split, not two (D-02). An
-ENVIRONMENTAL PRECONDITION — sync off, no repo pinned, gh missing, gh unauthenticated,
-or network down — prints one loud SKIP line and exits 0 for the WHOLE invocation,
-because a flow that fails on its *mirror* has inverted its priorities (SPEC §12
-precedent for branch/PR ops). No `github.board` configured is NOT in that set (T-03):
-it prints one plain line, station writes are not attempted, and the issue lifecycle
-(open, close-task's issue close, abandon, ship) runs unchanged — the whole invocation
-is never abandoned for it. A failure of a STATION WRITE while gh itself works — an
-unknown project, a station name the board does not carry, a network blip mid-call —
+NEVER A GATE, and since FEAT-18 that is a FOUR-WAY split, not two (D-02, and FEAT-24
+adds the fourth). An ENVIRONMENTAL PRECONDITION — sync off, no repo pinned, gh missing,
+gh unauthenticated, network down, or `github.board` declared as an EXPLICIT null —
+prints one loud line and exits 0 for the WHOLE invocation, because a flow that fails on
+its *mirror* has inverted its priorities (SPEC §12 precedent for branch/PR ops). An
+explicit null board (FEAT-24 D-07) prints one plain line, station writes are not
+attempted, and the issue lifecycle (open, close-task's issue close, abandon, ship) runs
+unchanged — the whole invocation is never abandoned for it. An UNUSABLE board
+declaration — `github.board` absent, present but not a mapping, or malformed in any
+field `factory_config.validate_board` checks — is NOT an environmental precondition
+(FEAT-24 T-04): it is a loud failure of the WHOLE invocation, one line on stderr and
+exit 2, because a misconfiguration a human must fix is not the same state as a project
+that has declared it has no board. A failure of a STATION WRITE while gh itself works —
+an unknown project, a station name the board does not carry, a network blip mid-call —
 prints one line to STDERR beginning `gh-sync: ERROR -`, naming the issue, the station
 attempted and the underlying message, and the run CONTINUES to its remaining writes;
 the exit status stays 0. Nothing on that path is ever re-attempted. An issue close
@@ -61,6 +66,7 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from gh_issues import internal_id_args, attach_sub_issue_args
 
+import factory_config
 import gh_board
 import harness_yaml
 
@@ -116,9 +122,15 @@ def gh(args, capture=True):
 
 def load_config(root):
     """Return `(repo, board)`. `board` is `gh_board.load_board(root)` — a dict, or None when
-    `github.board` is absent/incomplete. A missing board is an ENVIRONMENTAL PRECONDITION
-    (D-02), never a reason to skip the whole invocation: the issue lifecycle (open,
-    close-task's issue close, abandon, ship) still runs; only station writes are skipped."""
+    `github.board` is an EXPLICIT null. An explicit null is the ONLY environmental precondition
+    left (D-02, D-07): the issue lifecycle (open, close-task's issue close, abandon, ship)
+    still runs; only station writes are skipped.
+
+    Every OTHER unusable board shape — the `github` block absent, `board` key absent, or any
+    field `factory_config.validate_board` rejects — raises `factory_config.FleetError` from
+    `gh_board.load_board`, and THIS FUNCTION does not catch it; `main()` does, exiting 2 with
+    the error on stderr. That is a loud failure of the WHOLE invocation, not a skipped station
+    write — an unusable declaration is a misconfiguration to fix, not an absence to tolerate."""
     p = os.path.join(root, ".harness", "harness.json")
     if not os.path.isfile(p):
         skip("no .harness/harness.json — project not onboarded")
@@ -182,7 +194,7 @@ def _apply_parent_rule(feat_dir, repo, board):
     except harness_yaml.YamlParseError:
         # An unparseable plan carries no derivable verdict either — same as no verdict.
         return
-    station = gh_board.derive_station(plan_doc)
+    station = gh_board.derive_station(plan_doc, board)
     if station is None:
         return
     rec = load_recorded(feat_dir)
@@ -799,7 +811,20 @@ def main():
         # today's behaviour, three parents up — spelled via dirname so the verify's
         # assertion (no fixed join-climb as the PRIMARY derivation) stays meaningful
         root = os.path.dirname(os.path.dirname(os.path.dirname(_abs)))
-    repo, board = load_config(root)
+    try:
+        repo, board = load_config(root)
+    except factory_config.FleetError as e:
+        # An unusable board declaration is a LOUD failure of the whole invocation (D-01,
+        # D-02, D-07) — never a printed note followed by business as usual. Exit code 2
+        # matches board-station.py's pinned value and factory_cli.EXIT_REFUSED's wider
+        # convention for exactly this class of expected refusal; die() (exit 1) and
+        # skip() (exit 0) are both wrong here, the first because this is not a caller
+        # mistake in the dispatch and the second because an unusable config must not
+        # read as an environmental precondition. str(e) is printed verbatim — it is
+        # already built by factory_cli.body(what, value, next_step), so composing a
+        # new line would drop the next_step that tells the operator what to do.
+        print(f"gh-sync: {e}", file=sys.stderr)
+        sys.exit(2)
     if cmd == "open":
         cmd_open(feat_dir, repo, parent_arg)
     elif cmd == "start-task":

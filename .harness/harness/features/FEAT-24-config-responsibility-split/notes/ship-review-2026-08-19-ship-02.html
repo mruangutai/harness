@@ -1,0 +1,91 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-24 — the config responsibility split. Ship decision.</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-24-the-config-responsibility-split-ship-decision">FEAT-24 — the config responsibility split. Ship decision.</h1>
+<h2 id="the-recommendation">The recommendation</h2>
+<p><strong>Ship it, and take two rulings.</strong> The feature does what it was built to do: pm&#x27;s goal-check found <strong>no success criterion broken in the code</strong>. Every board now lives in its own repository, one shared validator raises on every malformed shape, and an unusable board is a loud, named error instead of a silent nothing. I confirmed the central path live rather than from the suite: <code>board_for</code> returns kaya&#x27;s board, read from <code>master</code>, with a checkout sitting on disk unused.</p>
+<p>What is <em>not</em> finished is <strong>evidence durability</strong>. Five of thirteen criteria rest partly on assertions that provably cannot fail. That is a real gap and it is the same gap this feature exists to close — one level up, in the tests rather than the code.</p>
+<h2 id="criterion-status-pm-s-goal-check-all-thirteen">Criterion status — pm&#x27;s goal-check, all thirteen</h2>
+<p><strong>7 met · 5 partial · 1 split.</strong> Partial always means <em>behaviour met, evidence weak</em> — never broken.</p>
+<div class="scroll"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Met</strong></td><td>SC-02 (five keys, all five mutants run by pm at HEAD), SC-03, SC-04 (16/16 cells), SC-08, SC-09 (pm&#x27;s own live <code>gh api</code> read), SC-11, SC-12</td></tr><tr><td><strong>Partial</strong></td><td>SC-01 · SC-05 · SC-06 · SC-07 · SC-10</td></tr><tr><td><strong>Split</strong></td><td>SC-13 — clause 1 met (28/28 scripts, none removed); clause 2 requires the suite green <strong>at the merge commit</strong> and nothing pre-merge can clear it</td></tr></tbody></table></div>
+<p>The partials, concretely: SC-01&#x27;s &quot;declares only four keys&quot; is true by reading but pinned by nothing — appending a fifth key to <code>fleet.yaml</code> reddens zero tests. SC-07 has 1 of 3 consumers discriminating, because <code>DEFAULT_BRANCH</code> is <code>&quot;main&quot;</code> in all three test files, so a hardcoded <code>&quot;main&quot;</code> is invisible. SC-10 is 11 of 12. SC-06&#x27;s behaviour is met on all three named failure modes, but <code>gh</code> unauthenticated shares one code branch with missing-file and no committed test names it.</p>
+<h2 id="two-rulings-only-you-can-make">Two rulings only you can make</h2>
+<p><strong>1. SC-05&#x27;s scope — and I measured the thing that prices it.</strong> The clause reads &quot;an explicit null is accepted, writes no station, and <strong>is the only non-error path</strong>&quot;. The product lead named an unrun check that would settle it, so I ran it rather than sending you a question a measurement could close.</p>
+<p><code>gh_board.load_board</code> has <strong>six</strong> non-error paths, and <strong>five</strong> of them mean &quot;no board&quot;:</p>
+<div class="scroll"><table><thead><tr><th>shape</th><th>outcome</th></tr></thead><tbody><tr><td>a valid board declared</td><td>returns the board</td></tr><tr><td><strong>explicit <code>null</code> board</strong></td><td>returns <code>None</code> — the declared no-board path</td></tr><tr><td><code>github</code> present, no <code>board</code> key</td><td><strong>RAISES</strong> — the only cell that does</td></tr><tr><td>no <code>github</code> key at all</td><td>returns <code>None</code></td></tr><tr><td><code>github</code> not a mapping</td><td>returns <code>None</code></td></tr><tr><td>the whole file not a mapping</td><td>returns <code>None</code></td></tr><tr><td>the file absent or unparseable</td><td>returns <code>None</code></td></tr></tbody></table></div>
+<p>So &quot;the only non-error path&quot; is false by a factor of five, not by one — and the one-line fix discussed earlier would have closed exactly one of the four extra cells. Note the last row is arguably <em>correct</em>: a project with no <code>harness.json</code> genuinely has no board. That is why this is a design ruling and not a mechanical fix. Three ways to close it: re-scope the clause to &quot;the only <strong>declared</strong> no-board path&quot;, which is true today; make the middle three cells raise and leave file-absent alone; or strike the clause. <strong>pm&#x27;s reading is that SC-05 is met 4/4 under the narrow domain SC-04 and REQ-09 already use</strong> — the tidiest answer, and pm declined to simply endorse it, which I think is right.</p>
+<p><strong>2. Whether to pin the unpinned cases.</strong> Five cases now guard real defects — the two <code>file_at_ref</code> bugs and the two <code>product_config</code> parse branches — and <strong>no <code>verify:</code> block references any of them</strong>, so deleting them would be invisible to every gate. Fixing that edits an approved <code>verify:</code> after signature, which is pm&#x27;s and yours, not mine.</p>
+<h2 id="a-correction-against-myself-on-the-record">A correction against myself, on the record</h2>
+<p>I reported that <code>gh_board.load_board</code> returns <code>None</code> for three cells and used it to argue SC-05 was unsatisfiable. <strong>It was a broken measurement:</strong> <code>load_board</code> takes a repository <em>root</em> and I passed it a file path, so every <code>None</code> I saw was the file-not-found branch, not the cell I claimed to test. Measured correctly, a <code>github</code> block with no <code>board</code> key <strong>raises</strong>. pm&#x27;s probe was right and mine was wrong, and I had already carried the bad reading into two dispatches. The lesson is narrower than &quot;check your work&quot;: I verified the value returned and never verified that the <em>call shape</em> was the one the function takes. A probe that exercises the wrong branch returns a real value and looks exactly like evidence.</p>
+<h2 id="what-this-feature-cost-and-whether-it-earned-it">What this feature cost, and whether it earned it</h2>
+<p><strong>Cycles 9 of 10</strong> (rework only) — <strong>one left</strong>. Any further fix loop exhausts the budget, and exhaustion is a hard stop I must report as BLOCKED rather than push through. That is the strongest practical argument for taking the two rulings and shipping rather than opening another repair round. <strong>Runs 21 against an informational budget of 20</strong> — crossed, and reported rather than apologised for. My read: they earned their place. The last eight runs each closed something real — a criterion whose assertion could not fail, two live integration defects, a gate slicing on markers that did not exist, an error message directing an operator to a destination the same change deleted. Two leads escalated believing the run budget was a hard stop; it is informational, and <code>max_total_cycles</code> is the counter with teeth.</p>
+<p><strong>Two defects shipped past a 208-check green suite</strong> before being caught, both in one function, both invisible because the fake <code>gh</code> models argv but neither the HTTP method nor the real response shape. That is the single most important thing this feature learned, and B-5 below is where it goes.</p>
+<h2 id="how-this-briefing-was-assembled">How this briefing was assembled</h2>
+<p><strong>No report round was spawned.</strong> It is drawn from the digests already on disk, each cited by path under <code>runs/&lt;id&gt;/digest.md</code>: <code>2026-08-18-1-product</code>, <code>-1-eng</code>, <code>-2-product</code>, <code>-1-validator</code>, <code>-2-eng</code>, <code>-3-product</code>, <code>-4-eng</code>, <code>-5-eng</code>, <code>-6-eng</code>, <code>-7-eng</code>, <code>2026-08-19-1-eng</code>, <code>-2-product</code>, <code>-3-validator</code>, <code>-4-eng</code>, <code>-3-product</code>, <code>-5-validator</code>, <code>-7-eng</code>, <code>-8-eng</code>, <code>-9-validator</code>, <code>-10-eng</code>, <code>-11-product</code>; plus <code>notes/qa-2026-08-19-matrix-gate.md</code>, <code>notes/qa-2026-08-19-matrix-recheck.md</code>, the three <code>notes/review-harness-*-c0.md</code> reviewer artifacts, and <code>notes/research-FEAT-24-goalcheck.md</code>. Ship-refresh was <strong>skipped</strong>: there is no map (<code>INDEX.md</code>) in this repository, so nothing could go stale.</p>
+<h2 id="proposed-backlog-none-of-these-gate-the-ship">Proposed backlog — none of these gate the ship</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Item</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td>SC-01&#x27;s &quot;declares only four keys&quot; is pinned by nothing — a fifth key in <code>fleet.yaml</code> reddens zero tests</td><td>chore</td></tr><tr><td>B-2</td><td>SC-07: <code>factory_land</code> and <code>factory_workspace</code> <code>default_branch</code> assertions cannot fail; <code>DEFAULT_BRANCH</code> is <code>&quot;main&quot;</code> in all three fixtures</td><td>chore</td></tr><tr><td>B-3</td><td>SC-10: <code>factory_land.py:95</code> reverted to <code>&quot;Review&quot;</code> gives zero FAILs</td><td>chore</td></tr><tr><td>B-4</td><td>SC-06: <code>gh</code> unauthenticated shares one branch with missing-file; no committed test names it</td><td>chore</td></tr><tr><td>B-5</td><td>The fake <code>gh</code> models argv but neither the HTTP method nor the real response shape — it shipped two live defects past a green suite</td><td>bug</td></tr><tr><td>B-6</td><td>Five cases guarding real defects are referenced by no <code>verify:</code> block, so deleting them is invisible to every gate</td><td>chore</td></tr><tr><td>B-7</td><td>No case-level deletion guard exists: SC-13&#x27;s instrument counts FILES, and this diff deleted two named assertions while the count stayed 28/28</td><td>bug</td></tr><tr><td>B-8</td><td>T-10&#x27;s verify checks that record amendments EXIST and sit in the right section, never that they are TRUE — how a false entry shipped green</td><td>bug</td></tr><tr><td>B-9</td><td><code>harness.json</code>&#x27;s <code>integration.detect</code> names 4 files while <code>INTEGRATION_SCRIPTS</code> runs 12</td><td>chore</td></tr><tr><td>B-10</td><td><code>gh_board.load_board</code>&#x27;s docstring is wrong about three cells that return <code>None</code>; every caller guards, so nothing fails today</td><td>chore</td></tr><tr><td>B-11</td><td>The kaya-ai/board-2 pairing has no ongoing regression check after <code>case5</code> dropped two assertions</td><td>chore</td></tr><tr><td>B-12</td><td><code>factory_land.py</code> does not commit — T-09 failed with <code>No commits between master and factory/issue-334</code> until you committed by hand</td><td>bug</td></tr><tr><td>B-13</td><td><code>gh-sync.py</code> has no un-start subcommand, so an abandoned dispatch strands cards on <code>Building</code></td><td>enhancement</td></tr><tr><td>B-14</td><td><code>feature.json</code>&#x27;s schema declares no <code>phase</code> property while the orchestrator playbook instructs recording one there</td><td>bug</td></tr><tr><td>B-15</td><td><code>validate-digest.py</code> rejects read-only members&#x27; <code>suite: n/a</code> / <code>task: none</code></td><td>bug</td></tr><tr><td>B-16</td><td>Leads returning a verdict while their member is still in flight — #461, several more sightings here</td><td>bug</td></tr><tr><td>B-17</td><td>Two leads escalated believing <code>max_total_runs</code> is a hard gate; it is informational, and the doctrine is not reaching leads</td><td>chore</td></tr><tr><td>B-18</td><td><code>test-factory-land.py</code>&#x27;s <code>review</code> fixture has the non-discriminating shape SC-02&#x27;s <code>ready</code> had</td><td>chore</td></tr><tr><td>B-19</td><td><code>plan.yaml:657-658</code>&#x27;s T-03 prose is stale after the <code>ready</code> fixture moved to <code>Promoted</code></td><td>chore</td></tr><tr><td>B-20</td><td>Reported by security, DEC-174 flag-only and unverified: <code>bash-write-guard.sh</code> blocks <code>cp</code>/<code>rm</code> for a read-only role but not an equivalent <code>python3 shutil</code> write</td><td>bug</td></tr><tr><td>B-21</td><td><code>validate_board</code> does not bind <code>board.owner</code> to the repository&#x27;s own owner or a fleet allow-list</td><td>enhancement</td></tr><tr><td>B-22</td><td><strong>The orchestrator cannot apply handed-up Expertise ops.</strong> The playbook says write-less members return ops and the orchestrator applies them verbatim; <code>check-domain.sh --resolve</code> grants every <code>.harness/expertise/&lt;agent&gt;.md</code> to that agent ALONE. Ten ops from three reviewers and two leads are unappliable by anyone who received them</td><td>bug</td></tr><tr><td>B-23</td><td>Write-less reviewers cannot run <code>check-expertise.sh</code> — the guard blocks even a scratch write — so the one role that must hand ops up unapplied is the one that cannot validate them</td><td>bug</td></tr><tr><td>B-24</td><td>The repository-tier Expertise path the distill skill describes is granted to nobody and does not exist; several durable repo-specific facts were judged, written nowhere, and reported</td><td>chore</td></tr><tr><td>B-25</td><td>pm returned <code>expertise_full</code>: a durable uncovered rule was dropped on the Gotchas cap alone, not on merit. Raise that file&#x27;s cap or record the loss as a cap decision</td><td>chore</td></tr><tr><td>B-26</td><td>Two of four validator-squad members have never written an observations log, so their distillations reconstruct craft from review artifacts written for another purpose</td><td>chore</td></tr></tbody></table></div>
+<h2 id="also-yours-and-not-feat-24-s">Also yours, and not FEAT-24&#x27;s</h2>
+<p>The paused <code>FEAT-25</code>, <code>FEAT-26</code> and <code>FEAT-27</code> directories account for every remaining <code>check-state.sh</code> violation. <strong>FEAT-24 itself reports zero.</strong> I have not touched them.</p>
+<h2 id="what-ships">What ships</h2>
+<p>Fourteen commits on <code>feat/FEAT-24-config-responsibility-split</code>, tip <code>2359f4f</code>, <code>review_sha</code> pinned at <code>91884f9</code>. Full suite green, zero FAIL lines. No PR is open and nothing is merged — that is yours.</p><p class='derived'>Derived from <code>ship-review-2026-08-19-ship-02.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

@@ -17,9 +17,9 @@
 - P-05: WHEN a member reports entry or finding counts in its headline DO count its own ops list
   and open the file before repeating the number — self-reported totals have disagreed with the
   file in successive runs, and yours is the tier where a count becomes a measurement.
-- P-06: WHEN a review of an unapproved artifact finds a blocking design gap DO check the
-  artifact's own status field before grading — a draft still pending signature routes the
-  finding to the planner and returns PASS; halting it breaks the revision flow it was written for.
+- P-06: WHEN approving a replacement for an assertion DO ask what the old one PINNED and check
+  the new SET still pins it — "no assertion may be weakened" passes when each is individually as
+  strong and the set has lost a property, so nothing reddens when the defect returns.
 - P-07: WHEN a task's write path is unowned by your own manifest reading DO split it so the
   bankable phase dispatches first — the guard's denial names the permitted set and routes,
   where halting on your reading alone banks nothing.
@@ -78,12 +78,26 @@
 - G-09: WHEN a review would raise a pinned expected-FAIL count DO first enumerate which modules
   actually read the changed real input — a pin above the true count reds a correct tree and
   manufactures a mid-cluster halt, worse than the looseness it fixes.
-- G-10: WHEN your re-derivation of a stated count disagrees DO read what each of its terms names
-  before reporting the record wrong — a derivation enumerating the finished artifact reproduces
-  where a sum of per-task file lists does not, and a second route to the same number corroborates.
+- G-10: WHEN dispatching a distillation into an existing Expertise file DO capture one
+  distinctive token per current entry before the spawn and compare by text on return — the
+  format checker has no notion of prior state, and a drop plus a renumber leaves the id set
+  identical.
 - G-11: WHEN relaying a closed run's finding into permanent memory DO re-measure its premise at
   the current tree first — a finding is dated at its pin, the tree moves past it, and a remedied
   one distilled as fact teaches something false that no gate can catch.
+- G-12: WHEN a dispatch must prove one error message discriminating from another DO require a
+  runtime assertion — trigger both, assert the substring present in one and absent from the
+  other. `grep -c` counts source LINES, so a phrase straddling an f-string's line break returns
+  zero, which reads as unique.
+- G-13: WHEN a member is still in flight DO spend the open turn on reads that could change your
+  assessment, never on filesystem polling — completions arrive by notification, and a receipt
+  already on disk may still be mid-revision, so reading it early buys a false finding.
+- G-14: WHEN rating a finding that a function fails silently DO enumerate its call sites first —
+  if every caller pre-filters the case, it is a falsified docstring, not a live hole, and
+  severity decided by who calls it is the difference between a fix cycle and a routed question.
+- G-15: WHEN dispatching against a suite with known failures DO decide the expected FAIL set and
+  its evidence before the member reports — deciding after is how a new defect gets filed under
+  "expected", and a known FINDING is not a known FAILURE.
 
 ## Outcomes (max 10)
 
