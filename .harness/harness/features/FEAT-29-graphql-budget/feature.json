@@ -11,14 +11,44 @@
     "milestone": 18,
     "parent": 571,
     "parent_origin": "adopted",
-    "attached": ["T-01", "T-02", "T-03", "T-04", "T-05", "T-06", "T-07", "T-08", "T-09"],
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09"
+    ],
     "issues": {
-      "T-01": 579, "T-02": 580, "T-03": 581, "T-04": 582, "T-05": 583,
-      "T-06": 584, "T-07": 585, "T-08": 586, "T-09": 587
+      "T-01": 579,
+      "T-02": 580,
+      "T-03": 581,
+      "T-04": 582,
+      "T-05": 583,
+      "T-06": 584,
+      "T-07": 585,
+      "T-08": 586,
+      "T-09": 587
     }
   },
   "runs": [
-    { "id": "plan-product", "squad": "product", "verdict": "PASS" },
-    { "id": "2026-08-19-01-eng", "squad": "eng", "verdict": "BLOCKED" }
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-01-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-19-02-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    }
   ]
 }
