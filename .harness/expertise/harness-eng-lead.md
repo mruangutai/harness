@@ -49,9 +49,6 @@
   certifying its own fix is the shape of the defect these passes exist to catch.
 
 ## Gotchas (max 15)
-- G-01: `.claude/skills/harness/bin/**` sits in both backend-dev's and dev-ops's domain in
-  team-config.yaml, so the domain hook cannot keep their writes disjoint there — serialize any
-  two tasks touching one file under it and attribute each write.
 - G-02: WHEN two specialists' domains both grant a task's path DO route by the plan's own
   `execution_agent` when it names one, and record it — re-routing on `consult-when` purity would
   amend an approved plan, and the grant itself cannot discriminate.

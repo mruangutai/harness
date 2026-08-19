@@ -138,7 +138,3 @@
   a signed clause shipped half-built that behavioural checking missed; the same checking caught two
   gates passing while discovering nothing. Three features suggest intent-versus-mechanism, and none has
   run with the panel absent.
-- OQ-02: Shared `.harness/expertise/` has no lineage protection. Nothing reconciles a landed diff
-  against the plan's declared files, so an undeclared edit to a per-spawn-injected file rides any
-  cluster commit and only a human notices. Whether the fix is diff-vs-plan reconciliation, write-guard
-  scoping, or keeping Expertise off feature branches is undecided.

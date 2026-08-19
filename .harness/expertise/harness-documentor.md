@@ -4,10 +4,6 @@
 - P-01: WHEN a dispatch or plan hands down a `file:line` anchor or a count of things DO grep it
   yourself and write the named list rather than the count — handed-down anchors and counts are the
   least trustworthy input you receive.
-- P-02: WHEN appending an amendment to `.harness/harness/docs/DECISIONS.md` DO place it INSIDE the
-  amended decision's own section, before the next `## DEC-` heading, then regenerate the index —
-  the generator attributes an amendment to the heading above it, so one appended at end-of-file
-  becomes the last decision's.
 - P-03: WHEN you edit on a dirty working tree DO read `git diff -U0` hunk headers to bound your own
   change — `--stat` totals silently include edits already present at spawn, and reporting them as
   yours misstates the diff.
@@ -29,9 +25,6 @@
 - P-09: WHEN you report that a structural or parse check passed DO first run it against a
   deliberately broken copy of the same input — lenient parsers accept malformed input, so "it
   parsed" is evidence of nothing until the checker is shown rejecting something.
-- P-10: WHEN adding an entry to `.harness/harness/docs/DECISIONS.md` DO append at end-of-file and regenerate
-  the index rather than hand-writing the new row — appending keeps every existing `@line` anchor
-  stable, and the generator emits a sentinel telling you the one place to write.
 - P-11: WHEN a `verify:` clause is your evidence that a criterion about a section's body is met DO
   print the matching line for every assertion and show it sits in that section — a clause green
   before your edit and after matched unrelated text, and all-PASS then means nothing.
@@ -53,16 +46,6 @@
   edit — the values a plan or brief records were true when written and drift silently afterwards.
 - G-02: WHEN handed-down prose says "always" or "unconditionally" DO grep for the early return or
   skip clause before repeating it, and write the narrower claim the guards actually support.
-- G-03: WHEN a decision the tree flatly contradicts turns up DO strike it, never mark it — DEC-188
-  removed the superseded-pattern marker and its checker entirely. A struck decision keeps its
-  heading and a strike record so old citations still land somewhere.
-- G-04: WHEN you strike a decision DO sweep every live surface by hand — no propagation checker
-  exists (DEC-188), so a falsified sentence standing is caught only by a human reading the diff.
-  Live: CLAUDE.md, docs/, .claude/{skills,commands,agents}, .harness/expertise; .harness/features
-  is historical record, leave them.
-- G-05: WHEN you edit a ruling in `.harness/harness/docs/DECISIONS-INDEX.md` DO run the unit-test runner, not
-  just the generator diff — the index's length budgets are asserted only in
-  `test-gen-decisions-index.py` and stated nowhere in the index itself.
 - G-06: WHEN a `grep -c` detector must go from 0 to >=1 in a hard-wrapped file DO re-flow so the
   counted tokens share one physical line — grep counts physical lines, so a prose-correct fix still
   reads 0 and looks unwritten.

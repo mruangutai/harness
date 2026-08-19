@@ -1,10 +1,6 @@
 # Expertise — harness-security-reviewer
 
 ## Patterns (max 15)
-- P-01: This codebase's untrusted-input boundary is the hook payload (JSON on
-  stdin, `.claude/skills/harness/bin/*.{py,sh}`) — but `bin/factory_*.py` is a
-  second surface: it builds subprocess argv and GraphQL query documents from
-  operator-config values (`fleet.yaml`) and shells to `gh`. Audit both.
 - P-02: WHEN grading a possible finding DO name the threat model before severity:
   an actor who already controls a value already holds the privilege it grants (no
   escalation, not a finding); a control reachable only from a higher-trust step
