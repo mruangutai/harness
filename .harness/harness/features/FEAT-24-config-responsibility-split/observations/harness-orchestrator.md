@@ -153,3 +153,24 @@
   lead returns BLOCKED-without-digest and the work is on disk, say in the record that the commit
   rests on the ORCHESTRATOR's verification and not on a lead assessment.
 
+- 2026-08-19: `review_sha` went stale under me and I did not notice: I pinned before the qa segment
+  (correct, INV-6), then four commits landed, and qa reviewed a tree four commits ahead of the pin.
+  Nothing downstream reads the field, so no gate could catch it — INV-6 asserts the pin is PRESENT,
+  never that it is CURRENT (#487). The rule that actually works is mechanical: re-pin as part of the
+  same act as every commit, not "before the next validator run", because the next validator run is
+  exactly when you have stopped thinking about it.
+
+- 2026-08-19: I relayed an operator's claim into a dispatch as established fact — that a case
+  "asserts INV-13 still ran" — and qa found it was a dead conjunct, unsatisfiable because INV-13
+  never names itself in output. Second time this feature that a confidently-stated premise of mine
+  was false. The pattern is specific: I restate someone else's summary in my own voice, which
+  launders it from report into fact. Attribute it ("the operator reports X") or check it; never
+  restate it flat.
+
+- 2026-08-19: A one-file dispatch scope was short by five sites and the lead caught it before
+  dispatching. Moving a fixture value without moving the recorder stub that validates it would have
+  reddened the whole file, readable as "the fix failed" rather than "a site was missed". When a
+  dispatch names the sites, say the ENUMERATION IS A HYPOTHESIS and instruct a grep first — the count
+  is the part most likely to be wrong, and a wrong count fails in a shape that looks like something
+  else entirely.
+

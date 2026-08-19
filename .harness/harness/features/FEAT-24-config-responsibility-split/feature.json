@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-24-config-responsibility-split",
   "pr": null,
   "status": "Review",
-  "review_sha": "b0604c3",
+  "review_sha": "3396b5e",
   "cycles_used": 5,
   "max_total_cycles": 10,
   "max_total_runs": 20,
