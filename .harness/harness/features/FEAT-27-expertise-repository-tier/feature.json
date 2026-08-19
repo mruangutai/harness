@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Building",
   "review_sha": "2117a46",
-  "cycles_used": 1,
+  "cycles_used": 2,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -27,6 +27,31 @@
       "id": "e1-judgment-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "fixture-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t05-q4-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t07-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "qa-final-validator",
+      "squad": "validator",
+      "verdict": "PASS"
     }
   ],
   "github": {
@@ -39,7 +64,8 @@
       "T-03",
       "T-04",
       "T-05",
-      "T-06"
+      "T-06",
+      "T-07"
     ],
     "issues": {
       "T-01": 565,
@@ -47,7 +73,8 @@
       "T-03": 567,
       "T-04": 568,
       "T-05": 569,
-      "T-06": 570
+      "T-06": 570,
+      "T-07": 573
     }
   }
 }

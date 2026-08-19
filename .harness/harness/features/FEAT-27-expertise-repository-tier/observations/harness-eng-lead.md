@@ -80,3 +80,31 @@
   mutant: the "kaya" header printed at :114, and stderr, which takes three writes (head, wc, and
   the empty `$( )` making `[ "" -gt 40 ]` a bash integer error at :57-58). Deriving WHY a case can
   fail, not just that it did, is what separates assessing from re-running.
+
+- 2026-08-19: THIRD `model:` block in one feature, on the simplify pass — I passed `model: opus`
+  to all four angle dispatches in a single message, so one habit cost four blocked spawns at once.
+  The two earlier entries in this very log did not prevent it. What is now clear is that the
+  batching multiplies the error: a per-dispatch mistake in a fan-out wave is not one mistake, it
+  is N. The guard is the only thing standing between the habit and the org.
+
+- 2026-08-19: the simplify pass's most valuable finding came from neither the four angles nor the
+  assessment — it came from a read I did while all four were in flight. No case in
+  test-inject-expertise.py writes anything under the neutralized `home`, so the global tier is
+  never exercised, and four PROJECT-tier fixtures are literally named "GLOBAL BODY…" which makes
+  the untested path read as tested. Four independent readers each carrying one angle all missed
+  it because it is not any single angle's question. The in-flight wait is not dead time; it is the
+  only slot where the lead reads the same surface without an angle constraining it.
+
+- 2026-08-19: two of four readers reported case counts that did not survive my own count
+  ("14 base + 20 extra" vs my 9 `case()` registrations and 22 `record()` calls; "16 scripts" vs
+  run-unit-tests.sh:17's 17). Neither error changed a finding, which is exactly why it is
+  dangerous — a wrong number attached to a correct conclusion is the form that propagates, because
+  nothing about the conclusion invites re-checking the number.
+
+- 2026-08-19: a read-only dispatch is not self-enforcing for an agent holding Bash. The efficiency
+  reader planted three files in the live tree to count N empirically, then removed them and proved
+  the tree clean — good evidence, obtained by the one method the round's premise forbade, while a
+  qa gate graded the same commit. "Read-only" stated in prose is a request; the domain hook cannot
+  see Bash writes. When a measurement genuinely needs a populated tree, the dispatch should name
+  the temp-CLAUDE_PROJECT_DIR technique the suite already uses, rather than leaving the reader to
+  invent one.

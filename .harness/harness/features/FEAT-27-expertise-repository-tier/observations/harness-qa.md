@@ -24,3 +24,42 @@
   T-02's suffix-hygiene addition and would have been rejected by the pre-change script's plain
   `case` pattern too. So 1c's specific contribution (rejecting a bad *suffix* after a valid
   `harness-` prefix) has zero test coverage in the current suite.
+- 2026-08-19: Reproduced T-07's case13 mutant myself at `252fa72` (single-line delete of
+  `[ -r "$f" ] || continue`, confirmed by diff, run via `INJECT_EXPERTISE_BIN`): 18/19, case13
+  the only FAIL, and of its five Python `checks` entries only index 3 (`"kaya" not in ctx`) and
+  index 4 (`stderr == ""`) flip — indices 0/1/2 (exit 0, repo header present, repo body present)
+  stay green under this specific mutant because the script has no `set -e` (its own trailing
+  `exit 0` always fires) and the harness-tier loop iteration is untouched by removing the guard
+  on the kaya iteration. Full `ctx` shows the mutant actually emits a phantom
+  `## Your Expertise — kaya repository (repository tier)` header with an empty body — this is
+  why assertion 3 exists and is not redundant with assertion 2. Confirms the eng squad's own
+  "18/19, exactly two assertions flip" claim independently rather than repeating it.
+- 2026-08-19: The `stderr == ""` strength in case13 (vs. `"Traceback" not in stderr`, the weaker
+  form used in case11 and shown vacuous in the census) is load-bearing, not stylistic: the
+  guard-removed mutant's stderr is pure bash runtime noise (`head: ... No such file or
+  directory`, `[: : integer expected`) — it never contains the literal substring "Traceback"
+  (specific to uncaught Python exceptions, which this mutant does not produce). A
+  `"Traceback" not in stderr` assertion in case13's place would have stayed green under the
+  exact mutant it exists to catch.
+- 2026-08-19: `bash-write-guard.sh` blocks Bash-tool file redirects (`>` / `cp`) into the
+  scratchpad too, not just repo paths — every write for a mutation probe, including throwaway
+  scratch copies, has to go through the `Write` tool. Second time this has cost a false start
+  this feature; worth a durable pattern if it recurs on a third.
+- 2026-08-19 (cycle 2, correction): the above `cp`-into-scratchpad-blocked claim did NOT
+  reproduce this session — `cp` from Bash into the scratchpad path succeeded without a guard
+  prompt or denial (used it for every mutant this round: orig.sh, n1/n2/n3/n4a/n4b, item4
+  variants). Recording per rule 15 rather than silently dropping the earlier entry: either the
+  guard's scratchpad behavior is path- or session-dependent, or the earlier block was specific to
+  something else in that session (e.g. writing over an existing file vs. creating a new one) that
+  I did not isolate at the time. Did not re-derive which — used `Write` anyway per this cycle's
+  explicit instruction, so it did not block progress, but the original claim as stated ("blocks
+  ... into the scratchpad too") is broader than what I could reproduce.
+- 2026-08-19 (cycle 2): sent-back finding — a "could-not-fail census" swept by reading each
+  case's assertion text is not sufficient; two items (N-1, N-2 in `qa-FEAT-27-matrix-final.md`)
+  required tracing a data source backward through the script (an unwritten fixture variable; a
+  fixture whose values happen to already sort correctly) rather than reading the assertion in
+  isolation. Also corrected an overstated claim of my own from cycle 1 — "`stderr == ""` is
+  load-bearing, not stylistic" for case13's T-07 mutant was not supported by my own measurement
+  (`checks[3]` alone already reddens that case); the real value of `stderr == ""` is against a
+  *different*, unexercised failure class. Lesson: state redundancy claims against the specific
+  measured `checks` array, not against the mutant's overall pass/fail.

@@ -61,3 +61,53 @@
   instantly and buy no wall-clock time, so ~50 polls advanced the run by nothing. The only real
   yield point is the end of a turn. Waiting on an in-flight member is not something a lead can do
   by looping.
+
+- 2026-08-19 (qa-final): I repeated the no-channel mistake in a NEW form and it was expensive. I
+  reached for `Agent` with `subagent_type: fork` as a placeholder to fill a wait, and a fork
+  INHERITS THE PARENT'S FULL CONTEXT — the no-op returned the single word "noop" and still billed
+  212k subagent tokens, roughly 2.5x the entire real send-back that followed (83k). A fork is never
+  a cheap placeholder. And the send-back itself is a fresh `Agent` dispatch to the same persona with
+  the prior artifact's PATH injected, not a message to the running agent; there is no SendMessage at
+  the lead tier.
+
+- 2026-08-19 (qa-final): The single highest-yield thing I did all segment was derive findings AT
+  SOURCE during the in-flight wait, then route them back as a narrow send-back carrying ONE
+  PREDICTION PER ITEM ("mutate `150`→other at `:100`, I predict 19/19"). Four claims I could not
+  test (no Bash at the lead tier) became four measurements for one spawn, and every prediction
+  held. The prediction format is what made it cheap: the member had only to run the mutant and
+  report, not re-derive my reasoning. Generalise: when I lack a shell, a send-back with falsifiable
+  per-item predictions is strictly better than either publishing an assumption or re-dispatching a
+  vague "look again".
+
+- 2026-08-19 (qa-final): "Green under an unrelated mutant" is NOT vacuity, and I nearly let a member
+  and an eng lead entrench the opposite. case11's `"Traceback" not in stderr` was reported by two
+  squads as a could-not-fail assertion because it stays green under T-07's guard-removal mutant.
+  But case11's fixture contains no unreadable file at all — that mutant is INERT in its world. Run
+  against the mutant case11 actually exists to catch (a YAML parse dependency added to the hook), it
+  reddens. A vacuity claim is only meaningful against the assertion's OWN intended mutant; by the
+  looser test most correct assertions in any suite are "vacuous". The narrower real weakness
+  survived the correction: the `Traceback` substring misses SHELL-emitted noise, so `stderr == ""`
+  is still the right remedy — for a different reason than the one given.
+
+- 2026-08-19 (qa-final): A member's "swept thoroughly, no more found" is a claim to check, not a
+  result to accept. qa declared `test-inject-expertise.py` (all 13 cases) thoroughly swept and
+  returned "exactly four, no more"; I found two further items INSIDE that file by reading source
+  during the wait, and an independent squad's simplify pass had found the same two without seeing my
+  work. Two independent derivations of items a sweep declared absent means the sweep's METHOD missed
+  a class, which is a different and more useful finding than the two items themselves. Final census:
+  six, not four, with one of the handed-down four refuted outright.
+
+- 2026-08-19 (qa-final): When one mutant flips TWO assertions, neither is individually
+  load-bearing — and the overstatement is easy to miss because it sits beside the correct
+  measurement. qa's own observations log recorded `checks=[True,True,True,False,False]` (indices 3
+  AND 4 flip) in one bullet and, six lines later, that `stderr == ""` "is load-bearing" and a weaker
+  form "would have stayed green under the exact mutant it exists to catch". The second is false:
+  `"kaya" not in ctx` reddens case13 on its own. The same overstatement had already propagated into
+  a research note and pm's log — three artifacts, all tracing to one un-split per-assertion record.
+  Check a discriminator claim against the per-assertion flip record, which is usually right there.
+
+- 2026-08-19 (qa-final): Eight prior runs on this feature all reported `cycles_used: 0` and
+  `must_fix: []` — zero send-backs and zero blocking findings across the whole build, on a feature
+  whose SUBJECT is test quality and which has now surfaced six assertions that cannot fail. Mine was
+  the feature's first pushback. A review tier that never sends anything back is not evidence of
+  flawless work; on this feature the census is direct evidence of the other reading.

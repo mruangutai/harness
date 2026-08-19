@@ -139,3 +139,41 @@
   be to re-derive it from the source data by hand. Worth saying explicitly in the dispatch, because
   pasting the actual output is the fastest way to make the suite green and looks identical in the
   diff.
+
+- 2026-08-19: Ran the qa gate and the simplify pass CONCURRENTLY by making simplify flag-only. The
+  playbook sequences them because simplify's APPLY would move the tree under a running gate — but
+  the four angles are read-only by construction, and only the apply collides. Splitting the step at
+  that seam (angles now, applies routed by me afterwards) bought a full round-trip and cost nothing.
+  The rule generalises: when two segments conflict only through one sub-step, dispatch both and
+  withhold the sub-step.
+
+- 2026-08-19: A feature whose whole subject is test quality found FOUR assertions that could not
+  fail — hostile agent_type values vacuous by file-absence, a FEAT-NN sub-case indistinguishable
+  from a pre-existing violation, a guard's documented duty masked by a sibling filter, and a
+  "Traceback not in stderr" check green under the very mutant its neighbour was built to catch.
+  Three of the four were found by MUTATION and one by reading a neighbour of the code under test.
+  None was found by the suite going green, because that is precisely what they all did.
+
+- 2026-08-19: I PROPAGATED AN OVERSTATEMENT INTO A COMMIT MESSAGE. My t-07 commit says the weaker
+  `"Traceback" not in stderr` wording "would have passed against the mutant". The final qa gate
+  measured it: TWO assertions flip under that mutant — the phantom kaya header AND stderr — so
+  case13 would have failed either way. The same overstatement had already propagated through pm's
+  research note and pm's observations log before it reached me; I restated it in my own voice
+  without checking, which is exactly P-03's failure, and a commit message cannot be corrected in
+  place. `stderr == ""` still earns its place, but against a DIFFERENT and unexercised case: stderr
+  noise with no phantom header. When three artifacts already agree on a claim, that is not
+  corroboration if all three inherited it from one source.
+
+- 2026-08-19: The first send-back in nine runs came from the LAST gate, and it changed a real
+  number — a "thorough sweep, exactly four, no more found" census was wrong at six, with two items
+  inside the very file the sweep declared clean. Two readers derived the same two items
+  independently without seeing each other. A review machinery that has never sent anything back is
+  not evidence of flawless work; on this feature it was evidence that nobody had yet looked with a
+  method that could disagree.
+
+- 2026-08-19: A gate can only see what its own greps spell. T-05's verify greps literal phrases and
+  passed, while the same document carried the identical falsehood twice in paraphrase — "Project
+  wins on conflict" in one section and "the global cap is tighter than the project one" in another,
+  twelve lines from a table stating both caps are 150. Both were found by READING the section. When
+  a task's verify is a set of literal greps, budget one reading pass over the whole document, and
+  expect the paraphrase to be where the falsehood survives.

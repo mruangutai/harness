@@ -41,6 +41,21 @@
   deleted under DEC-171, so the fixture no longer proves equivalence to anything; it is a frozen
   snapshot that reddens on every legitimate manifest change. Left as-is per dispatch scope (a plan
   question, not mine to fix).
+- 2026-08-19: EFFICIENCY review, simplify segment. Timed `inject-expertise.sh` old (b4659cd) vs
+  new (252fa72) head-to-head, 20 real invocations each, real payload: 59.3ms/run old, 56.0ms/run
+  new — no measurable regression, the new glob/sort/cap_body-with-budget-arg loop is a rounding
+  error against the ~50ms python3-spawn floor. The N×40 repository-tier bound the architecture
+  review flagged is real and NOT narrowed by the shipped code: confirmed by planting
+  `.harness/{factory,logs,notes}/expertise/harness-dev-ops.md` locally — all 4 segments (plus
+  `harness/`) were picked up and injected in one run, proving N tracks "first-level dirs that
+  happen to hold `expertise/<agent>.md`", not something the agent-name regex or segment charset
+  filter caps. Neither filter touches directory count; they only sanitize the interpolated
+  string. Cleaned up the planted files immediately after: `git status --porcelain` on those three
+  paths came back empty. Worth remembering for any future review of this hook: the wall-clock
+  cost is fixed and process-spawn-dominated regardless of tier count, but the token/context cost
+  scales genuinely with however many first-level `.harness/` directories acquire an
+  `expertise/<agent>.md` — that ceiling is a `.harness/team-config.yaml` / D-01 governance
+  question, not something this script can bound on its own.
 - 2026-08-19: T-07, cycle 1. The intent's own line-number citation for the guard drifted by one
   (68 vs the actual 69 at HEAD) — the lead's dispatch note caught and corrected it before I wrote
   anything, so I deleted the guard by its literal text (`[ -r "$f" ] || continue`) rather than by
