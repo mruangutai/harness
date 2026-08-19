@@ -4,9 +4,10 @@
 - P-01: WHEN a dispatch or plan hands down a `file:line` anchor or a count of things DO grep it
   yourself and write the named list rather than the count — handed-down anchors and counts are the
   least trustworthy input you receive.
-- P-02: WHEN appending an amendment to a decision in `.harness/harness/docs/DECISIONS.md` DO grep the new
-  amendment number for a collision and append at the file's last amendment, not beside its parent
-  decision — amendments are not contiguous with the decision they amend.
+- P-02: WHEN appending an amendment to `.harness/harness/docs/DECISIONS.md` DO place it INSIDE the
+  amended decision's own section, before the next `## DEC-` heading, then regenerate the index —
+  the generator attributes an amendment to the heading above it, so one appended at end-of-file
+  becomes the last decision's.
 - P-03: WHEN you edit on a dirty working tree DO read `git diff -U0` hunk headers to bound your own
   change — `--stat` totals silently include edits already present at spawn, and reporting them as
   yours misstates the diff.
