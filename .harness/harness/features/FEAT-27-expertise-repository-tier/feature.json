@@ -82,6 +82,11 @@
       "id": "distill-validator",
       "squad": "validator",
       "verdict": "PASS"
+    },
+    {
+      "id": "distill-apply-validator",
+      "squad": "validator",
+      "verdict": "PASS"
     }
   ],
   "github": {

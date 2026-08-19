@@ -15,8 +15,8 @@ repository-tier path (#372), so no agent could write the file the rule told it t
 FEAT-21 a distillation entry was returned unwritten for exactly that reason.
 
 All three are now closed — #484, #372 and #412 — and the proof is not a test fixture. **At this
-feature's own close-out, eleven agents wrote repository-tier files for the first time**, five of them
-creating a file that could not have existed yesterday. The mechanism was exercised by the org before
+feature's own close-out the repository tier went from six files to 13**, seven of them created by
+agents that had nowhere to put repository knowledge the day before. The mechanism was exercised by the org before
 you were asked to accept it.
 
 ## The gates
@@ -28,13 +28,13 @@ you were asked to accept it.
 | Goal-check — SC-01 … SC-11 | **PASS**, all eleven met |
 | Suites at the pin `9b929de` | unit exit 0, integration exit 0, zero `FAIL` lines |
 
-**Twelve runs, three cycles of ten.** The three cycles were: one real fix (a hardcoded test fixture
+**16 runs against an informational budget of 20, and three cycles of ten.** The three cycles were: one real fix (a hardcoded test fixture
 went stale when sixteen grants were added), and two lead-reported send-backs inside the qa and panel
 segments — both of which improved the result rather than repairing a mistake.
 
 I re-measured the load-bearing claims myself rather than relaying them: both suites at the pin;
 sixteen `--resolve` calls each returning the agent's own name with a `NOBODY` negative control;
-fifteen craft and eleven repository Expertise files each named `OK`; and the hook probed end to end
+all 15 craft and all 13 repository Expertise files each named `OK`; and the hook probed end to end
 in a temp root, where two segments inject under scope-only headers, the precedence line appears
 exactly once, and the 40- and 150-line truncation notices each name their own budget.
 
@@ -83,18 +83,26 @@ silently, so it is all listed.
 
 ## Not committed, deliberately — needs you
 
-**Nineteen Expertise files carry uncommitted distillation output** (nine craft, ten repository) and I
+**25 Expertise files carry uncommitted distillation output** (13 craft, 12 repository) and I
 did not commit them to this branch. They fall outside every task's `files:` list except T-04's
 migration, and committing them here would repeat FEAT-25's B-18. They are in the working tree for you
 to land separately.
 
-**Two sets of distillation ops are stranded and need a hand at your tier.** The playbook says the
-lead returns the write-less reviewers' ops and the orchestrator applies them — but every Expertise
-path resolves to its owning agent **alone**, so I cannot write another agent's file. The verbatim ops
-for `harness-code-reviewer`, `harness-security-reviewer` and `harness-ui-reviewer` are in
-`runs/distill-validator/digest.md` under GROUP B, and `harness-product-lead`'s six proposed ops are in
-`runs/distill-product/digest.md`. That digest also flags a format trap: `check-expertise.sh`'s entry
-regex rejects a parenthetical between the id and the colon, and one op carries `P-01 (repo):`.
+**One correction to my own record.** I told the validator squad that the three reviewers hold no
+`Write`, repeating a phrase from the playbook without checking it. It is false: all three declare
+`Write` and are granted **both** Expertise paths with `upsert: true`. Their fifteen ops were therefore
+never stranded — they went back to their owners, who applied them themselves. That is also the safer
+path, because the writer re-reads the file at write time and an operator applying later cannot.
+
+**Final state of the corpus, measured after everything landed:** both tiers exit 0, fifteen craft and
+thirteen repository files, and exactly the six `ADVISORY` lines the validator lead predicted in
+advance — a seventh would have meant an entry drifted into the wrong tier. No file was wiped. One
+reviewer re-ranked its own displacement after the lead challenged the reasoning, sparing an entry this
+very feature had vindicated twice.
+
+`harness-product-lead`'s six proposed ops remain **unapplied** — that tier holds no `Edit` on its own
+Expertise file. They are in `runs/distill-product/digest.md` and are the one set that still needs a
+hand.
 
 ## Proposed backlog
 
@@ -129,6 +137,10 @@ regex rejects a parenthetical between the id and the colon, and one op carries `
 | B-27 | `SendMessage` is unavailable at the lead tier, so a lead cannot course-correct an in-flight member. Raised independently by three leads | bug |
 | B-28 | `dispatch-guard.sh` blocked a `model:` parameter **six times** across three different leads in this one feature. A rule its own readers break repeatedly is a rule-text problem | chore |
 | B-29 | Nothing asserts `review_sha` equals the branch tip (#487). It drifted here and was caught by a human, as on FEAT-25 | bug |
+| B-31 | The orchestrator playbook says the write-less reviewers' ops are returned for the orchestrator to apply. All three reviewers hold `Write` and both Expertise grants, and the orchestrator can write no file but its own — the instruction is false in both halves | bug |
+| B-32 | `harness-product-lead` holds no `Edit` on its own Expertise file, so a lead cannot self-distill; its six ops need another hand | bug |
+| B-33 | Members size a distillation against the section caps (15/15/10/5), but the binding constraint on a loaded file is the 150-line FILE budget — `harness-orchestrator.md` sits at 144 with sections nowhere near full. The next distillation hits a checker FAIL at write time instead of a considered displacement | chore |
+| B-34 | A lead recorded a calibration lesson against itself, and the same lead repeated the same two defects in the next round of the same job. Digest calibration notes are injected nowhere, so a lesson never reaches the agent that wrote it | enhancement |
 | B-30 | FEAT-26, FEAT-28 and FEAT-29 carry unapproved BRIEFs in this shared checkout — not this feature's, surfaced because they appeared while it ran | chore |
 
 ## How this briefing was assembled
