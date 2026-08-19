@@ -1,0 +1,488 @@
+schema: plan/1
+feature: FEAT-25-claim-feature-root
+
+approval:
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: "2026-08-19"
+
+lanes:
+  resolved_at: d1ffd7f
+  rows:
+    - surface: .claude/skills/harness/bin/factory_claim.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-claim.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-factory-integration.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/layout_migration.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/layout_fixtures.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-layout-migration.py
+      lane: team
+      agent: harness-backend-dev
+
+decisions:
+  - id: D-01
+    choice: >-
+      FEATURES_ROOT becomes os.path.join(factory_config.harness_root(), ".harness", "harness",
+      "features") with a FIXED harness segment, consumed as a literal rather than derived from any
+      factory_config function.
+    because: >-
+      There is no writer-side root constant to copy, so the authority is where feature directories
+      actually sit: factory_decompose.py takes the feature directory as an argv positional and joins
+      plan.yaml and feature.json onto it, and every feature directory a feature: label can name sits
+      under .harness/harness/features at ada8e99. And the one derivation that exists,
+      factory_config.workspace_path at :222-227, cannot serve a module-level constant. It needs two
+      runtime arguments, a loaded fleet and the board item's repository name, and neither exists at
+      import time; it joins onto workspace_root rather than harness_root, answering where a checkout
+      is rather than where the control-plane feature tree is; and, the decisive half,
+      mruangutai/harness is deliberately absent from .harness/factory/fleet.yaml, so no
+      fleet-derived rule can ever produce the one segment every reachable plan sits under. That last
+      clause is what makes fixed forced rather than chosen. The argument runs through reachability:
+      candidates are filtered to fleet members at factory_claim.py:280, the served set is built from
+      the fleet repos names at factory_claim.py:211-215, and the harness is pinned out of the fleet
+      by test-no-distribution.py's case3_absence_harness_is_not_a_fleet_member, so no rule deriving
+      the segment from repo_name can ever produce harness.
+    dec: none
+  - id: D-02
+    choice: >-
+      The residual is named and left to unit 7: a feature belonging to another fleet repository
+      would live under that repository's own segment, and a fixed root cannot read it, so a
+      per-repository root stays out of this feature.
+    because: >-
+      A per-repository root needs the candidate's repository name at lookup time, but FEATURES_ROOT
+      is one module global and _BlockerCache is constructed once from it and keyed by feature alone,
+      so the change is a signature change to _BlockerCache. That is general per-repository
+      resolution, which is unit 7's surface, and factory_config.py is FEAT-24's T-02 surface, so
+      neither half can be built here without taking another unit's work. A third shape was
+      considered and rejected: a wildcard segment, os.path.join(root, ".harness", "*", "features"),
+      needs no per-repository key at all and is already the resolution shape of three sibling
+      scripts in the same directory (check-plan-routes.py:540, validate-feature-json.py:41,
+      layout_migration.py:172 at ada8e99), so it is buildable here and touches neither
+      factory_config.py nor fleet.yaml. It is rejected because it is structurally incompatible with
+      this feature's own diagnostic contract: REQ-02, SC-04 and D-03 all require the refusal to name
+      the one path that was tried, and a discovered root has no single path to name, so the two
+      halves of this plan would fight each other. Secondarily, the precedence rule deciding which
+      segment wins a cross-segment collision is itself general per-repository resolution, i.e. unit
+      7's decision rather than this feature's. The residual D-02 accepts is made safe by D-03: once
+      a second segment exists, the fixed root refuses those candidates with a message naming the
+      exact path it tried instead of blaming the issue title, which converts a silent residual into
+      a self-reporting one.
+    dec: none
+  - id: D-03
+    choice: >-
+      An unreadable plan becomes its own blocker-gate kind with its own message naming the absolute
+      path that was tried, and the existing edge (i) text is narrowed to the case where a plan did
+      load but held no task with the title's id.
+    because: >-
+      _blocker_gate collapses three distinguishable states into one reason today, and the reason it
+      prints sends a debugger to issue titles and plan contents when the real cause is a directory
+      that is not there. Splitting on whether the plan loaded is the smallest change that makes the
+      absent root self-reporting, and it costs one extra tuple kind.
+    dec: none
+  - id: D-04
+    choice: >-
+      The pinning test asserts the UNPATCHED module default at module scope, not through any case
+      that monkeypatches FEATURES_ROOT, and pairs the equality with an isdir check against this
+      checkout.
+    because: >-
+      FEATURES_ROOT is documented as overridable and every existing case in both suites overrides
+      it, which is exactly why a fully green suite sat over a tool that could claim nothing. A test
+      that patches the root passes against the broken and the fixed code alike and proves nothing;
+      the isdir half is the assertion that is red today.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Point FEATURES_ROOT at the migrated features tree and pin the unpatched default
+    traces: [REQ-01, REQ-03]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/factory_claim.py
+      - .claude/skills/harness/bin/test-factory-claim.py
+      - .claude/skills/harness/bin/test-factory-integration.py
+    verify: |
+      set -u
+      cd "${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/skills/harness/bin" || exit 1
+      fail=0
+      grep -qF 'os.path.join(factory_config.harness_root(), ".harness", "harness", "features")' factory_claim.py \
+        || { echo "T-01: factory_claim.py does not carry the migrated three-segment join"; fail=1; }
+      grep -qF '".harness", "features")' factory_claim.py \
+        && { echo "T-01: the legacy two-segment join survives in factory_claim.py"; fail=1; }
+      python3 - <<'PY' || fail=1
+      import os, sys
+      sys.path.insert(0, os.getcwd())
+      import factory_claim as c, factory_config as fc
+      want = os.path.join(fc.harness_root(), ".harness", "harness", "features")
+      assert c.FEATURES_ROOT == want, (c.FEATURES_ROOT, want)
+      assert os.path.isdir(c.FEATURES_ROOT), c.FEATURES_ROOT
+      PY
+      claim_out=$(python3 test-factory-claim.py 2>&1) \
+        || { printf '%s\n' "$claim_out" | grep -E '^FAIL'; echo "T-01: test-factory-claim.py did not pass"; fail=1; }
+      hasok() { printf '%s\n' "$2" | grep -qxF "ok    $1"; }
+      hasok "the unpatched FEATURES_ROOT default is the migrated harness features tree" "$claim_out" \
+        || { echo "T-01: the pinning equality case did not run or did not pass"; fail=1; }
+      hasok "the unpatched FEATURES_ROOT default names a directory that exists" "$claim_out" \
+        || { echo "T-01: the pinning existence case did not run or did not pass"; fail=1; }
+      n=$(printf '%s\n' "$claim_out" | grep -c '^ok    ')
+      test "$n" -ge 116 \
+        || { echo "T-01: test-factory-claim.py ok-line count $n is below the d1ffd7f baseline of 114 plus two new cases"; fail=1; }
+      integ_out=$(python3 test-factory-integration.py 2>&1) \
+        || { printf '%s\n' "$integ_out" | grep -E '^FAIL'; echo "T-01: test-factory-integration.py did not pass"; fail=1; }
+      hasok "(F) claim: claimed the T-1 issue (unblocked candidate)" "$integ_out" \
+        || { echo "T-01: the end-to-end claim case did not pass - the fixture and the constant disagree"; fail=1; }
+      hasok "(H) claim against the two-board fleet exits 0" "$integ_out" \
+        || { echo "T-01: the two-board claim case did not pass"; fail=1; }
+      m=$(printf '%s\n' "$integ_out" | grep -c '^ok    ')
+      test "$m" -ge 106 \
+        || { echo "T-01: test-factory-integration.py ok-line count $m is below the d1ffd7f baseline of 106"; fail=1; }
+      grep -q '"\.harness", "features"' test-factory-integration.py \
+        && { echo "T-01: a legacy two-segment features path survives in test-factory-integration.py"; fail=1; }
+      test "$fail" = 0 || exit 1
+      echo "T-01 GREEN"
+    intent: |
+      Three edits, one atomic change. The tool's feature root is stale and the whole suite is green
+      over it because every test overrides the root.
+
+      Every ok-line count clause in this plan is pinned at d1ffd7f, where test-factory-claim.py has
+      114 cases, test-factory-integration.py has 106 and test-layout-migration.py has 40; if you find
+      main has moved under you, re-derive all three counts and report them rather than widening any
+      threshold, because a widened clause stops detecting the deleted case it exists to catch.
+
+      1. factory_claim.py, the constant at line 43. Change
+
+           FEATURES_ROOT = os.path.join(factory_config.harness_root(), ".harness", "features")
+
+         to
+
+           FEATURES_ROOT = os.path.join(factory_config.harness_root(), ".harness", "harness", "features")
+
+         Nothing else in the file changes in this task. Do not touch harness_root, do not import
+         anything new, do not add a factory_config function, and do not make the root depend on the
+         candidate's repository - that is deliberately deferred, and the reasons are D-01 and D-02.
+         Update the module docstring sentence at lines 25-27 so it states the resolved path is
+         .harness/harness/features under harness_root(), keeping its existing point that the root is
+         never the current working directory.
+
+      2. test-factory-claim.py, two NEW cases and a docstring correction. The two cases must sit at
+         MODULE SCOPE, near the top of the file after the imports and before build_features_root()
+         and any run_main call, so that they read the module attribute before any case's
+         save-patch-restore machinery has touched it. They must NOT go through run_main and must NOT
+         monkeypatch anything. Their ok-line text is exactly, character for character:
+
+           the unpatched FEATURES_ROOT default is the migrated harness features tree
+           the unpatched FEATURES_ROOT default names a directory that exists
+
+         The first asserts claim.FEATURES_ROOT equals
+         os.path.join(fc.harness_root(), ".harness", "harness", "features"), built with os.path.join
+         from factory_config.harness_root() - never a slash-shaped string literal, so the assertion
+         cannot drift from the tool's own resolution rule. The second asserts
+         os.path.isdir(claim.FEATURES_ROOT). Use the file's existing check() helper so both lines
+         are emitted in the standard shape.
+
+         BEFORE editing factory_claim.py, or against a reverted copy of line 43, RUN these two cases
+         and record that both are RED. The existence half is red today because
+         <root>/.harness/features does not exist in this checkout. A green-on-both-sides assertion is
+         the exact defect this task exists to prevent, so a doer who cannot observe the red must stop
+         and report rather than ship the case.
+
+         Also fix this file's own module docstring: line 5 says the suite never touches this
+         repository's own `.harness/features/`. Write `.harness/harness/features/` there instead, and
+         add one sentence recording that the two new module-scope cases are the deliberate exception
+         that reads the unpatched default.
+
+         Change nothing else. No existing case may be deleted, weakened or renamed.
+
+      3. test-factory-integration.py, the fixture paths that must move with the constant. Two cases
+         plant a fixture feature directory at <root>/.harness/features/<feat> and hand that same
+         directory to decompose:
+
+           the happy-path case, feat = FEAT-INTEG-HAPPY, with the explanatory comment above it
+           the two-board case, feat = FEAT-INTEG-TWOBOARD
+
+         Change both joins to <root>/.harness/harness/features/<feat>, and update the comment above
+         the first so it names .harness/harness/features/<feature>. Also correct the module docstring
+         paragraph that says FEATURES_ROOT resolves under the temp root "instead of this checkout's
+         real .harness/features": write .harness/harness/features, and drop the parenthetical calling
+         the stale root a carried non-blocking finding, since it is fixed here. Every assertion in
+         both cases keeps its current text and its current expectation.
+
+  - id: T-02
+    title: Give an unreadable plan its own blocker reason naming the path that was tried
+    traces: [REQ-02]
+    change_type: bugfix
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/factory_claim.py
+      - .claude/skills/harness/bin/test-factory-claim.py
+    verify: |
+      set -u
+      cd "${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/skills/harness/bin" || exit 1
+      fail=0
+      claim_out=$(python3 test-factory-claim.py 2>&1) \
+        || { printf '%s\n' "$claim_out" | grep -E '^FAIL'; echo "T-02: test-factory-claim.py did not pass"; fail=1; }
+      need() { printf '%s\n' "$claim_out" | grep -qxF "ok    $1" || { echo "T-02: case did not run or did not pass: $1"; fail=1; }; }
+      need "(B5-ter) absent features root: the reason names the absolute path that was tried"
+      need "(B5-ter) absent features root: the reason does not use the edge (i) text"
+      need "(B5-ter) plan present, task id absent: still the edge (i) text"
+      need "(B5-ter) absent features root: nothing claimed, zero mutating calls, stdout empty"
+      need "(X) sc13b fixture: exactly eight skip lines fired (fixture didn't silently short-circuit)"
+      n=$(printf '%s\n' "$claim_out" | grep -c '^ok    ')
+      test "$n" -ge 120 || { echo "T-02: ok-line count $n is below 116 plus four new cases"; fail=1; }
+      python3 - <<'PY' || fail=1
+      import io, os, sys, contextlib, tempfile
+      sys.path.insert(0, os.getcwd())
+      import factory_claim as c
+      absent = os.path.join(tempfile.mkdtemp(prefix="t02-"), "no-such-features-root")
+      gate = c._blocker_gate(c._BlockerCache(absent), "acme/widget", "FEAT-01-demo", "T-01")
+      assert gate is not None and gate[0] != "edge_i", gate
+      out = io.StringIO()
+      with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+          text = c._blocker_reason_text(gate, 711)
+      assert absent in text and "no matching plan task" not in text, text
+      assert out.getvalue() == "", out.getvalue()
+      feat, real, calls = "FEAT-25-claim-feature-root", c.harness_yaml.load_plan, []
+      c.harness_yaml.load_plan = lambda p: (calls.append(p), real(p))[1]
+      try:
+          k = c._BlockerCache(c.FEATURES_ROOT)
+          k.task(feat, "T-01"); k.plan_loaded(feat); k.task(feat, "T-02")
+          assert len(calls) == 1 and k.plan_loaded(feat) is True, calls
+          del calls[:]; j = c._BlockerCache(c.FEATURES_ROOT)
+          j.plan_loaded(feat); j.task(feat, "T-01")
+          assert len(calls) == 1, calls
+          assert os.path.isabs(j.plan_path(feat)), j.plan_path(feat)
+      finally:
+          c.harness_yaml.load_plan = real
+      PY
+      test "$fail" = 0 || exit 1
+      echo "T-02 GREEN"
+    intent: |
+      The blocker gate refuses a candidate whose plan cannot be read and then blames the issue title.
+      Make the refusal name the real cause. Behaviour outside this branch does not change: the gate
+      stays blocking, the streams stay split, nothing new reaches stdout.
+
+      1. _BlockerCache gains one private loader and three read-only helpers. There is no private
+         load today: the try/except harness_yaml.YamlParseError is inlined inside task(), and so is
+         the path join it builds. Do NOT duplicate that try/except in a second place - a future
+         exception type caught in one spelling and not the other turns a safe refusal into an
+         unhandled exception in the poll loop, in a tool whose whole contract is refusing safely.
+         Extract it instead, exactly once:
+
+           plan_path(feature) -> os.path.abspath(
+                                   os.path.join(self._features_root, feature, "plan.yaml"))
+           _plan(feature)     -> the cached plan dict or None, holding the memo check, the
+                                 plan_path(feature) call, the harness_yaml.load_plan call and the
+                                 try/except harness_yaml.YamlParseError that task() carries inline
+                                 today, moved verbatim
+           plan_loaded(feature) -> self._plan(feature) is not None
+           root_exists()      -> os.path.isdir(self._features_root)
+
+         task() then calls self._plan(feature) instead of doing its own join, load and except, and
+         keeps every other line and its whole return contract byte-identical: None when the plan
+         cannot be read, None when task_id is None, None when no task matches, else the task dict.
+         Both task() and plan_loaded() must reach the file only through _plan(), so one poll reads
+         each feature's plan.yaml exactly once no matter which of them is asked first or how often -
+         that is the property the class exists to hold, and the verify block now counts it.
+
+         The os.path.abspath in plan_path is deliberate and is the only place absoluteness is
+         established. factory_config.harness_root() returns CLAUDE_PROJECT_DIR unmodified when its
+         probe is readable, so a relative CLAUDE_PROJECT_DIR yields a relative FEATURES_ROOT, and
+         REQ-02 and SC-04 promise an absolute path in the diagnostic. abspath does not resolve
+         symlinks, so on an already-absolute root it is a no-op. Do not touch factory_config.py: it
+         is out of scope for this feature.
+
+      2. _blocker_gate: where it currently returns ("edge_i", task_id) when task is None, first ask
+         whether the plan loaded. If it did not, return
+
+           ("no_plan", cache.plan_path(feature), cache.root_exists())
+
+         Return ("edge_i", task_id) only when the plan DID load and simply holds no task with that
+         id - which includes the case where task_id is None because the title carried no T-NN. Do
+         not reorder or change any other branch, and do not change the gate's blocking semantics: a
+         no_plan candidate is still refused, never claimed.
+
+      3. _blocker_reason_text gains the matching branch, before the edge_i branch. Two texts,
+         chosen on the third tuple element:
+
+           root missing:
+             issue #{num} carries a feature: label that resolves, but no plan could be read at
+             {path} - the feature root does not exist
+           root present:
+             issue #{num} carries a feature: label that resolves, but no plan could be read at
+             {path} - the feature directory or its plan.yaml is missing or unparseable
+
+         Both are one line, with {path} the absolute path from the tuple. Neither may contain the
+         substring "no matching plan task", because an existing case asserts the edge (i) reason is
+         distinguishable by exactly that phrase. Keep the existing edge_i, unresolvable and open
+         texts byte-identical. Everything still goes to stderr through the existing print at the
+         skip site and through factory_cli.refuse under --issue; add no print statement of your own
+         and write nothing to stdout.
+
+         Update the module docstring's blocker-gate paragraph (lines 16-23) so its last sentence
+         distinguishes the two: a feature: label that resolves but whose plan cannot be read reports
+         the path tried, and one whose plan loads but holds no matching task is edge (i).
+
+      4. test-factory-claim.py gains four cases, in the B5-bis neighbourhood, with these exact
+         ok-line texts:
+
+           (B5-ter) absent features root: the reason names the absolute path that was tried
+           (B5-ter) absent features root: the reason does not use the edge (i) text
+           (B5-ter) absent features root: nothing claimed, zero mutating calls, stdout empty
+           (B5-ter) plan present, task id absent: still the edge (i) text
+
+         The first three drive run_main with claim.FEATURES_ROOT pointed at a path that does not
+         exist - monkeypatching the root IS correct in these three, because here the absent root is
+         the condition under test rather than the thing being pinned. Assert the stderr skip line
+         contains that same absent path as a string the test computed, never a literal spelled
+         again, and assert rec.mutating_calls() == [] and stdout == "" for the third. The fourth
+         reuses the existing FEAT-02-block fixture with a title naming a task the plan does not
+         contain and asserts the reason still contains "no matching plan task", proving the edge (i)
+         branch survived rather than being absorbed.
+
+         PROVE THE FIRST TWO RED FIRST: run them against the pre-change _blocker_reason_text, where
+         the edge (i) text fires and carries no path, and record that both fail. If they pass before
+         the change, the case is not testing the branch and must be rewritten before the change
+         lands.
+
+      5. Widen the sc13b skip-reason fixture, which today asserts exactly seven distinct skip
+         reasons. There are eight now. Add an eighth board item whose issue carries a feature: label
+         naming a feature the fixture root has no directory for - for example feature:FEAT-99-missing
+         with a T-01 title - so the no_plan reason fires exactly once in the same poll. Update the
+         case name to read
+
+           (X) sc13b fixture: exactly eight skip lines fired (fixture didn't silently short-circuit)
+
+         and update the surrounding comment's arithmetic, which currently says five print sites and
+         seven phrases, to five print sites and eight phrases, naming _blocker_reason_text's four
+         branches. THIS IS THE ONLY RENAME THIS FEATURE AUTHORISES. Every other assertion in the
+         file keeps its text; the pairwise normalised-distinctness assertion must keep its power and
+         must now cover eight reasons, not seven.
+
+  - id: T-03
+    title: Bring factory_claim.py under the layout detector's features surface
+    traces: [REQ-04]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/layout_migration.py
+      - .claude/skills/harness/bin/layout_fixtures.py
+      - .claude/skills/harness/bin/test-layout-migration.py
+    verify: |
+      set -u
+      cd "${CLAUDE_PROJECT_DIR:-$(pwd)}/.claude/skills/harness/bin" || exit 1
+      fail=0
+      python3 - <<'PY' || fail=1
+      import os, re, sys
+      sys.path.insert(0, os.getcwd())
+      import layout_migration as lm, layout_fixtures as lf
+      rows = [r for r in lm.READER_TABLE
+              if r.path == ".claude/skills/harness/bin/factory_claim.py"]
+      assert len(rows) == 1, rows
+      row = rows[0]
+      assert row.surface == "features", row
+      text = open("factory_claim.py", encoding="utf-8").read()
+      assert re.search(row.legacy, text) is None, "legacy pattern still matches factory_claim.py"
+      assert re.search(row.migrated, text) is not None, "migrated pattern does not match factory_claim.py"
+      assert row.path in lf.STUB, "no fixture stub for the new row"
+      assert re.search(row.legacy, lf.STUB[row.path]["legacy"]), "stub legacy form does not match the row"
+      assert re.search(row.migrated, lf.STUB[row.path]["migrated"]), "stub migrated form does not match the row"
+      assert row.path in lf.FEATURES_READERS, lf.FEATURES_READERS
+      doc = lm.__doc__ or ""
+      assert "factory_claim.py" not in doc, "the do-not-read docstring still names factory_claim.py"
+      PY
+      lm_out=$(python3 test-layout-migration.py 2>&1) \
+        || { printf '%s\n' "$lm_out" | grep -E '^FAIL'; echo "T-03: test-layout-migration.py did not pass"; fail=1; }
+      hasok() { printf '%s\n' "$2" | grep -qxF "ok   - $1"; }
+      hasok "case 1: real root exits 0" "$lm_out" \
+        || { echo "T-03: the real-root case no longer exits 0 - the new row reddened the tree"; fail=1; }
+      hasok "case 22: real root's harness/features surface is CLEAN with migrated evidence" "$lm_out" \
+        || { echo "T-03: the new real-root features case did not run or did not pass"; fail=1; }
+      k=$(printf '%s\n' "$lm_out" | grep -c '^ok   - ')
+      test "$k" -ge 41 \
+        || { echo "T-03: test-layout-migration.py ok-line count $k is below the d1ffd7f baseline of 40 plus one"; fail=1; }
+      cs_out=$(python3 test-check-state.py 2>&1) \
+        || { printf '%s\n' "$cs_out" | grep -E '^FAIL'; echo "T-03: test-check-state.py did not pass - the shared fixture stubs drifted"; fail=1; }
+      test "$fail" = 0 || exit 1
+      echo "T-03 GREEN"
+    intent: |
+      layout_migration.py deliberately excludes factory_claim.py from every surface, saying map 336
+      lands it anytime under unit 9. This IS that unit, and leaving the exclusion leaves a coupled
+      reader the detector can never judge. Bring it in. Three files, no logic changes anywhere.
+
+      1. layout_migration.py, READER_TABLE. Add one row, in the features block alongside the other
+         four:
+
+           Row("features", ".claude/skills/harness/bin/factory_claim.py",
+               r'"\.harness", "features"',
+               r'"\.harness", [^,)]+, "features"'),  # balance: (
+
+         The trailing balance comment is LOAD-BEARING, not decoration: the migrated pattern carries
+         an unmatched close paren, and test-check-plan-routes.py case_20 joins physical lines until
+         paren depth balances, so without it the whole table merges into one logical line. The
+         precedent is the check-plan-routes.py row immediately above, which carries the same comment
+         for the same reason.
+
+         The patterns are already audited against the real file at ada8e99, per the table header's
+         pattern rule, and the audit is quoted here so a later editor can re-run it:
+
+           grep -nE '"\.harness", "features"' factory_claim.py          -> one site, line 43
+           grep -nEi 'harness.{0,30}features|features.{0,30}harness'    -> the same single line, so
+                                                                          the broader pattern adds
+                                                                          nothing, prose included
+           grep -nE '"\.harness", [^,)]+, "features"' factory_claim.py  -> no match before T-01
+           the same migrated pattern against the post-T-01 line          -> matches
+           the legacy pattern against the post-T-01 line                 -> no match
+
+         Re-run all five after T-01 has landed and confirm the same results before writing the row.
+         If the legacy pattern still matches, the file is MIXED and this task must stop and report
+         rather than widen the pattern.
+
+      2. layout_migration.py, module docstring. The DO NOT READ paragraph near the end of the
+         docstring lists factory_claim.py among the files no surface reads. Remove
+         factory_claim.py from that list, leaving the other names and the paragraph's reasoning
+         intact, and add one clause recording that its features row landed with the unit that fixed
+         its root. The verify asserts the docstring no longer contains the string factory_claim.py
+         anywhere, so no historical mention may remain in it.
+
+      3. layout_fixtures.py, STUB. Add the matching entry - the module raises a loud RuntimeError at
+         import if the stub keys do not match the table exactly, so this is not optional:
+
+           ".claude/skills/harness/bin/factory_claim.py": {
+               "legacy":   'FEATURES_ROOT = os.path.join(r(), ".harness", "features")\n',
+               "migrated": 'FEATURES_ROOT = os.path.join(r(), ".harness", _seg, "features")\n',
+           },
+
+         Keep the stub a FRAGMENT in the real file's spelling, never a copy of the script, matching
+         how every other entry in that dict is written. FEATURES_READERS derives from the table, so
+         it needs no edit.
+
+      4. test-layout-migration.py, one new case mirroring the existing real-root docs case. Its
+         ok-line text is exactly:
+
+           case 22: real root's harness/features surface is CLEAN with migrated evidence
+
+         Build it the same way the docs case is built - scan the real repository root, select the
+         features surface report, assert its verdict is CLEAN and its evidence is migrated. Add
+         nothing else, and do not renumber, rename, delete or weaken any existing case.
+
+      5. Run test-check-state.py before returning. It imports layout_fixtures and builds its own
+         sandbox from every STUB key's legacy form, so a new key participates automatically; the
+         run proves the addition did not disturb it. If it reddens, report rather than edit
+         check-state.sh - that script is a DEC-174 carve-out and is not this task's to touch.

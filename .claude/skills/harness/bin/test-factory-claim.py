@@ -2,7 +2,7 @@
 """Tests for factory_claim.py — the polling and claiming tool (T-05, D-05, REQ-03).
 
 Nothing here spawns a subprocess and nothing touches a real board, repository, or this
-repository's own `.harness/features/`. Every call `factory_claim` makes into `factory_gh`'s
+repository's own `.harness/harness/features/`. Every call `factory_claim` makes into `factory_gh`'s
 public functions is monkeypatched over a single `Recorder`, whose ordered `.calls` list is the
 evidence every assertion below is a projection of. `FEATURES_ROOT` is monkeypatched to a
 temporary directory built once by this file — `build_features_root()` — holding two fixture
@@ -10,6 +10,10 @@ features: FEAT-01-demo (one unblocked task, used by every case that is not about
 gate) and FEAT-02-block (several tasks with varying `depends_on`, used by the seven blocker-gate
 cases, SC-22). Both are read via `factory_claim.harness_yaml`, never re-derived, so a case that
 needs to prove "no plan file consulted" monkeypatches `harness_yaml.load_plan` itself.
+
+The deliberate exception: two cases at module scope, immediately after `check()` is defined and
+before any fixture or patch runs, read `claim.FEATURES_ROOT` unpatched to pin the tool's own
+resolved default.
 """
 import contextlib
 import io
@@ -39,6 +43,22 @@ def check(name, cond, detail=""):
     else:
         FAILS += 1
         print(f"FAIL  {name}" + (f"\n        {detail}" if detail else ""))
+
+
+# The deliberate exception to "nothing here touches this repository's own
+# `.harness/harness/features/`": these two cases read claim.FEATURES_ROOT at MODULE SCOPE, before
+# any other case's save-patch-restore machinery has touched it, so they observe the tool's real
+# unpatched default rather than a fixture standing in for it (D-04, REQ-03).
+check(
+    "the unpatched FEATURES_ROOT default is the migrated harness features tree",
+    claim.FEATURES_ROOT == os.path.join(fc.harness_root(), ".harness", "harness", "features"),
+    detail=repr(claim.FEATURES_ROOT),
+)
+check(
+    "the unpatched FEATURES_ROOT default names a directory that exists",
+    os.path.isdir(claim.FEATURES_ROOT),
+    detail=repr(claim.FEATURES_ROOT),
+)
 
 
 OWNER = "acme"
@@ -822,6 +842,46 @@ check("(B5-bis) edge (i) reason distinct from open-blocker and unresolvable-bloc
       "no matching plan task" in err and "still open" not in err
       and "unresolvable blocker" not in err, err)
 
+# B5-ter. ABSENT FEATURES ROOT — a feature: label resolves but FEATURES_ROOT itself does not
+# exist, so no plan can ever be read for any feature. The refusal must name the real cause (the
+# path tried) rather than reusing edge (i)'s "no matching plan task" text, which blames the
+# title for a directory that was never there (D-03).
+absent_root = os.path.join(tempfile.mkdtemp(prefix="claim-absent-"), "no-such-features-root")
+rec = Recorder()
+rec.items = [board_item("i1", 731, REPO)]
+rec.issue_data[731] = issue_data(
+    731, "T-01 do the thing", labels=["harness", "feature:FEAT-01-demo"],
+)
+# run_main() always overwrites claim.FEATURES_ROOT from THIS module's own FEATURES_ROOT global
+# (see run_main's body) — patching claim.FEATURES_ROOT directly here would be silently clobbered,
+# so the root under test is swapped at the source run_main actually reads from.
+saved_root = FEATURES_ROOT
+FEATURES_ROOT = absent_root
+try:
+    code, out, err = run_main(rec, ["--as", AS_LOGIN])
+finally:
+    FEATURES_ROOT = saved_root
+check("(B5-ter) absent features root: the reason names the absolute path that was tried",
+      absent_root in err, err)
+check("(B5-ter) absent features root: the reason does not use the edge (i) text",
+      "no matching plan task" not in err, err)
+check("(B5-ter) absent features root: nothing claimed, zero mutating calls, stdout empty",
+      rec.mutating_calls() == [] and out == "", (rec.mutating_calls(), out))
+
+# B5-ter (fourth case). PLAN PRESENT, TASK ID ABSENT — reuses the existing FEAT-02-block fixture
+# with a title naming a task the plan does not contain, proving the edge (i) branch survived
+# rather than being absorbed into the new no_plan branch.
+rec = Recorder()
+rec.items = [board_item("i1", 712, REPO), board_item("i2", 724, REPO)]
+rec.issue_data[712] = issue_data(
+    712, "T-88 a title whose task the plan does not contain",
+    labels=["harness", "feature:FEAT-02-block"],
+)
+rec.issue_data[724] = issue_data(724, "T-09 do the thing", labels=["harness", "feature:FEAT-02-block"])
+code, out, err = run_main(rec, ["--as", AS_LOGIN])
+check("(B5-ter) plan present, task id absent: still the edge (i) text",
+      "no matching plan task" in err, err)
+
 # B6. FEATURE NULL IS UNGATED — no plan file consulted for it.
 load_plan_calls = []
 real_load_plan = harness_yaml.load_plan
@@ -870,10 +930,10 @@ check("(B7) --issue on an issue this agent already owns exits 0, gate never bloc
 # X — SC-13(b) resting condition: "no two of those reasons read alike", asserted directly
 # rather than by reading factory_claim.py:277,281,286,302,315. IN-PROCESS, NO subprocess.
 #
-# THE SET PROVED DISTINCT (named explicitly, per the dispatch): all SEVEN emittable skip-reason
+# THE SET PROVED DISTINCT (named explicitly, per the dispatch): all EIGHT emittable skip-reason
 # phrases — the five print sites at :277, :281, :286, :302, :315, where :302's text comes from
-# `_blocker_reason_text`'s THREE branches (edge_i, unresolvable, open/blocked-by), each counted
-# separately. Five print sites, seven phrases.
+# `_blocker_reason_text`'s FOUR branches (no_plan, edge_i, unresolvable, open/blocked-by), each
+# counted separately. Five print sites, eight phrases.
 #
 # THE TRAP: the phrases are inline f-strings carrying the issue number (and, for the blocked-by
 # branch, a SECOND embedded number, the blocker's). A pairwise comparison of the raw lines would
@@ -890,7 +950,7 @@ def _normalize_reason(text):
 
 
 def sc13b_fixture():
-    """One poll where every one of the seven skip reasons fires exactly once, and nothing is
+    """One poll where every one of the eight skip reasons fires exactly once, and nothing is
     claimable, so the loop runs to exhaustion and every skip line is emitted."""
     rec = Recorder()
     rec.items = [
@@ -901,6 +961,7 @@ def sc13b_fixture():
         board_item("i5", 905, REPO),  # blocker gate: edge (i), lost task identity
         board_item("i6", 906, REPO),  # blocker gate: unresolvable blocker (T-99)
         board_item("i7", 907, REPO),  # blocker gate: open blocker (T-02, still open)
+        board_item("i8", 908, REPO),  # blocker gate: no_plan, feature dir does not exist
     ]
     rec.issue_data[901] = issue_data(901, "issue 901", state="CLOSED", labels=["harness"])
     rec.issue_data[902] = issue_data(902, "issue 902", labels=["harness", "factory:claimed"])
@@ -910,6 +971,9 @@ def sc13b_fixture():
     rec.issue_data[905] = issue_data(
         905, "T-77 a title whose task the plan does not contain",
         labels=["harness", "feature:FEAT-02-block"],
+    )
+    rec.issue_data[908] = issue_data(
+        908, "T-01 do the thing", labels=["harness", "feature:FEAT-99-missing"],
     )
     rec.issue_data[906] = issue_data(
         906, "T-10 do the thing", labels=["harness", "feature:FEAT-02-block"],
@@ -928,10 +992,10 @@ check("(X) sc13b fixture: stdout empty", out == "", out)
 check("(X) sc13b fixture: zero mutating calls", rec.mutating_calls() == [], rec.mutating_calls())
 
 matches = re.findall(r"skip #(\d+) — (.+)", err)
-check("(X) sc13b fixture: exactly seven skip lines fired (fixture didn't silently short-circuit)",
-      len(matches) == 7, (len(matches), err))
+check("(X) sc13b fixture: exactly eight skip lines fired (fixture didn't silently short-circuit)",
+      len(matches) == 8, (len(matches), err))
 check("(X) sc13b fixture: the seven skip lines are for exactly issues 901..907",
-      {n for n, _ in matches} == {str(n) for n in range(901, 908)}, matches)
+      {n for n, _ in matches} == {str(n) for n in range(901, 909)}, matches)
 
 reasons = [r for _, r in matches]
 normalized = [_normalize_reason(r) for r in reasons]

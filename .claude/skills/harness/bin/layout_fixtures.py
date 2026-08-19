@@ -42,6 +42,10 @@ STUB = {
         "legacy":   'for fy in glob.glob(os.path.join(H, "features", "*", "feature.json")):\n',
         "migrated": 'for fy in glob.glob(os.path.join(H, _repo, "features", "*", "feature.json")):\n',
     },
+    ".claude/skills/harness/bin/factory_claim.py": {
+        "legacy":   'FEATURES_ROOT = os.path.join(r(), ".harness", "features")\n',
+        "migrated": 'FEATURES_ROOT = os.path.join(r(), ".harness", _seg, "features")\n',
+    },
     ".claude/skills/harness/bin/factory_config.py": {
         "legacy":   '_PROBE = os.path.join("docs", "harness", "SPEC.md")\n',
         "migrated": '_PROBE = os.path.join(".harness", _name, "docs", "SPEC.md")\n',
