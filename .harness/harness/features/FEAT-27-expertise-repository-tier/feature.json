@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-27-expertise-repository-tier",
+  "branch": "none",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [],
+  "github": {
+    "milestone": null,
+    "parent": 494,
+    "parent_origin": "adopted",
+    "attached": [],
+    "issues": {}
+  }
+}

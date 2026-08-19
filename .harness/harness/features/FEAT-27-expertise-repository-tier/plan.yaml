@@ -2,12 +2,12 @@ schema: plan/1
 feature: FEAT-27-expertise-repository-tier
 
 approval:
-  status: pending
-  approved_by: none
-  date: none
+  status: approved
+  approved_by: operator (Mike Ruangutai), via main session
+  date: 2026-08-19
 
 lanes:
-  resolved_at: ada8e99
+  resolved_at: b4659cd
   rows:
     - surface: .claude/skills/harness/bin/**
       lane: team
