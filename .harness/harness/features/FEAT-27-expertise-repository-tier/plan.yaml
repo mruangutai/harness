@@ -5,6 +5,26 @@ approval:
   status: approved
   approved_by: operator (Mike Ruangutai), via main session
   date: 2026-08-19
+  scope_at_signature: T-01..T-06
+  amendments:
+    - date: 2026-08-19
+      added: T-07
+      also: BRIEF REQ-05 gains SC-11
+      approved_by: operator (Mike Ruangutai), via main session
+      how: >-
+        The orchestrator returned BLOCKED with Q4, an adopt-or-decline on a criterion pinning the
+        [ -r ] guard against a present-but-unreadable repository-tier file. The operator was asked
+        directly and answered "Adopt as one follow-up task" — one task this cycle, lane
+        team/harness-dev-ops, change_type logic, proven with a dangling symlink because chmod 000
+        is a no-op as root and git does not preserve mode. The main session relayed that adoption
+        and added one constraint of its own: the new case must target the guard's UNSPECIFIED duty,
+        present-but-unreadable, because the guard-removal mutant survived all 18 existing cases —
+        the segment filter at inject-expertise.sh:75-77 independently rejects an unexpanded glob,
+        so a test covering only that redundant half would be another assertion that cannot fail.
+      why_recorded_here: >-
+        The orchestrator raised this as blocking Q1: a flat `approved` with one date cannot evidence
+        an amendment, so a re-grade would read a seven-task plan signed for six. It was right to
+        refuse to close it itself. The scope at signature and the amendment are now separable.
 
 lanes:
   resolved_at: b4659cd
