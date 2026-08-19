@@ -52,3 +52,33 @@
   the `verify:` block still only diffs two files that both contain zero INV-26 lines. The gate is
   green and incapable of failing on precisely the defect the amendment was written to catch. When a
   plan is amended mid-flight, diff BOTH fields of the amended task, not the prose of the amendment.
+
+- 2026-08-19: **"pre-existing failures" is scoped to the reporter's dispatch point, not to the
+  feature.** A member measured its own baseline before editing and reported 7 integration failures
+  unchanged after — honest, and wrong at my tier, because its baseline commit already carried the two
+  tasks that caused them. I bisected in a throwaway worktree (bee6234 0 FAIL, 9fd11d7 6 FAIL) and the
+  regression was ours. Whenever a member reports a red suite as pre-existing, re-run it at the
+  commit the FEATURE branched from, not the one the member started at. Three checkouts settled what
+  no amount of reading the digest could.
+
+- 2026-08-19: a `change_type` that maps to `unit` alone gives a task NO path to the integration test
+  that covers the function it edits. T-02 (`logic` -> unit) rewired `board_stations`, and
+  `test-check-state.py` — the six INV-26 checks that exercise it — lives in `INTEGRATION_SCRIPTS`.
+  Its `verify:` was structurally incapable of catching the regression it caused. When a task edits a
+  function some OTHER suite's invariant depends on, run that suite too regardless of the matrix row.
+
+- 2026-08-19: a stale test FIXTURE and a live positive control catch different failures and neither
+  substitutes for the other. The fixture's fake `gh` answered the replaced call, so INV-26 went
+  silent under test while working perfectly against the real board. The control (real API) would have
+  passed; the fixture (fake API) failed. Both were needed to see the whole picture.
+
+- 2026-08-19: backticks inside a double-quoted `git commit -m` are COMMAND SUBSTITUTED. My message
+  said "the fixture fake gh serves `project item-list`" and zsh printed `command not found: project
+  item-list` while the commit landed with the phrase silently deleted. The commit succeeded, so
+  nothing flagged it; only re-reading `git log -1 --format=%B` found it. Single-quote the message or
+  pass `-F <file>` — and always re-read the landed message when the shell printed anything at all.
+
+- 2026-08-19: `bash-write-guard` rejects `git worktree add` with a RELATIVE destination and names the
+  absolute path it wants under `.claude/worktrees/`. A throwaway worktree at an older commit is the
+  cheapest way to bisect a suite regression without disturbing a working tree that holds another
+  agent's uncommitted edits — and `git worktree remove --force` restores cleanly.
