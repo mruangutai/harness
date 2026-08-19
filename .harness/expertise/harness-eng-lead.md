@@ -86,15 +86,18 @@
   runtime assertion — trigger both, assert the substring present in one and absent from the
   other. `grep -c` counts source LINES, so a phrase straddling an f-string's line break returns
   zero, which reads as unique.
-- G-13: WHEN a member is still in flight DO spend the open turn on reads that could change your
-  assessment, never on filesystem polling — completions arrive by notification, and a receipt
-  already on disk may still be mid-revision, so reading it early buys a false finding.
+- G-13: WHEN members are in flight DO spend the wait deriving the answer yourself and reading
+  the shared surface with no angle assigned to anyone, never polling the filesystem — the
+  cross-angle defect is nobody's question, and a receipt already on disk may be mid-revision.
 - G-14: WHEN rating a finding that a function fails silently DO enumerate its call sites first —
   if every caller pre-filters the case, it is a falsified docstring, not a live hole, and
   severity decided by who calls it is the difference between a fix cycle and a routed question.
 - G-15: WHEN dispatching against a suite with known failures DO decide the expected FAIL set and
   its evidence before the member reports — deciding after is how a new defect gets filed under
   "expected", and a known FINDING is not a known FAILURE.
+- G-16: WHEN sending a fan-out wave of dispatches in one message DO audit every call's
+  parameters before sending — a habit error there is multiplied by N rather than made once, and
+  a lesson recorded only in a log you never re-read mid-run will not prevent it.
 
 ## Outcomes (max 10)
 

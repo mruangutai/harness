@@ -28,9 +28,9 @@
   no-drop) DO diff exact element identity against a baseline, not presence or count alone — an
   extra unauthorized member, or an add+remove that holds count steady, both pass a
   summary-statistic check and both ship undetected.
-- P-09: WHEN judging whether an assertion is vacuous DO run a substring/mutation probe rather than
-  reading the message text — reading generalizes from one message to a sibling whose wording
-  differs just enough to already discriminate, producing a false vacuity claim.
+- P-09: WHEN judging whether an assertion is vacuous DO run a mutation probe against the
+  assertion's OWN intended mutant, not merely a convenient one — surviving a different mutant is
+  not evidence of vacuity, and reading the message text alone risks the same false-vacuity error.
 - P-10: WHEN a verify clause does `git diff --quiet HEAD -- <files>` DO check for
   commit-before-verify ordering — committing moves HEAD to include the edit, making the
   comparison self-referential and passing regardless. Diff against the pinned baseline SHA,
@@ -53,9 +53,10 @@
   `matrix_ok` cannot itself show whether it passed on the floor or on an addition.
 
 ## Gotchas (max 15)
-- G-01: WHEN proving a test runner's MISCONFIGURED exit path live by creating a stray
-  `test-*.py` probe DO delete it and confirm with `git status --porcelain` before finishing — an
-  explicit-list-plus-glob drift detector makes any leftover probe file exit 2 for every run after.
+- G-01: WHEN a probe harness spawns a subprocess with `cwd=<tempdir>` DO pass the binary under
+  test as an absolute path — a relative path resolves against the harness's own cwd at spawn
+  time, not the subprocess's cwd override, silently breaking exactly the bare-path-invocation
+  case it exists to prove.
 - G-02: WHEN raw test output contains alarming lines like "X is not importable... failing closed"
   DO check whether they're the suite's own deliberate simulation-case output (confirm the real
   dependency imports in the environment) before treating it as a live gap.
@@ -97,6 +98,9 @@
   or verb, not just the path — a fake that only branches on endpoint path passes identically
   whether the real call would GET or POST, hiding the exact recorder-blindness class it exists
   to catch.
+- G-15: WHEN a `verify:` clause asserts a property against a live, mutable corpus rather than a
+  pinned fixture DO flag it as a latent flake — its pass today can depend entirely on invisible
+  external state nothing pins, and the coupling is invisible from inside the task alone.
 
 ## Outcomes (max 10)
 - O-01: WHEN an amendment deletes a fixture that was the sole source of some coverage and the loss
@@ -125,5 +129,11 @@
   hardcoded DO confirm the tested function itself branches on that key — a key-agnostic
   passthrough (e.g. `dict[key]`) proves nothing about the real, revertable call site; mutate
   that call site directly instead of the accessor.
+- O-09: WHEN the same claim reappears across multiple artifacts (your own note, a research note,
+  a lead's log) DO check whether all three inherited it from one unverified source before
+  treating repetition as corroboration — trace back to the primitive measurement itself.
 
 ## Open (max 5)
+- Q-01: WHEN a write-guard's behavior toward Bash-tool `cp`/redirect into the scratchpad is
+  unclear DO confirm it with a controlled repro first — one QA session saw it deny such writes, a
+  later session saw it allow them, and the discrepancy was never isolated to a cause.

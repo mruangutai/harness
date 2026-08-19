@@ -4825,6 +4825,42 @@ reads it in order to CREATE the checkout, so it cannot live inside the checkout.
 contradicts is one paragraph. DEC-174's carve-out ruling, amendment 1, and the rest of amendment 2
 are untouched.
 
+### DEC-174 amendment 4 (2026-08-19) — the enumeration is a list of examples, not a boundary; `check-plan-routes.py` and its test join it
+
+The carve-out's table names the category **"hooks, validators, gate scripts"** and then lists four
+files in parentheses: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
+`check-state.sh`. `DECISIONS-INDEX.md` carries the category and not the list. **The two readings
+disagree about `check-plan-routes.py`**, and FEAT-28 could not be laned until the disagreement was
+settled.
+
+**The category governs. The parenthetical is examples, and it is now stale.** DEC-183 made
+`check-plan-routes.py` a step of the required `integration` CI job — *after* DEC-174 was written, so
+the list could not have named it. Changing it through a run whose gates include it is exactly the
+circularity this entry exists to refuse.
+
+***Its test joins it too, and that is the part worth arguing.*** The narrower reading — FEAT-28
+edits `test-check-plan-routes.py`, the gate's TEST, so the gate itself keeps checking and the
+rationale does not bite — was put and rejected. **A gate's test is the only thing proving the gate
+discriminates.** On the day this amendment was written, three separate assertions in this repository
+were found unable to fail: a verify slicing a marker that did not exist so every absence grep passed
+vacuously; a case searching stdout for a traceback that goes to stderr; and a citation resolver that
+truncated `case_25b9` to `case_25`, found `def case_25():`, and reported the exact phantom it was
+built to catch as resolved. Every one was invisible to green gates. A test edited under gates that
+cannot see it is the same circularity one level out.
+
+**So the enforcement layer is: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
+`check-state.sh`, `check-plan-routes.py`, and the test file of each.** A script that becomes a gate
+joins the list on the day it becomes one, and this entry is amended when that happens — the category
+decides, the list records.
+
+*Where the line falls for a library a gate calls.* A module a gate imports is not itself a gate. The
+working rule, applied to FEAT-29: a squad may write the library, and **the cutover that makes a gate
+use it is main-session-direct**, proven by showing the gate's violation set is identical before and
+after. The gate's behaviour changes only by a hand the carve-out governs.
+
+**Not a strike.** DEC-174's ruling, its rationale and amendments 1 through 3 are untouched. What
+changed is that the enumeration is now correct and is declared non-exhaustive.
+
 ## DEC-175 — The engineering return declares which task it is answering: `task: T-NN|none` gates `task_verify`, and a self-reported gate FAILURE stops being a pass
 
 Three things ship together and each is unintelligible without the others: the `task_verify` field, the
