@@ -3,54 +3,47 @@
 ## Current
 
 - feature: FEAT-24-config-responsibility-split
-- run: .harness/harness/features/FEAT-24-config-responsibility-split/runs/2026-08-19-7-eng/
-- squad: eng
-- status: in-progress
+- run: distillation in flight — runs/2026-08-19-12-{eng,product,validator}/
+- squad: all three
+- status: awaiting-user
 
-Phase: **ship, validate.** All ten tasks are committed and every task verify I have re-run myself is
-GREEN, including **T-05** (`0fa6315`) — the markers exist, the five ok-lines are present, and the
-`backlog`/`building` per-key cases the earlier gate was missing are in.
+Phase: **ship, at the decision.** All ten tasks are done and committed. The qa matrix gate,
+the four-angle simplify pass, the review panel and pm's goal-check have all run.
 
-**Q2 is CLOSED, in the tree.** DEC-196's heading no longer carries the falsified clause; it now reads
-two true clauses only, with the struck clause recorded in a **new amendment 2** rather than folded
-into amendment 1 — the documentor caught that extending am.1 would have falsified am.1's own closing
-sentence, "This amendment touches the stations paragraph alone", creating a fourth falsified
-statement in the task meant to remove one. Index regenerates byte-identical. **Uncommitted;
-`needs_approval: true` — the wording is new permanent text no approved intent prescribes.**
+**pm's goal-check: 7 met, 5 partial, 1 split — and NO criterion is broken behaviourally.** Every
+partial is evidence durability, not behaviour: assertions that pass but provably cannot fail. Four
+were killed by pm's own mutants at HEAD.
 
-**The qa gate returned `matrix_ok: true` but VERDICT FAIL**, on adequacy rather than the matrix
-floor. qa's own caveat is worth keeping: `config` and `docs` require no kind at all, so
-`matrix_ok: true` says almost nothing about this diff, and both `must_fix` items sit inside
-already-satisfied kinds.
+**The briefing is written:** `notes/ship-review-2026-08-19-ship-02.md` (rendered `.html` beside it).
+It carries two rulings for the operator, 21 backlog rows, and the disclosure that no report round was
+spawned with every digest cited by path.
 
-1. **SC-02's `ready` key is UNMET** — a signed criterion. `test-factory-decompose.py:412-413`
-   asserts `== "Ready"` against a fixture whose own `stations.ready` is literally `"Ready"`, so
-   hardcoding `factory_decompose.py:399` reddens nothing. SC-02 demands each key's assertion FAIL
-   when only that key's lookup is reverted to a literal. **In flight now.** I verified it is the only
-   affected key: the other four resolve through paths whose fixtures already use `Col-B`/`Col-R` and
-   `Icebox`/`WIP`/`Shipped`.
-2. **The `aGV!sbG8=` case is pinned by no `verify:` block**, so deleting it would be invisible to
-   every gate — a fail-open one level up. Pinning it edits an approved `verify:`, which is pm's and
-   the operator's, not mine. Q1 below.
+**Two rulings are the operator's:** SC-05's scope — which I priced by measurement rather than
+sending up as a question: `load_board` has SIX non-error paths and FIVE of them mean "no board", so
+"the only non-error path" is false by a factor of five and the one-line fix would close one of four
+extra cells; and whether to pin five cases that guard real defects but are referenced by no
+`verify:` block.
 
-**Next:** SC-02 fix returns → commit → four-angle simplify → re-pin `review_sha` → review panel →
-pm's goal-check on all 13 SCs → close-out → ship briefing.
+**A correction of mine is on the record.** I reported `load_board` returning `None` for three cells
+and used it to argue SC-05 was unsatisfiable. The probe passed a file path where the function takes
+a repository root, so it exercised the file-not-found branch every time. pm's reading stands over
+mine.
 
-Cycles: **5 of 10.** Runs: 17 recorded of 20 — approaching the informational bound; the runs are
-still resolving real defects rather than churning.
+Ship-refresh **skipped**: no map (`INDEX.md`) exists in this repository, so nothing could go stale.
+
+Cycles **7 of 10**. Runs **21 against an informational budget of 20** — crossed and reported; the
+last eight each closed a real defect. Two leads escalated believing runs are a hard gate; they are
+not, `max_total_cycles` is.
 
 ## Open Questions
 
-- Q1 (operator, plan text): pin the `aGV!sbG8=` case in a `verify:` block, or accept it as a
-  residual? Amending an approved verify post-signature is not mine.
-- Q2 (operator, at ship): approve the new DEC-196 heading wording — permanent record text that no
-  approved intent prescribes.
-- Q3 (residual): `harness.json`'s `integration.detect` names 4 files while `INTEGRATION_SCRIPTS`
-  runs 12, making a `change_type` unsatisfiable by construction under a literal reading.
-- Q4 (residual): the fake `gh` models argv but neither the HTTP method nor the real response shape;
-  it shipped two defects past a 208-check green suite.
-- Q5 (residual): a lead has now returned a verdict while its member was in flight several times —
-  issue #461. Do not re-file.
-- Q6 (main session): the paused FEAT-25/26/27 directories are being reconciled under another pen.
+- Q1 (operator, BLOCKING): SC-05's scope ruling — priced with the six-path measurement in the
+  briefing. Re-scope to "the only DECLARED no-board path", make three cells raise, or strike it.
+- Q2 (operator, BLOCKING): pin the five unpinned cases in a `verify:` block, or accept as B-6? It
+  edits an approved verify after signature, so it is pm's and yours.
+- Q3 (operator, at acceptance): ship / fix first / re-scope / stop, and strike any backlog rows.
+- Q4 (operator): approve the new DEC-196 heading wording — permanent record text no intent prescribes.
+- Q5 (main session): the paused FEAT-25/26/27 directories account for every remaining
+  `check-state.sh` violation. FEAT-24 itself reports zero.
 
-Briefing: `notes/ship-review-2026-08-18-ship-01.md` — stale, rewritten at the ship decision.
+Briefing: `notes/ship-review-2026-08-19-ship-02.md`.
