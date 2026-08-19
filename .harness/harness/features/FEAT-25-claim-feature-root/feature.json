@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-25-claim-feature-root",
   "branch": "feat/FEAT-25-claim-feature-root",
-  "pr": null,
-  "status": "Review",
+  "pr": 543,
+  "status": "Done",
   "review_sha": "8d7b273636cfec7fe1cc3d740f70c9153d170b84",
   "cycles_used": 4,
   "max_total_cycles": 10,
