@@ -41,6 +41,15 @@ re-dispatched a distillation run I judged incomplete and it had in fact complete
 Briefing: `notes/ship-review-2026-08-19-ship.md` (+ rendered `.html`), 17 backlog rows, B-1 the only
 one blocking other work.
 
+Post-briefing: the redundant distillation pass (`2026-08-19-7-distill2-validator`) returned after the
+briefing was written. Its ops are reconciled, not applied blind — `harness-code-reviewer`'s two are
+DROPPED (both lessons already on disk as G-15/O-05, and its Gotchas is at 15/15 so an add would be a
+cap violation), `harness-validator-lead`'s two are APPLIED (distinct, and room existed). Every count
+re-grepped rather than trusted; `check-expertise.sh` exits 0 across all 15 files. That pass also
+exposed a real hazard, now backlog row B-19: nothing serialises Expertise writes against an open
+distillation run, and caps are computed from a spawn-time snapshot. The six graded source files are
+byte-identical to `review_sha` — nothing about the ship recommendation, the SCs or the gate moved.
+
 Next: the operator's ship decision. I have opened no PR and merged nothing. On acceptance the main
 session runs `gh-sync.py ship` and `gh-sync.py backlog` for the unstruck rows.
 

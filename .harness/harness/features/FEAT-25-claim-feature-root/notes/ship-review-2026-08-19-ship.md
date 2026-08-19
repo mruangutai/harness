@@ -136,6 +136,7 @@ this is everything that survived.
 | B-16 | chore | pm removed from its own memory the rule "a source reading is not admissible evidence for a `verify: automated` criterion — name the passing test or return it not met", while the reading that rule embodies is the open question in section 2 above. If you rule strict, re-add it. |
 | B-17 | chore | An untracked note, `.harness/notes/dec-11-frontmatter-enumeration-2026-08-19.md`, was present in my capture at branch-cut and gone minutes later. Untracked, so git holds no copy and it is unrecoverable. No agent's git captures ever saw it and no member touched that path. Stated as a fact, without a theory. |
 | B-18 | chore | **The distillation writes to `.harness/expertise/` are NOT committed, deliberately.** Ten Expertise files carry this feature's distilled entries in the working tree. They sit outside the feature directory and in no task's `files:` list, so committing them on this branch would fail SC-08 clause (a) on any re-grade of a criterion the goal-check already passed. They are durable on disk and format-checked (`check-expertise.sh` exit 0, all 15 files, counts held). **Where they land is your call** — a separate commit outside the feature branch is the clean option, and my own memory already carries this as an open question: shared Expertise has no lineage protection and nothing reconciles it against a plan's declared files. |
+| B-19 | bug | **Nothing serialises Expertise writes against an open distillation run.** Section caps are computed from the copy injected at spawn, so a concurrent writer can fill the slot a member counted and turn a valid `add` into a cap violation. It happened here: I applied the completed run's ops while a redundant second pass was still in flight, and that pass returned two ops that would have made `harness-code-reviewer.md` 16 Gotchas against a cap of 15. Caught only because the lead flagged it blocking and told me to re-grep. |
 
 ## Numbers
 
@@ -167,3 +168,30 @@ either clause. Re-grading at the final commit I ran clause (b) over the full dif
 digests and receipts that discuss the constraint. Restricted to the graded set it is clean, as are
 all five forbidden files, checked individually. The criterion anticipated the exact mistake its
 grader would make, which is worth knowing the next time someone is tempted to simplify its wording.
+
+
+## Post-briefing addendum — the redundant distillation pass returned
+
+Recorded here rather than silently folded in, because it corrects something I told you above.
+
+**The fourth cycle was not wasted after all — it was harmful and then useful.** I re-dispatched a
+distillation run I judged incomplete; it had in fact completed. That made a second writer active on
+the same files while I was applying the first run's ops, which is backlog row **B-19** and a real
+concurrency hazard rather than a wasted spawn.
+
+**What I did with its ops.** Its `harness-code-reviewer` ops are **dropped, not applied**: both
+lessons are already on disk under different wording (`G-15`, `O-05`), that file's Gotchas is at
+15/15, and applying them as adds would have made 16 and failed the format check. Its
+`harness-validator-lead` ops **are applied** — both are distinct from anything on disk, and that
+file had room. `check-expertise.sh` exits 0 across all 15 files with counts held. The lead returned
+this as a **blocking** question telling me to re-measure before applying anything, and it was right
+to; I re-grepped every count rather than trusting either report.
+
+**One retraction from that lead, which favours nobody.** It closed `harness-ui-reviewer` without a
+spawn on the judgement that the candidate was already covered. That call was wrong in substance —
+the entry now on disk (`G-08`) covers exactly the case it thought was covered elsewhere. Harm is
+zero, because the original run had already spawned that reviewer and captured the op. Stated
+because the record should show the call was wrong, not merely harmless.
+
+**None of this changes the ship recommendation, any success criterion, or the gate.** No source file
+moved; the six graded files are byte-identical to `review_sha`.
