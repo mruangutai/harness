@@ -25,6 +25,9 @@
 - G-05: WHEN a file-extension census returns matches you plan to scope in DO confirm each is not a 100% rename with zero content delta (`git diff --summary -M`) before treating it as touched content — an extension match on a pure directory move carries no design contract to audit.
 - G-06: WHEN probing whether a verify closes a stated coverage gap DO cover all three probe polarities — total-silence, false-FAIL, false-PASS — before ruling coverage closed; varying only wording within one polarity can return a clean verdict while the false-PASS shape stays open.
 - G-07: WHEN a remedy is written to close a prior finding DO confirm it discharges the exact shape the finding was ranked on — closing a related-but-different shape (e.g. total-silence when the gating shape was false-PASS) is not closure.
+- G-08: WHEN a wording finding exactly matches text an approved plan's intent block mandates DO
+  treat it as a plan-change question, not a defect remedy — this holds even for newly introduced
+  text, not only an untouched pre-existing sibling.
 
 ## Outcomes (max 10)
 - O-01: WHEN a scoped-out verdict rests on a measured check (extension census, direct object check) rather than a prediction DO record it as such — a scoped-out review that looked holds up under cross-review scrutiny; one that merely predicted absence does not.

@@ -45,6 +45,9 @@
   matches a known positive instance — a pattern anchored on a detail the real instances lack
   reports an absence indistinguishable from cleanliness, and your own sweep is the one nobody
   re-runs.
+- P-15: WHEN a member's finding extends a proven defect to further sites DO open each cited site
+  yourself before adopting the count — a mutation proof at one site licenses nothing about
+  siblings matched by grep, and an instance list is what reassigns the owner and the remedy.
 
 ## Gotchas (max 15)
 - G-01: WHEN the blocking gate passes and an advisory gate carries the only defect DO headline
@@ -91,6 +94,9 @@
 - G-14: WHEN a plan's verify clauses are the evidence a gate rests on DO exercise each as an
   artifact in its own right — that it can fail, that it can pass, and that no later commit
   falsified the word it greps.
+- G-15: WHEN computing displacement arithmetic against a section cap DO re-read the file at write
+  time rather than trust the copy injected at spawn — the injection is a snapshot, and a
+  concurrent writer can fill the slot you counted, turning a valid add into a cap violation.
 
 ## Outcomes (max 10)
 - O-01: WHEN dispatching a review panel DO name the already-ruled items in the prompt —
@@ -102,5 +108,12 @@
 - O-03: WHEN a reviewer self-scopes out DO require the census or object check it actually measured
   before crediting the decline — a decline that looked survives cross-review, one that predicted
   absence does not, and only the first is evidence.
+- O-04: WHEN a later cycle falsifies a claim in your earlier signed digest DO retract it by name,
+  stating separately whether the verdict it supported still stands on other grounds — a verdict
+  survives a retracted premise, and merging the two either falsifies the record or reopens a
+  settled gate.
+- O-05: WHEN a round closes with members still in flight DO return each member's disposition by
+  name rather than an empty ops list — empty asserts they judged and declined, so an interrupted
+  round is recorded as a completed one that found nothing.
 
 ## Open (max 5)

@@ -33,9 +33,10 @@
 - P-11: WHEN a goal-check returns criteria unmet DO check first whether the behaviour is wrong or only
   unproven. The dominant shape is a criterion enumerating N clauses, shapes or personas with fewer than
   N fixtured — a test-only fix, not a code one, and it routes to a different lane.
-- P-12: WHEN a criterion or a `verify:` clause sweeps for a removed concept DO grep the plain English
-  word too, over every file type in scope. Compound-token patterns are blind to prose that names the
-  thing without spelling it, so an all-green clause is not an absent defect.
+- P-12: WHEN a blocking gate's configured command exits non-zero DO re-run it unmodified in a
+  clean checkout at the commit under grade before routing the failure. The gate grades a commit, not
+  a tree; uncommitted drift outside the graded diff reddens it identically, and measuring at the pin
+  excludes nothing.
 - P-13: WHEN a criterion pins a measured COUNT or a line ANCHOR taken at the base commit DO expect it
   red at the goal-check with correct delivery behind it. New directories inflate globs and edits move
   lines inside one feature's lifetime. Anchor on content strings instead.

@@ -48,12 +48,15 @@
   unconditional last statement reached after every exit primitive (e.g. `sys.exit`), not behind a
   conditional guard enumerating exit cases — reaching that statement is itself the proof no early
   exit fired.
-- P-15: WHEN measuring a live call's cost or side effects DO bracket it with a null-control read
-  taken before the window and derive any independent reference value only after the window closes —
-  deriving the reference inside the window risks contaminating the number being measured.
+- P-15: WHEN a module-scope constant is computed once at import time DO add at least one
+  unpatched-default test case that exercises it without monkeypatching first — if every other
+  case patches the constant before use, a suite can stay fully green forever over a stale default
+  nothing exercises.
 
 ## Gotchas (max 15)
-- G-01: The harness repo has no application source; src/** is empty here.
+- G-01: WHEN a coverage sweep reports zero hits for a fixed list of anchor terms DO treat that as
+  inconclusive, not proof of absence — the real branch may be exercised by a fixture spelling the
+  condition in different words the sweep's terms never match, so read the fixture directly.
 - G-02: WHEN a test suite's docstring or label claims a specific contract DO treat it as an
   unverified claim and check the adjacent assertion actually matches it — a stale label can
   propagate across review tiers as if it were a measurement.

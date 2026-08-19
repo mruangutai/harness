@@ -504,7 +504,7 @@ distillation dispatch, **read by path, not preloaded** (DEC-158 move 2, like
 ### 4.0 Supported frontmatter
 
 Claude Code parses a fixed set of frontmatter fields in an agent `.md` file. Only `name` and
-`description` are required; everything else is optional. The harness uses six of them:
+`description` are required; everything else is optional. The harness uses seven of them:
 
 ```yaml
 ---
@@ -512,6 +512,7 @@ name: harness-eng-lead
 description: "Engineering lead — routes work to specialists, owns architecture review"
 tools: [Read, Glob, Grep, Agent, Write]   # leads: NO Edit/Bash (§4.1)
 model: opus                          # sonnet|opus|haiku|fable|<full id>|inherit
+effort: medium                       # low|medium|high (per-tier policy: DEC-152)
 color: cyan                          # NAMED color only — see below
 skills:                              # rule delivery — FULL content preloaded at spawn (§7)
   - harness-handoff
@@ -534,7 +535,7 @@ all 15 agent files as dead weight; none of them declares one today.
 |---|---|
 | `memory: user\|project\|local` | Native per-agent persistent memory — a close match for Expertise (§5), but it **auto-enables Read/Write/Edit** for that agent. That silently breaks the no-`Edit` guarantee for the 3 leads and the read-only guarantee for the 3 reviewers, which are load-bearing (§4.1). Expertise is hand-rolled instead, and injected by hook (§5.1). |
 | `isolation: worktree` | Available, and the fallback if domain enforcement fails (BUILD.md § 0a). Not used by default — it costs a worktree per agent. |
-| `disallowedTools`, `permissionMode`, `maxTurns`, `mcpServers`, `effort`, `background`, `initialPrompt` | Available; no current need. `mcpServers` is the likely home for per-team tool conventions (§3.2) if declaring them in the manifest proves insufficient. |
+| `disallowedTools`, `permissionMode`, `maxTurns`, `mcpServers`, `background`, `initialPrompt` | Available; no current need. `mcpServers` is the likely home for per-team tool conventions (§3.2) if declaring them in the manifest proves insufficient. |
 
 **Body sections** — `## Expertise` and `## Domain` are declarative *in form* but live in the
 **body**: Claude Code's loader ignores unknown frontmatter keys, whereas the body becomes the system

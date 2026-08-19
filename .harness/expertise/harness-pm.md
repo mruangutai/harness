@@ -9,9 +9,9 @@
   globs match files on the surface being changed: a non-null runner matching zero files here is a
   gate that proves nothing. Widen the runner as a task rather than downgrading the criterion to
   inspection.
-- P-03: WHEN a criterion declares automated verification DO NOT admit a source-code reading as its
-  evidence — that converts it to inspection, and the method is fixed at approval. Name the passing
-  test, or return the criterion not met.
+- P-03: WHEN a criterion's grading set is derived from the artifact under grading — the plan's own
+  file lists — DO re-base it on a source that artifact cannot define, then name the concrete case
+  that now fails it. Otherwise it is true by construction and can never fail.
 - P-04: WHEN a criterion quantifies over N items DO give each item its own assertion, in the verify
   you author and again when grading. A file-global search or a matching count is satisfied by the
   conformers alone, blind to the one item that conforms to nothing.
@@ -75,9 +75,9 @@
 - G-07: WHEN citing gate or panel evidence produced before the commit you are grading DO diff the
   range for source changes and re-run the suites at that commit. An earlier green proves the earlier
   tree, and the provenance rots silently because the verdict text stays true-looking.
-- G-08: WHEN a task adds a file to a suite that keeps an explicit registration list DO register it
-  in that same task. A drift detector fails the WHOLE run on an unregistered file, reddening every
-  other task's verify. Exemplar: the SCRIPTS array in this repo's unit-test runner.
+- G-08: WHEN citing a suite's exit code or ok-line count as proof it passed DO read the runner's
+  failure accounting first. One counting a failure only when a detail string is non-empty exits 0
+  while printing FAIL lines, which no ok-count sees. Grep the failure prefix.
 - G-09: WHEN routing a fix cycle DO name which met verdicts the remedy commit itself will falsify.
   A criterion quantifying over the whole change set goes stale underneath a later commit, the grade
   was correct when taken, and nothing can unland the commit that broke it.

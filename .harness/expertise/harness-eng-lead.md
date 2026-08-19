@@ -20,9 +20,9 @@
 - P-06: WHEN approving a replacement for an assertion DO ask what the old one PINNED and check
   the new SET still pins it — "no assertion may be weakened" passes when each is individually as
   strong and the set has lost a property, so nothing reddens when the defect returns.
-- P-07: WHEN a task's write path is unowned by your own manifest reading DO split it so the
-  bankable phase dispatches first — the guard's denial names the permitted set and routes,
-  where halting on your reading alone banks nothing.
+- P-07: WHEN a dispatch requires you to run a check you hold no shell for DO route it to an
+  in-squad non-doer that re-extracts the command from the approved plan and byte-diffs it
+  against your dispatch string, and state in your digest which form of evidence was delivered.
 - P-08: WHEN a clause count is offered as evidence a design rule is guarded DO count only the
   behavioural clauses — grep clauses die to a rename, and an assertion coarser than the property
   it names is green under the bug.
@@ -44,9 +44,9 @@
 - P-14: WHEN a sweep or detector keys on one spelling of the thing it hunts DO enumerate the
   other spellings — joined tuples, depth arithmetic, wildcards — before trusting its file list
   or its clean report; sites it cannot spell are absent from both
-- P-15: WHEN a must-fix has to land inside one atomic commit DO specify the remedy's SHAPE, not
-  just its presence — a fix that reddens existing fixtures for a brand-new reason cannot ship in
-  that commit, so the shape leaving them green is the requirement
+- P-15: WHEN an optional edit's only proof would be authored by the same agent making it, over
+  text no standing assertion pins, DO decline it and backlog the alternative verbatim — a fixer
+  certifying its own fix is the shape of the defect these passes exist to catch.
 
 ## Gotchas (max 15)
 - G-01: `.claude/skills/harness/bin/**` sits in both backend-dev's and dev-ops's domain in
@@ -75,9 +75,9 @@
 - G-08: WHEN a verify clause scans from a heading anchor to EOF for text the task must write DO
   measure that string's pre-existing occurrences in the target file — nonzero, or an anchor one
   heading level higher, greens the clause on text nobody wrote.
-- G-09: WHEN a review would raise a pinned expected-FAIL count DO first enumerate which modules
-  actually read the changed real input — a pin above the true count reds a correct tree and
-  manufactures a mid-cluster halt, worse than the looseness it fixes.
+- G-09: WHEN a success criterion grades a commit range but every task's verify only greps and
+  runs suites DO enumerate the working tree's modified files outside every task's files list
+  before the commit — a sweep-all commit fails that criterion on paths the squad never touched.
 - G-10: WHEN dispatching a distillation into an existing Expertise file DO capture one
   distinctive token per current entry before the spawn and compare by text on return — the
   format checker has no notion of prior state, and a drop plus a renumber leaves the id set

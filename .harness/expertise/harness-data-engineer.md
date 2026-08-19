@@ -10,6 +10,11 @@
 - P-03: WHEN reporting a scope count (e.g. files changed) DO show the breakdown that produced it,
   not just the total — a bare number is indistinguishable from a lucky guess against an
   independent recount, and the breakdown is what lets a reviewer verify or refute it.
+- P-04: WHEN a review angle returns zero findings DO report the checks performed, not just the
+  count — enumerated checks let a zero read as evidence of coverage rather than silence.
+- P-05: WHEN judging whether a proposed new seam (module, class, layer split) is justified DO
+  check whether anything actually varies across it, not whether one could be drawn — extending
+  an existing classifier/renderer pair often needs no new seam.
 
 ## Gotchas (max 15)
 - G-01: WHEN timing-probing a CLI that shells out to an external service (e.g. `gh`) DO wire the
