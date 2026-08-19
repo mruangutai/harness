@@ -8,9 +8,26 @@
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
-    { "id": "2026-08-18-1-product", "squad": "product", "verdict": "PASS" },
-    { "id": "t02t03-eng", "squad": "eng", "verdict": "PASS" },
-    { "id": "qa-validator", "squad": "validator", "verdict": "PASS" }
+    {
+      "id": "2026-08-18-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t02t03-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "qa-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "e1-judgment-product",
+      "squad": "product",
+      "verdict": "PASS"
+    }
   ],
   "github": {
     "milestone": 17,

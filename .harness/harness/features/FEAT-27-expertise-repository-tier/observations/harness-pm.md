@@ -53,3 +53,26 @@ because the authoring agent was dead — a boundary crossing, recorded rather th
   (`craft/agent-bd.md` was refused). Probe fixtures therefore have to be built by a Python script
   written with the Write tool, which creates its own tempdir — the redirect never appears in a bash
   command line.
+
+## E1 judgment segment (2026-08-19)
+
+- 2026-08-19: the useful test for "new criterion or delivery gap" was **the task intent's list of
+  conforming implementations**, not the REQ or the SC. T-02 1b offered "nullglob semantics **or** an
+  `[ -r ]` guard" — nullglob gives none of the unreadable-file protection the gap wants, so a fully
+  conforming build could lack the property entirely. That settled the ruling faster than either the
+  REQ or the SC did. When a plan names alternatives, the weakest alternative is what the plan
+  actually committed to.
+- 2026-08-19: SC-06's trailing em-dash clause ("the spawn path is unchanged for every agent that has
+  not distilled yet") reads at first like a broad guarantee. It is a gloss on the enumerated
+  conditions, and its own subject excludes the case in question — an agent with an unreadable
+  repository file has distilled. Grading the gloss separately from the enumeration is what kept the
+  split ruling from collapsing.
+- 2026-08-19: qa reported gap (b) as "the suffix rule has zero coverage", which overstates the cost
+  to close it. The regex's only surviving unique catch is traversal-with-valid-prefix, and case 12
+  already carries `harness-qa/../../etc`; it is vacuous only because no file exists at the traversal
+  target. Deriving what a guard *uniquely* catches — after the other guards absorb their share —
+  turned a new-case estimate into a one-fixture-line estimate.
+- 2026-08-19: `chmod 000` is a bad fixture mechanism in this repo (no-op as root, mode not preserved
+  by git). A **dangling symlink** built with `os.symlink` in the per-case tempdir fails `test -r` for
+  every uid and is never checked in. Worth reaching for whenever a criterion needs an unreadable
+  path.
