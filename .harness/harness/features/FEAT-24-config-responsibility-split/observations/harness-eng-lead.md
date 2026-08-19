@@ -67,3 +67,28 @@
 - 2026-08-19: `dispatch-guard.sh` blocked my first Agent call for passing `model: sonnet` (DEC-152/155).
   Correct block, my error. Model pins are org design and never a dispatch option; the tool's own
   `model` parameter is not a licence to use it from a lead.
+
+- 2026-08-19 (run 8, four-angle simplify): a member's receipt appearing on disk is NOT its return,
+  and I watched two of four members REVISE their receipt in place after first writing it — the file
+  moved back to last in an mtime-sorted `Glob` while the agent was still running. So the only
+  in-flight signal a lead actually has is mtime churn, and the correct read of it is "still
+  writing", never "ready to read". The validator-lead burned a spawn on this exact error last run by
+  reading a mid-write snapshot and reporting a contradiction that the member fixed before returning.
+  Waiting cost me nothing; reading early would have cost a false finding in a digest.
+
+- 2026-08-19 (run 8): I spent roughly sixty `Glob` calls polling for returns that arrive by PUSH
+  notification anyway. Polling buys no information and does not protect against the thing I was
+  actually afraid of (issue #461, a lead returning while a member is in flight) — what protects
+  against that is simply not writing a verdict. The real constraint underneath: a lead holds no
+  `SendMessage`, so it cannot ask a running member for anything, and it has no way to idle except
+  by making tool calls. Next time: do the genuinely useful adjacent reads once, then stop, and
+  accept that the turn is just open.
+
+- 2026-08-19 (run 8): severity of a "silent return None" finding is decided by WHO CALLS IT, and
+  enumerating the callers flipped my disposition. `gh_board.load_board` returns None when the
+  `github` block is absent while its own docstring says that case raises. That reads as a live
+  silent-failure hole until you grep: all three callers pre-filter the block first
+  (`gh-sync.py:151`, `board-station.py:140`, and `check-state.sh:1147` behind the
+  `isinstance(_g26, dict) and sync is True and repo` guard at `:1138-1140`). So it is a falsified
+  docstring, not a hole — the difference between a forced fix cycle and a routed docstring question.
+  Enumerate call sites before rating any "this fails silently" finding.

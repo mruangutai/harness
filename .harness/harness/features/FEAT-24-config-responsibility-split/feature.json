@@ -61,7 +61,7 @@
     {
       "id": "2026-08-19-1-eng",
       "squad": "eng",
-      "verdict": "BLOCKED"
+      "verdict": "PASS"
     },
     {
       "id": "2026-08-19-2-product",
@@ -76,7 +76,7 @@
     {
       "id": "2026-08-19-4-eng",
       "squad": "eng",
-      "verdict": "BLOCKED"
+      "verdict": "PASS"
     },
     {
       "id": "2026-08-19-3-product",
@@ -91,6 +91,16 @@
     {
       "id": "2026-08-19-7-eng",
       "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-8-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-9-validator",
+      "squad": "validator",
       "verdict": "BLOCKED"
     }
   ],
