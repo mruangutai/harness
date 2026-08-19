@@ -138,3 +138,7 @@
   a signed clause shipped half-built that behavioural checking missed; the same checking caught two
   gates passing while discovering nothing. Three features suggest intent-versus-mechanism, and none has
   run with the panel absent.
+- OQ-02: Concurrent distillation runs race on the shared Expertise corpus. One squad's gate read
+  another squad's mid-write file and failed an agent it never touched; the entry measured clean
+  minutes later. Whether to serialise writes, scope each gate to its own squad, or check only
+  after all return is undecided.

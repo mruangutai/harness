@@ -58,6 +58,9 @@
   diff review DO check whether that control already produced, then caught, a real defect
   within this same review scope — a demonstrated near-miss justifies rating above a purely
   hypothetical gap.
+- P-16: WHEN two reviewers' findings about the same mechanism seem contradictory DO check
+  whether they answer different questions before reconciling — the defect can live in the
+  union of both scopes, not in either alone.
 
 ## Gotchas (max 15)
 - G-01: Only `exit 2` blocks a hook (DEC-100); any other exit — including an
@@ -109,6 +112,9 @@
   precondition-absent, or scope-closed) DO set its structured `mitigated` field to false, not
   true — a downstream reader routes on the YAML field, never the prose; a mismatched field
   misroutes even when the prose reasoning is correct.
+- G-14: WHEN a check computes a result but appends it to a list the exit code never reads DO
+  flag it as non-gating regardless of what it prints — a check that prints OK while silently
+  unenforced is worse than no check, since it reads as validated.
 
 ## Outcomes (max 10)
 - O-01: WHEN a review closes clean DO require identity-level evidence — assertions proving
@@ -126,5 +132,8 @@
 - O-04: WHEN a guard denies a probe, or an anomaly can't be reproduced, DO record it rather
   than smoothing it over — an unreproducible symptom one agent records can match an independent
   one another records, revealing a shared infrastructure defect neither could see alone.
+- O-05: WHEN a diff's risk was already assessed and accepted in a signed plan or decision DO
+  cite that signature and its revisit trigger, and never add the risk to must_fix — gating a
+  ship on a cost the operator already signed is not this role's call.
 
 ## Open (max 5)

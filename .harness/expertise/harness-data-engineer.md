@@ -15,6 +15,10 @@
 - P-05: WHEN judging whether a proposed new seam (module, class, layer split) is justified DO
   check whether anything actually varies across it, not whether one could be drawn — extending
   an existing classifier/renderer pair often needs no new seam.
+- P-06: WHEN a finding proposes deleting code as duplicating an existing guarantee (e.g. a sort
+  reapplied to already-sorted input) DO check whether any test asserts the differing case before
+  calling removal safe — proving the guarantee empirically outside the suite is not the same as
+  the suite seeing it.
 
 ## Gotchas (max 15)
 - G-01: WHEN timing-probing a CLI that shells out to an external service (e.g. `gh`) DO wire the
@@ -26,6 +30,13 @@
 - G-03: WHEN a test fake for an external CLI matches only argv text DO check whether it also
   enforces the semantic shape — verb, response structure — a text-only fake lets a call that
   flips read to write, or returns a malformed response, pass silently.
+- G-04: WHEN judging whether a manual sort after a language-native ordered enumeration (e.g. a
+  bash glob) is redundant DO verify empirically — build fixtures out of order, inspect raw output
+  — rather than assume; bash pathname expansion is already lexicographically sorted by the shell
+  before the loop runs.
+- G-05: WHEN a comment cites a numbered label (e.g. "CHANGE 1") as its rationale DO grep the file
+  for that label before trusting it — a label existing only in a planning artifact narrates the
+  plan's own bookkeeping, not a present fact, and goes stale once the plan closes.
 
 ## Outcomes (max 10)
 

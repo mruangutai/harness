@@ -97,7 +97,13 @@
 - G-15: WHEN a test double returns a payload DO shape it like the real wire response — encoding,
   line wrapping, envelope — not a synthetic clean value; a synthetic fixture leaves the decode
   path untested, so a real response differing in form ships as a live, unguarded defect.
+- G-16: WHEN a finding's writeup states a count DO re-run the exact count command immediately
+  before writing it, never recall or estimate — a wrong number attached to a correct conclusion
+  invites no re-check, so a reader downstream treats it as a verified measurement.
 
 ## Outcomes (max 10)
+- O-01: WHEN a true, low-risk finding needs a source edit after the gate that would review it has
+  already passed DO backlog it, not apply — a correct finding's disposition turns on its place in
+  the gate sequence, not on correctness alone.
 
 ## Open (max 5)

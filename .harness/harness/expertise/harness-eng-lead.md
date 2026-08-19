@@ -6,6 +6,9 @@
 - G-01: `.claude/skills/harness/bin/**` sits in both backend-dev's and dev-ops's domain in
   team-config.yaml, so the domain hook cannot keep their writes disjoint there — serialize any
   two tasks touching one file under it and attribute each write.
+- G-02: WHEN assessing a test-matrix claim here DO read `run-unit-tests.sh`'s UNIT_SCRIPTS and
+  INTEGRATION_SCRIPTS arrays, not `harness.json`'s detect globs — array membership decides which
+  script actually executes; the globs only decide which kind the gate believes is required.
 
 ## Outcomes (max 10)
 

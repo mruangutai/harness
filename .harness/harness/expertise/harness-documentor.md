@@ -20,6 +20,9 @@
 - G-03: WHEN you edit a ruling in `.harness/harness/docs/DECISIONS-INDEX.md` DO run the unit-test runner, not
   just the generator diff — the index's length budgets are asserted only in
   `test-gen-decisions-index.py` and stated nowhere in the index itself.
+- G-04: WHEN `.harness/harness/docs/SPEC.md` and a script under `.claude/skills/harness/bin/`
+  disagree DO treat the script as authority and fix SPEC — SPEC states intent and drifts; several
+  of its Expertise budget and precedence claims were falsified by the shipped scripts.
 
 ## Outcomes (max 10)
 

@@ -40,6 +40,10 @@
 - P-15: WHEN a claim in an approved plan or brief proves false against the code DO write the true
   shape into your own record, raise the signed prose for re-signature as a non-blocking question,
   and neither transcribe it nor silently edit the signed text.
+- P-16: WHEN one false claim turns up in a document DO read every section touching its subject,
+  sweeping the concept's vocabulary rather than the struck phrasing — paraphrases pass a literal
+  negative grep, cluster far from the owning section, and survive beneath a table you just
+  corrected.
 
 ## Gotchas (max 15)
 - G-01: WHEN you intend to claim a checker's output is unchanged DO run that checker before your
@@ -76,6 +80,12 @@
 - G-15: WHEN a sweep needs a word boundary DO use `-P` or spell it as a character class — `git grep
   -E` treats `\b` as matching nothing and exits 1, indistinguishable from a clean sweep; dropping
   `-E` breaks alternation, and `/usr/bin/grep -E` honours `\b`, so the trap is git grep's.
+- G-16: WHEN a dispatch pins a base commit DO check it against actual HEAD before editing — a
+  stale pin lands your edit on text that has moved; work at real HEAD and report the divergence
+  rather than silently choosing either.
+- G-17: WHEN a document names the same objects with two vocabularies DO treat that as a defect even
+  though every sentence is true — a reader meeting the second split first reads the first as a
+  contradiction; unify them or cross-reference where they meet.
 
 ## Outcomes (max 10)
 - O-01: WHEN correcting a record whose existing text scopes itself ("this amendment touches X
@@ -95,5 +105,8 @@
 - O-05: WHEN you strike or retitle a decision DO run two sweeps, not one — the struck wording
   across live surfaces, and the decision's own identifier — only the citation sweep shows the change
   orphaned no reference, which is the harm a strike record exists to prevent.
+- O-06: WHEN correcting a false claim about the relationship between two values DO state the
+  mechanism that makes the true relationship hold — a bare correction leaves the next reader to
+  re-derive it, and an unexplained equality reads as an oversight or a bug.
 
 ## Open (max 5)
