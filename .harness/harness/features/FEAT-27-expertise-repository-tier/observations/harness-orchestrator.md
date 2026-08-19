@@ -110,3 +110,32 @@
   cost when the feature is already gated on four unbuilt tasks, so both options need a signature and
   only the timing differs. An escalation relayed raw asks the operator to do the adjudication the
   owning squad exists to do.
+
+- 2026-08-19: A green-looking suite report was RED, and the tell was where the reader stopped. The
+  layer-0 executor reported `run-unit-tests.sh --kind integration` as "106/106, exit 0". The real
+  run exits 1 with two FAIL lines — and the LAST line of that run is
+  `106/106 checks passed. PASS test-factory-integration.py`, the final script's own internal count.
+  A tail-only read of this runner reports any earlier script's failure as success. Always count
+  `^FAIL ` lines and capture the runner's own exit status in a variable; never read the tail, and
+  never take a piped `$?` (which returns the exit status of `tail`, not the suite — I made that
+  mistake myself earlier the same session).
+
+- 2026-08-19: The same report said "all 21 craft files OK". There are 15 craft files and 6
+  repository files; 21 is their sum. The conclusion (both tiers pass) was right and the narration
+  conflated the two tiers — which matters, because "21 craft files" would mean six craft files had
+  been created, a real defect. Count the two tiers separately when a change's whole point is that
+  they are separate.
+
+- 2026-08-19: A hardcoded fixture that snapshots a REAL config file reddens on every legitimate
+  change to that file. `test-harness-yaml.py`'s `COLLECT_FIXTURE` pins six agents' domain lists from
+  the live manifest, so adding sixteen approved grants broke it — with every one of the six
+  differing by exactly the expected one entry and nothing missing, which is the signature of a stale
+  fixture rather than a broken change. Diagnose by diffing expected-vs-actual PER AGENT before
+  routing: "extra == exactly what the task added, missing == empty" distinguishes a fixture refresh
+  from a real regression in one measurement, and they route to completely different places.
+
+- 2026-08-19: When refreshing such a fixture, the trap is regenerating it from the function under
+  test — the fixture then asserts nothing and passes against a broken parser. The instruction has to
+  be to re-derive it from the source data by hand. Worth saying explicitly in the dispatch, because
+  pasting the actual output is the fastest way to make the suite green and looks identical in the
+  diff.

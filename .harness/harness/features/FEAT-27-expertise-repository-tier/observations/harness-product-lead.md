@@ -26,3 +26,19 @@
   BOTH options — author T-07, or backlog — required an operator signature. The real variable was
   *when* the signature is asked for, not *whether*. Check what actually gates the ship before letting
   a member cost out "now vs later"; an inherited cost frame produces a confidently wrong trade-off.
+- 2026-08-19 (t05-q4-product): the way to check "did the member corrupt a field I forbade it to
+  touch" without a shell is to grep the field BEFORE dispatch and again after, and compare the LINE
+  NUMBERS, not just the values. `status:` sat at 105/171/356/456/584/667 both times, which proves
+  additively-appended and no rewrite above the insertion point — a value-only comparison cannot
+  distinguish "untouched" from "rewritten identically with shifted content around it".
+- 2026-08-19 (t05-q4-product): a verify's NEGATIVE greps are literal and therefore prove almost
+  nothing about intent. T-05's forbidden phrases were already absent at the base commit, while
+  SPEC §5.6 carried the same falsehood worded as "Project wins on conflict" and passed green. The
+  documentor found it only by reading the whole section, not by running the gate. When a task's
+  point is "this claim must not survive anywhere", the gate cannot be the assurance — a full read of
+  the file is, and it is the member's read that must be commissioned, not the grep.
+- 2026-08-19 (t05-q4-product): two members editing disjoint files in one repo produced a shared
+  `git status` that each read as partly its own. pm correctly disclaimed three `pending → done`
+  flips in its working diff as the orchestrator's pre-existing uncommitted work. A member cannot
+  tell an uncommitted third-party change from its own; when dispatching concurrently, say which
+  files are the OTHER member's so the disclaimer is cheap rather than a re-derivation.

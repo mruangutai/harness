@@ -76,3 +76,16 @@ because the authoring agent was dead — a boundary crossing, recorded rather th
   by git). A **dangling symlink** built with `os.symlink` in the per-case tempdir fails `test -r` for
   every uid and is never checked in. Worth reaching for whenever a criterion needs an unreadable
   path.
+- 2026-08-19: T-07 authored under Q4's adoption. I ran the mechanism before writing the intent —
+  a dangling symlink in a scratch tree, then `[ -r ]`, `head -n 40` and `wc -l` against it — and
+  confirmed the glob matches, `[ -r ]` is false, and head/wc write to stderr. That is what let SC-11
+  assert **empty stderr** rather than the weaker "no traceback"; without the run I would have
+  written the weaker one and lost the discriminator.
+- 2026-08-19: writing the acceptance as *the mutant reddens, proven* forced a shape the task could
+  not fake: the test file already honoured `INJECT_EXPERTISE_BIN`, so the mutation runs against a
+  temp copy with no edit to the shipped script. When a criterion's risk is "may not be reddenable",
+  check first whether the test harness already has a binary-override seam — it converts an unprovable
+  criterion into a two-command proof.
+- 2026-08-19: appending a task to plan.yaml via a bash heredoc is refused by `bash-write-guard`
+  (redirect outside my domain) even for a file I own; the Edit tool on a unique tail anchor is the
+  only route. Domain is enforced at the tool, not the path.

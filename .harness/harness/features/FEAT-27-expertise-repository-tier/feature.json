@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Building",
   "review_sha": "2117a46",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [

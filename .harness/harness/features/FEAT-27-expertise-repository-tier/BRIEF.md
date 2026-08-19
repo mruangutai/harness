@@ -155,6 +155,14 @@ merged with another, and no atomic landing is required.
   own header — the phrase "authoritative on conflict" appears nowhere in the injected context, and
   headers label scope only. Asserted on the hook's real output, not on the script's source.
   verify: automated      evidence: unit
+- SC-11: With a repository-tier file present but unreadable — a dangling symlink at
+  `.harness/kaya/expertise/harness-qa.md`, created at test time — the hook exits 0, emits no header
+  and no path fragment for that segment, writes nothing to stderr, and still emits the readable
+  `harness` tier in full. The case is proven able to fail: run against a copy of
+  `inject-expertise.sh` with its `[ -r "$f" ] || continue` guard deleted, it must report FAIL.
+  A case that stays green under that mutation is not shipped — the criterion is then `not_met` and
+  the recorded proof attempt is the evidence.
+  verify: automated      evidence: unit
 
 ## Backlog disposition
 

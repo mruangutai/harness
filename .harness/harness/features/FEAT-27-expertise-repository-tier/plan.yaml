@@ -102,7 +102,7 @@ tasks:
       check-domain.sh --resolve prints NOBODY for .harness/team-config.yaml at ada8e99, and the
       file is the enforcement data check-domain.sh itself reads
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/team-config.yaml
     verify: |
@@ -453,7 +453,7 @@ tasks:
       reviewer and the orchestrator, none of which is a dispatchable task executor, so no single
       doer can be dispatched to move all eleven (see D-03)
     depends_on: [T-01, T-03]
-    status: pending
+    status: done
     files:
       - .harness/expertise/harness-backend-dev.md
       - .harness/expertise/harness-dev-ops.md
@@ -581,7 +581,7 @@ tasks:
     execution_agent: harness-documentor
     execution_reason: none
     depends_on: [T-01, T-02, T-03]
-    status: pending
+    status: done
     files:
       - .harness/README.md
       - .harness/harness/docs/SPEC.md
@@ -664,7 +664,7 @@ tasks:
       check-domain.sh --resolve prints NOBODY for everything under .claude/ except
       skills/harness/bin, so no agent may write either skill file
     depends_on: [T-03, T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-distill/SKILL.md
       - .claude/skills/harness-curate/SKILL.md
@@ -720,3 +720,97 @@ tasks:
       in both step 1 and step 4, and say in one clause why the second path is audited at all: the
       repository tier has its own 40-line budget and the checker applies it by path. Do not change the skill's frontmatter description beyond adding the second
       path where it names the first.
+
+  - id: T-07
+    title: Pin the injection hook's unreadable-file guard with a case proven to redden against a guard-removed mutant
+    traces: [REQ-05]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    execution_reason: none
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-inject-expertise.py
+    verify: |
+      set -u
+      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind unit 2>&1)
+      echo "$out"
+      echo "$out" | grep -q '^PASS test-inject-expertise.py$' || exit 1
+      echo "$out" | grep -q '^FAIL ' && exit 1
+      grep -q 'def case13' .claude/skills/harness/bin/test-inject-expertise.py || exit 1
+      grep -q 'os.symlink' .claude/skills/harness/bin/test-inject-expertise.py || exit 1
+      exit 0
+    intent: |
+      Add ONE new case, case13, to .claude/skills/harness/bin/test-inject-expertise.py, and prove it
+      reddens against a mutant. Change no other file. Do not edit inject-expertise.sh: the guard this
+      case pins is already shipped and correct at line 68 of that script, and this task exists only
+      because nothing detects its removal.
+
+      WHY, precisely — read this before writing anything, because it determines what the case may
+      assert. inject-expertise.sh:67-68 reads
+
+        for f in "$root"/.harness/*/expertise/"$agent.md"; do
+          [ -r "$f" ] || continue
+
+      and the script's own comment justifies the guard by the NON-MATCHING GLOB case: an unexpanded
+      pattern must not be treated as a filename. That duty is already double-covered — an unexpanded
+      glob word carries a literal star, so the segment filter at lines 75-77
+      (case "$segment" in ''|*[!a-z0-9-]*) continue ;;) rejects it independently. Measured: deleting
+      the guard leaves all twelve existing cases green. A case that re-covers the non-matching-glob
+      half would therefore be a fourth assertion that cannot fail, and is not what is being asked
+      for. The guard's UNCOVERED duty is the file that EXISTS and is UNREADABLE, and that is the
+      only duty case13 may assert.
+
+      THE MECHANISM — a dangling symlink, and this part is not negotiable. Inside the case's own
+      tempdir call os.symlink with a target that does not exist, at
+      <root>/.harness/kaya/expertise/harness-qa.md. Verified behaviour: bash's glob matches the
+      dangling link by name, [ -r ] follows the link and is false for EVERY uid including root, and
+      nothing is checked into git, so mode preservation is irrelevant. Do NOT use chmod 000 as the
+      primary mechanism — it is a no-op when the suite runs as root and git does not preserve the
+      mode. A chmod 000 variant is permitted ONLY as a second sub-case wrapped in
+      if os.geteuid() != 0, and it is optional; skip it silently if you prefer.
+
+      THE FIXTURE. Temp root gets:
+        - .harness/expertise/harness-qa.md — an ordinary craft file with a distinguishable body.
+        - .harness/harness/expertise/harness-qa.md — an ordinary readable repository file with a
+          distinguishable body, so the case proves the hook still does its job around the bad entry
+          rather than merely emitting nothing.
+        - .harness/kaya/expertise/harness-qa.md — the dangling symlink.
+      HOME is a fresh temp dir, as every existing case does via fresh_home(). agent_type is
+      "harness-qa".
+
+      THE ASSERTIONS, all four required:
+        1. exit status 0.
+        2. the injected context contains "## Your Expertise — harness repository (repository tier)"
+           and the harness repository body — the unreadable sibling does not suppress the good one.
+        3. the injected context does NOT contain the substring "kaya" anywhere — no header, no
+           segment name, no path fragment.
+        4. r.stderr is empty. Not "contains no traceback" — empty. Verified: with the guard removed,
+           head and wc both fail on the dangling link and bash adds an integer-comparison error, so
+           stderr is the strongest available discriminator and it is clean today.
+
+      THE PROOF, which is the acceptance and not an optional extra. The test file already honours
+      the INJECT_EXPERTISE_BIN environment variable (line 26), so mutate a COPY, never the real
+      script:
+        - copy inject-expertise.sh to a temp path, delete the single line [ -r "$f" ] || continue
+          from the copy, and confirm the deletion actually applied — the copy must differ from the
+          original by exactly that one line; assert it, do not eyeball it;
+        - run INJECT_EXPERTISE_BIN=<mutant copy> python3 .claude/skills/harness/bin/test-inject-expertise.py;
+        - require that case13 reports FAIL and that the process exits non-zero;
+        - run the suite once more unmutated and require every case PASS.
+      Record both runs — the commands, the mutant diff, and the observed case13 verdicts — in your
+      receipt under
+      .harness/harness/features/FEAT-27-expertise-repository-tier/notes/. Delete the mutant copy;
+      it is a temp artifact and is never committed.
+
+      THE PERMITTED NON-DELIVERY, and it is a real outcome rather than an escape hatch. If case13
+      passes against the guard-removed mutant — that is, it cannot be made to redden — do NOT ship
+      it. Remove it, leave test-inject-expertise.py at its twelve committed cases, and return FAIL
+      with the recorded proof attempt: the mutant diff, the exact command, and the full output
+      showing case13 green under mutation. An assertion that cannot fail is worse than an absent
+      one, because it reads as coverage. In that outcome SC-11 is not_met and says so.
+
+      Do not renumber or alter cases 1-12; the BRIEF cites case 3 by ordinal. Add case13() to the
+      call list in main() after case12(). Do not touch run-unit-tests.sh — the file is already
+      registered in UNIT_SCRIPTS.
