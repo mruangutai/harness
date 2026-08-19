@@ -41,3 +41,9 @@
   deleted under DEC-171, so the fixture no longer proves equivalence to anything; it is a frozen
   snapshot that reddens on every legitimate manifest change. Left as-is per dispatch scope (a plan
   question, not mine to fix).
+- 2026-08-19: T-07, cycle 1. The intent's own line-number citation for the guard drifted by one
+  (68 vs the actual 69 at HEAD) — the lead's dispatch note caught and corrected it before I wrote
+  anything, so I deleted the guard by its literal text (`[ -r "$f" ] || continue`) rather than by
+  line number, per the intent's own instruction. Worth remembering as a general pattern: an
+  intent's line-number citations for a file it does not let you touch are not guaranteed current
+  by the time the task executes, even within the same feature.

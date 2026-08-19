@@ -65,3 +65,18 @@
   own receipt says FIX-01. The durable artifact was right and the routing field was wrong —
   which is the more dangerous direction, since the orchestrator reads the DIGEST field and
   never opens the receipt.
+
+- 2026-08-19: dispatch-guard.sh has now blocked a `model:` parameter twice in FEAT-27, from two
+  DIFFERENT leads. Two of my own blocks are recorded above, so the org-level shape is not "one
+  lead has a bad habit" — it is a rule the org keeps rediscovering at runtime rather than at
+  authoring time. The parameter is available in the tool schema and forbidden only by a hook, so
+  every lead meets the prohibition for the first time by tripping it. That is a design
+  observation about where the rule lives, not a complaint about the guard, which worked both times.
+
+- 2026-08-19: on T-07 I verified the mutant's discriminating power from source BEFORE the member
+  returned, and it changed what I would accept. `kaya` is a plain lowercase token, so the segment
+  filter at inject-expertise.sh:75-77 does NOT reject it — which is precisely why a dangling
+  symlink reddens where an unexpanded glob word cannot. Two independent assertions fail under the
+  mutant: the "kaya" header printed at :114, and stderr, which takes three writes (head, wc, and
+  the empty `$( )` making `[ "" -gt 40 ]` a bash integer error at :57-58). Deriving WHY a case can
+  fail, not just that it did, is what separates assessing from re-running.

@@ -306,6 +306,30 @@ def case12():
                f"exit={r.returncode} out={out!r}")
 
 
+# --- Case 13: dangling symlink -> unreadable-file guard is required ---------
+def case13():
+    root = tempfile.mkdtemp()
+    home = fresh_home()
+    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "CRAFT BODY THIRTEEN\n")
+    write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), "REPO BODY THIRTEEN\n")
+    kaya_path = os.path.join(root, ".harness/kaya/expertise/harness-qa.md")
+    os.makedirs(os.path.dirname(kaya_path), exist_ok=True)
+    os.symlink(os.path.join(root, ".harness/kaya/expertise/does-not-exist.md"), kaya_path)
+
+    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
+    ctx = get_context(r) or ""
+    stderr = r.stderr.decode("utf-8", errors="replace")
+    checks = [
+        r.returncode == 0,
+        "## Your Expertise — harness repository (repository tier)" in ctx,
+        "REPO BODY THIRTEEN" in ctx,
+        "kaya" not in ctx,
+        stderr == "",
+    ]
+    report("case13: dangling symlink in repository tier -> unreadable guard skips it, no leak, clean stderr",
+           all(checks), f"checks={checks} stderr={stderr!r} ctx={ctx[:300]!r}")
+
+
 def main():
     case1()
     case2()
@@ -319,6 +343,7 @@ def main():
     case10()
     case11()
     case12()
+    case13()
     print(f"\n{case_count - fails}/{case_count} cases passed.")
     return fails
 
