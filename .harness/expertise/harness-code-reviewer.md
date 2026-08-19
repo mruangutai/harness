@@ -32,11 +32,20 @@
 - G-12: WHEN rating severity for a finding about an edited carrier injected into every spawn of a persona DO weight the carrier's blast radius, not just this instance's content — correct-today content does not bound future edits through the same unguarded channel.
 - G-13: WHEN a test asserts membership (`x in list` or `.split()`) against a live enumeration DO check whether an extra, unexpected member would also pass — membership proves presence, never exhaustiveness, so a regression to over-inclusion (an added grantee, an extra row) sails through undetected.
 - G-14: WHEN a test run shows an anomalous, unreproducible result (a flake, a missing suite member) DO record it explicitly rather than smooth it away — matching two independently-recorded anomalies is how one confirms as a real defect neither could prove alone.
+- G-15: WHEN a grep sweep across specific anticipated terms reports zero hits and you conclude a
+  gap exists DO also trace whether the code path fires under any fixture already in the suite —
+  the real instance can satisfy the condition without ever matching your anticipated wording.
 
 ## Outcomes (max 10)
 - O-01: WHEN reporting a coverage gap via a hand-built mutant DO add one non-shipped probe case that fails on it before reporting the shipped suite passes — an executed failing probe distinguishes a real gap from an unexecuted claim, usually a broken harness.
 - O-02: WHEN a downstream artifact states something false DO trace it to its authoring source before attributing the error — the nearest producer may have faithfully reproduced an upstream defect, and the correct remedy fixes the origin too, not just the surface where it was found.
 - O-03: WHEN closing a must_fix by verifying the code now reads correctly DO check separately whether a test would fail if it regressed — "reads correctly" and "is held to it" are different claims, and only a discriminating test sustains the second past the next edit.
 - O-04: WHEN writing a finding DO name the defect class it belongs to, especially if it matches the class the feature under review exists to close — severity alone doesn't convey that; the class-match sets lead-tier rank.
+- O-05: WHEN proving a defect via a hand-built mutation DO assert two things separately: the
+  mutation applied (show the changed line) and the run completed rather than dying early (show
+  output after the mutation point) — either alone leaves the proof unfalsifiable.
+- O-06: WHEN rating severity DO judge by the downstream consequence of a gap, never by whether the
+  implementer deviated from an approved plan — a plan-authorized gap can still carry high
+  consequence, and blame-based scoring rates it down for the wrong reason.
 
 ## Open (max 5)

@@ -13,9 +13,9 @@
 - P-04: WHEN relaying a distillation candidate DO grep the member's OWN prior artifacts for it, not
   only what it carries at spawn. A candidate restating a member's own note is graded as its
   material, and its acceptance rate then measures your relay rather than the lesson.
-- P-05: WHEN a dispatch hands you an enumerated set of sites DO re-run the enumeration yourself with
-  a wider pattern before dispatching — until it is re-run wide the set is a sample, and a
-  pre-measured baseline makes the post-edit check sound by construction rather than by report.
+- P-05: WHEN you dispatch a member whose return you will accept or send back DO write the send-back
+  criteria to a durable file before the return lands — your context may not survive to the return,
+  and criteria written after reading the answer are fitted to it.
 - P-06: WHEN a task offers the member a choice between two remedies DO check at your own tier
   whether one is already foreclosed and encode the survivor as a hard constraint — a member spawn
   spent discovering the option was never available buys nothing.
@@ -88,6 +88,9 @@
 - G-13: WHEN a dispatch names one digest by path DO enumerate the run dir before quoting from it —
   concurrent passes write sibling filenames rather than overwriting, so a run dir is not guaranteed
   to hold exactly one, and findings in the sibling reach nobody.
+- G-14: WHEN your digest will assert an ABSENCE — no such section, no criterion of that kind — DO
+  read the source document end to end yourself. A cited line proves what is there; only your own
+  full read bounds what is not.
 
 ## Outcomes (max 10)
 - O-01: WHEN a cosmetic defect sits in a file a human is already about to open DO fold it into that

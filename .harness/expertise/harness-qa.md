@@ -9,9 +9,10 @@
   can pass vacuously if unrelated output happens to contain the same text.
 - P-03: WHEN a fixture's premise is "this code path is never reached" DO grep the function body
   directly for the call in question rather than trusting the fixture's own comment or name.
-- P-04: WHEN a gate reports a single boolean like `matrix_ok: true` DO check each task's
-  change_type against the matrix's `always` list — an empty list means no kind obligation at
-  all, so it structurally cannot fail the floor; only the task's own `verify:` block gates it.
+- P-04: WHEN a gate reports `matrix_ok: true` DO check each task's change_type against BOTH
+  the matrix's `always` list AND every `when` clause with a named predicate — a firing
+  predicate is floor, not optional; only when neither obligates a kind does the task's own
+  `verify:` block gate it.
 - P-05: WHEN crediting a test as coverage for a change DO confirm the test file is itself part of
   the diff, not pre-existing — only a test added or changed alongside the code demonstrates it
   exercises this change rather than merely happening to exist nearby.
@@ -23,10 +24,10 @@
   message — not just a token's presence or an exit code. A different code path, or an
   over-permissive implementation, can produce the identical token, so presence-only assertions
   pass under both correct and incorrect code.
-- P-08: WHEN a test asserts a live enumeration contains an expected member (e.g. `x in
-  out.split()`) DO also assert the set's exact membership or count, not just presence — a
-  membership check passes even when an extra, unauthorized member is also present, hiding an
-  over-grant the equality check would have caught.
+- P-08: WHEN a test or criterion compares against an expected set (membership, count, or
+  no-drop) DO diff exact element identity against a baseline, not presence or count alone — an
+  extra unauthorized member, or an add+remove that holds count steady, both pass a
+  summary-statistic check and both ship undetected.
 - P-09: WHEN judging whether an assertion is vacuous DO run a substring/mutation probe rather than
   reading the message text — reading generalizes from one message to a sibling whose wording
   differs just enough to already discriminate, producing a false vacuity claim.

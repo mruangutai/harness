@@ -9,6 +9,7 @@
 - P-07: WHEN a dispatch names a gate as a risk without stating whether it currently passes DO run that gate standalone and report the result explicitly — a risk left unmeasured in the record reads later as unknown status, not as verified green.
 - P-08: WHEN a verify clause asserts only that old required text is ABSENT DO also assert the new required content is literally PRESENT, mirroring any correct positive-check instance already in the same file — a negative-only clause passes unconditionally on an emptied or deleted field.
 - P-09: WHEN judging near-identical blocks for dead-code deletion DO locate the exception by an adjacent comment, never by line number (deletions shift lines below), and prove no case is lost via the ordered SET of ok-line texts before/after — a bare count hides a case lost behind a coincidental addition.
+- P-10: WHEN a dispatch quotes a verify command inline DO independently re-extract it from its source config and byte-diff it against the quoted copy before running — this decouples acceptance evidence from the dispatcher's transcription, keeping it attributable to the source, not the relay.
 
 ## Gotchas (max 15)
 - G-01: Nothing invokes check-state.sh automatically — it is manual-only, so a green session is not evidence it ran. (This gotcha used to also cover check-docs.sh's exec-bit fail-open; that script and INV-10 were struck under DEC-188.)
@@ -21,6 +22,8 @@
 - G-08: WHEN a verify script inspects `git show --name-only` output for a renamed path DO expect only the destination path — the source path never appears there; use `--name-status` instead when the old path itself must be matched.
 - G-09: WHEN a verify clause collapses whitespace with `awk`/`gsub` to match a literal prose phrase DO test it against fixtures with inline markup (bold, code span, blockquote prefix) landing inside the phrase — those break contiguity and false-RED even though the visible text matches.
 - G-10: WHEN judging whether a script's outcome can gate on its exit code DO run it and inspect the exit code directly — some audit/lint tools print findings to stdout while always exiting 0, and reading for `sys.exit()` in source is not a substitute for measuring.
+- G-11: WHEN a three-dot diff (`A...HEAD`) audits which files changed DO first check whether HEAD has moved from the base commit — an empty three-dot diff means 'no changes' and 'nothing committed yet' identically, and only a working-tree diff distinguishes the two.
+- G-12: WHEN reporting a wall-clock timing as verification evidence DO capture and report its exit code alongside it, and an ok-count for every suite measured — a duration number alone cannot distinguish a fast success from a fast failure.
 
 ## Outcomes (max 10)
 
