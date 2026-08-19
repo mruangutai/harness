@@ -1,0 +1,88 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-29 — GraphQL budget · status review at a BLOCKED build</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-29-graphql-budget-status-review-at-a-blocked-build">FEAT-29 — GraphQL budget · status review at a BLOCKED build</h1>
+<p><strong>Written because a lead returned <code>BLOCKED</code>, not because the feature shipped.</strong> It has not shipped.</p>
+<h2 id="the-headline">The headline</h2>
+<p><strong>The board read now costs 5 GraphQL points instead of 506, and that is measured against the live API, not asserted from the call shape.</strong> One direct call to the new <code>project_item_stations</code> read all 486 cards on board 3 for 5 points. The <code>check-state.sh</code> run that the old read sits inside measured 506 the same day. That is roughly a hundredfold reduction on the single line that was burning the account&#x27;s budget.</p>
+<p><strong>Seven of nine tasks are done. One task is blocked on a decision only you can make, and it is a two-entry amendment.</strong> The remaining task, T-07, is yours and is unblocked.</p>
+<h2 id="what-is-decided-and-what-is-not">What is decided and what is not</h2>
+<div class="scroll"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Blocking on you</strong></td><td>T-03&#x27;s <code>files:</code> list is missing two entries. Detail and recommendation in <code>notes/layer0-batch-b-FEAT-29.md</code> §6</td></tr><tr><td><strong>Also yours</strong></td><td>T-07 then T-09 — batch B, §4 of the same note</td></tr><tr><td><strong>Cycles</strong></td><td>3 of 10 used. 2 runs of 20 recorded</td></tr><tr><td><strong>Goal-check</strong></td><td><strong>Not run.</strong> It happens after the last task lands; six of ten SCs cannot be graded yet</td></tr></tbody></table></div>
+<h2 id="why-t-03-stopped-in-one-paragraph">Why T-03 stopped, in one paragraph</h2>
+<p>T-03 creates <code>test-gh-cost-log.py</code>. <code>run-unit-tests.sh:40-55</code> walks every <code>test-*.py</code> in the bin directory and exits 2 for any file listed in neither of its two script arrays — <strong>over the union, regardless of which <code>--kind</code> you ask for.</strong> <code>run-unit-tests.sh</code> is not in T-03&#x27;s <code>files:</code>. So landing T-03 as written would not merely leave T-03 unverifiable; it would make <em>every</em> task&#x27;s <code>verify:</code> exit 2 until the file was registered. The lead declined to dispatch rather than spend a member spawn on a gate that cannot pass, and I verified that premise against the source rather than relaying it. It was correct, and worse than reported.</p>
+<h2 id="what-the-two-send-backs-bought">What the two send-backs bought</h2>
+<p>Both were spent on one assertion in T-04: that an <em>unrelated</em> <code>gh</code> failure does <strong>not</strong> produce the budget message. That assertion is the only thing pinning the message to rate-limit failures rather than to every failure. It was green before the change and green after, and had never executed under a mutation until cycle three. That is exactly the failure mode this project has been finding all week — green, and incapable of going red.</p>
+<p>The root cause is worth more than the incident: <code>test-factory-gh.py</code> <strong>aborts rather than reddens</strong> under any mutant that adds one subprocess call. That single property cost both send-backs <em>and</em> is what makes T-03 unlandable. One cause, two symptoms.</p>
+<h2 id="the-one-substantive-claim-i-could-not-check-myself">The one substantive claim I could not check myself</h2>
+<p>The lead reports that every new assertion was proven able to fail in-repo. <strong>I could not verify that.</strong> Running a mutation probe means editing <code>gh_board.py</code> or <code>factory_gh.py</code>, and I hold no write grant on either — the domain guard would refuse me, correctly. I verified the <em>outcomes</em> (suite exit 0, zero <code>^FAIL</code> lines, the code matching each intent, the carve-out files byte-unchanged) and the receipts record the mutations. The claim rests on the members&#x27; and lead&#x27;s reports.</p>
+<p>I also did not corroborate the lead&#x27;s &quot;198/198 cases&quot; total; the runner prints a <code>N/N cases passed</code> line for only some scripts. What I measured is 139 <code>PASS</code> lines and zero failures.</p>
+<h2 id="a-hazard-that-has-already-cost-one-measurement">A hazard that has already cost one measurement</h2>
+<p>Closing issue #586 for T-08 moved its board card to <code>Done</code> and <strong>permanently destroyed one of the eight lines in your positive control</strong> — the control that exists because SC-04 was otherwise vacuous. Seven remain. Nothing in the gh-sync procedure mentions the control, and nothing in the control mentions gh-sync. I have frozen the mirror for the whole feature until T-07&#x27;s measurement lands, and verified the surviving card stations by direct read rather than assuming the workflow fired.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on your ship acceptance. Anything not listed here dies silently.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Finding</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td><code>test-factory-gh.py</code> aborts instead of reddening under any mutant adding a subprocess call — cost two cycles here and blocks T-03</td><td>bug</td></tr><tr><td>B-2</td><td><code>gh_board.py:142</code>&#x27;s <code>or {}</code> guard is unreachable: its only producer always returns dicts</td><td>chore</td></tr><tr><td>B-3</td><td>T-04&#x27;s fixtures now tolerate an unexpected extra <code>gh</code> call silently; only <code>ensure_labels</code> still asserts a call count</td><td>chore</td></tr><tr><td>B-4</td><td>T-07&#x27;s <code>verify:</code> was not amended alongside its <code>intent:</code> — it reports OK whether the positive control reproduced or not</td><td>bug</td></tr><tr><td>B-5</td><td>T-03&#x27;s intent anchors the wrap point at <code>factory_gh.py:79</code>, which is <code>_first_line</code>; <code>run_gh</code>&#x27;s <code>subprocess.run</code> is at <code>:92-94</code></td><td>chore</td></tr><tr><td>B-6</td><td><code>test-gh-sync.py</code> is in <code>INTEGRATION_SCRIPTS</code>, so <code>--kind unit</code> never exercises T-03&#x27;s <code>gh-sync.py</code> half</td><td>enhancement</td></tr><tr><td>B-7</td><td>The cost log cannot see a <code>gh</code> command typed straight into Bash — which is where #571&#x27;s own traffic lived. SC-06 states the limit; closing it is a separate question</td><td>enhancement</td></tr><tr><td>B-8</td><td>Should <code>.harness/logs/gh-cost-&lt;date&gt;.jsonl</code> be gitignored? <code>.harness/logs/</code> is tracked, so a daily file lands in every <code>git status</code></td><td>chore</td></tr><tr><td>B-9</td><td><code>factory_claim.py:304</code> calls <code>project_items</code> once per served repo at ~102 points — unmeasured for fleet size</td><td>enhancement</td></tr><tr><td>B-10</td><td>The gh-sync sync points and a board-derived positive control silently destroy each other; neither procedure mentions the other</td><td>bug</td></tr></tbody></table></div>
+<h2 id="how-this-was-assembled">How this was assembled</h2>
+<p><strong>No report round was spawned.</strong> I read the run digests from disk:</p>
+<ul><li><code>.harness/harness/features/FEAT-29-graphql-budget/runs/plan-product/digest.md</code></li><li><code>.harness/harness/features/FEAT-29-graphql-budget/runs/2026-08-19-01-eng/digest.md</code></li></ul>
+<p>plus <code>notes/measurement-before.md</code>, <code>notes/measurement-before-positive.md</code>, the five <code>notes/receipt-harness-backend-dev-*</code> receipts, and <code>plan.yaml</code>. Three lead spawns to re-narrate files I can open would buy nothing. Every claim above is either cited to one of those or measured by me at <code>9fd11d7</code>.</p><p class='derived'>Derived from <code>ship-review-2026-08-19-01.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
