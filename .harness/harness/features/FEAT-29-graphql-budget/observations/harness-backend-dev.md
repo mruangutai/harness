@@ -110,3 +110,19 @@
   false alarm. Raised as a blocking open_question rather than silently patched (no file in scope
   can fix it without either changing factory_config.py's fallback or the two test files, both
   out of my file list).
+- 2026-08-19 (T-03, second pass, amendment 5 — REQ-03/SC-05 flip to opt-in default OFF):
+  the c1 open_question (Q1) resolved itself as a side effect of the operator's amendment rather
+  than my own file-list options — flipping the default to OFF means the pre-existing unit and
+  integration suites no longer write into the real `.harness/logs/` at all when
+  `HARNESS_GH_COST_LOG` is unset, which is the normal case for every suite invocation. Verified
+  live: `.harness/logs/gh-cost-2026-08-19.jsonl` stayed byte-identical (39504 bytes) across a
+  full `--kind unit` and a full `--kind integration` run, both before and after. Worth noting for
+  future amendments: a scope change can retroactively answer an open_question raised under the
+  prior scope without anyone touching the file the question was about.
+- 2026-08-19 (T-03, second pass): the mutation probe (`_enabled()` -> `return True`, ignoring the
+  env var entirely) reddened FIVE checks, not four — the new SC-05 pair (2 cases x 2 assertions)
+  plus the pre-existing `HARNESS_GH_COST_LOG=0 writes no line` case, because that case's own
+  correctness now depends on `_enabled()` actually reading the var rather than being a `!= "0"`
+  check with a note in the docstring. A mutation that reddens an existing check outside the new
+  ones you added is not automatically a scope violation — check whether the existing check was
+  always coupled to the same function before treating the extra redness as unexpected.

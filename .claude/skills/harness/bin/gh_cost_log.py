@@ -9,6 +9,11 @@ THE COVERAGE IS PARTIAL. See COVERAGE_NOTICE below — it is written into every 
 module creates, not only into this docstring, because a comment is not in the artifact the
 reader opens.
 
+OPT-IN, DEFAULT OFF (approval amendment 5, 2026-08-19). Set HARNESS_GH_COST_LOG=1 to record.
+Unset, or set to anything other than "1", records nothing. This recorder is blind to gh invoked
+directly from Bash — where the ~360-point burn it was built to explain actually lived — and after
+T-01/T-02 the operation it CAN see costs 5 points instead of 506, so always-on bought little.
+
 Reading the counter is `gh api rate_limit --jq .resources.graphql.used` and NOTHING else — that
 exact call was measured taking three consecutive reads with graphql.used unchanged at 1057 each
 time, proving it costs zero GraphQL points itself (REST, not GraphQL).
@@ -40,7 +45,12 @@ COVERAGE_NOTICE = (
 
 
 def _enabled():
-    return os.environ.get("HARNESS_GH_COST_LOG", "1") != "0"
+    """OPT-IN, default OFF (FEAT-29 T-03, approval amendment 5, 2026-08-19). The recorder is
+    blind to gh invoked directly from Bash, which is where the ~360-point burn it was built for
+    actually lived, and after T-01/T-02 the operation it CAN see costs 5 points instead of 506 —
+    two rate_limit forks per wrapped call now buy very little by default. Runs only under an
+    explicit HARNESS_GH_COST_LOG=1."""
+    return os.environ.get("HARNESS_GH_COST_LOG", "0") == "1"
 
 
 def is_counter_call(argv):
