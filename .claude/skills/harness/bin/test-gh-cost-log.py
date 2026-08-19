@@ -259,6 +259,126 @@ with tempfile.TemporaryDirectory() as tmp:
 restore()
 
 
+# ---------------- WRAP SITES: factory_gh.run_gh and gh-sync.py's gh() -------------------
+# QA fix cycle 3 (T-03): `with gh_cost_log.measured(args)` at each wrap site was asserted by
+# NOTHING via the real wrapper — every case above calls record()/measured() directly, which
+# bypasses the interface. These four cases drive the REAL wrappers (factory_gh.run_gh and
+# gh-sync.py's gh()) through a fake gh — a counting subprocess.run double standing in for the
+# gh binary — parameterised on recorder state (ON/OFF), and assert BOTH the write AND the
+# subprocess call count. The call count is what proves the guard at gh_cost_log.py:157
+# (`if not _enabled() or is_counter_call(argv)`) actually short-circuits OFF to one call; every
+# existing OFF case above calls record() directly and only exercises record()'s OWN, separate
+# guard at :112.
+
+import importlib.util as _ilu  # noqa: E402
+
+import factory_gh as _fgh  # noqa: E402
+
+
+def _load_gh_sync():
+    """gh-sync.py's hyphen blocks a plain import; loaded the same way test-gh-sync.py:890-891
+    already does for load_recorded. A fresh module each call, but `subprocess`, `gh_cost_log`
+    and `factory_config` are all resolved through sys.modules's cache, so patches on those
+    module objects apply here too without re-patching per module instance."""
+    spec = _ilu.spec_from_file_location("_ghs_t03_wrap_site", os.path.join(HERE, "gh-sync.py"))
+    mod = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _counting_fake(rc=0, stdout="ok"):
+    """Stands in for the gh binary itself. Every subprocess.run call this drives — the
+    counter's own rate_limit read AND the 'real' invocation — lands here, because
+    `gh_cost_log.subprocess`, `factory_gh.subprocess` and the freshly-loaded gh-sync module's
+    `subprocess` are the SAME imported module object (Python caches modules by name), so
+    patching `.run` on any one of them patches all of them."""
+    calls = []
+
+    def fake_run(argv, **kwargs):
+        calls.append(list(argv))
+
+        class R:
+            pass
+
+        r = R()
+        if len(argv) >= 1 and list(argv[1:]) == gh_cost_log._COUNTER_ARGV:
+            r.returncode = 0
+            r.stdout = str(1000 + len(calls))
+            r.stderr = ""
+        else:
+            r.returncode = rc
+            r.stdout = stdout
+            r.stderr = "" if rc == 0 else "boom"
+        return r
+
+    return fake_run, calls
+
+
+# --- factory_gh.run_gh wrap site, ON ---
+with tempfile.TemporaryDirectory() as tmp:
+    path = redirect(tmp)
+    fake_run, calls = _counting_fake()
+    gh_cost_log.subprocess.run = fake_run
+    os.environ["HARNESS_GH_COST_LOG"] = "1"
+    try:
+        _fgh.run_gh(["issue", "view", "1"])
+    finally:
+        del os.environ["HARNESS_GH_COST_LOG"]
+    lines = read_lines(path)
+    non_cov = [l for l in lines if "coverage" not in l]
+    check("factory_gh.run_gh wrap site, ON: one line written for the wrapped invocation",
+          len(non_cov) == 1, f"lines={lines}")
+    check("factory_gh.run_gh wrap site, ON: three subprocess calls (counter, real, counter)",
+          len(calls) == 3, f"calls={calls}")
+restore()
+
+# --- factory_gh.run_gh wrap site, OFF (genuinely unset, not merely "0") ---
+with tempfile.TemporaryDirectory() as tmp:
+    path = redirect(tmp)
+    fake_run, calls = _counting_fake()
+    gh_cost_log.subprocess.run = fake_run
+    os.environ.pop("HARNESS_GH_COST_LOG", None)
+    _fgh.run_gh(["issue", "view", "1"])
+    check("factory_gh.run_gh wrap site, OFF: no line written",
+          not os.path.exists(path) or read_lines(path) == [], f"exists={os.path.exists(path)}")
+    check("factory_gh.run_gh wrap site, OFF: exactly one subprocess call (the real call only)",
+          len(calls) == 1, f"calls={calls}")
+restore()
+
+# --- gh-sync.py's gh() wrap site, ON ---
+with tempfile.TemporaryDirectory() as tmp:
+    path = redirect(tmp)
+    fake_run, calls = _counting_fake()
+    gh_cost_log.subprocess.run = fake_run
+    os.environ["HARNESS_GH_COST_LOG"] = "1"
+    try:
+        _ghs = _load_gh_sync()
+        _ghs.gh(["issue", "view", "1"])
+    finally:
+        del os.environ["HARNESS_GH_COST_LOG"]
+    lines = read_lines(path)
+    non_cov = [l for l in lines if "coverage" not in l]
+    check("gh-sync.py gh() wrap site, ON: one line written for the wrapped invocation",
+          len(non_cov) == 1, f"lines={lines}")
+    check("gh-sync.py gh() wrap site, ON: three subprocess calls (counter, real, counter)",
+          len(calls) == 3, f"calls={calls}")
+restore()
+
+# --- gh-sync.py's gh() wrap site, OFF (genuinely unset, not merely "0") ---
+with tempfile.TemporaryDirectory() as tmp:
+    path = redirect(tmp)
+    fake_run, calls = _counting_fake()
+    gh_cost_log.subprocess.run = fake_run
+    os.environ.pop("HARNESS_GH_COST_LOG", None)
+    _ghs = _load_gh_sync()
+    _ghs.gh(["issue", "view", "1"])
+    check("gh-sync.py gh() wrap site, OFF: no line written",
+          not os.path.exists(path) or read_lines(path) == [], f"exists={os.path.exists(path)}")
+    check("gh-sync.py gh() wrap site, OFF: exactly one subprocess call (the real call only)",
+          len(calls) == 1, f"calls={calls}")
+restore()
+
+
 if FAILURES:
     print(f"\n{len(FAILURES)} of {RAN} FAILING.")
     sys.exit(1)

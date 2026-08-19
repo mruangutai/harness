@@ -126,3 +126,22 @@
   check with a note in the docstring. A mutation that reddens an existing check outside the new
   ones you added is not automatically a scope violation — check whether the existing check was
   always coupled to the same function before treating the extra redness as unexpected.
+- 2026-08-19 (T-03, fix cycle 3): the required proof shape for a coverage-hole fix (not a code
+  defect) is mutation testing on the EXISTING correct production code, not a RED/GREEN cycle on
+  new production code — TDD's Iron Law governs production-code order, and there was none to add
+  here. Three named-check mutations (delete each `with` block, remove `not _enabled() or`)
+  reddened exactly the checks predicted, none aborted; that is the applicable evidence when the
+  fix is entirely test-side.
+- 2026-08-19 (T-03, fix cycle 3): closing a "the interface is never driven, only the sink
+  underneath it is called directly" vacuous-pass gap needs a call-COUNT assertion, not just a
+  write assertion — the write-suppressing guard (record()'s own check) and the interface-level
+  guard (measured()'s own check) are separate code paths that can each mask the other's removal.
+  Proved live: deleting `not _enabled() or` from measured()'s guard left the OFF write absent
+  (record()'s guard still fires) but tripled the subprocess call count; only the count assertion
+  caught it.
+- 2026-08-19 (T-03, fix cycle 3): twice during this cycle, a stale "file changed on disk since
+  last read" tool signal showed a production file back in an already-reverted mutated state,
+  immediately contradicted by a fresh `sha256sum`/`git diff` check showing the correct state. Not
+  a real regression either time — re-verify with an independent command before treating that
+  signal as ground truth, especially right after a rapid mutate/revert/verify sequence on the
+  same file.

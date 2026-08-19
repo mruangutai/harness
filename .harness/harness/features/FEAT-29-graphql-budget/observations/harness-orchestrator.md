@@ -82,3 +82,26 @@
   absolute path it wants under `.claude/worktrees/`. A throwaway worktree at an older commit is the
   cheapest way to bisect a suite regression without disturbing a working tree that holds another
   agent's uncommitted edits — and `git worktree remove --force` restores cleanly.
+
+- 2026-08-19: **a reviewer alleged a signed record was falsified, and the timestamps cleared it.** qa
+  found `.harness/logs/gh-cost-2026-08-19.jsonl` present after an amendment recorded the operator
+  deleting it, reasoned from `gh_cost_log.py:53` (which reads default OFF) that "an exported
+  HARNESS_GH_COST_LOG=1 must have reached a suite run", and concluded the record was falsified either
+  way. It was not. Every record is stamped 21:02:07Z-21:09:22Z = 14:02-14:09 local; the flip commit
+  `4b98191` landed at 14:16:40. All 167 records predate the flip by seven minutes, when the signed
+  default was still ON — so no exported variable was needed and the deletion did hold. The reviewer
+  read CURRENT code to explain a PAST event. When a finding alleges the record is false, date the
+  evidence against the commit that changed the behaviour before repeating the allegation upward.
+
+- 2026-08-19: **a lead overrode its own member's conclusion and was right.** qa found one unbound wrap
+  site and wrote that the other half was "thoroughly unit-tested". The lead contradicted it on file
+  evidence — `test-factory-gh.py:25` disables the recorder at module scope, so that file exercises the
+  seam zero times. Accepting the member's half would have fixed half the defect and returned green. A
+  lead's disagreement with its own member is signal, not noise; read the contradiction rather than the
+  roll-up.
+
+- 2026-08-19: **"the module is tested, the seam is not" is a distinct coverage hole from "the function
+  is untested", and roll-ups cannot see it.** `gh_cost_log` had 24 passing checks; both call sites had
+  zero. Deleting either `with` block left 164/0 and 90/0 untouched. Test-count and pass-rate metrics
+  are structurally blind to it. The discriminating question is not "is there a test for X" but "which
+  edit would this suite fail to notice".
