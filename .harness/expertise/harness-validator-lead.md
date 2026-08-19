@@ -59,9 +59,9 @@
 - G-03: WHEN every gate returns green DO establish which routes actually reach each gate and
   whether each fixture can fail — logic can be correct while reachability is wrong, and neither
   is visible to anyone reading the gate's own code.
-- G-04: WHEN your own finding names N instances DO run the discriminating test on each one
-  separately — a vacuity claim is a substring claim, and reading the first message then
-  generalising to its siblings produces a remedy that is half unwarranted.
+- G-04: WHEN an assertion is reported as could-not-fail because it stayed green under some mutant
+  DO check that the mutant is live in that assertion's own fixture — a mutant absent from the
+  fixture's world proves nothing, and by the loose test most correct assertions look vacuous.
 - G-05: WHEN a dispatch hands you a count, a premise or a figure DO re-derive it from the
   artifacts before building on it — narration is the least reliable input you receive, and in a
   distillation dispatch a wrong count loses a lesson permanently, since Expertise is written once.
@@ -84,9 +84,10 @@
 - G-11: WHEN a signed decision records a two-sided trade DO verify the delivery half at source
   rather than from the task's status or its verify — each verify binds only its own mechanical
   form, so the deferral can ship while the delivery is dropped with every gate green.
-- G-12: WHEN a dispatch states which capabilities or grants a member holds DO check the manifest
-  and the agent definition yourself before routing around them — a routing branch built on an
-  assumed missing capability spends your spawn on work its owner could have applied directly.
+- G-12: WHEN a dispatch or a member's own prose states which capabilities it holds DO check the
+  manifest and the agent definition yourself before routing around them — both are hypotheses,
+  and a routing branch built on an assumed missing capability either strands the work or spends
+  a spawn recovering it.
 - G-13: WHEN two members return apparently contradictory answers to a probe you assigned DO check
   whether your question was direction-dependent before adjudicating either — a question with two
   correct answers reads as a contradiction, and the defect is in your dispatch rather than in
@@ -115,5 +116,14 @@
 - O-05: WHEN a round closes with members still in flight DO return each member's disposition by
   name rather than an empty ops list — empty asserts they judged and declined, so an interrupted
   round is recorded as a completed one that found nothing.
+- O-06: WHEN waiting on in-flight members with no message channel DO spend the wait deriving
+  findings at source for later adjudication — polling returns instantly and buys no wall-clock,
+  and an interim prose reply is a turn end the digest contract rejects.
+- O-07: WHEN you hold claims you cannot test yourself DO send them back as one falsifiable
+  prediction per item rather than publishing an assumption — the member runs the probe instead of
+  re-deriving your reasoning, so several untestable claims become several measurements per spawn.
+- O-08: WHEN tempted to spawn a placeholder agent to fill a wait DO not, and never one that
+  inherits your context — a no-op inheriting spawn bills your whole context and can cost several
+  times the real work it stood in for.
 
 ## Open (max 5)

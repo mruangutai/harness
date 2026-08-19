@@ -15,29 +15,27 @@
 - P-04: WHEN a criterion quantifies over N items DO give each item its own assertion, in the verify
   you author and again when grading. A file-global search or a matching count is satisfied by the
   conformers alone, blind to the one item that conforms to nothing.
-- P-05: WHEN grading a criterion DO grade its own full text: a leading claim broader than its
-  enumerated list still binds, and an enumeration delivered in part is not met, never partial.
-  Met on a method that cannot detect the failure it exists to detect is worse than unmet.
+- P-05: WHEN grading a criterion DO grade every clause against its own subject: a leading claim
+  broader than the enumeration binds; a trailing gloss whose subject excludes the case does not.
+  Part of an enumeration is not met. A method blind to the failure grades worse than unmet.
 - P-06: WHEN a criterion cannot be met DO decide whether the defect is in the code or in the
   sentence. If a retry could make it true, route a fix cycle. Otherwise escalate — never adopt a
   narrower reading yourself, even one a downstream gate upheld.
-- P-07: WHEN a criterion admits two readings DO test each against its sanctioned remedies and
-  against how sibling criteria and requirements in the same signed document scope the disputed
-  term. A reading whose remedies breach a signed requirement, or that contradicts its siblings'
-  scoping, is the wrong one.
+- P-07: WHEN a task or criterion sanctions alternative implementations DO read it as committing
+  only to the weakest one: a fully conforming build may pick the alternative that delivers none of
+  the property. Name the property in the instruction, or drop the alternative that cannot deliver it.
 - P-08: WHEN a task's verify counts a token, or its intent directs the doer to write a factual
   claim, DO run the verify's exact command against the intent prose and verify the claim at source.
   You author both halves; no sweep catches a correctly-spelled false claim.
 - P-09: WHEN handed a claim that a test already covers a property DO mutate the tool to violate the
   property and see which cases redden. Cited lines are often comments, not assertions. A mutant
   that reddens every case is broken, not evidence of strong coverage.
-- P-10: WHEN a criterion, task step, or carried-forward pointer cites a location DO anchor it on
-  content text, unless an ordinal is pinned by a recorded no-renumber constraint the graders share.
-  An unpinned line number or ordinal rots within one cycle, leaving verdicts standing over pointers
-  that land wrong.
-- P-11: WHEN a criterion requires a test to detect drift between two renderings DO require one
-  side to execute the real artifact, or both call sites to import one owner. A mirror inside the
-  test cannot detect drift in the thing it copies, and grades met while blind one way.
+- P-10: WHEN a pointer cites a location DO anchor it on content text AND assert the target's own
+  identifier separately. Body anchoring survives line drift but is blind to renumbering: entries
+  renumber in the destination while every content anchor still matches, and the verdict stands.
+- P-11: WHEN a criterion's declared evidence names a suite holding no case for it, yet the state
+  itself measures as delivered, DO grade the criterion met and route the missing case to qa as
+  coverage debt. A criterion grades the delivered state, not the regression suite that guards it.
 - P-12: WHEN specifying a detector or sweep pattern DO derive it from the weakest fragment every
   target site necessarily contains, greped against the real file — never from the shape of the
   commonest site. An optional trailing fragment makes variant sites invisible, and the sweep then
@@ -45,9 +43,9 @@
 - P-13: WHEN judging whether a criterion is covered DO count independent methods, not clauses or
   concurring readers. Checks sharing one method share one blind spot, and a second reader who
   repeats that method is one measurement counted twice. Give at least one clause a behavioural check.
-- P-14: WHEN a dispatch hands you a count that a plan step must assert DO recompute it against the
-  tree that step will run in. A handed-down count can describe the unremedied state, and earlier
-  steps of the same remedy often remove one — a stale count manufactures a mid-sequence halt.
+- P-14: WHEN a dispatch hands you a figure or a premise that sizes the work DO re-derive it against
+  the tree the work will run in, and read the ticket's own later comments. A wrong premise changes
+  the unit of work, not just a number, and re-deriving costs minutes.
 - P-15: WHEN citing a named test case as an automated criterion's evidence DO grep the plan for
   that case's own passing line. An assertion no verify block pins is deletable with the whole
   suite green, and evidence that can vanish silently does not meet an automated bar.
@@ -84,9 +82,9 @@
 - G-10: WHEN a check compares a field looked up by a name discovered at runtime DO add an explicit
   key-absent branch reporting CANNOT VERIFY. A wrong key makes both sides None, the comparison
   reports clean for every record, and its silence reads as proof.
-- G-11: WHEN a later signed ruling falsifies prose inside an approved brief DO report the
-  contradiction and leave the prose standing. Editing a signed artifact is a re-signature, not a
-  record correction, but the brief is what the next reader opens.
+- G-11: WHEN checking that a move preserved content verbatim DO build the anchors from the move
+  commit's own removed lines, never from the baseline the brief quotes. The source drifts between
+  that baseline and the move, and the mismatch then reads as content rewritten by the move.
 - G-12: A plain YAML scalar containing a space then a hash starts a comment: `safe_load` truncates
   the value there, so an inline issue reference silently deletes the rest of the sentence. Write
   prose scalars folded or quoted, then reload the file and confirm each value's tail survives.
@@ -119,5 +117,14 @@
 - O-06: WHEN a probe or mutation harness reports a uniform verdict across cases DO assert it ran
   the real artifact and reached the branch under test. A mis-invoked harness, or a call with the
   wrong argument shape, returns one early guard's answer for every case and reads as clean.
+- O-07: WHEN a criterion claims a check fails against the pre-change code DO run the current suite
+  against the earlier commit's copy of the changed file. Where the change is one script, a prior
+  commit is a free mutant and proves the clause independently of the gate that asserted it.
+- O-08: WHEN a criterion demands that a mutant redden DO first check whether the test harness
+  already honours a binary-override environment variable. A seam pointing the suite at a temp copy
+  turns an unprovable claim into a two-command proof, with no edit to the shipped script.
+- O-09: WHEN a criterion needs an unreadable path DO create a dangling symlink inside the test's
+  own temp directory. It fails a readability test for every uid and is never checked in, whereas a
+  zeroed file mode is a no-op as root and is not preserved by version control.
 
 ## Open (max 5)

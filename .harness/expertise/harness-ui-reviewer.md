@@ -28,6 +28,8 @@
 - G-08: WHEN a wording finding exactly matches text an approved plan's intent block mandates DO
   treat it as a plan-change question, not a defect remedy — this holds even for newly introduced
   text, not only an untouched pre-existing sibling.
+- G-09: WHEN rating severity of an emitted-contract or precedence gap DO check whether a design/architecture review document settled that exact case before finalizing severity — a gap that reintroduces a case a review's own rationale rejected is a deviation from a reviewed resolution, heavier than a plain coverage gap.
+- G-10: WHEN a criterion asserts a property for one representative case (e.g. 'states X once') without naming the input combination DO grep the test suite for which fixture variables are populated across cases — an unpopulated one names the untested combination; flag as open, don't assume covered.
 
 ## Outcomes (max 10)
 - O-01: WHEN a scoped-out verdict rests on a measured check (extension census, direct object check) rather than a prediction DO record it as such — a scoped-out review that looked holds up under cross-review scrutiny; one that merely predicted absence does not.
