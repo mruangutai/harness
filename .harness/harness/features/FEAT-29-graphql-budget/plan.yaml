@@ -57,6 +57,29 @@ approval:
         so its line can never reproduce - measured by reading every card directly, not inferred.
         The T-08 line is struck; the rejection rule stays ABSOLUTE over the surviving seven, because
         a broken read yields zero lines and seven discriminates perfectly.
+    - date: 2026-08-19
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: REQ-03 and SC-05 amended - the cost recorder becomes OPT-IN, default OFF
+      why: >-
+        The operator asked why the default was ON and whether the recorder was only needed for
+        this feature's own development. Two measurements answered it against always-on. The
+        recorder is BLIND to direct Bash `gh` calls by its own coverage header, and the 2026-08-19
+        burn it was designed to explain was ~360 points of `gh pr checks` typed into Bash - it
+        would not have seen the incident. And after T-01/T-02 the operation it CAN see costs 5
+        points instead of 506, so it watches the cheap path and misses the expensive one. It also
+        forks two rate_limit reads per wrapped call, raising --kind integration runtime.
+      what_changes: >-
+        gh_cost_log.py:43 default flips from "1" to "0"; the recorder runs only under
+        HARNESS_GH_COST_LOG=1. test-gh-cost-log.py's cases that relied on the default to record
+        must set it explicitly, and SC-05 now REQUIRES a case proving the OFF state writes no file
+        and no line, including for a failing invocation - an opt-in recorder whose off state is
+        untested is a recorder that is always on.
+      lane: >-
+        gh_cost_log.py and test-gh-cost-log.py are T-03's files and resolve to harness-dev-ops.
+        They are NOT DEC-174 carve-out files, so this is squad work and the main session did not
+        execute it. The main session amended the signed artifacts only, and deleted the stray
+        .harness/logs/gh-cost-2026-08-19.jsonl, which nothing reads and which held 246 null-cost
+        records written by the suite against a fake gh.
 
 lanes:
   resolved_at: 3920513

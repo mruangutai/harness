@@ -37,8 +37,19 @@ a raw `gh` error.
   reports the same violations and non-violations it reports today.
 - REQ-02: An unstationed card and a card absent from the board remain distinguishable findings after
   the read is made cheaper.
-- REQ-03: The operator can find out, after the fact, which harness operations spent GraphQL points
-  and how many, without re-running anything.
+- REQ-03: **AMENDED 2026-08-19, operator ruling — the recorder is OPT-IN, not always-on.** The
+  original text read: *"The operator can find out, after the fact, which harness operations spent
+  GraphQL points and how many, without re-running anything."* That is struck. It required
+  always-on recording to mean anything, and two measurements taken during this feature made the
+  trade a bad one. First, the recorder is **blind to the calls that caused the incident it was
+  designed for**: its own coverage header says a `gh` command typed directly into Bash is
+  invisible, and the 2026-08-19 burn was ~360 points of `gh pr checks` typed into Bash. Second,
+  after T-01 and T-02 the operation it *can* see costs 5 points instead of 506, so it now watches
+  the cheap path and misses the expensive one. It also forks two `rate_limit` reads per wrapped
+  call, which measurably raised `--kind integration` runtime. The capability is kept and the
+  default inverted: **the recorder is OFF unless `HARNESS_GH_COST_LOG=1` is set**, for use while
+  investigating a burn. The operator accepts that a future unexplained burn is investigated from
+  scratch unless logging was switched on first.
 - REQ-04: When a `gh` call fails because the GraphQL budget is exhausted, the operator is told it is
   the GraphQL budget and when it resets, rather than a raw `gh` error.
 - REQ-05: Every recorded GraphQL cost figure in this repository carries the condition it was measured
@@ -69,10 +80,13 @@ a raw `gh` error.
 - SC-04: `check-state.sh` emits the identical violation set before and after the change when run
   against the same tree, compared line by line, with any difference explained or the change rejected.
   verify: inspection
-- SC-05: Every harness `gh` invocation that flows through `factory_gh.run_gh` or `gh-sync.py`'s
-  wrapper is recorded with its subcommand and its GraphQL cost to a durable file, and tests prove
-  the record is written for a wrapped invocation and that a *failing* wrapped invocation is recorded
-  too, with its exit code, rather than silently skipped.
+- SC-05: **AMENDED 2026-08-19 with REQ-03.** With `HARNESS_GH_COST_LOG=1`, every harness `gh`
+  invocation that flows through `factory_gh.run_gh` or `gh-sync.py`'s wrapper is recorded with its
+  subcommand and its GraphQL cost to a durable file, and tests prove the record is written for a
+  wrapped invocation and that a *failing* wrapped invocation is recorded too, with its exit code,
+  rather than silently skipped. **With the variable unset — the new default — a test proves NO file
+  is created and NO line is written**, including for a failing invocation. That second half is the
+  half that can fail: an opt-in recorder whose off state is untested is a recorder that is always on.
   verify: automated      evidence: unit
 - SC-06: Every daily cost-record file opens with a coverage line stating plainly which invocations
   the record cannot see — `gh` commands typed directly into Bash by the main session or an agent,
