@@ -37,3 +37,31 @@
   flags such entries advisorily, for a human to rule on, and a flag is not a violation"), so
   the premise holds and T-03 closes a real doc-ahead-of-code gap. The near-miss is the point:
   I authored P-14 and still ran the one-spelling grep first.
+
+- 2026-08-19: I passed `model: sonnet` AGAIN on the FIX-01 dispatch, a second time in the same
+  feature, after already recording the first block in this very log. The guard caught it again.
+  A lesson written in a log I do not re-read mid-run does not change my behaviour; only the
+  hook does. This is the argument for enforcement over doctrine in my own conduct, not just in
+  the code I review.
+
+- 2026-08-19: the FIX-01 dispatch reached me carrying "it reached me as exit 0" for a red
+  integration suite. I read run-unit-tests.sh:57-71 during the in-flight wait: it counts
+  failures and `exit 1` when any script fails. So the runner is correct and the false green was
+  pure narration — someone reported a status they never observed. Worth separating: a tool that
+  lies needs a fix, a narrator that lies needs evidence discipline, and the remedy differs.
+
+- 2026-08-19: I hand-derived all six expected fixture lists from team-config.yaml myself during
+  the wait, then compared positions against the member's output on return (lines 40, 57, 76,
+  94, 112, 126). This is the cheapest form of P-12-style independent check I have found: derive
+  the answer while blocked anyway, so verification on return costs one grep instead of trust.
+  It also caught that the manifest has 16 repository-tier grants while the fixture pins only 6.
+
+- 2026-08-19: harness_yaml.py:362's docstring carries the SAME stale "equivalent to
+  check-domain.sh's pre-change collect()" claim as the test docstring the dispatch flagged. The
+  advisory finding was framed as a test-file issue and is actually a two-site issue. A finding
+  scoped to the file where it was noticed under-reports its own blast radius.
+
+- 2026-08-19: the member's DIGEST reported `task: T-05` while my dispatch said FIX-01 and its
+  own receipt says FIX-01. The durable artifact was right and the routing field was wrong —
+  which is the more dangerous direction, since the orchestrator reads the DIGEST field and
+  never opens the receipt.

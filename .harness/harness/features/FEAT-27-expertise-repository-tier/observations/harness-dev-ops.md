@@ -27,3 +27,17 @@
   pre-change and passes post-change only because abspath resolves the relative arg back through
   the repository-form regex; classifying on the argument as typed would have silently kept the
   150-line budget for that exact invocation shape.
+- 2026-08-19: FIX-01, fixture refresh cycle. T-01 (c4d5bc5) inserted a repository-tier grant
+  `.harness/*/expertise/<agent>.md` immediately beneath each agent's craft expertise line
+  (`.harness/expertise/<agent>.md`) in `.harness/team-config.yaml`, for all agents — but
+  `COLLECT_FIXTURE` in `test-harness-yaml.py` (a hand-maintained D-03 equivalence snapshot, not
+  derived from `manifest_domains()`) had six agents stale by exactly that one line each:
+  harness-backend-dev, harness-dev-ops, harness-pm, harness-documentor, harness-eng-lead,
+  harness-orchestrator. Verified each insertion point against the manifest text directly
+  (`sed -n` on the relevant line ranges) rather than trusting the dispatch's description, and it
+  matched line-for-line. Redden-proof: removing the dev-ops entry alone reproduces the exact
+  `mine mismatch` shape from the ticket. Advisory: the test's own docstring ("D-03 equivalence
+  proof... must equal the pre-change collect() logic") is now stale prose — `collect()` was
+  deleted under DEC-171, so the fixture no longer proves equivalence to anything; it is a frozen
+  snapshot that reddens on every legitimate manifest change. Left as-is per dispatch scope (a plan
+  question, not mine to fix).

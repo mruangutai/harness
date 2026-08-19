@@ -37,6 +37,7 @@ COLLECT_FIXTURE = {
             ".harness/codebase/domains/**",
             ".harness/*/features/*/notes/receipt-harness-backend-dev-*.md",
             ".harness/expertise/harness-backend-dev.md",
+            ".harness/*/expertise/harness-backend-dev.md",
             ".harness/*/features/*/observations/harness-backend-dev.md",
         ],
         [
@@ -53,6 +54,7 @@ COLLECT_FIXTURE = {
             ".harness/codebase/stack.md",
             ".harness/*/features/*/notes/receipt-harness-dev-ops-*.md",
             ".harness/expertise/harness-dev-ops.md",
+            ".harness/*/expertise/harness-dev-ops.md",
             ".harness/*/features/*/observations/harness-dev-ops.md",
         ],
         [
@@ -71,6 +73,7 @@ COLLECT_FIXTURE = {
             ".harness/codebase/product-surface.md",
             ".harness/codebase/glossary.md",
             ".harness/expertise/harness-pm.md",
+            ".harness/*/expertise/harness-pm.md",
             ".harness/*/features/*/observations/harness-pm.md",
         ],
         [
@@ -88,6 +91,7 @@ COLLECT_FIXTURE = {
             ".harness/codebase/architecture.md",
             ".harness/*/features/*/notes/receipt-harness-documentor-*.md",
             ".harness/expertise/harness-documentor.md",
+            ".harness/*/expertise/harness-documentor.md",
             ".harness/*/features/*/observations/harness-documentor.md",
         ],
         [
@@ -105,6 +109,7 @@ COLLECT_FIXTURE = {
         [
             ".harness/*/features/*/runs/*-eng/**",
             ".harness/expertise/harness-eng-lead.md",
+            ".harness/*/expertise/harness-eng-lead.md",
             ".harness/*/features/*/observations/harness-eng-lead.md",
         ],
         [
@@ -118,6 +123,7 @@ COLLECT_FIXTURE = {
             ".harness/*/features/*/notes/answers-*.md",
             ".harness/*/features/*/notes/ship-review-*.md",
             ".harness/expertise/harness-orchestrator.md",
+            ".harness/*/expertise/harness-orchestrator.md",
             ".harness/*/features/*/observations/harness-orchestrator.md",
         ],
         [
