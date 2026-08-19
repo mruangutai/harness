@@ -67,6 +67,21 @@
       "id": "goalcheck-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "distill-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "verdict": "PASS"
     }
   ],
   "github": {

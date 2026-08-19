@@ -729,7 +729,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: none
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-inject-expertise.py
     verify: |
