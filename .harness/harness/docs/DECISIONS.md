@@ -3676,6 +3676,34 @@ Pinned by tier: the seven **judging** agents — orchestrator, three leads, thre
 DEC-145..148 baseline was measured at inherited-low, so effort is a known confound in the FEAT-02
 comparison — noted here so the comparison reads it as two changes, not one.
 
+**Amendment 1 (2026-08-19) — the tier assignment is struck and restated: four judging agents at
+`high`, twelve at `medium`**
+
+The rule this entry states is unchanged and is not in question: frontmatter `effort:` is pinned per
+tier and overrides the spawning session's setting. `dispatch-guard.sh` enforces it and cites this
+entry by number. What is false is the census in the paragraph above — **"the seven judging agents
+run `effort: high` and the nine doers run `effort: medium`."** That sentence is STRUCK. It is left
+standing unedited so a citation to it lands here.
+
+*The tree at `b4659cd`:* four agents run `high` — `harness-orchestrator`, `harness-code-reviewer`,
+`harness-security-reviewer`, `harness-ui-reviewer` — and twelve run `medium`. Measured with
+`grep -h '^effort:' .claude/agents/harness-*.md | sort | uniq -c`, not counted by hand.
+
+*What moved and why.* The three domain leads — eng, product, validator — dropped from `high` to
+`medium` on operator instruction. The original split put them in the judging tier because they
+assess what their members return. The operating reason for the change is that a lead routes and
+consolidates; it holds no shell and reads no diff itself, so the error-catching work the `high` tier
+was bought for happens in the three reviewers and the orchestrator. That is now the whole `high`
+tier, and it is four rather than seven.
+
+*How it was found.* Nothing detected it. A documentor flagged the arithmetic while amending DEC-11
+in the same session the leads were changed; there is no propagation checker between a decision and
+the tree it governs, and DEC-188 is the rule that there will not be one.
+
+*A strike was considered and refused.* DEC-188 strikes a decision the tree flatly contradicts, and a
+strike removes it from every gate. The tree does not contradict the pinning rule — `dispatch-guard.sh`
+runs on it. Only the enumeration was falsified, so only the enumeration is struck.
+
 ---
 
 ## DEC-153 — The audit's verdict, and two sanctions: worktree perturbation, orchestrator commits
