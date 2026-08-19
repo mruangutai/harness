@@ -73,7 +73,7 @@ like evidence.
 
 ## What this feature cost, and whether it earned it
 
-**Cycles 7 of 10** (rework only). **Runs 21 against an informational budget of 20** — crossed, and
+**Cycles 9 of 10** (rework only) — **one left**. Any further fix loop exhausts the budget, and exhaustion is a hard stop I must report as BLOCKED rather than push through. That is the strongest practical argument for taking the two rulings and shipping rather than opening another repair round. **Runs 21 against an informational budget of 20** — crossed, and
 reported rather than apologised for. My read: they earned their place. The last eight runs each
 closed something real — a criterion whose assertion could not fail, two live integration defects, a
 gate slicing on markers that did not exist, an error message directing an operator to a destination
