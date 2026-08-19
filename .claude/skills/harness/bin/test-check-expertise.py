@@ -80,5 +80,153 @@ def run():
     print(f"\n{len(CASES) + 1 - fails}/{len(CASES) + 1} cases passed.")
     return fails
 
+
+# --- CHANGE 1/2 (T-03, issue 340): per-tier line budget + CRAFT-tier advisory scan.
+# These cases need real .harness/expertise/... and .harness/<segment>/expertise/...
+# directory shapes, which the simple `case()` helper above (one bare file per tempdir)
+# cannot build, so they run through their own harness below.
+
+def run_cmd(argv, cwd=None):
+    r = subprocess.run(argv, capture_output=True, text=True, cwd=cwd)
+    return r.returncode, (r.stdout or "") + (r.stderr or "")
+
+
+def body_with_entry(entry_text, title="# Expertise — harness-backend-dev"):
+    return (f"{title}\n\n## Patterns (max 15)\n- P-01: {entry_text}\n"
+            "\n## Gotchas (max 15)\n\n## Outcomes (max 10)\n\n## Open (max 5)\n")
+
+
+def n_line_file(path, n):
+    open(path, "w").write("\n".join(f"line {i}" for i in range(n)))
+
+
+def run_extra():
+    total = 0
+    local_fails = 0
+
+    def record(name, ok, detail=""):
+        nonlocal total, local_fails
+        total += 1
+        if ok:
+            print(f"ok    {name}")
+        else:
+            local_fails += 1
+            print(f"FAIL  {name}")
+            if detail:
+                for l in detail.strip().splitlines()[:6]:
+                    print(f"        | {l}")
+
+    # ---- case 1: redden proof for the advisory, both directions ----
+    with tempfile.TemporaryDirectory() as d:
+        craft_dir = os.path.join(d, ".harness", "expertise")
+        os.makedirs(craft_dir, exist_ok=True)
+        p = os.path.join(craft_dir, "harness-backend-dev.md")
+
+        open(p, "w").write(body_with_entry("WHEN a thing happens DO the other thing per DEC-042."))
+        rc, out = run_cmd([CHECK, p])
+        record("case1: token-present craft file exits 0", rc == 0, out)
+        record("case1: output contains ADVISORY", "ADVISORY" in out, out)
+        record("case1: output names DEC-042", "DEC-042" in out, out)
+        record("case1: output still contains OK ", "OK " in out, out)
+
+        open(p, "w").write(body_with_entry("WHEN a thing happens DO the other thing."))
+        rc2, out2 = run_cmd([CHECK, p])
+        no_advisory = not any(l.startswith("ADVISORY") for l in out2.splitlines())
+        record("case1: token-removed file produces NO ADVISORY line", no_advisory, out2)
+
+    # ---- case 2: one case per token class, asserted individually ----
+    token_cases = [
+        ("DEC-042", "DEC-\\d+"),
+        ("INV-007", "INV-\\d+"),
+        ("FEAT-12", "FEAT-\\d+"),
+        (".harness/", "\\.harness/"),
+        (".claude/", "\\.claude/"),
+        ("check-foo-bar.sh", "check-[a-z-]*\\.sh"),
+        ("factory_baz.py", "factory_[a-z]*\\.py"),
+        ("gh-sync", "gh-sync"),
+        ("harness.json", "harness\\.json"),
+        ("team-config", "team-config"),
+    ]
+    for token, label in token_cases:
+        with tempfile.TemporaryDirectory() as d:
+            craft_dir = os.path.join(d, ".harness", "expertise")
+            os.makedirs(craft_dir, exist_ok=True)
+            p = os.path.join(craft_dir, "harness-backend-dev.md")
+            open(p, "w").write(body_with_entry(f"WHEN a thing happens DO consider {token} carefully."))
+            rc, out = run_cmd([CHECK, p])
+            record(f"case2: token class {label} produces an advisory naming '{token}'",
+                   f"'{token}'" in out, out)
+
+    # ---- case 3: the advisory never blocks ----
+    with tempfile.TemporaryDirectory() as d:
+        craft_dir = os.path.join(d, ".harness", "expertise")
+        os.makedirs(craft_dir, exist_ok=True)
+
+        p1 = os.path.join(craft_dir, "harness-backend-dev.md")
+        long_entry = ("WHEN a thing happens DO the other thing per DEC-042 "
+                      + " ".join(["word"] * 55) + ".")
+        open(p1, "w").write(body_with_entry(long_entry))
+        rc1, out1 = run_cmd([CHECK, p1])
+        record("case3: token + real violation exits 1", rc1 == 1, out1)
+
+        clean_dir = os.path.join(d, "clean", ".harness", "expertise")
+        os.makedirs(clean_dir, exist_ok=True)
+        p2 = os.path.join(clean_dir, "harness-backend-dev.md")
+        open(p2, "w").write(body_with_entry("WHEN a thing happens DO the other thing per DEC-043."))
+        rc2, out2 = run_cmd([CHECK, p2])
+        record("case3: token + no violation exits 0", rc2 == 0, out2)
+
+    # ---- case 4: repository-tier files are exempt from the scan ----
+    with tempfile.TemporaryDirectory() as d:
+        repo_dir = os.path.join(d, ".harness", "harness", "expertise")
+        os.makedirs(repo_dir, exist_ok=True)
+        p = os.path.join(repo_dir, "harness-qa.md")
+        open(p, "w").write(body_with_entry(
+            "WHEN a thing happens DO the other thing per DEC-042.",
+            title="# Expertise — harness-qa"))
+        rc, out = run_cmd([CHECK, p])
+        no_advisory = not any(l.startswith("ADVISORY") for l in out.splitlines())
+        record("case4: repository-tier file with DEC-042 has no ADVISORY line", no_advisory, out)
+
+    # ---- case 5: budget by tier ----
+    with tempfile.TemporaryDirectory() as d:
+        repo_dir = os.path.join(d, ".harness", "harness", "expertise")
+        os.makedirs(repo_dir, exist_ok=True)
+        repo_41 = os.path.join(repo_dir, "harness-qa.md")
+        n_line_file(repo_41, 41)
+        rc, out = run_cmd([CHECK, repo_41])
+        record("case5: 41-line repository-form file over budget, names 40",
+               "over the 40-line budget" in out, out)
+
+        craft_dir = os.path.join(d, ".harness", "expertise")
+        os.makedirs(craft_dir, exist_ok=True)
+        craft_41 = os.path.join(craft_dir, "harness-backend-dev.md")
+        n_line_file(craft_41, 41)
+        rc, out = run_cmd([CHECK, craft_41])
+        record("case5: 41-line craft-form file is NOT reported over budget",
+               "-line budget" not in out, out)
+
+        craft_151 = os.path.join(craft_dir, "harness-eng-lead.md")
+        n_line_file(craft_151, 151)
+        rc, out = run_cmd([CHECK, craft_151])
+        record("case5: 151-line craft-form file over budget, names 150",
+               "over the 150-line budget" in out, out)
+
+    # ---- case 6: budget by tier under a bare-path invocation (the abspath discriminator) ----
+    with tempfile.TemporaryDirectory() as d:
+        repo_dir = os.path.join(d, ".harness", "harness", "expertise")
+        os.makedirs(repo_dir, exist_ok=True)
+        repo_41 = os.path.join(repo_dir, "harness-qa.md")
+        n_line_file(repo_41, 41)
+        rc, out = run_cmd([CHECK, "harness-qa.md"], cwd=repo_dir)
+        record("case6: bare-path invocation over the repository budget, names 40",
+               "over the 40-line budget" in out, out)
+
+    print(f"\n(extra) {total - local_fails}/{total} cases passed.")
+    return total, local_fails
+
+
 if __name__ == "__main__":
-    sys.exit(1 if run() else 0)
+    base_fails = run()
+    extra_total, extra_fails = run_extra()
+    sys.exit(1 if (base_fails or extra_fails) else 0)
