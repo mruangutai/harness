@@ -54,3 +54,23 @@
   carrying `board`; the only change there was inverting the assertion that used to read
   `payload["repos"][0]["board"]["number"]`. Worth checking whether a tool actually resolves a
   board before assuming an integration fixture needs the `contents` fake-gh plumbing.
+- 2026-08-18: fix-c5. `RAISED_MESSAGES` (test-factory-config.py) is only ever checked for count
+  (>=9) and generic C-3 format (em-dash present, no "FleetError"/"Traceback" substring) — never
+  for specific message content. Editing a `next_step` string that feeds it (e.g. `:165`'s
+  top-level-board message) is safe from that global check; only a dedicated content-specific
+  assertion elsewhere (here, `:225`) can redden from a message-text change.
+- 2026-08-18: fix-c5. Choosing a "discriminating substring" between two FleetError next_steps that
+  share vocabulary (both mention `github.board` and `.harness/harness.json`) means grep-testing the
+  candidate phrase against the WHOLE source file, not just eyeballing the two messages side by
+  side — `grep -c "<phrase>" factory_config.py == 1` is the actual bar the task specified, and it
+  catches accidental collisions with docstring prose (e.g. "top-level" was already used twice in
+  `load_fleet`'s own docstring, which would have made a "top-level board" substring non-unique).
+
+- 2026-08-18: mid-fix-cycle-2 reddening probe on an uncommitted-tree feature: `git checkout --
+  <path>` restores to HEAD, not to "the prior cycle's fix" — if nothing in the feature has been
+  committed yet, HEAD is still the PRE-fix defect state. Used it once as the restore step for a
+  probe and it silently reverted a still-live fix instead of undoing the probe's own mutation;
+  caught it because the immediate re-run reddened three checks instead of zero. Restored by
+  re-applying the fix text by hand and re-verifying sha256 instead. Worth checking `git log
+  --oneline -- <path>` / whether the feature has landed any commit before trusting `git checkout
+  --` as a restore step mid-cycle.

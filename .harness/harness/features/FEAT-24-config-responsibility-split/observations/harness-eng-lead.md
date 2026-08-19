@@ -92,3 +92,53 @@
   `isinstance(_g26, dict) and sync is True and repo` guard at `:1138-1140`). So it is a falsified
   docstring, not a hole — the difference between a forced fix cycle and a routed docstring question.
   Enumerate call sites before rating any "this fails silently" finding.
+
+- 2026-08-19 (run 10, fix cycle C5): "no way to idle" is now a MEASURED constraint, not a
+  preference. `validate-digest.py --hook` refuses to let me stop the turn without a full DIGEST, and
+  a member was still in flight. So the two obligations collide directly: the hook demands a verdict
+  to stop, and issue #461 says never write a verdict over an unreturned member. The only resolution
+  available to a lead is to keep making tool calls. Doing genuinely useful reads instead of `Glob`
+  polling is the difference between paying that cost and wasting it — the ui-reviewer and
+  code-reviewer notes I read while waiting changed my scope assessment.
+
+- 2026-08-19 (run 10): A DISPATCH BAR I WROTE WAS ITSELF UNSOUND, and I caught it only after the
+  spawn. I required the member to prove its replacement substring discriminating via `grep -c` on
+  `factory_config.py` returning exactly 1. But `grep -c` counts LINES and the `:165` message is a
+  two-line f-string (`:165-166`) — a phrase straddling the break returns 0, and a member reporting
+  "0, therefore unique" reports nothing. Discrimination between two ERROR MESSAGES is a property of
+  the runtime strings, never of source lines; the sound instrument is triggering both errors and
+  asserting the substring present in one and ABSENT from the other. A source-text grep cannot stand
+  in for a runtime assertion whenever the string is built by formatting.
+
+- 2026-08-19 (run 10): I misread `RAISED_MESSAGES` scoping and the correction matters for any future
+  message edit in this file. `(8b)` is registered into `BAD_CASES` at `test-factory-config.py:184`,
+  which is BEFORE `RAISED_MESSAGES = []` at `:193`, and the generic loop appends at `:204` — so
+  `(8b)` runs twice and the `:165` text DOES enter the list. Its consumer at `:280-285` requires
+  every message to contain an em dash and to contain neither `FleetError` nor `Traceback`, and
+  builds its ok-line label from `m[:70]!r`, so changing `:165` renames one `(15)` ok-line. Registration
+  order versus initialisation order is the thing to check, not proximity in the file.
+
+- 2026-08-19 (run 10): THE FIX AS SCOPED CANNOT FULLY CLEAR SC-06, and knowing that before the
+  member returns is what stops me reporting a closed criterion. The operator scoped FIX 1 to two
+  cases (unparseable JSON, non-mapping). But code-reviewer's note (`:67-78`, `:111-117`) grades
+  SC-06 unmet on THREE grounds — the third being that missing-file and `gh` unauthenticated are
+  structurally ONE code path, since both are just "run_gh exits non-zero" to `factory_gh`, so no
+  test in `test-factory-config.py` can distinguish them. Distinguishing them needs `factory_gh.py`,
+  which is outside the two permitted files. So the residue is not sloppiness, it is a scope boundary,
+  and it must be raised rather than papered over.
+
+- 2026-08-19 (run 10, the send-back): REPLACING AN ASSERTION IS NOT THE SAME AS PRESERVING WHAT IT
+  PINNED, and "no assertion may be weakened" does not catch the difference. The old `(8b)` assertion
+  pinned the DESTINATION (`repos[].board`) — at the wrong value, which was the defect. The member's
+  replacement pinned `whole-fleet board`, which names the REJECTED KEY, exactly as `invalid: board —`
+  two lines above already did. Both assertions passed, neither was weaker in isolation, and the set
+  had lost the destination entirely: a future edit could restore `repos[].board` and nothing reddens.
+  The test is not "is each assertion as strong as before" but "does the SET still pin every property
+  the old set pinned". Ask what an assertion is FOR before approving its replacement.
+
+- 2026-08-19 (run 10): a mutation-proof gotcha for uncommitted work, found by the member and worth
+  keeping. `git checkout -- <file>` restores from HEAD, so on a fix that is not yet committed it
+  reverts to the PRE-FIX defect rather than to the in-progress fix — a "restore" step that silently
+  undoes the cycle's own work while every hash check still looks orderly if you compare to the wrong
+  baseline. Any dispatch asking for mutate-then-restore on uncommitted work must say to snapshot the
+  file to scratch and restore from THAT, and to state which baseline each sha256 is compared against.

@@ -139,6 +139,8 @@ out a SHA. Treat them as working-tree anchors; qa's git-pinned measurement (it r
   real call site (`factory_decompose.py:399` → `"Ready"` reddens NOTHING). A fix list built from
   "what the last FAIL blocked on" silently drops the findings that FAIL carried alongside its
   headline — this one survived two runs because it was never the headline.
+  RUN 9 UPDATE: CLOSED. The fixture moved to `"ready": "Promoted"` (`:196`, `:224`) and `:413`
+  asserts `"Promoted"`; code-reviewer ran the mutant itself and it reddens three cases.
 
 - 2026-08-19 (run 5): Same defect class swept per P-04, three more instances, all advisory
   because SC-02's `review` evidence is carried by the discriminating `Col-R` case instead:
@@ -173,3 +175,168 @@ out a SHA. Treat them as working-tree anchors; qa's git-pinned measurement (it r
   harness-backend-dev `{ path: .claude/skills/harness/bin/**, upsert: true }`, so
   test-factory-decompose.py IS writable by it and is not one of DEC-174's four carve-out files.
   The route is valid. qa has no such grant, which is the standing Q1.
+
+---
+
+## Run 9 (2026-08-19-9-validator) — full panel at pin `14994b3`
+
+ANCHOR NOTE: all run-9 line numbers below are WORKING-TREE reads (Grep/Read). The dispatch
+asserts `git diff --name-only 14994b3..7e30983` is `feature.json` alone; I folded that command
+into the code-reviewer's step rather than relay it as fact (my own P-11), because a lead with no
+shell either routes the measurement or publishes an assumption. IT CAME BACK CLEAN — `feature.json`
+only — so every anchor below is valid for the pin. Routing the measurement rather than relaying it
+cost nothing and would have converted the whole run to BLOCKED had it come back dirty.
+
+- 2026-08-19 (run 9): **THE BUDGET TURNED A `FAIL` INTO AN `ESCALATE`, AND I NEARLY SHIPPED THE
+  WRONG TOKEN.** I had written `VERDICT: FAIL` with `Q1 ... blocking: true` whose own text said
+  all three ways forward需 a decision above the orchestrator. Those two fields give the runner
+  OPPOSITE instructions: `FAIL` means "retrying or looping back is meaningful", and my own Q1 said
+  the run budget cannot absorb a loop. `feature.json` records `max_total_runs: 20` against
+  NINETEEN `runs[]` entries — and under either reading of the ambiguous entry (see the next bullet)
+  the feature is at or past its ceiling, so a fix run PLUS a re-review does not fit.
+  THE DISCRIMINATING QUESTION, and it is narrow enough to answer every time: **can the orchestrator
+  action my `must_fix` without a decision from the tier above it?** If yes → `FAIL` and
+  `blocking: false`. If no → `ESCALATE`. The roll-up rule already says why: ESCALATE outranks FAIL
+  *deliberately*, so a decision only the user can make cannot hide behind a failure that looks
+  loopable.
+  WHY THIS IS A LEAD-TIER LESSON SPECIFICALLY: no member reads `feature.json`. The budget is
+  invisible to every reviewer, so the fact that reframes the verdict is one only the lead can see —
+  which is the same shape as "reporting worse than your members is allowed, you may see what they
+  could not", but about the TOKEN rather than about severity. CHECK THE RUN/CYCLE BUDGET BEFORE
+  CHOOSING THE TOKEN, not after drafting the digest. Note also that `cycles_used: 5/10` looked
+  healthy while `runs` was exhausted — the two budgets are independent and reading the reassuring
+  one is how this gets missed.
+
+- 2026-08-19 (run 9): `feature.json`'s `runs[]` ALREADY CARRIED AN ENTRY FOR MY OWN RUN, with
+  `verdict: BLOCKED`, before I had returned anything — while the run DIRECTORY did not exist when I
+  created it. So either the orchestrator pre-registers a run optimistically/defensively, or that
+  entry is a prior aborted attempt at the same id. I could not settle which, and it MATTERS: if it
+  is my run, 19 of 20 are spent and one remains; if it is a prior attempt, registering mine makes
+  20 of 20 and NONE remains. I reported both readings rather than picking, because the arithmetic
+  is robust either way (at or past ceiling) and picking would have been a guess dressed as a
+  measurement. LESSON: a pre-recorded verdict for your own run is not evidence of anything about
+  your run, and a lead that reads it as its own history will mis-count the budget in the optimistic
+  direction.
+
+- 2026-08-19 (run 9): THE DISPATCH'S OWN DISPOSITION MISSTATES THE CODE, and re-deriving it is
+  what found the real gap. The dispatch pre-briefed, as settled, that "`gh_board.load_board`
+  returns `None` for an absent `github` block AND for a present block with no `board` key".
+  The second half is FALSE at the pin: `gh_board.py:74-77` RAISES `FleetError("board key
+  missing", "github.board", ...)`. The docstring at `:47-48` is CORRECT about that cell. What the
+  docstring is actually wrong about is three OTHER cells it never mentions, all returning `None`
+  silently: `:67-68` (harness.json unreadable/unparseable), `:69-70` (cfg not a mapping),
+  `:72-73` (`github` block absent). The ui-reviewer reached the same correction independently.
+  GENERAL SHAPE: G-05 applied to a DISPOSITION rather than to a count. A handed-down "already
+  ruled, do not re-report" item is narration like any other; re-deriving it cost one grep and
+  relocated the finding to three different cells.
+
+- 2026-08-19 (run 9): I KILLED TWO OF MY OWN HYPOTHESES WITH MY OWN CHECKS. Recording both,
+  because the discipline is the lesson and the near-misses are where a lead ships a false finding.
+  (a) FAIL-OPEN AT `board-station.py` — I hypothesised that a corrupt `harness.json` reaches
+  `load_board`, returns `None`, and prints "no github.board configured" with exit 0: a FALSE
+  message plus a silently skipped station write, i.e. verbatim the BRIEF's own problem statement.
+  DEAD: `board-station.py:114-133` guards file-missing, unreadable, non-dict, absent-github,
+  sync-off and repo-unpinned FIRST, so by `:140` the reachable `board is None` is the explicit-null
+  cell ONLY. Same shape at `gh-sync.py:135-151` and `check-state.sh:1138-1147`.
+  (b) A FIXTURE MODELLING AN IMPOSSIBLE FLEET — `test-factory-claim.py:200`'s `repo_dict` nests a
+  `board` under a repos entry, exactly the shape SC-01 requires `load_fleet` to REJECT. DEAD on
+  reading the docstring three lines up (`:196-199`): a deliberate TEST-SIDE carrier, stripped by
+  `_split_boards` before the fleet is written to disk.
+  LESSON, the same one both times: READ THE GUARDS THAT RUN BEFORE THE FUNCTION, AND THE DOCSTRING
+  AT THE POINT OF USE, BEFORE CALLING A `None` RETURN A FAIL-OPEN. Reachability is a different
+  claim from behaviour, and I reached for the behaviour claim first both times.
+
+- 2026-08-19 (run 9): THE FINDING BOTH DEAD HYPOTHESES LED ME TO, and it survives. Because the
+  silent cells are unreachable, nothing is broken TODAY — but NOTHING PINS THAT UNREACHABILITY.
+  `test-gh-board.py` has exactly one `load_board` non-raise case (`:90-91`, explicit null) and
+  eight raise cases. No case covers the unreadable-file, non-dict, or absent-`github` cells. The
+  absent-`github` cell IS tested — but only on the LOUD side, at `test-factory-config.py:431`, for
+  `board_for`. The asymmetry is pinned where it raises and unpinned where it silently returns
+  `None`. My own P-08 in the wild: "correct today" and "pinned against regression" are separate
+  findings, and only the second survives an edit.
+
+- 2026-08-19 (run 9): SC-05 HAS NO READING UNDER WHICH BOTH ITS CLAUSES HOLD — a G-10 shape reached
+  by taking the dispatch's own disposition seriously and following it. Read clause 1 as `board_for`
+  (the dispatch's stated reading): UNMET, because `factory_config.py:315-319` raises on explicit
+  null and `plan.yaml:480-482` requires exactly that. Read it as `load_board` (the only reading
+  making "is accepted" true, which REQ-09 supports): "and is the only non-error path" is UNMET,
+  because there are four. The two clauses select different FUNCTIONS, so naming the reading is not
+  a formality — it decides which half fails. Route the reading up rather than endorsing either.
+
+- 2026-08-19 (run 9): THE STRONGEST FINDING OF THE RUN, AND ALL THREE REVIEWERS FOUND IT TOO.
+  `factory_config.py:283-294` holds TWO raise branches — `json.loads` failure and a non-mapping
+  document. `plan.yaml:464-466` (T-02 item 5) REQUIRES both; SC-06 names "unparseable JSON" as one
+  of three modes. Nothing in the tree drives either: grepping both message literals across
+  `.claude/skills/harness/` returns FOUR hits, all four in `factory_config.py` itself. T-02's seven
+  pinned ok-lines cover neither, so both are deletable with the suite green.
+  POSITIVE CONTROL RUN FIRST, per my own P-14 — the pattern matched the source's own instances, so
+  a zero-in-tests result is a real absence rather than a pattern anchored on a detail the instances
+  lack. Without that control the same grep is indistinguishable from cleanliness.
+  CONVERGENCE IS NOT PROOF, and I said so in the digest: code-reviewer reached it by reading the
+  raise sites, security by an adversarial census, me by the grep plus plan cross-reference — and
+  NONE of us mutation-proved it. Security tried and `bash-write-guard.sh` correctly refused. Three
+  independent searches agreeing raises confidence a lot and is still not a failing mutant.
+
+- 2026-08-19 (run 9): A ONE-SURFACE MEMBER FINDING THAT WAS ACTUALLY FIVE, and the extension is the
+  whole of what this tier adds. ui found `factory_config.py:165` telling an operator to move a
+  stale top-level `board:` to `repos[].board`, which `:188-194` (new in the same diff) rejects.
+  ui also asserted "nothing catches this, one-line fix". WRONG, and wrong in the direction that
+  matters: `test-factory-config.py:225` ASSERTS `"repos[].board" in str(e)`, so the suite actively
+  PINS the wrong advice and a one-line fix REDDENS the gate. Then `DECISIONS.md:4742-4744` — the
+  DEC-174 am.3 that SC-11 required FOR THIS FEATURE — asserts both messages name where the board
+  moved to, which is false for the top-level case. Then T-10's verify (`plan.yaml:1366-1393`)
+  checks the amendments EXIST, never that they are TRUE, which is why it shipped green.
+  ROOT CAUSE IS IN THE PLAN: `plan.yaml:452` told T-02 to "model it exactly on the existing
+  top-level board rejection" — treat that message as a template to COPY, never update — while
+  `plan.yaml:1409-1411` told T-10 to record that both HAD been updated. The code was built to plan
+  and the record written to plan; the plan's two halves disagree.
+  LESSONS: (a) when a member says "nothing tests this", GREP FOR AN ASSERTION ON THE STRING — a
+  test pinning the defect is a different and worse finding than no test at all, and it changes the
+  remedy from one line to three files; (b) when a message is wrong, ASK WHERE THE WORDING CAME
+  FROM — tracing it to the plan converted "the documentor erred" into "the plan contradicted
+  itself", which saves a wasted fix spawn aimed at the wrong seat.
+
+- 2026-08-19 (run 9): A CRITERION CAN BE MET AND ITS INSTRUMENT STILL BE THE WRONG ONE, and the
+  two must not be collapsed. SC-13 asserts "no test file was removed... by comparing the registered
+  script count before and after". Clause 1 is MET — 28/28, code-reviewer measured. But (a) grepping
+  `plan.yaml` for `SC-13`, `script count` and `no test file was removed` returns ZERO matches, so
+  nothing in the tree automates it; and (b) THIS VERY DIFF deleted two named assertions
+  (`test-no-distribution.py:293-298`) while the count stayed 28/28, because counting FILES cannot
+  see a deleted CASE. The criterion's own instrument would not have caught the deletion that
+  happened inside its own feature. I kept this OUT of `must_fix` because the signed clause IS
+  satisfied — substituting my judgement for the criterion's text is not mine to do — and put it in
+  `adequacy_notes` instead. It also generalises the three-unpinned-cases item the operator had
+  already dispositioned: that is not three loose ends, it is the absence of any case-level deletion
+  guard.
+
+- 2026-08-19 (run 9): AN `sc_status` ROW CANNOT CARRY A TWO-CLAUSE CRITERION, and I first wrote
+  SC-13 as `met` while my own adequacy note said its merge-commit half was unclearable. The ROW is
+  what a successor reads; a caveat living only in an adequacy note is a caveat nobody applies.
+  Recorded `unmet` with evidence naming which half cleared and which could not — a criterion is met
+  only when ALL its clauses are, and "met with a footnote" is how an uncleared half ships as done.
+  My own P-12, caught one step from publication.
+
+- 2026-08-19 (run 9): I PASSED `model:` IN THREE DISPATCHES AND `dispatch-guard.sh` BLOCKED ALL
+  THREE. My own G-12 is about checking capability before routing AROUND it; this is the inverse
+  error — reaching for a capability I was never granted. A model pin is org design (DEC-152/155),
+  and a task needing a stronger model is an ESCALATION, not a dispatch parameter. Cost: one wasted
+  turn, ZERO spawns, because the hook is PreToolUse. RULE: the only parameters a lead gives `Agent`
+  are `subagent_type`, `description` and `prompt`. Pleasant surprise worth keeping: three
+  simultaneous blocks cost exactly what one would, so batching the ready set also batches the
+  guard's feedback.
+
+- 2026-08-19 (run 9): PRE-BRIEFING THE DISPOSITIONED LIST IS ALSO A ROLL-UP DEFENCE — a reason my
+  own O-01 never recorded. O-01 says pre-briefing buys back reviewer attention. The additional,
+  more mechanical reason: worst-verdict-wins means ONE reviewer returning FAIL on an item the
+  operator already settled forces MY team verdict, and the hook will not let me claim better than
+  my members. So the pre-brief keeps a settled item from re-gating the run. Phrase it as "report
+  only if you disagree ON THE MERITS, with new evidence" — a flat "do not report X" would buy the
+  roll-up at the cost of the independence the panel exists for. It worked: zero re-reports of the
+  five dispositioned items, and both ui and code returned NEW findings instead.
+
+- 2026-08-19 (run 9): POINTING THE ui-REVIEWER AT A NON-GRAPHICAL SURFACE PAID FOR THE SPAWN, for
+  the second time on this feature. There is no UI in this diff; I named the operator-facing TEXT
+  contract instead — streams, exit codes, refusal messages, the onboarding `_board_note` — and told
+  it a decline was acceptable only if it published the census it measured (my own O-03). It scoped
+  IN and returned the run's only operator-visible defect. A reviewer whose nominal domain is absent
+  is not automatically out of scope; name the analogous surface and let it decide.

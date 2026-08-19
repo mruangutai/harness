@@ -162,8 +162,9 @@ def load_fleet(path=FLEET_PATH):
     if "board" in data:
         raise FleetError(
             "fleet key invalid", "board",
-            f"the board is per-repository now — move it under each repos entry as "
-            f"repos[].board in {path}",
+            f"a whole-fleet board key is no longer read from here — each repository declares "
+            f"its own board remotely, in its own .harness/harness.json under github.board; "
+            f"remove board from {path}",
         )
 
     repos = data.get("repos")

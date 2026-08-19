@@ -218,11 +218,29 @@ with tempfile.TemporaryDirectory() as td:
         check("(8b) a leftover top-level board key raises FleetError", True)
         # Discriminating, not "board" / "repos" substrings (those appear in almost every
         # FleetError this loader raises). "invalid: board —" pins the key to exactly "board"
-        # (em dash U+2014, matching factory_cli.body / the C-3 checks above); "repos[].board"
-        # appears only in THIS next_step — the per-repo-carries-a-board error says
-        # "repos[<name>].board", never the bracket-empty form.
+        # (em dash U+2014, matching factory_cli.body / the C-3 checks above). "whole-fleet
+        # board" pins the next_step to the TOP-LEVEL case specifically: FEAT-24 T-02 also
+        # rejects a per-entry repos[].board key (:188-194), whose own message names
+        # github.board and .harness/harness.json — both of which also appear in the
+        # top-level message below, so neither alone would discriminate the two. "whole-fleet
+        # board" appears nowhere else in factory_config.py (grep -c == 1) and only in the
+        # top-level next_step, never the per-entry one.
         check("(8b) the message names key 'board' exactly", "invalid: board —" in str(e), str(e))
-        check("(8b) the next_step mentions repos[].board", "repos[].board" in str(e), str(e))
+        check("(8b) the next_step names the whole-fleet key, not repos[].board",
+              "whole-fleet board" in str(e), str(e))
+        # The two checks above both pin the OFFENDING KEY (once via the "invalid: board —"
+        # preamble, once via "whole-fleet board" naming which of the two board-shaped messages
+        # this is) — neither pins the DESTINATION the operator is told to look at. Without a
+        # present-AND-absent pair on the destination itself, a future edit could send this
+        # message back to naming repos[].board, or drop the destination clause entirely, and
+        # nothing here would redden. "github.board" alone does NOT discriminate this message from
+        # the per-entry one at :188-194 (it appears in both) — it does not need to, since the two
+        # checks above already establish WHICH message this is; this pair's job is the CONTENT of
+        # the destination clause, not the message's identity. Mirrors plan.yaml:564-568's
+        # present-AND-absent idiom for board_for's own owner/board pinning.
+        check("(8b) the next_step points at github.board", "github.board" in str(e), str(e))
+        check("(8b) the next_step no longer points at repos[].board",
+              "repos[].board" not in str(e), str(e))
 
 # also cover: repos is empty, repos is not a list, a repo lacks default_branch, workspace_root
 # is missing
@@ -509,6 +527,53 @@ with tempfile.TemporaryDirectory() as td:
             _ok, _msg = False, f"{type(e).__name__}: {e}"
     check("product_config raises naming repo, path and ref when the remote read fails",
           _ok, _msg)
+
+# (ii-b) the remote content is not JSON at all.
+with tempfile.TemporaryDirectory() as td:
+    _d = deep_copy(good_fleet_dict())
+    _d["repos"][0]["default_branch"] = "trunk-not-json"
+    fleet = fc.load_fleet(write_fleet(td, _d))
+
+    with patched_file_at_ref(lambda r, p, ref: "not { valid json at all"):
+        try:
+            fc.product_config(fleet, "mruangutai/harness")
+            _type_ok, _repo_ok, _path_ok, _ref_ok = False, False, False, False
+            _msg = "did not raise"
+        except fc.FleetError as e:
+            _msg = str(e)
+            _type_ok = True
+            _repo_ok = "mruangutai/harness" in _msg
+            _path_ok = ".harness/harness.json" in _msg
+            _ref_ok = "trunk-not-json" in _msg
+        except Exception as e:
+            _type_ok, _repo_ok, _path_ok, _ref_ok = False, False, False, False
+            _msg = f"{type(e).__name__}: {e}"
+    check("product_config raises naming repo, path and ref when the remote content is not JSON",
+          _type_ok and _repo_ok and _path_ok and _ref_ok, _msg)
+
+# (ii-c) the remote content is JSON but not a mapping (a list here).
+with tempfile.TemporaryDirectory() as td:
+    _d = deep_copy(good_fleet_dict())
+    _d["repos"][0]["default_branch"] = "trunk-not-mapping"
+    fleet = fc.load_fleet(write_fleet(td, _d))
+
+    with patched_file_at_ref(lambda r, p, ref: json.dumps([1, 2, 3])):
+        try:
+            fc.product_config(fleet, "mruangutai/harness")
+            _type_ok, _repo_ok, _path_ok, _ref_ok = False, False, False, False
+            _msg = "did not raise"
+        except fc.FleetError as e:
+            _msg = str(e)
+            _type_ok = True
+            _repo_ok = "mruangutai/harness" in _msg
+            _path_ok = ".harness/harness.json" in _msg
+            _ref_ok = "trunk-not-mapping" in _msg
+        except Exception as e:
+            _type_ok, _repo_ok, _path_ok, _ref_ok = False, False, False, False
+            _msg = f"{type(e).__name__}: {e}"
+    check("product_config raises naming repo, path and ref when the remote content is a JSON "
+          "list, not a mapping",
+          _type_ok and _repo_ok and _path_ok and _ref_ok, _msg)
 
 # (iii) never falls back to a checkout, even when one exists on disk with a DIFFERENT board.
 with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as ws:

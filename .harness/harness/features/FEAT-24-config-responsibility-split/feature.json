@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Review",
   "review_sha": "14994b3",
-  "cycles_used": 5,
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -101,6 +101,11 @@
     {
       "id": "2026-08-19-9-validator",
       "squad": "validator",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-19-10-eng",
+      "squad": "eng",
       "verdict": "BLOCKED"
     }
   ],
