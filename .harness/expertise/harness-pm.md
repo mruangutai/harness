@@ -21,12 +21,13 @@
 - P-06: WHEN a criterion cannot be met DO decide whether the defect is in the code or in the
   sentence. If a retry could make it true, route a fix cycle. Otherwise escalate — never adopt a
   narrower reading yourself, even one a downstream gate upheld.
-- P-07: WHEN a criterion admits two readings DO test each against the remedies already sanctioned
-  for it. A reading that makes every sanctioned remedy non-compliant on arrival is the wrong one.
-  That is external evidence for narrowing, which your own preference never is.
-- P-08: WHEN a task's `verify:` counts or forbids a token DO run that verify's exact command — same
-  flags, same case — against the task's own intent prose before shipping. You author both halves,
-  and a friendlier-flagged trial hides a collision the shipped clause will redden correct work on.
+- P-07: WHEN a criterion admits two readings DO test each against its sanctioned remedies and
+  against how sibling criteria and requirements in the same signed document scope the disputed
+  term. A reading whose remedies breach a signed requirement, or that contradicts its siblings'
+  scoping, is the wrong one.
+- P-08: WHEN a task's verify counts a token, or its intent directs the doer to write a factual
+  claim, DO run the verify's exact command against the intent prose and verify the claim at source.
+  You author both halves; no sweep catches a correctly-spelled false claim.
 - P-09: WHEN handed a claim that a test already covers a property DO mutate the tool to violate the
   property and see which cases redden. Cited lines are often comments, not assertions. A mutant
   that reddens every case is broken, not evidence of strong coverage.
@@ -47,9 +48,9 @@
 - P-14: WHEN a dispatch hands you a count that a plan step must assert DO recompute it against the
   tree that step will run in. A handed-down count can describe the unremedied state, and earlier
   steps of the same remedy often remove one — a stale count manufactures a mid-sequence halt.
-- P-15: WHEN a task's intent directs the doer to write a factual claim about the codebase DO verify
-  that claim at source before shipping the task. You author both halves, no sweep catches a false
-  claim that is correctly spelled, and the doer either refuses or propagates it.
+- P-15: WHEN citing a named test case as an automated criterion's evidence DO grep the plan for
+  that case's own passing line. An assertion no verify block pins is deletable with the whole
+  suite green, and evidence that can vanish silently does not meet an automated bar.
 
 ## Gotchas (max 15)
 - G-01: WHEN citing or counting anything in a file another agent may be editing DO pin the figure
@@ -65,9 +66,9 @@
 - G-04: WHEN a verify slices a region anchored on a label's FIRST occurrence DO bound the region
   on both sides, or assert the label occurs once. A stray earlier mention relocates the region onto
   unrelated code that already satisfies the count, and the clause greens on work never done.
-- G-05: WHEN an amendment widens the scope of an already-executed task DO carry the re-dispatch
-  signal in your DIGEST. A filed receipt proves only what it ran against, and no plan file can
-  re-open a task that already passed.
+- G-05: WHEN a fixture test calls a loader whose default path binds at import DO require the task's
+  intent to pass the fixture path explicitly. Omitted, the loader reads live state, the test passes
+  for the wrong reason, and it proves nothing about the fixture it appears to exercise.
 - G-06: WHEN your count contradicts a recorded one DO reproduce the recorded invocation before
   calling it drift. Two totals under one label are often two different measurements, and the
   invocation the plan or criterion mandates is the one that defines the quantity being graded.
@@ -89,9 +90,9 @@
 - G-12: A plain YAML scalar containing a space then a hash starts a comment: `safe_load` truncates
   the value there, so an inline issue reference silently deletes the rest of the sentence. Write
   prose scalars folded or quoted, then reload the file and confirm each value's tail survives.
-- G-13: WHEN you narrow or correct a claim in one section of an artifact you are revising DO grep
-  the whole artifact for the claim's tokens and fix every occurrence in the same edit. Fixing only
-  the cited section leaves two contradictory statements inside one document.
+- G-13: WHEN you narrow, correct or supersede a claim DO fix every occurrence of it in the same
+  edit — grep the whole artifact, and rewrite the artifact itself whenever your handoff summary
+  supersedes it. The summary reaches one tier; the file is what the next context opens.
 - G-14: WHEN a verify asserts absence by counting DO NOT wrap the search in
   `test "$(cmd | wc -l)" = 0`: a search that errors prints nothing, the count is zero and the test
   passes. Assert the search's exit status, or pair it with a positive control that must match.
@@ -112,5 +113,11 @@
 - O-04: WHEN proving a NEW conjunct of an and-chained verify can turn green DO build a temp tree
   where every earlier conjunct passes, then mutate only the new one. On the pre-change tree an
   earlier conjunct exits first, so the new one never runs and its green is assumed, never observed.
+- O-05: WHEN mutating a resolved lookup back to a hardcoded literal DO first check that the
+  fixture's value differs from that literal. Equal values make the mutation a no-op, the suite
+  stays green, and the green reads as coverage of an assertion that cannot fail.
+- O-06: WHEN a probe or mutation harness reports a uniform verdict across cases DO assert it ran
+  the real artifact and reached the branch under test. A mis-invoked harness, or a call with the
+  wrong argument shape, returns one early guard's answer for every case and reads as clean.
 
 ## Open (max 5)

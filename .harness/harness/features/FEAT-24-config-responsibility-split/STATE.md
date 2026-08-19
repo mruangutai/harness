@@ -15,7 +15,7 @@ partial is evidence durability, not behaviour: assertions that pass but provably
 were killed by pm's own mutants at HEAD.
 
 **The briefing is written:** `notes/ship-review-2026-08-19-ship-02.md` (rendered `.html` beside it).
-It carries two rulings for the operator, 21 backlog rows, and the disclosure that no report round was
+It carries two rulings for the operator, 26 backlog rows, and the disclosure that no report round was
 spawned with every digest cited by path.
 
 **Two rulings are the operator's:** SC-05's scope — which I priced by measurement rather than

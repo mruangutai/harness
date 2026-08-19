@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Review",
   "review_sha": "91884f9",
-  "cycles_used": 7,
+  "cycles_used": 9,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -111,7 +111,22 @@
     {
       "id": "2026-08-19-11-product",
       "squad": "product",
-      "verdict": "BLOCKED"
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-19-12-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-12-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-12-validator",
+      "squad": "validator",
+      "verdict": "PASS"
     }
   ],
   "github": {
