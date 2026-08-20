@@ -52,3 +52,23 @@
   built on an artifact I had not confirmed was my member's. Attributing an artifact to an agent
   because it sits at the path I told that agent to write is an assumption, not an observation —
   on a re-dispatch of the same task, two agents share that path.
+
+- 2026-08-19 (run 08, c4): THIRD consecutive `model:` block on this same T-03 dispatch — I passed
+  `model: sonnet` and `dispatch-guard.sh` blocked it, after two prior leads did the same with
+  `model: opus`. The discriminating fact I can now add: the two earlier occurrences are recorded
+  ONLY in this observations log and in a run digest, and **observations are never injected at
+  spawn** — so a fresh lead cannot be warned by them. What IS injected is Expertise G-16 ("audit
+  every call's parameters before sending"), and it did not fire for any of the three of us. That
+  makes this a candidate harness finding rather than a craft lesson: three independent contexts,
+  one guard, one task shape. The pull appears to be that a dispatch prose-framed as high-stakes
+  ("the operator will send back anything less") invites a model override, and no preloaded rule
+  sits adjacent to the `Agent` call itself. Raised as an open question rather than distilled,
+  because a workaround in Expertise would outlive any fix to the dispatch surface.
+
+- 2026-08-19 (run 08, c4): Independent read of `gh_cost_log.py:165` before my member reported —
+  `rc = m.returncode if m.returncode is not None else -1`. This settles that the requested check
+  actually pins `factory_gh.py:162`: with that line deleted, `_Measurement.returncode` stays
+  `None` and the recorder writes `rc: -1`, so an assertion of `rc == 1` on the logged record goes
+  red rather than passing vacuously. The `-1` is a sentinel, not a null — a check asserting
+  `rc is not None` would have PASSED under the mutant and proven nothing. Worth knowing before
+  accepting any receipt: the assertion's exact form is what makes it capable of reddening here.

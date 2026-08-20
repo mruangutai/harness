@@ -81,6 +81,27 @@ approval:
         .harness/logs/gh-cost-2026-08-19.jsonl, which nothing reads and which held 246 null-cost
         records written by the suite against a fake gh.
 
+    - date: 2026-08-19
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: >-
+        The matrix's integration read is ruled satisfied for T-03, and T-03
+        receives one cycle above its max_cycles ceiling of 3.
+      why_matrix: >-
+        The gate resolves a required kind by whether a test covering this change lives in it. All
+        four test_kinds.integration.detect files hold ZERO gh_cost_log references and not one of the
+        four filenames appears anywhere in this plan, so the integration kind is structurally
+        unreachable for T-03 as signed - verified in the main session, 2026-08-19. BRIEF.md SC-05
+        already carries `evidence: unit`, re-signed in amendment 5. Unit is the signed evidence and
+        the integration read does not apply. The gate's own defect - integration.detect names four
+        files while INTEGRATION_SCRIPTS runs twelve - is filed separately and is not this feature's
+        to fix.
+      why_cycle: >-
+        `_cost.returncode = r.returncode` at factory_gh.py:162 is pinned by nothing. The main
+        session deleted that line and ran the unit suite: 0 FAIL lines, file restored
+        byte-identical. Production stops recording exit codes and no test goes red - the same
+        green-and-incapable-of-reddening defect this feature exists to remove. SC-05 names the
+        clause explicitly, and factory_gh.py is already inside T-03's files:, so the remedy is
+        in-lane. One cycle granted; 5 of the feature's 10 remain.
 lanes:
   resolved_at: 3920513
   rows:

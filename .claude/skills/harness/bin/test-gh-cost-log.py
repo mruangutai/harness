@@ -378,6 +378,37 @@ with tempfile.TemporaryDirectory() as tmp:
           len(calls) == 1, f"calls={calls}")
 restore()
 
+# --- factory_gh.run_gh wrap site, ON, FAILING invocation: the recorded rc is the real one ---
+# T-03 cycle 4 (approval amendment 6): the four ON/OFF cases above all drive rc=0 via
+# _counting_fake()'s default, and none inspects the recorded "rc" value — only presence/count.
+# `_cost.returncode = r.returncode` at factory_gh.py:162 is asserted by NOTHING. This drives a
+# FAILING call (rc=1) through the real run_gh, catches the raised GhError (run_gh always raises
+# on non-zero rc — that is forced, not a design choice), and asserts the LOGGED RECORD'S rc
+# equals 1 — not that a record exists, not that GhError was raised.
+with tempfile.TemporaryDirectory() as tmp:
+    path = redirect(tmp)
+    fake_run, calls = _counting_fake(rc=1)
+    gh_cost_log.subprocess.run = fake_run
+    os.environ["HARNESS_GH_COST_LOG"] = "1"
+    try:
+        try:
+            _fgh.run_gh(["issue", "view", "1"])
+            raised = False
+        except _fgh.GhError:
+            raised = True
+    finally:
+        del os.environ["HARNESS_GH_COST_LOG"]
+    lines = read_lines(path)
+    non_cov = [l for l in lines if "coverage" not in l]
+    check("factory_gh.run_gh wrap site, FAILING: GhError was raised",
+          raised)
+    check("factory_gh.run_gh wrap site, FAILING: one line written for the wrapped invocation",
+          len(non_cov) == 1, f"lines={lines}")
+    check("factory_gh.run_gh wrap site, FAILING: the recorded rc equals the real exit code (1)",
+          len(non_cov) == 1 and non_cov[0].get("rc") == 1,
+          f"non_cov={non_cov}")
+restore()
+
 
 if FAILURES:
     print(f"\n{len(FAILURES)} of {RAN} FAILING.")
