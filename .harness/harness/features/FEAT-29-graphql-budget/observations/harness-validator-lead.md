@@ -22,14 +22,15 @@
   `verify: automated  evidence: unit` (re-signed in approval amendment 5), `plan.yaml:265-266`
   gives T-03 `verify: --kind unit`, and no file in `test_kinds.integration.detect` appears anywhere
   in `plan.yaml`. Two lead contexts (eng run 05 Q1, me) independently landed on the same
-  unresolved operator question.
+  unresolved operator question. RULED by the operator 2026-08-19 (plan.yaml approval amendment):
+  integration satisfied for T-03, unit is the signed evidence.
 
-- 2026-08-19: `STATE.md` is stale against `feature.json` — repo-tier G-01 firing in the real. STATE
-  says "run: none in flight", branch tip `29c3e9d`, "3 cycles of 10; 3 runs of 20", and "THE BRANCH
-  IS RED ON `--kind integration`". `feature.json` says `review_sha: 3fbfd0a`, `cycles_used: 5`,
-  seven runs through `2026-08-19-06-eng`. Also `feature.json` records run 05 as `BLOCKED` while
-  `runs/2026-08-19-05-eng/digest.md` records `VERDICT: PASS`. A successor reading either alone is
-  misled about whether the branch is green.
+- 2026-08-19: `STATE.md` is stale against `feature.json` — repo-tier G-01 firing in the real. First
+  seen at run 07 and STILL true at run 09: `STATE.md:20` pins `review_sha: 3fbfd0a` and `:35` says
+  "5 cycles of 10; 8 runs of 20", while `feature.json` says `review_sha: c472a02`, `cycles_used: 6`,
+  nine runs. The run-05 BLOCKED-vs-PASS contradiction I logged at run 07 HAS since been corrected in
+  `feature.json` (run 01 is the BLOCKED one). So the pointer file rots once per run while the
+  machine file gets fixed — the human-facing artifact is the one that drifts.
 
 - 2026-08-19: the eight new wrap-site checks at `test-gh-cost-log.py:317-379` all call
   `_counting_fake()` with its default `rc=0` (`:289`). So no wrap-site check drives a FAILING
@@ -38,3 +39,27 @@
   calls `skip()` = `sys.exit(0)` (`:79-82`, `:118-120`), so at THAT site it is forced under
   in-process fixtures. Two different situations that the eng lead's digest merged into one word,
   "forced".
+
+- 2026-08-19 (run 09): I nearly failed a criterion on a premise nobody had checked. The eng lead
+  escalated that SC-05's OFF-side failing clause "is asserted nowhere" and that it is "unpinnable by
+  mutation". Both are false, and a `grep -n 'HARNESS_GH_COST_LOG'` over the test file settled it in
+  one call: `test-gh-cost-log.py:251-259` drives `record(["issue","create"], 200, 210, 1)` — a
+  FAILING rc with the variable genuinely unset — and asserts no file and no line. I had already
+  drafted a mutant to prove the lead wrong about pinnability, and my mutant was ALSO wrong: it
+  perturbed `measured()`'s disabled branch to call `record()` on failure, but `record()` carries its
+  OWN independent `_enabled()` guard at `gh_cost_log.py:112-113`, so the mutant is
+  behaviour-preserving and writes nothing. The clause is pinned at the layer that actually writes:
+  mutating `:112` to `if not _enabled() and returncode == 0: return` reddens `:255-258`.
+  The lesson is not about this feature. It is that BOTH the escalation's premise and my own
+  counter-premise were reasoned from control flow rather than measured, and both were wrong in the
+  same direction — toward there being a gap. An escalation that arrives with a defect already named
+  makes the named defect feel like the question, and the cheap discriminating grep felt redundant
+  because two tiers had already reasoned about it. Grep the assertion set before grading a criterion
+  unevidenced, however confident the tier below is.
+
+- 2026-08-19 (run 09): a defence-in-depth pair changes what a coverage gap MEANS. `_enabled()` is
+  checked twice on independent paths (`record():112`, `measured():157`), so an untested path through
+  the outer guard is not an unprotected path — the inner guard still holds and is itself pinned.
+  Before calling a missing case a coverage gap, establish whether the guarantee has a second,
+  tested guard behind it; if it does, the case buys a demonstration, not protection, and is rarely
+  worth a cycle.

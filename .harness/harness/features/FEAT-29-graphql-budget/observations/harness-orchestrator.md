@@ -150,3 +150,21 @@
   routing explicitly in the dispatch — "if you disagree, return an open_question, NOT a FAIL, because
   a FAIL routes a cycle to a squad that may not touch the file" — produced it. Naming the routing
   consequence, not just the preference, is what made it land.
+
+- 2026-08-19: **the same guard refused the same mistake in three independent lead contexts on one
+  feature** — `dispatch-guard.sh` blocking a `model:` parameter. Each lead lost a spawn turn to it.
+  The prior occurrences were recorded only in observations logs, which are never injected at spawn,
+  so no successor could be warned. A lesson that lives only where it is never read is not a lesson;
+  a repeated guard refusal across independent contexts is evidence the rule belongs where the call
+  is made, not in a log.
+
+- 2026-08-19: **the strong form of an assertion is what makes a mutation proof mean anything.**
+  `gh_cost_log.py:165` writes the sentinel `-1` when `returncode` is None, so a check of
+  `rc is not None` would have passed under the very mutant it was written to catch, while
+  `rc == 1` reddened. When commissioning a mutation proof, specify the assertion's FORM, not just its
+  subject — "assert the recorded exit code equals 1", never "assert the exit code is recorded".
+
+- 2026-08-19: extra checks beyond a scoped fix are worth keeping when the RED output shows them
+  PASSING under the mutant — that is empirical proof they are vacuous, which converts them from
+  scope creep into controls. The discriminator is the mutant's own output, not a judgement about
+  whether more tests are better.

@@ -3,8 +3,8 @@
   "branch": "feat/FEAT-29-graphql-budget",
   "pr": null,
   "status": "Building",
-  "review_sha": "3fbfd0a",
-  "cycles_used": 6,
+  "review_sha": "c472a02",
+  "cycles_used": 7,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "github": {
@@ -74,6 +74,16 @@
       "id": "2026-08-19-07-validator",
       "squad": "validator",
       "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-19-08-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-09-validator",
+      "squad": "validator",
+      "verdict": "PASS"
     }
   ]
 }
