@@ -240,3 +240,19 @@
   self-correcting and did not refute the criterion at all. When escalating a corpus-wide absence
   finding, classify the hits before handing them up; an undifferentiated grep count makes a
   three-document problem look like a seven-document one and inflates the operator's decision.
+
+- 2026-08-20: **a correction handed down from above was itself half wrong, and the discriminator was
+  the FILE'S OWN HISTORY, not its present state.** I was told a pin had never been stale, evidenced by
+  the pin's current value. But the current value was the remedy I had just applied — reading it
+  backwards inverts cause and effect. `git show <commit>:<path>` on two earlier commits recovered what
+  the field actually held at grading time and settled it. **When a claim concerns what a value WAS,
+  read the value at that commit; the working copy answers a different question.** The correction and
+  its own diagnosis contradicted each other, which is the tell: if the convention that re-pins was
+  skipped, the pin necessarily was stale.
+
+- 2026-08-20: **grading a criterion whose evidence includes the grader's own artifact is a conflict
+  that must be named in the dispatch, not managed silently.** SC-08 graded document content and one
+  document was the file I write every cycle. I told the member to grade what the file DOES rather than
+  what it CLAIMS, that my authorship was not a reason to soften, and that I would rather it fail than
+  spare it. Stating the conflict is what lets the tier below discount it; hiding it makes every
+  favourable verdict worthless.
