@@ -49,6 +49,25 @@ re-derives it:
 3. **The repository is NAMED in the path** — `.claude/worktrees/harness/<id>/` — so a reader can
    see which repository a working tree belongs to without inferring it.
 
+**`workspace_root` and `<repo root>` are NOT the same thing, and conflating them loses the
+isolation this feature exists to build.** `workspace_root` is the CONTAINER that holds served
+repositories; a `<repo root>` is ONE repository's checkout. Measured 2026-08-20:
+
+    workspace_root              /Users/molchairuangutai/GitHub/harness-factories
+    <repo root> for kaya-ai     /Users/molchairuangutai/GitHub/harness-factories/kaya-ai
+    <repo root> for harness     /Users/molchairuangutai/GitHub/harness      (NOT under workspace_root)
+
+So the worktrees land at:
+
+    /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/<id>/
+    /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.claude/worktrees/kaya-ai/<id>/
+
+**Every path in this brief is relative to a `<repo root>`, never to `workspace_root`.**
+`worktree_owner()` computes legality as `commonpath` against `<owner root>/.claude/worktrees`, where
+the owner comes from the worktree's own `.git` pointer file. Build it against `workspace_root`
+instead and every served repository's worktrees share one directory — the per-repository isolation
+is gone, and the guard would still report `legitimate`.
+
 - REQ-01: The dispatch path creates a worktree per feature run at
   **`<repo root>/.claude/worktrees/<repo>/<id>/`**, and the orchestrator works inside it. For
   harness that is `<this checkout>/.claude/worktrees/harness/<id>/`. For a served repo it is that
