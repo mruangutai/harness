@@ -112,10 +112,19 @@ a raw `gh` error.
   `status: Done` and four of its documents carry the 31-point figure, but editing them would
   falsify a record of what was known on its date. The clause as signed quantified over every
   surviving document while the task discharging it named one file, so it could not be met by any
-  amount of correct work.
+  amount of correct work. **AMENDED 2026-08-20 (second), operator ruling.** The condition binds
+  PER DOCUMENT, not per figure: a document states its condition once and its figures inherit it.
+  Read per-figure, the signed `BRIEF.md` and `plan.yaml` would themselves become violations of a
+  rule they define, reinstating the unmeetable-criterion defect the first amendment cured. The
+  governing condition set is THREE — board, item count, and the commit measured at — which
+  overrides signed decision D-03's two: a figure without its commit cannot be re-derived, and that
+  is precisely how the 31 survived nine days unfalsifiable.
   verify: inspection
-- SC-09: **AMENDED 2026-08-20, operator ruling.** `gh pr checks` polling by the main session no
-  longer runs at a 10-second interval, and the recorded operating rule forbids shell wait loops
+- SC-09: **AMENDED 2026-08-20, operator ruling.** ~~`gh pr checks` polling by the main session no
+  longer runs at a 10-second interval~~ — **the conduct conjunct is DROPPED (second amendment,
+  2026-08-20, operator ruling): it was live conduct in a terminal, never an artifact, so no
+  inspection at any pin can settle it and its own `verify:` method cannot reach it.** Grade SC-09
+  on the rule conjunct alone. The recorded operating rule forbids shell wait loops
   outright, naming Monitor and `run_in_background` as the replacements. The rule must be present
   in the COMMITTED tree, not merely the working copy. ~~with the measured 2-points-per-poll cost
   cited~~ — the cost-citation clause is DROPPED. It was written when the remedy was a longer

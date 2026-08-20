@@ -165,8 +165,12 @@ decisions:
       traffic as its own.
     dec: none
   - id: D-03
-    choice: Every recorded GraphQL cost figure carries the board it was measured on and that board's
-      item count.
+    choice: >-
+      STRUCK 2026-08-20 by operator ruling. The signed text named TWO conditions, the board and
+      that board's item count. The recording rule governs and requires THREE, adding the commit
+      it was measured at, because a figure without its commit cannot be re-derived - which is how
+      the 31 survived nine days unfalsifiable. The condition binds per document, not per figure.
+      One definition, not two.
     because: The 2026-08-10 figure of 31 points was recorded without its condition, could therefore
       never be falsified, and an exclusion decision was built on it.
     dec: none
