@@ -68,6 +68,7 @@ from gh_issues import internal_id_args, attach_sub_issue_args
 
 import factory_config
 import gh_board
+import gh_cost_log
 import harness_yaml
 
 GH = os.environ.get("GH_SYNC_GH", "gh")
@@ -111,7 +112,9 @@ def post_body_path(path, flag):
 
 
 def gh(args, capture=True):
-    r = subprocess.run([GH] + args, capture_output=True, text=True)
+    with gh_cost_log.measured(args) as _cost:
+        r = subprocess.run([GH] + args, capture_output=True, text=True)
+        _cost.returncode = r.returncode
     if r.returncode != 0:
         # Mid-flight environmental failure (network, auth expiry). Still not a gate.
         skip(f"gh {' '.join(args[:3])}… failed: {(r.stderr or r.stdout).strip()[:200]}")

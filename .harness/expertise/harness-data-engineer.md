@@ -19,6 +19,15 @@
   reapplied to already-sorted input) DO check whether any test asserts the differing case before
   calling removal safe — proving the guarantee empirically outside the suite is not the same as
   the suite seeing it.
+- P-07: WHEN a dispatch requires zero side effects DO capture size/hash of any touched log or
+  state file before and after and report both — an assertion of "no writes" is unfalsifiable
+  without a before/after comparison.
+- P-08: WHEN a diff adds an import or naming pattern that looks like new complexity DO grep the
+  file for its own established precedent before flagging it — reuse of an existing in-file
+  convention is not new complexity.
+- P-09: WHEN a candidate finding lives outside your domain and a backlog row already tracks it
+  DO decline to re-raise it as new — verify the row still matches current state, but do not
+  duplicate the record.
 
 ## Gotchas (max 15)
 - G-01: WHEN timing-probing a CLI that shells out to an external service (e.g. `gh`) DO wire the
@@ -37,6 +46,9 @@
 - G-05: WHEN a comment cites a numbered label (e.g. "CHANGE 1") as its rationale DO grep the file
   for that label before trusting it — a label existing only in a planning artifact narrates the
   plan's own bookkeeping, not a present fact, and goes stale once the plan closes.
+- G-06: WHEN claiming a "full read" of a file as your check DO also run a targeted probe for the
+  failure mode under review (e.g. grep a stated rationale across the file for duplication) — a
+  linear read can miss content that repeats without registering as a repeat.
 
 ## Outcomes (max 10)
 

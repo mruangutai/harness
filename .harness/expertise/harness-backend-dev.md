@@ -1,10 +1,10 @@
 # Expertise — harness-backend-dev
 
 ## Patterns (max 15)
-- P-01: WHEN asserting an exception's VALUE slot, or comparing exception messages for inequality,
-  DO pick a value absent from every compared message's fixed prose and reuse that SAME value
-  across all cases — reused prose or a mismatched value lets the check pass without proving
-  anything is wired.
+- P-01: WHEN asserting an exception's VALUE slot or a numeric/sentinel field DO assert the exact
+  expected value, never a weaker existence/type check — a weaker check (e.g. `is not None`) can
+  pass under the same mutant that breaks the real contract; pick a value absent from every
+  compared case's fixed prose.
 - P-02: WHEN a task's listed verify steps are grep receipts plus a test suite that imports code
   standalone DO add a smoke check that actually imports/executes the changed module through its
   real call path — a broken import can leave every listed receipt green.
@@ -22,8 +22,8 @@
   the premise is stale or the test is vacuous, not permission to proceed — and establish provenance
   from on-disk artifacts before writing or overwriting anything.
 - P-07: WHEN adding or fixing an assertion to close a vacuous-pass gap DO prove it with a mutant,
-  predicting by name which checks redden before the run — and treat "a different check reddened
-  instead" as a FAIL of the fix, not a pass.
+  predicting by name which checks redden before the run — an unpredicted redness is a FAIL unless
+  it is a pre-existing check already coupled to the same path, which you verify, never assume.
 - P-08: WHEN N things must be enumerated as pairwise-distinct (messages, states, branches) DO
   verify all C(N,2) pairwise comparisons exist, not just N-1 chained ones — a missing pair can be
   uncovered even though every other pair is asserted, and inequality is not transitive.
@@ -31,12 +31,13 @@
   restore it, re-verify the hash matches, and confirm the file is absent from
   `git status --porcelain` — this is what makes a "no net change this cycle" claim checkable, not
   just asserted.
-- P-10: WHEN a task's verify pins a claim to a specific section via a presence grep DO scope the
-  grep to the extracted section text, not the whole file — a substring present elsewhere in the
-  file lets the check pass while asserting nothing about the section it names.
-- P-11: WHEN a task's intent cites a specific line as an existing assertion of old wording to
-  update DO read that line first — it may be a docstring or unexecuted comment, not a check. If no
-  executable path exercises it, add new RED-then-GREEN tests instead of a rewrite.
+- P-10: WHEN scoping a mutation to prove one discriminator without detonating unrelated fixtures DO
+  mutate the DATA the check depends on (a marker, a fixture value), not a GUARD shared by every
+  caller — a shared-guard mutation routes every caller through the changed path, for a much larger
+  blast radius.
+- P-11: WHEN fixing a coverage hole in already-correct production code (no defect, nothing to add)
+  DO prove it by mutation-testing the existing code, not by a RED/GREEN cycle on new production
+  code — the Iron Law governs production-code order, and there is none to add for a test-only fix.
 - P-12: WHEN naming a test assertion for a property DO name it only for what the assertion can
   actually distinguish — a call-tuple equality check named "no state scoping" asserts nothing about
   state and passes vacuously even after the real state-scoping property breaks.
@@ -54,9 +55,10 @@
   nothing exercises.
 
 ## Gotchas (max 15)
-- G-01: WHEN a coverage sweep reports zero hits for a fixed list of anchor terms DO treat that as
-  inconclusive, not proof of absence — the real branch may be exercised by a fixture spelling the
-  condition in different words the sweep's terms never match, so read the fixture directly.
+- G-01: WHEN a coverage sweep or mutation produces zero hits/zero red checks DO treat that as
+  inconclusive, not proof of absence — a fixture may spell the condition differently than your
+  anchor terms, or an upstream contract may already foreclose the input shape; read the fixture or
+  trace the access pattern.
 - G-02: WHEN a test suite's docstring or label claims a specific contract DO treat it as an
   unverified claim and check the adjacent assertion actually matches it — a stale label can
   propagate across review tiers as if it were a measurement.
@@ -69,9 +71,10 @@
 - G-06: WHEN a script's own source is grep-scanned for forbidden identifiers as a verify receipt DO
   avoid spelling those identifiers anywhere in the file, including comments or docstrings that
   explain the prohibition — the explanation text itself counts as a hit.
-- G-07: WHEN a receipt requires zero grep hits for a banned pattern (e.g. `startswith`) DO expect it
-  to fire on legitimate unrelated uses too (e.g. parsing subprocess output, not path matching) — the
-  check is textual not semantic; rewrite to satisfy it even when the change is cosmetic.
+- G-07: WHEN a mutation runs across multiple test scripts DO treat only a clean, named-check FAIL
+  as valid proof — a script that ABORTS instead (uncaught traceback, no per-check tally) proves
+  nothing about the target check, even in the same run; report the abort separately, never as
+  evidence.
 - G-08: WHEN building a negative-path ("ungranted") fixture against the domain manifest DO check
   team-config.yaml for broad top-level globs (e.g. the documentor's `docs/**`) before assuming a path
   resolves to NOBODY — pick a path outside every domain prefix instead.
@@ -84,9 +87,9 @@
 - G-11: WHEN an assertion searches a tool's stdout for a failure message DO first confirm which
   stream the tool actually writes it to — a check written against stdout is permanently blind to a
   message the tool writes to stderr, and its pass/fail is unrelated to what the tool actually does.
-- G-12: WHEN an assertion slices a string between two marker substrings DO confirm both markers
-  exist in the target first — if neither is present, the slice is silently empty and any search or
-  comparison run over it can vacuously pass without inspecting real content.
+- G-12: WHEN a dispatch or brief states an artifact is absent, or frames "the gap" to close DO
+  verify directly against the live tree before acting — the claim is a snapshot, not a lock, and is
+  likely stale on a re-dispatch or once a sibling run has landed the fix.
 - G-13: WHEN restoring a mutation probe mid-cycle, nothing committed yet, DO NOT use
   `git checkout -- <path>` as the restore step — it resets to HEAD, the pre-fix defect state, not
   the prior cycle's fix, and can silently revert still-live work. Restore by hand and re-verify
@@ -94,16 +97,23 @@
 - G-14: WHEN a contract states a negative invariant over two conditions (no fallback on remote
   failure AND a local copy present) DO enumerate the 2x2 and name the untested cell — two fixtures
   covering disjoint cells leave it untested, and the code fails open under a matching mutation.
-- G-15: WHEN a test double returns a payload DO shape it like the real wire response — encoding,
-  line wrapping, envelope — not a synthetic clean value; a synthetic fixture leaves the decode
-  path untested, so a real response differing in form ships as a live, unguarded defect.
-- G-16: WHEN a finding's writeup states a count DO re-run the exact count command immediately
-  before writing it, never recall or estimate — a wrong number attached to a correct conclusion
-  invites no re-check, so a reader downstream treats it as a verified measurement.
+- G-15: WHEN a test double returns a payload, or a spare/second queued result, DO shape it like the
+  real wire response AND outcome class (success vs failure) — a synthetic payload leaves decode
+  untested, and a spare failure can route a misrouted call down the wrong except, masking the check.
+- G-16: WHEN a writeup states a count, or "zero FAIL lines" is offered as proof of a real green, DO
+  re-run the count and check it rose by the expected delta — a silent zero-FAIL false green (e.g. a
+  SyntaxError) looks identical to a genuine pass unless the count is checked.
 
 ## Outcomes (max 10)
 - O-01: WHEN a true, low-risk finding needs a source edit after the gate that would review it has
   already passed DO backlog it, not apply — a correct finding's disposition turns on its place in
   the gate sequence, not on correctness alone.
+- O-02: WHEN a task's dispatch or intent reads like a complete, detailed spec DO treat that
+  completeness itself as a red flag — the more finished the spec looks, the stronger the pull to
+  transcribe it straight into production code before a test exists. Write the failing test first
+  regardless.
+- O-03: WHEN a prior open_question sits unresolved across a scope-changing amendment DO re-check
+  it against the NEW scope before re-raising it — a scope change can retroactively resolve a
+  question raised under the old scope without anyone touching the file the question named.
 
 ## Open (max 5)

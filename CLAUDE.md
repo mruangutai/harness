@@ -1,50 +1,29 @@
+
 # CLAUDE.md
 
 ## Project
 
 **Harness**
-
-A Claude Code agent-team framework for AI-assisted software development. It absorbed and now owns
-the best patterns of three ancestors — GSD's context discipline, gstack's role-based review gates,
-superpowers' engineering discipline (TDD, spec-driven) — and is **self-hosted**: this repo builds
-the harness and runs on it. Built as portable files (CLAUDE.md, skills, agents) first, with a path
-to global installation and a distributable package.
+A Claude Code agent-team framework for AI-assisted software development and is **self-hosted**: this repo builds
+the harness and runs on it. 
 
 **Core Value:** Enable a CTO to take a software idea from product validation through architecture, disciplined implementation, and QA — with Claude executing reliably at each stage without context drift, scope creep, quality shortcuts, or unchallenged assumptions.
 
 ### Constraints
 
-- **Files-only** — no CLI, no build step. Still load-bearing: it decided no template generator.
-  **The no-dependency clause is reversed (DEC-171 + am.1):** PyYAML is **required**, and a real
-  `safe_load` replaces hand-rolled regex wherever the harness reads YAML. There is no line-scan
-  fallback — a fallback would keep the brittle parser in the tree, which is the point of removing it.
-  A missing PyYAML is a loud error: `harness-init`'s prerequisite gate stops, and the two
-  `PreToolUse` hooks fail CLOSED with a one-session bootstrap escape.
-  **`jsonschema` is required too**, for the feature execution-state schema, under the same rule: a
-  missing import is a loud error, never a quieter mode that validates nothing.
 - **Context budget** — the harness must not bloat context: selective loading, never everything-at-once.
-
-(TDD scope lives in `harness.json` `test_matrix` + the `tdd-enforcement` skill — enforced there, not
-restated here.)
+(TDD scope lives in `harness.json` `test_matrix` + the `tdd-enforcement` skill — enforced there, not restated here.)
 
 ## Harness
 
 Harness is active and **self-hosted, with one carve-out** — this repo builds it and runs on it. There
-is no GSD dependency: no `.planning/` root, no `agent_skills`, no `<files_to_read>` blocks.
+is no GSD dependency: no `.planning/` root, no `agent_skills`, no `<files_to_read>` blocks. **The carve-out (DEC-174): the harness PLANS its own work but does not EXECUTE changes to its own enforcement layer.**
 
-**The carve-out (DEC-174): the harness PLANS its own work but does not EXECUTE changes to its own
-enforcement layer.** Changes to `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`
-or `check-state.sh` are made **directly** — ordinary edits, tests run explicitly, a
-human reading the diff — never dispatched through a team run whose gates are the thing being changed.
-Green gates cannot vouch for the code that produces them: on 2026-08-03 all four gates passed while
-four `.harness` YAML files did not parse and the validator rejected its own normative template.
-Grilling, BRIEF, PLAN and the review panel remain self-hosted and are unaffected.
-
-**Working in a worktree, run everything from the worktree.** `main` is behind by construction while
+**Working in a worktree is a MUST.** `main` is behind by construction while
 harness code is being changed, so a stale copy silently tests the wrong logic.
 
 | What | Where |
-|---|---|
+| --- | --- |
 | Project state | `.harness/` — see `.harness/README.md` for the layout and who writes what |
 | Config | `.harness/harness.json` (gates, `test_matrix`, `test_kinds`, budgets) |
 | The org, as data | `.harness/team-config.yaml` |
@@ -72,4 +51,5 @@ happen.
 ## Conventions
 
 - Every claim in prose that a command can check gets checked before it is written.
-- Check `bin/check-state.sh` BEFORE committing, never after.
+- Check `.claude/skills/harness/bin/check-state.sh` BEFORE committing, never after.
+- Never write a shell wait loop. A Bash foreground timeout detaches rather than kills, so a loop outlives its own bound. Use Monitor (its timeout_ms terminates) or run_in_background.

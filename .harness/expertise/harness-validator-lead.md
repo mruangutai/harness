@@ -35,9 +35,10 @@
 - P-11: WHEN a dispatch hands down an equivalence, count or SHA relation you cannot check
   without a shell DO fold the measuring command into a member's step rather than relay it — a
   lead with no shell either routes the measurement or publishes an assumption.
-- P-12: WHEN a review panel is pinned before the work is committed DO name which criteria assert a
-  landed shape and mark them unclearable by any reviewer — reading the working tree still buys
-  real findings, but no pre-commit verdict is complete.
+- P-12: WHEN a missing test case is called a coverage gap DO establish whether a second
+  independent guard on another path already holds the guarantee — behind a re-checked guard the
+  case buys a demonstration, not protection, and a mutant perturbing only the outer guard is
+  equivalent.
 - P-13: WHEN a change moves what a gate DISCOVERS DO require a reported non-zero discovery count
   before accepting its exit code — a sweep over an empty set exits 0 exactly like a clean sweep,
   and no fixture binds the real tree.
@@ -65,9 +66,9 @@
 - G-05: WHEN a dispatch hands you a count, a premise or a figure DO re-derive it from the
   artifacts before building on it — narration is the least reliable input you receive, and in a
   distillation dispatch a wrong count loses a lesson permanently, since Expertise is written once.
-- G-06: WHEN a member's role field carries a placeholder you would not have chosen DO check the
-  digest validator's per-persona table before recording a convention mismatch — a scoped-out
-  reviewer's `n/a` is the sanctioned spelling there, not drift.
+- G-06: WHEN a gate is genuinely false but every remedy edits a file inside no task's declared
+  file set DO return ESCALATE rather than FAIL — FAIL routes a fix cycle at a file nobody may
+  edit, and the cycle is spent proving that.
 - G-07: WHEN narrating a member's conduct or re-rating its finding DO re-read the passage and
   quote its words in that sentence — a completion notification is not the content, and an
   artifact read earlier then recalled is how a false claim about a member enters a signed
@@ -75,9 +76,9 @@
 - G-08: WHEN the work lives in a worktree DO check the worktree prefix on every read path before
   using the result — the main checkout holds a stale copy at the identical path, and a conclusion
   drawn from it is wrong in exactly the way that looks right.
-- G-09: WHEN relaying a handed-down candidate that characterises a member's conduct DO check it
-  against that member's own artifact first — the account reaching you is a hypothesis, and a
-  member forced to reject a false premise spends its distillation slot on your error.
+- G-09: WHEN relaying candidates that characterise a member's conduct DO open every named
+  member's own artifact, not only the claim that reads oddly — the plausible-sounding account is
+  the one you skip, and the member then spends its distillation slot rejecting your error.
 - G-10: WHEN a member reports a signed criterion met under a narrowed reading DO record the
   literal status and the reading as two findings and route the reading up — endorsing it adopts
   an approval-gated decision, and the tier owning the goal can reject the reading outright.

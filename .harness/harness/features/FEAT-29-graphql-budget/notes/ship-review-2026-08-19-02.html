@@ -1,0 +1,89 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-29 — GraphQL budget · status review at the qa gate</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-29-graphql-budget-status-review-at-the-qa-gate">FEAT-29 — GraphQL budget · status review at the qa gate</h1>
+<p><strong>Supersedes <code>ship-review-2026-08-19-01.md</code>.</strong> Written because the blocking gate escalated. Not shipped.</p>
+<h2 id="the-headline-is-unchanged-and-it-is-the-whole-point">The headline is unchanged and it is the whole point</h2>
+<p><strong>The board read costs 5 GraphQL points instead of 506, measured against the live API.</strong> One call to the new <code>project_item_stations</code> read all 486 cards on board 3 for 5 points. Every test until that call used a fake <code>gh</code>; that was the first real exercise.</p>
+<p><strong>All nine tasks are written. Both suites are green.</strong> <code>--kind unit</code> exit 0 with 18 scripts passing and zero failures; <code>--kind integration</code> exit 0, 90 PASS / 0 FAIL.</p>
+<p><strong>Three things need you. Two are decisions, one is a cycle grant.</strong></p>
+<h2 id="the-three">The three</h2>
+<div class="scroll"><table><thead><tr><th></th><th>What</th><th>Why it is yours</th></tr></thead><tbody><tr><td><strong>Q1</strong></td><td>The matrix reads <code>integration: missing</code> for T-03</td><td>The only remedy edits <code>test-gh-sync.py</code>, outside T-03&#x27;s signed <code>files:</code></td></tr><tr><td><strong>Q3</strong></td><td>One more cycle for T-03</td><td>The step is at its <code>max_cycles: 3</code> ceiling; the feature has 5 of 10</td></tr><tr><td><strong>Q4/Q5</strong></td><td>Two harness defects, non-blocking</td><td>Recorded below</td></tr></tbody></table></div>
+<p><strong>Q1 in one paragraph.</strong> The gate resolves each required kind by asking whether a test covering <em>this change</em> exists in it. All four files in <code>test_kinds.integration.detect</code> contain zero <code>gh_cost_log</code> references, so integration reads <code>missing</code>. But the signed artifacts already nominate unit: <code>BRIEF.md:83-90</code> gives SC-05 <code>evidence: unit</code>, <strong>re-signed by you in amendment 5</strong>, and not one <code>integration.detect</code> file appears anywhere in <code>plan.yaml</code>. So the integration kind is structurally unreachable for T-03 as signed. Rule the criterion satisfied as written, or amend <code>files:</code> to admit <code>test-gh-sync.py</code>. My read is the former, but the gate is not mine to overrule.</p>
+<p><strong>Q3 in one paragraph.</strong> <code>_cost.returncode = r.returncode</code> at <code>factory_gh.py:162</code> is pinned by nothing — deleting it alone leaves <code>--kind unit</code> fully green, measured by mutation. SC-05 explicitly requires a failing wrapped invocation be recorded <em>with its exit code</em>. All four wrap-site cases use the default <code>rc=0</code>. Both files needing the fix are inside T-03&#x27;s <code>files:</code>; only the step ceiling blocks it. It is a small, precisely specified fix and I recommend granting the cycle.</p>
+<h2 id="what-i-settled-myself-so-it-would-not-reach-you-as-a-question">What I settled myself so it would not reach you as a question</h2>
+<p><strong>qa reported that mutation evidence across the whole feature was of uncertain admissibility</strong> — two of its own members disagreed about whether <code>check-domain.sh</code> permits mutating <code>factory_gh.py</code>. I ran the guard instead of adjudicating the reports. <code>--resolve</code> returns <code>harness-backend-dev, harness-dev-ops</code> and <strong>not</strong> <code>harness-qa</code>. The denied member was correctly enforced; the other reached the file through Bash, which the hook cannot see (DEC-85). Both were honest. <strong>Run 06&#x27;s three mutation proofs were authored by <code>harness-backend-dev</code>, which is granted — so they are authorised and they stand.</strong> The cloud over the feature&#x27;s evidence is gone.</p>
+<p>I also settled the earlier allegation that a signed record was falsified: every record in the stray cost log is stamped 21:02–21:09Z and the opt-in flip landed at 21:16:40Z, so all of them predate the flip when the signed default was still ON. Your deletion held.</p>
+<h2 id="two-corrections-to-my-own-record-both-mine">Two corrections to my own record, both mine</h2>
+<p><strong>I cited a PASS count for four dispatches before checking what it counted.</strong> <code>grep -c &#x27;^PASS &#x27;</code> returned 139/160/164/172 and I reported those as suite sizes. The runner emits one <code>PASS &lt;script&gt;</code> line per script — 18 for <code>--kind unit</code>. The rest came from individual scripts printing their own. Another measurer got 806 on the same suite. The <strong>delta</strong> was always sound (+8, exactly the eight new checks) and no decision turned on the absolute, but the number was unexamined.</p>
+<p><strong>I re-dispatched over a live run and caused two leads to work one fix concurrently.</strong> Run 05&#x27;s digest said <code>BLOCKED … still in flight</code>; I measured the source directory clean and treated that as proof nothing had landed. The orphaned member was alive, wrote a mutation probe into <code>factory_gh.py</code> <em>after</em> my measurement — leaving production recording dead in the tree for a window — then completed. Run 06 found and reverted it. My own recorded gotcha says treat a step with no completion time as live. I had the rule and did not apply it. It cost about 100k tokens of duplicated work. The one benefit was accidental: two specialists who never communicated produced identical sha256 triples for the same three mutation proofs.</p>
+<h2 id="cost-cycles-runs">Cost, cycles, runs</h2>
+<p><strong>5 cycles of 10. 8 runs of 20</strong> — under budget, but two of those runs bought no artifact and both were my error. GraphQL spend across the whole session was <strong>46 points</strong>: 40 for <code>gh-sync open</code>, 1 for an issue-state query, 5 for the live board read. Every pre-commit gate ran at <strong>zero</strong> cost using <code>FACTORY_GH=/nonexistent/gh</code>, which skips only INV-26&#x27;s board read.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on ship acceptance; anything not listed dies silently.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Finding</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td><code>test-factory-gh.py</code> aborts instead of reddening under any mutant adding a subprocess call</td><td>bug</td></tr><tr><td>B-2</td><td><code>gh_board.py:142</code>&#x27;s <code>or {}</code> guard is unreachable from its only producer</td><td>chore</td></tr><tr><td>B-3</td><td>Four T-04 fixtures now tolerate an unexpected extra <code>gh</code> call; only <code>ensure_labels</code> still asserts a count</td><td>chore</td></tr><tr><td>B-5</td><td>T-03&#x27;s <code>intent:</code> still reads &quot;defaulting to ON&quot; and lists a case amendment 5 retired — the signed artifact carries a superseded contract</td><td>chore</td></tr><tr><td>B-6</td><td><code>test-gh-sync.py</code> is in <code>INTEGRATION_SCRIPTS</code>, so <code>--kind unit</code> never exercises T-03&#x27;s <code>gh-sync.py</code> half</td><td>enhancement</td></tr><tr><td>B-7</td><td>The cost log cannot see <code>gh</code> typed straight into Bash — where #571&#x27;s own traffic lived</td><td>enhancement</td></tr><tr><td>B-9</td><td><code>factory_claim.py:304</code> calls <code>project_items</code> once per served repo at ~102 points, unmeasured for fleet size</td><td>enhancement</td></tr><tr><td>B-10</td><td>gh-sync&#x27;s sync points and a board-derived positive control silently destroy each other; neither procedure mentions the other</td><td>bug</td></tr><tr><td>B-11</td><td>Nothing serialises two leads&#x27; members against one checkout — <code>mutates_repo</code> is per-lead-DAG, so a re-dispatch over a live run put two members mutating the same files</td><td>bug</td></tr><tr><td>B-12</td><td><code>test_kinds.integration.detect</code> names 4 files while <code>INTEGRATION_SCRIPTS</code> runs 12, and <code>unit.detect</code> matches all 30 — discovery over-reports unit, under-reports integration</td><td>bug</td></tr><tr><td>B-13</td><td><code>factory_gh.py:359-363</code> spins forever on <code>hasNextPage: true</code> with a null <code>endCursor</code>; the truncation guard is never reached. A hang in a state gate is quieter than a failure</td><td>bug</td></tr><tr><td>B-14</td><td>SC-09 still permits &quot;an interval of at least 60 seconds&quot;, the practice amendment 1 banned outright</td><td>chore</td></tr><tr><td>B-15</td><td><code>check-domain.sh</code> binds Edit/Write but not Bash (DEC-85), so a persona can reach a file its grant denies</td><td>bug</td></tr></tbody></table></div>
+<p>B-4 and B-8 are struck: B-4 (T-07&#x27;s unamended verify) you fixed in amendment 4; B-8 (gitignoring the cost log) the opt-in default made moot.</p>
+<h2 id="how-this-was-assembled">How this was assembled</h2>
+<p><strong>No report round was spawned.</strong> Read from disk: <code>runs/plan-product/digest.md</code>, <code>runs/2026-08-19-01-eng/digest.md</code>, <code>runs/2026-08-19-02-eng/digest.md</code>, <code>runs/2026-08-19-03-eng/digest.md</code>, <code>runs/2026-08-19-04-validator/digest.md</code>, <code>runs/2026-08-19-05-eng/digest.md</code>, <code>runs/2026-08-19-06-eng/digest.md</code>, <code>runs/2026-08-19-07-validator/digest.md</code>, plus <code>notes/measurement-before.md</code>, <code>notes/measurement-before-positive.md</code> and the T-03 receipts. Every measurement attributed to me was run by me at <code>3fbfd0a</code>.</p>
+<p><strong>Not independently reviewed:</strong> only the qa segment has run. No code, security or UI reviewer has seen this diff, and no goal-check has run. SC-01, SC-03 and SC-04 cannot be graded until T-07 and T-09 execute — they are yours, and the mirror stays frozen until T-07 lands.</p><p class='derived'>Derived from <code>ship-review-2026-08-19-02.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

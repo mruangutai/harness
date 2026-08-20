@@ -18,14 +18,74 @@ that no function here writes to stdout — callers own stdout for their own payl
 """
 import base64
 import binascii
+import datetime
 import json
 import os
 import subprocess
 
 import factory_cli
+import gh_cost_log
 import gh_issues
 
 _LABEL_COLOR = "5319e7"
+
+# T-04 (FEAT-29): text markers that identify a rate-limited gh failure. Detection is on the
+# MESSAGE, never the exit code alone — gh exits 1 for many unrelated reasons, and treating every
+# exit 1 as budget exhaustion would mislabel ordinary failures (e.g. "could not resolve to a
+# Repository").
+_RATE_LIMIT_MARKERS = (
+    "api rate limit exceeded",
+    "was submitted too quickly",
+    "rate limit",
+)
+
+
+def _looks_like_rate_limit(stdout, stderr):
+    combined = f"{stdout or ''}\n{stderr or ''}".lower()
+    return any(marker in combined for marker in _RATE_LIMIT_MARKERS)
+
+
+def _is_rate_limit_query(argv):
+    """True for the exact call this module's own budget lookup issues — the recursion guard
+    named in the plan: the budget lookup's own failure must never re-trigger the budget lookup."""
+    return len(argv) >= 2 and argv[0] == "api" and argv[1] == "rate_limit"
+
+
+def _iso_utc(epoch_seconds):
+    return datetime.datetime.fromtimestamp(
+        epoch_seconds, tz=datetime.timezone.utc
+    ).isoformat().replace("+00:00", "Z")
+
+
+def _rate_limit_budget_error(orig_argv, orig_stdout, orig_stderr):
+    """Build (never raise directly — the caller raises it) the GhError for a gh failure whose
+    text named a rate limit. Queries `gh api rate_limit` once. If that query itself fails, the
+    original error is never swallowed: it survives as this GhError's `stderr`/detail."""
+    rate_argv = ["api", "rate_limit"]
+    try:
+        rl = run_gh(rate_argv, json_out=True)
+    except GhError:
+        return GhError(
+            orig_argv, None, orig_stdout, orig_stderr,
+            "gh reported a rate limit and the budget could not be read",
+            _value_from_argv(orig_argv),
+            "the original gh failure is preserved as detail — re-run after checking gh auth "
+            "status and network access",
+        )
+    resources = rl.get("resources") if isinstance(rl, dict) else None
+    graphql = (resources or {}).get("graphql") or {}
+    core = (resources or {}).get("core") or {}
+    used = graphql.get("used")
+    limit = graphql.get("limit")
+    reset = graphql.get("reset")
+    reset_iso = _iso_utc(reset) if isinstance(reset, (int, float)) else str(reset)
+    return GhError(
+        orig_argv, None, orig_stdout, orig_stderr,
+        "GraphQL budget exhausted",
+        f"{used} of {limit} points used, resets at {reset_iso}",
+        f"this is the GraphQL budget, not the REST budget — REST currently sits at "
+        f"{core.get('used')} of {core.get('limit')}",
+    )
 
 
 def _gh_binary():
@@ -88,17 +148,21 @@ def run_gh(args, json_out=False):
     cannot block on an interactive prompt.
     """
     gh = _gh_binary()
-    try:
-        r = subprocess.run(
-            [gh] + list(args), capture_output=True, text=True, stdin=subprocess.DEVNULL,
-        )
-    except FileNotFoundError:
-        raise GhError(
-            args, None, "", "",
-            "gh not found", gh,
-            "install gh, or point FACTORY_GH at its path",
-        )
+    with gh_cost_log.measured(args) as _cost:
+        try:
+            r = subprocess.run(
+                [gh] + list(args), capture_output=True, text=True, stdin=subprocess.DEVNULL,
+            )
+        except FileNotFoundError:
+            raise GhError(
+                args, None, "", "",
+                "gh not found", gh,
+                "install gh, or point FACTORY_GH at its path",
+            )
+        _cost.returncode = r.returncode
     if r.returncode != 0:
+        if not _is_rate_limit_query(list(args)) and _looks_like_rate_limit(r.stdout, r.stderr):
+            raise _rate_limit_budget_error(list(args), r.stdout, r.stderr)
         next_step = _first_line(r.stderr) or _first_line(r.stdout) or "no output captured"
         raise GhError(args, r.returncode, r.stdout, r.stderr,
                       _what_from_argv(args), _value_from_argv(args), next_step)
@@ -196,6 +260,115 @@ def project_items(owner, number, query=None, limit=500):
             "widen --limit or narrow with --query",
         )
     return items
+
+
+# The single low-cost board-station query (T-01, FEAT-29). Selection is deliberately narrow —
+# content's issue/PR number and repository nameWithOwner, plus the named single-select field's
+# value — never the full fieldValues connection `gh project item-list` fetches for every item.
+# MEASURED 2026-08-19 against board 3 (474 items, commit 6bbd706): one 100-node page cost exactly
+# 1 GraphQL point. The driver is this SELECTION, not the node count — widening it is what
+# reintroduces the cost `gh project item-list` carries, so do not add fields here.
+_STATION_QUERY = """query($owner: String!, $number: Int!, $field: String!, $cursor: String) {
+  user(login: $owner) {
+    projectV2(number: $number) {
+      items(first: 100, after: $cursor) {
+        totalCount
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          content {
+            ... on Issue { number repository { nameWithOwner } }
+            ... on PullRequest { number repository { nameWithOwner } }
+          }
+          fieldValueByName(name: $field) {
+            ... on ProjectV2ItemFieldSingleSelectValue { name }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
+
+def project_item_stations(owner, number, field_name):
+    """Return one dict per board item: {"content": {...} or {}, "station": str or None}.
+
+    ONE targeted GraphQL query, paginated (D-01 sibling): never `gh project item-list`, whose
+    full fieldValues connection is what makes the whole-board scan expensive. `content` is {} for
+    an item with no issue/PR (never dropped). `station` is None when the item carries no value for
+    `field_name`, or when the value shape carries no "name" key (never dropped either).
+
+    Raises GhError, never returns a default, when: any of user/projectV2/items resolves null (an
+    organization-owned board resolves user() to null and must fail loudly, not report an empty
+    list); totalCount is absent from the first page (never defaulted to 0 — see project_items
+    above for the same reasoning); or the accumulated node count falls short of totalCount after
+    pagination exhausts (truncated read hidden as an empty-looking board).
+    """
+    items_out = []
+    total = None
+    cursor = None
+    argv = None
+    while True:
+        cursor_arg = cursor if cursor is not None else "null"
+        argv = ["api", "graphql",
+                "-F", "owner=" + owner,
+                "-F", "number=" + str(number),
+                "-F", "field=" + field_name,
+                "-F", "cursor=" + cursor_arg,
+                "-f", "query=" + _STATION_QUERY]
+        env = run_gh(argv, json_out=True)
+        data = env.get("data") if isinstance(env, dict) else None
+        user = data.get("user") if isinstance(data, dict) else None
+        if user is None:
+            raise GhError(argv, None, "", "",
+                          "project item stations unreadable",
+                          f"{owner} project {number}: user is null",
+                          "check the owner login — an organization-owned board resolves user() "
+                          "to null")
+        project = user.get("projectV2")
+        if project is None:
+            raise GhError(argv, None, "", "",
+                          "project item stations unreadable",
+                          f"{owner} project {number}: projectV2 is null",
+                          "check the board number")
+        items_obj = project.get("items")
+        if items_obj is None:
+            raise GhError(argv, None, "", "",
+                          "project item stations unreadable",
+                          f"{owner} project {number}: items is null",
+                          "unexpected GraphQL response shape")
+        if total is None:
+            total = items_obj.get("totalCount")
+            if total is None:
+                raise GhError(argv, None, "", "",
+                              "project item stations response has no totalCount",
+                              f"{owner} project {number}",
+                              "cannot verify the read was not truncated")
+        for node in items_obj.get("nodes", []):
+            content = node.get("content")
+            if content:
+                content_out = {
+                    "number": int(content["number"]),
+                    "repository": content["repository"]["nameWithOwner"],
+                }
+            else:
+                content_out = {}
+            field_value = node.get("fieldValueByName")
+            station = field_value["name"] if field_value and "name" in field_value else None
+            items_out.append({"content": content_out, "station": station})
+        page_info = items_obj.get("pageInfo") or {}
+        if page_info.get("hasNextPage"):
+            cursor = page_info.get("endCursor")
+        else:
+            break
+    if len(items_out) < total:
+        raise GhError(
+            argv, None, "", "",
+            "project item stations truncated",
+            f"{owner} project {number}: totalCount={total} items={len(items_out)}",
+            "the paginated read did not reach totalCount",
+        )
+    return items_out
 
 
 # The single named-field query, cost 1, replacing the two calls it used to take (D-01):

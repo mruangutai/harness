@@ -1377,9 +1377,28 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
         items.append({"content": {"repository": "org/repo", "number": 42},
                       "status": second_card if second_card is not None else "Backlog"})
     page = json.dumps({"totalCount": len(items), "items": items})
+    # TWO SHAPES, dispatched on the subcommand. FEAT-29 T-02 replaced INV-26's
+    # `gh project item-list` read with ONE targeted `gh api graphql` query
+    # (factory_gh.project_item_stations). A fake serving only the item-list shape makes that
+    # call raise, check-state.sh's bare except swallows it, and INV-26 goes SILENT — every
+    # assertion here then passes vacuously, which is issue #588's shape inside the one
+    # invariant this fixture exists to test. Six named cases went red on exactly that.
+    # The item-list shape is KEPT: it costs nothing and any caller still on the old read
+    # keeps working rather than failing in a second, differently-confusing way.
+    gql = json.dumps({"data": {"user": {"projectV2": {"items": {
+        "totalCount": len(items),
+        "nodes": [{"content": {"number": it["content"]["number"],
+                               "repository": {"nameWithOwner": it["content"]["repository"]}},
+                   "fieldValueByName": ({"name": it["status"]}
+                                        if it.get("status") is not None else None)}
+                  for it in items],
+        "pageInfo": {"hasNextPage": False, "endCursor": None}}}}}})
     fake = os.path.join(root, "fake-gh")
     with open(fake, "w") as f:
-        f.write("#!/bin/bash\ncase \"$1 $2\" in\n  \"auth status\") exit 0 ;;\nesac\n"
+        f.write("#!/bin/bash\ncase \"$1 $2\" in\n"
+                "  \"auth status\") exit 0 ;;\n"
+                "  \"api graphql\") cat <<'GQL'\n" + gql + "\nGQL\n    exit 0 ;;\n"
+                "esac\n"
                 "cat <<'EOF'\n" + page + "\nEOF\n")
     os.chmod(fake, 0o755)
     return fake

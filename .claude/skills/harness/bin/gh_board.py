@@ -122,15 +122,19 @@ def derive_station(plan_doc, board):
 def board_stations(board, repo):
     """Every `repo` issue on the board, as {int issue number: station or None}.
 
-    ONE call to `factory_gh.project_items`, which already refuses a truncated page by comparing
-    `totalCount` — so a partial read raises rather than reporting an empty column.
+    ONE call to `factory_gh.project_item_stations` (FEAT-29 T-02) — the targeted, cost-1 GraphQL
+    query, never `factory_gh.project_items`'s whole-board `item-list` scan. That call already
+    refuses a truncated or unreadable page, raising `GhError` rather than reporting an empty
+    column; nothing here catches it, so it propagates unchanged.
 
-    **An item with no status key is recorded with the value None rather than dropped.** Dropping
-    it would make an unstationed card indistinguishable from a card that is not on the board, and
-    those are two different findings.
+    **An item with no station value is recorded with the value None rather than dropped.**
+    Dropping it would make an unstationed card indistinguishable from a card that is not on the
+    board, and those are two different findings. `project_item_stations` already returns the
+    station directly (no raw item dict, no field-name lookup needed here).
     """
-    items = factory_gh.project_items(board["owner"], board["number"])
-    field = board["station_field"]
+    items = factory_gh.project_item_stations(
+        board["owner"], board["number"], board["station_field"],
+    )
     out = {}
     for item in items:
         if not isinstance(item, dict):
@@ -143,12 +147,7 @@ def board_stations(board, repo):
         num = content.get("number")
         if num is None:
             continue
-        # gh lowercases the field name into the item mapping; try the declared spelling first.
-        if field in item:
-            station = item.get(field)
-        else:
-            station = item.get(field.lower())
-        out[int(num)] = station
+        out[int(num)] = item.get("station")
     return out
 
 

@@ -17,9 +17,9 @@
 - P-06: WHEN a review panel returns a finding that would cost a fix cycle DO verify its central premise
   at the pinned base commit first. "This surface is new" is one grep against the approval commit, and a
   finding resting on a false premise buys a cycle for nothing.
-- P-07: WHEN a shipped team file is named for a phase DO check it covers every gate the config marks
-  blocking before dispatching it — a team missing a blocking step exits the phase with that gate never
-  run, and the roll-up still reads PASS.
+- P-07: WHEN grading a criterion whose evidence is a file's CONTENT DO read it with
+  `git show <review_sha>:<path>` — a plain read cannot tell committed from uncommitted work, so a
+  task's own verify passes on a deliverable that never entered the tree under review.
 - P-08: WHEN a plan edits the enforcement layer that governs you DO work out when your own write access
   changes before choosing the turn cadence. Front-load every status write into the last writable
   moment; mid-cluster the plan-before-subcommand rule is unsatisfiable and your digest is the only
@@ -55,9 +55,9 @@
 - G-01: WHEN routing Expertise ops DO check the owner's own domain grant first. The domain hook blocks
   the orchestrator from writing ANOTHER agent's file, but leads and members hold their own with
   `upsert: true` — telling a lead not to self-apply strands its ops with no owner at all.
-- G-02: WHEN checking that prose carries a required phrase DO normalise whitespace before counting, and
-  mind case. A fixed-string grep returns zero when the phrase spans a wrapped line, which reads exactly
-  like missing work and reverses a correct verdict.
+- G-02: WHEN writing a NEGATIVE into a dispatch brief — "X left no receipt", "nothing landed" —
+  DO date it and tell the receiver to re-check the path itself. A brief reads as settled, so nobody
+  re-measures, and a snapshot taken during a live run is not durable.
 - G-03: WHEN a task arrives naming a defect as small housekeeping DO verify the premise on disk and
   refuse on the MERITS with a citation, not on domain alone. Two tells: the target text is
   unspecified so any edit invents approved content, or the file is approval-gated.
@@ -107,9 +107,9 @@
 - O-02: WHEN an interrupted dispatch left member artifacts on disk while every step still reads
   `pending` DO verify the artifacts' key claims yourself, then re-dispatch the SAME lead with explicit
   assess-not-redo instructions. Never redo the work, never mark another agent's steps complete.
-- O-03: WHEN a mission lands on a feature with a brief and plan but no state or feature file DO create
-  both — that is the real deliverable when the named asks turn out to be refusals. Budgets come from
-  project config, never inherited from another feature.
+- O-03: WHEN a dispatch brief explains WHY a fix is needed DO state only what you verified. A wrong
+  instruction produces work that gets checked and corrected; a wrong justification enters the
+  receipt and every later re-grade as established fact.
 - O-04: WHEN a plan carries a criterion whose subject no agent domain covers DO carve it out of the
   agent goal-check citing the plan's own precondition, and return it as a named pre-ship step. Handing
   it to a checker returns it unmet and demands a fix cycle routable to no lead.

@@ -27,10 +27,10 @@
   under review constraints DO close on provenance instead — but label the closure
   reachability-closed and name the exact provenance assumption (e.g. "value is
   always operator-authored") that would reopen it if violated.
-- P-08: WHEN auditing whether a modified code path changed data exposure DO
-  compare against the pre-change path's behavior, not against zero — a rewrap
-  that discards a raw-error field and substitutes a fixed string is a reduction
-  worth stating, distinct from "no new leak found".
+- P-08: WHEN a diff might change data exposure — new leak, added instance, or dropped field —
+  DO diff against the pre-change state, not zero: only proven-unchanged mechanism,
+  reachability, and affected set earns 'pre-existing' dismissal; discarding a raw-error field
+  for a fixed string is a reduction worth stating.
 - P-09: WHEN a review closes a construction-injection question by citing an
   assertion on the emitted value DO check whether it proves equality to the
   reviewed constant, not merely shape or pattern — a regex a second,
@@ -47,10 +47,6 @@
   by the diff DO record it in the review as assessed-and-dismissed rather than
   omitting it — a recorded non-finding stops a later reviewer re-raising it; a
   silent drop does not.
-- P-13: WHEN a diff adds one instance to a pre-existing exposure (e.g. one more shadowable name)
-  without an obvious mechanism change DO diff the surrounding code against the pre-diff commit
-  before dismissing as pre-existing — only a proven-unchanged mechanism, reachability, and
-  affected-party set earns the dismissal.
 - P-14: WHEN a dispatch names specific files to check DO also grep the full diff for
   secrets/credentials, not only the named files — docs, config, and workflow changes carry
   credential-shaped strings too, and a narrowed sweep misses them.
@@ -61,6 +57,10 @@
 - P-16: WHEN two reviewers' findings about the same mechanism seem contradictory DO check
   whether they answer different questions before reconciling — the defect can live in the
   union of both scopes, not in either alone.
+- P-17: WHEN grading severity by reachability DO separately flag irreversibility of outcome — a
+  low-severity, low-reachability finding (e.g. a possible secret write) can still warrant top
+  priority if the failure can't be undone once it fires. An opt-in/time-window control and a
+  containment control (permissions, gitignore) are not substitutes for each other.
 
 ## Gotchas (max 15)
 - G-01: Only `exit 2` blocks a hook (DEC-100); any other exit — including an
@@ -115,6 +115,10 @@
 - G-14: WHEN a check computes a result but appends it to a list the exit code never reads DO
   flag it as non-gating regardless of what it prints — a check that prints OK while silently
   unenforced is worse than no check, since it reads as validated.
+- G-15: WHEN listing remediation recommendations DO check each against your own findings
+  section first — an alternative phrased as 'or the broader form' (e.g. gitignore a whole log
+  directory) can silently contradict evidence you already gathered (e.g. sibling files in that
+  directory already tracked).
 
 ## Outcomes (max 10)
 - O-01: WHEN a review closes clean DO require identity-level evidence — assertions proving
@@ -135,5 +139,9 @@
 - O-05: WHEN a diff's risk was already assessed and accepted in a signed plan or decision DO
   cite that signature and its revisit trigger, and never add the risk to must_fix — gating a
   ship on a cost the operator already signed is not this role's call.
+- O-06: WHEN self-scoping a diff that reads as security-irrelevant DO also ask whether its
+  surface has ever had a security review, and say so in scope_reason — 'this delta needs none'
+  and 'this surface has never been reviewed' are different questions; only the first licenses a
+  decline.
 
 ## Open (max 5)

@@ -88,3 +88,12 @@ declares.
 - `factory_land.py:92-98` raises rather than degrading when the lookup returns `None`.
 - **#217's own body cites 31 points for this call. That figure is stale** — it came from FEAT-11's
   briefing, measured when board 3 was smaller. 203 supersedes it. The BRIEF should not repeat 31.
+
+  **CONDITION INCOMPLETE, DISCLOSED 2026-08-20 (FEAT-29 SC-08).** This note records 203 with its
+  board and item count -- board 3, 163 items, 2026-08-10 -- but WITHOUT the commit it was measured
+  at. That is two of the three conditions the recording rule requires. **The commit was never
+  recorded and cannot now be recovered:** several commits landed on 2026-08-10 and nothing in this
+  note narrows which was HEAD at the time. It is NOT invented here, and 203 is NOT re-measured.
+
+  So 203 remains partially unfalsifiable, and this disclosure is the honest form of that rather
+  than a fix. Anyone relying on 203 should re-measure it and record all three conditions.

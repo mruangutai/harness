@@ -17,6 +17,13 @@ import sys
 import factory_gh as fgh
 import gh_issues
 
+# FEAT-29 T-03, amendment 4: run_gh now wraps its subprocess call with gh_cost_log.measured(),
+# which (when enabled) makes TWO extra `gh api rate_limit` calls per invocation to read the
+# GraphQL counter before and after. This file asserts on calls[0] in ~28 places — those extra
+# calls would shift every one of them. Set BEFORE any test runs, at true module scope, so no
+# recorder here ever sees a counter-read call.
+os.environ["HARNESS_GH_COST_LOG"] = "0"
+
 FAILS = 0
 RAN = 0
 RAISED = []  # every GhError caught below — the "every GhError" invariant is asserted once, at the end
@@ -205,7 +212,17 @@ check("run_gh: missing-binary message carries a concrete value",
 
 
 # ---------------- run_gh: non-zero exit carries stderr ----------------
-fake, calls = recorder([Result(1, stdout="", stderr="permission denied\nmore detail")])
+# Two Results queued, not one: under a mutant that drops the rate-limit TEXT check from run_gh's
+# detection guard (T-04 mutation 1), this ordinary permission-denied failure is misrouted into the
+# rate_limit budget path, which makes a SECOND subprocess call (`gh api rate_limit`) to build its
+# message. Unmutated code never takes that path — this call is never made and the second Result
+# is simply never consumed, per `recorder`'s own contract (it raises only when it runs out). This
+# is what makes the check below (`run_gh: message carries the captured stderr`) capable of
+# reddening in-repo, per FEAT-29 T-04 cycle 2.
+fake, calls = recorder([
+    Result(1, stdout="", stderr="permission denied\nmore detail"),
+    Result(1, stdout="", stderr="rate_limit query itself failed"),
+])
 fgh.subprocess.run = fake
 try:
     fgh.run_gh(["issue", "list"])
@@ -253,7 +270,14 @@ check("preflight: returns None on a zero exit", result is None, f"result={result
 check("preflight: runs `auth status`",
       calls and calls[0]["argv"] == ["gh", "auth", "status"], f"calls={calls}")
 
-fake, calls = recorder([Result(1, stderr="gh: not logged in")])
+# Two Results queued for the same reason as the non-zero-exit fixture above: under T-04
+# mutation 1 this ordinary auth failure is misrouted into the rate_limit budget path, which
+# makes a second subprocess call. Unmutated code never makes that call, so the spare Result is
+# never consumed.
+fake, calls = recorder([
+    Result(1, stderr="gh: not logged in"),
+    Result(1, stderr="rate_limit query itself failed"),
+])
 fgh.subprocess.run = fake
 try:
     fgh.preflight()
@@ -293,7 +317,14 @@ check("create_issue: unparseable output raises GhError, never returns a default"
 
 
 # ---------------- ensure_labels: one call per label, raises rather than swallows ----------------
-fake, calls = recorder([Result(0), Result(1, stderr="already frozen"), Result(0)])
+# The 3rd/4th Results are never consumed by unmutated code (the loop stops at the failing label
+# "b"). Under T-04 mutation 1 the failing "b" call is misrouted into the rate_limit budget path,
+# which makes an extra subprocess call and consumes the queue's NEXT item regardless of which
+# label it was meant for — so that item must itself look like a (non-JSON, ordinary) gh failure,
+# not a bare success, or the mutant crashes on json.loads("") instead of reddening a check.
+fake, calls = recorder([
+    Result(0), Result(1, stderr="already frozen"), Result(1, stderr="rate_limit query itself failed"),
+])
 fgh.subprocess.run = fake
 try:
     fgh.ensure_labels("o/r", ["a", "b", "c"])
@@ -635,6 +666,201 @@ except fgh.GhError as e:
     RAISED.append(e)
 restore()
 check("project_items: a missing totalCount raises rather than defaulting to 0", raised)
+
+
+# ---------------- project_item_stations: the low-cost targeted board read (T-01, FEAT-29) -----
+def _station_page(total, has_next, end_cursor, nodes):
+    return json.dumps({"data": {"user": {"projectV2": {"items": {
+        "totalCount": total,
+        "pageInfo": {"hasNextPage": has_next, "endCursor": end_cursor},
+        "nodes": nodes,
+    }}}}})
+
+
+STATION_NODE_READY = {
+    "content": {"number": 5, "repository": {"nameWithOwner": "o/r"}},
+    "fieldValueByName": {"name": "Ready"},
+}
+# A second STATIONED (non-null) node — deliberately never null — so the "stationed item maps"
+# and "truncation" fixtures below stay unaffected by a mutation that drops null-station nodes;
+# only STATION_PRESENCE_JSON below exercises a null fieldValueByName, keeping that mutation's
+# blast radius isolated to the one check it is meant to prove (P-04 isolation).
+STATION_NODE_DOING = {
+    "content": {"number": 6, "repository": {"nameWithOwner": "o/r"}},
+    "fieldValueByName": {"name": "Doing"},
+}
+STATION_NODE_NULL_FV = {
+    "content": {"number": 6, "repository": {"nameWithOwner": "o/r"}},
+    "fieldValueByName": None,
+}
+STATION_SINGLE_PAGE_JSON = _station_page(2, False, None, [STATION_NODE_READY, STATION_NODE_DOING])
+
+# ---- single-page: a stationed item maps to its station string ----
+# Wrapped (P-04): a mutation that drops the null-station node (test below) makes the
+# single-page accumulated count fall short of totalCount, tripping the truncation guard — an
+# uncaught raise here would crash the whole suite rather than reddening just its own check.
+fake, calls = recorder([Result(0, stdout=STATION_SINGLE_PAGE_JSON)])
+fgh.subprocess.run = fake
+try:
+    station_items = fgh.project_item_stations("owner", 3, "Station")
+    station_single_exc = None
+except Exception as e:
+    station_items = None
+    station_single_exc = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("project_item_stations: made exactly ONE gh api graphql call",
+      len(calls) == 1, f"calls={calls}")
+check("project_item_stations: a stationed item maps to its station string",
+      station_single_exc is None and station_items[0]["station"] == "Ready",
+      f"items={station_items} exc={station_single_exc}")
+check("project_item_stations: a stationed item's content carries the issue number and repo",
+      station_single_exc is None and station_items[0]["content"] == {"number": 5, "repository": "o/r"},
+      f"items={station_items} exc={station_single_exc}")
+
+# ---- null fieldValueByName maps to station None and is PRESENT (not dropped) ----
+# A SEPARATE fixture with totalCount deliberately set to 1 (not the real 2): this isolates a
+# drop-on-None mutation from the truncation guard above (P-04 isolation) — under the real,
+# correct behaviour totalCount=1 <= items_out=2 never trips truncation; under a mutation that
+# drops the null-station node, items_out=1 <= totalCount=1 ALSO never trips truncation, so a
+# drop is caught ONLY by this presence check, not smothered by an unrelated raise.
+STATION_PRESENCE_JSON = _station_page(1, False, None, [STATION_NODE_READY, STATION_NODE_NULL_FV])
+fake, calls = recorder([Result(0, stdout=STATION_PRESENCE_JSON)])
+fgh.subprocess.run = fake
+try:
+    station_presence_items = fgh.project_item_stations("owner", 3, "Station")
+    station_presence_exc = None
+except Exception as e:
+    station_presence_items = None
+    station_presence_exc = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("project_item_stations: a null fieldValueByName item maps to station None "
+      "and is present in the output",
+      station_presence_exc is None and len(station_presence_items) == 2
+      and station_presence_items[1]["station"] is None,
+      f"items={station_presence_items} exc={station_presence_exc}")
+
+# ---- two-page response is fully accumulated; the second page's items appear ----
+STATION_PAGE1_JSON = _station_page(3, True, "CURSOR1", [
+    {"content": {"number": 1, "repository": {"nameWithOwner": "o/r"}},
+     "fieldValueByName": {"name": "Doing"}},
+])
+STATION_PAGE2_JSON = _station_page(3, False, None, [
+    {"content": {"number": 2, "repository": {"nameWithOwner": "o/r"}},
+     "fieldValueByName": {"name": "Doing"}},
+    {"content": {"number": 3, "repository": {"nameWithOwner": "o/r"}},
+     "fieldValueByName": {"name": "Doing"}},
+])
+fake, calls = recorder([Result(0, stdout=STATION_PAGE1_JSON), Result(0, stdout=STATION_PAGE2_JSON)])
+fgh.subprocess.run = fake
+# Wrapped (P-04): a mutation that stops pagination after page 1 leaves items_out (1) short of
+# totalCount (3), which trips the truncation guard tested separately below — an unguarded call
+# here would let that raise crash the whole suite instead of reddening just these checks.
+try:
+    two_page_items = fgh.project_item_stations("owner", 3, "Station")
+    two_page_exc = None
+except Exception as e:
+    two_page_items = None
+    two_page_exc = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("project_item_stations: two-page response makes exactly TWO calls",
+      len(calls) == 2, f"calls={calls}")
+check("project_item_stations: the second call carries the first page's endCursor",
+      len(calls) == 2 and "cursor=CURSOR1" in calls[1]["argv"], f"calls={calls}")
+check("project_item_stations: two-page response is fully accumulated (3 items)",
+      two_page_exc is None and len(two_page_items) == 3,
+      f"items={two_page_items} exc={two_page_exc}")
+check("project_item_stations: the second page's items appear in the output",
+      two_page_exc is None and {i["content"]["number"] for i in two_page_items} == {1, 2, 3},
+      f"items={two_page_items} exc={two_page_exc}")
+
+# ---- accumulated count below totalCount raises GhError ----
+STATION_TRUNCATED_JSON = _station_page(5, False, None, [STATION_NODE_READY, STATION_NODE_DOING])
+fake, calls = recorder([Result(0, stdout=STATION_TRUNCATED_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_item_stations("owner", 3, "Station")
+    station_trunc_raised, station_trunc_exc = False, None
+except Exception as e:
+    station_trunc_raised = True
+    station_trunc_exc = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("project_item_stations: accumulated count below totalCount raises GhError",
+      station_trunc_raised and isinstance(station_trunc_exc, fgh.GhError),
+      f"exc={station_trunc_exc!r}")
+check("project_item_stations: truncation message names both totals",
+      station_trunc_raised and "5" in str(station_trunc_exc) and "2" in str(station_trunc_exc),
+      f"exc={station_trunc_exc}")
+
+# ---- missing totalCount on the first page raises GhError ----
+STATION_NO_TOTAL_JSON = json.dumps({"data": {"user": {"projectV2": {"items": {
+    "pageInfo": {"hasNextPage": False, "endCursor": None},
+    "nodes": [STATION_NODE_READY],
+}}}}})
+fake, calls = recorder([Result(0, stdout=STATION_NO_TOTAL_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_item_stations("owner", 3, "Station")
+    station_notot_raised, station_notot_exc = False, None
+except Exception as e:
+    station_notot_raised = True
+    station_notot_exc = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("project_item_stations: a response missing totalCount raises GhError, "
+      "never defaults it to 0",
+      station_notot_raised and isinstance(station_notot_exc, fgh.GhError),
+      f"exc={station_notot_exc!r}")
+
+# ---- a null user (e.g. an organization-owned board) raises GhError, never an empty list ----
+STATION_NULL_USER_JSON = json.dumps({"data": {"user": None}})
+fake, calls = recorder([Result(0, stdout=STATION_NULL_USER_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_item_stations("acmeorg", 3, "Station")
+    station_nouser_raised, station_nouser_exc = False, None
+except Exception as e:
+    station_nouser_raised = True
+    station_nouser_exc = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+check("project_item_stations: a null user (organization-owned board) raises GhError, "
+      "never returns an empty list",
+      station_nouser_raised and isinstance(station_nouser_exc, fgh.GhError),
+      f"exc={station_nouser_exc!r}")
+
+# ---- argv shape and query selection guard: -F for owner/number/field/cursor, -f for query,
+# and the selection stays narrow (no widened fieldValues connection) ----
+fake, calls = recorder([Result(0, stdout=STATION_SINGLE_PAGE_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_item_stations("owner", 3, "Station")
+except Exception as _e:
+    if isinstance(_e, fgh.GhError):
+        RAISED.append(_e)
+restore()
+_sargv = calls[0]["argv"]
+check("project_item_stations: argv passes owner/number/field/cursor as -F and query as -f",
+      _sargv[1:3] == ["api", "graphql"]
+      and "-F" in _sargv and "owner=owner" in _sargv and "number=3" in _sargv
+      and "field=Station" in _sargv and "cursor=null" in _sargv,
+      f"argv={_sargv}")
+_squery = ""
+for _i, _a in enumerate(_sargv):
+    if _a == "-f" and _i + 1 < len(_sargv) and _sargv[_i + 1].startswith("query="):
+        _squery = _sargv[_i + 1][len("query="):]
+import re as _re_station
+check("project_item_stations: query has no widened plural fieldValues connection",
+      _re_station.search(r"fieldValues\s*\(", _squery) is None, f"q={_squery!r}")
 
 
 # ---------------- issue_board_item_id: one targeted call, no whole-board scan (D-01) ----------
@@ -1135,6 +1361,104 @@ check("default_branch_sha: writes nothing to stdout", out == "", f"out={out!r}")
 
 _, out, _ = with_recorder([Result(0)], fgh.delete_ref, "o/r", "refs/heads/factory/issue-1")
 check("delete_ref: writes nothing to stdout", out == "", f"out={out!r}")
+
+
+# ---------------- run_gh: rate-limit failure names the GraphQL budget (T-04, FEAT-29) ----------
+import datetime as _dt
+
+_RESET_EPOCH = 1755600000
+_RESET_ISO = _dt.datetime.fromtimestamp(_RESET_EPOCH, tz=_dt.timezone.utc).isoformat().replace(
+    "+00:00", "Z")
+_RATE_LIMIT_JSON = json.dumps({
+    "resources": {
+        "graphql": {"limit": 5000, "used": 5000, "remaining": 0, "reset": _RESET_EPOCH},
+        "core": {"limit": 5000, "used": 42, "remaining": 4958, "reset": _RESET_EPOCH},
+    }
+})
+
+fake, calls = recorder([
+    Result(1, stdout="", stderr="API rate limit exceeded for installation ID 123."),
+    Result(0, stdout=_RATE_LIMIT_JSON),
+])
+fgh.subprocess.run = fake
+try:
+    fgh.run_gh(["api", "graphql", "-f", "query=whatever"])
+    exc = None
+except Exception as e:
+    exc = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+msg = str(exc) if exc is not None else ""
+check("run_gh: rate-limit failure raises GhError", isinstance(exc, fgh.GhError), f"exc={exc!r}")
+check("run_gh: budget message names GraphQL", "GraphQL" in msg, f"msg={msg!r}")
+check("run_gh: budget message carries used and limit points",
+      "5000" in msg, f"msg={msg!r}")
+check("run_gh: budget message carries the reset UTC ISO 8601 timestamp",
+      _RESET_ISO in msg, f"msg={msg!r} expected={_RESET_ISO!r}")
+check("run_gh: budget remedy names REST's own usage",
+      "42" in msg, f"msg={msg!r}")
+check("run_gh: original gh stderr is preserved as detail",
+      exc is not None and "API rate limit exceeded" in (exc.stderr or ""), f"exc={exc!r}")
+check("run_gh: queried rate_limit exactly once, after the failing call",
+      len(calls) == 2 and calls[1]["argv"][-2:] == ["api", "rate_limit"], f"calls={calls}")
+
+
+# ---------------- run_gh: an unrelated exit-1 does NOT produce the budget message -----------------
+# The discriminator (plan T-04): detection must be on message TEXT, never exit code alone. A
+# second Result is queued for the same reason as the non-zero-exit and preflight fixtures above
+# (FEAT-29 T-04 cycle 3): under a mutant that widens _RATE_LIMIT_MARKERS to also match this
+# fixture's own text, this call is misrouted into the rate_limit budget path, which makes a
+# SECOND subprocess call (`gh api rate_limit`) to build its message. Unmutated code never takes
+# that path — this call is never made and the second Result is simply never consumed, per
+# `recorder`'s own contract (it raises only when it runs out). It is a SUCCESS (exit 0, the same
+# `_RATE_LIMIT_JSON` fixture the real rate-limit test above uses), not another failure — only a
+# successful budget read produces the "GraphQL budget exhausted" headline this check watches for;
+# a second failure would route to the other, "could not be read", message instead and never
+# exercise the discriminator's own text.
+fake, calls = recorder([
+    Result(1, stdout="", stderr="could not resolve to a Repository with the name 'o/nope'"),
+    Result(0, stdout=_RATE_LIMIT_JSON),
+])
+fgh.subprocess.run = fake
+try:
+    fgh.run_gh(["issue", "view", "1", "--repo", "o/nope"])
+    exc2 = None
+except Exception as e:
+    exc2 = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+msg2 = str(exc2) if exc2 is not None else ""
+check("run_gh: unrelated exit-1 raises a plain GhError, not a budget error",
+      isinstance(exc2, fgh.GhError), f"exc={exc2!r}")
+check("run_gh: unrelated failure never contains the GraphQL budget headline",
+      "GraphQL budget exhausted" not in msg2, f"msg={msg2!r}")
+check("run_gh: unrelated failure message preserves the original gh text",
+      "could not resolve to a Repository" in msg2, f"msg={msg2!r}")
+
+
+# ---------------- run_gh: rate-limit failure whose own budget read fails ---------------------------
+fake, calls = recorder([
+    Result(1, stdout="", stderr="was submitted too quickly"),
+    Result(1, stdout="", stderr="gh: not logged in"),
+])
+fgh.subprocess.run = fake
+try:
+    fgh.run_gh(["api", "graphql", "-f", "query=whatever"])
+    exc3 = None
+except Exception as e:
+    exc3 = e
+    if isinstance(e, fgh.GhError):
+        RAISED.append(e)
+restore()
+msg3 = str(exc3) if exc3 is not None else ""
+check("run_gh: a rate-limit failure whose budget read also fails still raises GhError",
+      isinstance(exc3, fgh.GhError), f"exc={exc3!r}")
+check("run_gh: budget-read failure names its own message, not the original rate-limit text",
+      "the budget could not be read" in msg3, f"msg={msg3!r}")
+check("run_gh: budget-read failure preserves the original rate-limit stderr as detail",
+      exc3 is not None and "was submitted too quickly" in (exc3.stderr or ""), f"exc={exc3!r}")
 
 
 # ---------------- every GhError raised above: em dash, concrete value, no class name/traceback --

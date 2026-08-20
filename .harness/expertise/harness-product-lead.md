@@ -31,9 +31,9 @@
 - P-10: WHEN your dispatch names an output path for a member DO check it against that member's own
   domain grant first — a role owning a named per-feature artifact is exactly the one the receipt
   convention does not cover, and the guard denies the dispatched path correctly.
-- P-11: WHEN a member re-anchors a stale citation set DO count the clauses each pointer covers
-  before and after, not merely their currency — a thinner-but-current pointer that folds two
-  clauses onto one head silently deletes evidence, and it rides in on the fix for staleness.
+- P-11: WHEN an artifact pins a commit and asserts it equals the branch tip DO record the date the
+  check was made, not its conclusion — every artifact carries that same claim, so two can assert it
+  while disagreeing, and the phrase is worth nothing when read later.
 - P-12: WHEN a handed-down constraint carries its own justification DO check what that justification
   is ABOUT against what the constraint claims — a reason naming one tool's reading scope says
   nothing about what breaks at runtime, and a rationale contradicting its own constraint settles
@@ -82,15 +82,20 @@
 - G-11: WHEN grepping for an anchor phrase inside a YAML block scalar or hard-wrapped prose DO
   search one distinctive token rather than the multi-word phrase — a line wrap splits the phrase
   across two physical lines, and grep then reports ABSENT what is present and correctly written.
-- G-12: WHEN a grep over your own run directories returns zero DO confirm the tool honours ignore
-  rules before calling it absent — run state is commonly gitignored as ephemeral, and a
-  ripgrep-backed search silently reports nothing over exactly the artifacts your tier verifies.
+- G-12: WHEN a criterion or brief names a document descriptively — the note from that date — DO
+  disambiguate by TOPIC against the directory listing before asserting an absence. A descriptive
+  reference is not an identifier, and two files sharing a date make a correctly-executed search
+  return a wrong answer.
 - G-13: WHEN a dispatch names one digest by path DO enumerate the run dir before quoting from it —
   concurrent passes write sibling filenames rather than overwriting, so a run dir is not guaranteed
   to hold exactly one, and findings in the sibling reach nobody.
 - G-14: WHEN your digest will assert an ABSENCE — no such section, no criterion of that kind — DO
   read the source document end to end yourself. A cited line proves what is there; only your own
   full read bounds what is not.
+- G-15: WHEN a member is still in flight DO read its INPUTS freely and never its OUTPUT — a
+  mid-write artifact can be rewritten in place, so a closing section, internal consistency and a
+  byte-identical re-read all mean nothing. The only valid done-signal is the member's return.
+
 
 ## Outcomes (max 10)
 - O-01: WHEN a cosmetic defect sits in a file a human is already about to open DO fold it into that
@@ -105,5 +110,9 @@
 - O-04: WHEN dispatching a member on a remedy you have already endorsed DO require it to say why
   with evidence rather than adopt deferentially — an overturn arriving with primary-source evidence
   costs one return, and a deferential pass costs the cycle that discovers the remedy was wrong.
+- O-5: WHEN you record a member as in-flight after a forced close DO state that re-dispatch is a
+  full re-spend of that spawn — a member writes its artifact at the END of its run, so nothing
+  partial survives and planning around a resumable partial wastes the next context.
+
 
 ## Open (max 5)
