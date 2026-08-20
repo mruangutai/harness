@@ -48,6 +48,8 @@ hostages in another's checkout.
   refused rather than trusted not to.
 - REQ-05: The orchestrator's own instructions state where it works. It reaches an agent by
   preload, not by being told to go read a file.
+- REQ-06: Two features closing out at the same time cannot silently lose Expertise entries.
+  Whatever the merge policy is, a lost entry is DETECTED rather than trusted not to happen.
 
 ## Success Criteria
 
@@ -76,7 +78,12 @@ hostages in another's checkout.
 - SC-07: Removing a worktree cannot delete uncommitted work silently. Either the removal refuses
   on a dirty tree, or it reports exactly what it would discard and refuses without confirmation.
   verify: automated      evidence: integration
-- SC-08: No test that passed before this feature fails after it, and the full unit and integration
+- SC-08: Two simulated concurrent close-outs writing the same Expertise file lose NO entry, or the
+  loss is reported as an error. Proven by driving both writes and asserting the union survives —
+  and by showing the assertion FAILS against the current last-writer-wins behaviour, because a
+  test that passes before the fix proves nothing.
+  verify: automated      evidence: integration
+- SC-09: No test that passed before this feature fails after it, and the full unit and integration
   suites pass.
   verify: automated      evidence: integration
 
@@ -87,21 +94,32 @@ hostages in another's checkout.
 
 ## Constraints
 
-- **DEC-193 binds the location.** Exactly two places hold code under harness authority:
-  `.claude/worktrees/<id>/` and `workspace_root/<product>`. Any other checkout cannot be created,
-  written into, or host a governed session. A worktree outside `.claude/worktrees/` is refused,
-  and this feature does not relax that.
-- **DEC-174's carve-out applies.** `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-  `check-state.sh` and `check-plan-routes.py` are the enforcement layer. A squad may write a
-  library a gate calls; **the cutover that makes a gate use it is main-session-direct.** REQ-04's
-  refusal lands in that layer, so plan its cutover accordingly.
-- **DEC-95's honest residue is inherited, not solved.** Committed Expertise files diverge across
-  worktrees and will conflict, and the right merge is usually the union, which no tool chooses for
-  you. This feature does not fix that. Say so rather than discovering it on the second concurrent
-  run.
-- **Out of scope, deliberately.** #280 (interrupting a lead does not stop its children) and the
-  shared GitHub API budget are the same single-writer root failing from other directions. Neither
-  is solved by isolation. Operator ruling, 2026-08-20: worktrees only.
+**Nothing here blocks this feature.** An earlier draft of this brief listed the two items below as
+constraints, which read as obstruction. They are not: both are already-built mechanisms this
+feature uses, and the operator's challenge to that framing is why they now read as what they are.
+
+- **DEC-193 supplies the location.** `harness_boundary.py:33` already defines
+  `WORKTREES_SEGMENT = ".claude/worktrees"`, permitting exactly where this feature puts a worktree
+  and refusing everywhere else. It is the enabling mechanism, not a limit to work around.
+- **DEC-143 already strips the worktree prefix** before matching domain globs, so an agent inside
+  `.claude/worktrees/<id>/` writes exactly what its domain grants. SC-05 asserts this, because
+  nothing currently does — the behaviour exists and is unpinned.
+- **DEC-174's carve-out routes one step, it does not stop it.** REQ-04's refusal lands in the
+  enforcement layer, so the cutover that makes a gate use it is main-session-direct. That belongs
+  in the plan's lane column, not here.
+
+**Out of scope, deliberately.** #280 (interrupting a lead does not stop its children) and the
+shared GitHub API budget are the same single-writer root failing from other directions. Neither is
+solved by isolation. Operator ruling, 2026-08-20: worktrees only.
+
+**REQ-06 was added after the constraints were challenged.** DEC-95's honest residue — Expertise
+files diverging across worktrees — had been recorded here as a disclosure standing in for a
+decision, in the words "this feature does not fix that". It is now in scope. The reason: this
+feature is what makes the residue REACHABLE. FEAT-29's close-out wrote 34 entries across 14
+Expertise files; two of those running concurrently means competing edits to files injected into
+every agent spawn, where the right answer is usually the union and no tool chooses it. Shipping
+isolation without it means the first two concurrent features can delete each other's learning
+with nothing detecting the loss.
 
 ## Approval
 
