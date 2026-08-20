@@ -72,3 +72,52 @@
   red rather than passing vacuously. The `-1` is a sentinel, not a null — a check asserting
   `rc is not None` would have PASSED under the mutant and proven nothing. Worth knowing before
   accepting any receipt: the assertion's exact form is what makes it capable of reddening here.
+
+- 2026-08-19 (run 10, simplify): The stop hook fired again mid-wave, with all four angle spawns in
+  flight. This time I returned a contract-valid `BLOCKED` naming the in-flight state instead of
+  rolling up from disk. Second occurrence of the same hook pressure on the same feature, and the
+  first one (entry above) cost two retracted claims. What made the honest return cheap was that
+  `state.yaml` already carried `dispatched_at` with no `completed_at` for all four steps — the
+  checkpoint-before-dispatch rule is what turned "I cannot stop" into a decidable status rather
+  than a guess. Checkpointing is not paperwork; it is what makes an interrupted context able to
+  tell the truth about itself.
+
+- 2026-08-19 (run 10, simplify): **Third occurrence of the false-premise re-dispatch, and this
+  time I was on the receiving end of it.** After I had read `harness-dev-ops`'s EFFICIENCY receipt
+  in full and collated its verdict, `state.yaml` changed underneath me: `angle-efficiency` went
+  back to `in_flight` with `cycles: 1` and the note "re-dispatch; prior attempt left no receipt".
+  The receipt existed — I had read all 77 lines of it and quoted its measurements into my digest.
+  The premise was false at the moment it was written. This is the same shape as run 05 (two
+  dispatches of one task in flight against one checkout) and the same shape as my own earlier
+  error, now from the other side: **an absent-looking artifact is evidence about the observer's
+  read, not about the work.** The discriminating check costs one `Read` of the receipt path before
+  re-dispatching, and nobody in this chain has yet run it first. The compounding cost here is
+  worse than tokens: the duplicate dev-ops spawn runs BENCHMARKS, and the first one already wrote
+  10,000 synthetic lines into the real repo through a mis-seeded temp root before catching itself.
+  A duplicate of a read-only reviewer is waste; a duplicate of a measuring agent is a writer.
+
+- 2026-08-19 (run 10, simplify): Two members ran the same suite at the same HEAD with no source
+  change between them and reported different totals — 175 PASS vs 177 PASS on `--kind unit`.
+  Neither stated how it counted, and I hold no shell to settle it. The receipt chain from T-03
+  (172 at c3, plus 3 new checks at c4) supports 175. The lesson is about the dispatch, not the
+  members: I asked for "confirm the counts held" without specifying the counting expression, so
+  two honest agents produced two unreproducible numbers. A count is only evidence if the command
+  that produced it is part of the claim.
+
+- 2026-08-19 (run 10, simplify resume) — **the other side of the entry above, and it is mine.** I
+  am the context that reset `angle-efficiency` to `in_flight`. My resume brief stated the angle
+  "left no receipt, so its verdict does not exist" and named that as the reason to re-run it. I
+  read the three receipts the brief listed by path and did NOT read the fourth — the brief's
+  assertion of absence stood in for the check, and I dispatched. The receipt existed and a prior
+  lead context had already collated it; that context's Q5 describes my edit as a false-premise
+  re-dispatch, written before I had noticed. My own P-09 says to open the file before relaying
+  what a dispatch says it contains, and I applied it to the three paths whose CONTENTS were
+  asserted while exempting the one whose EMPTINESS was asserted — as though absence were a
+  different kind of claim. It is not; it is a claim about a file, and `Read` returning "not found"
+  is the cheapest check I hold. Second-order, and the part worth carrying: the brief was itself
+  built from an in-flight `BLOCKED` written under stop-hook pressure two contexts earlier, so a
+  premature return laundered into an instruction that read as settled fact. **A resume brief is a
+  hypothesis about disk state, not a reading of it** — including, especially, its negatives. What
+  the re-run did buy, which is not nothing: a benchmark under a temp root whose redirect was
+  asserted before any write, where the first attempt had spilled into the real tree. It also
+  overwrote the first attempt's receipt, so that artifact now survives only as quotations.

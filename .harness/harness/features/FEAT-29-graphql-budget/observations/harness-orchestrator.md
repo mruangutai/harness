@@ -168,3 +168,48 @@
   PASSING under the mutant — that is empirical proof they are vacuous, which converts them from
   scope creep into controls. The discriminator is the mutant's own output, not a judgement about
   whether more tests are better.
+
+- 2026-08-19: **I relayed an escalation whose premise one grep would have refuted.** An eng lead
+  reported SC-05's OFF-side failing clause "asserted nowhere"; I routed it to qa as a judgement call.
+  It was asserted, at `test-gh-cost-log.py:251-259`. Two tiers reasoned from control flow without
+  checking the assertion set, both in the same direction — because **an escalation that arrives with
+  a defect already named makes the named defect feel like the question**, so the reflex is to grade
+  the remedy rather than test the existence claim. A claim of the form "X is asserted nowhere" is a
+  grep, not a judgement. Run it before routing it, every time.
+
+- 2026-08-19: a validator lead put its own proposed mutation to its panel **as a hypothesis** and had
+  it refuted — `record()` re-checks the same guard, so the mutant was equivalent and would have
+  discriminated nothing. Had it asserted the mutation instead of asking, a cycle would have bought a
+  test that proves nothing. Proposing your own instrument as a question rather than an instruction is
+  what let the tier below correct it.
+
+- 2026-08-19: **a disclosure in a briefing changed a reviewer's scoping decision and produced a real
+  finding.** I had written that no security reviewer had ever seen this feature; the validator lead
+  read that line, reversed its own scope-out, and the resulting pass showed a backlog row I had
+  struck was struck on faulty reasoning — I had conflated a time-window control (the recorder is off
+  by default) with a containment control (the file is still un-ignored and 0644). Writing down what
+  did NOT happen is not bookkeeping; it is an input other agents act on.
+
+- 2026-08-19: **I asserted a NEGATIVE as settled fact in a dispatch brief, and it was acted on as
+  fact.** After a lead closed prematurely I measured `glob("receipt-*simplify*")` at 21:32:41, saw
+  three receipts and no dev-ops one, cross-checked `state.yaml`'s four-angle list, and wrote "it left
+  no receipt, so its verdict does not exist" into the resume brief. The receiving lead did not
+  re-check — a brief reads as settled — and re-ran the angle, burning a spawn and OVERWRITING the
+  first attempt's receipt, which now survives only as quotations. My measurement was real and
+  timestamped; the inference from it was not durable. **A negative in a dispatch brief must be
+  written as "I did not find X at time T — Read the path before redoing it", never as "X does not
+  exist".** The cheapest possible check, a single Read of the exact path, sits with the receiver, and
+  phrasing is what decides whether they run it.
+
+- 2026-08-19: after a premature lead close, resuming the SAME lead was right — but I should have let
+  it determine which steps were incomplete rather than pre-deciding that in the brief. The lead holds
+  the run's `state.yaml` and every receipt path; I was working from a directory glob taken at one
+  instant of a still-live run. Hand a resuming lead the goal and the artifacts, not my conclusion
+  about which of them are missing.
+
+- 2026-08-19: two members reported different suite totals (175 vs 177) at an identical HEAD with no
+  source change, neither stating its counting expression. One command from a tier holding Bash settled
+  it — `grep -c '^PASS '` = 175, matching the receipt chain of 172 plus three new checks, while the
+  runner-level count is 18 scripts. **A derived total nobody quotes the command for is not a
+  measurement.** Leads hold no Bash, so arithmetic disputes between members can only be closed at my
+  tier, and closing them is cheap.
