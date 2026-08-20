@@ -1,50 +1,46 @@
-# Handoff — FEAT-29-graphql-budget, build → validate — written at 8c89f57, seq-3
+# Handoff — FEAT-29-graphql-budget, build → validate — written at e7104ca, seq-4
 
 ## Next
 
-Do not dispatch anything until the operator answers Q1 and Q3 in
-`notes/ship-review-2026-08-19-02.md`. Q1 decides whether the blocking matrix is satisfied as signed;
-Q3 grants T-03 a fourth cycle for the `rc` clause. On Q3 granted, dispatch `harness-eng-lead` with
-**T-03 alone**: drive `_counting_fake(rc=1)` through `run_gh`, catch `GhError`
-(`factory_gh.py:163-168` raises rather than exits), assert the logged `rc == 1`. Both files are inside
-T-03's `files:`. Then re-gate qa, then SIMPLIFY via eng-lead, re-run both suites, re-pin
-`review_sha` at the new tip, then the panel via `harness-validator-lead`. Batch B (T-07 then T-09) is
-the operator's and gates the goal-check, since SC-01/SC-03/SC-04 grade against it.
+The build phase is closed; do not dispatch a squad. The operator executes **T-07 then T-09** per
+`notes/layer0-batch-b-FEAT-29.md`. When `measurement-after.md` and `measurement-board6.md` exist and
+both `verify:` blocks exit 0, delegate **pm's goal-check through `harness-product-lead`** over all ten
+SCs, then dispatch **ship-refresh and distillation as TWO dispatches in ONE message** (never combined
+— distillation must be cold), then write the final CEO briefing.
 
 ## Trust
 
-- Both suites green at the pin: unit exit 0 / 0 FAIL / 18 scripts, integration exit 0 / 90 PASS /
-  0 FAIL — re-run by me — verified-at 3fbfd0a
-- The cheap read works against the REAL API: 486 board-3 items for 5 GraphQL points — live call —
-  verified-at bee6234, code unchanged since
-- `harness-qa` is NOT granted `factory_gh.py`; `harness-backend-dev` and `harness-dev-ops` are —
-  `check-domain.sh --resolve` — verified-at 3fbfd0a. This is why run 06's mutation proofs are
-  admissible and qa's admissibility doubt does not reach them
-- `_cost.returncode` at `factory_gh.py:162` is pinned by nothing; deleting it leaves `--kind unit`
-  green — qa's worktree mutation, `runs/2026-08-19-07-validator/probe-rc-line-162.md` — **UNVERIFIED
-  by me** (no write grant on that file), but the four wrap-site cases provably use default `rc=0`
-- `review_sha` = `3fbfd0a` = branch tip at pin time — `git rev-parse` — verified-at 3fbfd0a. **Re-pin
-  after every commit**; it was stale on FEAT-25 and FEAT-27
-- The "172 PASS" style figures are per-check line counts, not suite size; the runner emits one line
-  per script, 18 for unit — `run-unit-tests.sh:58-67` — verified-at 3fbfd0a. Only deltas are sound
+- `matrix_ok: true`; panel PASS with `must_fix` empty, `severity_max: low` —
+  `runs/2026-08-19-09-validator/digest.md` — verified-at c472a02
+- Suites green: unit exit 0 / 175 `^PASS ` lines / 18 scripts / 0 FAIL, integration exit 0 / 12 of 12
+  / 0 FAIL — re-run by me — verified-at e7104ca
+- SIMPLIFY applied nothing; `git diff 8c7d7bc -- .claude/skills/harness/bin/` is empty, so the code
+  T-07 measures is final — verified-at e7104ca
+- `review_sha` = `e7104ca` = branch tip — `git rev-parse` — verified-at e7104ca. **Re-pin after every
+  commit**; it was stale on FEAT-25 and FEAT-27
+- Board stations: T-01/02/03/04/07/09 `Backlog`, T-05/06/08 `Done`, parent `Building` — live read —
+  verified-at bee6234, and no mirror subcommand has run since
+- The cheap read returns 486 items for 5 GraphQL points against 506 for the run containing the old
+  path — live call — verified-at bee6234
+- SC-08 and SC-09 are `not-assessed` because both sit on `NOBODY` paths — `check-domain.sh --resolve`
+  — verified-at 3fbfd0a. They are pre-ship steps for the operator, not gaps
 
 ## Dead ends
 
 - Do NOT run `gh-sync start-task` or `close-task` for any task until T-07's after-measurement lands —
-  seven positive-control lines quote cards reading `Backlog`, and closing #586 already destroyed the
-  eighth — `notes/layer0-batch-b-FEAT-29.md` §1, §3 — verified-at bee6234
-- Do NOT re-dispatch over a run whose `state.yaml` shows `in_flight` with no `completed_at`, however
-  clean the tree measures — an orphaned member wrote a mutation probe after my measurement —
-  `runs/2026-08-19-06-eng/digest.md` Q1 — verified-at 3fbfd0a
-- Do not edit `check-state.sh`, `test-check-state.py` (DEC-174 am.4 carve-out, repaired and green),
-  `CLAUDE.md`, `.harness/notes/**`, `.harness/logs/**` — `check-domain.sh --resolve` — verified-at 3fbfd0a
-- Do not upgrade SC-01/SC-03 to automated, and do not route the matrix question as a `FAIL` — the
-  remedy edits a signed artifact — `BRIEF.md ## Verification gaps` — verified-at 3fbfd0a
+  seven control lines quote cards reading `Backlog` — `notes/layer0-batch-b-FEAT-29.md` — verified-at e7104ca
+- Do NOT re-dispatch over a run whose `state.yaml` lacks `completed_at`, and do NOT assert a negative
+  ("X left no receipt") in a brief — both caused duplicated work here —
+  `observations/harness-orchestrator.md` — verified-at e7104ca
+- Do not edit `check-state.sh`, `test-check-state.py`, `CLAUDE.md`, `.harness/notes/**`,
+  `.harness/logs/**` — carve-out or `NOBODY` — verified-at 3fbfd0a
+- Do not re-open the matrix integration question or SC-05's OFF clause — both ruled, and the second
+  rested on a false premise refuted at `test-gh-cost-log.py:251-259` — verified-at c472a02
 
 ## Working set
 
-- `.harness/harness/features/FEAT-29-graphql-budget/notes/ship-review-2026-08-19-02.md`
-- `.harness/harness/features/FEAT-29-graphql-budget/runs/2026-08-19-07-validator/digest.md`
 - `.harness/harness/features/FEAT-29-graphql-budget/notes/layer0-batch-b-FEAT-29.md`
-- `.harness/harness/features/FEAT-29-graphql-budget/plan.yaml`
+- `.harness/harness/features/FEAT-29-graphql-budget/runs/2026-08-19-09-validator/digest.md`
+- `.harness/harness/features/FEAT-29-graphql-budget/runs/2026-08-19-10-eng/digest.md`
 - `.harness/harness/features/FEAT-29-graphql-budget/feature.json`
+- `.harness/harness/features/FEAT-29-graphql-budget/BRIEF.md`

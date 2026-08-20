@@ -1,96 +1,82 @@
-# Layer-0 batch B — FEAT-29 — SUPERSEDED 13:45, two new blocking items ahead of T-07
+# Layer-0 batch B — FEAT-29 — the build phase is closed, two tasks remain and both are yours
 
-**BLUF.** All nine tasks are now written and T-03 landed green on unit. **But the branch is RED on
-`--kind integration`, and I bisected the cause to T-01/T-02 rather than accepting the report that it
-was pre-existing.** Six named INV-26 checks fail. Both new blocking items are layer-0 and both must
-clear before T-07 runs.
+**BLUF.** All nine tasks are written, the blocking gate is green, the panel passed, and SIMPLIFY
+applied nothing — so **the code you are about to measure is final**. Two tasks remain: **T-07 first,
+then T-09.** The mirror stays frozen until T-07 lands.
 
-Order is now: **(A) the INV-26 fixture · (B) the stray log file · (C) T-07 · (D) T-09.**
+Branch `feat/FEAT-29-graphql-budget`, HEAD **`e7104ca`**, `review_sha` pinned there and verified equal
+to the tip.
 
----
+## Why T-07 must go first, and why now is the right moment
 
-## A. BLOCKING — six INV-26 checks are red, and it is issue #588's exact shape
+Seven of the positive control's lines quote cards reading `Backlog`. Every `start-task` or
+`close-task` moves a card and deletes a line — that is exactly how the eighth was lost when #586
+closed. So no mirror subcommand runs, for any task, until `measurement-after.md` exists.
 
-`--kind integration` fails six named checks in `test-check-state.py`, each with the same trailer:
-**`(no INV-26 line)`**. INV-26 goes *silent* precisely where it must speak — v.1 mis-columned card,
-v.4 empty issues map, v.5 recorded issue absent from the board, v.6 parent disagreeing with the
-derivation, v.8 mis-columned done card, v.12 empty `factory.issues`.
+And SIMPLIFY finishing with **zero applies** is what makes now correct rather than merely convenient:
+had it changed `gh_board.py` or `factory_gh.py` afterwards, T-07 would have measured code that never
+shipped. `git diff` on `.claude/skills/harness/bin/` against the reviewed commit is empty.
 
-**The eng squad reported these as pre-existing. That was true in its frame and false in yours,** so I
-bisected in a throwaway worktree rather than relaying it:
+## The order
 
-| Commit | Contains | `test-check-state.py` |
-|---|---|---|
-| `bee6234` | batch A only, no code | **0 FAIL** |
-| `9fd11d7` | T-01, T-02, T-04 | **6 FAIL** |
-| `29c3e9d` | + T-03 | 6 FAIL |
+| # | Task | Issue | Notes |
+|---|---|---|---|
+| 1 | **T-07** | #585 | Cut-over proof + `measurement-after.md`. Nothing may move a card before it |
+| 2 | **T-09** | #587 | Board-6 proof for SC-03. Independent of T-07, but its card move would break the control |
 
-The member measured *its own* baseline at `d610822`, which already contained T-01/T-02 — so
-"unchanged from baseline" was honest and the frame was wrong. T-03 added nothing.
+Extract each `intent:` and `verify:` from `plan.yaml` as batch A did — they are the specification and
+I have not copied them.
 
-**Diagnosis, and production is NOT at fault.** The fixture's fake `gh` is documented in its own
-docstring as *"a fake gh whose `project item-list` page puts each card wherever the caller says"*
-(`test-check-state.py:1315-1322`). T-02 replaced that call with `gh api graphql`. The fake does not
-answer it, `project_item_stations` raises, and `check-state.sh`'s `except Exception: _stations = None`
-swallows it — so INV-26 records nothing. The live path is fine: my direct read returned all **486**
-board-3 cards with correct `Backlog`/`Done` stations for **5 points**. **The fixture is stale, not the
-code.**
+## What T-07's verify now enforces, which is the part worth knowing
 
-**Why this is yours and not my squad's.** `test-check-state.py` is the test file of `check-state.sh`,
-and am.4 puts the enforcement layer's test files inside the DEC-174 carve-out. `--resolve` says
-`harness-backend-dev, harness-dev-ops` — but that is the write axis, and the execution carve-out is
-the separate one that is mechanized nowhere.
+Amendment 4 rewrote it and I read it: it loads `measurement-before-positive.md`, filters the `T-08`
+line, asserts **exactly 7** control lines survive (I counted 7 in the file myself), requires a
+`POSITIVE-CONTROL` section in the after-file, requires all seven present verbatim, and emits
+`CONTROL FAILED - n/7 INV-26 lines absent; the cheap read is not reading the board. REJECT, do not
+explain`. **That gate can fail** — you mutation-proved it against a hand-written after-file.
 
-**Why nothing caught it.** T-02 is `change_type: logic`, which the matrix maps to `unit` alone, and
-`test-check-state.py` lives in `INTEGRATION_SCRIPTS`. T-02's `verify:` was structurally incapable of
-seeing this. That is a finding about the matrix, not about the member.
+The `delta` ceiling is 100 points. Expect about 5.
 
-**This is also the strongest possible argument for your positive control** — same silent-failure
-shape, one layer down. It is worth noting the control would *not* have caught this one: it exercises
-the real board, where the code works. Fixture and control catch different things and you need both.
+## Board state, measured directly rather than assumed
 
-## B. BLOCKING — an untracked log file is in the tree, written by the existing suite
+| Card | Station |
+|---|---|
+| parent #571 | `Building` |
+| T-01 #579, T-02 #580, T-03 #581, T-04 #582 | `Backlog` |
+| T-07 #585, T-09 #587 | `Backlog` |
+| T-05 #583, T-06 #584, T-08 #586 | `Done` |
 
-`.harness/logs/gh-cost-2026-08-19.jsonl` is untracked right now. **I did not stage it.** T-03's plan
-signs `HARNESS_GH_COST_LOG` default-ON, and `factory_config.harness_root()` falls back to the real
-checkout when `CLAUDE_PROJECT_DIR` is unset — so `test-board-station.py`, `test-gh-board.py` and
-`test-gh-sync.py`, none of them in T-03's `files:`, now write a real log on every suite run.
-Reproduced twice by the member; `bash-write-guard` then correctly refused to let it clean up after
-itself. `--resolve` on that path is `NOBODY`.
+After T-07's after-measurement is captured, run the catch-up `start-task`/`close-task` pairs — about
+4 points each. You said you would take those yourself.
 
-Four routes were identified and none is the squad's to take: export `CLAUDE_PROJECT_DIR` before suite
-runs · gitignore the pattern · set `HARNESS_GH_COST_LOG=0` inside `run-unit-tests.sh` (am.4 granted
-that file for the registration edit only) · tighten `factory_config.py`'s fallback (harness-wide).
-This is the plan-digest's old Q4 and my B-8, now live.
+## Corroboration for what T-07 is about to prove
 
-## C then D — T-07, then T-09, unchanged
+One live call to `factory_gh.project_item_stations('mruangutai', 3, 'Status')` read **486 items for 5
+GraphQL points**. The `check-state.sh` run the old path sits inside measured **506** in your own
+baseline. That is corroboration only — SC-01 is a differenced `check-state.sh` run and that is T-07's
+job, not something already discharged.
 
-Both still yours, both still gated on **A** clearing — a red INV-26 fixture means the invariant under
-measurement is not provably intact. The rewritten T-07 `verify:` is good: I read it, it loads the
-control, filters `T-08`, asserts exactly **7** lines (I counted 7 in the file myself), requires a
-`POSITIVE-CONTROL` section, and emits the `REJECT, do not explain` message. That gate can fail.
+## State of the build, verified at my tier rather than relayed
 
-## THE MIRROR IS STILL FROZEN
+- **`matrix_ok: true`.** `--kind unit` exit 0, `grep -c '^PASS '` = **175** (the runner-level count is
+  18 scripts), 0 FAIL; `--kind integration` exit 0, 12 of 12, 0 FAIL.
+- **Panel PASS**, `must_fix` empty, `severity_max: low`. A security reviewer ran because the validator
+  lead reversed its own scope-out after reading the briefing's disclosure that none ever had.
+- **SIMPLIFY: four angles, zero applies.** Two findings, both downgraded to backlog by the lead after
+  it checked their premises — one had its stated cost falsified, the other a clause corrected.
+- **SC-02, SC-05, SC-06, SC-07, SC-10 met.** SC-01, SC-03, SC-04 **pending on T-07 and T-09**. SC-08
+  and SC-09 are `not-assessed`: both sit on `NOBODY` paths, so no agent domain covers them and they
+  are pre-ship steps for you, not gaps.
+- 7 cycles of 10; 11 runs of 20; **46 GraphQL points** spent by me across the whole feature.
 
-No `start-task`, no `close-task`, for any task, until T-07 lands. `plan.yaml` now records T-03 `done`
-and its subcommand is deliberately unrun. Seven control lines still depend on cards reading `Backlog`.
+## Still yours, and not touched by me
 
-## What landed, verified at my tier
+`CLAUDE.md` · the two paused flow directories · `.harness/logs/gh-cost-2026-08-19.jsonl`, still
+untracked and un-ignored, so the tree is dirty at ship. The security reviewer's narrow remedy is a
+`.harness/logs/gh-cost-*.jsonl` ignore rule — **not** blanket `.harness/logs/`, whose sibling session
+logs are tracked.
 
-T-03 in its six approved files. **Unit: 160 PASS / 0 FAIL / exit 0**, up from the 139 baseline — my
-own run, not relayed. Both mandated mutations proven red on *named* checks and reverted under sha256
-verification; the member's first attempt aborted the suite instead of reddening it and it refused to
-count that as evidence, which is exactly the distinction that matters. **Send-backs: 0.**
-`cycles_used` stays at **3 of 10**. Branch tip `29c3e9d`.
+## After batch B
 
-The lead also self-reported writing a premature `BLOCKED` close under stop-hook pressure while T-03
-was still in flight, and named it rather than quietly fixing it. One run, one member spawn.
-
-## Still outstanding for me, after A and B clear
-
-qa segment (the blocking `test_matrix` gate — T-03 is `change_type: feature`, so **unit AND
-integration**, which is why A must clear first) → SIMPLIFY → re-run suites → pin `review_sha` at the
-tip → panel → goal-check.
-
-Budget: GraphQL 6/5000 at the start of this window; my spend this session is 46 points total.
-`CLAUDE.md` remains uncommitted and untouched by me.
+pm's goal-check through product-lead over all ten SCs, then close-out — ship-refresh and distillation
+dispatched in one turn — then the final CEO briefing for your ship decision.
