@@ -3,47 +3,48 @@
 ## Current
 
 - feature: FEAT-29-graphql-budget
-- run: none in flight
-- squad: none
-- status: Building — **the build phase is CLOSED**; two main-session-direct tasks remain
+- run: goal-check in flight — `runs/2026-08-19-11-product/` returned BLOCKED with pm still live; resumed
+- squad: product
+- status: Building — all nine tasks `done`; goal-check then close-out remain
 
-All nine tasks are written. **`matrix_ok: true`** — `--kind unit` exit 0 with 175 `^PASS ` lines
-(18 runner-level scripts) and 0 FAIL; `--kind integration` exit 0, 12 of 12, 0 FAIL. **Panel PASS**,
-`must_fix` empty, `severity_max: low`. **SIMPLIFY: four angles, zero applies** — so the code is final
-and `git diff` on `.claude/skills/harness/bin/` against the reviewed commit is empty.
+**All nine tasks read `status: done`.** T-07 and T-09 landed as main-session-direct work at
+`4f2e5d0`; I re-ran both `verify:` blocks myself and both exit 0. `review_sha` pinned at **`4f2e5d0`**,
+verified equal to the branch tip.
 
-`review_sha` pinned at **`e7104ca`**, verified equal to the branch tip.
+**The headline result, verified by me rather than relayed.** `check-state.sh` costs **5 GraphQL
+points against a 506 baseline**. T-07 needed no code edit — T-02 had already made INV-26's path cheap.
+Board 6 rules out the competing explanation: **old 102, new 1, `board_items: 4` on both sides**, so
+item count cannot account for it — it is the query shape.
 
-**SC status:** SC-02, SC-05, SC-06, SC-07, SC-10 **met**. SC-01, SC-03, SC-04 **pending on T-07 and
-T-09**, both main-session-direct and unrun. SC-08 and SC-09 **not-assessed** — both on `NOBODY` paths,
-so no agent domain covers them; they are pre-ship steps for the operator, not gaps.
+**SC-04's violation sets differ legitimately and I diffed them myself: 4 lines added, 0 removed, 0
+altered.** All four are T-01–T-04 cards reading `Backlog` against the deliberately frozen mirror.
+`EXPLAINED-DIFFERENCE` and `POSITIVE-CONTROL` are both present, and the control's seven expected
+lines reappeared verbatim at 5 points.
 
-**THE MIRROR REMAINS FROZEN.** No `start-task`, no `close-task`, for any task, until T-07's
-after-measurement lands. Seven positive-control lines quote cards reading `Backlog`; closing #586
-already destroyed the eighth. Board measured directly: T-01/02/03/04/07/09 `Backlog`, T-05/06/08
-`Done`, parent `Building`.
+**The provenance objection is closed.** The goal-check asked whether evidence measured at `8c2c24d`
+describes the code pinned at `4f2e5d0`. `git diff --stat 8c2c24d..4f2e5d0 -- .claude/skills/harness/bin/`
+is **empty**; the whole delta is the two measurement files plus two `plan.yaml` status lines.
 
-Handover for the operator is `notes/layer0-batch-b-FEAT-29.md` — **T-07 first, then T-09**.
+Gate state at `c472a02`, unchanged since by any source byte: `matrix_ok: true`, panel PASS,
+`must_fix` empty, `severity_max: low`. SIMPLIFY: four angles, zero applies.
 
-Next once batch B lands: pm's goal-check through product-lead over all ten SCs → close-out
-(ship-refresh and distillation dispatched in ONE turn) → final CEO briefing.
+Next: goal-check verdict → close-out, **ship-refresh and distillation dispatched as two dispatches in
+ONE message** → final CEO briefing.
 
-Budget: **46 GraphQL points** spent across the whole feature by me. **7 cycles of 10; 11 runs of 20.**
-Three runs bought no artifact — two premature lead closes under stop-hook pressure, and one duplicate
-angle I caused by asserting a negative in a dispatch brief.
+Budget: **46 GraphQL points** spent by me across the feature. **7 cycles of 10; 11 runs of 20.**
+Four lead runs closed with a member still in flight; three bought no artifact.
 
 ## Open Questions
 
-- Q1 (non-blocking, operator): `.harness/logs/gh-cost-2026-08-19.jsonl` is untracked **and**
-  un-ignored, so the tree is dirty at ship. The security reviewer's remedy is a narrow
-  `.harness/logs/gh-cost-*.jsonl` rule — **not** blanket `.harness/logs/`, whose sibling session logs
-  are tracked. This is B-8, un-struck.
-- Q2 (non-blocking, harness defect): three lead runs on this feature emitted a digest under
-  `SubagentStop` pressure while their members were still in flight. One produced a roll-up built on a
-  sibling run's receipt with two claims later retracted; one became a resume brief's factual basis two
-  contexts later. No preloaded rule tells a lead that an in-flight `BLOCKED` is the correct response.
+- Q1 (non-blocking, operator): a `.gitignore` rule for `.harness/logs/gh-cost-*.jsonl` — the narrow
+  form, **not** blanket `.harness/logs/`, whose sibling session logs are tracked. The stray log itself
+  was removed at ship, so this is backlog rather than tree dirt.
+- Q2 (non-blocking, harness defect, 4th occurrence): the `SubagentStop` hook forces a digest out of a
+  lead with a member still in flight, and nothing preloaded tells a lead that an in-flight `BLOCKED`
+  is the correct response. Compounding it, leads hold no `SendMessage`, so a lead cannot course-correct
+  a live member. Being filed by the operator after ship.
 - Q3 (non-blocking, harness defect): `factory_config.harness_root()` falls back to the real checkout
-  when `CLAUDE_PROJECT_DIR` points at a directory lacking `SPEC.md`, so an ad-hoc benchmark wrote
-  thousands of synthetic records into the operator's tree before self-catching. The
-  assert-the-redirect-took-effect guard exists inside `test-gh-cost-log.py`'s helper but nothing
-  enforces it outside that file.
+  when `CLAUDE_PROJECT_DIR` lacks `SPEC.md`, so an ad-hoc benchmark wrote thousands of synthetic
+  records into the operator's tree before self-catching. Being filed by the operator after ship.
+- Q4 (record, mine): `STATE.md` drifted stale on the pin twice and was caught both times by a
+  validator and then a product lead. `plan.yaml` and `feature.json` are authoritative over it.
