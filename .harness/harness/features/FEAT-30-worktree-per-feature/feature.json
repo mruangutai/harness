@@ -1,10 +1,10 @@
 {
   "feature_id": "FEAT-30-worktree-per-feature",
-  "branch": "none",
+  "branch": "feat/FEAT-30-worktree-per-feature",
   "pr": null,
   "status": "Plan",
   "review_sha": "",
-  "cycles_used": 0,
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "github": {
@@ -14,5 +14,26 @@
     "attached": [],
     "issues": {}
   },
-  "runs": []
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "apply-product",
+      "squad": "product",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "archreview-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    }
+  ]
 }
