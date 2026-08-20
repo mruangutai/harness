@@ -1,0 +1,88 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-29 — GraphQL budget · final ship review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-29-graphql-budget-final-ship-review">FEAT-29 — GraphQL budget · final ship review</h1>
+<p><strong>Supersedes both earlier reviews. Ready for your ship decision.</strong></p>
+<h2 id="the-result">The result</h2>
+<p><strong><code>check-state.sh</code> costs 5 GraphQL points. It cost 506.</strong> Both numbers are differenced measurements across a real run, not inferences from a changed call shape.</p>
+<p><strong>The saving is the query shape, and the competing explanation is ruled out.</strong> Board 6 — four items — read <strong>102 points on the old shape and 1 on the new</strong>, with <code>board_items: 4</code> on <em>both</em> sides. Identical item count, so item count cannot account for a 102-versus-1 difference.</p>
+<p><strong>The cheap read still discovers what the expensive one did.</strong> This was the real risk, not the saving: issue #588 records that INV-26 prints nothing both when the board agrees <em>and</em> when the read fails, so a silent break and a working read were indistinguishable. Three independent instruments close it — the positive control&#x27;s seven expected lines reappearing verbatim at 5 points; the live run returning <strong>two different station values across nine cards</strong>, which no truncating read can do; and a fixture case covering the failure mode the live run does not reach.</p>
+<p><strong>Nine of nine tasks done. Both suites green.</strong> <code>--kind unit</code> exit 0, 18 of 18 scripts, 0 FAIL; <code>--kind integration</code> exit 0, 12 of 12, 0 FAIL. <code>matrix_ok: true</code>, panel PASS, <code>must_fix</code> empty, SIMPLIFY four angles and zero applies.</p>
+<h2 id="success-criteria-and-exactly-how-each-was-graded">Success criteria — and exactly how each was graded</h2>
+<p><strong>Eight of ten were graded met by pm&#x27;s goal-check</strong> against evidence cited by path.</p>
+<p><strong>SC-08 and SC-09 were graded UNMET by that goal-check</strong>, then amended by you afterwards — SC-08 scoped to documents still in force, SC-09&#x27;s cost-citation clause struck. <strong>No agent has re-graded them since the amendment.</strong> I verified both mechanically: <code>git show 444c611:CLAUDE.md | grep -c &quot;wait loop&quot;</code> returns 1, and the grilling note carries its strikes. That is the honest provenance — a mechanical check by me and by you, not an independent re-grade — and you should weigh it as such.</p>
+<p>SC-09 is the one that nearly shipped broken. T-08&#x27;s rule existed only in the working tree; its <code>verify:</code> read the working tree rather than the tree under review, so the gate passed on a deliverable that was never committed. pm found it, could not confirm it — leads and members hold no <code>Bash</code> — and escalated rather than guessing. That generalises well past this feature and is B-18.</p>
+<h2 id="cost-cycles-runs">Cost, cycles, runs</h2>
+<p><strong>46 GraphQL points spent by me across the entire feature</strong> — against a subject that leaked 506 per run. Every pre-commit gate ran at <strong>zero</strong> cost under <code>FACTORY_GH=/nonexistent/gh</code>, which skips only INV-26&#x27;s board read.</p>
+<p><strong>9 cycles of 10. 17 runs of 20</strong> — both inside budget. The runs earned their place: each resolved something and the SCs advanced monotonically. <strong>The one real waste was seven premature lead closes</strong> under the <code>SubagentStop</code> hook. Three bought no artifact, one built a digest from a member&#x27;s mid-write file, one became a false premise in a brief I then wrote. That single harness defect cost more than every other inefficiency here combined, and it is B-16.</p>
+<h2 id="close-out">Close-out</h2>
+<p><strong>Distillation: 34 entries across 14 Expertise files, <code>check-expertise.sh</code> exit 0 on 16 of 16.</strong> Every capped section held at cap by displacement. The rejections are the signal: pm rejected a candidate because a preloaded rule skill already carries it verbatim — which grades the lead&#x27;s relay, not pm, and the lead recorded that against itself. The eng lead reported the digest-skim&#x27;s honest yield as <strong>one</strong> entry rather than the eleven the raw count suggests, because two of its three members kept no log, so acceptance there grades the dispatch. That is the metric DEC-145 put the skim on trial for, reported against its own interest.</p>
+<p><strong>Ship-refresh: SKIPPED, and disclosed.</strong> No map exists in this repository — <code>render-map.py</code> expects <code>INDEX.md</code>, <code>architecture.md</code> and <code>domains/</code>, none of which are present. A skip with a reason, not an omission, and it cost no spawn.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on your ship acceptance; anything not listed dies silently.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Finding</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td><code>test-factory-gh.py</code> aborts instead of reddening under any mutant adding a subprocess call</td><td>bug</td></tr><tr><td>B-2</td><td><code>gh_board.py:142</code>&#x27;s <code>or {}</code> guard is unreachable from its only producer</td><td>chore</td></tr><tr><td>B-3</td><td>Four T-04 fixtures tolerate an extra <code>gh</code> call; only <code>ensure_labels</code> asserts a count</td><td>chore</td></tr><tr><td>B-5</td><td>T-03&#x27;s <code>intent:</code> still carries text amendment 5 superseded</td><td>chore</td></tr><tr><td>B-6</td><td><code>test-gh-sync.py</code> is in <code>INTEGRATION_SCRIPTS</code>, so <code>--kind unit</code> never exercises T-03&#x27;s <code>gh-sync.py</code> half</td><td>enhancement</td></tr><tr><td>B-7</td><td>The cost log cannot see <code>gh</code> typed straight into Bash — where #571&#x27;s own traffic lived</td><td>enhancement</td></tr><tr><td>B-8</td><td><code>.harness/logs/gh-cost-*.jsonl</code> has no ignore rule and is written <code>0644</code> — the <strong>narrow</strong> pattern, never blanket <code>.harness/logs/</code></td><td>chore</td></tr><tr><td>B-9</td><td><code>factory_claim.py:304</code> calls <code>project_items</code> per served repo at ~102 points, unmeasured for fleet size</td><td>enhancement</td></tr><tr><td>B-10</td><td>gh-sync&#x27;s sync points and a board-derived positive control silently destroy each other</td><td>bug</td></tr><tr><td>B-11</td><td>Nothing serialises two leads&#x27; members against one checkout; <code>mutates_repo</code> is per-lead-DAG</td><td>bug</td></tr><tr><td>B-12</td><td><code>integration.detect</code> names 4 files while <code>INTEGRATION_SCRIPTS</code> runs 12; <code>unit.detect</code> matches all 30</td><td>bug</td></tr><tr><td>B-13</td><td><code>factory_gh.py:359-363</code> spins forever on <code>hasNextPage: true</code> with a null <code>endCursor</code></td><td>bug</td></tr><tr><td>B-15</td><td><code>check-domain.sh</code> binds Edit/Write but not Bash (DEC-85)</td><td>bug</td></tr><tr><td>B-16</td><td><code>SubagentStop</code> forces a digest from a lead with a member in flight — <strong>seven occurrences here</strong>, the largest single source of waste</td><td>bug</td></tr><tr><td>B-17</td><td><code>factory_config.harness_root()</code> falls back to the real checkout when <code>CLAUDE_PROJECT_DIR</code> lacks <code>SPEC.md</code></td><td>bug</td></tr><tr><td>B-18</td><td>A task <code>verify:</code> reading the working tree cannot distinguish committed from uncommitted work</td><td>bug</td></tr><tr><td>B-19</td><td>Issue #588 survives: <code>check-state.sh:1172-1176</code> still swallows a failed board read into silence</td><td>bug</td></tr><tr><td>B-20</td><td>Leads hold no <code>SendMessage</code>, so a lead cannot course-correct an in-flight member</td><td>bug</td></tr><tr><td>B-21</td><td><code>check-expertise.sh</code> has no notion of prior state, so it cannot detect a DEC-125 wipe — proving zero drops took a separate git audit</td><td>bug</td></tr><tr><td>B-22</td><td>backend-dev&#x27;s craft <code>P-07</code> was replaced with a version adding an escape hatch to a previously absolute rule — the one entry that got weaker</td><td>chore</td></tr><tr><td>B-23</td><td>Nothing at plan time compares a criterion&#x27;s quantified scope against the union of <code>files:</code> across its tasks — the SC-08 root cause</td><td>enhancement</td></tr><tr><td>B-24</td><td>pm displaced a <code>P-11</code> whose original purpose was anti-over-harsh grading; flagged for a curation pass</td><td>chore</td></tr><tr><td>B-25</td><td>Observation logs are Write-not-Edit, so two concurrent contexts silently last-writer-wins</td><td>bug</td></tr><tr><td>B-26</td><td><code>dispatch-guard.sh</code> refused a <code>model:</code> parameter in three independent lead contexts; the Expertise entry covering it is injected every spawn and fired for none</td><td>bug</td></tr><tr><td>B-27</td><td><code>harness-security-reviewer.md</code> is at <strong>147 of its 150-line budget</strong>; the spawn hook hard-truncates, so the next distillation silently loses entries off the tail and <code>check-expertise.sh</code> warns nothing</td><td>bug</td></tr><tr><td>B-28</td><td>Run-id sequence numbers no longer order runs — three squads each took seq <code>14</code> on one date. Nothing collides on disk, but a reader cannot order concurrent segments</td><td>chore</td></tr><tr><td>B-29</td><td>The directory-wide <code>check-expertise.sh</code> is dispatched per-lead while sibling leads are still writing; the prescribed single re-run does not settle it. Proposal: the orchestrator owns one gate run after all squads close, leads gate only their own members&#x27; files</td><td>bug</td></tr></tbody></table></div>
+<p>B-4 and B-14 remain struck — you fixed both in amendments 4 and 1.</p>
+<h2 id="how-this-was-assembled">How this was assembled</h2>
+<p><strong>No report round was spawned.</strong> Read from disk: <code>runs/plan-product/</code> and all sixteen <code>runs/2026-08-*/</code> digests, <code>notes/research-goalcheck-FEAT-29.md</code>, <code>notes/qa-matrix-gate-final-c472a02.md</code>, the three <code>measurement-*.md</code> files, and the T-03 receipts. Every measurement attributed to me I ran myself — the corpus sweep, <code>git show</code> on the committed <code>CLAUDE.md</code>, the <code>8c2c24d..4f2e5d0</code> diff, the worktree bisect, and both suites.</p>
+<p><strong>Not independently reviewed:</strong> no UI reviewer ran, correctly — no UI surface. The security reviewer&#x27;s single pass covered the cost log only. SC-08 and SC-09 carry the grading provenance noted above.</p><p class='derived'>Derived from <code>ship-review-2026-08-20-final.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
