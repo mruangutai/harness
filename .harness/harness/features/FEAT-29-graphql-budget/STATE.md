@@ -5,36 +5,48 @@
 - feature: FEAT-29-graphql-budget
 - run: none in flight
 - squad: none
-- status: Review — close-out complete, awaiting the operator's ship decision
+- status: Review — SC-08 and SC-09 re-graded UNMET; both remedies are operator rulings, not a fix cycle
 
-**Nine of nine tasks done. Both suites green.** `--kind unit` exit 0 / 18 of 18 scripts / 0 FAIL;
-`--kind integration` exit 0 / 12 of 12 / 0 FAIL. `matrix_ok: true`, panel PASS, `must_fix` empty,
-SIMPLIFY four angles and zero applies.
+**The independent re-grade contradicted both the operator's verification and mine, which is why it
+earned its cycle.** `runs/2026-08-20-15-product/digest.md` grades SC-08 and SC-09 unmet, and the two
+failures are different kinds — one genuinely wrong, one merely unproven.
 
-**The result: `check-state.sh` costs 5 GraphQL points against a 506 baseline**, both differenced across
-real runs. Board 6 rules out item count as the explanation — 102 vs 1 with `board_items: 4` on both
-sides. Discovery survives, on three independent instruments.
+**SC-08 was failed by THIS FILE.** Its previous revision stated a 506 figure with no condition, while
+FEAT-29 reads `status: Building` and is therefore still in force. The recording rule this feature
+exists to establish was violated by the orchestrator's own status file. Every cost figure below now
+carries its board, that board's item count, and its commit.
 
-**Grading provenance, stated precisely:** eight SCs were graded met by pm's goal-check. SC-08 and SC-09
-were graded UNMET there, then amended by the operator; **no agent has re-graded them since**. I
-verified both mechanically — `git show 444c611:CLAUDE.md | grep -c "wait loop"` returns 1, and the
-grilling note carries its strikes.
+**SC-09 failed on a stale pin, not on the tree.** `review_sha` was `4f2e5d0`, and
+`git merge-base --is-ancestor 9c9785f 4f2e5d0` reports the rule's commit is NOT an ancestor of it. The
+deliverable is correct and committed; the pin predated it. DEC-89 prescribes that a hand edit commits
+with a `[harness:human]` prefix and the state check re-pins `review_sha` — `9c9785f` carries no such
+prefix and no re-pin followed, so both halves of that doctrine were skipped, and DEC-89 is cited
+nowhere in this feature outside the re-grade digest. Re-pinned to the tip.
 
-**Close-out done.** Distillation: 34 entries across 14 Expertise files, `check-expertise.sh` exit 0 on
-16 of 16, every capped section held by displacement. Ship-refresh **skipped and disclosed** — no map
-exists in this repository, so `render-map.py` has nothing to refresh.
+The result, every figure with its conditions: `check-state.sh` costs **5 GraphQL points** (board 3,
+473 items, `8c2c24d`, `notes/measurement-after.md`) against **506** before (board 3, 486 items,
+`e1bcdc1`, `notes/measurement-before.md`). Board 6, the four-item fixture, both shapes back to back at
+`8c2c24d`: **old 102, new 1**, `board_items: 4` on both sides (`notes/measurement-board6.md`).
+Orchestrator spend across the feature: **46 GraphQL points**, this repository, 2026-08-19 to 08-20.
 
-Briefing: `notes/ship-review-2026-08-20-final.md`, rendered.
-
-Budget: **46 GraphQL points** across the whole feature. **9 cycles of 10; 17 runs of 20** — both inside
-budget, and the runs earned their place. The one real waste was **seven premature lead closes** under
-the `SubagentStop` hook, which cost more than every other inefficiency combined.
+Nine of nine tasks done. `--kind unit` exit 0 / 18 of 18 scripts / 0 FAIL; `--kind integration` exit 0
+/ 12 of 12 / 0 FAIL. `matrix_ok: true`, panel PASS, SIMPLIFY four angles zero applies. Close-out
+complete: 34 Expertise entries across 14 files, gate exit 0; ship-refresh skipped and disclosed, no
+map exists here. **Cycle budget EXHAUSTED at 10 of 10** — no squad fix cycle remains, and both
+outstanding remedies are record-keeping or operator rulings, neither of which spends one.
 
 ## Open Questions
 
-- Q1 (for the operator): the ship decision. PR, CI and merge are the operator's; the mirror's `ship`
-  and `backlog` subcommands are the main session's, not mine.
-- Q2 (non-blocking): 27 backlog rows proposed in the briefing, 6 of them new from close-out. Unstruck
-  rows become issues on ship acceptance; anything not listed dies silently.
-- Q3 (record): SC-08 and SC-09 carry a mechanical verification rather than an independent agent
-  re-grade, because both were amended after the goal-check ran.
+- Q1 (blocking, operator): SC-08 limb 3 — does *no such document* quantify over every in-force
+  document, or only over documents asserting `item-list` is cheap? The lead reads *such* as binding to
+  *still in force*. The instance is remedied; the reading is the operator's.
+- Q2 (blocking, operator): SC-09 names no sha, and at HEAD the rule IS committed — so the criterion as
+  literally written is satisfied, and it failed only under the convention of grading at `review_sha`.
+  The lead recorded this disagreement with pm rather than reconciling it.
+- Q3 (blocking, operator): both criteria stand UNMET on the record until re-graded, and no budget
+  remains to re-grade them.
+- Q4 (non-blocking, harness defect): `check-state.sh:221-228` implements INV-6 as a presence check
+  only — nothing compares `review_sha` to the tip, and DEC-188 deleted the propagation checker. A
+  stale pin passes the state gate silently, which is how SC-09's failure survived ten cycles.
+- Q5 (non-blocking): SC-09's 10-second-polling limb is not assessable from any artifact — it was live
+  main-session conduct, never a recorded rule.
