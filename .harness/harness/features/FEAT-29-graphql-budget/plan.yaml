@@ -102,6 +102,24 @@ approval:
         green-and-incapable-of-reddening defect this feature exists to remove. SC-05 names the
         clause explicitly, and factory_gh.py is already inside T-03's files:, so the remedy is
         in-lane. One cycle granted; 5 of the feature's 10 remain.
+    - date: 2026-08-20
+      approved_by: operator (Mike Ruangutai), via main session
+      changed: >-
+        SC-08 is scoped to documents still in force, and SC-09 drops its cost-citation clause.
+        CLAUDE.md is committed so T-08's deliverable is in the shipped tree.
+      why_sc08: >-
+        The clause quantified over EVERY surviving document while the task discharging it named one
+        file, so no amount of correct work could meet it. Verified in the main session:
+        FEAT-11-graphql-field-resolve reads status Done and four of its artifacts - BRIEF.md,
+        STATE.md, a UAT note and a ship review - carry the 31-point figure. Editing a shipped
+        feature's dated record would falsify what was known on its date. Shipped artifacts are
+        frozen history and are out of scope; live documents are not.
+      why_sc09: >-
+        The clause required the measured 2-points-per-poll cost to be cited, which informs a choice
+        of interval. Approval amendment 1 replaced the interval remedy with a prohibition on shell
+        wait loops, so there is no interval left to choose and no price to inform it. SC-09 now also
+        requires the rule be present in the COMMITTED tree - T-08's verify read the working tree and
+        passed while `git show <review_sha>:CLAUDE.md` did not hold the rule at all.
 lanes:
   resolved_at: 3920513
   rows:

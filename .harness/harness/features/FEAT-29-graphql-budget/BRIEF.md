@@ -104,13 +104,23 @@ a raw `gh` error.
 - SC-08: The 2026-08-10 grilling note's 31-point figure is corrected in place with the measured
   490-506 points per `check-state.sh` run and the condition it holds under (board 3, 473 items,
   commit `6bbd706`, 2026-08-19), recording 608 only as the contaminated upper bound it is — a run
-  that contains the call cannot cost less than the call. No surviving document asserts that
-  `project item-list` is cheap enough to ignore, and no document states a bare corrected number
-  without its condition.
+  that contains the call cannot cost less than the call. ~~No surviving document asserts that
+  `project item-list` is cheap enough to ignore~~ **AMENDED 2026-08-20, operator ruling.** No
+  document THAT IS STILL IN FORCE asserts that `project item-list` is cheap enough to ignore, and
+  no such document states a bare corrected number without its condition. A shipped feature's
+  artifacts are frozen, dated history and are out of scope: `FEAT-11-graphql-field-resolve` reads
+  `status: Done` and four of its documents carry the 31-point figure, but editing them would
+  falsify a record of what was known on its date. The clause as signed quantified over every
+  surviving document while the task discharging it named one file, so it could not be met by any
+  amount of correct work.
   verify: inspection
-- SC-09: `gh pr checks` polling by the main session no longer runs at a 10-second interval; the
-  recorded operating rule names either a single blocking watch call or an interval of at least 60
-  seconds, with the measured 2-points-per-poll cost cited.
+- SC-09: **AMENDED 2026-08-20, operator ruling.** `gh pr checks` polling by the main session no
+  longer runs at a 10-second interval, and the recorded operating rule forbids shell wait loops
+  outright, naming Monitor and `run_in_background` as the replacements. The rule must be present
+  in the COMMITTED tree, not merely the working copy. ~~with the measured 2-points-per-poll cost
+  cited~~ — the cost-citation clause is DROPPED. It was written when the remedy was a longer
+  interval, where a per-poll price informs the choice. Approval amendment 1 replaced that remedy
+  with a prohibition, and nobody choosing nothing needs a price.
   verify: inspection
 - SC-10: The full unit and integration suites pass, and no test that passed before this feature
   fails after it.
