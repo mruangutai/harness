@@ -121,3 +121,38 @@
   the re-run did buy, which is not nothing: a benchmark under a temp root whose redirect was
   asserted before any write, where the first attempt had spilled into the real tree. It also
   overwrote the first attempt's receipt, so that artifact now survives only as quotations.
+
+- 2026-08-19 (run 13, SC-05 fix cycle): **The counting-convention lesson from run 10 closed, and it
+  closed by changing the dispatch rather than the member.** I named the counting expression
+  (`grep -c '^PASS '`), told the member to re-derive the 175 rather than repeat my figure, and
+  asked for a prediction BEFORE the run. It predicted 179, measured 175 pre-edit and 179 post-edit,
+  +4 for 4 checks. One reproducible number instead of two unreproducible ones. The fix for
+  "two honest agents produced two different counts" was never to interrogate the agents; it was to
+  make the command part of the claim.
+
+- 2026-08-19 (run 13): My dispatcher's stated premise was materially stale and I caught it only
+  because P-09 fired — it asserted the OFF state was proven solely by direct `record()` calls "on a
+  code path that never ships", but `test-gh-cost-log.py:335-346` and `:367-379` already drove the
+  REAL wrappers OFF, asserting the subprocess call count. The genuinely missing case was one notch
+  narrower: OFF + real wrapper + non-zero rc. Had I relayed the premise verbatim, the member would
+  have written a correct test justified by a false claim, and that justification would have entered
+  the receipt, the digest and any future re-grade as fact. **The dispatch premise most worth
+  checking is the one that sounds most specific** — line anchors and "calls X, never Y" read as
+  already-verified, which is exactly what makes them travel unchecked.
+
+- 2026-08-19 (run 13): Predicting the expected FAIL SET before the member reported turned a
+  mutation receipt from a claim into a check. I derived from
+  `notes/receipt-harness-backend-dev-T-03-c3.md:69-83` that the `:157` mutation must redden THREE
+  named checks (the new one plus the two pre-existing OFF call-count checks sharing the guard), and
+  wrote that into `send-back-criteria.md` before the return. The receipt reported exactly those
+  three. This is G-15 applied to a mutation rather than to a known-failing suite, and the payoff is
+  the same: had the receipt named only the new check, I would have known the member mis-read its
+  output or disturbed the existing checks — without the prediction, "my new check reddened" reads
+  as complete success either way.
+
+- 2026-08-19 (run 13): The member wrote its honest limitation ("this case cannot discover a defect
+  `record()` doesn't already prevent") into the TEST'S OWN COMMENT at `:414-419`, not just the
+  receipt. That is the better home and worth asking for explicitly next time: a receipt is read once
+  by one lead, a comment is read by whoever next questions the assertion. A caveat that lives only
+  in an artifact nobody re-opens is a caveat that expires; one in the code ships with the claim it
+  qualifies.

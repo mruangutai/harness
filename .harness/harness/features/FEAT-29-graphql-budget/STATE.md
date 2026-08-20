@@ -3,48 +3,45 @@
 ## Current
 
 - feature: FEAT-29-graphql-budget
-- run: goal-check in flight — `runs/2026-08-19-11-product/` returned BLOCKED with pm still live; resumed
-- squad: product
-- status: Building — all nine tasks `done`; goal-check then close-out remain
+- run: none in flight
+- squad: none
+- status: Building — goal-check FAIL, **8 of 10 SC met**; two unmet, both operator-owned
 
-**All nine tasks read `status: done`.** T-07 and T-09 landed as main-session-direct work at
-`4f2e5d0`; I re-ran both `verify:` blocks myself and both exit 0. `review_sha` pinned at **`4f2e5d0`**,
-verified equal to the branch tip.
+**The feature works and is proven.** `check-state.sh` costs **5 GraphQL points against a 506
+baseline** at 473 items. Board 6 rules out the competing explanation: **102 vs 1 with `board_items: 4`
+on both sides**. Discovery is intact — the control's seven lines reappeared verbatim, and the live run
+returns two different station values across nine cards, which no truncating or failing read can do.
 
-**The headline result, verified by me rather than relayed.** `check-state.sh` costs **5 GraphQL
-points against a 506 baseline**. T-07 needed no code edit — T-02 had already made INV-26's path cheap.
-Board 6 rules out the competing explanation: **old 102, new 1, `board_items: 4` on both sides**, so
-item count cannot account for it — it is the query shape.
+Both suites green at the tip: unit exit 0 / 179 `^PASS ` / 0 FAIL; integration exit 0 / 0 FAIL.
+`matrix_ok: true`, panel PASS, SIMPLIFY zero applies.
 
-**SC-04's violation sets differ legitimately and I diffed them myself: 4 lines added, 0 removed, 0
-altered.** All four are T-01–T-04 cards reading `Backlog` against the deliberately frozen mirror.
-`EXPLAINED-DIFFERENCE` and `POSITIVE-CONTROL` are both present, and the control's seven expected
-lines reappeared verbatim at 5 points.
+**SC-09 is unmet and ship-blocking: T-08's deliverable is NOT in the committed tree.** I re-ran the
+check the product lead could not (leads hold no Bash) — `git show 4f2e5d0:CLAUDE.md` lacks the
+wait-loop rule entirely; it exists only in the operator's uncommitted working-tree edit, which is also
+**20 lines shorter** than the committed file (9 insertions, 29 deletions). T-08's `verify:` passed by
+reading the working tree rather than the tree under review. Remedy is the operator's: one commit.
+SC-09's cost-citation clause is separately absent from both versions — and budget is **not** the
+obstacle, `CLAUDE.md` being 55 lines against DEC-181's 80.
 
-**The provenance objection is closed.** The goal-check asked whether evidence measured at `8c2c24d`
-describes the code pinned at `4f2e5d0`. `git diff --stat 8c2c24d..4f2e5d0 -- .claude/skills/harness/bin/`
-is **empty**; the whole delta is the two measurement files plus two `plan.yaml` status lines.
+**SC-08 is unmet: the absence clause is false, and the live set is one shipped feature.** My corpus
+sweep: the grilling note is struck by T-05 ✓; `FEAT-13/BRIEF.md` and
+`.harness/notes/grilling-board-read-lookups-2026-08-10.md` already call the figure stale, so they do
+not refute; the refuting set is **`FEAT-11`'s five artifacts**, and `FEAT-11` reads `status: Done`.
+Root cause is planning, not execution: a criterion quantifying over "every surviving document" cannot
+be discharged by a task whose `files:` names one.
 
-Gate state at `c472a02`, unchanged since by any source byte: `matrix_ok: true`, panel PASS,
-`must_fix` empty, `severity_max: low`. SIMPLIFY: four angles, zero applies.
+Briefing: `notes/ship-review-2026-08-19-03.md`, rendered.
 
-Next: goal-check verdict → close-out, **ship-refresh and distillation dispatched as two dispatches in
-ONE message** → final CEO briefing.
-
-Budget: **46 GraphQL points** spent by me across the feature. **7 cycles of 10; 11 runs of 20.**
-Four lead runs closed with a member still in flight; three bought no artifact.
+Budget: **46 GraphQL points** across the whole feature. **8 cycles of 10; 14 runs of 20.** Five lead
+runs closed with a member still in flight — three bought no artifact, one built a digest from a
+mid-write read, one became a false premise in a brief.
 
 ## Open Questions
 
-- Q1 (non-blocking, operator): a `.gitignore` rule for `.harness/logs/gh-cost-*.jsonl` — the narrow
-  form, **not** blanket `.harness/logs/`, whose sibling session logs are tracked. The stray log itself
-  was removed at ship, so this is backlog rather than tree dirt.
-- Q2 (non-blocking, harness defect, 4th occurrence): the `SubagentStop` hook forces a digest out of a
-  lead with a member still in flight, and nothing preloaded tells a lead that an in-flight `BLOCKED`
-  is the correct response. Compounding it, leads hold no `SendMessage`, so a lead cannot course-correct
-  a live member. Being filed by the operator after ship.
-- Q3 (non-blocking, harness defect): `factory_config.harness_root()` falls back to the real checkout
-  when `CLAUDE_PROJECT_DIR` lacks `SPEC.md`, so an ad-hoc benchmark wrote thousands of synthetic
-  records into the operator's tree before self-catching. Being filed by the operator after ship.
-- Q4 (record, mine): `STATE.md` drifted stale on the pin twice and was caught both times by a
-  validator and then a product lead. `plan.yaml` and `feature.json` are authoritative over it.
+- Q1 (blocking, operator): commit `CLAUDE.md` so T-08's deliverable is in the shipped tree, and rule
+  on SC-09's cost-citation clause — amend it, or add the figure.
+- Q2 (blocking, operator): SC-08's absence clause versus `FEAT-11`'s shipped artifacts. Striking a
+  dated ship-review and UAT falsifies a record; T-05's own precedent is strike-in-place with the
+  correction beside it. Or amend SC-08 to scope to live documents.
+- Q3 (non-blocking): close-out — ship-refresh and distillation — has not run and is mine, dispatched
+  as two dispatches in one message once Q1 and Q2 clear.
