@@ -1,7 +1,13 @@
 """gh_cost_log.py — records every gh invocation made through factory_gh.run_gh and gh-sync.py's
 gh wrapper, together with the GraphQL points it cost (FEAT-29 T-03).
 
-WHY: check-state.sh's INV-26 read burned 506 GraphQL points before T-01/T-02 made it cheap
+EVERY COST FIGURE BELOW CARRIES ITS THREE CONDITIONS — the board, that board's item count, and
+the commit it was measured at. A figure without them cannot be re-derived and therefore cannot
+be shown to be wrong, which is how a 31-point figure survived nine days and had an exclusion
+decision built on it (.harness/notes/grilling-graphql-cost-2026-08-10.md).
+
+WHY: check-state.sh's INV-26 read burned 506 GraphQL points -- board 3, 486 items, commit
+`e1bcdc1`, 2026-08-19 -- before T-01/T-02 made it cheap
 (.harness/harness/features/FEAT-29-graphql-budget/notes/measurement-before.md). This module is
 the record that would have made that burn visible as it happened instead of after the fact.
 
@@ -12,7 +18,8 @@ reader opens.
 OPT-IN, DEFAULT OFF (approval amendment 5, 2026-08-19). Set HARNESS_GH_COST_LOG=1 to record.
 Unset, or set to anything other than "1", records nothing. This recorder is blind to gh invoked
 directly from Bash — where the ~360-point burn it was built to explain actually lived — and after
-T-01/T-02 the operation it CAN see costs 5 points instead of 506, so always-on bought little.
+T-01/T-02 the operation it CAN see costs 5 points (board 3, 473 items, commit `8c2c24d`,
+2026-08-20) instead of 506 (board 3, 486 items, commit `e1bcdc1`), so always-on bought little.
 
 Reading the counter is `gh api rate_limit --jq .resources.graphql.used` and NOTHING else — that
 exact call was measured taking three consecutive reads with graphql.used unchanged at 1057 each
@@ -47,7 +54,8 @@ COVERAGE_NOTICE = (
 def _enabled():
     """OPT-IN, default OFF (FEAT-29 T-03, approval amendment 5, 2026-08-19). The recorder is
     blind to gh invoked directly from Bash, which is where the ~360-point burn it was built for
-    actually lived, and after T-01/T-02 the operation it CAN see costs 5 points instead of 506 —
+    actually lived, and after T-01/T-02 the operation it CAN see costs 5 points (board 3, 473
+    items, `8c2c24d`) instead of 506 (board 3, 486 items, `e1bcdc1`) —
     two rate_limit forks per wrapped call now buy very little by default. Runs only under an
     explicit HARNESS_GH_COST_LOG=1."""
     return os.environ.get("HARNESS_GH_COST_LOG", "0") == "1"
