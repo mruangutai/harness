@@ -39,9 +39,14 @@ hostages in another's checkout.
 
 ## Requirements
 
-- REQ-01: The dispatch path creates a worktree per feature run under `.claude/worktrees/<id>/`,
-  cut from `main`, and the orchestrator works inside it.
-- REQ-02: A worktree is cut from `main`, never from another feature's branch.
+- REQ-01: The dispatch path creates a worktree per feature run at `<repo root>/.claude/worktrees/<id>/`
+  — **relative to the OWNING repository's root, whichever repository that is** — and the
+  orchestrator works inside it. For harness developing itself that is this checkout. For a repo the
+  factory serves it is that repo's checkout under `fleet.yaml`'s `workspace_root`. Two features for
+  harness and two for another repo run at the same time, four worktrees, each under its own root.
+- REQ-02: A worktree is cut from its own repository's default branch, never from another feature's
+  branch. For harness that is `main`; for a served repo it is the `default_branch` its `fleet.yaml`
+  entry declares, since that value exists precisely because it is read before the checkout exists.
 - REQ-03: The worktree is removed when its feature reaches a terminal state, and its artifacts
   reach `main` before removal.
 - REQ-04: A governed agent that switches branch, or otherwise moves `HEAD`, during a live run is
@@ -53,9 +58,10 @@ hostages in another's checkout.
 
 ## Success Criteria
 
-- SC-01: With two feature runs live, each orchestrator's commits land only on its own branch, and
-  neither working tree contains the other's files. Proven by running two features concurrently and
-  inspecting both trees and both branch histories.
+- SC-01: With FOUR feature runs live — two on harness, two on a repo the factory serves — each
+  orchestrator's commits land only on its own branch, and no working tree contains another's files.
+  This is the operator's stated goal in full: two features at once for harness AND for other repos
+  simultaneously. Proven by running them concurrently and inspecting every tree and branch history.
   verify: inspection
 - SC-02: A worktree created for a feature run is cut from `main`. Asserted against the merge-base,
   not against the branch name.
@@ -98,9 +104,19 @@ hostages in another's checkout.
 constraints, which read as obstruction. They are not: both are already-built mechanisms this
 feature uses, and the operator's challenge to that framing is why they now read as what they are.
 
-- **DEC-193 supplies the location.** `harness_boundary.py:33` already defines
-  `WORKTREES_SEGMENT = ".claude/worktrees"`, permitting exactly where this feature puts a worktree
-  and refusing everywhere else. It is the enabling mechanism, not a limit to work around.
+- **DEC-193 supplies the location, and it is ALREADY per-repository.** `harness_boundary.py:33`
+  defines `WORKTREES_SEGMENT = ".claude/worktrees"` as a **relative** path. `worktree_owner()`
+  derives the owning root from the worktree's own `.git` pointer file and computes
+  `legal_home = owner_root + WORKTREES_SEGMENT`, so the rule evaluates once per repository rather
+  than against one absolute location.
+
+  **Measured, both directions, 2026-08-20.** A throwaway second repository was created outside this
+  checkout, a worktree added under its own `.claude/worktrees/FEAT-01`, and `worktree_owner()`
+  returned `legitimate=True` with that repository as the owner. A sibling worktree outside that
+  directory returned `legitimate=False`. So multi-repo concurrency needs NO change to the
+  enforcement layer and NO `<repo>` path segment — a segment was considered and rejected because
+  the repository scoping already comes from the owning root, and a wildcard segment would have
+  widened what counts as a legal write location for nothing in return.
 - **DEC-143 already strips the worktree prefix** before matching domain globs, so an agent inside
   `.claude/worktrees/<id>/` writes exactly what its domain grants. SC-05 asserts this, because
   nothing currently does — the behaviour exists and is unpinned.
