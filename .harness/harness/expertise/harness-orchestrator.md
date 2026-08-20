@@ -6,9 +6,10 @@
   reports a red suite as green, and a piped `$?` returns the pipe's last command.
 
 ## Gotchas (max 15)
-- G-01: WHEN running `check-state.sh` DO treat it as expensive — INV-26 reads every board card at
-  roughly 500 GraphQL points per invocation, against a 5,000-point budget. Run it at entry and before
-  a commit, not as a progress poll.
+- G-01: WHEN running `check-state.sh` DO expect roughly 500 GraphQL points from INV-26's whole-board
+  read against a 5,000-point budget — but when the run need not check board-versus-plan agreement,
+  point `FACTORY_GH` at a nonexistent path: INV-26 gates on `gh auth status`, records nothing, and
+  every other invariant still runs, at zero cost.
 - G-02: WHEN invoking `validate-digest.py` DO pass the PERSONA first and the path second. Path-only
   prints `BLOCKED (contract violation) — unknown persona '<the path>'`, which reads exactly like a
   malformed digest and will make you reject a valid one.

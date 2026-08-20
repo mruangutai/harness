@@ -33,9 +33,9 @@
 - P-10: WHEN a pointer cites a location DO anchor it on content text AND assert the target's own
   identifier separately. Body anchoring survives line drift but is blind to renumbering: entries
   renumber in the destination while every content anchor still matches, and the verdict stands.
-- P-11: WHEN a criterion's declared evidence names a suite holding no case for it, yet the state
-  itself measures as delivered, DO grade the criterion met and route the missing case to qa as
-  coverage debt. A criterion grades the delivered state, not the regression suite that guards it.
+- P-11: WHEN a criterion quantifies over a scope DO check, before dispatch, that the tasks tracing
+  to it carry file lists covering that scope. A task naming one file cannot satisfy a clause over
+  every document, so the criterion fails at goal-check for a planning reason no retry can fix.
 - P-12: WHEN specifying a detector or sweep pattern DO derive it from the weakest fragment every
   target site necessarily contains, greped against the real file — never from the shape of the
   commonest site. An optional trailing fragment makes variant sites invisible, and the sweep then
@@ -94,9 +94,9 @@
 - G-14: WHEN a verify asserts absence by counting DO NOT wrap the search in
   `test "$(cmd | wc -l)" = 0`: a search that errors prints nothing, the count is zero and the test
   passes. Assert the search's exit status, or pair it with a positive control that must match.
-- G-15: WHEN a criterion will be graded against working-tree state rather than a commit DO make the
-  task name its before and after capture commands and their output artifacts. Untracked files leave
-  no commit evidence, so a missing capture is unrecoverable and stays invisible until goal-check.
+- G-15: WHEN you author a verify, or grade a criterion, over a file the task produces DO read it at
+  the ref under review, never the working tree. A tree-reading check passes for any deliverable that
+  was never committed, and untracked output leaves no evidence at the ref at all.
 
 ## Outcomes (max 10)
 - O-01: WHEN proving a test reddens if either side changes alone DO mutate one branch at a time,

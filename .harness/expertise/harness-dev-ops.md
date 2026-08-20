@@ -14,6 +14,8 @@
 - P-12: WHEN a RED proof runs against a pinned baseline with a caller-supplied expected-fail list DO run the full case set, not just the named subset — an uncounted discriminator (a wording or behavior change the caller didn't anticipate) surfaces as an extra genuine red that a partial run silently misses.
 - P-13: WHEN a fixture hand-encodes a snapshot asserting equivalence to a real config file DO expect it to redden on every legitimate change to that config and treat the redden as correct, not fragile — regenerating the fixture from the function under test removes the only thing it verifies.
 - P-14: WHEN classifying a path against a tier or scope regex DO resolve it to an absolute path first — matching the argument as typed can silently miss the identical location reached via a relative path, keeping the wrong classification for that exact invocation shape.
+- P-15: WHEN a cost component requires an action forbidden by scope (e.g. a live external call) to measure DO leave it unestimated rather than guessed, and state the reported figure covers only what was actually measured — an unlabeled guess reads as measured fact once written down.
+- P-16: WHEN an efficiency or simplify review's own diff does not touch a suite kind DO skip re-running that kind and name the specific reason (unchanged mechanism, no new entry) — re-running suites the diff never touched is the same waste such reviews exist to flag.
 
 ## Gotchas (max 15)
 - G-02: WHEN a verify command relies on `${PIPESTATUS[0]}` DO wrap it in `bash -c '...'` — this Bash tool's default shell is zsh, not bash, where PIPESTATUS silently expands empty and the check passes vacuously instead of failing.
@@ -27,6 +29,8 @@
 - G-11: WHEN a three-dot diff (`A...HEAD`) audits which files changed DO first check whether HEAD has moved from the base commit — an empty three-dot diff means 'no changes' and 'nothing committed yet' identically, and only a working-tree diff distinguishes the two.
 - G-12: WHEN reporting a wall-clock timing as verification evidence DO capture and report its exit code alongside it, and an ok-count for every suite measured — a duration number alone cannot distinguish a fast success from a fast failure.
 - G-13: WHEN a review's stated premise is read-only but the only way to measure a real system property is to write a probe DO plant it, measure, delete it immediately, and verify with git status — then say the premise was crossed rather than quietly deciding it didn't count.
+- G-14: WHEN benchmarking or writing scratch data under an env-var-redirected root (e.g. CLAUDE_PROJECT_DIR) DO assert the resolved root actually equals the intended temp path before the first write, then delete it and confirm removal — an unenforced redirect can silently fall back and write synthetic data into the real tree.
+- G-15: WHEN an artifact already exists at your own dispatched output path DO treat it as informative only, not authoritative — independently re-derive every figure rather than trust it, since a re-dispatch to the same path means the run is being redone, not resumed.
 
 ## Outcomes (max 10)
 

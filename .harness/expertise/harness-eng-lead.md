@@ -14,9 +14,9 @@
 - P-04: WHEN a member kept no observations log DO hand it the paths to its own prior artifacts
   and say self-derived candidates count as its own material — otherwise every entry in its file
   traces to your relay, and the acceptance rate grades your dispatch, not its judgement.
-- P-05: WHEN a member reports entry or finding counts in its headline DO count its own ops list
-  and open the file before repeating the number — self-reported totals have disagreed with the
-  file in successive runs, and yours is the tier where a count becomes a measurement.
+- P-05: WHEN a count is offered as evidence DO name the counting expression in the dispatch and
+  require a prediction before the run, and re-derive any number you repeat — an unspecified count
+  produced two different totals from two honest agents at one unchanged HEAD.
 - P-06: WHEN approving a replacement for an assertion DO ask what the old one PINNED and check
   the new SET still pins it — "no assertion may be weakened" passes when each is individually as
   strong and the set has lost a property, so nothing reddens when the defect returns.
@@ -26,9 +26,9 @@
 - P-08: WHEN a clause count is offered as evidence a design rule is guarded DO count only the
   behavioural clauses — grep clauses die to a rename, and an assertion coarser than the property
   it names is green under the bug.
-- P-09: WHEN a dispatch states what a file contains — an anchor, a justification, a relayed
-  finding's premise — DO open the file before relaying it: an unchecked claim is copied verbatim
-  into source, tests and records, and survives every gate green.
+- P-09: WHEN a dispatch or resume brief asserts what a file contains OR asserts one is absent DO
+  open the path before acting — absence is a claim about a file like any other, and an artifact
+  that looks missing is evidence about your read, not about the work.
 - P-10: WHEN a gap's remedy is an obligation recorded in prose DO propose the instrument that
   reddens instead — and where none can exist, say at review that no code gate verifies it:
   inspecting a rule proves it exists, never that it fires.
@@ -62,10 +62,9 @@
   against the main checkout's current copy before writing, never IDs — a worktree branched
   before the last distillation carries a stale base whose write reverts the prior feature's
   entries, every format check green.
-- G-06: WHEN two agents disagree about HEAD and you hold no shell DO read `.git/HEAD`,
-  `.git/refs/heads/<branch>` and `.git/logs/HEAD` directly — a mid-run fast-forward means
-  measurements taken earlier were taken against a different tree, so re-measure what the
-  decision turns on.
+- G-06: WHEN a prior run's step looks stale before you re-dispatch it DO read its state.yaml for
+  dispatched_at without completed_at and treat that as a live writer — a file disagreeing with a
+  fresh git diff is concurrency, not staleness, and a duplicated measuring agent is a writer.
 - G-07: WHEN a task's intent presents an enumeration of sites as exact and its verify counts the
   remainder DO re-derive the set yourself — one missed site reds a correct execution, and the
   executor's cheapest way green is deleting the literal the gate exists to protect.

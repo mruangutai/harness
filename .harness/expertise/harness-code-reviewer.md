@@ -48,5 +48,7 @@
   implementer deviated from an approved plan — a plan-authorized gap can still carry high
   consequence, and blame-based scoring rates it down for the wrong reason.
 - O-07: WHEN a defect is inherited byte-identical from baseline but a sibling task in the same diff newly establishes its trigger condition as ordinary anticipated state DO attribute defect and exposure separately — neither pre-existing-ignore nor new-bug-block alone is correct; state both in the finding.
+- O-08: WHEN a lead's send-back says the current grade is already acceptable DO write any revision as a new artifact, leaving the original unmodified — it is the record of the grade before new evidence moved it, and only survives untouched.
+- O-09: WHEN evaluating a proposed mutation as proof of a coverage gap DO check whether the tested branch actually reaches the mutated line before trusting a survive/kill result — a mutant inside a guard's untaken branch is equivalent, not discriminating, and proves nothing.
 
 ## Open (max 5)

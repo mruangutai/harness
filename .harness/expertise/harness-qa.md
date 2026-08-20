@@ -42,9 +42,10 @@
   argument value at each call site, not just that the call happened — an argument-blind fake
   returns fixed data regardless, so dropping a field stays green while the real callee refuses
   the request.
-- P-13: WHEN citing a test count DO break down both its provenance (plan-required vs self-added)
-  and its unit granularity (file-level vs case-level) before reporting a total — mixing either
-  axis produces a merged figure that overstates compliance or coverage.
+- P-13: WHEN citing a test count DO state its provenance, granularity, AND counting convention
+  (per-check PASS lines vs each script's self-reported total) — the same suite yields different
+  raw totals under different conventions, so only the delta between two same-convention runs is
+  a trustworthy cross-check.
 - P-14: WHEN a required kind's `detect` glob matches a changed file DO also confirm that kind's
   `cmd` actually runs the file, via an explicit script list — a glob match without list membership
   means the kind reports satisfied while the binding suite never executes.
@@ -132,6 +133,10 @@
 - O-09: WHEN the same claim reappears across multiple artifacts (your own note, a research note,
   a lead's log) DO check whether all three inherited it from one unverified source before
   treating repetition as corroboration — trace back to the primitive measurement itself.
+- O-10: WHEN crediting a component as "thoroughly tested" from its own dedicated test file DO
+  verify each real caller is independently exercised too — a caller test that disables its own
+  coverage at module scope, or never imports the component, leaves the seam unbound while the
+  component's suite reports full pass.
 
 ## Open (max 5)
 - Q-01: WHEN a write-guard's behavior toward Bash-tool `cp`/redirect into the scratchpad is
