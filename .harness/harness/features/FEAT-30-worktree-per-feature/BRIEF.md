@@ -104,11 +104,18 @@ is gone, and the guard would still report `legitimate`.
 
 ## Success Criteria
 
-- SC-01: With FOUR feature runs live — two on harness, two on a repo the factory serves — each
-  orchestrator's commits land only on its own branch, and no working tree contains another's files.
-  This is the operator's stated goal in full: two features at once for harness AND for other repos
-  simultaneously. Proven by running them concurrently and inspecting every tree and branch history.
-  verify: inspection
+- SC-01: FOUR worktrees exist at once — two for harness, two for a repo declared in `fleet.yaml` —
+  and none can see another's files or branch. Asserted mechanically: create all four, write a
+  distinct file from each, and prove every tree contains its own file and NOT the other three, and
+  that each `HEAD` names only its own branch. This is the operator's stated goal in full — two
+  features at once for harness AND for other repos simultaneously — so it is the criterion that runs
+  every time, not one graded once by eye.
+  verify: automated      evidence: integration
+- SC-01b: FOUR real feature runs, two per repository, complete with each orchestrator's commits
+  landing only on its own branch. This is what SC-01's test cannot fake: four live orchestrators
+  contending for the same account budget, the same board, and the same Expertise files. Judged by
+  the operator against every tree and branch history.
+  verify: uat
 - SC-02: A worktree created for a feature run is cut from its own repository's default branch.
   Asserted against the merge-base, not against the branch name.
   verify: automated      evidence: integration
@@ -152,8 +159,16 @@ is gone, and the guard would still report `legitimate`.
 
 ## Verification gaps
 
-- `functional`, `component`, `ui`, `eval` and `typecheck` all have `cmd: null` — no runner. No SC
-  above rests on any of them. Every automated criterion is pinned to `integration`, which runs.
+**There are none, and this section says so rather than being omitted** (DEC-163). It exists because a
+kind with `cmd: null` in `harness.json` has NO RUNNER: qa resolves it to a soft skip, so a criterion
+resting on it can never be met and never fails loudly — a gate that looks real and does nothing.
+
+- `functional`, `component`, `ui`, `eval` and `typecheck` all have `cmd: null`. **No criterion above
+  rests on any of them.** Every `automated` criterion is pinned to `integration`, which runs via
+  `run-unit-tests.sh --kind integration`.
+- **10 of 12 criteria are `automated`.** SC-01b is `uat` because four live orchestrators contending
+  for one account budget cannot be faked by a test, and SC-06 is `inspection` because it is a `grep`
+  over two instruction files. Nothing else is left to a human.
 
 ## Constraints
 
