@@ -5747,6 +5747,18 @@ future entry must carry. **No detection machinery is added.** The omission is ac
   eight exists in the harness repository. The consequence is latent. Adding one would need it named
   the way the four are named.
 
+
+### DEC-189 amendment 1 (2026-08-20) — the illustrative paths are respelled `<repo>`, tracking DEC-193 am.2
+
+This entry's two examples read `<product>/src/main.py` and `<product>/docs/guide.md`. They now read
+`<repo>/...`. Nothing about the two-base resolution changes; only the name of the segment, so that
+this entry and DEC-193 do not spell one idea two ways — which is the drift DEC-193 am.2 closes.
+
+**Recorded here because the edit was made in place.** The reasoning lives in DEC-193 am.2, and a
+reader who opens THIS entry through the index would otherwise find altered text with no local note
+that it changed or why. An unrecorded edit to a decision is indistinguishable from a decision that
+always said that.
+
 ## DEC-190 — `jsonschema` is a required dependency, and a missing import is a loud error
 
 **A feature's execution state is validated against a real JSON Schema at write time**, and the
@@ -5863,7 +5875,8 @@ closed key set this field lives inside.
 ## DEC-193 — Code is written in exactly two locations; any other checkout of this repository is refused by one shared rule on both write routes
 
 **There are exactly two places code is written under harness's authority:** `.claude/worktrees/<id>/`,
-where harness develops itself, and `workspace_root/<product>`, where the factory works on a product.
+where harness develops itself, and `workspace_root/<repo>`, where the factory works on a product.
+(Spelled `<product>` as signed; respelled by amendment 2 — see below.)
 Both keep exactly their prior behaviour. **Any other checkout of this repository — a linked worktree
 living outside `.claude/worktrees/`, however complete its manifest and its agents look — is a
 mistake, not a supported shape.**

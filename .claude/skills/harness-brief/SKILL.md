@@ -16,6 +16,9 @@ A criterion with no method is not verifiable, and discovering that at ship time 
 
 - `.harness/harness/features/<FEAT>/BRIEF.md` if present — you are updating, not replacing.
 - The repo's `CLAUDE.md` for project context.
+- **`.harness/harness/docs/DECISIONS-INDEX.md`, grepped for the surface this feature touches.**
+  Open the two or three entries it names. Never read `DECISIONS.md` whole (DEC-150). A brief that
+  contradicts a live decision, or restates one as if new, sends the build to argue with the tree.
 - Do **not** explore the whole codebase. This is a scope document, not a research task.
 
 ### 2. Interview — one round, batched
@@ -100,10 +103,43 @@ Two duties, and the second is the one that was missing:
 
 ## Constraints
 - Anything that bounds the solution: existing contracts, conventions, things not to touch.
+- **Separate what BLOCKS from what SUPPLIES.** An already-built mechanism this feature uses is not a
+  constraint — listing it under that heading reads as obstruction and invites someone to strike a
+  thing the feature depends on. Name decisions by number and say which of the two each one is.
+- **A disclosure is not a decision.** "This feature does not fix X" is scope only if the user chose
+  it. If X is a consequence this feature makes reachable, put it to them.
 
 ## Approval
 status: pending          # ONLY the user sets this to approved, with a date
 ```
+
+### 3b. Vocabulary — reuse names, never invent them
+
+**Every name in a brief must already exist in the code, in `DECISIONS.md`, or in the config.** If you
+need a word for something, go find what it is already called.
+
+This is the highest-yield rule in this skill and it is the cheapest to skip. A brief is read by
+agents that then write code. Give one thing two names and the build resolves the difference by
+guessing — which is drift, discovered at ship time, in a diff nobody can attribute.
+
+**How to obey it:** before writing a path, an identifier, or a term of art, grep for it. Use what
+comes back, spelled the way it is spelled there.
+
+| Do | Do not |
+|---|---|
+| `owner_root`, `workspace_root`, `harness_root` | `<repo root>`, `<this checkout>`, "the base dir" |
+| `WORKTREES_SEGMENT` | `.claude/worktrees` spelled out again |
+| the segment `DECISIONS.md` uses | a clearer synonym you prefer |
+
+**A path is a name.** `.harness/<repo>/features/` and `.harness/<product>/features/` are the same
+idea with two spellings, and one of them is wrong. Check which the tree uses.
+
+**If the established name is genuinely wrong, amend the decision that owns it** — one statement, one
+home. Do not introduce a better word beside it and leave both live. Naming the same thing two ways
+in two documents is how DEC-193 and the layout migration drifted apart.
+
+**Say which existing decisions bind this feature, by number**, in `## Constraints`. Cite the entry,
+not your memory of it.
 
 ### 4. Verify each SC is well-formed
 
@@ -122,6 +158,18 @@ Every `SC-NN` carries exactly one `verify:`:
 - An SC is not falsifiable — "the code is clean", "performance is good". If you cannot say what
   observation would prove it false, it is not a criterion.
 - An SC restates a requirement instead of naming an outcome.
+- **An SC cannot be reached by the method it declares.** `verify: inspection` grades an artifact; it
+  cannot grade conduct that happened in a terminal and was never written down. If nothing on disk
+  can settle it, it is not a criterion — it is a hope.
+- **An SC quantifies over more than the work can touch.** "No surviving document asserts X" cannot
+  be discharged by a task whose `files:` names one file. Compare each criterion's scope against the
+  union of files the tasks will touch, and narrow the criterion or widen the work — at signature,
+  not at ship.
+- **An SC graded on file CONTENT does not say to read the pinned sha.** A plain read cannot tell
+  committed from uncommitted work, so a criterion passes on a deliverable that never entered the
+  reviewed tree. Write `git show <review_sha>:<path>` into the criterion.
+- **An SC's test could not be shown to fail first.** If the assertion would pass before the work is
+  done, it proves nothing. Say in the criterion that the failing state must be demonstrated.
 
 ### 5. The REQ test — apply it to every requirement
 
@@ -170,3 +218,6 @@ Needs your approval before any work starts.
 | "The user said use Postgres, that's REQ-03" | That is a decision. Apply the REQ test |
 | "I should explore the codebase first" | This is scope, not research. Ask the user instead |
 | "I'll mark it approved since they described it to me" | Describing is not approving. Only the user approves |
+| "I need a clearer word for this" | Then find what it is already called. A synonym in a brief is drift in the build |
+| "The criterion is unmeetable, I'll reword it" | Rewording a criterion so it passes is deciding the verdict first. Narrow the scope with the user, or ship it unmet |
+| "This decision blocks us, list it as a constraint" | Check first. Most cited decisions supply the mechanism rather than forbid it |
