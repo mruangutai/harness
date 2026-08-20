@@ -1,0 +1,18 @@
+{
+  "feature_id": "FEAT-30-worktree-per-feature",
+  "branch": "none",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "github": {
+    "milestone": null,
+    "parent": 572,
+    "parent_origin": "adopted",
+    "attached": [],
+    "issues": {}
+  },
+  "runs": []
+}
