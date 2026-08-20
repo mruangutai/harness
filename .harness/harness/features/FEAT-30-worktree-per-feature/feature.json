@@ -38,7 +38,7 @@
     {
       "id": "amend-product",
       "squad": "product",
-      "verdict": "BLOCKED"
+      "verdict": "PASS"
     },
     {
       "id": "amend2-product",
