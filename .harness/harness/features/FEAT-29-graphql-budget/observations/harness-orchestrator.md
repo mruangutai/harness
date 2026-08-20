@@ -213,3 +213,30 @@
   runner-level count is 18 scripts. **A derived total nobody quotes the command for is not a
   measurement.** Leads hold no Bash, so arithmetic disputes between members can only be closed at my
   tier, and closing them is cheap.
+
+- 2026-08-19: **a task `verify:` that reads the WORKING TREE cannot distinguish committed from
+  uncommitted work.** T-08's gate passed, the task was marked done, the goal-check nearly passed it,
+  and the deliverable was never in the tree under review — `git show <pin>:CLAUDE.md` lacks it
+  entirely while the working copy carries it. Every artifact in the chain was honest; the gate simply
+  asked the wrong tree. Any criterion whose evidence is a file's CONTENT should be graded with
+  `git show <review_sha>:<path>`, never by reading the path. This generalises past one task.
+
+- 2026-08-19: **I twice wrote overstated justifications into dispatch briefs and a lead caught both
+  before the member built on them.** I said an OFF-state was proven "only via direct record() calls on
+  a code path that never ships" — wrap-site cases already existed; and I said "only the call count
+  reddens", implying unique discrimination, when the same mutant reddens three checks. The work I
+  asked for was right both times; the reasoning I attached to it was not. **A false justification is
+  more durable than a false instruction**, because it enters the receipt and every later re-grade as
+  established fact while the instruction merely produces work that gets checked.
+
+- 2026-08-19: **a criterion that quantifies over "every surviving document" cannot be discharged by a
+  task whose `files:` names one.** SC-08 required no document assert a rotted figure; T-05 corrected
+  the single file it was scoped to, and the same claim survived in a closed feature's five artifacts.
+  Sweep the corpus at PLAN time when a criterion is universal, and either scope the criterion to what
+  a task can reach or give the task the corpus.
+
+- 2026-08-19: my own sweep beat the goal-check's single finding by separating documents that ASSERT a
+  false claim from documents that already RECORD it as stale — two of the seven hits were
+  self-correcting and did not refute the criterion at all. When escalating a corpus-wide absence
+  finding, classify the hits before handing them up; an undifferentiated grep count makes a
+  three-document problem look like a seven-document one and inflates the operator's decision.
