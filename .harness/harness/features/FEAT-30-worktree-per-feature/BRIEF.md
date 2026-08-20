@@ -39,29 +39,38 @@ hostages in another's checkout.
 
 ## Requirements
 
+The location rule, settled by the operator 2026-08-20 and stated as three facts so nobody
+re-derives it:
+
+1. **`workspace_root` is for every repository EXCEPT harness.** `fleet.yaml` declares them and
+   `workspace_root/<repo>` holds each one's checkout, outside this repository.
+2. **`.claude/worktrees/` is for harness ONLY.** `fleet.yaml` excludes `mruangutai/harness` on
+   purpose (DEC-174 am.1) so that this stays true, and the absence is what enforces it.
+3. **The repository is NAMED in the path** — `.claude/worktrees/harness/<id>/` — so a reader can
+   see which repository a working tree belongs to without inferring it.
+
 - REQ-01: The dispatch path creates a worktree per feature run at
-  **`<harness root>/.claude/<repo>/worktrees/<id>/`** — one slot per repository, under THIS
-  checkout, whichever repository the work belongs to. Harness's own features use the `harness`
-  slot. A repo the factory serves uses its own. Two features for harness and two for another repo
-  run at the same time: four worktrees, four branches, one root, one place to look.
+  **`<repo root>/.claude/worktrees/<repo>/<id>/`**, and the orchestrator works inside it. For
+  harness that is `<this checkout>/.claude/worktrees/harness/<id>/`. For a served repo it is that
+  repo's own checkout under `workspace_root`, same shape. Two features for harness and two for
+  another repo run at once: four worktrees, four branches.
 - REQ-02: A worktree is cut from its own repository's default branch, never from another feature's
   branch. For harness that is `main`; for a served repo it is the `default_branch` its `fleet.yaml`
-  entry declares, since that value exists precisely because it is read before the checkout exists.
-- REQ-07: A served repo's PRIMARY CLONE stays at `fleet.yaml`'s `workspace_root/<repo>` and is not
-  moved. `git worktree add` requires an existing clone, so worktrees are additional to a checkout
-  and never a replacement for one. The clone is what `.claude/<repo>/worktrees/<id>/` are worktrees
-  OF; nothing works in the clone directly.
-- REQ-08: Legality is computed against the HARNESS root's `.claude/<repo>/worktrees/` rather than
-  against the owning repository's root, and a location outside it is refused. This is a change in
-  what legality MEANS, not a widened glob.
+  entry declares, which is why that field exists — it is read before the checkout does.
 - REQ-03: The worktree is removed when its feature reaches a terminal state, and its artifacts
-  reach `main` before removal.
+  reach the default branch before removal.
 - REQ-04: A governed agent that switches branch, or otherwise moves `HEAD`, during a live run is
   refused rather than trusted not to.
 - REQ-05: The orchestrator's own instructions state where it works. It reaches an agent by
   preload, not by being told to go read a file.
 - REQ-06: Two features closing out at the same time cannot silently lose Expertise entries.
   Whatever the merge policy is, a lost entry is DETECTED rather than trusted not to happen.
+- REQ-07: A served repo's PRIMARY CLONE stays at `workspace_root/<repo>` and is not moved.
+  `git worktree add` requires an existing clone, so worktrees are additional to a checkout and
+  never a replacement. Nothing works in the clone directly.
+- REQ-08: `WORKTREE_REL_RE` gains the repository segment. The pattern today strips
+  `<segment>/<id>/`; with the repository named it must strip `<segment>/<repo>/<id>/`, or every
+  write inside a worktree resolves against the wrong path and is refused.
 
 ## Success Criteria
 
@@ -73,10 +82,15 @@ hostages in another's checkout.
 - SC-02: A worktree created for a feature run is cut from its own repository's default branch.
   Asserted against the merge-base, not against the branch name.
   verify: automated      evidence: integration
-- SC-02b: A worktree at `.claude/<repo>/worktrees/<id>/` whose owner is a clone under
-  `workspace_root` is accepted, and one outside that layout is REFUSED with a message naming where
-  worktrees belong. Both directions are asserted: today's code refuses the accepted case, so the
-  positive half must be shown to fail before the change and pass after.
+- SC-02b: A worktree at `.claude/worktrees/<repo>/<id>/` is accepted as legitimate, and one
+  outside that layout is REFUSED with a message naming where worktrees belong. Both directions
+  asserted, on a throwaway repository rather than this one.
+  verify: automated      evidence: integration
+- SC-02c: A domain-granted path written from INSIDE a worktree resolves to the same grant as from
+  the checkout root. The prefix strip must remove `<segment>/<repo>/<id>/`, not
+  `<segment>/<id>/` — measured 2026-08-20, today's pattern leaves the id in the path, so every
+  in-worktree write would be refused. The test drives a real write for at least one agent and
+  proves it FAILS before the strip is fixed.
   verify: automated      evidence: integration
 - SC-03: An attempt by a governed agent to move `HEAD` during a live run is REFUSED and says why.
   The test drives the refusal and proves it can pass when it should — a guard that never fires is
@@ -116,21 +130,18 @@ hostages in another's checkout.
 constraints, which read as obstruction. They are not: both are already-built mechanisms this
 feature uses, and the operator's challenge to that framing is why they now read as what they are.
 
-- **DEC-193 MUST BE AMENDED, and an earlier draft of this brief was wrong about that.** That draft
-  claimed multi-repo needed no enforcement change. It is true only if a served repo's worktrees sit
-  under that repo's own root, which is not the shape the operator chose and not the shape that
-  gives one place to look.
+- **DEC-193 does NOT need amending, and this brief said twice that it did.** The first draft
+  claimed no enforcement change was needed; the second claimed legality itself had to be
+  redefined. Both were answers to shapes the operator did not choose, and the settled one costs
+  less than either.
 
-  `harness_boundary.py:33` defines `WORKTREES_SEGMENT = ".claude/worktrees"` as a relative path, and
-  `worktree_owner()` computes `legal_home = owner_root + WORKTREES_SEGMENT` where `owner_root` comes
-  from the worktree's own `.git` pointer. **Measured both directions, 2026-08-20:** a throwaway
-  second repository with a worktree under its own `.claude/worktrees/FEAT-01` returned
-  `legitimate=True`; a sibling outside it returned `legitimate=False`.
-
-  That mechanism REFUSES the chosen shape. A kaya-ai worktree at
-  `harness/.claude/kaya-ai/worktrees/FEAT-01` has its owner at `workspace_root/kaya-ai`, so
-  `legal_home` resolves elsewhere and the write is refused. REQ-08 is therefore a change in what
-  legality means, and it lands in the enforcement layer — main-session-direct under DEC-174.
+  Measured 2026-08-20 on a throwaway repository with a worktree at
+  `.claude/worktrees/harness/FEAT-30`: `worktree_owner()` returned `legitimate=True`. Legality is
+  `commonpath` against `<owner root>/.claude/worktrees`, so a deeper path is still inside it and the
+  rule holds unchanged. What DOES break is the prefix strip — `WORKTREE_REL_RE` on
+  `.claude/worktrees/harness/FEAT-30/.harness/x.md` returns `FEAT-30/.harness/x.md` instead of
+  `.harness/x.md`, so domain globs would miss and every in-worktree write would be refused. That is
+  REQ-08 and SC-02c: one segment in one regex, in the enforcement layer, main-session-direct.
 - **Nested product state does NOT collide with harness's own discovery**, which was the main risk
   and is checked rather than assumed. `check-state.sh:38` sets `H = <root>/.harness` and discovery
   globs `H/*/features/*`. A worktree under `.claude/` carries its own repository's `.harness/`, which
