@@ -409,6 +409,34 @@ with tempfile.TemporaryDirectory() as tmp:
           f"non_cov={non_cov}")
 restore()
 
+# --- factory_gh.run_gh wrap site, OFF, FAILING invocation: the recorder stays fully out of the
+# way of a non-zero-rc call too, not just the rc=0 case already covered above ---
+# QA fix cycle (SC-05): every existing OFF case that drives the real wrapper (lines 335-346,
+# 367-379) uses _counting_fake()'s default rc=0. record()'s own guard at gh_cost_log.py:112
+# already forecloses a write for ANY rc once _enabled() is False, so this case cannot discover a
+# defect record() doesn't already prevent — what it DOES pin is measured()'s guard at :157 firing
+# on the non-zero-rc path specifically, closing the grading ambiguity SC-05's amended sentence
+# ("including for a failing invocation") named.
+with tempfile.TemporaryDirectory() as tmp:
+    path = redirect(tmp)
+    fake_run, calls = _counting_fake(rc=1)
+    gh_cost_log.subprocess.run = fake_run
+    os.environ.pop("HARNESS_GH_COST_LOG", None)  # ensure genuinely unset
+    try:
+        _fgh.run_gh(["issue", "view", "1"])
+        raised = False
+    except _fgh.GhError:
+        raised = True
+    check("OFF, FAILING: GhError was still raised (the wrapper does not swallow the real error)",
+          raised)
+    check("OFF, FAILING: no log file is created",
+          not os.path.exists(path), f"exists={os.path.exists(path)}")
+    check("OFF, FAILING: no line is written",
+          read_lines(path) == [], f"lines={read_lines(path)}")
+    check("OFF, FAILING: exactly one subprocess call (the real call only, neither counter read)",
+          len(calls) == 1, f"calls={calls}")
+restore()
+
 
 if FAILURES:
     print(f"\n{len(FAILURES)} of {RAN} FAILING.")

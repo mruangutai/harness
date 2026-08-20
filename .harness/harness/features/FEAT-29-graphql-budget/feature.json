@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Building",
   "review_sha": "4f2e5d0",
-  "cycles_used": 7,
+  "cycles_used": 8,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "github": {
@@ -87,6 +87,21 @@
     },
     {
       "id": "2026-08-19-10-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-19-11-product",
+      "squad": "product",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-19-12-product",
+      "squad": "product",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-19-13-eng",
       "squad": "eng",
       "verdict": "PASS"
     }

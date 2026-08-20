@@ -156,3 +156,12 @@
   received was stale relative to a sibling run that had already landed the fix and receipt. An
   absent-artifact claim in a dispatch is a snapshot, not a lock; verify tree state directly
   before trusting it, especially on a re-dispatch.
+- 2026-08-19 (T-03, SC-05 fix cycle c1): the dispatcher's framing of "the gap" was stale relative to
+  the file at HEAD — two OFF wrap-site cases already existed (rc=0 only), so the real gap was
+  narrower than described: OFF + real wrapper + non-zero rc specifically. Re-reading the file at
+  dispatch time before writing anything caught this; writing to the stale framing would have
+  duplicated existing coverage instead of closing the actual hole. Confirmed post-hoc that the new
+  case adds zero NEW mutation-kill power over the two pre-existing OFF/rc=0 call-count checks
+  (record()'s :112 guard forecloses OFF-path writes regardless of rc) — its value is closing a
+  grading ambiguity (SC-05's "including for a failing invocation" sentence), not discrimination.
+  Worth stating plainly rather than oversold, per the dispatch's own instruction.
