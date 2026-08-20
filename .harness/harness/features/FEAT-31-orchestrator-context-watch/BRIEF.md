@@ -55,11 +55,26 @@ fact.
 
 ## Goal
 
-Put back the measurement DEC-159 assumes exists, and make it honest. The operator can ask what an
-orchestrator's context is **while it is still running**, get a figure that refuses rather than
-guesses, be warned before compaction rather than after, and tell a compliant per-phase orchestrator
-from one that has been resumed past the seam. Nothing here re-opens cost accounting: DEC-178 removed
-money, and this measures context only.
+Put back the measurement DEC-159 assumes exists, make it honest, and close the loop it leaves open.
+The operator can ask what an orchestrator's context is while it is still running. The orchestrator
+itself is told, at the moment it crosses the threshold, in its own context. It then finds the nearest
+seam, writes the state a successor needs, and ends — and a fresh orchestrator picks up from disk with
+a clean context and loses nothing. Nothing here re-opens cost accounting: DEC-178 removed money, and
+this measures context only.
+
+**Two operator rulings, 2026-08-20, fix the shape of the mechanism.**
+
+**The warning advises; it does not refuse.** A hook that blocks tool calls at the threshold would
+guarantee the relay, and would also trap an orchestrator whose handoff writes fell outside the
+allow-list. The warning is delivered and the orchestrator decides. The stated risk accepted: this is
+how DEC-148's watchdog died — a signal nobody was obliged to read. What makes this different is
+delivery, not obligation. DEC-148's figure sat in a report nobody opened; this one arrives inside the
+agent's own context at the moment it matters, and DEC-159's seam rule is already an instruction
+orchestrators follow — FEAT-30's planner ended at its own plan seam unprompted at a 407,424 peak.
+
+**A mid-phase crossing gets a handoff, not a hold.** DEC-159 already sanctions the mid-phase relay as
+its bounded escape. Waiting for the real seam is what produced FEAT-29: an orchestrator deep in a fix
+loop, growing past every threshold, with the next seam far ahead.
 
 ## Requirements
 
@@ -69,13 +84,21 @@ money, and this measures context only.
   so and names the record it distrusts, instead of reporting the number.
 - REQ-03: The operator is warned while there is still room to act, against a threshold that lives in
   `.harness/harness.json` `budgets` rather than in code.
-- REQ-04: The operator can tell, per feature and from disk, an orchestrator that ended at its phase
-  seam from one that was resumed past it.
+- REQ-04: The operator can tell, per feature and from disk, which orchestrator ran each run, so an
+  orchestrator that ended at its phase seam is distinguishable from one carried past it. **Ruled
+  2026-08-20: `feature.json`'s `runs` items gain an agent identifier under DEC-191, and NO existing
+  `feature.json` is migrated — the field starts from this feature forward.**
 - REQ-05: The reading works for an orchestrator running inside a worktree, not only one running in the
   primary checkout.
 - REQ-06: Wherever the figure is reported, what the instrument cannot see is reported beside it.
 - REQ-07: An orchestrator the tool cannot measure is reported as unmeasured, naming the file that
   defeated it. It is never silently omitted from the watch.
+- REQ-08: An orchestrator that crosses the threshold is told so in its own context, while it is
+  running, without the operator asking.
+- REQ-09: A warned orchestrator determines the nearest seam and writes the state a successor needs
+  before it ends. Where no seam is reachable, it writes a mid-phase handoff rather than continuing.
+- REQ-10: A fresh orchestrator resumes from those files alone, with no access to its predecessor's
+  context, and the work it does next is the work the predecessor had decided on.
 
 ## Success Criteria
 
@@ -106,15 +129,14 @@ money, and this measures context only.
   directory for that cwd rather than for `harness_root`. Asserted against the real existing directory
   `-Users-molchairuangutai-GitHub-harness--claude-worktrees-fix-harness-tooling-backlog`.
   verify: automated      evidence: integration
-- SC-07: **BLOCKED — needs the operator's decision before this brief is signed. Do not plan against
-  it as written.** The criterion assumed `feature.json` `runs` records which orchestrator ran a run.
-  It does not: `feature-schema.json` closes each `runs` item to exactly `id`, `squad` and `verdict`
-  with `additionalProperties: false`, so no field links a run to an agent and nothing on disk can
-  detect a seam crossing. The criterion also had no ground truth — DEC-159 sets no numeric bound on
-  its sanctioned fix-loop exception, so "was FEAT-29 compliant" has no rule to test against until
-  SC-09 writes one. Either REQ-04 gets a schema change under DEC-191, or REQ-04 narrows to what the
-  existing record can answer. Both are the operator's call.
-  verify: pending operator decision
+- SC-07: `feature.json`'s `runs` items carry an agent identifier, and **the write path refuses a run
+  entry that omits it** — enforced where DEC-191's closed key set is already enforced, on
+  `check-domain.sh`'s `feature.json` write route. This is what makes "from here on out" mean
+  something: absence can then only mean the entry predates the change, so the read-side check skips
+  it safely instead of confusing an old run with a failure to record. No existing `feature.json` is
+  migrated (operator ruling, 2026-08-20). Tested both ways: a run entry without the field is refused
+  at write, and a `feature.json` whose existing entries lack it still validates.
+  verify: automated      evidence: unit
 - SC-08: The tool's own output carries its blind spots, and the list is derived rather than asserted:
   at minimum, that it cannot see a context that has already compacted, that it reads a 30-day
   retention window, and that a figure it prints is the prompt size the API recorded, not the window
@@ -135,6 +157,29 @@ money, and this measures context only.
   Deleting the unmeasured branch must make this test fail, and the test asserts that the total row
   count still equals the number of sidecars on disk, so a silent drop cannot pass.
   verify: automated      evidence: unit
+
+- SC-12: **GATING — nothing else is built until this is settled.** A hook payload delivered during a
+  real subagent run is captured once and inspected, establishing whether `transcript_path` holds the
+  SUBAGENT's own transcript or the parent session's. `harness_yaml.py:479` reads the field but nothing
+  in this repository proves its value inside a subagent. If it is the parent's, REQ-08 has no
+  mechanism and the design changes before any code is written. The captured payload is recorded in
+  `notes/` with the run that produced it.
+  verify: inspection
+- SC-13: An orchestrator whose context crosses the threshold receives the warning in its own context,
+  and the warning names its current size, the threshold, and the nearest seam. Demonstrated on a
+  fixture that crosses and one that does not: the crossing one warns, the other is silent. Removing
+  the threshold comparison must make the crossing fixture stop warning.
+  verify: automated      evidence: integration
+- SC-14: A warned orchestrator's successor is handed `notes/handoff-<stem>.md` carrying DEC-159's four
+  required sections within the 60-line cap, and INV-17 accepts it. Where the crossing is mid-phase and
+  the stem is not one of `plan`, `build` or `validate`, INV-17 accepts that shape too — asserted by a
+  test that fails before INV-17's seam table learns the mid-phase stem.
+  verify: automated      evidence: integration
+- SC-15: A fresh orchestrator given only the feature directory does the work the predecessor had
+  decided on. Graded against the predecessor's `## Next`: the successor's first dispatch must match
+  it. This is the criterion that proves the relay preserved intent rather than merely producing a
+  file, so it must be shown to fail when the handoff's `## Next` is emptied.
+  verify: automated      evidence: integration
 
 ## Verification gaps
 
@@ -160,9 +205,12 @@ never fails loudly, so the absence of that case is worth stating rather than lea
   the file defeats it is REQ-07, not a constraint.
 
 - **DEC-174** (am.1-am.4) — `check-state.sh` is named enforcement layer, and the list is
-  non-exhaustive. The harness plans this feature but does not execute the change that makes
-  `check-state.sh` read the new invariant. A squad may write the module the gate calls; the cutover is
-  main-session-direct, and SC-07's task must be declared that way at plan time under DEC-179.
+  non-exhaustive. The harness plans this feature but does not execute the change. **The relay half
+  widens this reach considerably:** SC-07 changes `check-domain.sh`'s write route, SC-13 needs a hook
+  registration in `settings.json`, and SC-14 changes INV-17's seam table in `check-state.sh`. That is
+  three enforcement-layer surfaces, all main-session-direct, all declared as such at plan time under
+  DEC-179. A squad may write the modules those gates call; every cutover is the operator's hands. This
+  is the single largest cost of the relay scope and it is not negotiable under DEC-174.
 - **DEC-178** — cost tracking is removed entirely: meter, budgets, invariant and reporting surfaces.
   This feature may not reintroduce a money figure, a per-model rate table, or a spend budget. Context
   tokens are not currency.
