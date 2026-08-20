@@ -1,0 +1,686 @@
+schema: plan/1
+feature: FEAT-26-pr-linkage-recorded
+
+source_issues: [492]
+
+approval:
+  status: pending
+  approved_by: <name>
+  date: <YYYY-MM-DD>
+
+lanes:
+  resolved_at: 8ad7d5298a8012e7670d64d2ee5c1fdf34fbfc54
+  rows:
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/feature-schema.json
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-gh-sync.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-validate-feature-json.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out, a registered gate script the harness never executes changes to
+    - surface: .claude/skills/harness/bin/test-check-state.py
+      lane: main-session-direct
+      reason: the carve-out script's own fixture, kept in the same hand so red-first is provable
+    - surface: .claude/skills/harness/templates/plan.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY for the templates directory
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY for the playbook
+    - surface: .harness/harness/features/*/feature.json
+      lane: main-session-direct
+      reason: resolves to harness-orchestrator alone, which is not a task-executing lane
+
+decisions:
+  - id: D-01
+    choice: The pull request number is DERIVED at ship time from the branch already recorded in
+      feature.json, by one gh pr list query on that head, and is never typed by a caller
+    because: the seat that opens a PR is the user's under DEC-153, so recording at open time still
+      depends on a human remembering to run a command
+    dec: DEC-153
+
+  - id: D-02
+    choice: Derivation writes only when the branch resolves to EXACTLY ONE merged pull request,
+      leaving pr unchanged and printing one line on zero or on more than one
+    because: the branch feat/harness-native-foundation really does carry two merged PRs, so a
+      first-match rule would silently record the wrong one
+    dec: none
+
+  - id: D-03
+    choice: The source tickets live in plan.yaml as a top-level source_issues list and are mirrored
+      into feature.json github.source_issues by gh-sync.py open
+    because: the operator names the tickets at plan time and signs them there, while the code that
+      needs them runs at ship time, so the value must already be durable when it runs
+    dec: DEC-138
+
+  - id: D-04
+    choice: The closing keywords are RENDERED to stdout for the operator's pull request body; the
+      harness never posts them and never closes a source ticket
+    because: DEC-138 amendment 6 forbids the mirror composing its own text at post time and DEC-196
+      limits closing to cards the harness created
+    dec: DEC-196
+
+  - id: D-05
+    choice: All eleven null features are backfilled and none is grandfathered; the four whose branch
+      does not resolve take an operator-confirmed number at signature
+    because: every one of the eleven maps to a merged pull request, so a boundary would preserve a
+      gap that measurement shows is closable, and the new invariant can then be clean on day one
+    dec: none
+
+  - id: D-06
+    choice: The new invariant is warn level, not violation level
+    because: INV-21 set the precedent that the GitHub mirror never gates a flow, and PR linkage is
+      bookkeeping rather than correctness
+    dec: DEC-138
+
+  - id: D-07
+    choice: save_recorded refuses to write when feature.json is absent instead of starting from an
+      empty document
+    because: a document holding only a github key fails the schema's eight required keys, and
+      _record_status in the same file already refuses for exactly that reason
+    dec: DEC-191
+
+  - id: D-08
+    choice: An absent or empty source_issues list is legal and silent everywhere - the renderer
+      emits nothing at exit 0 and no invariant mentions it
+    because: features planned before this mechanism existed carry none, and a feature can genuinely
+      be planned from no ticket
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Declare source_issues in the feature schema, with fixtures that pass and fixtures that fail
+    traces: [REQ-02]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/feature-schema.json
+      - .claude/skills/harness/bin/test-validate-feature-json.py
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/test-validate-feature-json.py 2>&1) || { printf '%s\n' "$out"; exit 1; }
+      printf '%s\n' "$out" | grep -q '^PASS accepted_source_issues_list_of_integers$' || exit 1
+      printf '%s\n' "$out" | grep -q '^PASS rejected_source_issues_non_integer$' || exit 1
+      printf '%s\n' "$out" | grep -q '^PASS rejected_source_issues_quoted_number$' || exit 1
+      printf '%s\n' "$out" | grep -q '^PASS rejected_undeclared_sibling_of_source_issues$' || exit 1
+      printf '%s\n' "$out" | grep -q '^PASS accepted_github_block_without_source_issues$' || exit 1
+      printf '%s\n' "$out" | grep -q '^ALL PASS$' || exit 1
+      echo VERIFY-OK
+    intent: |
+      Add one property to the feature execution-state schema and prove it both ways.
+
+      In .claude/skills/harness/bin/feature-schema.json, inside the `github` object's
+      `properties` mapping (the block that today declares milestone, parent, parent_origin,
+      attached and issues), add:
+
+        "source_issues": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "The GitHub issue numbers this feature was planned from, mirrored from
+          plan.yaml's top-level source_issues by gh-sync.py open. Read by gh-sync.py's `closes`
+          renderer. Absent or empty is legal: a feature planned before this key existed carries
+          none, and a feature can be planned from no ticket at all."
+        }
+
+      Do NOT add it to any `required` list, and do NOT touch `additionalProperties: false` at
+      any level. Do not touch any other property, the top-level `pr` property included.
+
+      In .claude/skills/harness/bin/test-validate-feature-json.py, add five cases in the file's
+      existing style (a `def case_<name>()` function using the same helpers the neighbouring
+      github-block cases use, registered the same way they are). This suite prints one
+      `PASS <name>` line per case and `ALL PASS` at the end, so the FUNCTION NAMES must be
+      exactly these, because the task's verify greps for the lines they produce:
+
+        case_accepted_source_issues_list_of_integers
+        case_rejected_source_issues_non_integer
+        case_rejected_source_issues_quoted_number
+        case_rejected_undeclared_sibling_of_source_issues
+        case_accepted_github_block_without_source_issues
+
+      Give none of them a trailing colon-and-phrase in the printed label - a plain
+      `PASS <name>` line is what the verify matches.
+
+      The accepting cases build a document that is otherwise valid and assert zero problems. The
+      rejecting cases assert at least one problem: a list holding the string "492" (the quoted
+      form, which is the shape that has silently read as absent elsewhere in this codebase), a
+      list holding a float or a boolean, and a `github` block carrying `source_issue` (singular,
+      the typo an author will really make) alongside a valid source_issues.
+
+      RED FIRST, and record it: before adding the schema property, run the three rejecting cases
+      against the unmodified schema and confirm they FAIL (the closed github block already
+      rejects an unknown key, so the sibling case may pass early - if it does, say so in your
+      receipt rather than claiming a red you did not see). Then add the property and confirm all
+      five pass. The two accepting cases must fail against the unmodified schema, which is the
+      proof that they are not vacuous.
+
+      Change nothing in gh-sync.py, check-state.sh or any feature.json in this task.
+
+  - id: T-02
+    title: Mirror plan.yaml source_issues into feature.json, threaded so no later save erases it
+    traces: [REQ-02, REQ-06]
+    absorbs: [289]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/test-gh-sync.py 2>&1) || { printf '%s\n' "$out"; exit 1; }
+      printf '%s\n' "$out" | grep -q '^ok    open records source_issues from plan.yaml' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    source_issues survives every save during a full open run' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    open on a plan with no source_issues records none and still succeeds' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    save_recorded refuses when feature.json is absent' || exit 1
+      printf '%s\n' "$out" | grep -q 'ALL PASSED' || exit 1
+      echo VERIFY-OK
+    intent: |
+      Make the source tickets machine-readable, and make them survive the run that writes them.
+
+      In .claude/skills/harness/bin/gh-sync.py:
+
+      1. `load_recorded` — add `"source_issues": []` to the `rec` literal that today seeds
+         milestone, parent, parent_origin, attached and issues. When the loaded `github` block
+         carries `source_issues` and it is a list, copy through only the members that are real
+         integers, excluding bool (reuse the exclusion `_opt_int` already documents: bool is an
+         int subclass in Python). A non-list value, or a member that is not an integer, is
+         dropped silently rather than raising - this reader's three-state error contract is about
+         not knowing what is mirrored, and a malformed source_issues does not put issue creation
+         at risk.
+
+      2. `save_recorded` — add `"source_issues": list(rec["source_issues"])` to the mapping it
+         assigns to `doc["github"]`. THIS IS THE POINT OF THE TASK: that mapping is rebuilt from
+         a fixed set of keys on every call, and cmd_open calls save_recorded after every issue
+         create and again after every attach. A source_issues written by any statement outside
+         this mapping is erased by the next save. Do not write it anywhere else.
+
+      3. `save_recorded` — replace the `else: doc = {}` branch (the absent-file path) with a
+         refusal: raise SystemExit naming the path and saying that feature.json is absent, that
+         the orchestrator instantiates it from
+         .claude/skills/harness/templates/feature.json on its first cycle, and that writing one
+         here would produce a document missing the schema's eight required keys. Note in the
+         message, and accept, that the refusal fires AFTER the milestone create on a hand-run of
+         `open` against a directory with no feature.json - the milestone is then orphaned, and
+         the existing 422 title-lookup recovery in cmd_open resolves it on the next run once the
+         file exists. That ordering is accepted rather than fixed: moving the check earlier means
+         a second first-sync policy in a file that has already been bitten by having two. Keep the
+         not-a-mapping case as it is today (`doc = {}` there is over a file that exists and is
+         already being replaced wholesale). This absorbs issue 289: the path is unreachable on
+         the governed flow and reachable by hand, and _record_status in this same file already
+         refuses to create a document for exactly this reason.
+
+      4. A new module-level function `parse_source_issues(feat_dir)` — load
+         `<feat_dir>/plan.yaml` with harness_yaml.load_file, take the top-level `source_issues`
+         key, and return the list of members that are real integers (bool excluded), in the order
+         written. Return `[]` when plan.yaml is absent, when it does not carry the key, when the
+         value is not a list, or when the feature is still on the PLAN.md format. A plan.yaml
+         that does not parse is the existing loud failure of harness_yaml, unchanged.
+
+      5. `cmd_open` — immediately after its existing `load_recorded` call, set
+         `rec["source_issues"] = parse_source_issues(feat_dir)`. It is refreshed from the plan on
+         every run, so re-planning that changes the tickets is picked up by a re-run; the plan is
+         the truth and feature.json is the mirror.
+
+      In .claude/skills/harness/bin/test-gh-sync.py add four cases in the file's existing style,
+      with exactly these check names:
+
+        open records source_issues from plan.yaml
+        source_issues survives every save during a full open run
+        open on a plan with no source_issues records none and still succeeds
+        save_recorded refuses when feature.json is absent
+
+      The survives-every-save case must drive a run that creates MORE THAN ONE issue, so more
+      than one save_recorded call happens after the value is set, and must assert the value is
+      still present in the file on disk at the end. A case that only asserts after a single save
+      cannot detect the defect this task exists to prevent - say in your receipt how many saves
+      your fixture actually caused.
+
+      RED FIRST: write the four cases first, run them against the unmodified gh-sync.py, and
+      confirm each fails. Record which assertion failed for each.
+
+      Do not touch gh_board.py, load_board, or the gh_board import at line 139 - that surface
+      belongs to another in-flight feature and is read-only here. Do not add a harness.json key.
+
+  - id: T-03
+    title: Derive and record the pull request number from the recorded branch
+    traces: [REQ-01]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/test-gh-sync.py 2>&1) || { printf '%s\n' "$out"; exit 1; }
+      printf '%s\n' "$out" | grep -q '^ok    record-pr writes the number when the branch has exactly one merged PR' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    record-pr leaves pr null when the branch has no merged PR' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    record-pr leaves pr null when the branch has two merged PRs' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    record-pr never overwrites a pr that is already an integer' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    record-pr --pr writes the number given without querying' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    ship records the pr and then the status' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    record-pr exits 0 on every branch case' || exit 1
+      printf '%s\n' "$out" | grep -q 'ALL PASSED' || exit 1
+      echo VERIFY-OK
+    intent: |
+      Give the pull request number a seat that does not depend on anyone remembering it.
+
+      In .claude/skills/harness/bin/gh-sync.py add `_record_pr(feat_dir, repo, pr_arg=None)`:
+
+      - Read feature.json with json.load. Absent, unreadable or not a mapping: print one line and
+        return, exactly as _record_status does. This function NEVER creates a document.
+      - If the document's top-level `pr` is already an int and not a bool, print one line naming
+        the recorded number and return. It is never overwritten, on any path, including when
+        pr_arg is given and differs. Idempotence is what makes the backfill re-runnable.
+      - If pr_arg is not None, use int(pr_arg) as the number and skip the query entirely.
+      - Otherwise read the document's `branch`. If it is missing, not a string, or the literal
+        string "none", print one line saying the branch is unset and return.
+      - Otherwise query, once:
+          gh pr list --repo <repo> --head <branch> --state merged --limit 10 --json number
+        Parse the JSON array. Exactly one element: that element's `number` is the value. Zero
+        elements: print one line saying no merged pull request was found on that head, and
+        return without writing. Two or more: print one line naming every number found and saying
+        the branch is ambiguous, and return without writing. A gh failure or unparseable output
+        is the same shape as zero - one printed line, no write.
+      - Write by setting the top-level `pr` and calling _atomic_write on the whole document, the
+        same shape _record_status uses. Print one line naming the feature and the number.
+      - Every path returns normally and the process exits 0. Never die, never skip the caller's
+        remaining work: the mirror never gates a flow.
+
+      Exactly one is the rule, not first-match: the branch feat/harness-native-foundation carries
+      two merged pull requests, 15 and 4, so a first-match rule records the wrong one.
+
+      Wire it up two ways:
+      - `cmd_ship` calls `_record_pr(feat_dir, repo, pr_arg)` immediately BEFORE its final
+        `_record_status(feat_dir, "Done")` call. That final status write must remain the last
+        statement of the successful path - the file's own docstrings at cmd_ship and cmd_abandon
+        make that structural property explicit, so put the pr call above it, not after.
+      - A new subcommand `record-pr <feature-dir> [--pr N]` in main(), dispatched like the
+        existing ones, calling `_record_pr(feat_dir, repo, pr_arg)` and nothing else. Add
+        `record-pr` to the usage string, and parse `--pr <n>` alongside the existing --parent,
+        --reason-file and --body-file flags, dying with a message when its value is missing.
+        `--pr` is accepted by `record-pr` and by `ship`.
+
+      In .claude/skills/harness/bin/test-gh-sync.py add seven cases in the file's existing style,
+      driving the fake gh the suite already installs, with exactly these check names:
+
+        record-pr writes the number when the branch has exactly one merged PR
+        record-pr leaves pr null when the branch has no merged PR
+        record-pr leaves pr null when the branch has two merged PRs
+        record-pr never overwrites a pr that is already an integer
+        record-pr --pr writes the number given without querying
+        ship records the pr and then the status
+        record-pr exits 0 on every branch case
+
+      The two-merged-PRs case must have the fake gh return two numbers, and must assert that pr
+      is still null afterwards - not merely that some line was printed. The never-overwrites case
+      must have the fake gh return a DIFFERENT number from the one on disk, so a fixture that
+      would pass by coincidence cannot. The exits-0 case asserts returncode 0 for the one, zero
+      and two cases together.
+
+      RED FIRST: run all seven against the unmodified gh-sync.py first and confirm each fails.
+
+      Do not touch gh_board.py or load_board. Do not add a harness.json key.
+
+  - id: T-04
+    title: Render the closing keywords from the recorded source tickets
+    traces: [REQ-03]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/test-gh-sync.py 2>&1) || { printf '%s\n' "$out"; exit 1; }
+      printf '%s\n' "$out" | grep -q '^ok    closes emits one line per recorded source issue in order' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    closes emits nothing at exit 0 when source_issues is empty' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    closes emits nothing at exit 0 when source_issues is absent' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok    closes makes no gh call at all' || exit 1
+      printf '%s\n' "$out" | grep -q 'ALL PASSED' || exit 1
+      echo VERIFY-OK
+    intent: |
+      Turn the recorded source tickets into the text the operator pastes into a pull request body.
+
+      In .claude/skills/harness/bin/gh-sync.py add `cmd_closes(feat_dir)` and a `closes
+      <feature-dir>` subcommand in main(), added to the usage string alongside the others.
+
+      Behaviour, and it is deliberately tiny:
+      - Read the recorded source tickets through `load_recorded(feat_dir)` - the mirror on disk,
+        not plan.yaml, so what is emitted is what was recorded at open time.
+      - Print one line per recorded number, in the recorded order, each exactly:
+          Closes #<n>
+        and nothing else on the line. No heading, no blank line, no trailing prose.
+      - An empty or absent list prints nothing at all and exits 0.
+      - Make no GitHub call of any kind. This subcommand does not need `repo`, does not post, and
+        does not close anything: DEC-138 amendment 6 forbids the mirror composing text it posts,
+        and DEC-196 limits closing to cards the harness created. The operator opens the pull
+        request and pastes these lines; the harness only derives them.
+      - Note that this is the ONE subcommand whose output is meant to be captured by the caller,
+        so nothing else may be printed to stdout on its path. Diagnostics, if any, go to stderr.
+
+      In .claude/skills/harness/bin/test-gh-sync.py add four cases in the file's existing style,
+      with exactly these check names:
+
+        closes emits one line per recorded source issue in order
+        closes emits nothing at exit 0 when source_issues is empty
+        closes emits nothing at exit 0 when source_issues is absent
+        closes makes no gh call at all
+
+      The in-order case uses at least three numbers that are NOT in ascending order on disk, and
+      asserts the emitted order matches the recorded order rather than a sorted one. The no-gh
+      case asserts against the fake gh's own call log that the log is empty, not merely that the
+      command succeeded - if the suite's fake gh does not already record its invocations, extend
+      it to append each invocation to a file in the fixture directory, and leave every existing
+      case's behaviour unchanged.
+
+      RED FIRST: run all four against the unmodified gh-sync.py and confirm each fails.
+
+  - id: T-05
+    title: Add INV-28, the invariant that a shipped feature with no recorded pull request is visible
+    traces: [REQ-04]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out - check-state.sh is a gate script the harness never
+      executes changes to, and its fixture is kept in the same hand so red-first is provable
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/test-check-state.py 2>&1) || { printf '%s\n' "$out"; exit 1; }
+      printf '%s\n' "$out" | grep -q '^ok - INV-28 warns on a Done feature whose pr is null$' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok - INV-28 is silent on a Done feature whose pr is an integer$' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok - INV-28 is silent on an Abandoned feature whose pr is null$' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok - INV-28 is silent on a feature that is not terminal$' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok - INV-28 names each offending feature on its own line$' || exit 1
+      printf '%s\n' "$out" | grep -q '^ok - INV-28 is silent when github.sync is off$' || exit 1
+      echo VERIFY-OK
+    intent: |
+      Make a missing pull request number visible instead of silent, at warn level.
+
+      In .claude/skills/harness/bin/check-state.sh add a new invariant block, numbered INV-28
+      (INV-27 is the highest in the file today). Model it on the INV-21 block - the per-feature
+      glob loop over the feature.json files, its parse guard, and its warn-level append - and
+      place it after INV-24's block so the file's blocks stay in a readable order.
+
+      Gate the whole block on `github.sync` being true in harness.json, exactly as INV-21's block
+      opens - a repository with no mirror configured has no pull requests to record, and the
+      remedy this invariant names needs a working gh. The gate is decided here rather than left
+      to the doer: INV-21's shape implies it and the wording below does not, and two readings of
+      one instruction is the gap this sentence closes.
+
+      What it checks, for each feature.json under the features glob:
+      - Read the document. If it does not parse, append the same shape of message INV-21 uses,
+        naming INV-28 as the check that could not run for that feature, and move to the next.
+      - If the top-level `status` is not exactly the string `Done`, say nothing. `Abandoned` is
+        terminal but asserts no seam was crossed and shipped no pull request, so it is silent
+        here, and so is every non-terminal status.
+      - If the top-level `pr` is an int and not a bool, say nothing.
+      - Otherwise append ONE warn line naming that feature by id, saying its pull request number
+        was never recorded, and naming the remedy command:
+          gh-sync.py record-pr <feature-dir>
+        One line per offending feature, appended inside the loop. A single summary line counting
+        offenders is wrong: a per-feature check that reports one aggregate line cannot tell the
+        operator which feature to fix, and a count is satisfied without naming the last one.
+
+      Warn, never violation: the GitHub mirror never gates a flow (INV-21's own recorded reason),
+      and pull request linkage is bookkeeping rather than correctness. Do not change any existing
+      invariant, do not renumber anything, and do not change check-state.sh's exit behaviour.
+
+      In .claude/skills/harness/bin/test-check-state.py add six cases in the file's existing
+      style. That suite prints `ok - <label>` per passing case and carries its verdict in the
+      exit code rather than a summary line, so the LABELS must be exactly these strings, with no
+      prefix and no suffix, because the task's verify matches whole lines:
+
+        INV-28 warns on a Done feature whose pr is null
+        INV-28 is silent on a Done feature whose pr is an integer
+        INV-28 is silent on an Abandoned feature whose pr is null
+        INV-28 is silent on a feature that is not terminal
+        INV-28 names each offending feature on its own line
+        INV-28 is silent when github.sync is off
+
+      The names-each case builds a fixture tree holding TWO offending features and one conforming
+      one, and asserts a line naming each offender individually - a count of warn lines does not
+      satisfy it. The sync-off case reuses the same offending fixture and only flips the config,
+      so a pass proves the gate rather than an empty tree.
+
+      RED FIRST, and this one is the operator's own hands: write the six cases first, run
+      test-check-state.py against the unmodified check-state.sh, and record which of them fail
+      there - the cases asserting a warn APPEARS must fail, and a silence case may pass early
+      against a file that has no INV-28 at all, which is not evidence of anything. Then add the
+      block and confirm all six pass. This task is executed
+      directly, never dispatched to a squad; both files are named in DEC-174's carve-out or kept
+      beside it.
+
+  - id: T-06
+    title: Backfill the eleven shipped features whose pull request number was never recorded
+    traces: [REQ-05]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: a feature.json resolves to harness-orchestrator alone, which is not a
+      task-executing lane, so the writes are made directly
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .harness/harness/features/FEAT-01/feature.json
+      - .harness/harness/features/FEAT-02/feature.json
+      - .harness/harness/features/FEAT-03-subissue-mirror/feature.json
+      - .harness/harness/features/FEAT-04-decisions-index/feature.json
+      - .harness/harness/features/FEAT-05-pyyaml-file-parsers/feature.json
+      - .harness/harness/features/FEAT-08-remove-cost-tracking/feature.json
+      - .harness/harness/features/FEAT-10-software-factory/feature.json
+      - .harness/harness/features/FEAT-20-migration-detector/feature.json
+      - .harness/harness/features/FEAT-21-features-layout-migration/feature.json
+      - .harness/harness/features/FEAT-22-docs-layout-migration/feature.json
+      - .harness/harness/features/FEAT-23-ship-flow-fixes/feature.json
+    verify: |
+      python3 - <<'PY' || exit 1
+      import json, os, sys
+      expected = {
+        "FEAT-01": 4, "FEAT-02": 4, "FEAT-03-subissue-mirror": 15,
+        "FEAT-04-decisions-index": 15, "FEAT-05-pyyaml-file-parsers": 17,
+        "FEAT-06-team-layer-inv6": 45, "FEAT-07-verify-teeth-batch-probe": 77,
+        "FEAT-08-remove-cost-tracking": 131, "FEAT-09-plan-time-route-check": 136,
+        "FEAT-10-software-factory": 212, "FEAT-11-graphql-field-resolve": 221,
+        "FEAT-12-end-copy-distribution": 259, "FEAT-13-single-issue-board-lookup": 260,
+        "FEAT-14-feature-json-schema": 293, "FEAT-15-domain-product-base": 263,
+        "FEAT-16-factory-per-repo-board": 311, "FEAT-17-guard-boundaries": 298,
+        "FEAT-18-board-truth": 334, "FEAT-19-central-product-config": None,
+        "FEAT-20-migration-detector": 376, "FEAT-21-features-layout-migration": 415,
+        "FEAT-22-docs-layout-migration": 451, "FEAT-23-ship-flow-fixes": 491,
+      }
+      # FEAT-24 and every feature coined after this plan was written are deliberately
+      # ABSENT: they are live, another orchestrator owns them, and a row asserting their
+      # pr would redden this task for someone else's correct work.
+      bad = 0
+      for name, want in expected.items():
+          p = os.path.join(".harness/harness/features", name, "feature.json")
+          if not os.path.exists(p):
+              print("MISSING", name); bad += 1; continue
+          got = json.load(open(p)).get("pr")
+          if got != want:
+              print("WRONG", name, "want", want, "got", got); bad += 1
+          else:
+              print("ok", name, got)
+      sys.exit(1 if bad else 0)
+      PY
+      echo VERIFY-OK
+    intent: |
+      Record the pull request that shipped each of the eleven features whose number was never
+      written, using the mechanism T-03 built rather than by editing the files by hand.
+
+      For the seven whose branch resolves to exactly one merged pull request, run, one per
+      feature, from the repository root:
+
+        python3 .claude/skills/harness/bin/gh-sync.py record-pr .harness/harness/features/<FEAT>
+
+      for FEAT-05-pyyaml-file-parsers, FEAT-08-remove-cost-tracking, FEAT-10-software-factory,
+      FEAT-20-migration-detector, FEAT-21-features-layout-migration,
+      FEAT-22-docs-layout-migration and FEAT-23-ship-flow-fixes. Each should print the number it
+      derived. Do not supply --pr for these: the derivation is the thing being exercised, and a
+      supplied number would prove nothing about it.
+
+      Four cannot be derived, and their numbers are the operator's to confirm at signature.
+      FEAT-01 records branch "none" and FEAT-04-decisions-index records a branch that carries no
+      merged pull request; FEAT-02 and FEAT-03-subissue-mirror share a branch that carries two.
+      Attribution comes from the pull request titles: PR 4 is "Replace GSD with the harness
+      (foundation)" and PR 15 is "FEAT-04 (decisions index) + FEAT-03 backlog disposition +
+      briefing HTML". Run, with these exact numbers:
+
+        record-pr .harness/harness/features/FEAT-01 --pr 4
+        record-pr .harness/harness/features/FEAT-02 --pr 4
+        record-pr .harness/harness/features/FEAT-03-subissue-mirror --pr 15
+        record-pr .harness/harness/features/FEAT-04-decisions-index --pr 15
+
+      Touch nothing else. FEAT-19-central-product-config is Abandoned and was never built, so its
+      null is correct and it is not backfilled. Features still in flight when this plan was
+      written, FEAT-24 among them, are not touched and are not asserted. Do not edit any
+      feature.json with an editor: if record-pr will not write a value, that is a finding about
+      T-03, not something to work around by hand.
+
+      Then run the task's verify, which asserts each of the twenty-three expected values
+      individually - the eleven backfilled, the eleven already recorded, and FEAT-19's null,
+      which is stable because Abandoned is terminal.
+
+  - id: T-07
+    title: Record the new subcommands and the source_issues key where an author will look for them
+    traces: [REQ-02, REQ-03, REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for both the templates directory
+      and the playbook
+    depends_on: [T-03, T-04]
+    status: pending
+    files:
+      - .claude/skills/harness/templates/plan.yaml
+      - .claude/skills/harness/SKILL.md
+    verify: |
+      grep -q '^source_issues:' .claude/skills/harness/templates/plan.yaml || exit 1
+      grep -q 'record-pr' .claude/skills/harness/SKILL.md || exit 1
+      grep -q 'gh-sync.py closes' .claude/skills/harness/SKILL.md || exit 1
+      grep -q 'source_issues' .claude/skills/harness/SKILL.md || exit 1
+      grep -q 'composes no issue-closing text into any pull request body' .claude/skills/harness/SKILL.md && exit 1
+      python3 -c "import yaml,sys; d=yaml.safe_load(open('.claude/skills/harness/templates/plan.yaml')); sys.exit(0 if 'source_issues' in d else 1)" || exit 1
+      echo VERIFY-OK
+    intent: |
+      Two files, so the next author writes the field without being told.
+
+      In .claude/skills/harness/templates/plan.yaml, add a top-level `source_issues:` key
+      directly under the `feature:` line, with a short comment above it in the file's existing
+      voice: the GitHub issue numbers this feature was planned from, a list of bare integers,
+      written by pm at plan time and signed with the plan; gh-sync.py open mirrors them into
+      feature.json, and gh-sync.py closes renders them as the pull request body's closing
+      keywords. Say that an empty list is legal for a feature planned from no ticket. Keep the
+      template's own placeholder style - the value in the template is an example, not real data.
+
+      In .claude/skills/harness/SKILL.md, in the table of gh-sync subcommands and their owners,
+      add two rows in the table's existing voice:
+      - `gh-sync.py record-pr <feature-dir> [--pr N]`, owner main session, when: after the pull
+        request has merged - derives the number from the recorded branch when that branch carries
+        exactly one merged pull request, leaves it alone otherwise, and never overwrites a number
+        already recorded. Note that `ship` runs it too, so the ordinary flow needs no separate
+        call.
+      - `gh-sync.py closes <feature-dir>`, owner main session, when: composing the pull request
+        body - prints one `Closes #N` line per issue number recorded in feature.json's
+        `github.source_issues`, makes no GitHub call, and posts nothing. Name the
+        `source_issues` key explicitly in this row and say where it comes from: pm writes it as
+        a top-level list in plan.yaml, the operator signs it, and `open` mirrors it.
+
+      Then correct the paragraph a few lines below the table which today reads "the harness
+      composes no issue-closing text into any pull request body". That sentence becomes false the
+      moment `closes` exists, and this repository strikes falsified statements rather than
+      leaving them standing. Replace it with the true statement: the harness DERIVES the closing
+      keywords from the source tickets recorded in feature.json and prints them for the operator,
+      who opens the pull request and pastes them; it never opens the pull request, never posts
+      the text, and never closes a source ticket itself. The verify for this task asserts the old
+      sentence is gone as well as that the new rows are present.
+
+      Keep the file within its 80-line-per-CLAUDE.md discipline where that applies - SKILL.md has
+      no such budget, but say it in the fewest lines that carry the rule.
+
+  - id: T-08
+    title: Record the decision that the mirror now reads one fact back into execution state
+    traces: [REQ-01, REQ-02]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-03, T-04, T-05]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      grep -q '^## DEC-197 ' .harness/harness/docs/DECISIONS.md || exit 1
+      grep -q '^- DEC-197 @' .harness/harness/docs/DECISIONS-INDEX.md || exit 1
+      python3 - <<'PY' || exit 1
+      import re, sys
+      idx = open(".harness/harness/docs/DECISIONS-INDEX.md").read()
+      row = [l for l in idx.splitlines() if l.startswith("- DEC-197 ")]
+      if len(row) != 1:
+          print("expected exactly one DEC-197 row, found", len(row)); sys.exit(1)
+      m = re.match(r"- DEC-197 @(\d+) ", row[0])
+      if not m:
+          print("DEC-197 row carries no line anchor:", row[0]); sys.exit(1)
+      lines = open(".harness/harness/docs/DECISIONS.md").read().splitlines()
+      n = int(m.group(1))
+      if not (1 <= n <= len(lines)) or not lines[n - 1].startswith("## DEC-197 "):
+          print("anchor", n, "does not land on the DEC-197 heading"); sys.exit(1)
+      print("ok DEC-197 row and anchor agree")
+      PY
+      echo VERIFY-OK
+    intent: |
+      Write the entry a future reader will need when they find the mirror reading from GitHub.
+
+      Append a new entry `## DEC-197` to .harness/harness/docs/DECISIONS.md, in the file's
+      established voice and length, and add its one-row summary to
+      .harness/harness/docs/DECISIONS-INDEX.md in the index's exact row format, with the line
+      anchor pointing at the new heading. Use the index's generator if this repository has one
+      rather than hand-writing the anchor.
+
+      What the entry must record, because these are the parts a later reader will otherwise
+      re-litigate:
+
+      - The pull request number is derived at ship time from the branch already recorded, by one
+        query on that head, and written only when exactly one merged pull request is found. The
+        rejected alternative is recording it when the pull request is opened, rejected because
+        the opening seat is the user's under DEC-153, so open-time recording still depends on a
+        human remembering.
+      - Exactly one, not first match: one branch in this repository's own history carries two
+        merged pull requests.
+      - This is the mirror reading ONE fact back from GitHub. DEC-138 made the mirror write-only
+        so that a wiki-editable surface could not feed an approval-gated artifact. That guarantee
+        is intact: `pr` lives in feature.json, which is execution state and carries no approval
+        block, and nothing read back reaches BRIEF.md or plan.yaml. Say that plainly, because the
+        write-only phrase is what a future reader will remember.
+      - The source tickets live in the signed plan.yaml as `source_issues` and are mirrored into
+        feature.json's github block. The plan is the truth; feature.json is the mirror; a re-plan
+        that changes them is picked up by re-running open.
+      - The closing keywords are rendered for the operator and never posted, under DEC-138
+        amendment 6, and no source ticket is ever closed by the harness, under DEC-196.
+      - All eleven previously null features were backfilled rather than grandfathered, because
+        every one mapped to a merged pull request; four of them took a number the operator
+        confirmed from the pull request titles because their branch could not resolve.
+      - The new invariant is warn level, following INV-21's recorded reason that the mirror never
+        gates a flow.
+
+      Do not restate the implementation. Carry the rule and one clause of why, as DEC-158
+      requires.

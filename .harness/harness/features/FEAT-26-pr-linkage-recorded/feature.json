@@ -1,0 +1,24 @@
+{
+  "feature_id": "FEAT-26-pr-linkage-recorded",
+  "branch": "none",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "ada8e9998694e8a72c3827f0103b369ab0bb66e9",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-18-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": null,
+    "parent": null,
+    "parent_origin": null,
+    "attached": [],
+    "issues": {}
+  }
+}
