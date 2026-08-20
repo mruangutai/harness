@@ -49,28 +49,28 @@ re-derives it:
 3. **The repository is NAMED in the path** — `.claude/worktrees/harness/<id>/` — so a reader can
    see which repository a working tree belongs to without inferring it.
 
-**`workspace_root` and `<repo root>` are NOT the same thing, and conflating them loses the
+**`workspace_root` and `owner_root` are NOT the same thing, and conflating them loses the
 isolation this feature exists to build.** `workspace_root` is the CONTAINER that holds served
-repositories; a `<repo root>` is ONE repository's checkout. Measured 2026-08-20:
+repositories; a `owner_root` is ONE repository's checkout. Measured 2026-08-20:
 
     workspace_root              /Users/molchairuangutai/GitHub/harness-factories
-    <repo root> for kaya-ai     /Users/molchairuangutai/GitHub/harness-factories/kaya-ai
-    <repo root> for harness     /Users/molchairuangutai/GitHub/harness      (NOT under workspace_root)
+    owner_root for kaya-ai     /Users/molchairuangutai/GitHub/harness-factories/kaya-ai
+    owner_root for harness     /Users/molchairuangutai/GitHub/harness      (NOT under workspace_root)
 
 So the worktrees land at:
 
     /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/<id>/
     /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.claude/worktrees/kaya-ai/<id>/
 
-**Every path in this brief is relative to a `<repo root>`, never to `workspace_root`.**
-`worktree_owner()` computes legality as `commonpath` against `<owner root>/.claude/worktrees`, where
+**Every path in this brief is relative to a `owner_root`, never to `workspace_root`.**
+`worktree_owner()` computes legality as `commonpath` against `owner_root/.claude/worktrees`, where
 the owner comes from the worktree's own `.git` pointer file. Build it against `workspace_root`
 instead and every served repository's worktrees share one directory — the per-repository isolation
 is gone, and the guard would still report `legitimate`.
 
 - REQ-01: The dispatch path creates a worktree per feature run at
-  **`<repo root>/.claude/worktrees/<repo>/<id>/`**, and the orchestrator works inside it. For
-  harness that is `<this checkout>/.claude/worktrees/harness/<id>/`. For a served repo it is that
+  **`owner_root/`WORKTREES_SEGMENT`/<repo>/<id>/`**, and the orchestrator works inside it. For
+  harness that is `harness_root`/`WORKTREES_SEGMENT`/`harness`/`<id>`. For a served repo it is that
   repo's own checkout under `workspace_root`, same shape. Two features for harness and two for
   another repo run at once: four worktrees, four branches.
 - REQ-02: A worktree is cut from its own repository's default branch, never from another feature's
@@ -112,7 +112,7 @@ is gone, and the guard would still report `legitimate`.
 - SC-02: A worktree created for a feature run is cut from its own repository's default branch.
   Asserted against the merge-base, not against the branch name.
   verify: automated      evidence: integration
-- SC-02b: A worktree at `.claude/worktrees/<repo>/<id>/` is accepted as legitimate, and one
+- SC-02b: A worktree at ``WORKTREES_SEGMENT`/<repo>/<id>/` is accepted as legitimate, and one
   outside that layout is REFUSED with a message naming where worktrees belong. Both directions
   asserted, on a throwaway repository rather than this one.
   verify: automated      evidence: integration
@@ -168,7 +168,7 @@ feature uses, and the operator's challenge to that framing is why they now read 
 
   Measured 2026-08-20 on a throwaway repository with a worktree at
   `.claude/worktrees/harness/FEAT-30`: `worktree_owner()` returned `legitimate=True`. Legality is
-  `commonpath` against `<owner root>/.claude/worktrees`, so a deeper path is still inside it and the
+  `commonpath` against `owner_root/.claude/worktrees`, so a deeper path is still inside it and the
   rule holds unchanged. What DOES break is the prefix strip — `WORKTREE_REL_RE` on
   `.claude/worktrees/harness/FEAT-30/.harness/x.md` returns `FEAT-30/.harness/x.md` instead of
   `.harness/x.md`, so domain globs would miss and every in-worktree write would be refused. That is
