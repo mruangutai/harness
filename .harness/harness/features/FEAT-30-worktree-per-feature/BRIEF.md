@@ -87,9 +87,20 @@ is gone, and the guard would still report `legitimate`.
 - REQ-07: A served repo's PRIMARY CLONE stays at `workspace_root/<repo>` and is not moved.
   `git worktree add` requires an existing clone, so worktrees are additional to a checkout and
   never a replacement. Nothing works in the clone directly.
-- REQ-08: `WORKTREE_REL_RE` gains the repository segment. The pattern today strips
-  `<segment>/<id>/`; with the repository named it must strip `<segment>/<repo>/<id>/`, or every
-  write inside a worktree resolves against the wrong path and is refused.
+- REQ-08: The guard resolves an in-worktree path by asking WHICH CHECKOUT it is standing in and
+  relativizing against that, replacing the fixed-segment `WORKTREE_REL_RE` strip. Operator ruling,
+  2026-08-20, after asking why segment-counting code was needed at all.
+
+  The regex is why naming the repository in the path breaks permissions: it removes a fixed number
+  of segments, so a longer path leaves the wrong remainder and matches no grant. `worktree_owner()`
+  already returns the containing checkout and is already called in this module, so the information
+  needed is present — it was just being reconstructed by pattern instead of used.
+
+  **Measured 2026-08-20, both options, 2000 iterations:** regex 0.3 ms total, walk-and-relativize
+  46.8 ms total. 150x slower and still **0.023 ms per write**, against a guard that already reads
+  files. The regex buys speed nobody needs at the price of coupling the guard to one path shape,
+  and that coupling bills again on every future layout change. This is a SIMPLIFICATION, not an
+  addition: one mechanism replaces one mechanism, and the segment count stops being load-bearing.
 
 ## Success Criteria
 
@@ -106,10 +117,11 @@ is gone, and the guard would still report `legitimate`.
   asserted, on a throwaway repository rather than this one.
   verify: automated      evidence: integration
 - SC-02c: A domain-granted path written from INSIDE a worktree resolves to the same grant as from
-  the checkout root. The prefix strip must remove `<segment>/<repo>/<id>/`, not
-  `<segment>/<id>/` — measured 2026-08-20, today's pattern leaves the id in the path, so every
-  in-worktree write would be refused. The test drives a real write for at least one agent and
-  proves it FAILS before the strip is fixed.
+  the checkout root, **for every one of the 16 agents**, and the resolution does not depend on how
+  many segments the worktree path has. Proven by resolving each agent's grants at a worktree depth
+  the old regex could not handle. Today's pattern leaves the id in the path and matches nothing, so
+  the test must be shown to FAIL before the change — a test written after it would pass and prove
+  nothing.
   verify: automated      evidence: integration
 - SC-03: An attempt by a governed agent to move `HEAD` during a live run is REFUSED and says why.
   The test drives the refusal and proves it can pass when it should — a guard that never fires is
