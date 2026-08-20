@@ -4,8 +4,8 @@
   "pr": null,
   "status": "Building",
   "review_sha": "4881173",
-  "cycles_used": 10,
-  "max_total_cycles": 10,
+  "cycles_used": 11,
+  "max_total_cycles": 11,
   "max_total_runs": 20,
   "github": {
     "milestone": 18,
