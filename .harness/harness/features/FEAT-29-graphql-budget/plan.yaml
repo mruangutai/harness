@@ -496,7 +496,7 @@ tasks:
       output is the evidence, so a team run whose gates are the thing being changed cannot vouch
       for it
     depends_on: [T-01, T-02, T-06]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .harness/harness/features/FEAT-29-graphql-budget/notes/measurement-after.md
@@ -643,7 +643,7 @@ tasks:
     execution_reason: DEC-174 — this takes live GraphQL measurements alongside the gate runs of T-06
       and T-07 and writes into the same feature notes path, which is granted to no agent domain
     depends_on: [T-01, T-02]
-    status: pending
+    status: done
     files:
       - .harness/harness/features/FEAT-29-graphql-budget/notes/measurement-board6.md
     verify: |
