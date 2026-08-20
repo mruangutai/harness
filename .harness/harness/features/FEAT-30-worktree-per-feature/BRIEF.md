@@ -78,8 +78,26 @@ is gone, and the guard would still report `legitimate`.
   entry declares, which is why that field exists — it is read before the checkout does.
 - REQ-03: The worktree is removed when its feature reaches a terminal state, and its artifacts
   reach the default branch before removal.
-- REQ-04: A governed agent that switches branch, or otherwise moves `HEAD`, during a live run is
-  refused rather than trusted not to.
+- REQ-04: **SCOPED 2026-08-20, operator ruling — the refusal binds ALL SIXTEEN governed agents,
+  `harness-dev-ops` included.** A governed agent that switches branch, or otherwise moves `HEAD`,
+  during a live run is refused rather than trusted not to.
+
+  The original text was silent on `harness-dev-ops`, and silence resolved to *exempt*:
+  `bash-write-guard.sh:56-57` returns exit 0 for that persona before line 58's `harness-` prefix
+  test, so a rule keyed off that prefix provably never reaches it — and T-01, T-02 and T-08 are
+  laned to exactly that persona. The scoping is therefore what makes the requirement true of the
+  agents most likely to move `HEAD`.
+
+  **Why this does not contradict DEC-151.** That entry scopes the exemption to **write targets** —
+  its own ruling reads *"every other harness agent except dev-ops has extractable write targets
+  checked against its domain"* — and moving `HEAD` is not a write target. The exemption exists to
+  preserve one recovery path: when the guard itself is broken, `harness-dev-ops` can still write.
+  Placing the `HEAD` matcher ahead of the exemption removes nothing from that path — dev-ops keeps
+  its exemption for every WRITE, including writes to the guard's own source.
+
+  **The accepted cost, recorded rather than buried.** When `HEAD` is wrong and the guard is
+  working, `harness-dev-ops` cannot fix it either. The repair is the operator's, from the main
+  session, which carries no `agent_type` and which this guard does not bind.
 - REQ-05: The orchestrator's own instructions state where it works. It reaches an agent by
   preload, not by being told to go read a file.
 - REQ-06: Two features closing out at the same time cannot silently lose Expertise entries.
@@ -111,11 +129,21 @@ is gone, and the guard would still report `legitimate`.
   features at once for harness AND for other repos simultaneously — so it is the criterion that runs
   every time, not one graded once by eye.
   verify: automated      evidence: integration
-- SC-01b: FOUR real feature runs, two per repository, complete with each orchestrator's commits
-  landing only on its own branch. This is what SC-01's test cannot fake: four live orchestrators
-  contending for the same account budget, the same board, and the same Expertise files. Judged by
-  the operator against every tree and branch history.
-  verify: uat
+- SC-01b: **AMENDED 2026-08-20, operator instruction — automated, not `uat`.** FOUR CONCURRENT
+  writers, two per repository, each committing into its own worktree, with every commit landing
+  only on its own branch and NO other branch advancing. Concurrent, not serial: the four writers
+  synchronise on a barrier and the test asserts their write windows actually overlapped, because a
+  serialised fixture asserts nothing about contention.
+  **The discriminating negative is part of the criterion, not an extra:** the SAME four-writer
+  scenario, driven against ONE shared checkout instead of four worktrees, must be DETECTED by the
+  same isolation predicate. A four-worktree concurrency test that also passes when isolation is
+  broken is worse than the `uat` it replaces.
+  The original text's other clauses are dropped rather than automated, and each for a stated
+  reason: the shared account budget and the shared board are **out of scope by operator ruling**
+  (see *Out of scope, deliberately* below), so a criterion asserting them asserted something this
+  brief excludes; and Expertise-file contention is REQ-06's and SC-08's job, already `automated`.
+  What remains is what SC-01's static four-tree check cannot reach — commits, under contention.
+  verify: automated      evidence: integration
 - SC-02: A worktree created for a feature run is cut from its own repository's default branch.
   Asserted against the merge-base, not against the branch name.
   verify: automated      evidence: integration
@@ -166,9 +194,12 @@ resting on it can never be met and never fails loudly — a gate that looks real
 - `functional`, `component`, `ui`, `eval` and `typecheck` all have `cmd: null`. **No criterion above
   rests on any of them.** Every `automated` criterion is pinned to `integration`, which runs via
   `run-unit-tests.sh --kind integration`.
-- **10 of 12 criteria are `automated`.** SC-01b is `uat` because four live orchestrators contending
-  for one account budget cannot be faked by a test, and SC-06 is `inspection` because it is a `grep`
-  over two instruction files. Nothing else is left to a human.
+- **11 of 12 criteria are `automated`, and NONE is `uat`.** SC-01b was the single `uat` criterion
+  until the operator's 2026-08-20 instruction; it is now `automated / integration` and owned by
+  T-10. Its former reason — four live orchestrators contending for one account budget — named
+  clauses this brief puts out of scope, so what was left was automatable and is now automated.
+  SC-06 remains `inspection` because it is a `grep` over two instruction files. Nothing is left to
+  a human.
 
 ## Constraints
 

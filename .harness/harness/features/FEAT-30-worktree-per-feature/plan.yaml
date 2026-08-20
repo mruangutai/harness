@@ -5,6 +5,56 @@ approval:
   status: pending
   approved_by: none
   date: none
+  rulings:
+    - id: R-01
+      date: 2026-08-20
+      subject: REQ-04's HEAD refusal binds all sixteen governed agents, harness-dev-ops included
+      ruling: >-
+        The HEAD-move matcher is evaluated BEFORE bash-write-guard.sh's harness-dev-ops early
+        return, so the refusal reaches that persona too. The early return survives unchanged for
+        every WRITE.
+      reason: >-
+        DEC-151 scopes the exemption to write targets - its ruling reads that every other harness
+        agent except dev-ops has extractable write targets checked against its domain - and moving
+        HEAD is not a write target. The exemption exists to keep one recovery path open when the
+        guard itself is broken, and that path is untouched: dev-ops still writes anything,
+        including the guard's own source.
+      accepted_cost: >-
+        When HEAD is wrong and the guard is working, harness-dev-ops cannot fix it either. The
+        repair is the operator's, from the main session, which carries no agent_type and which this
+        guard does not bind.
+      lands_in: [BRIEF.md REQ-04, T-05]
+    - id: R-02
+      date: 2026-08-20
+      subject: max_total_cycles raised from 10 to 13 for this feature
+      ruling: >-
+        feature.json's max_total_cycles is 13 for FEAT-30, not the default 10.
+      reason: >-
+        SC-01b became automated in the same round, and a four-writer concurrency test is the
+        likeliest source of fix cycles in this plan. The raise budgets for that failure rather than
+        discovering the ceiling mid-build. DEC-157 makes a per-feature raise a user decision
+        recorded against the feature, which is why it is recorded here.
+      accepted_cost: >-
+        Three more cycles of spend before the flow halts for the operator.
+      lands_in: [feature.json]
+      fix_surfaces_if_sc01b_fails:
+        - >-
+          T-10's own fixture is the likeliest, and it is NEW concurrency code: a barrier that fails
+          open, a pairwise-overlap assertion that never held, or a shared-checkout negative that
+          does not detect the collision. Fix surface .claude/skills/harness/bin/
+          test-feature-worktree.py, lane team.
+        - >-
+          T-01's create and its destination derivation, if case A shows two trees sharing a branch,
+          a tree cut from another feature's branch, or a commit reaching a default branch. Fix
+          surface .claude/skills/harness/bin/feature-worktree.py, lane team.
+        - >-
+          NOT T-02, NOT T-05 and NOT T-06, against the operator's provisional list, and each for a
+          checked reason. T-10 never calls remove, so T-02 cannot fail it. T-05's refusal is a
+          PreToolUse Bash hook, verified at .claude/settings.json, so it sees an agent's Bash tool
+          calls and not a git fork from inside a python test - T-10's children are forks, so the
+          refusal cannot reach them. T-10 asserts nothing about Expertise, which is REQ-06, T-06 and
+          SC-08. The consequence that matters to the budget: no fix cycle for SC-01b lands in the
+          enforcement layer, so none of them costs the operator's own hands under DEC-174.
 
 lanes:
   resolved_at: eeabc59
@@ -833,6 +883,19 @@ tasks:
       branch under a live run is answered by isolation instead, since after T-01 the orchestrator
       commits inside its own worktree. There is NO exemption for harness-orchestrator.
 
+      PLACEMENT IS A REQUIREMENT OF THIS RULE, NOT AN IMPLEMENTATION DETAIL. Operator ruling R-01
+      of 2026-08-20, recorded under approval.rulings: this rule is evaluated BEFORE the
+      harness-dev-ops early return at lines 56 to 57, so it binds ALL SIXTEEN governed agents.
+      Placed after that return it would provably never reach harness-dev-ops, because the return
+      precedes the harness- prefix test at line 58 that this rule keys off - and T-01, T-02 and
+      T-08 are laned to exactly that persona. THE EARLY RETURN SURVIVES for every WRITE: do not
+      delete it, do not narrow it, and do not add a second exemption. Only the ordering changes.
+      DEC-151 scopes that exemption to write targets and moving HEAD is not one, so the recovery
+      path it exists to preserve - dev-ops writing when the guard itself is broken, including
+      writing this file - is unchanged. The accepted cost is recorded in the BRIEF beside REQ-04:
+      when HEAD is wrong and the guard is working, harness-dev-ops cannot fix it either, and the
+      repair is the operator's from the main session.
+
       WHAT COUNTS AS MOVING HEAD, matched on the command text with the same conservative shape
       filtering this guard already applies to the git worktree subcommands, including a leading
       directory option and configuration options:
@@ -844,6 +907,13 @@ tasks:
       NOT refused, because they move no HEAD:
         a checkout whose operands are exclusively pathspecs, which restores files
         status, log, diff, fetch, add, commit, and listing stashes
+        a read-only command that NAMES a commit without moving to it - show, rev-parse, merge-base,
+          cat-file, ls-tree, branch with a list-only form, worktree list. This is load-bearing under
+          ruling R-01, not a nicety: T-01's and T-02's verify blocks call git show against the
+          pinned sha and are executed by harness-dev-ops, which R-01 now binds. An implementation
+          that reads its refuse list as exhaustive-by-default would refuse a task's own
+          verification command. The refuse list is the closed set; everything else decidable is
+          allowed, and only the UNDECIDABLE case is refused.
         a reset with no mode flag and with a pathspec
         creating a worktree, which is already governed by the existing rule and by
           branch-create-gate.sh
@@ -916,6 +986,19 @@ tasks:
            governed add to a path outside WORKTREES_SEGMENT still exits 2 and an add inside it still
            exits 0. Assert both, because admitting two more subcommands into the same parser is the
            edit most likely to disturb them.
+
+      TWO MORE CASES FOR THE HEAD RULE, and they are a PAIR - the pair is what makes the reordering
+      discriminating rather than a blanket. Neither is covered by case 2: harness-orchestrator is
+      refused today only because no exemption exists for it, while harness-dev-ops has an explicit
+      one, so this is a second and different hole.
+        10. agent_type harness-dev-ops, a command that checks out the default branch. Exit 2, and
+            stderr names the worktree alternative. This case FAILS against any implementation that
+            places the rule after the line 56 to 57 early return, which is exactly what it is for.
+        11. agent_type harness-dev-ops, a write the guard would otherwise check and refuse for any
+            other governed persona - use the same not-granted destination shape the existing
+            dev-ops-exemption assertions in this file already rely on. Exit 0. The exemption for
+            WRITES is intact. Without this half, case 10 is satisfied by deleting the exemption
+            outright, which would remove the recovery path DEC-151 exists to preserve.
 
   - id: T-06
     title: Make two concurrent Expertise close-outs lose no entry, or fail loudly
@@ -1161,7 +1244,14 @@ tasks:
          worktree is created at flow start by the main session; the orchestrator works inside it; at
          a terminal state its artifacts reach the default branch and THEN
          python3 .claude/skills/harness/bin/feature-worktree.py remove, with the repository and the
-         flow id, removes it. State that remove refuses on a dirty tree, and refuses until every
+         flow id, removes it. THE MAIN SESSION RUNS THAT REMOVAL, FROM OUTSIDE THE TREE, never the
+         orchestrator from inside it - symmetric with point 1, which attributes creation to the main
+         session for the same reason. This sentence discharges must_fix M-1: git worktree remove
+         succeeds at exit 0 from inside the tree it removes, so guidance that omits who runs it and
+         from where tells the orchestrator to delete its own cwd, which check-domain.sh:428-431,
+         bash-write-guard.sh:135-137 and check-state.sh:1082-1085 each already refuse to say and
+         T-05 refuses on the Bash route. The orchestrator's part of a terminal state is to finish
+         landing its artifacts and report; removal is not its act. State that remove refuses on a dirty tree, and refuses until every
          artifact under the feature's directory is present with identical content on the default
          branch; that it names the paths it verified; and that there is no force flag - a refusal
          means finish landing the work, never override the check.
@@ -1169,3 +1259,125 @@ tasks:
       Each of the three must be a rule an agent can follow: a path shape, a command, and what happens
       when it is disobeyed. A passing mention of the word worktree does not satisfy REQ-05. Do not
       restate the mechanism in more than one of the three files; cross-reference instead.
+
+  - id: T-10
+    title: Prove four CONCURRENT writers commit only to their own branch, and prove the same assertion detects a shared checkout
+    traces: [REQ-01, REQ-03]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    execution_reason: none
+    depends_on: [T-02, T-08]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-feature-worktree.py
+    verify: |
+      set -u
+      T=$(mktemp -d) || exit 1
+      cp .claude/skills/harness/bin/test-feature-worktree.py "$T/t.py" || exit 1
+      python3 - "$T/t.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      sig = "def assert_commit_isolation(trees):\n"
+      assert sig in s, "the isolation predicate was not found BY NAME on one signature line"
+      i = s.index(sig) + len(sig)
+      m = s[:i] + "    return  # NEUTERED BY THE RED PROOF\n" + s[i:]
+      open(p, "w").write(m)
+      PY
+      FEATURE_WORKTREE_BIN="$PWD/.claude/skills/harness/bin/feature-worktree.py" \
+        python3 "$T/t.py" >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with assert_commit_isolation neutered"; exit 1; }
+      python3 .claude/skills/harness/bin/test-feature-worktree.py || exit 1
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >/dev/null 2>&1 || exit 1
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration >/dev/null 2>&1 || exit 1
+      exit 0
+    intent: |
+      Add cases to .claude/skills/harness/bin/test-feature-worktree.py. NO OTHER FILE CHANGES, and
+      no new test file - this file is already registered in run-unit-tests.sh's INTEGRATION_SCRIPTS
+      and in harness.json's integration.detect by T-08, so a third file would have to be registered
+      in BOTH places or run-unit-tests.sh exits 2 MISCONFIGURED on its drift detector. Do not create
+      one.
+
+      THIS TASK OWNS SC-01b, which the operator amended to automated / integration on 2026-08-20.
+      What SC-01b asks for that SC-01's cases do not already cover: SC-01 creates four trees and
+      writes one file per tree, statically and serially. SC-01b is about COMMITS, under CONTENTION -
+      four concurrent writers, two per repository, each committing into its own worktree, every
+      commit landing only on its own branch, and no other branch advancing.
+
+      ONE NAMED PREDICATE, USED TWICE. Define exactly one module-level function whose signature is
+      on a single line and reads exactly
+
+        def assert_commit_isolation(trees):
+
+      It takes the per-tree records produced by the driver below and raises IsolationViolation - a
+      module-level exception class defined in this file - naming the branch and the offending sha
+      when isolation does not hold. The signature must stay on one line and the name must not
+      change: this task's verify neuters that function by name in a copy and requires the suite to
+      go RED, which is what proves the assertions are load-bearing rather than vacuous.
+
+      THIS SHAPE IS MEASURED, NOT PROPOSED. notes/orchestrator-M16-sc01b-is-automatable.md drove
+      exactly it twelve times: two throwaway repositories, two worktrees each, four concurrent
+      committers, zero isolated-shape failures and four independent collision signals from the
+      shared-checkout negative. Build the measured shape rather than inventing one. Twelve trials is
+      why flakiness is not a live risk here; do not add trial loops to the suite for it.
+
+      THE DRIVER, shared by both fixtures. Given a list of four working directories and the branch
+      each is expected to advance:
+        - record every branch tip in both repositories BEFORE any driver starts, by sha.
+        - start FOUR concurrent committers, one per working directory - a thread pool as M-16 used,
+          or four child processes; the choice is yours and neither is the requirement. Each waits on
+          a barrier, then makes FIVE commits into its working directory, each a distinct file named
+          for its own id and commit index, staged BY PATHSPEC as M-16 staged them, with a small
+          sleep between commits, and records its first and last commit timestamps and the shas it
+          created.
+        - the barrier must have a hard timeout that FAILS the test rather than hanging.
+        - the caller joins all four, requires every committer to have succeeded, and ASSERTS THE
+          WRITE WINDOWS
+          ACTUALLY OVERLAPPED: for each of the six pairs, the intervals intersect. A fixture that
+          serialised proves nothing about contention, and a barrier that silently failed open would
+          otherwise be invisible.
+
+      CASE A - SC-01b, the positive direction, FOUR WORKTREES. Drive the four children against the
+      four worktrees created through the CLI exactly as the SC-01 cases create them: repoA FEAT-90,
+      repoA FEAT-91, org/repoB FEAT-92, org/repoB FEAT-93. Then call assert_commit_isolation, which
+      must hold, and which asserts PER TREE and never in aggregate:
+        - the tree's own branch contains exactly its own five shas, in order.
+        - one assertion per OTHER tree that no other tree's FILE appears anywhere in this branch's
+          history, read with git ls-tree -r over the branch tip - this is the assertion M-16
+          measured as detecting the collision four independent ways - AND that none of the other
+          trees' shas is reachable from this branch, read with merge-base --is-ancestor. Twelve
+          absence assertions, not one count - the same shape SC-01's absence cases already use.
+        - every branch tip recorded before the run, in BOTH repositories, that is not one of the
+          four expected branches is UNCHANGED by sha. This is the no-other-branch-advancing half,
+          and it is the one that catches a commit landing on a default branch.
+        - each tree's working directory is clean afterwards, and its HEAD still names its own branch.
+
+      CASE B - THE DISCRIMINATING NEGATIVE, and it is the reason this criterion can go RED. Drive
+      the SAME driver, with the same barrier and the same overlap assertion, against ONE SHARED
+      CHECKOUT of repoA - all four children committing into the single primary clone on one branch,
+      no worktrees involved. Then call THE SAME assert_commit_isolation with those records and
+      require it to RAISE IsolationViolation. Write it so that a non-raise is a failure:
+
+        try:
+            assert_commit_isolation(shared_records)
+        except IsolationViolation:
+            pass
+        else:
+            raise AssertionError("assert_commit_isolation did not detect the shared-checkout collision")
+
+      A refuse-nothing fixture is the failure mode this case exists to prevent: without it, a
+      predicate that asserts nothing passes case A and the criterion is green and incapable of red.
+      Case B must be robust to a committer failing on the shared checkout - an index lock or a
+      non-zero git exit in the shared fixture is itself evidence of collision and satisfies the
+      case, so accept either a raised IsolationViolation or a recorded committer failure, and assert
+      that ONE OF THE TWO occurred rather than requiring the shared run to succeed.
+
+      SCOPE, stated so it is not widened. Do NOT assert anything about the shared GitHub API budget
+      or the shared board: BRIEF.md puts both out of scope by operator ruling, so the SC-01b clauses
+      naming them were dropped rather than automated. Do NOT assert anything about Expertise-file
+      contention: that is REQ-06's, owned by T-06 and graded by SC-08. Do not touch either subject
+      here.
+
+      Every case that claims to test the CLI must go through the CLI. Do not create a worktree
+      directly in this task's cases.

@@ -7,27 +7,48 @@
 - squad: none
 - status: awaiting-user
 
-plan.yaml is drafted, simplified, applied and architecture-reviewed: 9 tasks, 9 decisions, 1171
-lines, approval pending, lanes.resolved_at eeabc59. All three DEC-195 segments returned; the review
-ruled all six architecture questions in the plan's favour and asked for no cycle. cycles_used 3 of
-10, four runs recorded.
+plan.yaml is amended and unsigned: 10 tasks, 9 decisions, 2 operator rulings, 1383 lines,
+`approval.status: pending`. BRIEF.md is 250 lines and still `approved` — the REQ-04 change is a
+scope statement on an already-signed requirement, not a re-approval. cycles_used 5 of 13
+(raised from 10 on the operator's instruction, recorded as R-02); six runs recorded.
 
-Two things must be settled before the plan is final, and both are the operator's: the blocking
-question of whether REQ-04 binds 15 or all 16 agents, and one must_fix on T-09's removal actor. I did
-NOT spend a cycle applying the must_fix, because the answer to the blocking question changes T-05 and
-possibly T-09 too — one pm round after the operator rules discharges both instead of two.
+The operator's three items all landed. REQ-04 now binds ALL SIXTEEN governed agents, with the
+HEAD-move matcher placed ahead of the `harness-dev-ops` exemption at `bash-write-guard.sh:56-57`
+and T-05 carrying the discriminating pair (dev-ops refused for a HEAD move, dev-ops still allowed
+for a write). SC-01b is `verify: automated  evidence: integration`, owned by the new T-10, whose
+shape I measured myself before it was written — twelve concurrent trials, zero failures, and the
+shared-checkout negative detected four ways (`notes/orchestrator-M16-sc01b-is-automatable.md`).
+must_fix M-1 is discharged: T-09 point 3 attributes removal to the main session, from outside the
+tree.
+
+Verified at this state, not assumed: `check-plan-routes.py` exits 0 with only the three expected
+T-03/T-04/T-05 DEVIATIONs; the DEC-174 carve-out holds by hand-check — no team-laned task touches
+any of the six hook-registered scripts; `check-state.sh` adds no FEAT-30 violation; the plan parses
+with exactly ten unique task ids after two writers ran against it.
+
+Both amend rounds are recorded BLOCKED and neither means defective work. Round 1's lead was
+force-closed while its pm was mid-run, so no digest exists for the round that actually did the
+work; round 2 was my re-dispatch on a correct but incomplete disk reading, and its pm correctly
+wrote nothing because the idempotence precondition fired.
 
 ## Open Questions
 
-- BLOCKING: REQ-04 binds 15 of 16 governed agents. bash-write-guard.sh:56 returns before any rule for
-  harness-dev-ops, so T-05's rule never reaches it, and T-01/T-02 are laned to that persona. The
-  review recommends binding all 16 by placing the matcher ahead of the exemption, arguing DEC-151
-  scopes the exemption to write targets and moving HEAD is not a write target. A scope statement on
-  an approved requirement is the operator's to write.
-- must_fix M-1: T-09 tells the orchestrator's own preloaded playbook to remove the worktree it stands
-  in; three guards and three tests already refuse that guidance. Remedy is one sentence attributing
-  removal to the main session from outside the tree.
-- Also for the operator: SC-01b is deliverable by no task (four live orchestrators, operator
-  judgement); D-09 accepts that a directory under WORKTREES_SEGMENT with no git pointer stops being
-  budget-checked; DEC-193's and DEC-95's spelling of the worktree location goes stale and no task
-  touches it; where Expertise close-out writes land once runs are isolated.
+- For the operator, and the reason this returns rather than proceeds: the plan is ready for
+  signature. Nothing blocks it.
+- OPTIONAL one-line amendment: `approval.rulings` R-01's `reason` paraphrases the
+  DECISIONS-INDEX.md:170 summary row as though quoting the ruling. The authority
+  (DECISIONS.md:3650-3651) reads "gets extractable target paths checked against its team-config
+  domain", and following its own citation strengthens the ruling: DEC-85 (:1084-1106) contains zero
+  occurrences of "exempt", and its only mention of dev-ops (:1092) argues dev-ops is NOT special on
+  the Bash route. Accept, strike, or have it applied.
+- SC-06 is named by no task, though T-09's verify implements its assertion verbatim. A delivery gap
+  it is not; a traceability gap it is, and it is the same bookkeeping class that hid SC-01b. Nothing
+  in the harness maps BRIEF criteria to plan tasks, so no gate can detect either.
+- Carried unchanged, not acted on: Q11 (where an Expertise close-out write lands once runs are
+  isolated), Q12 (T-08's lane rests on genuinely ambiguous DEC-174 text; the archreview ruled it
+  `team` on the drift detector, not on precedent), Q13 (DEC-193's and DEC-95's spelling of the
+  worktree location goes stale and no task touches it), Q14 (nothing serialises two writers on one
+  plan.yaml), Q15 (the digest contract admits no in-flight shape — three occurrences on this
+  feature), Q16 (no verdict exists for a step whose work landed but whose return was lost).
+- D-09 accepts that a directory under WORKTREES_SEGMENT with no git pointer stops being
+  budget-checked. Unchanged this round; the architecture review ruled it worth no cycle.

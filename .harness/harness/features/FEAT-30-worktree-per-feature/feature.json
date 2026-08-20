@@ -4,8 +4,8 @@
   "pr": null,
   "status": "Plan",
   "review_sha": "",
-  "cycles_used": 3,
-  "max_total_cycles": 10,
+  "cycles_used": 5,
+  "max_total_cycles": 13,
   "max_total_runs": 20,
   "github": {
     "milestone": null,
@@ -34,6 +34,16 @@
       "id": "archreview-eng",
       "squad": "eng",
       "verdict": "PASS"
+    },
+    {
+      "id": "amend-product",
+      "squad": "product",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "amend2-product",
+      "squad": "product",
+      "verdict": "BLOCKED"
     }
   ]
 }
