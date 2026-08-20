@@ -238,22 +238,25 @@ never fails loudly, so the absence of that case is worth stating rather than lea
   on this machine carry `worktreePath` and `worktreeBranch`, and 38 of those also carry
   `spawnedWithWorktree`. Reading the recorded path beats deriving one from cwd.
 
-**PREREQUISITE — the plan's first task, and every other task depends on it:**
+**PREREQUISITE — SETTLED 2026-08-20, before planning. Evidence:
+`notes/probe-hook-payload-identity.md`.**
 
-- **Nothing here proves what `transcript_path` holds inside a subagent.**
-  `harness_yaml.py:479` reads the field out of a hook payload, but no test, fixture or note in this
-  repository records whether a subagent's payload carries its OWN transcript or the parent session's.
-  If it is the parent's, REQ-08 has no mechanism and REQ-09 and REQ-10 have nothing to trigger them.
-  Settled by capturing one hook payload during a real subagent run and recording it in `notes/`.
-  Owner: **main session**, because the capture modifies a hook registration or a hook — the
-  enforcement layer, DEC-174 — and no squad may execute it. Declared `main-session-direct` at plan
-  time under DEC-179, in the shape FEAT-29's T-06 used: a probe whose artifact must exist and pass its
-  own `verify:` before the dependent tasks dispatch.
-  **This task can invalidate the plan, not merely fail.** A wrong answer does not send a task back for
-  rework; it removes the mechanism three requirements rest on. The task must say so, and the plan must
-  state what becomes of REQ-08, REQ-09 and REQ-10 under that outcome rather than discovering it.
-  It must not run while another orchestrator is live in the same checkout — changing a hook mid-flight
-  changes the rules underneath a running agent.
+- **The assumption this brief rested on was FALSE, and the mechanism survives anyway.** A probe
+  captured one real `PreToolUse` payload from inside a subagent. `transcript_path` holds the
+  **PARENT session's** transcript, not the subagent's, and `session_id` is the parent's id. Built as
+  originally written, the hook would have measured the MAIN SESSION on every orchestrator tool call
+  — a number that exists, grows, and is wrong.
+- **The payload carries `agent_id`, which nobody had named.** For the probe agent that was
+  `a169d08f65bcba077`, and `{session_id}/subagents/agent-{agent_id}.jsonl` exists. So the hook
+  locates the calling agent's own transcript exactly, with no guessing and no race against
+  concurrent orchestrators. The source is `session_id` + `agent_id`, **never** `transcript_path`.
+  `agent_type` is in the payload too, so the orchestrator filter is free, and `cwd` is there, which
+  is what REQ-05 needs once orchestrators run in worktrees.
+- **`harness_yaml.py:479` is not a defect and must not be "fixed".** `_resolve_identity` returns the
+  SESSION identity, which is correct for the bootstrap marker it serves. It was only wrong as
+  evidence about agent identity, which is what this brief cited it for.
+- The probe modified `bash-write-guard.sh` and reverted it. `test-bash-write-guard.py` reported
+  `27/27` with the probe in place and again after the revert, and the file is clean in git.
 
 **DISCLOSED, for the operator's call:**
 
