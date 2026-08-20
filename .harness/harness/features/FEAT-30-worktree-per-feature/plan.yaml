@@ -1262,7 +1262,7 @@ tasks:
 
   - id: T-10
     title: Prove four CONCURRENT writers commit only to their own branch, and prove the same assertion detects a shared checkout
-    traces: [REQ-01, REQ-03]
+    traces: [REQ-01]
     change_type: cross_module
     execution_mode: team
     execution_agent: harness-dev-ops
@@ -1285,9 +1285,20 @@ tasks:
       m = s[:i] + "    return  # NEUTERED BY THE RED PROOF\n" + s[i:]
       open(p, "w").write(m)
       PY
+      MARKER="assert_commit_isolation did not detect the shared-checkout collision"
       FEATURE_WORKTREE_BIN="$PWD/.claude/skills/harness/bin/feature-worktree.py" \
-        python3 "$T/t.py" >/dev/null 2>&1 \
-        && { echo "RED PROOF FAILED: the suite passes with assert_commit_isolation neutered"; exit 1; }
+        python3 "$T/t.py" >"$T/neutered.out" 2>&1
+      RC=$?
+      if [ "$RC" -eq 0 ]; then
+        echo "RED PROOF FAILED: the suite PASSES with assert_commit_isolation neutered - the case B assertions are vacuous"
+        cat "$T/neutered.out"
+        exit 1
+      fi
+      if ! grep -qF "$MARKER" "$T/neutered.out"; then
+        echo "RED PROOF INCONCLUSIVE: the neutered suite exited $RC but THE SUITE BROKE rather than case B failing - its output does not contain the case B marker: $MARKER"
+        cat "$T/neutered.out"
+        exit 1
+      fi
       python3 .claude/skills/harness/bin/test-feature-worktree.py || exit 1
       .claude/skills/harness/bin/run-unit-tests.sh --kind unit >/dev/null 2>&1 || exit 1
       .claude/skills/harness/bin/run-unit-tests.sh --kind integration >/dev/null 2>&1 || exit 1
@@ -1347,7 +1358,8 @@ tasks:
           history, read with git ls-tree -r over the branch tip - this is the assertion M-16
           measured as detecting the collision four independent ways - AND that none of the other
           trees' shas is reachable from this branch, read with merge-base --is-ancestor. Twelve
-          absence assertions, not one count - the same shape SC-01's absence cases already use.
+          ordered pairs carrying two clauses each - twenty-four absence assertions, not one count -
+          the same shape SC-01's absence cases already use.
         - every branch tip recorded before the run, in BOTH repositories, that is not one of the
           four expected branches is UNCHANGED by sha. This is the no-other-branch-advancing half,
           and it is the one that catches a commit landing on a default branch.

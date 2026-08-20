@@ -74,3 +74,62 @@ predates this feature. SC-01b's `evidence: integration` is sound.
 
 Scope held: nothing written but this file. No commit. Q11-Q20 untouched. `approval.status` pending,
 `BRIEF.md ## Approval` still `approved` and unedited by me.
+
+---
+
+# Cycle 1 send-back — the three T-10 edits are WRITTEN. plan.yaml 1383 -> 1395 lines.
+
+`check-plan-routes.py` exits 0, **0 violations**, DEVIATION on T-03/T-04/T-05 only (expected).
+`harness_yaml.load_plan` still parses; T-10 `verify` remains a literal block (31 newlines);
+`bash -n` on the extracted verify is clean; `approval.status` still `pending`; 10 tasks, 9 decisions.
+Uncommitted, as instructed. `BRIEF.md` untouched; `approval:` untouched; T-01..T-09 untouched.
+
+## Edit 1 — `traces: [REQ-01]`. The operator is RIGHT and I do NOT overturn.
+
+I dropped my own proposed REQ-03 -> REQ-02 swap. The discriminating check: grep T-10's whole entry
+for `merge-base|default branch|main|cut from|ancestor`. It returns exactly two hits, and neither is
+REQ-02:
+
+- the single `merge-base --is-ancestor` is the **peer-absence** clause — no OTHER tree's sha is
+  reachable. Absence between siblings, not ancestry from the default branch.
+- the only `default branch` mention is *"catches a commit landing on a default branch"* — that is
+  absence of advancement on an unrelated tip, not the origin of the cut.
+
+REQ-02 is asserted **against the merge-base** (`BRIEF.md:147-149`, SC-02) and T-10's trees are
+created *"through the CLI exactly as the SC-01 cases create them"* — it inherits the cut and never
+asserts it. There is no clause to cite, so there is nothing to overturn with. Swapping would have
+substituted a weaker unsupported claim for a stronger one; rule 15 and rule 6 both land on dropping.
+REQ-01 stands alone and is genuinely discharged: its closing clause is four worktrees, four branches,
+at once, which is exactly what the driver drives.
+
+## Edit 2 — the red proof now reads the OUTPUT, not just the exit status.
+
+`$T/neutered.out` captures stdout+stderr; the run is scored three ways instead of one:
+
+- **exit 0** -> `RED PROOF FAILED: the suite PASSES with assert_commit_isolation neutered - the case
+  B assertions are vacuous`, plus `cat` of the output, exit 1.
+- **non-zero but the output lacks `MARKER`** (`assert_commit_isolation did not detect the
+  shared-checkout collision`, case B's own string) -> `RED PROOF INCONCLUSIVE: the neutered suite
+  exited $RC but THE SUITE BROKE rather than case B failing - its output does not contain the case B
+  marker: $MARKER`, plus `cat`, exit 1.
+- **non-zero WITH the marker** -> the predicate was load-bearing; the verify continues to the real
+  suite and the two runner kinds.
+
+The two failures are worded so an ImportError, a missing git identity, a bad `FEATURE_WORKTREE_BIN`
+or an unusable `mktemp` path can no longer be scored as proof. The signature assert is untouched.
+Nothing is discarded to `/dev/null` on either failure path.
+
+## Edit 3 — the count.
+
+Now reads: *"...read with merge-base --is-ancestor. Twelve ordered pairs carrying two clauses each -
+twenty-four absence assertions, not one count - the same shape SC-01's absence cases already use."*
+
+## Residual risk I did NOT fix, because it is intent, not interpretation (see Q1)
+
+Case B accepts EITHER a raised `IsolationViolation` OR *"a recorded committer failure"*. On a neutered
+run where the shared fixture happens to hit an index lock, case B is satisfied by the second path,
+the marker never prints, and the suite may pass outright — so the red proof reports `RED PROOF FAILED`
+for a reason that is not vacuity. Both outcomes are honest failures rather than false greens, and a
+re-run resolves it, but it is a flake surface in a `verify`. Closing it means making case B
+deterministic under neutering, which changes T-10's intent and was not in this cycle's three-edit
+scope.
