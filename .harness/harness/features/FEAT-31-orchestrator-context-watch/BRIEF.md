@@ -158,13 +158,6 @@ loop, growing past every threshold, with the next seam far ahead.
   count still equals the number of sidecars on disk, so a silent drop cannot pass.
   verify: automated      evidence: unit
 
-- SC-12: **GATING — nothing else is built until this is settled.** A hook payload delivered during a
-  real subagent run is captured once and inspected, establishing whether `transcript_path` holds the
-  SUBAGENT's own transcript or the parent session's. `harness_yaml.py:479` reads the field but nothing
-  in this repository proves its value inside a subagent. If it is the parent's, REQ-08 has no
-  mechanism and the design changes before any code is written. The captured payload is recorded in
-  `notes/` with the run that produced it.
-  verify: inspection
 - SC-13: An orchestrator whose context crosses the threshold receives the warning in its own context,
   and the warning names its current size, the threshold, and the nearest seam. Demonstrated on a
   fixture that crosses and one that does not: the crossing one warns, the other is silent. Removing
@@ -244,6 +237,23 @@ never fails loudly, so the absence of that case is worth stating rather than lea
 - **The sidecar already records the worktree**, which is REQ-05's cheapest path. 39 of those 1,406 sidecars
   on this machine carry `worktreePath` and `worktreeBranch`, and 38 of those also carry
   `spawnedWithWorktree`. Reading the recorded path beats deriving one from cwd.
+
+**PREREQUISITE — the plan's first task, and every other task depends on it:**
+
+- **Nothing here proves what `transcript_path` holds inside a subagent.**
+  `harness_yaml.py:479` reads the field out of a hook payload, but no test, fixture or note in this
+  repository records whether a subagent's payload carries its OWN transcript or the parent session's.
+  If it is the parent's, REQ-08 has no mechanism and REQ-09 and REQ-10 have nothing to trigger them.
+  Settled by capturing one hook payload during a real subagent run and recording it in `notes/`.
+  Owner: **main session**, because the capture modifies a hook registration or a hook — the
+  enforcement layer, DEC-174 — and no squad may execute it. Declared `main-session-direct` at plan
+  time under DEC-179, in the shape FEAT-29's T-06 used: a probe whose artifact must exist and pass its
+  own `verify:` before the dependent tasks dispatch.
+  **This task can invalidate the plan, not merely fail.** A wrong answer does not send a task back for
+  rework; it removes the mechanism three requirements rest on. The task must say so, and the plan must
+  state what becomes of REQ-08, REQ-09 and REQ-10 under that outcome rather than discovering it.
+  It must not run while another orchestrator is live in the same checkout — changing a hook mid-flight
+  changes the rules underneath a running agent.
 
 **DISCLOSED, for the operator's call:**
 
