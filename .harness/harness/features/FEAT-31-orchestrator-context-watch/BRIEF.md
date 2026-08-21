@@ -162,11 +162,20 @@ loop, growing past every threshold, with the next seam far ahead.
   optional agent id — the plan names the file; this criterion does not, because a filename is a
   decision and the brief does not make those.
   verify: uat
-- SC-11: Against a fixture directory holding four sidecars — one complete, one with `agentType` but
-  no `toolUseId`, one that is not valid JSON, and one whose `.jsonl` is missing — the tool reports
-  four orchestrators, two of them as unmeasured with the offending path named, and exits non-zero.
-  Deleting the unmeasured branch must make this test fail, and the test asserts that the total row
-  count still equals the number of sidecars on disk, so a silent drop cannot pass.
+- SC-11: **This feature DEFINES NO FILE FORMAT AND WRITES NO SIDECAR.** `agent-<id>.meta.json` is
+  Claude Code's own file, written by Claude Code at spawn into
+  `~/.claude/projects/<slug>/<session-id>/subagents/` — a persistent user directory, NOT a temp one.
+  The tool only ever READS it.
+  What this criterion builds is a **throwaway fixture directory under `tempfile.mkdtemp()`**,
+  hand-written in that same shape, because the malformed cases below cannot be obtained any other
+  way: Claude Code does not emit invalid JSON on request. The fixture is a test input with a
+  one-run lifetime; it is not a new artifact, not a format this repository owns, and nothing under
+  `.harness/` or `.claude/skills/` gains a file from it.
+  The four fixture cases: one complete, one with `agentType` but no `toolUseId`, one that is not
+  valid JSON, and one whose `.jsonl` is missing. The tool must report four orchestrators, two of
+  them as unmeasured with the offending path named, and exit non-zero. Deleting the unmeasured
+  branch must make this test fail, and the test asserts the total row count equals the number of
+  sidecar files in the fixture, so a silent drop cannot pass.
   verify: automated      evidence: unit
 
 - SC-13: An orchestrator whose context crosses the threshold receives the warning in its own context,
