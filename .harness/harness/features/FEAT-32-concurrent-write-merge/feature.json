@@ -1,0 +1,17 @@
+{
+  "feature_id": "FEAT-32-concurrent-write-merge",
+  "branch": "feat/FEAT-32",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-21-1-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    }
+  ]
+}

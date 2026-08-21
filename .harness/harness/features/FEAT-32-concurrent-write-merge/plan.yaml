@@ -1,0 +1,1212 @@
+schema: plan/1
+feature: FEAT-32-concurrent-write-merge
+
+approval:
+  status: pending
+  approved_by:
+  date:
+
+lanes:
+  resolved_at: 5d9b428
+  rows:
+    - surface: .claude/skills/harness/bin/harness_merge.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/plan-merge.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/observations-merge.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/inflight_registry.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/expertise-merge.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/harness/bin/dispatch-guard.sh
+      lane: main-session-direct
+      reason: >-
+        a registered PreToolUse hook, so the enforcement-layer category of DEC-174 amendment 4
+        governs it
+    - surface: .claude/skills/harness/bin/test-dispatch-guard.py
+      lane: main-session-direct
+      reason: >-
+        DEC-174 amendment 4 puts the test file of each gate inside the carve-out, because a gate's
+        test is the only thing proving the gate discriminates
+    - surface: .claude/skills/harness/bin/validate-digest.py
+      lane: main-session-direct
+      reason: named in DEC-174 amendment 4 as a registered SubagentStop validator
+    - surface: .claude/skills/harness/bin/test-validate-digest.py
+      lane: main-session-direct
+      reason: DEC-174 amendment 4 puts the test file of each gate inside the carve-out
+    - surface: .claude/skills/harness-spec-driven/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at 5d9b428
+    - surface: .claude/skills/harness-expertise/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at 5d9b428
+    - surface: .claude/agents/harness-orchestrator.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at 5d9b428
+    - surface: .gitignore
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at 5d9b428
+    - surface: .harness/harness/features/FEAT-32-concurrent-write-merge/notes/**
+      lane: main-session-direct
+      reason: >-
+        the capture requires temporarily instrumenting two enforcement-layer scripts, so DEC-174
+        governs the act even though the only file that changes is the note; --resolve grants the
+        note to harness-orchestrator and harness-pm at 5d9b428, so this prints a non-fatal
+        DEVIATION and that is the intended DEC-174 shape under DEC-179
+
+decisions:
+  - id: D-01
+    choice: >-
+      The build takes shape (c) of the three offered — one shared module, harness_merge.py, holding
+      the lock and the atomic replace, with expertise-merge.py rewired onto it — and shape (c)
+      requires shape (a), so THE BUILD MAY NOT START UNTIL FEAT-30 IS MERGED TO main. T-02's verify
+      asserts expertise-merge.py is present in the tree before anything else runs.
+    because: >-
+      DEC-193 at DECISIONS.md:5863 settled this exact fork for the two write routes and chose one
+      shared implementation with divergences recorded; a transcribed second copy (shape b) would
+      put two lock dialects in one bin directory on the day FEAT-30 lands, and REQ-07 exists because
+      three copies of this defect is how it got filed three times. The price is stated rather than
+      argued away — the destructive defect stays live until FEAT-30 merges, and the only mitigation
+      in that window is the operator dispatching one pm at a time, which is what happened on this
+      planning run.
+    dec: DEC-193
+  - id: D-02
+    choice: >-
+      The shared core locks with fcntl.flock on a sibling lock file opened O_CREAT (never O_EXCL),
+      not with expertise-merge.py's O_CREAT-plus-O_EXCL create-and-delete. Retry with LOCK_NB for
+      the same ten seconds and the same exit 6. Recorded as a deliberate divergence from the model,
+      and expertise-merge.py is rewired onto it so the divergence exists in one place.
+    because: >-
+      a create-and-delete lock file leaves permanent state when the holder is SIGKILLed or when
+      /clear kills an in-flight agent, and every later write then exits 6 after a ten-second wait.
+      For an Expertise file that is a distillation failing loudly; for plan.yaml it bricks every
+      plan write for that feature, which is a worse outcome than the loss this feature exists to
+      prevent. flock is released by the kernel on process death, so it has no stale state at all.
+    dec: none
+  - id: D-03
+    choice: >-
+      plan-merge.py merges by SPLICING TEXT out of the two source files, keyed on each list item's
+      id, and never re-renders the file through a YAML dumper. safe_load is used to validate both
+      sides and to compare two items with the same id, never to produce the output.
+    because: >-
+      a dumper round trip destroys every comment and reorders every mapping, which would silently
+      carry away the approval block's sub-keys and the template's own explanatory comments; and
+      REQ-03 asks for byte identity, which a re-render cannot give. The cost is a second parser
+      shape in the tool — a line-range index over top-level keys and list-item ids — and it is
+      accepted because the byte-identity criterion cannot be met any other way.
+    dec: DEC-182
+  - id: D-04
+    choice: >-
+      The approval block is never written by plan-merge.py and never carried from the proposal. It
+      is the base file's bytes, untouched. The orchestrator continues to write approval with the
+      Edit tool, which is a surgical patch rather than a whole-file write and therefore cannot
+      destroy the task list; every OTHER write to plan.yaml goes through plan-merge.py.
+    because: >-
+      the approval block is the main session's and nobody else's, and FEAT-30's approval.rulings
+      carried an operator cycle budget that a wholesale rewrite would have taken away silently. A
+      tool that can write it is a tool that can lose it.
+    dec: DEC-129
+  - id: D-05
+    choice: >-
+      For an observation log, union means an ORDER-PRESERVING UNION OF BULLET RECORDS keyed on the
+      record's whitespace-normalised text. A record starts at a line matching a dash and a space at
+      column zero and runs to the next such line. Base records keep their order and come first,
+      then proposal records whose normalised text is not already present, in proposal order.
+      THERE IS NO CONFLICT EXIT FOR THIS FILE CLASS and no id scheme is imposed: two records with
+      different text are two records and both are kept. Its refusal exits are 6, lock not acquired,
+      and 9, a destination that is not an observation log. There is no cap and therefore no exit 8.
+    because: >-
+      the log has no entry ids to key on, so expertise-merge.py's section-plus-id union does not
+      transfer. Imposing ids would rewrite every existing log and change what agents are told to
+      write for no gain, since the log is append-only prose that nothing parses. Exit 7 would be
+      wrong here rather than merely unnecessary — divergent text is the NORMAL case for a log, and
+      a tool that refused it would refuse almost every append. No cap exists because the log is
+      deliberately uncapped — DEC-145 at DECISIONS.md:3441 split recording from distillation
+      precisely so this log is never injected into a spawn, so its size costs no spawn anything.
+    dec: DEC-145
+  - id: D-06
+    choice: >-
+      The #551 fix is a SINGLE-FLIGHT CLAIM REGISTRY, refused at dispatch time rather than at stop
+      time. dispatch-guard.sh, already the PreToolUse Task hook, refuses a dispatch of a persona
+      named in a module literal SINGLE_FLIGHT_AGENTS while a live claim for that persona exists on
+      this checkout; validate-digest.py, already the SubagentStop hook, releases the claim. The
+      registry file is .harness/.inflight-claims.json and it is written through harness_merge.py,
+      so the registry is not itself a new instance of this defect class. Only harness-pm is in the
+      literal.
+    because: >-
+      refusing the SECOND DISPATCH is what #551 occurrence 1 actually needed, and it is achievable;
+      making a lead WAIT for its members is not, because validate-digest.py's hook_mode passes
+      through on stop_hook_active at :845 to avoid an infinite stop loop, so a SubagentStop refusal
+      can fire at most once and cannot be a wait. Restricting the literal to harness-pm is what
+      makes release possible with only agent_type — single flight means the count is zero or one, so
+      no agent id is needed to know which claim to release — and it keeps a legitimate parallel
+      squad of two harness-backend-dev members legal.
+    dec: none
+  - id: D-07
+    choice: >-
+      Every claim carries a start time and is treated as ABSENT once older than CLAIM_TTL_SECONDS,
+      set to 3600. The staleness is reported on stderr and the dispatch is allowed. inflight_registry.py
+      also ships list and release-all subcommands, and the refusal message prints the release-all
+      command verbatim.
+    because: >-
+      the release runs in a hook process that can die, and a leaked claim with no expiry would
+      refuse every later pm dispatch on that checkout — a fix that bricks the factory is worse than
+      the defect. 3600 is above the longest observed pm spawn and below any plausible session, and
+      it is a named literal so a measurement can move it. Failing OPEN on a leaked claim is the
+      house precedent for a guard's own bug, printed at validate-digest.py:869 and set by check-domain.sh.
+    dec: none
+  - id: D-08
+    choice: >-
+      Each merge CLI carries its own exit-9 destination refusal, decided on os.path.realpath, and
+      #627 is NOT fixed here. The pattern accepts both layout forms — a features segment directly
+      under .harness and one nested under a repository segment — because DEC-194 judges a partial
+      layout migration per coupled surface.
+    because: >-
+      bash-write-guard.sh is allow-by-omission, so a python3 invocation reaches neither the
+      read-only denial at :628 nor the domain walk at :676, and the tool's own destination check is
+      the only guard left. Fixing #627 properly means designing a rule rather than a list for
+      extracting each tool's destination argument, in a named enforcement-layer gate, which is a
+      feature of its own. Accepting both layout forms costs one alternation and avoids a tool that
+      refuses the very file it was pointed at on whichever branch has not migrated yet.
+    dec: DEC-194
+
+tasks:
+  - id: T-01
+    title: Capture the live PreToolUse Task and SubagentStop payloads and record their key sets
+    traces: [REQ-05, REQ-09]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      the capture temporarily instruments dispatch-guard.sh and validate-digest.py, both named in
+      DEC-174 amendment 4, so the act is inside the carve-out even though the only file that
+      changes is the note
+    depends_on: []
+    status: pending
+    files:
+      - .harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md
+    verify: |
+      set -u
+      F=.harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md
+      test -f "$F" || { echo "the capture note does not exist"; exit 1; }
+      grep -q '^## PreToolUse Task payload keys$' "$F" || { echo "no PreToolUse key-set section"; exit 1; }
+      grep -q '^## SubagentStop payload keys$' "$F" || { echo "no SubagentStop key-set section"; exit 1; }
+      grep -q '^DISPATCHED_PERSONA_KEY=' "$F" || { echo "the dispatched-persona key is not named"; exit 1; }
+      grep -q '^STOP_HAS_AGENT_TYPE=' "$F" || { echo "the SubagentStop agent_type finding is not recorded"; exit 1; }
+      git diff --quiet -- .claude/skills/harness/bin/dispatch-guard.sh || { echo "instrumentation left in dispatch-guard.sh"; exit 1; }
+      git diff --quiet -- .claude/skills/harness/bin/validate-digest.py || { echo "instrumentation left in validate-digest.py"; exit 1; }
+      exit 0
+    intent: |
+      This task measures the platform. It writes ONE markdown note and reverts every other change it
+      makes. Nothing in the rest of this plan may cite a payload key this note does not record.
+
+      METHOD, copied from the probe FEAT-31 already ran successfully
+      (feat/FEAT-31-orchestrator-context-watch, notes/probe-hook-payload-identity.md): append one
+      line to the hook script immediately after it reads stdin, writing the raw payload to a scratch
+      file outside the repository, then trigger the hook once, then REVERT the line and confirm with
+      git diff that the file is clean.
+
+      TWO CAPTURES.
+
+      1. PreToolUse with matcher Task or Agent, which is dispatch-guard.sh. Trigger it by spawning
+         one throwaway subagent that does nothing. Record the complete key set of the payload, and
+         record the exact key path that names the DISPATCHED persona - the subagent type being asked
+         for, not the dispatcher. dispatch-guard.sh already reads d["tool_input"]["model"], so the
+         dispatched persona is expected somewhere under tool_input, but the key name is NOT
+         established by any measurement in this repository and this task exists to establish it.
+
+      2. SubagentStop, which is validate-digest.py --hook. Trigger it by letting that same throwaway
+         subagent finish. Record the complete key set, and record whether agent_type is present and
+         carries the subagent's own persona name.
+
+      THE NOTE, at
+      .harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md,
+      must contain, verbatim as headings and lines:
+
+        ## PreToolUse Task payload keys
+        <the sorted key list, one per line>
+
+        ## SubagentStop payload keys
+        <the sorted key list, one per line>
+
+        DISPATCHED_PERSONA_KEY=<the dotted key path, or NONE if no key names it>
+        STOP_HAS_AGENT_TYPE=<yes or no>
+
+      Also record the date, the machine, the Claude Code version, and the exact commands used, so a
+      later reader can tell a platform change from a wrong reading.
+
+      IF DISPATCHED_PERSONA_KEY comes back NONE, stop and report it. T-08 cannot be built without it
+      and no substitute is authorised here: guessing a key name is how a hook goes dark project-wide
+      with no signal, which is the failure validate-digest.py:838 exists to make loud.
+
+  - id: T-02
+    title: Build harness_merge.py, the one locked read-modify-write core, and its test
+    traces: [REQ-04, REQ-06, REQ-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    execution_reason: none
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/harness_merge.py
+      - .claude/skills/harness/bin/test-harness-merge.py
+    verify: |
+      set -u
+      test -f .claude/skills/harness/bin/expertise-merge.py || {
+        echo "START GATE FAILED (D-01): FEAT-30 is not merged, so expertise-merge.py is absent"; exit 1; }
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      python3 - "$T/bin/harness_merge.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      m = s.replace("USE_FLOCK = True", "USE_FLOCK = False", 1)
+      assert m != s, "USE_FLOCK assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      HARNESS_MERGE_DIR="$T/bin" python3 .claude/skills/harness/bin/test-harness-merge.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with flock switched off"; exit 1; }
+      python3 .claude/skills/harness/bin/test-harness-merge.py || exit 1
+      exit 0
+    intent: |
+      Write two new files. Change nothing else. This is the shared core every other write route in
+      this feature calls, and it is a LIBRARY, not a gate - it is imported, never registered as a
+      hook. python3 stdlib only, no third-party imports.
+
+      START GATE, and it is not negotiable. Before writing anything, assert that
+      .claude/skills/harness/bin/expertise-merge.py exists. If it does not, FEAT-30 has not merged
+      and this whole feature is blocked by D-01 - return BLOCKED naming D-01, and write nothing.
+
+      FILE 1 - .claude/skills/harness/bin/harness_merge.py.
+
+      Module-level literals, each of which a test mutates BY NAME in a copy of the tree:
+        USE_FLOCK = True
+        LOCK_TIMEOUT_SECONDS = 10.0
+        LOCK_RETRY_INTERVAL = 0.05
+
+      Public surface, exactly four names:
+
+        class MergeRefusal(Exception) - carries an integer code and a list of stderr lines. The
+        caller prints the lines and exits the code. It exists so the core never calls sys.exit
+        itself; a library that exits cannot be tested for its return value.
+
+        acquire(lock_path) - a context manager. When USE_FLOCK is True: open lock_path with
+        O_CREAT|O_RDWR (NEVER O_EXCL, so the file's existence is not the lock), then loop
+        fcntl.flock(fd, LOCK_EX|LOCK_NB) with LOCK_RETRY_INTERVAL sleeps until
+        LOCK_TIMEOUT_SECONDS elapses, then raise MergeRefusal(6, ["LOCKED: could not acquire
+        <lock_path> within <n>s"]). The lock file is NOT removed on release - flock is released by
+        closing the descriptor, and removing the file would reintroduce the race it avoids. When
+        USE_FLOCK is False: reproduce expertise-merge.py's behaviour exactly - os.open with
+        O_CREAT|O_EXCL|O_WRONLY, retry on FileExistsError, exit-6 refusal on timeout, and remove the
+        file in a finally. That branch exists ONLY so a test can prove the flock branch is what makes
+        the stale-lock case pass; nothing selects it at runtime, no flag and no environment variable.
+
+        locked_update(path, transform) - the whole read-modify-write, under acquire(path + ".lock"):
+        read path as BYTES if it exists, else None; call transform(base_bytes) which returns the new
+        bytes or raises MergeRefusal; write the result to a tempfile created with tempfile.mkstemp in
+        the SAME directory as path and os.replace it onto path, removing the tempfile if the write
+        raises. os.replace is what makes a mid-write read impossible - a reader sees the whole old
+        file or the whole new one, never a prefix. On MergeRefusal, write nothing at all and
+        re-raise: the file must be byte identical to before.
+
+        require_destination(path, tail_regex, what, hint_lines) - resolve path with
+        os.path.realpath(os.path.abspath(path)), search tail_regex against the RESOLVED string, and
+        raise MergeRefusal(9, ...) when it does not match. Matching the resolved path rather than the
+        argument is what stops a dot-dot segment or a symlink walking out of the file class and back
+        in under a legal-looking tail. The refusal lines must name the given path, the resolved path,
+        and what the tool does own.
+
+      Write a module docstring that states, in the tool's own voice: this core has NO identity
+      source, so it can check WHERE a write lands and never WHO asked for it; and it is reachable
+      from a read-only persona because bash-write-guard.sh is allow-by-omission, which is issue #627
+      and is not fixed here.
+
+      FILE 2 - .claude/skills/harness/bin/test-harness-merge.py, house shape - a check(name, ok,
+      detail) accumulator, PASS and FAIL lines, a final PASS or FAIL summary line, exit 1 on any
+      failure. Resolve the module under test as
+
+        sys.path.insert(0, os.environ.get("HARNESS_MERGE_DIR") or HERE)
+
+      so a mutated copy of the tree can be swapped in without editing this file. Every case runs in a
+      fresh tempfile.mkdtemp() and never touches a real .harness path.
+
+      CASES:
+        1. locked_update creates a file that does not exist, from a transform that receives None.
+        2. locked_update applies a transform to an existing file and the result is exactly the bytes
+           the transform returned - asserted byte for byte, not by a substring.
+        3. A transform that raises MergeRefusal leaves the file BYTE IDENTICAL to before, and no
+           tempfile is left in the directory. Assert both.
+        4. THE STALE-LOCK CASE, which is D-02's whole reason. Fork a child that acquires the lock on
+           a fixture and then blocks forever; SIGKILL it; then run locked_update on the same path in
+           the parent and assert it returned normally AND that the transform's output is on disk.
+           The assertion is the successful apply, never merely the absence of a hang. With USE_FLOCK
+           False this case must fail, because the O_EXCL branch leaves the lock file behind.
+        5. CONTENTION: two subprocesses each call locked_update with a transform that appends a
+           distinct line and sleeps briefly inside the transform. Admit exactly two outcomes - both
+           lines present, or one process raised MergeRefusal code 6 and applied nothing. Report any
+           third outcome by trial number with both results and the file content. Run 20 trials.
+        6. NO TORN READ: a subprocess loops reading the file while another runs locked_update with a
+           transform producing a much larger body. Assert that every read the reader observed was
+           either exactly the old bytes or exactly the new bytes - never a prefix of either and never
+           empty. This is the read-side assertion for REQ-04.
+        7. require_destination accepts a matching resolved path and raises MergeRefusal(9) for a
+           non-matching one AND for a dot-dot escape whose literal argument ends in a matching tail.
+           Both directions, so an allow-nothing implementation fails.
+        8. acquire raises MergeRefusal(6) when the lock is already held by a LIVE process, and the
+           refusal lines name the lock path. Assert the code and the path, not just that something
+           was raised.
+
+  - id: T-03
+    title: Build plan-merge.py so a second plan writer adds tasks and never deletes them
+    traces: [REQ-01, REQ-03, REQ-08]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    execution_reason: none
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/plan-merge.py
+      - .claude/skills/harness/bin/test-plan-merge.py
+    verify: |
+      set -u
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      python3 - "$T/bin/plan-merge.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      m = s.replace("UNION_MERGE = True", "UNION_MERGE = False", 1)
+      assert m != s, "UNION_MERGE assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      PLAN_MERGE_BIN="$T/bin/plan-merge.py" \
+        python3 .claude/skills/harness/bin/test-plan-merge.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with the union switched off"; exit 1; }
+      T2=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T2/bin" || exit 1
+      python3 - "$T2/bin/plan-merge.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      m = s.replace("PRESERVE_BASE_BYTES = True", "PRESERVE_BASE_BYTES = False", 1)
+      assert m != s, "PRESERVE_BASE_BYTES assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      PLAN_MERGE_BIN="$T2/bin/plan-merge.py" \
+        python3 .claude/skills/harness/bin/test-plan-merge.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with the byte preservation switched off"; exit 1; }
+      python3 .claude/skills/harness/bin/test-plan-merge.py || exit 1
+      exit 0
+    intent: |
+      Write two new files. Change nothing else. Import the lock and the atomic replace from
+      harness_merge - do not write fcntl, O_EXCL or os.replace anywhere in either file.
+
+        plan-merge.py apply --file <path to a plan.yaml> --proposal <path or - for stdin>
+
+      THE ALGORITHM. Read D-03 and D-04 before starting: the merge SPLICES TEXT and never re-renders
+      through a YAML dumper, and the approval block is the base file's bytes and nothing else.
+
+        1. require_destination on --file, against a tail that matches, on the RESOLVED path, a
+           features directory either directly under a .harness segment or nested one segment deeper,
+           a FEAT- or BUG- prefixed directory, and the literal filename plan.yaml. Exit 9 otherwise.
+        2. Everything below happens inside harness_merge.locked_update on --file.
+        3. yaml.safe_load both the base bytes and the proposal. PyYAML is REQUIRED (DEC-171 am.1) -
+           import it plainly. Either side failing to parse is MergeRefusal(5) naming which side and
+           the parser's own message, applying nothing. A base that does not exist is treated as an
+           empty mapping and the proposal is written whole.
+        4. Build a LINE-RANGE INDEX over the base TEXT: for each top-level key, the half-open line
+           range from its own line to the line before the next line matching a top-level key at
+           column zero; and within the tasks and decisions blocks, for each list item, the range from
+           the item's leading dash line to the line before the next dash at that same indent. Key
+           each item by its id value. Do the same for the proposal.
+        5. UNION_MERGE = True, a module-level literal guarding step 6, exactly as expertise-merge.py
+           uses UNION_APPLY. When False, write the proposal's bytes alone - which is today's
+           last-writer-wins behaviour - so a test can prove the union assertions can go red. Nothing
+           reads an environment variable or a flag to change it.
+        6. For tasks and for decisions: every base item stays, in its base order, as its own base
+           TEXT. A proposal item whose id is absent from the base is APPENDED to that block as its
+           own proposal text, in proposal order. A proposal item whose id is present and whose
+           safe_load-ed value is EQUAL to the base's is skipped and reported PRESERVED. A proposal
+           item whose id is present and whose value DIFFERS is a conflict: exit 7, apply nothing,
+           print the id and both loaded values. A real conflict is the author's to resolve, not the
+           tool's to guess.
+        7. approval: the base's line range, byte for byte, always. The proposal's approval block is
+           IGNORED, and the tool reports IGNORED-APPROVAL on stdout when the proposal carried one so
+           the caller knows it was dropped. Guard this with a second module-level literal,
+           PRESERVE_BASE_BYTES = True; when False, render the whole output through yaml.safe_dump,
+           which is what a naive implementation does and what the byte-identity test must reject.
+        8. Every other top-level key: present in base only, keep the base text. Present in proposal
+           only, append the proposal text. Present in both and loaded-equal, keep the base text.
+           Present in both and loaded-different, exit 7 naming the key and both values.
+        9. Emit the assembled bytes through locked_update, so the replace is atomic.
+       10. On success print one ADDED line per new id, one PRESERVED line per kept id, and a final
+           APPLIED line with the path. Never a bare count.
+
+      Exit codes, and they are the interface: 0 applied, 5 a side did not parse, 6 lock not acquired,
+      7 the same id with two different values or a top-level key with two different values, 9 the
+      destination is not a plan.yaml.
+
+      test-plan-merge.py, house shape, resolving the CLI as
+
+        CLI = os.environ.get("PLAN_MERGE_BIN") or os.path.join(HERE, "plan-merge.py")
+
+      Every fixture lives inside a fresh tempfile.mkdtemp() under a
+      .harness/harness/features/FEAT-99-fixture/ path so require_destination accepts it, and never
+      touches a real feature directory.
+
+      CASES:
+        1. THE RED CASE, PERMANENT, and never routed through the tool. Reproduce #628 directly: write
+           a plan.yaml holding T-01 through T-14 by a plain whole-file write, then overwrite it with
+           a plain whole-file write holding T-01 alone. Assert that T-02 through T-14 are each absent
+           - thirteen separate assertions, one per id, never a count. This case tests the naive
+           sequence, so it never goes stale.
+        2. THE GREEN CASE. Same base, then apply a proposal holding T-01 alone through the tool.
+           Assert exit 0 and assert each of T-01 through T-14 is still present, one assertion per id.
+           Then apply a proposal holding T-15 and assert all fifteen are present.
+        3. APPROVAL BYTE IDENTITY. The base's approval block carries a nested rulings list of two
+           items, one single-quoted scalar, and a trailing comment on its own line inside the block.
+           Apply a proposal that adds T-15 AND carries a different approval block claiming
+           status: approved. Assert: exit 0; the exact byte slice of the base's approval block,
+           comment included, occurs verbatim in the result; the string "approved" does not occur
+           anywhere in the result; the number of lines beginning with a hash in the whole file is
+           unchanged; and stdout carries IGNORED-APPROVAL. Key presence is NOT an assertion here and
+           must not be substituted for one.
+        4. CONCURRENCY FOR REAL, 20 trials. Two subprocesses apply overlapping proposals - one adding
+           T-15, one adding T-16 - to the same base at the same time. Admit exactly two outcomes:
+           both new ids and every base id present, or one process exited 6 with a LOCKED line having
+           applied nothing while the other's id and every base id are present. Report any third
+           outcome by trial number with both exit codes, both stdouts and the file content. Never
+           widen the assertion to admit it.
+        5. CONFLICT: a proposal carrying T-03 with a different title exits 7, prints the id and both
+           values, and leaves the file byte identical to before.
+        6. IDEMPOTENCE: applying the same proposal twice leaves the second run at exit 0 with the
+           file byte identical to after the first run.
+        7. DESTINATION REFUSAL, both directions. A source path exits 9 and is left untouched; a
+           dot-dot escape whose literal argument ends in features/FEAT-99-fixture/plan.yaml exits 9;
+           a legitimate fixture plan.yaml exits 0. A refuse-everything tool fails the third.
+        8. UNPARSEABLE: a proposal that is not valid YAML exits 5, names the proposal side, and
+           leaves the base byte identical.
+        9. COMMENTS SURVIVE: a base carrying the plan.yaml template's own leading comment block still
+           carries every one of those lines, byte identical, after a merge that adds a task.
+
+  - id: T-04
+    title: Build observations-merge.py so two contexts of one agent both keep their bullets
+    traces: [REQ-02, REQ-08]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    execution_reason: none
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/observations-merge.py
+      - .claude/skills/harness/bin/test-observations-merge.py
+    verify: |
+      set -u
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      python3 - "$T/bin/observations-merge.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      m = s.replace("UNION_MERGE = True", "UNION_MERGE = False", 1)
+      assert m != s, "UNION_MERGE assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      OBSERVATIONS_MERGE_BIN="$T/bin/observations-merge.py" \
+        python3 .claude/skills/harness/bin/test-observations-merge.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with the union switched off"; exit 1; }
+      python3 .claude/skills/harness/bin/test-observations-merge.py || exit 1
+      exit 0
+    intent: |
+      Write two new files. Change nothing else. Import the lock and the atomic replace from
+      harness_merge - do not write fcntl, O_EXCL or os.replace anywhere in either file.
+
+        observations-merge.py apply --file <path to an observations log> --entries <path or - for stdin>
+
+      D-05 defines what union means for this file class and it is NOT expertise-merge.py's
+      section-plus-id union. Read it before starting. In particular: there is no conflict exit and no
+      cap for this file class, so there is no exit 7 and no exit 8.
+
+      THE FORMAT, taken from a real log
+      (feat/FEAT-31-orchestrator-context-watch, FEAT-31's observations/harness-pm.md): an optional
+      title line beginning with a hash, then BULLET RECORDS. A record begins at a line matching a
+      dash and a space at column zero and continues through every following line until the next such
+      line or end of file - so an indented continuation line and a blank line both belong to the
+      record above them.
+
+      THE ALGORITHM:
+        1. require_destination on --file against a tail that matches, on the RESOLVED path, a
+           features directory either directly under a .harness segment or nested one segment deeper,
+           a FEAT- or BUG- prefixed directory, the literal segment observations, and a filename of
+           the form harness- followed by lowercase letters, digits and hyphens, ending .md. Exit 9
+           otherwise.
+        2. Inside harness_merge.locked_update on --file.
+        3. Parse base and entries into (title_or_None, [record_text, ...]).
+        4. UNION_MERGE = True, a module-level literal guarding step 5; when False write the entries
+           alone, which is today's last-writer-wins behaviour, so a test can prove the union
+           assertions can go red. Nothing reads an environment variable or a flag to change it.
+        5. Output = the base title if the base had one, else the entries title, else a title of the
+           form "# Observations - <the filename stem>"; then every base record in base order, then
+           every entries record whose normalised text is not already present, in entries order.
+           NORMALISED means: strip trailing whitespace from every line, collapse runs of whitespace
+           to a single space, and join. Compare on the normalised form; WRITE the original text.
+        6. Emit through locked_update. Print one ADDED line per record added, giving its first 60
+           characters, one PRESERVED line per base record kept, and a final APPLIED line. Never a
+           bare count.
+
+      Exit codes: 0 applied, 6 lock not acquired, 9 the destination is not an observation log. No
+      other code is defined for this tool, and that is deliberate - see D-05.
+
+      test-observations-merge.py, house shape, resolving the CLI as
+
+        CLI = os.environ.get("OBSERVATIONS_MERGE_BIN") or os.path.join(HERE, "observations-merge.py")
+
+      Fixtures live in a fresh tempfile.mkdtemp() under a
+      .harness/harness/features/FEAT-99-fixture/observations/harness-pm.md path.
+
+      CASES:
+        1. THE RED CASE, PERMANENT, never routed through the tool. Reproduce #606 directly: write a
+           log holding bullets A and B by a plain whole-file write, then overwrite it with a plain
+           whole-file write holding A and C. Assert B is absent. That is the loss the issue records.
+        2. GREEN: the same two appends through the tool leave A, B and C all present - one assertion
+           per bullet - with A first and the base order of A and B unchanged.
+        3. DEDUP: applying an entries file whose only record is byte identical to a base record
+           leaves the file with exactly one copy of it. Count occurrences of the record's first line
+           and assert one.
+        4. DEDUP IS ON NORMALISED TEXT: a record differing from a base record only in line wrapping
+           and trailing spaces is treated as the same record and not duplicated.
+        5. TWO DIFFERENT RECORDS ARE BOTH KEPT, with no conflict and exit 0 - the case that would
+           break if expertise-merge.py's exit 7 were copied here.
+        6. MULTI-LINE RECORDS: a base record with two indented continuation lines survives with those
+           lines attached to it and in order, asserted on the exact text.
+        7. CONCURRENCY FOR REAL, 20 trials, two subprocesses appending distinct records. Admit
+           exactly two outcomes - both records plus every base record present, or one process exited
+           6 having applied nothing. Report any third outcome by trial number.
+        8. A log that does not exist yet is created from the entries alone, with a generated title,
+           exit 0.
+        9. DESTINATION REFUSAL, both directions: a source path exits 9 untouched, a dot-dot escape
+           wearing a legal tail exits 9, an Expertise file path exits 9 - it belongs to a different
+           tool - and a legitimate observations path exits 0.
+
+  - id: T-05
+    title: Rewire expertise-merge.py onto the shared core so there is one lock dialect
+    traces: [REQ-06, REQ-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    execution_reason: none
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/expertise-merge.py
+    verify: |
+      set -u
+      grep -q 'import harness_merge\|from harness_merge import' .claude/skills/harness/bin/expertise-merge.py \
+        || { echo "expertise-merge.py does not use the shared core"; exit 1; }
+      grep -nE 'fcntl\.flock|O_EXCL|os\.replace' .claude/skills/harness/bin/expertise-merge.py \
+        && { echo "expertise-merge.py still carries its own lock or replace primitive"; exit 1; }
+      python3 .claude/skills/harness/bin/test-expertise-merge.py || exit 1
+      exit 0
+    intent: |
+      One file changes. Replace expertise-merge.py's OWN concurrency machinery with calls into
+      harness_merge, and change NOTHING about its behaviour that its existing test can see.
+
+      REMOVE: the acquire_lock function, the LOCK_TIMEOUT_SECONDS and LOCK_RETRY_INTERVAL literals,
+      the tempfile-plus-os.replace block inside cmd_apply, and the finally block that removes the
+      lock file.
+
+      REPLACE WITH: harness_merge.locked_update on the target path, with the union computation moved
+      inside the transform callback, and harness_merge.require_destination for the exit-9 check -
+      passing the SAME regex and the SAME refusal wording the file already carries, so its docstring
+      and its stderr text are unchanged.
+
+      KEEP EXACTLY AS THEY ARE: the CAPS mapping, SECTION_RE, ENTRY_RE, parse_expertise, render,
+      compute_union, default_title, EXPERTISE_TAIL, the UNION_APPLY literal and everything it guards,
+      every exit code, and every printed line. The docstring's exit-code list and its
+      WHAT-THIS-CANNOT-DO paragraph stay verbatim.
+
+      Translate the refusals: where the file called sys.exit(7) or sys.exit(8) inside the
+      read-modify-write, raise harness_merge.MergeRefusal with that code and the same lines, and let
+      cmd_apply catch it at the top level, print the lines and exit that code. The observable exit
+      codes and stdout must not change.
+
+      THE PROOF THIS TASK OWES is that test-expertise-merge.py passes UNEDITED. Do not touch that
+      file. If a case fails, the rewire changed behaviour and the rewire is wrong - not the test.
+      Note that its case 4, 5 and 6 assert the lock file is GONE afterwards, and D-02's flock branch
+      does not remove the lock file. That assertion is the one place the rewire may legitimately
+      collide with the existing test: if it does, STOP and report it as an open question rather than
+      editing the test, because editing a concurrency assertion to fit an implementation is how this
+      class of defect gets shipped. A candidate answer to offer, not to apply unilaterally: keep the
+      lock file but truncate it to zero bytes, or move the lock to a sibling path the test does not
+      assert on.
+
+  - id: T-06
+    title: Build inflight_registry.py, the single-flight claim store, and its test
+    traces: [REQ-05, REQ-06, REQ-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    execution_reason: none
+    depends_on: [T-01, T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/inflight_registry.py
+      - .claude/skills/harness/bin/test-inflight-registry.py
+    verify: |
+      set -u
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      python3 - "$T/bin/inflight_registry.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      m = s.replace("CLAIM_TTL_SECONDS = 3600", "CLAIM_TTL_SECONDS = 99999999", 1)
+      assert m != s, "CLAIM_TTL_SECONDS assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      INFLIGHT_REGISTRY_DIR="$T/bin" python3 .claude/skills/harness/bin/test-inflight-registry.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with the TTL made effectively infinite"; exit 1; }
+      T2=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T2/bin" || exit 1
+      python3 - "$T2/bin/inflight_registry.py" <<'PY' || exit 1
+      import sys, re
+      p = sys.argv[1]
+      s = open(p).read()
+      m, n = re.subn(r'SINGLE_FLIGHT_AGENTS = \([^)]*\)', 'SINGLE_FLIGHT_AGENTS = ()', s, count=1)
+      assert n == 1, "SINGLE_FLIGHT_AGENTS assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      INFLIGHT_REGISTRY_DIR="$T2/bin" python3 .claude/skills/harness/bin/test-inflight-registry.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with no persona under single flight"; exit 1; }
+      python3 .claude/skills/harness/bin/test-inflight-registry.py || exit 1
+      exit 0
+    intent: |
+      Write two new files. Change nothing else. This is a LIBRARY plus a small CLI, not a gate - the
+      two hooks that call it are cut over separately in T-08 and T-09, which are the operator's
+      hands under DEC-174 amendment 4.
+
+      PRECONDITION: read
+      .harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md,
+      written by T-01, and take the dispatched-persona key path from its DISPATCHED_PERSONA_KEY line.
+      Do not guess it. If that note is absent, or its DISPATCHED_PERSONA_KEY is NONE, return BLOCKED.
+
+      FILE 1 - .claude/skills/harness/bin/inflight_registry.py.
+
+      Module-level literals, each a mutation target for the red proof:
+        SINGLE_FLIGHT_AGENTS = ("harness-pm",)
+        CLAIM_TTL_SECONDS = 3600
+        REGISTRY_REL = ".harness/.inflight-claims.json"
+
+      The registry is a JSON object mapping a persona name to a claim object holding started_at as a
+      unix float, dispatcher as the dispatching persona name or null, and cwd as the checkout it was
+      claimed in. It is stored at REGISTRY_REL relative to the checkout root, which is taken from the
+      CLAUDE_PROJECT_DIR environment variable when set and otherwise from an explicit root argument.
+      One registry per checkout, so two worktrees never contend.
+
+      EVERY read-modify-write of that file goes through harness_merge.locked_update. Do not write
+      fcntl, O_EXCL or os.replace anywhere in this file - a registry that many hook processes write
+      concurrently is another instance of the very defect this feature exists to fix, and the whole
+      point of the shared core is that it is fixed once.
+
+      Public functions:
+        live_claim(root, agent, now=None) - returns the claim mapping for agent, or None. A claim
+        whose started_at is older than CLAIM_TTL_SECONDS is treated as ABSENT and is DELETED as a
+        side effect, and the function records that it did so in a second return value so the caller
+        can say it on stderr. Failing OPEN on a leaked claim is the house precedent for a guard's own
+        bug - see the printed line at validate-digest.py:869.
+        claim(root, agent, dispatcher, cwd, now=None) - returns True having recorded the claim, or
+        False when a live claim already exists. Never raises for contention.
+        release(root, agent) - removes the claim if present. Returns whether it removed one.
+        release_all(root) - removes every claim. Returns how many.
+        is_single_flight(agent) - agent in SINGLE_FLIGHT_AGENTS.
+        refusal_lines(agent, existing, release_cmd) - the exact stderr block a caller prints. It MUST
+        contain, in this order: a first line beginning "dispatch-guard: BLOCKED - single-flight" and
+        naming the agent; a line naming the existing claim's started_at as an ISO-8601 timestamp and
+        its dispatcher; a line stating that this is issue #551 and that the second writer would
+        otherwise overwrite the first's plan.yaml; and a final line carrying release_cmd verbatim as
+        the way to clear it. Assemble it here so the hook and the test read the same one source.
+
+      A missing, empty or unparseable registry file is treated as an EMPTY registry and reported on
+      stderr - never an exception out of a hook.
+
+      CLI, for the operator's escape hatch:
+        inflight_registry.py list          - one line per claim, or the literal line NO CLAIMS
+        inflight_registry.py release --agent <name>
+        inflight_registry.py release-all
+      Exit 0 for all three. The release_cmd string that refusal_lines prints must be exactly the
+      release-all invocation, built from the same constant, so the message cannot drift from the
+      command.
+
+      FILE 2 - .claude/skills/harness/bin/test-inflight-registry.py, house shape, resolving the
+      module as sys.path.insert(0, os.environ.get("INFLIGHT_REGISTRY_DIR") or HERE). Every case uses
+      a fresh tempfile.mkdtemp() as the root and never touches the real .harness directory.
+
+      CASES:
+        1. claim then live_claim returns the claim, with the recorded dispatcher and cwd asserted.
+        2. A SECOND claim for the same agent returns False and does not change the stored started_at.
+           Assert the stored value is the FIRST one - a second claim silently replacing the first is
+           this feature's own defect in miniature.
+        3. STALENESS: a claim written with started_at at now minus CLAIM_TTL_SECONDS minus one is
+           treated as absent, live_claim reports that it expired one, and a following claim succeeds.
+           With CLAIM_TTL_SECONDS mutated large this case must FAIL.
+        4. release removes the claim and returns True; releasing an absent claim returns False and
+           does not create the file.
+        5. is_single_flight is True for harness-pm and False for harness-backend-dev. With
+           SINGLE_FLIGHT_AGENTS mutated to an empty tuple this case must FAIL - that is what makes
+           the second red proof discriminating.
+        6. refusal_lines contains the literal marker "dispatch-guard: BLOCKED - single-flight", the
+           agent name, an ISO-8601 timestamp, the string "#551", and the release command byte for
+           byte identical to the CLI invocation string the module exports. Assert each of the five
+           separately.
+        7. CONCURRENCY: 20 trials of two subprocesses both calling claim for harness-pm at once.
+           Assert that in every trial exactly ONE returned True and the registry holds exactly one
+           claim. Report any trial where both succeeded, by trial number - that outcome is the defect
+           and must never be admitted.
+        8. A corrupt registry file - the single byte "{" - is treated as empty, a claim succeeds, and
+           a message naming the file appears on stderr. No exception escapes.
+        9. release_all empties a registry holding three claims and returns 3; list prints NO CLAIMS
+           afterwards.
+       10. NO OWN PRIMITIVE: read inflight_registry.py as TEXT and assert it contains no occurrence
+           of fcntl, O_EXCL or os.replace, and does contain a call to harness_merge.locked_update.
+           Both halves, so the assertion is positive as well as negative.
+
+  - id: T-07
+    title: Capture dispatch-guard.sh's current refusal set as a test, before it changes
+    traces: [REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: >-
+      DEC-174 amendment 4 puts the test file of each gate inside the carve-out, because a gate's test
+      is the only thing proving the gate discriminates; dispatch-guard.sh has no test at 5d9b428
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-dispatch-guard.py
+    verify: |
+      set -u
+      python3 .claude/skills/harness/bin/test-dispatch-guard.py || exit 1
+      git diff --quiet -- .claude/skills/harness/bin/dispatch-guard.sh \
+        || { echo "this task must not change dispatch-guard.sh"; exit 1; }
+      exit 0
+    intent: |
+      Write ONE new file and change nothing else - in particular, do NOT touch dispatch-guard.sh.
+      This task exists to pin the gate's behaviour BEFORE T-08 changes it, so that T-08's claim of
+      an unchanged refusal set is falsifiable rather than asserted. That is DEC-174 amendment 4's
+      stated proof obligation for a gate cutover.
+
+      .claude/skills/harness/bin/test-dispatch-guard.py, house shape - a check(name, ok, detail)
+      accumulator, PASS and FAIL lines, a final summary line, exit 1 on any failure. It runs
+      dispatch-guard.sh as a subprocess with a JSON payload on stdin and asserts the exit code and
+      the stderr text.
+
+      FOUR CASES, one per branch the script already has, each asserting the exit code AND a
+      distinguishing string, so a crash producing the same exit code cannot satisfy it:
+        1. A harness agent_type with tool_input.model set exits 2 and stderr contains both
+           "dispatch-guard: BLOCKED" and the model value that was passed.
+        2. The same payload with no model key exits 0 and stderr is empty.
+        3. An agent_type that does not begin with harness- exits 0 even with a model set - the
+           not-governed branch.
+        4. Stdin that is not JSON at all exits 0 and stderr contains "unreadable hook payload" - the
+           fail-open branch.
+      Add a fifth case for the MAIN SESSION shape - a payload with no agent_type key at all, with a
+      model set - asserting exit 0, since model choice at the user channel is the user's.
+
+      Take the exact expected strings from the script as it stands; do not paraphrase them. This file
+      must pass against dispatch-guard.sh UNCHANGED, and T-08 must leave every one of these five
+      cases passing without editing any of them.
+
+  - id: T-08
+    title: Cut dispatch-guard.sh over to refuse a second concurrent single-flight dispatch
+    traces: [REQ-05]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: >-
+      dispatch-guard.sh is a registered PreToolUse hook, inside DEC-174 amendment 4's enforcement-layer
+      category; the library it now calls was written by a squad in T-06, which is exactly the split
+      amendment 4 authorises
+    depends_on: [T-06, T-07]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/dispatch-guard.sh
+      - .claude/skills/harness/bin/test-dispatch-guard.py
+    verify: |
+      set -u
+      python3 .claude/skills/harness/bin/test-dispatch-guard.py || exit 1
+      python3 - <<'PY' || exit 1
+      import re, subprocess, sys
+      src = open(".claude/skills/harness/bin/test-dispatch-guard.py").read()
+      for marker in ("unreadable hook payload", "dispatch-guard: BLOCKED"):
+          assert marker in src, "the pre-cutover case for %r was removed" % marker
+      PY
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      python3 - "$T/bin/inflight_registry.py" <<'PY' || exit 1
+      import sys, re
+      p = sys.argv[1]
+      s = open(p).read()
+      m, n = re.subn(r'SINGLE_FLIGHT_AGENTS = \([^)]*\)', 'SINGLE_FLIGHT_AGENTS = ()', s, count=1)
+      assert n == 1, "SINGLE_FLIGHT_AGENTS assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      DISPATCH_GUARD_BIN="$T/bin/dispatch-guard.sh" \
+        python3 .claude/skills/harness/bin/test-dispatch-guard.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the refusal cases pass with no persona under single flight"; exit 1; }
+      exit 0
+    intent: |
+      Two files change. The gate gains ONE new refusal and loses none.
+
+      PRECONDITION: read
+      .harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md
+      and use its DISPATCHED_PERSONA_KEY value as the key path for the dispatched persona. Do not
+      guess it.
+
+      IN dispatch-guard.sh, inside the existing embedded python3 block, AFTER the existing
+      not-governed early exit and AFTER the existing model check, add the claim step:
+
+        - Read the dispatched persona from the key path the note names. If absent, print one stderr
+          line saying so and exit 0 - fail OPEN, loudly, on our own gap, which is the precedent this
+          script's own header already states and validate-digest.py:838 states again.
+        - Import inflight_registry from the script's own directory. If the import fails, print one
+          stderr line naming the module and exit 0. A guard that blocks every spawn because its
+          library moved is worse than no guard.
+        - If is_single_flight(dispatched) is False, exit 0.
+        - Call live_claim. If it expired a claim, say so on stderr and continue.
+        - If a live claim exists, print refusal_lines and exit 2.
+        - Otherwise call claim with the dispatching agent_type and the payload's cwd, and exit 0.
+
+      Preserve, unchanged: the shebang, set -uo pipefail, the payload=$(cat) read, the unreadable-payload
+      pass-through, the non-harness pass-through, the no-model pass-through, and every word of the
+      existing model refusal. Resolve the script's own directory from BASH_SOURCE so the test can
+      point DISPATCH_GUARD_BIN at a copied tree and get that copy's inflight_registry.py.
+
+      IN test-dispatch-guard.py, ADD cases and EDIT NONE. Resolve the script as
+        GUARD = os.environ.get("DISPATCH_GUARD_BIN") or os.path.join(HERE, "dispatch-guard.sh")
+      and point CLAUDE_PROJECT_DIR at a fresh tempfile.mkdtemp() for every case so no case touches
+      the real registry.
+
+      NEW CASES:
+        6. THE REFUSAL, and the assertion is that the predicate was REACHED. Write a registry holding
+           a live harness-pm claim with a known started_at and a known dispatcher, then feed a Task
+           payload naming harness-pm as the dispatched persona. Assert ALL of: exit code exactly 2;
+           stderr contains "dispatch-guard: BLOCKED - single-flight"; stderr contains the ISO-8601
+           form of the recorded started_at; stderr contains the recorded dispatcher name; stderr
+           contains the release-all command string exported by inflight_registry. A non-zero exit
+           alone is NOT the assertion - a crash on the way in is also non-zero, and that is the
+           defect FEAT-30's T-10 shipped.
+        7. THE ALLOW HALF. Same payload, empty registry: exit 0, and the registry afterwards holds
+           exactly one harness-pm claim whose dispatcher is the payload's agent_type. Assert the
+           write, not just the exit.
+        8. A NON-SINGLE-FLIGHT PERSONA: a payload naming harness-backend-dev exits 0 twice in a row
+           and writes no claim, so a parallel squad stays legal.
+        9. A STALE CLAIM: a registry whose harness-pm claim is older than the TTL yields exit 0, and
+           stderr says the claim expired.
+       10. THE LIBRARY IS MISSING: with inflight_registry.py absent from the copied tree, the same
+           refusal payload exits 0 and stderr names the module. Fail open, loudly.
+
+      Cases 1 through 5 from T-07 must still pass, unedited. If one of them fails, the cutover
+      changed the pre-existing refusal set and the cutover is wrong.
+
+  - id: T-09
+    title: Release the claim on SubagentStop from validate-digest.py, changing nothing else it does
+    traces: [REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: >-
+      validate-digest.py is named in DEC-174 amendment 4 as a registered SubagentStop validator, and
+      amendment 4 puts its test file inside the carve-out with it
+    depends_on: [T-01, T-06]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/validate-digest.py
+      - .claude/skills/harness/bin/test-validate-digest.py
+    verify: |
+      set -u
+      python3 .claude/skills/harness/bin/test-validate-digest.py || exit 1
+      python3 - <<'PY' || exit 1
+      src = open(".claude/skills/harness/bin/validate-digest.py").read()
+      for marker in ("unreadable hook payload", "has no agent_type", "stop_hook_active"):
+          assert marker in src, "a named fail-open pass-through disappeared: %r" % marker
+      body = src[src.index("def hook_mode"):]
+      i_rel = body.index("inflight_registry")
+      i_stop = body.index("stop_hook_active")
+      assert i_rel > i_stop, "the release runs before the stop_hook_active pass-through"
+      PY
+      exit 0
+    intent: |
+      Two files change. The validator gains ONE side effect and loses no behaviour.
+
+      PRECONDITION: read
+      .harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md.
+      If its STOP_HAS_AGENT_TYPE line reads no, STOP and return BLOCKED naming that line - the
+      release cannot be keyed on a field the payload does not carry, and no substitute is authorised
+      here.
+
+      IN hook_mode() in validate-digest.py, AFTER the stop_hook_active pass-through at :845 and
+      BEFORE the last_assistant_message check, insert the release:
+
+        - Import inflight_registry from this file's own directory, inside a try. On any ImportError,
+          print one stderr line naming the module and CONTINUE - never return, never raise. This hook
+          validates digests; releasing a claim is a side errand and must never be able to change the
+          verdict.
+        - If is_single_flight(agent), call release for that agent against the root taken from
+          CLAUDE_PROJECT_DIR, wrapped in a try that swallows and reports any exception on stderr.
+          Print one line saying whether a claim was released.
+
+      Place it after stop_hook_active deliberately: on a re-run the claim is already gone and a
+      second release is a no-op, but the ordering keeps the release out of the loop-guard path
+      entirely. The verify asserts this ordering by index in the source text.
+
+      CHANGE NOTHING ELSE. The three fail-open pass-throughs at :828, :838 and :845, the
+      no-final-message pass-through, the no-schema pass-through, the internal-error pass-through, the
+      lead artifact check, and every printed line stay exactly as they are.
+
+      IN test-validate-digest.py, ADD cases and EDIT NONE - the existing suite passing unedited is
+      SC-08 and is the only evidence that the validator's behaviour is unchanged.
+
+      NEW CASES:
+        1. A SubagentStop payload with agent_type harness-pm and a VALID digest releases the claim:
+           write a claim, run the hook with CLAUDE_PROJECT_DIR pointed at a temp root, assert exit 0
+           and assert the registry no longer holds it.
+        2. A SubagentStop payload with agent_type harness-pm and an INVALID digest still exits 2 for
+           the contract violation AND still releases the claim. A blocked return must not leak a
+           claim, or a re-prompted pm can never be re-dispatched.
+        3. stop_hook_active true still returns 0 and does not raise, with a claim present.
+        4. A non-single-flight persona leaves an unrelated harness-pm claim untouched.
+        5. With inflight_registry.py absent from a copied tree, a valid digest still exits 0 and
+           stderr names the module - the release cannot break validation.
+
+  - id: T-10
+    title: Register the five new test files with the integration kind and the runner
+    traces: [REQ-09]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    execution_reason: none
+    depends_on: [T-02, T-03, T-04, T-06, T-07]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .harness/harness.json
+    verify: |
+      set -u
+      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1) || { echo "$out"; exit 1; }
+      for f in test-harness-merge.py test-plan-merge.py test-observations-merge.py \
+               test-inflight-registry.py test-dispatch-guard.py; do
+        echo "$out" | grep -q "^PASS $f$" || { echo "$f did not run or did not pass"; echo "$out"; exit 1; }
+      done
+      echo "$out" | grep -q '^FAIL ' && { echo "$out"; exit 1; }
+      python3 - <<'PY' || exit 1
+      import json
+      d = json.load(open(".harness/harness.json"))["test_kinds"]["integration"]["detect"]
+      for f in ("test-harness-merge.py", "test-plan-merge.py", "test-observations-merge.py",
+                "test-inflight-registry.py", "test-dispatch-guard.py"):
+          assert ".claude/skills/harness/bin/" + f in d, f + " missing from integration detect"
+      PY
+      exit 0
+    intent: |
+      Two edits, both registrations. No logic changes anywhere.
+
+      1. .claude/skills/harness/bin/run-unit-tests.sh, the INTEGRATION_SCRIPTS array at line 18.
+         Append test-harness-merge.py, test-plan-merge.py, test-observations-merge.py,
+         test-inflight-registry.py and test-dispatch-guard.py. All five fork real subprocesses and
+         real concurrent children, which is the principle that array encodes - do not put any of them
+         in UNIT_SCRIPTS. Change nothing else in the file and do not touch the drift detector.
+
+      2. .harness/harness.json, the test_kinds.integration.detect value. It is an explicit
+         pipe-separated list, not a wildcard, so a file absent from it is invisible to the kind even
+         once the runner runs it. Append the same five paths, each prefixed
+         .claude/skills/harness/bin/. Change nothing else in the file - in particular do not touch
+         test_matrix, budgets or github.
+
+      If a sixth or seventh test file exists in bin/ that is absent from both arrays, the runner
+      already exits 2 MISCONFIGURED on its drift detector. Register it here rather than reporting it.
+
+  - id: T-11
+    title: Keep the claim registry out of git
+    traces: [REQ-05]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve prints NOBODY for .gitignore at 5d9b428
+    depends_on: [T-06]
+    status: pending
+    files:
+      - .gitignore
+    verify: |
+      set -u
+      grep -q '^\.harness/\.inflight-claims\.json$' .gitignore || { echo "the registry is not ignored"; exit 1; }
+      printf '{}' > .harness/.inflight-claims.json
+      git status --porcelain .harness/.inflight-claims.json | grep -q . \
+        && { rm -f .harness/.inflight-claims.json; echo "the registry still dirties the tree"; exit 1; }
+      rm -f .harness/.inflight-claims.json
+      exit 0
+    intent: |
+      One line added to .gitignore, with a comment above it in the style every other rule in that
+      file already uses - what the file is, and what breaks without the rule.
+
+      The rule is exactly:
+        .harness/.inflight-claims.json
+
+      The comment must say: the single-flight claim registry (issue #551) is per-checkout transient
+      state written by hook processes; untracked it dirties the working tree, and a dirty tree halts
+      the next team run on the rule for run state directly above it. This is the same reason
+      .harness/.pyyaml-bootstrap and .harness/.shape-sweep-stamp are ignored, and the naming follows
+      those two deliberately.
+
+      Change nothing else in the file.
+
+  - id: T-12
+    title: Make the documented write route the merge route in the rules the writers actually read
+    traces: [REQ-10]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      check-domain.sh --resolve prints NOBODY for all three files at 5d9b428, and two of them are
+      preloaded rule skills that reach every spawn
+    depends_on: [T-03, T-04]
+    status: pending
+    files:
+      - .claude/skills/harness-spec-driven/SKILL.md
+      - .claude/skills/harness-expertise/SKILL.md
+      - .claude/agents/harness-orchestrator.md
+    verify: |
+      set -u
+      grep -q 'plan-merge.py' .claude/skills/harness-spec-driven/SKILL.md \
+        || { echo "spec-driven does not name the plan merge tool"; exit 1; }
+      grep -q 'observations-merge.py' .claude/skills/harness-expertise/SKILL.md \
+        || { echo "the expertise skill does not name the observations merge tool"; exit 1; }
+      grep -q 'means appending is read-modify-write' .claude/skills/harness-expertise/SKILL.md \
+        && { echo "the read-modify-write instruction is still there"; exit 1; }
+      grep -q 'plan-merge.py' .claude/agents/harness-orchestrator.md \
+        || { echo "the orchestrator is not told the plan write route"; exit 1; }
+      python3 - <<'PY' || exit 1
+      for f in (".claude/skills/harness-spec-driven/SKILL.md",
+                ".claude/skills/harness-expertise/SKILL.md"):
+          n = sum(1 for _ in open(f))
+          assert n <= 200, "%s is %d lines - a preloaded rule skill taxes every spawn" % (f, n)
+      PY
+      exit 0
+    intent: |
+      Three markdown files. Each gains an instruction naming an exact invocation, and one loses an
+      instruction that is now the defect.
+
+      1. .claude/skills/harness-expertise/SKILL.md. The mid-run observation section currently says:
+         "Create the file on first use; Write-not-Edit means appending is read-modify-write - Read the
+         log first if it exists." That sentence IS issue #606 - it instructs the race. REPLACE it with
+         the merge invocation:
+
+           python3 .claude/skills/harness/bin/observations-merge.py apply \
+             --file .harness/<repo>/features/<FEAT>/observations/<your-agent-name>.md --entries -
+
+         and one sentence of why: the tool merges under a lock and replaces atomically, so two
+         contexts of one agent both keep their bullets. Say that the entries come in on stdin in the
+         same bullet format the log uses. Add nothing else to that file and remove nothing else.
+
+      2. .claude/skills/harness-spec-driven/SKILL.md. Add the plan write route where the file already
+         says plan.yaml is instantiated from the template:
+
+           python3 .claude/skills/harness/bin/plan-merge.py apply \
+             --file .harness/<repo>/features/<FEAT>/plan.yaml --proposal -
+
+         State three facts and no more: the tool unions by task and decision id so a second pm spawn
+         cannot delete the first's tasks; the approval block is carried forward byte identical and the
+         tool ignores any approval block in the proposal; and exit 7 means the same id carries two
+         different values and is the author's to resolve. Keep the file at or under 200 lines.
+
+      3. .claude/agents/harness-orchestrator.md. State the split D-04 records: the approval block is
+         written with the Edit tool, which is a surgical patch and cannot destroy the task list, and
+         EVERY other write to plan.yaml goes through plan-merge.py. Two sentences.
+
+      Do not restate the exit codes anywhere except where listed above, and do not copy the algorithm
+      into prose - the tool's own docstring is the authority and a second copy will rot.
+
+  - id: T-13
+    title: Record the decisions and regenerate the index
+    traces: [REQ-06, REQ-07]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    execution_reason: none
+    depends_on: [T-02, T-03, T-04, T-05, T-06, T-08, T-09]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      set -u
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --check || exit 1
+      python3 - <<'PY' || exit 1
+      src = open(".harness/harness/docs/DECISIONS.md").read()
+      for token in ("harness_merge.py", "fcntl.flock", "DEC-90", "inflight_registry"):
+          assert token in src, "the entry does not mention %r" % token
+      idx = open(".harness/harness/docs/DECISIONS-INDEX.md").read()
+      rows = [l for l in idx.splitlines() if "harness_merge" in l or "concurrent-write" in l
+              or "merge-with-lock" in l]
+      assert rows, "no index row names the new entry - the index was not regenerated from it"
+      PY
+      exit 0
+    intent: |
+      Append ONE new decision entry at the end of .harness/harness/docs/DECISIONS.md, taking the next
+      free number - DEC-196 is the highest at 5d9b428, and FEAT-31's own record task also takes a
+      number, so read the file rather than assuming 197 - and regenerate the index with
+      python3 .claude/skills/harness/bin/gen-decisions-index.py.
+
+      The entry records, in the document's own voice and with no reference to this plan's D-NN
+      numbers, exactly five things:
+
+      1. THE RULING. Every shared harness artifact that two contexts can write at once is written
+         through one locked, union-merging, atomically-replacing core,
+         .claude/skills/harness/bin/harness_merge.py, and the four consumers are plan-merge.py,
+         observations-merge.py, expertise-merge.py and inflight_registry.py. Cite DEC-193 as the
+         precedent for one shared implementation with divergences recorded.
+      2. THE LOCK CHOICE AND ITS DIVERGENCE. fcntl.flock on a sibling lock file opened O_CREAT and
+         never O_EXCL, with the reason: a create-and-delete lock file survives a SIGKILL and then
+         refuses every later write, which for a feature's plan.yaml means no plan can be written at
+         all. Record that this diverges from the shape expertise-merge.py shipped with and that
+         expertise-merge.py was rewired onto it, so the divergence exists in one place.
+      3. WHAT UNION MEANS PER FILE CLASS, in one short table: an Expertise file by section and entry
+         id; a plan.yaml by task id and decision id, spliced as text and never re-rendered, with the
+         approval block carried forward as the base file's own bytes; an observation log as an
+         order-preserving union of bullet records keyed on normalised text, with no conflict exit and
+         no cap because the file has no ids and no budget.
+      4. THE SINGLE-FLIGHT REGISTRY. A named set of personas may not be dispatched twice at once on
+         one checkout; the PreToolUse Task hook refuses the second and the SubagentStop hook releases
+         the claim; a claim expires after an hour and one command clears every claim, because a fix
+         that can brick every later dispatch is worse than the defect it prevents. State that only
+         the dispatch cause of issue #551 is closed, and that its two reporting consequences - a lead
+         emitting a terminal verdict about members it cannot see, and an orchestrator inferring run
+         verdicts from disk - are NOT closed, with the reason: the SubagentStop hook passes through on
+         stop_hook_active to avoid an infinite stop loop, so a stop refusal can fire at most once and
+         cannot be a wait.
+      5. THE COLLISION WITH DEC-90. DEC-90 at DECISIONS.md:1153 records, as a stated scope boundary,
+         that every single-writer guarantee in the harness means one agent in one session on one
+         machine "with no lock anywhere". This tree now contains locks. Write the collision down
+         plainly and state that whether DEC-90 is STRUCK under DEC-188 is the operator's call and is
+         not settled by this entry. Do not strike it, and do not edit DEC-90's text.
+
+      Also state the identity limit as a bound on the whole ruling, quoting expertise-merge.py's own
+      words: a Bash-invoked CLI has no identity source, so it can check where it writes and never who
+      called it. Name issue #627 as the reason the CLI route is reachable from a read-only persona at
+      all, and record that it is not fixed here.
+
+      The entry's one-line heading claim must contain the literal string harness_merge, so the
+      generated index row names it and the verify can find it without pinning a decision number.
+
+      Follow the file's existing entry shape - a level-two heading with the number and a one-line
+      claim, then Chose, Over and Because paragraphs. Do not exceed 60 lines. Change no other entry.
