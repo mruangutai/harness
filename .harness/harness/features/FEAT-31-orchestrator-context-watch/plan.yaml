@@ -2,9 +2,9 @@ schema: plan/1
 feature: FEAT-31-orchestrator-context-watch
 
 approval:
-  status: pending
-  approved_by: none
-  date: none
+  status: approved
+  approved_by: operator
+  date: 2026-08-21
 
 lanes:
   resolved_at: 7299669
