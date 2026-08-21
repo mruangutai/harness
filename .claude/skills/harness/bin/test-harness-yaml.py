@@ -367,7 +367,15 @@ def test_exactly_one_guarded_import_in_the_tree():
     # three fails immediately (check-domain.sh is empty today), and one sized
     # to today's two goes red the moment T-06 lands with nothing driving it.
     # Subset is what spans that window without losing the cap.
-    allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.sh"}
+    # feature-worktree.py added 2026-08-20 by operator ruling (FEAT-30 Q1). T-01's SIGNED
+    # intent required it: "import harness_boundary lazily and, if the import fails, exit 2
+    # with a message naming the module." It guards a FIRST-PARTY sibling, which is the same
+    # category check-domain.sh is already allowed for — not a fourth third-party fallback,
+    # which is what this cap exists to prevent. The alternative considered and rejected was
+    # dropping the guard: it breaks no test today, because NOTHING exercises the guarded
+    # branch, but it departs from signed text to buy nothing.
+    allowed = {"harness_yaml.py", "feature_schema.py", "check-domain.sh",
+               "feature-worktree.py"}
     assert set(guarded_hits) <= allowed, (
         f"unexpected guarded-import file(s) outside the allowed set: "
         f"{set(guarded_hits) - allowed!r}"

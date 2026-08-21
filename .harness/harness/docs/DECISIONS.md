@@ -5704,9 +5704,9 @@ The rule is two-sided, and stated mechanically because prose is what admits the 
   only, so a product repository keeps its own readme, its own docs and its own CI — the files its
   documentor and its dev-ops exist to write.
 
-Consequently a `src/**` grant refuses `<harness>/src/main.py` and permits `<product>/src/main.py`; a
+Consequently a `src/**` grant refuses `<harness>/src/main.py` and permits `<repo>/src/main.py`; a
 `.harness/expertise/**` grant permits it here and refuses it inside a product checkout; and a
-`docs/**` grant reaches `<harness>/docs/harness/guide.md` and `<product>/docs/guide.md` both.
+`docs/**` grant reaches `<harness>/docs/harness/guide.md` and `<repo>/docs/guide.md` both.
 
 **Lineage.** The shared block this narrows is DEC-85's. The guard being changed is the one DEC-174
 carves out of self-hosted execution, so this landed as direct main-session edits with the tests run
@@ -5746,6 +5746,18 @@ future entry must carry. **No detection machinery is added.** The omission is ac
 - **The live set of affected files is EMPTY**, stated explicitly rather than omitted: none of those
   eight exists in the harness repository. The consequence is latent. Adding one would need it named
   the way the four are named.
+
+
+### DEC-189 amendment 1 (2026-08-20) — the illustrative paths are respelled `<repo>`, tracking DEC-193 am.2
+
+This entry's two examples read `<product>/src/main.py` and `<product>/docs/guide.md`. They now read
+`<repo>/...`. Nothing about the two-base resolution changes; only the name of the segment, so that
+this entry and DEC-193 do not spell one idea two ways — which is the drift DEC-193 am.2 closes.
+
+**Recorded here because the edit was made in place.** The reasoning lives in DEC-193 am.2, and a
+reader who opens THIS entry through the index would otherwise find altered text with no local note
+that it changed or why. An unrecorded edit to a decision is indistinguishable from a decision that
+always said that.
 
 ## DEC-190 — `jsonschema` is a required dependency, and a missing import is a loud error
 
@@ -5863,7 +5875,8 @@ closed key set this field lives inside.
 ## DEC-193 — Code is written in exactly two locations; any other checkout of this repository is refused by one shared rule on both write routes
 
 **There are exactly two places code is written under harness's authority:** `.claude/worktrees/<id>/`,
-where harness develops itself, and `workspace_root/<product>`, where the factory works on a product.
+where harness develops itself, and `workspace_root/<repo>`, where the factory works on a product.
+(Spelled `<product>` as signed; respelled by amendment 2 — see below.)
 Both keep exactly their prior behaviour. **Any other checkout of this repository — a linked worktree
 living outside `.claude/worktrees/`, however complete its manifest and its agents look — is a
 mistake, not a supported shape.**
@@ -5963,6 +5976,32 @@ the enforcement layer, so this landed as direct main-session edits with the test
 rather than through a run whose gates were the thing changing; and DEC-189, the two-base target-keyed
 resolution this rule sits on top of, whose filed Bash-route asymmetry this closes for the boundary
 case alone. DEC-150 for the shape caps, and DEC-180 for why a rooted session is already governed.
+
+
+### DEC-193 amendment 2 (2026-08-20) — the second location's segment is spelled `<repo>`, not `<product>`
+
+This entry names the two write locations as `.claude/worktrees/<id>/` and
+`workspace_root/<product>`. The second spelling is struck: ~~`workspace_root/<product>`~~ is
+`workspace_root/<repo>`.
+
+**Operator ruling, 2026-08-20, and the reason is drift during build.** One thing had two names. The
+per-repository segment introduced by the layout migration is `<repo>` — `.harness/<repo>/features/`,
+`.harness/<repo>/expertise/`, team-config's `.harness/*/features/**` grants — while this entry called
+the same idea `<product>`. A builder reading both cannot tell whether they denote one segment or two,
+and resolves it by guessing. That is the failure this amendment prevents, not a wording preference.
+
+`<product>` was also the narrower word. The factory serves repositories, and the thing at that path
+is a repository checkout; whether its contents are a product is a fact about the work, not about the
+path.
+
+DEC-189's illustrative paths carried the same `<product>` spelling for the same idea and are
+restated with it, because two decisions using different words for one segment IS the drift this
+closes. Shipped feature artifacts keep `<product>` — they are frozen, dated records, and editing
+them would falsify what was written on their date (the same rule applied to FEAT-11's stale figures
+on 2026-08-20).
+
+**Nothing about the RULE changes.** Exactly two locations, all three refusals, one shared module on
+both write routes: unaltered. Only the name of a path segment.
 
 ## DEC-194 — A partial layout migration is judged per coupled surface, and a reader matching neither form is cannot-verify
 

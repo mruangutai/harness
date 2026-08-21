@@ -12,6 +12,28 @@ Run `.claude/skills/harness/bin/check-state.sh`. Violations are surfaced to the 
 anything spawns — except "BRIEF.md missing", which routes to `/harness-init`, and an unapproved
 BRIEF/PLAN, which routes to step 1.
 
+## 0b. Cut the worktree, before any orchestrator is spawned
+
+A feature run works in its own checkout, never in the one you are standing in. **You** create it —
+the orchestrator never does:
+
+```
+python3 .claude/skills/harness/bin/feature-worktree.py create --repo <repo> --id <flow-id>
+```
+
+It prints an absolute path. **Pass that path to the orchestrator in its dispatch.** The worktree
+sits at `owner_root` / `WORKTREES_SEGMENT` / `<repo>` / `<id>` — for harness, that is
+`harness_root/.claude/worktrees/harness/<id>`; for a served repository, the same shape under that
+repository's own checkout. `workspace_root` holds served repository checkouts and is never the
+parent of a worktree.
+
+The worktree is cut from **the repository's default branch** — `main` for harness, and for a served
+repository whatever its `fleet.yaml` entry declares as `default_branch`, which is read before the
+checkout happens.
+
+Removal is also yours, at a terminal state, from outside the tree. The lifecycle is in the `harness`
+skill; it is not restated here.
+
 ## 1. Resolve the mission
 
 - **Argument names a flow** (`FEAT-NN-<slug>` / `BUG-NN-<slug>`, a bare prefix, or a goal in words) → that flow. New features get their id coined by pm at BRIEF time — number plus kebab slug (DEC-133).

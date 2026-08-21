@@ -1,0 +1,1418 @@
+schema: plan/1
+feature: FEAT-30-worktree-per-feature
+
+approval:
+  status: approved
+  approved_by: operator
+  date: 2026-08-20
+  # SIGNED IN PLACE, and the placement of `rulings:` below is why. Q28 records that this budget
+  # lives INSIDE approval:, so a process that rewrites the block wholesale carries it away. This
+  # signature edits three scalars and nothing else, so that risk did not fire. It is NOT fixed:
+  # relocating rulings: to a top-level key is a structural change to an approved artifact, and
+  # nothing reads the field programmatically, so it buys protection against a future writer rather
+  # than a present one. Accepted knowingly; the next process to rewrite approval: must carry
+  # rulings: forward by hand.
+  #
+  # W1, W3 and Q27 were surfaced before signature and accepted with it: T-10's team lane rests on a
+  # judgement no tool can settle, and SC-06 is named by no task though T-09's verify implements its
+  # assertion verbatim.
+  rulings:
+    - id: R-01
+      date: 2026-08-20
+      subject: REQ-04's HEAD refusal binds all sixteen governed agents, harness-dev-ops included
+      ruling: >-
+        The HEAD-move matcher is evaluated BEFORE bash-write-guard.sh's harness-dev-ops early
+        return, so the refusal reaches that persona too. The early return survives unchanged for
+        every WRITE.
+      reason: >-
+        DEC-151 scopes the exemption to TARGET PATHS. The authority at DECISIONS.md:3650 reads that
+        every other harness agent except dev-ops, exempt per DEC-85 as owning builds, gets
+        extractable target paths checked against its team-config domain - and moving HEAD is not a
+        target path. The exemption exists to keep one recovery path open when the guard itself is
+        broken, and that path is untouched: dev-ops still writes anything, including the guard's own
+        source. DEC-85, the exemption's own basis, cuts the same way: at :1092 it corrects the
+        premise that dev-ops is special on this route, recording that all nine doers hold Bash and
+        not just dev-ops. Citation corrected 2026-08-20 - three tiers argued this from
+        DECISIONS-INDEX.md:170, a generated summary row, before anyone opened the entry. Substance
+        unchanged.
+      accepted_cost: >-
+        When HEAD is wrong and the guard is working, harness-dev-ops cannot fix it either. The
+        repair is the operator's, from the main session, which carries no agent_type and which this
+        guard does not bind.
+      lands_in: [BRIEF.md REQ-04, T-05]
+    - id: R-02
+      date: 2026-08-20
+      subject: max_total_cycles raised from 10 to 13 for this feature
+      ruling: >-
+        feature.json's max_total_cycles is 13 for FEAT-30, not the default 10.
+      reason: >-
+        SC-01b became automated in the same round, and a four-writer concurrency test is the
+        likeliest source of fix cycles in this plan. The raise budgets for that failure rather than
+        discovering the ceiling mid-build. DEC-157 makes a per-feature raise a user decision
+        recorded against the feature, which is why it is recorded here.
+      accepted_cost: >-
+        Three more cycles of spend before the flow halts for the operator.
+      lands_in: [feature.json]
+      fix_surfaces_if_sc01b_fails:
+        - >-
+          T-10's own fixture is the likeliest, and it is NEW concurrency code: a barrier that fails
+          open, a pairwise-overlap assertion that never held, or a shared-checkout negative that
+          does not detect the collision. Fix surface .claude/skills/harness/bin/
+          test-feature-worktree.py, lane team.
+        - >-
+          T-01's create and its destination derivation, if case A shows two trees sharing a branch,
+          a tree cut from another feature's branch, or a commit reaching a default branch. Fix
+          surface .claude/skills/harness/bin/feature-worktree.py, lane team.
+        - >-
+          NOT T-02, NOT T-05 and NOT T-06, against the operator's provisional list, and each for a
+          checked reason. T-10 never calls remove, so T-02 cannot fail it. T-05's refusal is a
+          PreToolUse Bash hook, verified at .claude/settings.json, so it sees an agent's Bash tool
+          calls and not a git fork from inside a python test - T-10's children are forks, so the
+          refusal cannot reach them. T-10 asserts nothing about Expertise, which is REQ-06, T-06 and
+          SC-08. The consequence that matters to the budget: no fix cycle for SC-01b lands in the
+          enforcement layer, so none of them costs the operator's own hands under DEC-174.
+
+lanes:
+  resolved_at: eeabc59
+  rows:
+    - surface: .claude/skills/harness/bin/**
+      lane: team
+      agent: harness-backend-dev | harness-dev-ops
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: .claude/skills/harness/bin/harness_boundary.py
+      lane: main-session-direct
+      reason: every named enforcement guard imports it, so a change there changes all of them at once - enforcement layer by DEC-174 am.4 category
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: named in DEC-174 am.4 as a registered PreToolUse gate script
+    - surface: .claude/skills/harness/bin/bash-write-guard.sh
+      lane: main-session-direct
+      reason: named in DEC-174 am.4 as a registered PreToolUse gate script
+    - surface: .claude/skills/harness/bin/test-check-domain.py
+      lane: main-session-direct
+      reason: DEC-174 am.4 puts the test file of each gate script inside the carve-out
+    - surface: .claude/skills/harness/bin/test-bash-write-guard.py
+      lane: main-session-direct
+      reason: DEC-174 am.4 puts the test file of each gate script inside the carve-out
+    - surface: .claude/agents/harness-orchestrator.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+    - surface: .claude/commands/harness.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+    - surface: .claude/skills/harness-distill/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at eeabc59
+
+decisions:
+  - id: D-01
+    choice: >-
+      The worktree lifecycle ships as one new CLI, .claude/skills/harness/bin/feature-worktree.py,
+      with create, list and remove subcommands, rather than as playbook prose or as a mode of the
+      factory_ modules.
+    because: >-
+      every worktree criterion in the BRIEF is verify automated evidence integration, and prose
+      cannot be asserted; the factory_ modules are fleet-scoped and harness is deliberately not a
+      fleet member (DEC-174 am.1), so a fleet-only entry point could not serve the harness half of
+      SC-01.
+    dec: none
+  - id: D-02
+    choice: >-
+      REQ-08 replaces WORKTREE_REL_RE with one function in harness_boundary.py that relativizes a
+      path against the checkout it stands in, and EVERY consumer of the fixed segment count moves to
+      it: harness_boundary.classify, the check-domain.sh resolve path, the check-domain.sh shape
+      phase normaliser, and the check-domain.sh sweep globs.
+    because: >-
+      the mechanism is one-for-one, and a consumer left on the regex keeps the segment count
+      load-bearing. The shape normaliser and the sweep globs were measured this run as the two
+      literals harness_boundary.py deliberately did not rewire, and both assume exactly one segment
+      after WORKTREES_SEGMENT, so under the repo-and-id layout the shape gate silently stops seeing
+      worktree state files. That is a regression no success criterion would catch. The cutover is
+      therefore ONE task, T-04, and must not be split per file: WORKTREE_REL_RE has consumers in two
+      files, so a partial cutover leaves an intermediate state where harness_boundary.py no longer
+      defines the attribute while check-domain.sh still reaches for it, and that direction fails
+      OPEN. DEC-193 records the same direction - a handled import failure was deliberately made to
+      exit 2 because an unhandled ImportError exits 1, which is non-blocking, and would switch
+      enforcement off on both routes at once. A missing attribute is the same fail-open shape, so
+      atomicity is the safety property, not a tidiness preference.
+    dec: DEC-193
+  - id: D-03
+    choice: >-
+      Linked worktrees are enumerated from the owner checkout's own .git/worktrees pointer files
+      inside the guards, and by git worktree list --porcelain inside the CLI.
+    because: >-
+      DEC-193 forbids a git subprocess on the governed-write path, and the pointer registry is
+      depth-agnostic, so neither the shape sweep nor the boundary rule regains a fixed segment count.
+      The CLI is not on a write path, so it may fork git and should, rather than reimplement git
+      bookkeeping.
+    dec: DEC-193
+  - id: D-04
+    choice: >-
+      The HEAD-move refusal binds governed agents only, with no exemption for harness-orchestrator,
+      and the main session is not covered.
+    because: >-
+      REQ-04 scopes the refusal to a governed agent, and the main session case is answered by
+      isolation instead: once the orchestrator works in its own worktree, a main-session branch
+      change cannot move the HEAD the orchestrator commits against, which is the 2026-08-19
+      incident. Exempting the orchestrator would reopen the same hole from inside the run.
+    dec: DEC-151
+  - id: D-05
+    choice: >-
+      Concurrent Expertise close-outs are made safe by an entry-level union apply behind an exclusive
+      lock, and any entry that cannot survive the apply - a section cap overflow, or the same entry
+      id carrying divergent text - is an error exit that applies nothing.
+    because: >-
+      DEC-95 recorded the lost-entry residue and the right answer is usually the union, which no tool
+      chooses by itself; a merge that silently truncates at the DEC-145 caps would trade one silent
+      loss for another, so the cap case must fail loudly instead of choosing a survivor.
+    dec: DEC-95
+  - id: D-06
+    choice: >-
+      Task verifies invoke a new test file directly with python3 until T-08 registers it, and only
+      tasks ordered after T-08 call run-unit-tests.sh. No task ordered before T-08 may invoke
+      run-unit-tests.sh, and that is an ordering requirement rather than a preference.
+    because: >-
+      run-unit-tests.sh runs a drift detector over the union of its two arrays, so an unregistered
+      new test file makes the runner fail; a verify routed through the runner before registration
+      would report a failure that is not the task's. The consequence is a runner-red window: from
+      the moment T-01 lands until T-08 lands the full suite is red and no mid-build qa gate can
+      pass, because T-08 depends on T-02 and T-06. The task set as written avoids it - no task
+      between T-01 and T-08 invokes the runner, and T-09 sits after T-08 - but a build that
+      reordered tasks would break it, so the constraint is stated here instead of being left
+      implicit in depends_on.
+    dec: none
+  - id: D-07
+    choice: >-
+      The worktree CREATION door in bash-write-guard.sh stays fleet-unaware and unchanged. A
+      served-repo worktree creation issued over Bash stays refused, and the sanctioned creation path
+      is feature-worktree.py, whose single dest_for() makes an illegal destination unrepresentable.
+    because: >-
+      measured at eeabc59, git worktree add against workspace_root/<repo>/.claude/worktrees/<repo>/
+      FEAT-30 exits 2 for harness-backend-dev and for harness-orchestrator, because the legal home is
+      computed as realpath(CLAUDE_PROJECT_DIR)/.claude/worktrees at bash-write-guard.sh:464 with no
+      fleet awareness. That is not REQ-01's served-repo half being blocked: creation goes through
+      feature-worktree.py, which forks git from inside Python, so the Bash parser sees no git token
+      and the door never fires. Making the door fleet-aware would widen a governed write path to
+      reach outside the checkout and buy nothing, since the CLI cannot build an illegal destination
+      in the first place. Recorded as a decision so an architecture review does not read the exit 2
+      as an unaddressed gap and re-open it.
+    dec: DEC-174
+  - id: D-08
+    choice: >-
+      SC-09's baseline is the SUITE baseline and nothing else: at eeabc59, run-unit-tests.sh
+      --kind unit and --kind integration each pass with zero FAIL lines and zero ERROR lines,
+      re-observed unchanged at HEAD during the simplify pass with 269 PASS, 0 FAIL, 0 ERROR and
+      exit 0. Separately, and explicitly NOT part of SC-09 and owned by no task: an operator-run
+      sanity check at ship time that check-state.sh reports no VIOLATION line whose text contains
+      FEAT-30. A VIOLATION COUNT is rejected as the assertion form for either.
+    because: >-
+      SC-09's own text is about the test suites - no test that passed before this feature fails
+      after it, and the full unit and integration suites pass - so a check-state.sh clause cannot
+      be a half of it, and no task's verify instruments one. Inventing a verify for it would
+      assert a whole-repository property against a criterion that does not claim it. The
+      count-form reasoning below is kept rather than trimmed with it, because it is the
+      load-bearing lesson about asserting anything over a whole-repository scan here. The count
+      form was written first and was falsified three minutes later. The same command in
+      the same checkout, FACTORY_GH=/nonexistent/gh check-state.sh, reported 2 VIOLATIONs at 07:41
+      and 3 at 08:07; the third was the unapproved BRIEF of FEAT-31-orchestrator-context-watch,
+      which the main session started and which has nothing to do with this feature. The defect is
+      structural rather than stale arithmetic: a violation count over a whole-repository scan is a
+      shared mutable global in a repository that runs concurrent flows by design, which is the very
+      condition this feature exists to make safe, so a count is the one shape this baseline must not
+      take. A FEAT-30-scoped assertion is stable when another flow appears; a count is not. Do not
+      restore the count as a tighter assertion. An equally acceptable form of the same rule is the
+      set difference against a baseline captured at the start of the task, with the foreign flows
+      NAMED rather than counted. The suite half stays a hard zero because it is a property of this
+      checkout's code rather than of other flows' approval state. Also measured in the 08:07 run:
+      FEAT-30's own plan.yaml with approval.status pending produces NO violation. Producing the
+      artifact for signature IS the mission, so a plan-phase feature is not penalised for an
+      unsigned plan - that is not a problem for a later reader to fix.
+    dec: none
+  - id: D-09
+    choice: >-
+      Every fixture directory that a test case treats as a worktree is built as a REAL linked
+      worktree, both sides of the git pointer pair, and the literal .claude/worktrees/*/ strip and
+      glob are DELETED rather than retained as a fallback beside checkout_relative and
+      linked_worktrees. This binds T-03's new in-worktree half, T-04's SC-02c cases, and the two
+      pre-existing bare-directory fixtures in test-check-domain.py run_post, which T-04 converts.
+      REQ-08 therefore stays one mechanism replacing one mechanism in all four consumers. The
+      accepted cost, stated plainly: a directory under WORKTREES_SEGMENT that is NOT a registered
+      linked worktree stops being reached by the shape sweep and stops being normalised by the
+      shape phase, so state files written into one are no longer budget-checked.
+    because: >-
+      depth-agnostic, pointer-free and bounded per-write cost cannot all hold at once - the single
+      wildcard segment is exactly what made the old literal cheap and pointer-free, so a fallback
+      is not a free extra tier. It is the depth-coupled strip itself, surviving in _norm, which is
+      the consumer the settled REQ-08-is-a-simplification ruling is about; and at the repo-and-id
+      layout that fallback strips ONE segment and yields a path matching no state-file shape, so
+      it is wrong rather than merely redundant. It would also falsify a benefit this plan states
+      in writing - that once the normaliser goes through checkout_relative the segment string is
+      read from the constant in one place, which strengthens the WORKTREES_SEGMENT mutation proof.
+      The decisive evidence is what the fixtures actually are: a bare directory under
+      .claude/worktrees is not a worktree, so sixteen T-03 assertions that a worktree write
+      resolves to the same grant would be asserting it about something that is not one. Converting
+      makes them exercise the mechanism the production code uses, which is a strengthening rather
+      than a concession, and it is cheap - test-check-domain.py already builds a linked worktree by
+      hand in run_worktree's _linked helper, with no git subprocess. The obstacle was this plan's
+      own change-no-existing-case rule, not the operator's: SC-09's text is that no test which
+      passed before fails after, and a strengthened fixture that still passes does not violate it.
+      Blast radius, re-derived at source and larger than the simplify digest reported: five
+      assertions across the two run_post fixtures go red while they stay bare, not two - the two
+      sweep cases plus post Edit on the worktree CLAUDE.md, post Edit on the worktree state file,
+      and pre Write on the worktree CLAUDE.md, because all three reach the shape regexes only
+      through _norm's strip even though _show is unchanged. The residual risk is named where it
+      lands: converting changes what the issue #103 legitimacy branch answers for those paths, so
+      a conversion is not behaviour-neutral, and each task's verify already requires the whole file
+      to pass, which catches it inside the task rather than after it.
+    dec: DEC-193
+
+tasks:
+  - id: T-01
+    title: Create the feature-worktree CLI with its create and list subcommands, and the four-worktree isolation test
+    traces: [REQ-01, REQ-02, REQ-07]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    execution_reason: none
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/feature-worktree.py
+      - .claude/skills/harness/bin/test-feature-worktree.py
+    verify: |
+      set -u
+      FEATURE_WORKTREE_BIN=/nonexistent/feature-worktree.py \
+        python3 .claude/skills/harness/bin/test-feature-worktree.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with no CLI under test"; exit 1; }
+      git show eeabc59:.claude/skills/harness/bin/feature-worktree.py >/dev/null 2>&1 \
+        && { echo "RED PROOF INVALID: the CLI already existed at eeabc59"; exit 1; }
+      python3 .claude/skills/harness/bin/test-feature-worktree.py || exit 1
+      exit 0
+    intent: |
+      Write two new files. Nothing else in the tree changes.
+
+      FILE 1 - .claude/skills/harness/bin/feature-worktree.py, executable, python3 stdlib only
+      plus the existing sibling module factory_config, imported lazily.
+
+      It is a CLI, not a hook. Argument shape:
+
+        feature-worktree.py create --repo <name> --id <id>
+        feature-worktree.py list   --repo <name>
+        feature-worktree.py path   --repo <name> --id <id>
+
+      The remove subcommand is T-02 and is NOT written here. An unknown subcommand exits 2 with a
+      usage line on stderr.
+
+      RESOLVING --repo. Exactly two accepted forms, and the difference is the whole point of the
+      vocabulary:
+
+        harness                 the harness repository itself. owner_root is
+                                factory_config.harness_root(). The repository path segment is the
+                                literal harness. The default branch is main.
+        owner-slash-repo        a repository declared in .harness/factory/fleet.yaml repos. Load the
+                                declaration with factory_config.load_fleet(), find the entry with
+                                factory_config.repo_entry(), take owner_root from
+                                factory_config.workspace_path(fleet, name), the repository path
+                                segment from the part of the name after the slash, and the default
+                                branch from that entry's default_branch field. A name that is not
+                                declared exits 2 naming the file it was looked for in.
+
+      owner_root is ONE checkout. workspace_root is the CONTAINER that holds served repository
+      checkouts. Never join WORKTREES_SEGMENT to workspace_root: that would put every served
+      repository's worktrees in one directory and destroy the per-repository isolation this CLI
+      exists to build. Compute owner_root first, then join.
+
+      THE DESTINATION, computed in exactly one function called dest_for(owner_root, segment, id):
+
+        os.path.join(owner_root, ".claude", "worktrees", segment, id)
+
+      Read the segment string .claude/worktrees from harness_boundary.WORKTREES_SEGMENT rather than
+      spelling it again; import harness_boundary lazily and, if the import fails, exit 2 with a
+      message naming the module. Do not spell the segment a second time anywhere in this file.
+
+      create, in order, and every failure exits non-zero with a one-line reason on stderr:
+        1. Refuse when the destination already exists: exit 3, printing the destination.
+        2. Refuse when --id does not match the flow-id form FEAT or BUG, a number, an optional
+           kebab slug: exit 2.
+        3. Create the parent directory of the destination.
+        4. Ask git whether a local branch named feat/ plus the id already exists in owner_root,
+           using rev-parse --verify --quiet against the refs/heads path.
+           If it does NOT exist, create the worktree AND the branch in one git worktree add
+           invocation, naming the default branch as the start point explicitly.
+           If it DOES exist, create the worktree attached to that existing branch, and print one
+           line to stdout beginning REUSED BRANCH so a caller can tell the two apart.
+        5. On a non-zero git exit, pass git stderr through and exit 4.
+        6. On success the LAST line of stdout is the absolute destination path and nothing else on
+           that line, so a caller can read it with tail -n 1.
+
+      list prints one line per linked worktree of owner_root that lives under
+      owner_root/WORKTREES_SEGMENT, as three space-separated fields: id, branch, absolute path. The
+      id is the last path component. Derive the set from git worktree list --porcelain run against
+      owner_root, and filter by commonpath against owner_root/WORKTREES_SEGMENT resolved through
+      os.path.realpath - never by string prefix, because a sibling directory named worktrees-old must
+      not read as inside worktrees. Exit 0 with no output when there are none.
+
+      path prints dest_for(...) and exits 0 whether or not it exists. It computes, it does not check.
+
+      TWO MODULE-LEVEL CONSTANTS, and they exist so that a test can mutate one by name to prove its
+      assertions discriminate. Declare them now even though T-02 is what consumes them:
+
+        REFUSE_ON_DIRTY = True
+        REQUIRE_LANDED = True
+
+      Nothing reads an environment variable or a command-line flag to change either. There is no
+      force flag in this CLI, and adding one is what SC-07 forbids.
+
+      FILE 2 - .claude/skills/harness/bin/test-feature-worktree.py. House shape: a list of
+      (name, ok, detail) tuples, print PASS or FAIL per case, print one summary line
+      PASS test-feature-worktree.py or FAIL test-feature-worktree.py, exit 0 only when every case
+      passed. Resolve the CLI as
+
+        HERE = os.path.dirname(os.path.abspath(__file__))
+        CLI = os.environ.get("FEATURE_WORKTREE_BIN") or os.path.join(HERE, "feature-worktree.py")
+
+      so the verify can point it at a path that does not exist and watch every case fail.
+
+      THE FIXTURE, built in a tempfile.mkdtemp() and torn down at the end:
+        - repoA: a git repository standing in for the harness case. Initialise it, point HEAD at
+          refs/heads/main before the first commit, make one commit, and give it BOTH of these
+          files: .harness/harness/docs/SPEC.md with any readable content, and
+          .harness/team-config.yaml so the tree looks like a checkout. The SPEC.md path is the
+          load-bearing one and must not be trimmed as a redundant fixture file: harness_root() in
+          factory_config honours CLAUDE_PROJECT_DIR only when that exact probe path is readable
+          under it, and otherwise warns on stderr and falls back to a root derived from the
+          module's own location - which is this repository. Creating the probe is what makes
+          CLAUDE_PROJECT_DIR=repoA authoritative, makes FLEET_PATH resolve to the fixture's own
+          fleet.yaml, and makes --repo harness resolve owner_root to repoA. Its owner_root is repoA
+          itself.
+        - a workspace_root directory holding repoB: a second git repository whose default branch is
+          master, NOT main, with one commit.
+        - a fleet declaration written into repoA at .harness/factory/fleet.yaml, schema
+          factory-fleet/1, one repos entry named org/repoB with default_branch master, and
+          workspace_root pointing at the workspace directory.
+        Invoke the CLI as a SUBPROCESS with CLAUDE_PROJECT_DIR set to repoA in that subprocess's
+        environment, so factory_config resolves the fixture rather than this repository. The
+        subprocess is load-bearing, not incidental: FLEET_PATH in factory_config is a module-level
+        value computed from harness_root() at import time, so setting the variable after an
+        in-process import has no effect and the fleet declaration read would be this repository's.
+        Never import the CLI in-process for these cases. Do not edit factory_config.
+
+        THE GUARD, asserted FIRST, before anything is created: invoke path --repo harness --id
+        FEAT-90 and assert the printed path is inside the mkdtemp() fixture directory, compared with
+        os.path.commonpath over os.path.realpath of both sides. If it is not, fail loudly and create
+        nothing. A resolution that escapes the fixture would create real worktrees and real branches
+        in this checkout, and every other case would still pass, because both sides of their
+        comparisons derive from the same wrong owner_root. path computes without creating, which is
+        why it is the right probe for this.
+
+      CASES, all mechanical:
+        1. SC-01 layout: create four worktrees - repoA FEAT-90, repoA FEAT-91, org/repoB FEAT-92,
+           org/repoB FEAT-93. Assert each returned path equals owner_root joined with
+           .claude/worktrees, then the segment, then the id, exactly - segment repoA for the first
+           two and repoB for the last two.
+        2. SC-01 the conflation guard: assert no created path is under workspace_root joined with
+           .claude/worktrees, and that the repoB paths are under
+           workspace_root/repoB/.claude/worktrees/repoB.
+        3. SC-01 isolation, per tree and not in aggregate: write a distinct file named for its own id
+           into each of the four trees. Then for EACH of the four trees assert its own file is
+           present AND assert, one assertion per other tree, that each of the other three files is
+           absent. Twelve absence assertions, not one glob count.
+        4. SC-01 branch isolation: for each tree assert its HEAD names its own branch, read with
+           rev-parse --abbrev-ref, and assert it differs from all three other branch names.
+        5. SC-02 cut point: for each tree assert the merge-base of its branch and its repository's
+           default branch equals the default branch tip as recorded BEFORE the create call. Assert
+           against the merge-base, never the branch name. repoB carries master here, so this case
+           fails if default_branch is ignored and main is assumed.
+        6. REQ-07 the clone is not moved: assert workspace_root/repoB still exists, still holds its
+           .git directory, and still reports master as its own current branch after all four
+           creates.
+        7. create refuses an existing destination: a second create for repoA FEAT-90 exits 3 and the
+           first tree is untouched.
+        8. list: for repoA it prints exactly two lines, one per id, each with the branch and a path
+           equal to the created path. Assert the id and branch fields, not just the count.
+        9. an undeclared --repo org/nope exits 2 and its stderr names fleet.yaml.
+
+      Do not assert on wording beyond what is named above. Every case that claims to test the CLI
+      must go through the CLI rather than creating a worktree itself.
+
+  - id: T-02
+    title: Add the remove subcommand with its dirty-tree refusal and its landed-artifact check
+    traces: [REQ-03]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    execution_reason: none
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/feature-worktree.py
+      - .claude/skills/harness/bin/test-feature-worktree.py
+    verify: |
+      set -u
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      python3 - "$T/bin/feature-worktree.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      m = s.replace("REFUSE_ON_DIRTY = True", "REFUSE_ON_DIRTY = False", 1)
+      m = m.replace("REQUIRE_LANDED = True", "REQUIRE_LANDED = False", 1)
+      assert m != s and "REFUSE_ON_DIRTY = False" in m and "REQUIRE_LANDED = False" in m, \
+          "the two gate constants were not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      FEATURE_WORKTREE_BIN="$T/bin/feature-worktree.py" \
+        python3 .claude/skills/harness/bin/test-feature-worktree.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with both refusals switched off"; exit 1; }
+      python3 .claude/skills/harness/bin/test-feature-worktree.py || exit 1
+      exit 0
+    intent: |
+      Extend the CLI written in T-01 with one subcommand, and extend its test file. No other file
+      changes.
+
+        feature-worktree.py remove --repo <name> --id <id>
+
+      Resolve --repo, owner_root, the repository path segment and the default branch exactly as
+      create does, through the same functions. Do not add a second resolver.
+
+      remove performs three ordered gates and removes the tree only when all three pass. There is no
+      force flag and no environment override; the two module constants REFUSE_ON_DIRTY and
+      REQUIRE_LANDED exist solely so a test can mutate a source copy by name.
+
+      GATE 1 - the destination exists and is a linked worktree of owner_root. Otherwise exit 3
+      naming the path.
+
+      GATE 2 - DIRTY TREE, guarded by REFUSE_ON_DIRTY. Ask git for the porcelain status of the
+      worktree, including all untracked files. If the output is non-empty, print one line per
+      reported path in the form
+
+        WOULD DISCARD <path>
+
+      then a final line naming the count and the tree, and exit 4 WITHOUT removing anything. It
+      reports exactly what it would discard and refuses; it never asks for confirmation and never
+      proceeds.
+
+      GATE 3 - ARTIFACTS LANDED, guarded by REQUIRE_LANDED. The feature artifact directory is
+      .harness, then the repository path segment, then features, then the id - relative to the
+      worktree. Enumerate every file under it in the worktree with os.walk. For each, compute its
+      blob hash with git hash-object in the worktree, and read the hash recorded on the default
+      branch in owner_root with rev-parse against the branch-colon-path form. Then print exactly one
+      line per file:
+
+        VERIFIED <repo-relative path>
+        MISSING <repo-relative path>       when the default branch has no such path
+        DIFFERS <repo-relative path>       when both exist and the hashes are not equal
+
+      Print no count in place of the paths - the criterion is that the check names what it verified.
+      If any line is MISSING or DIFFERS, exit 5 without removing anything. An artifact directory
+      absent from the worktree entirely is exit 5 with one line naming the directory, never a silent
+      pass.
+
+      THE REMOVAL. Only when all three gates pass, ask git to remove the worktree from owner_root and
+      then prune. Pass git stderr through and exit 4 on a non-zero git exit. On success print
+      REMOVED and the destination as the last line.
+
+      TEST CASES to add to .claude/skills/harness/bin/test-feature-worktree.py, reusing the T-01
+      fixture builder - the same builder, including its .harness/harness/docs/SPEC.md probe file,
+      which is what makes CLAUDE_PROJECT_DIR=repoA resolve owner_root inside the fixture. These
+      cases create and remove real trees, so no case may run against a resolved owner_root outside
+      the temporary fixture directory: assert the T-01 guard first, and create nothing if it fails.
+        1. SC-07 refuse: create a tree, write an untracked file into it, call remove. Assert exit 4,
+           assert stdout contains WOULD DISCARD followed by that path, and assert the tree still
+           exists on disk with the file still in it.
+        2. SC-07 the paired direction: modify a tracked file in an otherwise clean, fully landed tree
+           and assert remove still exits 4 and names that path. A dirty tree is dirty whether the
+           change is tracked or not, and asserting only the untracked half would pass against a guard
+           that only looks at untracked files.
+        3. SC-04 refuse: in a clean tree, commit a file at .harness/<segment>/features/<id>/BRIEF.md
+           on the feature branch and do NOT merge it. Call remove, assert exit 5, assert stdout
+           carries the line MISSING with that exact repo-relative path, and assert the tree still
+           exists.
+        4. SC-04 allow: merge the feature branch into the default branch in owner_root, call remove
+           again, assert exit 0, assert stdout carries VERIFIED with that exact path, assert the
+           final line begins REMOVED, and assert the destination directory no longer exists.
+        5. SC-04 differs: recreate the tree, change that artifact file's content in the worktree and
+           commit it on the feature branch only, and assert remove exits 5 with DIFFERS naming that
+           path. This is the case a presence-only check passes and must not.
+        6. A tree with no artifact directory at all exits 5 and names the directory.
+
+      Every one of these six asserts BOTH the exit code and the named path. An exit-code-only
+      assertion passes against a guard that refuses for the wrong reason.
+
+  - id: T-03
+    title: Pin the current in-worktree grant behaviour for all sixteen agents before the mechanism changes
+    traces: [REQ-08]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 - test-check-domain.py is the test file of a gate script, so it is inside the enforcement carve-out
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      set -u
+      python3 .claude/skills/harness/bin/test-check-domain.py || exit 1
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      python3 - "$T/bin/harness_boundary.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      m = s.replace('WORKTREES_SEGMENT = ".claude/worktrees"',
+                    'WORKTREES_SEGMENT = ".claude/wt-mutant"', 1)
+      assert m != s, "WORKTREES_SEGMENT assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      rm -rf "$T/bin/__pycache__"
+      CHECK_DOMAIN_BIN="$T/bin/check-domain.sh" \
+        python3 .claude/skills/harness/bin/test-check-domain.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the new cases pass with WORKTREES_SEGMENT mutated"; exit 1; }
+      exit 0
+    intent: |
+      Add cases to .claude/skills/harness/bin/test-check-domain.py that pin, for all sixteen agents,
+      that a path written from inside a worktree resolves to the same grant as the same path written
+      from the checkout root. Change no other file, and change no existing case.
+
+      SC-05 says check-domain.sh grants the same paths inside a worktree as outside it, for every one
+      of the 16 agents, and that nothing currently asserts it. This task asserts it against the
+      layout that exists TODAY - exactly one segment after WORKTREES_SEGMENT - so that T-04 has a
+      baseline it must leave green. Do not anticipate the repo-and-id layout here; T-04 owns it.
+
+      WHERE THE ROSTER COMES FROM. Read .harness/team-config.yaml with harness_yaml and walk every
+      node carrying both a name and a list-valued domain, at every nesting level: members under the
+      teams members lists, leads under the leads key, and harness-orchestrator as a bare top-level
+      key. That is the same walk the resolve path performs at eeabc59. Assert the roster length is
+      exactly 16 and fail with the names found if it is not - a roster that silently shrinks would
+      make every following assertion vacuous.
+
+      WHAT IS ASSERTED, per agent, one assertion each and never an aggregate:
+        For each agent, take the first entry of its own domain list and instantiate it into a
+        concrete relative path by replacing each single-star segment with a fixed literal token such
+        as zz and each double-star with zz/zz. Then, in a fixture root built by the existing fixture
+        helper in this file, run the resolve path twice:
+          once on the root joined with that relative path
+          once on the root joined with .claude/worktrees/wt1 and then that relative path
+        and assert the two agent sets are equal AND that they contain that agent. Report the agent
+        name, the path and both sets in the failure detail.
+
+      THE IN-WORKTREE HALF NEEDS A REAL WORKTREE, per D-09. Build .claude/worktrees/wt1 in the
+      fixture root as a real linked worktree of that root by writing BOTH sides of the git pointer
+      pair, not as a bare directory made with os.makedirs:
+        the worktree side, a .git FILE in wt1 whose single line is gitdir: followed by
+          <root>/.git/worktrees/wt1
+        the owner side, a gitdir file inside <root>/.git/worktrees/wt1 naming wt1's own .git file
+      No git subprocess is needed: this file already builds a linked worktree by hand in
+      run_worktree's _linked helper and that is the pattern to follow. It is one segment deep, so
+      it resolves identically under today's strip - these cases stay green now - and it is what
+      T-04 requires, because T-04 replaces the strip with a mechanism that reads that pointer and a
+      bare directory would take all sixteen of these cases red. Do not give wt1 its own
+      .harness/team-config.yaml: these cases root their session at the fixture root and a nearer
+      manifest could move the base out from under the assertion. If writing the pointer pair flips
+      any verdict in this file, report it rather than adjusting an assertion.
+
+      The equality alone is not enough, and this is the trap the verify closes: two empty sets are
+      equal. Each case must also assert the agent is IN the set, so a resolution that grants nothing
+      cannot pass. The verify mutates WORKTREES_SEGMENT in a copied module and requires this file to
+      FAIL, which is only possible if the in-worktree half of every pair really is exercising the
+      worktree path.
+
+      Emit one case per agent, named with the agent name, so a single agent regressing is visible.
+
+  - id: T-04
+    title: Replace the fixed-segment worktree strip with checkout-relative resolution in every consumer
+    traces: [REQ-08, REQ-01]
+    change_type: cross_module
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 - harness_boundary.py, check-domain.sh and the two guard test files are the enforcement layer, and the cutover that makes a gate use the new mechanism is the main session's
+    depends_on: [T-03]
+    status: done
+    files:
+      - .claude/skills/harness/bin/harness_boundary.py
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/test-check-domain.py
+      - .claude/skills/harness/bin/test-bash-write-guard.py
+    verify: |
+      set -u
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      git show eeabc59:.claude/skills/harness/bin/harness_boundary.py > "$T/bin/harness_boundary.py" || exit 1
+      git show eeabc59:.claude/skills/harness/bin/check-domain.sh > "$T/bin/check-domain.sh" || exit 1
+      chmod +x "$T/bin/check-domain.sh"
+      rm -rf "$T/bin/__pycache__"
+      CHECK_DOMAIN_BIN="$T/bin/check-domain.sh" \
+        python3 .claude/skills/harness/bin/test-check-domain.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the deep-layout cases pass against the eeabc59 guard"; exit 1; }
+      python3 .claude/skills/harness/bin/test-check-domain.py || exit 1
+      python3 .claude/skills/harness/bin/test-bash-write-guard.py || exit 1
+      exit 0
+    intent: |
+      One mechanism replaces one mechanism. This task must not add a segment to a regex, widen one,
+      or parameterise a segment count anywhere.
+
+      PART 1 - harness_boundary.py.
+
+      At eeabc59 the module defines WORKTREE_REL_RE at line 37 from WORKTREES_SEGMENT and strips a
+      FIXED number of path segments. Delete WORKTREE_REL_RE and add one function in its place:
+
+        def checkout_relative(abs_path):
+            """Return (checkout_dir, path relative to that checkout), or None."""
+
+      It calls the existing worktree_owner(abs_path) - already in this module at line 355 - to learn
+      which checkout the path stands in. Semantics, exactly:
+        - worktree_owner returns None: return None. The caller keeps the base-relative path it
+          already has.
+        - worktree_owner returns a triple whose owner_root is not None: return the checkout directory
+          and os.path.relpath of the realpath of abs_path against that checkout directory.
+        - worktree_owner returns a triple whose owner_root is None - the UNPARSED pointer case:
+          return None. Do not invent a checkout here; that branch is already refused by its own
+          callers and must not gain a second, quieter answer.
+      No git subprocess, no segment counting, no regex.
+
+      In classify, at the DEC-143 block that currently sits at line 310, replace the
+      WORKTREE_REL_RE match with checkout_relative. The candidate list keeps its meaning: the raw
+      base-relative path FIRST, then the checkout-relative path when checkout_relative returns one
+      AND that checkout is not the base itself. Preserve the existing comment's rule - match the raw
+      path first so a glob deliberately targeting the worktree directory still works - and update
+      the comment to say the second candidate now comes from the containing checkout rather than
+      from a fixed strip.
+
+      Add a second function, used by PART 3:
+
+        def linked_worktrees(owner_root):
+            """Absolute checkout directories of owner_root's linked worktrees."""
+
+      It reads the gitdir pointer file inside each directory under owner_root/.git/worktrees using
+      the standard library only, takes the directory named in each file, drops a trailing .git
+      component, and returns the realpath of each existing directory, sorted. A missing
+      .git/worktrees directory returns an empty list. No git subprocess: DEC-193 forbids one on the
+      governed-write path.
+
+      The performance question is settled and must not be re-opened here: measured over 2000
+      iterations, the regex took 0.3 ms in total against 46.8 ms in total for walk-and-relativize,
+      which is 0.023 ms per write against a guard that already reads files.
+
+      PART 2 - check-domain.sh, the resolve path at line 212.
+
+      Replace the WORKTREE_REL_RE match with harness_boundary.checkout_relative on the absolute
+      target, keeping the same candidate ordering: base-relative first, checkout-relative second
+      when one is returned and differs. The rest of that branch is unchanged.
+
+      PART 3 - check-domain.sh, the shape phase. This is the part with the largest blast radius and
+      it is the reason REQ-08 is not one line.
+
+      At eeabc59 two literals in this file assume exactly ONE segment after .claude/worktrees:
+        the normaliser at line 644, whose regex captures the remainder after one segment
+        the sweep globs at line 602, which join the segment, one star, and each pattern
+      Under the repo-and-id layout both silently stop matching: the normaliser would leave the
+      repository segment in the path, and the sweep would reach no file in any worktree. The sweep
+      case is a silent regression, since a glob that matches nothing reports nothing.
+
+      MEASURED, and it is why PART 3 is not optional. With agent_type harness-orchestrator and an
+      over-budget STATE.md - 204 lines against a 120 budget - at the same repo-relative path in
+      three locations: the main checkout refuses with the SHAPE reason naming DEC-150, the one-level
+      .claude/worktrees/WT1 also refuses with that shape reason, and the two-level
+      .claude/worktrees/harness/WT1 refuses with the DOMAIN reason instead - may not write. The
+      third case NEVER REACHED the shape gate: the normaliser returned
+      WT1/.harness/harness/features/.../STATE.md, which matches none of RE_FEATURE_JSON,
+      RE_STATE_YAML, RE_HANDOFF or RE_STATE_MD, all of which normalise through it at lines 984, 991
+      and 1033. So DEC-150's shape caps are ALREADY DARK under the two-level layout, and the domain
+      refusal is what hides them. Fix the classify path and the resolve path and leave the
+      normaliser, and the mask lifts with the caps still off: writes succeed, budgets unenforced,
+      suite green. DEC-193's own evidence records this failure once already, in its phrase taking
+      DEC-150's shape caps dark with them on that route.
+
+      WIDEN, NEVER REPLACE. Every existing worktree assertion in test-check-domain.py uses a
+      ONE-level fixture - .claude/worktrees/wt1 and .claude/worktrees/wt at lines 1093, 1160 and
+      1465 to 1482 - and SC-09 requires all of them to stay green. The one-level shape is not
+      legacy. BOTH depths must resolve after this change; the one-level shape must keep resolving,
+      not merely the two-level shape start working. Replacing rather than widening is the failure
+      mode here, and it is the mirror image of the do-not-add-a-segment rule above.
+
+      DO NOT TOUCH bash-write-guard.sh line 545. That line matches a ^\.claude/worktrees/ PREFIX
+      only - DEC-153's blanket allow for governed agents on the Bash route. It carries no segment
+      count, so it is already depth-agnostic and already correct under the two-level layout.
+      Unifying it into checkout_relative would touch a signed carve-out for no behavioural gain.
+
+        The normaliser becomes: compute the base-relative path as today, then ask
+        harness_boundary.checkout_relative for the checkout-relative path and prefer it when one is
+        returned and the checkout is not the root. Import harness_boundary inside a try that ABSORBS
+        failure and falls back to today's base-relative value - the shape phase's import must stay
+        absorbing, because a fail-closed dependency here would block the main session on the very
+        write that repairs the module. The companion function that reports which file a finding came
+        from is unchanged: it must keep naming the checkout, not the stripped path.
+        This normaliser is the FOURTH consumer named in D-02 and the only one that spells the
+        segment as its own inline literal - at eeabc59 it never references WORKTREES_SEGMENT. Once
+        it normalises through checkout_relative, the segment string is read from the constant in one
+        place, which makes the existing WORKTREES_SEGMENT mutation proof in
+        test-bash-write-guard.py STRONGER: mutating WORKTREES_SEGMENT in the copied module then reaches this consumer too,
+        where today it leaves the second copy untouched and the proof is blind to it. That proof
+        must keep flipping both routes from 0 to 2.
+
+        The sweep globs become derived rather than spelled: keep the five sweep patterns joined to
+        root, and add, for each checkout returned by harness_boundary.linked_worktrees(root), the
+        five patterns joined to that checkout. Build the list where the sweep runs, inside the same
+        absorbing import, so an unimportable module leaves the root-level sweep working exactly as
+        it does today. Absolute paths are correct here - the sweep already joins root itself - and no
+        depth is assumed anywhere. The per-write cost of the added pointer reads is measured and
+        negligible, recorded here for the same reason PART 1 records its own: 0.371 ms per call
+        against today's 0.147 ms, on a fixture with five linked worktrees over 2000 iterations,
+        so +0.22 ms per governed Bash write, scaling linearly with worktree count, against the
+        ~38 ms of the ~42 ms per call that interpreter start-up already costs.
+
+      PART 4 - the tests, and both files are inside the carve-out with this change.
+
+      In test-check-domain.py add cases at the DEEP layout the old regex could not handle, that is
+      .claude/worktrees then a repository segment then an id, using the same instantiated per-agent
+      paths T-03 introduced:
+        - SC-02c, one case per agent, all sixteen: resolving the root joined with
+          .claude/worktrees/harness/FEAT-90 and then the relative path returns the same agent set as
+          the root joined with the relative path, and that set contains the agent. Report the agent
+          name and both sets on failure. Build .claude/worktrees/harness/FEAT-90 as a real linked
+          worktree carrying both sides of the pointer pair, per D-09.
+        - one case asserting the depth is not load-bearing: the same path under
+          .claude/worktrees/a/b/c/FEAT-90 also resolves to the same set. A rule that asks which
+          checkout it stands in does not care how deep the path is; a rule with a segment count does.
+          Build a real linked worktree for this case, carrying BOTH sides of the pointer pair -
+          the worktree-side .git FILE holding the gitdir line, which is what checkout_relative
+          reads, and the owner-side .git/worktrees/<id>/gitdir file, which is what
+          linked_worktrees enumerates. A .git file alone leaves linked_worktrees blind to it, and a
+          bare directory exercises neither.
+        - one case asserting WORKTREE_REL_RE is gone: import harness_boundary and assert it has no
+          attribute of that name. A mechanism left in place beside its replacement is what leaves the
+          segment count load-bearing.
+        - one case for linked_worktrees: in a fixture with two real linked worktrees at
+          .claude/worktrees/harness/FEAT-90 and .claude/worktrees/harness/FEAT-91, each carrying
+          both sides of the pointer pair, assert the returned list is exactly those two realpaths, and that a fixture with none returns an empty
+          list.
+        - one case for the shape sweep at depth: a state file over its DEC-150 cap, written inside
+          .claude/worktrees/harness/FEAT-90 built as a real linked worktree with both sides of the
+          pointer pair, is reported by the post-write sweep, and the reported
+          name is the worktree-carrying path rather than the stripped one. At eeabc59 that file is
+          invisible to the sweep, which is what makes this case red before the change.
+        - one case on the WRITE route asserting the SHAPE refusal BY ITS WORDING, not by its exit
+          code: from inside a two-level worktree at .claude/worktrees/harness/FEAT-90, a write of an
+          over-budget state file is refused with the shape reason naming DEC-150, asserted on the
+          refusal text. The paired half that makes it discriminating: the SAME write at the ONE-level
+          depth .claude/worktrees/wt1 already produces that shape refusal today, so it must keep
+          producing it. The exit code cannot carry this assertion - the domain refusal and the shape
+          refusal BOTH exit 2, so an exit-code assertion passes against today's masked state and
+          keeps passing after the domain half is fixed while the caps stay off. This is a DIFFERENT
+          case from the post-write sweep case above: that one asserts the name the sweep reports,
+          this one asserts the reason the write route refuses with. Both are needed.
+        CONVERT THE TWO PRE-EXISTING BARE-DIRECTORY FIXTURES, per D-09, and this is the one place
+        an existing fixture is touched. In run_post two fixtures build directories under
+        .claude/worktrees with os.makedirs and no git pointer at all: the F-06 sweep fixture, whose
+        worktree holds .harness/harness/features/FEAT-W/feature.json, and the worktree-naming
+        fixture below it, whose wt1 holds CLAUDE.md and a feature.json. FIVE assertions across
+        those two fixtures reach the shape regexes only through the literal strip this task
+        deletes, so all five go red while the fixture stays bare: the sweep reaches a file inside
+        .claude/worktrees, the sweep still names the worktree it came from, post Edit on the
+        worktree CLAUDE.md, post Edit on the worktree state file, and pre Write on the worktree
+        CLAUDE.md. The last three go red even though _show is unchanged, because _norm is what gets
+        them to a state-file shape at all.
+
+        Convert wt1 into a real linked worktree of its fixture root and CHANGE NO ASSERTION. Write
+        both sides of the pointer pair - the worktree-side .git FILE whose single line is gitdir:
+        followed by <root>/.git/worktrees/wt1, and the owner-side gitdir file inside
+        <root>/.git/worktrees/wt1 naming wt1's own .git file. No git subprocess: follow
+        run_worktree's _linked helper. Do not give wt1 its own .harness/team-config.yaml - these
+        cases root their session at the fixture root and a nearer manifest could move the base out
+        from under them. The converted fixture also passes against the eeabc59 guard, because the
+        old regex and the old glob are worktree-agnostic and wt1 is still exactly one segment deep,
+        so this conversion does not weaken this task's red proof: the deep-layout cases must still
+        fail against the eeabc59 guard. If a converted case flips a verdict for any reason OTHER
+        than the sweep or the normaliser - the issue #103 legitimacy branch now answers for these
+        paths where it answered None before - report it rather than adjusting the assertion. The
+        assertion is the baseline.
+
+        ADD ONE CASE pinning what the conversion narrows, which is the cost D-09 accepts and must
+        not be left silent: a directory under WORKTREES_SEGMENT carrying NO pointer pair is NOT
+        reached by the shape sweep, and a named-target write into it normalises to the
+        base-relative path and therefore matches no state-file shape. Assert it beside a converted
+        real worktree in the same fixture so the pair discriminates - the registered worktree is
+        reached, the bare directory is not. A single-direction assertion here passes against a
+        sweep that reaches nothing at all.
+
+        Keep every T-03 case unchanged and green. Those cases plus the two existing suites ARE the
+        DEC-174 am.4 proof obligation: the violation set for every shape that exists today is
+        identical before and after, apart from the bare-directory narrowing D-09 records and
+        asserts, and the only other verdicts that change are the ones for the deeper layout that no
+        path could reach before.
+
+      Also in test-check-domain.py, SC-02b, both directions and on a throwaway fixture repository
+      rather than this one:
+        - a worktree at WORKTREES_SEGMENT then a repository segment then an id, created as a REAL
+          linked worktree of the fixture root so its .git pointer file exists, is accepted: a
+          governed write inside it exits 0 and the session rooted there is not refused.
+        - a linked worktree of the same fixture root created OUTSIDE that layout - a sibling
+          directory next to the fixture root - is REFUSED, and the refusal text names where worktrees
+          belong, which is what harness_boundary.worktree_refusal_location returns for that owner.
+          Assert the message names that location, not only the exit code.
+        Both directions from one fixture. The accept half alone is what an allow-all escape produces
+        and the refuse half alone is what a fail-closed guard produces; only the pair distinguishes
+        them. Assert the same pair on the Bash route in test-bash-write-guard.py, because DEC-193
+        commits the two routes to one implementation and a divergence there is a bypass.
+
+      In test-bash-write-guard.py add one paired case at the deep layout: a governed agent's Bash
+      write to a granted path under .claude/worktrees/harness/FEAT-90 is allowed, and a write to a
+      path that agent is not granted, at the same depth, is refused. Both directions, from one
+      fixture, for the same reason the existing paired case states: either half alone is also what a
+      broken guard produces. Leave the existing WORKTREES_SEGMENT mutation case at lines 491 to 506
+      exactly as it is - it must keep flipping both routes from 0 to 2.
+
+  - id: T-05
+    title: Refuse a governed agent that moves HEAD during a run, and refuse a forced worktree removal on the Bash route
+    traces: [REQ-04, REQ-03]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 - bash-write-guard.sh is a registered PreToolUse gate script and its test file is inside the carve-out with it
+    depends_on: [T-04]
+    status: done
+    files:
+      - .claude/skills/harness/bin/bash-write-guard.sh
+      - .claude/skills/harness/bin/test-bash-write-guard.py
+    verify: |
+      set -u
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      git show eeabc59:.claude/skills/harness/bin/bash-write-guard.sh > "$T/bin/bash-write-guard.sh" || exit 1
+      chmod +x "$T/bin/bash-write-guard.sh"
+      rm -rf "$T/bin/__pycache__"
+      BASH_WRITE_GUARD_BIN="$T/bin/bash-write-guard.sh" \
+        python3 .claude/skills/harness/bin/test-bash-write-guard.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the HEAD-move cases pass against the eeabc59 guard"; exit 1; }
+      python3 .claude/skills/harness/bin/test-bash-write-guard.py || exit 1
+      python3 .claude/skills/harness/bin/test-check-domain.py || exit 1
+      exit 0
+    intent: |
+      Add one rule to .claude/skills/harness/bin/bash-write-guard.sh and its cases to
+      test-bash-write-guard.py. No other file changes.
+
+      THE RULE. When the payload's agent_type matches the governed-agent prefix harness-, a Bash
+      command that MOVES HEAD in any checkout is refused with exit 2 and a reason. The main session,
+      which carries no agent_type, is unaffected: it is not governed, and the case where it moves a
+      branch under a live run is answered by isolation instead, since after T-01 the orchestrator
+      commits inside its own worktree. There is NO exemption for harness-orchestrator.
+
+      PLACEMENT IS A REQUIREMENT OF THIS RULE, NOT AN IMPLEMENTATION DETAIL. Operator ruling R-01
+      of 2026-08-20, recorded under approval.rulings: this rule is evaluated BEFORE the
+      harness-dev-ops early return at lines 56 to 57, so it binds ALL SIXTEEN governed agents.
+      Placed after that return it would provably never reach harness-dev-ops, because the return
+      precedes the harness- prefix test at line 58 that this rule keys off - and T-01, T-02 and
+      T-08 are laned to exactly that persona. THE EARLY RETURN SURVIVES for every WRITE: do not
+      delete it, do not narrow it, and do not add a second exemption. Only the ordering changes.
+      DEC-151 scopes that exemption to TARGET PATHS - DECISIONS.md:3650, not the index summary row -
+      and moving HEAD is not one, so the recovery path it exists to preserve - dev-ops writing when
+      the guard itself is broken, including writing this file - is unchanged. The accepted cost is
+      recorded in the BRIEF beside REQ-04:
+      when HEAD is wrong and the guard is working, harness-dev-ops cannot fix it either, and the
+      repair is the operator's from the main session.
+
+      WHAT COUNTS AS MOVING HEAD, matched on the command text with the same conservative shape
+      filtering this guard already applies to the git worktree subcommands, including a leading
+      directory option and configuration options:
+        checking out a branch or a commit, in either the checkout or the switch form
+        a hard, keep or merge reset
+        a forced branch re-point during checkout
+        rebase, merge, cherry-pick and revert
+        removing or pruning the worktree the session is standing in
+      NOT refused, because they move no HEAD:
+        a checkout whose operands are exclusively pathspecs, which restores files
+        status, log, diff, fetch, add, commit, and listing stashes
+        a read-only command that NAMES a commit without moving to it - show, rev-parse, merge-base,
+          cat-file, ls-tree, branch with a list-only form, worktree list. This is load-bearing under
+          ruling R-01, not a nicety: T-01's and T-02's verify blocks call git show against the
+          pinned sha and are executed by harness-dev-ops, which R-01 now binds. An implementation
+          that reads its refuse list as exhaustive-by-default would refuse a task's own
+          verification command. The refuse list is the closed set; everything else decidable is
+          allowed, and only the UNDECIDABLE case is refused.
+        a reset with no mode flag and with a pathspec
+        creating a worktree, which is already governed by the existing rule and by
+          branch-create-gate.sh
+
+      The refusal message must name three things: the command shape that was refused, that HEAD is
+      shared mutable state for the duration of a run, and the alternative - work in the worktree cut
+      for this feature, addressing it by the directory option rather than by moving to it. Print it
+      with the same deny helper and exit code this guard already uses for a refused worktree
+      destination, so the two refusals are indistinguishable in shape to an agent.
+
+      Where the extraction cannot decide - a command this guard cannot parse into subcommand and
+      operands, or a shell composition that hides the subcommand - REFUSE, matching the existing
+      unparsed-destination branch. This guard is a casual-shape filter by DEC-151, and refusing the
+      undecidable case is the direction that entry already chose.
+
+      TEST CASES in test-bash-write-guard.py, every one asserting the exit code AND that stderr
+      names the alternative:
+        1. SC-03 refuse: agent_type harness-backend-dev, a command that checks out the default
+           branch. Exit 2, stderr carries the worktree alternative.
+        2. SC-03 refuse, orchestrator: the same command with agent_type harness-orchestrator. Exit 2.
+           This is the case D-04 forbids exempting and it must be asserted, not assumed.
+        3. SC-03 refuse, one case each: switching to the previous branch, a hard reset one commit
+           back, a rebase onto the default branch, and a checkout carrying a leading directory
+           option. Each exits 2.
+        4. SC-03 allow, and this is the half that makes the set discriminating: restoring a single
+           file via a pathspec checkout, a status call, staging one file, and a reset naming one
+           pathspec each exit 0 for the same governed agent. A guard that refuses everything passes
+           case 1 and fails here.
+        5. the main session is not governed: the same branch checkout with NO agent_type key in the
+           payload exits 0.
+        6. the undecidable case: a command this guard cannot parse into a git subcommand exits 2 and
+           says it could not determine what the command does.
+
+      THE SECOND RULE - A FORCED WORKTREE REMOVAL OVER BASH. This is the Bash-route half of SC-07
+      and it is why SC-07 is not satisfied by T-02 alone. T-02's refusal lives inside
+      feature-worktree.py, and a governed agent can bypass that CLI by calling git directly.
+      Measured at eeabc59: git worktree remove on a tree holding one untracked file exits 128, which
+      is git's own refusal and the half that can be relied on - but the SAME removal carrying a
+      force flag passes this guard at exit 0, because the worktree parser at lines 405 to 427 tests
+      _ops[1] against add and move only, so remove is never inspected. A CLI gate an agent can route
+      around is the shape this feature exists to replace.
+
+      EXTEND THE EXISTING PARSER. Do not add a second one, and do not duplicate its operand walk.
+      In that same _ops[1] test, admit remove and prune alongside add and move, and REFUSE when a
+      force flag is present for either of the two new subcommands. The destination logic stays
+      reached only for add and move: remove and prune carry no destination this guard needs to
+      resolve, so nothing about the existing add and move behaviour changes.
+
+      Do NOT build a dirty-tree detector in this guard. It cannot cheaply know whether a tree is
+      dirty and it does not need to: without a force flag git itself already refuses a dirty tree at
+      128, so refusing the force flag is the whole mechanism. That is why this rule is small.
+
+      The refusal message names feature-worktree.py remove as the sanctioned path, and says that the
+      CLI refuses on a dirty tree and reports every path it would discard. Use the same deny helper
+      and exit code as the other worktree refusals in this file.
+
+      This is a DIFFERENT case from the HEAD-move list's removing or pruning the worktree the
+      session is standing in, which protects the session's own cwd rather than another feature's
+      tree. Keep that rule and add this one alongside it; neither covers the other.
+
+      TEST CASES for the second rule, in the same file, both directions from ONE fixture:
+        7. SC-07 on the Bash route, refuse: agent_type harness-backend-dev, git worktree remove
+           carrying a force flag against a path under WORKTREES_SEGMENT. Exit 2, and stderr names
+           feature-worktree.py. One more case for a forced prune, same assertions.
+        8. SC-07 the paired direction: the SAME removal WITHOUT a force flag is NOT refused by this
+           guard - exit 0 - because it reaches git, which decides and refuses a dirty tree itself.
+           A refuse-only set is what an allow-nothing guard produces, so this half is what makes
+           case 7 discriminating.
+        9. the existing worktree add and move destination refusals stay green and unchanged: a
+           governed add to a path outside WORKTREES_SEGMENT still exits 2 and an add inside it still
+           exits 0. Assert both, because admitting two more subcommands into the same parser is the
+           edit most likely to disturb them.
+
+      TWO MORE CASES FOR THE HEAD RULE, and they are a PAIR - the pair is what makes the reordering
+      discriminating rather than a blanket. Neither is covered by case 2: harness-orchestrator is
+      refused today only because no exemption exists for it, while harness-dev-ops has an explicit
+      one, so this is a second and different hole.
+        10. agent_type harness-dev-ops, a command that checks out the default branch. Exit 2, and
+            stderr names the worktree alternative. This case FAILS against any implementation that
+            places the rule after the line 56 to 57 early return, which is exactly what it is for.
+        11. agent_type harness-dev-ops, a write the guard would otherwise check and refuse for any
+            other governed persona - use the same not-granted destination shape the existing
+            dev-ops-exemption assertions in this file already rely on. Exit 0. The exemption for
+            WRITES is intact. Without this half, case 10 is satisfied by deleting the exemption
+            outright, which would remove the recovery path DEC-151 exists to preserve.
+
+  - id: T-06
+    title: Make two concurrent Expertise close-outs lose no entry, or fail loudly
+    traces: [REQ-06]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    execution_reason: none
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/expertise-merge.py
+      - .claude/skills/harness/bin/test-expertise-merge.py
+    verify: |
+      set -u
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      python3 - "$T/bin/expertise-merge.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      m = s.replace("UNION_APPLY = True", "UNION_APPLY = False", 1)
+      assert m != s, "UNION_APPLY assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      EXPERTISE_MERGE_BIN="$T/bin/expertise-merge.py" \
+        python3 .claude/skills/harness/bin/test-expertise-merge.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with the union apply switched off"; exit 1; }
+      python3 .claude/skills/harness/bin/test-expertise-merge.py || exit 1
+      exit 0
+    intent: |
+      Write two new files. Nothing else in the tree changes. This task is SC-08 and it is not folded
+      into any worktree task: the loss it prevents happens whenever two close-outs run at once, with
+      or without worktrees, and DEC-95 recorded it as unaddressed residue.
+
+      FILE 1 - .claude/skills/harness/bin/expertise-merge.py, executable, python3 stdlib only.
+
+        expertise-merge.py apply --file <path to an Expertise markdown file> --entries <path or ->
+
+      It reads a set of proposed entries and applies them to the file so that no entry already in the
+      file is lost. The entries input uses the same line format the file itself uses: entries of the
+      form dash, an id such as P-01, a colon, then text, at column zero, grouped under the four
+      canonical section headings Patterns, Gotchas, Outcomes and Open. That format and its caps are
+      DEC-145's and are enforced by check-expertise.sh; this tool must produce a file that
+      check-expertise.sh still accepts.
+
+      THE ALGORITHM, and the ordering matters:
+        1. Take an exclusive lock: create a sibling lock file with os.open using the create-and-
+           exclusive flags. If it already exists, retry with a short sleep for at most 10 seconds,
+           then exit 6 naming the lock file. A lock that waits forever inside a close-out is worse
+           than one that reports.
+        2. Read the file under the lock and parse it into sections keyed by heading, each an ordered
+           list of entry id and text.
+        3. Compute the UNION, keyed by section and entry id, preserving existing order and appending
+           new ids in the order the proposal gives them.
+        4. Exit 7, applying nothing, when the same section and entry id exists on both sides with
+           DIFFERENT text. Print both texts. A silent overwrite here is the loss this tool exists to
+           report.
+        5. Exit 8, applying nothing, when the union exceeds a section cap - 15 Patterns, 15 Gotchas,
+           10 Outcomes, 5 Open. Print the section, the cap and the union size. Truncating would trade
+           one silent loss for another; the caller must curate and re-apply.
+        6. Write the union to a temporary file in the same directory and os.replace it onto the
+           target, so a concurrent reader never sees a half-written file.
+        7. Release the lock in a finally block, on every exit path above included.
+        8. On success print one line per entry id added and one line per entry id preserved, then a
+           final line APPLIED and the path. Never a bare count.
+
+      Declare one module-level constant, UNION_APPLY = True, guarding step 3. When it is False the
+      tool writes the proposal alone - which is exactly today's last-writer-wins behaviour. Nothing
+      reads an environment variable or a flag to change it; it exists so a test can mutate a copy of
+      this file by name and prove its assertions can go red.
+
+      FILE 2 - .claude/skills/harness/bin/test-expertise-merge.py, house shape, resolving the tool as
+
+        CLI = os.environ.get("EXPERTISE_MERGE_BIN") or os.path.join(HERE, "expertise-merge.py")
+
+      CASES:
+        1. THE RED CASE, and it is permanent rather than a one-off proof. Simulate today's close-out
+           directly: write a starting file holding P-01 and P-02, then have writer A replace the file
+           with P-01 and P-03 by a plain whole-file write, then writer B replace it with P-01 and
+           P-04. Assert that P-02 and P-03 are BOTH absent afterwards - that is the last-writer-wins
+           loss DEC-95 recorded, asserted rather than described. This case never goes stale, because
+           it tests the naive sequence rather than the tool.
+        2. THE GREEN CASE, the same two close-outs through the tool: starting file with P-01 and
+           P-02, apply A's proposal of P-01 and P-03, then apply B's proposal of P-01 and P-04.
+           Assert all four ids are present, one assertion per id, and that the file still passes
+           check-expertise.sh by forking it and asserting exit 0.
+        3. CONCURRENCY FOR REAL: spawn two subprocesses that apply overlapping proposals to the same
+           file at the same time, join both, and assert that either the union of both proposals
+           survives, or that one run exited 6 with the lock message and applied nothing. Assert
+           exactly those two outcomes and no third; run it at least 20 times so a lost race is
+           visible.
+        4. DIVERGENT TEXT: the same id with different text exits 7, the file on disk is byte
+           identical to before, and both texts appear in stdout.
+        5. CAP OVERFLOW: a proposal taking Patterns to 16 exits 8, names the section and the cap, and
+           leaves the file byte identical.
+        6. A file that does not exist yet is created from the proposal alone and exits 0.
+        7. The lock is released: after each of cases 4, 5 and 6 the lock file does not exist.
+        8. THE CAP DRIFT DETECTOR, which this task owes because step 5 re-spells DEC-145's four
+           section caps in a second file. Read .claude/skills/harness/bin/check-expertise.sh as
+           TEXT, extract the four numbers from the CAPS mapping it assigns - those caps live inside
+           a python3 heredoc in that script and cannot be imported - and assert they equal the four
+           caps this tool enforces, section by section, naming any section whose two values differ.
+           This is the remedy DECISIONS.md:5219-5225 recorded for the handoff cap of 60 when it
+           appeared in two scripts: a test asserting the two files agree, rather than a third copy
+           of the numbers. T-07 forbids restating these caps in prose; this case is what makes the
+           code copy safe instead of forbidding it too.
+
+  - id: T-07
+    title: Route every Expertise apply through the merge tool at distillation
+    traces: [REQ-06]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve prints NOBODY for .claude/skills/harness-distill/SKILL.md at eeabc59
+    depends_on: [T-06]
+    status: done
+    files:
+      - .claude/skills/harness-distill/SKILL.md
+    verify: |
+      set -u
+      F=.claude/skills/harness-distill/SKILL.md
+      grep -q 'expertise-merge.py' "$F" || { echo "the distill skill does not name the tool"; exit 1; }
+      grep -q 'whole-file' "$F" || { echo "the distill skill does not forbid the whole-file write"; exit 1; }
+      python3 .claude/skills/harness/bin/test-expertise-merge.py || exit 1
+      exit 0
+    intent: |
+      Change one file, .claude/skills/harness-distill/SKILL.md, so that the procedure it governs
+      applies Expertise through the tool T-06 built rather than by a whole-file write.
+
+      Read the file first and keep its voice. What must be true afterwards:
+        - The apply step instructs the agent to write its proposed entries to a scratch file and run
+          python3 .claude/skills/harness/bin/expertise-merge.py apply, naming its own Expertise file
+          and that scratch file.
+        - It states plainly, using the words whole-file write, that such a write to an Expertise file
+          is what loses another run's entries, and that two close-outs can be in flight at once.
+        - It names the three refusals the tool can return and what to do about each: exit 6, the lock
+          is held, retry once and then report it upward; exit 7, the same entry id carries different
+          text, which is a real conflict for the agent to resolve; exit 8, the section cap is
+          exceeded, which means curating rather than appending.
+        - It does not restate the entry format or the caps. Those are DEC-145's and
+          check-expertise.sh enforces them; a second copy here is the drift this repository keeps
+          paying for.
+      Add nothing about worktrees to this file. Change no other statement in it.
+
+  - id: T-08
+    title: Register both new test files with the integration kind and the runner
+    traces: [REQ-01, REQ-06]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    execution_reason: none
+    depends_on: [T-02, T-06]
+    status: done
+    files:
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .harness/harness.json
+    verify: |
+      set -u
+      out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1) || { echo "$out"; exit 1; }
+      echo "$out" | grep -q '^PASS test-feature-worktree.py$' || { echo "$out"; exit 1; }
+      echo "$out" | grep -q '^PASS test-expertise-merge.py$' || { echo "$out"; exit 1; }
+      echo "$out" | grep -q '^FAIL ' && { echo "$out"; exit 1; }
+      python3 - <<'PY' || exit 1
+      import json
+      d = json.load(open(".harness/harness.json"))["test_kinds"]["integration"]["detect"]
+      for f in ("test-feature-worktree.py", "test-expertise-merge.py"):
+          assert ".claude/skills/harness/bin/" + f in d, f + " missing from integration detect"
+      PY
+      exit 0
+    intent: |
+      Two edits, both registrations. No logic changes anywhere.
+
+      1. .claude/skills/harness/bin/run-unit-tests.sh, the INTEGRATION_SCRIPTS array at line 18.
+         Append test-feature-worktree.py and test-expertise-merge.py. Both fork real scripts and
+         real git repositories, which is the principle that array encodes - do not put either in
+         UNIT_SCRIPTS. Change nothing else in the file, and do not touch the drift detector.
+
+      2. .harness/harness.json, the integration entry of test_kinds, its detect value. That value is
+         an explicit pipe-separated list at eeabc59, not a wildcard, so a file absent from it is
+         invisible to the kind even once the runner runs it. Append
+           .claude/skills/harness/bin/test-feature-worktree.py
+           .claude/skills/harness/bin/test-expertise-merge.py
+         as two more pipe-separated entries, preserving the existing entries and their order. Change
+         no other key: not exclude, not cmd, not status, and no other kind. In particular do not give
+         any null-runner kind a cmd here - functional, component, ui, eval and typecheck stay null,
+         and no criterion in this feature rests on one.
+
+      Both files together are what makes an integration criterion real: registered in the runner but
+      not in detect, the kind cannot see the file; registered in detect but not in the runner, the
+      kind names a file that nothing executes.
+
+  - id: T-09
+    title: State in the orchestrator's own instructions which worktree it works in
+    traces: [REQ-05, REQ-03]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve prints NOBODY for .claude/agents/harness-orchestrator.md, .claude/commands/harness.md and .claude/skills/harness/SKILL.md at eeabc59
+    depends_on: [T-04, T-05, T-07, T-08]
+    status: done
+    files:
+      - .claude/agents/harness-orchestrator.md
+      - .claude/commands/harness.md
+      - .claude/skills/harness/SKILL.md
+    verify: |
+      set -u
+      for f in .claude/agents/harness-orchestrator.md .claude/commands/harness.md; do
+        n=$(grep -c worktree "$f") || true
+        [ "${n:-0}" -gt 0 ] || { echo "$f names no worktree"; exit 1; }
+      done
+      grep -q 'feature-worktree.py' .claude/skills/harness/SKILL.md || { echo "the playbook does not name the CLI"; exit 1; }
+      grep -q 'feature-worktree.py' .claude/commands/harness.md || { echo "the command does not name the CLI"; exit 1; }
+      grep -q 'git -C' .claude/agents/harness-orchestrator.md || { echo "the orchestrator is not told how to address its worktree"; exit 1; }
+      out=$(.claude/skills/harness/bin/run-unit-tests.sh 2>&1) || { echo "$out"; exit 1; }
+      echo "$out" | grep -q '^FAIL ' && { echo "$out"; exit 1; }
+      exit 0
+    intent: |
+      Three instruction files gain the same rule, stated once each in the voice of that file. No code
+      changes, and no new mechanism - everything named here exists after T-01, T-02 and T-05.
+
+      THE RULE, in the fixed vocabulary and no other words. A feature run works in the worktree at
+      owner_root, then WORKTREES_SEGMENT, then the repository path segment, then the id. For harness
+      that is harness_root then WORKTREES_SEGMENT then harness then the id; for a served repository
+      it is that repository's own checkout under workspace_root, same shape. workspace_root is the
+      container that holds served repository checkouts and is never the parent of a worktree.
+
+      1. .claude/commands/harness.md - the entry path. Before an orchestrator is spawned for a
+         feature, the main session creates the worktree by running
+         python3 .claude/skills/harness/bin/feature-worktree.py create with the repository and the
+         flow id, and passes the printed absolute path to the orchestrator in its dispatch. State
+         that the worktree is cut from the repository's default branch, and that a served
+         repository's default branch comes from its fleet.yaml entry.
+
+      2. .claude/agents/harness-orchestrator.md - where it works. It addresses its worktree by
+         ABSOLUTE PATH for every file operation, and by git's directory option - git -C and the
+         worktree path - for every git command. It never uses cd, which does not persist between
+         Bash calls in any case. It never moves HEAD: checking out a branch, switching, a hard reset,
+         a rebase and a merge are all refused for a governed agent by bash-write-guard.sh, and the
+         refusal names the alternative. State that the refusal exists, so the orchestrator does not
+         read a denial as a malfunction.
+
+      3. .claude/skills/harness/SKILL.md - the playbook, which the orchestrator preloads, so the
+         rule reaches it at spawn rather than by being told to read a file. Add the lifecycle: the
+         worktree is created at flow start by the main session; the orchestrator works inside it; at
+         a terminal state its artifacts reach the default branch and THEN
+         python3 .claude/skills/harness/bin/feature-worktree.py remove, with the repository and the
+         flow id, removes it. THE MAIN SESSION RUNS THAT REMOVAL, FROM OUTSIDE THE TREE, never the
+         orchestrator from inside it - symmetric with point 1, which attributes creation to the main
+         session for the same reason. This sentence discharges must_fix M-1: git worktree remove
+         succeeds at exit 0 from inside the tree it removes, so guidance that omits who runs it and
+         from where tells the orchestrator to delete its own cwd, which check-domain.sh:428-431,
+         bash-write-guard.sh:135-137 and check-state.sh:1082-1085 each already refuse to say and
+         T-05 refuses on the Bash route. The orchestrator's part of a terminal state is to finish
+         landing its artifacts and report; removal is not its act. State that remove refuses on a dirty tree, and refuses until every
+         artifact under the feature's directory is present with identical content on the default
+         branch; that it names the paths it verified; and that there is no force flag - a refusal
+         means finish landing the work, never override the check.
+
+      Each of the three must be a rule an agent can follow: a path shape, a command, and what happens
+      when it is disobeyed. A passing mention of the word worktree does not satisfy REQ-05. Do not
+      restate the mechanism in more than one of the three files; cross-reference instead.
+
+  - id: T-10
+    title: Prove four CONCURRENT writers commit only to their own branch, and prove the same assertion detects a shared checkout
+    traces: [REQ-01]
+    change_type: cross_module
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    execution_reason: none
+    depends_on: [T-02, T-08]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-feature-worktree.py
+    verify: |
+      set -u
+      T=$(mktemp -d) || exit 1
+      # cp -R, NOT a single-file copy. Corrected 2026-08-20 (Q3) after the build member hit
+      # it and disclosed it. test-feature-worktree.py:35 imports the sibling module
+      # harness_boundary, so a lone copy dies ModuleNotFoundError before any assertion and
+      # the red proof reports "the suite broke" for every future re-verification. No
+      # sys.path manipulation exists in that file. Matches T-06's precedent.
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      rm -rf "$T/bin/__pycache__"
+      python3 - "$T/bin/test-feature-worktree.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      sig = "def assert_commit_isolation(trees):\n"
+      assert sig in s, "the isolation predicate was not found BY NAME on one signature line"
+      i = s.index(sig) + len(sig)
+      m = s[:i] + "    return  # NEUTERED BY THE RED PROOF\n" + s[i:]
+      open(p, "w").write(m)
+      PY
+      MARKER="assert_commit_isolation did not detect the shared-checkout collision"
+      FEATURE_WORKTREE_BIN="$PWD/.claude/skills/harness/bin/feature-worktree.py" \
+        python3 "$T/bin/test-feature-worktree.py" >"$T/neutered.out" 2>&1
+      RC=$?
+      if [ "$RC" -eq 0 ]; then
+        echo "RED PROOF FAILED: the suite PASSES with assert_commit_isolation neutered - the case B assertions are vacuous"
+        cat "$T/neutered.out"
+        exit 1
+      fi
+      if ! grep -qF "$MARKER" "$T/neutered.out"; then
+        echo "RED PROOF INCONCLUSIVE: the neutered suite exited $RC but THE SUITE BROKE rather than case B failing - its output does not contain the case B marker: $MARKER"
+        cat "$T/neutered.out"
+        exit 1
+      fi
+      python3 .claude/skills/harness/bin/test-feature-worktree.py || exit 1
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit >/dev/null 2>&1 || exit 1
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration >/dev/null 2>&1 || exit 1
+      exit 0
+    intent: |
+      Add cases to .claude/skills/harness/bin/test-feature-worktree.py. NO OTHER FILE CHANGES, and
+      no new test file - this file is already registered in run-unit-tests.sh's INTEGRATION_SCRIPTS
+      and in harness.json's integration.detect by T-08, so a third file would have to be registered
+      in BOTH places or run-unit-tests.sh exits 2 MISCONFIGURED on its drift detector. Do not create
+      one.
+
+      THIS TASK OWNS SC-01b, which the operator amended to automated / integration on 2026-08-20.
+      What SC-01b asks for that SC-01's cases do not already cover: SC-01 creates four trees and
+      writes one file per tree, statically and serially. SC-01b is about COMMITS, under CONTENTION -
+      four concurrent writers, two per repository, each committing into its own worktree, every
+      commit landing only on its own branch, and no other branch advancing.
+
+      ONE NAMED PREDICATE, USED TWICE. Define exactly one module-level function whose signature is
+      on a single line and reads exactly
+
+        def assert_commit_isolation(trees):
+
+      It takes the per-tree records produced by the driver below and raises IsolationViolation - a
+      module-level exception class defined in this file - naming the branch and the offending sha
+      when isolation does not hold. The signature must stay on one line and the name must not
+      change: this task's verify neuters that function by name in a copy and requires the suite to
+      go RED, which is what proves the assertions are load-bearing rather than vacuous.
+
+      THIS SHAPE IS MEASURED, NOT PROPOSED. notes/orchestrator-M16-sc01b-is-automatable.md drove
+      exactly it twelve times: two throwaway repositories, two worktrees each, four concurrent
+      committers, zero isolated-shape failures and four independent collision signals from the
+      shared-checkout negative. Build the measured shape rather than inventing one. Twelve trials is
+      why flakiness is not a live risk here; do not add trial loops to the suite for it.
+
+      THE DRIVER, shared by both fixtures. Given a list of four working directories and the branch
+      each is expected to advance:
+        - record every branch tip in both repositories BEFORE any driver starts, by sha.
+        - start FOUR concurrent committers, one per working directory - a thread pool as M-16 used,
+          or four child processes; the choice is yours and neither is the requirement. Each waits on
+          a barrier, then makes FIVE commits into its working directory, each a distinct file named
+          for its own id and commit index, staged BY PATHSPEC as M-16 staged them, with a small
+          sleep between commits, and records its first and last commit timestamps and the shas it
+          created.
+        - the barrier must have a hard timeout that FAILS the test rather than hanging.
+        - the caller joins all four, requires every committer to have succeeded, and ASSERTS THE
+          WRITE WINDOWS
+          ACTUALLY OVERLAPPED: for each of the six pairs, the intervals intersect. A fixture that
+          serialised proves nothing about contention, and a barrier that silently failed open would
+          otherwise be invisible.
+
+      CASE A - SC-01b, the positive direction, FOUR WORKTREES. Drive the four children against the
+      four worktrees created through the CLI exactly as the SC-01 cases create them: repoA FEAT-90,
+      repoA FEAT-91, org/repoB FEAT-92, org/repoB FEAT-93. Then call assert_commit_isolation, which
+      must hold, and which asserts PER TREE and never in aggregate:
+        - the tree's own branch contains exactly its own five shas, in order.
+        - one assertion per OTHER tree that no other tree's FILE appears anywhere in this branch's
+          history, read with git ls-tree -r over the branch tip - this is the assertion M-16
+          measured as detecting the collision four independent ways - AND that none of the other
+          trees' shas is reachable from this branch, read with merge-base --is-ancestor. Twelve
+          ordered pairs carrying two clauses each - twenty-four absence assertions, not one count -
+          the same shape SC-01's absence cases already use.
+        - every branch tip recorded before the run, in BOTH repositories, that is not one of the
+          four expected branches is UNCHANGED by sha. This is the no-other-branch-advancing half,
+          and it is the one that catches a commit landing on a default branch.
+        - each tree's working directory is clean afterwards, and its HEAD still names its own branch.
+
+      CASE B - THE DISCRIMINATING NEGATIVE, and it is the reason this criterion can go RED. Drive
+      the SAME driver, with the same barrier and the same overlap assertion, against ONE SHARED
+      CHECKOUT of repoA - all four children committing into the single primary clone on one branch,
+      no worktrees involved. Then call THE SAME assert_commit_isolation with those records and
+      require it to RAISE IsolationViolation. Write it so that a non-raise is a failure:
+
+        try:
+            assert_commit_isolation(shared_records)
+        except IsolationViolation:
+            pass
+        else:
+            raise AssertionError("assert_commit_isolation did not detect the shared-checkout collision")
+
+      A refuse-nothing fixture is the failure mode this case exists to prevent: without it, a
+      predicate that asserts nothing passes case A and the criterion is green and incapable of red.
+      Case B must be robust to a committer failing on the shared checkout - an index lock or a
+      non-zero git exit in the shared fixture is itself evidence of collision and satisfies the
+      case, so accept either a raised IsolationViolation or a recorded committer failure, and assert
+      that ONE OF THE TWO occurred rather than requiring the shared run to succeed.
+
+      SCOPE, stated so it is not widened. Do NOT assert anything about the shared GitHub API budget
+      or the shared board: BRIEF.md puts both out of scope by operator ruling, so the SC-01b clauses
+      naming them were dropped rather than automated. Do NOT assert anything about Expertise-file
+      contention: that is REQ-06's, owned by T-06 and graded by SC-08. Do not touch either subject
+      here.
+
+      Every case that claims to test the CLI must go through the CLI. Do not create a worktree
+      directly in this task's cases.

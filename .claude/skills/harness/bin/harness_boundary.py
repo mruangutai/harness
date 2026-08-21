@@ -32,9 +32,87 @@ import sys
 # then blocks the main session on.
 WORKTREES_SEGMENT = ".claude/worktrees"
 
-# The DEC-143 rel-stripping pattern, built from the constant above rather than spelled
-# again. `<segment>/<id>/<path>` -> group(1) is the in-worktree path.
-WORKTREE_REL_RE = re.compile(r"^" + re.escape(WORKTREES_SEGMENT) + r"/[^/]+/(.+)$")
+def checkout_relative(abs_path):
+    """Return `(checkout_dir, path relative to that checkout)`, or None.
+
+    REPLACES `WORKTREE_REL_RE` (FEAT-30 T-04), which stripped a FIXED number of path
+    segments after `WORKTREES_SEGMENT` and so answered "how deep am I" when the real
+    question is "which checkout am I standing in". One mechanism for one mechanism: no
+    segment is added, widened, or parameterised anywhere.
+
+    Why the fixed strip had to go rather than gain a segment: under a
+    `<segment>/<repo>/<id>/` layout it left the repository segment in the path, so the
+    stripped candidate matched no glob. It also made the depth load-bearing — a rule that
+    asks which checkout a path is in does not care how deep the path is.
+
+    Three outcomes, and the None cases are deliberate:
+      not in any worktree     -> None. The caller keeps its base-relative path.
+      a parsed worktree       -> (checkout_dir, relpath of realpath against it)
+      an UNPARSED `.git`      -> None. Do NOT invent a checkout here. That branch is
+                                 already refused by its own callers, and a second,
+                                 quieter answer is how a refusal becomes a fall-through.
+
+    No git subprocess, no segment counting, no regex. `worktree_owner` already answers
+    the whole question from the pointer file.
+
+    Cost is measured and settled, recorded so it is not re-litigated: over 2000
+    iterations the deleted regex took 0.3 ms in TOTAL against 46.8 ms in total here —
+    0.023 ms per write, against a guard that already reads files.
+    """
+    owner = worktree_owner(abs_path)
+    if owner is None:
+        return None
+    checkout_dir, owner_root, _legitimate = owner
+    if owner_root is None:
+        return None
+    return checkout_dir, os.path.relpath(real(abs_path), checkout_dir)
+
+
+def linked_worktrees(owner_root):
+    """Absolute checkout directories of `owner_root`'s linked worktrees, sorted.
+
+    Standard library only. For each directory under `owner_root/.git/worktrees`, read its
+    `gitdir` pointer file, take the directory it names, drop a trailing `.git` component,
+    and keep the realpath if it exists. A missing `.git/worktrees` returns `[]`.
+
+    NO GIT SUBPROCESS: DEC-193 forbids one on the governed-write path, and a hook that
+    shells out is both slow and a new failure surface.
+
+    Used by `check-domain.sh`'s post-write sweep, which at `eeabc59` joined the segment to
+    a single star and therefore reached no file in any worktree deeper than one level — a
+    glob that matches nothing reports nothing, so that was a SILENT regression rather than
+    a refusal.
+
+    Cost, measured on a fixture with five linked worktrees over 2000 iterations: 0.371 ms
+    per call against 0.147 ms before, so +0.22 ms per governed write, scaling linearly
+    with worktree count, against the ~38 ms of interpreter start-up the hook already pays.
+    """
+    wt_dir = os.path.join(owner_root, ".git", "worktrees")
+    try:
+        entries = sorted(os.listdir(wt_dir))
+    except OSError:
+        return []
+    out = []
+    for name in entries:
+        pointer = os.path.join(wt_dir, name, "gitdir")
+        try:
+            with open(pointer, "r", encoding="utf-8", errors="strict") as fh:
+                named = fh.read().strip()
+        except Exception:
+            # An unreadable or non-UTF-8 pointer is skipped, not guessed at. The sweep is
+            # a REPORT, so a checkout it cannot place is one it cannot honestly name.
+            continue
+        if not named:
+            continue
+        if not os.path.isabs(named):
+            named = os.path.join(wt_dir, name, named)
+        # The pointer names the worktree's own `.git` FILE; the checkout is its parent.
+        if os.path.basename(named) == ".git":
+            named = os.path.dirname(named)
+        named = os.path.normpath(named)
+        if os.path.isdir(named):
+            out.append(real(named))
+    return sorted(set(out))
 
 
 def glob_to_re(pat):
@@ -304,11 +382,21 @@ def classify(abs_target, root, globs, shared, label):
     # at the first build dispatch after plan approval, the most expensive possible place.
     #
     # Fix: match the RAW path first (so a glob that deliberately targets the worktree
-    # directory still works — none exist today, but the edge is real), then strip the
-    # worktree prefix and match the in-worktree path against the same globs. This is NOT
-    # a widen: identical globs, anchored to the checkout the agent is standing in.
-    _wt = WORKTREE_REL_RE.match(rel)
-    rel_candidates = [rel] + ([_wt.group(1)] if _wt else [])
+    # directory still works — none exist today, but the edge is real), then match the
+    # path relative to THE CHECKOUT IT STANDS IN against the same globs. This is NOT a
+    # widen: identical globs, anchored to that checkout.
+    #
+    # The second candidate came from a fixed-segment strip until FEAT-30 T-04. It now
+    # comes from `checkout_relative`, which asks the containing checkout via its git
+    # pointer. The ordering and the meaning are unchanged; only the source of the second
+    # candidate is, and with it the depth-independence — `<segment>/<repo>/<id>/` and
+    # `<segment>/<id>/` both resolve, because neither is counted.
+    _ck = checkout_relative(_abs_target)
+    rel_candidates = [rel]
+    if _ck is not None and real(_ck[0]) != real(base):
+        # `!= base`, not `!= root`: when the target resolves against a product base the
+        # checkout IS that base, and adding an identical second candidate would be noise.
+        rel_candidates.append(_ck[1])
 
     # A match is accepted only where the base's target-side test passes. In the product
     # base that test is constant-True and the filtering already happened on the globs;
