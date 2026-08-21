@@ -6329,3 +6329,39 @@ amendment quoting the struck clause, not by leaving it in the position where it 
 *What did NOT change.* The body of DEC-196, including the paragraph amendment 1 identified as false
 and the amendment-1 record itself, is untouched. No DEC number is opened, superseded or retired
 here, and the entry's rule is the same rule.
+
+## DEC-197 — A test file matching two `detect` globs resolves to the explicit kind, and the record is the enforcement
+
+**Chose:** state the precedence that was already in force. In `.harness/harness.json`'s `test_kinds`,
+where a file matches more than one kind's `detect`, it resolves to the kind whose glob names it
+**explicitly**, never to the kind whose glob is a catch-all.
+
+Concretely: `unit.detect` carries `.claude/skills/harness/bin/test-*.py`, which matches every test
+script in `bin/`, and `integration.detect` is a list of filenames. A file in both is `integration`.
+
+**Because:** the rule was already load-bearing and already consistently applied — four files sat in
+both lists and were treated as integration — and it was written nowhere. A convention nobody can
+find is one every reader has to re-derive from the data, and two readers who derive it differently
+will not be caught.
+
+**What this does not do, said plainly rather than discovered later.** Nothing implements it. There is
+no classifier. `test_kinds` is read by `harness-qa` by hand, and `run-unit-tests.sh` reads its own
+`UNIT_SCRIPTS` / `INTEGRATION_SCRIPTS` arrays and never opens `harness.json` at all. So this entry is
+the enforcement until something mechanical exists, and the failure mode it does not close is two
+readers disagreeing about an overlapping file.
+
+**What forced it.** Eight of twelve `INTEGRATION_SCRIPTS` entries were absent from
+`integration.detect`, so `run-unit-tests.sh` ran them as integration while the qa matrix read them as
+unit — and every `evidence: integration` claim resting on one of those files was false. The fix is to
+name each file in `integration.detect`, which leaves it matching **both** globs. That fix means
+something only if this precedence is real, so the rule had to stop being folklore before the fix
+could be trusted.
+
+**A cross-check is separate from this rule, deliberately.** The check that the arrays and the
+`detect` lists agree is a set comparison; its correctness does not depend on the answer here, only
+its meaning does. Keeping them apart stops a check from silently encoding a rule the record does not
+state.
+
+**If this is ever implemented, the test must assert on a file matching BOTH globs** and go red when
+the resolution flips. A test over non-overlapping files passes under either rule and proves nothing
+about the only case in question.
