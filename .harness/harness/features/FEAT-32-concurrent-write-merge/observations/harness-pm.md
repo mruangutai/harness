@@ -58,3 +58,19 @@
   decision NUMBER is as rottable as a line anchor — grep the entry's body for the claim, not just the
   index row for the surface.
 
+
+- 2026-08-21: a text-anchored gate rule must be tested against the payload shapes the ATTACK can
+  choose, not the shapes the FILE contains. The ruling handed me "deny an Edit payload containing a
+  two-space `status:` key", justified by a corpus measurement that was entirely correct — 23/23
+  plan.yaml carry exactly one such line and it is always the approval block's. The corpus fact was
+  true and the rule still failed: `Edit(old_string="status: pending", replace_all=true)` and
+  `old_string="status: pending\n  approved_by:"` both flip the signature and neither payload contains
+  a two-space line start at all. The discriminator was measured on the FILE; the payload is written by
+  the attacker and need not resemble the file. Substituting "does old_string occur inside the target
+  fragment's on-disk byte range" closed all three shapes with less logic and no indentation
+  dependency. Build the truth table over payloads before accepting an anchor.
+- 2026-08-21: `check-plan-routes.py` budgets `verify` at 50 machine-field lines per task
+  (`:281`, `BUDGETED_FIELDS` at `:286`) and `intent` is NOT budgeted. Adding a third copy-paste red
+  proof to T-03's verify pushed it to 58 and made the plan exit 1. Three mutation proofs differing
+  only in a literal name collapse to a `for lit in A B C` loop: 44 verify lines to 18, same
+  assertions. A red-proof-per-literal pattern is the shape that hits this budget first.

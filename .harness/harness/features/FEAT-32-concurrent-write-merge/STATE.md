@@ -2,118 +2,118 @@
 
 ## Current
 
-Phase: **plan**, at its terminus. The Q3 amend round is **committed at `f6840d0`** on `feat/FEAT-32`
-(HEAD was `62f861c`). `approval.status` is `pending` in `plan.yaml` and `## Approval` is `pending` in
-`BRIEF.md` — **both byte-identical to the previous commit, verified by `diff` against `git show HEAD:`
-immediately before staging**, not asserted. Nothing here signs.
+Phase: **plan**, at its terminus. Round 4 (the Q1 amend) is committed. `approval.status` is `pending`
+in `plan.yaml` and `## Approval` is `pending` in `BRIEF.md` — both verified **byte-identical to the
+previous commit by `diff` against `git show HEAD:`**, not asserted. Nothing here signs. Run 4 returned
+**PASS**, one pm, **zero send-backs**.
 
-**Q1 CLOSED.** `git merge-base --is-ancestor` returns true for `16b30c6` (DEC-90 strike), `1d2b036`
-(DEC-197) and `47a9935`. Highest decision in this checkout is **197** in both `DECISIONS.md` and
-`DECISIONS-INDEX.md`, so T-13 mints 198 and the duplicate hazard is gone. T-13 needed no edit — its
-intent already reads the file rather than assuming a number; its DEC-90 degraded path is now inert.
+**Q1 IS ANSWERED, AND THE RULING'S OWN RULE WAS WRONG.** The ruling handed down one rule: deny an Edit
+whose payload holds a `status:` key at exactly two spaces. It denies the TARGETED edit and **allows the
+`replace_all` sweep** — the worse of the two attacks it was written to close. The discriminator is a
+fact about the FILE; the rule inspects a PAYLOAD, which the writer authors rather than reads from the
+file, so `old_string: "status: pending"` with `replace_all: true` contains no two-space line start at
+all and flips 18 lines. The measurement was true and constrained nothing.
 
-**Q3 APPLIED: `main_session.writes` is the gate's INPUT, not a record.** T-14 no longer hardcodes a
-plan.yaml regex; it sources the denial from the list. Host is `check-domain.sh`, not the merge tool,
-and the ruling's own premise was falsified before choosing: `plan-merge.py` **does not exist yet**
-(only `expertise-merge.py` of the five is on disk) and is a tool the writer CHOOSES to invoke, so a
-check inside it is refusable by not calling it. `check-domain.sh` already opens `team-config.yaml`
-(`:153-155`, `:297-302`), a `Write` carries whole-file `content` (`:1034`), and
-`grep -n main_session check-domain.sh` returns **zero**. The chosen SHAPE survives; only its HOST
-argument did not.
+**pm's replacement (`plan.yaml:1739-1753`).** **Limb A** — deny when `old_string` occurs as a substring
+of the approval block's on-disk byte range: exact, no reconstruction, no `replace_all` semantics,
+indentation-INDEPENDENT. **Limb B** — the `new_string` limb for payloads that INTRODUCE a signature, at
+*the indent the fragment uses ON DISK*, with `:1751` explicitly refusing to hardcode two spaces. All
+three attack shapes denied; a task's four-space `status:` still allowed. The trade is a conservative
+false positive: an `old_string` of `date:` alone is denied. That is the price of closing `replace_all`.
 
-**The scope consequence, named: the hole was three files wide.** `team-config.yaml:89`/`:90` grant pm
-`BRIEF.md` and `PLAN.md` whole with `except ## Approval` as a **comment**, so pm writing
-`status: approved` into a BRIEF is unrefused at `62f861c`. One list-sourced mechanism closes all
-three; refusing to generalise would hardcode a plan.yaml special case out of a list whose other two
-entries state the same rule.
+**LAYER 1 MUST BE PRE, STRUCTURALLY — not by the refusability argument I sent down.**
+`old_string`/`new_string` appear NOWHERE in `check-domain.sh` except the comment at `:1039` saying they
+are deliberately unused, so the PRE path has never inspected an Edit payload. DEC-180 (`@5105`) fixes
+the SHAPE gate as post-hoc-capable from DISK while the DOMAIN phase is `_governed and not _post`, so a
+domain-aware post-hoc backstop cannot exist. There is no fallback detection of a flipped signature.
 
-**The signer spread was FOUR-way, not three, and the tree behaves as none of them.**
-`SKILL.md:34-35` (main session) was the only artifact already correct; `templates/plan.yaml:25-26`
-names the ORCHESTRATOR and miscites DEC-120, which says the opposite; `harness-pm.md:27-28` names the
-orchestrator "because only it can reach the user"; `team-config.yaml:91` miscites DEC-129. Authority:
-DEC-120 `@2408`, sentence `:2431`; DEC-112 `:1931` corroborates. T-15 corrects the three losers.
+**THE CONVENTION CAVEAT WAS NARROWED, CORRECTLY.** Limb A reads no indentation, so the comment I
+mandated would have asserted a failure mode the rule no longer has — a false comment in shipped code.
+`:1794-1796` scopes it: limb B dies to a reformatting, limb A survives. `check-domain.sh` must still
+carry the literal `CONVENTION, NOT A YAML GUARANTEE` and T-14's verify greps for it (`:1672`).
 
-**Ruling-by-ruling, verified against the artifact.** Q5 — `dec:` on D-04 (`:156`) and D-10 (`:324`)
-now DEC-120; DEC-129 `@2954` has **zero** "approval" occurrences. pm found **four** DEC-129 hits in
-`team-config.yaml`, not three: `:89`/`:90`/`:91` wrong, **`:108` correct**, and its own first-draft
-blanket assertion would have failed on the correct line. Q6 — the six out-of-scope files appear
-**nowhere** in `plan.yaml`; T-10 carries `OUT OF SCOPE - SEE ISSUE #639` at `:1357` and registers
-exactly two, so a search for one of the six lands on the issue that owns it. Q7 — SC-14 re-observed
-at `62f861c`: unit exit 0 / **179** metric lines / 0 beginning `FAIL`; integration exit 0 / **221** /
-0 beginning `FAIL` / **3 containing `ERROR`**. Integration moved 93 → 221 (FEAT-30 added to
-`INTEGRATION_SCRIPTS`); unit unchanged from `5d9b428`. Exit-0-plus-no-`FAIL` stays the mechanical
-gate, counts are the shrink detector. Q8 — T-16 fixes `validate-digest.py:580`'s citation of `:838`
-(statement at `:845`) and its **verify re-derives the line rather than pinning a literal**. Q9 — T-17
-carries verbatim DEC-174 am.4 wording adding `dispatch-guard.sh`; enumeration `:4859-4860`, "the
-category decides, the list records" `:4860-4862`; changes no lane. Q10 — **absent, zero cost**:
-`grep -n phase` on `templates/plan.yaml` returns nothing. Q4/Q11 accepted as ruled.
+**Layer 2 landed in T-03 as step 7b, additive to step 7.** Step 7 makes the tool INCAPABLE of writing a
+signature (its output); 7b makes it NOTICE a caller that tried (its input), refusing exit 8 on a
+parsed-value difference. D-10 `:306-312` keeps the enforcement/backstop distinction explicit and records
+that layer 2 is reachable only when the writer CHOOSES to invoke the tool.
 
-**REQ-11 did not cover the generalisation, and pm caught it.** `BRIEF.md:64` read "a feature PLAN's
-approval block"; a BRIEF is not a plan, so T-14 would have exceeded its traced source. REQ-11's noun
-widened, **SC-20** added at `BRIEF.md:397`. Build order: T-14 `depends_on: [T-03, T-15]`, T-15 `[]` —
-T-15 supplies the entry and T-14's new case reads the **real** `team-config.yaml`, so CI notices a
-deletion. No cycle.
+**BRIEF.md gained SC-21** (+18 lines, above `## Approval`, which stayed byte-identical): binds both
+layers, asserts each payload shape INDIVIDUALLY rather than by a count, and goes red two independent
+ways — `check-domain.sh`'s guard literal and `plan-merge.py`'s `APPROVAL_REFUSAL` each mutated to
+`False`, the latter asserted as byte-identity AND the proposal's task being ABSENT, because layer 2's
+carry-forward would otherwise let a result-only assertion pass with the refusal off.
 
-**#551 OCCURRENCE 8 HAPPENED THIS ROUND, IN ITS STRONGEST FORM.** The lead was forced to a terminal
-close with pm in flight, one run after occurrence 7, on the feature that exists to fix this. Its
-report: the contract validator then **REJECTED a return that declined to grade an unobservable
-child** — so the mechanism does not merely PERMIT a false verdict, it **DEMANDS** one. Two further
-details: the lead wrote into **`runs/2026-08-21-2-product/`** instead of minting run-3, so that file
-holds ROUND 3's digest under ROUND 2's id and round 2's digest is **lost** (`runs/**` is gitignored,
-`.gitignore:7`) — which is precisely why this file and `feature.json` are the durable record. pm ran
-to completion as an orphan and returned PASS. Occurrence 7 is now recorded in four places: `BRIEF.md`'s
-#551 block ("six" → "seven"), D-06's `because:`, T-13 intent item 4, and **D-09's `choice:`**, which
-had reasoned from 3–6 while its best datum sat unrecorded.
+**Verified independently at `6bb7d82`.** `safe_load` clean; **17 tasks**, **10 decisions**;
+`check-plan-routes.py` exits **0**, **0 VIOLATION / 6 DEVIATION** — unchanged from round 3, so no route
+drift. Unit exit 0 (981 lines, 767 `ok`, **179** `^PASS`, 0 `^FAIL`); integration exit 0 (1035 lines,
+742 `ok`, **218** `^PASS`, 0 `^FAIL`, **3 containing `ERROR`**). Baselines now IN the plan with their
+sha: `test-check-domain.py` **167** `ok`, enforced by `[ "$n" -ge 167 ]` in T-14's verify;
+`test-dispatch-guard.py` exit **2** recorded as Python's no-such-file, T-07 creates it.
+`validate-feature-json.py` exits 0; `check-state.sh` exits 1 with FEAT-32's sole VIOLATION being
+"BRIEF.md is NOT approved" — the terminus.
 
-**Verified directly, because a forced-close round is where a digest must not be trusted.** `safe_load`
-clean; **17 tasks** (T-01..T-17), **10 decisions**; 9 `main-session-direct` / 8 `team`;
-`check-plan-routes.py` on this plan exits **0**, **0 VIOLATION, 6 DEVIATION** — T-01, T-07, T-08,
-T-09, T-14 and new T-16, each the deliberate DEC-174 shape under DEC-179 (5 before this round).
-Scoping the route check to one plan makes every line attributable and removes the enumeration P-05
-needed last round. `check-state.sh` exits 1 with FEAT-32's sole violation being "BRIEF.md is NOT
-approved" — the terminus. Suites green at `62f861c` independently of pm: `test-check-domain.py` exit 0
-with **167** `ok` cases (the baseline T-14's "every prior case still passes" is measured against, and
-a number the plan should carry), `test-validate-digest.py` exit 0, unit exit 0, integration exit 0.
+**Q5 CLOSED at a SECOND sha.** Integration re-run at `6bb7d82` (zero `.claude/` changes since
+`62f861c`, per `git diff --name-only`): exactly 3 lines contain `ERROR`, all three `ok` lines whose test
+NAME carries the word — `:92`, `:115`, and `:176`'s gh-sync loud-pair case. Confirmed, not relayed;
+recorded at `:1439` with the sha. They must not gate.
 
-`cycles_used` **0** of 10 (lead reported zero send-backs; a forced close is not rework — charging it
-would hide the defect, DEC-157/rule 15). Runs **3** of 20.
+**ONE DEFECT SURVIVES THE AMEND**, from a measurement taken after the dispatch left. The entry parser
+still splits on the **LAST** space (`:1716`, `rsplit(" ", 1)` at `:1974`). Executed against the real
+`main_session.writes`: `.harness/*/features/*/BRIEF.md ## Approval` yields tail `Approval`, matching
+neither fragment test, so the entry becomes fragment-less and — by the spec's own third kind —
+CONTRIBUTES NO DENIAL. Both `## Approval` entries silently disarm; only the plan.yaml mapping survives,
+which is the very special case Q3 refused to hardcode. FIRST-space splitting parses all four correctly.
 
-**An orchestrator error, recorded because rule 15 applies to me.** I spawned a **second product-lead
-by mistake** in the feature about concurrent writes — reached for `Agent` when I meant to continue the
-live lead, and `SendMessage` proved **disabled for this session entirely**. Contained only because the
-accidental dispatch carried a no-op instruction: PASS, 0 tool uses, 0 members, `files_touched: []`,
-wrote nothing. The consequence: **a dispatch is unrecallable at send time here**, so two wrong anchors
-I handed down (DEC-119 for the fail-open precedent; the operator's `templates/plan.yaml:25`) could only
-be fixed by pm re-deriving them, which it did.
+**THE INDENT CONVENTION IS ALREADY INVERTED BETWEEN TWO OF THE THREE FILES, AT HEAD** — which is why
+limb B's refusal to hardcode is load-bearing, and the plan carries no counter-example proving it.
+Measured at `6bb7d82`: `plan.yaml` — 23 files, 23 signatures at TWO spaces (one each), 176 task lines at
+four. `BRIEF.md` — 31 files, 32 signatures at ZERO indent, no indented `status:` anywhere. `PLAN.md` — 9
+files, 10 signatures at ZERO indent and **27 TASK lines at TWO spaces**, the exact inverse. A hardcoded
+two-space rule on `PLAN.md` denies 27 legitimate lines and misses every signature.
+
+**NO #551 OCCURRENCE THIS ROUND, and I nearly recorded one.** At 13:22 I read
+`runs/2026-08-21-01-product/digest.md` and it opened "**the amend is NOT done** … re-dispatch is a full
+re-spend", written 13:19 as the lead's defensive draft against a forced close. The lead then completed
+normally and REWROTE the same file at 13:36 with `VERDICT: PASS`. A digest is written and rewritten
+DURING a run, so reading one mid-flight and treating it as final is a trap — mtime against the return is
+the discriminator. I had this in draft as occurrence 9 before re-reading. Occurrences stand at 8.
+
+**A run-id defect, third shape in three rounds.** The lead minted `runs/2026-08-21-01-product` —
+zero-padded, so it sorts BEFORE `2026-08-21-1-product` and round 4 reads as round 1. Round 3's digest
+still sits in round 2's dir, which is why `check-state.sh` notes run `2026-08-21-3-product` referenced
+with its dir absent. `runs/**` is gitignored (`.gitignore:7`), so this file and `feature.json` are the
+durable record. Left uncorrected: renaming now would erase evidence of a live defect.
+
+`cycles_used` **0** of 10 (lead reported zero send-backs). Runs **4** of 20.
+
+**My own errors, because rule 15 applies to me.** "Dispatch pm early, spend the wait measuring" and
+"verify the premise before planning on it" pull against each other and I resolved it wrongly: I
+dispatched the ruling's rule as sound, then measured against it. A dispatch is unrecallable here, and
+only pm's independence stopped the hole shipping. A premise check is not parallelisable with the work
+depending on it; my P-06 says this for review findings and I did not apply it to my own dispatch. I also
+wrote here that BRIEF.md was unchanged before running `git diff --stat`; it had gained SC-21.
 
 ## Open Questions
 
-- Q1 **BLOCKING — T-14's Edit rule is bypassable by the most obvious route.** `plan.yaml:1652-1656`
-  decides an `Edit` by a TEXT HEURISTIC: deny when `old_string`/`new_string` holds a line whose first
-  non-space text is the fragment. An Edit of `  status: pending` → `  status: approved` contains no
-  `approval:` and no `## Approval` line, so it is **ALLOWED** and it flips the signature. Worse,
-  `status: pending` is every TASK's own field, so the heuristic cannot tell the approval block's
-  `status:` from a task's without applying the edit. Two fixes, no free option: **(a)** apply the edit
-  in memory (honouring `replace_all`), parse, compare — exact, but contradicts `check-domain.sh:1039`'s
-  recorded refusal to reconstruct Edit semantics ("no `replace_all` semantics, no TOCTOU window");
-  **(b)** deny a governed agent's `Edit` of any fragment-bearing file outright — fails closed on the
-  tool whose proposal cannot be evaluated, and the main session is untouched because a payload with no
-  `agent_type` never reaches the domain phase, so D-04's Edit-based signing survives. (b) costs
-  `Edit` on `plan.yaml` (near-zero; every other write already routes through `plan-merge.py`) and on
-  `BRIEF.md` (real; pm edits it in place today). **pm's to fix — one more amend before signing.**
-- Q2 **BLOCKING.** Sign or amend both artifacts. `BRIEF.md` changed again — REQ-11 widened, SC-20
-  added, on top of last round's REQ-11/REQ-12/SC-17/SC-18/SC-19 and SC-16's withdrawal.
-- Q3 **NOT blocking.** T-14 grew from one file to three. A consequence of sourcing from the list, not
-  an independent widening — but the real cost, better seen at signature than discovered at build.
-- Q4 **NOT blocking.** T-17 amends a signed decision; approving this plan IS the signature on that
-  wording. A stronger justification exists: `dispatch-guard.sh` is a registered PreToolUse hook at
-  `.claude/settings.json:45` alongside `check-domain.sh` (`:23`, `:56`), `bash-write-guard.sh` (`:36`)
-  and `validate-digest.py --hook` (`:67`) — **every other registered hook is already in am.4's list;
-  it is the only one absent** — and it has **no test file at all**, while am.4's rule includes "the
-  test file of each". T-07 creates the test; T-17 closes the record.
-- Q5 **NOT blocking.** SC-14's baseline records **3 integration lines containing `ERROR`**. The
-  criterion binds no line BEGINNING `FAIL` and cannot see them. pm reads all three as expected-output
-  cases carrying the word inside a test's own name; whether they should gate is unresolved.
-- Q6 **NOT blocking, main session's act.** #551 needs occurrences 7 AND 8 appended, with both
-  sharpened claims, plus the run-id collision. An agent composing a GitHub post is forbidden
-  (DEC-138 am.6) and `gh-sync.py` has no subcommand for it.
+- Q1 **BLOCKING — the entry parser disarms two of the three files it covers.** `:1716` specifies "split
+  on the LAST space"; `:1974` asserts with `rsplit(" ", 1)`. Executed against the real
+  `main_session.writes` at `6bb7d82`, both `## Approval` entries contribute NO denial, collapsing the
+  three-file mechanism to a plan.yaml special case. FIRST-space splitting parses all four. T-14's cases
+  12 and 13 would catch it at build, so the cost is one build cycle rather than a shipped fail-open —
+  but it should not be signed. **pm's to fix; one short amend.**
+- Q2 **BLOCKING — the same amend should carry the inversion evidence.** Limb B rightly refuses to
+  hardcode two spaces (`:1751`) but the plan records no counter-example. `PLAN.md`'s 27 two-space TASK
+  lines against its zero-indent signatures is that proof. Numbers and shas in `## Current`.
+- Q3 **BLOCKING.** Sign or amend both artifacts. `BRIEF.md` gained SC-21 this round, on top of REQ-11's
+  widening and SC-20 last round, REQ-12/SC-17/SC-18/SC-19 before that, SC-16 withdrawn.
+- Q4 **NOT blocking — limb A's false positive is a real trade you may want to reverse.** An `old_string`
+  of `date:` alone is denied. Closing `replace_all` costs that; the literal indent rule avoids it and
+  ships the hole.
+- Q5 **NOT blocking — SC-14's shrink detector is not reproducible as recorded.** Unit `^PASS` is 179 at
+  `6bb7d82`, matching the 179 recorded at `62f861c`, pinning the definition as `^PASS`. Integration is
+  **218** against the **221** recorded at `62f861c`, with **zero** `.claude/` changes between the shas.
+  Settling it needs a run at `62f861c`, a checkout I may not perform. The count is polluted anyway: two
+  scripts print their own `PASS <name>` line on top of the runner's, so 16 lines cover 14 scripts.
+- Q6 **NOT blocking, main session's act.** #551 needs occurrences 7 and 8 (not 9 — see above), and a
+  backlog row against run-dir minting. An agent composing a GitHub post is forbidden (DEC-138 am.6) and
+  `gh-sync.py` has no subcommand for it.

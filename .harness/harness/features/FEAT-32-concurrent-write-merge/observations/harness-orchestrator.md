@@ -151,3 +151,115 @@
   a record into a gate's input, the design is not complete until it states what happens when the
   record is EMPTY, and a test case pins that answer. "Load-bearing" and "tamper-evident" are
   different properties and only the first comes for free.
+
+- 2026-08-21 (round 4, Q1 amend): A ruling handed down to me carried three numbers and I re-derived
+  all three before dispatching. Two were wrong in ways that did not change the ruling but would have
+  entered the plan as facts: the corpus is 23 tracked plan.yaml at 6bb7d82 (22 at c924c6d), not 21;
+  and "zero anomalies" was false — FEAT-14/plan.yaml:1154 and FEAT-32/plan.yaml:647 carry `status:`
+  at 10 and 11 spaces, both PROSE inside a task body. Neither is 2 nor 4 so the discriminator holds,
+  but the discriminator holding and there being no anomalies are different claims. The core claim was
+  true and stronger than stated: `^  status: ` appears exactly once in all 23 files and in 22 of them
+  the preceding line is literally `approval:`. Lesson: re-derive every number in a ruling even when
+  the ruling is right, because the numbers travel into the plan and the conclusion does not protect
+  them.
+- 2026-08-21: The ruling's non-conflict claim pointed at check-domain.sh:1039 ("no reconstruction of
+  old_string/new_string, no replace_all semantics, no TOCTOU window"). Reading it settled the
+  feasibility question the ruling never asked: that comment is in the SHAPE gate's POST branch, and
+  `_domain_phase = _governed and not _post` (:294) makes the domain phase PRE-ONLY with no tool
+  filter — its only early exits are no-target-path (:322) and no-manifest. So an Edit payload's
+  old_string/new_string DOES reach the domain phase. The two rules are not in tension because they
+  are in different phases with different information available, which is a cleaner non-conflict than
+  "it does not reconstruct".
+- 2026-08-21: I found a hole in a ruling's RATIONALE without the ruling being wrong, and reporting
+  that distinction was the whole value. Layer 2 was justified as "what survives a reformatting that
+  defeats layer 1" — but it lives in a tool the writer CHOOSES to invoke, which is the exact
+  weakness pm had established one round earlier and the operator had accepted. So after a
+  reformatting, a governed agent Editing plan.yaml directly is caught by NEITHER layer. I checked the
+  obvious third route before raising it and it is expensive: the post-hoc route collides with the
+  pre-only domain decision's own recorded measurement, and SHAPE_PATTERNS collides with DEC-182's
+  recorded reasoning for plan.yaml's deliberate absence. Checking the fix before raising the gap
+  turned "the ruling is incomplete" into "the gap is real and the closure is expensive, record it as
+  a residual" — a far more useful thing to hand up.
+- 2026-08-21: I EXECUTED a plan's specified parser against its real input instead of reading it, and
+  it was wrong. T-14's intent specified "split the entry on the LAST space" for `main_session.writes`.
+  Run against the actual list at 6bb7d82, `.harness/*/features/*/BRIEF.md ## Approval` rsplits to
+  glob=`...BRIEF.md ##` / tail=`Approval`, which matches neither fragment test, so the entry becomes
+  fragment-less and — by the spec's own third kind — CONTRIBUTES NO DENIAL. Both markdown entries
+  silently disarm; only the plan.yaml mapping survives, which is precisely the plan.yaml special case
+  the Q3 ruling had just refused to hardcode. Splitting on the FIRST space parses all four entries
+  correctly. Lesson: when a plan specifies a parser AND the input is on disk, run the parser on the
+  input. Reading "split on the last space" three times does not reveal `## Approval` has a space in
+  it; one 20-line script does. This is the same class as verifying a count instead of restating it,
+  applied to logic rather than to numbers.
+- 2026-08-21: A ruling specified a discriminator for ONE of the three files its own generalisation
+  covers, and I only caught it by measuring the other two. The two-space `status:` rule was derived
+  from plan.yaml, where the signature is `  status: pending` under `approval:`. But BRIEF.md and
+  PLAN.md carry the signature as `status: pending` at ZERO indent under a `## Approval` heading
+  (FEAT-32/BRIEF.md:415). A two-space rule cannot see a zero-indent line, so Q1's hole stayed fully
+  open for two of the three files. The symmetric rule turned out cleaner than the original: `^status:`
+  at exactly zero indent occurs 31x across 31 BRIEF.md and 10x across 9 PLAN.md at 6bb7d82, and EVERY
+  occurrence is a signature line — FEAT-06's extra one is under `## Re-signature`, so it is a second
+  signature, not a false positive. Lesson: when a rule is accepted BECAUSE it generalises to N files,
+  measure the discriminator on all N. The ruling and I both reasoned from the file that motivated it,
+  and the generalisation was the part nobody re-checked.
+- 2026-08-21: THE INDENT CONVENTION IS NOT ONE CONVENTION — it is INVERTED between two of the three
+  files the mechanism covers, already, at HEAD. I was told to record "two-space indentation is a
+  convention, not a YAML guarantee; a future reformatting would silently unhook this gate". I tried to
+  falsify a simplification (one rule, "status: at 0 or 2 spaces", for all three kinds) and the
+  falsification exposed something better: in the pre-DEC-182 `PLAN.md` files, `  status:` at TWO spaces
+  is a TASK's field (27 occurrences across 5 files at 6bb7d82) and `status:` at ZERO indent is the
+  SIGNATURE — the exact inverse of plan.yaml. So a two-space rule applied to PLAN.md denies 27
+  legitimate lines and misses every signature. The caveat I was told to write as a FUTURE risk is a
+  PRESENT, MEASURED fact, which is a stronger and more honest thing to put in the code comment. The
+  indent rule must hang off the fragment KIND (mapping -> 2 spaces, heading -> 0 spaces), never be
+  stated globally. Lesson: trying to SIMPLIFY a rule is an underrated way to discover the rule is
+  wrong. I was not auditing the two-space claim; I was testing whether one rule could replace two, and
+  the counterexample it produced was the defect.
+- 2026-08-21: The approval block's own KEY NAMES are not consistent either, which matters for any rule
+  keyed on them. At 6bb7d82: plan.yaml uses `approved_by` (30, zero hyphens); PLAN.md uses
+  `approved-by` (9, zero underscores); BRIEF.md is SPLIT — 13 `approved_by` and 16 `approved-by`
+  across the same corpus. So a denial rule that names a sibling key (my proposed closure for the
+  mid-line-start Edit evasion) must accept BOTH spellings or it silently misses whole files. Third
+  inconsistency found in one round on a surface everyone assumed was uniform: the indent inverts
+  between kinds, the key separator varies, and the section boundary needs a bound only FEAT-06 exercises
+  (`## Re-signature` is the sole heading following `## Approval` anywhere in the corpus). Lesson: before
+  writing a rule over "the approval block", enumerate the corpus — it is three shapes wearing one name.
+- 2026-08-21: "Dispatch early, spend the wait on measurement" and "verify the premise before you plan
+  on it" PULL AGAINST EACH OTHER, and I resolved it wrongly. I dispatched pm with the ruling's
+  two-space rule stated as the fix, then measured and found it is wrong for two of the three files the
+  mechanism covers. Because a dispatch is unrecallable here (no message tool; SendMessage disabled this
+  session) pm spent its whole run encoding a rule I had already falsified. The parallelism saved maybe
+  ten minutes of wall clock and cost an amend round. THE RULE FOR NEXT TIME: front-loading the dispatch
+  is right when the wait is spent on measurements that INFORM the next round, and wrong when it is spent
+  on measurements that VALIDATE THE DISPATCH'S OWN PREMISE. Those must happen BEFORE the dispatch, however
+  much they delay it — a premise check is not parallelisable with the work that depends on it. My own
+  P-06 already says exactly this for review findings; I did not generalise it to my own outgoing
+  dispatches.
+- 2026-08-21: A grep for a quoted phrase in a HARD-WRAPPED document returns a FALSE NEGATIVE, and I
+  nearly reported one as a defect. `grep 'the category decides, the list records' DECISIONS.md`
+  returned zero; the phrase is real and sits at :4861-4862 with the line break falling inside it
+  ("the category" / "decides, the list records"). Two lessons: grep a SHORT fragment that cannot
+  straddle a wrap (`category decides` also failed here, so it has to be shorter still, or use
+  `tr -s '\n' ' '` first); and never conclude "this text is absent" from a multi-word grep in
+  DECISIONS.md, which is wrapped at ~100 columns throughout. Cost avoided: reporting a real
+  citation as a phantom. (Also verified in passing: STATE.md's citation for that aphorism reads
+  :4860-4862 where the text is :4861-4862 — off by one at the start, harmless, but it is a claim.)
+- 2026-08-21: DO NOT baseline a checker by copying its input somewhere writable. I copied plan.yaml to
+  /tmp to get a pre-amend `check-plan-routes.py` baseline without racing pm's in-flight write. It
+  exited 0 with 0 VIOLATION and **0 DEVIATION** — while the same plan at its real path reports 6
+  DEVIATION (recorded in STATE.md). The checker's deviation reporting depends on the plan being AT its
+  feature path, so a /tmp copy silently under-reports and looks like a clean baseline. Had I compared
+  the post-amend real-path run against that 0, I would have "discovered" 6 new deviations the amend did
+  not introduce. Lesson: a measurement taken to avoid a race is still a measurement of a different
+  thing. Wait for the write, or read the committed version IN PLACE via `git show`, never a copy.
+- 2026-08-21: I ALMOST RECORDED A FALSE #551 OCCURRENCE FROM AN IN-FLIGHT DIGEST. While waiting on the
+  product lead I read `runs/2026-08-21-01-product/digest.md` off disk. It opened "the amend is NOT done
+  … re-dispatch is a full re-spend" — so I drafted STATE.md with occurrence 9 and a whole paragraph on
+  pm running as an orphan. The lead then returned PASS and the SAME FILE had been rewritten (13:19
+  draft -> 13:36 final). A digest is not append-only and not final until its author returns: it is
+  working state during the run. What saved me was re-reading the file after the return and checking
+  mtime against it. TWO RULES: (1) a digest read before its run's return is a DRAFT — cite it only with
+  its mtime, never as the run's outcome; (2) the ONE thing that is trustworthy mid-flight is the
+  artifact the member actually writes (plan.yaml's bytes, which I did verify) — files, not narration.
+  My P-03 says restating another agent's claim launders it into fact; this is the same failure with a
+  file instead of a sentence, and it would have put a fabricated incident into the permanent record.

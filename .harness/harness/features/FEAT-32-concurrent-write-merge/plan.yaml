@@ -299,7 +299,33 @@ decisions:
       agent_type, so the main session is exempt by the mechanism itself rather than by a special case.
       plan-merge.py KEEPS its byte-identical carry-forward of the approval block as a separate and
       independent property — a tool must not corrupt the mapping even when its caller is entitled to
-      write the file — but it is NOT the enforcement point. Three record artifacts that name a
+      write the file — but it is NOT the enforcement point. TWO LAYERS SHIP, AND THEY ARE NOT
+      REDUNDANCY: each exists for a different reason and neither substitutes for the other. LAYER 1,
+      in check-domain.sh, IS THE ENFORCEMENT OF WHO MAY SIGN. It is the gate: it holds the agent's
+      identity, it is a PreToolUse hook so it runs on every governed Write and Edit whether or not the
+      writer chooses to invoke any tool, and it is the only layer that can REFUSE. LAYER 2, in
+      plan-merge.py, IS NOT THAT ENFORCEMENT. It is the structural backstop against a reformatting
+      that unhooks layer 1's text convention: it parses the file and refuses when the proposal's
+      approval mapping differs from the base's, which is a comparison of loaded values and therefore
+      survives any change of indentation or quoting that would defeat a text rule. NOBODY MAY DELETE
+      LAYER 1 ON THE GROUND THAT plan-merge.py COVERS IT, and that deletion is the specific failure
+      this paragraph exists to prevent: plan-merge.py is a tool the writer CHOOSES to invoke, so layer
+      2 is unreachable by an agent that simply uses Edit — which is exactly the argument three
+      paragraphs down that rejected plan-merge.py as the enforcement point in the first place, and it
+      is not weakened by layer 2 existing. Nor may layer 2 be deleted on the ground that layer 1
+      covers it: layer 1's discrimination rests on an indentation convention no YAML rule guarantees.
+      A BOUNDARY OF DEC-180 IS EXTENDED HERE DELIBERATELY, and it is recorded so it is not mistaken
+      for an oversight. DEC-180 at DECISIONS.md:5105 routes Edit to PostToolUse because a SHAPE
+      verdict needs the whole resulting file to count its lines, so it would have to reconstruct
+      replacement semantics before the fact; check-domain.sh:1039 records that refusal in the POST
+      branch's own words. Layer 1 reconstructs nothing — it asks whether the replaced text is a
+      substring of the approval block already on disk, and what the replacement text contains — so the
+      refusal stands untouched. The same decision also forces layer 1 to be PRE: it fixes
+      _domain_phase as _governed and not _post, so there is no post-hoc detection of a flipped
+      signature available to fall back on, and an approval guard that is not preventive does not exist
+      at all. The residual accepted with that: a PRE read of the on-disk block is a time-of-check
+      window, bounded only by the fact that the main session is the sole tier entitled to write the
+      block and that plan-merge.py locks every other route into the file. Three record artifacts that name a
       different signer are corrected to match: the plan template's approval comment, harness-pm.md's
       writable paragraph, and team-config.yaml, which today names plan.yaml's approval mapping nowhere
       at all and carries the wrong decision number on three separate comment lines.
@@ -533,7 +559,7 @@ tasks:
 
   - id: T-03
     title: Build plan-merge.py so a second plan writer adds tasks and never deletes them
-    traces: [REQ-01, REQ-03, REQ-08]
+    traces: [REQ-01, REQ-03, REQ-08, REQ-11]
     change_type: logic
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -547,33 +573,20 @@ tasks:
       set -u
       cd "$(git rev-parse --show-toplevel)" || exit 1
       export CLAUDE_PROJECT_DIR="$PWD"
-      T=$(mktemp -d) || exit 1
-      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
-      python3 - "$T/bin/plan-merge.py" <<'PY' || exit 1
-      import sys
-      p = sys.argv[1]
+      S=.claude/skills/harness/bin
+      for lit in UNION_MERGE PRESERVE_BASE_BYTES APPROVAL_REFUSAL; do
+        T=$(mktemp -d) || exit 1
+        cp -R "$S" "$T/bin" || exit 1
+        python3 -c 'import sys
+      p, lit = sys.argv[1], sys.argv[2]
       s = open(p).read()
-      m = s.replace("UNION_MERGE = True", "UNION_MERGE = False", 1)
-      assert m != s, "UNION_MERGE assignment not found BY NAME"
-      open(p, "w").write(m)
-      PY
-      PLAN_MERGE_BIN="$T/bin/plan-merge.py" \
-        python3 .claude/skills/harness/bin/test-plan-merge.py >/dev/null 2>&1 \
-        && { echo "RED PROOF FAILED: the suite passes with the union switched off"; exit 1; }
-      T2=$(mktemp -d) || exit 1
-      cp -R .claude/skills/harness/bin "$T2/bin" || exit 1
-      python3 - "$T2/bin/plan-merge.py" <<'PY' || exit 1
-      import sys
-      p = sys.argv[1]
-      s = open(p).read()
-      m = s.replace("PRESERVE_BASE_BYTES = True", "PRESERVE_BASE_BYTES = False", 1)
-      assert m != s, "PRESERVE_BASE_BYTES assignment not found BY NAME"
-      open(p, "w").write(m)
-      PY
-      PLAN_MERGE_BIN="$T2/bin/plan-merge.py" \
-        python3 .claude/skills/harness/bin/test-plan-merge.py >/dev/null 2>&1 \
-        && { echo "RED PROOF FAILED: the suite passes with the byte preservation switched off"; exit 1; }
-      python3 .claude/skills/harness/bin/test-plan-merge.py || exit 1
+      m = s.replace(lit + " = True", lit + " = False", 1)
+      assert m != s, lit + " assignment not found BY NAME"
+      open(p, "w").write(m)' "$T/bin/plan-merge.py" "$lit" || exit 1
+        PLAN_MERGE_BIN="$T/bin/plan-merge.py" python3 $S/test-plan-merge.py >/dev/null 2>&1 \
+          && { echo "RED PROOF FAILED: suite passes with $lit switched off"; exit 1; }
+      done
+      python3 $S/test-plan-merge.py || exit 1
       exit 0
     intent: |
       Write two new files. Change nothing else. Import the lock and the atomic replace from
@@ -613,6 +626,35 @@ tasks:
            the caller knows it was dropped. Guard this with a second module-level literal,
            PRESERVE_BASE_BYTES = True; when False, render the whole output through yaml.safe_dump,
            which is what a naive implementation does and what the byte-identity test must reject.
+        7b. THE STRUCTURAL REFUSAL, and it COMPOSES WITH STEP 7 RATHER THAN REPLACING IT. Before
+           assembling anything, compare the PARSED approval mapping of the proposal against the
+           PARSED approval mapping of the base. If the proposal carries an approval key at all and its
+           loaded value DIFFERS from the base's, REFUSE: exit 8, apply nothing, and print a line
+           naming the approval mapping, both loaded values, and that the signer is the main session.
+           If the proposal carries no approval key, or carries one that loads EQUAL, step 7 proceeds
+           exactly as written and reports IGNORED-APPROVAL as before.
+
+           READ THE TWO STEPS AS TWO DIFFERENT JOBS, because they are. Step 7 makes the tool INCAPABLE
+           of writing a signature - it is a property of the output. Step 7b makes the tool NOTICE a
+           caller that TRIED to - it is a property of the input. A tool that merely carried the base
+           bytes forward would swallow an attempted signature in silence and report success, so the
+           caller would never learn that the thing it asked for did not happen.
+
+           COMPARE PARSED VALUES, NEVER TEXT. A whitespace-only or comment-only difference in the
+           proposal's approval block is not a signature change and must NOT refuse - otherwise
+           plan-merge.py's own reformatted output becomes unappliable, and case 3 below, which turns
+           on exactly such a difference, would refuse instead of merging. If either side's approval
+           value fails to load, refuse with exit 5 on the parse path already specified in step 3.
+
+           WHY EXIT 8 AND NOT 7: a conflict at 7 tells the caller to reconcile two values, which is
+           work it can do. An approval difference tells it that it is not the signer, which is not
+           work it can do at all - the remedy is to strip the block, not to resolve it. Two remedies,
+           two codes. 8 is unused today and plan-merge.py does not exist yet, so this is the cheapest
+           moment this interface will ever be chosen.
+
+           Guard step 7b with a THIRD module-level literal, APPROVAL_REFUSAL = True, in the same shape
+           as UNION_MERGE and PRESERVE_BASE_BYTES; when False the comparison is skipped and step 7
+           alone decides, which is what the new red proof in the verify mutates.
         8. Every other top-level key: present in base only, keep the base text. Present in proposal
            only, append the proposal text. Present in both and loaded-equal, keep the base text.
            Present in both and loaded-different, exit 7 naming the key and both values.
@@ -621,8 +663,8 @@ tasks:
            APPLIED line with the path. Never a bare count.
 
       Exit codes, and they are the interface: 0 applied, 5 a side did not parse, 6 lock not acquired,
-      7 the same id with two different values or a top-level key with two different values, 9 the
-      destination is not a plan.yaml.
+      7 the same id with two different values or a top-level key with two different values, 8 the
+      proposal's approval mapping differs from the base's, 9 the destination is not a plan.yaml.
 
       test-plan-merge.py, house shape, resolving the CLI as
 
@@ -643,12 +685,23 @@ tasks:
            Then apply a proposal holding T-15 and assert all fifteen are present.
         3. APPROVAL BYTE IDENTITY. The base's approval block carries a nested rulings list of two
            items, one single-quoted scalar, and a trailing comment on its own line inside the block.
-           Apply a proposal that adds T-15 AND carries a different approval block claiming
-           status: approved. Assert: exit 0; the exact byte slice of the base's approval block,
-           comment included, occurs verbatim in the result; the string "approved" does not occur
-           anywhere in the result; the number of lines beginning with a hash in the whole file is
-           unchanged; and stdout carries IGNORED-APPROVAL. Key presence is NOT an assertion here and
-           must not be substituted for one.
+           Apply a proposal that adds T-15 AND carries an approval block that LOADS EQUAL to the
+           base's but is TEXTUALLY DIFFERENT from it: reflowed whitespace, the scalar double-quoted
+           instead of single-quoted, and the comment absent. Assert: exit 0; the exact byte slice of
+           the base's approval block, comment included, occurs verbatim in the result; the number of
+           lines beginning with a hash in the whole file is unchanged; and stdout carries
+           IGNORED-APPROVAL. Key presence is NOT an assertion here and must not be substituted for
+           one.
+
+           THE PROPOSAL'S APPROVAL IS DELIBERATELY LOADED-EQUAL AND NOT status: approved, and the
+           reason is worth stating because it looks like a weakening and is not. Step 7b now REFUSES a
+           proposal whose approval loads differently, so a proposal claiming status: approved would
+           exit 8 and this case could no longer reach the assembly path it exists to grade. Equal-but-
+           reflowed is strictly MORE discriminating: PRESERVE_BASE_BYTES mutated to False renders
+           through yaml.safe_dump, which cannot emit the comment and normalises the quoting, so the
+           byte comparison and the comment count both fail - and the case simultaneously proves that
+           step 7b compares PARSED values rather than text, since a text comparison would refuse here.
+           Case 10 below carries the status: approved payload.
         4. CONCURRENCY FOR REAL, 20 trials. Two subprocesses apply overlapping proposals - one adding
            T-15, one adding T-16 - to the same base at the same time. Admit exactly two outcomes:
            both new ids and every base id present, or one process exited 6 with a LOCKED line having
@@ -666,6 +719,22 @@ tasks:
            leaves the base byte identical.
         9. COMMENTS SURVIVE: a base carrying the plan.yaml template's own leading comment block still
            carries every one of those lines, byte identical, after a merge that adds a task.
+       10. THE STRUCTURAL REFUSAL, BOTH DIRECTIONS. Base approval loads status: pending.
+             10a. A proposal that adds T-15 AND carries approval with status: approved exits 8, applies
+                  NOTHING - the file is byte identical to before, asserted as a byte comparison and
+                  not as a key check - and its output names the approval mapping and both loaded
+                  values. T-15 must be ABSENT afterwards, asserted by id: a refusal that still applied
+                  the task half is the failure this assertion catches.
+             10b. A proposal that adds T-15 and carries NO approval key at all exits 0 and T-15 is
+                  present. Without this half a refuse-everything implementation passes 10a.
+             10c. A proposal whose approval differs only in whitespace and comments exits 0 - the same
+                  parsed-not-textual property case 3 grades, asserted here on the refusal path rather
+                  than the assembly path.
+           RED PROOF: with APPROVAL_REFUSAL mutated to False by name in a copy of the tree, 10a must
+           FAIL. The verify runs that mutation. Note that 10a's byte-identity assertion is what makes
+           the mutation discriminating - with the refusal off, step 7 still carries the base's approval
+           bytes forward, so a result-only assertion about the approval block would pass either way and
+           prove nothing. It is T-15's presence and the file's byte identity that go red.
 
   - id: T-04
     title: Build observations-merge.py so two contexts of one agent both keep their bullets
@@ -1366,6 +1435,16 @@ tasks:
       If a further test file exists in bin/ that is absent from both ARRAYS, the runner already exits 2
       MISCONFIGURED on its drift detector. Register it here rather than reporting it.
 
+      DO NOT MAKE THE WORD ERROR GATE, and this is recorded here because the verify above is where
+      someone would be tempted to add it. Measured at 62f861c, the integration suite's output carried
+      THREE lines containing the word ERROR, and all three carry it inside a TEST'S OWN NAME — they are
+      expected output from cases that exercise error paths, not failures. A grep for ERROR added to
+      this verify would fail a green suite. The mechanical gate stays exactly what it is above: exit 0
+      from the runner, plus no line beginning FAIL, plus the per-file ^PASS assertions. The counts are
+      a SHRINK DETECTOR for a human reading the output, never a pass condition. If that 3 becomes some
+      other number, the question to ask is which case was added or removed, not whether the suite
+      broke.
+
   - id: T-11
     title: Keep the claim registry out of git
     traces: [REQ-05]
@@ -1590,7 +1669,11 @@ tasks:
         || { echo "the named literal the red proof mutates does not exist"; exit 1; }
       grep -q 'main_session' .claude/skills/harness/bin/check-domain.sh \
         || { echo "the denial does not READ main_session.writes; a hardcoded pattern is a defect"; exit 1; }
-      python3 .claude/skills/harness/bin/test-check-domain.py || exit 1
+      grep -q 'CONVENTION, NOT A YAML GUARANTEE' .claude/skills/harness/bin/check-domain.sh \
+        || { echo "the indent-convention comment is missing from the rule; it is a deliverable"; exit 1; }
+      out=$(python3 .claude/skills/harness/bin/test-check-domain.py) || { echo "$out"; exit 1; }
+      n=$(printf '%s\n' "$out" | grep -c '^ok')
+      [ "$n" -ge 167 ] || { echo "prior cases lost: $n ok lines, baseline was 167 at 6bb7d82"; exit 1; }
       T=$(mktemp -d) || exit 1
       cp -R .claude/skills/harness/bin "$T/bin" || exit 1
       python3 - "$T/bin/check-domain.sh" <<'PY' || exit 1
@@ -1650,11 +1733,85 @@ tasks:
           of this file", which needs the agent's identity and therefore cannot live in a gate that has
           none.
         - Decide it by comparing the PROPOSED fragment against the ON-DISK one. For a Write, the
-          proposed content is tool_input.content. For an Edit, apply nothing - instead deny when
-          tool_input.old_string or tool_input.new_string contains a line whose first non-space text is
-          the fragment itself, or which sits inside that fragment's own indentation or section. For a
-          NotebookEdit there is nothing to do. If the file does not exist on disk, ALLOW: a first write
-          cannot change a signature that does not exist yet.
+          proposed content is tool_input.content. For a NotebookEdit there is nothing to do. If the
+          file does not exist on disk, ALLOW: a first write cannot change a signature that does not
+          exist yet.
+        - FOR AN EDIT, APPLY NOTHING - and do NOT decide it by an indentation heuristic alone. Two
+          limbs, and the FIRST one carries the weight:
+
+            LIMB A, the old_string limb, and it is EXACT rather than heuristic. Locate the fragment's
+              byte range in the file AS IT IS ON DISK - for the mapping-key kind, the lines from the
+              key's own line to the line before the next line matching a top-level key at column zero.
+              DENY when tool_input.old_string occurs as a SUBSTRING anywhere inside that range. This
+              needs no reconstruction of the edit's result, no replace_all semantics and no in-memory
+              application: it asks only whether the text being replaced is text the signature is made
+              of. It is INDENTATION-INDEPENDENT, which is why it is limb A and not limb B.
+            LIMB B, the new_string limb, for a payload that INTRODUCES a signature rather than
+              replacing one. DENY when tool_input.new_string contains, at a line start, either the
+              fragment's own key at column zero, or any CHILD KEY of the on-disk fragment at the
+              indent that fragment actually uses ON DISK. Read that indent from the file. Do NOT
+              hardcode two spaces.
+
+          MEASURED, in this worktree at 6bb7d82, against FEAT-32's own plan.yaml whose approval block
+          is lines 4-7 and loads as the four bytes-exact lines "approval:", two-space "status:
+          pending", two-space "approved_by:" and two-space "date:". Three attack payloads, all three
+          of which flip the signature, and two legitimate payloads:
+
+            targeted, old_string two-space "status: pending"                 limb A DENIES
+            mid-line-start, old_string "status: pending" newline two-space
+              "approved_by:" - unique in the file, and its FIRST line carries
+              ZERO leading spaces                                            limb A DENIES
+            accidental, old_string "status: pending" with replace_all true -
+              18 occurrences in this file, one of them the signature          limb A DENIES
+            a task's own four-space "status: pending"                         limb A ALLOWS
+            a task-body chunk "change_type: logic" newline four-space
+              "status: pending"                                              limb A ALLOWS
+
+          A rule matching only a two-space-indented "status:" key catches the FIRST of those three and
+          MISSES THE OTHER TWO, because neither of their payloads contains a two-space line start at
+          all. Both misses flip the signature. That is why limb A is a substring test against the
+          on-disk range and not an indent test against the payload.
+
+          THE FALSE-POSITIVE COST, stated rather than glossed: limb A denies any Edit whose old_string
+          happens to be a substring of the approval block - "date:" alone, for instance. The block is
+          four short lines, so the set is tiny, the denial is conservative in the safe direction, and
+          deny()'s message tells the agent to add surrounding context or go through plan-merge.py. An
+          allow-by-default rule here has no such cheap remedy.
+
+          THE TOCTOU RESIDUAL IS REAL AND IS NOT CLOSED. Limb A reads the on-disk range at PRE time
+          and the edit applies moments later; a file rewritten in between could be judged against a
+          stale range. It is accepted, not solved: the main session is the only tier entitled to that
+          block, so the interleaving that would matter is one no legitimate writer performs, and
+          plan-merge.py holds a lock over every other route into the file.
+        - A COMMENT AT THE RULE IS A DELIVERABLE OF THIS TASK, not a nicety, and the verify greps
+          for it. Immediately above limb B, in check-domain.sh itself, state that the indentation it
+          reads is a CONVENTION AND NOT A YAML GUARANTEE: the format permits an approval block at any
+          indent, and limb B can discriminate an approval child key from a task's own key only because
+          every plan.yaml in the tree is emitted by harness-pm and, after this feature, by
+          plan-merge.py, both of which control the shape. Name the failure mode in these terms and do
+          not soften it: a future reformatting that put task keys at the same indent as the approval
+          block's would silently unhook limb B, NOTHING IN THE TREE WOULD NOTICE, and there is no
+          propagation checker that would (DEC-188 deleted it). Say also which part survives that
+          reformatting and which does not - limb A is a substring test against the on-disk range and
+          does not read indentation at all, so it still holds; limb B is the part that dies. The
+          comment must carry the literal words
+
+            CONVENTION, NOT A YAML GUARANTEE
+
+          because the verify greps for exactly that string, and a comment that gets reworded into
+          something reassuring during review is the failure this grep exists to catch.
+        - THE COVERAGE THIS RULE DOES AND DOES NOT HAVE, measured in this worktree at 6bb7d82 so a
+          later reader can tell drift from falsification. Every tracked plan.yaml - 23 of them at this
+          sha, git ls-files '*plan.yaml' - carries EXACTLY ONE line matching a two-space "status: "
+          and it is the approval block's in all 23. In 22 the line immediately above is literally
+          "approval:"; the 23rd is .claude/skills/harness/templates/plan.yaml, hit at line 27, where
+          "approval:" sits three lines above and two comment lines intervene. Task "status:" keys sit
+          at four spaces, 1 to 17 per file. EXACTLY TWO lines in the whole corpus carry a "status:" at
+          any other indent - FEAT-14-feature-json-schema/plan.yaml:1154 at ten spaces and
+          FEAT-32-concurrent-write-merge/plan.yaml:647 at eleven - and BOTH are prose inside a task
+          intent rather than YAML keys, so neither is a counter-example to the discriminator and
+          neither is an anomaly to fix. The corpus is uniform; that uniformity is the convention the
+          comment above refuses to call a guarantee.
         - For the mapping-key kind, compare by PARSING both sides and comparing the loaded value, not
           by comparing text. A whitespace-only difference is not a signature change and denying it
           would make plan-merge.py's own output undeniable-by-luck. If either side fails to parse,
@@ -1693,8 +1850,29 @@ tasks:
            governed agent since DEC-120 and D-10 records that it is not the signer.
         4. NO agent_type at all - the main session - changing approval.status to approved is ALLOWED,
            exit 0. This is the case the whole design turns on.
-        5. A harness-pm Edit whose new_string contains an `approval:` line is DENIED; an Edit whose
-           old_string and new_string touch only a task body is ALLOWED. Both directions.
+        5. THE EDIT ROUTE, FIVE PAYLOADS, EACH ITS OWN ASSERTION - never one assertion over the set,
+           because the set's whole point is that a rule can pass on part of it. Against a fixture
+           plan.yaml whose approval block is the four lines "approval:", two-space "status: pending",
+           two-space "approved_by:" and two-space "date:", and which also carries several tasks each
+           with a four-space "status: pending":
+             5a. TARGETED. A harness-pm Edit with old_string a two-space "status: pending" and
+                 new_string a two-space "status: approved" is DENIED, exit 2.
+             5b. THE MID-LINE-START EVASION. old_string is "status: pending" then a newline then
+                 two-space "approved_by:" - a payload whose FIRST line carries ZERO leading spaces
+                 and which is therefore invisible to any rule anchored on a two-space line start.
+                 DENIED, exit 2. This case exists because the obvious implementation ALLOWS it.
+             5c. THE ACCIDENTAL SWEEP. old_string "status: pending", new_string "status: approved",
+                 replace_all true. DENIED, exit 2. Measured at 6bb7d82: FEAT-32's own plan.yaml
+                 carries 18 occurrences of that substring and one of them is the signature, so this
+                 payload flips it with no awareness that it did. Also invisible to a two-space rule.
+             5d. LIMB B, INTRODUCING a block. An Edit whose new_string carries an "approval:" line at
+                 column zero is DENIED, exit 2.
+             5e. THE ALLOW DIRECTION, and it must be a payload the deny cases make tempting to
+                 over-block. An Edit whose old_string and new_string touch only a task body - a
+                 four-space "status: pending" with its surrounding task keys - is ALLOWED, exit 0. A
+                 deny-everything implementation passes 5a through 5d and fails this one.
+           Assert the exit code AND a distinguishing stderr string on each of 5a-5d, so a crash
+           cannot satisfy them.
         6. A plan.yaml that does not exist on disk is ALLOWED even with an approval block in the
            content - there is no signature to destroy.
         7. AN UNPARSEABLE PROPOSAL IS ALLOWED and stderr says the parse failed. Assert the stderr
@@ -1733,8 +1911,38 @@ tasks:
            is the thing that keeps noticing if the entry is ever deleted, whereas T-15's verify runs
            once at build.
 
+      THE EDIT ROUTE REACHES THE DOMAIN PHASE ALREADY - do not touch the PRE short-circuit. Measured
+      in this worktree at 6bb7d82: the domain phase is entered at check-domain.sh:316 under
+      _domain_phase, set at :294 to _governed and not _post, and nothing between :276 and :316 exits on
+      the tool name. The tool-name short-circuit at :1032, if _tool != "Write" or not target, sits far
+      BELOW that and gates only the SHAPE targets list. So an Edit already arrives at the region this
+      task adds to, and :1032 must be left exactly as it is: moving or widening it would put Edit
+      payloads into the shape gate, which is the thing DEC-180 deliberately routed to POST.
+
+      WHY THIS DOES NOT CONTRADICT DEC-180 OR check-domain.sh:1039, and read both before starting
+      rather than trusting this paragraph. DEC-180 at DECISIONS.md:5105 routes Edit and Bash to POST
+      because a SHAPE verdict needs the whole resulting file to count its lines, so it would have to
+      reconstruct replacement semantics and replace_all before the fact; :1039 records the same refusal
+      in the POST branch's own words. Neither limb above reconstructs anything: limb A asks whether
+      old_string is a substring of text already on disk, limb B asks what new_string contains. There is
+      no in-memory application and no replace_all reconstruction, so the recorded refusal is untouched.
+      The same decision also settles WHY this must be PRE: it fixes _domain_phase as PRE-ONLY, so the
+      approval guard cannot exist as a post-hoc report at all. There is no POST detection of a flipped
+      signature to fall back on. This is the first place this file inspects an Edit payload, and D-10
+      records that extension of DEC-180's boundary.
+
       Every case that passed before this task must still pass, unedited. If one fails, the new denial
-      reaches a payload it should not.
+      reaches a payload it should not. THE NUMBER, so "every prior case" is gradeable rather than
+      rhetorical: measured in this worktree at 6bb7d82 with CLAUDE_PROJECT_DIR set to the worktree
+      root, python3 .claude/skills/harness/bin/test-check-domain.py exits 0 and prints 167 lines
+      beginning "ok". After this task the count is 167 plus the new cases, never fewer, and the verify
+      above asserts the floor.
+
+      A NEAR MISS TO EXPECT WHILE ESTABLISHING THAT BASELINE, so it is not recorded as a broken test:
+      python3 .claude/skills/harness/bin/test-dispatch-guard.py exits 2 at 6bb7d82. That is Python's
+      no-such-file, NOT a failing suite - the file genuinely does not exist at this sha, git ls-files
+      returns nothing for it, and T-07 creates it. Do not investigate it and do not treat it as a
+      regression introduced here.
 
   - id: T-15
     title: Make the three artifacts that name a plan signer say the same thing

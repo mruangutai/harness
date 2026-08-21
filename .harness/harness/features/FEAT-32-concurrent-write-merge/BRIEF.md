@@ -409,6 +409,24 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   stderr line and not as an exit code. The residual is stated, not closed: deleting the entry disarms
   the denial, and only that stderr line and T-14's own test notice.
   verify: automated      evidence: integration
+- SC-21: The signature is protected at TWO layers, and the second one survives a reformatting that
+  defeats the first. Layer 1 is the enforcement of who may sign: `check-domain.sh` denies a governed
+  agent's `Edit` of `plan.yaml`'s `approval:` mapping in each of the three payload shapes that reach
+  it — a line-aligned edit of the two-space `status:` line, an `old_string` that begins mid-line and
+  so contains no two-space line start at all, and a `replace_all` sweep of the bare text
+  `status: pending` which at `6bb7d82` matches 18 lines of this feature's own plan including the
+  signature — while an edit confined to a task body is ALLOWED. Layer 2 is not that enforcement but
+  the structural backstop: `plan-merge.py` parses both sides and REFUSES with exit 8, applying
+  nothing, when the proposal's `approval:` mapping loads differently from the base's, and ALLOWS a
+  proposal whose approval differs only in whitespace or comments. Each payload shape is asserted
+  individually, never by a count or a single grep over the set. It can go red two independent ways:
+  with `check-domain.sh`'s named guard literal mutated to `False` in a copy of the tree the three
+  deny shapes must FAIL, and with `plan-merge.py`'s `APPROVAL_REFUSAL` mutated to `False` the refusal
+  case must FAIL — asserted as the file being byte-identical and the proposal's task being ABSENT,
+  because the byte carry-forward of layer 2's sibling property would otherwise make a result-only
+  assertion pass with the refusal switched off. Deleting either layer breaks this criterion; neither
+  layer covers the other.
+  verify: automated      evidence: integration
 
 ## Approval
 
