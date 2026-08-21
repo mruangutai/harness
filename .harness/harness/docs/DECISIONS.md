@@ -1150,13 +1150,21 @@ change is worse than halting.
 **Note:** two reviews modelled "two developers" as the concurrency threat and missed the one that happens
 on day one — *one* developer who doesn't always use the front door.
 
-## DEC-90 — Single-operator by design, stated as a constraint
+## DEC-90 — STRUCK 2026-08-21
 
-**Chose:** record it (§15.1) rather than leave it implicit. Every "single writer" guarantee means one
-agent in one session on one machine; two terminals means two orchestrators writing `STATE.md`,
-`feature.yaml`, `logs/` and committed Expertise files, with no lock anywhere.
-**Because:** an unstated assumption is a latent bug; a stated one is a scope boundary.
+Recorded the single-operator assumption as a stated scope boundary rather than an implicit one:
+every "single writer" guarantee meant one agent in one session on one machine, and two terminals
+meant two orchestrators writing `STATE.md`, `feature.yaml`, `logs/` and committed Expertise files,
+**with no lock anywhere**.
 
+Struck under DEC-188 on the operator's word. `bin/expertise-merge.py` holds an exclusive lock across
+the whole read-modify-write of an Expertise file, and it reached `main` in FEAT-30 (PR #629), so a
+lock exists on one of the files this entry named as unlocked. FEAT-30 falsified it; FEAT-32, where
+the striking was raised, has not shipped. Nothing was removed from a gate — DEC-90 was wired into
+none. The single-operator boundary now lives in SPEC §15.1 alone; issue #633 records what the strike
+cost.
+
+**DEC-90's number is retired, not reused.** DEC-120 cites it.
 ## DEC-91 — The value claim is restated as "without mid-stage supervision"
 
 **Chose:** "Claude executes reliably at each stage **without mid-stage supervision**."
@@ -5449,6 +5457,35 @@ thing it found would be enforcement theatre.
 the route step alone; #163's triggers and #161's reasons keep their justification in the file's own
 comments. **Not verified:** the real CI run.
 
+**Amendment 1 (2026-08-21) — the reason the 39 assertions were deleted, recorded at last.**
+
+The entry above says only "deleted by owner decision" and gives no reason, so the question was
+reopened once and cost a review round. The reason, stated by the operator on 2026-08-21, is two
+things and the second is the load-bearing one:
+
+1. **The harness was too heavy.** What was deleted did not merely read the workflow — it cloned a
+   workspace and EXECUTED workflow bodies against it. That weight is what was rejected.
+2. **A check on this workflow does not belong in this workflow.** `pull_request` runs the definition
+   from the PR's own ref, so one PR edits a step and its guard together. A guard hosted here cannot
+   protect its own host step: delete the `Integration suite` step and every assertion inside it
+   simply never runs. Neutering is detectable; deleting the host is not.
+
+**What this settles, and it is narrower than it sounds.** A LIGHTER guard is not the answer either,
+because reason 2 is structural rather than about cost. A proposal to add a pure predicate over
+`yaml.safe_load` of this workflow — no clone, no body execution — was worked up in full, planned, and
+then ABANDONED on this reasoning: it shrinks the hole (it catches a hollowed-out step and the deletion
+of the inner gate steps) and cannot close it (it cannot see the deletion of the step that runs it).
+
+**What remains unmeasured.** Whether a GitHub ruleset, a required workflow, or a workflow pinned to a
+different ref can run a check the pull request cannot edit. Nobody has checked. If one can, reason 2
+dissolves and this amendment should be revisited; until then the conclusion below stands.
+
+So the original conclusion holds for a better-stated reason: **nothing protects the gate — not
+pending, settled.** What DID change is the honesty of the file: four citations in
+`.github/workflows/tests.yml` claimed guards that do not exist, including one naming a real, green,
+passing test that asserts something unrelated. Those were repaired, so a reader who follows a
+citation now finds what it claims or finds it saying plainly that nothing is there.
+
 ## DEC-184 — Design 0001, reconstructed stub: the work-graph engine is a recorded future design, deferred until multiple seats need atomic claiming
 
 **Reconstructed after the fact (2026-08-08), not a transcript.** `docs/PRINCIPLES.md` cited a
@@ -5704,9 +5741,9 @@ The rule is two-sided, and stated mechanically because prose is what admits the 
   only, so a product repository keeps its own readme, its own docs and its own CI — the files its
   documentor and its dev-ops exist to write.
 
-Consequently a `src/**` grant refuses `<harness>/src/main.py` and permits `<product>/src/main.py`; a
+Consequently a `src/**` grant refuses `<harness>/src/main.py` and permits `<repo>/src/main.py`; a
 `.harness/expertise/**` grant permits it here and refuses it inside a product checkout; and a
-`docs/**` grant reaches `<harness>/docs/harness/guide.md` and `<product>/docs/guide.md` both.
+`docs/**` grant reaches `<harness>/docs/harness/guide.md` and `<repo>/docs/guide.md` both.
 
 **Lineage.** The shared block this narrows is DEC-85's. The guard being changed is the one DEC-174
 carves out of self-hosted execution, so this landed as direct main-session edits with the tests run
@@ -5746,6 +5783,18 @@ future entry must carry. **No detection machinery is added.** The omission is ac
 - **The live set of affected files is EMPTY**, stated explicitly rather than omitted: none of those
   eight exists in the harness repository. The consequence is latent. Adding one would need it named
   the way the four are named.
+
+
+### DEC-189 amendment 1 (2026-08-20) — the illustrative paths are respelled `<repo>`, tracking DEC-193 am.2
+
+This entry's two examples read `<product>/src/main.py` and `<product>/docs/guide.md`. They now read
+`<repo>/...`. Nothing about the two-base resolution changes; only the name of the segment, so that
+this entry and DEC-193 do not spell one idea two ways — which is the drift DEC-193 am.2 closes.
+
+**Recorded here because the edit was made in place.** The reasoning lives in DEC-193 am.2, and a
+reader who opens THIS entry through the index would otherwise find altered text with no local note
+that it changed or why. An unrecorded edit to a decision is indistinguishable from a decision that
+always said that.
 
 ## DEC-190 — `jsonschema` is a required dependency, and a missing import is a loud error
 
@@ -5863,7 +5912,8 @@ closed key set this field lives inside.
 ## DEC-193 — Code is written in exactly two locations; any other checkout of this repository is refused by one shared rule on both write routes
 
 **There are exactly two places code is written under harness's authority:** `.claude/worktrees/<id>/`,
-where harness develops itself, and `workspace_root/<product>`, where the factory works on a product.
+where harness develops itself, and `workspace_root/<repo>`, where the factory works on a product.
+(Spelled `<product>` as signed; respelled by amendment 2 — see below.)
 Both keep exactly their prior behaviour. **Any other checkout of this repository — a linked worktree
 living outside `.claude/worktrees/`, however complete its manifest and its agents look — is a
 mistake, not a supported shape.**
@@ -5963,6 +6013,32 @@ the enforcement layer, so this landed as direct main-session edits with the test
 rather than through a run whose gates were the thing changing; and DEC-189, the two-base target-keyed
 resolution this rule sits on top of, whose filed Bash-route asymmetry this closes for the boundary
 case alone. DEC-150 for the shape caps, and DEC-180 for why a rooted session is already governed.
+
+
+### DEC-193 amendment 2 (2026-08-20) — the second location's segment is spelled `<repo>`, not `<product>`
+
+This entry names the two write locations as `.claude/worktrees/<id>/` and
+`workspace_root/<product>`. The second spelling is struck: ~~`workspace_root/<product>`~~ is
+`workspace_root/<repo>`.
+
+**Operator ruling, 2026-08-20, and the reason is drift during build.** One thing had two names. The
+per-repository segment introduced by the layout migration is `<repo>` — `.harness/<repo>/features/`,
+`.harness/<repo>/expertise/`, team-config's `.harness/*/features/**` grants — while this entry called
+the same idea `<product>`. A builder reading both cannot tell whether they denote one segment or two,
+and resolves it by guessing. That is the failure this amendment prevents, not a wording preference.
+
+`<product>` was also the narrower word. The factory serves repositories, and the thing at that path
+is a repository checkout; whether its contents are a product is a fact about the work, not about the
+path.
+
+DEC-189's illustrative paths carried the same `<product>` spelling for the same idea and are
+restated with it, because two decisions using different words for one segment IS the drift this
+closes. Shipped feature artifacts keep `<product>` — they are frozen, dated records, and editing
+them would falsify what was written on their date (the same rule applied to FEAT-11's stale figures
+on 2026-08-20).
+
+**Nothing about the RULE changes.** Exactly two locations, all three refusals, one shared module on
+both write routes: unaltered. Only the name of a path segment.
 
 ## DEC-194 — A partial layout migration is judged per coupled surface, and a reader matching neither form is cannot-verify
 
@@ -6282,3 +6358,39 @@ amendment quoting the struck clause, not by leaving it in the position where it 
 *What did NOT change.* The body of DEC-196, including the paragraph amendment 1 identified as false
 and the amendment-1 record itself, is untouched. No DEC number is opened, superseded or retired
 here, and the entry's rule is the same rule.
+
+## DEC-197 — A test file matching two `detect` globs resolves to the explicit kind, and the record is the enforcement
+
+**Chose:** state the precedence that was already in force. In `.harness/harness.json`'s `test_kinds`,
+where a file matches more than one kind's `detect`, it resolves to the kind whose glob names it
+**explicitly**, never to the kind whose glob is a catch-all.
+
+Concretely: `unit.detect` carries `.claude/skills/harness/bin/test-*.py`, which matches every test
+script in `bin/`, and `integration.detect` is a list of filenames. A file in both is `integration`.
+
+**Because:** the rule was already load-bearing and already consistently applied — four files sat in
+both lists and were treated as integration — and it was written nowhere. A convention nobody can
+find is one every reader has to re-derive from the data, and two readers who derive it differently
+will not be caught.
+
+**What this does not do, said plainly rather than discovered later.** Nothing implements it. There is
+no classifier. `test_kinds` is read by `harness-qa` by hand, and `run-unit-tests.sh` reads its own
+`UNIT_SCRIPTS` / `INTEGRATION_SCRIPTS` arrays and never opens `harness.json` at all. So this entry is
+the enforcement until something mechanical exists, and the failure mode it does not close is two
+readers disagreeing about an overlapping file.
+
+**What forced it.** Eight of twelve `INTEGRATION_SCRIPTS` entries were absent from
+`integration.detect`, so `run-unit-tests.sh` ran them as integration while the qa matrix read them as
+unit — and every `evidence: integration` claim resting on one of those files was false. The fix is to
+name each file in `integration.detect`, which leaves it matching **both** globs. That fix means
+something only if this precedence is real, so the rule had to stop being folklore before the fix
+could be trusted.
+
+**A cross-check is separate from this rule, deliberately.** The check that the arrays and the
+`detect` lists agree is a set comparison; its correctness does not depend on the answer here, only
+its meaning does. Keeping them apart stops a check from silently encoding a rule the record does not
+state.
+
+**If this is ever implemented, the test must assert on a file matching BOTH globs** and go red when
+the resolution flips. A test over non-overlapping files passes under either rule and proves nothing
+about the only case in question.

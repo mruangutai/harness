@@ -28,7 +28,7 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 | `.harness/` file layout, the question round-trip, state-consistency matrix, writer ownership, commit policy | **2** | 1.3k |
 | The 16-agent org, `team-config.yaml` manifest, `consult-when` routing, team conventions (Supabase/Astryx), the fleet — how a repository reaches the harness, the roster table | **3** | 2.5k |
 | Agent frontmatter (what Claude Code parses, and what to avoid), tool grants per tier, the domain hook, reviewer verdict mapping, autonomy | **4** | 2.0k |
-| Expertise — injection hook, entry IDs, update ops, curation, CEO feedback, the global / project / repository tiers | **5** | 2.0k |
+| Expertise — injection hook, entry IDs, update ops, the union-merge apply (`expertise-merge.py`), curation, CEO feedback, the global / project / repository tiers | **5** | 2.2k |
 | Rules vs Expertise — which is which, who writes each | **6** | 0.3k |
 | Rule delivery via native `skills:` preload | **7** | 0.4k |
 | **The handoff contract** — three-part return, normative DIGEST schemas, conditional routing, malformed returns, git/PR lifecycle | **8** | 1.1k |
@@ -38,7 +38,7 @@ Line numbers drift; section numbers do not. Grep for `## <n>.` to jump.
 | Team YAML schema and the runner algorithm | **12** | 0.7k |
 | The v1 team catalog and the prototype gate | **13** | 0.8k |
 | Composability — v1 scope and the post-v1 flattening plan | **14** | 0.2k |
-| **Operating constraints** — single operator, one feature per worktree, your own hand edits, unmodelled costs | **15** | 0.9k |
+| **Operating constraints** — single operator, one feature per worktree and the `feature-worktree.py` lifecycle, the HEAD-move refusal, your own hand edits, unmodelled costs | **15** | 1.6k |
 
 **Schemas are inline, deliberately.** Extracting them to a separate file was measured and rejected:
 it saves 378 lines but creates a second file for a decision to fail to land in, which is the defect
@@ -172,6 +172,9 @@ Run at every `/harness` entry. The real state is a matrix, not a binary:
   `check-domain.sh` matches `Bash` as well as `Write|Edit` and rejects destructive patterns (`rm -rf`,
   `git clean`, `> ` onto a tracked path outside domain) with `exit 2`. See §4.2 — this is the same
   script and the same limitation.
+- **`HEAD` is shared mutable state and no governed agent may move it** during a run — one checkout
+  re-points every file under every other agent standing in it. The refusal, its closed set, and what
+  stays allowed are in §15.2.
 
 ### 2.4 Growth is handled by separation, not rotation
 
@@ -882,6 +885,34 @@ agents as follows (the orchestrator holds `Write` scoped to its own Expertise fi
 
 No file ever has two writers: for the write-less tiers the orchestrator is the single writer;
 ownership stays logical rather than mechanical.
+
+**The apply is a union merge, not a whole-file write** — `bin/expertise-merge.py` (DEC-95's residue,
+closed). Whoever applies runs:
+
+```bash
+.claude/skills/harness/bin/expertise-merge.py apply \
+    --file .harness/expertise/<agent>.md --entries <proposal.md|->
+```
+
+It takes an exclusive lock on `<file>.lock`, reads the file, and writes back the **union** keyed by
+section plus entry id — existing order preserved, new ids appended in the proposal's order
+(`compute_union`, `expertise-merge.py:111-137`). On success it prints one `ADDED <id>` or
+`PRESERVED <id>` line per entry and a final `APPLIED <path>`, and the write is atomic
+(`tempfile.mkstemp` + `os.replace`, `:219-226`). Concurrency no longer costs entries: a second
+writer's additions survive the first's.
+
+**Two things the union cannot do safely are refused, and the target file is left byte-identical**
+because both checks run before any write (`cmd_apply`, `:164-226`):
+
+| Refusal | Reports | Exit |
+|---|---|---|
+| The same section + id carries **different text** on the two sides | `CONFLICT section=<s> id=<id>` plus both texts (`:186-192`) | **7** |
+| The union would exceed a section cap — Patterns 15, Gotchas 15, Outcomes 10, Open 5 (`CAPS`, `:32`) | `CAP EXCEEDED section=<s> cap=<n> union_size=<n>` (`:194-200`) | **8** |
+| The lock is not acquired within 10s | `LOCKED: could not acquire <path>` (`acquire_lock`, `:140-153`) | **6** |
+
+A refusal is the signal to reconcile by hand — nothing is applied partially. Both refusals, the union,
+the atomic write and a cap-drift detector that reads `check-expertise.sh`'s own caps as text are
+covered at `test-expertise-merge.py:70-250`.
 
 **It composes with hierarchy for free.** Under hierarchical mode a member's DIGEST goes to its lead,
 not the orchestrator — but `expertise_update` rides the **per-member block** the consolidated DIGEST
@@ -2177,18 +2208,27 @@ is not a limitation admitted late — it is the difference between a constraint 
 
 ### 15.1 Single operator, one session per checkout
 
-**The harness is single-operator by design** (DEC-90). Every "single writer" guarantee means *one
-operator on one machine*.
+**The harness is single-operator by design.** Every "single writer" guarantee means *one operator
+on one machine*. The unit is the **session-checkout pair**, not the session (DEC-120).
 
-DEC-90 originally read "one agent in one session"; DEC-120 narrowed that. The unit is the
-**session-checkout pair**, not the session.
+Inside one session, N concurrent orchestrators are the *design*, and they do not collide:
+`STATE.md` and `feature.json` are per-feature and each has exactly one orchestrator, and `logs/` is
+written only by the main session.
 
-Note what DEC-120 did and did not change. Inside one session, N concurrent orchestrators are the
-*design*, and they do not collide: `STATE.md` and `feature.json` are per-feature and each has
-exactly one orchestrator, and `logs/` is written only by the main session. What is still unsafe is
-**two sessions over one checkout** — two main sessions means two writers for `logs/`, `## Approval`
-and the committed Expertise files, and there is no lock file anywhere. Separate checkouts are fine
-(§15.2).
+What is still unsafe is **two sessions over one checkout**. Two main sessions means two writers, and
+the protection is uneven — which of the three matters depends on the file:
+
+| Written by both | Protected by |
+|---|---|
+| Committed Expertise files | an exclusive lock, held across the read-modify-write by `bin/expertise-merge.py` |
+| `logs/` | nothing |
+| the `## Approval` mapping | nothing |
+
+Expertise is safe because two concurrent close-outs each doing a whole-file write lost the other's
+entries, and the merge tool was built to stop it. The other two carry the same exposure and no
+mechanism, so the single-operator boundary is what still holds them.
+
+Separate checkouts are fine (§15.2).
 
 Two developers is out of scope for v1. If it is ever needed, the minimum is an advisory lock on
 `.harness/` plus per-operator run-dir namespacing — not a small change.
@@ -2211,14 +2251,94 @@ working tree and therefore **its own `.harness/`**:
 So: **one feature per worktree, as many worktrees as you like.** `.harness/` is per-worktree state, not
 per-repository state.
 
-**What this does NOT solve — the honest residue:**
+#### The lifecycle is a CLI — `bin/feature-worktree.py`
 
-- **Committed Expertise files diverge and will conflict.** Two worktrees whose agents both learn things
-  produce competing edits to `.harness/expertise/<agent>.md`. Resolvable by hand, but it is real
-  friction, and merging Expertise is not like merging code — the "right" merge is usually the union,
-  which no tool will pick for you.
-- **The global Expertise tier is shared across every worktree simultaneously** (`~/.harness/`), with no
-  locking. Two concurrent sessions can both write it.
+Nothing about the worktree is done by hand or by prose. One CLI owns all four operations
+(`_build_parser`, `feature-worktree.py:277-296`):
+
+```bash
+# create the tree for a flow, cut from that repository's own default branch
+.claude/skills/harness/bin/feature-worktree.py create --repo harness --id FEAT-30
+# where does a flow's tree live (computes the path; creates nothing)
+.claude/skills/harness/bin/feature-worktree.py path   --repo harness --id FEAT-30
+# every worktree of this repository — `<id> <branch> <path>` per line
+.claude/skills/harness/bin/feature-worktree.py list   --repo harness
+# remove it at a terminal state, run from OUTSIDE the tree
+.claude/skills/harness/bin/feature-worktree.py remove --repo harness --id FEAT-30
+```
+
+**`--repo` takes exactly two forms** (`resolve_repo`, `:62-85`): the literal `harness` for this
+repository (`owner_root` = `factory_config.harness_root()`, default branch `main`), or an `owner/repo`
+name declared in `.harness/factory/fleet.yaml` (`owner_root` from `workspace_path()`, default branch
+from that entry's `default_branch`).
+
+**The destination is two segments below the worktrees root, not one** — `<owner_root>` /
+`.claude/worktrees` / `<repo>` / `<id>`, computed in one place and never reconstructed by pattern
+(`dest_for`, `:56-59`; the segment string is `harness_boundary.WORKTREES_SEGMENT`,
+`harness_boundary.py:33`). The `<repo>` segment is what keeps two repositories' trees from landing in
+one directory. `list` reports every entry under that root and nothing above it — the main checkout is
+excluded because it is not under the root, and a legacy one-segment tree is still listed because it is
+(the `commonpath` test, `:170-176`).
+
+**Three acts, and two of them belong to the main session** — the rule the orchestrator is given in
+`.claude/skills/harness/SKILL.md` ("The worktree lifecycle"):
+
+1. **Created at flow start by the main session**, cut from the repository's default branch. The branch
+   is `feat/<id>`, reused if it already exists and otherwise branched from the default (`:118-124`);
+   the last line of stdout is the absolute path.
+2. **The orchestrator works inside it for the whole run**, by absolute path and `git -C`.
+3. **Removed at a terminal state by the main session, from outside the tree.** Never by the agent
+   standing in it: `git worktree remove` succeeds at exit 0 from inside the tree it deletes, so an
+   agent following that instruction deletes its own working directory.
+
+#### `remove` has two refusals and no force flag
+
+`remove` first refuses anything that is not a linked worktree of `owner_root` (exit 3, `:209-214`).
+Then:
+
+| Refusal | Reports | Exit |
+|---|---|---|
+| **Dirty tree** | one `WOULD DISCARD <path>` line per changed path, then the count (`:216-227`) | **4** |
+| **Artifacts not on the default branch** | `MISSING ARTIFACT DIRECTORY`, or `MISSING` / `DIFFERS` / `VERIFIED` **naming every file** under `.harness/<repo>/features/<id>/`, compared by `git hash-object` against `<default-branch>:<path>` (`:229-263`) | **5** |
+
+Both are asserted, in both directions, at `test-feature-worktree.py:342-434` — dirty-untracked,
+dirty-tracked, and unlanded-then-landed, the last of which proves the same call exits 0 once the
+artifacts are merged.
+
+**There is no force flag, and no environment variable.** `REFUSE_ON_DIRTY` and `REQUIRE_LANDED` are
+module constants (`:39-40`) reachable only by editing the source. A refusal means finish landing the
+work.
+
+#### HEAD is shared state — moving it is refused for all sixteen agents
+
+A governed agent that tries to move `HEAD` during a live run is refused with a message naming the
+worktree it should have worked in (`bash-write-guard.sh:114-221`). This binds **every one of the 16
+governed agents including the orchestrator, and including `harness-dev-ops`**: the rule sits *above*
+dev-ops' write exemption (`:227`), and both halves of that ordering are asserted — dev-ops is refused
+`git checkout main`, and its write exemption is proven still intact (`test-bash-write-guard.py:762-772`).
+
+| | |
+|---|---|
+| **Refused** | `switch`, `rebase`, `merge`, `cherry-pick`, `revert` (`HEAD_MOVERS`, `:144`); `checkout` of a branch, and `checkout -b`/`-B`; `reset --hard`/`--keep`/`--merge`; the same commands behind a leading global flag such as `git -C <dir> checkout main`; and any `git` call whose subcommand the guard cannot determine |
+| **Allowed** | a **pathspec** `checkout` (`git checkout -- <path>`, or operands that all name existing paths), `git status`, staging, a **pathspec** `reset` with no mode flag, `git show <sha>:<path>`, and everything else outside the closed set (`_moves_head`, `:167-188`) |
+
+The allow half is not a courtesy — it is what makes the refusal discriminating, and it is asserted
+case by case at `test-bash-write-guard.py:710-720`. **The main session is not governed** and is
+unaffected: it carries no `agent_type`, so the guard returns before this rule (`:108-112`).
+
+On the same route, a `git worktree remove` or `prune` carrying `-f`/`--force` is refused and told to
+use `feature-worktree.py remove` instead; unforced, git decides for itself, because without `--force`
+git already refuses a dirty tree (`:550-566`).
+
+#### The honest residue, as it now stands
+
+- **Concurrent Expertise writes no longer silently lose entries.** The apply routes through
+  `bin/expertise-merge.py`, which union-merges under a lock (§5.3). Two worktrees editing the same
+  Expertise file still produce a **git** conflict at merge — that part is unchanged and is resolved by
+  hand.
+- **The global Expertise tier is shared across every worktree simultaneously** (`~/.harness/`). The
+  merge tool locks per file, so a concurrent apply to the same path serializes; nothing coordinates
+  two sessions doing anything else to that tier.
 - **`logs/` diverge** per worktree. Harmless, but the daily log stops being a single timeline.
 
 A `BLOCKED` feature therefore blocks *its worktree*, and you may work another (§10.5).

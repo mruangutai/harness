@@ -106,6 +106,28 @@ def fixture_fleet(manifest_text, fleet_text):
     return d
 
 
+def make_linked_worktree(root, wt_path, wt_id):
+    """Turn `wt_path` into a REAL linked worktree of `root`. No git subprocess.
+
+    Both sides of the pointer pair, per D-09, and both are load-bearing for different
+    consumers: the worktree-side `.git` FILE is what `checkout_relative` reads, and the
+    owner-side `.git/worktrees/<id>/gitdir` file is what `linked_worktrees` enumerates.
+    A `.git` file alone leaves the sweep blind to the checkout; a bare directory
+    exercises neither.
+
+    NO `.harness/team-config.yaml` inside the worktree: callers root their session at
+    `root`, and a nearer manifest would move the base out from under the assertion.
+    """
+    os.makedirs(os.path.join(root, ".git", "worktrees", wt_id), exist_ok=True)
+    os.makedirs(wt_path, exist_ok=True)
+    entry = os.path.join(root, ".git", "worktrees", wt_id)
+    with open(os.path.join(wt_path, ".git"), "w") as f:
+        f.write("gitdir: %s\n" % entry)
+    with open(os.path.join(entry, "gitdir"), "w") as f:
+        f.write("%s\n" % os.path.join(wt_path, ".git"))
+    return wt_path
+
+
 def fire(root, path, content="x", agent="harness-documentor"):
     payload = {"agent_type": agent, "tool_name": "Write",
                "tool_input": {"file_path": os.path.join(root, path), "content": content}}
@@ -1090,6 +1112,12 @@ def run_post():
     # --- F-06: `_norm`'s worktree strip is load-bearing, and the sweep's worktree tier
     # with it. A live agent worktree in this repo held 38 files matching the sweep globs
     # and the sweep reached NONE of them before this. Every harness agent works in one.
+    # CONVERTED to a real linked worktree (FEAT-30 T-04, D-09). It was a bare directory,
+    # which reached the shape regexes only through the fixed-segment strip this task
+    # deletes. NO ASSERTION BELOW CHANGES — the fixture is what was wrong, not the claim.
+    # wt1 is still exactly one segment deep, so this conversion also passes against the
+    # eeabc59 guard and does not weaken T-04's red proof.
+    make_linked_worktree(d, os.path.join(d, ".claude", "worktrees", "wt1"), "wt1")
     wt = os.path.join(d, ".claude", "worktrees", "wt1", ".harness", "harness", "features", "FEAT-W")
     os.makedirs(wt, exist_ok=True)
     write(10)
@@ -1157,7 +1185,9 @@ def run_post():
     # falsified that against this repo the same day, with two live worktrees emitting
     # findings naming identical FEAT strings. Stripping collapses every checkout onto one
     # name for state files as much as for CLAUDE.md.
-    _wt = os.path.join(d, ".claude", "worktrees", "wt1")
+    # CONVERTED, same reason and same rule as the F-06 fixture above: real linked
+    # worktree, both pointer sides, and not one assertion below is adjusted.
+    _wt = make_linked_worktree(d, os.path.join(d, ".claude", "worktrees", "wt1"), "wt1")
     os.makedirs(os.path.join(_wt, ".harness", "harness", "features", "FEAT-W"), exist_ok=True)
     _wcm = os.path.join(_wt, "CLAUDE.md")
     _wfy = os.path.join(_wt, ".harness", "harness", "features", "FEAT-W", "feature.json")
@@ -1620,6 +1650,555 @@ def run_worktree():
     return fails
 
 
+WTG = []
+
+
+def wtg(name, ok, detail=""):
+    WTG.append((name, ok, detail))
+
+
+def run_worktree_grant_parity():
+    """T-03 (FEAT-30, SC-05) — the grant an agent has inside a worktree is the grant it
+    has at the checkout root, for ALL SIXTEEN agents, one assertion each.
+
+    THIS PINS TODAY'S LAYOUT ON PURPOSE: exactly one segment after WORKTREES_SEGMENT.
+    T-04 replaces the fixed-segment strip with a mechanism that reads the git pointer,
+    and these sixteen cases are the baseline it must leave green. Do NOT extend this to
+    the repo-and-id layout here — T-04 owns that.
+
+    THE ROSTER IS WALKED, NOT LISTED. Every node carrying both a `name` and a
+    list-valued `domain`, at every nesting level: members inside each team's `members`,
+    leads under `leads`, and harness-orchestrator as a bare top-level key. The length is
+    asserted to be exactly 16 and reports the names it found when it is not — a roster
+    that silently shrinks would make every following assertion vacuous rather than red.
+
+    TWO DEVIATIONS FROM THE SIGNED INTENT, both forced by measurement, both disclosed
+    rather than smoothed over:
+
+    1. The intent says instantiate by "replacing each single-star segment" with a token.
+       Replacing the whole SEGMENT destroys literal prefixes — the reviewers' grant
+       `notes/review-harness-code-reviewer-*.md` becomes `notes/zz`, which their own
+       glob cannot match. Measured: 7 of 16 agents resolved to harness-orchestrator
+       instead of themselves. The star is replaced WITHIN its segment, keeping literals.
+
+    2. The intent says take "the first entry of its own domain list". In the harness base
+       a glob match is accepted only when the TARGET passes is_control_plane_target, so
+       an agent whose first entry is product code — `src/**`, `docs/**`, `tests/**`,
+       `web/src/**`, `supabase/migrations/**` — resolves to NOBODY at BOTH paths.
+       Measured directly before writing this: `src/zz/zz/main.py` and
+       `.claude/worktrees/wt1/src/zz/zz/main.py` both return NOBODY. Two equal EMPTY
+       sets, which is exactly the vacuity this test exists to exclude. The first entry
+       that is a control-plane target is used instead, and an agent with none at all is
+       a reported FAILURE, never a skip.
+
+    The membership assertion is not decoration. Equality alone is satisfied by two empty
+    sets, so each case also asserts the agent is IN both sets. T-03's verify mutates
+    WORKTREES_SEGMENT by name in a copied module and requires this file to FAIL, which is
+    only reachable if the in-worktree half of every pair really traverses the worktree
+    path.
+    """
+    import harness_yaml as _hy
+    import harness_boundary as _hb
+
+    fails = 0
+    tmp = tempfile.mkdtemp()
+
+    manifest_src = os.path.join(ROOT, ".harness", "team-config.yaml")
+    with open(manifest_src, encoding="utf-8") as f:
+        manifest_text = f.read()
+
+    # THE REAL MANIFEST, not FIXTURE_MANIFEST. The roster and the grants under test are
+    # the shipped ones; a fixture manifest would assert parity for personas that do not
+    # exist and would never notice a real grant losing its worktree parity.
+    root = fixture(manifest_text)
+
+    # A REAL LINKED WORKTREE, both sides of the pointer pair, per D-09. A bare directory
+    # made with os.makedirs resolves identically under today's fixed-segment strip, so
+    # these cases would pass now and go red the moment T-04 lands — sixteen false
+    # failures attributed to T-04 instead of to the fixture.
+    wt_id = "wt1"
+    owner_entry = os.path.join(root, ".git", "worktrees", wt_id)
+    os.makedirs(owner_entry)
+    os.makedirs(os.path.join(root, ".git", "refs"), exist_ok=True)
+    wt_path = os.path.join(root, ".claude", "worktrees", wt_id)
+    os.makedirs(wt_path)
+    # the worktree side
+    with open(os.path.join(wt_path, ".git"), "w") as f:
+        f.write("gitdir: %s\n" % owner_entry)
+    # the owner side, naming the worktree's own .git file
+    with open(os.path.join(owner_entry, "gitdir"), "w") as f:
+        f.write("%s\n" % os.path.join(wt_path, ".git"))
+    # NO .harness/team-config.yaml inside wt1, deliberately: these cases root the session
+    # at the fixture root, and a nearer manifest would move the base out from under the
+    # assertion.
+
+    # THE OWNER MUST BE A REAL CHECKOUT for worktree_owner to name it: it walks up to the
+    # first `.git` entry, and a DIRECTORY is what makes a root the owner.
+    parsed = _hb.worktree_owner(wt_path)
+    wtg("the fixture worktree is a REAL linked worktree, parsed and legitimate",
+        parsed is not None and parsed[1] is not None and parsed[2] is True,
+        f"worktree_owner({wt_path}) = {parsed!r} — a bare directory or an unparsed "
+        f"pointer here makes all sixteen cases below prove nothing")
+
+    def instantiate(pat):
+        """A glob to a concrete relative path, replacing the star INSIDE its segment."""
+        out = []
+        for seg in pat.strip("/").split("/"):
+            out.append("zz/zz" if seg == "**" else seg.replace("*", "zz"))
+        return "/".join(out)
+
+    roster = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            nm, dom = node.get("name"), node.get("domain")
+            if isinstance(nm, str) and isinstance(dom, list):
+                roster.append((nm, dom))
+            for k, v in node.items():
+                if k not in ("name", "domain"):
+                    walk(v)
+        elif isinstance(node, list):
+            for x in node:
+                walk(x)
+
+    walk(_hy.yaml.safe_load(manifest_text))
+    names = sorted(n for n, _ in roster)
+    wtg("the roster walk finds exactly 16 agents carrying a name and a list domain",
+        len(roster) == 16,
+        f"found {len(roster)}: {names!r} — every case below is vacuous if this is wrong")
+
+    def resolve(path):
+        r = subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
+                           stdin=subprocess.DEVNULL, timeout=20,
+                           env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+        return set(r.stdout.split())
+
+    for agent, domain in sorted(roster):
+        chosen = None
+        for entry in domain:
+            pat = entry.get("path") if isinstance(entry, dict) else entry
+            if not isinstance(pat, str):
+                continue
+            rel = instantiate(pat)
+            if _hb.is_control_plane_target(rel):
+                chosen = (pat, rel)
+                break
+        if chosen is None:
+            wtg(f"{agent}: in-worktree grant equals root grant",
+                False,
+                "no domain entry instantiates to a control-plane target, so no path in "
+                "this agent's domain can be granted in the harness base. Reported as a "
+                "failure rather than skipped: a skip here is a silent hole.")
+            continue
+        pat, rel = chosen
+        at_root = resolve(os.path.join(root, rel))
+        in_wt = resolve(os.path.join(wt_path, rel))
+        wtg(f"{agent}: in-worktree grant equals root grant, and names {agent}",
+            at_root == in_wt and agent in at_root,
+            f"glob {pat!r} -> {rel!r}; at root {sorted(at_root)!r}, in worktree "
+            f"{sorted(in_wt)!r}; equal={at_root == in_wt}, "
+            f"contains-self={agent in at_root}")
+
+    # ================= T-04: THE DEEP LAYOUT =================
+    # Everything above pins the ONE-level shape and must stay green (SC-09). Everything
+    # below is what NO path could reach before T-04: the fixed-segment strip left the
+    # repository segment in the path, so the second candidate matched no glob.
+
+    deep = make_linked_worktree(
+        root, os.path.join(root, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
+
+    # SC-02c — one case per agent at <segment>/<repo>/<id>/, all sixteen.
+    for agent, domain in sorted(roster):
+        chosen = None
+        for entry in domain:
+            pat = entry.get("path") if isinstance(entry, dict) else entry
+            if not isinstance(pat, str):
+                continue
+            rel = instantiate(pat)
+            if _hb.is_control_plane_target(rel):
+                chosen = (pat, rel)
+                break
+        if chosen is None:
+            wtg(f"SC-02c {agent}: DEEP-layout grant equals root grant", False,
+                "no domain entry instantiates to a control-plane target")
+            continue
+        pat, rel = chosen
+        at_root = resolve(os.path.join(root, rel))
+        in_deep = resolve(os.path.join(deep, rel))
+        wtg(f"SC-02c {agent}: DEEP-layout grant equals root grant, and names {agent}",
+            at_root == in_deep and agent in at_root,
+            f"glob {pat!r} -> {rel!r}; root {sorted(at_root)!r}, deep "
+            f"{sorted(in_deep)!r}; equal={at_root == in_deep}, self={agent in at_root}")
+
+    # THE DEPTH IS NOT LOAD-BEARING. A rule that asks which checkout it stands in does
+    # not care how deep the path is; a rule with a segment count does. Four levels.
+    very_deep = make_linked_worktree(
+        root, os.path.join(root, ".claude", "worktrees", "a", "b", "c", "FEAT-90"), "abcFEAT90")
+    _probe = ".harness/zz/features/zz/BRIEF.md"
+    wtg("the depth is not load-bearing: <segment>/a/b/c/<id> resolves like the root",
+        resolve(os.path.join(very_deep, _probe)) == resolve(os.path.join(root, _probe))
+        and "harness-pm" in resolve(os.path.join(very_deep, _probe)),
+        f"deep-4 {sorted(resolve(os.path.join(very_deep, _probe)))!r} vs root "
+        f"{sorted(resolve(os.path.join(root, _probe)))!r}")
+
+    # THE OLD MECHANISM IS GONE, not left standing beside its replacement. A dead regex
+    # kept "for reference" is what leaves a segment count load-bearing for the next reader.
+    wtg("WORKTREE_REL_RE no longer exists on harness_boundary",
+        not hasattr(_hb, "WORKTREE_REL_RE"),
+        "the fixed-segment strip is still importable, so a caller can still use it")
+
+    # linked_worktrees: exactly the registered checkouts, and empty when there are none.
+    lw_root = fixture(manifest_text)
+    os.makedirs(os.path.join(lw_root, ".git"))
+    wtg("linked_worktrees returns [] for a checkout with no worktrees",
+        _hb.linked_worktrees(lw_root) == [],
+        f"got {_hb.linked_worktrees(lw_root)!r}")
+    a = make_linked_worktree(
+        lw_root, os.path.join(lw_root, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
+    b = make_linked_worktree(
+        lw_root, os.path.join(lw_root, ".claude", "worktrees", "harness", "FEAT-91"), "FEAT-91")
+    wtg("linked_worktrees returns exactly the two registered checkouts, as realpaths",
+        _hb.linked_worktrees(lw_root) == sorted([_hb.real(a), _hb.real(b)]),
+        f"got {_hb.linked_worktrees(lw_root)!r}, want {sorted([_hb.real(a), _hb.real(b)])!r}")
+
+    for name, ok, detail in WTG:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n        {detail}")
+    print(f"\n{len(WTG) - fails}/{len(WTG)} worktree grant-parity cases passed.\n")
+    shutil.rmtree(tmp, ignore_errors=True)
+    return fails
+
+
+WDS = []
+
+
+def wds(name, ok, detail=""):
+    WDS.append((name, ok, detail))
+
+
+def run_worktree_deep_shape():
+    """T-04 PART 3 — DEC-150's shape caps under a two-level worktree layout.
+
+    THIS IS THE HALF THAT WAS SILENTLY DARK, and the measurement is why PART 3 was not
+    optional. At `eeabc59`, harness-orchestrator writing a 204-line STATE.md against a
+    120-line budget at the same repo-relative path in three places: the main checkout
+    refused with the SHAPE reason naming DEC-150; one-level `.claude/worktrees/WT1` also
+    refused with that shape reason; two-level `.claude/worktrees/harness/WT1` refused with
+    the DOMAIN reason instead, and NEVER REACHED the shape gate at all. Fixing only
+    classify and the resolve path would have lifted the domain refusal that was masking
+    it — writes succeed, budgets unenforced, suite green.
+
+    EVERY ASSERTION HERE IS ON THE WORDING, never on the exit code. The domain refusal and
+    the shape refusal BOTH exit 2, so an exit-code assertion passes against the masked
+    state and keeps passing after the domain half is fixed while the caps stay off. That
+    is the whole trap.
+    """
+    import harness_boundary as _hbd
+
+    def _hb_where(owner_root):
+        """The one spelling of where worktrees belong, from the module, never re-typed."""
+        return _hbd.worktree_refusal_location(_hbd.real(owner_root))
+
+    fails = 0
+    manifest_src = os.path.join(ROOT, ".harness", "team-config.yaml")
+    with open(manifest_src, encoding="utf-8") as f:
+        manifest_text = f.read()
+
+    over = "\n".join(f"x{i}" for i in range(204)) + "\n"
+    state_rel = os.path.join(".harness", "harness", "features", "FEAT-W", "STATE.md")
+
+    def shape_refusal(root, abs_target):
+        os.makedirs(os.path.dirname(abs_target), exist_ok=True)
+        payload = {"agent_type": "harness-orchestrator", "tool_name": "Write",
+                   "tool_input": {"file_path": abs_target, "content": over}}
+        return fire_post(root, payload, flag=None)
+
+    # --- THE PAIR THAT DISCRIMINATES: one-level must KEEP refusing on shape (it did at
+    # eeabc59), two-level must START refusing on shape (it did not).
+    d = fixture(manifest_text)
+    os.makedirs(os.path.join(d, ".git"))
+    one = make_linked_worktree(d, os.path.join(d, ".claude", "worktrees", "wt1"), "wt1")
+    two = make_linked_worktree(
+        d, os.path.join(d, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
+
+    r_root = shape_refusal(d, os.path.join(d, state_rel))
+    wds("baseline: the main checkout refuses an over-budget STATE.md with the SHAPE "
+        "reason naming DEC-150",
+        r_root.returncode == 2 and "DEC-150" in r_root.stderr,
+        f"exit {r_root.returncode}: {r_root.stderr.strip()[:200]}")
+
+    r_one = shape_refusal(d, os.path.join(one, state_rel))
+    wds("SC-09: at ONE level the shape refusal still names DEC-150 (it did at eeabc59 "
+        "and must not regress)",
+        r_one.returncode == 2 and "DEC-150" in r_one.stderr,
+        f"exit {r_one.returncode}: {r_one.stderr.strip()[:200]}")
+
+    r_two = shape_refusal(d, os.path.join(two, state_rel))
+    wds("at TWO levels the write route refuses on SHAPE, naming DEC-150 — asserted on "
+        "the WORDING, because the domain refusal also exits 2",
+        r_two.returncode == 2 and "DEC-150" in r_two.stderr,
+        f"exit {r_two.returncode}: {r_two.stderr.strip()[:200]} — a refusal without "
+        f"DEC-150 is the DOMAIN refusal masking a dark shape gate")
+
+    # --- THE POST-WRITE SWEEP AT DEPTH, paired against a BARE directory. D-09 accepts
+    # that a directory under the segment with no pointer pair stops being swept; that cost
+    # must be asserted, not left silent. A single-direction assertion here also passes
+    # against a sweep that reaches nothing at all, which is why both halves are here.
+    d2 = fixture(manifest_text)
+    os.makedirs(os.path.join(d2, ".git"))
+    swept = make_linked_worktree(
+        d2, os.path.join(d2, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
+    bare = os.path.join(d2, ".claude", "worktrees", "harness", "FEAT-BARE")
+    os.makedirs(os.path.join(bare, ".harness", "harness", "features", "FEAT-W"))
+
+    bash_payload = {"agent_type": "harness-orchestrator", "tool_name": "Bash",
+                    "tool_input": {"command": "echo hi"}}
+    fire_post(d2, bash_payload)                      # advance the stamp past everything
+    r0 = fire_post(d2, bash_payload)                 # nothing fresh -> silence
+    reg = os.path.join(swept, ".harness", "harness", "features", "FEAT-W", "feature.json")
+    os.makedirs(os.path.dirname(reg), exist_ok=True)
+    with open(reg, "w") as f:
+        f.write(_legal_feature_json(400))
+    r1 = fire_post(d2, bash_payload)
+    wds("the sweep reaches a file inside a TWO-LEVEL registered worktree (invisible at "
+        "eeabc59, and invisible SILENTLY)",
+        r0.returncode == 0 and r1.returncode == 2 and "budget is 300" in r1.stderr,
+        f"baseline exit {r0.returncode}, after exit {r1.returncode}: "
+        f"{r1.stderr.strip()[:200]}")
+    wds("...and the finding names the WORKTREE it came from, not the stripped path",
+        "FEAT-90" in r1.stderr,
+        f"stderr does not name the checkout: {r1.stderr.strip()[:200]}")
+
+    fire_post(d2, bash_payload)                      # re-advance the stamp
+    r2 = fire_post(d2, bash_payload)
+    bare_f = os.path.join(bare, ".harness", "harness", "features", "FEAT-W", "feature.json")
+    with open(bare_f, "w") as f:
+        f.write(_legal_feature_json(400))
+    r3 = fire_post(d2, bash_payload)
+    wds("D-09's ACCEPTED COST, asserted: a directory under the segment with NO pointer "
+        "pair is not swept",
+        r2.returncode == 0 and r3.returncode == 0,
+        f"expected silence both times, got {r2.returncode} then {r3.returncode}: "
+        f"{r3.stderr.strip()[:200]}")
+
+    # --- SC-02b, BOTH DIRECTIONS FROM ONE FIXTURE. The accept half alone is what an
+    # allow-all escape produces; the refuse half alone is what a fail-closed guard
+    # produces. Only the pair distinguishes them.
+    d3 = fixture(manifest_text)
+    os.makedirs(os.path.join(d3, ".git"))
+    inside = make_linked_worktree(
+        d3, os.path.join(d3, ".claude", "worktrees", "harness", "FEAT-90"), "FEAT-90")
+    granted = os.path.join(inside, ".harness", "harness", "features", "FEAT-W", "BRIEF.md")
+    os.makedirs(os.path.dirname(granted), exist_ok=True)
+    r_ok = fire_post(d3, {"agent_type": "harness-pm", "tool_name": "Write",
+                          "tool_input": {"file_path": granted, "content": "x"}}, flag=None)
+    wds("SC-02b accept: a governed write inside <segment>/<repo>/<id> exits 0",
+        r_ok.returncode == 0,
+        f"exit {r_ok.returncode}: {r_ok.stderr.strip()[:200]}")
+
+    # The sibling is a REAL linked worktree of the same root, in the wrong place.
+    sib = os.path.join(os.path.dirname(d3), os.path.basename(d3) + "-sib")
+    make_linked_worktree(d3, sib, "sib")
+    sib_target = os.path.join(sib, ".harness", "harness", "features", "FEAT-W", "BRIEF.md")
+    os.makedirs(os.path.dirname(sib_target), exist_ok=True)
+    r_sib = fire_post(d3, {"agent_type": "harness-pm", "tool_name": "Write",
+                           "tool_input": {"file_path": sib_target, "content": "x"}}, flag=None)
+    _expected = _hb_where(d3)
+    wds("SC-02b refuse: a linked worktree OUTSIDE the layout is refused, and the message "
+        "NAMES where worktrees belong",
+        r_sib.returncode == 2 and _expected in r_sib.stderr,
+        f"exit {r_sib.returncode}, want the text {_expected!r} in: "
+        f"{r_sib.stderr.strip()[:240]}")
+
+    for name, ok, detail in WDS:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n        {detail}")
+    print(f"\n{len(WDS) - fails}/{len(WDS)} deep-layout shape cases passed.\n")
+    return fails
+
+
+
+def run_sweep_clean_tracked():
+    """The post-sweep must not report a file `git worktree add` merely materialised.
+
+    THE DEFECT, measured 2026-08-21. `feature-worktree.py create` runs `git worktree add`,
+    which writes a fresh copy of every tracked file, so all 126 files matching SWEEP_GLOBS
+    in the new checkout carried an mtime of that second. The sweep asked only
+    `st_mtime > _since`, so it shape-checked all 126 — including 25 features whose status
+    is Done — and reported the two long-standing malformed STATE.md files as
+    `OVER BUDGET (already written)` against the agent that cut the tree. False in the one
+    field an agent acts on: authorship. Both files sit outside any ordinary agent's domain,
+    so an agent obeying that message is DENIED by this same hook.
+
+    A REAL GIT REPOSITORY IS REQUIRED HERE, unlike `make_linked_worktree`'s pointer-pair
+    fixture. The skip asks git whether a candidate differs from HEAD; against a fake
+    pointer pair that call fails, `_dirty_set` is None, and the sweep falls back to its old
+    behaviour. That fallback is deliberate (it fails OPEN), and it is why every pre-existing
+    worktree case in this file stays green — but it also means only a real repo can
+    exercise the skip at all.
+    """
+    fails = 0
+    d = tempfile.mkdtemp()
+    try:
+        root = os.path.join(d, "owner")
+        os.makedirs(root)
+
+        def git(cwd, args):
+            r = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True)
+            if r.returncode != 0:
+                raise RuntimeError("git %s: %s" % (" ".join(args), r.stderr))
+            return r
+
+        git(root, ["init", "-q"])
+        git(root, ["symbolic-ref", "HEAD", "refs/heads/main"])
+        git(root, ["config", "user.email", "t@example.com"])
+        git(root, ["config", "user.name", "T"])
+        os.makedirs(os.path.join(root, ".harness"))
+        with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
+            f.write(FIXTURE_MANIFEST)
+
+        # A MALFORMED STATE.md, COMMITTED. This stands in for FEAT-02's real file: an old,
+        # shipped feature carrying an illegal section that nothing in this run wrote.
+        fdir = os.path.join(root, ".harness", "harness", "features", "FEAT-OLD")
+        os.makedirs(os.path.join(fdir, "notes"))
+        rel_state = ".harness/harness/features/FEAT-OLD/STATE.md"
+        with open(os.path.join(root, rel_state), "w") as f:
+            f.write("# FEAT-OLD — STATE\n\n## Current\nshipped\n\n"
+                    "## Illegal Section\nhistory that DEC-150 forbids\n")
+        git(root, ["add", "-A"])
+        git(root, ["commit", "-q", "-m", "the malformed file, committed"])
+
+        wt = os.path.join(root, ".claude", "worktrees", "harness", "FEAT-NEW")
+        git(root, ["worktree", "add", "-q", "-b", "feat/FEAT-NEW", wt])
+
+        # Every file in `wt` now carries a fresh mtime. Assert that, rather than trusting
+        # it: if git ever stopped rewriting mtimes, this whole case would pass vacuously
+        # and prove nothing about the skip.
+        wt_state = os.path.join(wt, rel_state)
+        stamp_floor = time.time() - 5
+        if not os.path.isfile(wt_state):
+            print("FAIL  sweep/clean-tracked: git worktree add did not materialise %s"
+                  % rel_state)
+            return fails + 1
+        if os.stat(wt_state).st_mtime <= stamp_floor:
+            print("FAIL  sweep/clean-tracked: PRECONDITION DEAD — the worktree copy's "
+                  "mtime is not fresh, so the sweep would skip it on mtime alone and "
+                  "this case could not distinguish the fix from its absence.")
+            return fails + 1
+
+        bash_payload = {"agent_type": "harness-orchestrator", "tool_name": "Bash",
+                        "hook_event_name": "PostToolUse",
+                        "tool_input": {"command": "true"}}
+
+        def sweep(hook_path=None):
+            argv = [hook_path or HOOK, "--post"]
+            return subprocess.run(argv, input=json.dumps(bash_payload),
+                                  capture_output=True, text=True,
+                                  env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+        def inv_lines(r):
+            return [l for l in (r.stdout + r.stderr).splitlines()
+                    if "FEAT-OLD" in l and "STATE.md" in l]
+
+        def clear_stamp():
+            # The sweep advances a high-water mark on every run, so a second sweep in the
+            # same second sees nothing. Each case below removes the stamp first, or the
+            # ordering of the cases would decide their results.
+            try:
+                os.remove(os.path.join(root, ".harness", ".shape-sweep-stamp"))
+            except OSError:
+                pass
+
+        # CASE A — the committed file, materialised by `git worktree add`, is NOT reported.
+        clear_stamp()
+        r = sweep()
+        got = inv_lines(r)
+        if got:
+            fails += 1
+            print("FAIL  sweep/clean-tracked A: a clean-tracked file the checkout merely "
+                  "materialised was reported as `already written`")
+            for l in got[:2]:
+                print("      | %s" % l.strip())
+        else:
+            print("ok    sweep/clean-tracked A: worktree creation reports nothing")
+
+        # CASE B — a REAL Bash-route write in the worktree IS still reported. Without this
+        # the fix is indistinguishable from deleting the sweep.
+        with open(wt_state, "a") as f:
+            f.write("\n## Second Illegal Section\nwritten by this run\n")
+        clear_stamp()
+        r = sweep()
+        got = inv_lines(r)
+        if not got:
+            fails += 1
+            print("FAIL  sweep/clean-tracked B: a modified STATE.md in the worktree was "
+                  "NOT reported — the skip is swallowing real writes")
+        elif r.returncode != 2:
+            fails += 1
+            print("FAIL  sweep/clean-tracked B: reported the file but exited %d, not 2"
+                  % r.returncode)
+        else:
+            print("ok    sweep/clean-tracked B: a modified file is still caught, exit 2")
+
+        # CASE C — an UNTRACKED state file in the worktree IS reported. `diff HEAD` alone
+        # would miss this; the skip needs `ls-files --others` too, and a fix that dropped
+        # it would leave every newly created run/state file unswept.
+        newdir = os.path.join(wt, ".harness", "harness", "features", "FEAT-BRANDNEW")
+        os.makedirs(newdir)
+        with open(os.path.join(newdir, "STATE.md"), "w") as f:
+            f.write("# x\n\n## Current\nok\n\n## Nope\nillegal\n")
+        clear_stamp()
+        r = sweep()
+        if not [l for l in (r.stdout + r.stderr).splitlines() if "FEAT-BRANDNEW" in l]:
+            fails += 1
+            print("FAIL  sweep/clean-tracked C: an UNTRACKED malformed STATE.md in the "
+                  "worktree was not reported — the skip is treating untracked as clean")
+        else:
+            print("ok    sweep/clean-tracked C: an untracked file is still caught")
+
+        # RED PROOF — a mutant copy with SWEEP_SKIP_CLEAN_TRACKED flipped to False must
+        # report case A's file. An exit status is never the proof: a crash on the way in is
+        # also non-zero, so this compares the COUNT of FEAT-OLD lines.
+        with open(HOOK) as f:
+            original = f.read()
+        mutant_text = original.replace("SWEEP_SKIP_CLEAN_TRACKED = True",
+                                       "SWEEP_SKIP_CLEAN_TRACKED = False", 1)
+        if mutant_text == original:
+            fails += 1
+            print("FAIL  sweep/clean-tracked RED: INCONCLUSIVE — the mutation did not "
+                  "apply, so no claim is made about the assertions above. Has "
+                  "SWEEP_SKIP_CLEAN_TRACKED been renamed?")
+        else:
+            mutant = os.path.join(d, "check-domain-mutant.sh")
+            with open(mutant, "w") as f:
+                f.write(mutant_text)
+            os.chmod(mutant, 0o755)
+            # Restore case A's exact state: the committed file clean again, nothing else
+            # of FEAT-OLD's on disk changed.
+            git(wt, ["checkout", "--", rel_state])
+            clear_stamp()
+            base = len(inv_lines(sweep()))
+            clear_stamp()
+            mut = len(inv_lines(sweep(mutant)))
+            print("      red proof: original reported %d FEAT-OLD line(s), mutant %d"
+                  % (base, mut))
+            if mut <= base:
+                fails += 1
+                print("FAIL  sweep/clean-tracked RED: the mutant reported no more than "
+                      "the original, so case A does not discriminate the fix from its "
+                      "absence.")
+            else:
+                print("ok    sweep/clean-tracked RED: removing the skip makes case A red")
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -1647,6 +2226,9 @@ def main():
     fails += run_post()
     fails += run_schema()
     fails += run_worktree()
+    fails += run_worktree_grant_parity()
+    fails += run_worktree_deep_shape()
+    fails += run_sweep_clean_tracked()
     return fails
 
 

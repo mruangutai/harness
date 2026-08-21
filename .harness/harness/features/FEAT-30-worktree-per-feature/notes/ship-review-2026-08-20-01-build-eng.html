@@ -1,0 +1,99 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — FEAT-30-worktree-per-feature — build phase</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-feat-30-worktree-per-feature-build-phase">Ship review — FEAT-30-worktree-per-feature — build phase</h1>
+<p><strong>One decision is blocking everything, and it is one line.</strong> Everything else in this document is context for it.</p>
+<p><strong>No report round was spawned.</strong> This is assembled from disk plus my own measurements. Cited: <code>runs/2026-08-20-01-build-eng/digest.md</code> and <code>state.yaml</code>; the six receipts <code>notes/receipt-harness-dev-ops-build-eng-{T-01,T-02,T-02-c2,T-08,T-10}.md</code> and <code>notes/receipt-harness-backend-dev-build-eng-T-06.md</code>; my own <code>notes/orchestrator-M17-build-baseline-exact.md</code>, <code>M18-runner-exits-2-until-T-08.md</code>, <code>M19-DEC-193-falsified-by-this-feature.md</code>, <code>M20-signed-intent-vs-existing-invariant.md</code>; <code>notes/layer0-segments-FEAT-30.md</code>; <code>notes/handoff-plan.md</code>. Spawning three leads to re-narrate files I can open buys nothing.</p>
+<hr>
+<h2 id="the-decision-i-need-from-you-q1">The decision I need from you (Q1)</h2>
+<p><code>test-harness-yaml.py</code> asserts that exactly one guarded import exists in <code>bin/</code>, against a hardcoded allowed set of three files. <code>feature-worktree.py</code> is a fourth — <strong>because T-01&#x27;s signed intent required it</strong>: <em>&quot;import harness_boundary lazily and, if the import fails, exit 2 with a message naming the module.&quot;</em> The member did exactly that.</p>
+<p>So the approved plan and an existing invariant test contradict each other, and <strong>nothing in the plan owns the reconciliation</strong>:</p>
+<div class="scroll"><table><thead><tr><th>Option</th><th>Cost</th></tr></thead><tbody><tr><td><strong>A — add <code>feature-worktree.py</code> to the allowed set</strong></td><td>Edits a file in no task&#x27;s <code>files:</code>. One line.</td></tr><tr><td><strong>B — drop the guard from <code>feature-worktree.py</code></strong></td><td>In scope (T-01&#x27;s own file), breaks no test, but departs from a signed instruction: an unguarded import exits 1 with a traceback, not <code>exit 2</code>.</td></tr></tbody></table></div>
+<p><strong>My recommendation: A.</strong> Three reasons, each checked. <code>check-domain.sh</code> is <em>already</em> in the allowed set for guarding <code>import feature_schema</code> — a first-party sibling, exactly like <code>harness_boundary</code> — so &quot;it is not an external dependency&quot; does not distinguish this case from one already accepted. The test&#x27;s own comment says assertion 2 <em>&quot;MUST be a subset, never ==&quot;</em> precisely so new legitimate cases can land. And the signed D-12 yaml rule (assertion 1) is untouched either way, since this file imports no yaml.</p>
+<p>I also measured what makes B cheap, in fairness to it: <strong>nothing tests the guarded branch.</strong> The only <code>returncode == 2</code> assertion in T-01&#x27;s suite is for an undeclared <code>--repo</code>. So the <code>exit 2</code> requirement is asserted nowhere and the branch is unreachable in practice. If you judge the clean exit incidental, B costs less. <strong>I would not treat <code>exit 2</code> as load-bearing without evidence, and there is none.</strong></p>
+<p><strong>One failing assertion, 18 <code>ok</code> lines. Either option restores green in one line.</strong></p>
+<hr>
+<h2 id="status-what-is-built-and-why-nothing-is-committed">Status: what is built, and why nothing is committed</h2>
+<p>All five team-lane tasks are built. <code>cycles_used</code> <strong>7 of 13</strong>, six remaining. Runs 7 of 20.</p>
+<div class="scroll"><table><thead><tr><th>Task</th><th>Verdict</th><th>Substance (I reviewed the code, not just the verdict)</th></tr></thead><tbody><tr><td>T-01</td><td>PASS</td><td>CLI create/list/path + isolation suite. SC-02 asserted via <code>merge-base</code> against the pre-create tip, not a branch name.</td></tr><tr><td>T-02</td><td>PASS, 1 cycle</td><td><code>remove</code> with three ordered gates. Prints <code>WOULD DISCARD &lt;path&gt;</code> and <code>MISSING/DIFFERS/VERIFIED &lt;path&gt;</code> <strong>per path with content hashes</strong> — never a bare count, exactly as SC-04 and SC-07 demand.</td></tr><tr><td>T-06</td><td>PASS, 1 cycle</td><td><code>expertise-merge.py</code>: union apply under an exclusive lock. Two genuinely concurrent <code>Popen</code> writers, asserted <strong>by named entry</strong>, admitting only union-or-locked, any third outcome reported by name.</td></tr><tr><td>T-08</td><td><strong>FAIL</strong></td><td>Registrations correct and minimal (<code>INTEGRATION_SCRIPTS</code> 12→14; one line in <code>harness.json</code>). Red <strong>only</strong> on the out-of-scope collision above.</td></tr><tr><td>T-10</td><td>PASS</td><td>SC-01b case A and the shared-checkout negative.</td></tr></tbody></table></div>
+<p><strong>Why no commit.</strong> <code>gates.qa_gate</code> is blocking, the integration suite is red, and <strong>SC-09 is violated right now</strong> — a test that passed at <code>49c528a</code> fails at HEAD. Committing that would ship a red suite and a false record. The work sits in the tree; six files, nothing staged. I also did <strong>not</strong> mark any task <code>done</code> in <code>plan.yaml</code> and ran no <code>close-task</code>, because nothing has landed and recording otherwise would falsify the board.</p>
+<p><strong>Growth is real, not silent.</strong> Baseline at <code>49c528a</code>: unit exit 0 / 179 PASS / 0 FAIL; integration exit 0 / 90 PASS / 0 FAIL. Now: unit exit 0 / 179 / 0 (unchanged, correct); integration exit 1 / 212 PASS / 2 FAIL. The +122 decomposes as 74 (T-01/T-02) + 32 (T-06) + 14 (T-10) + 2 runner lines. Both suites are genuinely discovered and executed. The 2 FAIL lines are one defect reported twice — the assertion plus its script summary — and no third ever appeared.</p>
+<hr>
+<h2 id="where-the-delivered-feature-is-weakest-plainly">Where the delivered feature is weakest — plainly</h2>
+<p><strong>1. Two instances of one shape: correct code, untested rationale.</strong> T-01&#x27;s red proof reddens at the <em>fixture guard</em>, so SC-01&#x27;s static isolation assertions are green <strong>without ever having been shown able to go red</strong>. And <code>list</code> filters by <code>commonpath</code> exactly as its intent demands — but no <code>worktrees-old</code> sibling case asserts it, so a refactor to <code>startswith</code> would pass the whole suite. Neither breaks any task&#x27;s <code>verify:</code>, so neither became a cycle at six remaining. A mutation pass, not a reading pass, is what closes them.</p>
+<p><strong>2. The near-miss that matters most, and the squad caught it, not me.</strong> T-10&#x27;s shared-checkout negative satisfied itself via the committer-failure path <strong>~13 consecutive times without ever calling the isolation predicate</strong> — that is failure mode 3 from R-02&#x27;s own list, <em>not</em> the documented flake I warned it about. It fixed the gap and then got 8/8 clean red proofs. Had it retried past that as &quot;the known flake&quot;, SC-01b would have shipped green and incapable of red. <strong>Three tiers under-counted this feature&#x27;s blast radius by reading; again, only mutation found the truth.</strong></p>
+<p><strong>3. Both plan-text defects trace to one design choice.</strong> T-01 imports a sibling module. That was required and it is good design. Consequence one: the guarded form trips the anti-fallback cap (Q1). Consequence two: T-10&#x27;s <code>verify:</code> copies a single file, which cannot import that sibling and dies with <code>ModuleNotFoundError</code> <strong>before any assertion, on the pristine file</strong> — verified by inspection, no <code>sys.path</code> manipulation exists. The member re-expressed it as <code>cp -R</code> matching T-06&#x27;s proven pattern and disclosed it. <strong><code>plan.yaml</code>&#x27;s recorded verify is still broken and needs pm&#x27;s one-line fix</strong>, or every future re-verification of T-10 fails spuriously (Q3).</p>
+<p><strong>4. I cannot verify any red proof myself.</strong> Every one begins by copying <code>bin/</code> to a temp directory, and the write guard blocks the orchestrator&#x27;s <code>cp</code> there as out-of-domain. Red-proof claims are unverifiable at layer 1 <strong>by construction</strong> — which is why I demanded actual command output rather than assertions of success.</p>
+<p><strong>What I did verify independently:</strong> the CLI against the real repository — <code>feature-worktree.py list --repo harness</code> returns <code>FEAT-31 feat/FEAT-31-orchestrator-context-watch &lt;abs path&gt;</code>, exit 0, correctly including the legacy one-segment worktree and correctly excluding the main checkout. Fixtures cannot give that.</p>
+<hr>
+<h2 id="q2-is-settled-the-lead-could-not-run-the-check-i-could">Q2 is settled — the lead could not run the check, I could</h2>
+<p>The lead flagged an unsettled contradiction: <code>cp -R … &quot;$T/bin&quot;</code>, the first line of five verify blocks including <strong>T-03&#x27;s, T-04&#x27;s and T-05&#x27;s</strong>, was green for one spawn and denied for another. Both halves are true. The guard genuinely does not expand <code>$T</code> — it printed the literal <code>$T/bin</code> when it denied me. But <code>bash-write-guard.sh:49-57</code> exits early for <strong>no <code>agent_type</code></strong> and for <strong><code>harness-dev-ops</code></strong>, so some callers never reach that check. Four consistent data points: T-02&#x27;s spawn was dev-ops (green), T-06&#x27;s was backend-dev (denied), I am orchestrator (denied), and the operator carries no <code>agent_type</code>.</p>
+<p><strong>The discriminator is who ran it, not what was run — and your lane exits first.</strong> T-03, T-04 and T-05 will run literally as written. No re-expression needed.</p>
+<hr>
+<h2 id="your-five-tasks-unchanged-and-unblocked-by-q1">Your five tasks, unchanged and unblocked by Q1</h2>
+<p><code>notes/layer0-segments-FEAT-30.md</code> is the work order: <strong>T-03 → T-04 → T-05</strong>, plus T-07 (any time) and T-09 (last). It carries the measured warnings, chiefly: a <strong>fail-open window until T-04 lands</strong> — <code>harness_boundary.py:37</code> and <code>check-domain.sh:644</code> both hard-code one path segment while the CLI writes two, so <strong>do not create a real feature worktree with the new CLI until T-04 lands</strong>; T-04&#x27;s line anchors re-verified live; a <strong>positional</strong> assertion in <code>harness/SKILL.md</code> T-09 can break by insertion alone; and start from my commit, not <code>49c528a</code>, since T-07&#x27;s verify runs a T-06 file.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Finding</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td><code>test_kinds.integration.detect</code> names 4 scripts while the runner runs 12. The qa gate confirms coverage from those globs, so <strong>T-04 is set up for a false &quot;integration missing&quot; FAIL</strong> on a correctly-tested change. Wording to hand the grader is in M-17.</td><td>bug</td></tr><tr><td>B-2</td><td>This feature <strong>falsifies DEC-193</strong>: it states code lives at <code>.claude/worktrees/&lt;id&gt;/</code>, the delivered layout is <code>&lt;repo&gt;/&lt;id&gt;</code>. No task touches docs and nothing detects a falsified decision. Recommend an <strong>am.3 after T-04 lands</strong>, routed to <code>harness-documentor</code> — a team lane, not your hands.</td><td>chore</td></tr><tr><td>B-3</td><td><code>feature.json</code> rejects a <code>phase:</code> key as undeclared, while the orchestrator playbook (DEC-148/159) instructs writing one. One of the two is wrong.</td><td>bug</td></tr><tr><td>B-4</td><td><code>test-check-domain.py</code> and <code>test-bash-write-guard.py</code> give a <strong>false red from the wrong cwd</strong> (13/14 and 25/27 from <code>bin/</code>, 14/14 and 27/27 from the root). T-03/T-04/T-05 all modify them.</td><td>enhancement</td></tr><tr><td>B-5</td><td>D-01 names three CLI subcommands; T-01&#x27;s intent specifies a fourth (<code>path</code>) and four were built. Intent is the executable spec, so delivery is right and the decision text is stale.</td><td>chore</td></tr><tr><td>B-6</td><td>SC-06 is named by no task, though T-09&#x27;s <code>verify:</code> implements its assertion verbatim.</td><td>chore</td></tr><tr><td>B-7</td><td><code>expertise-merge.py</code>&#x27;s exit-6 lock-held branch never fired in a real race (20/20 landed the union); covered only by a direct lock-file test. Coverage asymmetry, not a defect.</td><td>chore</td></tr><tr><td>B-8</td><td><code>factory_config.workspace_path()</code>&#x27;s docstring enumerates its callers and claims sole ownership; T-01 adds one and <code>harness_boundary.py</code> was already uncited, but that file is in no task&#x27;s <code>files:</code>, so the enumeration goes stale.</td><td>chore</td></tr><tr><td>B-9</td><td>A task-notification fired for a member that then continued and notified again with different figures. The lead treated the first as terminal and sent a send-back, briefly putting two writers on one file. No damage, but <strong>a lead cannot distinguish &quot;stopped&quot; from &quot;paused&quot;</strong> and the serialization rule assumes it can.</td><td>bug</td></tr><tr><td>B-10</td><td>The orchestrator cannot re-run any red proof in this plan (every one copies <code>bin/</code> to temp; the guard denies it). Red-proof verification is structurally impossible at layer 1.</td><td>enhancement</td></tr></tbody></table></div>
+<h2 id="what-i-did-not-do">What I did not do</h2>
+<p>No PR, no merge, no review panel, no goal-check, no simplify, no commit. The panel and goal-check belong after your five tasks: T-04 and T-05 carry the highest-risk surfaces, five of the twelve criteria (SC-02b, SC-02c, SC-03, SC-05, SC-06) cannot be graded until they land, and a panel on a half-diff would be invalidated the moment they did.</p><p class='derived'>Derived from <code>ship-review-2026-08-20-01-build-eng.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
