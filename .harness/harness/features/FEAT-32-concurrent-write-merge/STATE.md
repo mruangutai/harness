@@ -47,11 +47,13 @@ landed. The lead had already done the thing that saved the round — it caught t
 `cycles_used` **0** of 10, 2 runs of 20. A forced close is not rework, and charging it would hide
 the defect (DEC-157).
 
-Route check re-run by the orchestrator at `c32f332`: `check-plan-routes.py` exits 0, **zero
-VIOLATIONs**, 11 DEVIATIONs tree-wide of which **4 are FEAT-32's** — T-01, T-07, T-08, T-09, the
-deliberate DEC-174 shape under DEC-179. A grep of that output for "FEAT-32" returns only 1; six
-DEVIATION lines name `bin/` paths with no feature directory, so the id must be attributed per item,
-not counted by grep.
+Route check re-run by the orchestrator **after** the amend, at `7af4db4`: `check-plan-routes.py`
+exits 0, **zero VIOLATIONs**, 12 DEVIATIONs tree-wide of which **5 are FEAT-32's** — T-01, T-07,
+T-08, T-09 and the newly added **T-14**, each the deliberate DEC-174 shape under DEC-179. (Before the
+amend, at `c32f332`, it was 11 and 4; T-14 is the new one.) Attribution must be per item: a grep of
+that output for "FEAT-32" returns only **1**, because seven DEVIATION lines name `bin/` paths with no
+feature directory in them, so the id appears only incidentally. T-11, T-12 and T-15 are also
+`main-session-direct` and raise no deviation.
 
 ## Open Questions
 
