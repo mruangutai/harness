@@ -47,12 +47,183 @@ try:
 except Exception:
     sys.exit(0)
 
+# MOVED UP (FEAT-30 T-05), verbatim and unchanged. The HEAD-move rule below runs
+# BEFORE the harness-dev-ops early return under ruling R-01, so both helpers must
+# already exist at that point. Nothing about either function changed.
+def mask_quoted(text):
+    """Blank the CONTENTS of quoted spans, preserving length and the quotes.
+
+    The redirect scan below is a regex over the raw command, so a `>` inside a
+    quoted string was read as an operator. That blocked the MANDATED
+    `Co-Authored-By: … <noreply@anthropic.com>` trailer on every agent commit, an
+    arrow in a printed string, and an HTML comment in prose (Task #5).
+
+    Masking rather than deleting keeps offsets and lengths intact, so a QUOTED
+    redirect target still yields a capturable token: `> "src/x.py"` becomes
+    `> "xxxxxxxxx"`, which still finds the redirect and still blocks. The guard
+    fails safe — a masked span can only hide `>` characters that bash itself
+    would treat as literal text, never an operator.
+    """
+    out, q = [], None
+    for ch in text:
+        if q:
+            if ch == q:
+                q = None; out.append(ch)
+            else:
+                out.append("x")
+            continue
+        if ch in "\"'":
+            q = ch
+        out.append(ch)
+    return "".join(out)
+
+def segments(text):
+    """Split a compound command into its parts at UNQUOTED shell separators.
+
+    `shlex.split` leaves `;` attached to the preceding token ('docs/a.md;'), so the
+    guard's `if a in (";", "&&", ...)` break never fired and the NEXT command's name was
+    collected as an operand — `rm -f docs/a.md; echo ok` was refused for "rm targets
+    echo" (B-6). Splitting first makes each command's operand list actually end.
+    """
+    parts, cur, q, i = [], [], None, 0
+    while i < len(text):
+        ch = text[i]
+        if q:
+            cur.append(ch)
+            if ch == q:
+                q = None
+            i += 1
+            continue
+        if ch in "\"'":
+            q = ch; cur.append(ch); i += 1; continue
+        two = text[i:i + 2]
+        if two in ("&&", "||"):
+            parts.append("".join(cur)); cur = []; i += 2; continue
+        if ch in ";\n|&":
+            parts.append("".join(cur)); cur = []; i += 1; continue
+        cur.append(ch)
+        i += 1
+    parts.append("".join(cur))
+    return [p for p in (s.strip() for s in parts) if p]
+
+
 agent = d.get("agent_type") or ""
 if not agent:
     sys.exit(0)
 
+# =============================== THE HEAD-MOVE RULE ===============================
+# REQ-04. HEAD is SHARED MUTABLE STATE for the duration of a run: one governed agent
+# moving it re-points every file under every other agent standing in that checkout.
+#
+# PLACEMENT IS THE RULE, NOT A DETAIL. Operator ruling R-01 of 2026-08-20: this runs
+# BEFORE the harness-dev-ops early return below, so it binds ALL SIXTEEN governed
+# agents. Placed after that return it would provably never reach harness-dev-ops —
+# the return precedes the `harness-` prefix test — and T-01, T-02 and T-08 are laned
+# to exactly that persona. THE EARLY RETURN SURVIVES for every WRITE: it is not
+# deleted, not narrowed, and no second exemption is added. Only the ordering changed.
+#
+# Why that does not contradict DEC-151: the authority at DECISIONS.md:3650 scopes the
+# exemption to extractable TARGET PATHS, and moving HEAD is not one. The recovery path
+# it exists to preserve — dev-ops writing when the guard itself is broken, including
+# writing THIS FILE — is untouched. Accepted cost, recorded in the BRIEF beside REQ-04:
+# when HEAD is wrong and the guard is working, dev-ops cannot fix it either, and the
+# repair is the operator's from the main session, which carries no agent_type.
+#
+# THE MAIN SESSION IS NOT GOVERNED and is unaffected — it has no agent_type, so it
+# returned at the check above. The case where IT moves a branch under a live run is
+# answered by isolation instead: after T-01 each orchestrator commits inside its own
+# worktree.
+GIT_GLOBAL_FLAGS_WITH_VALUE = ("-C", "-c", "--git-dir", "--work-tree", "--namespace",
+                               "--exec-path", "--super-prefix")
+
+# THE REFUSE LIST IS THE CLOSED SET. Everything else DECIDABLE is allowed and only the
+# UNDECIDABLE case is refused — this direction is load-bearing under R-01, not a
+# nicety: T-01's and T-02's verify blocks run `git show` against the pinned sha and are
+# executed by harness-dev-ops, which R-01 now binds. An implementation reading its list
+# as exhaustive-by-default would refuse a task's own verification command.
+HEAD_MOVERS = {"switch", "rebase", "merge", "cherry-pick", "revert"}
+
+
+def _git_subcommand(tokens):
+    """(subcommand, operands) for a git invocation, or (None, []) if undecidable.
+
+    Walks the RAW args so flag/value coupling survives: filtering flags out first and
+    then re-finding the subcommand by string would match a flag's VALUE. Same shape
+    filtering the worktree parser below already applies, including a leading `-C`.
+    """
+    i = 0
+    while i < len(tokens):
+        t = tokens[i]
+        if t in GIT_GLOBAL_FLAGS_WITH_VALUE:
+            i += 2
+            continue
+        if t.startswith("-"):
+            i += 1
+            continue
+        return t, tokens[i + 1:]
+    return None, []
+
+
+def _moves_head(sub, operands, project_root):
+    """True when this git invocation moves HEAD. See HEAD_MOVERS for the closed set."""
+    if sub in HEAD_MOVERS:
+        return True
+    if sub == "checkout":
+        # A pathspec checkout RESTORES FILES and moves nothing. `--` is the explicit
+        # form; otherwise every non-flag operand naming an existing path is a pathspec.
+        # `-B` is a forced branch re-point and moves HEAD whatever else is present.
+        if any(o in ("-B", "-b") for o in operands):
+            return True
+        if "--" in operands:
+            return False
+        rest = [o for o in operands if not o.startswith("-")]
+        if rest and all(os.path.exists(os.path.join(project_root, o)) or os.path.exists(o)
+                        for o in rest):
+            return False
+        return True
+    if sub == "reset":
+        # A hard, keep or merge reset moves HEAD. `--soft` and a bare/pathspec reset do
+        # not: they move the index, which is not shared checkout state.
+        return any(o in ("--hard", "--keep", "--merge") for o in operands)
+    return False
+
+
+if agent.startswith("harness-"):
+    _cmd_head = ((d.get("tool_input") or {}).get("command") or "")
+    if _cmd_head:
+        _proot = os.environ.get("CLAUDE_PROJECT_DIR") or _derived
+
+        def _refuse_head(what):
+            print(f"bash-write-guard: BLOCKED — {what}", file=sys.stderr)
+            print("  HEAD is SHARED MUTABLE STATE for the duration of a run: moving it "
+                  "re-points every file under every other agent standing in this "
+                  "checkout.", file=sys.stderr)
+            print("  Work in the worktree cut for this feature and address it with git's "
+                  "-C option rather than moving to it.", file=sys.stderr)
+            sys.exit(2)
+
+        for _seg in segments(_cmd_head):
+            try:
+                _tk = shlex.split(_seg, posix=True)
+            except ValueError:
+                _tk = _seg.split()
+            if not _tk or os.path.basename(_tk[0]) != "git":
+                continue
+            _sub, _ops_head = _git_subcommand(_tk[1:])
+            if _sub is None:
+                # UNDECIDABLE, so refused — the direction DEC-151 already chose for the
+                # unparsed worktree destination. A git call whose subcommand this guard
+                # cannot find is not one it may judge safe.
+                _refuse_head("a `git` command whose subcommand this guard cannot "
+                             "determine, so it cannot say whether it moves HEAD")
+            if _moves_head(_sub, _ops_head, _proot):
+                _refuse_head(f"`git {_sub}` moves HEAD, and every harness agent is "
+                             f"refused this for the duration of a run")
+
 # harness-dev-ops is EXEMPT: it owns the tooling this guard is made of, and blocking
-# it would remove the one recovery path when the guard itself is broken.
+# it would remove the one recovery path when the guard itself is broken. THE HEAD-MOVE
+# RULE ABOVE IS DELIBERATELY NOT SUBJECT TO IT (ruling R-01) — this exemption covers
+# WRITES, which is the scope DEC-151 gives it.
 if agent == "harness-dev-ops":
     sys.exit(0)
 if not agent.startswith("harness-"):
@@ -153,33 +324,6 @@ REVIEWERS = {"harness-code-reviewer", "harness-security-reviewer", "harness-ui-r
 # --- detect write patterns and extract candidate target paths where parseable ---
 findings = []   # (pattern-name, [paths])
 
-def mask_quoted(text):
-    """Blank the CONTENTS of quoted spans, preserving length and the quotes.
-
-    The redirect scan below is a regex over the raw command, so a `>` inside a
-    quoted string was read as an operator. That blocked the MANDATED
-    `Co-Authored-By: … <noreply@anthropic.com>` trailer on every agent commit, an
-    arrow in a printed string, and an HTML comment in prose (Task #5).
-
-    Masking rather than deleting keeps offsets and lengths intact, so a QUOTED
-    redirect target still yields a capturable token: `> "src/x.py"` becomes
-    `> "xxxxxxxxx"`, which still finds the redirect and still blocks. The guard
-    fails safe — a masked span can only hide `>` characters that bash itself
-    would treat as literal text, never an operator.
-    """
-    out, q = [], None
-    for ch in text:
-        if q:
-            if ch == q:
-                q = None; out.append(ch)
-            else:
-                out.append("x")
-            continue
-        if ch in "\"'":
-            q = ch
-        out.append(ch)
-    return "".join(out)
-
 SHELL_FEEDERS = {"bash", "sh", "zsh", "dash", "ksh"}
 
 
@@ -235,36 +379,6 @@ def strip_heredoc_bodies(text):
 # so a novel or obfuscated feeder cannot smuggle a redirect past the guard.
 KNOWN_DATA_FEEDERS = {"cat", "python", "python3", "git", "tee", "jq", "sed", "awk",
                       "grep", "node", "ruby", "perl", "psql", "sqlite3", "mail", "ssh"}
-
-
-def segments(text):
-    """Split a compound command into its parts at UNQUOTED shell separators.
-
-    `shlex.split` leaves `;` attached to the preceding token ('docs/a.md;'), so the
-    guard's `if a in (";", "&&", ...)` break never fired and the NEXT command's name was
-    collected as an operand — `rm -f docs/a.md; echo ok` was refused for "rm targets
-    echo" (B-6). Splitting first makes each command's operand list actually end.
-    """
-    parts, cur, q, i = [], [], None, 0
-    while i < len(text):
-        ch = text[i]
-        if q:
-            cur.append(ch)
-            if ch == q:
-                q = None
-            i += 1
-            continue
-        if ch in "\"'":
-            q = ch; cur.append(ch); i += 1; continue
-        two = text[i:i + 2]
-        if two in ("&&", "||"):
-            parts.append("".join(cur)); cur = []; i += 2; continue
-        if ch in ";\n|&":
-            parts.append("".join(cur)); cur = []; i += 1; continue
-        cur.append(ch)
-        i += 1
-    parts.append("".join(cur))
-    return [p for p in (s.strip() for s in parts) if p]
 
 
 scan_text = strip_heredoc_bodies(cmd)
@@ -421,9 +535,37 @@ for seg_tokens in tokens:
                 continue
             _ops.append(_a)
             _j += 1
-        if len(_ops) < 2 or _ops[0] != "worktree" or _ops[1] not in ("add", "move"):
+        # `remove` and `prune` ADMITTED here (FEAT-30 T-05, SC-07's Bash-route half).
+        # THE SAME PARSER, extended — not a second one, and its operand walk is not
+        # duplicated. Measured at eeabc59: this test read `_ops[1]` against add and move
+        # ONLY, so `remove` was never inspected and a FORCED removal passed at exit 0.
+        # T-02's refusal lives inside feature-worktree.py, and a governed agent bypasses
+        # a CLI by calling git directly — a gate an agent can route around is the shape
+        # this feature exists to replace.
+        if len(_ops) < 2 or _ops[0] != "worktree" or _ops[1] not in ("add", "move",
+                                                                    "remove", "prune"):
             continue
         _sub = _ops[1]
+
+        if _sub in ("remove", "prune"):
+            # NO DIRTY-TREE DETECTOR HERE, deliberately, and that is why this rule is
+            # small: WITHOUT a force flag git itself already refuses a dirty tree at
+            # exit 128. Refusing the force flag IS the whole mechanism. This guard
+            # cannot cheaply know whether a tree is dirty and does not need to.
+            if any(a in ("-f", "--force") or a.startswith("--force=") for a in _args):
+                print(f"bash-write-guard: BLOCKED — `git worktree {_sub}` carrying a "
+                      f"force flag.", file=sys.stderr)
+                print("  Use `.claude/skills/harness/bin/feature-worktree.py remove`: it "
+                      "refuses on a dirty tree and reports every path it would discard.",
+                      file=sys.stderr)
+                print("  Without --force git refuses a dirty tree itself; forcing is how "
+                      "unlanded work is destroyed silently.", file=sys.stderr)
+                sys.exit(2)
+            # Unforced: git decides. The destination logic below is for add and move
+            # only — remove and prune carry no destination this guard must resolve, so
+            # nothing about the existing add/move behaviour changes.
+            continue
+
         _dest = _worktree_destination(_args[_j:], _sub)
 
         def _refuse_worktree(why):

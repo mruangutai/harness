@@ -205,12 +205,17 @@ if _resolve_target is not None:
         print("NOBODY")
         sys.exit(0)
 
-    # Normalise exactly as the hook does, including the worktree strip — a path given
-    # from inside .claude/worktrees/<id>/ must resolve against the checkout the agent
-    # is standing in, not against a glob nobody wrote.
+    # Normalise exactly as the hook does — a path given from inside a worktree must
+    # resolve against the checkout the agent is standing in, not against a glob nobody
+    # wrote. FEAT-30 T-04: this asks WHICH CHECKOUT via checkout_relative instead of
+    # stripping a fixed number of segments, so the depth is not load-bearing here either.
+    # Same candidate ordering: base-relative first, checkout-relative second when one is
+    # returned and differs from the base.
     _rel = os.path.relpath(_abs, _base)
-    _wt = harness_boundary.WORKTREE_REL_RE.match(_rel)
-    _cands = [_rel] + ([_wt.group(1)] if _wt else [])
+    _cands = [_rel]
+    _ck = harness_boundary.checkout_relative(_abs)
+    if _ck is not None and harness_boundary.real(_ck[0]) != harness_boundary.real(_base):
+        _cands.append(_ck[1])
 
     # Every agent carrying a `domain:` list, at EVERY nesting level — members sit
     # under teams[].members[], leads under `leads:`, and harness-orchestrator is a
@@ -599,8 +604,13 @@ _SWEEP_PATTERNS = (
     ".harness/*/features/*/notes/handoff-*.md",
     ".harness/*/features/*/STATE.md",
 )
-SWEEP_GLOBS = tuple(_p for _p in _SWEEP_PATTERNS) + tuple(
-    os.path.join(".claude", "worktrees", "*", _p) for _p in _SWEEP_PATTERNS)
+# ROOT-LEVEL ONLY. The worktree half used to be spelled here as the segment joined to ONE
+# star, which assumed exactly one directory after it: under a `<segment>/<repo>/<id>/`
+# layout it reached NO FILE IN ANY WORKTREE, and a glob that matches nothing reports
+# nothing — a silent regression, never a refusal. FEAT-30 T-04 derives the worktree
+# patterns at sweep time from `harness_boundary.linked_worktrees`, which enumerates the
+# checkouts git itself registered, so no depth is assumed anywhere.
+SWEEP_GLOBS = tuple(_SWEEP_PATTERNS)
 # WHAT THE SWEEP READS, and why it is a HIGH-WATER MARK rather than a fixed window.
 #
 # A fixed 120 s window was the first design and review broke it twice, both measured:
@@ -624,6 +634,15 @@ SWEEP_GLOBS = tuple(_p for _p in _SWEEP_PATTERNS) + tuple(
 #   stat all 120 .................... 0.2 ms   <- the sweep with one
 # Interpreter start-up dominates what remains: ~38 ms of the ~42 ms per post-Bash call.
 SWEEP_WINDOW_S = 120
+
+# Guards the post-sweep's clean-tracked skip and nothing else. False reproduces the
+# pre-2026-08-21 behaviour exactly: every candidate whose mtime beats the mark is swept,
+# including the fresh copy `git worktree add` just materialised. Nothing outside this
+# file's source text changes it — no environment variable, no flag — so a test proves its
+# own assertions are load-bearing by mutating this literal, BY NAME, in a COPY of this
+# file. Same pattern as expertise-merge.py's UNION_APPLY and feature-worktree.py's
+# REFUSE_ON_DIRTY.
+SWEEP_SKIP_CLEAN_TRACKED = True
 # Git-ignored, one line, mtime-only — the file's CONTENT is never read, only its mtime.
 STAMP = os.path.join(".harness", ".shape-sweep-stamp")
 
@@ -639,10 +658,41 @@ def _show(path):
 
 
 def _norm(path):
-    """Repo-relative, worktree-stripped (DEC-143). The one path normalisation."""
+    """Repo-relative, or relative to the checkout the path stands in (DEC-143).
+
+    FEAT-30 T-04: this was the FOURTH consumer of the fixed-segment strip and the only
+    one that spelled the segment as its own inline literal — at `eeabc59` it never
+    referenced `WORKTREES_SEGMENT` at all. That is why the shape caps went dark under a
+    two-level layout while every gate stayed green.
+
+    MEASURED at `eeabc59`, `harness-orchestrator` writing a 204-line STATE.md against a
+    120-line budget, same repo-relative path in three places: the main checkout refused
+    with the SHAPE reason naming DEC-150; one-level `.claude/worktrees/WT1` also refused
+    with that shape reason; two-level `.claude/worktrees/harness/WT1` refused with the
+    DOMAIN reason instead. The third never reached the shape gate — the old regex left the
+    repository segment in the path, so `WT1/.harness/...` matched none of
+    `RE_FEATURE_JSON`, `RE_STATE_YAML`, `RE_HANDOFF` or `RE_STATE_MD`. Fixing classify and
+    the resolve path alone would have lifted the domain refusal that was MASKING it:
+    writes succeed, budgets unenforced, suite green.
+
+    Reading the segment from the constant in one place also strengthens the existing
+    `WORKTREES_SEGMENT` mutation proof in `test-bash-write-guard.py` — mutating the
+    constant now reaches this consumer too, where before it left this second copy
+    untouched and the proof was blind to it.
+
+    THE IMPORT ABSORBS FAILURE, deliberately, and falls back to the base-relative value.
+    The shape phase must not gain a fail-closed dependency: that would block the main
+    session on the very write that repairs the module.
+    """
     rel = os.path.relpath(os.path.abspath(path), os.path.abspath(root))
-    wt = re.match(r"^\.claude/worktrees/[^/]+/(.+)$", rel)
-    return wt.group(1) if wt else rel
+    try:
+        import harness_boundary as _hb
+        _ck = _hb.checkout_relative(os.path.abspath(path))
+        if _ck is not None and _hb.real(_ck[0]) != _hb.real(root):
+            return _ck[1]
+    except Exception:
+        pass
+    return rel
 
 
 # THE VERB IS MODE-DEPENDENT, and this was a review finding. In PRE the write is genuinely
@@ -1022,11 +1072,98 @@ else:
     if _since > _now:
         _since = _now - SWEEP_WINDOW_S
     _unreadable = False
-    for _pat in SWEEP_GLOBS:
-        for _p in _glob.glob(os.path.join(root, _pat)):
+    # THE SWEEP SURFACE: the five patterns at the root, plus the same five inside every
+    # checkout git has registered as a linked worktree of this root. ABSORBING, and that
+    # matters: an unimportable module must leave the root-level sweep working exactly as it
+    # does today rather than taking the whole reporter down.
+    # Each entry is (the checkout the pattern belongs to, the glob). The checkout is
+    # carried because `_unmodified_since_commit` below asks git a question that only makes
+    # sense relative to ONE checkout, and a worktree is a checkout of its own.
+    _sweep = [(root, os.path.join(root, _p)) for _p in SWEEP_GLOBS]
+    try:
+        import harness_boundary as _hb_sweep
+        for _wt_root in _hb_sweep.linked_worktrees(root):
+            _sweep.extend((_wt_root, os.path.join(_wt_root, _p)) for _p in SWEEP_GLOBS)
+    except Exception:
+        pass
+
+    # --- mtime IS NOT EVIDENCE OF A WRITE AFTER A CHECKOUT OPERATION.
+    #
+    # MEASURED 2026-08-21: `feature-worktree.py create` ran `git worktree add`, which
+    # materialises a fresh copy of every tracked file, so all 126 files matching
+    # SWEEP_GLOBS in the new checkout carried an mtime of that second. The sweep has no
+    # status filter — it asks only `st_mtime > _since` — so it shape-checked all 126,
+    # including 25 features whose status is Done. Two of them hold long-standing shape
+    # violations (FEAT-02's STATE.md has five illegal sections; FEAT-05's is 165 lines
+    # against the 120 cap), so creating a worktree reported those two files as
+    # `OVER BUDGET (already written)` against the agent that cut the tree.
+    #
+    # THAT REPORT IS FALSE IN THE ONE FIELD AN AGENT ACTS ON: authorship. It names files
+    # the agent never opened, and both live outside any ordinary agent's team-config
+    # domain — so an agent that obeys the message is DENIED by this same hook. A gate that
+    # instructs an agent to perform a write it will then refuse burns cycles on a premise
+    # that was never true. And it is not a one-off: every worktree creation from here on
+    # floods the sweep with the whole corpus, because DEC-95 makes a worktree per feature
+    # the normal path rather than an occasional one.
+    #
+    # THE DISCRIMINATOR IS CONTENT, NOT TIME. A file `git worktree add` wrote is byte-
+    # identical to its committed blob, by construction. A file an agent wrote is either
+    # modified against HEAD or untracked. So the sweep now skips a candidate that is
+    # clean-tracked in its own checkout and keeps every modified or untracked one.
+    #
+    # THE COST, STATED RATHER THAN DISCOVERED: an agent that writes content byte-identical
+    # to what is already committed is no longer reported here. That write introduces no
+    # uncommitted change, and the committed corpus is check-state.sh's sweep, not this
+    # one — INV-23 reported both STATE.md files above on every run while this hook stayed
+    # silent about them until a worktree appeared. Two gates, two scopes: check-state.sh
+    # owns what is committed, this hook owns what a Bash command just wrote.
+    #
+    # ABSORBING, deliberately, and it fails OPEN to today's behaviour. If git cannot be
+    # reached the candidate is swept exactly as it is now. The alternative — treating an
+    # unanswerable question as "clean" — would disable the sweep silently, which is this
+    # repository's most-filed defect shape.
+    import subprocess as _subprocess
+    _clean_cache = {}
+
+    def _unmodified_since_commit(_checkout):
+        """The set of repo-relative paths in `_checkout` that DIFFER from HEAD or are
+        untracked, or None when git could not answer. None means sweep everything.
+
+        Two `-z` calls rather than one `status --porcelain`: with -z a rename record emits
+        the original path as a second NUL-separated field carrying no status prefix, so a
+        naive split invents a path. `diff --name-only` and `ls-files --others` both emit
+        plain NUL-separated paths with no prefixes and no quoting to undo."""
+        if _checkout in _clean_cache:
+            return _clean_cache[_checkout]
+        _found = None
+        try:
+            _dirty = set()
+            for _argv in (["diff", "--name-only", "-z", "HEAD"],
+                          ["ls-files", "-z", "--others", "--exclude-standard"]):
+                _r = _subprocess.run(["git", "-C", _checkout] + _argv,
+                                     capture_output=True, text=True, timeout=15)
+                if _r.returncode != 0:
+                    raise RuntimeError(_r.stderr)
+                _dirty.update(_x for _x in _r.stdout.split("\0") if _x)
+            _found = _dirty
+        except Exception:
+            _found = None
+        _clean_cache[_checkout] = _found
+        return _found
+
+    for _checkout, _pat in _sweep:
+        _dirty_set = _unmodified_since_commit(_checkout)
+        for _p in _glob.glob(_pat):
             try:
                 if os.stat(_p).st_mtime <= _since:
                     continue
+                # SKIP A CLEAN-TRACKED CANDIDATE. `_dirty_set is None` means git could
+                # not answer, and then nothing is skipped.
+                if SWEEP_SKIP_CLEAN_TRACKED and _dirty_set is not None:
+                    _rel_in_checkout = os.path.relpath(
+                        os.path.realpath(_p), os.path.realpath(_checkout))
+                    if _rel_in_checkout not in _dirty_set:
+                        continue
                 with open(_p, encoding="utf-8", errors="replace") as _f:
                     # Third element: the repo-relative path WITHOUT the worktree strip, so
                     # a finding names the checkout it came from.
