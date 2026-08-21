@@ -3,61 +3,79 @@
 ## Current
 
 - feature: FEAT-30-worktree-per-feature
-- run: none — plan phase complete, awaiting the operator's signature
-- squad: none
-- status: awaiting-user
+- phase: build — ENDED, blocked on one operator ruling (phase recorded here; the shape gate denies a
+  `phase` key in feature.json)
+- run: 2026-08-20-01-build-eng — returned BLOCKED. T-01 PASS, T-02 PASS, T-06 PASS, T-08 FAIL, T-10 PASS
+- squad: eng
+- status: blocked
+- cycles_used: 7 of 13 (six remaining). Runs 7 of 20, informational.
 
-plan.yaml is amended and unsigned: 10 tasks, 9 decisions, 2 operator rulings, 1395 lines,
-`approval.status: pending`. BRIEF.md is 250 lines and still `approved` — the REQ-04 change is a
-scope statement on an already-signed requirement, not a re-approval. cycles_used 5 of 13 (raised
-from 10 on the operator's instruction, recorded as R-02); six runs, both amend rounds PASS.
+All five team-lane tasks are BUILT. **Nothing is committed and nothing is staged**, deliberately:
+`gates.qa_gate` is blocking, the integration suite is red, and SC-09 is violated right now — a test
+that passed at `49c528a` fails at HEAD. No task was marked `done` in plan.yaml and no `close-task`
+was run, because nothing has landed; recording otherwise would falsify the board. The five team tasks
+remain `building`.
 
-All three operator items landed. REQ-04 binds ALL SIXTEEN governed agents, matcher ahead of the
-`harness-dev-ops` exemption at `bash-write-guard.sh:56-57`, T-05 carrying the discriminating pair.
-SC-01b is `verify: automated  evidence: integration` owned by T-10, whose shape I measured before it
-was written — twelve concurrent trials, zero failures, shared-checkout negative detected four ways
-(`notes/orchestrator-M16-sc01b-is-automatable.md`). must_fix M-1 discharged in T-09 point 3.
+**THE BLOCKER — one ruling, one line.** `test-harness-yaml.py` asserts exactly one guarded import in
+`bin/` against a hardcoded allowed set of three; `feature-worktree.py` is a fourth because T-01's
+signed intent REQUIRED it ("import harness_boundary lazily and, if the import fails, exit 2 with a
+message naming the module"). Approved plan versus existing invariant, and no task owns the
+reconciliation. Option A: add the file to the allowed set (one line, but a file in no task's `files:`).
+Option B: drop the guard (in scope, breaks no test, departs from a signed instruction). **Recommend A**
+— `check-domain.sh` is already allowed for guarding first-party `feature_schema`, and the test's own
+comment keeps assertion 2 a subset so new cases can land. Measured in fairness to B: NOTHING tests the
+guarded branch, so `exit 2` is not load-bearing on any evidence. One failing assertion, 18 ok lines.
+Full analysis: `notes/orchestrator-M20-signed-intent-vs-existing-invariant.md`.
 
-Verified at this state: `check-plan-routes.py` exits 0 with only the expected T-03/T-04/T-05
-DEVIATIONs and `OK T-10`; the DEC-174 carve-out holds by hand-check — no team-laned task touches any
-of the six hook-registered scripts; `check-state.sh` adds no FEAT-30 violation; the plan parses with
-exactly ten unique task ids after two writers ran against it.
+Briefing for the operator: `notes/ship-review-2026-08-20-01-build-eng.md` (+ rendered `.html`).
+Work order for the operator's five tasks: `notes/layer0-segments-FEAT-30.md`.
 
-Round 2 was dispatched on a premise its own pm falsified — round 1 was never force-closed before its
-artifact, and the 1243-line/T-10-absent reading that justified the dispatch was a snapshot taken
-mid-write of the run that landed the whole amendment. It earned its place anyway: on one send-back it
-removed T-10's falsified REQ-03 trace, replaced an exit-status-only red proof with one that
-distinguishes a load-bearing predicate from a broken suite, and recorded the false premise.
+Suites: unit exit 0 / 179 PASS / 0 FAIL (unchanged from baseline, correct). Integration exit 1 / 212
+PASS / 2 FAIL, where the 2 lines are ONE defect reported twice (assertion + script summary). Growth
++122 decomposes as 74 + 32 + 14 + 2 runner lines, so both suites are genuinely discovered, not
+passing silently.
+
+Reviewed substantively, not by verdict: SC-02 via `merge-base` against the pre-create tip; SC-04 and
+SC-07 print per-path `MISSING/DIFFERS/VERIFIED` and `WOULD DISCARD` with content hashes, never counts;
+SC-08 drives two concurrent `Popen` writers asserting by named entry; SC-01b case A asserts all six
+pairwise write-window overlaps plus "no other branch advanced". I also invoked the CLI against the
+REAL repo: `list --repo harness` returns the FEAT-31 tree, exit 0, legacy one-segment worktree
+included and main checkout excluded.
 
 ## Open Questions
 
-- must_fix M-2, still outstanding and the only thing between this plan and signature. REQ-04's
-  justification quotes DEC-151's INDEX SUMMARY ROW as though it were the ruling, at `BRIEF.md:92-93`
-  ("its own ruling reads") and `plan.yaml:17` ("its ruling reads"). The authority
-  (`DECISIONS.md:3650-3652`) reads "gets extractable target paths checked against its team-config
-  domain". Substance unaffected; the correct citation is STRONGER, because DEC-151 grounds the
-  exemption in DEC-85, and DEC-85 (`:1084-1106`) contains zero occurrences of "exempt" while its only
-  mention of dev-ops (`:1092`) corrects the premise that dev-ops is special on the Bash route. Three
-  tiers argued REQ-04 from the index row before anyone opened the entry.
-- T-10's `team` lane is a JUDGEMENT no tool can settle. `feature-worktree.py` is in no hook block of
-  `.claude/settings.json`, but it REFUSES (dirty tree, unlanded artifacts, no force flag), and a
-  script that refuses is arguably a gate script — if it is one, DEC-174 am.4's own precedent makes its
-  test file enforcement layer and T-10 `main-session-direct`. The plan is at least consistent: T-01
-  and T-02 build that CLI and are also `team`. An approval-time call.
-- The SC-01b failure budget lives at `approval.rulings` R-02, INSIDE the `approval:` block. Any
-  process that rewrites `approval:` on signature carries the budget away with it, and a reader hunting
-  fix surfaces reads `decisions:` or `tasks:`.
-- T-10's red proof has a residual FLAKE surface that fails CLOSED, never green: under neutering, if
-  the shared fixture hits an index lock, case B is satisfied by its alternative path, the predicate is
-  never called, and the proof reports vacuity for a reason that is not vacuity. No false PASS is
-  reachable and a re-run resolves it.
-- SC-06 is named by no task, though T-09's verify implements its assertion verbatim. A traceability
-  gap, not a delivery gap — and nothing in the harness maps BRIEF criteria to plan tasks.
-- Carried unchanged, not acted on: Q11 (where an Expertise close-out write lands once runs are
-  isolated), Q12 (T-08's lane on ambiguous DEC-174 text), Q13 (DEC-193's and DEC-95's stale spelling
-  of the worktree location), Q14 (nothing serialises two writers on one plan.yaml — only a
-  hand-written idempotence clause prevented a duplicate T-10), Q15 (the digest contract admits no
-  in-flight shape — FOUR occurrences on this feature, and it produced round 2's false premise), Q16
-  (no verdict for a step whose work landed but whose return was lost).
-- D-09 accepts that a directory under WORKTREES_SEGMENT with no git pointer stops being
-  budget-checked. Unchanged; the architecture review ruled it worth no cycle.
+- **Q1, BLOCKING — the guarded-import ruling above.** Only the operator can settle it; both remedies
+  alter something signed.
+- **Q3 — `plan.yaml`'s T-10 `verify:` is unrunnable as written.** It copies a single file, which
+  cannot import sibling `harness_boundary` and dies `ModuleNotFoundError` before any assertion, on the
+  pristine file — verified by inspection, no `sys.path` manipulation exists. The member re-expressed it
+  as `cp -R` matching T-06's precedent and disclosed it. The plan still needs pm's one-line fix or every
+  future re-verification of T-10 fails spuriously.
+- **Q2 is SETTLED, not open.** The `cp -R … "$T/bin"` contradiction is persona, not syntax: the guard
+  does not expand `$T` (it printed the literal), but `bash-write-guard.sh:49-57` exits early for no
+  `agent_type` and for `harness-dev-ops`. Four consistent points: T-02 dev-ops green, T-06 backend-dev
+  denied, orchestrator denied, operator carries no `agent_type`. **T-03/T-04/T-05 will run literally
+  as written for the operator.**
+- **Both plan-text defects trace to ONE choice** — T-01 importing a sibling module. Guarded form trips
+  the cap (Q1); sibling nature breaks a one-file copy (Q3). Neither is a builder error.
+- **Weakest points, stated plainly.** (1) T-01's red proof reddens at the fixture GUARD, so SC-01's
+  static isolation assertions are green without being shown able to redden. (2) `list` uses
+  `commonpath` as required but no `worktrees-old` sibling case asserts it, so a `startswith` refactor
+  would pass. (3) T-10's case B satisfied itself via the committer-failure path ~13 times without
+  calling the predicate — R-02's failure mode 3, NOT the documented flake; the squad fixed it and got
+  8/8. Had it been retried past as "the known flake", SC-01b would have shipped green and incapable of
+  red.
+- **Fail-open window until T-04.** `harness_boundary.py:37` and `check-domain.sh:644` hard-code one
+  path segment; `dest_for` writes two. Do NOT create a real feature worktree with the new CLI until
+  T-04 lands. The live FEAT-31 tree is one segment, so it IS governed today.
+- **I cannot verify any red proof at layer 1 by construction** — each begins by copying `bin/` to
+  temp and the guard denies the orchestrator's `cp`. Red-proof claims rest on members' reported output.
+- Backlog B-1..B-10 are enumerated in the briefing. B-1 matters soonest: the qa gate will emit a FALSE
+  "integration missing" FAIL on T-04, because `test_kinds.integration.detect` names 4 scripts while
+  the runner runs 12, and T-04's own test files are not among the 4.
+- **This feature falsifies DEC-193** (`.claude/worktrees/<id>/` versus the delivered `<repo>/<id>`).
+  No task touches docs; nothing detects a falsified decision. Recommend am.3 after T-04, routed to
+  `harness-documentor` through product-lead — a team lane, not operator hands.
+- SC-06 named by no task; D-01 names three subcommands where the intent specifies four; carried Q11,
+  Q12, Q14, Q15, Q16. Q13 superseded by the DEC-193 item — DEC-95 is NOT falsified, it makes no claim
+  about path depth. D-09 unchanged.

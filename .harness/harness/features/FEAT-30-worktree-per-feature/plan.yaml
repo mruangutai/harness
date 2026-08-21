@@ -280,7 +280,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: none
     depends_on: []
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/feature-worktree.py
       - .claude/skills/harness/bin/test-feature-worktree.py
@@ -448,7 +448,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: none
     depends_on: [T-01]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/feature-worktree.py
       - .claude/skills/harness/bin/test-feature-worktree.py
@@ -1025,7 +1025,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: []
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/expertise-merge.py
       - .claude/skills/harness/bin/test-expertise-merge.py
@@ -1168,7 +1168,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: none
     depends_on: [T-02, T-06]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .harness/harness.json
@@ -1285,7 +1285,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: none
     depends_on: [T-02, T-08]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/test-feature-worktree.py
     verify: |

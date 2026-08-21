@@ -2,17 +2,39 @@
   "feature_id": "FEAT-30-worktree-per-feature",
   "branch": "feat/FEAT-30-worktree-per-feature",
   "pr": null,
-  "status": "Plan",
+  "status": "Building",
   "review_sha": "",
-  "cycles_used": 5,
+  "cycles_used": 7,
   "max_total_cycles": 13,
   "max_total_runs": 20,
   "github": {
-    "milestone": null,
+    "milestone": 19,
     "parent": 572,
     "parent_origin": "adopted",
-    "attached": [],
-    "issues": {}
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10"
+    ],
+    "issues": {
+      "T-01": 616,
+      "T-02": 617,
+      "T-03": 618,
+      "T-04": 619,
+      "T-05": 620,
+      "T-06": 621,
+      "T-07": 622,
+      "T-08": 623,
+      "T-09": 624,
+      "T-10": 625
+    }
   },
   "runs": [
     {
@@ -44,6 +66,11 @@
       "id": "amend2-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-20-01-build-eng",
+      "squad": "eng",
+      "verdict": "BLOCKED"
     }
   ]
 }
