@@ -1150,13 +1150,21 @@ change is worse than halting.
 **Note:** two reviews modelled "two developers" as the concurrency threat and missed the one that happens
 on day one — *one* developer who doesn't always use the front door.
 
-## DEC-90 — Single-operator by design, stated as a constraint
+## DEC-90 — STRUCK 2026-08-21
 
-**Chose:** record it (§15.1) rather than leave it implicit. Every "single writer" guarantee means one
-agent in one session on one machine; two terminals means two orchestrators writing `STATE.md`,
-`feature.yaml`, `logs/` and committed Expertise files, with no lock anywhere.
-**Because:** an unstated assumption is a latent bug; a stated one is a scope boundary.
+Recorded the single-operator assumption as a stated scope boundary rather than an implicit one:
+every "single writer" guarantee meant one agent in one session on one machine, and two terminals
+meant two orchestrators writing `STATE.md`, `feature.yaml`, `logs/` and committed Expertise files,
+**with no lock anywhere**.
 
+Struck under DEC-188 on the operator's word. `bin/expertise-merge.py` holds an exclusive lock across
+the whole read-modify-write of an Expertise file, and it reached `main` in FEAT-30 (PR #629), so a
+lock exists on one of the files this entry named as unlocked. FEAT-30 falsified it; FEAT-32, where
+the striking was raised, has not shipped. Nothing was removed from a gate — DEC-90 was wired into
+none. The single-operator boundary now lives in SPEC §15.1 alone; issue #633 records what the strike
+cost.
+
+**DEC-90's number is retired, not reused.** DEC-120 cites it.
 ## DEC-91 — The value claim is restated as "without mid-stage supervision"
 
 **Chose:** "Claude executes reliably at each stage **without mid-stage supervision**."
