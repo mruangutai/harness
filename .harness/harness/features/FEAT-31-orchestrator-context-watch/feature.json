@@ -18,12 +18,12 @@
     {
       "id": "plan-product",
       "squad": "product",
-      "verdict": "BLOCKED"
+      "verdict": "ESCALATE"
     },
     {
       "id": "plan2a-product",
       "squad": "product",
-      "verdict": "BLOCKED"
+      "verdict": "PASS"
     },
     {
       "id": "plan2b-product",
