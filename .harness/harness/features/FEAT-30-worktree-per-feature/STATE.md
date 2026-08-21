@@ -2,118 +2,110 @@
 
 ## Current
 
-- feature: FEAT-30-worktree-per-feature · phase **validate** (recorded here; the shape gate denies a
-  `phase` key in feature.json) · status Review / in_review
-- cycles_used: **7 of 13**, six remaining. qa, simplify and docs each reported ZERO send-backs, so the
-  validate phase has added none. Runs 10 of 20, informational.
-- review_sha: pinned at the validate commit (feature.json). **I ran the qa segment BEFORE pinning,
-  contrary to INV-6** — `check-state.sh` caught it. No harm materialised: the dispatch carried the
-  explicit range `49c528a..fbb3bc0` and qa's numbers match mine exactly. The ordering was still wrong.
-- All ten tasks read `status: done`, verified. Both approvals read `approved` (`BRIEF.md:275-279`,
-  `plan.yaml:4-5`). Surface `49c528a..fbb3bc0`, sixteen source/config files.
+- feature: FEAT-30-worktree-per-feature · phase **validate, COMPLETE and FAILED** on one high ·
+  status Review / awaiting_user. Phase recorded here; the shape gate denies a `phase` key.
+- cycles_used: **7 of 13**, six remaining. All five validate segments reported ZERO send-backs, so
+  this phase added none. Runs 12 of 20, informational and a floor (the operator's five
+  main-session-direct tasks are not runs).
+- review_sha: **`a76d69a`**, pinned and committed. Branch tip is one commit past it and changes only
+  that value. **I ran the qa segment BEFORE pinning, contrary to INV-6** — `check-state.sh` caught it.
+  No harm: the dispatch carried the explicit range and qa's numbers match mine. Ordering was wrong.
+- All ten tasks read `status: done`. Both approvals `approved` (`BRIEF.md:275-279`, `plan.yaml:4-5`).
+- **Briefing: `notes/ship-review-2026-08-21-04-validator.md`** (+ rendered `.html`).
 
-**Three segments complete, all PASS, all zero send-backs.** qa gate PASSES
-(`runs/2026-08-21-01-validator/`): `matrix_ok: true` per task for all ten, 12 SCs `met` at that tier;
-the lead returned PASS with `severity_max: high` and `must_fix: []`, overriding its own gate-on-high
-rule because DEC-174 bars every agent from remediating F-1/F-2 — **I accepted that**, since FAIL is for
-when looping back is meaningful. Simplify: **EMPTY apply set** (`runs/2026-08-21-02-eng/`), four angles
-parallel, five candidates all declined, nothing touched the enforcement layer. Docs: **SPEC.md +120/-9**
-(`runs/2026-08-21-03-product/`), both tools previously undocumented; `BUILD.md` earns no row.
+**VERDICT: FAIL — do not ship.** One high, verified by me independently, INTRODUCED BY THIS DIFF.
 
-**Suites, my own measurement:** unit exit 0 **179/0**; integration exit 0 **213/0**. Reproduces qa.
+**F-1 (high, gates, must_fix).** `bash-write-guard.sh:617-618` `if not findings: sys.exit(0)` runs
+BEFORE the reviewer read-only denial (`:628`) and the domain walk (`:640+`). `python3
+.../expertise-merge.py apply --file <any path>` matches no write pattern, so `findings` is empty and
+the guard exits 0. `cmd_apply` validates neither caller nor `--file`. T-06 built the tool; **T-07, in
+this same diff, rewired `harness-distill/SKILL.md:28-34` to instruct every agent — reviewers included
+— to use exactly that shape.** Reproduced live: `harness-documentor` → another agent's Expertise file,
+→ `src/main.py`, `harness-code-reviewer` (read-only) → `src/main.py`, reviewer → `.claude/settings.json`,
+reviewer → outside the repo, documentor → `check-domain.sh`: **all rc=0**, while the same targets via
+`echo >` are rc=2. Against a COPY of `check-domain.sh`: exit 0, **67,976 → 71 bytes**. Real files
+verified intact. Content is constrained to the Expertise markdown shape, so it is a clean tampering
+primitive for Expertise (injected into every spawn — doctrine injection) and a blunt truncation
+primitive elsewhere; blunt still disables enforcement.
 
-**Live-instance gap — the weakest point.** `git worktree list` shows two checkouts: this one (the MAIN
-checkout, on the feature branch) and `.claude/worktrees/FEAT-31`, a legacy ONE-segment tree. **The
-two-level `<segment>/<repo>/<id>` layout T-04 exists to serve has zero live instances**, only fixtures.
-FEAT-30 was built in the main checkout, so it did not dogfood the isolation it delivers.
+**Root cause is architectural: the guard is ALLOW-BY-OMISSION.** Options: (a) invert the default for
+first-party write tools [enforcement, operator]; (b) each tool self-validates identity and destination
+[**squad-appliable**, the immediate close F-1 asks for]; (c) a running post-write audit [operator].
+**I did NOT dispatch (b)** — it is one of three options the operator is being asked to choose between,
+and applying it unreviewed would move the pin and invalidate the panel verdict on the other 15 files.
+One cycle closes it on their word.
 
-**No governance regression on the live tree, both directions.** Inside `.claude/worktrees/FEAT-31`,
-`check-domain.sh --resolve` returns `harness-documentor` for a SPEC path and `harness-backend-dev
-harness-dev-ops` for a `bin/` path — identical to root. T-04's resolution is depth-agnostic in practice.
+**Goal MET.** pm verified all 12 criteria by their own declared methods: 11 `met`, **SC-01
+`met-with-caveat`** (its "two for harness" half runs against a stand-in; pm's argument comes from the
+criterion's own text and it flagged that it cannot know if that is what was signed).
 
-**My own measurements, not relayed:**
+**Segments:** qa PASS (`matrix_ok` per task, all ten) · simplify PASS, **empty apply set**, nothing
+touched the enforcement layer · docs PASS (`SPEC.md` +120/-9; both tools were documented nowhere) ·
+panel **FAIL** · goal-check PASS. Suites at the pin, my measurement, three runs each: unit exit 0,
+integration exit 0, zero FAIL.
 
-- **SC-01b PASSES.** Exit 0, 14 assertions: four worktrees at once, two per repository via a real
-  `fleet.yaml` (repoB's default branch is `master`), four concurrent committers on a barrier, six
-  pairwise write-window overlaps asserted, no outside branch advancing. **Its predicate is proven able
-  to redden:** 5 trials against a shared checkout, 4/4 committers succeeded each time, zero index-lock
-  failures, `IsolationViolation` raised all 5 — so case B's `committer_failed` short-circuit
-  (`test-feature-worktree.py:806`) never fired.
-- **T-05's red proof is EXACT:** against `4792cd1`'s guard, exit 1 with **exactly 10 FAILs**, all new
-  refuse cases, zero pre-existing breakage. At HEAD exit 0, 99 cases green.
-- **T-03's recorded red proof is INERT at HEAD.** Its `verify:` mutates `WORKTREES_SEGMENT` and asserts
-  only a non-zero exit; that leaves **38/38 grant-parity cases green**, the exit coming from 5
-  collateral reds. The 32 agent assertions are SOUND regardless: mutating T-04's real mechanism
-  (`checkout_relative` → `return None`) reddens **33 of 38** and 5 of 8 deep-layout, 45 FAILs. That is
-  the mutation the verify should carry.
-- **F-ALT-1, the simplify pass's only HIGH, is REFUTED.** The switch names are absent from both test
-  files (0 occurrences), but flipping `REFUSE_ON_DIRTY`, `REQUIRE_LANDED` and `UNION_APPLY` to `False`
-  reddens each suite — 4, 13 and 12 FAILs, 94/104/82 lines reported, exit 1 all three. Coverage is
-  behavioural, not by-name. **Do not carry as high.**
-- **The real defect behind qa's F-5:** `test-feature-worktree.py` reports NOTHING when it crashes.
-  `create_four` carries `dest: None` when a create fails, `case_isolation:196` raises `TypeError`, and
-  the exception escapes `main()`'s `try/finally` (cleanup only) — **all 88 results discarded, 13 of 17
-  cases never run, exit 1.** Three CLI mutations reproduced it. Any red proof here asserting only a
-  non-zero exit cannot tell a reddened assertion from a crashed harness. `test-expertise-merge.py` does
-  NOT share it (broken tool → exit 1, 98 reported lines).
-- **qa's F-6 is a coverage hole, not a bug.** I ran the missing case: a sibling at
-  `.claude/worktrees-old/FEAT-77` is correctly excluded by `list`. `startswith` would include it,
-  `commonpath` excludes it. Code right, case absent, ~10 lines.
-- **The write guard is a literal-token parser, verified.** `checkout`/`reset --hard`/`rebase` BLOCKED
-  for `harness-backend-dev` and `harness-orchestrator` alike (D-04 holds), and `git -C <path> checkout`
-  blocked. But `python3 -c "...subprocess.run(['git','checkout',...])"`, a heredoc equivalent, and
-  `g=git; $g checkout main` are ALLOWED. The undecidable rule fires for `git --git-dir=/tmp/x` but not
-  for a subcommand or command head behind a variable.
-- The CLI has **four** subcommands (`create list path remove`), so D-01's record of three undercounts
-  the code and matches the intent. SC-04/SC-07 covered both directions with named paths and exits 4/5.
-  SC-08's red proof is case1 plus 20 concurrent trials. SC-06 corroborated: `grep -c` = 2 and 6, and
-  `harness-orchestrator.md:23-33` is imperative rule text.
+**Weakest point: the feature has never governed a live flow; every proof is a fixture proof.** Two
+checkouts exist — the MAIN one (where FEAT-30 was built) and `.claude/worktrees/FEAT-31`, legacy
+ONE-segment. The two-level `<repo>/<id>` layout has **zero live instances**. Softening it: governance
+inside FEAT-31 is unregressed (same personas as root, both directions), and a path under a
+non-existent worktree resolves NOBODY — fail-CLOSED, since resolution reads the git pointer.
 
-**Still to run:** review panel, pm's goal-check, CEO briefing.
+**SC-01b, the headline claim, PASSES when run** — exit 0, 14 assertions, four real worktrees, two per
+repository via a real `fleet.yaml` (second repo default branch `master`), barrier-synchronised
+committers, six pairwise overlaps asserted, no outside branch advancing; seen green five times. **Its
+predicate is proven able to redden:** 5 trials against a shared checkout, 4/4 committers succeeding
+each time, `IsolationViolation` raised all 5, so the `committer_failed` short-circuit never fired.
+
+**Four relayed claims failed my re-measurement** (detail in the briefing): the simplify pass's only
+HIGH (F-ALT-1) is refuted — flipping the three switches reddens their suites 4/13/12; the docs pass's
+headline is overstated — `harness-team/SKILL.md:94` correctly names `check-domain.sh` and
+`harness-zero-micro-management` makes no such claim; **T-03's recorded red proof is inert at HEAD** —
+its mutation leaves 38/38 parity cases green, and the panel showed `WORKTREES_SEGMENT` has no use at
+all in the grant re-basing path, so it *cannot* redden one; and my own inference about
+`test-expertise-merge.py` was wrong twice — it DOES share the crash structure (`:253-276`) and escapes
+only by subprocess isolation. The operator's own build narration held on 4 of 5 claims (T-05's proof
+is exact: 10 FAILs, all new refuse cases; T-04's counts hold; D-09's cost is asserted both ways).
 
 ## Open Questions
 
-- **Q-V1, OPERATOR, blocking the feature not the gate.** Two high findings inside the blocking gate,
-  barred to every agent by DEC-174. **F-1:** `test_kinds.unit.detect`'s glob claims all 32 `bin/`
-  scripts while `--kind unit` runs only the 18 in `UNIT_SCRIPTS`, so the unit leg **cannot fail**; eight
-  of ten `matrix_ok` verdicts rest on it. **F-2:** `integration.detect` names 6 where
-  `run-unit-tests.sh:18` runs 14 — B-1's gap was 8 and is still 8, so this diff MOVED B-1. **Fix F-1's
-  consistency check FIRST**; it turns F-2's hand-maintained list into a loud failure.
-- **Q-V2, OPERATOR.** Mirror unsynced: 11 FEAT-30 INV-26 rows — sub-issues #616-#625 OPEN against a
-  plan reading `done`, parent #572 at `Building` where the plan derives `Review`. Ordering is already
-  satisfied, so the remedy is ten `gh-sync.py close-task` runs. My attempt was **denied by the
-  permission classifier** as outward-facing — a correct denial, not to be worked around.
-- **Q-V3, OPERATOR, verified twice.** `BUILD.md:147-148` claims "the hook cannot see writes made via
-  Bash", falsified by `settings.json:28,36` registering `bash-write-guard.sh` as a `PreToolUse` Bash
-  hook. The claim is restated in the **preloaded** `harness-team` and `harness-zero-micro-management`
-  skills as the rationale for serialization, so every lead reasons from it at spawn. My own probe
-  independently confirms the hook fires on Bash. No propagation checker exists. Needs its own flow.
-- **Q-V4, plan-level.** T-03's `verify:` mutation target is stale, so future re-verification gets false
-  assurance. One line: target `checkout_relative`. `plan.yaml` carries the operator's signature.
-- **Q-V5.** Issue #626's scope may be one entry short: `DECISIONS-INDEX.md:114` has DEC-95 asserting
-  `.harness/` is per-worktree state — a fourth falsified spelling beyond the three named.
-- **L-1 (med), real.** `expertise-merge.py:37` accepts `[A-Za-z]{1,3}` ids where
-  `check-expertise.sh:44` accepts `[A-Z]{1,3}`: a lowercase id is accepted, cap-counted and written,
-  then FAILed by the checker. Narrowing the tool is a REGRESSION (silent drop vs loud reject); the
-  remedy is an `ENTRY_RE` drift detector mirroring case 8's treatment of `CAPS`.
-- **Harness defect, second recurrence.** The member digest schema has no shape for a read-only review
-  dispatch and differs BY ROLE: one instruction `suite: none` produced `pass`, `none` and `n/a` from
-  three personas, each citing its own schema, all validated.
-- **T-05's signed intent was internally contradictory** and was not papered over. The DEC-153 carve-out
-  is `if re.match(r"^\.claude/worktrees/", rel): continue` at `bash-write-guard.sh:688`, running BEFORE
-  `classify` — blanket and depth-agnostic, so the intent's refuse-half is unreachable by construction.
-  The comment states why that is deliberate. **For the panel to affirm or contest.**
-- Backlog: efficiency F-1 (GATE 3 spawns two git subprocesses per artifact file, ~1.3s over 83 files vs
-  ~10ms via one `ls-tree` plus local hashing; `git hash-object` without `--path` applies no
-  `.gitattributes` filters, so local hashing reproduces it exactly); F-A (`create_four` could reuse
-  `create_one`, low); F-ALT-4 (`.claude/commands/harness.md` restates a worked path as unchecked prose,
-  guard resolves to nobody, recommendation *leave*); `.harness/README.md` contradicts disk on three
-  counts (belongs to the FEAT-21/22 + DEC-182 migration); SPEC.md's Index `Cost` column has no
-  documented formula and two figures are disclosed estimates; `test-expertise-merge.py` labels its
-  seventh case group "case8" with no case7 — all seven ARE invoked, cosmetic.
-- SC-06 named by no task (W3/Q27, accepted with the signature); Q11, Q12, Q14, Q15, Q16 carried; D-09
-  unchanged. Q21's recorded subject is **T-10, not T-04**; my qa dispatch's T-04 premise was
-  **inverted** — both its test files are integration-runner scripts and neither runs under `--kind
-  unit`, so the leg lacking execution evidence is unit.
-- Issue #626 is filed, unblocked, and OUT OF SCOPE here. `check-state.sh`'s other rows are FEAT-26,
-  FEAT-28 and FEAT-29 board drift; the count is a shared mutable global, so scope by name never count.
+- **Q1, BLOCKING, OPERATOR DECISION.** The allow-by-omission choice: (a), (b) or (c) above. (b) is
+  squad-appliable; (a) and (c) are enforcement-layer and theirs.
+- **Q2, effectively blocking.** SC-01's stand-in reading — if the operator disagrees with pm, SC-01 is
+  unmet and that is a re-plan, not a build defect. Never mine to mark.
+- **Q3.** T-05's signed intent (`plan.yaml:944-947`) requires refusing "a shell composition that hides
+  the subcommand". **Unimplemented**, and none of its eleven cases covers it; the same clause calls the
+  guard a casual-shape filter at `:946`, contradicting itself. I verified the gap: `checkout`,
+  `reset --hard`, `rebase` and `git -C … checkout` are blocked for every persona including the
+  orchestrator, but `python3 -c "…git checkout…"`, a heredoc equivalent, and `g=git; $g checkout main`
+  are allowed. **Implement or STRIKE per DEC-188**; nothing detects a falsified signed requirement.
+- **Q4, OPERATOR, outward-facing.** Mirror unsynced: 11 INV-26 rows — sub-issues #616-#625 OPEN against
+  a plan reading `done`, parent #572 at `Building` where the plan derives `Review`. Ordering is already
+  satisfied; remedy is ten `gh-sync.py close-task` runs. **My attempt was denied by the permission
+  classifier** — a correct denial, not to be worked around.
+- **Q5, OPERATOR, DEC-174.** Two high findings inside the blocking gate: `unit.detect`'s glob claims all
+  32 `bin/` scripts while `--kind unit` runs 18, so the unit leg **cannot fail** (eight of ten
+  `matrix_ok` verdicts rest on it); `integration.detect` names 6 where the runner runs 14, so this diff
+  MOVED B-1 rather than fixing it. Why nobody caught it: none of the five test files this diff touches
+  is in `UNIT_SCRIPTS`, so the feature exercised the unit leg zero times. Fix the consistency check first.
+- **Q6.** `SPEC.md:2239` says per-team serialization suffices "because the teams are operating on
+  different checkouts", while the carve-out at `bash-write-guard.sh:687` blanket-allows any governed
+  agent to write into any worktree on the Bash route. DEC-143 and DEC-153 answer differently and each
+  route implements one answer. Intended? Inside #626's scope?
+- **Q7.** Is there any *running* post-run audit of HEAD position, versus the one-shot manual DEC-153
+  audit? If not the HEAD-move residual is uncompensated, unlike the write-side one.
+- **Two escape hypotheses remain structural, not demonstrated**, because the panel is read-only: a
+  symlink escape from the carve-out, and a nested-`.git` candidate. Each needs a probe, not a reviewer.
+- **The gate's headline numbers are not a coherent unit.** "213 integration" counts `^PASS ` lines, of
+  which only 16 are per-script summaries; the suite emits **738** further case results as `ok ` plus 19
+  section summaries. Sound as a comparative regression signal — which is how SC-09 uses it, and pm's
+  `comm -23` on line identities is sounder — but not a test count. I had repeated it before checking.
+- **Backlog B-1..B-18 is enumerated in the briefing** with an ID column. Unstruck rows become issues on
+  ship acceptance; anything unlisted dies silently. B-1/B-2 are the gate defects above; B-8 is that
+  `remove` has no cwd guard and no test for one, which is the exact self-deletion hazard that makes
+  removal the main session's act.
+- Attribution corrected by the panel: the internally contradictory signed intent is **T-04's**
+  (`plan.yaml:736-739` vs `:861-863`), not T-05's. Q21's recorded subject is **T-10, not T-04**. My qa
+  dispatch's T-04 premise was inverted — the leg lacking execution evidence is unit, not integration.
+- Issue **#626** is filed, unblocked and OUT OF SCOPE here; it may be one entry short (`DECISIONS-INDEX.md:114`,
+  DEC-95). `check-state.sh`'s other rows are FEAT-26/28/29; the count is a shared mutable global, so
+  scope by name never count. Ship-refresh is a legitimate SKIP: no `INDEX.md` map exists in this repo.
