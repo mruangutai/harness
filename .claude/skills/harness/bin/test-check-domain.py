@@ -1620,6 +1620,166 @@ def run_worktree():
     return fails
 
 
+WTG = []
+
+
+def wtg(name, ok, detail=""):
+    WTG.append((name, ok, detail))
+
+
+def run_worktree_grant_parity():
+    """T-03 (FEAT-30, SC-05) — the grant an agent has inside a worktree is the grant it
+    has at the checkout root, for ALL SIXTEEN agents, one assertion each.
+
+    THIS PINS TODAY'S LAYOUT ON PURPOSE: exactly one segment after WORKTREES_SEGMENT.
+    T-04 replaces the fixed-segment strip with a mechanism that reads the git pointer,
+    and these sixteen cases are the baseline it must leave green. Do NOT extend this to
+    the repo-and-id layout here — T-04 owns that.
+
+    THE ROSTER IS WALKED, NOT LISTED. Every node carrying both a `name` and a
+    list-valued `domain`, at every nesting level: members inside each team's `members`,
+    leads under `leads`, and harness-orchestrator as a bare top-level key. The length is
+    asserted to be exactly 16 and reports the names it found when it is not — a roster
+    that silently shrinks would make every following assertion vacuous rather than red.
+
+    TWO DEVIATIONS FROM THE SIGNED INTENT, both forced by measurement, both disclosed
+    rather than smoothed over:
+
+    1. The intent says instantiate by "replacing each single-star segment" with a token.
+       Replacing the whole SEGMENT destroys literal prefixes — the reviewers' grant
+       `notes/review-harness-code-reviewer-*.md` becomes `notes/zz`, which their own
+       glob cannot match. Measured: 7 of 16 agents resolved to harness-orchestrator
+       instead of themselves. The star is replaced WITHIN its segment, keeping literals.
+
+    2. The intent says take "the first entry of its own domain list". In the harness base
+       a glob match is accepted only when the TARGET passes is_control_plane_target, so
+       an agent whose first entry is product code — `src/**`, `docs/**`, `tests/**`,
+       `web/src/**`, `supabase/migrations/**` — resolves to NOBODY at BOTH paths.
+       Measured directly before writing this: `src/zz/zz/main.py` and
+       `.claude/worktrees/wt1/src/zz/zz/main.py` both return NOBODY. Two equal EMPTY
+       sets, which is exactly the vacuity this test exists to exclude. The first entry
+       that is a control-plane target is used instead, and an agent with none at all is
+       a reported FAILURE, never a skip.
+
+    The membership assertion is not decoration. Equality alone is satisfied by two empty
+    sets, so each case also asserts the agent is IN both sets. T-03's verify mutates
+    WORKTREES_SEGMENT by name in a copied module and requires this file to FAIL, which is
+    only reachable if the in-worktree half of every pair really traverses the worktree
+    path.
+    """
+    import harness_yaml as _hy
+    import harness_boundary as _hb
+
+    fails = 0
+    tmp = tempfile.mkdtemp()
+
+    manifest_src = os.path.join(ROOT, ".harness", "team-config.yaml")
+    with open(manifest_src, encoding="utf-8") as f:
+        manifest_text = f.read()
+
+    # THE REAL MANIFEST, not FIXTURE_MANIFEST. The roster and the grants under test are
+    # the shipped ones; a fixture manifest would assert parity for personas that do not
+    # exist and would never notice a real grant losing its worktree parity.
+    root = fixture(manifest_text)
+
+    # A REAL LINKED WORKTREE, both sides of the pointer pair, per D-09. A bare directory
+    # made with os.makedirs resolves identically under today's fixed-segment strip, so
+    # these cases would pass now and go red the moment T-04 lands — sixteen false
+    # failures attributed to T-04 instead of to the fixture.
+    wt_id = "wt1"
+    owner_entry = os.path.join(root, ".git", "worktrees", wt_id)
+    os.makedirs(owner_entry)
+    os.makedirs(os.path.join(root, ".git", "refs"), exist_ok=True)
+    wt_path = os.path.join(root, ".claude", "worktrees", wt_id)
+    os.makedirs(wt_path)
+    # the worktree side
+    with open(os.path.join(wt_path, ".git"), "w") as f:
+        f.write("gitdir: %s\n" % owner_entry)
+    # the owner side, naming the worktree's own .git file
+    with open(os.path.join(owner_entry, "gitdir"), "w") as f:
+        f.write("%s\n" % os.path.join(wt_path, ".git"))
+    # NO .harness/team-config.yaml inside wt1, deliberately: these cases root the session
+    # at the fixture root, and a nearer manifest would move the base out from under the
+    # assertion.
+
+    # THE OWNER MUST BE A REAL CHECKOUT for worktree_owner to name it: it walks up to the
+    # first `.git` entry, and a DIRECTORY is what makes a root the owner.
+    parsed = _hb.worktree_owner(wt_path)
+    wtg("the fixture worktree is a REAL linked worktree, parsed and legitimate",
+        parsed is not None and parsed[1] is not None and parsed[2] is True,
+        f"worktree_owner({wt_path}) = {parsed!r} — a bare directory or an unparsed "
+        f"pointer here makes all sixteen cases below prove nothing")
+
+    def instantiate(pat):
+        """A glob to a concrete relative path, replacing the star INSIDE its segment."""
+        out = []
+        for seg in pat.strip("/").split("/"):
+            out.append("zz/zz" if seg == "**" else seg.replace("*", "zz"))
+        return "/".join(out)
+
+    roster = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            nm, dom = node.get("name"), node.get("domain")
+            if isinstance(nm, str) and isinstance(dom, list):
+                roster.append((nm, dom))
+            for k, v in node.items():
+                if k not in ("name", "domain"):
+                    walk(v)
+        elif isinstance(node, list):
+            for x in node:
+                walk(x)
+
+    walk(_hy.yaml.safe_load(manifest_text))
+    names = sorted(n for n, _ in roster)
+    wtg("the roster walk finds exactly 16 agents carrying a name and a list domain",
+        len(roster) == 16,
+        f"found {len(roster)}: {names!r} — every case below is vacuous if this is wrong")
+
+    def resolve(path):
+        r = subprocess.run([HOOK, "--resolve", path], capture_output=True, text=True,
+                           stdin=subprocess.DEVNULL, timeout=20,
+                           env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+        return set(r.stdout.split())
+
+    for agent, domain in sorted(roster):
+        chosen = None
+        for entry in domain:
+            pat = entry.get("path") if isinstance(entry, dict) else entry
+            if not isinstance(pat, str):
+                continue
+            rel = instantiate(pat)
+            if _hb.is_control_plane_target(rel):
+                chosen = (pat, rel)
+                break
+        if chosen is None:
+            wtg(f"{agent}: in-worktree grant equals root grant",
+                False,
+                "no domain entry instantiates to a control-plane target, so no path in "
+                "this agent's domain can be granted in the harness base. Reported as a "
+                "failure rather than skipped: a skip here is a silent hole.")
+            continue
+        pat, rel = chosen
+        at_root = resolve(os.path.join(root, rel))
+        in_wt = resolve(os.path.join(wt_path, rel))
+        wtg(f"{agent}: in-worktree grant equals root grant, and names {agent}",
+            at_root == in_wt and agent in at_root,
+            f"glob {pat!r} -> {rel!r}; at root {sorted(at_root)!r}, in worktree "
+            f"{sorted(in_wt)!r}; equal={at_root == in_wt}, "
+            f"contains-self={agent in at_root}")
+
+    for name, ok, detail in WTG:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n        {detail}")
+    print(f"\n{len(WTG) - fails}/{len(WTG)} worktree grant-parity cases passed.\n")
+    shutil.rmtree(tmp, ignore_errors=True)
+    return fails
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -1647,6 +1807,7 @@ def main():
     fails += run_post()
     fails += run_schema()
     fails += run_worktree()
+    fails += run_worktree_grant_parity()
     return fails
 
 
