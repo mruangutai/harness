@@ -630,7 +630,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 am.4 - harness_boundary.py, check-domain.sh and the two guard test files are the enforcement layer, and the cutover that makes a gate use the new mechanism is the main session's
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/harness_boundary.py
       - .claude/skills/harness/bin/check-domain.sh

@@ -578,6 +578,80 @@ def run_worktree():
     return fails
 
 
+WDEEP = []
+
+
+def wdeep(name, ok, detail=""):
+    WDEEP.append((name, ok, detail))
+
+
+def run_worktree_deep():
+    """T-04 (FEAT-30) on the Bash route: the two-level `<segment>/<repo>/<id>` layout.
+
+    A FINDING FIRST, because T-04's intent asks for something this route cannot do. It
+    asks for a paired case where a granted path at depth is allowed and "a path that agent
+    is not granted, at the same depth, is refused" — and in the same breath forbids
+    touching `bash-write-guard.sh:545`. That line is
+    `if re.match(r"^\\.claude/worktrees/", rel): continue`: DEC-153's BLANKET allow for
+    governed agents anywhere under the segment. So the refuse half is unreachable on this
+    route by construction, and the intent is internally contradictory. The instruction not
+    to touch 545 is the correct half — it carries no segment count and needs no change.
+
+    What is asserted instead, and it is worth more than the impossible case: the carve-out
+    IS blanket and IS depth-agnostic. An UNGRANTED path at two levels is allowed, which is
+    today's real behaviour, so any future narrowing of 545 goes red loudly here instead of
+    silently changing what qa may do in a worktree.
+
+    The refusal half is asserted where it is actually reachable — an out-of-place linked
+    worktree, refused before the DEC-153 continue is ever reached.
+    """
+    fails = 0
+    tmp = tempfile.mkdtemp()
+    root = os.path.join(tmp, "root")
+    os.makedirs(os.path.join(root, ".harness"))
+    os.makedirs(os.path.join(root, ".git", "worktrees", "FEAT-90"))
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
+        f.write(FIXTURE_MANIFEST)
+
+    deep = os.path.join(root, ".claude", "worktrees", "harness", "FEAT-90")
+    _linked_worktree(deep, root, "FEAT-90", FIXTURE_MANIFEST)
+
+    # GRANTED at depth: allowed.
+    r_ok = fire(root, "echo x > %s" % os.path.join(deep, ".harness", "allowed", "x.txt"))
+    wdeep("a granted path inside <segment>/<repo>/<id> is ALLOWED on the Bash route",
+          r_ok.returncode == 0,
+          f"exit {r_ok.returncode}: {r_ok.stderr.strip()[:200]}")
+
+    # UNGRANTED at depth: also allowed, and that is DEC-153, not a hole. Pinned so a
+    # future narrowing of :545 cannot land silently.
+    r_un = fire(root, "echo x > %s" % os.path.join(deep, "src", "main.py"))
+    wdeep("DEC-153 pinned: an UNGRANTED path at the same depth is ALSO allowed — the "
+          "carve-out is blanket and depth-agnostic",
+          r_un.returncode == 0,
+          f"exit {r_un.returncode}: {r_un.stderr.strip()[:200]} — if this now refuses, "
+          f"bash-write-guard.sh:545 was narrowed and DEC-153 needs re-reading first")
+
+    # THE REFUSAL, where it is reachable: an out-of-place linked worktree of the same
+    # root. Refused ahead of the DEC-153 continue, and the message names the location.
+    sib = os.path.join(tmp, "sib")
+    _linked_worktree(sib, root, "sib", FIXTURE_MANIFEST)
+    r_sib = fire(root, "echo x > %s" % os.path.join(sib, ".harness", "allowed", "x.txt"))
+    wdeep("an out-of-place linked worktree is REFUSED on the Bash route, and the message "
+          "names where worktrees belong",
+          r_sib.returncode == 2 and ".claude/worktrees" in r_sib.stderr,
+          f"exit {r_sib.returncode}: {r_sib.stderr.strip()[:240]}")
+
+    for name, ok, detail in WDEEP:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n        {detail}")
+    print(f"\n{len(WDEEP) - fails}/{len(WDEEP)} deep-layout Bash-route cases passed.\n")
+    shutil.rmtree(tmp, ignore_errors=True)
+    return fails
+
+
 def main():
     fails = 0
     for name, cmd, want, agent in CASES:
@@ -595,6 +669,7 @@ def main():
     print(f"\n{len(CASES) - fails}/{len(CASES)} cases passed.\n")
     fails += run_t14()
     fails += run_worktree()
+    fails += run_worktree_deep()
     return fails
 
 
