@@ -310,6 +310,27 @@ only place project Expertise changes during a flow.
 squad suffix is what the lead's domain glob keys on; never embed the feature id, the parent dir
 already carries it.
 
+## The worktree lifecycle — one feature, one checkout (DEC-95, DEC-193)
+
+Three acts, and **two of them are not yours**:
+
+1. **Created at flow start, by the main session.** `feature-worktree.py create --repo <repo>
+   --id <flow-id>`, cut from the repository's default branch. Its absolute path arrives in your
+   dispatch.
+2. **You work inside it**, for the whole run, by absolute path and by `git -C`.
+3. **Removed at a terminal state — by the main session, from OUTSIDE the tree**, after your
+   artifacts have reached the default branch: `feature-worktree.py remove --repo <repo>
+   --id <flow-id>`.
+
+**Act 3 is never yours, and the reason is mechanical.** `git worktree remove` succeeds at exit 0
+from inside the tree it removes, so an orchestrator following that instruction deletes its own
+working directory. Your part of a terminal state is to **finish landing your artifacts and report**.
+Removal is not your act.
+
+`remove` refuses on a dirty tree, and refuses until every artifact under the feature's directory is
+present with identical content on the default branch. It names the paths it verified. **There is no
+force flag.** A refusal means finish landing the work — never override the check.
+
 ## You are a PHASE, not the feature (DEC-148, DEC-159)
 
 Your mission IS one phase — plan, build, validate, or ship. **Ending at the phase boundary is

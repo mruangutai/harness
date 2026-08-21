@@ -25,9 +25,27 @@ You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch ex
    Most observations fail it — that is normal. Lead-relayed candidates: you are the sole judge;
    rejecting with a reason is a valid outcome. At a full section a new entry enters only by
    **displacing** one you judge weaker — never by merging into a survivor; nothing weaker, it dies.
-3. Write the file — create it if absent, read-modify-write if not. **Never write it from your new
-   entries alone; that silently deletes every earlier one** (DEC-125). Report the ops in your
-   DIGEST's `expertise_update` as the receipt.
+3. **Apply through the merge tool. Never write the file yourself.** Put your proposed entries in a
+   scratch file, then run:
+
+   ```
+   python3 .claude/skills/harness/bin/expertise-merge.py apply \
+     --file .harness/expertise/<your-agent-name>.md --entries <your scratch file>
+   ```
+
+   A **whole-file write** to an Expertise file is what loses another run's entries (DEC-125), and
+   two close-outs can be in flight at once — so this is not a style preference. The tool merges;
+   you no longer read-modify-write.
+
+   Three refusals, and each wants a different response:
+
+   | Exit | What it means | What you do |
+   | --- | --- | --- |
+   | 6 | the lock is held | retry once, then report it upward |
+   | 7 | the same entry id carries different text | a real conflict — resolve it yourself |
+   | 8 | the section cap is exceeded | curate rather than append |
+
+   Report the ops in your DIGEST's `expertise_update` as the receipt.
 4. Run `.claude/skills/harness/bin/check-expertise.sh <file>` and fix every violation before
    returning. Report per-section entry counts before and after.
 

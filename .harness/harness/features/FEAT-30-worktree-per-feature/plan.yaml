@@ -1131,7 +1131,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve prints NOBODY for .claude/skills/harness-distill/SKILL.md at eeabc59
     depends_on: [T-06]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-distill/SKILL.md
     verify: |
@@ -1214,7 +1214,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve prints NOBODY for .claude/agents/harness-orchestrator.md, .claude/commands/harness.md and .claude/skills/harness/SKILL.md at eeabc59
     depends_on: [T-04, T-05, T-07, T-08]
-    status: pending
+    status: done
     files:
       - .claude/agents/harness-orchestrator.md
       - .claude/commands/harness.md
