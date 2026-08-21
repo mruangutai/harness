@@ -115,6 +115,10 @@ decisions:
     choice: SECOND HALF. feature.json runs items gain an agent identifier inside DEC-191's closed key set, and NO existing feature.json is migrated, so absence of the field can only mean the entry predates the change.
     because: runs items are additionalProperties false with required id, squad, verdict, so the key must be added to the schema to be writable at all, and the read side needs absence to be unambiguous.
     dec: DEC-191
+  - id: D-16
+    choice: SECOND HALF. SC-15 IS SPLIT. Its automatable half asserts that INV-17 rejects a handoff whose four required section headings are all present but whose Next section body is empty, which is the exact mutation SC-15 names. Its agent-behaviour half, that a fresh orchestrator's first dispatch matches the predecessor's Next section, has NO TASK and is routed to the operator alongside SC-10, because only a live orchestrator can produce a first dispatch.
+    because: Measured at 6f651f1, INV-17 tests only heading PRESENCE, via HANDOFF_HEADINGS at check-state.sh line 509 and the membership test at line 614, so an emptied Next section passes the gate today and the new assertion goes red before the change. No automated test can spawn a harness orchestrator, and D-12 forbids reading the projects directory, so the behaviour half is unautomatable for the same reason SC-10 is. Raised to the operator as a blocking open question because it narrows an approved criterion that reads verify automated, evidence integration.
+    dec: DEC-159
 
 tasks:
   - id: T-01
@@ -512,3 +516,80 @@ tasks:
       to a later planning run. Do not add an am.N block to any existing entry.
       Then regenerate .harness/harness/docs/DECISIONS-INDEX.md with
       python3 .claude/skills/harness/bin/gen-decisions-index.py so the new entry has a row.
+  - id: T-10
+    title: Make INV-17 reject a handoff whose required sections are present but empty, with the emptied Next section as the red proof
+    traces: [REQ-10]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.sh is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4, so no team agent performs the cutover even though check-domain.sh --resolve grants both paths
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-state.py
+      # expect exit 0 and a summary line whose case count is HIGHER than before this task
+      bash .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      # expect the line: PASS test-check-state.py
+      # expect NO line containing MISCONFIGURED
+    intent: |
+      SC-15 requires that the relay be SHOWN TO FAIL when the handoff's "## Next" is emptied.
+      Measured at 6f651f1 it cannot be: INV-17's shape check in
+      .claude/skills/harness/bin/check-state.sh tests only that the HEADING is present.
+      HANDOFF_HEADINGS at line 509 is the four literals "## next", "## trust", "## dead ends",
+      "## working set", and line 614 computes `miss` as the headings absent from the lowercased
+      line list. So a handoff carrying all four headings with NOTHING under "## Next" passes the
+      gate today. That is the hole this task closes, and it is why the new assertion can go red.
+
+      PART ONE — check-state.sh. Inside the existing INV-17 block, after the current `miss` check
+      and the 60-line cap check, add a check that each of the four required sections has a
+      NON-EMPTY BODY. A section's body is the lines after its heading up to the next line whose
+      stripped form begins with two hash characters, or end of file. A body is empty when every
+      one of those lines is blank after stripping. Report an empty section through the SAME
+      bad.append path and the same message shape the existing shape failure uses, adding a clause
+      that NAMES which section or sections are empty. Put a single-line marker comment on the
+      first line of the new check reading exactly:
+      # INV-17 empty-body check (FEAT-31 T-10)
+      so the red proof in part two can locate and remove it deterministically.
+
+      Do NOT change HANDOFF_HEADINGS, do NOT change SEAM_NOTES, do NOT change the 60-line cap, do
+      NOT touch the exemption set at lines 511 onward, and do NOT derive stems from status values
+      — the comment at line 474 records that deriving matches on this machine's case-insensitive
+      filesystem and misses on Linux CI, which is the only machine that gates the merge.
+
+      BEFORE writing, read every handoff note already on disk with
+      ls .harness/harness/features/*/notes/handoff-*.md
+      and report in the receipt HOW MANY of them would newly fail this check and which. If any
+      existing note fails, that is a finding to raise for the operator, never a licence to weaken
+      the check to make the tree green.
+
+      PART TWO — test-check-state.py. Add cases. Every fixture is generated in-process under
+      tempfile.mkdtemp() and removed afterwards. Nothing is checked in, nothing is written under
+      .harness or .claude/skills, and NOTHING reads ~/.claude/projects — CI is ubuntu-latest where
+      that directory does not exist and the integration job is a required context (D-12).
+
+      Case A, ACCEPTED: a fixture feature directory whose status has crossed a seam, carrying
+      notes/handoff-plan.md with all four headings and a non-empty body under each, the "## Next"
+      body naming a concrete dispatch. Assert check-state.sh emits NO INV-17 line for it.
+      Case B, REJECTED: the SAME fixture with the "## Next" body emptied and the heading left in
+      place. Assert check-state.sh emits an INV-17 line that names the fixture feature AND names
+      Next.
+      Case C: the other three sections emptied ONE AT A TIME, each asserted as its own case, so a
+      check that only inspects "## Next" cannot pass all of them.
+
+      RED PROOF — an exit status is never the proof (D-08). Write a MUTANT COPY of check-state.sh
+      into the same tmpdir with the new empty-body check removed, locating it by the marker comment
+      specified in part one. Assert the mutant text DIFFERS from the original text before running
+      anything. Then run both against case B and assert the COUNT of INV-17 lines is strictly
+      LOWER for the mutant than for the original. Print both counts. If the two counts are equal,
+      the harness failed to apply the mutation: report the case as INCONCLUSIVE and exit non-zero.
+      Never report it as passed.
+
+      Register nothing new: test-check-state.py is already in run-unit-tests.sh's
+      INTEGRATION_SCRIPTS array and already listed in test_kinds.integration.detect in
+      .harness/harness.json, so the drift detector and the qa matrix both already see it.
+
+      SCOPE FENCE. This task delivers the automatable half of SC-15 ONLY. It does NOT add the
+      mid-phase stem to INV-17's seam table (that is SC-14, unplanned as of this run), it does not
+      write a handoff generator, and it does not touch DEC-159.
