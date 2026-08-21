@@ -2,8 +2,8 @@
   "feature_id": "FEAT-30-worktree-per-feature",
   "branch": "feat/FEAT-30-worktree-per-feature",
   "pr": null,
-  "status": "Building",
-  "review_sha": "",
+  "status": "Review",
+  "review_sha": "none",
   "cycles_used": 7,
   "max_total_cycles": 13,
   "max_total_runs": 20,
@@ -71,6 +71,21 @@
       "id": "2026-08-20-01-build-eng",
       "squad": "eng",
       "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-21-01-validator",
+      "squad": "validator",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-21-02-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-21-03-product",
+      "squad": "product",
+      "verdict": "PASS"
     }
   ]
 }
