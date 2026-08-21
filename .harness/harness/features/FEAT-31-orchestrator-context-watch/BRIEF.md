@@ -185,14 +185,25 @@ loop, growing past every threshold, with the next seam far ahead.
   verify: automated      evidence: integration
 - SC-14: A warned orchestrator's successor is handed `notes/handoff-<stem>.md` carrying DEC-159's four
   required sections within the 60-line cap, and INV-17 accepts it. Where the crossing is mid-phase and
-  the stem is not one of `plan`, `build` or `validate`, INV-17 accepts that shape too — asserted by a
-  test that fails before INV-17's seam table learns the mid-phase stem.
+  the stem is not one of `plan`, `build` or `validate`, INV-17 shape-checks that note too — asserted
+  by a test that fails before INV-17's shape check reaches a handoff note whose stem `SEAM_NOTES`
+  does not name. `SEAM_NOTES` itself stays unchanged: which notes are REQUIRED is a separate
+  question from which notes are shape-checked.
   verify: automated      evidence: integration
 - SC-15: A fresh orchestrator given only the feature directory does the work the predecessor had
   decided on. Graded against the predecessor's `## Next`: the successor's first dispatch must match
   it. This is the criterion that proves the relay preserved intent rather than merely producing a
   file, so it must be shown to fail when the handoff's `## Next` is emptied.
-  verify: automated      evidence: integration
+
+  **SPLIT, and both halves are required for this criterion to be met.** The gate half is
+  automated: INV-17 must reject a handoff whose four headings are present but whose `## Next`
+  body is empty, proven by a mutant copy with that check removed. The behaviour half — a real
+  successor's first dispatch matching a real predecessor's `## Next` — needs a running agent,
+  and no test kind runs one, so it is hand-graded once against a live relay. Reading only the
+  first `verify:` line below would report this criterion as fully automated, which is false:
+  until the hand grading is recorded, the behaviour half is `not_met`.
+  verify: automated      evidence: integration      # the gate half
+  verify: uat                                       # the behaviour half, graded by hand
 
 ## Verification gaps
 

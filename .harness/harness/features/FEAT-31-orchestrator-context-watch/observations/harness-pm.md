@@ -28,3 +28,18 @@
   grep templates/plan.yaml AND every live plan AND check-state.sh for it. `uat:` appears in none of
   them, so writing it would have parked a narrowed criterion in a key no gate reads. This plan
   records no-task UAT routings as a D-NN instead (D-12).
+- 2026-08-21 (plan3-amend run): the colon-space trap recurred, ninth time — nine `choice:`/`because:`
+  /`execution_reason:` lines carrying dates ("2026-08-21: automated") and emphatic labels
+  ("THE COST, NAMED: ..."). Literal `|` blocks are immune, so it is confined to the one-line prose
+  keys. A mechanical post-write pass over exactly those keys, replacing `: ` with ` - `, fixed all
+  nine at once and touched no pre-existing line (originals cannot contain the sequence and still
+  parse) — that pass is cheaper than proofreading.
+- 2026-08-21: `check-domain.sh --resolve .harness/harness.json` returns `harness-dev-ops` ALONE at
+  7299669, while `.claude/skills/harness/bin/*` returns backend-dev AND dev-ops. So an operator
+  instruction of the form "add harness.json to T-NN's `files:`" is unactionable whenever T-NN's
+  agent is backend-dev — check-plan-routes.py reports a DEVIATION. Resolve with a separate dev-ops
+  task and record that the split was FORCED by the grant rather than chosen; F-1 in
+  notes/answers-plan3.md named T-07 and T-07 could not carry it.
+- 2026-08-21: a `detect` value in harness.json `test_kinds` is a PIPE-SEPARATED STRING, not a list.
+  `for g in v["detect"]` iterates characters and prints one letter per line, which looks like a
+  successful enumeration in the transcript. Always `.split("|")`.

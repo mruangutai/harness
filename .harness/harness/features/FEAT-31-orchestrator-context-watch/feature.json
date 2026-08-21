@@ -29,6 +29,16 @@
       "id": "plan2b-product",
       "squad": "product",
       "verdict": "BLOCKED"
+    },
+    {
+      "id": "plan3-product",
+      "squad": "product",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "plan4-product",
+      "squad": "product",
+      "verdict": "PASS"
     }
   ]
 }
