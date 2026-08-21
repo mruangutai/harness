@@ -44,6 +44,7 @@ You touch `.harness/expertise/<your-agent-name>.md` **only when your dispatch ex
    | 6 | the lock is held | retry once, then report it upward |
    | 7 | the same entry id carries different text | a real conflict — resolve it yourself |
    | 8 | the section cap is exceeded | curate rather than append |
+   | 9 | `--file` is not an Expertise file | you named the wrong path — fix it, never work around it |
 
    Report the ops in your DIGEST's `expertise_update` as the receipt.
 4. Run `.claude/skills/harness/bin/check-expertise.sh <file>` and fix every violation before

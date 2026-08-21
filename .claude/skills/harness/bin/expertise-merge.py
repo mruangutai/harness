@@ -161,8 +161,56 @@ def default_title(file_path):
     return f"# Expertise — {base}"
 
 
+EXPERTISE_TAIL = re.compile(
+    r"(?:^|/)\.harness/(?:[^/]+/)?expertise/(harness-[a-z0-9-]+)\.md$")
+
+
+def require_expertise_destination(file_path):
+    """REFUSE a --file that is not an Expertise file. Exit 9.
+
+    WHY THIS EXISTS, and it is not defence-in-depth for its own sake. `bash-write-guard.sh`
+    is ALLOW-BY-OMISSION: it scans a command for a write PATTERN it recognises — a
+    redirect, `sed -i`, `rm`, `cp`, `tee` — and when it finds none it exits 0 at
+    `:617`, BEFORE the reviewer read-only denial at `:628` and before the domain walk at
+    `:676`. A `python3 … expertise-merge.py apply --file <anything>` command carries no
+    such pattern, so it reaches neither check.
+
+    REPRODUCED 2026-08-21, and this is the measurement that made the fix a ship gate:
+    `harness-code-reviewer` — a READ-ONLY persona — invoking this tool against
+    `src/main.py` exits 0, while `printf x >> src/main.py` from the same persona exits 2.
+    FEAT-30's own T-07 then rewired `harness-distill/SKILL.md` to instruct every agent to
+    use exactly this invocation shape, which turned a latent hole into the recommended
+    path.
+
+    WHAT THIS CANNOT DO, stated so nobody mistakes it for the whole fix: this tool has NO
+    identity source. No `agent_type` reaches a Bash-invoked CLI and no environment
+    variable carries one, so it cannot check WHO called it — only WHERE it writes. A
+    documentor overwriting the pm's Expertise file is still not caught here. That half
+    needs the guard's default inverted for known first-party write tools, which is
+    enforcement-layer work and is filed separately.
+
+    Both tiers are legal (FEAT-27): `.harness/expertise/<agent>.md` and
+    `.harness/<repo>/expertise/<agent>.md`. Matched on the REALPATH, so `..` and a symlink
+    cannot walk out of the tier and back in under a legal-looking tail.
+    """
+    resolved = os.path.realpath(os.path.abspath(file_path))
+    if not EXPERTISE_TAIL.search(resolved):
+        print(f"expertise-merge: REFUSED — {file_path} is not an Expertise file.",
+              file=sys.stderr)
+        print(f"  resolved to: {resolved}", file=sys.stderr)
+        print("  --file must be .harness/expertise/<agent>.md or "
+              ".harness/<repo>/expertise/<agent>.md, and <agent> must be a harness-* "
+              "name.", file=sys.stderr)
+        print("  This tool merges Expertise and writes nothing else. A path the domain "
+              "hook would deny does not become writable by routing through a CLI.",
+              file=sys.stderr)
+        sys.exit(9)
+    return resolved
+
+
 def cmd_apply(args):
     file_path = args.file
+    require_expertise_destination(file_path)
     lock_path = file_path + ".lock"
     acquire_lock(lock_path)
     try:
