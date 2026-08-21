@@ -652,6 +652,135 @@ def run_worktree_deep():
     return fails
 
 
+HEADC = []
+
+
+def headc(name, ok, detail=""):
+    HEADC.append((name, ok, detail))
+
+
+def run_head_move():
+    """T-05 (FEAT-30) — REQ-04's HEAD-move refusal and SC-07's Bash-route half.
+
+    EVERY REFUSE CASE ASSERTS THE WORDING, not just exit 2. This guard has several
+    refusals that all exit 2, so an exit-code-only assertion cannot tell "refused for
+    moving HEAD" from "refused for something else entirely".
+
+    The ALLOW half is what makes the set discriminating: a guard that refuses every git
+    command passes case 1 and fails cases 4a-4d. Both halves come from one fixture.
+    """
+    fails = 0
+    tmp = tempfile.mkdtemp()
+    root = os.path.join(tmp, "root")
+    os.makedirs(os.path.join(root, ".harness"))
+    os.makedirs(os.path.join(root, ".git", "worktrees", "FEAT-90"))
+    with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
+        f.write(FIXTURE_MANIFEST)
+    # a real tracked-looking file, so a pathspec checkout has something to name
+    os.makedirs(os.path.join(root, ".harness", "allowed"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "allowed", "x.txt"), "w") as f:
+        f.write("x\n")
+
+    ALT = "worktree cut for this feature"
+
+    def refuse(name, cmd, agent="harness-backend-dev", needle=ALT):
+        r = fire(root, cmd, agent=agent)
+        headc(name, r.returncode == 2 and needle in r.stderr,
+              f"exit {r.returncode} (want 2), stderr wants {needle!r}: "
+              f"{r.stderr.strip()[:200]}")
+
+    def allow(name, cmd, agent="harness-backend-dev"):
+        r = fire(root, cmd, agent=agent)
+        headc(name, r.returncode == 0,
+              f"exit {r.returncode} (want 0): {r.stderr.strip()[:200]}")
+
+    # 1-3 — REFUSE, one shape each.
+    refuse("1. SC-03 refuse: a governed agent checking out the default branch",
+           "git checkout main")
+    refuse("2. SC-03 refuse: harness-ORCHESTRATOR too — D-04 forbids exempting it, so "
+           "this is asserted rather than assumed",
+           "git checkout main", agent="harness-orchestrator")
+    refuse("3a. SC-03 refuse: switching to the previous branch", "git switch -")
+    refuse("3b. SC-03 refuse: a hard reset one commit back", "git reset --hard HEAD~1")
+    refuse("3c. SC-03 refuse: a rebase onto the default branch", "git rebase main")
+    refuse("3d. SC-03 refuse: a checkout carrying a leading -C directory option",
+           "git -C /tmp/elsewhere checkout main")
+
+    # 4 — ALLOW. Without these the whole set is satisfied by refusing everything.
+    allow("4a. SC-03 allow: restoring one file via a pathspec checkout",
+          "git checkout -- .harness/allowed/x.txt")
+    allow("4b. SC-03 allow: status moves nothing", "git status --porcelain")
+    allow("4c. SC-03 allow: staging one file", "git add .harness/allowed/x.txt")
+    allow("4d. SC-03 allow: a reset naming one pathspec, no mode flag",
+          "git reset .harness/allowed/x.txt")
+    # LOAD-BEARING UNDER R-01: T-01's and T-02's own verify blocks run `git show`
+    # against the pinned sha, executed by harness-dev-ops, which R-01 now binds.
+    allow("4e. SC-03 allow: `git show` NAMES a commit without moving to it — T-01's and "
+          "T-02's verify blocks depend on this",
+          "git show eeabc59:README.md", agent="harness-dev-ops")
+
+    # 5 — the main session is not governed. No agent_type key at all.
+    r5 = subprocess.run([GUARD], input=json.dumps(
+        {"tool_name": "Bash", "tool_input": {"command": "git checkout main"}}),
+        capture_output=True, text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+    headc("5. the main session is NOT governed: the same checkout with no agent_type "
+          "exits 0", r5.returncode == 0,
+          f"exit {r5.returncode}: {r5.stderr.strip()[:200]}")
+
+    # 6 — the undecidable case is REFUSED, the direction DEC-151 already chose.
+    refuse("6. the UNDECIDABLE case: a git call whose subcommand cannot be determined "
+           "is refused, and says so",
+           "git --git-dir=/tmp/x", needle="cannot determine")
+
+    # ---- SC-07 on the Bash route, both directions from one fixture.
+    deep = os.path.join(root, ".claude", "worktrees", "harness", "FEAT-90")
+    _linked_worktree(deep, root, "FEAT-90", FIXTURE_MANIFEST)
+    CLI = "feature-worktree.py"
+    refuse("7a. SC-07 Bash route refuse: a FORCED `git worktree remove` names the CLI",
+           f"git worktree remove --force {deep}", needle=CLI)
+    refuse("7b. SC-07 Bash route refuse: a FORCED `git worktree prune` names the CLI",
+           "git worktree prune -f", needle=CLI)
+    allow("8. SC-07 the PAIRED direction: the same removal WITHOUT --force is not "
+          "refused here — git decides and refuses a dirty tree itself",
+          f"git worktree remove {deep}")
+
+    # 9 — admitting two subcommands into the same parser is the edit most likely to
+    # disturb the existing destination refusals, so both are re-asserted here.
+    r9a = fire(root, "git worktree add %s" % os.path.join(tmp, "outside"))
+    headc("9a. the existing destination refusal is unchanged: an add OUTSIDE the segment "
+          "still exits 2",
+          r9a.returncode == 2 and ".claude/worktrees" in r9a.stderr,
+          f"exit {r9a.returncode}: {r9a.stderr.strip()[:200]}")
+    r9b = fire(root, "git worktree add %s"
+               % os.path.join(root, ".claude", "worktrees", "harness", "FEAT-91"))
+    headc("9b. ...and an add INSIDE the segment still exits 0",
+          r9b.returncode == 0, f"exit {r9b.returncode}: {r9b.stderr.strip()[:200]}")
+
+    # 10 + 11 — THE PAIR THAT MAKES THE REORDERING DISCRIMINATING. Case 2 does not cover
+    # this: harness-orchestrator is refused only because no exemption exists for it,
+    # while harness-dev-ops has an explicit one. A second, different hole.
+    refuse("10. RULING R-01: harness-DEV-OPS is refused a branch checkout — this FAILS "
+           "against any build that places the rule after the dev-ops early return",
+           "git checkout main", agent="harness-dev-ops")
+    r11 = fire(root, "echo x > %s" % os.path.join(root, "src", "main.py"),
+               agent="harness-dev-ops")
+    headc("11. ...and the WRITE exemption is INTACT: dev-ops still writes a path it is "
+          "not granted, exit 0. Without this half, case 10 is satisfied by deleting the "
+          "exemption and removing DEC-151's recovery path.",
+          r11.returncode == 0,
+          f"exit {r11.returncode}: {r11.stderr.strip()[:200]}")
+
+    for name, ok, detail in HEADC:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print(f"FAIL  {name}\n        {detail}")
+    print(f"\n{len(HEADC) - fails}/{len(HEADC)} HEAD-move and forced-removal cases passed.\n")
+    shutil.rmtree(tmp, ignore_errors=True)
+    return fails
+
+
 def main():
     fails = 0
     for name, cmd, want, agent in CASES:
@@ -670,6 +799,7 @@ def main():
     fails += run_t14()
     fails += run_worktree()
     fails += run_worktree_deep()
+    fails += run_head_move()
     return fails
 
 
