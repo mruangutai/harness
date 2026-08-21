@@ -13,7 +13,7 @@ mechanism is a **whole-file write with no merge path and no serialisation**.
   preloaded `harness-expertise` rule instructs every agent to append by reading the file and
   writing it whole. Two concurrent contexts of one agent therefore erase each other. On FEAT-29,
   two of the eng lead's three members reached distillation with no usable log.
-- **#551, six measured occurrences, operator comment 2026-08-21.** Occurrence 1 is #628's loss,
+- **#551, seven measured occurrences, operator comment 2026-08-21.** Occurrence 1 is #628's loss,
   caused by a lead yielding while its `harness-pm` member was still in flight, so the orchestrator
   dispatched a replacement into a live write. Occurrence 2 is a decision made on a file read
   mid-write: an orchestrator recorded a line-count precondition whose pair — `plan.yaml` at 1243
@@ -23,8 +23,14 @@ mechanism is a **whole-file write with no merge path and no serialisation**.
   Occurrences 3 and 4 are reporting consequences of the same early yield. Occurrences 5 and 6,
   both observed in run dir `2026-08-21-1-product`, are that same shape seen from the other two
   tiers: 5 is a lead forced to a terminal digest with its `harness-pm` still in flight, 6 is the
-  orchestrator forced to a stop with its lead still in flight. Run dirs are gitignored, so the
-  durable record of both is `STATE.md` and the decision entry this feature writes — not the run dir.
+  orchestrator forced to a stop with its lead still in flight. **Occurrence 7 is what occurrence 5
+  cost, and it is the strongest measurement in this feature.** That lead's first digest was written
+  under a forced `SubagentStop` close with `harness-pm` still in flight, and asserted pm's work was
+  `files_touched: []` and unrecoverable. That digest was **committed as the run's outcome**. pm was
+  then resumed, ran to completion, and returned `PASS`; `148c8c5` corrected the record. So the defect
+  does not merely cost a spawn — **it wrote a FALSE VERDICT into the durable record**, and only a
+  resume caught it. Run dirs are gitignored, so the durable record of all three is `STATE.md` and the
+  decision entry this feature writes — not the run dir.
 
 Read together: #628 and #606 are the **write** side of the class — a second writer's snapshot was
 taken before the first writer's change, so the union is never computed. #551 is the **read** side —
@@ -61,8 +67,10 @@ cannot fail.
   of failing, and the demonstration is part of the deliverable.
 - REQ-10: The rules the writing agents actually read instruct the merge route, so the safe route is
   the documented route.
-- REQ-11: An agent cannot change a feature plan's approval block, and the artifacts that say who can
-  agree with each other and with what the tree enforces.
+- REQ-11: An agent cannot change a feature's approval block — in any of the three forms
+  `main_session.writes` names, `plan.yaml`'s `approval:` mapping and `BRIEF.md`'s and `PLAN.md`'s
+  `## Approval` heading — and the artifacts that say who can agree with each other and with what the
+  tree enforces.
 - REQ-12: An agent that reports a verdict while a subagent it dispatched is still running is told so,
   and told which children are still running, before that verdict is accepted.
 
@@ -331,17 +339,20 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   statement by `file:line`, read at `git show <review_sha>:<path>`. It can go red: it is asserted one
   statement at a time, never as a count, so a record naming four of the six fails.
   verify: inspection
-- SC-14: No test that passed before this feature fails after it. **Every observation of the runner,
-  before and after, exports `CLAUDE_PROJECT_DIR` to the checkout being measured** — the runner `cd`s
-  to that variable, so an unpinned run measures another tree. **Baseline observed at `5d9b428`,
-  BRIEF pending, before any work, and NOT re-observed at `c32f332`** — FEAT-30 added two files to the
-  runner's arrays after it, so the counts below have moved and only the exit code and the absence of
-  `FAIL` lines are binding: `run-unit-tests.sh --kind unit` exited 0 with 179 lines matching
-  `^PASS |^FAIL |ERROR` and **zero** beginning `FAIL`; `--kind integration` exited 0 with 93 such
-  lines and **zero** beginning `FAIL`. (Three of the integration lines contain the word `ERROR`
-  inside a test's own name — they are expected-output cases, not failures, which is why the
-  assertion is on lines *beginning* `FAIL` and on the exit code.) Re-observed after, both still exit
-  0 with no line beginning `FAIL`, and every new test
+- SC-14: No test that passed before this feature fails after it, **and the suite does not shrink**.
+  **Every observation of the runner, before and after, exports `CLAUDE_PROJECT_DIR` to the checkout
+  being measured** — the runner `cd`s to that variable, so an unpinned run measures another tree.
+  **Baseline RE-OBSERVED at `62f861c`, BRIEF pending, before any work** (superseding the `5d9b428`
+  observation, which FEAT-30's two added runner files had made stale): `run-unit-tests.sh --kind unit`
+  exited 0 with **179** lines matching `^PASS |^FAIL |ERROR`, **zero** beginning `FAIL`, and **zero**
+  containing `ERROR`; `--kind integration` exited 0 with **221** such lines, **zero** beginning `FAIL`,
+  and **three** containing `ERROR`. (Unit is unchanged from `5d9b428`; integration moved from 93 to 221
+  because FEAT-30 added to `INTEGRATION_SCRIPTS`. The three `ERROR` lines carry the word inside a
+  test's own name — they are expected-output cases, not failures, which is why the assertion is on
+  lines *beginning* `FAIL` and on the exit code.) **The exit code and the absence of `FAIL` lines are
+  the mechanical gate; the counts beside them are the SHRINK DETECTOR**, because exit 0 with no `FAIL`
+  line is also what a suite that stopped running tests returns. Re-observed after, both still exit
+  0 with no line beginning `FAIL`, neither count is BELOW its `62f861c` value, and every new test
   file is registered — the runner's drift detector exits 0 and `harness.json`
   `test_kinds.integration.detect` names each new file by path, plus
   `test-validate-digest.py` and `test-check-domain.py`, the two pre-existing files this feature's own
@@ -382,6 +393,21 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
   children still on disk, which is the recorded residual and must not be "fixed". It can go red: the
   refusal is identified by its marker string and not by a non-zero exit, and each child is asserted by
   name rather than by count.
+  verify: automated      evidence: integration
+- SC-20: The exclusion is enforced **by reading the record**, and it therefore covers all three forms
+  the record names. `check-domain.sh` sources its denial from `team-config.yaml`'s
+  `main_session.writes`, so a `harness-pm` Write that changes a `BRIEF.md`'s or a `PLAN.md`'s
+  `## Approval` section body is DENIED — a case that FAILS at `62f861c`, where `team-config.yaml:89`
+  and `:90` grant pm those files whole and the words `except ## Approval` beside them are a comment —
+  while a write changing only another section is ALLOWED. A `grep -n main_session
+  .claude/skills/harness/bin/check-domain.sh` returns **zero** at `62f861c`; a non-zero result is part
+  of the deliverable, and a hardcoded `plan.yaml`-only pattern is a DEFECT against this criterion. It
+  can go red three independent ways, all inside T-14's own suite: the `BRIEF.md` and `PLAN.md` cases
+  assert both directions; a fixture whose `main_session.writes` DROPS the `plan.yaml approval:` entry
+  must ALLOW the write a hardcoded pattern would still deny; and a fixture with the key absent or the
+  list empty must ALLOW and **say on stderr** that the exclusion list was unreadable, asserted as a
+  stderr line and not as an exit code. The residual is stated, not closed: deleting the entry disarms
+  the denial, and only that stderr line and T-14's own test notice.
   verify: automated      evidence: integration
 
 ## Approval

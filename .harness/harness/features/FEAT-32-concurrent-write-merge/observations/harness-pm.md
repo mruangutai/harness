@@ -45,3 +45,16 @@
   the feature directory — it resolves the RELATIVE path against `CLAUDE_PROJECT_DIR`, not the shell's
   cwd, so a legitimate in-domain append reads as out-of-domain. Append to a `notes/` or
   `observations/` file with the Write tool and an absolute path.
+- 2026-08-21: I authored a `verify:` for T-15 asserting `"DEC-129" not in team-config.yaml` to prove
+  three miscited comments were fixed. `grep -n DEC-129 .harness/team-config.yaml` at `62f861c` shows
+  FOUR hits: `:89`, `:90`, `:91` (the miscitations) and `:108`, which cites DEC-129 CORRECTLY for the
+  per-feature `DESIGN.md` layout. A file-global absence assertion for a token that has a legitimate
+  use is a verify that fails on correct code. Scope the assertion to the lines carrying the defect
+  (here: lines containing `except` and an approval fragment), and assert the REPLACEMENT is present
+  per line, not just the old token absent file-wide.
+- 2026-08-21: A dispatch cited DEC-119 as check-domain.sh's fail-open-loudly precedent. `awk` over
+  `DECISIONS.md:2356-2408` for `fail.open|loud` returned zero lines; the real precedent is DEC-127
+  `@2805`, body `:2839`, plus the code's own comments at `check-domain.sh:798` and `:811`. A cited
+  decision NUMBER is as rottable as a line anchor — grep the entry's body for the claim, not just the
+  index row for the surface.
+

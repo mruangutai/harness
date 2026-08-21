@@ -102,3 +102,52 @@
   that variable on their behalf — they depend on the process cwd, so the pin does not fix them.
   LESSON: when a fix is prescribed as "set variable X", check which commands actually READ X before
   reporting the surface as covered.
+
+- 2026-08-21: I SPAWNED A SECOND LEAD BY MISTAKE, in the feature about concurrent writes. I meant
+  to course-correct the live lead and reached for the `Agent` tool instead of `SendMessage`, which
+  starts a fresh agent rather than continuing one. Then `SendMessage` turned out to be DISABLED for
+  the session entirely ("disabled for this session, in subagents as well as here"), so the
+  correction could never have been delivered by that route either. Contained only because the
+  accidental dispatch carried an explicit no-op instruction — it returned 0 tool uses, 0 members,
+  `files_touched: []`. LESSON, two parts: (1) `Agent` is never the continuation tool, and reaching
+  for it under time pressure spawns a competitor; (2) do not assume `SendMessage` is available —
+  if it is disabled, A DISPATCH IS UNRECALLABLE AT SEND TIME. That inverts the "dispatch early,
+  measure during the wait" procedure for anything the dispatch's own correctness depends on:
+  verify every ANCHOR you are about to hand down BEFORE sending, and spend the wait only on
+  measurements whose answers you keep for yourself.
+
+- 2026-08-21: Two anchors I put in a dispatch were wrong and I could not recall them — I cited
+  "the DEC-119 region" for check-domain.sh's fail-open-loudly precedent (it is DEC-122 `@2542`, the
+  table row at `:2578`), and I passed the operator's `templates/plan.yaml:25` pointer for a `phase`
+  defect when `grep -n phase` on that template returns NOTHING. The saving grace was writing
+  "re-derive the anchor from the index" beside the guess. LESSON: when handing down an anchor you
+  have not opened, mark it as a guess AND name the re-derivation route in the same sentence. A bare
+  wrong anchor is carried; a flagged wrong anchor is corrected by the receiver.
+
+- 2026-08-21: THE OPERATOR'S STATED REASON FOR A RULING WAS FALSIFIABLE BY ONE GREP, and the ruling
+  survived anyway. The ruling picked `plan-merge.py` as host for an approval-mapping guard because
+  it was "the only place with both the old and new mappings in hand". `check-domain.sh:1034` shows a
+  `Write` payload carries whole-file `content`, and the base file is readable off disk — so the hook
+  has both too. The ruling's SHAPE (a check reads the record) was right; only its HOST argument was
+  wrong, and the better host was already the plan's. LESSON: separate a ruling's decision from its
+  justification before proposing an alternative. Falsifying the reason is not grounds to decline the
+  ruling, and "your shape, corrected host, here is the measurement" is accepted where "not
+  workable" would have cost a round.
+
+- 2026-08-21: A guard that MATCHES a repo-relative path and a guard that READS a file off disk need
+  different forms of the same path. `check-domain.sh` holds the raw payload path at `:307` and
+  `_norm(target)` at `:660` strips the worktree segment (DEC-143) for glob matching. A guard that
+  opens `_norm(target)` instead of the raw absolute path fails to find the file, and under this
+  file's own fail-open precedent (DEC-122 `:2578`) that failure is a SILENT ALLOW — the guard
+  reverts to being decorative, which is the exact defect it was built to fix. LESSON: for any new
+  check that compares a proposal against on-disk state, say explicitly which path form does the
+  matching and which does the reading. The failure mode is not a crash, it is a gate that passes
+  everything.
+
+- 2026-08-21: A guard sourced from a RECORD inherits the record's deletability. Making
+  `main_session.writes` load-bearing is the right fix for a decorative list, but it means deleting
+  one line from `team-config.yaml` silently disarms the denial, and under fail-open-loudly the only
+  witnesses are a stderr line nobody reads and the guard's own test suite. LESSON: when you convert
+  a record into a gate's input, the design is not complete until it states what happens when the
+  record is EMPTY, and a test case pins that answer. "Load-bearing" and "tamper-evident" are
+  different properties and only the first comes for free.
