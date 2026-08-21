@@ -263,3 +263,45 @@
   artifact the member actually writes (plan.yaml's bytes, which I did verify) — files, not narration.
   My P-03 says restating another agent's claim launders it into fact; this is the same failure with a
   file instead of a sentence, and it would have put a fabricated incident into the permanent record.
+- 2026-08-21 (round 5): A RULE ABOUT AN ATTACKER-AUTHORED PAYLOAD CANNOT BE JUSTIFIED BY A PROPERTY OF
+  THE FILE, and this is the sharp form of the round-3 error the operator has now retracted in his own
+  voice. The measurement was true — the approval `status:` sits uniquely at two spaces in every
+  plan.yaml, 23 of 23 at 1e73248 — but the rule derived from it inspected the Edit's `old_string`,
+  which the writer AUTHORS rather than reads from the file. So `old_string: "status: pending"` with
+  `replace_all: true` satisfies the rule with no leading spaces at all and flips 18 lines: the rule
+  closed the careful attack and opened the careless one. LESSON, generalisable past this feature:
+  before turning a measurement into a gate, name which side of the trust boundary the measured thing
+  lives on — on-disk state the writer cannot choose, or input the writer supplies. A discriminator
+  measured on the first and applied to the second constrains nothing, and it LOOKS rigorous because a
+  real measurement is attached to it. That is what made it survive a layer-1 review.
+- 2026-08-21 (round 5): A REFUSAL NEEDS ITS COUNTER-EXAMPLE STORED BESIDE IT, or a later reader
+  simplifies it away. "Do not hardcode two spaces; read the indent from disk" reads as defensive
+  caution and invites deletion. With the measurement written next to it — at 1e73248, all 9 tracked
+  PLAN.md carry the signature at ZERO indent while 27 task `status:` lines across 5 of them sit at TWO
+  spaces, so a hardcoded rule there denies 27 legitimate lines and matches zero signatures — the same
+  sentence becomes a fact about the corpus that a reader must falsify before touching. Same asymmetry
+  as a test versus a comment: evidence resists edits, preference does not. Corollary on cost: at this
+  tier I hold `Write` but no `Edit`, and `bash-write-guard.sh` correctly refuses a `>>` redirect even
+  into my own domain, so appending four lines to a 23KB observations log is a full-file rewrite. Budget
+  for that, or lose the observation — and verify append-only with `git diff --numstat` afterwards
+  (0 deletions), because a hand-retyped rewrite is exactly how DEC-125's wipe happens.
+- 2026-08-21 (round 5, THE IMPORTANT ONE — and this entry replaces a WRONG version of itself that I
+  wrote 8 minutes earlier, because rule 15 applies to my own log): I WROTE TWO FALSE STATE.md's IN ONE
+  ROUND FROM CORRECT MEASUREMENTS TAKEN AT THE WRONG TIME. Sequence, by mtime. 16:00 — the lead's
+  `state.yaml` reads `status: blocked`, step `in_flight`, `completed_at: none`, note "host forced to
+  close before the return landed", and its `digest.md` reads `VERDICT: BLOCKED`, `members: [{ verdict:
+  none, files_touched: [] }]`. 16:03:10 — I measure `plan.yaml` byte-identical to HEAD and write "the
+  amend did not land". 16:04:32 — plan.yaml is written; 16:06:05 — pm's own artifact appears. I rewrite
+  STATE.md as "the host abandoned its member, #551 occurrence 9". 16:07:47 — the lead rewrites
+  `state.yaml` to `status: complete`, `verdict: PASS`, `completed_at: seq-2`; 16:08:23 — its digest
+  becomes `VERDICT: PASS`; then it returns normally. NO occurrence, nothing abandoned, four items
+  delivered. THREE RULES, and the second is the one I did not have. (1) A member writes its artifact at
+  the END of its run, so "absent at time T" is not "not produced" — and neither a host's departure nor
+  its own checkpoint makes a member known-dead. (2) `state.yaml` IS WORKING STATE TOO, not just
+  `digest.md`. I ruled out the draft trap because two files agreed — but both were written by the SAME
+  author about a THIRD party, so their agreement measures the lead's belief and nothing else.
+  INDEPENDENCE MEANS A DIFFERENT AUTHOR, NEVER A SECOND FILE BY THE SAME ONE. (3) The only sound
+  completion signal is the harness's own notification; until it arrives, write no sentence whose truth
+  depends on the run being over. My earlier entry says "the artifact the member writes is the one
+  trustworthy thing mid-flight" — I had the right rule and applied it at a moment that made a true
+  measurement produce a false conclusion. Timing is part of the measurement.

@@ -1445,6 +1445,24 @@ tasks:
       other number, the question to ask is which case was added or removed, not whether the suite
       broke.
 
+      AND THE DETECTOR'S COUNT IS A STATED LIMITATION, NOT A NUMBER TO DEFEND. Nothing here changes
+      any assertion, any threshold or any recorded number; it records what the integration figure can
+      and cannot mean. The figure is not attributable to scripts. The runner prints one ^PASS per
+      script, but three of the 14 integration scripts ALSO print a per-case ^PASS of their own, and
+      two of those three - test-feature-worktree.py at :867 and test-expertise-merge.py at :338 -
+      print a summary line spelled exactly like the runner's, so their script-level line appears
+      twice. MEASURED in this worktree at 1e73248, CLAUDE_PROJECT_DIR set to the worktree root:
+      --kind integration exits 0 with 221 lines matching ^PASS |^FAIL |ERROR, the same 221 as the
+      62f861c baseline, of which 218 begin "PASS ", 16 are script-level ^PASS test-*.py lines
+      covering only 14 DISTINCT scripts, and 202 are case-level. So the number tracks the case
+      granularity of three scripts rather than how many tests ran: a script that stopped printing its
+      per-case lines while still running every one of them would SHRINK the count with nothing
+      broken, and a script that split one case into two would raise it with nothing gained. Read it
+      as a prompt to ask WHICH script changed its output, and never as evidence on its own. The
+      mechanical gate is unchanged and is the whole gate: exit 0 from the runner, no line beginning
+      FAIL, and the per-file ^PASS assertions in the verify above - each of which names one script
+      and is unaffected by the duplication.
+
   - id: T-11
     title: Keep the claim registry out of git
     traces: [REQ-05]
@@ -1713,9 +1731,31 @@ tasks:
         - Read main_session.writes from the already-located team-config.yaml manifest. The file is
           already opened by this script at :153-155 and :297-302, so this is one more key lookup and
           not a new dependency. PARSE EACH ENTRY as a glob plus an OPTIONAL trailing fragment,
-          space-separated: split the entry on the LAST space and treat the tail as a fragment only if
-          it ends in a colon or begins with two hashes and a space. Otherwise the whole entry is a
-          glob with no fragment.
+          space-separated: split the entry on the FIRST space - entry.split(" ", 1), never rsplit -
+          and treat the tail as a fragment only if it ends in a colon or begins with two hashes and a
+          space. Otherwise the whole entry is a glob with no fragment.
+
+          THE FIRST SPACE IS THE MECHANISM AND NOT A DETAIL, recorded here because "simplify that to
+          the last space" is the edit that silently guts this task. MEASURED in this worktree at
+          1e73248 against the REAL .harness/team-config.yaml, whose main_session.writes holds three
+          entries at that sha, plus the fourth entry T-15 adds and the verify above asserts:
+
+            .harness/*/features/*/BRIEF.md ## Approval  -> glob .harness/*/features/*/BRIEF.md,
+                                                          fragment "## Approval", a MARKDOWN HEADING
+            .harness/*/features/*/PLAN.md ## Approval   -> glob .harness/*/features/*/PLAN.md,
+                                                          fragment "## Approval", a MARKDOWN HEADING
+            .harness/logs/**                            -> no space, so no fragment, by design
+            .harness/*/features/*/plan.yaml approval:   -> glob .harness/*/features/*/plan.yaml,
+                                                          fragment "approval:", a MAPPING KEY
+
+          THREE of those four entries deny. Splitting on the LAST space instead hands the two heading
+          entries a tail of "Approval", which ends in no colon and begins with no two hashes, so both
+          are read as FRAGMENT-LESS and contribute NO DENIAL - and it corrupts their glob into one
+          ending "BRIEF.md ##", which matches no path on disk. ONE entry of the four would still
+          deny, the plan.yaml one. The three-file mechanism D-10 records would collapse into a
+          plan.yaml-only special case: exactly the hardcoded pattern the paragraph above forbids,
+          reached through a parser bug instead of a hardcode, and passing every behavioural case in
+          this task that is not about BRIEF.md or PLAN.md.
         - THREE ENTRY KINDS, and only two of them deny:
             fragment ending in a colon  -> a YAML MAPPING KEY. yaml.safe_load both sides and compare
               that key's value. This is the plan.yaml approval: case.
@@ -1751,6 +1791,25 @@ tasks:
               fragment's own key at column zero, or any CHILD KEY of the on-disk fragment at the
               indent that fragment actually uses ON DISK. Read that indent from the file. Do NOT
               hardcode two spaces.
+
+          WHY LIMB B READS THE INDENT RATHER THAN HARDCODING TWO SPACES - the counter-example,
+          measured in this worktree at 1e73248 via git ls-files. The two-space discriminator is a
+          property of the plan.yaml EMITTER only, not of the rule's subject matter, and ONE OF THE
+          THREE FILES this rule covers ALREADY INVERTS IT TODAY, not in some hypothetical future
+          reformatting. Of the 9 tracked */PLAN.md files, all 9 carry their signature heading at ZERO
+          indent - 9 lines matching ^## Approval, and the signature's own status: key sits at zero
+          indent as well, 10 such lines across the 9 files, the extra one being FEAT-06's
+          re-signature block - while 27 lines across 5 of those files carry a TASK status: at TWO
+          spaces: FEAT-06-team-layer-inv6/PLAN.md 10, FEAT-07-verify-teeth-batch-probe/PLAN.md 10,
+          FEAT-09-plan-time-route-check/PLAN.md 4, FEAT-02/PLAN.md 2 and
+          .claude/skills/harness/templates/PLAN.md 1. A hardcoded two-space rule applied there denies
+          27 legitimate task lines and matches ZERO signatures - inverted, not merely imprecise. In
+          plan.yaml at the same sha the convention runs the other way: 23 tracked files, status:
+          line-start indents of two spaces x23 (one per file, the signature), four spaces x176 (task
+          keys) and ten spaces x1, and that single ten-space hit is PROSE inside a task intent,
+          FEAT-14-feature-json-schema/plan.yaml:1154, not a key. Two of the three covered files, two
+          opposite conventions, one rule - so limb B reads the fragment's indent from the file it is
+          judging.
 
           MEASURED, in this worktree at 6bb7d82, against FEAT-32's own plan.yaml whose approval block
           is lines 4-7 and loads as the four bytes-exact lines "approval:", two-space "status:
@@ -1800,18 +1859,20 @@ tasks:
 
           because the verify greps for exactly that string, and a comment that gets reworded into
           something reassuring during review is the failure this grep exists to catch.
-        - THE COVERAGE THIS RULE DOES AND DOES NOT HAVE, measured in this worktree at 6bb7d82 so a
-          later reader can tell drift from falsification. Every tracked plan.yaml - 23 of them at this
-          sha, git ls-files '*plan.yaml' - carries EXACTLY ONE line matching a two-space "status: "
-          and it is the approval block's in all 23. In 22 the line immediately above is literally
-          "approval:"; the 23rd is .claude/skills/harness/templates/plan.yaml, hit at line 27, where
-          "approval:" sits three lines above and two comment lines intervene. Task "status:" keys sit
-          at four spaces, 1 to 17 per file. EXACTLY TWO lines in the whole corpus carry a "status:" at
-          any other indent - FEAT-14-feature-json-schema/plan.yaml:1154 at ten spaces and
-          FEAT-32-concurrent-write-merge/plan.yaml:647 at eleven - and BOTH are prose inside a task
-          intent rather than YAML keys, so neither is a counter-example to the discriminator and
-          neither is an anomaly to fix. The corpus is uniform; that uniformity is the convention the
-          comment above refuses to call a guarantee.
+        - THE COVERAGE THIS RULE DOES AND DOES NOT HAVE, RE-MEASURED in this worktree at 1e73248 so
+          a later reader can tell drift from falsification. Every tracked plan.yaml - 23 of them at
+          this sha, git ls-files '*plan.yaml' - carries EXACTLY ONE line matching a two-space
+          "status: " and it is the approval block's in all 23. In 22 the line immediately above is
+          literally "approval:"; the 23rd is .claude/skills/harness/templates/plan.yaml, hit at line
+          27, where "approval:" sits three lines above and two comment lines intervene. Task
+          "status:" keys sit at four spaces, 1 to 17 per file. EXACTLY ONE line in the whole corpus
+          carries a "status:" at any other indent - FEAT-14-feature-json-schema/plan.yaml:1154 at ten
+          spaces - and it is prose inside a task intent rather than a YAML key, so it is neither a
+          counter-example to the discriminator nor an anomaly to fix. This paragraph previously read
+          EXACTLY TWO, naming a second hit at eleven spaces in this plan's own line 647; that line
+          was real at 6bb7d82 and reflowed away by 1e73248, so the earlier number was drift rather
+          than error - which is what anchoring the count to a sha is for. The corpus is uniform; that
+          uniformity is the convention the comment above refuses to call a guarantee.
         - For the mapping-key kind, compare by PARSING both sides and comparing the loaded value, not
           by comparing text. A whitespace-only difference is not a signature change and denying it
           would make plan-merge.py's own output undeniable-by-luck. If either side fails to parse,
@@ -1971,7 +2032,7 @@ tasks:
       w = yaml.safe_load(open(".harness/team-config.yaml"))["main_session"]["writes"]
       hit = [g for g in w if g.endswith(" plan.yaml approval:")]
       assert hit, "main_session is still granted no plan.yaml approval mapping: %r" % (w,)
-      assert all(len(g.rsplit(" ", 1)) == 2 for g in hit), "the entry is not glob-space-fragment: %r" % (hit,)
+      assert all(len(g.split(" ", 1)) == 2 for g in hit), "the entry is not glob-space-fragment: %r" % (hit,)
       excl = [l for l in open(".harness/team-config.yaml").read().splitlines()
               if "except" in l and ("## Approval" in l or "approval:" in l)]
       assert len(excl) == 3, "expected 3 approval-exclusion comment lines, found %d: %r" % (len(excl), excl)
