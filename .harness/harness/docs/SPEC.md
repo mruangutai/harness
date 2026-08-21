@@ -2208,18 +2208,27 @@ is not a limitation admitted late — it is the difference between a constraint 
 
 ### 15.1 Single operator, one session per checkout
 
-**The harness is single-operator by design** (DEC-90). Every "single writer" guarantee means *one
-operator on one machine*.
+**The harness is single-operator by design.** Every "single writer" guarantee means *one operator
+on one machine*. The unit is the **session-checkout pair**, not the session (DEC-120).
 
-DEC-90 originally read "one agent in one session"; DEC-120 narrowed that. The unit is the
-**session-checkout pair**, not the session.
+Inside one session, N concurrent orchestrators are the *design*, and they do not collide:
+`STATE.md` and `feature.json` are per-feature and each has exactly one orchestrator, and `logs/` is
+written only by the main session.
 
-Note what DEC-120 did and did not change. Inside one session, N concurrent orchestrators are the
-*design*, and they do not collide: `STATE.md` and `feature.json` are per-feature and each has
-exactly one orchestrator, and `logs/` is written only by the main session. What is still unsafe is
-**two sessions over one checkout** — two main sessions means two writers for `logs/`, `## Approval`
-and the committed Expertise files, and there is no lock file anywhere. Separate checkouts are fine
-(§15.2).
+What is still unsafe is **two sessions over one checkout**. Two main sessions means two writers, and
+the protection is uneven — which of the three matters depends on the file:
+
+| Written by both | Protected by |
+|---|---|
+| Committed Expertise files | an exclusive lock, held across the read-modify-write by `bin/expertise-merge.py` |
+| `logs/` | nothing |
+| the `## Approval` mapping | nothing |
+
+Expertise is safe because two concurrent close-outs each doing a whole-file write lost the other's
+entries, and the merge tool was built to stop it. The other two carry the same exposure and no
+mechanism, so the single-operator boundary is what still holds them.
+
+Separate checkouts are fine (§15.2).
 
 Two developers is out of scope for v1. If it is ever needed, the minimum is an advisory lock on
 `.harness/` plus per-operator run-dir namespacing — not a small change.

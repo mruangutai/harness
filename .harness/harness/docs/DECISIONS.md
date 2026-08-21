@@ -1150,13 +1150,21 @@ change is worse than halting.
 **Note:** two reviews modelled "two developers" as the concurrency threat and missed the one that happens
 on day one — *one* developer who doesn't always use the front door.
 
-## DEC-90 — Single-operator by design, stated as a constraint
+## DEC-90 — STRUCK 2026-08-21
 
-**Chose:** record it (§15.1) rather than leave it implicit. Every "single writer" guarantee means one
-agent in one session on one machine; two terminals means two orchestrators writing `STATE.md`,
-`feature.yaml`, `logs/` and committed Expertise files, with no lock anywhere.
-**Because:** an unstated assumption is a latent bug; a stated one is a scope boundary.
+Recorded the single-operator assumption as a stated scope boundary rather than an implicit one:
+every "single writer" guarantee meant one agent in one session on one machine, and two terminals
+meant two orchestrators writing `STATE.md`, `feature.yaml`, `logs/` and committed Expertise files,
+**with no lock anywhere**.
 
+Struck under DEC-188 on the operator's word. `bin/expertise-merge.py` holds an exclusive lock across
+the whole read-modify-write of an Expertise file, and it reached `main` in FEAT-30 (PR #629), so a
+lock exists on one of the files this entry named as unlocked. FEAT-30 falsified it; FEAT-32, where
+the striking was raised, has not shipped. Nothing was removed from a gate — DEC-90 was wired into
+none. The single-operator boundary now lives in SPEC §15.1 alone; issue #633 records what the strike
+cost.
+
+**DEC-90's number is retired, not reused.** DEC-120 cites it.
 ## DEC-91 — The value claim is restated as "without mid-stage supervision"
 
 **Chose:** "Claude executes reliably at each stage **without mid-stage supervision**."
@@ -6321,3 +6329,39 @@ amendment quoting the struck clause, not by leaving it in the position where it 
 *What did NOT change.* The body of DEC-196, including the paragraph amendment 1 identified as false
 and the amendment-1 record itself, is untouched. No DEC number is opened, superseded or retired
 here, and the entry's rule is the same rule.
+
+## DEC-197 — A test file matching two `detect` globs resolves to the explicit kind, and the record is the enforcement
+
+**Chose:** state the precedence that was already in force. In `.harness/harness.json`'s `test_kinds`,
+where a file matches more than one kind's `detect`, it resolves to the kind whose glob names it
+**explicitly**, never to the kind whose glob is a catch-all.
+
+Concretely: `unit.detect` carries `.claude/skills/harness/bin/test-*.py`, which matches every test
+script in `bin/`, and `integration.detect` is a list of filenames. A file in both is `integration`.
+
+**Because:** the rule was already load-bearing and already consistently applied — four files sat in
+both lists and were treated as integration — and it was written nowhere. A convention nobody can
+find is one every reader has to re-derive from the data, and two readers who derive it differently
+will not be caught.
+
+**What this does not do, said plainly rather than discovered later.** Nothing implements it. There is
+no classifier. `test_kinds` is read by `harness-qa` by hand, and `run-unit-tests.sh` reads its own
+`UNIT_SCRIPTS` / `INTEGRATION_SCRIPTS` arrays and never opens `harness.json` at all. So this entry is
+the enforcement until something mechanical exists, and the failure mode it does not close is two
+readers disagreeing about an overlapping file.
+
+**What forced it.** Eight of twelve `INTEGRATION_SCRIPTS` entries were absent from
+`integration.detect`, so `run-unit-tests.sh` ran them as integration while the qa matrix read them as
+unit — and every `evidence: integration` claim resting on one of those files was false. The fix is to
+name each file in `integration.detect`, which leaves it matching **both** globs. That fix means
+something only if this precedence is real, so the rule had to stop being folklore before the fix
+could be trusted.
+
+**A cross-check is separate from this rule, deliberately.** The check that the arrays and the
+`detect` lists agree is a set comparison; its correctness does not depend on the answer here, only
+its meaning does. Keeping them apart stops a check from silently encoding a rule the record does not
+state.
+
+**If this is ever implemented, the test must assert on a file matching BOTH globs** and go red when
+the resolution flips. A test over non-overlapping files passes under either rule and proves nothing
+about the only case in question.
