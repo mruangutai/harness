@@ -298,4 +298,6 @@ never fails loudly, so the absence of that case is worth stating rather than lea
 
 ## Approval
 
-status: pending
+status: approved
+approved_by: operator
+date: 2026-08-21
