@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Plan",
   "review_sha": "",
-  "cycles_used": 0,
+  "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "github": {
@@ -14,5 +14,21 @@
     "attached": [],
     "issues": {}
   },
-  "runs": []
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "plan2a-product",
+      "squad": "product",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "plan2b-product",
+      "squad": "product",
+      "verdict": "PASS"
+    }
+  ]
 }
