@@ -6,11 +6,13 @@ Phase: **plan**, at its terminus. The amend round is **complete on substance**: 
 rulings and the DEC-197 item landed in `plan.yaml`. `approval.status` is still `pending` — the
 operator signs, and nothing here approves anything.
 
-`plan.yaml` at worktree HEAD `c32f332` is **1692 lines / 108804 bytes, 15 tasks, 10 decisions**,
-uncommitted at `+632/−152` against `6d83e91` — measured 12:00, and the file was last written at
-11:59:37 by an **orphaned pm still running after its lead closed**, so treat the byte count as a
-snapshot rather than a final state. Every sample of it parsed, with the task, decision and approval
-counts intact at each one. It grew from 13 tasks and 8 decisions because R3 and
+`plan.yaml` is **1692 lines / 108804 bytes, 15 tasks, 10 decisions**, committed on
+`feat/FEAT-32` at **`7463b80`** as `+632/−152` against `6d83e91`, together with BRIEF.md
+(`+118/−52`), pm's `notes/research-FEAT-32-ruling-amendments.md` and both observation logs. The tree
+is clean. The file was last written at 11:59:37 by an **orphaned pm still running after its lead
+closed**, so the commit is a snapshot of an orphan's output rather than of an acknowledged return —
+every sample of it parsed, with the task, decision and approval counts intact at each one, and both
+approval artifacts verified untouched and `pending` immediately before the commit. It grew from 13 tasks and 8 decisions because R3 and
 R4 ruled two new surfaces IN: **T-14** makes the approval-block exclusion real in
 `check-domain.sh`, **T-15** makes the three signer artifacts agree, and **D-09/D-10** record the
 reasoning. Execution modes split 8 `main-session-direct` (T-01, T-07, T-08, T-09, T-11, T-12, T-14,
