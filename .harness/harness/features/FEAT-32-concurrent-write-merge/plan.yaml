@@ -7,7 +7,7 @@ approval:
   date:
 
 lanes:
-  resolved_at: 5d9b428
+  resolved_at: c32f332
   rows:
     - surface: .claude/skills/harness/bin/harness_merge.py
       lane: team
@@ -51,39 +51,61 @@ lanes:
       reason: DEC-174 amendment 4 puts the test file of each gate inside the carve-out
     - surface: .claude/skills/harness-spec-driven/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at 5d9b428
+      reason: check-domain.sh --resolve prints NOBODY at c32f332
     - surface: .claude/skills/harness-expertise/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at 5d9b428
+      reason: check-domain.sh --resolve prints NOBODY at c32f332
     - surface: .claude/agents/harness-orchestrator.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at 5d9b428
+      reason: check-domain.sh --resolve prints NOBODY at c32f332
     - surface: .gitignore
       lane: main-session-direct
-      reason: check-domain.sh --resolve prints NOBODY at 5d9b428
+      reason: check-domain.sh --resolve prints NOBODY at c32f332
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: >-
+        named in DEC-174 amendment 4 as one of the five enforcement-layer scripts; --resolve grants it
+        to harness-backend-dev and harness-dev-ops at c32f332, so the carve-out is what makes this
+        main-session-direct rather than an ungranted surface
+    - surface: .claude/skills/harness/bin/test-check-domain.py
+      lane: main-session-direct
+      reason: DEC-174 amendment 4 puts the test file of each gate inside the carve-out
+    - surface: .claude/skills/harness/templates/plan.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at c32f332
+    - surface: .claude/agents/harness-pm.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at c32f332
+    - surface: .harness/team-config.yaml
+      lane: main-session-direct
+      reason: check-domain.sh --resolve prints NOBODY at c32f332
     - surface: .harness/harness/features/FEAT-32-concurrent-write-merge/notes/**
       lane: main-session-direct
       reason: >-
         the capture requires temporarily instrumenting two enforcement-layer scripts, so DEC-174
         governs the act even though the only file that changes is the note; --resolve grants the
-        note to harness-orchestrator and harness-pm at 5d9b428, so this prints a non-fatal
+        note to harness-orchestrator and harness-pm at c32f332, so this prints a non-fatal
         DEVIATION and that is the intended DEC-174 shape under DEC-179
 
 decisions:
   - id: D-01
     choice: >-
-      The build takes shape (c) of the three offered — one shared module, harness_merge.py, holding
-      the lock and the atomic replace, with expertise-merge.py rewired onto it — and shape (c)
-      requires shape (a), so THE BUILD MAY NOT START UNTIL FEAT-30 IS MERGED TO main. T-02's verify
-      asserts expertise-merge.py is present in the tree before anything else runs.
+      The build takes one shared module, harness_merge.py, holding the lock and the atomic replace,
+      with expertise-merge.py rewired onto it. That shape requires expertise-merge.py to exist in the
+      tree, and its PRECONDITION IS NOW DISCHARGED: FEAT-30 merged as squash 47a9935 (PR 629) with
+      terminal record 7dbb0f1, and 47a9935 is an ancestor of this feature's HEAD c32f332. All four
+      FEAT-30 deliverables are present in this worktree — expertise-merge.py, test-expertise-merge.py,
+      feature-worktree.py, test-feature-worktree.py. T-02's start-gate assertion STAYS as a
+      regression guard, not as a wait. THE ALTERNATIVE SHAPE IS REJECTED, not deferred: a transcribed
+      second copy of the lock, giving two lock dialects in one bin directory, is off the table by
+      operator ruling and must not be re-proposed by any task.
     because: >-
-      DEC-193 at DECISIONS.md:5863 settled this exact fork for the two write routes and chose one
-      shared implementation with divergences recorded; a transcribed second copy (shape b) would
-      put two lock dialects in one bin directory on the day FEAT-30 lands, and REQ-07 exists because
-      three copies of this defect is how it got filed three times. The price is stated rather than
-      argued away — the destructive defect stays live until FEAT-30 merges, and the only mitigation
-      in that window is the operator dispatching one pm at a time, which is what happened on this
-      planning run.
+      DEC-193 settled this exact fork for the two write routes and chose one shared implementation
+      with divergences recorded; a transcribed second copy would put two lock dialects in one bin
+      directory, and REQ-07 exists because three copies of this defect is how it got filed three
+      times. The gating price this decision used to carry — the destructive defect staying live until
+      FEAT-30 merged — has been paid: the merge happened, so no mitigation window remains and no task
+      is blocked on it.
     dec: DEC-193
   - id: D-02
     choice: >-
@@ -113,13 +135,19 @@ decisions:
   - id: D-04
     choice: >-
       The approval block is never written by plan-merge.py and never carried from the proposal. It
-      is the base file's bytes, untouched. The orchestrator continues to write approval with the
-      Edit tool, which is a surgical patch rather than a whole-file write and therefore cannot
-      destroy the task list; every OTHER write to plan.yaml goes through plan-merge.py.
+      is the base file's bytes, untouched. THE MAIN SESSION — not the orchestrator — continues to
+      write approval with the Edit tool, which is a surgical patch rather than a whole-file write and
+      therefore cannot destroy the task list; every OTHER write to plan.yaml, by any tier, goes
+      through plan-merge.py.
     because: >-
-      the approval block is the main session's and nobody else's, and FEAT-30's approval.rulings
-      carried an operator cycle budget that a wholesale rewrite would have taken away silently. A
-      tool that can write it is a tool that can lose it.
+      the approval block is the main session's and nobody else's: team-config.yaml's main_session
+      writes list is the only place any signer is granted, DEC-120 puts the user channel at the main
+      session alone, and the orchestrator playbook .claude/skills/harness/SKILL.md states in its own
+      words that only the main session writes plan.yaml's approval mapping. An earlier draft of this
+      decision named the orchestrator, which is false in a way that matters — the orchestrator cannot
+      reach the user, so a signature it wrote would be nobody's. FEAT-30's approval.rulings carried an
+      operator cycle budget that a wholesale rewrite would have taken away silently. A tool that can
+      write it is a tool that can lose it.
     dec: DEC-129
   - id: D-05
     choice: >-
@@ -136,26 +164,36 @@ decisions:
       write for no gain, since the log is append-only prose that nothing parses. Exit 7 would be
       wrong here rather than merely unnecessary — divergent text is the NORMAL case for a log, and
       a tool that refused it would refuse almost every append. No cap exists because the log is
-      deliberately uncapped — DEC-145 at DECISIONS.md:3441 split recording from distillation
+      deliberately uncapped — DEC-145 split recording from distillation
       precisely so this log is never injected into a spawn, so its size costs no spawn anything.
     dec: DEC-145
   - id: D-06
     choice: >-
-      The #551 fix is a SINGLE-FLIGHT CLAIM REGISTRY, refused at dispatch time rather than at stop
-      time. dispatch-guard.sh, already the PreToolUse Task hook, refuses a dispatch of a persona
-      named in a module literal SINGLE_FLIGHT_AGENTS while a live claim for that persona exists on
-      this checkout; validate-digest.py, already the SubagentStop hook, releases the claim. The
-      registry file is .harness/.inflight-claims.json and it is written through harness_merge.py,
-      so the registry is not itself a new instance of this defect class. Only harness-pm is in the
-      literal.
+      The #551 fix is a CLAIM REGISTRY that records EVERY harness-* dispatch and REFUSES only the
+      ones under single flight. dispatch-guard.sh, already the PreToolUse Task hook, records a claim
+      for every dispatched harness-* persona and refuses a dispatch of a persona named in the module
+      literal SINGLE_FLIGHT_AGENTS while a live claim for that persona exists on this checkout;
+      validate-digest.py, already the SubagentStop hook, releases the returning agent's own claim.
+      The registry file is .harness/.inflight-claims.json and it is written through harness_merge.py,
+      so the registry is not itself a new instance of this defect class. Only harness-pm is in
+      SINGLE_FLIGHT_AGENTS. The registry maps a persona name to a LIST of claims, each carrying the
+      DISPATCHER's persona name, so "which children of this agent are still in flight?" is a lookup
+      rather than an unanswerable question — that lookup is what D-09 stands on.
     because: >-
       refusing the SECOND DISPATCH is what #551 occurrence 1 actually needed, and it is achievable;
-      making a lead WAIT for its members is not, because validate-digest.py's hook_mode passes
-      through on stop_hook_active at :845 to avoid an infinite stop loop, so a SubagentStop refusal
-      can fire at most once and cannot be a wait. Restricting the literal to harness-pm is what
-      makes release possible with only agent_type — single flight means the count is zero or one, so
-      no agent id is needed to know which claim to release — and it keeps a legitimate parallel
-      squad of two harness-backend-dev members legal.
+      making a lead WAIT for its members is not — see D-09 for the measurement and for what is
+      achievable instead. Recording a claim for every persona while refusing only the single-flight
+      ones costs one locked JSON write per spawn, roughly 33 per feature, and is the only way the
+      dispatcher edge exists on disk at all; refusing on that edge is a separate decision and is not
+      taken here, so a legitimate parallel squad of two harness-backend-dev members stays legal. A
+      persona's claims are a list rather than one object because two harness-backend-dev members are
+      legal and one object could not hold both; release removes the OLDEST claim for the returning
+      persona, which is sufficient because the registry is a counter of live children and not an
+      identity map. #551's occurrences 5 and 6, both from run dir 2026-08-21-1-product, are the same
+      shape as 1 seen from the other two tiers: 5 is a lead forced to a terminal digest with its pm
+      still in flight, 6 is the orchestrator forced to a stop with its lead still in flight. Run dirs
+      are gitignored, so the durable record of both is STATE.md and the decision entry T-13 writes —
+      never the run dir.
     dec: none
   - id: D-07
     choice: >-
@@ -168,47 +206,120 @@ decisions:
       refuse every later pm dispatch on that checkout — a fix that bricks the factory is worse than
       the defect. 3600 is above the longest observed pm spawn and below any plausible session, and
       it is a named literal so a measurement can move it. Failing OPEN on a leaked claim is the
-      house precedent for a guard's own bug, printed at validate-digest.py:869 and set by check-domain.sh.
+      house precedent for a guard's own bug, printed by validate-digest.py's internal-error
+      pass-through - the stderr line ending "this is our bug, not theirs" - and set by check-domain.sh.
     dec: none
   - id: D-08
     choice: >-
       Each merge CLI carries its own exit-9 destination refusal, decided on os.path.realpath, and
-      #627 is NOT fixed here. The pattern accepts both layout forms — a features segment directly
+      THREE ISSUES ARE EXPLICITLY OUT OF SCOPE AND NO TASK MAY ABSORB THEM: #627,
+      bash-write-guard.sh's allow-by-omission default; #560, nothing serialises Expertise writes
+      against an open distillation run; and #605, nothing serialises two leads' members against one
+      checkout. #560 and #605 are named out because the claim registry built here IS the mechanism
+      both would need, so a build agent will be tempted to add a persona to SINGLE_FLIGHT_AGENTS and
+      call them fixed; which personas join that literal is a policy call with a real cost — refusing
+      a legitimate parallel squad — and it is not this feature's to make. The pattern accepts both
+      layout forms — a features segment directly
       under .harness and one nested under a repository segment — because DEC-194 judges a partial
       layout migration per coupled surface.
     because: >-
       bash-write-guard.sh is allow-by-omission, so a python3 invocation reaches neither the
-      read-only denial at :628 nor the domain walk at :676, and the tool's own destination check is
+      read-only denial at its agent-in-REVIEWERS branch nor the domain walk over its findings list -
+      cite those by symbol, because the line anchors used in earlier rounds had all drifted by
+      c32f332 - and the tool's own destination check is
       the only guard left. Fixing #627 properly means designing a rule rather than a list for
       extracting each tool's destination argument, in a named enforcement-layer gate, which is a
       feature of its own. Accepting both layout forms costs one alternation and avoids a tool that
       refuses the very file it was pointed at on whichever branch has not migrated yet.
     dec: DEC-194
+  - id: D-09
+    choice: >-
+      A LEAD CANNOT BE MADE TO WAIT FOR ITS CHILDREN, AND THAT IS RECORDED AS AN IMPOSSIBILITY RATHER
+      THAN WORKED AROUND. What ships instead is two mechanisms that can actually hold, on the two
+      hooks that can actually hold them.
+      (1) THE ONE-SHOT RETURN CONTRACT, on SubagentStop. validate-digest.py refuses, exit 2, a return
+      from a lead or the orchestrator while the registry holds a live claim whose dispatcher is that
+      agent, and the stderr names each in-flight child and its start time. This fires AT MOST ONCE
+      per return, which is not a wait — but it is exactly the strength every other digest contract in
+      that file already has, and it is aimed at the right defect: #551 occurrences 3, 4, 5 and 6 are
+      FALSE REPORTING, a verdict asserted about members the reporter could not see, and one
+      correction round is the house mechanism for a false return.
+      (2) THE UNBOUNDED CONTAINMENT, on PreToolUse. A PreToolUse refusal has no once-only bound, and
+      dispatch-guard.sh already exercises that. The single-flight refusal of D-06 is what actually
+      prevents the LOSS, because the loss happens at the second dispatch and not at the premature
+      return.
+      WHAT REMAINS IMPOSSIBLE, stated so nobody mistakes this for a fix: an agent that re-returns the
+      same premature digest a second time ships it, because stop_hook_active passes the second return
+      through unconditionally; and an orphaned child of an interrupted parent (DEC-131) has no parent
+      left to refuse, so neither mechanism reaches it. #551 therefore NARROWS rather than closes, and
+      the residual is those two cases and not "occurrences 3 and 4".
+    because: >-
+      the measurement that forces this is in the tree and was re-read at c32f332:
+      validate-digest.py:845 is `if d.get("stop_hook_active"): return 0`, and its docstring at
+      :815-818 gives the reason — blocking again when we are already re-running because a stop hook
+      blocked is an infinite loop with no operator escape. So a SubagentStop refusal fires once and
+      can never be a wait, and any task planning one would plan something unachievable. The
+      discriminating question was therefore not "how do we wait" but "which of #551's harms needs a
+      wait": the LOSS needs a refused dispatch, which PreToolUse gives unbounded, and the FALSE
+      REPORT needs one correction round, which SubagentStop gives exactly once. Neither harm needed
+      the thing that is impossible. The alternative of a polling wait inside the lead's own turn was
+      rejected: there is no disk signal a lead could poll that its children write, and a wait loop in
+      an agent turn is the shape this repository forbids outright.
+    dec: none
+  - id: D-10
+    choice: >-
+      THE SIGNER IS THE MAIN SESSION, AND THE EXCLUSION BECOMES ENFORCED RATHER THAN COMMENTED.
+      check-domain.sh gains a DOMAIN-path denial: a harness-* agent's Write or Edit of a plan.yaml
+      that would change the file's approval: mapping is denied, and one that leaves it untouched is
+      allowed. It goes on the domain path deliberately, not the SHAPE path, because check-domain
+      exits 0 for a payload carrying no agent_type — so the main session is exempt by the mechanism
+      itself rather than by a special case. Three record artifacts that name a different signer are
+      corrected to match: the plan template's approval comment, harness-pm.md's writable paragraph,
+      and team-config.yaml's main_session writes list, which today grants the BRIEF.md and PLAN.md
+      heading forms and names plan.yaml's approval: mapping nowhere at all.
+    because: >-
+      four artifacts disagreed and the tree enforced none of them. Measured at c32f332: a
+      case-sensitive grep for approval in check-domain.sh returns exactly one line, :858, and it is a
+      comment; check-domain.sh --resolve on a plan.yaml prints harness-orchestrator and harness-pm,
+      so both may write the whole file including the mapping and nothing refuses them;
+      team-config.yaml grants the mapping to nobody. The main session wins on BEHAVIOUR and not on
+      seniority: DEC-120 puts the user channel at the main session alone, so it is the only tier that
+      can hold a signature the user actually gave, and check-domain's own carve-out comment names
+      Approval blocks as what the main session writes. The orchestrator playbook
+      .claude/skills/harness/SKILL.md agrees; the plan template and harness-pm.md are the losers and
+      harness-pm.md is the worse of the two, because it gives the orchestrator a reason — "only it can
+      reach the user" — that DEC-120 flatly contradicts. This work is ruled in here rather than filed
+      because plan-merge.py is the first thing that would make the exclusion real, and an enforced
+      exclusion beside three records that name three signers is a gate arguing with its own
+      documentation.
+    dec: DEC-129
 
 tasks:
   - id: T-01
-    title: Capture the live PreToolUse Task and SubagentStop payloads and record their key sets
+    title: Measure the one unknown hook payload key — the name of the DISPATCHED persona
     traces: [REQ-05, REQ-09]
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      the capture temporarily instruments dispatch-guard.sh and validate-digest.py, both named in
-      DEC-174 amendment 4, so the act is inside the carve-out even though the only file that
-      changes is the note
+      the capture temporarily instruments dispatch-guard.sh, a registered PreToolUse hook and so
+      inside DEC-174 amendment 4's enforcement-layer CATEGORY, even though the only file that changes
+      is the note
     depends_on: []
     status: pending
     files:
       - .harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       F=.harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md
       test -f "$F" || { echo "the capture note does not exist"; exit 1; }
       grep -q '^## PreToolUse Task payload keys$' "$F" || { echo "no PreToolUse key-set section"; exit 1; }
-      grep -q '^## SubagentStop payload keys$' "$F" || { echo "no SubagentStop key-set section"; exit 1; }
       grep -q '^DISPATCHED_PERSONA_KEY=' "$F" || { echo "the dispatched-persona key is not named"; exit 1; }
-      grep -q '^STOP_HAS_AGENT_TYPE=' "$F" || { echo "the SubagentStop agent_type finding is not recorded"; exit 1; }
+      grep -q '^DISPATCHED_PERSONA_KEY=NONE$' "$F" && { echo "the key was not found - T-06, T-08 are blocked"; exit 1; }
+      grep -q '^STOP_HAS_AGENT_TYPE=' "$F" && { echo "SubagentStop agent_type is already measured; do not re-measure it"; exit 1; }
       git diff --quiet -- .claude/skills/harness/bin/dispatch-guard.sh || { echo "instrumentation left in dispatch-guard.sh"; exit 1; }
-      git diff --quiet -- .claude/skills/harness/bin/validate-digest.py || { echo "instrumentation left in validate-digest.py"; exit 1; }
+      git diff --quiet -- .claude/skills/harness/bin/validate-digest.py || { echo "validate-digest.py must not be touched by this task"; exit 1; }
       exit 0
     intent: |
       This task measures the platform. It writes ONE markdown note and reverts every other change it
@@ -220,38 +331,45 @@ tasks:
       file outside the repository, then trigger the hook once, then REVERT the line and confirm with
       git diff that the file is clean.
 
-      TWO CAPTURES.
+      ONE CAPTURE, AND ONLY ONE. An earlier draft of this task also measured whether SubagentStop
+      carries agent_type. DO NOT MEASURE THAT - it is already measured, and re-measuring a settled
+      fact is how a plan spends a spawn on nothing. The evidence: validate-digest.py selects a
+      PERSONA-SPECIFIC schema from the dispatched agent's own name, and a live orchestrator return was
+      rejected against the "orchestrator" schema in the SCHEMAS mapping. The no-agent_type
+      pass-through, whose print begins "check-digest: hook payload has no agent_type", did not fire.
+      A schema chosen by persona cannot be chosen when the persona is absent. SubagentStop carries
+      agent_type: settled.
 
-      1. PreToolUse with matcher Task or Agent, which is dispatch-guard.sh. Trigger it by spawning
-         one throwaway subagent that does nothing. Record the complete key set of the payload, and
-         record the exact key path that names the DISPATCHED persona - the subagent type being asked
-         for, not the dispatcher. dispatch-guard.sh already reads d["tool_input"]["model"], so the
-         dispatched persona is expected somewhere under tool_input, but the key name is NOT
-         established by any measurement in this repository and this task exists to establish it.
+      WHAT IS STILL UNKNOWN is exactly one key: the key path on a PreToolUse Task payload that names
+      the DISPATCHED persona - the subagent type being asked for, not the dispatcher.
 
-      2. SubagentStop, which is validate-digest.py --hook. Trigger it by letting that same throwaway
-         subagent finish. Record the complete key set, and record whether agent_type is present and
-         carries the subagent's own persona name.
+      THE CAPTURE. PreToolUse with matcher Task or Agent, which is dispatch-guard.sh. Trigger it by
+      spawning one throwaway subagent that does nothing. Record the complete key set of the payload
+      and the exact dotted key path naming the dispatched persona. dispatch-guard.sh already reads
+      d["tool_input"]["model"], so the dispatched persona is expected somewhere under tool_input, but
+      the key NAME is not established by any measurement in this repository and this task exists to
+      establish it. Do not instrument validate-digest.py at all.
 
       THE NOTE, at
       .harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md,
-      must contain, verbatim as headings and lines:
+      must contain, verbatim as a heading and a line:
 
         ## PreToolUse Task payload keys
         <the sorted key list, one per line>
 
-        ## SubagentStop payload keys
-        <the sorted key list, one per line>
-
         DISPATCHED_PERSONA_KEY=<the dotted key path, or NONE if no key names it>
-        STOP_HAS_AGENT_TYPE=<yes or no>
+
+      Do NOT write a STOP_HAS_AGENT_TYPE line; the verify fails if one is present. Record instead,
+      in prose, that SubagentStop's agent_type is settled by the schema-selection evidence above, so
+      a later reader can tell a settled fact from an unmeasured one.
 
       Also record the date, the machine, the Claude Code version, and the exact commands used, so a
       later reader can tell a platform change from a wrong reading.
 
-      IF DISPATCHED_PERSONA_KEY comes back NONE, stop and report it. T-08 cannot be built without it
-      and no substitute is authorised here: guessing a key name is how a hook goes dark project-wide
-      with no signal, which is the failure validate-digest.py:838 exists to make loud.
+      IF DISPATCHED_PERSONA_KEY comes back NONE, stop and report it. T-06 and T-08 cannot be built
+      without it and no substitute is authorised here: guessing a key name is how a hook goes dark
+      project-wide with no signal, which is the failure the no-agent_type pass-through's own stderr
+      line exists to make loud.
 
   - id: T-02
     title: Build harness_merge.py, the one locked read-modify-write core, and its test
@@ -267,6 +385,8 @@ tasks:
       - .claude/skills/harness/bin/test-harness-merge.py
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       test -f .claude/skills/harness/bin/expertise-merge.py || {
         echo "START GATE FAILED (D-01): FEAT-30 is not merged, so expertise-merge.py is absent"; exit 1; }
       T=$(mktemp -d) || exit 1
@@ -385,6 +505,8 @@ tasks:
       - .claude/skills/harness/bin/test-plan-merge.py
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       T=$(mktemp -d) || exit 1
       cp -R .claude/skills/harness/bin "$T/bin" || exit 1
       python3 - "$T/bin/plan-merge.py" <<'PY' || exit 1
@@ -519,6 +641,8 @@ tasks:
       - .claude/skills/harness/bin/test-observations-merge.py
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       T=$(mktemp -d) || exit 1
       cp -R .claude/skills/harness/bin "$T/bin" || exit 1
       python3 - "$T/bin/observations-merge.py" <<'PY' || exit 1
@@ -607,7 +731,7 @@ tasks:
 
   - id: T-05
     title: Rewire expertise-merge.py onto the shared core so there is one lock dialect
-    traces: [REQ-06, REQ-07]
+    traces: [REQ-06, REQ-07, REQ-09]
     change_type: logic
     execution_mode: team
     execution_agent: harness-backend-dev
@@ -616,17 +740,38 @@ tasks:
     status: pending
     files:
       - .claude/skills/harness/bin/expertise-merge.py
+      - .claude/skills/harness/bin/test-expertise-merge.py
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       grep -q 'import harness_merge\|from harness_merge import' .claude/skills/harness/bin/expertise-merge.py \
         || { echo "expertise-merge.py does not use the shared core"; exit 1; }
       grep -nE 'fcntl\.flock|O_EXCL|os\.replace' .claude/skills/harness/bin/expertise-merge.py \
         && { echo "expertise-merge.py still carries its own lock or replace primitive"; exit 1; }
+      grep -n 'not os.path.exists(path + ".lock")' .claude/skills/harness/bin/test-expertise-merge.py \
+        && { echo "a lock-file-absence assertion survives; under a lock that is never removed it is either red or vacuous, and neither is the contract"; exit 1; }
+      grep -q 'case10' .claude/skills/harness/bin/test-expertise-merge.py \
+        || { echo "the stale-lock recovery case was not added"; exit 1; }
       python3 .claude/skills/harness/bin/test-expertise-merge.py || exit 1
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      python3 - "$T/bin/harness_merge.py" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      m = s.replace("USE_FLOCK = True", "USE_FLOCK = False", 1)
+      assert m != s, "USE_FLOCK assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      EXPERTISE_MERGE_BIN="$T/bin/expertise-merge.py" \
+        python3 .claude/skills/harness/bin/test-expertise-merge.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the Expertise suite passes with flock switched off"; exit 1; }
       exit 0
     intent: |
-      One file changes. Replace expertise-merge.py's OWN concurrency machinery with calls into
-      harness_merge, and change NOTHING about its behaviour that its existing test can see.
+      Two files change. Replace expertise-merge.py's OWN concurrency machinery with calls into
+      harness_merge, and change NOTHING about its behaviour that its existing test can see except the
+      three lock-file-absence assertions the operator has ruled on below.
 
       REMOVE: the acquire_lock function, the LOCK_TIMEOUT_SECONDS and LOCK_RETRY_INTERVAL literals,
       the tempfile-plus-os.replace block inside cmd_apply, and the finally block that removes the
@@ -647,15 +792,36 @@ tasks:
       cmd_apply catch it at the top level, print the lines and exit that code. The observable exit
       codes and stdout must not change.
 
-      THE PROOF THIS TASK OWES is that test-expertise-merge.py passes UNEDITED. Do not touch that
-      file. If a case fails, the rewire changed behaviour and the rewire is wrong - not the test.
-      Note that its case 4, 5 and 6 assert the lock file is GONE afterwards, and D-02's flock branch
-      does not remove the lock file. That assertion is the one place the rewire may legitimately
-      collide with the existing test: if it does, STOP and report it as an open question rather than
-      editing the test, because editing a concurrency assertion to fit an implementation is how this
-      class of defect gets shipped. A candidate answer to offer, not to apply unilaterally: keep the
-      lock file but truncate it to zero bytes, or move the lock to a sibling path the test does not
-      assert on.
+      THE PROOF THIS TASK OWES is that every BEHAVIOURAL case of test-expertise-merge.py passes with
+      its assertion unchanged. If one fails, the rewire changed behaviour and the rewire is wrong -
+      not the test.
+
+      THREE ASSERTIONS IN THAT FILE ARE THE ONE AUTHORISED EDIT, and the operator has ruled on it.
+      Lines 203, 221 and 237 at c32f332 each read
+
+        check("caseN: lock file is gone", not os.path.exists(path + ".lock"))
+
+      D-02's lock file is opened O_CREAT and is deliberately NEVER removed, because removing it
+      reintroduces the race flock avoids. So each of those three assertions is either RED for the
+      wrong reason or, if the lock is moved somewhere they do not look, VACUOUSLY GREEN. Both are the
+      defect class REQ-09 exists to prevent. TWO WORKAROUNDS ARE FORBIDDEN BY RULING AND MUST NOT BE
+      APPLIED: do not truncate the lock file to zero bytes, and do not move the lock to a sibling path
+      the test does not assert on. Both preserve the vacuum.
+
+      REPLACE each of the three with an assertion on what the contract actually is - that the lock did
+      not brick the file:
+
+        check("caseN: a following apply still exits 0", <a second apply on the same fixture>.returncode == 0, ...)
+
+      AND ADD ONE NEW CASE, case10, THE STALE-LOCK RECOVERY, which is the assertion that can go red
+      and the reason D-02 exists. Fork a child that acquires the lock on an Expertise fixture through
+      harness_merge.acquire and then blocks forever; SIGKILL it; then run expertise-merge.py apply on
+      that same fixture in the parent and assert BOTH that it exited 0 AND that the proposed entry is
+      on disk. The successful apply is the assertion; the mere absence of a hang is not. Under
+      USE_FLOCK mutated to False the O_EXCL branch leaves its lock file behind, the apply exits 6, and
+      this case FAILS - which is what the red proof in this task's verify runs.
+
+      Do not add, remove or reword any other case in that file.
 
   - id: T-06
     title: Build inflight_registry.py, the single-flight claim store, and its test
@@ -671,6 +837,8 @@ tasks:
       - .claude/skills/harness/bin/test-inflight-registry.py
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       T=$(mktemp -d) || exit 1
       cp -R .claude/skills/harness/bin "$T/bin" || exit 1
       python3 - "$T/bin/inflight_registry.py" <<'PY' || exit 1
@@ -714,11 +882,13 @@ tasks:
         CLAIM_TTL_SECONDS = 3600
         REGISTRY_REL = ".harness/.inflight-claims.json"
 
-      The registry is a JSON object mapping a persona name to a claim object holding started_at as a
-      unix float, dispatcher as the dispatching persona name or null, and cwd as the checkout it was
-      claimed in. It is stored at REGISTRY_REL relative to the checkout root, which is taken from the
-      CLAUDE_PROJECT_DIR environment variable when set and otherwise from an explicit root argument.
-      One registry per checkout, so two worktrees never contend.
+      The registry is a JSON object mapping a persona name to a LIST of claim objects, each holding
+      started_at as a unix float, dispatcher as the dispatching persona name or null, and cwd as the
+      checkout it was claimed in. A LIST and not one object, because two harness-backend-dev members
+      are legal and one object could not hold both; D-06 records why. It is stored at REGISTRY_REL
+      relative to the checkout root, which is taken from the CLAUDE_PROJECT_DIR environment variable
+      when set and otherwise from an explicit root argument. One registry per checkout, so two
+      worktrees never contend.
 
       EVERY read-modify-write of that file goes through harness_merge.locked_update. Do not write
       fcntl, O_EXCL or os.replace anywhere in this file - a registry that many hook processes write
@@ -726,16 +896,34 @@ tasks:
       point of the shared core is that it is fixed once.
 
       Public functions:
-        live_claim(root, agent, now=None) - returns the claim mapping for agent, or None. A claim
-        whose started_at is older than CLAIM_TTL_SECONDS is treated as ABSENT and is DELETED as a
-        side effect, and the function records that it did so in a second return value so the caller
-        can say it on stderr. Failing OPEN on a leaked claim is the house precedent for a guard's own
-        bug - see the printed line at validate-digest.py:869.
-        claim(root, agent, dispatcher, cwd, now=None) - returns True having recorded the claim, or
-        False when a live claim already exists. Never raises for contention.
-        release(root, agent) - removes the claim if present. Returns whether it removed one.
+        live_claim(root, agent, now=None) - returns the OLDEST live claim mapping for agent, or None.
+        Any claim whose started_at is older than CLAIM_TTL_SECONDS is treated as ABSENT and is DELETED
+        as a side effect, and the function records how many it expired in a second return value so the
+        caller can say it on stderr. Failing OPEN on a leaked claim is the house precedent for a
+        guard's own bug - see the internal-error pass-through in validate-digest.py's hook_mode, whose
+        stderr line ends "this is our bug, not theirs".
+        live_children(root, dispatcher, now=None) - returns the list of live claims whose dispatcher
+        equals the given persona name, each paired with the persona it is a claim for, expiring stale
+        ones the same way. THIS IS THE FUNCTION D-09 STANDS ON: it is what lets a returning lead be
+        asked "which of your children are still in flight?", and without the dispatcher edge on disk
+        that question has no answer.
+        claim(root, agent, dispatcher, cwd, now=None) - APPENDS a claim and returns True, unless
+        is_single_flight(agent) and a live claim for agent already exists, in which case it records
+        nothing and returns False. Never raises for contention. Note the asymmetry deliberately: a
+        claim is recorded for EVERY persona, and only a single-flight persona can be REFUSED one.
+        release(root, agent) - removes the OLDEST live claim for agent if present. Returns whether it
+        removed one. Oldest and not "the" claim, because the registry is a counter of live children
+        and not an identity map - D-06 records why that is sufficient.
         release_all(root) - removes every claim. Returns how many.
         is_single_flight(agent) - agent in SINGLE_FLIGHT_AGENTS.
+        children_refusal_lines(agent, children) - the exact stderr block validate-digest.py prints
+        under D-09. It MUST contain, in this order: a first line beginning
+        "check-digest: BLOCKED - returned with children in flight" and naming the returning agent; one
+        line per in-flight child naming its persona and its started_at as an ISO-8601 timestamp; a
+        line stating that this is issue #551 and that a verdict about a member still running is a
+        verdict about something the reporter cannot see; and a final line stating that this refusal
+        fires ONCE and a second identical return will ship, so the correction has to be made now.
+        Assemble it here so the hook and the test read the same one source.
         refusal_lines(agent, existing, release_cmd) - the exact stderr block a caller prints. It MUST
         contain, in this order: a first line beginning "dispatch-guard: BLOCKED - single-flight" and
         naming the agent; a line naming the existing claim's started_at as an ISO-8601 timestamp and
@@ -760,9 +948,21 @@ tasks:
 
       CASES:
         1. claim then live_claim returns the claim, with the recorded dispatcher and cwd asserted.
-        2. A SECOND claim for the same agent returns False and does not change the stored started_at.
+        2. A SECOND claim for harness-pm returns False and does not change the stored started_at.
            Assert the stored value is the FIRST one - a second claim silently replacing the first is
-           this feature's own defect in miniature.
+           this feature's own defect in miniature. Then assert the OTHER half of the asymmetry: a
+           second claim for harness-backend-dev returns True and the registry holds TWO claims for it,
+           both started_at values present. A registry that refused the second would make a parallel
+           squad illegal, which D-06 refuses.
+        2b. live_children returns both of one dispatcher's children and NEITHER of another
+           dispatcher's. Write four claims - two dispatched by harness-eng-lead, two by
+           harness-product-lead - and assert the returned set for each dispatcher by persona name,
+           one assertion per expected child and one per child that must be absent. A function that
+           returned every claim would pass a membership-only assertion, which is why the absences are
+           asserted too.
+        2c. live_children expires a stale child: a claim older than CLAIM_TTL_SECONDS is not returned
+           and is gone from the file afterwards. With CLAIM_TTL_SECONDS mutated large this case must
+           FAIL.
         3. STALENESS: a claim written with started_at at now minus CLAIM_TTL_SECONDS minus one is
            treated as absent, live_claim reports that it expired one, and a following claim succeeds.
            With CLAIM_TTL_SECONDS mutated large this case must FAIL.
@@ -775,9 +975,14 @@ tasks:
            agent name, an ISO-8601 timestamp, the string "#551", and the release command byte for
            byte identical to the CLI invocation string the module exports. Assert each of the five
            separately.
+        6b. children_refusal_lines for a lead with two in-flight children contains the literal marker
+           "check-digest: BLOCKED - returned with children in flight", the returning agent's name,
+           BOTH children's persona names, two ISO-8601 timestamps, the string "#551", and the sentence
+           saying the refusal fires once. Assert each separately, and assert both children by name -
+           a block naming only the first would satisfy a membership-only assertion.
         7. CONCURRENCY: 20 trials of two subprocesses both calling claim for harness-pm at once.
            Assert that in every trial exactly ONE returned True and the registry holds exactly one
-           claim. Report any trial where both succeeded, by trial number - that outcome is the defect
+           claim for harness-pm. Report any trial where both succeeded, by trial number - that outcome is the defect
            and must never be admitted.
         8. A corrupt registry file - the single byte "{" - is treated as empty, a claim succeeds, and
            a message naming the file appears on stderr. No exception escapes.
@@ -794,13 +999,15 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: >-
       DEC-174 amendment 4 puts the test file of each gate inside the carve-out, because a gate's test
-      is the only thing proving the gate discriminates; dispatch-guard.sh has no test at 5d9b428
+      is the only thing proving the gate discriminates; dispatch-guard.sh has no test at c32f332
     depends_on: []
     status: pending
     files:
       - .claude/skills/harness/bin/test-dispatch-guard.py
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       python3 .claude/skills/harness/bin/test-dispatch-guard.py || exit 1
       git diff --quiet -- .claude/skills/harness/bin/dispatch-guard.sh \
         || { echo "this task must not change dispatch-guard.sh"; exit 1; }
@@ -848,6 +1055,8 @@ tasks:
       - .claude/skills/harness/bin/test-dispatch-guard.py
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       python3 .claude/skills/harness/bin/test-dispatch-guard.py || exit 1
       python3 - <<'PY' || exit 1
       import re, subprocess, sys
@@ -882,14 +1091,20 @@ tasks:
 
         - Read the dispatched persona from the key path the note names. If absent, print one stderr
           line saying so and exit 0 - fail OPEN, loudly, on our own gap, which is the precedent this
-          script's own header already states and validate-digest.py:838 states again.
+          script's own header already states and validate-digest.py's no-agent_type pass-through
+          states again in its own stderr line.
         - Import inflight_registry from the script's own directory. If the import fails, print one
           stderr line naming the module and exit 0. A guard that blocks every spawn because its
           library moved is worse than no guard.
-        - If is_single_flight(dispatched) is False, exit 0.
-        - Call live_claim. If it expired a claim, say so on stderr and continue.
-        - If a live claim exists, print refusal_lines and exit 2.
-        - Otherwise call claim with the dispatching agent_type and the payload's cwd, and exit 0.
+        - Call live_claim for the dispatched persona. If it expired any, say so on stderr and
+          continue.
+        - If is_single_flight(dispatched) AND a live claim for it exists, print refusal_lines and
+          exit 2.
+        - Otherwise call claim with the dispatched persona, the DISPATCHING agent_type as dispatcher,
+          and the payload's cwd, and exit 0. A claim is recorded for EVERY harness-* persona and not
+          only the single-flight ones: D-06 and D-09 both depend on the dispatcher edge existing on
+          disk, and it can only be written here, at the one moment the dispatcher's identity and the
+          dispatched persona's name are both in one payload.
 
       Preserve, unchanged: the shebang, set -uo pipefail, the payload=$(cat) read, the unreadable-payload
       pass-through, the non-harness pass-through, the no-model pass-through, and every word of the
@@ -914,7 +1129,10 @@ tasks:
            exactly one harness-pm claim whose dispatcher is the payload's agent_type. Assert the
            write, not just the exit.
         8. A NON-SINGLE-FLIGHT PERSONA: a payload naming harness-backend-dev exits 0 twice in a row
-           and writes no claim, so a parallel squad stays legal.
+           and the registry afterwards holds TWO harness-backend-dev claims, so a parallel squad stays
+           legal AND the dispatcher edge is on disk for both. Assert the count is two and assert each
+           claim's dispatcher is the payload's agent_type. An earlier draft asserted no claim was
+           written at all, which would have left D-09 with nothing to read.
         9. A STALE CLAIM: a registry whose harness-pm claim is older than the TTL yields exit 0, and
            stderr says the claim expired.
        10. THE LIBRARY IS MISSING: with inflight_registry.py absent from the copied tree, the same
@@ -924,8 +1142,8 @@ tasks:
       changed the pre-existing refusal set and the cutover is wrong.
 
   - id: T-09
-    title: Release the claim on SubagentStop from validate-digest.py, changing nothing else it does
-    traces: [REQ-05, REQ-06]
+    title: On SubagentStop, release the returning agent's claim and refuse a return made with children in flight
+    traces: [REQ-05, REQ-06, REQ-12]
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: >-
@@ -938,6 +1156,8 @@ tasks:
       - .claude/skills/harness/bin/test-validate-digest.py
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       python3 .claude/skills/harness/bin/test-validate-digest.py || exit 1
       python3 - <<'PY' || exit 1
       src = open(".claude/skills/harness/bin/validate-digest.py").read()
@@ -947,35 +1167,57 @@ tasks:
       i_rel = body.index("inflight_registry")
       i_stop = body.index("stop_hook_active")
       assert i_rel > i_stop, "the release runs before the stop_hook_active pass-through"
+      i_child = body.index("children_refusal_lines")
+      assert i_child > i_rel, "the children check runs before the release, so a refused return leaks its own claim"
       PY
       exit 0
     intent: |
-      Two files change. The validator gains ONE side effect and loses no behaviour.
+      Two files change. The validator gains ONE side effect and ONE new refusal, and loses no
+      behaviour.
 
-      PRECONDITION: read
-      .harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md.
-      If its STOP_HAS_AGENT_TYPE line reads no, STOP and return BLOCKED naming that line - the
-      release cannot be keyed on a field the payload does not carry, and no substitute is authorised
-      here.
+      NO PRECONDITION ON THE T-01 NOTE. An earlier draft gated this task on a STOP_HAS_AGENT_TYPE
+      line; that fact is already settled and T-01 no longer measures it. SubagentStop carries
+      agent_type, evidenced by validate-digest.py selecting a persona-specific schema from the
+      SCHEMAS mapping - a live orchestrator return was rejected against the "orchestrator" schema, and
+      the no-agent_type pass-through did not fire. This task uses agent_type directly.
 
-      IN hook_mode() in validate-digest.py, AFTER the stop_hook_active pass-through at :845 and
-      BEFORE the last_assistant_message check, insert the release:
+      IN hook_mode() in validate-digest.py, AFTER the stop_hook_active pass-through and BEFORE the
+      last_assistant_message check, insert TWO steps, IN THIS ORDER.
 
+      STEP ONE, THE RELEASE:
         - Import inflight_registry from this file's own directory, inside a try. On any ImportError,
-          print one stderr line naming the module and CONTINUE - never return, never raise. This hook
-          validates digests; releasing a claim is a side errand and must never be able to change the
-          verdict.
-        - If is_single_flight(agent), call release for that agent against the root taken from
-          CLAUDE_PROJECT_DIR, wrapped in a try that swallows and reports any exception on stderr.
-          Print one line saying whether a claim was released.
+          print one stderr line naming the module, skip BOTH steps, and CONTINUE - never return, never
+          raise. This hook validates digests; the registry is a side errand and must never be able to
+          change the verdict.
+        - Call release for THIS agent against the root taken from CLAUDE_PROJECT_DIR, wrapped in a try
+          that swallows and reports any exception on stderr. Print one line saying whether a claim was
+          released. Call it for every harness-* persona, not only single-flight ones, because T-08 now
+          records a claim for every dispatched persona and an unreleased claim is a leak until its TTL.
 
-      Place it after stop_hook_active deliberately: on a re-run the claim is already gone and a
-      second release is a no-op, but the ordering keeps the release out of the loop-guard path
-      entirely. The verify asserts this ordering by index in the source text.
+      STEP TWO, THE D-09 RETURN CONTRACT, and it must come AFTER step one:
+        - If norm(agent) is "lead" or "orchestrator", call live_children for this agent. If it returns
+          any, print inflight_registry.children_refusal_lines and RETURN 2.
+        - Nothing else. Do not loop, do not sleep, do not retry. Read D-09 before writing this: making
+          the agent WAIT is not achievable on this hook and this task must not attempt it. The
+          stop_hook_active pass-through means this refusal fires AT MOST ONCE, which is a single
+          correction round and exactly the strength every other digest contract in this file has. A
+          second identical return ships, and that residual is recorded in D-09 rather than papered
+          over.
 
-      CHANGE NOTHING ELSE. The three fail-open pass-throughs at :828, :838 and :845, the
-      no-final-message pass-through, the no-schema pass-through, the internal-error pass-through, the
-      lead artifact check, and every printed line stay exactly as they are.
+      WHY THE ORDER IS RELEASE-THEN-CHECK, and the verify asserts it by index: if the check refused
+      before the release ran, the refused agent's own claim would still be on disk while the re-run
+      passes straight through the stop_hook_active gate and never reaches the release - a leaked claim
+      on every refusal, which for harness-pm means no further pm dispatch until the TTL expires. A fix
+      that bricks the next dispatch is worse than the defect.
+
+      Placing both after stop_hook_active is deliberate: on a re-run the claim is already gone and the
+      refusal is deliberately not re-raised, which is what keeps this out of the infinite-stop-loop
+      path the pass-through exists to prevent.
+
+      CHANGE NOTHING ELSE. The unreadable-payload, no-agent_type and stop_hook_active pass-throughs,
+      the no-final-message pass-through, the no-schema pass-through, the internal-error pass-through,
+      the lead artifact check, and every printed line stay exactly as they are. Cite those three
+      pass-throughs by their stderr markers, not by line number.
 
       IN test-validate-digest.py, ADD cases and EDIT NONE - the existing suite passing unedited is
       SC-08 and is the only evidence that the validator's behaviour is unchanged.
@@ -988,12 +1230,29 @@ tasks:
            the contract violation AND still releases the claim. A blocked return must not leak a
            claim, or a re-prompted pm can never be re-dispatched.
         3. stop_hook_active true still returns 0 and does not raise, with a claim present.
-        4. A non-single-flight persona leaves an unrelated harness-pm claim untouched.
+        4. A non-single-flight persona releases its OWN claim and leaves an unrelated harness-pm claim
+           untouched. Assert both halves.
         5. With inflight_registry.py absent from a copied tree, a valid digest still exits 0 and
-           stderr names the module - the release cannot break validation.
+           stderr names the module - neither the release nor the children check can break validation.
+        6. THE D-09 REFUSAL. Write two live claims dispatched by harness-eng-lead, then feed a
+           SubagentStop payload with agent_type harness-eng-lead and an otherwise VALID lead digest.
+           Assert ALL of: exit code exactly 2; stderr contains
+           "check-digest: BLOCKED - returned with children in flight"; stderr names BOTH children by
+           persona; stderr contains "#551"; and the harness-eng-lead claim itself is gone from the
+           registry, proving the release ran first. A non-zero exit alone is NOT the assertion - a
+           crash is also non-zero.
+        7. THE ALLOW HALF. The same lead payload with NO children on disk exits with whatever the
+           digest's own validation says - assert exit 0 for the valid digest - and stderr carries no
+           children marker. Assert the absence of the marker, so a hook that refuses every lead fails.
+        8. A MEMBER'S RETURN IS NEVER SUBJECT TO IT: a harness-pm payload with a live claim dispatched
+           BY harness-pm on disk still exits 0. Only a lead or the orchestrator is governed, because
+           only they dispatch.
+        9. THE ONE-SHOT BOUND IS ASSERTED, NOT HIDDEN: the same refusal payload with stop_hook_active
+           true exits 0 with children still on disk. This case records the residual D-09 names. Do not
+           "fix" it - a second refusal here is the infinite stop loop the pass-through prevents.
 
   - id: T-10
-    title: Register the five new test files with the integration kind and the runner
+    title: Register the new test files with the integration kind and close two exposures in it
     traces: [REQ-09]
     change_type: config
     execution_mode: team
@@ -1006,6 +1265,8 @@ tasks:
       - .harness/harness.json
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       out=$(.claude/skills/harness/bin/run-unit-tests.sh --kind integration 2>&1) || { echo "$out"; exit 1; }
       for f in test-harness-merge.py test-plan-merge.py test-observations-merge.py \
                test-inflight-registry.py test-dispatch-guard.py; do
@@ -1016,40 +1277,63 @@ tasks:
       import json
       d = json.load(open(".harness/harness.json"))["test_kinds"]["integration"]["detect"]
       for f in ("test-harness-merge.py", "test-plan-merge.py", "test-observations-merge.py",
-                "test-inflight-registry.py", "test-dispatch-guard.py"):
+                "test-inflight-registry.py", "test-dispatch-guard.py",
+                "test-validate-digest.py", "test-check-domain.py"):
           assert ".claude/skills/harness/bin/" + f in d, f + " missing from integration detect"
       PY
       exit 0
     intent: |
       Two edits, both registrations. No logic changes anywhere.
 
-      1. .claude/skills/harness/bin/run-unit-tests.sh, the INTEGRATION_SCRIPTS array at line 18.
-         Append test-harness-merge.py, test-plan-merge.py, test-observations-merge.py,
+      READ DEC-197 FIRST and do not re-derive its rule. It settles what happens to a file matching two
+      detect globs: it resolves to the kind that names it EXPLICITLY, never the catch-all. That is what
+      makes the edit below correct rather than ambiguous - unit.detect carries
+      .claude/skills/harness/bin/test-*.py, which matches every file named here, so every file named
+      here matches BOTH globs on purpose and resolves to integration. Cite DEC-197 in the commit
+      message; do not restate its reasoning in either file.
+
+      1. .claude/skills/harness/bin/run-unit-tests.sh, the INTEGRATION_SCRIPTS array. Append
+         test-harness-merge.py, test-plan-merge.py, test-observations-merge.py,
          test-inflight-registry.py and test-dispatch-guard.py. All five fork real subprocesses and
          real concurrent children, which is the principle that array encodes - do not put any of them
          in UNIT_SCRIPTS. Change nothing else in the file and do not touch the drift detector.
+         test-validate-digest.py and test-check-domain.py are ALREADY in that array; leave them.
 
       2. .harness/harness.json, the test_kinds.integration.detect value. It is an explicit
          pipe-separated list, not a wildcard, so a file absent from it is invisible to the kind even
-         once the runner runs it. Append the same five paths, each prefixed
-         .claude/skills/harness/bin/. Change nothing else in the file - in particular do not touch
-         test_matrix, budgets or github.
+         once the runner runs it. Append SEVEN paths, each prefixed .claude/skills/harness/bin/: the
+         five new files, PLUS test-validate-digest.py AND test-check-domain.py. Change nothing else in
+         the file - in particular do not touch test_matrix, budgets or github.
 
-      If a sixth or seventh test file exists in bin/ that is absent from both arrays, the runner
-      already exits 2 MISCONFIGURED on its drift detector. Register it here rather than reporting it.
+      WHY THOSE LAST TWO, measured at c32f332 in this worktree and identical on main: eight files sit
+      in INTEGRATION_SCRIPTS and are absent from integration.detect, so the runner runs them as
+      integration while the qa matrix reads them as unit - the exposure DEC-197 records under "what
+      forced it". Two of the eight carry evidence THIS feature's criteria rest on:
+      test-validate-digest.py carries SC-08, and test-check-domain.py carries the approval-exclusion
+      criterion T-14 builds. An `evidence: integration` claim resting on a file the matrix reads as
+      unit is a false claim, so those two are fixed here, in this task, rather than filed. The
+      remaining six - test-check-expertise.py, test-gen-decisions-index.py, test-bash-write-guard.py,
+      test-harness-yaml.py, test-upgrade-config.py, test-merge-settings.py - are NOT touched: no
+      criterion here rests on them and widening further is scope this feature did not buy. That
+      exclusion is deliberate, and it is recorded as an open question rather than silently left.
+
+      If a further test file exists in bin/ that is absent from both ARRAYS, the runner already exits 2
+      MISCONFIGURED on its drift detector. Register it here rather than reporting it.
 
   - id: T-11
     title: Keep the claim registry out of git
     traces: [REQ-05]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve prints NOBODY for .gitignore at 5d9b428
+    execution_reason: check-domain.sh --resolve prints NOBODY for .gitignore at c32f332
     depends_on: [T-06]
     status: pending
     files:
       - .gitignore
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       grep -q '^\.harness/\.inflight-claims\.json$' .gitignore || { echo "the registry is not ignored"; exit 1; }
       printf '{}' > .harness/.inflight-claims.json
       git status --porcelain .harness/.inflight-claims.json | grep -q . \
@@ -1077,7 +1361,7 @@ tasks:
     change_type: docs
     execution_mode: main-session-direct
     execution_reason: >-
-      check-domain.sh --resolve prints NOBODY for all three files at 5d9b428, and two of them are
+      check-domain.sh --resolve prints NOBODY for all three files at c32f332, and two of them are
       preloaded rule skills that reach every spawn
     depends_on: [T-03, T-04]
     status: pending
@@ -1087,6 +1371,8 @@ tasks:
       - .claude/agents/harness-orchestrator.md
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       grep -q 'plan-merge.py' .claude/skills/harness-spec-driven/SKILL.md \
         || { echo "spec-driven does not name the plan merge tool"; exit 1; }
       grep -q 'observations-merge.py' .claude/skills/harness-expertise/SKILL.md \
@@ -1129,9 +1415,12 @@ tasks:
          tool ignores any approval block in the proposal; and exit 7 means the same id carries two
          different values and is the author's to resolve. Keep the file at or under 200 lines.
 
-      3. .claude/agents/harness-orchestrator.md. State the split D-04 records: the approval block is
-         written with the Edit tool, which is a surgical patch and cannot destroy the task list, and
-         EVERY other write to plan.yaml goes through plan-merge.py. Two sentences.
+      3. .claude/agents/harness-orchestrator.md. State the split D-04 records, and state the SIGNER
+         correctly: the approval block is written BY THE MAIN SESSION with the Edit tool, which is a
+         surgical patch and cannot destroy the task list, and EVERY other write to plan.yaml - the
+         orchestrator's included - goes through plan-merge.py. Do NOT write that the orchestrator
+         writes approval; D-04 and D-10 record why that is false and T-15 corrects the two artifacts
+         that say it.
 
       Do not restate the exit codes anywhere except where listed above, and do not copy the algorithm
       into prose - the tool's own docstring is the authority and a second copy will rot.
@@ -1150,10 +1439,12 @@ tasks:
       - .harness/harness/docs/DECISIONS-INDEX.md
     verify: |
       set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
       python3 .claude/skills/harness/bin/gen-decisions-index.py --check || exit 1
       python3 - <<'PY' || exit 1
       src = open(".harness/harness/docs/DECISIONS.md").read()
-      for token in ("harness_merge.py", "fcntl.flock", "DEC-90", "inflight_registry"):
+      for token in ("harness_merge.py", "fcntl.flock", "inflight_registry", "#551"):
           assert token in src, "the entry does not mention %r" % token
       idx = open(".harness/harness/docs/DECISIONS-INDEX.md").read()
       rows = [l for l in idx.splitlines() if "harness_merge" in l or "concurrent-write" in l
@@ -1163,8 +1454,9 @@ tasks:
       exit 0
     intent: |
       Append ONE new decision entry at the end of .harness/harness/docs/DECISIONS.md, taking the next
-      free number - DEC-196 is the highest at 5d9b428, and FEAT-31's own record task also takes a
-      number, so read the file rather than assuming 197 - and regenerate the index with
+      free number. Do NOT assume it: DEC-196 was the highest in this worktree at c32f332 but DEC-197
+      is already on main, and FEAT-31's own record task also takes a number, so READ the file on the
+      branch you are on and take the number after the last entry. Regenerate the index with
       python3 .claude/skills/harness/bin/gen-decisions-index.py.
 
       The entry records, in the document's own voice and with no reference to this plan's D-NN
@@ -1193,12 +1485,24 @@ tasks:
          emitting a terminal verdict about members it cannot see, and an orchestrator inferring run
          verdicts from disk - are NOT closed, with the reason: the SubagentStop hook passes through on
          stop_hook_active to avoid an infinite stop loop, so a stop refusal can fire at most once and
-         cannot be a wait.
-      5. THE COLLISION WITH DEC-90. DEC-90 at DECISIONS.md:1153 records, as a stated scope boundary,
-         that every single-writer guarantee in the harness means one agent in one session on one
-         machine "with no lock anywhere". This tree now contains locks. Write the collision down
-         plainly and state that whether DEC-90 is STRUCK under DEC-188 is the operator's call and is
-         not settled by this entry. Do not strike it, and do not edit DEC-90's text.
+         cannot be a wait. Then record WHAT IS SHIPPED INSTEAD, from D-09: a lead or the orchestrator
+         returning while a child it dispatched is still claimed is REFUSED once on that hook, which is
+         the same one-correction-round strength every other digest contract in that file has and is
+         aimed at the false REPORT rather than at the wait; the loss itself is prevented at the
+         PreToolUse hook, whose refusals have no once-only bound. State the residual plainly: a second
+         identical return ships, and an orphaned child of an interrupted parent has no parent left to
+         refuse. Record #551's six measured occurrences as six, not four - occurrence 5 is a lead
+         forced to a terminal digest with its pm in flight and occurrence 6 is the orchestrator forced
+         to a stop with its lead in flight, both observed in run dir 2026-08-21-1-product. Say in the
+         entry that run dirs are gitignored, so this entry and the feature's STATE.md are the durable
+         record and the run dir is not.
+      5. NOTHING ABOUT DEC-90. DEC-90 IS ALREADY STRUCK - 2026-08-21, under DEC-188, merged as
+         16b30c6, and its index row carries the strike record. FEAT-30 falsified it, not this feature:
+         expertise-merge.py landed holding a lock before any line of this feature was written. Do NOT
+         strike it, do NOT edit its text, do NOT re-raise the collision, and do NOT write a paragraph
+         about it. An entry that re-litigates a settled strike is how a struck decision comes back.
+         If the DEC-90 entry on the branch you are on has no strike record, the branch is behind main
+         - report that and change nothing.
 
       Also state the identity limit as a bound on the whole ruling, quoting expertise-merge.py's own
       words: a Bash-invoked CLI has no identity source, so it can check where it writes and never who
@@ -1210,3 +1514,179 @@ tasks:
 
       Follow the file's existing entry shape - a level-two heading with the number and a one-line
       claim, then Chose, Over and Because paragraphs. Do not exceed 60 lines. Change no other entry.
+
+  - id: T-14
+    title: Make the approval-block exclusion real at check-domain.sh instead of commented
+    traces: [REQ-11]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: >-
+      check-domain.sh is named in DEC-174 amendment 4 as one of the five enforcement-layer scripts and
+      amendment 4 puts the test file of each inside the carve-out with it; --resolve grants both files
+      to harness-backend-dev and harness-dev-ops at c32f332, so the CATEGORY and not the grant is what
+      routes this
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+      - .claude/skills/harness/bin/test-check-domain.py
+    verify: |
+      set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
+      grep -q 'APPROVAL_GUARD = True' .claude/skills/harness/bin/check-domain.sh \
+        || { echo "the named literal the red proof mutates does not exist"; exit 1; }
+      python3 .claude/skills/harness/bin/test-check-domain.py || exit 1
+      T=$(mktemp -d) || exit 1
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      python3 - "$T/bin/check-domain.sh" <<'PY' || exit 1
+      import sys
+      p = sys.argv[1]
+      s = open(p).read()
+      m = s.replace("APPROVAL_GUARD = True", "APPROVAL_GUARD = False", 1)
+      assert m != s, "APPROVAL_GUARD assignment not found BY NAME"
+      open(p, "w").write(m)
+      PY
+      CHECK_DOMAIN_BIN="$T/bin/check-domain.sh" \
+        python3 .claude/skills/harness/bin/test-check-domain.py >/dev/null 2>&1 \
+        && { echo "RED PROOF FAILED: the suite passes with the approval guard switched off"; exit 1; }
+      exit 0
+    intent: |
+      Two files change. The gate gains ONE new denial and loses none.
+
+      Read D-10 before starting. It settles who the signer is - the MAIN SESSION - and why this check
+      goes on the DOMAIN path and not the SHAPE path.
+
+      IN check-domain.sh, inside the existing embedded python3 block, inside the `if _domain_phase:`
+      region and AFTER the existing domain verdict for the path, add the approval denial:
+
+        - A module-level literal, spelled exactly
+
+            APPROVAL_GUARD = True
+
+          guarding the whole check. When False the check does nothing. Nothing reads an environment
+          variable or a flag to change it; it exists only so a test can prove its own assertions can
+          go red, which is the discipline expertise-merge.py's UNION_APPLY literal set.
+        - The check applies only when the resolved relative target matches a feature plan.yaml - a
+          features directory either directly under a .harness segment or nested one segment deeper, a
+          FEAT- or BUG- prefixed directory, and the literal filename plan.yaml. Add a named regex
+          beside the existing RE_ constants; do NOT add it to SHAPE_PATTERNS. The comment at that
+          tuple explains why plan.yaml is deliberately absent from the SHAPE gate and that reasoning
+          still holds - this is a domain question, "may this agent write this part of this file", which
+          needs the agent's identity and therefore cannot live in a gate that has none.
+        - Decide it by comparing the PROPOSED approval mapping against the ON-DISK one. For a Write,
+          the proposed content is tool_input.content; for an Edit, apply nothing - instead deny when
+          tool_input.old_string or tool_input.new_string contains a line whose first non-space text is
+          `approval:` or which sits inside the approval block's own indentation. For a NotebookEdit,
+          there is nothing to do. If the file does not exist on disk, allow: a first write cannot
+          change a signature that does not exist yet.
+        - Compare by PARSING both sides with yaml.safe_load and comparing the `approval` value, not by
+          comparing text. A whitespace-only difference is not a signature change and denying it would
+          make plan-merge.py's own output undeniable-by-luck. If either side fails to parse, ALLOW and
+          say so on stderr - a gate that blocks on its own parse failure breaks every write the moment
+          the payload shape changes, which is the precedent this file already sets.
+        - On a difference, call deny() with lines that name the file, name the approval mapping as the
+          main session's alone, and name the route: every other write to plan.yaml goes through
+          plan-merge.py, which carries the base file's approval bytes forward untouched.
+
+      THE MAIN SESSION IS EXEMPT BY THE MECHANISM, NOT BY A SPECIAL CASE. This check sits inside the
+      `_domain_phase` region, which is `_governed and not _post`, and check-domain exits 0 for a
+      payload carrying no agent_type. Do NOT add an explicit main-session branch: a second carve-out
+      is a second thing to keep in sync, and issue #132 records what happened last time this file
+      grew one.
+
+      IN test-check-domain.py, ADD cases and EDIT NONE. Resolve the hook the way that file already
+      does, via CHECK_DOMAIN_BIN, and point CLAUDE_PROJECT_DIR at a fresh tempfile.mkdtemp() for every
+      case with a real .harness/team-config.yaml copied in, exactly as its existing cases do.
+
+      NEW CASES, and each asserts the exit code AND a distinguishing string so a crash cannot satisfy
+      it:
+        1. A harness-pm Write of a fixture plan.yaml whose content changes approval.status from
+           pending to approved is DENIED - exit 2, and stderr names the approval mapping and names
+           plan-merge.py. With APPROVAL_GUARD mutated to False this case must FAIL, and it is what
+           makes the red proof discriminating.
+        2. A harness-pm Write of the same file that adds a task and leaves approval byte identical is
+           ALLOWED, exit 0. Both directions, so a deny-everything implementation fails.
+        3. A harness-orchestrator Write that changes approval is DENIED too. The orchestrator is a
+           governed agent since DEC-120 and D-10 records that it is not the signer.
+        4. NO agent_type at all - the main session - changing approval.status to approved is ALLOWED,
+           exit 0. This is the case the whole design turns on.
+        5. A harness-pm Edit whose new_string contains an `approval:` line is DENIED; an Edit whose
+           old_string and new_string touch only a task body is ALLOWED. Both directions.
+        6. A plan.yaml that does not exist on disk is ALLOWED even with an approval block in the
+           content - there is no signature to destroy.
+        7. AN UNPARSEABLE PROPOSAL IS ALLOWED and stderr says the parse failed. Assert the stderr
+           line, not just the exit code: a silent allow and a reported allow are different gates.
+        8. A whitespace-only reflow of the approval block - same loaded value, different bytes - is
+           ALLOWED. A text-comparing implementation fails this, which is why it is here.
+
+      Every case that passed before this task must still pass, unedited. If one fails, the new denial
+      reaches a payload it should not.
+
+  - id: T-15
+    title: Make the three artifacts that name a plan signer say the same thing
+    traces: [REQ-11]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: >-
+      check-domain.sh --resolve prints NOBODY for all three files at c32f332, so DEC-179 makes this a
+      declared main-session step rather than a dispatch that would be rejected mid-run
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/templates/plan.yaml
+      - .claude/agents/harness-pm.md
+      - .harness/team-config.yaml
+    verify: |
+      set -u
+      cd "$(git rev-parse --show-toplevel)" || exit 1
+      export CLAUDE_PROJECT_DIR="$PWD"
+      grep -qi 'written by the orchestrator only' .claude/skills/harness/templates/plan.yaml \
+        && { echo "the template still names the orchestrator as the signer"; exit 1; }
+      grep -q 'only it can reach the user' .claude/agents/harness-pm.md \
+        && { echo "harness-pm.md still gives the orchestrator a reason DEC-120 contradicts"; exit 1; }
+      python3 - <<'PY' || exit 1
+      import yaml
+      w = yaml.safe_load(open(".harness/team-config.yaml"))["main_session"]["writes"]
+      hit = [g for g in w if g.endswith("plan.yaml approval:")]
+      assert hit, "main_session is still granted no plan.yaml approval mapping: %r" % (w,)
+      assert any(g.endswith("BRIEF.md ## Approval") for g in w), "the BRIEF grant was dropped"
+      assert any(g.endswith("PLAN.md ## Approval") for g in w), "the PLAN.md grant was dropped"
+      PY
+      python3 .claude/skills/harness/bin/check-plan-routes.py \
+        .harness/harness/features/FEAT-32-concurrent-write-merge/plan.yaml || exit 1
+      exit 0
+    intent: |
+      Three files, one sentence's worth of change each. Read D-10 first: the signer is the MAIN
+      SESSION, and the evidence is behavioural - DEC-120 puts the user channel at the main session
+      alone, so it is the only tier that can hold a signature the user actually gave.
+
+      1. .claude/skills/harness/templates/plan.yaml, the comment above `status:` inside the approval
+         block. It currently reads "Written by the ORCHESTRATOR only — pm never self-approves, and the
+         orchestrator cannot ask the user (DEC-120)", which contradicts itself in one sentence: an
+         agent that cannot ask the user cannot be the only writer of the user's answer. REPLACE it
+         with: written by the MAIN SESSION only, because it is the only tier with a user channel;
+         neither pm nor the orchestrator writes it, and check-domain.sh denies an agent's write of this
+         mapping. Keep the existing sentence that any change to the task set resets this to pending.
+
+      2. .claude/agents/harness-pm.md, the Writable paragraph. It currently says the approval block
+         "is the orchestrator's, because only it can reach the user." Both halves are wrong. REPLACE
+         with: never the `approval:` block - `## Approval` in a `PLAN.md` - that is the main session's,
+         the only tier that can reach the user. Change nothing else in that file; it is a preloaded
+         agent definition and every added line taxes every pm spawn.
+
+      3. .harness/team-config.yaml, the `main_session.writes` list. It grants
+         ".harness/*/features/*/BRIEF.md ## Approval" and ".harness/*/features/*/PLAN.md ## Approval"
+         - the pre-DEC-182 heading form only - and names plan.yaml's `approval:` mapping NOWHERE, so
+         the org-as-data record grants the live plan format's signature to nobody at all. ADD, keeping
+         both existing entries untouched:
+
+           ".harness/*/features/*/plan.yaml approval:"
+
+         and a comment on the line naming DEC-182 as why the third form exists and D-10's ruling as
+         why the main session holds it. Do not touch any other stanza; the pm domain entry three
+         stanzas down already carries the matching `except approval:` comment and is now true rather
+         than aspirational.
+
+      Do NOT edit .claude/skills/harness/SKILL.md. It already states this correctly and is the
+      artifact the other three are being brought into line with.

@@ -25,3 +25,23 @@
   editing a verify for an indentation bug.
 - 2026-08-21: a folded `>-` scalar tolerates a colon-space freely (it is block content), unlike a
   plain scalar. All eight `decisions[].because` values here carry them and `safe_load` is clean.
+- 2026-08-21 (amendment round, S-01): a dispatch's own framing of a measurement was wrong once in
+  seven rulings. R5(a) said T-05's three `not os.path.exists(path + ".lock")` assertions would pass
+  VACUOUSLY; at c32f332 they go RED, because D-02 locks a sibling `.lock` file that is never removed.
+  The vacuum only appears via the two workarounds the same ruling forbids. Conclusion unchanged,
+  premise wrong — re-derive even the measurement a ruling hands you as settled.
+- 2026-08-21: THREE line anchors cited through several planning rounds by three tiers had all drifted
+  by c32f332: `bash-write-guard.sh` `:617/:628/:676` are `:618/:625/:634`, and `check-domain.sh`'s
+  `SHAPE_PATTERNS` is `:727` not `:677`. Converted every one to a symbol reference. The pattern: the
+  claim stays true while the pointer dies, so nothing ever fails.
+- 2026-08-21: "record the impossibility" was the wrong frame. The right move was to ask WHICH HARM
+  needs the impossible thing — the loss needed an unbounded PreToolUse refusal, the false report
+  needed exactly one correction round, and neither needed the wait. A one-shot SubagentStop refusal
+  is not a weak wait; it is the full strength of every digest contract in `validate-digest.py`.
+- 2026-08-21: a plan-wide `verify:` fix that is self-locating beats one that hard-codes a path.
+  `cd "$(git rev-parse --show-toplevel)"; export CLAUDE_PROJECT_DIR="$PWD"` at the head of all 13
+  blocks is correct in the worktree AND on main; pinning the worktree path would have rotted at merge.
+- 2026-08-21: `bash-write-guard.sh` denied a `cat >> observations/harness-pm.md` heredoc from inside
+  the feature directory — it resolves the RELATIVE path against `CLAUDE_PROJECT_DIR`, not the shell's
+  cwd, so a legitimate in-domain append reads as out-of-domain. Append to a `notes/` or
+  `observations/` file with the Write tool and an absolute path.

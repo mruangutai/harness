@@ -2,54 +2,98 @@
 
 ## Current
 
-Phase: **plan**, at its terminus. `BRIEF.md` (325 lines) and `plan.yaml` (1212 lines, 13 tasks,
-8 decisions, 16 SCs, 10 REQs) exist with approval PENDING on both. Nothing is built and nothing
-may be built: the plan's own D-01 gates the whole build on FEAT-30 merging to `main` first.
+Phase: **plan**, at its terminus. The amend round is **complete on substance**: all seven operator
+rulings and the DEC-197 item landed in `plan.yaml`. `approval.status` is still `pending` — the
+operator signs, and nothing here approves anything.
 
-One product run, `runs/2026-08-21-1-product/`, verdict ESCALATE. No rework: `cycles_used` 0 of 10,
-1 run of 20.
+`plan.yaml` at worktree HEAD `c32f332` is **1692 lines / 108804 bytes, 15 tasks, 10 decisions**,
+uncommitted at `+632/−152` against `6d83e91` — measured 12:00, and the file was last written at
+11:59:37 by an **orphaned pm still running after its lead closed**, so treat the byte count as a
+snapshot rather than a final state. Every sample of it parsed, with the task, decision and approval
+counts intact at each one. It grew from 13 tasks and 8 decisions because R3 and
+R4 ruled two new surfaces IN: **T-14** makes the approval-block exclusion real in
+`check-domain.sh`, **T-15** makes the three signer artifacts agree, and **D-09/D-10** record the
+reasoning. Execution modes split 8 `main-session-direct` (T-01, T-07, T-08, T-09, T-11, T-12, T-14,
+T-15 — every gate script and its test) and 7 `team` (T-02..T-06, T-10, T-13 — the libraries and the
+docs), which is DEC-174 am.4's category test applied: a module a gate imports is not itself a gate.
 
-Route check re-run by the orchestrator at worktree HEAD 5d9b428: `check-plan-routes.py` exits 0,
-**zero VIOLATIONs**, 11 DEVIATION lines tree-wide of which **4 belong to FEAT-32** (T-01, T-07,
-T-08, T-09) — matching pm's report; the other 7 are pre-existing FEAT-28 and FEAT-29 rows. All 4
-are the deliberately-legal DEC-174 shape under DEC-179.
+**Ruling-by-ruling, verified by the orchestrator reading `plan.yaml` off disk at `c32f332`, not from
+the lead's digest:** R1 — D-01's precondition records DISCHARGED, citing `47a9935` as an ancestor of
+`c32f332`; the two-lock-dialect alternative is recorded rejected. R2 — no strike task exists, T-13
+item 5 now reads "DEC-90 IS ALREADY STRUCK … merged as `16b30c6`", credits **FEAT-30** with
+falsifying it, and carries a guard clause for a branch that is behind. R3 — D-09 records the wait as
+an **impossibility** and ships two mechanisms that can hold: a once-only SubagentStop return contract
+against false reporting, and D-06's unbounded PreToolUse refusal against the actual loss. R4 — D-10
+rules the **main session** the signer on DEC-120 grounds and converts the comment into a check.
+R5(a) — the vacuous lock-absence assertions are replaced by SIGKILL-then-second-apply cases, plus a
+verify at `:750` that FAILS if a lock-absence assertion survives. R5(b) — **13** `export
+CLAUDE_PROJECT_DIR="$PWD"` pins, far beyond the two anchors named. R5(c) — D-04 now reads "THE MAIN
+SESSION — not the orchestrator". R5(d) — T-01 narrows to one key and its verify FAILS on a
+re-measurement of the settled `agent_type`. R6 — occurrences 5 and 6 recorded, anchored to run dir
+`2026-08-21-1-product`, with the gitignore note. R7 — #627, #560, #605 explicitly out of scope, no
+task may absorb them.
 
-Suite baseline verified by the orchestrator, and pm's figures are exactly right: `--kind unit`
-exit 0 / 179 matched lines / 0 FAIL, `--kind integration` exit 0 / 93 / 0. **Both require
-`CLAUDE_PROJECT_DIR` to point at this worktree.** Unpinned, both kinds exit 2 with 0 matched
-lines, because `run-unit-tests.sh:3` is `cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"` against a relative
-`BIN_DIR`, and the main checkout is currently parked on `feat/FEAT-30-worktree-per-feature`. The
-plan's precondition at `plan.yaml:299-300` omits the pinning.
+**The run returned BLOCKED for a reason that is not about the work.** `runs/2026-08-21-2-product/`:
+the SubagentStop hook forced `harness-product-lead` terminal while its only pm was in flight — #551
+**occurrence 7**, live, one round after 5 and 6 were ruled in for recording. The lead reported
+`files_touched: []` for pm and "no ruling can be reported as landed". **That is false about the
+world, and true about the lead:** pm ran on as an orphan (DEC-131) until ~11:57 and its writes
+landed. The lead had already done the thing that saved the round — it caught the stale worktree
+*before* dispatching and redirected pm's three doc reads to the main checkout, so pm did not
+"correct" the plan in the wrong direction.
 
-Next action is not the orchestrator's: the operator signs, strikes or amends. Three questions
-block the build (DEC-90's status, the FEAT-30 start gate, how much of #551 this feature closes)
-and four more are correctness fixes pm should apply in one amend pass at signing.
+`cycles_used` **0** of 10, 2 runs of 20. A forced close is not rework, and charging it would hide
+the defect (DEC-157).
+
+Route check re-run by the orchestrator at `c32f332`: `check-plan-routes.py` exits 0, **zero
+VIOLATIONs**, 11 DEVIATIONs tree-wide of which **4 are FEAT-32's** — T-01, T-07, T-08, T-09, the
+deliberate DEC-174 shape under DEC-179. A grep of that output for "FEAT-32" returns only 1; six
+DEVIATION lines name `bin/` paths with no feature directory, so the id must be attributed per item,
+not counted by grep.
 
 ## Open Questions
 
-- Q1 DEC-90 (`DECISIONS.md:1157`) says every single-writer guarantee holds "with no lock
-  anywhere". Verified at source. But the clause is descriptive, DEC-90 is wired into **no gate,
-  no script and no skill** (grep across `bin/`, `.claude/skills/`, `team-config.yaml`,
-  `harness.json` returns nothing), and FEAT-30's approved `expertise-merge.py` already falsifies
-  it. `SPEC.md:2180-2183` propagates the claim and must move with whatever is decided.
-- Q2 D-01 gates the entire build on FEAT-30 merging to `main`. Accept the delay, or take the
-  transcribed-second-copy shape and start now with two lock dialects in one `bin/`?
-- Q3 #551 is only partly closed by this plan — its dispatch cause is fixed, its two reporting
-  consequences are not, because `validate-digest.py:845` passes through on `stop_hook_active` so
-  a SubagentStop refusal can fire at most once and cannot be a wait.
-- Q4 T-05 rewires `expertise-merge.py` onto `flock`. Cases 4, 5 and 6 of
-  `test-expertise-merge.py` assert `not os.path.exists(path + ".lock")`. Under `flock` on the
-  target no sibling lock file ever exists, so all three pass **vacuously** — the plan's own task
-  would create three assertions incapable of going red, which is the defect class SC-04 exists to
-  prevent. Needs replacement assertions, not the two workarounds the lead proposed.
-- Q5 Q8's first half is closed by measurement, not open: `SubagentStop` **does** carry
-  `agent_type`. Observed live this run — the hook rejected this orchestrator's return using the
-  persona-specific `orchestrator` schema (`validate-digest.py:181-185`, selected at `:196`), and
-  `hook_mode` passes through when `agent_type` is absent (`:838`). It did not pass through.
-- Q6 `.harness/team-config.yaml:91` grants pm `plan.yaml` with `upsert: true` and the comment
-  "except approval: (DEC-129)". **Nothing enforces it** — `grep -n approval check-domain.sh`
-  returns one comment at `:808` and no check; every other `approval` hit in `bin/` is a reader.
-  Three artifacts also disagree on who signs: the plan template says the orchestrator, the
-  orchestrator playbook says the main session, `team-config.yaml` says pm-except-approval.
-- Q7 Whether #627 and the #560/#605 personas come into scope. pm called both OUT with reasons;
-  the orchestrator concurs and neither blocks.
+- Q1 **BLOCKING — the worktree is two commits behind `origin/main` and only the main session can fix
+  it.** `git merge-base --is-ancestor` at `c32f332`: `16b30c6` (the DEC-90 strike) and `1d2b036`
+  (DEC-197) are fetched objects but **not ancestors of HEAD**; `origin/main` is `1d2b036`. Both are
+  **docs-only** (`git show --stat`: DECISIONS.md, DECISIONS-INDEX.md, SPEC.md), so no code or
+  `harness.json` divergence — `test_kinds` is byte-identical between HEAD and `origin/main`. The
+  concrete bite: T-13 mints the next free DEC number by reading the file, and this checkout's highest
+  is **196** while `origin/main`'s is **197**, so a build run here would mint a **duplicate
+  DEC-197**. pm defended against it in prose; the merge is the real fix. HEAD is frozen for every
+  governed agent, so this is the main session's act.
+- Q2 **BLOCKING — `plan.yaml`'s `approval:` mapping is granted to nobody, so "who signs" is a gap as
+  well as a disagreement.** `check-domain.sh --resolve` on a plan.yaml prints `harness-orchestrator`
+  **and** `harness-pm`, exit 0 — both may write the whole file including the mapping, and
+  `grep -n approval check-domain.sh` returns exactly one line, `:858`, a comment. Meanwhile
+  `team-config.yaml:18` grants the main session only the pre-DEC-182 **heading** forms
+  (`BRIEF.md ## Approval`, `PLAN.md ## Approval`) and names the mapping nowhere. D-10 and T-14/T-15
+  are the plan's answer; the operator should confirm the direction — extend the grant, or enforce the
+  exclusion with no positive grant anywhere.
+- Q3 **NOT blocking, and the answer is no.** The lead asked to approve one clean re-dispatch of one
+  pm. **It is not needed and should be declined:** pm's amend is on disk, parses, and carries every
+  ruling. A re-dispatch would be a second pm against the same file — the exact #628 shape this
+  feature exists to prevent. Two residual one-line fixes are all that is left, in Q4.
+- Q4 **NOT blocking — two citation defects, pm's to fix, not mine (I hold no write on the field).**
+  (a) `dec: DEC-129` on **D-04** (`:151`) and **D-10** (`:295`) miscites: DEC-129 spans
+  `DECISIONS.md:2946-2969` and contains **zero** occurrences of "approval" — it is about feature
+  folders and `## Problem` before `## Goal`. The real authority is **DEC-120 at `:2423`**. The same
+  wrong citation sits in `team-config.yaml:90-91`. (b) D-04's `because` says the main-session writes
+  list "is the only place any signer is granted"; per Q2 that list never names the mapping, so the
+  claim overstates.
+- Q5 **NOT blocking — DEC-174 am.4's enumeration omits a gate that is demonstrably one.** The list at
+  `DECISIONS.md:4851-4853` names `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
+  `check-state.sh`, `check-plan-routes.py` and their tests. **`dispatch-guard.sh` is absent, and it
+  refused this orchestrator's own dispatch this run** (a `model:` parameter, per DEC-152/DEC-155).
+  "The category decides, the list records" means T-07/T-08 are correctly `main-session-direct`; the
+  list should be amended to record it. pm's routing already assumes this.
+- Q6 **NOT blocking — the 8-file kind divergence is still live and is not what DEC-197 fixed.**
+  `run-unit-tests.sh:18` lists 14 `INTEGRATION_SCRIPTS`; `integration.detect` names 6 explicitly, so
+  8 files run as integration while the qa matrix reads them as unit: `test-validate-digest.py`,
+  `test-check-expertise.py`, `test-gen-decisions-index.py`, `test-bash-write-guard.py`,
+  `test-check-domain.py`, `test-harness-yaml.py`, `test-upgrade-config.py`,
+  `test-merge-settings.py`. Identical at `c32f332` and at `origin/main`. T-10 is scoped to close it.
+- Q7 **NOT blocking — the orchestrator playbook instructs a write the schema rejects.**
+  `.claude/skills/harness/SKILL.md` says to record the phase in `feature.json` `phase:`;
+  `bin/feature-schema.json` sets `additionalProperties: false` and has no `phase` property, so the
+  write would be invalid. This STATE.md carries the phase instead.
