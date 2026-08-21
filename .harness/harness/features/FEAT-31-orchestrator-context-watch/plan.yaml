@@ -300,7 +300,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: building
+    status: done
     files:
       - .harness/harness.json
     verify: |
@@ -687,7 +687,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: building
+    status: done
     files:
       - .harness/harness.json
     verify: |
