@@ -2023,6 +2023,182 @@ def run_worktree_deep_shape():
     return fails
 
 
+
+def run_sweep_clean_tracked():
+    """The post-sweep must not report a file `git worktree add` merely materialised.
+
+    THE DEFECT, measured 2026-08-21. `feature-worktree.py create` runs `git worktree add`,
+    which writes a fresh copy of every tracked file, so all 126 files matching SWEEP_GLOBS
+    in the new checkout carried an mtime of that second. The sweep asked only
+    `st_mtime > _since`, so it shape-checked all 126 — including 25 features whose status
+    is Done — and reported the two long-standing malformed STATE.md files as
+    `OVER BUDGET (already written)` against the agent that cut the tree. False in the one
+    field an agent acts on: authorship. Both files sit outside any ordinary agent's domain,
+    so an agent obeying that message is DENIED by this same hook.
+
+    A REAL GIT REPOSITORY IS REQUIRED HERE, unlike `make_linked_worktree`'s pointer-pair
+    fixture. The skip asks git whether a candidate differs from HEAD; against a fake
+    pointer pair that call fails, `_dirty_set` is None, and the sweep falls back to its old
+    behaviour. That fallback is deliberate (it fails OPEN), and it is why every pre-existing
+    worktree case in this file stays green — but it also means only a real repo can
+    exercise the skip at all.
+    """
+    fails = 0
+    d = tempfile.mkdtemp()
+    try:
+        root = os.path.join(d, "owner")
+        os.makedirs(root)
+
+        def git(cwd, args):
+            r = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True)
+            if r.returncode != 0:
+                raise RuntimeError("git %s: %s" % (" ".join(args), r.stderr))
+            return r
+
+        git(root, ["init", "-q"])
+        git(root, ["symbolic-ref", "HEAD", "refs/heads/main"])
+        git(root, ["config", "user.email", "t@example.com"])
+        git(root, ["config", "user.name", "T"])
+        os.makedirs(os.path.join(root, ".harness"))
+        with open(os.path.join(root, ".harness", "team-config.yaml"), "w") as f:
+            f.write(FIXTURE_MANIFEST)
+
+        # A MALFORMED STATE.md, COMMITTED. This stands in for FEAT-02's real file: an old,
+        # shipped feature carrying an illegal section that nothing in this run wrote.
+        fdir = os.path.join(root, ".harness", "harness", "features", "FEAT-OLD")
+        os.makedirs(os.path.join(fdir, "notes"))
+        rel_state = ".harness/harness/features/FEAT-OLD/STATE.md"
+        with open(os.path.join(root, rel_state), "w") as f:
+            f.write("# FEAT-OLD — STATE\n\n## Current\nshipped\n\n"
+                    "## Illegal Section\nhistory that DEC-150 forbids\n")
+        git(root, ["add", "-A"])
+        git(root, ["commit", "-q", "-m", "the malformed file, committed"])
+
+        wt = os.path.join(root, ".claude", "worktrees", "harness", "FEAT-NEW")
+        git(root, ["worktree", "add", "-q", "-b", "feat/FEAT-NEW", wt])
+
+        # Every file in `wt` now carries a fresh mtime. Assert that, rather than trusting
+        # it: if git ever stopped rewriting mtimes, this whole case would pass vacuously
+        # and prove nothing about the skip.
+        wt_state = os.path.join(wt, rel_state)
+        stamp_floor = time.time() - 5
+        if not os.path.isfile(wt_state):
+            print("FAIL  sweep/clean-tracked: git worktree add did not materialise %s"
+                  % rel_state)
+            return fails + 1
+        if os.stat(wt_state).st_mtime <= stamp_floor:
+            print("FAIL  sweep/clean-tracked: PRECONDITION DEAD — the worktree copy's "
+                  "mtime is not fresh, so the sweep would skip it on mtime alone and "
+                  "this case could not distinguish the fix from its absence.")
+            return fails + 1
+
+        bash_payload = {"agent_type": "harness-orchestrator", "tool_name": "Bash",
+                        "hook_event_name": "PostToolUse",
+                        "tool_input": {"command": "true"}}
+
+        def sweep(hook_path=None):
+            argv = [hook_path or HOOK, "--post"]
+            return subprocess.run(argv, input=json.dumps(bash_payload),
+                                  capture_output=True, text=True,
+                                  env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+        def inv_lines(r):
+            return [l for l in (r.stdout + r.stderr).splitlines()
+                    if "FEAT-OLD" in l and "STATE.md" in l]
+
+        def clear_stamp():
+            # The sweep advances a high-water mark on every run, so a second sweep in the
+            # same second sees nothing. Each case below removes the stamp first, or the
+            # ordering of the cases would decide their results.
+            try:
+                os.remove(os.path.join(root, ".harness", ".shape-sweep-stamp"))
+            except OSError:
+                pass
+
+        # CASE A — the committed file, materialised by `git worktree add`, is NOT reported.
+        clear_stamp()
+        r = sweep()
+        got = inv_lines(r)
+        if got:
+            fails += 1
+            print("FAIL  sweep/clean-tracked A: a clean-tracked file the checkout merely "
+                  "materialised was reported as `already written`")
+            for l in got[:2]:
+                print("      | %s" % l.strip())
+        else:
+            print("ok    sweep/clean-tracked A: worktree creation reports nothing")
+
+        # CASE B — a REAL Bash-route write in the worktree IS still reported. Without this
+        # the fix is indistinguishable from deleting the sweep.
+        with open(wt_state, "a") as f:
+            f.write("\n## Second Illegal Section\nwritten by this run\n")
+        clear_stamp()
+        r = sweep()
+        got = inv_lines(r)
+        if not got:
+            fails += 1
+            print("FAIL  sweep/clean-tracked B: a modified STATE.md in the worktree was "
+                  "NOT reported — the skip is swallowing real writes")
+        elif r.returncode != 2:
+            fails += 1
+            print("FAIL  sweep/clean-tracked B: reported the file but exited %d, not 2"
+                  % r.returncode)
+        else:
+            print("ok    sweep/clean-tracked B: a modified file is still caught, exit 2")
+
+        # CASE C — an UNTRACKED state file in the worktree IS reported. `diff HEAD` alone
+        # would miss this; the skip needs `ls-files --others` too, and a fix that dropped
+        # it would leave every newly created run/state file unswept.
+        newdir = os.path.join(wt, ".harness", "harness", "features", "FEAT-BRANDNEW")
+        os.makedirs(newdir)
+        with open(os.path.join(newdir, "STATE.md"), "w") as f:
+            f.write("# x\n\n## Current\nok\n\n## Nope\nillegal\n")
+        clear_stamp()
+        r = sweep()
+        if not [l for l in (r.stdout + r.stderr).splitlines() if "FEAT-BRANDNEW" in l]:
+            fails += 1
+            print("FAIL  sweep/clean-tracked C: an UNTRACKED malformed STATE.md in the "
+                  "worktree was not reported — the skip is treating untracked as clean")
+        else:
+            print("ok    sweep/clean-tracked C: an untracked file is still caught")
+
+        # RED PROOF — a mutant copy with SWEEP_SKIP_CLEAN_TRACKED flipped to False must
+        # report case A's file. An exit status is never the proof: a crash on the way in is
+        # also non-zero, so this compares the COUNT of FEAT-OLD lines.
+        with open(HOOK) as f:
+            original = f.read()
+        mutant_text = original.replace("SWEEP_SKIP_CLEAN_TRACKED = True",
+                                       "SWEEP_SKIP_CLEAN_TRACKED = False", 1)
+        if mutant_text == original:
+            fails += 1
+            print("FAIL  sweep/clean-tracked RED: INCONCLUSIVE — the mutation did not "
+                  "apply, so no claim is made about the assertions above. Has "
+                  "SWEEP_SKIP_CLEAN_TRACKED been renamed?")
+        else:
+            mutant = os.path.join(d, "check-domain-mutant.sh")
+            with open(mutant, "w") as f:
+                f.write(mutant_text)
+            os.chmod(mutant, 0o755)
+            # Restore case A's exact state: the committed file clean again, nothing else
+            # of FEAT-OLD's on disk changed.
+            git(wt, ["checkout", "--", rel_state])
+            clear_stamp()
+            base = len(inv_lines(sweep()))
+            clear_stamp()
+            mut = len(inv_lines(sweep(mutant)))
+            print("      red proof: original reported %d FEAT-OLD line(s), mutant %d"
+                  % (base, mut))
+            if mut <= base:
+                fails += 1
+                print("FAIL  sweep/clean-tracked RED: the mutant reported no more than "
+                      "the original, so case A does not discriminate the fix from its "
+                      "absence.")
+            else:
+                print("ok    sweep/clean-tracked RED: removing the skip makes case A red")
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+    return fails
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -2052,6 +2228,7 @@ def main():
     fails += run_worktree()
     fails += run_worktree_grant_parity()
     fails += run_worktree_deep_shape()
+    fails += run_sweep_clean_tracked()
     return fails
 
 
