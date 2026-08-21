@@ -148,8 +148,19 @@ loop, growing past every threshold, with the next seam far ahead.
   one home. Graded by reading `git show <review_sha>:.harness/harness/docs/DECISIONS.md` and
   confirming the entry reads as a single current rule.
   verify: inspection
-- SC-10: The operator can run the command, read the answer, and act on it without asking what a
-  number means.
+- SC-10: **The UAT, stated as steps, because "the operator can run the command" names no command
+  and cannot fail.** With at least one orchestrator ALIVE — measuring a finished one proves nothing
+  about the case that matters — the operator runs the tool with no argument and then with that
+  orchestrator named, and from the output alone can answer all four of:
+    1. which orchestrators are running, and which feature each is on;
+    2. what each one's context is NOW and what it PEAKED at;
+    3. how far each is from the threshold, without the operator doing arithmetic;
+    4. whether any orchestrator could not be measured, and which file defeated it (REQ-07).
+  It fails if any figure has to be divided, subtracted or compared by hand to be useful, if a
+  running orchestrator is missing from the no-argument output, or if the operator has to ask what a
+  number means. The invocation is a `python3 .claude/skills/harness/bin/<name>.py` call taking an
+  optional agent id — the plan names the file; this criterion does not, because a filename is a
+  decision and the brief does not make those.
   verify: uat
 - SC-11: Against a fixture directory holding four sidecars — one complete, one with `agentType` but
   no `toolUseId`, one that is not valid JSON, and one whose `.jsonl` is missing — the tool reports
