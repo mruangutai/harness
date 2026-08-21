@@ -2,9 +2,20 @@ schema: plan/1
 feature: FEAT-30-worktree-per-feature
 
 approval:
-  status: pending
-  approved_by: none
-  date: none
+  status: approved
+  approved_by: operator
+  date: 2026-08-20
+  # SIGNED IN PLACE, and the placement of `rulings:` below is why. Q28 records that this budget
+  # lives INSIDE approval:, so a process that rewrites the block wholesale carries it away. This
+  # signature edits three scalars and nothing else, so that risk did not fire. It is NOT fixed:
+  # relocating rulings: to a top-level key is a structural change to an approved artifact, and
+  # nothing reads the field programmatically, so it buys protection against a future writer rather
+  # than a present one. Accepted knowingly; the next process to rewrite approval: must carry
+  # rulings: forward by hand.
+  #
+  # W1, W3 and Q27 were surfaced before signature and accepted with it: T-10's team lane rests on a
+  # judgement no tool can settle, and SC-06 is named by no task though T-09's verify implements its
+  # assertion verbatim.
   rulings:
     - id: R-01
       date: 2026-08-20
@@ -14,11 +25,16 @@ approval:
         return, so the refusal reaches that persona too. The early return survives unchanged for
         every WRITE.
       reason: >-
-        DEC-151 scopes the exemption to write targets - its ruling reads that every other harness
-        agent except dev-ops has extractable write targets checked against its domain - and moving
-        HEAD is not a write target. The exemption exists to keep one recovery path open when the
-        guard itself is broken, and that path is untouched: dev-ops still writes anything,
-        including the guard's own source.
+        DEC-151 scopes the exemption to TARGET PATHS. The authority at DECISIONS.md:3650 reads that
+        every other harness agent except dev-ops, exempt per DEC-85 as owning builds, gets
+        extractable target paths checked against its team-config domain - and moving HEAD is not a
+        target path. The exemption exists to keep one recovery path open when the guard itself is
+        broken, and that path is untouched: dev-ops still writes anything, including the guard's own
+        source. DEC-85, the exemption's own basis, cuts the same way: at :1092 it corrects the
+        premise that dev-ops is special on this route, recording that all nine doers hold Bash and
+        not just dev-ops. Citation corrected 2026-08-20 - three tiers argued this from
+        DECISIONS-INDEX.md:170, a generated summary row, before anyone opened the entry. Substance
+        unchanged.
       accepted_cost: >-
         When HEAD is wrong and the guard is working, harness-dev-ops cannot fix it either. The
         repair is the operator's, from the main session, which carries no agent_type and which this
@@ -890,9 +906,10 @@ tasks:
       precedes the harness- prefix test at line 58 that this rule keys off - and T-01, T-02 and
       T-08 are laned to exactly that persona. THE EARLY RETURN SURVIVES for every WRITE: do not
       delete it, do not narrow it, and do not add a second exemption. Only the ordering changes.
-      DEC-151 scopes that exemption to write targets and moving HEAD is not one, so the recovery
-      path it exists to preserve - dev-ops writing when the guard itself is broken, including
-      writing this file - is unchanged. The accepted cost is recorded in the BRIEF beside REQ-04:
+      DEC-151 scopes that exemption to TARGET PATHS - DECISIONS.md:3650, not the index summary row -
+      and moving HEAD is not one, so the recovery path it exists to preserve - dev-ops writing when
+      the guard itself is broken, including writing this file - is unchanged. The accepted cost is
+      recorded in the BRIEF beside REQ-04:
       when HEAD is wrong and the guard is working, harness-dev-ops cannot fix it either, and the
       repair is the operator's from the main session.
 

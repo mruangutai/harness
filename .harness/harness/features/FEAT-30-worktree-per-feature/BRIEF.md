@@ -39,40 +39,57 @@ hostages in another's checkout.
 
 ## Requirements
 
-The location rule, settled by the operator 2026-08-20 and stated as three facts so nobody
-re-derives it:
+### Terms
 
-1. **`workspace_root` is for every repository EXCEPT harness.** `fleet.yaml` declares them and
-   `workspace_root/<repo>` holds each one's checkout, outside this repository.
-2. **`.claude/worktrees/` is for harness ONLY.** `fleet.yaml` excludes `mruangutai/harness` on
-   purpose (DEC-174 am.1) so that this stays true, and the absence is what enforces it.
-3. **The repository is NAMED in the path** — `.claude/worktrees/harness/<id>/` — so a reader can
-   see which repository a working tree belongs to without inferring it.
+Five names carry every path in this brief. Each one already exists in the code, so this table says
+where it is defined and what it holds. Values measured 2026-08-20.
+
+| Term | What it is | Defined at | Value here |
+|---|---|---|---|
+| `workspace_root` | The CONTAINER directory holding every served repository's checkout. One directory, many repositories. | `.harness/factory/fleet.yaml:25`, read by `factory_config.py:197` | `/Users/molchairuangutai/GitHub/harness-factories` |
+| `owner_root` | ONE repository's checkout. `worktree_owner()` returns it, read from the worktree's own `.git` pointer file. | `harness_boundary.py` — `worktree_owner()` returns `(checkout_dir, owner_root, legitimate)` | `…/harness-factories/kaya-ai` for kaya-ai |
+| `harness_root` | The harness checkout's own root. It IS the `owner_root` when the repository is harness — one directory, two names, because two modules reach it two ways. | `factory_config.py:44` — `harness_root()` | `/Users/molchairuangutai/GitHub/harness` |
+| `WORKTREES_SEGMENT` | The path segment under an `owner_root` where linked worktrees are legal. A constant, cited by name so the value is never spelled twice. | `harness_boundary.py:33` — `WORKTREES_SEGMENT = ".claude/worktrees"` | `.claude/worktrees` |
+| `<repo>` | The repository name AFTER the owner. `mruangutai/kaya-ai` gives `kaya-ai`. | `factory_config.py:334` — `workspace_path()` | `harness`, `kaya-ai` |
+
+`<id>` is the feature id — `FEAT-30`.
+
+**`harness_root` is NOT under `workspace_root`, and that is deliberate.** `fleet.yaml:10` records
+`mruangutai/harness` as absent on purpose (DEC-174 am.1). Harness develops itself in its own
+checkout, so it has an `owner_root` and no `workspace_root` entry.
+
+So a worktree path is `owner_root`/`WORKTREES_SEGMENT`/`<repo>`/`<id>`/, which expands to:
+
+    harness         /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-30/
+    kaya-ai         /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.claude/worktrees/kaya-ai/FEAT-30/
 
 **`workspace_root` and `owner_root` are NOT the same thing, and conflating them loses the
-isolation this feature exists to build.** `workspace_root` is the CONTAINER that holds served
-repositories; a `owner_root` is ONE repository's checkout. Measured 2026-08-20:
+isolation this feature exists to build.** Every path in this brief is relative to an `owner_root`,
+never to `workspace_root`. `worktree_owner()` computes legality as `commonpath` against
+`owner_root`/`WORKTREES_SEGMENT`, where the owner comes from the worktree's own `.git` pointer
+file. Build it against `workspace_root` instead and every served repository's worktrees share one
+directory — the per-repository isolation is gone, and the guard would still report `legitimate`.
 
-    workspace_root              /Users/molchairuangutai/GitHub/harness-factories
-    owner_root for kaya-ai     /Users/molchairuangutai/GitHub/harness-factories/kaya-ai
-    owner_root for harness     /Users/molchairuangutai/GitHub/harness      (NOT under workspace_root)
+### The location rule
 
-So the worktrees land at:
+Settled by the operator 2026-08-20 and stated as three facts so nobody re-derives it:
 
-    /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/<id>/
-    /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.claude/worktrees/kaya-ai/<id>/
+1. **`workspace_root` is for every repository EXCEPT harness.** `fleet.yaml` declares them and
+   `workspace_root`/`<repo>` holds each one's checkout, outside this repository.
+2. **Harness's worktrees hang off `harness_root`, never off `workspace_root`.** `fleet.yaml`
+   excludes `mruangutai/harness` on purpose (DEC-174 am.1) so that this stays true, and the absence
+   is what enforces it. Every repository uses `WORKTREES_SEGMENT`; what differs is the `owner_root`
+   it hangs from.
+3. **The repository is NAMED in the path** — `WORKTREES_SEGMENT`/`<repo>`/`<id>`/ — so a reader can
+   see which repository a working tree belongs to without inferring it.
 
-**Every path in this brief is relative to a `owner_root`, never to `workspace_root`.**
-`worktree_owner()` computes legality as `commonpath` against `owner_root/.claude/worktrees`, where
-the owner comes from the worktree's own `.git` pointer file. Build it against `workspace_root`
-instead and every served repository's worktrees share one directory — the per-repository isolation
-is gone, and the guard would still report `legitimate`.
+### The requirements
 
 - REQ-01: The dispatch path creates a worktree per feature run at
-  **`owner_root/`WORKTREES_SEGMENT`/<repo>/<id>/`**, and the orchestrator works inside it. For
-  harness that is `harness_root`/`WORKTREES_SEGMENT`/`harness`/`<id>`. For a served repo it is that
-  repo's own checkout under `workspace_root`, same shape. Two features for harness and two for
-  another repo run at once: four worktrees, four branches.
+  **`owner_root`/`WORKTREES_SEGMENT`/`<repo>`/`<id>`/**, and the orchestrator works inside it. The
+  shape is one shape, applied per repository — see *Terms* above for the two expansions. Two
+  features for harness and two for a served repository run at once: four worktrees, four
+  branches.
 - REQ-02: A worktree is cut from its own repository's default branch, never from another feature's
   branch. For harness that is `main`; for a served repo it is the `default_branch` its `fleet.yaml`
   entry declares, which is why that field exists — it is read before the checkout does.
@@ -88,12 +105,24 @@ is gone, and the guard would still report `legitimate`.
   laned to exactly that persona. The scoping is therefore what makes the requirement true of the
   agents most likely to move `HEAD`.
 
-  **Why this does not contradict DEC-151.** That entry scopes the exemption to **write targets** —
-  its own ruling reads *"every other harness agent except dev-ops has extractable write targets
-  checked against its domain"* — and moving `HEAD` is not a write target. The exemption exists to
-  preserve one recovery path: when the guard itself is broken, `harness-dev-ops` can still write.
-  Placing the `HEAD` matcher ahead of the exemption removes nothing from that path — dev-ops keeps
-  its exemption for every WRITE, including writes to the guard's own source.
+  **Why this does not contradict DEC-151.** That entry scopes the exemption to **target paths** —
+  the authority at `DECISIONS.md:3650` reads *"Every other harness agent except dev-ops (exempt per
+  DEC-85 — owns builds) gets extractable target paths checked against its team-config domain"* — and
+  moving `HEAD` is not a target path. The exemption exists to preserve one recovery path: when the
+  guard itself is broken, `harness-dev-ops` can still write. Placing the `HEAD` matcher ahead of the
+  exemption removes nothing from that path — dev-ops keeps its exemption for every WRITE, including
+  writes to the guard's own source.
+
+  **And DEC-151 grounds the exemption in DEC-85, which cuts the same way.** DEC-85 is cited for
+  "owns builds", and at `:1092` it explicitly corrects the premise that dev-ops is special on this
+  route: *"All 9 doers hold `Bash` (not just `dev-ops`, as §4.2 claimed)."* So exempting dev-ops
+  from a Bash-route `HEAD` refusal has less grounding than the exemption's own basis supplies, not
+  more.
+
+  **Citation corrected 2026-08-20.** The three preceding drafts of this paragraph quoted
+  `DECISIONS-INDEX.md:170` — a generated summary row — as though it were the ruling. Three tiers
+  argued REQ-04 from that row before anyone opened the entry. Substance is unchanged; the authority
+  is stronger than the summary was.
 
   **The accepted cost, recorded rather than buried.** When `HEAD` is wrong and the guard is
   working, `harness-dev-ops` cannot fix it either. The repair is the operator's, from the main
@@ -147,8 +176,8 @@ is gone, and the guard would still report `legitimate`.
 - SC-02: A worktree created for a feature run is cut from its own repository's default branch.
   Asserted against the merge-base, not against the branch name.
   verify: automated      evidence: integration
-- SC-02b: A worktree at ``WORKTREES_SEGMENT`/<repo>/<id>/` is accepted as legitimate, and one
-  outside that layout is REFUSED with a message naming where worktrees belong. Both directions
+- SC-02b: A worktree at `owner_root`/`WORKTREES_SEGMENT`/`<repo>`/`<id>`/ is accepted as
+  legitimate, and one outside that layout is REFUSED with a message naming where worktrees belong. Both directions
   asserted, on a throwaway repository rather than this one.
   verify: automated      evidence: integration
 - SC-02c: A domain-granted path written from INSIDE a worktree resolves to the same grant as from
@@ -214,7 +243,7 @@ feature uses, and the operator's challenge to that framing is why they now read 
 
   Measured 2026-08-20 on a throwaway repository with a worktree at
   `.claude/worktrees/harness/FEAT-30`: `worktree_owner()` returned `legitimate=True`. Legality is
-  `commonpath` against `owner_root/.claude/worktrees`, so a deeper path is still inside it and the
+  `commonpath` against `owner_root`/`WORKTREES_SEGMENT`, so a deeper path is still inside it and the
   rule holds unchanged. What DOES break is the prefix strip — `WORKTREE_REL_RE` on
   `.claude/worktrees/harness/FEAT-30/.harness/x.md` returns `FEAT-30/.harness/x.md` instead of
   `.harness/x.md`, so domain globs would miss and every in-worktree write would be refused. That is
