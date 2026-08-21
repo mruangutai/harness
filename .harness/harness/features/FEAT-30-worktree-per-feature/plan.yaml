@@ -1291,8 +1291,14 @@ tasks:
     verify: |
       set -u
       T=$(mktemp -d) || exit 1
-      cp .claude/skills/harness/bin/test-feature-worktree.py "$T/t.py" || exit 1
-      python3 - "$T/t.py" <<'PY' || exit 1
+      # cp -R, NOT a single-file copy. Corrected 2026-08-20 (Q3) after the build member hit
+      # it and disclosed it. test-feature-worktree.py:35 imports the sibling module
+      # harness_boundary, so a lone copy dies ModuleNotFoundError before any assertion and
+      # the red proof reports "the suite broke" for every future re-verification. No
+      # sys.path manipulation exists in that file. Matches T-06's precedent.
+      cp -R .claude/skills/harness/bin "$T/bin" || exit 1
+      rm -rf "$T/bin/__pycache__"
+      python3 - "$T/bin/test-feature-worktree.py" <<'PY' || exit 1
       import sys
       p = sys.argv[1]
       s = open(p).read()
@@ -1304,7 +1310,7 @@ tasks:
       PY
       MARKER="assert_commit_isolation did not detect the shared-checkout collision"
       FEATURE_WORKTREE_BIN="$PWD/.claude/skills/harness/bin/feature-worktree.py" \
-        python3 "$T/t.py" >"$T/neutered.out" 2>&1
+        python3 "$T/bin/test-feature-worktree.py" >"$T/neutered.out" 2>&1
       RC=$?
       if [ "$RC" -eq 0 ]; then
         echo "RED PROOF FAILED: the suite PASSES with assert_commit_isolation neutered - the case B assertions are vacuous"
