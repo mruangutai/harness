@@ -2,104 +2,118 @@
 
 ## Current
 
-Phase: **plan**, at its terminus. The amend round is **complete**: all seven operator rulings and the
-DEC-197 item landed in one pm pass. `approval.status` is `pending` on `plan.yaml` and `## Approval` is
-`pending` in `BRIEF.md` — verified untouched immediately before each commit. Nothing here signs.
+Phase: **plan**, at its terminus. The Q3 amend round is **committed at `f6840d0`** on `feat/FEAT-32`
+(HEAD was `62f861c`). `approval.status` is `pending` in `plan.yaml` and `## Approval` is `pending` in
+`BRIEF.md` — **both byte-identical to the previous commit, verified by `diff` against `git show HEAD:`
+immediately before staging**, not asserted. Nothing here signs.
 
-`plan.yaml` is **1692 lines / 108804 bytes, 15 tasks, 10 decisions**, committed on `feat/FEAT-32` at
-**`7463b80`** as `+632/−152` against `6d83e91`, with `BRIEF.md` at `+118/−52`, pm's
-`notes/research-FEAT-32-ruling-amendments.md` and both observation logs. It grew from 13 tasks / 8
-decisions because R3 and R4 ruled two surfaces IN: **T-14** makes the approval-block exclusion real in
-`check-domain.sh`, **T-15** makes the signer artifacts agree, and **D-09/D-10** carry the reasoning.
-Execution modes: 8 `main-session-direct` (T-01, T-07, T-08, T-09, T-11, T-12, T-14, T-15 — every gate
-script and its test) and 7 `team` (T-02..T-06, T-10, T-13 — the libraries and the docs), which is
-DEC-174 am.4's category test: a module a gate imports is not itself a gate.
+**Q1 CLOSED.** `git merge-base --is-ancestor` returns true for `16b30c6` (DEC-90 strike), `1d2b036`
+(DEC-197) and `47a9935`. Highest decision in this checkout is **197** in both `DECISIONS.md` and
+`DECISIONS-INDEX.md`, so T-13 mints 198 and the duplicate hazard is gone. T-13 needed no edit — its
+intent already reads the file rather than assuming a number; its DEC-90 degraded path is now inert.
 
-**Run `2026-08-21-2-product`: lead ESCALATE, pm PASS, exactly one pm spawned.** The `SubagentStop` hook
-forced the lead terminal mid-run with its pm in flight — **#551 occurrence 7**, one round after
-occurrences 5 and 6 were ruled in for recording. That first digest reported pm's work
-`files_touched: []` and "unrecoverable". **Both were wrong, and the lead corrected them itself**: it was
-resumed, pm ran to completion, and the final digest (rewritten 12:05) carries pm `PASS`. The forced
-close is real and belongs in the record; the loss did not happen. Before dispatching, that lead had
-caught this worktree being behind `main` and redirected pm's three doc reads to the main checkout —
-which is what kept the amend from being "corrected" in the wrong direction on DEC-90 and DEC-197.
+**Q3 APPLIED: `main_session.writes` is the gate's INPUT, not a record.** T-14 no longer hardcodes a
+plan.yaml regex; it sources the denial from the list. Host is `check-domain.sh`, not the merge tool,
+and the ruling's own premise was falsified before choosing: `plan-merge.py` **does not exist yet**
+(only `expertise-merge.py` of the five is on disk) and is a tool the writer CHOOSES to invoke, so a
+check inside it is refusable by not calling it. `check-domain.sh` already opens `team-config.yaml`
+(`:153-155`, `:297-302`), a `Write` carries whole-file `content` (`:1034`), and
+`grep -n main_session check-domain.sh` returns **zero**. The chosen SHAPE survives; only its HOST
+argument did not.
 
-**Ruling-by-ruling, verified by the orchestrator against the artifact, not the digest.** R1 — D-01's
-precondition records DISCHARGED, `47a9935` confirmed an ancestor of `c32f332`; the two-lock-dialect
-shape recorded rejected. R2 — no strike task; T-13 item 5 inverted to an explicit do-not-touch naming
-`16b30c6`, and `BRIEF.md` now credits **FEAT-30**, not this feature, with falsifying DEC-90; SC-16
-**WITHDRAWN** for loss of subject rather than left unmet. R3 — D-09 records the wait as an
-**impossibility** and ships two mechanisms instead. R4 — D-10 rules the **main session** the signer, on
-`.claude/skills/harness/SKILL.md:34-35`, which already said so. R5(a) — the lock-absence assertions
-replaced, plus a verify that FAILS if one survives. R5(b) — 13 `CLAUDE_PROJECT_DIR` pins, well beyond
-the two anchors named. R5(c) — D-04 now reads THE MAIN SESSION. R5(d) — T-01 narrows to one key and its
-verify FAILS on re-measuring the settled `agent_type`. R6 — occurrences 5 and 6 recorded in three
-places, anchored to run dir `2026-08-21-1-product`, with the gitignore caveat. R7 — **this one did need
-work, contrary to the dispatch**: the plan named only #627, so #560 and #605 would not have survived
-into the build. Now at D-08, all three.
+**The scope consequence, named: the hole was three files wide.** `team-config.yaml:89`/`:90` grant pm
+`BRIEF.md` and `PLAN.md` whole with `except ## Approval` as a **comment**, so pm writing
+`status: approved` into a BRIEF is unrefused at `62f861c`. One list-sourced mechanism closes all
+three; refusing to generalise would hardcode a plan.yaml special case out of a list whose other two
+entries state the same rule.
 
-**pm overturned one ruling's premise and I accept it.** R5(a) said T-05 makes `test-expertise-merge.py`
-cases 4/5/6 pass *vacuously*. They go **RED**: D-02 puts flock on a **sibling** `.lock`
-(`plan.yaml:112`) never removed (`:432`), while today's `expertise-merge.py` creates that sibling with
-`O_EXCL` (`:214-215`) and removes it (`:290`) — which is why they pass now. The remedy is unaffected and
-was applied verbatim. The distinction matters because a build agent told to expect a silent pass instead
-hits a crash.
+**The signer spread was FOUR-way, not three, and the tree behaves as none of them.**
+`SKILL.md:34-35` (main session) was the only artifact already correct; `templates/plan.yaml:25-26`
+names the ORCHESTRATOR and miscites DEC-120, which says the opposite; `harness-pm.md:27-28` names the
+orchestrator "because only it can reach the user"; `team-config.yaml:91` miscites DEC-129. Authority:
+DEC-120 `@2408`, sentence `:2431`; DEC-112 `:1931` corroborates. T-15 corrects the three losers.
 
-`cycles_used` **0** of 10, 2 runs of 20. A forced close is not rework, and charging it would hide the
-defect (DEC-157, rule 15).
+**Ruling-by-ruling, verified against the artifact.** Q5 — `dec:` on D-04 (`:156`) and D-10 (`:324`)
+now DEC-120; DEC-129 `@2954` has **zero** "approval" occurrences. pm found **four** DEC-129 hits in
+`team-config.yaml`, not three: `:89`/`:90`/`:91` wrong, **`:108` correct**, and its own first-draft
+blanket assertion would have failed on the correct line. Q6 — the six out-of-scope files appear
+**nowhere** in `plan.yaml`; T-10 carries `OUT OF SCOPE - SEE ISSUE #639` at `:1357` and registers
+exactly two, so a search for one of the six lands on the issue that owns it. Q7 — SC-14 re-observed
+at `62f861c`: unit exit 0 / **179** metric lines / 0 beginning `FAIL`; integration exit 0 / **221** /
+0 beginning `FAIL` / **3 containing `ERROR`**. Integration moved 93 → 221 (FEAT-30 added to
+`INTEGRATION_SCRIPTS`); unit unchanged from `5d9b428`. Exit-0-plus-no-`FAIL` stays the mechanical
+gate, counts are the shrink detector. Q8 — T-16 fixes `validate-digest.py:580`'s citation of `:838`
+(statement at `:845`) and its **verify re-derives the line rather than pinning a literal**. Q9 — T-17
+carries verbatim DEC-174 am.4 wording adding `dispatch-guard.sh`; enumeration `:4859-4860`, "the
+category decides, the list records" `:4860-4862`; changes no lane. Q10 — **absent, zero cost**:
+`grep -n phase` on `templates/plan.yaml` returns nothing. Q4/Q11 accepted as ruled.
 
-Route check at `eea6f53`: `check-plan-routes.py` exits 0, **zero VIOLATIONs**, 12 DEVIATIONs of which
-**5 are FEAT-32's** — T-01, T-07, T-08, T-09 and the new T-14, each the deliberate DEC-174 shape under
-DEC-179. (At `c32f332` it was 11 and 4.) Attribution is per item: a grep of that output for "FEAT-32"
-returns **1**, because seven lines name only `bin/` paths. `check-state.sh` exits 1 with FEAT-32's sole
-violation being "BRIEF.md is NOT approved" — the terminus, not a defect.
+**REQ-11 did not cover the generalisation, and pm caught it.** `BRIEF.md:64` read "a feature PLAN's
+approval block"; a BRIEF is not a plan, so T-14 would have exceeded its traced source. REQ-11's noun
+widened, **SC-20** added at `BRIEF.md:397`. Build order: T-14 `depends_on: [T-03, T-15]`, T-15 `[]` —
+T-15 supplies the entry and T-14's new case reads the **real** `team-config.yaml`, so CI notices a
+deletion. No cycle.
+
+**#551 OCCURRENCE 8 HAPPENED THIS ROUND, IN ITS STRONGEST FORM.** The lead was forced to a terminal
+close with pm in flight, one run after occurrence 7, on the feature that exists to fix this. Its
+report: the contract validator then **REJECTED a return that declined to grade an unobservable
+child** — so the mechanism does not merely PERMIT a false verdict, it **DEMANDS** one. Two further
+details: the lead wrote into **`runs/2026-08-21-2-product/`** instead of minting run-3, so that file
+holds ROUND 3's digest under ROUND 2's id and round 2's digest is **lost** (`runs/**` is gitignored,
+`.gitignore:7`) — which is precisely why this file and `feature.json` are the durable record. pm ran
+to completion as an orphan and returned PASS. Occurrence 7 is now recorded in four places: `BRIEF.md`'s
+#551 block ("six" → "seven"), D-06's `because:`, T-13 intent item 4, and **D-09's `choice:`**, which
+had reasoned from 3–6 while its best datum sat unrecorded.
+
+**Verified directly, because a forced-close round is where a digest must not be trusted.** `safe_load`
+clean; **17 tasks** (T-01..T-17), **10 decisions**; 9 `main-session-direct` / 8 `team`;
+`check-plan-routes.py` on this plan exits **0**, **0 VIOLATION, 6 DEVIATION** — T-01, T-07, T-08,
+T-09, T-14 and new T-16, each the deliberate DEC-174 shape under DEC-179 (5 before this round).
+Scoping the route check to one plan makes every line attributable and removes the enumeration P-05
+needed last round. `check-state.sh` exits 1 with FEAT-32's sole violation being "BRIEF.md is NOT
+approved" — the terminus. Suites green at `62f861c` independently of pm: `test-check-domain.py` exit 0
+with **167** `ok` cases (the baseline T-14's "every prior case still passes" is measured against, and
+a number the plan should carry), `test-validate-digest.py` exit 0, unit exit 0, integration exit 0.
+
+`cycles_used` **0** of 10 (lead reported zero send-backs; a forced close is not rework — charging it
+would hide the defect, DEC-157/rule 15). Runs **3** of 20.
+
+**An orchestrator error, recorded because rule 15 applies to me.** I spawned a **second product-lead
+by mistake** in the feature about concurrent writes — reached for `Agent` when I meant to continue the
+live lead, and `SendMessage` proved **disabled for this session entirely**. Contained only because the
+accidental dispatch carried a no-op instruction: PASS, 0 tool uses, 0 members, `files_touched: []`,
+wrote nothing. The consequence: **a dispatch is unrecallable at send time here**, so two wrong anchors
+I handed down (DEC-119 for the fail-open precedent; the operator's `templates/plan.yaml:25`) could only
+be fixed by pm re-deriving them, which it did.
 
 ## Open Questions
 
-- Q1 **BLOCKING, main session only.** This worktree is two commits behind `origin/main`:
-  `git merge-base --is-ancestor` says `16b30c6` (DEC-90 strike) and `1d2b036` (DEC-197) are **not**
-  ancestors of HEAD; `47a9935` is. Both missing commits are **docs-only** (`git show --stat`:
-  DECISIONS.md, DECISIONS-INDEX.md, SPEC.md) and `test_kinds` is byte-identical between HEAD and
-  `origin/main`, so no code diverged. The bite: T-13 mints the next free DEC number by reading the file,
-  and this checkout's highest is **196** against `origin/main`'s **197**, so a build here mints a
-  **duplicate DEC-197**. pm defended in prose and T-13 degrades to report-and-change-nothing; the merge
-  is the real fix. No tier below the main session can move HEAD.
-- Q2 **BLOCKING.** Sign or amend both artifacts. `BRIEF.md` changed this round — new REQ-11, REQ-12,
-  SC-17, SC-18, SC-19, and SC-16 withdrawn — so its signature is not a formality.
-- Q3 **BLOCKING, and sharper than the original framing.** `plan.yaml`'s `approval:` mapping is granted
-  to **nobody**: `check-domain.sh --resolve` prints `harness-orchestrator` **and** `harness-pm` (both
-  may write the whole file unrefused), `grep -n approval check-domain.sh` returns one line, `:858`, a
-  comment, and `team-config.yaml:18` grants the main session only the pre-DEC-182 **heading** forms.
-  T-15 adds the mapping to `main_session.writes` — **but that list is a record no check reads**, and
-  `check-domain.sh` never governs the main session (it exits 0 with no `agent_type`). So: record-only
-  grant, or make `main_session.writes` something a check actually consults?
-- Q4 **NOT blocking, my answer is NO.** The lead asked to approve a clean re-dispatch of one pm.
-  Decline: pm returned PASS, its amend is committed and parses. A re-dispatch would be a second pm
-  against the same file — the exact #628 shape this feature prevents.
-- Q5 **NOT blocking, needs pm.** `dec: DEC-129` on D-04 (`:151`) and D-10 (`:295`) miscites: DEC-129
-  spans `DECISIONS.md:2946-2969` and contains **zero** occurrences of "approval" — it is about feature
-  folders and `## Problem` before `## Goal`. The authority is **DEC-120 at `:2423`**. Same wrong
-  citation at `team-config.yaml:90-91`.
-- Q6 **NOT blocking — six files stay exposed, deliberately.** `run-unit-tests.sh:18` lists 14
-  `INTEGRATION_SCRIPTS`; `integration.detect` names 6 explicitly, so **8** run as integration while the
-  qa matrix reads them as unit — identical at `eea6f53` and on `origin/main`, so DEC-197 recorded the
-  rule and fixed nothing. **T-10 closes only 2** — `test-validate-digest.py` (SC-08) and
-  `test-check-domain.py` (T-14's criterion) — because those two carry evidence this feature's criteria
-  rest on. The other six (`test-check-expertise`, `test-gen-decisions-index`, `test-bash-write-guard`,
-  `test-harness-yaml`, `test-upgrade-config`, `test-merge-settings`) are untouched by design. Every
-  `evidence: integration` claim elsewhere resting on those six is false today. Own dev-ops task?
-- Q7 **NOT blocking.** SC-14's baseline (179 unit / 93 integration lines) was observed at `5d9b428`;
-  FEAT-30 then added two runner files, so the counts moved. pm rebound the criterion to exit 0 plus
-  absence of lines beginning `FAIL` rather than re-observing. Confirm that binding, or authorise a
-  re-observation at the post-merge sha.
-- Q8 **NOT blocking, verified at `eea6f53`.** `validate-digest.py:579-580`'s own comment names the
-  `stop_hook_active` passthrough as `:838`; it is at **`:845`**. R5(d) inherited the stale anchor from
-  the file's own comment and three tiers carried it. One-line comment fix in an enforcement-layer file,
-  so `main-session-direct`.
-- Q9 **NOT blocking.** DEC-174 am.4's list (`DECISIONS.md:4851-4853`) omits `dispatch-guard.sh`, which
-  is demonstrably a gate — it refused this orchestrator's own dispatch this run over a `model:`
-  parameter (DEC-152/DEC-155). "The category decides, the list records" makes T-07/T-08 correctly
-  `main-session-direct`; the list should record it.
-- Q10 **NOT blocking.** The orchestrator playbook says to record the phase in `feature.json` `phase:`,
-  but `bin/feature-schema.json` sets `additionalProperties: false` with no `phase` property, so that
-  write is invalid. The phase lives here instead.
+- Q1 **BLOCKING — T-14's Edit rule is bypassable by the most obvious route.** `plan.yaml:1652-1656`
+  decides an `Edit` by a TEXT HEURISTIC: deny when `old_string`/`new_string` holds a line whose first
+  non-space text is the fragment. An Edit of `  status: pending` → `  status: approved` contains no
+  `approval:` and no `## Approval` line, so it is **ALLOWED** and it flips the signature. Worse,
+  `status: pending` is every TASK's own field, so the heuristic cannot tell the approval block's
+  `status:` from a task's without applying the edit. Two fixes, no free option: **(a)** apply the edit
+  in memory (honouring `replace_all`), parse, compare — exact, but contradicts `check-domain.sh:1039`'s
+  recorded refusal to reconstruct Edit semantics ("no `replace_all` semantics, no TOCTOU window");
+  **(b)** deny a governed agent's `Edit` of any fragment-bearing file outright — fails closed on the
+  tool whose proposal cannot be evaluated, and the main session is untouched because a payload with no
+  `agent_type` never reaches the domain phase, so D-04's Edit-based signing survives. (b) costs
+  `Edit` on `plan.yaml` (near-zero; every other write already routes through `plan-merge.py`) and on
+  `BRIEF.md` (real; pm edits it in place today). **pm's to fix — one more amend before signing.**
+- Q2 **BLOCKING.** Sign or amend both artifacts. `BRIEF.md` changed again — REQ-11 widened, SC-20
+  added, on top of last round's REQ-11/REQ-12/SC-17/SC-18/SC-19 and SC-16's withdrawal.
+- Q3 **NOT blocking.** T-14 grew from one file to three. A consequence of sourcing from the list, not
+  an independent widening — but the real cost, better seen at signature than discovered at build.
+- Q4 **NOT blocking.** T-17 amends a signed decision; approving this plan IS the signature on that
+  wording. A stronger justification exists: `dispatch-guard.sh` is a registered PreToolUse hook at
+  `.claude/settings.json:45` alongside `check-domain.sh` (`:23`, `:56`), `bash-write-guard.sh` (`:36`)
+  and `validate-digest.py --hook` (`:67`) — **every other registered hook is already in am.4's list;
+  it is the only one absent** — and it has **no test file at all**, while am.4's rule includes "the
+  test file of each". T-07 creates the test; T-17 closes the record.
+- Q5 **NOT blocking.** SC-14's baseline records **3 integration lines containing `ERROR`**. The
+  criterion binds no line BEGINNING `FAIL` and cannot see them. pm reads all three as expected-output
+  cases carrying the word inside a test's own name; whether they should gate is unresolved.
+- Q6 **NOT blocking, main session's act.** #551 needs occurrences 7 AND 8 appended, with both
+  sharpened claims, plus the run-id collision. An agent composing a GitHub post is forbidden
+  (DEC-138 am.6) and `gh-sync.py` has no subcommand for it.
