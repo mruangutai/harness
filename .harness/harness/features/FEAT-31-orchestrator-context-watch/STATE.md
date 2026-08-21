@@ -3,49 +3,84 @@
 ## Current
 
 - feature: FEAT-31-orchestrator-context-watch
-- run: .harness/harness/features/FEAT-31-orchestrator-context-watch/runs/plan4-product/state.yaml
-- squad: product
-- status: plan-amended-awaiting-signature
+- run: .harness/harness/features/FEAT-31-orchestrator-context-watch/runs/build-eng
+- squad: eng
+- status: Building — build-eng returned ESCALATE, blocked on a red unit suite
+- phase: build (recorded HERE. **DEC-192 DELETED the `phase` field** from feature.json, so the
+  playbook's "record your phase in feature.json" contradicts a signed decision. Closes Q2 — a stale
+  playbook line, not a gap.)
 
-**Round 3's six rulings have LANDED. `plan.yaml` is amended and UNSIGNED. The next act is the
-operator's signature, and nobody below layer 0 may write it.**
+**FOUR OF EIGHT TEAM-LANE TASKS ARE BUILT AND VERIFIED. The build is stopped by a defect that
+PREDATES the signature: the unit suite was ALREADY RED at e5f88c4.**
 
-plan.yaml went from 10 tasks / 16 decisions at 7299669 to **14 tasks / 22 decisions**, 81508 bytes.
-`approval:` is byte-identical to 7299669 — verified by sha256 of the extracted block, not by claim
-(`96666915d78504ef…` before and after). `BRIEF.md`'s `## Approval` likewise unchanged
-(`4fac2b8b5d832525…` before and after); only SC-14's mechanism clause changed, -2/+4 lines.
+`cycles_used` stays **3** — the lead reported ZERO send-backs and T-02's FAIL was first-pass, not
+routed back (DEC-157). Runs 6, budget 20.
 
-Four new tasks, every one carrying `execution_mode`, and `T-10.depends_on: [T-14]` really encodes
-the ordering the decisions declare:
+| task | verdict | evidence |
+|---|---|---|
+| T-01 | PASS | `context-watch.py` created; both verify lines exit 0 |
+| T-03 | PASS | `budgets.orchestrator_context_warn_tokens: 200000` |
+| T-11 | PASS | `integration.detect` 8 entries absent -> 0; before exit 1, after exit 0 |
+| T-02 | FAIL | 15 cases + two applied-mutant red proofs pass; verify line 2 red from the corpus |
+| T-06 T-07 T-08 T-13 | not dispatched | their verify invokes the red unit runner |
 
-- **T-11** `team`/`harness-dev-ops` — appends TEN explicit paths to `test_kinds.integration.detect`
-  (the eight measured absent at 7299669, plus `test-context-watch-cli.py` for F-1's instance and
-  `test-run-unit-tests-kinds.py` for T-12's own test). Closes the CLASS, not the instance.
-- **T-12** `main-session-direct` — D-4's cross-check inside `run-unit-tests.sh` plus `--check-kinds`
-  and a new test. Its red proof asserts a `KIND-DRIFT` line NAMING the file, and treats a bare
-  non-zero exit as INCONCLUSIVE.
-- **T-13** `team` — SC-01's live half, `verify-context-watch-live.py`, deliberately NOT named
-  `test-*.py` so the drift detector's `for f in "$BIN_DIR"/test-*.py` never reaches it (C-1's door).
-- **T-14** `main-session-direct` — INV-17 shape-checks every `notes/handoff-*.md` by glob, with the
-  shape check MOVED OUT of the `SEAM_NOTES` loop so C-3's double-report is impossible by
-  construction. Runs BEFORE T-10.
+### THE BLOCKER — the suite was red before any work began
 
-Independently verified by the orchestrator, not taken from the pm's receipt: plan.yaml parses via
-`harness_yaml.load_file`; `check-plan-routes.py` exits **0** with **0 violations across 4 plans**,
-30 feature dirs examined, and FEAT-31's T-01..T-14 all enumerated; T-11's own `verify` executed
-today exits **1** naming exactly the eight files, so it is discriminating rather than vacuous; and
-all **69** handoff notes in this worktree pass the four headings, the 60-line cap and T-10's
-empty-body rule, so T-14's widened glob adds zero violations.
+`run-unit-tests.sh --kind unit` exits 1 because `test-harness-yaml-corpus.py` walks the repo for
+`*.yaml` and hits **this feature's own** planning artifact,
+`notes/recovered-draft-14task-does-not-parse.yaml:85:37 — mapping values are not allowed in this
+context`. Established, not inferred: that file is **unchanged since e5f88c4** and the corpus test was
+already in `UNIT_SCRIPTS` there. Committed deliberately at **ae89da4**, whose message says it does
+not parse.
 
-`check-state.sh`'s only FEAT-31 line is now the expected `plan.yaml approval is pending — awaiting
-the user`. The two orphaned-run-dir notes were closed by recording plan3-product and plan4-product
-in feature.json.
+**Headline: T-02, T-06, T-07 and T-13's `verify:` blocks were UNSATISFIABLE AT SIGNATURE.** All four
+invoke the unit runner. No fix cycle can clear it from inside the eight tasks' `files:` lists.
 
-**Do not dispatch another `harness-pm`.** The single-writer constraint (issue #628) held this round,
-but only barely: the product lead spawned a SECOND pm by mistake and logged it itself as
-"LEAD ERROR". It returned BLOCKED with 0 tool uses and wrote nothing — verified at the time,
-plan.yaml still 41503 bytes and clean-tracked. The constraint held because that spawn declined to
-act, NOT because any mechanism stopped it.
+Two fixes, not equivalent. **Renaming the draft** closes the INSTANCE and is in the orchestrator's
+domain. **Excluding `features/*/notes/` from the scanner** closes the CLASS — every future feature
+saving a draft YAML hits this — but that file is plausibly enforcement layer under DEC-174, so it is
+the operator's. I deliberately did NOT apply the instance fix: the ruling is needed either way and a
+rename would make the class look closed. Recommendation: exclude feature `notes/`, then rename as
+tidying.
+
+### TWO MUST-FIX DEFECTS IN context-watch.py, found independently by the orchestrator
+
+Neither is a plan-compliance failure — T-01 is faithful to its intent. Both in
+`notes/finding-discovery-depth-orchestrator.md`.
+
+1. **The tool finds ZERO orchestrators by default.** `discover_orchestrator_rows` scans
+   `<root>/<session>/subagents`; the real layout is `<root>/<project>/<session>/subagents`. **0**
+   matches at the coded depth against **1999** real, **103** of them `harness-orchestrator`.
+   `plan.yaml:198-199` specifies the shallow depth while `:195-196` implies the deep one — the plan
+   contradicts itself. Blocks **SC-01** and **SC-10**'s no-argument UAT. `transcript_dir_for_cwd()`
+   already computes the missing level; `main()` never calls it.
+2. **`current` reports 0 for a loaded orchestrator.** `current = sizes[-1]` and `sizes` appends 0 for
+   any line lacking `message.usage`. Agent `a7783f0ec41e6a8c6` reports `current=0` while holding
+   **696,472** — its last line is a `user` message. 3 of 25 sampled rows. Defeats **REQ-01** and
+   SC-10's question 2.
+3. **`entries` is ambiguous and will fail T-13**, which demands all three agree — the tool counts ALL
+   parsed lines (1046), a usage-based count gives 669.
+
+**The arithmetic is CORRECT and independently confirmed.** Tool and an inline recomputation importing
+nothing from it agree to the token on a live orchestrator: `current=peak=186,041`. Top-level equals
+the sum over non-advisor iterations in 409 of 418 multi-iteration entries.
+
+### Premises the next cycle must not re-derive
+
+- **DEC-197 @6362** exists and closes Q-B; T-11 cited it at a re-checked anchor.
+- `upgrade-config.py` **DOES** propagate a new budgets key — probe printed
+  `+ budgets.orchestrator_context_warn_tokens`. **T-05 settled in advance.**
+- INV-17 checks heading PRESENCE only (`check-state.sh:509`, membership `:614`) inside the
+  `SEAM_NOTES` loop (`:592`) — T-10 and T-14's premises hold.
+- The BRIEF's headline transcript (1,497,025 -> 750,837) has **aged out** of the 30-day window;
+  `746878` matches nothing across all 76 files. Fixture tests unaffected.
+- Backlog not gate: `iterations` mixes 395 foreign-context `advisor_message` entries, picked by the
+  plan's rule in 325/395 — but that changes peak and current in **0 of 74** transcripts.
+- Lead's catch: `run-unit-tests.sh:3` is `cd "${CLAUDE_PROJECT_DIR:-$(pwd)}"`, so a runner pointed at
+  the main checkout tests a tree where new files do not exist — exit 0, proving nothing.
+- Mirror clean: milestone **#20**, sub-issues **#642–#655** on adopted parent **#598**, 8 cards
+  `Building`, plan.yaml written FIRST; diff exactly **8/8** lines and `approval:` sha256
+  `e4cc9491d96635a6…` byte-identical to `git show e5f88c4:`.
 
 ## Open Questions
 
@@ -54,22 +89,27 @@ SIGNAL, not a note: the orchestrator asks the user, writes the answers to
 .harness/harness/features/<FEAT>/notes/answers-<runid>.md, and re-delegates with that path. Clear
 each entry when it is answered.>
 
-- Q-A, non-blocking, DEFAULT ADOPTED and overrulable in one read. Is `harness.json`'s `test_kinds`
-  enforcement layer under DEC-174? Adopted in D-22: the data entries are `team`/`harness-dev-ops`
-  (T-11), the new check and its test are `main-session-direct` (T-12). Rests on `DECISIONS.md:4851`
-  ("So the enforcement layer is … and the test file of each … the category decides, the list
-  records") and `:4856` ("a module a gate imports is not itself a gate"). Three corroborations:
-  `check-domain.sh --resolve .harness/harness.json` returns `harness-dev-ops` alone; T-03 already
-  edits that file as `team`; and ruling otherwise retroactively invalidates T-03's lane.
-- Q-B, non-blocking. Is "explicit list beats catch-all glob" written down anywhere? Four files sit
-  in both `unit.detect` and `integration.detect` at 7299669 and are treated as integration, so
-  precedent is clear, but it is stated nowhere and there is no programmatic classifier. T-12 was
-  deliberately designed so its CORRECTNESS does not rest on it (a set comparison, no glob matching)
-  — but the FIX's meaning still does. Recommend writing it down as a decision.
-- Q1, non-blocking. An orchestrator cannot collect a lead that outlives its turn: this persona holds
-  Read/Glob/Grep/Agent/Write/Bash — no message tool and no wait that terminates. Two rounds died to
-  exactly that. The working mitigation is ORDERING: dispatch early, spend the wait on read-only
-  verification. Still wants the operator's ruling on a collection protocol.
-- Q2, non-blocking. `check-domain.sh`'s feature.json schema REJECTS a `phase` key
-  ("undeclared key 'phase'"), while the orchestrator playbook instructs recording the phase there.
-  One of the two is wrong. Not blocking; the phase is recorded in this file instead.
+- **Q-BLOCK, BLOCKING.** The unit suite is red on this feature's own unparseable plan draft, and was
+  red at signature. Exclude `features/*/notes/` from `test-harness-yaml-corpus.py` (closes the class,
+  likely main-session-direct), or rename the draft (closes the instance, orchestrator's domain)?
+  Four tasks cannot verify until this is settled.
+- **Q-SC, BLOCKING before the ship decision.** **SC-07 and SC-13 have no implementing task** — no
+  file, no mention of their substance in any of the 14 tasks. `D-02` calls the plan "HALF-WRITTEN BY
+  DESIGN" and names them for a second planning run that never covered them. Ship the measurement half
+  and defer, send pm back to append tasks, or amend the BRIEF?
+  See `notes/finding-sc-coverage-orchestrator.md`.
+- **Q-MSD, BLOCKING.** Four `main-session-direct` tasks are the operator's own hands under DEC-174:
+  **T-14** then **T-10** (`depends_on: [T-14]`), **T-04** (unblocks T-05 and T-09), **T-12**
+  (`depends_on: [T-11]`, done).
+- Q-DEFECT, non-blocking routing question. The two `context-watch.py` defects are faithful to a
+  self-contradicting plan clause. Fix as a T-01 fix cycle under the SCs' authority, or have pm
+  correct `plan.yaml:198-199` first?
+- Q1, non-blocking, unchanged. An orchestrator cannot collect a lead that outlives its turn — no
+  message tool, no terminating wait, foreground `sleep` blocked. Mitigation is ORDERING: dispatch
+  early, spend the wait on read-only verification. It paid for the mirror and both defect findings.
+- Q-A, non-blocking, DEFAULT ADOPTED in D-22, overrulable in one read. Is `test_kinds` enforcement
+  layer under DEC-174? Adopted: data entries `team`/dev-ops (T-11), the check and its test
+  `main-session-direct` (T-12).
+- Q-LEAD-2, non-blocking, from the lead. T-02's signed `verify:` carries bare-comment expectations
+  the lead had to supply as asserted commands. Should pm amend the plan so they live in the signed
+  block?

@@ -2,17 +2,47 @@
   "feature_id": "FEAT-31-orchestrator-context-watch",
   "branch": "feat/FEAT-31-orchestrator-context-watch",
   "pr": null,
-  "status": "Plan",
+  "status": "Building",
   "review_sha": "",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "github": {
-    "milestone": null,
+    "milestone": 20,
     "parent": 598,
     "parent_origin": "adopted",
-    "attached": [],
-    "issues": {}
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12",
+      "T-13",
+      "T-14"
+    ],
+    "issues": {
+      "T-01": 642,
+      "T-02": 643,
+      "T-03": 644,
+      "T-04": 645,
+      "T-05": 646,
+      "T-06": 647,
+      "T-07": 648,
+      "T-08": 649,
+      "T-09": 650,
+      "T-10": 651,
+      "T-11": 652,
+      "T-12": 653,
+      "T-13": 654,
+      "T-14": 655
+    }
   },
   "runs": [
     {
@@ -39,6 +69,11 @@
       "id": "plan4-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "build-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE"
     }
   ]
 }

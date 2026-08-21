@@ -165,7 +165,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/context-watch.py
     verify: |
@@ -241,7 +241,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/test-context-watch.py
       - .claude/skills/harness/bin/run-unit-tests.sh
@@ -300,7 +300,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: pending
+    status: building
     files:
       - .harness/harness.json
     verify: |
@@ -394,7 +394,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01, T-02, T-03]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/context-watch.py
       - .claude/skills/harness/bin/test-context-watch.py
@@ -441,7 +441,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01, T-06, T-11]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/test-context-watch-cli.py
       - .claude/skills/harness/bin/run-unit-tests.sh
@@ -509,7 +509,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-06]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/context-watch.py
     verify: |
@@ -687,7 +687,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: []
-    status: pending
+    status: building
     files:
       - .harness/harness.json
     verify: |
@@ -854,7 +854,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01, T-06]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/verify-context-watch-live.py
     verify: |

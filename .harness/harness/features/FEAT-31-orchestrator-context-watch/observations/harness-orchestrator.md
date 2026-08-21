@@ -78,3 +78,34 @@
   governs" — there are 21 `plan.yaml` files on disk in this worktree. I formed and then DISPROVED my
   own hypothesis that FEAT-31 would be the first such file, by running the find instead of reasoning
   from the comment. The comment is what would have misled a reader; the command settled it in one call.
+
+- 2026-08-21: the ordering discipline held for a THIRD round and is now the settled way I run a build
+  turn: verify the premise, dispatch, then spend the wait on bookkeeping that the dispatch does not
+  depend on. This round the wait paid for the whole GitHub mirror (`open` + eight `start-task` calls),
+  the feature.json status write, the STATE.md rewrite and the state gate — none of which the lead's
+  result feeds into. The generalisable rule: sort the turn's work by whether it CONSUMES the lead's
+  output, do everything that does not first, and never let a dispatch be the last call of a turn.
+
+- 2026-08-21: I marked eight plan.yaml task statuses without ever rewriting the file, which is the
+  technique that makes the issue-#628 hazard avoidable rather than merely warned about. A
+  `harness_yaml` round-trip would have reserialised all 1026 lines and could silently reformat the
+  signed `approval:` block; instead I asserted each target line equalled the exact literal
+  `    status: pending` before touching it, edited by line NUMBER, and proved the blast radius after
+  the fact with `git diff --numstat` (8 insertions / 8 deletions) plus a sha256 of the extracted
+  `approval:` block matching `git show e5f88c4:` byte for byte. Assert-then-edit-by-line, then prove
+  the diff is the shape you intended — a whole-file writer cannot make that proof.
+
+- 2026-08-21: the `phase` contradiction is now settled at the SCHEMA, which is a stronger reading
+  than the earlier guard observation. `bin/feature-schema.json` is `additionalProperties: false`
+  with eleven declared properties and NO `phase` among them, so `check-domain.sh` rejecting the key
+  is the schema working exactly as designed — the orchestrator playbook's "record your phase in
+  feature.json `phase:`" is the side that is wrong, and no amount of retrying will land it. When a
+  rule and a gate disagree, read the gate's DATA (the schema) rather than the gate's error text: the
+  error says a write was refused, the schema says whether it could ever have succeeded.
+
+- 2026-08-21: the STATE.md shape gate refused my rewrite at 127 lines against a 120 budget, and it
+  was right to. The lesson is not "trim afterwards" but that a state file inherits the previous
+  round's structure by default, and each round's genuinely-new material arrives on top of narrative
+  the round before thought essential. Budget the file at write time by asking which sections the NEXT
+  cycle must act on; the rest belongs in the run digest, which has no cap. A refused write cost one
+  tool call here, but the same drift is why FEAT-05's STATE.md sits at 165 lines and is still flagged.
