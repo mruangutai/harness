@@ -3,75 +3,93 @@
 ## Current
 
 - feature: FEAT-31-orchestrator-context-watch
-- phase: **ship** — build complete for both lanes pending T-05/T-09; validate not yet entered
-- run: `runs/t05-eng` IN FLIGHT (T-05, eng squad). Last complete: `runs/fix1-eng` PASS.
+- phase: **validate** — build COMPLETE, all 18 tasks `done`, tree clean at `ed62d74`
+- run: `runs/qa-validator` IN FLIGHT (the blocking qa gate). Last complete: `runs/t09-product` PASS.
 - status: in_progress
-- budget: **cycles 4/10**, runs 10/20. Runs are INFORMATIONAL (INV-22); cycles are the hard bound.
-- `review_sha`: **not yet pinned** — pin at panel dispatch time, never at turn start (P-02).
+- budget: **cycles 4/10**, runs 12/20. Runs INFORMATIONAL (INV-22); cycles are the hard bound.
+  **No rework this session** — every run was first-pass, so cycles did not move.
+- `review_sha`: **`ed62d7429d1f3e3f9321fd21885393d2ce8fd525`**, pinned for qa. **RE-PIN after SIMPLIFY
+  moves the tip, before the panel** (INV-6; P-02: an inherited pin reviews a tree the work is absent
+  from).
 
 **BOTH GATES PASS** — `BRIEF.md:310-314` and `plan.yaml` `approval:` read `approved` / `operator` /
-`2026-08-21`. Q-SIGN CLOSED (`notes/signature-reaffirmed-18-tasks.md`).
+`2026-08-21`. **The operator PRE-APPROVED the ship** and authorised PR, CI and merge.
 
-### SIXTEEN OF EIGHTEEN TASKS DONE. The operator's six landed; T-05 and T-09 are all that remain.
+### ALL 18 TASKS DONE. Three commits this session; the parent card derived to Review.
 
-**All six main-session-direct tasks (DEC-174) are complete and committed** — T-04, T-10, T-12, T-14,
-T-15, T-17 — across `1929774`, `47ff239`, `8329575`. **Those three commit messages are the receipts**
-and carry the measurements, the deliberate divergences and three self-reported errors. Do not
-re-derive what they record. Their `plan.yaml` statuses were recorded by me this run (the operator
-deliberately left status alone) and sub-issues #645/#651/#653/#655/#659/#661 are closed.
+- `0901c23` **T-05** — `upgrade-config.py` already propagates a new `budgets` key generically, so it
+  was left BYTE-UNCHANGED: the task is a proof, not a change. `merge()` `:64` recursive additive; add
+  branch `:79-83`, recursion `:86-87`; zero occurrences of `budgets`. 10/10 cases, the new case
+  asserts the on-disk VALUE 200000 at `test-upgrade-config.py:224`.
+- `5996951` **T-09** — **DEC-198** declares the leaf. `6f651f1`'s "196" was stale and my own `^### DEC-`
+  grep's "194" read only the 25 AMENDMENT sub-headings, not the 195 `## DEC-N` entries. Highest entry
+  is DEC-197 at `:6362`. Gaps exist (no DEC-12, no DEC-161) and must NOT be backfilled.
+- `ed62d74` — the documentor's trailing receipt and observation log.
 
-- T-04 `orchestrator_context_warn_tokens: 200000` in `templates/harness.json` — verified present by
-  direct read, which is what unblocks T-05 and T-09.
-- T-14 INV-17's shape check RESTRUCTURED to one glob pass over `notes/handoff-*.md`. One call site,
-  so no file can be double-reported by construction. 74 notes in reach, zero fail.
-- T-10 an empty required SECTION now fails the shape, not only an absent heading (SC-15's automatable
-  half). T-15 SC-07's POSITIONAL `agent` rule; all 393 existing entries still validate.
-- T-17 `context-watch-hook.py` on the existing `PostToolUse` `Write|Edit|Bash` matcher, 20 assertions.
-  T-12 `run-unit-tests.sh` cross-checks its arrays against `test_kinds.integration.detect`, 23.
+### MY OWN ERROR, ON THE RECORD: I READ A MID-FLIGHT DIGEST AS FINAL
 
-### THREE LIVE MECHANICS THIS FEATURE JUST CREATED FOR ITSELF
+`runs/t09-product/digest.md` said **BLOCKED** when I read it — the lead had written that while its
+documentor was still in flight. **The lead then continued and rewrote the same file to PASS.** I had
+already recorded BLOCKED in `feature.json` and asserted a BLOCKED run in `5996951`'s commit message.
+`feature.json` is corrected to **PASS**; the commit message cannot be and stands wrong on that point.
+**The rule this cost: a run digest is not evidence until its run has RETURNED.** A digest is rewritten
+in place, so reading one early is reading a draft. The T-09 lead's own digest warned of exactly this
+("a mid-write artifact can be rewritten in place, so reading it proves nothing") and I did it anyway.
+Zero send-backs actually occurred, so cycles stay at 4.
 
-1. **FEAT-31's `runs` exempt count is frozen at 9, so every entry from index 9 on MUST carry an
-   `agent` key or `check-domain.sh` DENIES the feature.json write.** T-15's rule, first live test.
-2. **`run-unit-tests.sh --check-kinds` before any commit.** A new `bin/test-*.py` must be in one of
-   the two arrays AND, if integration, in `test_kinds.integration.detect`. Milliseconds, runs no test.
-3. **This file is `## Current` + `## Open Questions`, nothing else, 120 lines, no history.**
+### THE ENFORCEMENT LAYER GOVERNING THIS SESSION IS THE MAIN CHECKOUT'S, NOT THIS BRANCH'S
+
+Hooks resolve through `CLAUDE_PROJECT_DIR` to the main checkout, so a branch that CHANGES the
+enforcement layer is still governed by the OLD layer while being built. This explains two puzzles:
+
+1. **T-15's rule is INVERTED in-session.** `runs[9]` and `runs[10]` carry `agent`. The BRANCH's
+   validator confirms the rule both ways — with the key, 31 files clean at exit 0; without it, exit 1
+   naming `runs[9]` and the 9-entry exemption. But the SESSION's `PostToolUse` hook REJECTS it as
+   `undeclared key 'agent' at /runs/9`, because the main checkout's `feature-schema.json` predates
+   T-15 with `additionalProperties: false`. **The key REQUIRED after merge is REFUSED before it.**
+   KEPT — removing it breaks the branch's own validator at merge. The probe restored the file
+   byte-identical.
+2. **T-17's hook cannot be observed firing from here** — same mechanism. First fires after merge. The
+   delivery CHANNEL is settled (`notes/settled-Q-HOOKCTX.md`); this hook's own firing is not.
+
+The VERB is the good one: `OVER BUDGET (already written)` told me the write had landed, so I kept it.
+That is exactly the remedy Q-WARNVERB asks for in `context-watch.py`.
 
 ### WHAT REMAINS
 
-T-05 (backend-dev, in flight) → **T-09 must follow it, NOT run beside it**: T-09's intent requires
-T-05's established answer on whether `upgrade-config.py` propagates a generic key, recorded as what
-was read. Then qa gate (`gates.qa_gate: blocking`) → SIMPLIFY → pin `review_sha` → **the review
-panel, requested by the operator by name** (validator-lead with code-reviewer, security-reviewer, qa;
-ui-reviewer self-scopes out on a no-UI diff) → pm goal-check on all 14 SCs → close-out → briefing.
-**The operator has PRE-APPROVED the ship** and authorised PR, CI and merge, so the briefing will be
-acted on rather than filed.
+qa gate (in flight) → **SIMPLIFY** → **re-pin `review_sha`** → **the review panel, requested by the
+operator by name** (validator-lead with code-reviewer, security-reviewer, qa; ui-reviewer self-scopes
+out — 17 files, 4147 insertions, 13 deletions, all Python/shell/JSON/markdown, zero UI) → pm
+goal-check on 14 SCs → close-out (ship-refresh + distillation, TWO dispatches in ONE message) →
+briefing.
 
 ### Premises the next cycle must not re-derive
 
-- **Q-HOOKCTX is CLOSED** (`notes/settled-Q-HOOKCTX.md`): hook stderr reaches a running agent in
-  full, as a **tool-result error string** rather than free-standing context. Settled by direct
-  observation. T-17's design stands. **Do not re-raise.**
-- **T-17's live firing cannot be confirmed from this branch** — hooks load from the session's
-  `CLAUDE_PROJECT_DIR`, which is the main checkout, so this registration first fires after merge. The
-  delivery CHANNEL is settled; this hook's own firing is not.
-- **Seven backlog rows are already filed** — #663 (T-13's vacuous verify), #664 (footer scope), #665
-  (`_safe_listdir` swallows OSError on a directory), #666 (absolute case-count floors are vacuous),
-  #667 (`sed -i` with a variable target), #668 (`0 day(s) old`), #669 (lead force-closed with a member
-  in flight). The other eight rows died. **Propose only what is NEW.**
-- **Zero UI surface** — all 21 planned files are Python, shell, JSON or markdown.
-- 14 SCs, SC-01..SC-11 and SC-13..SC-15 — **there is no SC-12**.
-- Do NOT re-verify T-01 by its own `verify:` block — line 2 greps `no orchestrator` against a
-  nonexistent dir, which a tool finding nothing ANYWHERE satisfies identically. It passed while both
-  discovery defects stood (`notes/finding-discovery-depth-orchestrator.md`).
+- **SIMPLIFY is mostly FLAG-ONLY.** Of `plan.yaml`'s 21 `lanes.rows`, **12 are main-session-direct** —
+  including `check-domain.sh`, `check-state.sh`, `feature_schema.py`, `feature-schema.json`,
+  `context-watch-hook.py`, `.claude/settings.json`, `templates/harness.json`. The last two resolve to
+  **NOBODY**. The 9 team surfaces (`context-watch.py`, its three test files,
+  `verify-context-watch-live.py`, `upgrade-config.py`, `.harness/harness.json`, the two docs files) are
+  the only ones an apply may touch. `run-unit-tests.sh` is SPLIT by edit kind: array appends are team,
+  T-12's rejection rule is main-session-direct.
+- **`.gitignore:7` ignores `.harness/*/features/*/runs/**`** — ZERO run files tracked. Every digest
+  path cited in the briefing is LOCAL to this worktree and never reaches the default branch. It is
+  also why `git status` looked clean while `runs/t09-product/digest.md` existed.
+- **Q-HOOKCTX is CLOSED** (`notes/settled-Q-HOOKCTX.md`). Do not re-raise.
+- **Seven backlog rows are filed** — #663, #664, #665, #666, #667, #668, #669. The other eight died.
+  **Propose only what is NEW.**
+- 14 SCs, SC-01..SC-11 and SC-13..SC-15 — **there is no SC-12**. `BRIEF.md:103-207`.
+- **SC-10 is `verify: uat`, SC-15 is SPLIT** (automated gate half + hand-graded behaviour half). With
+  `gates.uat: blocking_when_uat_criteria_exist`, **the UAT gate IS blocking** and only the operator
+  discharges it.
+- Do NOT re-verify T-01 by its own `verify:` block — it passed while both discovery defects stood.
 - Do NOT trust a `verify:` floor expressed as an absolute case count; verify by case NAME.
-- Do NOT run `feature-worktree.py behind` from inside this worktree — `dest_for()` re-inserts the
-  path and exits 3 on a tree that is fine. Run it from the PRIMARY checkout.
-- SC-01's live half is DISCHARGED: tool and independent recomputation agree at current 696,472 /
-  peak 696,472 / entries 669, matching `BRIEF.md:43` to the token.
-- Two board cards (T-01 #642, T-02 #643) read Building though closed and done. `close-task` re-run
+- Do NOT run `feature-worktree.py behind` from inside this worktree — run it from the PRIMARY checkout.
+- Two board cards (T-01 #642, T-02 #643) read Building though closed and done; `close-task` re-run
   twice did not move them. Documented mirror shape: never re-attempted, never a gate.
-- `runs/plan3-product/digest.md` is an **incomplete stub** (IN PROGRESS, no verdict).
+- Baseline measured at `ed62d74`: `--kind unit` exit 0, 187 PASS lines, zero FAIL / MISCONFIGURED /
+  KIND-DRIFT. `--check-kinds` exit 0. `check-state.sh` reports the same three violations as at session
+  start — FEAT-26's unapproved BRIEF and the two INV-26 cards — none from this session.
 
 ## Open Questions
 
@@ -79,15 +97,20 @@ acted on rather than filed.
 orchestrator asks the user, writes answers to notes/answers-<runid>.md, and re-delegates with that
 path. Clear each entry when it is answered.>
 
-- **Q-IRONLAW, non-blocking, FOR QA AND THE PANEL.** The cycle-4 fix applied code BEFORE writing its
-  new assertions — a RED-first deviation the lead volunteered rather than concealed. Judged sound
-  because all four mutants deliver a COUNT differential against the exact pre-fix shape,
-  independently rebuilt by a second member. Carried forward, NOT waived: TDD ordering is qa's and the
-  panel's to weigh, and it is on the panel's docket this run.
-- **Q-WARNVERB, non-blocking, FOR THE PANEL — the sharpest open risk in the feature.** T-16's warning
-  text says "this advises only; the orchestrator decides" but never says the tool call SUCCEEDED and
-  needs no retry, while the harness wraps a POST exit 2 as a **"blocking error"**. Measured
-  consequence: the operator's own reaction to exactly that wrapper was to UNDO the write. An
-  orchestrator could retry (duplicate) or revert (loss). `check-domain.sh:698-703` already encodes
-  the remedy by setting `VERB` to `OVER BUDGET (already written)`. `context-watch.py` is T-16's file
-  and team-owned, so the fix is the panel's call, not the operator's edit.
+- **Q-WARNVERB, non-blocking, FOR THE PANEL — the sharpest open risk.** T-16's warning says "this
+  advises only; the orchestrator decides" but never that the tool call SUCCEEDED and needs no retry,
+  while the harness wraps a POST exit 2 as a **"blocking error"**. Measured twice: the operator undid
+  a write on exactly that wrapper, and my own four `feature.json` writes each drew it. An orchestrator
+  could retry (duplicate) or revert (loss). `check-domain.sh:698-703` already encodes the remedy.
+  `context-watch.py` is T-16's file and team-owned, so the fix is the panel's call.
+- **Q-IRONLAW, non-blocking, ON QA'S DOCKET THIS RUN.** The cycle-4 fix applied code BEFORE writing
+  its assertions — volunteered, not extracted. Judged sound because four mutants deliver a COUNT
+  differential against the exact pre-fix shape, independently rebuilt. Carried, NOT waived.
+- **Q-STRAY, non-blocking, NEEDS THE OPERATOR'S HAND.** T-09's lead wrote a now-STALE copy of its
+  digest, still claiming BLOCKED, into the MAIN CHECKOUT at
+  `/Users/molchairuangutai/GitHub/harness/.harness/harness/features/FEAT-31-orchestrator-context-watch/runs/t09-product/digest.md`.
+  It contradicts the real PASS. Outside my worktree, so not mine to remove.
+- **Q-EXISTINGVAL, non-blocking, NEW.** No test pins that an operator's EXISTING
+  `orchestrator_context_warn_tokens` survives `/harness-init --upgrade`. It rests on `merge()`'s
+  contract alone, so a future merge change could overwrite a tuned threshold with the suite green.
+  DEC-198 records this rather than leaving it to be discovered.
