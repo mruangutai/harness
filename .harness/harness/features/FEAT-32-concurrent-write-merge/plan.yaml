@@ -445,7 +445,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: []
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/harness_merge.py
       - .claude/skills/harness/bin/test-harness-merge.py
@@ -565,7 +565,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: [T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/plan-merge.py
       - .claude/skills/harness/bin/test-plan-merge.py
@@ -744,7 +744,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: [T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/observations-merge.py
       - .claude/skills/harness/bin/test-observations-merge.py
@@ -846,7 +846,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: [T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/expertise-merge.py
       - .claude/skills/harness/bin/test-expertise-merge.py
@@ -940,7 +940,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: [T-01, T-02]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/inflight_registry.py
       - .claude/skills/harness/bin/test-inflight-registry.py
@@ -1368,7 +1368,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: none
     depends_on: [T-02, T-03, T-04, T-06, T-07]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .harness/harness.json

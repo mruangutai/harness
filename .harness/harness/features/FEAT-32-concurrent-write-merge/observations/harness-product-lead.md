@@ -36,3 +36,18 @@
   `.gitignore:7` says `.harness/*/features/*/runs/**`. The snippet is missing the `<repo>` segment
   the multi-repo migration (FEAT-21/22) introduced, so a freshly installed project does not ignore
   its own run dirs. Report as info, route to backlog.
+- 2026-08-22: The dispatch chain handed me the ONLY-try/except declaration as
+  `harness_yaml.py:4` "(its D-02)". The line is real; the identifier is **D-12**. A grep of that one
+  line settled it in one call. Lesson repeat of P-02: the pointer survived being opened, the gloss
+  attached to it did not — and a wrong D-number would have been copied into an operator-facing doc.
+- 2026-08-22: SC-11 reads "There is one implementation" in its FIRST CLAUSE and then scopes itself
+  entirely to lock and atomic-replace primitives (`BRIEF.md:321-327`: each consumer "obtain their
+  lock and perform their atomic replace by calling the shared core, and none of them contains a lock
+  or replace primitive of its own"). A YAML-loader duplication does not touch it. The headline
+  sentence of an SC can be far broader than the assertion underneath it — grade against the
+  assertion, and when the two diverge that gap is itself reportable as "passes while reading false".
+- 2026-08-22: T-03's intent (`plan.yaml:604-605`) justifies "import it plainly" by citing DEC-171
+  am.1, which is about PyYAML being a REQUIRED rather than optional dependency. P-12 applies
+  directly: the rationale is about availability, and it was being read as a constraint on loader
+  semantics. Checking what a justification is ABOUT reframed the whole covered-vs-signature call
+  before a spawn was spent on it.

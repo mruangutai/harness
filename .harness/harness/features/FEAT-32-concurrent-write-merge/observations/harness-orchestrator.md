@@ -373,3 +373,13 @@
   red proof that reports "the suite failed" is worth nothing without the import check plus the failure
   COUNT; a mutant that dies on import fails 18/18 or 0/18 and both are indistinguishable from a pass/
   fail at the exit code. The signature of a good mutant is a SMALL, NAMED subset failing.
+- 2026-08-22 (ship): I ALMOST DECLARED A HEALTHY RUN HUNG, off a broken command. Waiting on an eng
+  segment I ran `find <dirs> -newermt '-25 minutes' -type f -exec ls -1t {} +` to see recent writes; it
+  printed nothing, and I read that as "no output for 25 minutes, possibly stuck". Then I ran `stat -f
+  "%Sm %N"` on three specific files: the lead's `state.yaml` had been written **7 seconds** earlier.
+  BSD `find` on macOS did not honour that `-newermt`/`-exec` combination and failed silently to empty
+  output. This is my own `timeout`-is-not-on-macOS lesson in a new costume: a command that does not run
+  produces the same empty result as a clean one, and "nothing found" is the most dangerous output shape
+  there is. LESSON: to test liveness, `stat` a NAMED file and compare to `date` — never infer activity
+  from a filter returning empty. And never let a negative result from an unverified command reach a
+  conclusion about whether to abandon a run.
