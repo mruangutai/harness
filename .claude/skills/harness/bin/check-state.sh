@@ -610,15 +610,36 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
                        f"missing — the {prev} seam was crossed without a handoff; the "
                        f"successor is on the disk-only path (DEC-159).{_ex_detail}")
             continue
+    # INV-17 handoff shape pass, all stems (FEAT-31 T-14)
+    # ONE call site for the shape check, by STRUCTURE and not by an ordering rule: the loop
+    # above now owns only the missing-note question, and this glob owns only the shape
+    # question. Because the glob finds every note including the seam stems, no file can be
+    # reported twice — there is no second place that could report it.
+    #
+    # WHY A GLOB. check-domain.sh's RE_HANDOFF already accepts handoff-[a-z0-9-]+.md, so a
+    # mid-phase note is already legal to write and was, until now, never opened. Measured at
+    # cf51dce in the FEAT-31 worktree: 74 notes match, 71 on seam stems and THREE on
+    # non-seam stems newly in reach — FEAT-09/handoff-ship.md (56 lines),
+    # FEAT-22/handoff-t09-rotation.md (50), FEAT-24/handoff-ship.md (60, exactly on the cap
+    # with no headroom). All 74 carry the four headings and are within the cap, so this pass
+    # adds ZERO violations at that sha. The plan measured 69 at 7299669; the five-note gap
+    # reconciles exactly — FEAT-30's three notes plus FEAT-29's handoff-validate.md plus
+    # FEAT-31's own handoff-build.md all landed after that reading.
+    #
+    # EXEMPTIONS DO NOT REACH HERE, deliberately. HANDOFF_EXEMPT_LITERAL and
+    # _handoff_exempt gate the missing-note branch above only: they answer whether a note is
+    # OWED. Once a file exists its shape is checked whoever wrote it and whatever the
+    # feature's status.
+    for hp in sorted(glob.glob(os.path.join(os.path.dirname(fy), "notes", "handoff-*.md"))):
         hl = [l.strip().lower() for l in (read(hp) or "").splitlines()]
         miss = [h for h in HANDOFF_HEADINGS if h not in hl]
         if miss or len(hl) > 60:
             why = []
             if miss: why.append(f"missing section(s) {miss}")
             if len(hl) > 60: why.append(f"{len(hl)} lines vs cap 60")
-            bad.append(f"{feat}: notes/handoff-{prev}.md fails the shape ({'; '.join(why)}) "
-                       f"— a freeform handoff drifts like an unvalidated digest did "
-                       f"(DEC-159/160).")
+            bad.append(f"{feat}: notes/{os.path.basename(hp)} fails the shape "
+                       f"({'; '.join(why)}) — a freeform handoff drifts like an "
+                       f"unvalidated digest did (DEC-159/160).")
     if _ex_stems:
         # Reported, never silent: a wrongly granted exemption must be VISIBLE rather than
         # look like a pass. It goes through warn and its text must NOT carry the word that

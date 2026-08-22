@@ -1833,6 +1833,202 @@ def case_x():
     return allok
 
 
+
+# ---------------------------------------------------------------------------
+# FEAT-31 T-14 — INV-17's shape check reaches EVERY notes/handoff-*.md, not only
+# the stems SEAM_NOTES names.
+#
+# ON THE ASSERTION TEXT, and this is a deliberate divergence from the task wording.
+# The task says to assert "an INV-17 line". The shape message carries NO `INV-17`
+# token — check-state.sh:1366 prints it as `  VIOLATION  <feat>: notes/<file> fails
+# the shape (...)` — and the task ALSO says to report through the same bad.append
+# path with the SAME message shape. Adding the token to make the word "INV-17"
+# literally greppable would change the shape the task told me to preserve, so these
+# cases assert on the VIOLATION prefix, the basename and `fails the shape`, which is
+# the contract the verify block itself uses.
+# ---------------------------------------------------------------------------
+
+HANDOFF_GOOD = """# handoff — plan to build — FEAT-TEST
+
+## Next
+Do the thing.
+
+## Trust
+The measured figures.
+
+## Dead ends
+The one that did not work.
+
+## Working set
+one/file.py
+"""
+
+
+def _handoff_fixture(tmp, status, notes, feat="FEAT-TEST"):
+    """A minimal tree INV-17 will walk: harness.json, one feature.json carrying a
+    status in STATUS_ORDER, and whatever notes the case names.
+
+    `notes` maps a BASENAME to its full text. Nothing here reads the real repo and
+    nothing is written outside tmp."""
+    h = os.path.join(tmp, ".harness")
+    fdir = os.path.join(h, "harness", "features", feat)
+    os.makedirs(os.path.join(fdir, "notes"), exist_ok=True)
+    with open(os.path.join(h, "harness.json"), "w") as f:
+        f.write(HARNESS_JSON_SYNC_OFF)
+    with open(os.path.join(fdir, "feature.json"), "w") as f:
+        f.write(json.dumps({"status": status}))
+    for name, text in notes.items():
+        with open(os.path.join(fdir, "notes", name), "w") as f:
+            f.write(text)
+    return fdir
+
+
+def _shape_lines(out, needle):
+    """VIOLATION lines reporting a shape failure for `needle`. Counted, never
+    just detected — case (t14-f) turns on the count being exactly 1."""
+    return [l for l in out.splitlines()
+            if l.startswith("  VIOLATION") and "fails the shape" in l and needle in l]
+
+
+def case_t14_widening():
+    """THE WIDENING. A note whose stem is in no SEAM_NOTES list, missing one of the
+    four headings, is reported. Before T-14 the file was never opened at all, so
+    this case is the one that fails against the pre-task tree."""
+    with tempfile.TemporaryDirectory() as tmp:
+        bad_note = HANDOFF_GOOD.replace("## Dead ends\n", "## Not A Heading\n")
+        _handoff_fixture(tmp, "Plan", {"handoff-midphase.md": bad_note})
+        _, out = run(tmp)
+        hits = _shape_lines(out, "handoff-midphase.md")
+        ok = len(hits) == 1 and "## dead ends" in hits[0]
+        print(f"{'ok' if ok else 'FAIL'} - case (t14-d): a non-seam stem missing a heading "
+              f"is reported by name ({len(hits)} line(s))")
+        return ok
+
+
+def case_t14_cap():
+    """THE CAP REACHES IT TOO. Same non-seam stem, all four headings present, 61
+    lines. The cap and the heading test are one check with two clauses, and a fix
+    that wired only the headings into the new pass would pass (t14-d) and fail here."""
+    with tempfile.TemporaryDirectory() as tmp:
+        long_note = HANDOFF_GOOD + "\n".join(f"filler {i}" for i in range(1, 62))
+        _handoff_fixture(tmp, "Plan", {"handoff-midphase.md": long_note})
+        _, out = run(tmp)
+        hits = _shape_lines(out, "handoff-midphase.md")
+        ok = len(hits) == 1 and "cap 60" in hits[0]
+        n = len(long_note.splitlines())
+        print(f"{'ok' if ok else 'FAIL'} - case (t14-e): a non-seam stem over the cap is "
+              f"reported ({n} lines, {len(hits)} line(s))")
+        return ok
+
+
+def case_t14_no_double():
+    """NO DOUBLE REPORT, and this is the case the restructure exists to satisfy.
+    Status Building REQUIRES handoff-plan.md, and the file is present but malformed.
+    The seam loop and the glob pass both see it. EXACTLY ONE line, or the two passes
+    are reporting the same file twice."""
+    with tempfile.TemporaryDirectory() as tmp:
+        bad_note = HANDOFF_GOOD.replace("## Trust\n", "## Nope\n")
+        _handoff_fixture(tmp, "Building", {"handoff-plan.md": bad_note})
+        _, out = run(tmp)
+        hits = _shape_lines(out, "handoff-plan.md")
+        ok = len(hits) == 1
+        print(f"{'ok' if ok else 'FAIL'} - case (t14-f): a malformed seam-stem note is "
+              f"reported EXACTLY once, not twice (count {len(hits)})")
+        return ok
+
+
+def case_t14_exempt_shape():
+    """EXEMPTION DOES NOT SUPPRESS SHAPE. FEAT-01 is in HANDOFF_EXEMPT_LITERAL, so a
+    MISSING required note is suppressed — but a note that EXISTS is shape-checked
+    anyway. Both halves asserted in one fixture: status Done owes plan, build and
+    validate; only a malformed handoff-plan.md is present."""
+    with tempfile.TemporaryDirectory() as tmp:
+        bad_note = HANDOFF_GOOD.replace("## Working set\n", "## Elsewhere\n")
+        _handoff_fixture(tmp, "Done", {"handoff-plan.md": bad_note}, feat="FEAT-01-exempt")
+        _, out = run(tmp)
+        hits = _shape_lines(out, "handoff-plan.md")
+        missing = [l for l in out.splitlines()
+                   if l.startswith("  VIOLATION") and "is missing" in l and "handoff-" in l]
+        ok = len(hits) == 1 and len(missing) == 0
+        print(f"{'ok' if ok else 'FAIL'} - case (t14-g): a literal-exempt feature still has "
+              f"its EXISTING note shape-checked ({len(hits)} shape) while missing notes stay "
+              f"suppressed ({len(missing)} missing)")
+        return ok
+
+
+def case_t14_accepted():
+    """ACCEPTED. Three well-formed notes, two seam stems and one non-seam stem. Zero
+    shape lines. Without this the four cases above are satisfied by a pass that
+    reports every note unconditionally."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _handoff_fixture(tmp, "Review", {
+            "handoff-plan.md": HANDOFF_GOOD,
+            "handoff-build.md": HANDOFF_GOOD,
+            "handoff-t04-rotation.md": HANDOFF_GOOD,
+        })
+        _, out = run(tmp)
+        hits = _shape_lines(out, "handoff-")
+        ok = len(hits) == 0
+        print(f"{'ok' if ok else 'FAIL'} - case (t14-h): three well-formed notes, two seam "
+              f"stems and one non-seam, raise ZERO shape lines ({len(hits)})")
+        return ok
+
+
+T14_MARKER = "# INV-17 handoff shape pass, all stems (FEAT-31 T-14)"
+
+
+def case_t14_red():
+    """RED PROOF. An exit status is never the proof (D-08). Strip the whole new pass
+    from a copy, located by its marker comment, and compare COUNTS on case (t14-d)'s
+    fixture: original 1, mutant 0.
+
+    THE MUTANT LIVES BESIDE THE ORIGINAL, NOT IN THE FIXTURE, and that is not
+    tidiness. check-state.sh imports harness_yaml from its own directory, so a copy
+    placed in the tmpdir dies on import and exits non-zero — a code indistinguishable
+    from a real finding, which is a green-looking proof that measured nothing. FEAT-30
+    Q3 and the FEAT-31 behind-gate proof were both this trap."""
+    src = open(SCRIPT).read()
+    lines = src.splitlines(keepends=True)
+    start = next((i for i, l in enumerate(lines) if T14_MARKER in l), None)
+    if start is None:
+        print("FAIL - case (t14-red): marker comment not found, nothing was mutated")
+        return False
+    end = next((i for i in range(start, len(lines))
+                if lines[i].startswith("    if _ex_stems:")), None)
+    if end is None:
+        print("FAIL - case (t14-red): could not find the end of the pass")
+        return False
+    mutant_text = "".join(lines[:start] + lines[end:])
+    if mutant_text == src:
+        print("FAIL - case (t14-red): INCONCLUSIVE — the mutation did not change the source")
+        return False
+
+    mpath = os.path.join(os.path.dirname(os.path.realpath(SCRIPT)),
+                         ".mutant-check-state-t14.sh")
+    try:
+        with open(mpath, "w") as f:
+            f.write(mutant_text)
+        shutil.copymode(SCRIPT, mpath)
+        with tempfile.TemporaryDirectory() as tmp:
+            bad_note = HANDOFF_GOOD.replace("## Dead ends\n", "## Not A Heading\n")
+            _handoff_fixture(tmp, "Plan", {"handoff-midphase.md": bad_note})
+            env = dict(os.environ)
+            env["CLAUDE_PROJECT_DIR"] = tmp
+            real = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
+            mut = subprocess.run([mpath], cwd=tmp, capture_output=True, text=True, env=env)
+        n_real = len(_shape_lines(real.stdout, "handoff-midphase.md"))
+        n_mut = len(_shape_lines(mut.stdout, "handoff-midphase.md"))
+        if n_mut >= n_real:
+            print(f"FAIL - case (t14-red): INCONCLUSIVE — original {n_real}, mutant "
+                  f"{n_mut}; the mutant did not lose the finding")
+            return False
+        print(f"ok - case (t14-red): the pass is load-bearing — original reports {n_real}, "
+              f"mutant reports {n_mut}")
+        return True
+    finally:
+        if os.path.exists(mpath):
+            os.remove(mpath)
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -1861,6 +2057,16 @@ def main():
     ok_w = case_w()
     ok_x = case_x()
 
+    # FEAT-31 T-14 — INV-17's shape pass over every handoff stem.
+    ok_t14 = all([
+        case_t14_widening(),
+        case_t14_cap(),
+        case_t14_no_double(),
+        case_t14_exempt_shape(),
+        case_t14_accepted(),
+        case_t14_red(),
+    ])
+
     ok_exit_unchanged = code_a == code_b
     print(
         f"{'ok' if ok_exit_unchanged else 'FAIL'} - exit code unchanged by INV-21 "
@@ -1868,7 +2074,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
