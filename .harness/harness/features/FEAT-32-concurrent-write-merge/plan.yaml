@@ -371,7 +371,7 @@ tasks:
       inside DEC-174 amendment 4's enforcement-layer CATEGORY, even though the only file that changes
       is the note
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/harness/features/FEAT-32-concurrent-write-merge/notes/research-FEAT-32-hook-payloads.md
     verify: |
@@ -445,7 +445,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: []
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/harness_merge.py
       - .claude/skills/harness/bin/test-harness-merge.py
@@ -565,7 +565,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: [T-02]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/plan-merge.py
       - .claude/skills/harness/bin/test-plan-merge.py
@@ -744,7 +744,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: [T-02]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/observations-merge.py
       - .claude/skills/harness/bin/test-observations-merge.py
@@ -846,7 +846,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: [T-02]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/expertise-merge.py
       - .claude/skills/harness/bin/test-expertise-merge.py
@@ -1110,7 +1110,7 @@ tasks:
       DEC-174 amendment 4 puts the test file of each gate inside the carve-out, because a gate's test
       is the only thing proving the gate discriminates; dispatch-guard.sh has no test at c32f332
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-dispatch-guard.py
     verify: |
@@ -2120,7 +2120,7 @@ tasks:
       enforcement-layer scripts, so a change to it is main-session-direct even when the change is one
       comment
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/validate-digest.py
     verify: |

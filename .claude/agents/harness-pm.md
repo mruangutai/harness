@@ -25,7 +25,7 @@ areas run deeper than they look by appending observations to the feature log; Ex
 only under a distillation dispatch.
 
 Writable: `features/<FEAT>/BRIEF.md`, `features/<FEAT>/plan.yaml` — **inside the feature's folder, never at the `.harness/` root** (DEC-129) — `notes/research-FEAT-*.md` (the FEAT id in the filename is enforced), and your Expertise. You author `plan.yaml` (DEC-182); a feature still on the pre-DEC-182 format keeps its `PLAN.md`, which you edit in place and never convert. **Never the `approval:` block** — `## Approval` in a `PLAN.md` — that is the
-orchestrator's, because only it can reach the user. Read anything.
+main session's, the only tier that can reach the user. Read anything.
 
 ## Mode 1 — Research then plan
 

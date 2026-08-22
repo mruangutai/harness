@@ -2,7 +2,7 @@
   "feature_id": "FEAT-32-concurrent-write-merge",
   "branch": "feat/FEAT-32",
   "pr": null,
-  "status": "Plan",
+  "status": "Building",
   "review_sha": "none",
   "cycles_used": 0,
   "max_total_cycles": 10,
@@ -32,6 +32,55 @@
       "id": "2026-08-21-5-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "t13-count-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
     }
-  ]
+  ],
+  "github": {
+    "milestone": 21,
+    "parent": 700,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12",
+      "T-13",
+      "T-14",
+      "T-15",
+      "T-16",
+      "T-17"
+    ],
+    "issues": {
+      "T-01": 701,
+      "T-02": 702,
+      "T-03": 703,
+      "T-04": 704,
+      "T-05": 705,
+      "T-06": 706,
+      "T-07": 707,
+      "T-08": 708,
+      "T-09": 709,
+      "T-10": 710,
+      "T-11": 711,
+      "T-12": 712,
+      "T-13": 713,
+      "T-14": 714,
+      "T-15": 715,
+      "T-16": 716,
+      "T-17": 717
+    }
+  }
 }

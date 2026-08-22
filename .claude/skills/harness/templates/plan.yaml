@@ -22,8 +22,9 @@ schema: plan/1
 feature: FEAT-NN-<slug>          # must match the directory name
 
 approval:
-  # Written by the ORCHESTRATOR only — pm never self-approves, and the orchestrator
-  # cannot ask the user (DEC-120). Any change to the task set resets this to pending.
+  # Written by the MAIN SESSION only, because it is the only tier with a user channel
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
+  # agent's write of this mapping. Any change to the task set resets this to pending.
   status: pending                # pending | approved
   approved_by: <name>
   date: <YYYY-MM-DD>
