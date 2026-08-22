@@ -74,6 +74,11 @@
       "id": "build-eng",
       "squad": "eng",
       "verdict": "ESCALATE"
+    },
+    {
+      "id": "plan5-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
     }
   ]
 }
