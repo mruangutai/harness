@@ -50,6 +50,8 @@ DEFAULT_PROJECTS_ROOT = os.path.expanduser("~/.claude/projects")
 
 FEATURE_RE = re.compile(r"FEAT-[0-9]+")
 
+ORCHESTRATOR_AGENT_TYPE = "harness-orchestrator"
+
 # ---------------------------------------------------------------------------
 # T-06: the context-warn threshold, its config resolution, and headroom.
 # ---------------------------------------------------------------------------
@@ -298,7 +300,7 @@ def _build_row(agent_id, meta_path, subagents_dir):
     if not isinstance(meta, dict) or "agentType" not in meta:
         return _unmeasured_row(agent_id, meta_path)
 
-    if meta.get("agentType") != "harness-orchestrator":
+    if meta.get("agentType") != ORCHESTRATOR_AGENT_TYPE:
         return None
 
     jsonl_path = os.path.join(subagents_dir, "agent-%s.jsonl" % agent_id)
@@ -596,7 +598,7 @@ def _orchestrator_jsonl_paths(projects_root):
                         meta = json.loads(fh.read())
                 except (OSError, ValueError):
                     continue
-                if not isinstance(meta, dict) or meta.get("agentType") != "harness-orchestrator":
+                if not isinstance(meta, dict) or meta.get("agentType") != ORCHESTRATOR_AGENT_TYPE:
                     continue
                 paths.append(os.path.join(subagents_dir, "agent-%s.jsonl" % agent_id))
     return paths
