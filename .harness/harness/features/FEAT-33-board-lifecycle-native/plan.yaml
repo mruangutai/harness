@@ -7,7 +7,7 @@ approval:
   date: none
 
 lanes:
-  resolved_at: d065b3b
+  resolved_at: e3c9187
   rows:
     - surface: .claude/skills/harness/bin/**
       lane: team
@@ -23,10 +23,10 @@ lanes:
       agent: harness-documentor
     - surface: .claude/skills/harness-init/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at d065b3b; no agent domain grants it
+      reason: check-domain.sh --resolve returns NOBODY at e3c9187; no agent domain grants it
     - surface: /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at d065b3b; a served repo config on another remote
+      reason: check-domain.sh --resolve returns NOBODY at e3c9187; a served repo config on another remote
     - surface: .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-*.md
       lane: main-session-direct
       reason: resolves to harness-orchestrator, which is not a dispatchable task executor
@@ -76,6 +76,18 @@ decisions:
     choice: Every test that exercises a board path sets BOTH FACTORY_GH and GH_SYNC_GH to the same fake binary.
     because: gh_board.py's own docstring records that a fake injected through one variable alone leaves the other calls hitting the real board.
     dec: none
+  - id: D-12
+    choice: Every task whose change type requires the integration kind carries its integration cases in test-factory-integration.py, and NO task edits run-unit-tests.sh's INTEGRATION_SCRIPTS array or harness.json's test_kinds.integration.detect list.
+    because: integration.detect is tests/integration/** plus six explicit filenames and INTEGRATION_SCRIPTS is a matching 14-name array, so a new test-board-lifecycle.py can never be selected as integration; the qa gate refuses an unrelated passing test as coverage, so the three feature-typed tasks would FAIL the gate after being built. test-factory-integration.py is already in both lists, is by its own docstring the only file in the tree that forks a real process against a stub gh, and already answers _project_field_resolve's GraphQL query - so the gate is satisfied by a genuinely covering test with no edit to a runner array and no edit to the matrix, both of which have three concurrent writers.
+    dec: DEC-187
+  - id: D-13
+    choice: T-01's abandon path is a revert pull request on kaya-ai's master, opened by the operator, and it is stated in T-01 rather than discovered.
+    because: T-01 is an irreversible write into another repository landed first, so abandoning the feature after it merges leaves kaya-ai's master declaring six keys the shipped five-key validator rejects, with no revert lever inside the harness repo. D-06's ordering is kept; only the rollback was missing.
+    dec: none
+  - id: D-14
+    choice: Every build task verifies with run-unit-tests.sh --kind all, and no task verifies a single test script directly, even where one script would bind equally.
+    because: T-02 widens the station key set in three integration-kind files and six unit-kind ones, so any kind-scoped verify makes a cross-kind regression invisible to the task that caused it - measured as the second half of finding L1, where test-gh-sync.py and test-check-state.py go red invisibly to T-02 and surface inside T-07. The accepted cost is real and is named here rather than discovered later - the integration suite alone was measured at 153s against 73s for test-gh-sync.py alone, so --kind all exceeds the 60-second guideline for a verify command by minutes, per task, per red/green iteration. The single-script alternative was measured and DECLINED for two reasons beyond the cross-kind blindness - harness.json:121 declares test_kinds.integration.cmd as exactly run-unit-tests.sh --kind integration, so a per-script verify forks a second spelling of the same authority, and invoking a script directly skips the MISCONFIGURED drift detector at run-unit-tests.sh:41-55, which is the only thing that catches the unregistered new test file this plan adds.
+    dec: none
 
 tasks:
   - id: T-01
@@ -83,7 +95,7 @@ tasks:
     traces: [REQ-03]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for this path at d065b3b, and it is a config file on another repository's remote default branch
+    execution_reason: check-domain.sh --resolve returns NOBODY for this path at e3c9187, and it is a config file on another repository's remote default branch
     depends_on: []
     status: pending
     files:
@@ -122,6 +134,17 @@ tasks:
       run against kaya-ai, so the breakage is latent. Do not run a factory command against kaya-ai
       between this task and T-02.
 
+      THE ABANDON PATH, stated because this is the one irreversible cross-repository write in the
+      plan and it lands first (D-13). If this feature is abandoned after this task merges, kaya-ai's
+      master permanently declares six station keys that the SHIPPED five-key validator rejects, and
+      there is no revert lever inside the harness repository - factory_config.board_for reads
+      kaya-ai's config from its remote at default_branch, so nothing in the harness checkout can
+      undo it. The abandon path is therefore: open a revert pull request on
+      mruangutai/kaya-ai reverting this task's commit on master, and merge it. Record the merge
+      commit in this feature's notes/. Do not leave the six-key declaration standing against a
+      five-key validator, and do not close the abandonment until the same verify command below
+      fails, which is the proof the revert landed.
+
   - id: T-02
     title: Widen the required station key set to six and declare plan on the harness board
     traces: [REQ-03]
@@ -133,14 +156,31 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
+      - .claude/skills/harness/bin/test-gh-board.py
+      - .claude/skills/harness/bin/test-factory-land.py
+      - .claude/skills/harness/bin/test-factory-decompose.py
+      - .claude/skills/harness/bin/test-factory-claim.py
+      - .claude/skills/harness/bin/test-board-station.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+      - .claude/skills/harness/bin/test-check-state.py
+      - .claude/skills/harness/bin/test-factory-integration.py
       - .harness/harness.json
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.sh --kind all
     intent: |
-      Widen the one board validator in the tree from five required station keys to six, and declare
-      the sixth on the harness's own board, in ONE task because either edit alone breaks the other.
+      Widen the one board validator in the tree from five required station keys to six, declare the
+      sixth on the harness's own board, AND repair every five-key station fixture the widening
+      rejects - in ONE task, because each of the three alone reddens the other two.
 
-      In .claude/skills/harness/bin/factory_config.py, change _STATION_KEYS (line 41 at d065b3b)
+      READ THIS FIRST. validate_board tests EXACT set equality, so widening the required set turns
+      every five-key station map in the test suite into a rejection. There are nineteen such sites
+      in nine files. Eight of the nine files are NOT the validator's own test file, and two of them
+      are integration-kind, which is why this task's verify is --kind all and not --kind unit: under
+      --kind unit the failures in test-gh-sync.py, test-check-state.py and test-factory-integration.py
+      are invisible to you and surface later inside T-07 and T-08 as a regression that is not theirs.
+      Do NOT reach for the cheap green by loosening the comparison - D-05 forbids it explicitly.
+
+      In .claude/skills/harness/bin/factory_config.py, change _STATION_KEYS (line 41 at e3c9187)
       from ("backlog", "ready", "building", "review", "done") to
       ("backlog", "plan", "ready", "building", "review", "done").
 
@@ -162,16 +202,73 @@ tasks:
       card the operator promoted to Ready, whose meaning is documented in kaya-ai's own
       harness.json.
 
-      Do NOT touch .claude/skills/harness/bin/check-state.sh. Verified at d065b3b: INV-26 builds
-      _EXPECT from stations["building"], stations["done"] and stations["backlog"] only, so a sixth
-      key is inert there. Editing it is forbidden by the DEC-174 carve-out.
+      Do NOT touch .claude/skills/harness/bin/check-state.sh. Re-derived at e3c9187: INV-26 builds
+      _EXPECT at :1184-1185 from stations["building"], stations["done"] and stations["backlog"]
+      only, so a sixth key is inert there. Editing it is forbidden by the DEC-174 carve-out.
+
+      BUT PROVE THE INERTNESS, DO NOT ASSERT IT. This task moves INV-26's accept set: check-state.sh
+      calls gh_board.load_board(root) at :1147, which calls the validator you are widening. DEC-174
+      amendment 4 says a module a gate imports is not itself a gate, so this is team work - and it
+      names the evidence idiom that makes that safe. Use it: run
+      `.claude/skills/harness/bin/check-state.sh` BEFORE any edit and capture the full finding list,
+      run it again AFTER every edit in this task, and assert the two finding sets are IDENTICAL -
+      not merely that both exit 0, because a gate that gained and lost one finding also exits 0
+      twice. If any finding appears or disappears, STOP and report it: you have changed a gate's
+      behaviour from a library, which is the exact thing amendment 4 permits only with this proof.
+      Put both captures in your receipt. This also discharges the check-state.sh half of SC-10.
+
+      REPAIR THE FIXTURES. Every site below was re-derived at e3c9187 and declares a five-key
+      station map that this change rejects. Each must gain "plan" with the value the surrounding
+      fixture's convention gives it - "Plan" where the values are real column names, the fixture's
+      own distinctive scheme where they are not (Col-PL beside Col-BK, Other-Plan beside
+      Other-Backlog). Six of the nineteen sites are a centralised constant or factory and are one
+      edit each; the rest are inline literals.
+
+      Centralised, one edit each:
+      - test-factory-config.py:91  FIVE_STATIONS - rename it SIX_STATIONS and add "plan"; the
+        full_stations() helper at :94-97 derives from it and needs no change.
+      - test-factory-config.py:370-373  _EXPECTED_STATIONS, the independent oracle - add
+        "plan": "Col-PL".
+      - test-gh-board.py:66-69  FULL_STATIONS - add "plan": "Plan".
+      - test-gh-sync.py:287-288  FULL_STATIONS - add "plan": "Plan". THIS FILE IS
+        INTEGRATION-KIND.
+      - test-factory-integration.py:335-342  default_board() - add "plan": "Plan" to the stations
+        dict it builds. THIS FILE IS INTEGRATION-KIND.
+      - test-factory-claim.py:205-212  the board fixture's keyword-argument signature and the
+        stations dict at :209-210 - add a plan parameter and its key.
+
+      Inline literals, each its own edit:
+      - test-board-station.py:138, :183, :242, :257
+      - test-factory-land.py:57, :94, :107 (the third uses the Other-* value scheme)
+      - test-factory-decompose.py:196, :224, :237 (the third uses the Other-* value scheme)
+      - test-check-state.py:1333, :1616 (the second uses its own Icebox/Primed/WIP scheme, so give
+        plan a value in that scheme, not "Plan"). THIS FILE IS INTEGRATION-KIND.
+
+      RE-WORD, DO NOT ONLY RE-VALUE. Four prose sites assert "five" and INVERT with this change;
+      a fixture repaired with a stale label is a test that now documents the opposite of what it
+      checks: test-factory-config.py:101 (board_dict's docstring "A valid five-key board mapping"),
+      :365 (the section comment "the five-key stations map"), :381 (the accept-loop's check label
+      "validate_board accepts the five-key stations map"), and test-factory-claim.py:202-203 (the
+      docstring "The five-key stations map is D-06's required set ... requires all five").
+
+      TWO SITES THAT MUST NOT CHANGE, so nobody "fixes" a passing test:
+      - test-factory-config.py:427, del _b_stations_key_set_wrong["stations"]["done"] - this case
+        still REJECTS, because exact set equality rejects a five-key map. Only its surrounding
+        label may need re-wording.
+      - test-gh-board.py:146, full_board(stations={three keys}) with the label "load_board raises
+        naming the file and the key: stations key set wrong" - a three-key map was rejected before
+        and is rejected after. Leave it exactly as it is.
 
       In test-factory-config.py add three cases to the existing validate_board coverage:
       (a) a six-key map with all six non-empty values is ACCEPTED and returned;
       (b) the five-key map that .harness/harness.json carried before this change is REJECTED with
           a FleetError whose key is "github.board.stations";
-      (c) a seven-key map that adds "abandoned" is REJECTED - this is the guard that keeps
-          Abandoned off the board (D-03, SC-08).
+      (c) a seven-key map that adds "abandoned" is REJECTED. NOTE PRECISELY WHAT THIS DOES AND DOES
+          NOT PROVE: exact set equality rejects a seventh key whatever it is named, so this case
+          passes identically for a key called "banana" and is NOT the discriminating evidence for
+          SC-08. It is a regression guard on the key COUNT. SC-08's discriminating assertion is
+          T-04's "no argv the fake receives contains the string Abandoned". Do not relax that T-04
+          case in the belief that this one covers it.
       Also assert that the six keys in _STATION_KEYS are exactly the six lowercase forms of
       feature-schema.json's status enum minus "Abandoned", read from
       .claude/skills/harness/bin/feature-schema.json at runtime rather than restated as a literal,
@@ -188,14 +285,34 @@ tasks:
     files:
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/test-factory-gh.py
+      - .claude/skills/harness/bin/test-factory-integration.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.sh --kind all
     intent: |
-      Add the five read/write primitives board provisioning needs to factory_gh.py. Every one of
+      Add the six read/write primitives board provisioning needs to factory_gh.py. Every one of
       them goes through run_gh so the rate-limit and fake-binary handling already in that module
       applies unchanged, and every one raises GhError rather than returning a default - the
       existing discipline in project_item_stations and _project_field_resolve.
 
+      0. project_resolve(owner, number) -> dict with the project's node id and its title, or None
+         when the project genuinely does not exist. THIS PRIMITIVE EXISTS TO PREVENT A SPECIFIC
+         DISASTER, so read the reason before implementing it. _project_field_resolve (line 400,
+         re-derived at e3c9187) raises ONE GhError class for FOUR distinct conditions: project
+         owner not found (:435-438), organization-owned board not supported (:441-444), project
+         not found (:447-450), and project field not found (:452-457). They are separated only by a
+         human-readable message string. Worse, the field case DELIBERATELY collapses two shapes -
+         the comment at :452-454 records that `not field_obj` catches both None (the field name is
+         absent) and {} (the field exists but is NOT single-select), a prior D-04. A caller that
+         infers "there is no project" from a field-resolution failure will call project_create and
+         CREATE A DUPLICATE PROJECTS V2 BOARD ON THE OPERATOR'S ACCOUNT. project_resolve is the
+         discriminator that makes that inference unnecessary.
+         Implement it as query user(login:$o){projectV2(number:$n){id title}}. Return None - do NOT
+         raise - when projectV2 resolves null while the user resolves, because "this owner has no
+         project number N" is the normal provisioning case, not an error. Keep raising GhError when
+         the OWNER does not resolve, and keep raising GhError with the organization message when
+         __typename is not User; those are unusable inputs, not absent projects. Read __typename
+         before projectV2 for the same reason _project_field_resolve does at :441-444, so the
+         refusal never depends on the org's board existing.
       1. project_create(owner, title) -> dict with the project's node id and number. Resolves the
          owner's node id first (query user(login:$o){id}), then mutation createProjectV2 with
          input {ownerId, title}. Raise GhError naming the owner and title when
@@ -226,14 +343,32 @@ tasks:
          two different findings.
 
       project_field_options already exists at line 465 - reuse it to read an existing field's
-      options; do not add a second reader.
+      options; do not add a second reader. Do NOT change _project_field_resolve's four-conditions-
+      one-class behaviour: it is depended on elsewhere, and project_resolve is the fix.
 
-      In test-factory-gh.py cover each of the five against a fake gh binary, following the fake
+      In test-factory-gh.py cover each of the six against a fake gh binary, following the fake
       already used in that file. Assert on the argv and the GraphQL variables each function sends,
       not only on the parsed return - a mutation that sends the wrong variable name exits 0 with a
       null payload. Include a case where the owner resolves null and assert GhError. Include a
       case asserting project_single_select_extend sends every option it was given, in the order it
-      was given, so a future refactor that drops the leading existing options goes red.
+      was given, so a future refactor that drops the leading existing options goes red. For
+      project_resolve specifically: a case where the project is absent returns None and raises
+      nothing; a case where the owner is absent raises GhError; a case where __typename is
+      Organization raises GhError with the organization message and sends no mutation.
+
+      INTEGRATION COVERAGE, and why it goes in a file named for another tool. This task's
+      change_type is api, whose matrix row (harness.json:13-22) requires integration when the
+      change touches an external service - which adding GraphQL mutations plainly does. The qa gate
+      does not accept an unrelated passing test as coverage, and test-factory-gh.py is unit-kind, so
+      without this the gate reports the integration kind MISSING and FAILs after the work is built.
+      D-12 settles where it goes: add the cases to test-factory-integration.py, which is already in
+      both test_kinds.integration.detect and INTEGRATION_SCRIPTS, is by its own docstring the one
+      file in the tree that forks a real process, and at :225 already answers the GraphQL query
+      _project_field_resolve sends through the same stateful stub gh (env var GH_STATE). Extend that
+      stub's argv surface for the new mutations and add ONE forking case per write primitive
+      asserting the process exit status and the stub's recorded argv. Do NOT add
+      test-factory-integration.py to any list, do not edit run-unit-tests.sh, and do not edit
+      harness.json - all three are already correct for this and all three have other writers.
 
   - id: T-04
     title: board_lifecycle.py provision - create the board, the Status field and the missing options
@@ -246,10 +381,10 @@ tasks:
     files:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
+      - .claude/skills/harness/bin/test-factory-integration.py
       - .claude/skills/harness/bin/run-unit-tests.sh
-      - .harness/harness.json
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.sh --kind all
     intent: |
       Create the new bin board_lifecycle.py with its first subcommand. The file will grow two more
       subcommands in T-05 and T-06, so structure it now as
@@ -257,7 +392,11 @@ tasks:
 
       Board resolution, one code path for both repositories and nothing else:
       - no --repo, or --repo naming harness.json's github.repo: read the board from
-        gh_board.load_board(root).
+        gh_board.load_board(root), where root comes from factory_config.harness_root() - the
+        established helper for exactly this, at factory_config.py:44, already reused by
+        factory_claim.py:37,45, feature-worktree.py:66-67,75 and gh_cost_log.py:37,111. Do NOT
+        hand-roll a fourth walk-up; board-station.py:94-100 already made a third for a different
+        purpose and that is the drift this instruction exists to prevent.
       - --repo naming a fleet member: read it from factory_config.board_for(fleet, repo). That
         function reads the repository's own .harness/harness.json FROM THE REMOTE at its
         default_branch and never from a checkout - so this tool needs no checkout of a served
@@ -267,23 +406,50 @@ tasks:
       provision does exactly this, in order, and is idempotent:
       1. Resolve the board declaration. If it is an explicit null, print one line and exit 0 -
          a project's own declaration that it has no board is not a misconfiguration.
-      2. Try to read the project's Status field options with factory_gh.project_field_options for
-         board["owner"], board["number"], board["station_field"]. If the project itself does not
-         resolve, call factory_gh.project_create(board["owner"], "<repo name>") and
-         factory_gh.project_link_repository, then report the NEW project number and STOP with
-         exit 3 and one line: the declared board["number"] no longer matches, and the operator
-         must record the new number in that repository's harness.json. Do not edit any harness.json
-         from this tool - a tool that rewrites the declaration it was validating cannot be trusted
-         to have validated it.
-      3. If the project resolves but has no field named board["station_field"], call
-         project_single_select_create with ALL SIX declared station values, in the declared key
-         order backlog, plan, ready, building, review, done.
-      4. If the field exists, compute the set difference: declared values not present among the
-         field's option names, compared BYTE FOR BYTE and case sensitively (DEC-192). If the
-         difference is empty, print "nothing to do" and exit 0 without any mutation. Otherwise
-         call project_single_select_extend with the FULL list - every existing option first, in
-         its existing order, then the additions. updateProjectV2Field REPLACES the option set, so
-         omitting an existing option deletes a column.
+      2. Ask whether the PROJECT exists, with factory_gh.project_resolve(board["owner"],
+         board["number"]) - the primitive T-03 adds for this step. NEVER infer the project's
+         absence from a field-resolution failure. _project_field_resolve raises one GhError class
+         for four conditions and deliberately collapses "field absent" with "field is not
+         single-select" (factory_gh.py:452-457), so a broad `except GhError` here would call
+         project_create on a board that already exists and CREATE A DUPLICATE PROJECTS V2 BOARD ON
+         THE OPERATOR'S ACCOUNT, then exit 3 telling them to record the number of the duplicate.
+         There is no code path in this tool that may call project_create on any outcome other than
+         project_resolve returning None.
+         When project_resolve returns None: call factory_gh.project_create(board["owner"],
+         "<repo name>") and factory_gh.project_link_repository, then report the NEW project number
+         and STOP with exit 3 and one line - the declared board["number"] no longer matches, and
+         the operator must record the new number in that repository's harness.json. Do not edit any
+         harness.json from this tool: a tool that rewrites the declaration it was validating cannot
+         be trusted to have validated it.
+         When project_resolve RAISES (the owner does not resolve, or the board is organization-
+         owned): exit 2 with the message, and perform ZERO mutations.
+      3. The project exists. Read its Status field options with factory_gh.project_field_options for
+         board["owner"], board["number"], board["station_field"], and discriminate the two shapes
+         its GhError collapses rather than treating them as one:
+         - the field NAME is absent -> call project_single_select_create with ALL SIX declared
+           station values, in the declared key order backlog, plan, ready, building, review, done.
+         - the field exists but is NOT single-select -> EXIT 2 REFUSING, with one line naming the
+           field and its actual data type. Perform no mutation. Do not call createProjectV2Field
+           for a name that already exists, and do not attempt to convert the field: a Status field
+           the operator made a text field is a decision only they can reverse.
+         Since factory_gh raises the same class for both, discriminate by reading the project's
+         field list rather than by matching a message substring - a message substring is not a
+         contract and the wrong branch here is destructive. If the field list cannot distinguish
+         them, exit 2 rather than guessing.
+      4. If the field exists and is single-select, compute the missing options with the ONE shared
+         helper described below, and act on its result. If the difference is empty, print "nothing
+         to do" and exit 0 without any mutation. Otherwise call project_single_select_extend with
+         the FULL list - every existing option first, in its existing order, then the additions.
+         updateProjectV2Field REPLACES the option set, so omitting an existing option deletes a
+         column.
+
+         THE SHARED HELPER, and it is shared on purpose. Define exactly one private function in
+         this module - name it _missing_options(declared_stations, board_option_names) -> list of
+         the declared values absent from the board, compared BYTE FOR BYTE and case sensitively
+         (DEC-192), preserving declared key order. Call it from here. T-05's DECLARATION finding
+         class performs the identical comparison and MUST call this same helper rather than
+         re-authoring the diff, because D-05 makes the exactness load-bearing and two independent
+         implementations means a later loosening has two sites and no invariant tying them.
       5. NEVER rename, reorder or delete an existing option, and never write an option the
          declaration does not name. There must be no code path that can produce an option named
          "Abandoned" (D-03).
@@ -291,11 +457,16 @@ tasks:
          declaration error, 3 on the new-project case in step 2.
 
       Register the new test file: add "test-board-lifecycle.py" to UNIT_SCRIPTS in
-      run-unit-tests.sh, and add .claude/skills/harness/bin/test-board-lifecycle.py to
-      test_kinds.unit.detect in .harness/harness.json only if the existing
-      ".claude/skills/harness/bin/test-*.py" glob there does not already match it - it does, so
-      expect no harness.json change for detect. Rebase on whatever FEAT-31 lands in
-      run-unit-tests.sh; that file has another writer.
+      run-unit-tests.sh. This ONE LINE is mandatory, not optional: the drift detector at
+      run-unit-tests.sh:41-55 runs over the UNION of both arrays for EVERY kind, so an unregistered
+      test-*.py exits 2 with "MISCONFIGURED", which reads like a test failure and breaks every
+      verify in this plan at once. Change nothing else in that file - do NOT add anything to
+      INTEGRATION_SCRIPTS (D-12). Re-derived at e3c9187: that file is byte-identical to main's copy
+      at d065b3b, so FEAT-31 has landed nothing in it yet; rebase on whatever it lands before you
+      write the line, and if the arrays have moved, add only the one UNIT_SCRIPTS entry.
+      Do NOT touch .harness/harness.json in this task. The test_kinds.unit.detect glob
+      ".claude/skills/harness/bin/test-*.py" at harness.json:105 already matches the new file, so
+      there is nothing to add, and the file has three concurrent writers.
 
       Tests in test-board-lifecycle.py, all against a fake gh with BOTH FACTORY_GH and GH_SYNC_GH
       pointing at it (D-11): the no-project path creates and exits 3; the no-field path creates the
@@ -304,7 +475,28 @@ tasks:
       the fake recorded no mutation call, not merely that the exit code was 0; a second consecutive
       run performs zero mutations; an explicit null board exits 0 silently; an unknown --repo exits
       2. Add one case asserting that for a declaration whose values are all present, no argv the
-      fake receives contains the string "Abandoned".
+      fake receives contains the string "Abandoned" - THIS is SC-08's discriminating assertion, not
+      T-02's seven-key rejection case, which passes for a seventh key of any name. Do not relax it.
+
+      TWO CASES THAT GUARD THE DUPLICATE-BOARD DISASTER, and they are the point of this task's
+      tests: (i) the project EXISTS but the field is absent - assert factory_gh.project_create was
+      NOT called, by asserting no argv the fake receives contains "createProjectV2"; (ii) the field
+      exists and is NOT single-select - assert exit 2 and ZERO mutations of any kind reached the
+      fake. Both must be shown to fail against an implementation that catches GhError broadly.
+
+      INTEGRATION COVERAGE (D-12). change_type: feature requires unit AND integration
+      (harness.json:40-49). test-board-lifecycle.py can never be selected as integration:
+      test_kinds.integration.detect (harness.json:119) is tests/integration/** plus six explicit
+      filenames, and the qa gate refuses an unrelated passing test as coverage - so without this the
+      gate reports integration MISSING and FAILs after three tasks are built. Add ONE forking
+      end-to-end case for provision to test-factory-integration.py, which is already in
+      integration.detect and in INTEGRATION_SCRIPTS and is by its own docstring the only file that
+      forks a real process against a stateful stub gh (env var GH_STATE, and CLAUDE_PROJECT_DIR as
+      the root-redirect seam that makes harness_root() resolve under the temp root). The case runs
+      `subprocess.run([sys.executable, board_lifecycle.py, "provision"])` against a complete board
+      and asserts exit 0 and zero mutations - that is the shape that catches an __main__ block that
+      forgets to dispatch or a module that raises at import, which no in-process test can see. Add
+      no file to any list and do not edit run-unit-tests.sh's INTEGRATION_SCRIPTS or harness.json.
 
   - id: T-05
     title: board_lifecycle.py audit - the finite finding list, including workflow state
@@ -318,8 +510,9 @@ tasks:
     files:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
+      - .claude/skills/harness/bin/test-factory-integration.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.sh --kind all
     intent: |
       Add the audit subcommand to board_lifecycle.py, reusing the board resolution T-04 built.
       audit performs NO writes. It prints one line per finding and a count, exits 0 with zero
@@ -328,6 +521,10 @@ tasks:
       The five finding classes, and the set is closed:
       1. DECLARATION: a declared station key whose value is not among the board's Status field
          option names, compared byte for byte. Report the key, the value and the board number.
+         CALL T-04's _missing_options HELPER; do not re-author the comparison. This is the identical
+         byte-for-byte, case-sensitive diff provision performs, D-05 makes that exactness
+         load-bearing, and two implementations means a later loosening has two sites and no
+         invariant tying them together.
       2. STATION: a CLOSED issue of the repository that is on the board and is not at the declared
          done station. Report the issue number, the station it reads, and the station expected.
          Read stations with gh_board.board_stations, which is the targeted cost-1 query and already
@@ -349,8 +546,11 @@ tasks:
       Fetch issue state, state_reason and labels in as few calls as the existing helpers allow:
       one `gh issue list --repo <repo> --state closed --json number,stateReason,labels --limit
       1000` for classes 3 and 4, one board_stations call for class 2, one project_field_options
-      call for class 1, one project_workflows call for class 5. Five network calls per audit, and
-      state that count in the module docstring so a later reader can see the cost.
+      call for class 1, one project_workflows call for class 5. That is FOUR network calls per
+      audit, one per line of that enumeration - state FOUR in the module docstring, and if your
+      implementation makes a fifth call, name it in the docstring rather than adjusting the count to
+      match a number nobody counted. The docstring is the one place a later reader is told to trust
+      for this figure.
 
       Failure posture: this is a control-plane tool, not the mirror, so it exits non-zero rather
       than printing SKIP - DEC-186's stated inverse of gh-sync's posture. A GhError propagates as
@@ -363,19 +563,29 @@ tasks:
       clean board returning exit 0 with zero findings; a renamed workflow reported MISSING; a
       disabled workflow reported disabled; a GhError producing exit 4 with no findings printed.
 
+      INTEGRATION COVERAGE (D-12). change_type: feature requires unit AND integration, and
+      test-board-lifecycle.py can never be selected as integration - see T-04's note for the full
+      reason. Add ONE forking case to test-factory-integration.py: run
+      `subprocess.run([sys.executable, board_lifecycle.py, "audit"])` against a fixture carrying
+      one finding, and assert the process exit status is 1 and the finding's text appears on stdout.
+      The discriminating value of the forking form is the EXIT STATUS - an in-process test catching
+      SystemExit cannot prove the process actually returns 1 to a shell, and T-11's verify depends
+      entirely on that. Add no file to any list; do not edit run-unit-tests.sh or harness.json.
+
   - id: T-06
     title: board_lifecycle.py reconcile - move the drifted cards and set the missing reasons
     traces: [REQ-07]
     change_type: feature
     execution_mode: team
     execution_agent: harness-dev-ops
-    depends_on: [T-05]
+    depends_on: [T-05, T-08]
     status: pending
     files:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
+      - .claude/skills/harness/bin/test-factory-integration.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+      .claude/skills/harness/bin/run-unit-tests.sh --kind all
     intent: |
       Add the reconcile subcommand to board_lifecycle.py. It runs audit's detection and then fixes
       exactly the three finding classes a write can fix, leaving the other two to a human.
@@ -387,8 +597,20 @@ tasks:
       - REASON findings: PATCH repos/<repo>/issues/<n> with state=closed and
         state_reason=completed. Only for issues with no abandoned label and no not_planned reason;
         a null reason on an issue carrying the abandoned label is set to not_planned instead.
-      - LABEL findings: add the label "abandoned" to the issue, creating the label first through
-        the same helper T-09 adds it to.
+      - LABEL findings: add the label with
+        `gh issue edit <n> --repo <repo> --add-label abandoned`, creating the label first by
+        shelling out DIRECTLY: `gh label create abandoned --repo <repo> --color b60205
+        --description "created by harness gh-sync"`, swallowing the error the way gh-sync.py's own
+        ensure_labels does, because "label already exists" is the common case.
+        DO NOT import a helper for this and do NOT call factory_gh.ensure_labels. Two measured
+        reasons. First, gh-sync.py is HYPHENATED, so it is not an importable module name and
+        board_lifecycle.py cannot reach the ensure_labels T-08 edits at gh-sync.py:520-531 at all.
+        Second, the only importable one, factory_gh.ensure_labels (factory_gh.py:186-195), passes
+        --force with a single _LABEL_COLOR = "5319e7" (:30), so calling it would repaint abandoned
+        harness-purple over T-08's b60205 on EVERY run - which is precisely the
+        three-implementations collision D-04 records as accepted-and-not-fixed, arriving here as a
+        live defect. The literal b60205 must match the value T-08 adds to gh-sync.py's colours map;
+        T-08 is in this task's depends_on so that value is authored before you copy it.
 
       What it does NOT fix, and says so per finding: DECLARATION findings (the declaration is a
       file a human signs, and provision is the subcommand that changes a board) and WORKFLOW
@@ -399,18 +621,42 @@ tasks:
       cards on the operator's live tracker and nothing undoes that; a default that writes is a
       default that surprises.
 
-      After applying, re-run the audit detection in the same process and print the residual finding
-      count. Exit 0 only when the residual count is zero; exit 1 with the residual findings
-      otherwise. A reconcile that fixed nine of ten must not report success.
+      After applying, re-run the audit detection in the same process and print EVERY residual
+      finding and the total count.
+
+      THE EXIT CODE COUNTS ONLY THE CLASSES RECONCILE CAN FIX. Exit 0 when no STATION, REASON or
+      LABEL finding survives; exit 1 with the residual list otherwise. DECLARATION and WORKFLOW
+      residuals are printed in full and are NOT counted toward the exit code. The reason is a
+      design fault this ordering removes: reconcile admits no write can enable a workflow, so if
+      WORKFLOW counted, reconcile could never exit 0 on a board with one disabled workflow, and
+      T-11 and T-12 - which require exit 0 - would be permanently gated by the one class that is
+      unfixable by definition. If GitHub ever renames a default workflow, every board would report
+      three MISSING forever with no override. audit keeps BOTH classes in its own exit code, so
+      SC-09's honesty and REQ-06's finite list are untouched; only the FIXER's success measure
+      narrows to what fixing means. Print a one-line summary distinguishing the two totals, so a
+      zero exit never reads as "the board is perfect": "0 fixable findings remain; N findings
+      require a human (see above)". A reconcile that fixed nine of ten fixable findings must still
+      exit 1.
 
       Tests against a fake gh with BOTH FACTORY_GH and GH_SYNC_GH set (D-11): --dry-run performs
       zero mutations - assert the fake recorded none; --apply fixes one of each fixable class and
       the assertions name the specific argv sent; a DECLARATION finding and a WORKFLOW finding
-      survive --apply and appear in the residual list; a residual finding produces exit 1; a fully
-      reconciled fixture produces exit 0. Add one case where the first station write raises
-      BoardError and assert the run continues to the remaining cards and still reports the failure
-      as a residual finding - a bulk fix that stops at the first error leaves the board half
-      migrated with a zero exit.
+      survive --apply, appear in the residual list AND still produce exit 0, because neither counts
+      toward the exit code; a surviving STATION finding produces exit 1; a fully reconciled fixture
+      produces exit 0. Add one case where the first station write raises BoardError and assert the
+      run continues to the remaining cards and still reports the failure as a residual STATION
+      finding with exit 1 - a bulk fix that stops at the first error leaves the board half migrated
+      with a zero exit.
+
+      INTEGRATION COVERAGE (D-12). change_type: feature requires unit AND integration, and
+      test-board-lifecycle.py can never be selected as integration - see T-04's note for the full
+      reason. Add ONE forking case to test-factory-integration.py: run
+      `subprocess.run([sys.executable, board_lifecycle.py, "reconcile"])` with NO flags against a
+      fixture carrying one fixable finding, and assert exit 0 and ZERO mutations reached the stub
+      gh. That case is the boundary evidence for the default: --dry-run is the default and --apply
+      is required, and only a forked process can prove that argv parsing actually behaves that way
+      before this tool is pointed at the operator's live tracker. Add no file to any list; do not
+      edit run-unit-tests.sh or harness.json.
 
   - id: T-07
     title: Guard start-task against driving a closed card backwards
@@ -418,16 +664,16 @@ tasks:
     change_type: bugfix
     execution_mode: team
     execution_agent: harness-dev-ops
-    depends_on: []
+    depends_on: [T-02]
     status: pending
     absorbs: ["#674"]
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.sh --kind all
     intent: |
-      cmd_start_task in gh-sync.py guards only `if tid not in rec["issues"]` (line 621 at d065b3b)
+      cmd_start_task in gh-sync.py guards only `if tid not in rec["issues"]` (line 621 at e3c9187)
       and never checks whether the issue is closed or where its card already sits. Measured
       timeline on #642: closed 01:37:47, github-project-automation[bot] set Done at 01:37:48, the
       harness set Building at 02:34:21. #643 is identical. This is the cause of every board error
@@ -442,6 +688,17 @@ tasks:
       WITHOUT calling set_station and WITHOUT calling _apply_parent_rule - the parent rule would
       write a Building parent for a task the guard just refused.
 
+      WHILE YOU ARE IN THIS FUNCTION, de-hardcode the station it writes. gh-sync.py:626 calls
+      gh_board.set_station(board, repo, issue_num, "Building") with a case-sensitive LITERAL, and
+      :627 prints the same literal. Change both to board["stations"]["building"]. gh_board's
+      derive_station was de-hardcoded for exactly this reason (gh_board.py:88-95, FEAT-24 T-04) but
+      this direct path was missed, so REQ-03 - every station the harness can write is declared - is
+      contradicted in the one file this task already opens. This is also the ONLY place in the plan
+      where declaring stations buys start-task anything: without it, T-02's sixth key is pure parity
+      and this call site would still break on a board whose Building column is spelled differently.
+      Add an assertion that the argv reaching the fake carries the DECLARED value, using a fixture
+      whose building station is NOT the string "Building", so a re-hardcoding goes red.
+
       Reuse the single board_stations result for the guard; do not add a second board read. State
       the added cost in the function docstring: start-task now performs one board read and one
       issue read before its writes, where before it performed none. That read is squarely inside
@@ -452,6 +709,13 @@ tasks:
       A gh or network failure during either read must also not gate: catch it, print one line, and
       fall through to the ORIGINAL behaviour rather than refusing - a guard that cannot see the
       board must not silently stop moving cards.
+
+      WHY THIS TASK'S VERIFY IS --kind all AND NOT --kind integration. change_type: bugfix makes
+      test_matrix.bugfix.always ["unit"] mandatory (harness.json:52-59), so a verify that runs only
+      the integration suite never runs the kind this task's own change type requires. And T-02
+      widens the station key set in three integration-kind files and six unit-kind ones, so a
+      unit-only or integration-only run here cannot tell an in-scope regression from T-02's fixture
+      work. T-02 is in this task's depends_on for the same reason.
 
       Tests in the existing test-gh-sync.py, with BOTH FACTORY_GH and GH_SYNC_GH pointed at the
       fake (D-11). Replay #642's exact shape first and assert it goes RED against the pre-change
@@ -466,13 +730,13 @@ tasks:
     change_type: bugfix
     execution_mode: team
     execution_agent: harness-dev-ops
-    depends_on: []
+    depends_on: [T-02, T-07]
     status: pending
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
     verify: |
-      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+      .claude/skills/harness/bin/run-unit-tests.sh --kind all
     intent: |
       Make every close the harness performs carry an explicit state_reason, and make an abandoned
       ticket visible on the board without opening a field.
@@ -502,6 +766,13 @@ tasks:
          ensure_labels - three implementations stay three (D-04). Add a one-line comment recording
          that factory_gh.ensure_labels uses --force and would overwrite this colour, so a later
          reader finds the collision named rather than rediscovering it.
+
+      WHY THIS TASK'S VERIFY IS --kind all AND NOT --kind integration. change_type: bugfix makes
+      test_matrix.bugfix.always ["unit"] mandatory (harness.json:52-59), so a verify that runs only
+      the integration suite never runs the kind this task's own change type requires. And T-02
+      widens the station key set in three integration-kind files and six unit-kind ones, so a
+      unit-only or integration-only run here cannot tell an in-scope regression from T-02's fixture
+      work. T-02 is in this task's depends_on for the same reason.
 
       Tests in the existing test-gh-sync.py with BOTH FACTORY_GH and GH_SYNC_GH set (D-11). Each
       assertion must fail against the pre-change code: assert close-task's argv contains
@@ -570,17 +841,28 @@ tasks:
     traces: [REQ-01, REQ-02]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at d065b3b
+    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at e3c9187
     depends_on: [T-04, T-05]
     status: pending
     files:
       - .claude/skills/harness-init/SKILL.md
     verify: |
-      grep -c "board_lifecycle.py provision" .claude/skills/harness-init/SKILL.md | grep -qx 1 && grep -q "board_lifecycle.py audit" .claude/skills/harness-init/SKILL.md && grep -q "only a click" .claude/skills/harness-init/SKILL.md && echo OK
+      grep -q "board_lifecycle.py provision" .claude/skills/harness-init/SKILL.md && grep -q "board_lifecycle.py audit" .claude/skills/harness-init/SKILL.md && grep -qi "only a click" .claude/skills/harness-init/SKILL.md && echo OK
     intent: |
-      Add a board step to the onboarding skill, placed after step 7 where github.sync and
-      github.repo are pinned - the board declaration cannot be provisioned before the repository
-      is known.
+      Add a board step to the onboarding skill, placed immediately after the section headed
+      "### GitHub Issues mirror - ask ONCE, here, so it is never forgotten (DEC-138)" and before
+      "### 8. Design pass - UI projects only". ANCHOR ON THAT SECTION BY NAME, NOT ON A STEP
+      NUMBER. Re-derived at e3c9187: github.sync and github.repo are pinned inside that mirror
+      section at SKILL.md:200-210, which sits AFTER "### 7. The approval gate" (:174) and after the
+      unnumbered "### Map the codebase" section (:189) - so placing the board step "after step 7"
+      would put it before its own stated precondition, which is that the repository is known.
+
+      NOTE ON THIS TASK'S VERIFY, so you do not write to satisfy a grep. The three greps are
+      presence checks only, deliberately loose: plain grep -q (not a count) because a natural write
+      names the provision command in prose and again in a command block, and grep -qi for "only a
+      click" because step 3 below tells you to write "Only a click", which a case-sensitive grep
+      would miss. Neither grep grades whether the prose is CORRECT. The content is graded by a human
+      reading the section.
 
       The step must instruct the session to:
       1. Run `python3 .claude/skills/harness/bin/board_lifecycle.py provision` for the project
@@ -588,6 +870,12 @@ tasks:
          declaration is unusable and names the key, 3 a NEW project was created and its number
          must be recorded in that project's harness.json github.board.number before anything else
          runs.
+         State one sentence naming the limit, because this step is the door for ANY repository and
+         both existing ones happen to be user-owned so nothing else would surface it: provisioning
+         works only for a USER-OWNED board. factory_gh.py:441-444 refuses an organization-owned one
+         with "organization-owned board not supported", and every primitive queries
+         user(login:). An organization-owned project must be created and configured by hand, and
+         provision will exit 2 saying so rather than doing something partial.
       2. Run `python3 .claude/skills/harness/bin/board_lifecycle.py audit` and show the operator
          the WORKFLOW findings verbatim.
       3. State plainly, in the skill's own voice, that the three workflows - Item closed,
@@ -620,7 +908,7 @@ tasks:
     files:
       - .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-harness.md
     verify: |
-      python3 .claude/skills/harness/bin/board_lifecycle.py audit && grep -q "0 findings" .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-harness.md && echo OK
+      python3 .claude/skills/harness/bin/board_lifecycle.py audit && test -z "$(git diff --name-only $(git merge-base main HEAD)..HEAD -- .claude/skills/harness/bin/check-state.sh .claude/skills/harness/bin/check-domain.sh .claude/skills/harness/bin/bash-write-guard.sh .claude/skills/harness/bin/validate-digest.py .claude/skills/harness/bin/check-plan-routes.py)" && .claude/skills/harness/bin/check-state.sh && grep -q "0 findings" .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-harness.md && echo OK
     intent: |
       Bring the harness project - board 3, mruangutai/harness - to a zero-finding state, and leave
       the evidence on disk.
@@ -641,6 +929,21 @@ tasks:
          the one asymmetry measured 2026-08-22 that the audit does not flag because it is not one
          of the three required workflows: board 3 has "Pull request linked to issue" DISABLED while
          board 2 has it enabled. Name it as an observation for the operator, not as a finding.
+
+      7. THIS TASK OWNS SC-10's NEGATIVE CLAUSE, which no other task instruments. SC-10 asserts
+         that nothing already guarded was weakened AND that no edit reached check-state.sh,
+         check-domain.sh, bash-write-guard.sh, validate-digest.py or check-plan-routes.py. A
+         negative assertion nobody runs passes vacuously, so the verify above runs it: a
+         `git diff --name-only <merge-base>..HEAD` over exactly those five paths must be EMPTY, and
+         `check-state.sh` must exit 0 on this checkout. If the diff is non-empty, the DEC-174
+         carve-out was violated and this task STOPS - it does not revert someone else's work.
+         SC-10's suite half is carried by every build task's `--kind all` verify (T-02 through
+         T-08); do not re-run the full suite here, it takes minutes and adds nothing.
+
+      WHAT THE GREP IS AND IS NOT. `grep -q "0 findings"` reads a report this same session writes,
+      so it is satisfied by typing the string and is NOT evidence. The real gate in this verify is
+      `board_lifecycle.py audit` exiting 0 against the live board. The grep exists only to prove the
+      report was written at all. Do not write "0 findings" unless step 5 actually returned it.
 
       Do not run this against kaya-ai - that is T-12.
 

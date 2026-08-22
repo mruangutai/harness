@@ -20,3 +20,24 @@
   owner and must be `main-session-direct`. `check-plan-routes.py` reports that as an advisory
   DEVIATION, not a violation — exit 0. Worth knowing that a DEVIATION line is the expected output for
   a correctly-declared orchestrator-owned path, not a defect to chase.
+- 2026-08-22 (fix cycle): two readers reported the SAME T-02 fixture blast radius (arch M1, simplify
+  L1) with PARTLY DIFFERENT file lists — arch missed `test-factory-land.py` and
+  `test-factory-decompose.py`, simplify missed `test-factory-integration.py`. Either list alone leaves
+  T-02 red on files it does not name. Take the union whenever two readers report one defect.
+- 2026-08-22: the finding said three `feature` tasks under-cover `integration`. The discriminating
+  check neither reader ran was in the gate's own rule — `harness-qa-gate/SKILL.md:60`, *"Presence is
+  not satisfied by an unrelated existing test"* — which turns under-coverage into a hard FAIL. Reading
+  it reframed the remedy away from retyping `change_type` and toward the one file already in both
+  `integration.detect` and `INTEGRATION_SCRIPTS` (`test-factory-integration.py`, whose docstring says
+  it is the only file that forks a real process).
+- 2026-08-22: the same defect existed in T-03 (`change_type: api`, whose `when` fires `integration` on
+  `touches_db_or_external`) and NEITHER digest flagged it. Applying a finding's remedy to only the
+  tasks the finding names leaves the rest standing.
+- 2026-08-22: FEAT-29 T-03 shipped `change_type: feature` with a unit-only verify and the identical
+  coverage hole. Precedent said fine; the gate's text said FAIL. Precedent is not bedrock.
+- 2026-08-22: the sha pin looked stale (`d065b3b` vs HEAD `e3c9187`) but
+  `git diff --name-only d065b3b..HEAD` returned only this feature's own artifacts, so every code
+  anchor was still valid. Re-pin AND state the equivalence; a bare re-pin loses the finding that
+  nothing drifted.
+- 2026-08-22: added a decision whose plain-scalar `because:` contained `": "` and broke `safe_load`.
+  Validate after every `decisions:` edit, not once at the end.

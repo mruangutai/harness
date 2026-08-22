@@ -94,8 +94,30 @@ ground, then kaya-ai board 2.
 
 ## Verification gaps
 
-- `component`, `ui`, `eval` and `typecheck` all carry `cmd: null` in `.harness/harness.json`
-  `test_kinds`. This feature touches none of those surfaces, so no criterion rests on them.
+- **FIVE test kinds carry `cmd: null` in `.harness/harness.json` `test_kinds`, and they split into two
+  different mechanisms.** `functional` (`:113`) is `status: excluded` with a signed DEC-187 and its own
+  `excluded_because` — that is the *only* soft skip this config allows. `component` (`:127`), `ui`
+  (`:134`), `eval` (`:141`) and `typecheck` (`:148`) are `status: unresolved`, and `harness.json:102`
+  states in terms that a null cmd is **BLOCKED in the qa gate, never a skip**. No criterion here rests
+  on any of the five. The reason is **not** that this feature touches none of those surfaces — that is
+  not the matrix's test. The reason is that none of the five is **selected** by this feature's change
+  types: `config` and `docs` are `always: []`; `logic`, `api` and `bugfix` require `unit`; `feature`
+  requires `unit` and `integration`; the one conditional kind that could reach `ui` is gated on
+  `has_interaction_flow`, which is false here. Re-derived at `e3c9187`.
+- **The `integration` kind is active but its `detect` is a closed filename list, and that dictated where
+  the new tests go.** `test_kinds.integration.detect` (`harness.json:119`) is `tests/integration/**`
+  plus six explicit filenames, and `run-unit-tests.sh:18` `INTEGRATION_SCRIPTS` is a matching 14-name
+  array — re-derived at `e3c9187`, and byte-identical to `main` at `d065b3b`, so FEAT-31 has landed
+  nothing here. A new `test-board-lifecycle.py` therefore can **never** be selected as
+  `integration`, and the qa gate does not accept an unrelated passing test as coverage
+  (`harness-qa-gate` SKILL.md: *"Presence is not satisfied by an unrelated existing test"*). Every
+  task whose change type requires `integration` therefore carries its end-to-end cases in
+  **`test-factory-integration.py`** — already in both lists, and already the tree's only file that
+  forks a real process against a stub `gh` (D-12). No edit to the runner's kind arrays and no edit to
+  the matrix is planned to close this. What is therefore NOT proven: nothing — but the integration
+  evidence for the new bin lives in a file named for a different tool, so a later reader looking for
+  `test-board-lifecycle.py` in `INTEGRATION_SCRIPTS` will not find it, by design.
+
 - **No runner can reach a live GitHub board.** Every automated criterion above proves *logic* against a
   fake `gh` binary injected through BOTH `FACTORY_GH` and `GH_SYNC_GH` (the fake-binary trap documented
   at the top of `gh_board.py` — a fake set through one variable alone leaves the other calls hitting the
@@ -202,6 +224,18 @@ uses `--force` and would overwrite the colour, and that collision is recorded he
   `factory_gh.project_field_set` already performs to resolve a name to an option id, so nothing here
   widens that bound. Reading a project's `workflows` for the init-time report is a **configuration**
   read, not a control-flow read, and writes nothing into any approval-gated artifact.
+
+  > **UNRESOLVED — THE OPERATOR'S RULING IS OUTSTANDING.** The architecture review rejects the
+  > paragraph above. DEC-186 (`DECISIONS.md:5528-5533`) bounds GitHub read-back to *"exactly THREE
+  > purposes, and the set is closed"*, and am.1 (`:5600-5603`) states it *"neither widens nor narrows
+  > it"*; the precedent for the third purpose was an explicit operator ruling recorded as a widening by
+  > one item. Re-categorising a fourth read as *configuration* is not that. **The operator must choose
+  > one of two branches: amend DEC-186 to widen the set to four, bounded to `/harness-init`; or drop
+  > REQ-02.** Neither branch is pre-applied here, because applying the wrong one costs a cycle. The
+  > surfaces that rest on the unresolved question, left EXACTLY as drafted: **REQ-02**, **T-03's fifth
+  > primitive `project_workflows`**, **T-05's finding class 5 (WORKFLOW)**, **T-10** and **SC-12**.
+  > The `project_field_options` read is unaffected — resolving an option name to an option id *is*
+  > DEC-186's second purpose.
 - **DEC-138** — the mirror is write-only, orchestrator-executed, and **never a gate**. So `gh-sync.py`,
   `board-station.py` and the new board tool are all ordinary dispatchable code.
 - **DEC-146** — the station flip stays best-effort by design. Nothing here converts a board failure into
@@ -221,7 +255,8 @@ uses `--force` and would overwrite the colour, and that collision is recorded he
 - **DEC-174 + am.1 + am.4 — the enforcement-layer carve-out.** The harness plans but does not execute
   changes to its own hooks, validators or gate scripts, and the list is non-exhaustive. This feature is
   designed to need **no** edit to any of them: `check-state.sh`'s INV-26 indexes only the `building`,
-  `done` and `backlog` station keys, so a sixth key is inert there — verified at `d065b3b`. Worth
+  `done` and `backlog` station keys (`check-state.sh:1184-1185`, `_EXPECT`), so a sixth key is inert
+  there — re-derived at `e3c9187`. Worth
   recording: `check-domain.sh --resolve` grants `check-state.sh` to `harness-dev-ops` while DEC-174
   forbids dispatching a change to it. The carve-out wins; this plan avoids the disagreement by not
   editing the file.
@@ -239,10 +274,20 @@ uses `--force` and would overwrite the colour, and that collision is recorded he
   so the window closes in the direction of correctness. This is the one place the plan departs from
   "harness first"; the harness-first ordering the operator set governs the **migration**, which is
   unchanged.
-- **Concurrency.** FEAT-31, FEAT-26 and FEAT-32 are live. `run-unit-tests.sh`, `check-state.sh`,
-  `check-domain.sh`, `harness.json` and `DECISIONS.md` all have other writers. This plan touches
-  `run-unit-tests.sh`, `harness.json` and `DECISIONS.md` at build time and must be rebased against
-  whatever those features land.
+- **Concurrency, re-derived rather than assumed.** FEAT-31, FEAT-26 and FEAT-32 are live.
+  `run-unit-tests.sh`, `check-state.sh`, `check-domain.sh`, `harness.json` and `DECISIONS.md` all have
+  other writers. **Measured at this feature's HEAD `e3c9187`:** `git diff --name-only d065b3b..e3c9187`
+  returns only files under `features/FEAT-33-board-lifecycle-native/`, so *none* of those features has
+  landed anything on any surface this plan reads, and `d065b3b` is still `main`'s tip. Every code
+  anchor in `plan.yaml` is therefore re-pinned to `e3c9187` and unchanged in content. What this plan
+  still touches with another writer, and must rebase against: **one line of `run-unit-tests.sh`**
+  (registering `test-board-lifecycle.py` in `UNIT_SCRIPTS`, which the drift detector at `:41-55` makes
+  mandatory — an unregistered `test-*.py` exits 2 `MISCONFIGURED` and breaks every `verify:` in this
+  plan at once), `DECISIONS.md`, and `harness.json` — but `harness.json` is now touched by **T-02
+  alone**, and only to add `"plan": "Plan"` under `github.board.stations`. T-04 no longer lists it: the
+  `test_kinds.unit.detect` glob `.claude/skills/harness/bin/test-*.py` already matches the new test file
+  (`harness.json:105`), so the `detect` entry T-04 was going to consider adding is redundant, and a
+  listed-but-unwritten path in a three-writer file only invites a gratuitous edit.
 
 ## Approval
 

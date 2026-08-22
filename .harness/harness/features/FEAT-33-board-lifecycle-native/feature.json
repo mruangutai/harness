@@ -10,6 +10,7 @@
   "runs": [
     { "id": "2026-08-22-01-product", "squad": "product", "verdict": "PASS" },
     { "id": "simplify-eng", "squad": "eng", "verdict": "FAIL" },
-    { "id": "arch-eng", "squad": "eng", "verdict": "ESCALATE" }
+    { "id": "arch-eng", "squad": "eng", "verdict": "ESCALATE" },
+    { "id": "2026-08-22-02-product", "squad": "product", "verdict": "PASS" }
   ]
 }
