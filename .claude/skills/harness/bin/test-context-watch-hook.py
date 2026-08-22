@@ -107,6 +107,20 @@ def case_1_crosses():
               r.stderr.strip()[:160])
         check("case 1: the text names the remedy (handoff)", "handoff" in r.stderr,
               r.stderr.strip()[:160])
+        # fix3-c1: PostToolUse fires AFTER the write already landed, and the wrapper
+        # labels this exit 2 a "blocking error" regardless of what the text says. The
+        # reassurance -- the write already landed, no retry or undo needed -- must be
+        # the FIRST thing an orchestrator reads on THIS channel (stderr), ahead of the
+        # context figure, or the framing still reads as a failure at the point it
+        # actually reaches the agent.
+        REASSURANCE_PREFIX_C1 = "context-watch: this write already landed on disk"
+        check("case 1: stderr OPENS with the reassurance, on the real stderr channel",
+              r.stderr.startswith(REASSURANCE_PREFIX_C1),
+              r.stderr.strip()[:160])
+        check("case 1: the reassurance precedes the CURRENT figure on stderr",
+              REASSURANCE_PREFIX_C1 in r.stderr and "696,472" in r.stderr
+              and r.stderr.index(REASSURANCE_PREFIX_C1) < r.stderr.index("696,472"),
+              r.stderr.strip()[:160])
         # THE CHANNEL IS STDERR. If the text ever appears on stdout the hook is talking to
         # the transcript instead of the agent, which looks identical in a passing test that
         # only greps `r.stdout + r.stderr`.
@@ -177,8 +191,14 @@ def case_4_red():
     try:
         real = fire(env_r, hook_r, payload_for())
         mut = fire(env_m, hook_m, payload_for())
-        n_real = len([l for l in real.stderr.splitlines() if "context-watch: WARNING" in l])
-        n_mut = len([l for l in mut.stderr.splitlines() if "context-watch: WARNING" in l])
+        # fix3-c1 re-anchors this to "context-watch:" rather than the formerly-contiguous
+        # "context-watch: WARNING" -- the reassurance clause the review required now sits
+        # between the two, so the old literal substring no longer matches the REAL text
+        # either, which would have made this a false INCONCLUSIVE, not a weaker check: the
+        # mutant still produces ZERO stderr lines at all (fail-open -> None -> no output),
+        # so "context-watch:" alone still discriminates 1 real line from 0 mutant lines.
+        n_real = len([l for l in real.stderr.splitlines() if "context-watch:" in l])
+        n_mut = len([l for l in mut.stderr.splitlines() if "context-watch:" in l])
         print(f"     red proof: original warning lines {n_real}, mutant {n_mut} "
               f"(exit {real.returncode} vs {mut.returncode})")
         check("case 4 RED: the threshold comparison is load-bearing",

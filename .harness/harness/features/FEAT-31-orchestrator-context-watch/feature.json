@@ -3,8 +3,8 @@
   "branch": "feat/FEAT-31-orchestrator-context-watch",
   "pr": null,
   "status": "Review",
-  "review_sha": "ed62d7429d1f3e3f9321fd21885393d2ce8fd525",
-  "cycles_used": 5,
+  "review_sha": "fcb8984f2bc2db1277ee6a3fc657fcbb0592826e",
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "github": {
@@ -132,6 +132,24 @@
     },
     {
       "id": "simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "goalcheck-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "panel-validator",
+      "squad": "validation",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "fix3-eng",
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-eng-lead"

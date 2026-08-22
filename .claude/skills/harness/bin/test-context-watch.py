@@ -577,6 +577,50 @@ def main():
             "out_h=%r" % (out_h,),
         )
 
+        # H12-H15 — fix3-c1 (review FAIL): PostToolUse fires AFTER the write already
+        # landed. A warning that leads with the context figure reads as a refusal to an
+        # agent that just watched its own Write succeed, and the measured failure mode is
+        # exactly that: 36/36 crossing transcripts made a further Write/Edit/Bash call,
+        # and the observed reaction to an unqualified "blocking error" was to UNDO a
+        # landed write (notes/settled-Q-HOOKCTX.md). The reassurance -- the write already
+        # landed, nothing to retry or undo -- must be the FIRST thing in the text, ahead
+        # of any number, without using blocked/stopped/refused/prevented (forbidden by
+        # T-16's own intent and by test H5/H11 above -- this file's job is to prove the
+        # reassurance exists WITHOUT weakening that existing negative assertion).
+        REASSURANCE_PREFIX_HI = "context-watch: this write already landed on disk"
+        check(
+            "H12: the text OPENS with the reassurance -- the write already landed",
+            text_h is not None and text_h.startswith(REASSURANCE_PREFIX_HI),
+            "text_h=%r" % (text_h,),
+        )
+        check(
+            "H13: the reassurance precedes the CURRENT figure, not merely co-occurs with it",
+            text_h is not None
+            and REASSURANCE_PREFIX_HI in text_h
+            and "250,000" in text_h
+            and text_h.index(REASSURANCE_PREFIX_HI) < text_h.index("250,000"),
+            "text_h=%r" % (text_h,),
+        )
+        check(
+            "H14: the reassurance states no retry or undo is needed, without the word revert",
+            text_h is not None
+            and ("retry" in text_h.lower())
+            and ("undo" in text_h.lower()),
+            "text_h=%r" % (text_h,),
+        )
+        check(
+            "H15: --warn-for stdout OPENS with the same reassurance (the hook's real channel)",
+            out_h.startswith(REASSURANCE_PREFIX_HI),
+            "out_h=%r" % (out_h,),
+        )
+        check(
+            "H16: --warn-for stdout's reassurance precedes its CURRENT figure",
+            REASSURANCE_PREFIX_HI in out_h
+            and "250,000" in out_h
+            and out_h.index(REASSURANCE_PREFIX_HI) < out_h.index("250,000"),
+            "out_h=%r" % (out_h,),
+        )
+
         # CASE I — the SAME fixture transcript, only the config differs.
         text_i = cw.warn_for_agent(
             root_h, session_id_h, agent_id_h, cwd_h, config_path=config_notcross_h

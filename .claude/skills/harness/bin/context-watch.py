@@ -534,7 +534,8 @@ def warn_for_agent(projects_root, session_id, agent_id, cwd, config_path=None):
             return None
 
         return (
-            "context-watch: WARNING agent=%s current=%s at or above threshold=%s "
+            "context-watch: this write already landed on disk -- do not retry it and "
+            "do not undo it. WARNING agent=%s current=%s at or above threshold=%s "
             "-- this advises only; the orchestrator decides. DEC-159's seam rule "
             "applies: end this phase at the boundary and write "
             "notes/handoff-<stem>.md with its four required sections "
