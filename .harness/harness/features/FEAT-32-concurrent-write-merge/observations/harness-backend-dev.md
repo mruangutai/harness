@@ -64,3 +64,22 @@
   ACTUALLY pins before assuming a wrapper function can reproduce the old text verbatim through a
   shared helper with its own fixed format; when it can't, keep the old docstring on a thin wrapper
   (preserves the documented WHY) and accept the shared helper's own runtime phrasing.
+- 2026-08-22 (T-06): a case's stale-claim fixture must hardcode the TTL as a plain literal
+  (`ASSUMED_TTL_SECONDS = 3600`) rather than read the module's own `CLAIM_TTL_SECONDS` to build
+  "now minus TTL minus one" — reading the module's live constant makes the fixture tautological
+  and unable to diverge when that exact constant is the mutation target (P-05: an oracle built
+  from the thing under test can't disagree with it). Caught this before writing the fixture,
+  from the dispatch's own worked-example reddened-case list matching what a self-referential
+  version would NOT have produced.
+- 2026-08-22 (T-06): a locked_update-backed module needs its own directory to exist before the
+  first write — `harness_merge.locked_update` opens `path + ".lock"` via `os.open(..., O_CREAT)`,
+  which raises FileNotFoundError if the parent directory (here `.harness/`) is missing. A registry
+  nested one level under the checkout root needs an explicit `os.makedirs(..., exist_ok=True)`
+  ahead of the `locked_update` call — the shared core has no reason to create directories on your
+  behalf, since it doesn't know your path convention.
+- 2026-08-22 (T-06): my first draft of case 7's "informational" residual-shape line reported a
+  hardcoded `0` instead of an actual measurement — caught before returning by rereading my own
+  receipt draft and noticing I was about to assert a number I hadn't watched happen. Fixed to
+  detect the real signal (a subprocess exiting non-zero with no result file written, meaning an
+  uncaught `MergeRefusal` actually propagated) so the reported count is load-bearing, not
+  decorative. A number attached to "informational" is not exempt from being checked.

@@ -940,7 +940,7 @@ tasks:
     execution_agent: harness-backend-dev
     execution_reason: none
     depends_on: [T-01, T-02]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/inflight_registry.py
       - .claude/skills/harness/bin/test-inflight-registry.py
@@ -1368,7 +1368,7 @@ tasks:
     execution_agent: harness-dev-ops
     execution_reason: none
     depends_on: [T-02, T-03, T-04, T-06, T-07]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .harness/harness.json
