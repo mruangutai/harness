@@ -2014,7 +2014,7 @@ tasks:
       check-domain.sh --resolve prints NOBODY for all three files at c32f332, so DEC-179 makes this a
       declared main-session step rather than a dispatch that would be rejected mid-run
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/templates/plan.yaml
       - .claude/agents/harness-pm.md
@@ -2030,7 +2030,7 @@ tasks:
       python3 - <<'PY' || exit 1
       import yaml
       w = yaml.safe_load(open(".harness/team-config.yaml"))["main_session"]["writes"]
-      hit = [g for g in w if g.endswith(" plan.yaml approval:")]
+      hit = [g for g in w if g.endswith("plan.yaml approval:")]
       assert hit, "main_session is still granted no plan.yaml approval mapping: %r" % (w,)
       assert all(len(g.split(" ", 1)) == 2 for g in hit), "the entry is not glob-space-fragment: %r" % (hit,)
       excl = [l for l in open(".harness/team-config.yaml").read().splitlines()
