@@ -383,3 +383,33 @@
   there is. LESSON: to test liveness, `stat` a NAMED file and compare to `date` — never infer activity
   from a filter returning empty. And never let a negative result from an unverified command reach a
   conclusion about whether to abandon a run.
+- 2026-08-22 (ship, the highest-value thing I did all phase): I RE-RAN EVERY TASK'S OWN `verify:` MYSELF
+  and audited every red proof, rather than routing on the lead's digest. It cost ~8 tool calls across six
+  tasks and it is what let me state SC-11 and SC-14 as MET with evidence instead of relaying a claim. Two
+  things only that produced: (1) a mid-flight verify I took at 12:54 was SUPERSEDED when its test file
+  changed at 12:55:16 — so I learned to compare the newest deliverable mtime against my run time before
+  claiming a verify result is current; (2) the lead reported T-05's mutant reddening "1 of 38" where the
+  true count is 2. Neither changed a verdict, and both would have travelled upward as facts.
+- 2026-08-22 (ship): AN APPROVED PLAN CAN CONTAIN A FALSE MEASUREMENT, and ratifying the deviation is the
+  orchestrator's call, not the lead's and not the operator's. T-10's intent ordered SEVEN paths appended
+  on the stated ground that two were ABSENT; they were already PRESENT, because the decision's own fix
+  landed after the plan's observation sha. The lead appended five and asked me to ratify. I verified all
+  seven present with count 1 each — appending the two would have DUPLICATED them in a file the intent
+  said to change in no other way. LESSON: when a plan states a measurement as the REASON for an
+  instruction, the instruction's authority expires with the measurement. Re-measure before obeying, and
+  ratify the deviation explicitly in the commit message so the plan's false sentence is on the record
+  rather than silently overridden.
+- 2026-08-22 (ship): DO NOT FREEZE A MOVING NUMBER INTO AN AUTHORITY FILE THAT NOTHING RE-CHECKS. The
+  #551 occurrence count went 7 (signed) then 8 (measured by pm) then arguably 9 and 10, because the
+  defect fired twice more DURING the build of its own fix. My recommendation to the operator was wording
+  — "eight measured as of <sha>, and the mechanism fired again during this feature's own build" — rather
+  than an integer. There is no propagation checker (DEC-188), so a bare number in DECISIONS.md is a
+  statement that will be false soon and detected by nobody. Prefer a claim that stays true as the count
+  moves.
+- 2026-08-22 (ship): I NAMED AN OUTPUT PATH OUTSIDE THE PERSONA'S GRANT and the guard denied it. I told
+  product-lead to have pm write `notes/operator-request-FEAT-32.md`; pm's grant is `notes/research-*.md`,
+  so it filed `notes/research-FEAT-32-operator-request.md` instead — correctly refusing to route around
+  the hook. `harness-handoff` states this outright: a dispatch naming a path for a persona does not
+  override that persona's own path, and the guard will deny it (#216). LESSON: before naming an artifact
+  path in a dispatch, check the receiving persona's grant — or better, name the CONTENT and let the
+  persona choose the path it owns.
