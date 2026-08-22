@@ -1,4 +1,4 @@
-# Handoff — FEAT-33-board-lifecycle-native, plan → build — written at d065b3b, seq-1
+# Handoff — FEAT-33-board-lifecycle-native, plan → build — written at df348c6, seq-2
 
 ## Next
 
@@ -8,46 +8,47 @@ confirm the kaya-ai-first ordering exception (departing from the harness-first c
 for that one task) or choose to loosen `factory_config.validate_board`. That choice changes
 which tasks are dispatchable under DEC-174, so it must settle before T-01 is routed.
 Once `BRIEF.md ## Approval` and `plan.yaml approval.status` both read `approved`, dispatch
-the `build` team to harness-eng-lead with the plan's dependency order, honouring each task's
-`execution_mode` — main-session-direct tasks are not dispatchable.
+the `build` team to harness-eng-lead in the plan's dependency order, honouring each task's
+`execution_mode`: 8 are `team`, 4 are `main-session-direct` and NOT dispatchable.
 
 ## Trust
 
+- Both boards are ALREADY native-correct, so this feature's GitHub-side work is new-repo
+  provisioning plus migration, not repair. Board 3 (Harness) and board 2 (kaya-ai) each carry
+  exactly six Status options (Backlog, Plan, Ready, Building, Review, Done) and both have
+  `Item closed`, `Auto-close issue` and `Pull request merged` ENABLED — live GraphQL query I
+  ran myself, both boards — verified-at df348c6
+- `Pull request linked to issue` is DISABLED on board 3 and ENABLED on board 2. Not one of the
+  three the harness depends on — same query — verified-at df348c6
 - `factory_config.py:41` declares `_STATION_KEYS` as a FIVE-tuple and `:134` tests genuine
-  exact set equality (`set(stations.keys()) != set(_STATION_KEYS)`) plus an all-non-empty
-  check — read directly — verified-at d065b3b
-- `factory_config.py:253` `product_config` reads a served repo's `.harness/harness.json`
-  from the REMOTE at `default_branch` via `factory_gh.file_at_ref`, never from a checkout,
-  even when one exists at workspace_path (`:255-257`) — read directly — verified-at d065b3b
-- `feature-schema.json:32` carries a SEVEN-value `status` enum including `Abandoned`,
-  documented there as the one value with no board column — read directly — verified-at d065b3b
-- DEC-192 asserts six values and carries NO amendment marker in DECISIONS-INDEX.md:210;
-  `SPEC.md:1866` and `:1868` repeat the false claim — read directly — verified-at d065b3b
-- `check-state.sh:123` pushes an unapproved BRIEF to `bad` (exit 1) while `:139`/`:154` push
-  the identical plan-pending state to `warn` — so a plan phase awaiting signature exits 1 by
-  construction — read directly — verified-at d065b3b
-- `run-unit-tests.sh` has no `--check-kinds` mode; positional `KIND` at line 29 — read
-  directly — verified-at d065b3b
-- The dual fake-binary trap is real: `gh_board.py:9-10` states this module reads `FACTORY_GH`
-  while `gh-sync.py` reads `GH_SYNC_GH`, so a fake injected through one alone leaves the
-  other's calls hitting the real board — read directly — verified-at d065b3b
-- BRIEF.md and plan.yaml both read `pending`; plan.yaml `safe_load`s clean with 12 tasks —
-  verified by python3 yaml.safe_load — verified-at d065b3b
-- pm's premise that both boards already carry all six Status options with the three required
-  workflows enabled rests on a live GitHub query I did not repeat — UNVERIFIED
+  exact set equality plus an all-non-empty check — read directly — verified-at df348c6
+- `factory_config.py:253` `product_config` reads a served repo's `.harness/harness.json` from
+  the REMOTE at `default_branch` via `factory_gh.file_at_ref`, never a checkout (`:255-257`) —
+  read directly — verified-at df348c6
+- `feature-schema.json:32` carries a SEVEN-value `status` enum including `Abandoned`; DEC-192
+  asserts six and carries no amendment marker (DECISIONS-INDEX.md:210); `SPEC.md:1866` and
+  `:1868` repeat the false claim — read directly — verified-at df348c6
+- `check-state.sh:123` sends an unapproved BRIEF to `bad` (exit 1) while `:139`/`:154` send the
+  identical plan-pending state to `warn`, so a plan phase awaiting signature exits 1 by
+  construction — read directly — verified-at df348c6
+- FIVE `test_kinds` carry `cmd: null` — `functional` as well as component, ui, eval, typecheck.
+  BRIEF's verification-gaps names only four — read directly — verified-at df348c6
+- `test_matrix` DOES key `config` and `docs`, both `always: []`, and `validate-digest.py:71`
+  confirms the mapping is deliberate — so the 5 tasks of those types needing no tests is
+  designed, not a gap — read directly — verified-at df348c6
+- The dual fake-binary trap is real: `gh_board.py:9-10` — read directly — verified-at df348c6
 
 ## Dead ends
 
 - Adding an all-pending→`Plan` derivation branch: it would fire on every mirror call and
   overwrite a card promoted to `Ready`, a new backwards-move bug of the #674 class —
-  pm's analysis in notes/research-board-lifecycle.md — verified-at d065b3b
-- Adding an `Abandoned` Status option to any board: DEC-192 refused a seventh column and
-  the disk schema already carries a column-less `Abandoned` — DECISIONS.md:5890-5892 plus
-  feature-schema.json:32 — verified-at d065b3b
-- Orchestrator-side mid-run course correction: this seat holds no SendMessage and no wait
-  primitive, so every attempted correction becomes a competing sibling spawn. Two were
-  created this phase; both wrote nothing. Put everything material in the dispatch — this
-  session's own failure — verified-at d065b3b
+  notes/research-board-lifecycle.md — verified-at df348c6
+- Adding an `Abandoned` Status option to any board: DEC-192 refused a seventh column and the
+  disk schema already carries a column-less `Abandoned` — DECISIONS.md:5890-5892 plus
+  feature-schema.json:32 — verified-at df348c6
+- Orchestrator mid-run course correction: this seat holds no SendMessage and no wait primitive,
+  so every attempt becomes a competing sibling spawn. Two were created this phase; both wrote
+  nothing. Put everything material in the dispatch — this session's own failure — verified-at df348c6
 
 ## Working set
 

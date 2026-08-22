@@ -4,10 +4,12 @@
   "pr": null,
   "status": "Plan",
   "review_sha": "none",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
-    { "id": "2026-08-22-01-product", "squad": "product", "verdict": "PASS" }
+    { "id": "2026-08-22-01-product", "squad": "product", "verdict": "PASS" },
+    { "id": "simplify-eng", "squad": "eng", "verdict": "FAIL" },
+    { "id": "arch-eng", "squad": "eng", "verdict": "ESCALATE" }
   ]
 }
