@@ -633,10 +633,39 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
     for hp in sorted(glob.glob(os.path.join(os.path.dirname(fy), "notes", "handoff-*.md"))):
         hl = [l.strip().lower() for l in (read(hp) or "").splitlines()]
         miss = [h for h in HANDOFF_HEADINGS if h not in hl]
-        if miss or len(hl) > 60:
+        # INV-17 empty-body check (FEAT-31 T-10)
+        # SC-15 requires the relay be SHOWN TO FAIL when "## Next" is emptied. Until now it
+        # could not be: `miss` tests only that the HEADING is present, so a note carrying all
+        # four headings and nothing under any of them passed. A heading with no body is the
+        # shape of a handoff that satisfies the gate and tells the successor nothing.
+        #
+        # A body runs from its heading to the next line whose stripped form starts with two
+        # hash characters, or end of file, and is EMPTY when every one of those lines is blank
+        # after stripping. Only headings actually PRESENT are examined — an absent heading is
+        # already `miss`'s finding and must not be reported twice under a second name.
+        #
+        # MIGRATION, re-measured at 1929774 in the FEAT-31 worktree rather than copied from
+        # the plan: 74 notes match, and ZERO have an empty required section. The three
+        # non-seam stems T-14's glob newly reaches carry 13, 6 and 8 non-blank lines under
+        # "## Next" (FEAT-09/handoff-ship.md, FEAT-22/handoff-t09-rotation.md,
+        # FEAT-24/handoff-ship.md) — the same figures the plan measured at 7299669. So this
+        # adds zero violations.
+        _empty = []
+        for _i, _l in enumerate(hl):
+            if _l not in HANDOFF_HEADINGS:
+                continue
+            _body = []
+            for _n in hl[_i + 1:]:
+                if _n.startswith("##"):
+                    break
+                _body.append(_n)
+            if not any(_b for _b in _body):
+                _empty.append(_l)
+        if miss or len(hl) > 60 or _empty:
             why = []
             if miss: why.append(f"missing section(s) {miss}")
             if len(hl) > 60: why.append(f"{len(hl)} lines vs cap 60")
+            if _empty: why.append(f"empty section(s) {_empty}")
             bad.append(f"{feat}: notes/{os.path.basename(hp)} fails the shape "
                        f"({'; '.join(why)}) — a freeform handoff drifts like an "
                        f"unvalidated digest did (DEC-159/160).")

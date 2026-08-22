@@ -2029,6 +2029,142 @@ def case_t14_red():
         if os.path.exists(mpath):
             os.remove(mpath)
 
+
+# ---------------------------------------------------------------------------
+# FEAT-31 T-10 — a required section with no BODY fails the shape. SC-15's
+# automatable half: until this check existed, a handoff carrying all four headings
+# and nothing under any of them passed the gate, so "the relay fails when ## Next is
+# emptied" could not be shown.
+#
+# Assertion text as in the T-14 block above: the message carries no INV-17 token, so
+# these cases assert the VIOLATION prefix, the basename and the named section.
+# ---------------------------------------------------------------------------
+
+T10_MARKER = "# INV-17 empty-body check (FEAT-31 T-10)"
+
+
+def _empty_section(text, heading):
+    """Return `text` with `heading`'s body blanked and the heading left in place.
+    The heading must SURVIVE — otherwise the note fails on `miss` instead and the
+    case would pass for the wrong reason."""
+    out, lines, i = [], text.splitlines(), 0
+    while i < len(lines):
+        out.append(lines[i])
+        if lines[i].strip().lower() == heading:
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith("##"):
+                i += 1
+            out.append("")
+            continue
+        i += 1
+    return "\n".join(out) + "\n"
+
+
+def case_t10_accepted():
+    """ACCEPTED. All four headings, every body non-empty, "## Next" naming a concrete
+    dispatch. Without this the four rejection cases below are satisfied by a check
+    that reports every note."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _handoff_fixture(tmp, "Building", {"handoff-plan.md": HANDOFF_GOOD})
+        _, out = run(tmp)
+        hits = _shape_lines(out, "handoff-plan.md")
+        ok = len(hits) == 0
+        print(f"{'ok' if ok else 'FAIL'} - case (t10-a): a handoff with a body under every "
+              f"heading raises no shape line ({len(hits)})")
+        return ok
+
+
+def _rejected(heading, label, tag):
+    with tempfile.TemporaryDirectory() as tmp:
+        note = _empty_section(HANDOFF_GOOD, heading)
+        _handoff_fixture(tmp, "Building", {"handoff-plan.md": note})
+        _, out = run(tmp)
+        hits = _shape_lines(out, "handoff-plan.md")
+        # The HEADING must still be present, or this passed on `miss` and proves nothing.
+        heading_survived = heading in note.lower()
+        named = hits and heading in hits[0] and "empty section" in hits[0]
+        missed = hits and "missing section" in hits[0]
+        ok = bool(heading_survived and named and not missed)
+        print(f"{'ok' if ok else 'FAIL'} - case ({tag}): {label} emptied is reported as an "
+              f"empty section, not a missing one ({len(hits)} line(s))")
+        return ok
+
+
+def case_t10_next_emptied():
+    """REJECTED — the case SC-15 names. `## Next` heading present, body blank."""
+    return _rejected("## next", "the Next section", "t10-b")
+
+
+def case_t10_trust_emptied():
+    return _rejected("## trust", "the Trust section", "t10-c1")
+
+
+def case_t10_deadends_emptied():
+    return _rejected("## dead ends", "the Dead ends section", "t10-c2")
+
+
+def case_t10_workingset_emptied():
+    """The other three emptied ONE AT A TIME, each its own case, so a check that
+    inspects only "## Next" cannot pass all four."""
+    return _rejected("## working set", "the Working set section", "t10-c3")
+
+
+def case_t10_red():
+    """RED PROOF. Strip the empty-body check by its marker comment and compare COUNTS
+    on case (t10-b)'s fixture: original 1, mutant 0. Equal counts are INCONCLUSIVE and
+    exit non-zero, never passed.
+
+    The mutant lives BESIDE the original for the reason case (t14-red) records: a copy
+    in the fixture dir cannot import harness_yaml and dies with a code that looks like
+    a finding."""
+    src = open(SCRIPT).read()
+    lines = src.splitlines(keepends=True)
+    start = next((i for i, l in enumerate(lines) if T10_MARKER in l), None)
+    if start is None:
+        print("FAIL - case (t10-red): marker comment not found, nothing was mutated")
+        return False
+    # The check ends at the `if miss or len(hl) > 60 or _empty:` line, which stays --
+    # only the body computation and the `or _empty` clause are removed.
+    end = next((i for i in range(start, len(lines))
+                if lines[i].strip().startswith("if miss or len(hl) > 60")), None)
+    if end is None:
+        print("FAIL - case (t10-red): could not find the end of the check")
+        return False
+    mutant_lines = (lines[:start]
+                    + [lines[end].replace(" or _empty:", ":")]
+                    + [l for l in lines[end + 1:]
+                       if "_empty" not in l])
+    mutant_text = "".join(mutant_lines)
+    if mutant_text == src:
+        print("FAIL - case (t10-red): INCONCLUSIVE — the mutation did not change the source")
+        return False
+
+    mpath = os.path.join(os.path.dirname(os.path.realpath(SCRIPT)),
+                         ".mutant-check-state-t10.sh")
+    try:
+        with open(mpath, "w") as f:
+            f.write(mutant_text)
+        shutil.copymode(SCRIPT, mpath)
+        with tempfile.TemporaryDirectory() as tmp:
+            _handoff_fixture(tmp, "Building",
+                             {"handoff-plan.md": _empty_section(HANDOFF_GOOD, "## next")})
+            env = dict(os.environ)
+            env["CLAUDE_PROJECT_DIR"] = tmp
+            real = subprocess.run([SCRIPT], cwd=tmp, capture_output=True, text=True, env=env)
+            mut = subprocess.run([mpath], cwd=tmp, capture_output=True, text=True, env=env)
+        n_real = len(_shape_lines(real.stdout, "handoff-plan.md"))
+        n_mut = len(_shape_lines(mut.stdout, "handoff-plan.md"))
+        if n_mut >= n_real:
+            print(f"FAIL - case (t10-red): INCONCLUSIVE — original {n_real}, mutant {n_mut}; "
+                  f"the mutant did not lose the finding")
+            return False
+        print(f"ok - case (t10-red): the empty-body check is load-bearing — original "
+              f"{n_real}, mutant {n_mut}")
+        return True
+    finally:
+        if os.path.exists(mpath):
+            os.remove(mpath)
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -2067,6 +2203,16 @@ def main():
         case_t14_red(),
     ])
 
+    # FEAT-31 T-10 — a required section with no body fails the shape (SC-15).
+    ok_t10 = all([
+        case_t10_accepted(),
+        case_t10_next_emptied(),
+        case_t10_trust_emptied(),
+        case_t10_deadends_emptied(),
+        case_t10_workingset_emptied(),
+        case_t10_red(),
+    ])
+
     ok_exit_unchanged = code_a == code_b
     print(
         f"{'ok' if ok_exit_unchanged else 'FAIL'} - exit code unchanged by INV-21 "
@@ -2074,7 +2220,7 @@ def main():
     )
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
-            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14
+            and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14 and ok_t10
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)
