@@ -2199,6 +2199,132 @@ def run_sweep_clean_tracked():
         shutil.rmtree(d, ignore_errors=True)
     return fails
 
+
+def run_runs_agent_write_path():
+    """FEAT-31 T-15 case F — the half that makes "the WRITE PATH refuses" true rather
+    than "the module refuses". SC-07's positional rule is enforced through the same
+    import check-domain.sh already has, so this drives the real hook as a subprocess
+    on its PRE Write route and asserts on the process, not on a function return.
+
+    THE MUTANT RUNS FROM A COPY OF THE WHOLE BIN DIRECTORY, and that is forced rather
+    than chosen. check-domain.sh puts its OWN directory first on PYTHONPATH (`:96`), so
+    an external PYTHONPATH cannot shadow feature_schema.py — the trick run_t12 uses for
+    a module that is not in bin/ does not work here. Overwriting the real
+    bin/feature_schema.py and restoring it in a finally was the alternative, and it
+    leaves the enforcement layer broken if the process dies between the two. Copying
+    bin/ into a tmpdir touches nothing real: `_derived` is only a fallback for
+    CLAUDE_PROJECT_DIR, which every call here sets explicitly.
+    """
+    fails = 0
+    local = []
+
+    def t(name, ok, detail=""):
+        nonlocal fails
+        local.append((name, ok, detail))
+        if not ok:
+            fails += 1
+
+    # A feature name deliberately ABSENT from the frozen map, so its exempt count is 0
+    # and its very first runs entry must carry `agent`. Asserted, not assumed.
+    import feature_schema as _fs
+    feat = "FEAT-Z-absent-from-the-frozen-map"
+    t("SC-07 write path: the fixture feature is absent from the frozen exempt map",
+      feat not in _fs.RUNS_AGENT_EXEMPT,
+      "the fixture name is in the map, so this block would prove nothing")
+
+    doc_bad = json.dumps({"feature_id": feat, "branch": "none", "pr": None,
+                          "status": "Building", "review_sha": "none", "cycles_used": 0,
+                          "max_total_cycles": 10,
+                          "runs": [{"id": "r1", "squad": "eng", "verdict": "PASS"}]},
+                         indent=2)
+    doc_ok = json.dumps({"feature_id": feat, "branch": "none", "pr": None,
+                         "status": "Building", "review_sha": "none", "cycles_used": 0,
+                         "max_total_cycles": 10,
+                         "runs": [{"id": "r1", "squad": "eng", "verdict": "PASS",
+                                   "agent": "harness-backend-dev"}]},
+                        indent=2)
+    rel = f".harness/harness/features/{feat}/feature.json"
+
+    def fire_json(hook, root, content):
+        payload = {"agent_type": "harness-orchestrator", "tool_name": "Write",
+                   "tool_input": {"file_path": os.path.join(root, rel),
+                                  "content": content}}
+        return subprocess.run([hook], input=json.dumps(payload), capture_output=True,
+                              text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+    # A MANIFEST THAT GRANTS THE PATH, and this is the whole difference between a real
+    # case and a green-looking one. FIXTURE_MANIFEST grants harness-orchestrator
+    # nothing, so under it the PRE hook exits 2 for a DOMAIN reason and every assertion
+    # below would pass while measuring nothing — the trap this file already records at
+    # run_post's "route 2" case. Granting feature.json explicitly leaves the schema rule
+    # as the only thing that can deny.
+    grant = """schema_version: 1
+teams:
+  - name: build
+    members:
+      - name: harness-orchestrator
+        domain:
+          - { path: .harness/*/features/*/feature.json, upsert: true }
+          - { path: ".", read: true }
+"""
+    root = fixture(grant)
+    os.makedirs(os.path.dirname(os.path.join(root, rel)), exist_ok=True)
+
+    r_bad = fire_json(HOOK, root, doc_bad)
+    t("SC-07 write path: a Write whose runs entry omits agent exits 2",
+      r_bad.returncode == 2, f"exit {r_bad.returncode}: {r_bad.stderr.strip()[:200]}")
+    t("SC-07 write path: the denial names the key 'agent'",
+      "agent" in r_bad.stderr, r_bad.stderr.strip()[:200])
+    t("SC-07 write path: the denial names the offending index",
+      "runs[0]" in r_bad.stderr, r_bad.stderr.strip()[:200])
+
+    # THE DISCRIMINATING HALF. Without it an allow-nothing guard passes every assertion
+    # above: the same write CARRYING the field must be permitted.
+    r_ok = fire_json(HOOK, root, doc_ok)
+    t("SC-07 write path: the same Write CARRYING agent is permitted",
+      r_ok.returncode == 0, f"exit {r_ok.returncode}: {r_ok.stderr.strip()[:200]}")
+
+    # RED PROOF — an exit status is never the proof (D-08). Counts on both sides.
+    bin_dir = os.path.dirname(os.path.realpath(HOOK))
+    src = open(os.path.join(bin_dir, "feature_schema.py")).read()
+    needle = "    problems.extend(_runs_agent_problems(doc, display))\n"
+    if needle not in src:
+        t("SC-07 write path RED: the rule's call site was found", False,
+          "feature_schema.py does not contain the call site")
+    else:
+        mutant_text = src.replace(needle, "")
+        if mutant_text == src:
+            t("SC-07 write path RED: the mutation changed the source", False,
+              "INCONCLUSIVE — replace() was a no-op")
+        else:
+            mtmp = tempfile.mkdtemp()
+            try:
+                mbin = os.path.join(mtmp, "bin")
+                shutil.copytree(bin_dir, mbin)
+                with open(os.path.join(mbin, "feature_schema.py"), "w") as f:
+                    f.write(mutant_text)
+                mhook = os.path.join(mbin, os.path.basename(HOOK))
+                r_mut = fire_json(mhook, root, doc_bad)
+                n_real = 1 if r_bad.returncode == 2 else 0
+                n_mut = 1 if r_mut.returncode == 2 else 0
+                print(f"      red proof: original denials {n_real}, mutant {n_mut} "
+                      f"(exit {r_bad.returncode} vs {r_mut.returncode})")
+                t("SC-07 write path RED: the positional rule is load-bearing at the hook",
+                  n_mut < n_real,
+                  f"INCONCLUSIVE — original {n_real}, mutant {n_mut}")
+            finally:
+                shutil.rmtree(mtmp, ignore_errors=True)
+
+    shutil.rmtree(root, ignore_errors=True)
+    for name, ok, detail in local:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            print(f"FAIL  {name}")
+            if detail:
+                print(f"      | {detail}")
+    return fails
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -2229,6 +2355,7 @@ def main():
     fails += run_worktree_grant_parity()
     fails += run_worktree_deep_shape()
     fails += run_sweep_clean_tracked()
+    fails += run_runs_agent_write_path()
     return fails
 
 

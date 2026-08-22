@@ -1,14 +1,12 @@
 # Expertise — harness-dev-ops
-
 ## Patterns (max 15)
 - P-02: WHEN a test runner combines an explicit list with a glob-based drift detector DO keep the two mechanisms separate — collapsing to glob-and-run erases the case that makes a specific exit code reachable and silently disables drift detection.
 - P-03: WHEN a domain guard denies a write DO accept the denial as final — never retry through a command shape the guard doesn't parse. A coverage gap is not permission — return the denial and let the tier above route it.
 - P-04: WHEN a CI step's `run:` body can't be exercised until it lands on a runner DO extract it into a standalone script and execute it against the real tool's live output locally first — untestable-until-merged is a gap to close, not accept.
-- P-05: WHEN capturing a git status snapshot as verification evidence DO record it unfiltered rather than trimmed to what the dispatch pre-warned about — an unexpected modified-not-untracked file is exactly what an unfiltered capture catches and a filtered one would silently miss.
-- P-06: WHEN verifying in a shared working tree DO re-check git status at the end and diff it against the opening snapshot — a verification window spans real time other agents can write into, so the tree is read at two points, not one, and the run should say so.
-- P-07: WHEN a dispatch names a gate as a risk without stating whether it currently passes DO run that gate standalone and report the result explicitly — a risk left unmeasured in the record reads later as unknown status, not as verified green.
+- P-05: WHEN capturing git status as verification evidence DO record it unfiltered, not trimmed to what the dispatch pre-warned about, and re-check it again at the end of the window against the opening snapshot — an unfiltered two-point capture catches an unexpected change a filtered single-point one would miss.
+- P-07: WHEN a dispatch — including your own lead's — frames something as negligible, risky, or settled but a measurement could decide it DO measure it directly and report the number, even against the framing — an unmeasured framing reads later as fact, not as the guess it was.
 - P-08: WHEN a verify clause asserts only that old required text is ABSENT DO also assert the new required content is literally PRESENT, mirroring any correct positive-check instance already in the same file — a negative-only clause passes unconditionally on an emptied or deleted field.
-- P-09: WHEN judging near-identical blocks for dead-code deletion DO locate the exception by an adjacent comment, never by line number (deletions shift lines below), and prove no case is lost via the ordered SET of ok-line texts before/after — a bare count hides a case lost behind a coincidental addition.
+- P-09: WHEN comparing two collections for a lost or gained case — dead-code exceptions or reconciling counts — DO compare by identity (ordered set of texts, or an id-set difference in both directions), never by line number or raw total — offsetting changes can preserve a matching total while membership differs.
 - P-10: WHEN a dispatch quotes a verify command inline DO independently re-extract it from its source config and byte-diff it against the quoted copy before running — this decouples acceptance evidence from the dispatcher's transcription, keeping it attributable to the source, not the relay.
 - P-11: WHEN a mutant or removed guard survives an entire existing test suite DO check whether a sibling guard independently masks the same input class before calling it dead code — construct a fixture that defeats the sibling guard specifically (e.g. a value the sibling accepts) to get a real discriminator.
 - P-12: WHEN a RED proof runs against a pinned baseline with a caller-supplied expected-fail list DO run the full case set, not just the named subset — an uncounted discriminator (a wording or behavior change the caller didn't anticipate) surfaces as an extra genuine red that a partial run silently misses.
@@ -16,7 +14,7 @@
 - P-14: WHEN classifying a path against a tier or scope regex DO resolve it to an absolute path first — matching the argument as typed can silently miss the identical location reached via a relative path, keeping the wrong classification for that exact invocation shape.
 - P-15: WHEN a cost component requires an action forbidden by scope (e.g. a live external call) to measure DO leave it unestimated rather than guessed, and state the reported figure covers only what was actually measured — an unlabeled guess reads as measured fact once written down.
 - P-16: WHEN an efficiency or simplify review's own diff does not touch a suite kind DO skip re-running that kind and name the specific reason (unchanged mechanism, no new entry) — re-running suites the diff never touched is the same waste such reviews exist to flag.
-
+- P-17: WHEN verifying a mutant discriminates DO diff-confirm the mutation was applied before running, confirm the restore is byte-identical after, and require only the target case redden while every other stays green — a mutant dying for an unrelated reason (e.g. tmpdir import failure) reads exactly like a real finding.
 ## Gotchas (max 15)
 - G-02: WHEN a verify command relies on `${PIPESTATUS[0]}` DO wrap it in `bash -c '...'` — this Bash tool's default shell is zsh, not bash, where PIPESTATUS silently expands empty and the check passes vacuously instead of failing.
 - G-03: WHEN writing verification bash for this repo DO avoid `declare -A` (associative arrays) — this machine's default bash is 3.2.57, which errors `invalid option` on it. See the drift-detector's nested-loop membership check in `.claude/skills/harness/bin/run-unit-tests.sh` for the working pattern.
@@ -31,7 +29,5 @@
 - G-13: WHEN a review's stated premise is read-only but the only way to measure a real system property is to write a probe DO plant it, measure, delete it immediately, and verify with git status — then say the premise was crossed rather than quietly deciding it didn't count.
 - G-14: WHEN benchmarking or writing scratch data under an env-var-redirected root (e.g. CLAUDE_PROJECT_DIR) DO assert the resolved root actually equals the intended temp path before the first write, then delete it and confirm removal — an unenforced redirect can silently fall back and write synthetic data into the real tree.
 - G-15: WHEN an artifact already exists at your own dispatched output path DO treat it as informative only, not authoritative — independently re-derive every figure rather than trust it, since a re-dispatch to the same path means the run is being redone, not resumed.
-
 ## Outcomes (max 10)
-
 ## Open (max 5)

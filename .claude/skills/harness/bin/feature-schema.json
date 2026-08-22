@@ -56,7 +56,8 @@
         "properties": {
           "id": { "type": "string", "description": "The run's identifier." },
           "squad": { "type": "string", "description": "The squad that executed the run." },
-          "verdict": { "type": "string", "description": "The run's verdict." }
+          "verdict": { "type": "string", "description": "The run's verdict." },
+          "agent": { "type": "string", "description": "Names the agent that executed the run. ABSENCE MEANS THE ENTRY PREDATES FEAT-31 and is not an error: this key is deliberately NOT in `required`, because a schema-level requirement would deny every entry already on disk, and check-domain.sh's post sweep reaches feature.json files a change never touched. The requirement is POSITIONAL instead and lives in feature_schema.py (D-23)." }
         }
       }
     },
