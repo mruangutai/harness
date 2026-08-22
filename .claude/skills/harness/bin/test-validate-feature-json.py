@@ -47,7 +47,12 @@ def full_doc(status="Building"):
         "review_sha": "deadbeef",
         "cycles_used": 1,
         "max_total_cycles": 8,
-        "runs": [{"id": "r1", "squad": "code", "verdict": "PASS"}],
+        # `agent` added by FEAT-31 T-15: full_doc means "a realistic VALID document",
+        # and a run entry written today must name its agent (SC-07). Without it these
+        # cases would fail on the positional rule rather than on the eleven-key shape
+        # they exist to test. The rule's own cases below drive the missing case
+        # deliberately.
+        "runs": [{"id": "r1", "squad": "code", "verdict": "PASS", "agent": "harness-qa"}],
         "max_total_runs": 10,
         "github": {
             "milestone": 1, "parent": 2, "parent_origin": "x",
@@ -321,6 +326,138 @@ def case_migrated_depth_discovery_scans_the_segment_layout():
               ".harness/*/features/" in r.stderr, r.stderr)
 
 
+
+# ---------------------------------------------------------------------------
+# SC-07's positional agent rule (FEAT-31 T-15). Read D-23.
+#
+# The two halves are in tension: a NEW entry omitting `agent` must be refused, and
+# every feature.json already on disk must still validate. These cases assert BOTH,
+# and the boundary case is the one that proves the rule bites at the right index.
+# ---------------------------------------------------------------------------
+
+# A feature name that is NOT in the frozen map, so its exempt count is 0 and its very
+# first entry is required to carry the field. Asserted rather than assumed, because a
+# name that turned out to be IN the map would make case A pass for the wrong reason.
+T15_UNKNOWN_FEATURE = "FEAT-99-not-in-the-frozen-map"
+# One that IS, read from the map itself so the fixture cannot drift from the source.
+T15_KNOWN_FEATURE = "FEAT-10-software-factory"
+
+
+def _t15_display(feature, root="/tmp/x"):
+    return f"{root}/.harness/harness/features/{feature}/feature.json"
+
+
+def _t15_doc(entries):
+    d = full_doc()
+    d["runs"] = entries
+    return json.dumps(d)
+
+
+def case_t15_refused_when_absent_from_map():
+    """CASE A, REFUSED. A feature absent from the frozen map has exempt count 0, so
+    its index-0 entry must carry `agent`. The TEXT is asserted, not merely the count:
+    an unrelated problem would otherwise satisfy this case."""
+    check("t15_unknown_feature_really_is_absent_from_the_map",
+          T15_UNKNOWN_FEATURE not in feature_schema.RUNS_AGENT_EXEMPT,
+          f"{T15_UNKNOWN_FEATURE} is in the map, so case A would prove nothing")
+    probs = feature_schema.problems_for_text(
+        _t15_doc([{"id": "r1", "squad": "code", "verdict": "PASS"}]),
+        _t15_display(T15_UNKNOWN_FEATURE))
+    hit = [p for p in probs if "runs[0]" in p and "'agent'" in p]
+    check("t15_a_entry_without_agent_is_refused_and_names_index_and_key",
+          len(hit) == 1, f"{probs}")
+
+
+def case_t15_existing_entries_still_validate():
+    """CASE B, THE OTHER HALF. A feature IN the map, with exactly exempt_count entries
+    and none carrying `agent`, returns the EMPTY LIST — not merely something falsy.
+    This is the half a schema `required` would have broken."""
+    n = feature_schema.RUNS_AGENT_EXEMPT[T15_KNOWN_FEATURE]
+    entries = [{"id": f"r{i}", "squad": "code", "verdict": "PASS"} for i in range(n)]
+    probs = feature_schema.problems_for_text(_t15_doc(entries),
+                                             _t15_display(T15_KNOWN_FEATURE))
+    check("t15_b_all_legacy_entries_validate_with_no_agent",
+          probs == [], f"{n} exempt entries produced {probs}")
+
+
+def case_t15_boundary():
+    """CASE C, THE BOUNDARY. exempt_count legacy entries plus ONE more, so the new
+    entry's index EQUALS exempt_count. Exactly one problem, naming that index. This is
+    what proves the rule bites at the boundary and not one entry late."""
+    n = feature_schema.RUNS_AGENT_EXEMPT[T15_KNOWN_FEATURE]
+    entries = [{"id": f"r{i}", "squad": "code", "verdict": "PASS"} for i in range(n + 1)]
+    probs = feature_schema.problems_for_text(_t15_doc(entries),
+                                             _t15_display(T15_KNOWN_FEATURE))
+    check("t15_c_the_rule_bites_at_index_equal_to_the_exempt_count",
+          len(probs) == 1 and f"runs[{n}]" in probs[0], f"n={n} {probs}")
+
+
+def case_t15_accepted_with_the_field():
+    """CASE D, ACCEPTED — and the check is on a VALUE, not on key presence. The same
+    append carrying a non-empty agent validates; the same append carrying the EMPTY
+    STRING is refused."""
+    n = feature_schema.RUNS_AGENT_EXEMPT[T15_KNOWN_FEATURE]
+    legacy = [{"id": f"r{i}", "squad": "code", "verdict": "PASS"} for i in range(n)]
+
+    ok_doc = _t15_doc(legacy + [{"id": "new", "squad": "eng", "verdict": "PASS",
+                                 "agent": "harness-backend-dev"}])
+    check("t15_d_a_new_entry_naming_its_agent_validates",
+          feature_schema.problems_for_text(ok_doc, _t15_display(T15_KNOWN_FEATURE)) == [],
+          "a populated agent was still refused")
+
+    empty_doc = _t15_doc(legacy + [{"id": "new", "squad": "eng", "verdict": "PASS",
+                                    "agent": ""}])
+    probs = feature_schema.problems_for_text(empty_doc, _t15_display(T15_KNOWN_FEATURE))
+    check("t15_d_an_empty_agent_string_is_refused_so_the_check_is_on_the_value",
+          len(probs) == 1 and f"runs[{n}]" in probs[0], f"{probs}")
+
+
+def case_t15_red():
+    """CASE E, RED PROOF. An exit status is never the proof (D-08). Copy
+    feature_schema.py with the positional rule's call site removed, assert the text
+    DIFFERS before running anything, and compare COUNTS on case A's fixture: original
+    at least 1, mutant 0. Equal counts are INCONCLUSIVE and exit non-zero.
+
+    THE MUTANT NEEDS THE ORIGINAL'S SCHEMA_PATH, and finding that out is the point.
+    The first version of this proof reasoned that a tmpdir copy was safe because
+    feature_schema imports only json, os and jsonschema, none of them relative. True
+    of the IMPORTS and false of the module: SCHEMA_PATH is derived from
+    os.path.dirname(os.path.abspath(__file__)), so the copy looked for
+    feature-schema.json beside itself and raised FileNotFoundError. That is the third
+    time on this feature that a mutant died for a reason unrelated to its mutation --
+    FEAT-30's Q3, the behind-gate proof, and this. Overriding SCHEMA_PATH does not
+    weaken the comparison, it is what makes it fair: both sides now validate against
+    the identical schema, so the ONLY difference between them is the removed rule."""
+    src_path = os.path.join(BIN_DIR, "feature_schema.py")
+    src = open(src_path).read()
+    needle = "    problems.extend(_runs_agent_problems(doc, display))\n"
+    if needle not in src:
+        check("t15_e_red_proof", False, "the rule's call site was not found")
+        return
+    mutant_text = src.replace(needle, "")
+    if mutant_text == src:
+        check("t15_e_red_proof", False, "INCONCLUSIVE — the mutation did not change the source")
+        return
+
+    import importlib.util
+    with tempfile.TemporaryDirectory() as tmp:
+        mpath = os.path.join(tmp, "mutant_feature_schema.py")
+        with open(mpath, "w") as f:
+            f.write(mutant_text)
+        spec = importlib.util.spec_from_file_location("mutant_feature_schema", mpath)
+        mutant = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mutant)
+        mutant.SCHEMA_PATH = feature_schema.SCHEMA_PATH
+
+        doc = _t15_doc([{"id": "r1", "squad": "code", "verdict": "PASS"}])
+        display = _t15_display(T15_UNKNOWN_FEATURE)
+        n_real = len(feature_schema.problems_for_text(doc, display))
+        n_mut = len(mutant.problems_for_text(doc, display))
+    check("t15_e_the_positional_rule_is_load_bearing",
+          n_real >= 1 and n_mut == 0,
+          f"INCONCLUSIVE — original {n_real}, mutant {n_mut}")
+    print(f"     (red proof counts: original {n_real}, mutant {n_mut})")
+
 def main():
     case_accepted_all_eleven_keys()
     case_accepted_only_eight_required_keys()
@@ -342,6 +479,13 @@ def main():
     case_problems_for_text_names_real_display_path_in_every_line()
     case_problems_for_text_jsonschema_forced_unavailable()
     case_migrated_depth_discovery_scans_the_segment_layout()
+
+    # FEAT-31 T-15 — SC-07's positional agent rule.
+    case_t15_refused_when_absent_from_map()
+    case_t15_existing_entries_still_validate()
+    case_t15_boundary()
+    case_t15_accepted_with_the_field()
+    case_t15_red()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")

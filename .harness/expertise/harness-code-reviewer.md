@@ -1,5 +1,4 @@
 # Expertise — harness-code-reviewer
-
 ## Patterns (max 15)
 - P-01: WHEN a test's label or comment describes what it covers DO verify that claim against the actual invocation and assertion at that line — a label is prose, not a measurement, and can advertise coverage that doesn't exist.
 - P-02: WHEN hunting fail-open DO trace whether the exit happens before or after the state-write it guards — an exit inside the failing call blocks the write, turning the miss into a clean re-runnable skip rather than corruption.
@@ -16,7 +15,6 @@
 - P-13: WHEN a BRIEF or plan cites tests as evidence for a requirement DO check whether those tests exercise the real implementation or a mocked stand-in — a green suite that replaces the function under test proves only caller shape, not the requirement's behavior.
 - P-14: WHEN a feature's gates are token or phrase based DO read the replacement prose as claims and check each against the code it describes — a sweep proves which words are present, never that the sentence they form is true.
 - P-15: WHEN you dismiss a candidate finding as a non-issue DO record it explicitly with the reason rather than omit it silently — the record stops a downstream reader (a lead, a panel digest) from re-raising the same question.
-
 ## Gotchas (max 15)
 - G-01: WHEN a file you need to cite shows dirty in git status DO read it at the pinned SHA via `git show <sha>:<path>` and state which you read — a diff reviewed against pinned bytes can differ from the same path's working-tree state.
 - G-02: WHEN a test asserts only a return/exit code DO check whether other code paths in the same function can produce that same code — a regression or reimplementation that satisfies the code via an unintended site still passes; assert a distinguishing message or output too.
@@ -32,23 +30,16 @@
 - G-12: WHEN rating severity for a finding about an edited carrier injected into every spawn of a persona DO weight the carrier's blast radius, not just this instance's content — correct-today content does not bound future edits through the same unguarded channel.
 - G-13: WHEN a test asserts membership (`x in list` or `.split()`) against a live enumeration DO check whether an extra, unexpected member would also pass — membership proves presence, never exhaustiveness, so a regression to over-inclusion (an added grantee, an extra row) sails through undetected.
 - G-14: WHEN a test run shows an anomalous, unreproducible result (a flake, a missing suite member) DO record it explicitly rather than smooth it away — matching two independently-recorded anomalies is how one confirms as a real defect neither could prove alone.
-- G-15: WHEN a grep sweep across specific anticipated terms reports zero hits and you conclude a
-  gap exists DO also trace whether the code path fires under any fixture already in the suite —
-  the real instance can satisfy the condition without ever matching your anticipated wording.
-
+- G-15: WHEN a grep sweep across specific anticipated terms reports zero hits and you conclude a gap exists DO also trace whether the code path fires under any fixture already in the suite — the real instance can satisfy the condition without ever matching your anticipated wording.
 ## Outcomes (max 10)
 - O-01: WHEN reporting a coverage gap via a hand-built mutant DO add one non-shipped probe case that fails on it before reporting the shipped suite passes — an executed failing probe distinguishes a real gap from an unexecuted claim, usually a broken harness.
 - O-02: WHEN a downstream artifact states something false DO trace it to its authoring source before attributing the error — the nearest producer may have faithfully reproduced an upstream defect, and the correct remedy fixes the origin too, not just the surface where it was found.
 - O-03: WHEN closing a must_fix by verifying the code now reads correctly DO check separately whether a test would fail if it regressed — "reads correctly" and "is held to it" are different claims, and only a discriminating test sustains the second past the next edit.
 - O-04: WHEN writing a finding DO name the defect class it belongs to, especially if it matches the class the feature under review exists to close — severity alone doesn't convey that; the class-match sets lead-tier rank.
-- O-05: WHEN proving a defect via a hand-built mutation DO assert two things separately: the
-  mutation applied (show the changed line) and the run completed rather than dying early (show
-  output after the mutation point) — either alone leaves the proof unfalsifiable.
-- O-06: WHEN rating severity DO judge by the downstream consequence of a gap, never by whether the
-  implementer deviated from an approved plan — a plan-authorized gap can still carry high
-  consequence, and blame-based scoring rates it down for the wrong reason.
+- O-05: WHEN proving a defect via a hand-built mutation DO assert two things separately: the mutation applied (show the changed line) and the run completed rather than dying early (show output after the mutation point) — either alone leaves the proof unfalsifiable.
+- O-06: WHEN rating severity DO judge by the downstream consequence of a gap, never by whether the implementer deviated from an approved plan — a plan-authorized gap can still carry high consequence, and blame-based scoring rates it down for the wrong reason.
 - O-07: WHEN a defect is inherited byte-identical from baseline but a sibling task in the same diff newly establishes its trigger condition as ordinary anticipated state DO attribute defect and exposure separately — neither pre-existing-ignore nor new-bug-block alone is correct; state both in the finding.
 - O-08: WHEN a lead's send-back says the current grade is already acceptable DO write any revision as a new artifact, leaving the original unmodified — it is the record of the grade before new evidence moved it, and only survives untouched.
 - O-09: WHEN evaluating a proposed mutation as proof of a coverage gap DO check whether the tested branch actually reaches the mutated line before trusting a survive/kill result — a mutant inside a guard's untaken branch is equivalent, not discriminating, and proves nothing.
-
+- O-10: WHEN your finding and a peer's finding land on the same code site via different mechanisms DO check for one shared root cause before filing separately — merge into one finding and set severity to whichever side is more precisely verified, never an average of two guesses.
 ## Open (max 5)

@@ -1,0 +1,176 @@
+{
+  "feature_id": "FEAT-31-orchestrator-context-watch",
+  "branch": "feat/FEAT-31-orchestrator-context-watch",
+  "pr": 698,
+  "status": "Done",
+  "review_sha": "0fc10e5a9f48afae512baed6d9297aab88e7f181",
+  "cycles_used": 6,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "github": {
+    "milestone": 20,
+    "parent": 598,
+    "parent_origin": "adopted",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12",
+      "T-13",
+      "T-14",
+      "T-15",
+      "T-16",
+      "T-17",
+      "T-18",
+      "T-19"
+    ],
+    "issues": {
+      "T-01": 642,
+      "T-02": 643,
+      "T-03": 644,
+      "T-04": 645,
+      "T-05": 646,
+      "T-06": 647,
+      "T-07": 648,
+      "T-08": 649,
+      "T-09": 650,
+      "T-10": 651,
+      "T-11": 652,
+      "T-12": 653,
+      "T-13": 654,
+      "T-14": 655,
+      "T-15": 659,
+      "T-16": 660,
+      "T-17": 661,
+      "T-18": 662,
+      "T-19": 672
+    }
+  },
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "plan2a-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan2b-product",
+      "squad": "product",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "plan3-product",
+      "squad": "product",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "plan4-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "build-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "plan5-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "build2-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "fix1-eng",
+      "squad": "eng",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t05-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "t09-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "qa-validator",
+      "squad": "validation",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "fix2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "t19-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "goalcheck-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "panel-validator",
+      "squad": "validation",
+      "verdict": "FAIL",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "fix3-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "distill-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validation",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    }
+  ]
+}

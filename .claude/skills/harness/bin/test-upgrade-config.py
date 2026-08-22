@@ -18,6 +18,18 @@ is shaped to close both.
 So: EVERY case here runs the script as a SUBPROCESS, exactly as a user or the
 init flow does. No importlib, no injection, no sys.path help. If the script
 cannot run on its own, these fail.
+
+T-05 (FEAT-31): does a NEW `budgets` key added to the template propagate into an
+existing project's harness.json? BRANCH FOUND TRUE, by reading upgrade-config.py:
+GENERIC MERGE ALREADY PROPAGATES IT — `budgets` receives no special handling
+anywhere in the file. `merge()` (upgrade-config.py:64-89) recurses into any
+key that is a dict on both sides (:86-87, `isinstance(tv, dict) and
+isinstance(out[k], dict)`), and inside that recursion a key absent from the
+project's dict is added at the template's value (:79-83, `if k not in out: ...
+out[k] = tv`). `budgets` in a real project config is exactly such a dict, so a
+new leaf key under it is added by the same path that already adds a new
+top-level key. upgrade-config.py was changed NOT AT ALL for this task; only the
+proving case below (case 8) was added.
 """
 import json
 import os
@@ -194,6 +206,24 @@ after = open(os.path.join(p, ".harness", "team-config.yaml")).read()
 _r = run(p, "--check")
 check("--check never rewrites team-config.yaml (safe_dump would strip its comments)",
       ran_clean(_r) and before == after, "the manifest changed under --check")
+
+
+# --- 8. a NEW budgets key propagates through the SAME generic nested-dict merge as
+# any other nested object (test_kinds, etc.) — see the module docstring for the read
+# (upgrade-config.py:79-83, :86-88) that establishes this without any production
+# change. Assert the VALUE, not mere presence.
+budgets_root = project(harness_json=json.dumps({"schema_version": 1, "budgets": {}}))
+with open(os.path.join(budgets_root, "_templates", "harness.json"), "w") as f:
+    json.dump({"schema_version": 2,
+               "budgets": {"orchestrator_context_warn_tokens": 200000}}, f)
+r = run(budgets_root)
+merged_budgets = json.load(open(os.path.join(budgets_root, ".harness", "harness.json")))
+check("a new budgets key (orchestrator_context_warn_tokens) propagates from the "
+      "template at the template's value, 200000",
+      ran_clean(r)
+      and merged_budgets.get("budgets", {}).get("orchestrator_context_warn_tokens") == 200000,
+      f"exit {r.returncode}; budgets={merged_budgets.get('budgets')}; "
+      f"stderr={r.stderr.strip()[-300:]}")
 
 
 def main():

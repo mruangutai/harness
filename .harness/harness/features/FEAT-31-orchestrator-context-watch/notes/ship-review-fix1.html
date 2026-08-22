@@ -1,0 +1,88 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-31 — where it stands, and what needs your decision</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-31-where-it-stands-and-what-needs-your-decision">FEAT-31 — where it stands, and what needs your decision</h1>
+<p><strong>The tool works now, and it did not before today.</strong> <code>context-watch.py</code> finds all 105 orchestrators on this machine and its arithmetic matches the signed specification. At the start of this session it found <strong>zero</strong> and reported <code>current 0</code> for an orchestrator holding 696,472 tokens. Both defects had been sitting behind a fully green, mutation-proofed test suite.</p>
+<p><strong>The feature cannot finish without you.</strong> Ten of eighteen tasks are done. Six are yours under the DEC-174 carve-out, and <strong>three of the ten requirements have no other coverage at all</strong> — REQ-04 (T-15), REQ-09 (T-14), REQ-10 (T-10, T-14). Two more of mine, T-05 and T-09, are blocked on your T-04. The qa gate, the review panel and the goal-check all need the finished tree, so nothing further can move until your tasks land.</p>
+<p><strong>Your two blockers are cleared.</strong> T-16 and T-18 are done and I verified both myself rather than taking the lead&#x27;s word: <code>.claude/settings.json</code> is zero-diff so D-24 holds, and <code>harness.json</code> changed in exactly one key. <strong>T-17 is unblocked, and T-07 has already made its edit to <code>run-unit-tests.sh</code>, so that file is settled — append only when you get there.</strong></p>
+<h2 id="what-was-wrong-and-why-every-gate-missed-it">What was wrong, and why every gate missed it</h2>
+<p>Two defects, both in T-01&#x27;s code, both already named in <code>STATE.md</code> as standing — and I still recorded T-01 <code>done</code> after re-running its verify block. <strong>That was my error, and it is the same error the feature exists to prevent: I trusted a green gate over the written record.</strong></p>
+<ol><li><strong>Discovery was one level too shallow.</strong> The projects root holds <em>project</em> directories, each holding <em>session</em> directories. The walk joined <code>root/name/subagents</code> and matched nothing. One-level glob: 0. Two-level: 2012, of which 105 are orchestrators.</li><li><strong><code>_build_row</code> contradicted D-11</strong> on two of three figures — a zero appended for lines carrying no <code>message.usage</code>, <code>current</code> taken from the file&#x27;s last line rather than the measured set&#x27;s last member, and <code>entries</code> counting all parsed lines.</li></ol>
+<p><strong>Why 65 green cases saw neither: the tool, the tests and the fixtures were all built in the same wrong shape, so they agreed with each other and disagreed with reality.</strong> The fix now pins depth in <em>both</em> directions — a correct two-level fixture must find rows, and a one-level fixture must find zero — so a permissive implementation fails too. Every red proof asserts both that the mutation applied and that real and mutant results differ.</p>
+<p><strong>Verification that matters:</strong> <code>verify-context-watch-live.py a7783f0ec41e6a8c6</code> now reports tool and independent recomputation agreeing exactly at current 696,472 / peak 696,472 / entries 669. That peak matches <code>BRIEF.md:43</code> to the token, and I reproduced it a third time independently. <strong>SC-01&#x27;s live half is discharged.</strong> Unit 76 of 76, integration 10 of 10, both exit 0, zero MISCONFIGURED.</p>
+<h2 id="decisions-i-need-from-you">Decisions I need from you</h2>
+<ol><li><strong>Run your six tasks.</strong> T-04 first — it unblocks my T-05 and T-09. T-17 and T-12 are clear to go.</li><li><strong>The UAT is blocking and now runnable for the first time.</strong> SC-10 requires you to run the tool with no argument and with an agent named, against <strong>at least one live orchestrator</strong>, and answer its four questions from the output alone. It was impossible before today.</li><li><strong>Q-HOOKCTX is yours and gates SC-13&#x27;s design</strong> — whether hook stderr reaches the model as context, or only as a tool-result error string. If it is the latter, SC-13 is not met by this design and T-17 needs rethinking, not just writing.</li><li><strong>One signed verify line is vacuous and pm should re-anchor it</strong> (B-1). T-13&#x27;s line 6 greps <code>not found</code> against a nonexistent projects dir, which matches an early-return branch, so the function Defect 2 lived in never runs. It is the assertion that should have caught it. A compensating control now exists, so this is not urgent — but it is a plan edit, which is pm&#x27;s.</li></ol>
+<h2 id="corrections-to-things-on-the-record">Corrections to things on the record</h2>
+<ul><li><strong>The <code>bash-write-guard.sh</code> heredoc hazard is false.</strong> I tested it: a read-only <code>python3</code> heredoc containing <code>&gt;</code> and <code>&gt;=</code> runs clean. The lead caught this by reading the source rather than complying with my brief. The real defect is narrower — <code>sed -i</code> with a shell-<em>variable</em> target is refused as out-of-domain. Two mechanisms, conflated.</li><li><strong><code>.harness/teams/build.yaml</code> does not exist</strong>; only the shipped fallback does. My dispatch said otherwise because my own compound <code>ls</code> hid the error.</li><li><strong>&quot;No live orchestrator was running&quot; was false.</strong> One was — me. The live half was undischarged because discovery found nothing.</li></ul>
+<h2 id="cost-and-budget">Cost and budget</h2>
+<p><strong>cycles_used 4 of 10; runs 9 of 20.</strong> Runs are informational by design (INV-22), so the count is not a constraint — cycles are, and six remain. Two runs this session: one clean six-task build with zero send-backs, one fix cycle that closed both defects with zero send-backs. <strong>I also wasted one spawn</strong> on a stray no-op fork while trying to message the lead mid-run; I have no such channel, and it returned having done nothing.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on your acceptance. Anything not listed dies silently, so this is everything that survived.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Finding</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td>T-13&#x27;s signed verify line 6 is vacuous — greps <code>not found</code> against an early-return branch, so the function Defect 2 lived in never runs</td><td>bug</td></tr><tr><td>B-2</td><td>One-argument invocation mixes footer scopes: rows narrow to one match, but blind-spot lines 1-2 re-walk the whole corpus. Touches SC-10 step 2</td><td>bug</td></tr><tr><td>B-3</td><td><code>_safe_listdir</code> swallows <code>OSError</code>, so an unreadable <em>directory</em> silently drops its subtree; REQ-07 covers sidecars and transcripts, not directories</td><td>bug</td></tr><tr><td>B-4</td><td>Any <code>verify:</code> floor expressed as an absolute case count is vacuous — T-16&#x27;s <code>-ge 22</code> was satisfied at 29 before T-16 wrote a line. Make floors deltas against a measured pre-task count</td><td>chore</td></tr><tr><td>B-5</td><td>The footer&#x27;s second full corpus read is ~49% of wall clock (0.80s vs 0.41s). Sub-second today; the fix is to have <code>_build_row</code> return its measured sizes</td><td>enhancement</td></tr><tr><td>B-6</td><td><code>bash-write-guard.sh</code> refuses <code>sed -i</code> whose target is a shell variable, even when the expansion is in-domain</td><td>bug</td></tr><tr><td>B-7</td><td>Eight lines of <code>DECISIONS.md</code> anchor rot in plan citations — content correct, pointers 8 lines stale; <code>lanes.resolved_at</code> also stale</td><td>chore</td></tr><tr><td>B-8</td><td><code>BRIEF.md:247</code> cites DEC-90 as a live constraint; DEC-90 is STRUCK</td><td>chore</td></tr><tr><td>B-9</td><td><code>BRIEF.md:231-237</code> says SC-07 changes <code>check-domain.sh</code>&#x27;s write route; the tree contradicts it</td><td>chore</td></tr><tr><td>B-10</td><td>Corpus check for the <code> ##</code>-truncates-a-YAML-scalar shape in other plans — it cost D-21 299 invisible characters</td><td>chore</td></tr><tr><td>B-11</td><td>DEC-197 has no implementation; its own index row says so, and T-18&#x27;s correctness partly rests on it</td><td>chore</td></tr><tr><td>B-12</td><td>Two board cards (T-01 #642, T-02 #643) read Building while the issues are closed and the plan says done; <code>close-task</code> re-run twice did not move them</td><td>chore</td></tr><tr><td>B-13</td><td>T-08&#x27;s retention blind-spot line prints <code>0 day(s) old</code> when no transcript was read — a measurement never taken. The tension is in T-08&#x27;s intent, not the code</td><td>bug</td></tr><tr><td>B-14</td><td>D-11 spec gap: an agent whose last measured entry has zero token fields reports <code>current 0</code> beside <code>peak 97,076</code>. Faithful to D-11, misleading to a reader</td><td>chore</td></tr><tr><td>B-15</td><td>A lead was force-closed with its member in flight, twice on this feature; the member outlived it and wrote an unassessed artifact</td><td>bug</td></tr></tbody></table></div>
+<p><strong>One item is for the panel, not the backlog:</strong> the fix applied code <em>before</em> writing its new assertions — a RED-first deviation the lead volunteered rather than hid. It judged the deliverable sound because all four mutants deliver a count differential against the exact pre-fix shape, and a second member rebuilt them independently. I am carrying it forward rather than waiving it, because TDD ordering is qa&#x27;s and the panel&#x27;s call.</p>
+<h2 id="method-read-this-before-trusting-the-above">Method — read this before trusting the above</h2>
+<p><strong>No report round was spawned.</strong> I assembled this from the nine run digests on disk, and I read every one, including the plan-phase runs I did not conduct: <code>runs/plan-product/digest.md</code> (ESCALATE), <code>runs/plan2a-product/digest.md</code> (PASS), <code>runs/plan2b-product/digest.md</code> (BLOCKED), <code>runs/plan3-product/digest.md</code> (<strong>incomplete — a stub marked IN PROGRESS, carrying pre-dispatch acceptance criteria and no verdict</strong>), <code>runs/plan4-product/digest.md</code> (PASS), <code>runs/plan5-product/digest.md</code> (ESCALATE), <code>runs/build-eng/digest.md</code> (ESCALATE), <code>runs/build2-eng/digest.md</code> (ESCALATE), <code>runs/fix1-eng/digest.md</code> (PASS).</p>
+<p>For the plan-phase digests I read verdicts and headlines rather than the full text; for the two eng runs I conducted I read them in full and re-ran the verification myself. <strong>Every figure in this briefing I measured directly in this worktree at <code>b2f7c73</code>,</strong> rather than restating a member&#x27;s claim — including the ones that contradicted my own earlier report.</p>
+<p><code>runs/build2-eng/digest.md</code> was missing three required contract fields when it reached disk, though the lead&#x27;s return carried them. I completed them from that return and recorded the escalation&#x27;s resolution; <code>validate-digest.py</code> now passes it.</p>
+<p><strong>The goal-check has not run and no SC is recorded as met.</strong> Fourteen SCs exist (SC-01..SC-11, SC-13..SC-15 — there is no SC-12) and pm grades them once the tree is complete. What I can say is narrower and evidenced: SC-01&#x27;s live half is discharged, and the arithmetic and discovery claims the feature rests on are now true where this morning they were not.</p><p class='derived'>Derived from <code>ship-review-fix1.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
