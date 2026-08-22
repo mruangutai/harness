@@ -39,7 +39,7 @@ TRAP2_EXIT=0   # the line "PASS test-context-watch.py" appears exactly once — 
 
 `echo "$CLAUDE_PROJECT_DIR"` printed empty. `run-unit-tests.sh:3`'s `cd
 "${CLAUDE_PROJECT_DIR:-$(pwd)}"` therefore fell back to `$(pwd)`, which was this worktree
-(`/Users/molchairuangutai/GitHub/harness/.claude/worktrees/FEAT-31`) — confirmed, not assumed, by
+(`/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-31`) — confirmed, not assumed, by
 Trap 2's result: `grep -cx` found the PASS line exactly once, which is only possible if the suite
 ran against the worktree copy where `test-context-watch.py` exists. The suite did NOT silently run
 against the main checkout.

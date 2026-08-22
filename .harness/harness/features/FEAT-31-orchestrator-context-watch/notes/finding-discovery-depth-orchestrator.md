@@ -12,7 +12,7 @@ raised as a finding to be confirmed, not as a unilateral correction.
 
 ## The evidence
 
-Measured on this machine at 2026-08-21, worktree `.claude/worktrees/FEAT-31`, HEAD e5f88c4:
+Measured on this machine at 2026-08-21, worktree `.claude/worktrees/harness/FEAT-31`, HEAD e5f88c4:
 
 | glob | matches |
 |---|---|

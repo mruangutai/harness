@@ -96,4 +96,4 @@ Per iteration, prompt = `input_tokens` + `cache_read_input_tokens` + `cache_crea
 each defaulting to 0 — the plan's own definition, written inline here and NOT imported from
 `context-watch.py`, so this is an independent recomputation and not the tool checking itself.
 Population `~/.claude/projects/*/*.jsonl` at 2026-08-21, 76 files, worktree
-`.claude/worktrees/FEAT-31` at HEAD e5f88c4. Any re-run after 2026-09-20 will see a different corpus.
+`.claude/worktrees/harness/FEAT-31` at HEAD e5f88c4. Any re-run after 2026-09-20 will see a different corpus.

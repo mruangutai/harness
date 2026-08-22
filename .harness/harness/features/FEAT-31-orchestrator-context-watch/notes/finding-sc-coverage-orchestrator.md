@@ -99,7 +99,7 @@ time except this note.
 
 ## Method
 
-`harness_yaml.load_file` on `plan.yaml` at HEAD e5f88c4 in worktree `.claude/worktrees/FEAT-31`; file
+`harness_yaml.load_file` on `plan.yaml` at HEAD e5f88c4 in worktree `.claude/worktrees/harness/FEAT-31`; file
 list built from each task's `files:` key; substance probes are case-insensitive substring tests over
 each task's full serialised body, so a paraphrase would still have matched. SC list from
 `BRIEF.md:105-200`. Re-derivable with the same two commands at the same sha.
