@@ -3986,9 +3986,27 @@ nothing may ever require it, or a crash becomes unrecoverable.
 DEC-150 write-time shape gate grows a third pattern — handoff-*.md is denied on a missing
 required heading or >40 lines while the author is still alive to fix it; check-state.sh INV-17
 flags a feature whose `phase:` sits past a seam with no handoff note for the crossing, or a
-note that fails the shape. Not mechanized: the in-flight turn-count nudge (warn an orchestrator
-that is N turns deep mid-fix-loop) — deferred until a live fix loop actually produces the
-degraded-relay case; the watchdog remains the post-hoc audit.
+note that fails the shape.
+
+**The in-flight warning, and the metric it is not.** The watchdog is no longer only a post-hoc
+audit: `.claude/skills/harness/bin/context-watch-hook.py` is a PostToolUse hook registered in
+`.claude/settings.json` on the existing `Write|Edit|Bash` matcher, and it tells a running
+`harness-orchestrator`, in its OWN context while it runs, the moment its measured prompt size
+reaches `budgets.orchestrator_context_warn_tokens` (DEC-198). That is a different measurement
+from the one deferred here. What this entry deferred was a turn-count nudge — warn an
+orchestrator that is N turns deep mid-fix-loop — and what shipped is a context-size threshold
+instead: same function, different metric. The turn-count nudge remains deferred; nothing counts
+an orchestrator's turns, and the live fix loop that would justify it has still not been
+observed. The warning advises and never refuses — its own text says "this advises only; the
+orchestrator decides", and PostToolUse fires after the tool has already run, so its exit 2
+carries text back to the orchestrator and stops nothing.
+
+**The mid-flight case, which the seam rule does not cover.** Per-phase assumes a boundary is
+reachable; the warning can land when a phase is genuinely mid-flight. A warned orchestrator
+determines the nearest seam and writes the state a successor needs before it ends. Where no seam
+is reachable it writes a mid-phase handoff rather than continuing — the same note, the same four
+required sections, the same cap. This is when "a mid-phase relay is the bounded escape" above
+applies, and the note is what bounds it.
 
 Relay economics, stated once: a succession costs a fresh ~10k preload plus the working set
 (~30–50k total) and is won back the moment it prevents a handful of 300k-cache-read turns.

@@ -29,7 +29,8 @@
       "T-15",
       "T-16",
       "T-17",
-      "T-18"
+      "T-18",
+      "T-19"
     ],
     "issues": {
       "T-01": 642,
@@ -49,7 +50,8 @@
       "T-15": 659,
       "T-16": 660,
       "T-17": 661,
-      "T-18": 662
+      "T-18": 662,
+      "T-19": 672
     }
   },
   "runs": [
@@ -115,6 +117,18 @@
       "squad": "validation",
       "verdict": "FAIL",
       "agent": "harness-validator-lead"
+    },
+    {
+      "id": "fix2-product",
+      "squad": "product",
+      "verdict": "BLOCKED",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "t19-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
     }
   ]
 }

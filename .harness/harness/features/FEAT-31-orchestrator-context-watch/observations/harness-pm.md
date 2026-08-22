@@ -43,3 +43,12 @@
 - 2026-08-21: a `detect` value in harness.json `test_kinds` is a PIPE-SEPARATED STRING, not a list.
   `for g in v["detect"]` iterates characters and prints one letter per line, which looks like a
   successful enumeration in the transcript. Always `.split("|")`.
+- 2026-08-22: any task editing `.harness/harness/docs/DECISIONS.md` must also list
+  `DECISIONS-INDEX.md` and re-run `gen-decisions-index.py`, even when the row's TEXT is unchanged:
+  `gen-decisions-index.py:347` writes `@<source line>` per row, so lengthening one entry shifts
+  every later anchor and `test-gen-decisions-index.py`'s
+  `test_committed_index_matches_a_fresh_regeneration` goes red. Baselined exit 0 at abcba0e.
+- 2026-08-22: a false CLOSURE claim inside a decision (D-02 said plan4 closed SC-09; T-09's own
+  intent at plan.yaml:677 forbade it) is invisible to every gate — the suite was fully green and
+  all 18 tasks done. Only cross-reading each SC against the union of `traces:` found it. Grep the
+  plan for each SC id before asserting coverage in a decision.

@@ -81,7 +81,7 @@ decisions:
     because: A hyphenated name is unimportable by name, and the repo already loads a hyphenated script as a module in test-check-plan-routes.py, so no second module file is needed.
     dec: none
   - id: D-02
-    choice: SETTLED 2026-08-21. This plan is NO LONGER half-written and this decision is no longer a live deferral - it is the record of a deferral that CLOSED. What happened, in order, stated as it happened rather than as it was intended. The FIRST planning run wrote tasks covering SC-01 to SC-06, SC-08, SC-10, SC-11 only, that is REQ-01, REQ-02, REQ-03, REQ-05, REQ-06, REQ-07, and DEFERRED SC-07, SC-09, SC-13, SC-14, SC-15, that is REQ-04, REQ-08, REQ-09, REQ-10, to a second run. That was a real deferral of five approved criteria and it is not being rewritten as anything else. The SECOND run (plan4) appended T-09 through T-14 and closed SC-09, SC-14 and SC-15's automatable half - it did NOT reach SC-07 or SC-13, and notes/finding-sc-coverage-orchestrator.md is the measurement that caught the shortfall rather than anything on disk surfacing it. The THIRD run (plan5, 2026-08-21) appended T-15 through T-18 and closed SC-07 and SC-13, after the operator DECLINED both alternatives - shipping the measurement half with the two deferred, and amending them out of the approved BRIEF. Every criterion in BRIEF.md now has a task or a named non-task disposition - SC-10 is verify uat and is the operator's by D-12, and SC-15's behaviour half is hand-graded by D-21. NOTHING in this plan may cite this decision as authority to defer further work; the clause it carried is spent.
+    choice: SETTLED 2026-08-21. This plan is NO LONGER half-written and this decision is no longer a live deferral - it is the record of a deferral that CLOSED. What happened, in order, stated as it happened rather than as it was intended. The FIRST planning run wrote tasks covering SC-01 to SC-06, SC-08, SC-10, SC-11 only, that is REQ-01, REQ-02, REQ-03, REQ-05, REQ-06, REQ-07, and DEFERRED SC-07, SC-09, SC-13, SC-14, SC-15, that is REQ-04, REQ-08, REQ-09, REQ-10, to a second run. That was a real deferral of five approved criteria and it is not being rewritten as anything else. The SECOND run (plan4) appended T-09 through T-14 and closed SC-14 and SC-15's automatable half - it did NOT reach SC-07 or SC-13, and notes/finding-sc-coverage-orchestrator.md is the measurement that caught the shortfall rather than anything on disk surfacing it. CORRECTED 2026-08-22, and the record of the superseded statement is kept here because this decision is cited elsewhere in this plan and a citation must still land somewhere - this clause previously read that plan4 closed SC-09 as well. That was FALSE. plan4 closed no part of SC-09. T-09's own intent, at plan.yaml line 677, forbade it in as many words - "Do NOT edit DEC-159, that is SC-09 and belongs to a later planning run" - and no later run took it up, so SC-09 stood approved with no implementing task through plan4 and plan5. The blocking qa gate at review_sha ed62d74 returned FAIL for exactly that, over an entirely green suite. The false clause is what hid the gap, which is the very trap this decision was written to prevent, reproduced inside this decision. SC-09 is closed by T-19, appended 2026-08-22, which corrects DEC-159 in place under the operator's 2026-08-20 ruling at BRIEF.md lines 242 to 245. The THIRD run (plan5, 2026-08-21) appended T-15 through T-18 and closed SC-07 and SC-13, after the operator DECLINED both alternatives - shipping the measurement half with the two deferred, and amending them out of the approved BRIEF. Every criterion in BRIEF.md has a task or a named non-task disposition, and that became true only with T-19 - when plan5 first wrote this sentence it was false for SC-09, and it is left standing with that correction rather than reworded to look as though it had always held - SC-10 is verify uat and is the operator's by D-12, and SC-15's behaviour half is hand-graded by D-21. NOTHING in this plan may cite this decision as authority to defer further work; the clause it carried is spent.
     because: A standing "half-written by design" clause is an excuse with no expiry, and a goal-check reading it would report the shortfall as intended rather than as a gap - which is exactly the trap D-21 named for SC-15 and the trap the SC-07 and SC-13 finding walked into. DEC-188's grammar is the model - a superseded statement keeps its record rather than being deleted, because this decision is cited elsewhere in this plan and a citation must still land somewhere. The original split rationale, one writer on lanes and decisions and two on tasks, is preserved as history - it is why the lanes and decisions blocks were complete for both halves from the first run and why plan5 extended them only for surfaces no row covered.
     dec: DEC-188
   - id: D-03
@@ -1548,3 +1548,105 @@ tasks:
       Run the verify command BEFORE your edit and record its output, then after, and report both.
       The before-run must fail on the assert naming the new path; if it passes, someone has
       already made this edit and you should say so rather than duplicating the entry.
+
+  - id: T-19
+    title: SC-09 — DEC-159 is corrected in place so it covers the genuinely mid-flight phase and stops claiming the watchdog is only a post-hoc audit
+    traces: [REQ-09]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-09, T-17]
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      SEC="$(awk '/^## DEC-159 /,/^## DEC-160 /' .harness/harness/docs/DECISIONS.md)"
+      printf '%s\n' "$SEC" | grep -c '^## DEC-159 '
+      # expect exactly 1. POSITIVE CONTROL on the slice, bounded on BOTH sides by the two headings:
+      # 0 means the awk range found no start anchor and every count below is vacuous, not passing.
+      printf '%s\n' "$SEC" | grep -c 'templates/HANDOFF.md'
+      # expect exactly 1. SECOND CONTROL: the entry's BODY is still present, so a strike or a
+      # wholesale rewrite cannot satisfy this block by deleting the text the other counts search.
+      printf '%s\n' "$SEC" | grep -c 'the watchdog remains the post-hoc audit' || true
+      # expect exactly 0 -- THE FALSIFIED CLAUSE IS GONE. Measured 1 inside this exact slice at
+      # abcba0e, on one physical line, so this count fails on the pre-change tree.
+      printf '%s\n' "$SEC" | grep -c 'mid-flight'
+      # expect 1 or more. Measured 0 at abcba0e both in this slice AND file-wide in DECISIONS.md,
+      # so a match can only come from this task's edit.
+      printf '%s\n' "$SEC" | grep -c 'context-size'
+      # expect 1 or more. Measured 0 at abcba0e in this slice and file-wide. This is the METRIC
+      # the feature actually shipped, written rather than assumed.
+      printf '%s\n' "$SEC" | grep -c 'context-watch-hook.py'
+      # expect 1 or more. Measured 0 at abcba0e in this slice and file-wide.
+      printf '%s\n' "$SEC" | grep -c 'turn-count'
+      # expect 1 or more. Measured 1 at abcba0e, inside the very sentence being replaced, so the
+      # replacement must restate the turn-count nudge's standing rather than drop the subject.
+      printf '%s\n' "$SEC" | grep -cE 'STRUCK|am\.[0-9]' || true
+      # expect exactly 0. Measured 0 at abcba0e. SC-09 is one statement, one home: no strike
+      # record, no am.N block.
+      python3 .claude/skills/harness/bin/test-gen-decisions-index.py
+      # expect exit 0. Its committed-index-matches-a-fresh-regeneration case goes RED until
+      # gen-decisions-index.py is re-run, because this edit shifts the @line anchor of every entry
+      # after DEC-159.
+    intent: |
+      SC-09 IS THE SPEC. Read it at BRIEF.md lines 145 to 150 before you edit anything. Then edit
+      ONE decision entry, DEC-159, IN PLACE. DEC-159 starts at DECISIONS.md line 3945 at abcba0e
+      and ends where ## DEC-160 begins; re-locate it by its heading rather than trusting that
+      number, and never read DECISIONS.md whole (DEC-150).
+
+      THE RULING IS ALREADY MADE AND IS NOT YOURS TO REOPEN. BRIEF.md lines 242 to 245 rule that
+      DEC-159 is NOT struck: its core -- the per-phase seam and the four-section handoff note --
+      holds and is the basis of this entire feature. Only one clause is false. Do NOT add a strike
+      record. Do NOT add an am.N amendment block. Do NOT write a parallel rule into another entry
+      or into any skill. SC-09's words are "one statement, one home", and this is also the
+      convention issue #615 exists to establish (BRIEF.md lines 305 to 308). The verify block
+      asserts the absence of both STRUCK and am.N inside the entry.
+
+      WHAT IS FALSE TODAY. The entry's enforcement paragraph currently ends:
+        "Not mechanized: the in-flight turn-count nudge (warn an orchestrator that is N turns deep
+        mid-fix-loop) -- deferred until a live fix loop actually produces the degraded-relay case;
+        the watchdog remains the post-hoc audit."
+      That last clause is now false. This feature shipped
+      .claude/skills/harness/bin/context-watch-hook.py, a PostToolUse hook registered in
+      .claude/settings.json on the existing Write|Edit|Bash matcher, which warns a running
+      harness-orchestrator in its OWN context the moment its measured prompt size reaches
+      budgets.orchestrator_context_warn_tokens (declared at DEC-198). The instrument is no longer
+      only a post-hoc audit.
+
+      THE METRIC DISTINCTION, AND GETTING IT WRONG FALSIFIES THE RECORD. What DEC-159 DEFERRED was
+      a TURN-COUNT nudge -- "N turns deep mid-fix-loop". What shipped is a CONTEXT-SIZE warning at
+      a token threshold. Different metrics serving the same function. You MUST NOT write that the
+      deferred item was delivered. Write that the deferred nudge measured turns, that what shipped
+      measures context size instead, and state EXPLICITLY whether the turn-count nudge remains
+      deferred -- if it does, say so in those terms. The verify block requires both literal tokens
+      context-size and turn-count to be present for exactly this reason.
+
+      WHAT THE ENTRY MUST NOW SAY -- this is the SC-09 deliverable: what an orchestrator does when
+      a phase is genuinely MID-FLIGHT at the threshold, the case the per-phase seam does not cover
+      because that seam assumes a boundary is reachable. State it as a rule, in the vocabulary
+      already in the entry and in REQ-09 (BRIEF.md lines 98 to 99): the warned orchestrator
+      determines the nearest seam and writes the state a successor needs before it ends; where no
+      seam is reachable it writes a mid-phase handoff rather than continuing. The entry's existing
+      sentence "a mid-phase relay is the bounded escape" is the hook to build on -- it names the
+      escape and says nothing about when or how, and that silence is exactly the gap SC-09 closes.
+      Keep the note's four required sections and its cap as they are; you are adding the mid-flight
+      case, not redesigning the handoff. Use the literal token mid-flight.
+
+      SAY WHAT THE WARNING DOES NOT DO. It advises; it never refuses. context-watch.py's own
+      warning text says "this advises only; the orchestrator decides", and PostToolUse fires after
+      the write has already landed, so exit 2 there carries text back and nothing more. Do not
+      imply the hook can stop or gate an orchestrator.
+
+      PROSE IN THIS FILE IS HARD-WRAPPED. Keep each mandated literal token -- mid-flight,
+      context-size, context-watch-hook.py, turn-count -- unbroken on ONE physical line. A hyphen
+      split across a line break makes the verify report ABSENT what you actually wrote.
+
+      THEN REGENERATE THE INDEX: python3 .claude/skills/harness/bin/gen-decisions-index.py. This
+      is not bookkeeping. Every DECISIONS-INDEX.md row carries an @<line> anchor, so lengthening
+      DEC-159 shifts the anchor of every entry after it and
+      test-gen-decisions-index.py's committed-index-matches-a-fresh-regeneration case stays RED
+      until the generator is re-run. Never hand-edit the index.
+
+      TOUCH NOTHING ELSE. No other decision entry, and in particular NOT DEC-198, which is T-09's
+      and is landed and verified. Add no new decision entry. Write no other file.
