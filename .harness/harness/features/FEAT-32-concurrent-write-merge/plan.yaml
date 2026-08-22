@@ -2,9 +2,9 @@ schema: plan/1
 feature: FEAT-32-concurrent-write-merge
 
 approval:
-  status: pending
-  approved_by:
-  date:
+  status: approved
+  approved_by: operator
+  date: 2026-08-22
 
 lanes:
   resolved_at: c32f332

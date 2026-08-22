@@ -430,6 +430,6 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
 
 ## Approval
 
-status: pending
-approved-by:
-date:
+status: approved
+approved-by: operator
+date: 2026-08-22
