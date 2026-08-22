@@ -12,6 +12,16 @@
       "id": "2026-08-18-1-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-21-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-22-1-product",
+      "squad": "product",
+      "verdict": "PASS"
     }
   ],
   "github": {

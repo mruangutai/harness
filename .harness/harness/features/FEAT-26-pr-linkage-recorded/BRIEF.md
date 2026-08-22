@@ -9,16 +9,25 @@ A merged feature and an unmerged one look identical on disk. `feature.json` carr
 that FEAT-14 made **required to be present, not required to be true**, and nothing in the harness
 writes it for a harness feature — the only `pr create` in the tree is
 `.claude/skills/harness/bin/factory_land.py:67`, the product-repo path. The field was filled by
-hand, and the hand stopped: **eleven of the twenty-two `Done` features carry `pr: null`**
-(FEAT-01, 02, 03, 04, 05, 08, 10, 20, 21, 22, 23 — measured at `ada8e99`). To find the PR that
-shipped a feature the operator searches GitHub by hand.
+hand, and the hand stopped: **twelve of the twenty-seven `Done` features carry `pr: null`**
+(FEAT-01, 02, 03, 04, 05, 08, 10, 20, 21, 22, 23, 24 — measured at `6d1e34f`), and the other fifteen
+carry an integer at that same sha. The only two repairs anyone has made were made by hand, in two
+separate terminal commits from the operator's own session — `7dbb0f1` for FEAT-30 and `c924c6d` for
+FEAT-29 — so the field is not merely stale: it accrues roughly one omission per shipped feature. Nor
+does an omission announce itself — `5d9b428` merged FEAT-29's PR #601 while that feature's
+`feature.json` still read `status: Building, pr: null` with all nine of its `plan.yaml` tasks `done`,
+and it stayed that way for 30 hours 45 minutes until `c924c6d`, with nothing reporting it and the
+main session finding it by counting flows. To find the PR that shipped a feature the operator
+searches GitHub by hand.
 
 The second symptom is the closing keyword. `Closes #N` in a PR body is what moves the source
 tickets to `Done`, and it is typed every time — PR #491 carried `Closes #417. Closes #430.
-Closes #453.` because the operator typed them. It cannot be otherwise today: **the source ticket a
-feature was planned from is recorded nowhere machine-readable.** `feature.json`'s `github:` block
-holds `milestone`, `parent`, `parent_origin`, `attached` and `issues`, and none of them is the
-ticket the plan came from. Verified on FEAT-23: its sources #417, #430 and #453 appear only in
+Closes #453.` because the operator typed them, and `Closes #572`, `Closes #279` and `Closes #637`
+were each hand-typed into a body from a number that existed only in prose. It cannot be otherwise
+today: **the source ticket a feature was planned from is recorded nowhere machine-readable.**
+`feature.json`'s `github:` block holds `milestone` (populated on 19 features at `6d1e34f`), `parent`
+(20), `parent_origin` (18), `attached` (16) and `issues` (18), and none of them is the ticket the
+plan came from. Verified on FEAT-23: its sources #417, #430 and #453 appear only in
 prose.
 
 A field maintained by habit reports success while doing nothing.
@@ -28,8 +37,9 @@ A field maintained by habit reports success while doing nothing.
 A feature that ships records the pull request that shipped it, without anyone remembering to type
 the number; and the tickets a feature was planned from become data the harness can read, so the
 closing keywords for a PR body are produced from the record rather than recalled. The harness still
-does not open the PR — that seat stays the operator's (DEC-153) — and it does not post or close
-anything on the operator's behalf.
+does not open the PR — that seat stays the operator's (DEC-153) — and producing the closing keywords
+means producing a string the operator pastes: nothing in this feature ever posts, edits or closes
+anything on GitHub.
 
 ## Requirements
 
@@ -102,7 +112,10 @@ a `cmd: null` kind.
 
 ## Constraints
 
-- **The harness does not open the pull request.** DEC-153 (`DECISIONS.md:3660-3662`): the commit pen
+- **The harness does not open the pull request.** DEC-153, looked up by id in
+  `.harness/harness/docs/DECISIONS-INDEX.md` rather than pinned to a line range, because the line
+  range rots: the anchor cited here previously (`DECISIONS.md:3660-3662`) now lands inside DEC-152's
+  domain-fence text, moved by DEC-90's striking and DEC-183's amendment on 2026-08-21. The commit pen
   is the orchestrator's, and merge, PR and deploy stay user-gated. This feature designs the
   **recording** seat only. Whether the harness should open its own PRs is a question for the
   operator, raised and not answered here.
@@ -121,6 +134,17 @@ a `cmd: null` kind.
   factory lane; anything about product repositories. Issues #283 and #287 are factory-lane findings
   and are not absorbed. Issue #289 **is** absorbed, because the fix lands inside a function this
   feature already edits and the two writers in that one file currently disagree with each other.
+
+## Accepted costs
+
+- **The Goal's closing sentence binds for the renderer and for nothing else.** ACCEPTED. Half of it
+  is checked: SC-06 asserts the renderer never posts anything to GitHub, `verify: automated` with
+  `evidence: integration`, so a test carries that clause and it is not prose. What no criterion
+  reaches is the wider scope the sentence claims — none of SC-01..SC-11 sweeps every task in this
+  feature and proves that none of them posts, and none reaches *edits* or *closes* at all, not even
+  for the renderer, where SC-06 speaks only of posting. That wider claim is the accepted cost: a
+  criterion that sweeps every task for a negative is not a check anyone here knows how to write
+  cheaply, and an expensive proxy for it would report more assurance than it earns.
 
 ## Approval
 
