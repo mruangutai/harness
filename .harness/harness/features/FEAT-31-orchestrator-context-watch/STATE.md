@@ -3,118 +3,91 @@
 ## Current
 
 - feature: FEAT-31-orchestrator-context-watch
-- run: runs/fix1-eng (PASS, complete) · squad: eng · phase: **build COMPLETE for the team lane**
-  (phase recorded HERE; DEC-192 deleted it from feature.json, Q5 is issue #635)
-- status: **AWAITING THE OPERATOR** — every team task not blocked on a main-session-direct task is
-  done. Handoff: `notes/handoff-build.md` (seq-2, at `b2f7c73`) — **read it before acting.**
-- briefing: `notes/ship-review-fix1.md` (+ rendered `.html`)
-- budget: **cycles 4/10**, runs 9/20. Runs are INFORMATIONAL (INV-22); cycles are the hard bound.
+- phase: **ship** — build complete for both lanes pending T-05/T-09; validate not yet entered
+- run: `runs/t05-eng` IN FLIGHT (T-05, eng squad). Last complete: `runs/fix1-eng` PASS.
+- status: in_progress
+- budget: **cycles 4/10**, runs 10/20. Runs are INFORMATIONAL (INV-22); cycles are the hard bound.
+- `review_sha`: **not yet pinned** — pin at panel dispatch time, never at turn start (P-02).
 
-**BOTH GATES PASS** — `BRIEF.md` and `plan.yaml` read `approved` / `operator` / `2026-08-21`.
-Q-SIGN CLOSED (`notes/signature-reaffirmed-18-tasks.md`).
+**BOTH GATES PASS** — `BRIEF.md:310-314` and `plan.yaml` `approval:` read `approved` / `operator` /
+`2026-08-21`. Q-SIGN CLOSED (`notes/signature-reaffirmed-18-tasks.md`).
 
-### TEN OF EIGHTEEN TASKS DONE AND VERIFIED, committed at `b2f7c73`, tree clean
+### SIXTEEN OF EIGHTEEN TASKS DONE. The operator's six landed; T-05 and T-09 are all that remain.
 
-T-01, T-02, T-03, T-06, T-07, T-08, T-11, T-13, T-16, T-18 — `status: done`, sub-issues closed.
-**Each re-verified by the orchestrator against its own `verify:` block, not accepted from a digest.**
+**All six main-session-direct tasks (DEC-174) are complete and committed** — T-04, T-10, T-12, T-14,
+T-15, T-17 — across `1929774`, `47ff239`, `8329575`. **Those three commit messages are the receipts**
+and carry the measurements, the deliberate divergences and three self-reported errors. Do not
+re-derive what they record. Their `plan.yaml` statuses were recorded by me this run (the operator
+deliberately left status alone) and sub-issues #645/#651/#653/#655/#659/#661 are closed.
 
-**THE OPERATOR'S TWO BLOCKERS ARE CLEARED.** T-16: 21 named cases, `.claude/settings.json`
-**zero-diff** so D-24 holds. T-18: `harness.json` diffed key-by-key, exactly ONE key changed.
-**T-17 is unblocked.** T-07's `run-unit-tests.sh` append also landed — one entry, nothing removed,
-order preserved — so that contended file is settled and T-17 may append safely.
+- T-04 `orchestrator_context_warn_tokens: 200000` in `templates/harness.json` — verified present by
+  direct read, which is what unblocks T-05 and T-09.
+- T-14 INV-17's shape check RESTRUCTURED to one glob pass over `notes/handoff-*.md`. One call site,
+  so no file can be double-reported by construction. 74 notes in reach, zero fail.
+- T-10 an empty required SECTION now fails the shape, not only an absent heading (SC-15's automatable
+  half). T-15 SC-07's POSITIONAL `agent` rule; all 393 existing entries still validate.
+- T-17 `context-watch-hook.py` on the existing `PostToolUse` `Write|Edit|Bash` matcher, 20 assertions.
+  T-12 `run-unit-tests.sh` cross-checks its arrays against `test_kinds.integration.detect`, 23.
 
-### THE TWO STANDING DEFECTS ARE FIXED. This was cycle 4.
+### THREE LIVE MECHANICS THIS FEATURE JUST CREATED FOR ITSELF
 
-1. **Discovery was ONE LEVEL TOO SHALLOW.** Fixed at 3 production sites and in every fixture.
-   One-level glob **0**, two-level **2012**, of which **105** are `harness-orchestrator`. The tool
-   now returns **105 rows**, matching an independent glob count exactly.
-2. **`_build_row` contradicted D-11** — appended 0 for lines with no `message.usage`, took `current`
-   from the file's last LINE not the measured set's last MEMBER, counted `entries` as all parsed
-   lines. Fixed.
+1. **FEAT-31's `runs` exempt count is frozen at 9, so every entry from index 9 on MUST carry an
+   `agent` key or `check-domain.sh` DENIES the feature.json write.** T-15's rule, first live test.
+2. **`run-unit-tests.sh --check-kinds` before any commit.** A new `bin/test-*.py` must be in one of
+   the two arrays AND, if integration, in `test_kinds.integration.detect`. Milliseconds, runs no test.
+3. **This file is `## Current` + `## Open Questions`, nothing else, 120 lines, no history.**
 
-**SC-01's LIVE HALF IS DISCHARGED.** `verify-context-watch-live.py a7783f0ec41e6a8c6` reports tool
-and independent recomputation agreeing exactly at **current 696,472 / peak 696,472 / entries 669**;
-that peak matches `BRIEF.md:43` to the token, reproduced a third time by the orchestrator. Unit
-**76/76**, integration **10/10**, both exit 0, zero MISCONFIGURED. **Depth is now pinned in BOTH
-directions** (L1/L2), and all four mutant proofs assert the mutation APPLIED and that real and
-mutant results DIFFER.
+### WHAT REMAINS
 
-**WHY 65 GREEN CASES SAW NEITHER: the tool, the tests and the fixtures were built in the same wrong
-shape, so they agreed with each other and disagreed with reality.**
+T-05 (backend-dev, in flight) → **T-09 must follow it, NOT run beside it**: T-09's intent requires
+T-05's established answer on whether `upgrade-config.py` propagates a generic key, recorded as what
+was read. Then qa gate (`gates.qa_gate: blocking`) → SIMPLIFY → pin `review_sha` → **the review
+panel, requested by the operator by name** (validator-lead with code-reviewer, security-reviewer, qa;
+ui-reviewer self-scopes out on a no-UI diff) → pm goal-check on all 14 SCs → close-out → briefing.
+**The operator has PRE-APPROVED the ship** and authorised PR, CI and merge, so the briefing will be
+acted on rather than filed.
 
-**THE ORCHESTRATOR'S OWN ERROR, ON THE RECORD.** I re-ran T-01's verify block, saw both lines exit 0,
-and recorded T-01 `done` — while this file's own heading said both defects STILL STAND. I trusted a
-green gate over the written record, which is the failure this feature exists to close. T-01 and T-02
-were reverted to `building`, fixed, and only then recorded done.
+### Premises the next cycle must not re-derive
 
-### WHAT REMAINS, AND NONE OF IT IS THE ORCHESTRATOR'S TO START
-
-- **The operator's six** under DEC-174: T-04, T-10, T-12, T-14, T-15, T-17.
-- **T-05 and T-09 are mine but BLOCKED on T-04** — the template still lacks
-  `orchestrator_context_warn_tokens` at `b2f7c73`, so T-04 has not landed.
-- **Three of ten requirements are exclusively main-session-direct**: REQ-04 (T-15), REQ-09 (T-14),
-  REQ-10 (T-10, T-14). **The goal-check CANNOT pass until the operator's tasks land.**
-- qa gate, SIMPLIFY, `review_sha` pin, review panel, goal-check, close-out: all after the tree is
-  complete. `review_sha` is still `""` — pin it at dispatch time, never at turn start.
-
-### Premises the next cycle must not re-derive — the rest are in `notes/handoff-build.md`
-
-- `feature-worktree.py behind --repo harness --id FEAT-31` exits **0** — **run it from the PRIMARY
-  checkout**; from inside, `dest_for()` re-inserts the path and it exits 3 on a tree that is fine.
-- **Zero UI surface** — all 21 planned files are Python, shell, JSON or markdown; ui-reviewer
-  self-scopes out.
-- **Q-CHECKCOUNT CLOSED, benign**: 78 static `check(` sites vs 76 executed; the two unexecuted are
-  lines 668-669 in case J's `INCONCLUSIVE` branch, dead because the mutation applied. Settled with
-  `sys.settrace`, not inference.
-- **The `bash-write-guard.sh` heredoc hazard is FALSE** — a read-only `python3` heredoc with `>` and
-  `>=` runs CLEAN. **`.harness/teams/build.yaml` DOES NOT EXIST.**
+- **Q-HOOKCTX is CLOSED** (`notes/settled-Q-HOOKCTX.md`): hook stderr reaches a running agent in
+  full, as a **tool-result error string** rather than free-standing context. Settled by direct
+  observation. T-17's design stands. **Do not re-raise.**
+- **T-17's live firing cannot be confirmed from this branch** — hooks load from the session's
+  `CLAUDE_PROJECT_DIR`, which is the main checkout, so this registration first fires after merge. The
+  delivery CHANNEL is settled; this hook's own firing is not.
+- **Seven backlog rows are already filed** — #663 (T-13's vacuous verify), #664 (footer scope), #665
+  (`_safe_listdir` swallows OSError on a directory), #666 (absolute case-count floors are vacuous),
+  #667 (`sed -i` with a variable target), #668 (`0 day(s) old`), #669 (lead force-closed with a member
+  in flight). The other eight rows died. **Propose only what is NEW.**
+- **Zero UI surface** — all 21 planned files are Python, shell, JSON or markdown.
 - 14 SCs, SC-01..SC-11 and SC-13..SC-15 — **there is no SC-12**.
-- `runs/build2-eng/digest.md` reached disk missing 3 contract fields its return carried; completed
-  from that return, `validate-digest.py` now passes. `runs/plan3-product/digest.md` is an
-  **incomplete stub** (IN PROGRESS, no verdict).
-- Two board cards (T-01 #642, T-02 #643) read Building though closed and done — `close-task` re-run
+- Do NOT re-verify T-01 by its own `verify:` block — line 2 greps `no orchestrator` against a
+  nonexistent dir, which a tool finding nothing ANYWHERE satisfies identically. It passed while both
+  discovery defects stood (`notes/finding-discovery-depth-orchestrator.md`).
+- Do NOT trust a `verify:` floor expressed as an absolute case count; verify by case NAME.
+- Do NOT run `feature-worktree.py behind` from inside this worktree — `dest_for()` re-inserts the
+  path and exits 3 on a tree that is fine. Run it from the PRIMARY checkout.
+- SC-01's live half is DISCHARGED: tool and independent recomputation agree at current 696,472 /
+  peak 696,472 / entries 669, matching `BRIEF.md:43` to the token.
+- Two board cards (T-01 #642, T-02 #643) read Building though closed and done. `close-task` re-run
   twice did not move them. Documented mirror shape: never re-attempted, never a gate.
+- `runs/plan3-product/digest.md` is an **incomplete stub** (IN PROGRESS, no verdict).
 
 ## Open Questions
 
-<The channel from subagents to the user. A non-empty entry is an ACTIVE ROUTING
-SIGNAL, not a note: the orchestrator asks the user, writes the answers to
-.harness/harness/features/<FEAT>/notes/answers-<runid>.md, and re-delegates with that path. Clear
-each entry when it is answered.>
+<The channel from subagents to the user. A non-empty entry is an ACTIVE ROUTING SIGNAL: the
+orchestrator asks the user, writes answers to notes/answers-<runid>.md, and re-delegates with that
+path. Clear each entry when it is answered.>
 
-- **Q-HOOKCTX, BLOCKING AT T-17, THE OPERATOR'S TO SETTLE.** Unverified: that hook stderr reaches
-  the model as CONTEXT rather than only as a tool-result error string. **If false, SC-13 is not met
-  by this design and T-17 needs rethinking, not just writing.**
-- **Q-T13VERIFY, NEW, non-blocking, PM.** T-13's *signed* verify line 6 is VACUOUS — it greps
-  `not found` against a nonexistent projects dir, matching an early-return branch, so
-  `_find_agent_paths` (where Defect 2 lived) never runs. It is the assertion that should have caught
-  Defect 2. Fourth green-and-incapable-of-red instance here. A compensating control now exists, so
-  this is a plan re-anchor, not a blocker.
-- **Q-FOOTERSCOPE, NEW, non-blocking, PM.** On a ONE-ARGUMENT invocation the footer mixes scopes:
-  rows narrow to the single match, but blind-spot lines 1-2 re-walk the WHOLE corpus. Lands on SC-10
-  step 2. T-08's intent does not define filtered scope, so choosing one is pm's.
-- **Q-IRONLAW, non-blocking, FOR QA AND THE PANEL.** The fix applied code BEFORE writing its new
-  assertions — a RED-first deviation the lead volunteered. Judged sound because all four mutants
-  deliver a COUNT differential against the exact pre-fix shape, independently rebuilt by a second
-  member. Carried forward, NOT waived: TDD ordering is qa's and the panel's to weigh.
-- **Q-DIRFAILOPEN / Q-FOOTERPERF, non-blocking tool findings.** `_safe_listdir` swallows `OSError`,
-  so an unreadable DIRECTORY silently drops its subtree (REQ-07 covers sidecars and transcripts, not
-  directories). The footer's second corpus read is ~49% of wall clock (0.80s vs 0.41s) — sub-second
-  at 105 orchestrators, so rule 12 says leave it; narrowing the scan would break REQ-05.
-- **Q-RUTSH, non-blocking, RESOLVED IN PRACTICE.** `run-unit-tests.sh` had THREE writers, not two.
-  T-07 landed cleanly, so the file is settled — **T-17 and T-12 append only.**
-- **Q-VACUOUSFLOOR, non-blocking, GENERAL.** Any `verify:` floor from a PREDICTED assertion count is
-  vacuous. T-16's `-ge 22` was satisfied at 29 before T-16 wrote a line. Verify by case NAME.
-- **Q-D21, non-blocking.** ` ##` opens a YAML comment in a plain scalar — cost D-21 299 invisible
-  characters, invisible to `safe_load` and every gate. Worth a corpus check for the same shape.
-- **Q-DEC90, non-blocking.** `DEC-90` is STRUCK (`DECISIONS-INDEX.md:109`) but `BRIEF.md:247` cites
-  it as a live `BLOCKS` constraint. Only the operator edits an approved BRIEF.
-- **Q-BRIEF231, non-blocking.** `BRIEF.md:231-237` says SC-07 changes `check-domain.sh`'s write
-  route. Measured false — `:815` already calls `feature_schema.problems_for_text` (D-23).
-- **Q-ANCHOR, non-blocking.** DEC-174 content is at 4859-4862 and 4864-4867; the plan cites
-  4851-4854 and 4856-4859. `lanes.resolved_at` still `7299669`.
-- **Q-GUARD, non-blocking, SCOPE CORRECTED.** Heredoc half DISPROVEN; the real defect is `sed -i`
-  with a shell-variable target refused as out-of-domain.
-- **Q-COLLECT, non-blocking, RECURRED.** A lead force-closed with its member in flight; the member
-  outlived it and wrote an unassessed artifact. Mitigation: confirm liveness from the sidecar
-  transcript, never re-dispatch, verify mechanically.
+- **Q-IRONLAW, non-blocking, FOR QA AND THE PANEL.** The cycle-4 fix applied code BEFORE writing its
+  new assertions — a RED-first deviation the lead volunteered rather than concealed. Judged sound
+  because all four mutants deliver a COUNT differential against the exact pre-fix shape,
+  independently rebuilt by a second member. Carried forward, NOT waived: TDD ordering is qa's and the
+  panel's to weigh, and it is on the panel's docket this run.
+- **Q-WARNVERB, non-blocking, FOR THE PANEL — the sharpest open risk in the feature.** T-16's warning
+  text says "this advises only; the orchestrator decides" but never says the tool call SUCCEEDED and
+  needs no retry, while the harness wraps a POST exit 2 as a **"blocking error"**. Measured
+  consequence: the operator's own reaction to exactly that wrapper was to UNDO the write. An
+  orchestrator could retry (duplicate) or revert (loss). `check-domain.sh:698-703` already encodes
+  the remedy by setting `VERB` to `OVER BUDGET (already written)`. `context-watch.py` is T-16's file
+  and team-owned, so the fix is the panel's call, not the operator's edit.

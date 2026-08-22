@@ -400,7 +400,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: .claude/skills/harness/templates/harness.json resolves to NOBODY under check-domain.sh --resolve at 6f651f1, so no team agent can write it; DEC-160 makes the template the source for harness-init --upgrade
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/templates/harness.json
     verify: |
@@ -425,7 +425,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/upgrade-config.py
       - .claude/skills/harness/bin/test-upgrade-config.py
@@ -649,7 +649,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-03, T-04]
-    status: pending
+    status: building
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
@@ -685,7 +685,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.sh is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4 at DECISIONS.md lines 4851 to 4854, so no team agent performs the cutover even though check-domain.sh --resolve grants both paths to harness-backend-dev and harness-dev-ops at 7299669
     depends_on: [T-14]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
@@ -858,7 +858,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 am.4 — DECISIONS.md lines 4851 to 4854 declare the enumeration non-exhaustive and rule that a script becomes enforcement layer on the day it becomes a gate, the category deciding and the list recording; lines 4856 to 4859 add that the cutover making a gate use new logic is main-session-direct. run-unit-tests.sh is the command behind tests.yml lines 78 and 84, the two required steps, so a NEW REJECTION RULE in it is enforcement layer by category. Its test joins it under the same amendment. D-06 keeps T-02 and T-07 on team because an array append changes no gate rule; this task does. See D-19 and D-22.
     depends_on: [T-11]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/run-unit-tests.sh
       - .claude/skills/harness/bin/test-run-unit-tests-kinds.py
@@ -1056,7 +1056,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out — .claude/skills/harness/bin/check-state.sh is the state gate and .claude/skills/harness/bin/test-check-state.py is its paired test under DEC-174 am.4 at DECISIONS.md lines 4851 to 4854, and this task changes which files INV-17 rejects, which lines 4856 to 4859 place squarely on the main-session-direct side. check-domain.sh --resolve grants both paths to harness-backend-dev and harness-dev-ops at 7299669; the carve-out is narrower than the grant. See D-20.
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
@@ -1183,7 +1183,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out, and the module/cutover split is UNAVAILABLE here rather than declined - saying so explicitly because silence on this point is a send-back. DECISIONS.md lines 4864 to 4867 at 2cf792f rule that a module a gate imports is not itself a gate, a squad may write the library, and the cutover that makes a gate USE it is main-session-direct, proven by the gate's violation set being identical before and after. check-domain.sh:815 ALREADY calls feature_schema.problems_for_text in process, so there is no cutover left to separate out - the library write IS the cutover, and it changes the gate's violation set for every writer including the main session the instant it lands, with no hand the carve-out governs in between. Lines 4859 to 4862 make the enumeration a category rather than a list and name check-domain.sh plus the test file of each; am.4 therefore also pulls test-check-domain.py, and test-validate-feature-json.py is the test of the rule this task adds. check-domain.sh --resolve at 2cf792f grants feature-schema.json, feature_schema.py, test-validate-feature-json.py and test-check-domain.py all to harness-backend-dev and harness-dev-ops; the carve-out is narrower than the grant, exactly as D-19 records for check-domain.sh and check-state.sh. See D-23.
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/feature-schema.json
       - .claude/skills/harness/bin/feature_schema.py
@@ -1380,7 +1380,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out. context-watch-hook.py becomes a REGISTERED HOOK the moment .claude/settings.json names it, and DEC-174's ruling names the category "hooks, validators, gate scripts" while DECISIONS.md lines 4859 to 4862 at 2cf792f declare the enumeration non-exhaustive and rule that a script joins the list on the day it becomes a gate - the category decides, the list records. Lines 4864 to 4867 put the cutover that makes a gate use new logic squarely in the operator's hands, and this task IS that cutover - T-16 wrote the library, this task makes something call it. am.4 pairs the test with it. .claude/settings.json additionally resolves to NOBODY at 2cf792f, so that path is forced rather than a carve-out choice. The run-unit-tests.sh append is a data edit that D-06 would put in the team lane, and it is HERE rather than in its own task because run-unit-tests.sh lines 52 to 53 print MISCONFIGURED and exit 2 for any unregistered bin/test-*.py on every --kind, so a new test file and its registration must land in one change or every kind is red in between - a forced coupling, and the exact case the run-unit-tests.sh lanes row already sanctions as two lanes by edit kind. See D-24, D-25 and D-26.
     depends_on: [T-16]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/context-watch-hook.py
       - .claude/settings.json

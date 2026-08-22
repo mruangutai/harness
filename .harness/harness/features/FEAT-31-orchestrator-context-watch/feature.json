@@ -97,6 +97,12 @@
       "id": "fix1-eng",
       "squad": "eng",
       "verdict": "PASS"
+    },
+    {
+      "id": "t05-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ]
 }
