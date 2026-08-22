@@ -487,6 +487,123 @@ def case_no_artifact_directory(fx):
     )
 
 
+
+def case_behind_default_branch(fx):
+    """`behind` refuses a worktree whose HEAD trails the default branch. FEAT-31's real
+    incident: six commits behind, and the gap held expertise-merge.py and DEC-197 — a tool
+    and a decision two of its own tasks needed. Nothing reported it."""
+    info, r = create_one(fx, "harness", "FEAT-81")
+    assert r.returncode == 0, f"fixture setup for FEAT-81 failed: rc={r.returncode} stderr={r.stderr!r}"
+    dest = info["dest"]
+
+    # CASE A — freshly cut, so it is current by construction.
+    r0 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-81"], fx)
+    check(
+        "behind: a freshly cut worktree is current, exit 0",
+        r0.returncode == 0 and "current with main" in r0.stdout,
+        f"rc={r0.returncode} stdout={r0.stdout!r} stderr={r0.stderr!r}",
+    )
+
+    # Move main forward by two commits, in the OWNER checkout, so the worktree trails it.
+    marker = os.path.join(fx["repoA"], "moved-ahead.txt")
+    for n in (1, 2):
+        with open(marker, "w") as f:
+            f.write(f"commit {n}\n")
+        _git(fx["repoA"], ["add", "-A"])
+        _git(fx["repoA"], ["commit", "-q", "-m", f"main moves ahead {n}"])
+
+    # CASE B — now two behind. Exit 6, and the COUNT is named.
+    r1 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-81"], fx)
+    check(
+        "behind: two commits behind main exits 6",
+        r1.returncode == 6,
+        f"rc={r1.returncode} stdout={r1.stdout!r} stderr={r1.stderr!r}",
+    )
+    check(
+        "behind: the refusal names the count, not just that it is behind",
+        "2 commit(s) behind main" in r1.stderr,
+        r1.stderr,
+    )
+    check(
+        "behind: the refusal lists each missing commit's subject",
+        r1.stderr.count("missing:") == 2
+        and "main moves ahead 1" in r1.stderr
+        and "main moves ahead 2" in r1.stderr,
+        r1.stderr,
+    )
+    check(
+        "behind: the refusal names the merge command that fixes it",
+        f"git -C {dest} merge main" in r1.stderr,
+        r1.stderr,
+    )
+    check(
+        "behind: the refusal states it compared against LOCAL main",
+        "LOCAL main" in r1.stderr,
+        r1.stderr,
+    )
+
+    # CASE C — merging main in clears it. Proves the remedy the message prints works.
+    _git(dest, ["merge", "-q", "main", "-m", "pull main"])
+    r2 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-81"], fx)
+    check(
+        "behind: after the printed merge command, it is current again, exit 0",
+        r2.returncode == 0 and "current with main" in r2.stdout,
+        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+    )
+
+    # CASE D — an absent worktree is exit 3, distinct from behind. A single non-zero code
+    # for both would let "no such worktree" read as "you are behind".
+    r3 = run_cli(["behind", "--repo", "harness", "--id", "FEAT-82"], fx)
+    check(
+        "behind: an absent worktree exits 3, never 6",
+        r3.returncode == 3,
+        f"rc={r3.returncode} stderr={r3.stderr!r}",
+    )
+
+    # RED PROOF. An exit status is never the proof (a crash is also non-zero), so this
+    # mutates the comparison BY NAME in a source copy and asserts the COUNT of refusals
+    # drops. Without the mutation applied, nothing is claimed.
+    with open(CLI) as f:
+        original = f.read()
+    mutant_text = original.replace('if behind == 0:', 'if True:', 1)
+    if mutant_text == original:
+        check(
+            "behind RED: INCONCLUSIVE — the mutation did not apply, so the assertions "
+            "above are unproven. Has the `behind == 0` test been reworded?",
+            False,
+            "no textual change",
+        )
+        return
+    # THE MUTANT LIVES BESIDE THE ORIGINAL, not in the fixture. feature-worktree.py
+    # imports factory_config and harness_boundary from its OWN directory, so a copy
+    # written anywhere else dies on import and returns a non-zero code that looks exactly
+    # like the refusal this proof is trying to distinguish. FEAT-30's Q3 was this same trap.
+    mutant = os.path.join(HERE, ".mutant-feature-worktree-behind.py")
+    with open(mutant, "w") as f:
+        f.write(mutant_text)
+
+    # Put the worktree back to two-behind so the mutant faces the same input as CASE B.
+    _git(dest, ["reset", "-q", "--hard", "HEAD~1"])
+    env = dict(os.environ, CLAUDE_PROJECT_DIR=fx["repoA"], FEATURE_WORKTREE_BIN=mutant)
+    rm = subprocess.run(
+        [sys.executable, mutant, "behind", "--repo", "harness", "--id", "FEAT-81"],
+        capture_output=True, text=True, env=env,
+    )
+    rb = run_cli(["behind", "--repo", "harness", "--id", "FEAT-81"], fx)
+    try:
+        check(
+            f"behind RED: original refuses (rc={rb.returncode}) where the mutant passes "
+            f"(rc={rm.returncode}), so CASE B discriminates",
+            rb.returncode == 6 and rm.returncode == 0,
+            f"original rc={rb.returncode} stderr={rb.stderr!r} | mutant rc={rm.returncode} "
+            f"stdout={rm.stdout!r} stderr={rm.stderr!r}",
+        )
+    finally:
+        try:
+            os.remove(mutant)
+        except OSError:
+            pass
+
 def case_undeclared_repo(fx):
     r = run_cli(["list", "--repo", "org/nope"], fx)
     check(
@@ -851,6 +968,7 @@ def main():
             case_landed_refuse_then_allow(fx)
             case_landed_differs(fx)
             case_no_artifact_directory(fx)
+            case_behind_default_branch(fx)
         else:
             print("GUARD FAILED — refusing to create anything; skipping remaining cases")
     finally:
