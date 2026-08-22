@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-29-graphql-budget",
   "branch": "feat/FEAT-29-graphql-budget",
-  "pr": null,
-  "status": "Building",
+  "pr": 601,
+  "status": "Done",
   "review_sha": "27b85f2",
   "cycles_used": 12,
   "max_total_cycles": 12,

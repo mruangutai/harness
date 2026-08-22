@@ -41,7 +41,10 @@ jobs:
     # only thing standing between a container job and those assertions passing vacuously —
     # and it is a ban on a KEY, not evidence about the runtime. test-gh-sync.py carries a
     # `skip … (running as root)` branch, so if it ever did run as root those checks would go
-    # QUIET rather than red. `case_25b9` keeps the key banned; nothing checks the uid.
+    # QUIET rather than red. NOTHING KEEPS THE KEY BANNED. An earlier version of this comment
+    # cited `case_25b9` as the guard; measured 2026-08-21, no such case exists anywhere under
+    # .claude/skills/harness/bin/. The ban is this comment and the absence of the key, nothing
+    # more, and nothing checks the uid either.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -109,11 +112,20 @@ jobs:
       #
       # AND THE STEP CAN BE DELETED BY THE THING IT PROTECTS. `pull_request` runs the workflow
       # definition from the PR's own ref, so a PR removing this step still emits `integration` and
-      # still goes green — #133's shape applied to #133's fix. `test-check-plan-routes.py` case 25
-      # reads this file and asserts the step is here and unneutered; that test runs in the
-      # integration suite above, which IS the required context, so deleting this step now fails it.
+      # still goes green — #133's shape applied to #133's fix. NOTHING DETECTS THAT, and the
+      # citation that used to sit here was the worse kind of wrong: it named
+      # `test-check-plan-routes.py` case 25 as reading this file and asserting the step is present
+      # and unneutered. Measured 2026-08-21 — case_25 exists at :1030 and PASSES, and it asserts a
+      # plan.yaml `status:` enum under DEC-192. It never opens this file. A reader following that
+      # citation found a green test and stopped looking, which is worse than finding nothing.
+      # No test under bin/ asserts anything about this workflow's content.
       #
-      # M IS ASSERTED, NOT JUST THE EXIT CODE. The checker's last line is
+      # M IS *NOT* ASSERTED — `examined` is, and that is the assertion this step actually rests
+      # on. Measured 2026-08-21: `plans` is assigned at :154 and read only by the `echo` at :180;
+      # no conditional touches it. `examined` is read by two, at :166 and :170. The `plans == 0`
+      # check was deliberately removed on 2026-08-13 for the reason recorded below, so the
+      # paragraph that follows describes a guard this file no longer has. It is kept because its
+      # REASONING is still why `examined` is checked. The checker's last line is
       # `N violation(s) across M plan(s)`; a step that read only $? passes when M is 0 — a green
       # tick from a gate that examined nothing, issue #133's named ordering trap. Not a live hole as of 1c95e81, post-move:
       # all 20 plan files are git-tracked and `.harness/harness/features/` is not ignored, so
@@ -181,7 +193,13 @@ jobs:
           exit "$rc"
 
       # THE LAYOUT GATE (FEAT-20/T-03, REQ-06). Nothing in the repository asserts this
-      # step is present or unneutered.
+      # step is present or unneutered — still true at 2026-08-21, and it is the same hole the
+      # Plan-route gate above carries. Both are accepted rather than unnoticed (DEC-183): a guard
+      # hosted inside this workflow cannot protect this workflow, because `pull_request` runs the
+      # definition from the PR's own ref, so one PR edits the step and its guard together. The
+      # control that remains is a human reading the .github/ diff, and nothing can require one on
+      # this repo — branch protection carries zero required reviewers and CODEOWNERS is
+      # deliberately unenforced, because the sole collaborator cannot approve their own PR.
       - name: Layout gate
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}

@@ -274,6 +274,68 @@ def cmd_remove(args):
     print(f"REMOVED {dest}")
 
 
+def cmd_behind(args):
+    """REFUSE a ship whose worktree is behind the repository's default branch. Exit 6.
+
+    WHY THIS EXISTS, measured 2026-08-21. FEAT-31's worktree sat SIX commits behind `main`
+    when its build was about to be dispatched, and the gap was not cosmetic: it held
+    `expertise-merge.py` and DEC-197, a tool and a decision that two of that plan's own
+    tasks needed. The build would have re-derived a rule it should have cited, against a
+    tree that did not contain it. Nothing reported this; the operator asked.
+
+    WHY LOCAL `main` AND NOT `origin/main`, decided rather than defaulted. This is a local
+    git question and `git rev-list` answers it offline in ~10ms for zero GraphQL points.
+    Routing it through `gh` was considered and rejected on a measurement: none of the three
+    in-flight feature branches existed on the remote at all, because nothing is pushed until
+    PR time — so `gh` would have answered "no such branch" for exactly the case this catches.
+    The accepted cost: if local `main` is itself stale this UNDER-reports. That is the safe
+    direction; it never accuses a tree that is actually current.
+
+    NO THRESHOLD, DELIBERATELY. An earlier design gated on whether the missing commits
+    touched `.claude/` or the decision docs, to stay quiet on ordinary drift. That
+    discriminator exists because the check was going to live in `check-state.sh`, which runs
+    at every door AND before every commit. At the SHIP DOOR it runs once per ship, so any
+    commit behind is worth stopping for and the fix is one merge.
+
+    WHAT THIS DOES NOT CATCH, said rather than discovered: a build that starts current and
+    drifts behind while it runs. The check fires at the door, not mid-flight.
+    """
+    owner_root, segment, default_branch = resolve_repo(args.repo)
+    dest = dest_for(owner_root, segment, args.id)
+    if not os.path.isdir(dest):
+        print(f"feature-worktree: no worktree at {dest}", file=sys.stderr)
+        sys.exit(3)
+
+    r = _run_git(["rev-list", "--count", f"HEAD..{default_branch}"], dest)
+    if r.returncode != 0:
+        # FAIL OPEN, and say so loudly. A ship must not be blocked because git could not
+        # answer; but a silent pass here would be a gate that examined nothing, so the
+        # operator is told the check did not run rather than told it passed.
+        print(f"feature-worktree: COULD NOT CHECK — `git rev-list HEAD..{default_branch}` "
+              f"failed in {dest}", file=sys.stderr)
+        print(f"  {r.stderr.strip()}", file=sys.stderr)
+        print("  This is not a pass. Nothing was compared.", file=sys.stderr)
+        sys.exit(0)
+
+    behind = int(r.stdout.strip() or "0")
+    if behind == 0:
+        print(f"current with {default_branch}: {dest}")
+        sys.exit(0)
+
+    print(f"feature-worktree: REFUSED — {dest} is {behind} commit(s) behind "
+          f"{default_branch}.", file=sys.stderr)
+    log = _run_git(["log", "--oneline", f"HEAD..{default_branch}"], dest)
+    if log.returncode == 0 and log.stdout.strip():
+        for line in log.stdout.strip().splitlines():
+            print(f"  missing: {line}", file=sys.stderr)
+    print(f"  Building here tests a tree that does not contain the above. Bring it "
+          f"current first:", file=sys.stderr)
+    print(f"    git -C {dest} merge {default_branch}", file=sys.stderr)
+    print(f"  Compared against LOCAL {default_branch}. If that ref is itself stale this "
+          f"count is a floor, never a ceiling.", file=sys.stderr)
+    sys.exit(6)
+
+
 def _build_parser():
     parser = argparse.ArgumentParser(prog="feature-worktree.py")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -293,6 +355,10 @@ def _build_parser():
     p_remove.add_argument("--repo", required=True)
     p_remove.add_argument("--id", required=True)
 
+    p_behind = sub.add_parser("behind")
+    p_behind.add_argument("--repo", required=True)
+    p_behind.add_argument("--id", required=True)
+
     return parser
 
 
@@ -307,6 +373,8 @@ def main():
         cmd_path(args)
     elif args.cmd == "remove":
         cmd_remove(args)
+    elif args.cmd == "behind":
+        cmd_behind(args)
 
 
 if __name__ == "__main__":

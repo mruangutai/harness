@@ -5457,6 +5457,35 @@ thing it found would be enforcement theatre.
 the route step alone; #163's triggers and #161's reasons keep their justification in the file's own
 comments. **Not verified:** the real CI run.
 
+**Amendment 1 (2026-08-21) — the reason the 39 assertions were deleted, recorded at last.**
+
+The entry above says only "deleted by owner decision" and gives no reason, so the question was
+reopened once and cost a review round. The reason, stated by the operator on 2026-08-21, is two
+things and the second is the load-bearing one:
+
+1. **The harness was too heavy.** What was deleted did not merely read the workflow — it cloned a
+   workspace and EXECUTED workflow bodies against it. That weight is what was rejected.
+2. **A check on this workflow does not belong in this workflow.** `pull_request` runs the definition
+   from the PR's own ref, so one PR edits a step and its guard together. A guard hosted here cannot
+   protect its own host step: delete the `Integration suite` step and every assertion inside it
+   simply never runs. Neutering is detectable; deleting the host is not.
+
+**What this settles, and it is narrower than it sounds.** A LIGHTER guard is not the answer either,
+because reason 2 is structural rather than about cost. A proposal to add a pure predicate over
+`yaml.safe_load` of this workflow — no clone, no body execution — was worked up in full, planned, and
+then ABANDONED on this reasoning: it shrinks the hole (it catches a hollowed-out step and the deletion
+of the inner gate steps) and cannot close it (it cannot see the deletion of the step that runs it).
+
+**What remains unmeasured.** Whether a GitHub ruleset, a required workflow, or a workflow pinned to a
+different ref can run a check the pull request cannot edit. Nobody has checked. If one can, reason 2
+dissolves and this amendment should be revisited; until then the conclusion below stands.
+
+So the original conclusion holds for a better-stated reason: **nothing protects the gate — not
+pending, settled.** What DID change is the honesty of the file: four citations in
+`.github/workflows/tests.yml` claimed guards that do not exist, including one naming a real, green,
+passing test that asserts something unrelated. Those were repaired, so a reader who follows a
+citation now finds what it claims or finds it saying plainly that nothing is there.
+
 ## DEC-184 — Design 0001, reconstructed stub: the work-graph engine is a recorded future design, deferred until multiple seats need atomic claiming
 
 **Reconstructed after the fact (2026-08-08), not a transcript.** `docs/PRINCIPLES.md` cited a
