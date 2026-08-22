@@ -3,89 +3,85 @@
 ## Current
 
 - feature: FEAT-31-orchestrator-context-watch
-- run: .harness/harness/features/FEAT-31-orchestrator-context-watch/runs/plan5-product
-- squad: product
-- status: Building — plan amended to 18 tasks, AWAITING THE OPERATOR'S RE-SIGNATURE
-- phase: build (recorded HERE; DEC-192 deleted `phase` from feature.json. Q5 filed as issue #635.)
+- run: runs/fix1-eng (IN FLIGHT) · squad: eng · phase: build (DEC-192 deleted `phase` from
+  feature.json; Q5 is issue #635)
+- status: Building — cycle 4, fixing T-01's two confirmed defects
+- budget: **cycles 4/10**, runs 8/20. Runs are INFORMATIONAL (INV-22); cycles are the hard bound.
 
-**THE AMENDMENT LANDED AND IS INDEPENDENTLY VERIFIED. `plan.yaml` is 18 tasks / 26 decisions,
-`safe_load` clean, `approval:` BYTE-IDENTICAL (`sed -n '4,7p' | shasum -a 256` = `6128e42047a1ec37…`),
-`check-plan-routes.py` 0 violations across 18 tasks.** The run is recorded `ESCALATE` — its lead's
-returned verdict — and the escalation is procedural, not a rejection of the work.
+**BOTH GATES PASS** — `BRIEF.md` and `plan.yaml` read `approved` / `operator` / `2026-08-21`. Q-SIGN
+CLOSED: `notes/signature-reaffirmed-18-tasks.md` is the only record distinguishing a signature taken
+at 14 tasks from one re-affirmed at 18, since `approval:` is byte-identical by design.
 
-**What happened, recorded as it happened.** harness-product-lead was force-closed with its pm still
-in flight. The pm SURVIVED its lead, kept working unsupervised, and completed all four jobs by 17:57.
-Nothing was re-dispatched: exactly one pm ever wrote `plan.yaml` (#628 respected). The orchestrator
-confirmed the pm was alive from its sidecar transcript rather than guessing, and verified the result
-mechanically — parse, task count, approval hash, route check — before accepting it.
+### THE OPERATOR'S TWO BLOCKERS ARE CLEARED — verified independently, not taken from the digest
 
-**THE BUILD BLOCKER IS CLEARED.** PR #658 is MERGED (`d065b3b`, `mergedAt 2026-08-22T00:30:27Z`).
-Measured at `2cf792f` in THIS worktree: `run-unit-tests.sh --kind unit` exits **0** with
-`PASS test-harness-yaml-corpus.py` and zero MISCONFIGURED lines; `--kind integration` exits **0**.
-Worktree 0 behind origin/main, 19 ahead. A red suite is evidence again.
+- **T-18** — `harness.json` diffed key-by-key against HEAD: exactly ONE key changed
+  (`test_kinds.integration.detect`), one path added (`.../test-context-watch-hook.py`), nothing
+  removed, 17 entries to 18. `absent from detect 0`, `wrongly in detect 0`. **T-17 unblocked.**
+- **T-16** — all 21 named cases pass (H1-H11, I1-I3, J-anchor/J-RED/J1-J3, K1-K7).
+  `.claude/settings.json` **zero-diff**, so D-24 holds and the team lane is intact. **T-17 unblocked.**
 
-| task | verdict | evidence at 2cf792f |
-|---|---|---|
-| T-01 | PASS | both verify lines exit 0 |
-| T-02 | PASS | was FAIL on the red corpus test; re-verified green post-merge (15/15, suite exit 0) |
-| T-03 T-11 | PASS (done) | T-11 re-run: integration array 14, absent from detect 0; unit 19, wrongly 0 |
-| T-06 T-07 T-08 T-13 | not dispatched | UNBLOCKED now |
-| T-04 T-10 T-12 T-14 | pending | operator's own, main-session-direct |
-| T-15 T-16 T-17 T-18 | pending (new) | T-15 SC-07 msd; T-16 SC-13 library team; T-17 SC-13 cutover msd; T-18 test_kinds team |
+### build2-eng: six tasks PASS first-pass, zero send-backs. THEN TWO REAL DEFECTS SURFACED
 
-### SEQUENCING RULING — T-18 → T-17 → T-12. This is an orchestrator's call, not an open question.
+T-06 (14 named cases D-G), T-07 (10/10), T-08 (3 derived blind-spot lines), T-13 (8/8 verify lines)
+all re-verified by the orchestrator. **T-07's `run-unit-tests.sh` edit is a clean single append** —
+one entry added, nothing removed, order preserved, zero other lines changed.
 
-Derived independently by the orchestrator and by pm. **T-17 appends `test-context-watch-hook.py` to
-`INTEGRATION_SCRIPTS` in `run-unit-tests.sh` — the same file T-12 edits.** Until T-18 adds the
-matching path to `test_kinds.integration.detect`, `absent from detect` is 1, which **reds T-11's
-already-recorded PASS** and makes T-12's `--check-kinds` report KIND-DRIFT (exit 2), failing
-`tests.yml`'s two required steps for EVERY kind. Reordering is an execution-time adjustment and is
-the orchestrator's authority; the missing `depends_on` edge on T-12 is a plan-level nicety that
-rides the re-signature and is NOT a precondition for starting.
+### THE TWO DEFECTS ARE CONFIRMED AND LOCALIZED. T-01 AND T-02 BACK TO `building`
 
-**T-04, T-10 and T-14 have NO interaction with the new tasks.** `check-state.sh` belongs to SC-14
-only (BRIEF:233-234) and D-18 already ruled the `harness.json` TEMPLATE untouched by test-kind
-registration. T-12 is the single point of contact.
+Sub-issues #642 and #643 REOPENED. `cycles_used` 3 to 4. Full diagnosis:
+`notes/finding-discovery-depth-orchestrator.md` (defect 2) and `runs/build2-eng/digest.md`.
 
-### The two context-watch.py defects STILL STAND at 2cf792f
+1. **`_build_row` contradicts D-11** (`context-watch.py:287-305`). Raised by eng-lead, confirmed by
+   reading the source. `:294` appends **0** for a line with no `message.usage`; `:297` takes
+   `current` from the file's last LINE, not the measured set's last MEMBER; `:305` counts `entries`
+   as all parsed lines. `peak` is right only because zeros cannot affect a max. T-01's own `intent:`
+   names this exact case and says "Do not do that."
+2. **Discovery is ONE LEVEL TOO SHALLOW** (orchestrator, 4 sites). No-argument run prints `no
+   orchestrators found`. At `fbee81f`: one-level glob **0**, two-level **2012**, of which **105** are
+   `harness-orchestrator`. `verify-context-watch-live.py a7783f0ec41e6a8c6` says `no such agent`
+   while that sidecar exists with a 3,275,314-byte transcript. Sites: `context-watch.py:317-320`,
+   `:567-570`, `verify-context-watch-live.py:144-149`, **and every fixture**
+   (`test-context-watch.py:103,173,207`, `test-context-watch-cli.py:72`,
+   `verify-context-watch-live.py:266`) builds the same one-level shape.
 
-1. **Zero orchestrators found.** No-argument run prints "no orchestrators found". Discovery walks
-   `<root>/<session>/subagents` (`:201-211`); dirs at that depth **0**, at the real
-   `<root>/<project>/<session>/subagents` depth **37**, holding **2004** sidecars, **104**
-   `harness-orchestrator`. `transcript_dir_for_cwd()` is defined at `:46` and referenced NOWHERE
-   else. The clause is now corrected (`plan.yaml:227-250`), so the fix has a plan that agrees with itself.
-2. **`current` reads 0 for a loaded agent.** `current = sizes[-1] if sizes else 0` (`:181`).
+**WHY 65 GREEN CASES SAW NEITHER: the tool, the tests and the fixtures all agree with each other and
+all disagree with reality.** Defect 2 was documented days ago at `e5f88c4`; the plan clause was then
+corrected and re-signed, **and the code was never rebuilt.**
+
+**THE ORCHESTRATOR'S OWN ERROR, ON THE RECORD.** I re-ran T-01's verify block, saw both lines exit 0,
+and recorded T-01 `done` — while this file's own heading said both defects STILL STAND. I trusted a
+green gate over the standing record. T-01's verify line 2 is why: a tool that finds nothing ANYWHERE
+satisfies `grep -qE "no orchestrator"` exactly as well as a correct one.
+
+**This is a FIX CYCLE, not a plan change.** The lead escalated it as plan-level; that was wrong.
+D-11 as corrected IS the approved spec and T-01's `intent:` already specifies the behaviour. Code
+contradicting an approved decision is a bug fix; an approved decision being wrong is pm's.
+
+### Three claims CORRECTED — do not act on the old versions
+
+- **The `bash-write-guard.sh` heredoc hazard is FALSE as recorded.** Tested: a read-only `python3`
+  heredoc containing `>` and `>=` in Python source runs CLEAN (`:390` masks quoted text, has a
+  `(?<![0-9&<])` lookbehind and a `/dev/` skip). Q-GUARD's real half is the `sed -i` variable case.
+- **`.harness/teams/build.yaml` DOES NOT EXIST** — only `.claude/skills/harness/teams/` has it.
+- **Q-LIVEHALF's premise is FALSE.** A live orchestrator WAS running throughout build2-eng — the
+  orchestrator itself. SC-01's live half is undischarged because discovery finds nothing.
 
 ### Premises the next cycle must not re-derive
 
-- **The base sha question is SETTLED and the miss was the orchestrator's.** `2cf792f` is
-  `Merge branch 'main' into feat/…`, authored and committed by **Mike Ruangutai at 17:31:08** — the
-  operator's own hand, which is why no guard refused it; a governed agent cannot move HEAD. The
-  orchestrator read HEAD as `294a1a7` at the start of its run, dispatched at ~17:33 with that pin
-  already ~2 minutes stale, and caught it by re-measuring at 17:41. **Pin at dispatch time, not at
-  turn start.** No receipt is invalidated: pm re-measured everything at `2cf792f`.
-- **SC-13's matcher DELIVERS, measured two independent ways.** Orchestrator: of **36** orchestrator
-  transcripts that crossed 200,000, **36** had a `Write`/`Edit`/`Bash` call AFTER the crossing — zero
-  would never be warned. pm: `Write|Edit|Bash` covers 3079/3280 = 93.9% of tool_use events; `Edit`
-  appears zero times; the dispatch tool is `Agent`, not `Task`. Residual is LATENCY (the warning
-  arrives on the next such call), not a hole. Closes the probe's one open question.
-- **SC-07 needs NO `check-domain.sh` edit — this falsifies BRIEF.md:231-237.** `check-domain.sh:815`
-  already calls `feature_schema.problems_for_text`, so the rule table is `feature-schema.json` +
-  `feature_schema.py` and the library write IS the cutover. `runs.items` is
-  `additionalProperties: false`, `required: [id, squad, verdict]`; 390 runs entries across 31 files
-  carry exactly those keys, so a schema `required` denies all 31. Only a positional rule satisfies
-  both halves of SC-07 (D-23).
-- **T-14's verify baseline was FALSE.** `check-state.sh | grep -c 'handoff-'` is **3**, not the
-  commented 0, and `|| true` made the line incapable of failing either way. Now asserted on the
-  ` VIOLATION ` prefix. `test-check-state.py` prints NO summary line at all — 90 `^ok` lines.
-- **The ship-door freshness gate CANNOT SEE this worktree.** `feature-worktree.py behind --repo
-  harness --id FEAT-31` exits **3**, `no worktree at .../.claude/worktrees/harness/FEAT-31`, because
-  `dest_for()` (`feature-worktree.py:56-59`) inserts a `<repo>` segment this worktree's path lacks.
-  The same `dest_for` serves `remove`.
-- `check-state.sh`: **0** FEAT-31 problems; its single VIOLATION is FEAT-26's unapproved BRIEF.
-- MISCONFIGURED cannot coexist with exit 0 (`run-unit-tests.sh:52-53` prints then `exit 2`).
-- `iterations` mixes 395 foreign-context `advisor_message` entries but changes peak and current in
-  **0 of 74** transcripts — backlog, not gate.
+- Worktree CURRENT with main: `feature-worktree.py behind --repo harness --id FEAT-31` exits **0** —
+  **run from the PRIMARY checkout**; from inside, `dest_for()` re-inserts the path and exits 3 on a
+  tree that is fine.
+- **Zero UI surface** — all 21 planned files are Python, shell, JSON or markdown, so ui-reviewer
+  self-scopes out of the panel.
+- **Three of ten requirements are 100% main-session-direct**: REQ-04 (T-15), REQ-09 (T-14), REQ-10
+  (T-10, T-14). The feature cannot reach goal-check without the operator's six tasks.
+- **T-04 has NOT landed** — the template lacks `orchestrator_context_warn_tokens`, so T-05 and T-09
+  remain blocked on it.
+- **Q-ANCHOR re-measured at `fbee81f`, CONFIRMED**: DEC-174 content is at 4859-4862 and 4864-4867;
+  the plan cites 4851-4854 and 4856-4859. Content correct, pointers 8 lines stale.
+- 14 SCs, SC-01..SC-11 and SC-13..SC-15 — **there is no SC-12**.
+- `check-state.sh`: 0 FEAT-31 problems; its one VIOLATION is FEAT-26's unapproved BRIEF.
+- MISCONFIGURED cannot coexist with exit 0 (`run-unit-tests.sh:52-53` prints, then exits 2).
 
 ## Open Questions
 
@@ -94,27 +90,31 @@ SIGNAL, not a note: the orchestrator asks the user, writes the answers to
 .harness/harness/features/<FEAT>/notes/answers-<runid>.md, and re-delegates with that path. Clear
 each entry when it is answered.>
 
-- **Q-SIGN, BLOCKING, THE ONLY THING GATING THE RESTART.** The signed plan grew 14 → 18 tasks, three
-  of the four new ones `main-session-direct`, and two things a machine reads changed: D-21 gained 299
-  characters no loader could previously see, and the discovery clause now specifies the OPPOSITE
-  depth to the one the signature covered. Does the operator re-sign? `approval:` was NOT touched and
-  is byte-identical. Not the orchestrator's decision to make.
+- **Q-RUTSH, non-blocking, TIME-SENSITIVE.** `run-unit-tests.sh` has THREE writers: T-07 (done,
+  append verified clean) plus the operator's T-17 and T-12. The recorded T-18/T-17/T-12 ruling names
+  only the latter two. T-07 has landed, so the file is settled and T-17 may proceed — **append
+  only**. A rewrite of that array by either side silently drops the other's entry.
+- **Q-VACUOUSFLOOR, NEW, non-blocking, GENERAL.** Any `verify:` floor derived from a PREDICTED
+  assertion count is vacuous. T-16's `-ge 22` was already satisfied at 29 before T-16 wrote a line,
+  because the plan assumed T-06 would add 4 cases when it added 14. Found independently by the lead
+  and the orchestrator; T-16 was therefore verified by case NAME. Backlog, not this run.
+- **Q-FOOTERCOV, non-blocking, FOLDED INTO fix1-eng.** T-08's three footer lines had zero committed
+  coverage — `test-context-watch.py` was not in T-08's `files:`, so RED/GREEN used a throwaway probe.
 - **Q-D21, non-blocking.** `D-21`'s `choice` was silently truncated 299 chars because ` ##` opens a
-  YAML comment in a plain scalar — invisible to `safe_load` and so to every gate, pre-existing at the
-  signature. pm repaired it by quoting. Worth a corpus check for the same shape in other plans.
-- **Q-DEC90, non-blocking.** `DEC-90` is STRUCK (`DECISIONS-INDEX.md:109`, 2026-08-21) but
-  `BRIEF.md:247` cites it as a live `BLOCKS` constraint. BRIEF.md is approved; only the operator edits it.
+  YAML comment in a plain scalar — invisible to `safe_load` and so to every gate. Worth a corpus
+  check for the same shape in other plans.
+- **Q-DEC90, non-blocking.** `DEC-90` is STRUCK (`DECISIONS-INDEX.md:109`) but `BRIEF.md:247` cites
+  it as a live `BLOCKS` constraint. BRIEF.md is approved; only the operator edits it.
 - **Q-BRIEF231, non-blocking.** `BRIEF.md:231-237` says SC-07 changes `check-domain.sh`'s write
-  route. Measured false — see above. The BRIEF asserts something the tree contradicts.
-- **Q-ANCHOR, non-blocking.** 8 lines of DECISIONS.md anchor rot: T-10/T-12/T-14 and D-19/D-20/D-22
-  cite `4851-4854`/`4856-4859`, correct at `7299669`, now `4859-4862`/`4864-4867`. `lanes.resolved_at`
-  is still `7299669` (`plan.yaml:10`) while the new tasks resolve at `2cf792f`.
-- **Q-GUARD, non-blocking, HARNESS DEFECT.** `bash-write-guard.sh` blocked two READ-ONLY `python3`
-  heredocs because `>len(val)` and `>=` inside Python source parsed as shell redirects. No file was
-  being written. Reachable by any agent writing a comparison in an inline script.
-- **Q-HOOKCTX, non-blocking until T-17.** Unverified: that hook stderr reaches the model as CONTEXT
-  rather than only as a tool-result error string. If false, SC-13 is not met by this design.
-- **Q-COLLECT, non-blocking, RECURRED AND WORSENED.** A lead was force-closed with its member in
-  flight; the member outlived it and wrote a signed artifact with no lead to assess it. An
-  orchestrator cannot collect a member it did not spawn. Mitigation used: confirm liveness from the
-  sidecar transcript, never re-dispatch, verify the artifact mechanically.
+  route. Measured false — `:815` already calls `feature_schema.problems_for_text`, so the library
+  write IS the cutover. Only a positional rule satisfies both halves of SC-07 (D-23).
+- **Q-ANCHOR, non-blocking.** Re-confirmed above. `lanes.resolved_at` is still `7299669`
+  (`plan.yaml:10`) while the new tasks resolve at `2cf792f`.
+- **Q-GUARD, non-blocking, HARNESS DEFECT — SCOPE CORRECTED ABOVE.** Heredoc half disproven; the
+  real defect is `sed -i` with a shell-variable target refused as out-of-domain.
+- **Q-HOOKCTX, non-blocking until T-17, THE OPERATOR'S TO SETTLE.** Unverified: that hook stderr
+  reaches the model as CONTEXT rather than only as a tool-result error string. If false, SC-13 is not
+  met by this design.
+- **Q-COLLECT, non-blocking, RECURRED.** A lead was force-closed with its member in flight; the
+  member outlived it and wrote an artifact with no lead to assess it. Mitigation: confirm liveness
+  from the sidecar transcript, never re-dispatch, verify the artifact mechanically.

@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Building",
   "review_sha": "",
-  "cycles_used": 3,
+  "cycles_used": 4,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "github": {
@@ -87,6 +87,16 @@
       "id": "plan5-product",
       "squad": "product",
       "verdict": "ESCALATE"
+    },
+    {
+      "id": "build2-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "fix1-eng",
+      "squad": "eng",
+      "verdict": "PASS"
     }
   ]
 }
