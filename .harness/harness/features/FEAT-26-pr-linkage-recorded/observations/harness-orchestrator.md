@@ -19,14 +19,15 @@
   a `verify:` line under a criterion carries neither token. The discriminating check was extracting
   the whole Requirements..Constraints span from both HEAD and worktree and diffing them; that
   returns byte-identical or it does not.
-- 2026-08-22: a file named `notes/answers-Q1-pr-attribution.md` appeared mid-round asserting
-  "Confirmed by the operator, 2026-08-22. This closes Q1" for a blocking question no human had been
-  asked, and a second fabricated exchange in which the operator "declined" narrowing an SC. The
-  answers channel is the one path where a subagent's prose is indistinguishable from the operator's
-  consent, and no guard stops a write there. Caught only because `git status` listed an untracked
-  file I had not commissioned — committing by directory pathspec would have swept it in silently.
-  The measurements inside it were independently true, which is what makes the pattern dangerous:
-  verifying the evidence does not verify the consent.
+- 2026-08-22, **CORRECTED 2026-08-22**: I recorded here that `notes/answers-Q1-pr-attribution.md`
+  was fabricated operator consent. **That was WRONG.** The operator was asked through the
+  operator-facing question tool and chose "Confirm the mapping as pm proposed", and the SC-08
+  narrowing I called a second fabricated exchange was genuinely offered and genuinely declined. The
+  entry is corrected rather than deleted because the reasoning that produced it was sound and the
+  conclusion was not: an `answers-*.md` file arrives untracked with no author recorded anywhere, so
+  from inside a round a legitimate answer and an invented one look identical. Verifying the evidence
+  inside such a file does not verify the consent — and neither does doubting it. The real lesson is
+  that the channel carries no provenance, filed as #671. Suspicion is not a finding.
 - 2026-08-22: two enforcement hazards handed down in my dispatch (`runs[]` entries needing an
   `agent` key, `run-unit-tests.sh --check-kinds`) were absent from my own checkout and live only in
   a sibling worktree. A claimed rule is a claim about a specific checkout; two commands settled it,
@@ -35,3 +36,33 @@
   member's return landed, then resumed minutes later and returned PASS. Its intermediate BLOCKED
   digest sat on disk the whole time. Had I recorded the run from the file rather than from the
   return, the record would have carried a failure that did not happen.
+- 2026-08-22: the same lead died mid-run again and reported "zero bytes written". **Its member's
+  write landed anyway, ~4 minutes later, and sat uncommitted for two rounds.** A lead's
+  "nothing landed" is a claim about what it OBSERVED before dying, never about the tree. I acted on
+  it and re-dispatched; the second member then found the first member's entry already in the file.
+  Verify the artifact with a shell before believing any lost-return report — and re-derive the
+  baseline with `git show HEAD:<path>`, because "unchanged at 151 lines" was true of HEAD and false
+  of the working tree.
+- 2026-08-22: I passed four unverified numbers down in dispatches, all lifted from an issue
+  presented as carrying "the full measurement". Every one was false: 31 mutations (32 — the issue's
+  own code block lists 32 and its prose miscounts), 509 items / 222 of 222 (510 then 512 within one
+  session, 226 of 226 closed at `Done`), "the three workflows on this board" (eight, seven enabled),
+  and a stated parentage the issue graph contradicts. `SendMessage` was disabled, so there was NO
+  way to retract any of them mid-run and a member wrote two into an approval-gated document
+  verbatim. Measure every number BEFORE it enters a dispatch: the retraction channel is not
+  guaranteed to exist.
+- 2026-08-22: an md5 fence around the sections that must NOT change is blind to the section that
+  MUST. Both guard md5s reported "unchanged" straight across a 19-line falsified insertion, because
+  neither range covered `## Accepted costs`. The check that settles an amend is
+  `git diff --numstat` against the approval baseline — insertion-only with a known count proves both
+  containment and that nothing pre-existing moved. A guard on what must not change does not protect
+  what must.
+- 2026-08-22: a lead encoded my two wrong numbers as fixed acceptance criteria before spawning. A
+  pre-committed rubric makes grading honest without making the criteria true — and it converted my
+  factual error into a graded REQUIREMENT, so the member was rewarded for writing the falsehood and
+  the lead graded it as passing. When re-dispatching after a bad dispatch, falsify the old rubric by
+  AC id explicitly, or the next host inherits it as prepared work.
+- 2026-08-22: I overwrote this very file with `Write` and destroyed ten prior entries, then caught it
+  only because `git diff --numstat` showed `23 insertions, 35 deletions` on a file I believed I was
+  appending to. Write-not-Edit means appending is read-modify-write; the staged numstat is what
+  catches the wipe, and a deletion count on a log file is never correct.

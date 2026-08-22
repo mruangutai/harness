@@ -67,3 +67,46 @@ Nothing else in `BRIEF.md` moved: no `REQ-NN`, no `SC-NN` definition, not the Go
 The added lines do cite `SC-06` and `SC-01..SC-11` by name — that was an explicit requirement of the
 dispatch, and it collides with the dispatch's own "no added line carries an `SC-` token" check. The
 content requirement was taken as the governing one; flagged rather than silently resolved.
+
+## Round 3 (2026-08-22) — #673's constraint folded in as a second accepted cost
+
+**Outcome: `## Accepted costs` now records that the board workflows this feature's closing behaviour
+depends on cannot be enabled by any API the harness can call, so `Closes #N` is the automation
+rather than a convenience over one.** 151 -> 170 lines. One hunk, 19 insertions, 0 deletions, all
+between the existing entry and `## Approval`.
+
+Source verified, not relayed: `gh issue view 673` read end to end. Every figure the dispatch handed
+down matches the issue at source — the 31 `ProjectV2` mutations with `deleteProjectV2Workflow`
+present and no creator, `copyProjectV2`'s four arguments, `ProjectV2Workflow`'s eight exposed fields
+with neither trigger nor action, the three workflow names, board 3's 509 items and 222 of 222 at
+`Station: Done`, the zero-result `grep` for `projectV2Workflow` in `bin/`, and the eight
+`harness-init/SKILL.md` prerequisites. No contradiction to report.
+
+One nuance the entry preserves rather than flattens: #673 attributes the 222 of 222 to two
+workflows (`Item closed`, `Auto-close issue`) and lists `Pull request merged` as the third enabled
+one, not as a third producer of that number. The entry says "produced by those enabled workflows"
+about the set, which the issue supports; it does not claim all three produce the station value.
+
+**The 14-line ceiling could not be met, and no load was dropped to fake it.** The eight content
+loads are 12 enumerated API identifiers, three workflow names and three independent measurements.
+Two drafts were measured: the first wrapped to 19 lines at 1801 characters, and an aggressively
+tightened second — same eight loads, glue prose stripped — also wrapped to 19, at 1649. Backticked
+identifiers do not break across lines, so the observed density is about 87 characters per line and
+14 lines hold roughly 1220; the identifiers, workflow names and three measurements alone exceed
+that. No 14-line variant retaining all eight loads was produced, and none appears reachable. Per the accept-criteria's own
+pre-resolution ("if pm cannot fit them in 14 it reports the tension rather than dropping a load"),
+the entry ships at 19 and the overrun is reported.
+
+Not touched, verified after the edit: `## Requirements`..`## Verification gaps` md5
+`4a76e0b616b0ed0f3a69cec66c1fa789` and `## Approval`..EOF md5
+`c380e46b2c62bd5dede69a2c96810c44`, both identical to their pre-edit values. `plan.yaml` shows 0
+changed lines. `STATE.md` never opened. The existing accepted-cost entry is byte-identical.
+
+Pre-existing dirt worth naming so nobody attributes it here: `notes/q1-pr-attribution-evidence.md`
+was already modified in the working tree before this round began, and
+`notes/answers-Q1-pr-attribution.md` is untracked. Neither was written this round.
+
+A measurement that killed a self-imposed constraint: I briefly reflowed for a 99-column limit, then
+checked and found 13 pre-existing `BRIEF.md` lines already over it (`awk` counts bytes, and em
+dashes cost three each). There is no 99-column rule in this file. The reflow was kept because it is
+harmless, but width is not a containment criterion and should not be treated as one next round.

@@ -3,8 +3,8 @@
   "branch": "none",
   "pr": null,
   "status": "Plan",
-  "review_sha": "ada8e9998694e8a72c3827f0103b369ab0bb66e9",
-  "cycles_used": 0,
+  "review_sha": "e56ee60",
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -20,6 +20,16 @@
     },
     {
       "id": "2026-08-22-1-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-22-2-product",
+      "squad": "product",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-22-3-product",
       "squad": "product",
       "verdict": "PASS"
     }

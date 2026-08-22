@@ -145,6 +145,21 @@ a `cmd: null` kind.
   for the renderer, where SC-06 speaks only of posting. That wider claim is the accepted cost: a
   criterion that sweeps every task for a negative is not a check anyone here knows how to write
   cheaply, and an expensive proxy for it would report more assurance than it earns.
+- **The board workflows this feature's closing behaviour depends on cannot be enabled by the
+  harness.** ACCEPTED. Of the 32 `ProjectV2` mutations GitHub's GraphQL API exposes, one is
+  `deleteProjectV2Workflow` and none creates, enables or updates one: the API can destroy a board
+  workflow and never make one. `CopyProjectV2Input` carries no workflow argument either, and
+  `ProjectV2Workflow` exposes neither trigger nor action, so the harness sees only that a named
+  workflow exists and is on, never what it does. `Closes #N` in a PR body is thus no convenience
+  over an automation, it IS the automation — without it the closing link graph is empty, nothing
+  closes on merge, and no `Status` change reaches the workflow. Measured: PR #491 merged at
+  12:54:54Z carrying `Closes #417/#430/#453`, `closingIssuesReferences` returned exactly those
+  three, and all three closed within two seconds. The cost: value rests on a manual,
+  one-time board configuration the harness can detect but never install. Nothing in `bin/` mentions
+  `projectV2Workflow`, `harness-init` installs eight prerequisites with no board workflow among them,
+  and the invariant here — no closed item sits off `Done`, 226 of 226 on 2026-08-22 — holds only
+  because someone clicked, so a served repository gets none of it. #673 carries the detection work,
+  deliberately NOT in this feature's scope.
 
 ## Approval
 

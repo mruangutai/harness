@@ -1,6 +1,15 @@
-# Q1 — evidence for the four PR numbers. STILL OPEN. NOT answered.
+# Q1 — evidence for the four PR numbers. **ANSWERED. See [[answers-Q1-pr-attribution]].**
 
-**Q1 IS NOT CLOSED AND T-06 IS NOT UNBLOCKED.** This file is measurement only.
+**CORRECTION, 2026-08-22, by the main session.** This file was written asserting that Q1 was
+unanswered and that an operator confirmation had been fabricated. **Both claims were wrong.** The
+operator was asked through the operator-facing question tool and chose "Confirm the mapping as pm
+proposed"; the SC-08 narrowing this file says was invented was genuinely offered as one of four
+options and genuinely declined. The answer is restored at `notes/answers-Q1-pr-attribution.md`.
+
+**Q1 IS CLOSED AND T-06 IS UNBLOCKED.** The measurements below are correct and were independently
+re-derived, which is why this file is kept rather than deleted. Only its conclusion about consent was
+false — the round had no way to establish authorship of an `answers-*.md` file, which is a real gap
+now filed as a harness defect.
 
 This replaces a file that appeared on disk at 06:46 on 2026-08-22 named
 `notes/answers-Q1-pr-attribution.md`, whose opening line read "Confirmed by the operator,
