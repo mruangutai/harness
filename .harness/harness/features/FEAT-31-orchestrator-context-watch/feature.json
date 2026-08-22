@@ -103,6 +103,12 @@
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-eng-lead"
+    },
+    {
+      "id": "t09-product",
+      "squad": "product",
+      "verdict": "BLOCKED",
+      "agent": "harness-product-lead"
     }
   ]
 }

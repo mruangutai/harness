@@ -6394,3 +6394,60 @@ state.
 **If this is ever implemented, the test must assert on a file matching BOTH globs** and go red when
 the resolution flips. A test over non-overlapping files passes under either rule and proves nothing
 about the only case in question.
+
+## DEC-198 — `budgets.orchestrator_context_warn_tokens` is declared: a context figure, not money, that advises and never refuses
+
+**Chose:** add one integer leaf, `budgets.orchestrator_context_warn_tokens`, to `harness.json`. It is
+the orchestrator context size at which the harness ADVISES. **When the key is absent, the default is
+200000** — read from `.claude/skills/harness/bin/context-watch.py`, where
+`DEFAULT_CONTEXT_WARN_TOKENS = 200000` is returned by the resolver on every miss path: file missing,
+unreadable, not JSON, no `budgets` dict, key absent, or value not a number (bools excluded).
+
+**`budgets` is NOT new; only the leaf is.** The block already held `max_total_cycles` and
+`max_total_runs` in both `.harness/harness.json` and
+`.claude/skills/harness/templates/harness.json`.
+
+**It is a CONTEXT figure, not money.** DEC-178 removed cost tracking entirely — meter, budgets,
+invariant, reporting surfaces — and that removal stands. Nothing here reintroduces a rate table, a
+dollar figure or a spend budget. The unit is tokens of context.
+
+**Why 200000 rather than a fresh guess:** it is the figure DEC-148's watchdog used, carried over.
+Stated precisely, because the entry should not be read as more than it is: DEC-148 wrote the figure
+as "200k" for `budgets.context_per_turn_tokens`, an **average cache-read-per-turn** threshold, and
+DEC-178 deleted that watchdog along with the meter. The same numeral is reused for a **different
+metric** — an orchestrator's context size — because re-deriving a threshold nobody has grounds to
+move invents precision. `.harness/harness.json`'s own rationale string records the distribution
+behind it (28 of 76 orchestrator transcripts above the figure, largest 750837, measured 2026-08-20);
+that is the plan's measurement, quoted, not re-derived in this entry.
+
+**Crossing it ADVISES and never refuses.** It is informational, not a gate. No branch stops, no
+dispatch is denied, nothing is blocked on it.
+
+**Added in BOTH files, because DEC-160 makes the template the propagation source.** The leaf sits in
+`.harness/harness.json` (this repo's live config) and in
+`.claude/skills/harness/templates/harness.json` (what `/harness-init --upgrade` propagates into other
+repos). DEC-160 also requires that a decision adding a `harness.json` key SAY SO; this entry is that
+statement, and it is the reason the entry exists.
+
+**Propagation, stated as what was read in `upgrade-config.py` and not as an expectation.** The script
+required no change and was left byte-unchanged. `merge()` is a recursive additive merge — "template
+fills gaps, project values win" — and the file contains **zero occurrences of `budgets`**, so there is
+no key-specific path; propagation is a property of the generic merge alone. That zero is load-bearing:
+`merge()` consults three exclusion sets — `PRESERVE_ALWAYS`, `NEVER_ADD`, `TEMPLATE_ONLY` — and
+neither `budgets` nor the new leaf appears in any of them. Had `budgets` been in `PRESERVE_ALWAYS`,
+the recursion would be short-circuited and the leaf would not propagate at all.
+
+**Two code paths, and only one is tested.** A project that ALREADY has a `budgets` block receives the
+new leaf through the recursion branch (`elif isinstance(tv, dict) and isinstance(out[k], dict)`), and
+this is the ordinary case since `budgets` has long been in the template. T-05's new case in
+`test-upgrade-config.py` exercises **only** that path — its fixture project config carries
+`budgets: {}`. A project with NO `budgets` block receives the whole dict through the add branch
+(`if k not in out: ... out[k] = tv`), and that path is **untested** for this key. Propagation is
+therefore proven for the first shape and inferred for the second.
+
+**What is NOT guarded, recorded rather than discovered later.** No test in
+`test-upgrade-config.py` pins that an operator's EXISTING value of
+`orchestrator_context_warn_tokens` survives an upgrade. The behaviour rests on `merge()`'s stated
+contract — project values win, scalars the project already set are left alone — and the code reads
+that way, but no assertion holds it. A future change to the merge could overwrite an operator's tuned
+threshold and the suite would stay green.
