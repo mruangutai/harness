@@ -49,6 +49,26 @@ The matcher's second alternative is load-bearing, not defensive.
 **`effort.level` exists on the payload.** No harness code reads it. Recorded because a later
 task that wants to govern reasoning effort per tier does not need a new probe to find it.
 
+## A GOVERNED dispatch, captured separately — the DISPATCHER key
+
+The capture above came from the main session, so it could not show `agent_type`. A second capture
+on a live governed spawn closes that gap, and this one is measured rather than inferred:
+
+| key | value |
+| --- | --- |
+| `agent_type` | `harness-orchestrator` |
+| `tool_input.subagent_type` | `harness-product-lead` |
+| `cwd` | the FEAT-32 worktree |
+
+**So one PreToolUse payload carries BOTH edges of the dispatch** — the dispatcher in `agent_type`
+and the dispatched persona in `tool_input.subagent_type`. That is the one moment both identities
+exist together, which is why the claim has to be written here and nowhere else.
+
+`cwd` is the FEATURE WORKTREE, not the main checkout, even though the hook script itself resolves
+through `CLAUDE_PROJECT_DIR` to the main checkout. Anything deciding *which* registry to read must
+take the root from the payload, not from the script's own location, or every worktree shares one
+registry and a second feature's pm dispatch is refused because the first feature's pm is running.
+
 ## SubagentStop's agent_type is SETTLED, not measured here
 
 Deliberately not re-measured. `validate-digest.py` selects a persona-specific schema from the

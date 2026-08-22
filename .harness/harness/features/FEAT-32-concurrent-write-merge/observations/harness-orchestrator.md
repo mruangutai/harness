@@ -341,7 +341,7 @@
   lesson in this log is more expensive than no lesson, because it forecloses the cheap path.
 - 2026-08-22 (ship, closing a lead's question with a shell it did not have): product-lead escalated
   "#551 occurrence 8 claims the mechanism DEMANDS a false verdict; that may be too strong, and I cannot
-  check it without a shell". I could. `validate-digest.py:705` ranks member verdicts against
+  check it without a shell". I could. `validate-digest.py:703` ranks member verdicts against
   `RANK = {PASS, FAIL, ESCALATE, BLOCKED}` and anything else draws "member verdict 'none' is not one of
   ... the roll-up cannot rank it". Verified EMPIRICALLY, not by reading: piped four synthetic lead
   digests through `validate-digest.py lead` on stdin — `none` and `unknown` REJECTED with that exact
@@ -413,3 +413,12 @@
   override that persona's own path, and the guard will deny it (#216). LESSON: before naming an artifact
   path in a dispatch, check the receiving persona's grant — or better, name the CONTENT and let the
   persona choose the path it owns.
+- 2026-08-22 (ship): I CITED A LINE NUMBER TWO OFF AND IT REACHED AN OPERATOR-FACING DOCUMENT. I wrote
+  `validate-digest.py:705` for the `RANK` dict; it is at **:703** (identical on main, so not a
+  divergence), and :705 lands on `worst, worst_src = None, None` — a reader following my citation finds
+  nothing. It propagated into pm's operator request, which the coordinator was about to quote into a
+  DECISIONS entry. Caught only because the coordinator cited :702 and the disagreement forced a grep.
+  LESSON: a line number is a claim, and mine came from eyeballing a `sed -n 'A,Bp'` window rather than
+  from `grep -n` on the token itself. Never derive a line number by counting inside a printed range —
+  grep the symbol and read the number off the match. And when two agents cite different numbers for the
+  same fact, the probability that EITHER is right is low; measure, do not pick.

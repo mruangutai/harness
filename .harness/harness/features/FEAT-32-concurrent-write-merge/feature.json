@@ -68,6 +68,12 @@
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-eng-lead"
+    },
+    {
+      "id": "yamlsentence-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ],
   "github": {

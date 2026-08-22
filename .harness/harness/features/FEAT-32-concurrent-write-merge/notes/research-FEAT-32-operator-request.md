@@ -23,7 +23,7 @@ wrong — the number in the record is.
 **Why we are confident.** Two independent kinds of evidence. The eighth case is written up by an
 author with no stake in the file under suspicion (`runs/2026-08-21-2-product/digest.md:28`), and its
 central claim — that the mechanism *demands* a false verdict — was then measured directly against the
-validator rather than argued: `bin/validate-digest.py:705` accepts only `PASS`, `FAIL`, `ESCALATE`,
+validator rather than argued: `bin/validate-digest.py:703` accepts only `PASS`, `FAIL`, `ESCALATE`,
 `BLOCKED`, and test digests using `none` or `unknown` were rejected naming exactly that list, while
 `PASS` and `BLOCKED` were rejected only for an unrelated missing field. That last pair is the control
 — it shows the rejection was about the verdict word, not a broken test.

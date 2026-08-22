@@ -2,7 +2,9 @@
 
 ## Current
 
-Phase: **ship mission, build phase, AT A USER GATE.** `status: Building`. Signatures `approved` /
+Phase: **ship mission, build phase. THE USER GATE IS DISCHARGED — the operator ruled on all three
+items. HANDED OFF at 428,899 context tokens against a 200,000 threshold; see `notes/handoff-build.md`.**
+`status: Building`. Signatures `approved` /
 `operator` / `2026-08-22` (`plan.yaml:4-7`, `BRIEF.md:431-435`). Mirror: milestone **21**, parent
 **#700**, sub-issues **#701-717**.
 
@@ -85,15 +87,12 @@ act**. No run is in flight now, so the window is open.
 
 ## Open Questions
 
-- Q1 **BLOCKING — ONE CONSOLIDATED OPERATOR SIGNATURE, THREE items, assembled by pm at
-  `notes/research-FEAT-32-operator-request.md`** (that filename, not `operator-request-*`: pm's grant is
-  `notes/research-*.md` and the guard correctly denied the path I dispatched — my error). DEC-176
-  (`@4989`) requires one review pass and one consolidated fix. (a) T-13's #551 count: seven to eight,
-  and see the moving-count recommendation above. (b) Widen T-11 to add `.harness/**/*.lock` and drop its
-  verify's path scope — all four lock sites are under `.harness/`, so one rule covers exactly them; **no
-  do-nothing option**, since declining means SC-13 needs a seventh residue statement, itself signed-text.
-  (c) The YAML entry-point split — needs_signature, severity backlog, carried by a follow-up outside
-  FEAT-32. **A fourth, one-sentence candidate:** the falsified `harness_yaml.py:6-7` sentence.
+- Q1 **DISCHARGED — the operator ruled on all three, no signature is outstanding.** (a) The #551 count
+  becomes hedged wording in the PLAN ONLY, not a bare integer, and must say the mechanism fired again
+  during this feature's own build; `BRIEF.md:16` STAYS at seven and the disagreement is deliberate, to be
+  stated as such in the plan. (b) `.harness/**/*.lock` APPROVED and landed by the main session at
+  `.gitignore:46` — verified by me: all five lock paths ignored, `plan.yaml` itself correctly not. (c) The
+  YAML split recorded as a limitation and the false sentence fixed at `harness_yaml.py:5-6`; the code fix is an approved follow-up OUTSIDE FEAT-32, filed by the main session. **Run `ruling-product` was applying (a) and (c)'s SC-13 statement when I was stopped — its edits are on disk, UNRECONCILED.**
 - Q2 **NOT blocking, operator's call, a trade already declined once.** `BRIEF.md:16` also reads "seven
   measured occurrences"; amending the BRIEF resets its approval for prose.
 - Q3 **NOT blocking.** T-13's `verify:` asserts only token presence, so any count passes; if the intent is amended, bind the count into the verify.
