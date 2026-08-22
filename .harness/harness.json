@@ -116,7 +116,7 @@
       "signed": "DEC-187"
     },
     "integration": {
-      "detect": "tests/integration/**|.claude/skills/harness/bin/test-check-state.py|.claude/skills/harness/bin/test-factory-integration.py|.claude/skills/harness/bin/test-gh-sync.py|.claude/skills/harness/bin/test-check-plan-routes.py|.claude/skills/harness/bin/test-feature-worktree.py|.claude/skills/harness/bin/test-expertise-merge.py",
+      "detect": "tests/integration/**|.claude/skills/harness/bin/test-check-state.py|.claude/skills/harness/bin/test-factory-integration.py|.claude/skills/harness/bin/test-gh-sync.py|.claude/skills/harness/bin/test-check-plan-routes.py|.claude/skills/harness/bin/test-feature-worktree.py|.claude/skills/harness/bin/test-expertise-merge.py|.claude/skills/harness/bin/test-validate-digest.py|.claude/skills/harness/bin/test-check-expertise.py|.claude/skills/harness/bin/test-gen-decisions-index.py|.claude/skills/harness/bin/test-bash-write-guard.py|.claude/skills/harness/bin/test-check-domain.py|.claude/skills/harness/bin/test-harness-yaml.py|.claude/skills/harness/bin/test-upgrade-config.py|.claude/skills/harness/bin/test-merge-settings.py|.claude/skills/harness/bin/test-context-watch-cli.py|.claude/skills/harness/bin/test-run-unit-tests-kinds.py|.claude/skills/harness/bin/test-context-watch-hook.py",
       "exclude": ".claude/worktrees/**|node_modules/**|vendor/**|.venv/**",
       "cmd": ".claude/skills/harness/bin/run-unit-tests.sh --kind integration",
       "status": "active"
@@ -165,7 +165,9 @@
     "max_total_cycles": 10,
     "max_total_runs": 20,
     "_max_total_runs_rationale": "INFORMATIONAL, NOT A GATE (issue #79). Cycles count REWORK only (DEC-157), so a first-pass run adds nothing and NOTHING bounded or even counted total runs \u2014 FEAT-03 ran 19 times against a 6-cycle count and tripped nothing. Cost was the other long-feature signal and DEC-178 deleted it, so this is the only one left. Set to 20 from measured data: across nine features the range is 1-19 runs (median 14), so this is a tripwire for the runaway, NOT a critique of normal work \u2014 a long feature is fine if each run is efficient, resolves issues and advances the SCs. Crossing it emits a NOTE naming those three questions; it never stops a branch. NOTE THE KNOWN UNDER-COUNT: a main-session-direct segment is not a run and never appears in runs:, which on FEAT-07 hid eight of ten tasks, so the count is a FLOOR.",
-    "_max_total_cycles_rationale": "REWORK loops only (DEC-157): a cycle is a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back \u2014 never a first-pass run, which the PLAN's task list already bounds. Ten consecutive rework loops on one feature is the runaway this kills. Per-feature raises are user decisions recorded in feature.json."
+    "_max_total_cycles_rationale": "REWORK loops only (DEC-157): a cycle is a FAIL routed back, an unmet-SC re-dispatch, or a lead-reported send-back \u2014 never a first-pass run, which the PLAN's task list already bounds. Ten consecutive rework loops on one feature is the runaway this kills. Per-feature raises are user decisions recorded in feature.json.",
+    "orchestrator_context_warn_tokens": 200000,
+    "_orchestrator_context_warn_tokens_rationale": "INFORMATIONAL, NOT A GATE. This is a CONTEXT TOKEN COUNT, not money \u2014 DEC-178 removed cost tracking entirely and this does not reintroduce it. 200000 is the figure DEC-148's deleted watchdog used, kept rather than re-guessed. Crossing it advises and never refuses. Measured distribution behind it (per the plan's own measurement, not re-derived here): 28 of 76 orchestrator transcripts peaked above it, 10 above twice it, the largest at 750837, corrected method, measured 2026-08-20 within the 30-day retention window."
   },
   "gates": {
     "qa_gate": "blocking",
