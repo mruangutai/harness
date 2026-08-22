@@ -2,9 +2,12 @@
 
 ## Next
 
-**Step zero: reconcile run `ruling-product`. It was IN FLIGHT when I was stopped.** Its `digest.md` and
-`criteria.md` exist and its edits are on disk, but it never notified me, so nothing of it is verified or
-recorded in `feature.json`. Read that digest, then re-verify its two edits yourself before trusting them.
+**Run `ruling-product` RETURNED PASS and is recorded — it is reconciled, not pending.** Its two edits are
+landed and committed: T-13's count is a monotone FLOOR ("at least eight … fired again during the build of
+its own fix") citing `validate-digest.py:703`, and `BRIEF.md` SC-13 gained the YAML-split statement.
+**THE NEW SC-13 STATEMENT IS ITS SIXTH, NOT ITS SEVENTH** — SC-13 held FIVE clauses, so its own trailing
+"four of the six" was already false at `b013dde`; pm removed those integers rather than correct one.
+Anything downstream saying "seventh" is wrong.
 **Then dispatch T-13** (`plan.yaml:1571-1666`) to product-lead → documentor: append ONE new decision
 entry taking **DEC-199** (198 is the highest; read the file, do not assume), then regenerate with
 `gen-decisions-index.py`. **T-13 also needs main-session T-08 and T-09 done — check before dispatching.**
@@ -20,9 +23,9 @@ Then **T-17** (`:2171-2260`), which amends DEC-174 am.4 in place and takes no ne
 - **SC-11 MET**, all four consumers import the core, zero own `flock`/`O_EXCL`/`os.replace` — verified-at 805653a
 - **The lock gap is CLOSED**: `.gitignore:46` `.harness/**/*.lock`; `git check-ignore` ignores all five lock paths AND `plan.yaml` itself is correctly NOT ignored (the control) — verified-at 805653a
 - Worktree is **current with main** (`805653a`); `12c66b3` is an ancestor; post-merge `test-validate-feature-json.py`, `test-check-domain.py`, `--check-kinds` all green — verified-at 805653a
-- `cycles_used` **3** of 10, all from segment A. Runs **12** of 20. **`review_sha` is still `none` and that is CORRECT** — INV-6 fires only once a `squad: validator` run is recorded, so pin it BEFORE recording the qa run — verified-at 805653a
+- `cycles_used` **3** of 10, all from segment A. Runs **13** of 20. **`review_sha` is still `none` and that is CORRECT** — INV-6 fires only once a `squad: validator` run is recorded, so pin it BEFORE recording the qa run — verified-at 805653a
 - Coordinator's three measurements, which I did NOT take: a GOVERNED spawn carries BOTH `agent_type: harness-orchestrator` and `tool_input.subagent_type`; payload `cwd` is the FEATURE WORKTREE and the operator ruled the registry root comes from the payload, per worktree; **`claim()`'s docstring is FALSE** — "Never raises for contention" is wrong, it raises `MergeRefusal` after 10.0s, true only of the single-flight refusal which returns `False`. T-06 shipped that sentence — UNVERIFIED by me
-- pm's `ruling-product` edits, on disk but UNACKNOWLEDGED: T-13 now reads "at least eight … fired again during the build of its own fix"; SC-13's fragile "four of the six" was REMOVED not incremented; `BRIEF.md:16` still reads seven; `plan.yaml` approval byte-identical — UNVERIFIED, reconcile first
+- `ruling-product` PASS, 0 send-backs: `BRIEF.md:16` untouched, one BRIEF hunk inside SC-13, both approval blocks byte-identical to `b013dde`, `check-plan-routes.py` exit 0, 17 tasks, 10 decisions — pm verified at source, spot-checked by me — verified-at 932d433
 
 ## Dead ends
 
@@ -36,7 +39,7 @@ Then **T-17** (`:2171-2260`), which amends DEC-174 am.4 in place and takes no ne
 ## Working set
 
 - `.harness/harness/features/FEAT-32-concurrent-write-merge/STATE.md` and `feature.json`
-- `.harness/harness/features/FEAT-32-concurrent-write-merge/runs/ruling-product/digest.md` (reconcile FIRST)
+- `.harness/harness/features/FEAT-32-concurrent-write-merge/runs/ruling-product/digest.md` (its Q1-Q4; occurrence 9 happened during it)
 - `.harness/harness/features/FEAT-32-concurrent-write-merge/plan.yaml` (T-13 at 1571-1666, T-17 at 2171-2260)
 - `.harness/harness/features/FEAT-32-concurrent-write-merge/notes/ship-review-2026-08-22-build-gate.md` (supersede at ship)
 - `.harness/harness/features/FEAT-32-concurrent-write-merge/runs/t06t10-eng/digest.md` (its Q1-Q7 land on T-08/T-09)

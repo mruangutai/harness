@@ -1634,17 +1634,37 @@ tasks:
          aimed at the false REPORT rather than at the wait; the loss itself is prevented at the
          PreToolUse hook, whose refusals have no once-only bound. State the residual plainly: a second
          identical return ships, and an orphaned child of an interrupted parent has no parent left to
-         refuse. Record #551's SEVEN measured occurrences as seven, not four - occurrence 5 is a lead
+         refuse. Record #551's occurrence count as a FLOOR and never as a fixed total: write that AT
+         LEAST EIGHT occurrences have been measured as of this commit, and that the mechanism fired
+         again during the build of its own fix - occurrences 5 through 8 were all produced by this
+         feature's own runs while it was being planned and built. Phrase it so it stays true as the
+         count keeps moving: it has already moved from four to seven to eight, and DECISIONS.md has no
+         propagation checker, so a bare total written there becomes a false statement that nothing
+         detects. "At least eight, and still being produced by our own runs" survives the next one; "8"
+         does not. Then enumerate: occurrence 5 is a lead
          forced to a terminal digest with its pm in flight, occurrence 6 is the orchestrator forced to
          a stop with its lead in flight, and occurrence 7 is what 5 cost: that lead's first digest
          asserted pm's work was files_touched empty and unrecoverable and was COMMITTED as the run's
          outcome; pm was then resumed, ran to completion and returned PASS, and 148c8c5 corrected the
-         record. All three were observed in run dir 2026-08-21-1-product. State occurrence 7's claim in
+         record. Those three were observed in run dir 2026-08-21-1-product. Occurrence 8, written up in
+         run dir 2026-08-21-2-product at runs/2026-08-21-2-product/digest.md:28, is one run later on
+         this same feature and is strictly STRONGER than occurrence 7: a lead force-closed with a
+         member still in flight has NO HONEST WORD AVAILABLE TO IT, because the digest validator ranks
+         only PASS, FAIL, ESCALATE and BLOCKED - see .claude/skills/harness/bin/validate-digest.py:703
+         - so a return that declines to grade a child it cannot see is REJECTED and the lead must state
+         a verdict on work it has not seen. Cite line 703 and no other line: 705 and 702 have both been
+         written down and both are wrong. Occurrence 7 measured that the mechanism PERMITS a false
+         verdict; occurrence 8 measures that it DEMANDS one. State occurrence 7's claim in
          its strong form and do not soften it: the defect does not merely cost a spawn, it WROTE A
          FALSE VERDICT INTO THE DURABLE RECORD and only a resume caught it. That is the evidence D-09's
          own argument rests on - #551's harm is FALSE REPORTING - and it is why the one-shot refusal
          sits on the hook the return travels through. Say in the entry that run dirs are gitignored, so
          this entry and the feature's STATE.md are the durable record and the run dir is not.
+         ONE DELIBERATE DISAGREEMENT, so a later reader does not read it as rot: BRIEF.md line 16 still
+         reads "seven measured occurrences" and STAYS at seven, because the operator declined to reset
+         the brief's approval for a prose change. The brief and this plan therefore disagree on the
+         count on purpose; this plan is the current authority on it, the brief is the signed one, and
+         neither is to be edited to match the other.
       5. NOTHING ABOUT DEC-90. DEC-90 IS ALREADY STRUCK - 2026-08-21, under DEC-188, merged as
          16b30c6, and its index row carries the strike record. FEAT-30 falsified it, not this feature:
          expertise-merge.py landed holding a lock before any line of this feature was written. Do NOT

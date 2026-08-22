@@ -334,10 +334,19 @@ Whichever lands second rebases those four; each is an append, none is a rewrite.
 - SC-13: The record states what is NOT fixed. The feature's own record names, each as its own
   statement: that a wait is impossible with the `stop_hook_active` reason; that a second identical
   return ships anyway; that an orphaned child of an interrupted parent is unreachable by either
-  mechanism; the identity limit as a bound on every CLI added; and #627, #560 and #605 as out of
-  scope with #627 named as the reason the CLI route is reachable at all. A reviewer cites each
-  statement by `file:line`, read at `git show <review_sha>:<path>`. It can go red: it is asserted one
-  statement at a time, never as a count, so a record naming four of the six fails.
+  mechanism; the identity limit as a bound on every CLI added; #627, #560 and #605 as out of
+  scope with #627 named as the reason the CLI route is reachable at all; and **the YAML entry-point
+  split, accepted rather than fixed here**. `plan-merge.py:37` imports stdlib `yaml`, while
+  `harness_yaml.py` — the reader every other harness tool and both write-blocking hooks go through —
+  raises `DuplicateKeyError` on a repeated mapping key at any depth. Measured on a `plan.yaml`
+  carrying a duplicated `status:` key: `safe_load` **accepts** it and silently keeps the last value,
+  `harness_yaml.load_str` **rejects** it naming line and column, and the identical document without
+  the duplicate is accepted by **both** — that pair is the control. So the merge tool can splice a
+  `plan.yaml` that every other tool then refuses. Accepted because it **fails closed and loudly**:
+  nothing is silently corrupted, the refusal names its line, and no measured loss depends on it. The
+  code fix is raised as a follow-up outside this feature. A reviewer cites each statement by
+  `file:line`, read at `git show <review_sha>:<path>`. It can go red: it is asserted one statement at
+  a time, never as a count, so a record that names every statement but one still fails.
   verify: inspection
 - SC-14: No test that passed before this feature fails after it, **and the suite does not shrink**.
   **Every observation of the runner, before and after, exports `CLAUDE_PROJECT_DIR` to the checkout
