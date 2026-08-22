@@ -85,3 +85,11 @@
 - 2026-08-22: an assert that aborts a python heredoc HIDES every later clause, so "it fails for this
   reason" is only half the check. Run a corrected copy in scratchpad to reach the tail before
   declaring a single cause — the claim "and no other reason" is otherwise unmeasured.
+- 2026-08-22: two signed verify: blocks in FEAT-32 plan.yaml (T-13:1587, T-17:2220) invoked
+  gen-decisions-index.py --check — a flag the script's own docstring at :9 says does not exist, and
+  which its argv parser rejects with exit 2. Both gates were unpassable on any content. Before
+  writing a flag into a verify:, read the tool's argv parser; a plausible flag name is not evidence.
+- 2026-08-22: T-17 asserted a prose phrase from DECISIONS.md that a hard wrap split across
+  :4878-4879 ("— the category" / "decides, the list records"), so the substring never matched. A
+  substring assertion over hard-wrapped prose is a bet on where the wrap fell; collapse whitespace
+  (" ".join(body.split())) first — that keeps the subject and removes the coin flip.

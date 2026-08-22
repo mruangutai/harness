@@ -2,118 +2,107 @@
 
 ## Current
 
-Phase: **ship mission, build phase. THE USER GATE IS DISCHARGED — the operator ruled on all three
-items. HANDED OFF at 428,899 context tokens against a 200,000 threshold; see `notes/handoff-build.md`.**
-`status: Building`. Signatures `approved` /
+Phase: **ship mission, build phase, successor session.** `status: Building`. Signatures `approved` /
 `operator` / `2026-08-22` (`plan.yaml:4-7`, `BRIEF.md:431-435`). Mirror: milestone **21**, parent
-**#700**, sub-issues **#701-717**.
+**#700**, sub-issues **#701-717**. HEAD `016be31`.
 
-**SIX OF MY EIGHT TASKS ARE DONE AND I VERIFIED EVERY ONE MYSELF.** T-02, T-03, T-04, T-05 (`build-eng`,
-3 send-backs) and T-06, T-10 (`t06t10-eng`, **0** send-backs). Every `verify:` exits 0, run by me at
-final bytes: T-02 18/18, T-03, T-04, T-05, T-06 55/55, T-10 (161s). Main-session lane done: T-01, T-07,
-T-15, T-16. Issues #701-#707, #710, #715, #716 closed.
-**REMAINING, both blocked:** T-13 (needs the operator's Q1 **and** main-session T-08/T-09), T-17 (needs
-T-13). Main-session lane still open: T-08, T-09, T-11, T-12, T-14.
+**ALL FIFTEEN TASKS ARE NOW EXECUTED EXCEPT T-13 AND T-17.** The main session finished its nine
+main-session-direct tasks (T-01, T-07, T-08, T-09, T-11, T-12, T-14, T-15, T-16). **T-13 is IN
+FLIGHT** to product-lead → documentor as DEC-199 (DEC-198 verified highest). T-17 follows it.
 
-**I AUDITED ALL SIX RED PROOFS RATHER THAN TRUSTING EXIT CODES.** Each mutant imports cleanly, then
-fails a proportionate NAMED subset — the signature of a real discriminator; all-or-nothing failure
-would mean a mutant that died on import. `USE_FLOCK`(T-02) 2/18 both case4 · `UNION_MERGE`(T-03) 59/110
-· `PRESERVE_BASE_BYTES` 22/110 · `APPROVAL_REFUSAL` 10/110 · `UNION_MERGE`(T-04) 6/33 cases 2/5/6/7/8 ·
-`USE_FLOCK`(T-05) 2/38 case10 only. The lead's reporting matched mine everywhere except T-05, where it
-said 1 and the true count is 2.
+**I RE-RAN THE FIVE NEWLY-DONE VERIFY BLOCKS MYSELF at these bytes, not from the report.** T-08 exit
+0 (24/24 cases), T-11 exit 0, T-12 exit 0, T-14 exit 0, T-09 exit 0. File mtimes are all 15:44 and
+my sweep ran at 15:47, so every verify ran on exactly the bytes now staged.
 
-**NO ASSERTION WAS WEAKENED.** The only deletions are T-05's three sanctioned `.lock`-absence checks,
-vacuous-or-red under a lock never removed. Measured: `test-expertise-merge.py` 344 lines / 30 `check()`
-/ 3 lock assertions to 409 / **32** / **0** — three removed, five ADDED.
+**THREE THINGS I AM BLOCKED FROM DOING, all environmental, none routed around.**
+1. **The commit is DENIED.** The main-session lane is fully STAGED by explicit pathspec — 11 files,
+   981 insertions — and `git commit -F` was refused by the session's permission classifier. The
+   staged index is the durable state; nothing is lost. Message drafted at
+   `/private/tmp/.../scratchpad/commit-main-session.txt`, outside the tree.
+2. **plan.yaml status transitions are UNWRITABLE BY ME.** T-08/T-09/T-11/T-12/T-14 are still
+   `status: pending` in the plan although the work is done and verified. `Edit` is disabled this
+   session; a Bash surgical write was denied; a whole-file `Write` on a 2260-line approved plan IS
+   the #628 defect this feature fixed. **And the sanctioned route cannot do it either** —
+   `plan-merge.py` is add-only, so a status change is a MODIFY and it exits **7**
+   `CONFLICT: id='T-11' in 'tasks' carries two different values`, measured both for a
+   `{id, status}` fragment and for a full-task proposal with only the status flipped.
+3. **Therefore no `gh-sync` start-task/close-task has run** for the nine. The plan must carry the
+   new status before the subcommand, or the parent derivation reads stale values. The mirror never
+   gates, so this is bookkeeping debt, not a blocker.
 
-**SC-11 IS MET FOR ALL FOUR CONSUMERS** — `plan-merge.py`, `observations-merge.py`,
-`expertise-merge.py`, `inflight_registry.py` each import the core and carry **zero** own
-`fcntl.flock`/`O_EXCL`/`os.replace`.
+**A REAL DEFECT I FOUND AND REPRODUCED DETERMINISTICALLY — the suite is green only by ordering luck.**
+Running `test-dispatch-guard.py` before `test-validate-digest.py` reddens **six** of the digest
+suite's `[hook]` cases. Mechanism, measured: the guard suite leaks live claims into the checkout's
+REAL `.harness/.inflight-claims.json` with `cwd: ""`; the digest suite's F1.x hook cases pass no
+`cwd`, so they inherit that ambient registry; T-09's new children-check then correctly refuses them
+with the #551 message instead of the verdict-shape rejection they assert. The full integration run
+passes only because the leaker sits **last** in `test_kinds.integration.detect` and the victim
+**eighth**. The DEC-156 cases in that same file already isolate via `tempfile.mkdtemp` — the pattern
+simply was not applied to the earlier cases. **The text assertion is what made this visible**: the
+case asserted stderr mentions "worst member verdict" and got the #551 refusal; an exit-2-only
+assertion would have passed on the wrong refusal.
 
-**THE RUNNER WAS DOWN AND T-10 RESTORED IT.** It had been exiting **2 with ZERO tests** — the drift
-detector is a hard precondition. Now `--check-kinds` exits 0: *"the script arrays and
-test_kinds.integration.detect agree"*, and that cross-check ran for the FIRST time ever.
-`test-run-unit-tests-kinds.py` is back to **23/23** from 15/23.
+**THE LEAK ESCAPES THE SUITE AND I HIT IT LIVE.** After my runs, two `harness-backend-dev` claims
+attributed to `harness-eng-lead` sat live in the registry for an hour. Left there they would have
+falsely refused eng-lead's real return at the simplify segment. I cleared them with
+`inflight_registry.py release-all` — **the first real use of the escape hatch**, which is now
+evidence for DEC-199's own sentence rather than an assertion in it.
 
-**SC-14 IS MET, measured with the restored runner.** unit exit 0, **187** lines matching
-`^PASS |^FAIL |ERROR` (baseline 179), **0** beginning `FAIL`, **0** containing `ERROR`. integration exit
-0, **470** lines (baseline 221), **0** beginning `FAIL`, **3** containing `ERROR` — unchanged, and the
-plan predicted exactly those 3. Neither count is below baseline; every new test file is registered.
+**T-07's VERIFY NOW FAILS BY DESIGN AND NOTHING IS WRONG.** It asserts
+`git diff --quiet -- dispatch-guard.sh`, true at T-07 and legitimately falsified by T-08. A temporal
+guard, meaningful only at its own commit. T-07 is not regressed — do not record it as failing.
 
-**I RATIFIED ONE DEVIATION FROM THE APPROVED PLAN, on a measurement.** T-10's intent orders SEVEN paths
-appended to `test_kinds.integration.detect`, asserting `test-validate-digest.py` and
-`test-check-domain.py` are ABSENT. **They were already PRESENT at HEAD** — DEC-197's own fix landed
-after `62f861c`. I verified all seven are now present with **count 1 each**, no duplicates. Appending
-them would have duplicated entries in a file the intent says to change in no other way. Five were
-appended; the goal is met exactly. **T-10's intent text now teaches a false measurement** — plan prose,
-so correcting it is pm's, and it is a backlog row, not a blocker.
+**A DEFECT IN A RULE FILE THIS LANE SHIPS.** T-12 installs at
+`.claude/agents/harness-orchestrator.md:63-67` the instruction that every `plan.yaml` write goes
+through `plan-merge.py`, excepting only `approval:`. That instruction has **no viable route for a
+task status transition** — the orchestrator's most frequent plan write, required before every
+`close-task`. Item 2 above is that defect, hit for real within an hour of it shipping.
 
-**A DEFECT RISK CONFIRMED WITH A CONTROL; pm judged it BACKLOG, needs_signature, fixed OUTSIDE this
-feature.** `plan-merge.py:37` imports `yaml` plainly (its intent demands "import it plainly") while
-`harness_yaml.py` raises `DuplicateKeyError`. stdlib `safe_load` ACCEPTS a repeated key and keeps the
-last; `harness_yaml.load_str` REJECTS; the same doc without the duplicate is accepted by BOTH — the
-control. So `plan-merge.py` can splice a `plan.yaml` the toolchain then refuses to read, failing LOUD.
-pm's rejected reading, worth keeping: *permission is not compulsion* — a guard added alongside
-contradicts nothing, and that is exactly why it is not already signed. What the signed text leaves open
-is whether the BASE file gets strict-parsed too, which would refuse plans already on disk.
-**SC-11 PASSES WHILE READING FALSE:** its enumeration is "lock or replace primitive" and a YAML loader
-is neither, but its lead sentence "There is one implementation" now misleads.
+**SC-15's BEHAVIOUR HALF IS MET, and I am the evidence.** `notes/sc15-prediction-before-spawn.md`
+holds the prediction written before this session existed and the grade written after. It does NOT
+prove a handoff survives a seam where the successor must ACT — this successor's correct move was to
+stop, and claiming more would overclaim one observation.
 
-**A SENTENCE IN SHIPPED CODE IS NOW FALSE AND NOTHING DETECTS IT.** `harness_yaml.py:6-7` states
-"Every other module in this tree that needs YAML imports THIS module, never `yaml` directly." Verified
-by me: the only direct `import yaml` outside `test-*.py` is that module's own `:18` and
-`plan-merge.py:37`. True before T-03, false after. No SC reaches it; there is no propagation checker
-(DEC-188). One sentence, in a file no task owns.
-
-**#551 FIRED AGAIN DURING ITS OWN FIX — the count is MOVING and that is the point.** pm measured
-**eight**. The `yamlgap-product` lead was then force-closed with pm in flight and the validator DEMANDED
-a verdict for an unobservable child (its Q5 calls that nine). The `t06t10-eng` lead reports the stop
-hook pressing it the same way and says it held. **Recommendation: do NOT freeze an integer in an
-authority file with no propagation checker** — record "eight measured as of <sha>, and the mechanism
-fired again during this feature's own build."
-
-**TWO FINDINGS THAT LAND ON THE MAIN SESSION'S T-08/T-09, raised at architecture review.** (1)
-`claim()` FAILS CLOSED on lock contention: `inflight_registry.py:104` does not catch `MergeRefusal`, so a
-10s lock timeout propagates out of `claim()`; in a `PreToolUse` hook a nonzero exit BLOCKS the dispatch,
-while **D-07 states the opposite posture**. T-06 satisfies its spec, so this is the hook cutover's
-problem. (2) `agent_type` was ABSENT on T-01's capture because it came from the main session, so the
-DISPATCHER key on a governed spawn is **unconfirmed** — T-08/T-09 must derive or capture it, never assume.
-
-**ONE COMMIT BEHIND MAIN AND I CANNOT FIX IT.** `12c66b3` (PR #719). `merge` is in `HEAD_MOVERS`
-(`bash-write-guard.sh:144`), refused for every governed agent, so **the merge is the main session's
-act**. No run is in flight now, so the window is open.
-
-`cycles_used` **3** of 10 — all three from segment A. Runs **11** of 20.
+`cycles_used` **3** of 10 — no rework this session. Runs **13** of 20, T-13 in flight will make 14.
 
 ## Open Questions
 
-- Q1 **DISCHARGED — the operator ruled on all three, no signature is outstanding.** (a) The #551 count
-  becomes hedged wording in the PLAN ONLY, not a bare integer, and must say the mechanism fired again
-  during this feature's own build; `BRIEF.md:16` STAYS at seven and the disagreement is deliberate, to be
-  stated as such in the plan. (b) `.harness/**/*.lock` APPROVED and landed by the main session at
-  `.gitignore:46` — verified by me: all five lock paths ignored, `plan.yaml` itself correctly not. (c) The
-  YAML split recorded as a limitation and the false sentence fixed at `harness_yaml.py:5-6`; the code fix is an approved follow-up OUTSIDE FEAT-32, filed by the main session. Run `ruling-product` applied (a) and (c) and returned **PASS**, 0 send-backs, recorded. **The new SC-13 statement is its SIXTH, not its seventh** — SC-13 held FIVE clauses, so its own trailing "four of the six" was ALREADY FALSE at `b013dde`; pm removed those integers rather than correct one, since a corrected integer rots on the next statement added. My "seventh" came from pm's earlier request and I repeated it without enumerating — my own P-05 violation. **Occurrence 9 of #551 occurred DURING that run** and the floor wording absorbed it with no edit, which is the durability property being bought, proven by an event after the wording was written.
-- Q2 **NOT blocking, operator's call, a trade already declined once.** `BRIEF.md:16` also reads "seven
-  measured occurrences"; amending the BRIEF resets its approval for prose.
-- Q3 **NOT blocking.** T-13's `verify:` asserts only token presence, so any count passes; if the intent is amended, bind the count into the verify.
-- Q4 **NOT blocking, CARRIED — do not re-raise, do not fix.** SC-14 names **221** as its basis while the
-  plan records at `:1448-1464` that the number is not attributable to scripts. It still WORKS as a shrink
-  detector, and the measured 470 is far above it. The `ERROR`-lines sub-question is CLOSED by T-10's
-  intent: all three carry the word inside a test's own NAME. A goal-check must name this as carried.
-- Q5 **NOT blocking, recorded residuals, not work.** The exit-6 LOCKED branch of T-03 case 4, T-04 case
-  7 and T-06 case 7 was admitted but taken 0 of 20 trials each, because `LOCK_TIMEOUT_SECONDS = 10.0`
-  makes the loser WAIT. Pinned by T-02 case 8 and expertise-merge case 3 — by the SET, not those cases.
-- Q6 **NOT blocking, backlog.** `RUNS_AGENT_EXEMPT` was hand-fixed for two features; the suite asserts
-  the map's MECHANISM, never its COVERAGE — exactly why two features went missing. Also pre-existing and
-  NOT mine: `check-state.sh`'s one violation is FEAT-26's unapproved BRIEF.
-- Q7 **NOT blocking, ANSWERED.** No `DECISIONS-INDEX.md` row governs what re-opens a signature. pm: it
-  deserves an entry as FOLLOW-UP, not folded into T-13, which would smuggle a governance rule in.
-- Q8 **NOT blocking, the main session's act; an agent composing a GitHub post is forbidden** (DEC-138
-  am.6). #551's record needs updating once Q1 settles, plus a backlog row against run-dir minting.
-- Q10 **NOT blocking, backlog, WIDER THAN THIS REPO.** `templates/gitignore.snippet` installs into every
-  repo the factory touches, has 8 rules and no lock rule. Separate pre-existing drift: its `:7` reads
+- Q12 **NOT blocking, ANSWERED by the main session.** The SC-15 note is now graded and staged for
+  commit.
+- Q13 **SUPERSEDED by Q15.** T-11 was indeed already satisfied; the whole five-task status write is
+  now the open item.
+- Q14 **CLOSED.** `claim()`'s "Never raises for contention" was false and is corrected in the code;
+  the main session measured it with the lock held and I verified the raise path independently
+  (`inflight_registry.py:104` → `harness_merge.py:36`, `:64`, `:89`).
+- Q15 **BLOCKING for bookkeeping, not for delivery — needs the main session, which holds `Edit`.**
+  Five task statuses cannot be recorded by me (see Current, item 2), so the mirror cannot be
+  advanced and `plan.yaml` currently understates what is done. The rule that forbids every route is
+  itself the thing that shipped in T-12.
+- Q16 **NOT blocking, but it is a genuine test-isolation defect** in files inside DEC-174 amendment
+  4's carve-out, so neither I nor a squad may fix it. `test-dispatch-guard.py` must isolate its
+  registry root per case (the file's own T-08 intent already ordered exactly that:
+  *"point CLAUDE_PROJECT_DIR at a fresh tempfile.mkdtemp() for every case so no case touches the
+  real registry"* — so this is a compliance gap, not a design gap), and
+  `test-validate-digest.py`'s F1.x hook cases should pin a `cwd` the way its DEC-156 cases already
+  do. Until then the green suite depends on `detect` ordering.
+- Q4 **NOT blocking, CARRIED — do not re-raise, do not fix.** SC-14 names **221** as its basis while
+  the plan records at `:1448-1464` that the number is not attributable to scripts. It still works as
+  a shrink detector and the measured 470 is far above it. A goal-check must name this as carried.
+- Q5 **NOT blocking, recorded residual.** The exit-6 LOCKED branch of T-03 case 4, T-04 case 7 and
+  T-06 case 7 was admitted but taken 0 of 20 trials each, because the loser WAITS. Pinned by the
+  SET, not those cases. Note the registry's deadline is now 1.0s while the four file-merge callers
+  keep 10.0s, so the registry's LOCKED branch is now materially easier to reach than when this was
+  written.
+- Q6 **NOT blocking, backlog.** `RUNS_AGENT_EXEMPT` was hand-fixed for two features; the suite
+  asserts the map's MECHANISM, never its COVERAGE. Pre-existing and NOT mine: `check-state.sh`'s one
+  violation is FEAT-26's unapproved BRIEF, still the only violation as of this session.
+- Q7 **NOT blocking, ANSWERED.** No `DECISIONS-INDEX.md` row governs what re-opens a signature. pm:
+  it deserves an entry as FOLLOW-UP, not folded into T-13.
+- Q8 **NOT blocking, the main session's act.** #551's record needs updating, plus a backlog row
+  against run-dir minting. An agent composing a GitHub post is forbidden (DEC-138 am.6).
+- Q10 **NOT blocking, backlog, WIDER THAN THIS REPO.** `templates/gitignore.snippet` installs into
+  every repo the factory touches, has 8 rules and no lock rule; separately its `:7` reads
   `.harness/features/*/runs/**`, missing the `<repo>` segment the multi-repo migration added.
-- Q11 **NOT blocking, a HARNESS DEFECT hit live by two leads this run.** The `SubagentStop` digest
-  contract has no in-progress value, so a lead hosting an async member cannot idle — ending a turn is a
-  contract violation and the only satisfying returns are terminal verdicts it has not earned. I hit the
-  same wall myself. `validate-digest.py:845` means a second identical return SHIPS.
+- Q11 **NOT blocking, a HARNESS DEFECT.** The `SubagentStop` digest contract has no in-progress
+  value, so a lead hosting an async member cannot idle. `validate-digest.py:845` means a second
+  identical return SHIPS. T-09 narrows this at the PreToolUse edge but does not close it.

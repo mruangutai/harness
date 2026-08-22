@@ -49,10 +49,11 @@ class MergeRefusal(Exception):
 
 
 @contextlib.contextmanager
-def _acquire_flock(lock_path):
+def _acquire_flock(lock_path, timeout=None):
+    timeout = LOCK_TIMEOUT_SECONDS if timeout is None else timeout
     fd = os.open(lock_path, os.O_CREAT | os.O_RDWR)
     try:
-        deadline = time.monotonic() + LOCK_TIMEOUT_SECONDS
+        deadline = time.monotonic() + timeout
         while True:
             try:
                 fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -63,7 +64,7 @@ def _acquire_flock(lock_path):
                 if time.monotonic() >= deadline:
                     raise MergeRefusal(
                         6,
-                        [f"LOCKED: could not acquire {lock_path} within {LOCK_TIMEOUT_SECONDS}s"],
+                        [f"LOCKED: could not acquire {lock_path} within {timeout}s"],
                     )
                 time.sleep(LOCK_RETRY_INTERVAL)
         yield
@@ -73,12 +74,13 @@ def _acquire_flock(lock_path):
 
 
 @contextlib.contextmanager
-def _acquire_excl(lock_path):
+def _acquire_excl(lock_path, timeout=None):
     """Reproduces expertise-merge.py's create-and-delete O_EXCL lock exactly. This branch is
     NEVER selected at runtime — nothing sets USE_FLOCK to False except a test's mutated copy
     of this file — and it exists only to prove the flock branch is what survives a SIGKILLed
     holder: this branch leaves its lock file behind and every later acquire then times out."""
-    deadline = time.monotonic() + LOCK_TIMEOUT_SECONDS
+    timeout = LOCK_TIMEOUT_SECONDS if timeout is None else timeout
+    deadline = time.monotonic() + timeout
     while True:
         try:
             fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
@@ -88,7 +90,7 @@ def _acquire_excl(lock_path):
             if time.monotonic() >= deadline:
                 raise MergeRefusal(
                     6,
-                    [f"LOCKED: could not acquire {lock_path} within {LOCK_TIMEOUT_SECONDS}s"],
+                    [f"LOCKED: could not acquire {lock_path} within {timeout}s"],
                 )
             time.sleep(LOCK_RETRY_INTERVAL)
     try:
@@ -100,14 +102,23 @@ def _acquire_excl(lock_path):
             pass
 
 
-def acquire(lock_path):
-    """A context manager guarding lock_path. See module docstring for the flock/O_EXCL split."""
+def acquire(lock_path, timeout=None):
+    """A context manager guarding lock_path. See module docstring for the flock/O_EXCL split.
+
+    `timeout` overrides LOCK_TIMEOUT_SECONDS for THIS acquire only. It exists because the same
+    core serves two callers with opposite cost profiles: a file merge can afford to wait, but a
+    HOOK cannot -- dispatch-guard.sh runs on every spawn, and a 10s wait there is 10s of stall
+    per dispatch buying nothing, because the registry write it is waiting on takes milliseconds.
+    A lock still held after a second means the holder is STUCK, not busy, and the useful answer
+    then is to give up and fail open loudly rather than hang. Default unchanged for everyone who
+    does not pass it.
+    """
     if USE_FLOCK:
-        return _acquire_flock(lock_path)
-    return _acquire_excl(lock_path)
+        return _acquire_flock(lock_path, timeout)
+    return _acquire_excl(lock_path, timeout)
 
 
-def locked_update(path, transform):
+def locked_update(path, transform, timeout=None):
     """The whole read-modify-write, under acquire(path + ".lock").
 
     Reads `path` as bytes (None if it does not exist), calls transform(base_bytes) to get the
@@ -119,7 +130,7 @@ def locked_update(path, transform):
     the file is left byte-identical to what it was before this call.
     """
     lock_path = path + ".lock"
-    with acquire(lock_path):
+    with acquire(lock_path, timeout):
         if os.path.exists(path):
             with open(path, "rb") as fh:
                 base = fh.read()

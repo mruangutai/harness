@@ -95,7 +95,7 @@ _derived="$(cd "$_selfdir/../../../.." && pwd)"
 # unchanged test suite is the equivalence proof (D-10, REQ-07).
 HOOK_PAYLOAD="$payload" PYTHONPATH="$_selfdir${PYTHONPATH:+:$PYTHONPATH}" \
   python3 - "$_derived" "${1:-}" <<'PY'
-import sys, os, re, json
+import sys, os, re, json, fnmatch
 
 # THE BOUNDARY RULE LIVES IN harness_boundary.py (FEAT-17 T-01), NOT HERE.
 # It used to be defined in this heredoc, which is why bash-write-guard.sh could not
@@ -394,6 +394,242 @@ else:
         _no_parser = True
 
 
+# ---------------------------------------------------------------------------
+# T-14 — THE APPROVAL EXCLUSION, sourced from team-config.yaml's
+# main_session.writes rather than hardcoded (D-10).
+#
+# A hardcoded plan.yaml pattern would pass every behavioural case here while
+# leaving the record it is meant to enforce still unread. Reading the list is
+# the deliverable: delete an entry and the denial stops existing, and the only
+# things that notice are the stderr line below and this task's own test.
+# ---------------------------------------------------------------------------
+APPROVAL_GUARD = True
+
+
+def _approval_entries(manifest_path):
+    """Parse main_session.writes into (glob, fragment_or_None) pairs.
+
+    SPLIT ON THE FIRST SPACE, never the last. That is the mechanism, not a detail.
+    Splitting on the last space hands `.harness/*/features/*/BRIEF.md ## Approval` a
+    tail of `Approval`, which ends in no colon and starts with no `## `, so it reads as
+    fragment-less and contributes NO denial -- and it corrupts the glob into one ending
+    `BRIEF.md ##`, matching nothing on disk. Three of the four real entries deny; a
+    last-space split leaves exactly one, collapsing the three-file mechanism into the
+    plan.yaml special case this task exists not to be.
+
+    Returns (entries, problem). `problem` is a string when the record could not be read,
+    and the caller FAILS OPEN LOUDLY on it (DEC-127).
+    """
+    try:
+        doc = harness_yaml.load_file(manifest_path)
+    except Exception as exc:
+        return [], "could not parse %s (%r)" % (manifest_path, exc)
+    if not isinstance(doc, dict) or "main_session" not in doc:
+        return [], "no main_session key in %s" % (manifest_path,)
+    ms = doc.get("main_session") or {}
+    writes = ms.get("writes") if isinstance(ms, dict) else None
+    if not isinstance(writes, list) or not writes:
+        return [], "main_session.writes is missing or empty in %s" % (manifest_path,)
+    entries = []
+    for raw in writes:
+        if not isinstance(raw, str) or not raw.strip():
+            continue
+        parts = raw.strip().split(" ", 1)          # FIRST space. See the docstring.
+        glob = parts[0]
+        frag = parts[1].strip() if len(parts) == 2 else ""
+        if frag.endswith(":") or frag.startswith("## "):
+            entries.append((glob, frag, raw.strip()))
+        else:
+            entries.append((glob, None, raw.strip()))   # e.g. .harness/logs/** -- no denial
+    return entries, None
+
+
+def _yaml_key_range(lines, key):
+    """The on-disk line range of a top-level mapping key, as [start, end)."""
+    start = None
+    for i, line in enumerate(lines):
+        if line.startswith(key):
+            start = i
+            break
+    if start is None:
+        return None
+    end = len(lines)
+    for j in range(start + 1, len(lines)):
+        l = lines[j]
+        if l.strip() and not l[:1].isspace() and not l.lstrip().startswith("#"):
+            end = j
+            break
+    return (start, end)
+
+
+def _heading_range(lines, heading):
+    """The on-disk line range of a markdown section, heading to the next same-or-shallower."""
+    depth = len(heading) - len(heading.lstrip("#"))
+    start = None
+    for i, line in enumerate(lines):
+        if line.strip() == heading.strip():
+            start = i
+            break
+    if start is None:
+        return None
+    end = len(lines)
+    for j in range(start + 1, len(lines)):
+        s = lines[j].lstrip()
+        if s.startswith("#"):
+            d = len(s) - len(s.lstrip("#"))
+            if d <= depth:
+                end = j
+                break
+    return (start, end)
+
+
+def _child_indent(lines, rng):
+    """The indent the fragment's children actually use ON DISK.
+
+    CONVENTION, NOT A YAML GUARANTEE. The format permits an approval block at any indent.
+    Limb B can tell an approval child key from a task key only because every plan.yaml in
+    the tree is emitted by harness-pm and, after this feature, by plan-merge.py -- both of
+    which control the shape. A future reformatting that put task keys at the same indent as
+    the approval block would silently unhook limb B, NOTHING IN THE TREE WOULD NOTICE, and
+    there is no propagation checker that would (DEC-188 deleted it). Limb A survives that
+    reformatting because it is a substring test against the on-disk range and reads no
+    indentation at all; limb B is the part that dies. Measured: of 9 tracked PLAN.md files
+    all 9 carry the signature heading at ZERO indent while 27 task lines sit at two spaces
+    -- so a hardcoded two-space rule there denies 27 legitimate lines and matches no
+    signature. Two of the three covered files, two opposite conventions, one rule.
+    """
+    for k in range(rng[0] + 1, rng[1]):
+        l = lines[k]
+        if l.strip() and l[:1].isspace():
+            return len(l) - len(l.lstrip())
+    return None
+
+
+def approval_guard(rel, agent_name):
+    """DENY a governed agent's write that would change a fragment the main session owns.
+
+    The main session is exempt BY THE MECHANISM, not by a special case: this runs inside
+    the _domain_phase region, and check-domain exits 0 for a payload with no agent_type.
+    Adding an explicit main-session branch would be a second carve-out to keep in sync,
+    and issue #132 records what happened the last time this file grew one.
+    """
+    if not APPROVAL_GUARD:
+        return
+    if _tool == "NotebookEdit":
+        return
+
+    # EXISTENCE FIRST, AND THE ORDER IS LOAD-BEARING. A first write cannot change a
+    # signature that does not exist yet, so there is nothing to say -- and saying it anyway
+    # would put a stderr line on an exit-0 path, which the existing suite refuses by name:
+    # "noise on an exit-0 path is indistinguishable from a verdict". Reading the record
+    # before this check made every passing write to a non-existent path under a fixture
+    # manifest print the unreadable-list warning, and it cost a real regression.
+    if not os.path.exists(target):
+        return
+
+    entries, problem = _approval_entries(manifest)
+    if problem:
+        print("check-domain: the main_session.writes exclusion list was unreadable (%s) "
+              "— NO fragment denial was applied. This line is the only thing that notices "
+              "a deleted entry." % (problem,), file=sys.stderr)
+        return
+
+    try:
+        disk = open(target, encoding="utf-8").read()
+    except Exception as exc:
+        print("check-domain: could not read %s (%r) — no fragment denial applied."
+              % (rel, exc), file=sys.stderr)
+        return
+    lines = disk.splitlines()
+
+    for glob, frag, raw in entries:
+        if frag is None:
+            continue                      # fragment-less grant contributes no denial
+        if not fnmatch.fnmatch(rel, glob):
+            continue
+
+        is_key = frag.endswith(":")
+        rng = _yaml_key_range(lines, frag) if is_key else _heading_range(lines, frag)
+        if rng is None:
+            continue                      # the fragment is not in this file
+        on_disk_block = "\n".join(lines[rng[0]:rng[1]])
+
+        def deny_fragment(why):
+            print("check-domain: BLOCKED — %s may not change %s in %s."
+                  % (agent_name, frag, rel), file=sys.stderr)
+            print("  %s" % (why,), file=sys.stderr)
+            print("  That fragment is granted to the MAIN SESSION alone by "
+                  "main_session.writes: %r (DEC-120 — only the main session has a user "
+                  "channel, so only it can hold a signature the user gave)." % (raw,),
+                  file=sys.stderr)
+            print("  Every other write to this file goes through "
+                  "plan-merge.py, which carries the base approval bytes forward untouched.",
+                  file=sys.stderr)
+            sys.exit(2)
+
+        if _tool == "Write":
+            proposed = ti.get("content")
+            if not isinstance(proposed, str):
+                return
+            plines = proposed.splitlines()
+            if is_key:
+                # PARSE both sides and compare the loaded value. A whitespace-only reflow
+                # is not a signature change, and denying it would make plan-merge.py output
+                # undeniable-by-luck.
+                try:
+                    old = harness_yaml.load_str(disk, target).get(frag[:-1])
+                    new = harness_yaml.load_str(proposed, target).get(frag[:-1])
+                except Exception as exc:
+                    print("check-domain: could not parse one side of %s (%r) — allowing; a "
+                          "gate that blocks on its own parse failure breaks every write the "
+                          "moment the payload shape changes." % (rel, exc), file=sys.stderr)
+                    return
+                if old != new:
+                    deny_fragment("the %s value differs from the one on disk." % (frag,))
+            else:
+                prng = _heading_range(plines, frag)
+                new_block = "\n".join(plines[prng[0]:prng[1]]) if prng else None
+                if new_block is None or new_block.strip() != on_disk_block.strip():
+                    deny_fragment("the %s section body differs from the one on disk."
+                                  % (frag,))
+            return
+
+        if _tool == "Edit":
+            old_s = ti.get("old_string")
+            new_s = ti.get("new_string")
+
+            # LIMB A — EXACT, and indentation-independent, which is why it is first. It asks
+            # only whether the text being replaced is text the signature is made of. No
+            # reconstruction of the edit result, no replace_all semantics. It catches the
+            # mid-line-start payload and the accidental replace_all sweep, both of which are
+            # invisible to any rule anchored on a particular indent.
+            if isinstance(old_s, str) and old_s and old_s in on_disk_block:
+                deny_fragment("old_string is text inside the on-disk %s block, so this edit "
+                              "rewrites part of the signature." % (frag,))
+
+            # LIMB B — for a payload that INTRODUCES a signature rather than replacing one.
+            # Reads the child indent from the file. See _child_indent for why it is read and
+            # not hardcoded, and for what breaks it.
+            if isinstance(new_s, str) and new_s:
+                for nl in new_s.splitlines():
+                    if nl.startswith(frag):
+                        deny_fragment("new_string introduces a %s at column zero." % (frag,))
+                ind = _child_indent(lines, rng)
+                if ind:
+                    kids = [l.strip().split(":")[0] for l in lines[rng[0] + 1:rng[1]]
+                            if l.strip() and (len(l) - len(l.lstrip())) == ind and ":" in l]
+                    for nl in new_s.splitlines():
+                        if (len(nl) - len(nl.lstrip())) != ind or ":" not in nl:
+                            continue
+                        if nl.strip().split(":")[0] in kids:
+                            deny_fragment("new_string carries %r at the same indent the "
+                                          "on-disk %s block uses, so it introduces or "
+                                          "rewrites the signature."
+                                          % (nl.strip().split(":")[0], frag))
+            return
+
+
+
 def domain_check():
     # T-12: the manifest is PARSED, not skimmed. The scanner this replaced matched the
     # literal text `name:`/`path:` line by line, so it never had to close a bracket or
@@ -518,6 +754,11 @@ def domain_check():
     rel = _verdict["rel"]
 
     if _verdict["outcome"] == "allow":
+        # AFTER the domain verdict, and on the ALLOW path deliberately: harness-pm IS
+        # granted plan.yaml and BRIEF.md whole, so a fragment denial placed on the deny
+        # path would never fire. This is the difference between the words "except
+        # ## Approval" being a COMMENT beside a grant and being enforced.
+        approval_guard(rel, agent)
         return
 
     if _verdict["outcome"] == "shared":

@@ -27,8 +27,17 @@ Why the split: mid-run-written Expertise bloated into incident narrative that ta
 
 Learned something that might matter later? APPEND it to your observations log — one dated bullet,
 as granular as you like: feature IDs, line anchors, incident narrative, all welcome. It is never
-injected, so detail is free. Create the file on first use; `Write`-not-`Edit` means appending is read-modify-write — Read the
-log first if it exists.
+injected, so detail is free. **Do not Read-then-Write the log.** That instruction WAS issue
+#606: two contexts of one agent each read, each write whole, and the second erases the first.
+Append through the merge tool instead — it merges under a lock and replaces atomically, so
+both contexts keep their bullets:
+
+```bash
+python3 .claude/skills/harness/bin/observations-merge.py apply \
+  --file .harness/<repo>/features/<FEAT>/observations/<your-agent-name>.md --entries -
+```
+
+Entries arrive on stdin in the same bullet format the log already uses.
 
 ```markdown
 # Observations — <your-agent-name> — <FEAT>

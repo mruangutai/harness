@@ -1158,7 +1158,7 @@ tasks:
       category; the library it now calls was written by a squad in T-06, which is exactly the split
       amendment 4 authorises
     depends_on: [T-06, T-07]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/dispatch-guard.sh
       - .claude/skills/harness/bin/test-dispatch-guard.py
@@ -1259,7 +1259,7 @@ tasks:
       validate-digest.py is named in DEC-174 amendment 4 as a registered SubagentStop validator, and
       amendment 4 puts its test file inside the carve-out with it
     depends_on: [T-01, T-06]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/validate-digest.py
       - .claude/skills/harness/bin/test-validate-digest.py
@@ -1470,7 +1470,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve prints NOBODY for .gitignore at c32f332
     depends_on: [T-06]
-    status: pending
+    status: done
     files:
       - .gitignore
     verify: |
@@ -1507,7 +1507,7 @@ tasks:
       check-domain.sh --resolve prints NOBODY for all three files at c32f332, and two of them are
       preloaded rule skills that reach every spawn
     depends_on: [T-03, T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-spec-driven/SKILL.md
       - .claude/skills/harness-expertise/SKILL.md
@@ -1584,7 +1584,7 @@ tasks:
       set -u
       cd "$(git rev-parse --show-toplevel)" || exit 1
       export CLAUDE_PROJECT_DIR="$PWD"
-      python3 .claude/skills/harness/bin/gen-decisions-index.py --check || exit 1
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md || exit 1
       python3 - <<'PY' || exit 1
       src = open(".harness/harness/docs/DECISIONS.md").read()
       for token in ("harness_merge.py", "fcntl.flock", "inflight_registry", "#551"):
@@ -1695,7 +1695,7 @@ tasks:
       to harness-backend-dev and harness-dev-ops at c32f332, so the CATEGORY and not the grant is what
       routes this
     depends_on: [T-03, T-15]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-domain.sh
       - .claude/skills/harness/bin/test-check-domain.py
@@ -2213,10 +2213,11 @@ tasks:
       for f in ("check-domain.sh", "bash-write-guard.sh", "validate-digest.py",
                 "check-state.sh", "check-plan-routes.py"):
           assert f in body, "amendment 4 lost %s from its enumeration" % f
-      assert "the category decides, the list records" in body, \
+      flat = " ".join(body.split())
+      assert "the category decides, the list records" in flat, \
           "the sentence the amendment turns on was dropped"
       PY
-      python3 .claude/skills/harness/bin/gen-decisions-index.py --check || exit 1
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md || exit 1
       exit 0
     intent: |
       THIS TASK CARRIES PROPOSED WORDING, AND THE OPERATOR'S SIGNATURE ON THIS PLAN IS WHAT AUTHORISES

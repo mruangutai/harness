@@ -845,6 +845,80 @@ def hook_mode():
     if d.get("stop_hook_active"):
         return 0
 
+    # -----------------------------------------------------------------------
+    # T-09 — issue #551. TWO steps, in THIS order: release first, then the
+    # return contract. Reversed, an agent refused at step two would never have
+    # its own claim released and would leak it until the TTL.
+    #
+    # NEITHER STEP MAY EVER CHANGE THE VERDICT. This hook validates digests;
+    # the registry is a side errand. Every failure below is swallowed and
+    # reported, never raised, never returned.
+    # -----------------------------------------------------------------------
+    _reg = None
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+        import inflight_registry as _reg
+    except Exception as _e:
+        print(f"check-digest: inflight_registry unavailable ({_e!r}) — the #551 claim was "
+              f"neither released nor checked. This is our gap, not theirs.", file=sys.stderr)
+
+    if _reg is not None:
+        # THE ROOT: payload cwd first, exactly the precedence check_artifact_file already
+        # uses, and it MUST match what dispatch-guard.sh wrote. The guard takes the root
+        # from the payload cwd (the FEATURE worktree) while CLAUDE_PROJECT_DIR resolves to
+        # the MAIN checkout — so preferring the env var here would release from a registry
+        # the claim was never written to, and every claim would leak silently.
+        _root = None
+        for _b in (d.get("cwd"), os.environ.get("CLAUDE_PROJECT_DIR"), os.getcwd()):
+            if not _b:
+                continue
+            _cur = os.path.abspath(_b)
+            while _cur and _cur != os.path.dirname(_cur):
+                # THE MANIFEST FILE, not the .harness DIRECTORY: probing the directory
+                # resolves $HOME as a root in the global install (B-7), and case_20 of the
+                # invariant suite refuses it by name.
+                if os.path.isfile(os.path.join(_cur, ".harness", "team-config.yaml")):
+                    _root = _cur
+                    break
+                _cur = os.path.dirname(_cur)
+            if _root:
+                break
+
+        if _root is None:
+            print("check-digest: no checkout root from this vantage — the #551 claim was "
+                  "neither released nor checked.", file=sys.stderr)
+        else:
+            # STEP ONE — THE RELEASE. For every harness-* persona, not only the
+            # single-flight ones: dispatch-guard.sh records a claim for every dispatched
+            # persona, so anything unreleased is a leak until CLAIM_TTL_SECONDS.
+            try:
+                _released = _reg.release(_root, agent)
+                if _released:
+                    print(f"check-digest: released the #551 claim for {agent}.",
+                          file=sys.stderr)
+            except Exception as _e:
+                print(f"check-digest: could not release {agent}'s claim ({_e!r}) — it will "
+                      f"expire on its TTL. Not blocking on our own errand.", file=sys.stderr)
+
+            # STEP TWO — THE D-09 RETURN CONTRACT. Fires AT MOST ONCE per return, which is
+            # not a wait: a lead cannot be made to wait for its children, and D-09 records
+            # that as an impossibility rather than working around it. What this catches is
+            # FALSE REPORTING — occurrence 7 committed a verdict asserting a member's work
+            # was empty and unrecoverable while that member was still running and later
+            # returned PASS.
+            if norm(agent) in ("lead", "orchestrator"):
+                try:
+                    _kids = _reg.live_children(_root, agent)
+                except Exception as _e:
+                    _kids = []
+                    print(f"check-digest: could not read children of {agent} ({_e!r}) — the "
+                          f"#551 return contract is not enforced for this return.",
+                          file=sys.stderr)
+                if _kids:
+                    for _line in _reg.children_refusal_lines(agent, _kids):
+                        print(_line, file=sys.stderr)
+                    return 2
+
     text = d.get("last_assistant_message") or ""
     if not text.strip():
         print(f"check-digest: {agent} returned no final message to validate — passing through.",

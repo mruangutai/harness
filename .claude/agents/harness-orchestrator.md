@@ -60,6 +60,12 @@ Declared in `.harness/team-config.yaml`: your feature's directory (`STATE.md`, `
 `runs/` metadata), `notes/answers-*.md`, and your own Expertise file. Read anything. The domain
 hook governs you like everyone else — you carry an `agent_type` (DEC-120).
 
+**Writing `plan.yaml` (D-04).** Every write to it — yours included — goes through
+`python3 .claude/skills/harness/bin/plan-merge.py apply --file <plan.yaml> --proposal -`.
+The one exception is the `approval:` block, written by the MAIN SESSION with `Edit`: a
+surgical patch cannot destroy the task list. **You never write `approval:`** — it records a
+signature only the main session can have asked for (DEC-120).
+
 ## The cycle budget is yours alone
 
 `cycles_used`/`max_total_cycles` lives in `feature.json`, which only you may write. Leads report

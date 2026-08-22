@@ -31,6 +31,13 @@ import harness_merge
 # Module-level literals. Each is mutated BY NAME in a copy of the tree by the test's red proof.
 SINGLE_FLIGHT_AGENTS = ("harness-pm",)
 CLAIM_TTL_SECONDS = 3600
+
+# The registry is written by HOOKS, on every spawn. harness_merge's 10s default is right for a
+# file merge and wrong here: a registry read-modify-write is milliseconds, so a lock still held
+# after a second means the holder is STUCK, not busy, and hanging the dispatch to discover that
+# buys nothing. Giving up fast and failing OPEN loudly is D-07's posture. Named so a measurement
+# can move it; the four file-merge callers keep the 10s default untouched.
+LOCK_TIMEOUT_SECONDS = 1.0
 REGISTRY_REL = ".harness/.inflight-claims.json"
 
 CLI_REL_PATH = ".claude/skills/harness/bin/inflight_registry.py"
@@ -101,7 +108,7 @@ def _update_registry(root, mutator):
         result_holder["result"] = result
         return (json.dumps(new_data, indent=2, sort_keys=True) + "\n").encode("utf-8")
 
-    harness_merge.locked_update(path, transform)
+    harness_merge.locked_update(path, transform, timeout=LOCK_TIMEOUT_SECONDS)
     return result_holder["result"]
 
 
@@ -160,8 +167,16 @@ def live_children(root, dispatcher, now=None):
 
 def claim(root, agent, dispatcher, cwd, now=None):
     """Appends a claim and returns True, unless is_single_flight(agent) and a live claim for
-    agent already exists — in which case nothing is recorded and this returns False. Never
-    raises for contention."""
+    agent already exists — in which case nothing is recorded and this returns False.
+
+    IT DOES RAISE. The single-flight refusal returns False rather than raising, and an earlier
+    version of this docstring generalised that into "never raises for contention", which is
+    false: LOCK contention raises harness_merge.MergeRefusal once the deadline passes.
+    Measured, not reasoned — with the lock held it raised after exactly the deadline.
+    EVERY HOOK CALLER MUST WRAP THIS. An uncaught exception in a PreToolUse hook exits
+    non-zero and the dispatch is affected, which inverts D-07's fail-open posture — the exact
+    outcome the refusal path was written to avoid.
+    """
     now = now if now is not None else time.time()
 
     def mutator(data):
