@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-31-orchestrator-context-watch",
   "pr": null,
   "status": "Review",
-  "review_sha": "fcb8984f2bc2db1277ee6a3fc657fcbb0592826e",
+  "review_sha": "0fc10e5a9f48afae512baed6d9297aab88e7f181",
   "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
@@ -153,6 +153,24 @@
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-eng-lead"
+    },
+    {
+      "id": "distill-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validation",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
     }
   ]
 }
