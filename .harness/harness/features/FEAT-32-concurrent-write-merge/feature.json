@@ -44,6 +44,12 @@
       "squad": "product",
       "verdict": "PASS",
       "agent": "harness-product-lead"
+    },
+    {
+      "id": "lockgap-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
     }
   ],
   "github": {

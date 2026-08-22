@@ -74,3 +74,14 @@
   proof to T-03's verify pushed it to 58 and made the plan exit 1. Three mutation proofs differing
   only in a literal name collapse to a `for lit in A B C` loop: 44 verify lines to 18, same
   assertions. A red-proof-per-literal pattern is the shape that hits this budget first.
+- 2026-08-22: judged whether an edit to a SIGNED plan's `verify:` needs a new signature, and the
+  discriminator that held was WHERE THE ANSWER COMES FROM, not diff size. T-15's clause read
+  `endswith(" plan.yaml approval:")` (leading space) against a grant whose preceding character is a
+  slash, so it was unsatisfiable by construction; the task's own `intent:` mandated the grant string
+  verbatim and the two sibling clauses fixed the grammar, so the signed text alone forced the one-char
+  fix -> covered, no signature. Contrast the same feature's #551 occurrence count: the corrected
+  number existed nowhere in the plan and had to be measured externally -> new content, operator.
+  Rule: forced-by-the-artifact = covered; requires-choosing-among-readings = needs the signature.
+- 2026-08-22: an assert that aborts a python heredoc HIDES every later clause, so "it fails for this
+  reason" is only half the check. Run a corrected copy in scratchpad to reach the tail before
+  declaring a single cause — the claim "and no other reason" is otherwise unmeasured.

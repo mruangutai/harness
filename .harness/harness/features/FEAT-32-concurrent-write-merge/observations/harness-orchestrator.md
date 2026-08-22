@@ -362,3 +362,14 @@
   correct refusals of a misparse, not of intent. LESSON: in any Bash call, avoid `mv`/`cp`/`rm` as
   identifiers and avoid `>`/`>=` in embedded code — use `range(i, -1, -1)` instead of a `while j >= 0`.
   Three tool calls lost to this in one run.
+- 2026-08-22 (ship, T-02): the RIGHT way to audit a red proof, and it took three steps rather than one.
+  T-02's verify exits 0 only if a mutated copy of the suite FAILS, which looks airtight until you ask
+  why it failed. Step 1: assert the mutation applied — the plan's own `assert m != s, "... BY NAME"`
+  does this. Step 2, THE ONE EVERYONE SKIPS: prove the mutant IMPORTS — `python3 -c "import
+  harness_merge; print(harness_merge.USE_FLOCK)"` in the mutated tree, exit 0, prints `False`. Step 3:
+  count and read the failures. Result: 18 checks ran, exactly 2 failed, both case4 (stale lock after
+  SIGKILL), with the refusal text naming the 10s timeout. So 16 checks still pass under the mutant and
+  only the two testing the mutated property go red — a targeted discriminator, not a crash. LESSON: a
+  red proof that reports "the suite failed" is worth nothing without the import check plus the failure
+  COUNT; a mutant that dies on import fails 18/18 or 0/18 and both are indistinguishable from a pass/
+  fail at the exit code. The signature of a good mutant is a SMALL, NAMED subset failing.
