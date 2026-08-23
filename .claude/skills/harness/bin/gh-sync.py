@@ -17,6 +17,12 @@
                                            recorded branch's exactly-one merged PR and
                                            record it, or record --pr directly (T-03,
                                            FEAT-26) — idempotent, never overwrites
+  gh-sync.py status <feature-dir> <Status>  phase transition -> records feature.json's
+                                         `status` FIRST, then performs exactly the
+                                         station writes THAT event implies (Ready moves
+                                         every recorded sub-issue; Review moves the
+                                         parent AND every sub-issue; Plan/Done/Abandoned
+                                         write no station) (T-13, D-16)
 
 TRUTH DIRECTION IS THE POINT. PLAN.md is approval-gated and is the only source; this
 script projects it outward. It reads GitHub state back exactly ONCE — `record-pr` asks
@@ -87,6 +93,11 @@ GH = os.environ.get("GH_SYNC_GH", "gh")
 
 CHORE_TYPES = {"config", "scaffolding", "infra", "ci"}
 
+# T-13: the closed set `status` accepts, matching check-state.sh:494's STATUS_ORDER and
+# feature-schema.json's own status enum. A value outside this set is a caller error (exit 2),
+# not silently accepted with a lower-case spelling.
+STATUS_VALUES = ("Backlog", "Plan", "Ready", "Building", "Review", "Done", "Abandoned")
+
 
 def skip(msg):
     """Environmental no-go: one loud line, exit 0. The mirror never gates."""
@@ -98,6 +109,14 @@ def die(msg):
     """Caller error: the dispatch itself is wrong. Visible, exit 1."""
     print(f"gh-sync: ERROR — {msg}")
     sys.exit(1)
+
+
+def refuse(msg):
+    """T-13's `status` subcommand refusals: a value or precondition failed validation,
+    distinct from `die`'s exit 1 (a malformed dispatch) and from `skip`'s exit 0 (an
+    environmental precondition). Exit 2, one line, naming the offending value."""
+    print(f"gh-sync: REFUSED — {msg}")
+    sys.exit(2)
 
 
 def post_body_path(path, flag):
@@ -842,6 +861,104 @@ def cmd_close_task(feat_dir, tid, repo, board):
         print(f"gh-sync: {tid} absorbs {', '.join('#' + n for n in absorbed)} — left open for the ship briefing")
 
 
+def _status_plan_doc(feat_dir):
+    """plan.yaml, loaded and validated, or None on any failure (absent file, unparseable,
+    or schema-invalid). `status`'s two guarded transitions (Ready, Review) both need this
+    and both treat a failure to load as "the precondition is not met" rather than raising —
+    an unreadable plan cannot prove a signature or prove every task is done."""
+    path = os.path.join(feat_dir, "plan.yaml")
+    if not os.path.isfile(path):
+        return None
+    try:
+        return harness_yaml.load_plan(path)
+    except harness_yaml.YamlParseError:
+        return None
+
+
+def cmd_status(feat_dir, status, repo, board):
+    """`status <feature-dir> <Status>` (T-13, D-16) — couples recording a feature's phase
+    status to the station writes THAT EVENT implies, so a station write cannot be forgotten
+    separately from the phase record.
+
+    ORDER IS FIXED: the status write to feature.json happens FIRST and is never conditional
+    on any board write (step 4) — a failed board write must never leave the recorded status
+    behind, because the recorded status is what the audit grades the card against. Every
+    refusal below (step 5) therefore runs BEFORE `_record_status`, since a refusal must leave
+    NOTHING recorded.
+
+    STATION WRITES, exactly what step 2 specifies and nothing else:
+    - Ready: every recorded T-NN sub-issue (never the parent — D-18, THE PARENT MUST NEVER
+      REACH THE READY COLUMN) moves to `board["stations"]["ready"]`. Zero recorded sub-issues
+      prints one line and writes nothing — no fallback to the parent.
+    - Review: the PARENT and every recorded T-NN sub-issue move to
+      `board["stations"]["review"]` (operator ruling, D-23) — one `gh_board.set_station` call
+      each. A parent that is not recorded prints one stderr line and the sub-issue writes
+      still proceed; this does not raise and does not restate INV-21's finding.
+    - Plan, Done, Abandoned: no station write at all (Plan is board-station.py's own write;
+      Done is GitHub's native Item-closed workflow; Abandoned has no column, D-03/DEC-192).
+
+    FAILURE POSTURE, unchanged from every other station write in this file: a `BoardError`
+    from one card prints one stderr line and the remaining cards still get written — a bulk
+    write must not stop at the first failure (step 4).
+
+    `board is None` (no github.board configured) skips every station write below — the
+    status is still recorded.
+    """
+    if status not in STATUS_VALUES:
+        refuse(f"unknown status {status!r} — must be one of {', '.join(STATUS_VALUES)}")
+
+    if status == "Ready":
+        plan_doc = _status_plan_doc(feat_dir)
+        approval = (plan_doc or {}).get("approval") or {}
+        if approval.get("status") != "approved":
+            refuse("status Ready refused — plan.yaml's approval.status is not 'approved'")
+
+    if status == "Review":
+        plan_doc = _status_plan_doc(feat_dir)
+        tasks = (plan_doc or {}).get("tasks") or []
+        all_done = bool(tasks) and all((t.get("status") or "pending") == "done" for t in tasks)
+        if not all_done:
+            refuse("status Review refused — not every task in plan.yaml carries status done")
+
+    _record_status(feat_dir, status)
+
+    if board is None or status in ("Plan", "Done", "Abandoned"):
+        return
+
+    rec = load_recorded(feat_dir)
+
+    if status == "Ready":
+        numbers = sorted(rec["issues"].values())
+        if not numbers:
+            print("gh-sync: status Ready — no sub-issues recorded, nothing to move")
+            return
+        ready = board["stations"]["ready"]
+        for num in numbers:
+            try:
+                gh_board.set_station(board, repo, num, ready)
+                print(f"gh-sync: issue #{num} -> {ready}")
+            except gh_board.BoardError as e:
+                print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+    elif status == "Review":
+        review = board["stations"]["review"]
+        if rec["parent"] is None:
+            print(f"gh-sync: no parent recorded for "
+                  f"{os.path.basename(os.path.abspath(feat_dir))} — parent station not "
+                  f"written", file=sys.stderr)
+        else:
+            try:
+                gh_board.set_station(board, repo, rec["parent"], review)
+                print(f"gh-sync: parent #{rec['parent']} -> {review}")
+            except gh_board.BoardError as e:
+                print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+        for num in sorted(rec["issues"].values()):
+            try:
+                gh_board.set_station(board, repo, num, review)
+                print(f"gh-sync: issue #{num} -> {review}")
+            except gh_board.BoardError as e:
+                print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+
+
 def cmd_abandon(feat_dir, repo, reason_file):
     """Terminal state: closes every recorded sub-issue not_planned, closes the milestone,
     posts the reason on the parent, and closes the parent itself only if `open` created it
@@ -1030,9 +1147,9 @@ def main():
             die(f"--pr needs an integer, got {pr_arg!r}")
     if len(argv) < 2:
         die("usage: gh-sync.py open|start-task|close-task|abandon|ship|backlog|record-pr|"
-            "closes "
-            "<feature-dir> [T-NN | nature:title ...] [--parent <n>] [--reason-file <path>] "
-            "[--body-file <path>] [--pr <n>]")
+            "closes|status "
+            "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
+            "[--reason-file <path>] [--body-file <path>] [--pr <n>]")
     cmd, feat_dir = argv[0], argv[1]
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
@@ -1100,6 +1217,10 @@ def main():
         cmd_backlog(feat_dir, repo, argv[2:])
     elif cmd == "record-pr":
         _record_pr(feat_dir, repo, pr_arg)
+    elif cmd == "status":
+        if len(argv) < 3:
+            die("status needs a Status value")
+        cmd_status(feat_dir, argv[2], repo, board)
     else:
         die(f"unknown command {cmd!r}")
 

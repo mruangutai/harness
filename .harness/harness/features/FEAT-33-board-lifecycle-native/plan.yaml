@@ -948,7 +948,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at 46ee87c
     depends_on: [T-04, T-05]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness-init/SKILL.md
     verify: |
@@ -1109,7 +1109,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02, T-08]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py

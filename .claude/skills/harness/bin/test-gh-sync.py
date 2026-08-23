@@ -419,14 +419,18 @@ def write_harness_json_board(tmp, sync=True, repo="implentio/fake", board=True, 
     json.dump({"github": g}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
 
 
-def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None):
+def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None, approval=None):
     """A minimal plan.yaml — every REQUIRED_TASK_FIELDS key present — carrying only the
     `status` values a test cares about. Written as JSON text: JSON is valid YAML and this
     avoids a second parser dependency in the test file itself.
 
     `source_issues` is OPTIONAL (T-02, FEAT-26) so every existing caller is unchanged when
     it is omitted; when given, it is written as plan.yaml's own top-level `source_issues`
-    key, exactly the shape `parse_source_issues` reads."""
+    key, exactly the shape `parse_source_issues` reads.
+
+    `approval` is OPTIONAL (T-13): a dict written verbatim as plan.yaml's top-level
+    `approval:` key when given, omitted otherwise — every existing caller (none of which
+    cares about approval) is unchanged."""
     doc = {
         "schema": "plan/1",
         "feature": feat_name,
@@ -438,15 +442,21 @@ def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None):
     }
     if source_issues is not None:
         doc["source_issues"] = source_issues
+    if approval is not None:
+        doc["approval"] = approval
     with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
         json.dump(doc, f)
 
 
 def stage_station(tmp, feat_name, task_statuses, board=True, sync=True, repo="implentio/fake",
-                   feature_status="Building", issues=None, parent=40, milestone=7, stations=None):
+                   feature_status="Building", issues=None, parent=40, milestone=7, stations=None,
+                   approval=None, source_issues=None):
     """A plan.yaml-backed feature, wired for the T-03 station-write tests: harness.json's
     github.board (optionally), a plan.yaml carrying the given task statuses, and a
-    feature.json recording the given issues/parent so `load_recorded` needs no live sync."""
+    feature.json recording the given issues/parent so `load_recorded` needs no live sync.
+
+    `approval` and `source_issues` are OPTIONAL passthroughs to `write_plan_yaml` (T-13) —
+    every existing caller, which passes neither, is unchanged."""
     feat = os.path.join(tmp, ".harness", "features", feat_name)
     os.makedirs(feat)
     write_harness_json_board(tmp, sync=sync, repo=repo, board=board, stations=stations)
@@ -468,7 +478,8 @@ Station fixture.
 
 status: approved
 """)
-    write_plan_yaml(feat, feat_name, task_statuses)
+    write_plan_yaml(feat, feat_name, task_statuses, source_issues=source_issues,
+                     approval=approval)
     write_feature_json(
         os.path.join(feat, "feature.json"),
         feature_id=feat_name, status=feature_status,
@@ -1522,6 +1533,198 @@ with tempfile.TemporaryDirectory() as tmpW:
     check("an unusable board config is a loud failure, not a skipped station write",
           r.returncode == 2 and "station_field" in r.stderr and "station_field" not in r.stdout,
           f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+# ---------- T-13: gh-sync.py status <feature-dir> <Status> ----------
+# Couples recording feature.json's phase status to the station writes that event implies.
+# Every case sets BOTH FACTORY_GH and GH_SYNC_GH (D-11) — gh_board's calls go through
+# factory_gh, which reads FACTORY_GH, not GH_SYNC_GH.
+
+# --- an unknown Status value is refused, exit 2, before anything is recorded or written.
+with tempfile.TemporaryDirectory() as tmpSt1:
+    install_gh(tmpSt1, FAKE_GH_STATIONS)
+    featSt1 = stage_station(
+        tmpSt1, "FEAT-33-status-unknown",
+        [("T-01", "done")],
+        issues={"T-01": 326},
+        feature_status="Building",
+    )
+    r = run(["status", featSt1, "Banana"], tmpSt1, {"FACTORY_GH": os.path.join(tmpSt1, "gh")})
+    check("status: an unknown value is refused with exit 2",
+          r.returncode == 2, r.stdout + r.stderr)
+    check("status: the refusal names the offending value",
+          "Banana" in (r.stdout + r.stderr), r.stdout + r.stderr)
+    check("status: an unknown value writes no station of any kind",
+          not any("item-edit" in l for l in calls(tmpSt1)), str(calls(tmpSt1)))
+    check("status: an unknown value leaves feature.json's status unrecorded",
+          read_feature_json(os.path.join(featSt1, "feature.json"))["status"] == "Building",
+          read_feature_json(os.path.join(featSt1, "feature.json")))
+
+# --- status Ready on a signed plan moves every recorded T-NN sub-issue to the declared
+#     ready station and touches the parent NOWHERE (D-18) — assert the EXACT SET, never a
+#     count: a count of three is satisfied by two sub-issues plus the parent.
+with tempfile.TemporaryDirectory() as tmpSt2:
+    install_gh(tmpSt2, FAKE_GH_STATIONS)
+    featSt2 = stage_station(
+        tmpSt2, "FEAT-33-status-ready",
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        issues={"T-01": 41, "T-02": 42, "T-03": 43},
+        parent=40,
+        approval={"status": "approved"},
+    )
+    r = run(["status", featSt2, "Ready"], tmpSt2, {"FACTORY_GH": os.path.join(tmpSt2, "gh")})
+    logSt2 = calls(tmpSt2)
+    editsSt2 = [l for l in logSt2 if "project item-edit" in l]
+    ids_written = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt2}
+    check("status Ready: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("status Ready: writes exactly the three sub-issues, never the parent",
+          ids_written == {"ITEM_41", "ITEM_42", "ITEM_43"}, str(editsSt2))
+    check("status Ready: every write selects the declared Ready option",
+          all("--single-select-option-id OPT_READY" in l for l in editsSt2), str(editsSt2))
+    check("status Ready: feature.json status recorded as Ready",
+          read_feature_json(os.path.join(featSt2, "feature.json"))["status"] == "Ready",
+          read_feature_json(os.path.join(featSt2, "feature.json")))
+
+# --- status Review moves the PARENT and every recorded T-NN sub-issue, and only those.
+with tempfile.TemporaryDirectory() as tmpSt3:
+    install_gh(tmpSt3, FAKE_GH_STATIONS)
+    featSt3 = stage_station(
+        tmpSt3, "FEAT-33-status-review",
+        [("T-01", "done"), ("T-02", "done")],
+        issues={"T-01": 41, "T-02": 42},
+        parent=40,
+    )
+    r = run(["status", featSt3, "Review"], tmpSt3, {"FACTORY_GH": os.path.join(tmpSt3, "gh")})
+    logSt3 = calls(tmpSt3)
+    editsSt3 = [l for l in logSt3 if "project item-edit" in l]
+    ids_written3 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt3}
+    check("status Review: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("status Review: writes exactly the parent plus every sub-issue",
+          ids_written3 == {"ITEM_40", "ITEM_41", "ITEM_42"}, str(editsSt3))
+    check("status Review: every write selects the declared Review option",
+          all("--single-select-option-id OPT_REVIEW" in l for l in editsSt3), str(editsSt3))
+
+# --- status Plan, Done and Abandoned each write NO station at all — the harness never
+#     writes those three columns (Plan is board-station.py's, Done is GitHub's own workflow,
+#     Abandoned has no column at all, D-03/DEC-192).
+for _st3_status in ("Plan", "Done", "Abandoned"):
+    with tempfile.TemporaryDirectory() as tmpSt4:
+        install_gh(tmpSt4, FAKE_GH_STATIONS)
+        featSt4 = stage_station(
+            tmpSt4, f"FEAT-33-status-{_st3_status.lower()}",
+            [("T-01", "done")],
+            issues={"T-01": 41},
+            parent=40,
+        )
+        r = run(["status", featSt4, _st3_status], tmpSt4,
+                {"FACTORY_GH": os.path.join(tmpSt4, "gh")})
+        logSt4 = calls(tmpSt4)
+        check(f"status {_st3_status}: exits 0", r.returncode == 0, r.stdout + r.stderr)
+        check(f"status {_st3_status}: writes NO station at all",
+              not any("item-edit" in l for l in logSt4), str(logSt4))
+        check(f"status {_st3_status}: feature.json status recorded",
+              read_feature_json(os.path.join(featSt4, "feature.json"))["status"] == _st3_status,
+              read_feature_json(os.path.join(featSt4, "feature.json")))
+
+# --- SC-14's fixture: status Ready on a feature with ZERO recorded sub-issues writes
+#     nothing and prints one line — proves there is no fallback to the parent.
+with tempfile.TemporaryDirectory() as tmpSt5:
+    install_gh(tmpSt5, FAKE_GH_STATIONS)
+    featSt5 = stage_station(
+        tmpSt5, "FEAT-33-status-ready-zero-subissues",
+        [("T-01", "pending")],
+        issues={},
+        parent=40,
+        approval={"status": "approved"},
+    )
+    r = run(["status", featSt5, "Ready"], tmpSt5, {"FACTORY_GH": os.path.join(tmpSt5, "gh")})
+    logSt5 = calls(tmpSt5)
+    check("status Ready, zero sub-issues: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("status Ready, zero sub-issues: no set_station call at all — no parent fallback",
+          not any("item-edit" in l for l in logSt5), str(logSt5))
+    check("status Ready, zero sub-issues: prints one line saying there is nothing to move",
+          "no sub-issues recorded" in r.stdout, r.stdout)
+
+# --- refusal: status Ready with an UNSIGNED plan (no approval.status: approved) is
+#     refused, exit 2, and nothing is recorded or written.
+with tempfile.TemporaryDirectory() as tmpSt6:
+    install_gh(tmpSt6, FAKE_GH_STATIONS)
+    featSt6 = stage_station(
+        tmpSt6, "FEAT-33-status-ready-unsigned",
+        [("T-01", "pending")],
+        issues={"T-01": 41},
+        parent=40,
+        feature_status="Plan",
+        approval=None,
+    )
+    r = run(["status", featSt6, "Ready"], tmpSt6, {"FACTORY_GH": os.path.join(tmpSt6, "gh")})
+    check("status Ready, unsigned plan: refused with exit 2",
+          r.returncode == 2, r.stdout + r.stderr)
+    check("status Ready, unsigned plan: names the value Ready in the refusal",
+          "Ready" in (r.stdout + r.stderr), r.stdout + r.stderr)
+    check("status Ready, unsigned plan: no station write reaches the fake",
+          not any("item-edit" in l for l in calls(tmpSt6)), str(calls(tmpSt6)))
+    check("status Ready, unsigned plan: feature.json status is NOT recorded as Ready",
+          read_feature_json(os.path.join(featSt6, "feature.json"))["status"] == "Plan",
+          read_feature_json(os.path.join(featSt6, "feature.json")))
+
+# --- refusal: status Review while a task is not yet done is refused, exit 2, and nothing
+#     is recorded or written.
+with tempfile.TemporaryDirectory() as tmpSt7:
+    install_gh(tmpSt7, FAKE_GH_STATIONS)
+    featSt7 = stage_station(
+        tmpSt7, "FEAT-33-status-review-unfinished",
+        [("T-01", "done"), ("T-02", "building")],
+        issues={"T-01": 41, "T-02": 42},
+        parent=40,
+        feature_status="Building",
+    )
+    r = run(["status", featSt7, "Review"], tmpSt7, {"FACTORY_GH": os.path.join(tmpSt7, "gh")})
+    check("status Review, unfinished tasks: refused with exit 2",
+          r.returncode == 2, r.stdout + r.stderr)
+    check("status Review, unfinished tasks: names the value Review in the refusal",
+          "Review" in (r.stdout + r.stderr), r.stdout + r.stderr)
+    check("status Review, unfinished tasks: no station write reaches the fake",
+          not any("item-edit" in l for l in calls(tmpSt7)), str(calls(tmpSt7)))
+    check("status Review, unfinished tasks: feature.json status is NOT recorded as Review",
+          read_feature_json(os.path.join(featSt7, "feature.json"))["status"] == "Building",
+          read_feature_json(os.path.join(featSt7, "feature.json")))
+
+# --- one sub-issue's set_station raising must not stop the remaining sub-issues from
+#     being written, exit 0, one stderr line, and feature.json's status still recorded.
+#     Custom fake: item-edit fails ONLY for ITEM_41; ITEM_42 and ITEM_43 still succeed.
+FAKE_GH_STATIONS_FIRST_ITEM_FAILS = FAKE_GH_STATIONS.replace(
+    '  *"project item-edit"*)\n    exit 0 ;;',
+    '  *"project item-edit"*"--id ITEM_41 "*)\n'
+    '    echo "simulated item-edit failure for ITEM_41" >&2\n'
+    '    exit 1 ;;\n'
+    '  *"project item-edit"*)\n    exit 0 ;;',
+)
+assert 'ITEM_41' in FAKE_GH_STATIONS_FIRST_ITEM_FAILS and (
+    FAKE_GH_STATIONS_FIRST_ITEM_FAILS != FAKE_GH_STATIONS), "fixture patch did not apply"
+with tempfile.TemporaryDirectory() as tmpSt8:
+    install_gh(tmpSt8, FAKE_GH_STATIONS_FIRST_ITEM_FAILS)
+    featSt8 = stage_station(
+        tmpSt8, "FEAT-33-status-ready-one-fails",
+        [("T-01", "done"), ("T-02", "done"), ("T-03", "done")],
+        issues={"T-01": 41, "T-02": 42, "T-03": 43},
+        parent=40,
+        approval={"status": "approved"},
+    )
+    r = run(["status", featSt8, "Ready"], tmpSt8, {"FACTORY_GH": os.path.join(tmpSt8, "gh")})
+    logSt8 = calls(tmpSt8)
+    editsSt8 = [l for l in logSt8 if "project item-edit" in l]
+    ids8 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt8}
+    check("status Ready, one write raises: process still exits 0", r.returncode == 0,
+          r.stdout + r.stderr)
+    check("status Ready, one write raises: ITEM_41's write was attempted (and is what failed)",
+          "ITEM_41" in ids8, str(editsSt8))
+    check("status Ready, one write raises: the REMAINING sub-issues were still written",
+          {"ITEM_42", "ITEM_43"}.issubset(ids8), str(editsSt8))
+    check("status Ready, one write raises: one stderr ERROR line naming the issue",
+          "gh-sync: ERROR" in r.stderr and "41" in r.stderr, r.stderr)
+    check("status Ready, one write raises: feature.json status still recorded as Ready",
+          read_feature_json(os.path.join(featSt8, "feature.json"))["status"] == "Ready",
+          read_feature_json(os.path.join(featSt8, "feature.json")))
 
 # ---- FEAT-21 T-10: the root walk-up is depth-agnostic ----------------------------
 # migrated_depth: a feature dir one segment deeper than the old arithmetic assumed.

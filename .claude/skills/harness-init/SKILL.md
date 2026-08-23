@@ -209,6 +209,34 @@ outbound after your plan approval)"**
 - **No** → write `"github": { "sync": false, "repo": null }` — an explicit off, not an absence.
   INV-13 treats a missing block as "never asked" and nags; an explicit false is a decision.
 
+### The project board — provision it, then read the workflow report (FEAT-33)
+
+Runs after the mirror section above, because it needs the repo pinned. Skip it entirely when
+`github.sync` is false.
+
+- `python3 .claude/skills/harness/bin/board_lifecycle.py provision` — **read the exit code.**
+  `0` provisioned or already correct. `2` the declaration is unusable and the message names the
+  key. `3` a NEW project was created, and its number must be written into that project's
+  `harness.json` `github.board.number` **before anything else runs**.
+- **Provisioning works only for a USER-OWNED board.** Every primitive queries `user(login:)`, and
+  an organization-owned project is refused with "organization-owned board not supported". Create
+  and configure that by hand; `provision` exits 2 saying so rather than doing something partial.
+  Both repositories in the fleet today happen to be user-owned, so nothing else would surface this.
+- `python3 .claude/skills/harness/bin/board_lifecycle.py audit` — show the operator the WORKFLOW
+  findings **verbatim**.
+
+**The three workflows are a HARD GATE you cannot automate.** `Item closed`, `Auto-close issue` and
+`Pull request merged` cannot be enabled by any API: all 31 ProjectV2 mutations include
+`deleteProjectV2Workflow` and none that creates or enables one, and `ProjectV2Workflow` exposes
+neither its trigger nor its action. **Only a click in the project's web UI turns them on.** Ask the
+operator to do it, then re-run the audit. Onboarding is not finished until it reports all three
+enabled.
+
+**Accepted cost, ruled by the operator:** this check runs ONCE, here, and never in
+`check-state.sh` — that gate runs at every `/harness` door and before every commit, so a network
+call there would fire dozens of times per build. The consequence is real: a workflow switched off
+after init is invisible until the next init run.
+
 ### 8. Design pass — UI projects only
 
 If step 3 said there is a UI, offer it: `harness-visual-designer` establishes `.harness/features/<FEAT>/DESIGN.md`
