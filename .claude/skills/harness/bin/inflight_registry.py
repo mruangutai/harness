@@ -86,7 +86,21 @@ def _expire(claims, now):
     live = []
     expired = 0
     for c in claims:
-        if now - c.get("started_at", 0) > CLAIM_TTL_SECONDS:
+        # PER-CLAIM TOLERANCE, and it is not defensive padding. This runs UPSTREAM of the
+        # single-flight test in dispatch-guard.sh, so a single malformed entry raising here
+        # took the whole #551 refusal down SILENTLY -- the guard caught the exception and
+        # failed open, which is right for the dispatch and wrong as a way to lose the check.
+        # A claim we cannot read is treated as expired: it cannot be released by name either,
+        # so keeping it would refuse a legitimate dispatch until its TTL, and the TTL cannot
+        # be computed for an entry whose started_at is unreadable.
+        if not isinstance(c, dict):
+            expired += 1
+            continue
+        started = c.get("started_at")
+        if not isinstance(started, (int, float)):
+            expired += 1
+            continue
+        if now - started > CLAIM_TTL_SECONDS:
             expired += 1
         else:
             live.append(c)
@@ -203,7 +217,16 @@ def release(root, agent):
         claims_list = data.get(agent, [])
         if not claims_list:
             return data, False
-        oldest_idx = min(range(len(claims_list)), key=lambda i: claims_list[i]["started_at"])
+        # .get, NOT bracket indexing. With [] a single entry missing started_at raised and
+        # NOTHING for this agent could be released -- so a lead was falsely refused for up to
+        # CLAIM_TTL_SECONDS by an entry that was not even its own. An unreadable started_at
+        # sorts as 0, i.e. oldest, so the malformed entry is the FIRST thing removed.
+        def _started(i):
+            c = claims_list[i]
+            v = c.get("started_at") if isinstance(c, dict) else None
+            return v if isinstance(v, (int, float)) else 0
+
+        oldest_idx = min(range(len(claims_list)), key=_started)
         claims_list = list(claims_list)
         claims_list.pop(oldest_idx)
         _set_or_pop(data, agent, claims_list)

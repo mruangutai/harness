@@ -2,40 +2,133 @@
   "feature_id": "FEAT-32-concurrent-write-merge",
   "branch": "feat/FEAT-32",
   "pr": null,
-  "status": "Building",
-  "review_sha": "none",
+  "status": "Review",
+  "review_sha": "5107efb9c1b0b02e539c10737480bb76a13d53c5",
   "cycles_used": 3,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
-    { "id": "2026-08-21-1-product", "squad": "product", "verdict": "ESCALATE" },
-    { "id": "2026-08-21-2-product", "squad": "product", "verdict": "ESCALATE" },
-    { "id": "2026-08-21-3-product", "squad": "product", "verdict": "PASS" },
-    { "id": "2026-08-21-01-product", "squad": "product", "verdict": "PASS" },
-    { "id": "2026-08-21-5-product", "squad": "product", "verdict": "PASS" },
-    { "id": "t13-count-product", "squad": "product", "verdict": "ESCALATE", "agent": "harness-product-lead" },
-    { "id": "t15-verify-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "lockgap-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "build-eng", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead" },
-    { "id": "yamlgap-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "t06t10-eng", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead" },
-    { "id": "yamlsentence-eng", "squad": "eng", "verdict": "PASS", "agent": "harness-eng-lead" },
-    { "id": "ruling-product", "squad": "product", "verdict": "PASS", "agent": "harness-product-lead" },
-    { "id": "2026-08-22-1-product", "squad": "product", "verdict": "ESCALATE", "agent": "harness-product-lead" }
+    {
+      "id": "2026-08-21-1-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-21-2-product",
+      "squad": "product",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-21-3-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-21-01-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-21-5-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t13-count-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "t15-verify-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "lockgap-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "build-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "yamlgap-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "t06t10-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "yamlsentence-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "ruling-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-22-1-product",
+      "squad": "product",
+      "verdict": "ESCALATE",
+      "agent": "harness-product-lead"
+    }
   ],
   "github": {
     "milestone": 21,
     "parent": 700,
     "parent_origin": "created",
     "attached": [
-      "T-01", "T-02", "T-03", "T-04", "T-05", "T-06", "T-07", "T-08", "T-09",
-      "T-10", "T-11", "T-12", "T-13", "T-14", "T-15", "T-16", "T-17"
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12",
+      "T-13",
+      "T-14",
+      "T-15",
+      "T-16",
+      "T-17"
     ],
     "issues": {
-      "T-01": 701, "T-02": 702, "T-03": 703, "T-04": 704, "T-05": 705,
-      "T-06": 706, "T-07": 707, "T-08": 708, "T-09": 709, "T-10": 710,
-      "T-11": 711, "T-12": 712, "T-13": 713, "T-14": 714, "T-15": 715,
-      "T-16": 716, "T-17": 717
+      "T-01": 701,
+      "T-02": 702,
+      "T-03": 703,
+      "T-04": 704,
+      "T-05": 705,
+      "T-06": 706,
+      "T-07": 707,
+      "T-08": 708,
+      "T-09": 709,
+      "T-10": 710,
+      "T-11": 711,
+      "T-12": 712,
+      "T-13": 713,
+      "T-14": 714,
+      "T-15": 715,
+      "T-16": 716,
+      "T-17": 717
     }
   }
 }

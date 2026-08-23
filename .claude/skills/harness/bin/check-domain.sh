@@ -550,9 +550,18 @@ def approval_guard(rel, agent_name):
 
         is_key = frag.endswith(":")
         rng = _yaml_key_range(lines, frag) if is_key else _heading_range(lines, frag)
-        if rng is None:
-            continue                      # the fragment is not in this file
-        on_disk_block = "\n".join(lines[rng[0]:rng[1]])
+
+        # AN ABSENT FRAGMENT IS STILL GOVERNED. Skipping here was the third demonstrated
+        # bypass and the worst, because it CHAINS: one Edit deletes the block (allowed under
+        # the old containment limb A), and with no key left on disk this `continue` skipped
+        # the guard entirely, so a second Edit wrote a forged block back. Two allowed moves
+        # to forge a signature. The file EXISTING with no signature does not mean anything
+        # may create one -- only that there is no block to overlap, so limb A has nothing to
+        # say and limb B carries the whole check.
+        absent = rng is None
+        if absent:
+            rng = (len(lines), len(lines))
+        on_disk_block = "" if absent else "\n".join(lines[rng[0]:rng[1]])
 
         def deny_fragment(why):
             print("check-domain: BLOCKED — %s may not change %s in %s."
@@ -598,34 +607,75 @@ def approval_guard(rel, agent_name):
             old_s = ti.get("old_string")
             new_s = ti.get("new_string")
 
-            # LIMB A — EXACT, and indentation-independent, which is why it is first. It asks
-            # only whether the text being replaced is text the signature is made of. No
-            # reconstruction of the edit result, no replace_all semantics. It catches the
-            # mid-line-start payload and the accidental replace_all sweep, both of which are
-            # invisible to any rule anchored on a particular indent.
-            if isinstance(old_s, str) and old_s and old_s in on_disk_block:
-                deny_fragment("old_string is text inside the on-disk %s block, so this edit "
-                              "rewrites part of the signature." % (frag,))
+            # LIMB A — OVERLAP, not containment. THE PANEL DEFEATED THE CONTAINMENT VERSION
+            # THREE WAYS and every one crossed a boundary of the range rather than staying
+            # inside it. An old_string that starts one line ABOVE the block, or ends one line
+            # BELOW it, is not a substring of the block but still replaces every byte of it.
+            #
+            #   reproduced, all three ALLOWED before this fix:
+            #     "feature: X\n\napproval:\n  status: pending\n..." -> quoted key, children at 4
+            #     the same span -> "feature: X"                      (deletes the block)
+            #     old_string "tasks:" against a file with NO key     (re-introduces a forged one)
+            #
+            # So the test is INTERSECTION of byte ranges. Locate old_string in the file and ask
+            # whether its span touches the fragment's span at all.
+            denied_a = False
+            if not absent and isinstance(old_s, str) and old_s:
+                b0 = disk.find(old_s)
+                if b0 != -1:
+                    b1 = b0 + len(old_s)
+                    # the fragment's byte span, derived from the same line list
+                    pre = "\n".join(lines[:rng[0]])
+                    f0 = len(pre) + (1 if rng[0] else 0)
+                    f1 = f0 + len(on_disk_block)
+                    if b0 < f1 and f0 < b1:
+                        denied_a = True
+                        deny_fragment("old_string OVERLAPS the on-disk %s block (bytes %d-%d "
+                                      "against the block at %d-%d), so this edit rewrites part "
+                                      "or all of the signature." % (frag, b0, b1, f0, f1))
+                elif old_s in on_disk_block:
+                    # not found verbatim in the file but is block text -- still governed
+                    denied_a = True
+                    deny_fragment("old_string is text inside the on-disk %s block."
+                                  % (frag,))
 
-            # LIMB B — for a payload that INTRODUCES a signature rather than replacing one.
-            # Reads the child indent from the file. See _child_indent for why it is read and
-            # not hardcoded, and for what breaks it.
-            if isinstance(new_s, str) and new_s:
-                for nl in new_s.splitlines():
-                    if nl.startswith(frag):
-                        deny_fragment("new_string introduces a %s at column zero." % (frag,))
+            # LIMB B — what new_string INTRODUCES. Token-match the key rather than a prefix
+            # test, so a QUOTED key cannot slip past, and govern ANY deeper indent rather than
+            # only the exact on-disk one, because re-indenting children 2 -> 4 was the other
+            # half of the demonstrated bypass.
+            if not denied_a and isinstance(new_s, str) and new_s:
+                key = frag[:-1] if is_key else frag
                 ind = _child_indent(lines, rng)
+                kids = []
                 if ind:
-                    kids = [l.strip().split(":")[0] for l in lines[rng[0] + 1:rng[1]]
+                    kids = [l.strip().split(":")[0].strip("\"'")
+                            for l in lines[rng[0] + 1:rng[1]]
                             if l.strip() and (len(l) - len(l.lstrip())) == ind and ":" in l]
-                    for nl in new_s.splitlines():
-                        if (len(nl) - len(nl.lstrip())) != ind or ":" not in nl:
-                            continue
-                        if nl.strip().split(":")[0] in kids:
-                            deny_fragment("new_string carries %r at the same indent the "
-                                          "on-disk %s block uses, so it introduces or "
-                                          "rewrites the signature."
-                                          % (nl.strip().split(":")[0], frag))
+                for nl in new_s.splitlines():
+                    stripped = nl.strip()
+                    if not stripped or ":" not in stripped:
+                        continue
+                    tok = stripped.split(":")[0].strip().strip("\"'")
+                    depth = len(nl) - len(nl.lstrip())
+                    # the fragment's OWN key, at ANY indent and quoted or not
+                    if is_key and tok == key:
+                        deny_fragment("new_string introduces or rewrites the %s key (as %r at "
+                                      "indent %d). Quoting it or moving its indent does not "
+                                      "make it a different key." % (frag, stripped[:40], depth))
+                    if not is_key and stripped.lstrip("#").strip() == frag.lstrip("#").strip():
+                        deny_fragment("new_string introduces or rewrites the %s heading."
+                                      % (frag,))
+                    # A CHILD KEY OF THE SIGNATURE, AT ITS ON-DISK INDENT ONLY -- and the
+                    # narrowness is deliberate, measured, not timid. "At this indent or
+                    # DEEPER" was the first fix and it DENIED EVERY LEGITIMATE TASK EDIT:
+                    # approval children sit at 2 and task keys at 4, so `status:` at indent 4
+                    # is both a task key and "deeper than the signature". The re-indenting
+                    # attack this was meant to catch is already caught by limb A, which now
+                    # tests OVERLAP -- any payload that re-indents the block must span it.
+                    if ind and kids and tok in kids and depth == ind:
+                        deny_fragment("new_string carries the signature child key %r at the "
+                                      "on-disk indent %d of the %s block."
+                                      % (tok, ind, frag))
             return
 
 

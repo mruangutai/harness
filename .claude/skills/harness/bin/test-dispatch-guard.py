@@ -219,6 +219,51 @@ def case_8_parallel_squad_stays_legal():
         shutil.rmtree(root, ignore_errors=True)
 
 
+
+def case_9_stale_claim():
+    """A STALE CLAIM YIELDS, LOUDLY. D-07: the release runs in a hook process that can die,
+    and a leaked claim with no expiry would refuse every later pm dispatch on that checkout --
+    a fix that bricks the factory is worse than the defect. So an expired claim must ALLOW and
+    SAY it expired. MF-4: mandated by plan.yaml:1245-1248 and never written."""
+    reg = _load_registry_module()
+    root = _checkout()
+    try:
+        stale = time.time() - (reg.CLAIM_TTL_SECONDS + 60)
+        reg.claim(root, "harness-pm", "harness-product-lead", root, now=stale)
+        r = fire(_task("harness-pm", "harness-product-lead", root),
+                 env={"CLAUDE_PROJECT_DIR": root})
+        check("case 9: a claim past its TTL does NOT refuse the dispatch", r.returncode == 0,
+              f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+        check("case 9: and stderr SAYS it expired, so the leak is visible",
+              "expired" in r.stderr.lower(), r.stderr.strip()[:200])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def case_10_library_missing():
+    """THE LIBRARY IS MISSING -- fail open, LOUDLY. A guard that blocks every spawn because its
+    library moved is worse than no guard (DEC-100). The payload here is the REFUSAL payload, so
+    a build that failed closed would exit 2 and this case would catch it. MF-4."""
+    reg = _load_registry_module()
+    root = _checkout()
+    tmp = tempfile.mkdtemp()
+    try:
+        reg.claim(root, "harness-pm", "harness-product-lead", root)
+        mbin = os.path.join(tmp, "bin")
+        shutil.copytree(BIN_DIR, mbin)
+        os.remove(os.path.join(mbin, "inflight_registry.py"))
+        r = subprocess.run([os.path.join(mbin, "dispatch-guard.sh")],
+                           input=json.dumps(_task("harness-pm", "harness-product-lead", root)),
+                           capture_output=True, text=True,
+                           env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+        check("case 10: the refusal payload is ALLOWED when the library is gone",
+              r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+        check("case 10: and stderr NAMES the module, so the gap is not silent",
+              "inflight_registry" in r.stderr, r.stderr.strip()[:200])
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+        shutil.rmtree(tmp, ignore_errors=True)
+
 def main():
     # ISOLATE THE WHOLE RUN, and do it HERE rather than in any case.
     #
@@ -255,6 +300,8 @@ def main():
     case_6_single_flight_refusal()
     case_7_allow_and_record()
     case_8_parallel_squad_stays_legal()
+    case_9_stale_claim()
+    case_10_library_missing()
 
     failed = 0
     for name, ok, detail in RESULTS:
