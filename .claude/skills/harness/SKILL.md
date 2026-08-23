@@ -42,6 +42,11 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    routes it by `consult-when`. Cross-squad work is **one run per squad, sequenced by you** — a lead
    cannot dispatch another squad (DEC-118). Pass paths, never content; pin `review_sha` before any
    validator run (INV-6).
+   **NEVER WAIT FOR A LEAD. RETURN.** A dispatch tells you when it is done; you do not poll
+   for it. With nothing to do until a lead returns, end your turn and say what is in flight.
+   Measured 2026-08-23: an orchestrator spent **354 of its 450** Bash calls on `echo hold` and
+   `sleep`, then went quiet and was killed at 600s — taking its lead and its member with it.
+   A partial you returned is resumable. A stalled agent is lost.
    **In the build phase, dispatch the named `build` team — never compose a step list at dispatch.**
    Resolve it `.harness/teams/build.yaml` first, then `.claude/skills/harness/teams/build.yaml`
    (`harness-team/SKILL.md` step 1). **You choose WHICH tasks go to `eng-lead`** and hand it that
