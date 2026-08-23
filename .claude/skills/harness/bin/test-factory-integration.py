@@ -1436,5 +1436,106 @@ with tempfile.TemporaryDirectory() as td:
           "REASON" in r.stdout and "#900" in r.stdout, f"stdout={r.stdout!r}")
 
 
+# ============================================================================
+# Case (L) — T-15 (FEAT-33): ONE forking end-to-end case for board_lifecycle.py audit's STATUS
+# finding class (D-12's integration coverage requirement for a change_type: feature task). Same
+# discriminating value as case (K): the EXIT STATUS, not an in-process SystemExit catch. This
+# fixture carries no closed issues at all — STATUS reads feature.json off disk and reuses the
+# station read, never the closed-issue list, so a case that leaves `issues` empty is a genuine
+# STATUS-only discriminator, not an accidental overlap with REASON/LABEL/STATION.
+# ============================================================================
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"schema_version": 1, "github": {
+            "sync": True, "repo": "acme/widget", "board": default_board(),
+        }}, f)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    # feature.json: status Done, parent #950 recorded but the board reads Backlog -- there is
+    # no Done exemption (D-22), so this is a finding whether #950 is open or closed.
+    feat_dir = os.path.join(root, ".harness", "widget", "features", "FEAT-STATUS")
+    os.makedirs(feat_dir, exist_ok=True)
+    with open(os.path.join(feat_dir, "feature.json"), "w", encoding="utf-8") as f:
+        json.dump({"status": "Done", "github": {"parent": 950, "issues": {"T-01": 951}}}, f)
+    state_path = write_state(os.path.join(td, "gh_state.json"), issues={}, items={
+        "ITEM1": {"number": 950, "repo": "acme/widget", "station": "Backlog"},
+    })
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = root
+    env["FACTORY_GH"] = gh
+    env["GH_SYNC_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, BOARD_LIFECYCLE, "audit"], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    check("(L) board_lifecycle.py audit STATUS: forked process exits 1 against a feature.json "
+          "status disagreeing with its parent card (the EXIT STATUS, not an in-process "
+          "SystemExit catch)",
+          r.returncode == 1, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("(L) board_lifecycle.py audit STATUS: the finding names the feature dir, recorded "
+          "status Done, and the actual column Backlog",
+          "STATUS" in r.stdout and "FEAT-STATUS" in r.stdout and "#950" in r.stdout
+          and "'Done'" in r.stdout and "'Backlog'" in r.stdout, f"stdout={r.stdout!r}")
+
+
+# ============================================================================
+# Case (M) — T-06 (FEAT-33): ONE forking end-to-end case for board_lifecycle.py's own
+# `reconcile` subcommand (D-12's integration coverage requirement for a change_type: feature
+# task). Run with NO FLAGS AT ALL -- the boundary evidence that --dry-run really is the
+# default and --apply really is required before this tool touches the operator's live
+# tracker. A fixture carrying exactly one fixable finding (REASON, same shape as case (K))
+# makes "zero mutations" a real discriminator: an accidentally-defaulted --apply would fire a
+# real PATCH here, not merely fail to preview one.
+# ============================================================================
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"schema_version": 1, "github": {
+            "sync": True, "repo": "acme/widget", "board": default_board(),
+        }}, f)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    state_path = write_state(os.path.join(td, "gh_state.json"), issues={
+        "960": {"title": "closed with no reason", "state": "CLOSED", "labels": [],
+                "assignees": [], "stateReason": None},
+    })
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = root
+    env["FACTORY_GH"] = gh
+    env["GH_SYNC_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, BOARD_LIFECYCLE, "reconcile"], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    calls = []
+    if os.path.exists(call_log):
+        with open(call_log, encoding="utf-8") as f:
+            calls = [json.loads(l) for l in f if l.strip()]
+    check("(M) board_lifecycle.py reconcile with NO flags: exits 0 (the dry-run default, "
+          "even though a fixable REASON finding is present)",
+          r.returncode == 0, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("(M) board_lifecycle.py reconcile with NO flags: the finding is previewed, not "
+          "silently skipped (anti-vacuum)",
+          "REASON" in r.stdout and "#960" in r.stdout and "DRY-RUN" in r.stdout,
+          f"stdout={r.stdout!r}")
+    _write_markers = ("edit", "create", "item-edit", "PATCH")
+    check("(M) board_lifecycle.py reconcile with NO flags: ZERO mutations reached the stub "
+          "gh -- --apply was never defaulted to",
+          not any(m in a for c in calls for a in c for m in _write_markers), calls)
+
+
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")
 sys.exit(1 if FAILS else 0)

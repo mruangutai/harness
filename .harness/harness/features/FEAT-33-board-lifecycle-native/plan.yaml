@@ -663,7 +663,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-05, T-08, T-15]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
@@ -1241,7 +1241,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for both .claude/skills/harness/SKILL.md and .claude/commands/harness-plan.md at 46ee87c
     depends_on: [T-13]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
       - .claude/commands/harness-plan.md
@@ -1328,7 +1328,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-05, T-13]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
@@ -1399,7 +1399,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-13]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
@@ -1451,7 +1451,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-04, T-06, T-16]
-    status: pending
+    status: building
     files:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
@@ -1552,12 +1552,15 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-09, T-13, T-14]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
     verify: |
-      python3 .claude/skills/harness/bin/gen-decisions-index.py --check
+      # `--check` does not exist: the tool exits 2 printing "unrecognized argument(s)".
+      # Second instance of this defect in this plan; T-09 carried it too.
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      python3 .claude/skills/harness/bin/test-gen-decisions-index.py
     intent: |
       Append an amendment recording that the station lifecycle is event driven, with one named writer
       per station, and regenerate the index row. Append only - the record is never rewritten.
@@ -1721,7 +1724,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-state.sh is named in DEC-174's enforcement layer, so no squad may execute a change to it whatever check-domain.sh grants; this is the operator's own hand
     depends_on: [T-13, T-14]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py

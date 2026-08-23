@@ -1605,6 +1605,54 @@ def case_v():
                         not _lines(out) and "Traceback" not in out,
                         "\n".join(_lines(out)) or "(unexpected INV-26 line)"))
 
+    # --- T-22 / D-24: THE REVIEW-PHASE WIDENING, AND THE BOUND ON IT.
+    # Under D-23 a done task's sub-issue is deliberately left OPEN so it can hold its column
+    # through Review. So a done task's card may read done, review OR building — but ONLY while
+    # the feature's own feature.json status is Review. All four cases below exist because the
+    # accept set has three members and the bound has two sides; three fixtures cannot see a
+    # widening that leaked past its bound.
+    #
+    # THE PLAN ASKED FOR A CASE THAT CANNOT EXIST. Its wording was "the same feature at status
+    # Done with the same card is still a VIOLATION". At status Done the TERMINAL EXEMPTION
+    # `continue`s before the per-task comparison is ever reached (case v.3 asserts exactly that),
+    # so no fixture at status Done can produce an INV-26 station finding at all. The honest test
+    # of the bound is a NON-terminal status, so (v.T22b) uses Building.
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Review", "Review",
+                              feature_status="Review")
+        _c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        results.append(("(v.T22a) at status Review, a done task's card reading Review is "
+                        "ACCEPTED", not ls, "\n".join(ls)))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Building", "Review",
+                              feature_status="Review")
+        _c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        results.append(("(v.T22b) at status Review, a done task's card reading Building is "
+                        "ACCEPTED", not ls, "\n".join(ls)))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Review", "Review",
+                              feature_status="Building")
+        _c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        ok = any("FEAT-X" in l and "T-01" in l and "Review" in l for l in ls)
+        results.append(("(v.T22c) THE BOUND: at status Building, a done task's card reading "
+                        "Review is still a VIOLATION", ok,
+                        "\n".join(ls) or "(no INV-26 line)"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        fake = _inv26_fixture(tmp, "FEAT-X", "done", "Backlog", "Review",
+                              feature_status="Review")
+        _c, out = _run_with_gh(tmp, fake)
+        ls = _lines(out)
+        ok = any("FEAT-X" in l and "T-01" in l and "Backlog" in l for l in ls)
+        results.append(("(v.T22d) the widening does NOT reach Backlog: a done task's card "
+                        "there is a VIOLATION even at status Review", ok,
+                        "\n".join(ls) or "(no INV-26 line)"))
+
     # --- ONE CASE PER KEY, AND THAT IS THE POINT. _EXPECT quantifies over three statuses, so
     # a single fixture cannot see a lookup that was never migrated: a `done` case is blind to a
     # `backlog` literal left behind. This feature's own recurring defect is a clause over N

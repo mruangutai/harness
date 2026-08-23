@@ -1,13 +1,63 @@
 #!/usr/bin/env python3
 """board_lifecycle.py — creates and maintains a GitHub Projects v2 board (FEAT-33 T-04).
 
-Usage: board_lifecycle.py <provision|audit|reconcile> [--repo <owner/name>]
+Usage: board_lifecycle.py <provision|audit|reconcile> [--repo <owner/name>] [--apply]
 
-`provision` (T-04) and `audit` (T-05) are wired up here. `reconcile` (T-06) grows this same file
-later — one bin, three subcommands over one board-resolution path (D-08) — so the usage line
-above already names all three even though the argument parser below does not yet register
-`reconcile`; registering a subcommand with nothing behind it would be exactly the placeholder
-this task's zero-placeholder gate refuses.
+`provision` (T-04), `audit` (T-05) and `reconcile` (T-06) are all wired up here — one bin, three
+subcommands over one board-resolution path (D-08).
+
+RECONCILE (T-06) — the write side of `audit`. It runs `_audit_findings` (the SAME detection
+`audit` runs, never re-derived) and fixes exactly the classes a write CAN fix, per finding:
+  - STATION: `gh_board.set_station` moves the card to the declared done station.
+  - REASON: PATCHes `repos/<repo>/issues/<n>` to state=closed. An issue carrying the
+    `abandoned` label gets state_reason=not_planned; every other REASON finding (by
+    definition already null) gets state_reason=completed.
+  - LABEL: creates the `abandoned` label directly (never through a helper — see below), then
+    `gh issue edit <n> --add-label abandoned`.
+  - STATUS, for every recorded status EXCEPT Done: moves the PARENT card (never the other
+    way — feature.json is the authority, DEC-138, and this must never rewrite feature.json) to
+    the station its status maps to. A Done-status STATUS finding is a genuine finding (D-22,
+    no Done exemption in detection) but reconcile does not move a card to the done station on
+    its say alone, so it is left for a human exactly like DECLARATION and WORKFLOW — the SAME
+    "counts only what it can fix" principle that excludes those two, applied to one status
+    value inside a class that is otherwise fixable.
+DECLARATION and WORKFLOW are never attempted: the declaration is a file a human signs, and no
+API can enable a workflow (D-09).
+
+THE LABEL CREATE IS A DIRECT SHELL-OUT, never a helper, for two measured reasons: `gh-sync.py`
+is HYPHENATED, so its own `ensure_labels` (gh-sync.py:682-696) is not an importable module
+function; and the only importable one, `factory_gh.ensure_labels` (factory_gh.py:186-195),
+passes `--force` with its own single `_LABEL_COLOR`, which would repaint `abandoned`
+harness-purple over gh-sync.py's `b60205` on every run this module makes (D-04's
+three-implementations collision, arriving here as a live defect if called). The literal
+`b60205` here matches gh-sync.py's own colour for the same label. The create call reads its
+binary from `GH_SYNC_GH` (gh-sync.py's own env var, D-11) rather than `FACTORY_GH` — the one
+call in this module that is not routed through `factory_gh.run_gh` — and swallows its error
+exactly as gh-sync.py's own `ensure_labels` does: "label already exists" is the common case.
+
+RECONCILE'S NETWORK-CALL COST is NOT covered by AUDIT's four-call count above, which is audit's
+own contract and nothing else's. `--dry-run` (the default) costs exactly the SAME four calls
+audit makes — detection only, nothing more. `--apply` costs those four, PLUS one write per
+fixed finding (two for LABEL: the label create and the issue edit), PLUS a second, identical
+four-call detection pass afterward to compute the residual truthfully rather than assume the
+writes landed.
+
+RECONCILE'S EXIT CODES: 4 on a `GhError` from EITHER detection pass (the run could not
+complete — never conflated with 0 or 1, DEC-186's inverse-of-the-mirror posture, same as
+audit). Under `--dry-run`, always 0 once detection succeeds — a preview attempts nothing, so
+nothing can be reported as "surviving" a fix it never tried. Under `--apply`: 0 when no
+STATION, REASON, LABEL or STATUS(non-Done) finding survives the post-fix re-detection; 1 with
+the full residual list otherwise. DECLARATION, WORKFLOW and STATUS(Done) residuals are always
+printed in full and NEVER counted toward this exit code — counting an unfixable-by-design class
+would mean reconcile could never exit 0 on a board carrying one, permanently gating T-11 and
+T-12 (which require exit 0) on a finding no write of this tool's can resolve. A bulk fix that
+stops at the first failure and reports 0 leaves the board silently half migrated, so a failed
+write for one card is caught, printed, and the run continues to the rest; the failed card's
+finding survives into the residual list and the exit code reflects that.
+
+IDEMPOTENCE: re-running `reconcile --apply` against an already-correct board performs the
+SAME detection-only four calls both passes always cost, finds nothing fixable, attempts zero
+writes, and exits 0 — a no-op in effect, not merely in outcome.
 
 AUDIT (T-05) — read-only, exits 0/1/4, never 2 or 3 (those are provision's own codes for a
 caller/declaration error and the new-project race). It performs EXACTLY FOUR network calls, one
@@ -18,12 +68,19 @@ future change adds a fifth call, name it here rather than silently letting this 
      — every closed issue's number, close reason and labels (REASON, LABEL, and feeds STATION).
   3. `gh_board.board_stations` — the targeted, cost-1 station read (STATION).
   4. `factory_gh.project_workflows` — the three named automation workflows (WORKFLOW).
+STATUS (T-15, below) adds a SIXTH finding class but no fifth network call: it reads every
+feature's `feature.json` off disk and reuses call 3's already-fetched station map.
 
-The five finding classes are closed (T-05 intent): DECLARATION (a declared station value the
+The six finding classes are closed (T-05/T-15 intent): DECLARATION (a declared station value the
 board's Status field does not carry — via `_missing_options`, the SAME helper `provision` calls,
 never re-authored), STATION (a closed board issue not at the declared done station), REASON (a
 closed issue with a null close reason), LABEL (a `not_planned` issue with no `abandoned` label),
-WORKFLOW (one of "Item closed", "Auto-close issue", "Pull request merged" absent or disabled).
+WORKFLOW (one of "Item closed", "Auto-close issue", "Pull request merged" absent or disabled),
+STATUS (a feature's recorded `feature.json` status, mapped through the board's declared stations
+exactly as T-13 maps it, disagreeing with its parent card's actual station — feature.json is the
+authority (DEC-138's outbound posture, T-13); the card is what drifted. NO Done exemption, D-22:
+a status of Done whose parent card is not at the done station is a finding whether the parent
+issue is open or closed).
 Workflow detection is by NAME only — `ProjectV2Workflow` exposes neither `trigger` nor `action`
 (D-09) — so a workflow the operator renamed is reported MISSING rather than assumed present; the
 report says this once, in its own header line (SC-09), and every WORKFLOW finding line also says
@@ -70,8 +127,11 @@ primitives as what this task calls, and none of them answers "does this field ex
 as what" — a question with no destructive answer, and one this module cannot avoid asking.
 """
 import argparse
+import collections
+import glob
 import json
 import os
+import subprocess
 import sys
 
 import factory_cli
@@ -81,6 +141,15 @@ import gh_board
 
 _TOOL = "board_lifecycle"
 _SINGLE_SELECT = "ProjectV2SingleSelectField"
+
+# A structured finding: `kind` is one of the six closed classes, `message` is the EXACT string
+# `audit` prints (unchanged by T-06), `data` is whatever `reconcile` needs to fix it — empty for
+# DECLARATION and WORKFLOW, which no write here ever touches.
+Finding = collections.namedtuple("Finding", "kind message data")
+
+
+def _finding(kind, message, **data):
+    return Finding(kind, message, data)
 
 
 def _out(line):
@@ -192,6 +261,80 @@ def _declared_stations(board):
             ("backlog", "plan", "ready", "building", "review", "done")]
 
 
+# feature.json's top-level `status` values that map onto a board station, keyed to the SAME
+# `board["stations"]` keys `_declared_stations` reads (T-15). `Abandoned` is deliberately absent:
+# DEC-192 gives it no board column at all, so there is no key for it to map to.
+_STATUS_TO_STATION_KEY = {
+    "Backlog": "backlog", "Plan": "plan", "Ready": "ready",
+    "Building": "building", "Review": "review", "Done": "done",
+}
+
+
+def _feature_dirs(root):
+    """Every feature directory under the harness root, `<root>/.harness/*/features/*` — the SAME
+    glob shape `check-state.sh`'s own INV-24/INV-26 invariants read, so a feature this audit sees
+    is the same set those invariants see (T-15)."""
+    pattern = os.path.join(root, ".harness", "*", "features", "*", "feature.json")
+    return sorted(os.path.dirname(p) for p in glob.glob(pattern))
+
+
+def _status_findings(root, board, stations):
+    """Class 6 -- STATUS (T-15). No network call: reads each feature's `feature.json` off disk
+    and reuses `stations`, the SAME station map class 2 (STATION) already fetched for this repo.
+
+    feature.json's `status` IS THE AUTHORITY here, never the card (T-13's outbound posture,
+    DEC-138) -- a disagreement means the card drifted, not that the recorded status is wrong.
+
+    THREE exemptions, and only three (T-15 intent):
+    - status `Abandoned` -- DEC-192 gives it no board column to compare against.
+    - no recorded `github.parent` -- INV-21 already reports that shape.
+    - issues recorded under `factory.issues` rather than `github.issues` -- that feature's cards
+      live on the PRODUCT's board, not this one (the same carve-out check-state.sh's INV-26
+      already makes for the factory lane).
+    There is NO Done exemption (D-22): a status of Done whose parent is not at the done station
+    is a finding whether the parent issue is open or closed.
+    """
+    findings = []
+    for feat_dir in _feature_dirs(root):
+        try:
+            with open(os.path.join(feat_dir, "feature.json"), encoding="utf-8") as f:
+                fj = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(fj, dict):
+            continue
+
+        status = fj.get("status")
+        station_key = _STATUS_TO_STATION_KEY.get(status)
+        if station_key is None:
+            # Either `Abandoned` (exemption 1) or an unrecognised/absent status -- nothing to
+            # compare against either way.
+            continue
+
+        github = fj.get("github")
+        github = github if isinstance(github, dict) else {}
+        parent = github.get("parent")
+        if not isinstance(parent, int):
+            continue  # exemption 2 -- no recorded parent; INV-21's finding, not this one.
+
+        if not github.get("issues"):
+            factory_block = fj.get("factory")
+            factory_block = factory_block if isinstance(factory_block, dict) else {}
+            if factory_block.get("issues"):
+                continue  # exemption 3 -- this feature's cards live on the PRODUCT's board.
+
+        expected = board["stations"][station_key]
+        actual = stations.get(parent)
+        if actual != expected:
+            findings.append(_finding(
+                "STATUS",
+                f"STATUS: {feat_dir} records status {status!r} (column {expected!r}) but its "
+                f"parent #{parent} reads {actual!r}",
+                parent=parent, expected=expected, status=status,
+            ))
+    return findings
+
+
 def cmd_provision(repo_arg):
     root = factory_config.harness_root()
     repo_name, board = _resolve_board(root, repo_arg)
@@ -262,12 +405,13 @@ _WORKFLOW_HEADER = (
 _WORKFLOW_SUFFIX = "no API can enable it -- only a click in the project's web UI can"
 
 
-def _audit_findings(board, repo_name):
-    """The closed, finite finding list (T-05 intent). Read-only: no mutation, anywhere.
+def _audit_findings(root, board, repo_name):
+    """The closed, finite finding list (T-05/T-15 intent). Read-only: no mutation, anywhere.
 
     Performs exactly the four network calls the module docstring's AUDIT section names, in the
     order: field options (class 1), the closed-issue list (feeds classes 2, 3 and 4), the board
-    station read (class 2), the project workflows read (class 5).
+    station read (class 2), the project workflows read (class 5). Class 6 (STATUS) adds no
+    network call of its own -- it reuses class 2's station read.
     """
     owner, number, field = board["owner"], board["number"], board["station_field"]
     done_station = board["stations"]["done"]
@@ -279,10 +423,11 @@ def _audit_findings(board, repo_name):
     value_to_key = {v: k for k, v in board["stations"].items()}
     for value in _missing_options(declared, options):
         key = value_to_key.get(value, "?")
-        findings.append(
+        findings.append(_finding(
+            "DECLARATION",
             f"DECLARATION: station {key!r} (declared value {value!r}) is not among project "
-            f"{number}'s Status options"
-        )
+            f"{number}'s Status options",
+        ))
 
     # The closed-issue read feeding classes 2, 3 and 4. Call 2/4.
     issues = factory_gh.run_gh(
@@ -296,14 +441,21 @@ def _audit_findings(board, repo_name):
     for issue in issues:
         num = issue.get("number")
         if num in stations and stations[num] != done_station:
-            findings.append(
-                f"STATION: issue #{num} reads {stations[num]!r}, expected {done_station!r}"
-            )
+            findings.append(_finding(
+                "STATION",
+                f"STATION: issue #{num} reads {stations[num]!r}, expected {done_station!r}",
+                issue_number=num, expected=done_station,
+            ))
 
     # Class 3 -- REASON.
     for issue in issues:
         if issue.get("stateReason") is None:
-            findings.append(f"REASON: issue #{issue.get('number')} is closed with no state_reason")
+            num = issue.get("number")
+            names = {l.get("name") for l in issue.get("labels", []) if isinstance(l, dict)}
+            findings.append(_finding(
+                "REASON", f"REASON: issue #{num} is closed with no state_reason",
+                issue_number=num, abandoned=("abandoned" in names),
+            ))
 
     # Class 4 -- LABEL.
     for issue in issues:
@@ -311,10 +463,12 @@ def _audit_findings(board, repo_name):
         if reason == "NOT_PLANNED":
             names = {l.get("name") for l in issue.get("labels", []) if isinstance(l, dict)}
             if "abandoned" not in names:
-                findings.append(
-                    f"LABEL: issue #{issue.get('number')} is not_planned and carries no "
-                    f"'abandoned' label"
-                )
+                num = issue.get("number")
+                findings.append(_finding(
+                    "LABEL",
+                    f"LABEL: issue #{num} is not_planned and carries no 'abandoned' label",
+                    issue_number=num,
+                ))
 
     # Class 5 -- WORKFLOW. Call 4/4.
     _out(_WORKFLOW_HEADER)
@@ -323,9 +477,14 @@ def _audit_findings(board, repo_name):
     for name in _REQUIRED_WORKFLOWS:
         w = by_name.get(name)
         if w is None:
-            findings.append(f"WORKFLOW: {name!r} is MISSING -- {_WORKFLOW_SUFFIX}")
+            findings.append(_finding(
+                "WORKFLOW", f"WORKFLOW: {name!r} is MISSING -- {_WORKFLOW_SUFFIX}"))
         elif not w.get("enabled"):
-            findings.append(f"WORKFLOW: {name!r} is disabled -- {_WORKFLOW_SUFFIX}")
+            findings.append(_finding(
+                "WORKFLOW", f"WORKFLOW: {name!r} is disabled -- {_WORKFLOW_SUFFIX}"))
+
+    # Class 6 -- STATUS. No call. See `_status_findings`'s own docstring for the exemptions.
+    findings.extend(_status_findings(root, board, stations))
 
     return findings
 
@@ -348,15 +507,140 @@ def cmd_audit(repo_arg):
     # 1) -- it gets its own exit code, 4, caught here rather than left to factory_cli.run's
     # generic expected-exception trap (which would exit 2, provision's own caller-error code).
     try:
-        findings = _audit_findings(board, repo_name)
+        findings = _audit_findings(root, board, repo_name)
     except factory_gh.GhError as exc:
         print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
         sys.exit(4)
 
     for f in findings:
-        _out(f)
+        _out(f.message)
     _out(f"{len(findings)} finding(s)")
     if findings:
+        sys.exit(1)
+
+
+# ---------------- reconcile (T-06) -- the write side of audit ----------------
+
+# STATION, REASON and LABEL are always attempted; STATUS is attempted for every status except
+# Done (see the module docstring's RECONCILE section for why). DECLARATION and WORKFLOW never
+# are -- neither reaches this set.
+_ALWAYS_FIXABLE_KINDS = {"STATION", "REASON", "LABEL"}
+
+_ABANDONED_LABEL_COLOR = "b60205"  # MUST match gh-sync.py's own colour for this label (D-04).
+
+
+def _fixable(finding):
+    """Whether `reconcile` attempts this finding's fix, and whether it counts toward the exit
+    code. STATUS is fixable for every recorded status except Done -- Done and Abandoned are
+    T-15's own exemptions; Abandoned never reaches here at all (`_status_findings` never
+    emits it), so only Done needs an explicit check here."""
+    if finding.kind in _ALWAYS_FIXABLE_KINDS:
+        return True
+    if finding.kind == "STATUS":
+        return finding.data.get("status") != "Done"
+    return False
+
+
+def _ensure_abandoned_label(repo_name):
+    """Create the `abandoned` label directly via `GH_SYNC_GH`'s binary -- never
+    `factory_gh.ensure_labels`, never a helper imported from gh-sync.py (see the module
+    docstring's RECONCILE section for the two measured reasons). Swallows its error exactly as
+    gh-sync.py's own `ensure_labels` does: "label already exists" is the common case, and the
+    `issue edit --add-label` call right after this one is what surfaces a genuinely broken
+    repo."""
+    gh_bin = os.environ.get("GH_SYNC_GH", "gh")
+    subprocess.run(
+        [gh_bin, "label", "create", "abandoned", "--repo", repo_name,
+         "--color", _ABANDONED_LABEL_COLOR, "--description", "created by harness gh-sync"],
+        capture_output=True,
+    )
+
+
+def _apply_fix(finding, board, repo_name):
+    """Perform the ONE write this finding calls for. Raises `gh_board.BoardError` or
+    `factory_gh.GhError` on failure -- the caller catches, prints, and moves on to the next
+    finding rather than stopping the whole run (a bulk fix that stops at the first error leaves
+    the board half migrated with a zero exit)."""
+    if finding.kind == "STATION":
+        gh_board.set_station(
+            board, repo_name, finding.data["issue_number"], finding.data["expected"])
+    elif finding.kind == "STATUS":
+        gh_board.set_station(
+            board, repo_name, finding.data["parent"], finding.data["expected"])
+    elif finding.kind == "REASON":
+        num = finding.data["issue_number"]
+        reason = "not_planned" if finding.data["abandoned"] else "completed"
+        factory_gh.run_gh([
+            "api", "-X", "PATCH", f"repos/{repo_name}/issues/{num}",
+            "-f", "state=closed", "-f", f"state_reason={reason}",
+        ])
+    elif finding.kind == "LABEL":
+        num = finding.data["issue_number"]
+        _ensure_abandoned_label(repo_name)
+        factory_gh.run_gh([
+            "issue", "edit", str(num), "--repo", repo_name, "--add-label", "abandoned",
+        ])
+
+
+def cmd_reconcile(repo_arg, apply):
+    root = factory_config.harness_root()
+    repo_name, board = _resolve_board(root, repo_arg)
+    if board is None:
+        # D-07: an explicit `github.board: null` is a declaration, not a misconfiguration.
+        _out("no board declared -- nothing to reconcile")
+        return
+    if not repo_name:
+        factory_cli.refuse(
+            _TOOL, "cannot reconcile", "github.repo is not declared",
+            "pin github.repo in harness.json before reconciling",
+        )
+
+    try:
+        findings = _audit_findings(root, board, repo_name)
+    except factory_gh.GhError as exc:
+        print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
+        sys.exit(4)
+
+    if not apply:
+        # --dry-run (the default): preview only, zero writes, zero risk of a half-applied
+        # bulk write against the operator's live tracker. Always exits 0 once detection has
+        # succeeded -- a preview attempts nothing, so nothing it lists can be reported as
+        # having "survived" a fix it never tried.
+        for f in findings:
+            if _fixable(f):
+                _out(f"DRY-RUN would fix -- {f.message}")
+            else:
+                _out(f"DRY-RUN cannot fix, needs a human -- {f.message}")
+        fixable_n = sum(1 for f in findings if _fixable(f))
+        human_n = len(findings) - fixable_n
+        _out(f"{fixable_n} fixable finding(s) previewed; {human_n} finding(s) require a "
+             f"human (see above) -- re-run with --apply to write")
+        return
+
+    # --apply: attempt every fixable finding's write, continuing past a single failure.
+    for f in findings:
+        if not _fixable(f):
+            continue
+        try:
+            _apply_fix(f, board, repo_name)
+        except (gh_board.BoardError, factory_gh.GhError) as exc:
+            print(f"factory: {_TOOL}: fix failed -- {exc}", file=sys.stderr)
+
+    # Re-run the SAME detection in this process to report the residual state truthfully,
+    # rather than assume every write landed.
+    try:
+        residual = _audit_findings(root, board, repo_name)
+    except factory_gh.GhError as exc:
+        print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
+        sys.exit(4)
+
+    for f in residual:
+        _out(f.message)
+    fixable_residual = [f for f in residual if _fixable(f)]
+    human_residual = [f for f in residual if not _fixable(f)]
+    _out(f"{len(fixable_residual)} fixable finding(s) remain; {len(human_residual)} "
+         f"finding(s) require a human (see above)")
+    if fixable_residual:
         sys.exit(1)
 
 
@@ -370,11 +654,16 @@ def _main():
     p_provision.add_argument("--repo", default=None)
     p_audit = sub.add_parser("audit")
     p_audit.add_argument("--repo", default=None)
+    p_reconcile = sub.add_parser("reconcile")
+    p_reconcile.add_argument("--repo", default=None)
+    p_reconcile.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     if args.cmd == "provision":
         cmd_provision(args.repo)
     elif args.cmd == "audit":
         cmd_audit(args.repo)
+    elif args.cmd == "reconcile":
+        cmd_reconcile(args.repo, args.apply)
 
 
 if __name__ == "__main__":

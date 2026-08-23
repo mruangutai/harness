@@ -761,7 +761,7 @@ def cmd_open(feat_dir, repo, parent_arg=None):
                 body += "\n\nabsorbs: " + ", ".join(f"#{n}" for n in task["absorbs"])
             labels = ["harness"] + ([type_label(task["change_type"])] if type_label(task["change_type"]) else [])
             args = ["issue", "create", "--repo", repo,
-                    "--title", f"{task['id']} — {task['title']}", "--body", body,
+                    "--title", f"{brief['feat']} — {task['id']} — {task['title']}", "--body", body,
                     "--milestone", brief["feat"]]
             for l in labels:
                 args += ["--label", l]

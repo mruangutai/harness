@@ -540,6 +540,15 @@ with tempfile.TemporaryDirectory() as tmp:
           any("milestones" in l and "SC-01" in l for l in log))
     task_create_lines = [l for l in log if "issue create" in l and re.search(r"\bT-0\d\b", l)]
     check("3 issues created", len(task_create_lines) == 3, str(log))
+    # T-16: the task title carries its own feature id, prefixed with the same em dash
+    # the parent title already uses at :746 — the exact argv sent, not just a substring
+    # or a count, per the harness-dev-ops rule against count-only assertions.
+    t01_argv = [l for l in task_create_lines if "T-01" in l]
+    check("T-01 issue create carries the exact title "
+          "\"FEAT-05-export-fix — T-01 — streaming export rebuild\" (T-16)",
+          len(t01_argv) == 1
+          and "--title FEAT-05-export-fix — T-01 — streaming export rebuild" in t01_argv[0],
+          str(t01_argv))
     parent_create_lines = [l for l in log if "issue create" in l and not re.search(r"\bT-0\d\b", l)]
     check("parent created and recorded",
           len(parent_create_lines) == 1
