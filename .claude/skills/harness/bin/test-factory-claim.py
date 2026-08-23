@@ -196,17 +196,17 @@ def unpatch_gh(saved):
 
 def repo_board(owner=OWNER, number=BOARD, station_field=STATION_FIELD,
                ready="Ready", building="Building", review="Review",
-               backlog="Backlog", done="Done"):
+               backlog="Backlog", plan="Plan", done="Done"):
     """A repository's own `github.board` block (FEAT-24 T-02/T-03) — read remotely through
-    `factory_config.product_config`, never nested under a `repos[]` fleet entry. The five-key
-    stations map is D-06's required set: backlog and done are read by no case in this file, but
-    validate_board now requires all five to be present."""
+    `factory_config.product_config`, never nested under a `repos[]` fleet entry. The six-key
+    stations map is D-06's required set (widened by FEAT-33 T-02): backlog, plan and done are
+    read by no case in this file, but validate_board now requires all six to be present."""
     return {
         "owner": owner,
         "number": number,
         "station_field": station_field,
         "stations": {
-            "backlog": backlog, "ready": ready, "building": building,
+            "backlog": backlog, "plan": plan, "ready": ready, "building": building,
             "review": review, "done": done,
         },
     }

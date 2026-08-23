@@ -284,7 +284,7 @@ exit 0
 """
 
 
-FULL_STATIONS = {"backlog": "Backlog", "ready": "Ready", "building": "Building",
+FULL_STATIONS = {"backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
                   "review": "Review", "done": "Done"}
 
 

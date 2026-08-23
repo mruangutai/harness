@@ -236,6 +236,7 @@ def main():
                 "id": "FIELD_STATUS", "name": field_name,
                 "options": [
                     {"id": "OPT_BACKLOG", "name": "Backlog"},
+                    {"id": "OPT_PLAN", "name": "Plan"},
                     {"id": "OPT_READY", "name": "Ready"},
                     {"id": "OPT_BUILDING", "name": "Building"},
                     {"id": "OPT_REVIEW", "name": "Review"},
@@ -252,8 +253,8 @@ def main():
             bad(f"fake_gh: item-edit --project-id was {project_id!r}, want the node id "
                 f"from the graphql field-resolve call, not the bare board number", 1)
         mapping = {
-            "OPT_BACKLOG": "Backlog", "OPT_READY": "Ready", "OPT_BUILDING": "Building",
-            "OPT_REVIEW": "Review", "OPT_DONE": "Done",
+            "OPT_BACKLOG": "Backlog", "OPT_PLAN": "Plan", "OPT_READY": "Ready",
+            "OPT_BUILDING": "Building", "OPT_REVIEW": "Review", "OPT_DONE": "Done",
         }
         rec = state["items"].setdefault(item_id, {"number": None, "repo": None})
         rec["station"] = mapping.get(option_id, option_id)
@@ -333,11 +334,11 @@ DEFAULT_BRANCH = "main"
 
 
 def default_board(owner="acme", number=9, station_field="Status", **stations_kw):
-    """The five-key stations map (D-06), returned by every fixture as a fleet member's own
-    `github.board` — T-02/T-03 moved the board out of fleet.yaml, so this is what
-    `factory_config.product_config` resolves to, never a `repos[].board` key."""
+    """The six-key stations map (D-06, widened by FEAT-33 T-02), returned by every fixture as a
+    fleet member's own `github.board` — T-02/T-03 moved the board out of fleet.yaml, so this is
+    what `factory_config.product_config` resolves to, never a `repos[].board` key."""
     stations = {
-        "backlog": "Backlog", "ready": "Ready", "building": "Building",
+        "backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
         "review": "Review", "done": "Done",
     }
     stations.update(stations_kw)

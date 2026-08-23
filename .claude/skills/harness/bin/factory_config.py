@@ -38,7 +38,7 @@ import harness_yaml
 _BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 _PROBE = os.path.join(".harness", "harness", "docs", "SPEC.md")
 
-_STATION_KEYS = ("backlog", "ready", "building", "review", "done")
+_STATION_KEYS = ("backlog", "plan", "ready", "building", "review", "done")
 
 
 def harness_root():
@@ -136,8 +136,8 @@ def validate_board(board, where, path):
     ):
         raise FleetError(
             "fleet key invalid", f"{key_base}.stations",
-            "set exactly backlog, ready, building, review and done, each a non-empty option "
-            f"name, in {path}",
+            "set exactly backlog, plan, ready, building, review and done, each a non-empty "
+            f"option name, in {path}",
         )
     return board
 

@@ -54,7 +54,7 @@ def good_fleet_dict(workspace_root, default_branch=DEFAULT_BRANCH, repos=None):
         "number": BOARD,
         "station_field": STATION_FIELD,
         "stations": {
-            "backlog": "Backlog", "ready": "Ready", "building": "Building",
+            "backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
             "review": "Review", "done": "Done",
         },
     }
@@ -91,7 +91,8 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b=REPO_B,
                     "number": BOARD,
                     "station_field": STATION_FIELD,
                     "stations": {
-                        "backlog": "Backlog", "ready": "Ready", "building": "Building",
+                        "backlog": "Backlog", "plan": "Plan", "ready": "Ready",
+                        "building": "Building",
                         "review": "Review", "done": "Done",
                     },
                 },
@@ -104,7 +105,7 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b=REPO_B,
                     "number": BOARD_B,
                     "station_field": STATION_FIELD_B,
                     "stations": {
-                        "backlog": "Other-Backlog", "ready": "Other-Ready",
+                        "backlog": "Other-Backlog", "plan": "Other-Plan", "ready": "Other-Ready",
                         "building": "Other-Building", "review": "Other-Review",
                         "done": "Other-Done",
                     },

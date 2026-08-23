@@ -1330,7 +1330,7 @@ def _inv26_fixture(root, feat, task_status, card_status, parent_status,
         # weaker fixture — it is an UNUSABLE board, and case v.13 asserts that it is
         # reported as one. `board_override` lets a case ship a deliberately broken board.
         _board = {"owner": "org", "number": 3, "station_field": "status",
-                  "stations": {"backlog": "Backlog", "ready": "Ready",
+                  "stations": {"backlog": "Backlog", "plan": "Plan", "ready": "Ready",
                                "building": "Building", "review": "Review",
                                "done": "Done"}}
         if board_override is not _SENTINEL:
@@ -1613,8 +1613,8 @@ def case_v():
     # Every column is RENAMED away from the DEC-192 spellings. A build that still spells
     # "Building"/"Done"/"Backlog" itself reports a violation against a correctly placed card.
     _renamed = {"owner": "org", "number": 3, "station_field": "status",
-                "stations": {"backlog": "Icebox", "ready": "Primed", "building": "WIP",
-                             "review": "Review", "done": "Shipped"}}
+                "stations": {"backlog": "Icebox", "plan": "Drafted", "ready": "Primed",
+                             "building": "WIP", "review": "Review", "done": "Shipped"}}
 
     def _no_finding(out):
         return not [l for l in _lines(out) if "CANNOT RUN" not in l]

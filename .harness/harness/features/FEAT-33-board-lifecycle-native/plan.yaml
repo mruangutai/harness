@@ -1,5 +1,10 @@
 schema: plan/1
 feature: FEAT-33-board-lifecycle-native
+# Source tickets, transcribed verbatim from BRIEF.md's own first line: source ticket
+# #675, with sub-issues #673 and #674 absorbed here. Added after the signature because
+# FEAT-26 (merged 2026-08-23, after this plan was signed) made plan.yaml the authority
+# for this field; no ruling changed, and the BRIEF already named all three.
+source_issues: [675, 673, 674]
 
 approval:
   status: approved
@@ -150,7 +155,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for this path at 46ee87c, and it is a config file on another repository's remote default branch
     depends_on: []
-    status: pending
+    status: done
     files:
       - /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
     verify: |
@@ -205,7 +210,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_config.py
       - .claude/skills/harness/bin/test-factory-config.py
