@@ -6445,6 +6445,48 @@ amendment quoting the struck clause, not by leaving it in the position where it 
 and the amendment-1 record itself, is untouched. No DEC number is opened, superseded or retired
 here, and the entry's rule is the same rule.
 
+**Amendment 3 (2026-08-23) — the `plan` station is declared, and amendment 1's refusal of it is reversed**
+
+DEC-196 amendment 3. FEAT-33 declares a sixth station key on every board the factory serves,
+falsifying one clause of amendment 1. Amendment 1's body stays standing unedited, as does the
+original entry: the record is appended to, never rewritten.
+
+*What became false.* Amendment 1's clause "`plan` is deliberately NOT declared". Measured at the SHA
+this feature ships at, `.harness/harness.json`'s `github.board.stations` declares six keys —
+`backlog`, `plan`, `ready`, `building`, `review`, `done` — and `mruangutai/kaya-ai`'s own
+`.harness/harness.json` on `master` declares the same six, landed as `mruangutai/kaya-ai#336`.
+
+*Amendment 1's REASONING is not falsified, so this is not a strike under DEC-188.* That clause
+argued the option resolves BY NAME at the board, so a wrong value fails loudly there and a name
+nobody declares is still writable. Both halves remain true in the tree: `board-station.py` hands the
+station through to `gh_board.set_station` as a plain CLI string, validated against no list, and
+`factory_gh.project_field_set` resolves the option by matching `o["name"] == option` at runtime,
+raising `project field option not found` when nothing matches. What is reversed is the CHOICE that
+reasoning supported, not the reasoning.
+
+*Who reversed it, and on whose authority.* The operator ruled on 2026-08-23 that the sixth station
+key belongs, recorded as ruling 3 in
+`.harness/harness/features/FEAT-33-board-lifecycle-native/notes/rulings-2026-08-23.md`. That ruling
+is this amendment's warrant, and the parity argument below is the ruling's own reasoning.
+
+*What actually changed is parity, not capability.* DEC-192's six case-sensitive status values ARE
+the board's column names, and a station map that names five of the six cannot express one of them by
+key. The declaration now carries all six, and `factory_config._STATION_KEYS` requires exactly those
+six, so a five-key declaration is rejected with a message naming `github.board.stations`.
+
+*What did NOT change, stated so a future scan does not add it.* `gh_board.derive_station` still
+returns exactly the building station, the review station, or None. There is no `Plan` derivation and
+none is wanted — `Plan` is written at kickoff by `board-station.py`, invoked by `/harness-plan` with
+the station as a literal argument. An all-pending derivation would overwrite a card the operator
+promoted to `Ready`, a station whose meaning is documented in kaya-ai's own `harness.json`, where
+`Ready` means promoted for the factory and `Backlog` means filed-and-untriaged; that would be a new
+backwards-move defect of the same class as issue 674. DEC-196's rule is otherwise untouched: the
+harness still MOVES any card it is pointed at and CLOSES only the cards it created, and no DEC number
+is opened, superseded or retired here.
+
+*The accepted cost.* The required key set is now exact at six across every repository served, so a
+repository joining the fleet with a five-key declaration is rejected until it declares all six.
+
 ## DEC-197 — A test file matching two `detect` globs resolves to the explicit kind, and the record is the enforcement
 
 **Chose:** state the precedence that was already in force. In `.harness/harness.json`'s `test_kinds`,

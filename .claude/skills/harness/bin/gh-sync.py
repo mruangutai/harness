@@ -78,6 +78,7 @@ sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
 from gh_issues import internal_id_args, attach_sub_issue_args
 
 import factory_config
+import factory_gh
 import gh_board
 import gh_cost_log
 import harness_yaml
@@ -761,16 +762,53 @@ def cmd_open(feat_dir, repo, parent_arg=None):
 def cmd_start_task(feat_dir, tid, repo, board):
     """`start-task <feature-dir> T-NN` — the orchestrator fires this in the same act it
     records the task's status as `building` in plan.yaml (D-04). Sets T-NN's OWN sub-issue
-    station to Building, then applies the parent rule (step 3) — never routed through gh(),
-    since a failed station write must not terminate the process (D-02)."""
+    station to `board["stations"]["building"]`, then applies the parent rule (step 3) — never
+    routed through gh(), since a failed station write must not terminate the process (D-02).
+
+    GUARDS AGAINST DRIVING A CLOSED CARD BACKWARDS (T-07). Measured on #642 and #643: the
+    card closed, github-project-automation[bot] set it to Done a second later, and this
+    command — invoked afterward on a stale "was it open when the run started" assumption —
+    set it back to Building. The guard reads the issue's CURRENT state, not what it was when
+    the run started: refuse the station write when EITHER `gh issue view` reports the issue
+    CLOSED, or the card's CURRENT station already equals `board["stations"]["done"]`. On
+    refusal, print one line and return without calling `set_station` or `_apply_parent_rule`
+    — the parent rule would otherwise write a Building parent for a task this guard just
+    refused. A refusal is NOT a failure: exit code and control flow are unchanged (DEC-146
+    keeps the station flip best-effort; DEC-138 forbids the mirror from gating a flow).
+
+    ADDED COST: start-task now performs ONE board read (`gh_board.board_stations`, reused for
+    both halves of the guard — no second board read) and ONE issue read (`factory_gh.issue_view`
+    for `state`) before its writes, where before it performed none. Squarely inside DEC-186's
+    second sanctioned purpose — learning which station an item is at.
+
+    A gh or network failure during EITHER read must not gate either: caught, printed as one
+    line, and control falls through to the ORIGINAL behaviour (attempt the write) rather than
+    refusing — a guard that cannot see the board must not silently stop moving cards.
+    """
     rec = load_recorded(feat_dir)
     if tid not in rec["issues"]:
         skip(f"{tid} has no recorded issue — nothing to start (was `open` run?)")
     if board is not None:
         issue_num = rec["issues"][tid]
+        building = board["stations"]["building"]
+        refused = False
         try:
-            gh_board.set_station(board, repo, issue_num, "Building")
-            print(f"gh-sync: issue #{issue_num} ({tid}) -> Building")
+            stations = gh_board.board_stations(board, repo)
+            current_station, _ = gh_board.read_station(stations, issue_num)
+            state = (factory_gh.issue_view(repo, issue_num, ["state"]) or {}).get("state")
+            if state == "CLOSED" or current_station == board["stations"]["done"]:
+                reason = "issue is CLOSED" if state == "CLOSED" else "card is already Done"
+                print(f"gh-sync: refusing #{issue_num} ({tid}) -> {building}: "
+                      f"current station is {current_station!r}, {reason}")
+                refused = True
+        except factory_gh.GhError as e:
+            print(f"gh-sync: ERROR - guard read failed for #{issue_num} ({tid}): {e} "
+                  f"— proceeding without the guard", file=sys.stderr)
+        if refused:
+            return
+        try:
+            gh_board.set_station(board, repo, issue_num, building)
+            print(f"gh-sync: issue #{issue_num} ({tid}) -> {building}")
         except gh_board.BoardError as e:
             print(f"gh-sync: ERROR - {e}", file=sys.stderr)
         _apply_parent_rule(feat_dir, repo, board)

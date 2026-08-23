@@ -286,6 +286,20 @@ def main():
                 "id": "PVT_kwFAKE", "title": "Board",
             }}}}))
 
+        if "ProjectV2IterationField" in query_text:
+            # board_lifecycle.py's own _field_probe query (T-04, FEAT-33) — not one of
+            # factory_gh.py's named primitives; see board_lifecycle.py's module docstring
+            # (FIELD-ID GAP) for why it exists. Matched on a marker no other query in this tree
+            # sends, so it cannot shadow (or be shadowed by) any branch above or below it.
+            # Answered as "field exists, is single-select" — the complete-board shape this
+            # file's own T-04 case below needs; a case that needs "field absent" or "field is
+            # some other type" belongs to board_lifecycle.py's own unit-side fake in
+            # test-board-lifecycle.py, which can vary this response per case.
+            ok(json.dumps({"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
+                "id": "PVT_kwFAKE",
+                "field": {"__typename": "ProjectV2SingleSelectField", "id": "FIELD_STATUS"},
+            }}}}))
+
         # The single GraphQL query factory_gh._project_field_resolve sends (D-01). Answered
         # unconditionally, without inspecting the query= text — that guard lives once, in
         # test-factory-gh.py. Placed BEFORE the generic ["api", ...] REST branch below: after it
@@ -1286,6 +1300,56 @@ with tempfile.TemporaryDirectory() as td:
           "updateProjectV2Field" in sent and "createProjectV2Field" not in sent
           and sent.find('"Backlog"') < sent.find('"Plan"') < sent.find('"Ready"')
           < sent.find('"Building"') < sent.find('"Review"') < sent.find('"Done"'), sent)
+
+
+# ============================================================================
+# Case (J) — T-04 (FEAT-33): ONE forking end-to-end case for board_lifecycle.py's own
+# `provision` subcommand (D-12's integration coverage requirement for a change_type: feature
+# task). This is the shape that catches an `if __name__ == "__main__":` block that forgets to
+# dispatch, or a module that raises at import — no in-process test (test-board-lifecycle.py,
+# unit-side) can see either. Adds no file to any list and edits neither INTEGRATION_SCRIPTS nor
+# harness.json (both already correct and both have other writers, per T-04's own intent).
+# ============================================================================
+BOARD_LIFECYCLE = os.path.join(BIN_DIR, "board_lifecycle.py")
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"schema_version": 1, "github": {
+            "sync": True, "repo": "acme/widget", "board": default_board(),
+        }}, f)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    state_path = write_state(os.path.join(td, "gh_state.json"))
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = root
+    env["FACTORY_GH"] = gh
+    env["GH_SYNC_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, BOARD_LIFECYCLE, "provision"], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    calls = []
+    if os.path.exists(call_log):
+        with open(call_log, encoding="utf-8") as f:
+            calls = [json.loads(l) for l in f if l.strip()]
+    check("(J) board_lifecycle.py provision: forked process exits 0 against a complete board",
+          r.returncode == 0, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("(J) board_lifecycle.py provision: reports its own verdict on stdout (anti-vacuum — "
+          "an __main__ block that forgets to dispatch also exits 0 with an empty log, which "
+          "would make the exit-0 and zero-mutations checks below pass for the wrong reason)",
+          "nothing to do" in r.stdout, f"stdout={r.stdout!r}")
+    check("(J) board_lifecycle.py provision: at least one gh call was actually recorded",
+          bool(calls), calls)
+    _mutation_markers = ("createProjectV2Field", "updateProjectV2Field",
+                          "linkProjectV2ToRepository", "createProjectV2(")
+    check("(J) board_lifecycle.py provision: performs ZERO mutations against a complete board",
+          not any(m in a for c in calls for a in c for m in _mutation_markers), calls)
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")

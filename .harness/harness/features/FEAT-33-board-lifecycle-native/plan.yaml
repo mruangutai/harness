@@ -459,7 +459,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02, T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
@@ -758,7 +758,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02]
-    status: pending
+    status: done
     absorbs: ["#674"]
     files:
       - .claude/skills/harness/bin/gh-sync.py
@@ -887,12 +887,15 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
     verify: |
-      python3 .claude/skills/harness/bin/gen-decisions-index.py --check
+      # `--check` does not exist: the tool exits 2 printing "unrecognized argument(s)".
+      # Its own docstring prescribes this form. Corrected 2026-08-23 during the build.
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      python3 .claude/skills/harness/bin/test-gen-decisions-index.py
     intent: |
       Append an amendment to DEC-196 recording that the harness board now declares a plan station,
       and regenerate the index row. Append only - the record is never rewritten, and amendment 1's
