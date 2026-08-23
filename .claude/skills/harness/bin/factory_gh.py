@@ -467,6 +467,291 @@ def project_field_options(owner, number, field):
     return [o["name"] for o in resolved["options"]]
 
 
+# ---------------- board lifecycle primitives (T-03, FEAT-33) ----------------
+# Six read/write primitives board_lifecycle.py's provision/audit subcommands (T-04, T-05) are
+# built on. Every one goes through run_gh, so the fake-binary and rate-limit handling above
+# applies unchanged, and every one raises GhError rather than returning a default — the same
+# discipline project_item_stations and _project_field_resolve already hold.
+
+# Mirrors _FIELD_QUERY's own repositoryOwner/__typename shape (line 380) exactly, minus the field
+# selection — project_resolve does not need a field, only the project's own id and title, but it
+# needs the SAME discrimination _project_field_resolve makes: __typename read before projectV2,
+# so an org-owned login is refused before a null projectV2 is ever seen, and a genuinely absent
+# project (a User whose projectV2(number:) resolves null) is told apart from an unresolvable
+# owner.
+_PROJECT_RESOLVE_QUERY = """query($owner: String!, $number: Int!) {
+  repositoryOwner(login: $owner) {
+    __typename
+    ... on ProjectV2Owner {
+      projectV2(number: $number) { id title }
+    }
+  }
+}
+"""
+
+
+def project_resolve(owner, number):
+    """Resolve a user-owned project's node id and title, or return None when the owner resolves
+    but that project number does not exist on their account.
+
+    THIS PRIMITIVE EXISTS TO PREVENT A SPECIFIC DISASTER. _project_field_resolve (line 400) raises
+    ONE GhError class for FOUR distinct conditions — owner absent, organization-owned, project
+    absent, field absent/not-single-select — separated only by a message string, and its field
+    case deliberately collapses two shapes (D-04). A caller that infers "there is no project" from
+    a field-resolution failure will call project_create and CREATE A DUPLICATE PROJECTS V2 BOARD
+    ON THE OPERATOR'S ACCOUNT. This function is the discriminator that removes the need for that
+    inference: __typename is read before projectV2, exactly as _project_field_resolve does at
+    :439-444, so the refusal never depends on the org's own board existing.
+
+    Returns None — never raises — only for "this owner has no project number N", the normal
+    provisioning case. Raises GhError when the owner login does not resolve at all, and raises
+    GhError with the organization message when __typename is not User — both are unusable inputs,
+    not absent projects.
+    """
+    argv = ["api", "graphql",
+            "-f", "query=" + _PROJECT_RESOLVE_QUERY,
+            "-f", "owner=" + owner,
+            "-F", "number=" + str(number)]
+    try:
+        env = run_gh(argv, json_out=True)
+    except GhError as e:
+        parsed = None
+        if e.stdout:
+            try:
+                parsed = json.loads(e.stdout)
+            except ValueError:
+                parsed = None
+        if isinstance(parsed, dict) and "data" in parsed:
+            env = parsed
+        else:
+            raise GhError(
+                e.argv, e.status, e.stdout, e.stderr,
+                "gh graphql call failed", owner,
+                "re-run after checking gh auth status and network access",
+            ) from e
+    data = env.get("data") or {}
+    repo_owner = data.get("repositoryOwner")
+    if repo_owner is None:
+        raise GhError(argv, None, "", "",
+                      "project owner not found", owner,
+                      "check the owner login")
+    if repo_owner.get("__typename") != "User":
+        raise GhError(argv, None, "", "",
+                      "organization-owned board not supported", owner,
+                      "run against a user-owned board")
+    project = repo_owner.get("projectV2")
+    if project is None:
+        return None
+    return {"id": project["id"], "title": project["title"]}
+
+
+_OWNER_ID_QUERY = """query($login: String!) { user(login: $login) { id } }
+"""
+
+_CREATE_PROJECT_MUTATION = """mutation($ownerId: ID!, $title: String!) {
+  createProjectV2(input: {ownerId: $ownerId, title: $title}) {
+    projectV2 { id number }
+  }
+}
+"""
+
+
+def project_create(owner, title):
+    """Create a new user-owned ProjectV2 board and return {"id": ..., "number": ...}.
+
+    Resolves the owner's node id first, then sends createProjectV2. Raises GhError naming the
+    owner and title when createProjectV2.projectV2 resolves null. Callers MUST have already
+    established the project does not exist via project_resolve returning None — this function
+    performs no such check itself, so calling it on a whim duplicates a board.
+    """
+    id_argv = ["api", "graphql", "-f", "query=" + _OWNER_ID_QUERY, "-f", "login=" + owner]
+    env = run_gh(id_argv, json_out=True)
+    data = env.get("data") or {}
+    user = data.get("user")
+    if user is None:
+        raise GhError(id_argv, None, "", "",
+                      "project owner not found", owner,
+                      "check the owner login")
+    owner_id = user["id"]
+    create_argv = ["api", "graphql", "-f", "query=" + _CREATE_PROJECT_MUTATION,
+                   "-f", "ownerId=" + owner_id, "-f", "title=" + title]
+    env2 = run_gh(create_argv, json_out=True)
+    data2 = env2.get("data") or {}
+    created = data2.get("createProjectV2")
+    project = created.get("projectV2") if isinstance(created, dict) else None
+    if not project:
+        raise GhError(create_argv, None, "", "",
+                      "project not created", f"{owner}: {title}",
+                      "createProjectV2 returned no projectV2")
+    return {"id": project["id"], "number": project["number"]}
+
+
+_REPO_ID_QUERY = """query($owner: String!, $name: String!) {
+  repository(owner: $owner, name: $name) { id }
+}
+"""
+
+_LINK_REPOSITORY_MUTATION = """mutation($projectId: ID!, $repositoryId: ID!) {
+  linkProjectV2ToRepository(input: {projectId: $projectId, repositoryId: $repositoryId}) {
+    repository { id }
+  }
+}
+"""
+
+
+def project_link_repository(project_id, repo):
+    """Link `repo` ("owner/name") to a project. Returns None.
+
+    Resolves the repository's node id first, then sends linkProjectV2ToRepository. An
+    already-linked response — the mutation fails naming the link as already existing — is
+    treated as SUCCESS, not an error, the same measured-conflict shape create_ref already accepts
+    for a duplicate ref (line 639).
+    """
+    owner, _, name = repo.partition("/")
+    id_argv = ["api", "graphql", "-f", "query=" + _REPO_ID_QUERY,
+               "-f", "owner=" + owner, "-f", "name=" + name]
+    env = run_gh(id_argv, json_out=True)
+    data = env.get("data") or {}
+    repository = data.get("repository")
+    if repository is None:
+        raise GhError(id_argv, None, "", "",
+                      "repository not found", repo,
+                      "check the repository name")
+    repo_id = repository["id"]
+    link_argv = ["api", "graphql", "-f", "query=" + _LINK_REPOSITORY_MUTATION,
+                 "-f", "projectId=" + project_id, "-f", "repositoryId=" + repo_id]
+    try:
+        run_gh(link_argv, json_out=True)
+    except GhError as e:
+        combined = f"{e.stdout or ''}\n{e.stderr or ''}".lower()
+        if "already" in combined and "link" in combined:
+            return None
+        raise
+    return None
+
+
+def _options_literal(option_names):
+    """Render option_names as a GraphQL list-of-objects LITERAL — never as a variable, because
+    gh api graphql's -f/-F flags have no syntax for an array of input objects. Each entry sends
+    name, color: GRAY and description: "" ALL THREE explicitly — GitHub rejects the mutation when
+    color or description is omitted. json.dumps quotes and escapes each name safely."""
+    parts = [
+        "{name: " + json.dumps(name) + ', color: GRAY, description: ""}'
+        for name in option_names
+    ]
+    return "[" + ", ".join(parts) + "]"
+
+
+def project_single_select_create(project_id, field_name, option_names):
+    """Create a new single-select field on a project with exactly `option_names`, in order.
+    Returns the new field's node id.
+
+    Mutation createProjectV2Field with input {projectId, dataType: SINGLE_SELECT, name,
+    singleSelectOptions}. Raises GhError naming field_name when createProjectV2Field returns no
+    projectV2Field.
+    """
+    query = ("""mutation($projectId: ID!, $name: String!) {
+  createProjectV2Field(input: {
+    projectId: $projectId, dataType: SINGLE_SELECT, name: $name,
+    singleSelectOptions: %s
+  }) {
+    projectV2Field { ... on ProjectV2SingleSelectField { id } }
+  }
+}
+""" % _options_literal(option_names))
+    argv = ["api", "graphql", "-f", "query=" + query,
+            "-f", "projectId=" + project_id, "-f", "name=" + field_name]
+    env = run_gh(argv, json_out=True)
+    data = env.get("data") or {}
+    created = data.get("createProjectV2Field")
+    field = created.get("projectV2Field") if isinstance(created, dict) else None
+    if not field:
+        raise GhError(argv, None, "", "",
+                      "project field not created", field_name,
+                      "createProjectV2Field returned no projectV2Field")
+    return field["id"]
+
+
+def project_single_select_extend(project_id, field_id, option_names):
+    """Send `option_names` — the FULL desired option list — as the new option set for an
+    existing single-select field. Returns None.
+
+    THE MUTATION IS A REPLACEMENT, NOT AN APPEND (D-plan T-03). updateProjectV2Field's
+    singleSelectOptions input REPLACES the field's entire option set. This function does not
+    compute the desired list — it sends exactly what it is given, in the order it is given.
+    Callers MUST pass every existing option first, with its existing name preserved, followed by
+    the additions; computing that union belongs to T-04, where the existing options have already
+    been read. Getting this wrong — passing only the new options — DELETES every option the
+    operator already had on the board.
+    """
+    query = ("""mutation($fieldId: ID!) {
+  updateProjectV2Field(input: {
+    fieldId: $fieldId,
+    singleSelectOptions: %s
+  }) {
+    projectV2Field { ... on ProjectV2SingleSelectField { id } }
+  }
+}
+""" % _options_literal(option_names))
+    argv = ["api", "graphql", "-f", "query=" + query, "-f", "fieldId=" + field_id]
+    env = run_gh(argv, json_out=True)
+    data = env.get("data") or {}
+    updated = data.get("updateProjectV2Field")
+    field = updated.get("projectV2Field") if isinstance(updated, dict) else None
+    if not field:
+        raise GhError(argv, None, "", "",
+                      "project field not updated", f"{project_id} field {field_id}",
+                      "updateProjectV2Field returned no projectV2Field")
+    return None
+
+
+_WORKFLOWS_QUERY = """query($owner: String!, $number: Int!) {
+  user(login: $owner) {
+    projectV2(number: $number) {
+      workflows(first: 50) { nodes { name enabled number } }
+    }
+  }
+}
+"""
+
+
+def project_workflows(owner, number):
+    """Return one dict per project workflow: {"name": str, "enabled": bool, "number": int}.
+
+    Measured live 2026-08-22: this query works and returns exactly those three fields.
+    ProjectV2Workflow exposes NEITHER trigger NOR action, so a caller can only match a workflow by
+    NAME — there is no ProjectV2 mutation that creates or enables a workflow (all 31 mutations
+    include deleteProjectV2Workflow and nothing that creates one).
+
+    Raises GhError — never returns an empty list — when user, projectV2 or workflows resolves
+    null: "no workflows" and "cannot see the project" are two different findings, and collapsing
+    them would report an inaccessible project as a clean board.
+    """
+    argv = ["api", "graphql", "-f", "query=" + _WORKFLOWS_QUERY,
+            "-f", "owner=" + owner, "-F", "number=" + str(number)]
+    env = run_gh(argv, json_out=True)
+    data = env.get("data") or {}
+    user = data.get("user")
+    if user is None:
+        raise GhError(argv, None, "", "",
+                      "project owner not found", owner,
+                      "check the owner login")
+    project = user.get("projectV2")
+    if project is None:
+        raise GhError(argv, None, "", "",
+                      "project not found", owner + " project " + str(number),
+                      "check the board number")
+    workflows = project.get("workflows")
+    if workflows is None:
+        raise GhError(argv, None, "", "",
+                      "project workflows unreadable", owner + " project " + str(number),
+                      "unexpected GraphQL response shape")
+    return [
+        {"name": n["name"], "enabled": n["enabled"], "number": n["number"]}
+        for n in workflows.get("nodes", [])
+    ]
+
+
 # The single targeted-lookup query, cost 1, replacing a whole-board `project item-list` scan
 # (D-01). Scoped to one repository and one issue number with NO state filter — a closed issue
 # still resolves, which is the property decompose's recovery path depends on (REQ-02).

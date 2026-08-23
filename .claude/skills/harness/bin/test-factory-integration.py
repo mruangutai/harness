@@ -222,6 +222,70 @@ def main():
                 "totalCount": len(nodes), "nodes": nodes,
             }}}}}))
 
+        # T-03 (FEAT-33) additions below — the six new board-lifecycle primitives in
+        # factory_gh.py. Each is dispatched on distinctive TEXT within query_text, never on argv
+        # order, because every one of these calls ["api", "graphql"] the same way
+        # _project_field_resolve's query does. Ordered from most to least specific so no shorter
+        # substring shadows a longer one (createProjectV2Field before createProjectV2().
+
+        if "createProjectV2Field" in query_text:
+            # project_single_select_create's mutation.
+            name_v = None
+            for i, a in enumerate(argv):
+                if a == "-f" and i + 1 < len(argv) and argv[i + 1].startswith("name="):
+                    name_v = argv[i + 1][len("name="):]
+            ok(json.dumps({"data": {"createProjectV2Field": {"projectV2Field": {
+                "id": f"FIELD_{name_v or 'NEW'}",
+            }}}}))
+
+        if "updateProjectV2Field" in query_text:
+            # project_single_select_extend's mutation — a REPLACEMENT, never validated by this
+            # stub for content; the ordering/color/description assertions live in
+            # test-factory-gh.py, unit-side, against the recorded query text.
+            ok(json.dumps({"data": {"updateProjectV2Field": {"projectV2Field": {
+                "id": "FIELD_STATUS",
+            }}}}))
+
+        if "linkProjectV2ToRepository" in query_text:
+            # project_link_repository's mutation.
+            ok(json.dumps({"data": {"linkProjectV2ToRepository": {"repository": {
+                "id": "R_FAKE",
+            }}}}))
+
+        if "createProjectV2(" in query_text:
+            # project_create's second call (createProjectV2Field is excluded above, so this
+            # substring only matches project_create's own mutation).
+            state["next_project"] = state.get("next_project", 100) + 1
+            ok(json.dumps({"data": {"createProjectV2": {"projectV2": {
+                "id": "PVT_kwFAKENEW", "number": state["next_project"],
+            }}}}))
+
+        if "repository(owner: $owner, name: $name) { id }" in query_text:
+            # project_link_repository's first call, resolving the repository node id. Distinct
+            # from the projectItems query above, which shares the same repository(owner:,
+            # name:) opener but selects issue(number:...) rather than a bare { id }.
+            ok(json.dumps({"data": {"repository": {"id": "R_FAKE"}}}))
+
+        if "workflows(first:" in query_text:
+            # project_workflows's query.
+            ok(json.dumps({"data": {"user": {"projectV2": {"workflows": {"nodes": [
+                {"name": "Item closed", "enabled": True, "number": 1},
+                {"name": "Auto-close issue", "enabled": True, "number": 2},
+                {"name": "Pull request merged", "enabled": True, "number": 3},
+            ]}}}}}))
+
+        if "user(login: $login) { id }" in query_text:
+            # project_create's first call, resolving the owner's node id.
+            ok(json.dumps({"data": {"user": {"id": "U_FAKE"}}}))
+
+        if "repositoryOwner(login: $owner)" in query_text and "field(name:" not in query_text:
+            # project_resolve's own query — same repositoryOwner/__typename shape as
+            # _project_field_resolve's query below, but with no field(name:...) selection, which
+            # is what tells the two apart.
+            ok(json.dumps({"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
+                "id": "PVT_kwFAKE", "title": "Board",
+            }}}}))
+
         # The single GraphQL query factory_gh._project_field_resolve sends (D-01). Answered
         # unconditionally, without inspecting the query= text — that guard lives once, in
         # test-factory-gh.py. Placed BEFORE the generic ["api", ...] REST branch below: after it
@@ -1127,6 +1191,101 @@ with tempfile.TemporaryDirectory() as td:
         "(proves the check above has power)",
         str(served_number) in board_numbers_seen, sorted(board_numbers_seen),
     )
+
+
+# ============================================================================
+# Case (I) — T-03 (FEAT-33): one forking case per WRITE primitive factory_gh.py gains in this
+# task (D-12). factory_gh.py is a LIBRARY with no __main__ (its own module docstring says so), so
+# "forking a real process" here means a real `python3 -c` subprocess that imports factory_gh and
+# calls the primitive — the discriminating property is that the GraphQL call round-trips through
+# a genuinely forked `gh` binary reading GH_STATE from disk, which an in-process
+# subprocess.run-monkeypatch (test-factory-gh.py, unit-side) cannot exercise. Each case asserts
+# BOTH the forked process's own exit status and the argv/query text GH_CALL_LOG recorded for it —
+# never the return value alone, per the plan's "assert on argv and variables" instruction.
+# ============================================================================
+def run_factory_gh_call(td, script, gh_state=None):
+    """Fork `python3 -c <script>` with factory_gh importable (cwd=BIN_DIR puts it on
+    sys.path[0]), FACTORY_GH pointed at the stub, and GH_CALL_LOG recording every argv the stub
+    receives. Returns (CompletedProcess, [argv, ...])."""
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    state_path = gh_state or write_state(os.path.join(td, "gh_state.json"))
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["FACTORY_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, "-c", script], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    calls = []
+    if os.path.exists(call_log):
+        with open(call_log, encoding="utf-8") as f:
+            calls = [json.loads(l) for l in f if l.strip()]
+    return r, calls
+
+
+with tempfile.TemporaryDirectory() as td:
+    r, calls = run_factory_gh_call(td, (
+        "import json, factory_gh as fgh\n"
+        "print(json.dumps(fgh.project_create('acmeowner', 'kaya-ai board')))\n"
+    ))
+    check("(I) project_create: forked process exits 0",
+          r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
+    check("(I) project_create: one call resolves the owner id, one call mutates createProjectV2",
+          any("user(login: $login) { id }" in a for c in calls for a in c) and
+          any("createProjectV2(" in a and "createProjectV2Field" not in a
+              for c in calls for a in c),
+          calls)
+    check("(I) project_create: the title is sent verbatim as a GraphQL variable",
+          any("title=kaya-ai board" in a for c in calls for a in c), calls)
+
+with tempfile.TemporaryDirectory() as td:
+    r, calls = run_factory_gh_call(td, (
+        "import json, factory_gh as fgh\n"
+        "print(json.dumps(fgh.project_link_repository('PVT_kwFAKE', 'acme/widget')))\n"
+    ))
+    check("(I) project_link_repository: forked process exits 0",
+          r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
+    check("(I) project_link_repository: resolves the repo id then mutates "
+          "linkProjectV2ToRepository",
+          any("repository(owner: $owner, name: $name) { id }" in a for c in calls for a in c) and
+          any("linkProjectV2ToRepository" in a for c in calls for a in c), calls)
+    check("(I) project_link_repository: repo owner/name split sent verbatim",
+          any("owner=acme" in a for c in calls for a in c) and
+          any("name=widget" in a for c in calls for a in c), calls)
+
+with tempfile.TemporaryDirectory() as td:
+    r, calls = run_factory_gh_call(td, (
+        "import json, factory_gh as fgh\n"
+        "print(json.dumps(fgh.project_single_select_create("
+        "'PVT_kwFAKE', 'Status', ['Backlog','Plan','Ready','Building','Review','Done'])))\n"
+    ))
+    check("(I) project_single_select_create: forked process exits 0",
+          r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
+    sent = "".join(a for c in calls for a in c if a.startswith("query="))
+    check("(I) project_single_select_create: mutates createProjectV2Field, sends every "
+          "option's color and description explicitly",
+          "createProjectV2Field" in sent and sent.count("color: GRAY") == 6
+          and sent.count('description: ""') == 6, sent)
+
+with tempfile.TemporaryDirectory() as td:
+    r, calls = run_factory_gh_call(td, (
+        "import json, factory_gh as fgh\n"
+        "print(json.dumps(fgh.project_single_select_extend("
+        "'PVT_kwFAKE', 'FIELD_STATUS', "
+        "['Backlog','Plan','Ready','Building','Review','Done'])))\n"
+    ))
+    check("(I) project_single_select_extend: forked process exits 0",
+          r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
+    sent = "".join(a for c in calls for a in c if a.startswith("query="))
+    check("(I) project_single_select_extend: mutates updateProjectV2Field, never "
+          "createProjectV2Field, sending every option in the given order",
+          "updateProjectV2Field" in sent and "createProjectV2Field" not in sent
+          and sent.find('"Backlog"') < sent.find('"Plan"') < sent.find('"Ready"')
+          < sent.find('"Building"') < sent.find('"Review"') < sent.find('"Done"'), sent)
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")

@@ -359,7 +359,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/factory_gh.py
       - .claude/skills/harness/bin/test-factory-gh.py
@@ -1685,7 +1685,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness/templates/harness.json at 46ee87c
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/templates/harness.json
     verify: |
