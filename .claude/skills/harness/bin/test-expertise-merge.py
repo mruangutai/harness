@@ -15,13 +15,17 @@ import ast
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLI = os.environ.get("EXPERTISE_MERGE_BIN") or os.path.join(HERE, "expertise-merge.py")
 CHECK_EXPERTISE_BIN = os.path.join(HERE, "check-expertise.sh")
+sys.path.insert(0, os.path.dirname(os.path.abspath(CLI)))
+import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 
 RESULTS = []
 
@@ -200,7 +204,10 @@ def case_divergent_text(root):
 
     after = open(path, encoding="utf-8").read()
     check("case4: file is byte identical to before", after == original, repr((original, after)))
-    check("case4: lock file is gone", not os.path.exists(path + ".lock"))
+    entries_noop = os.path.join(root, "case4_entries_noop.md")
+    write_entries(entries_noop, [("Patterns", [("P-01", "one")])])
+    r2 = run_apply(path, entries_noop)
+    check("case4: a following apply still exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
 
 
 def case_cap_overflow(root):
@@ -218,7 +225,10 @@ def case_cap_overflow(root):
 
     after = open(path, encoding="utf-8").read()
     check("case5: file is byte identical to before", after == original, repr((original, after)))
-    check("case5: lock file is gone", not os.path.exists(path + ".lock"))
+    entries_noop = os.path.join(root, "case5_entries_noop.md")
+    write_entries(entries_noop, [("Patterns", [("P-01", "text 1")])])
+    r2 = run_apply(path, entries_noop)
+    check("case5: a following apply still exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
 
 
 def case_new_file(root):
@@ -234,7 +244,8 @@ def case_new_file(root):
 
     content = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
     check("case6: proposed entry present", "- P-01:" in content, content)
-    check("case6: lock file is gone", not os.path.exists(path + ".lock"))
+    r2 = run_apply(path, entries)
+    check("case6: a following apply still exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
 
 
 def case_cap_drift_detector():
@@ -313,6 +324,59 @@ def case_destination_refusal(root):
               r.returncode == 0, f"exit {r.returncode}: {r.stderr.strip()[:200]}")
 
 
+def case_stale_lock_recovery(root):
+    """Case 10 — THE STALE-LOCK RECOVERY, the reason D-02 exists.
+
+    A child holds the lock through harness_merge.acquire and is SIGKILLed while holding it —
+    no finally block of its own ever runs. A following apply in the PARENT must still succeed:
+    under real flock (D-02) the kernel releases the lock on process death, so this is fast and
+    exits 0 with the entry on disk. Under the O_EXCL create-and-delete branch (USE_FLOCK
+    mutated to False) the lock FILE outlives the SIGKILLed holder, the apply exits 6 instead,
+    and this case is the one that goes red — proving the flock branch is load-bearing, not
+    merely present.
+    """
+    path = target(root, "case10")
+    write_file(path, [("Patterns", [("P-01", "one")])])
+    entries = os.path.join(root, "case10_entries.md")
+    write_entries(entries, [("Patterns", [("P-02", "two")])])
+
+    lock_path = path + ".lock"
+    r_fd, w_fd = os.pipe()
+    pid = os.fork()
+    if pid == 0:
+        # Child: acquire the lock through the SAME core the CLI under test uses, signal the
+        # parent it holds it, then block forever. No finally block of ours ever runs — we are
+        # about to be SIGKILLed, which is the whole point of this case.
+        os.close(r_fd)
+        try:
+            with harness_merge.acquire(lock_path):
+                os.write(w_fd, b"x")
+                os.close(w_fd)
+                while True:
+                    time.sleep(3600)
+        finally:
+            os._exit(0)
+
+    os.close(w_fd)
+    os.read(r_fd, 1)  # blocks until the child confirms it holds the lock
+    os.close(r_fd)
+    os.kill(pid, signal.SIGKILL)
+    os.waitpid(pid, 0)
+
+    r = run_apply(path, entries)
+    check(
+        "case10: a following apply exits 0 after the lock holder is SIGKILLed",
+        r.returncode == 0,
+        f"exit {r.returncode}: {(r.stdout + r.stderr)!r}",
+    )
+    content = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+    check(
+        "case10: the proposed entry is on disk after recovery",
+        "- P-02:" in content,
+        content,
+    )
+
+
 def main():
     root = tempfile.mkdtemp(prefix="expertise-merge-test-")
     try:
@@ -324,6 +388,7 @@ def main():
         case_new_file(root)
         case_destination_refusal(root)
         case_cap_drift_detector()
+        case_stale_lock_recovery(root)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

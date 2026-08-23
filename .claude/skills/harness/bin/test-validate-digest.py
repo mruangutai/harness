@@ -10,7 +10,7 @@ noticed because each was only ever exercised by the example that happened to pas
 
     ./test-validate-digest.py     -> exit 0 all pass, 1 otherwise
 """
-import json, re, subprocess, sys, os
+import json, re, subprocess, sys, os, shutil, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Overridable so the pre-fix binary can be run through the SAME suite to prove
@@ -923,6 +923,183 @@ def run_cli_cases():
     return fails
 
 
+# ---------------------------------------------------------------------------
+# T-09's NINE MANDATED CASES (plan.yaml:1331-1362). MF-2: these were mandated by
+# the approved intent and never written, and the panel proved the gap by
+# neutering live_children and getting a green suite. Each drives the hook as a
+# SUBPROCESS with its own throwaway checkout so no case can see another.
+# ---------------------------------------------------------------------------
+
+T09 = []
+
+
+def t09(name, ok, detail=""):
+    T09.append((name, ok, detail))
+
+
+def _reg_module():
+    import importlib.util
+    sp = importlib.util.spec_from_file_location(
+        "t09_ir", os.path.join(os.path.dirname(os.path.realpath(VALIDATE)),
+                               "inflight_registry.py"))
+    m = importlib.util.module_from_spec(sp)
+    sp.loader.exec_module(m)
+    return m
+
+
+def _t09_root():
+    d = tempfile.mkdtemp()
+    os.makedirs(os.path.join(d, ".harness"), exist_ok=True)
+    with open(os.path.join(d, ".harness", "team-config.yaml"), "w") as f:
+        f.write("schema_version: 1\nteams: []\n")
+    return d
+
+
+def _t09_fire(root, agent, text, hook=None, **extra):
+    payload = {"agent_type": agent, "last_assistant_message": text, "cwd": root}
+    payload.update(extra)
+    return subprocess.run([hook or VALIDATE, "--hook"], input=json.dumps(payload),
+                          capture_output=True, text=True,
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+
+PM_OK = """
+VERDICT: PASS
+DIGEST:
+  headline: scoped the surface and wrote the plan
+  feasibility: clear
+  surface: S
+  recommend: proceed
+  risk: low
+  tasks: 3
+  decisions: 1
+  needs_approval: false
+  flags: []
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+  sc_status: []
+artifact: .harness/features/FEAT-01/plan.yaml
+"""
+
+CHILD_MARK = "BLOCKED - returned with children in flight"
+
+
+def run_t09():
+    reg = _reg_module()
+
+    def claims(root, agent):
+        p = os.path.join(root, reg.REGISTRY_REL)
+        if not os.path.exists(p):
+            return []
+        with open(p) as fh:
+            return (json.load(fh) or {}).get(agent) or []
+
+    # 1. a valid pm return RELEASES its claim
+    root = _t09_root()
+    reg.claim(root, "harness-pm", "harness-product-lead", root)
+    r = _t09_fire(root, "harness-pm", PM_OK)
+    t09("1: a valid pm return exits 0", r.returncode == 0,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    t09("1: and its claim is GONE from the registry", not claims(root, "harness-pm"),
+        repr(claims(root, "harness-pm")))
+
+    # 2. an INVALID digest still exits 2 for the contract AND still releases. A blocked
+    #    return that leaks its claim can never be re-dispatched.
+    root = _t09_root()
+    reg.claim(root, "harness-pm", "harness-product-lead", root)
+    r = _t09_fire(root, "harness-pm", "VERDICT: PASS\nDIGEST:\n  headline: x\n")
+    t09("2: an invalid digest still exits 2", r.returncode == 2, f"exit {r.returncode}")
+    t09("2: and the claim is STILL released, so a re-prompt can be re-dispatched",
+        not claims(root, "harness-pm"), repr(claims(root, "harness-pm")))
+
+    # 3. stop_hook_active short-circuits and does not raise, with a claim present
+    root = _t09_root()
+    reg.claim(root, "harness-pm", "harness-product-lead", root)
+    r = _t09_fire(root, "harness-pm", PM_OK, stop_hook_active=True)
+    t09("3: stop_hook_active exits 0 with a claim present", r.returncode == 0,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    t09("3: and prints no traceback", "Traceback" not in r.stderr, r.stderr[:200])
+
+    # 4. a persona releases its OWN claim and leaves an unrelated one alone. BOTH halves.
+    root = _t09_root()
+    reg.claim(root, "harness-documentor", "harness-product-lead", root)
+    reg.claim(root, "harness-pm", "harness-product-lead", root)
+    r = _t09_fire(root, "harness-documentor", PM_OK.replace("VERDICT: PASS", "VERDICT: PASS"))
+    t09("4: the returning persona's own claim is released",
+        not claims(root, "harness-documentor"), repr(claims(root, "harness-documentor")))
+    t09("4: and an UNRELATED harness-pm claim is untouched",
+        len(claims(root, "harness-pm")) == 1, repr(claims(root, "harness-pm")))
+
+    # 5. THE LIBRARY MISSING. Neither the release nor the children check may break validation.
+    root = _t09_root()
+    mbin = os.path.join(root, "bin")
+    shutil.copytree(os.path.dirname(os.path.realpath(VALIDATE)), mbin)
+    os.remove(os.path.join(mbin, "inflight_registry.py"))
+    r = _t09_fire(root, "harness-pm", PM_OK, hook=os.path.join(mbin, "validate-digest.py"))
+    t09("5: a valid digest still exits 0 with inflight_registry absent", r.returncode == 0,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    t09("5: and stderr NAMES the missing module", "inflight_registry" in r.stderr,
+        r.stderr.strip()[:200])
+
+    # 6. THE D-09 REFUSAL. Two live children, a lead returning. Assert the exit, both children
+    #    by name, the issue, AND that the lead's own claim was released first.
+    root = _t09_root()
+    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root)
+    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root)
+    reg.claim(root, "harness-dev-ops", "harness-eng-lead", root)
+    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK)
+    t09("6: a lead returning with children in flight exits 2", r.returncode == 2,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:240]!r}")
+    t09("6: stderr carries the children-in-flight refusal", CHILD_MARK in r.stderr,
+        r.stderr.strip()[:240])
+    t09("6: stderr names BOTH children",
+        "harness-backend-dev" in r.stderr and "harness-dev-ops" in r.stderr,
+        r.stderr.strip()[:240])
+    t09("6: stderr cites the issue", "#551" in r.stderr, r.stderr.strip()[:240])
+    t09("6: the lead's OWN claim was released first",
+        not claims(root, "harness-eng-lead"), repr(claims(root, "harness-eng-lead")))
+
+    # 7. THE ALLOW HALF, asserting the ABSENCE of the marker so a refuse-every-lead build fails.
+    root = _t09_root()
+    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root)
+    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK)
+    t09("7: a lead with NO children carries no children marker", CHILD_MARK not in r.stderr,
+        r.stderr.strip()[:240])
+
+    # 8. A MEMBER IS NEVER SUBJECT TO IT -- only a lead or the orchestrator dispatches.
+    root = _t09_root()
+    reg.claim(root, "harness-pm", "harness-pm", root)
+    r = _t09_fire(root, "harness-pm", PM_OK)
+    t09("8: a member with a claim dispatched by itself still exits 0", r.returncode == 0,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    t09("8: and no children marker", CHILD_MARK not in r.stderr, r.stderr.strip()[:200])
+
+    # 9. THE ONE-SHOT BOUND, ASSERTED RATHER THAN HIDDEN. This records D-09's residual: a
+    #    second refusal here would be the infinite stop loop the pass-through prevents.
+    #    DO NOT "fix" this case.
+    root = _t09_root()
+    reg.claim(root, "harness-eng-lead", "harness-orchestrator", root)
+    reg.claim(root, "harness-backend-dev", "harness-eng-lead", root)
+    r = _t09_fire(root, "harness-eng-lead", LEAD_BLOCK, stop_hook_active=True)
+    t09("9: stop_hook_active exits 0 WITH children still on disk (D-09's residual)",
+        r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    t09("9: and the child claim is still there, so the bound is real",
+        len(claims(root, "harness-backend-dev")) == 1,
+        repr(claims(root, "harness-backend-dev")))
+
+    fails = 0
+    for name, ok, detail in T09:
+        if ok:
+            print("ok    %s" % (name,))
+        else:
+            fails += 1
+            print("FAIL  %s" % (name,))
+            print("      | %s" % (detail,))
+    print("\n%d/%d T-09 cases passed." % (len(T09) - fails, len(T09)))
+    return fails
+
+
 def run_hook_cases():
     """Drive --hook mode directly: JSON payload on stdin, EXACT exit code
     asserted (2 reject / 0 pass — never just 'nonzero'), rejection text
@@ -1388,6 +1565,7 @@ def main():
     fails = run_cli_cases()
     fails += run_joint_hint_case()
     fails += run_hook_cases()
+    fails += run_t09()
     fails += run_template_cases()
     print(f"\n{'ALL PASSED' if not fails else f'{fails} FAILING'}.")
     return 1 if fails else 0

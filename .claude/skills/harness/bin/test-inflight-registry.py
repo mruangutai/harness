@@ -1,0 +1,392 @@
+#!/usr/bin/env python3
+"""test-inflight-registry.py — house-shape suite for inflight_registry.py (FEAT-32 T-06, D-06, D-09).
+
+Resolves the module under test via INFLIGHT_REGISTRY_DIR so a mutated copy of the tree can be
+swapped in without editing this file (see the task's verify: block, which does exactly that).
+Every case uses a fresh tempfile.mkdtemp() as the root and never touches the real .harness
+directory.
+
+ASSUMED_TTL_SECONDS below is deliberately a HARDCODED literal, not a read of
+inflight_registry.CLAIM_TTL_SECONDS — reading the module's own (possibly mutated) constant to
+build the stale fixture would make the staleness assertion self-referential and unable to
+diverge from a CLAIM_TTL_SECONDS mutant (P-05). It must match the module's shipped default.
+"""
+import contextlib
+import io
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+MODULE_DIR = os.environ.get("INFLIGHT_REGISTRY_DIR") or HERE
+sys.path.insert(0, MODULE_DIR)
+
+import inflight_registry  # noqa: E402
+
+CLI = os.path.join(MODULE_DIR, "inflight_registry.py")
+
+ASSUMED_TTL_SECONDS = 3600
+
+RESULTS = []
+
+
+def check(name, ok, detail=""):
+    RESULTS.append((name, ok, detail))
+    print(("PASS" if ok else "FAIL") + f" - {name}" + (f" ({detail})" if detail and not ok else ""))
+
+
+def _read_raw(root):
+    path = os.path.join(root, inflight_registry.REGISTRY_REL)
+    with open(path, "r", encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def _write_raw(root, obj):
+    path = os.path.join(root, inflight_registry.REGISTRY_REL)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(obj, fh)
+
+
+# ---------------------------------------------------------------------------
+# Cases
+# ---------------------------------------------------------------------------
+
+
+def case_1_claim_then_live_claim():
+    root = tempfile.mkdtemp()
+    ok = inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/some/cwd")
+    check("case1: claim returns True", ok is True, ok)
+    claim, expired = inflight_registry.live_claim(root, "harness-backend-dev")
+    check("case1: live_claim returns a claim", claim is not None, claim)
+    check(
+        "case1: recorded dispatcher matches",
+        claim is not None and claim.get("dispatcher") == "harness-eng-lead",
+        claim,
+    )
+    check(
+        "case1: recorded cwd matches",
+        claim is not None and claim.get("cwd") == "/some/cwd",
+        claim,
+    )
+
+
+def case_2_single_flight_and_parallel_asymmetry():
+    root = tempfile.mkdtemp()
+    ok1 = inflight_registry.claim(root, "harness-pm", "harness-orchestrator", "/cwd-a")
+    check("case2: first pm claim succeeds", ok1 is True, ok1)
+    claim1, _ = inflight_registry.live_claim(root, "harness-pm")
+    started1 = claim1["started_at"]
+
+    ok2 = inflight_registry.claim(root, "harness-pm", "harness-orchestrator", "/cwd-b")
+    check("case2: second pm claim is refused (single-flight)", ok2 is False, ok2)
+
+    claim1b, _ = inflight_registry.live_claim(root, "harness-pm")
+    check(
+        "case2: stored started_at is still the FIRST claim's",
+        claim1b is not None and claim1b["started_at"] == started1,
+        (claim1b, started1),
+    )
+
+    ok3 = inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/cwd-c")
+    check("case2: first backend-dev claim succeeds", ok3 is True, ok3)
+    ok4 = inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/cwd-d")
+    check(
+        "case2: second backend-dev claim ALSO succeeds (parallel squad is legal)",
+        ok4 is True,
+        ok4,
+    )
+
+    data = _read_raw(root)
+    backend_claims = data.get("harness-backend-dev", [])
+    check("case2: registry holds two claims for backend-dev", len(backend_claims) == 2, backend_claims)
+    started_values = {c["started_at"] for c in backend_claims}
+    check("case2: both started_at values are present", len(started_values) == 2, backend_claims)
+
+
+def case_2b_live_children_by_dispatcher():
+    root = tempfile.mkdtemp()
+    inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/a")
+    inflight_registry.claim(root, "harness-frontend-dev", "harness-eng-lead", "/b")
+    inflight_registry.claim(root, "harness-pm", "harness-product-lead", "/c")
+    inflight_registry.claim(root, "harness-qa", "harness-product-lead", "/d")
+
+    eng_children = inflight_registry.live_children(root, "harness-eng-lead")
+    eng_personas = {p for p, _c in eng_children}
+    check("case2b: eng-lead children include backend-dev", "harness-backend-dev" in eng_personas, eng_personas)
+    check("case2b: eng-lead children include frontend-dev", "harness-frontend-dev" in eng_personas, eng_personas)
+    check("case2b: eng-lead children exclude pm", "harness-pm" not in eng_personas, eng_personas)
+    check("case2b: eng-lead children exclude qa", "harness-qa" not in eng_personas, eng_personas)
+
+    product_children = inflight_registry.live_children(root, "harness-product-lead")
+    product_personas = {p for p, _c in product_children}
+    check("case2b: product-lead children include pm", "harness-pm" in product_personas, product_personas)
+    check("case2b: product-lead children include qa", "harness-qa" in product_personas, product_personas)
+    check(
+        "case2b: product-lead children exclude backend-dev",
+        "harness-backend-dev" not in product_personas,
+        product_personas,
+    )
+    check(
+        "case2b: product-lead children exclude frontend-dev",
+        "harness-frontend-dev" not in product_personas,
+        product_personas,
+    )
+
+
+def case_2c_live_children_expires_stale():
+    root = tempfile.mkdtemp()
+    now = time.time()
+    stale_started = now - ASSUMED_TTL_SECONDS - 1
+    _write_raw(
+        root,
+        {"harness-backend-dev": [{"started_at": stale_started, "dispatcher": "harness-eng-lead", "cwd": "/x"}]},
+    )
+    children = inflight_registry.live_children(root, "harness-eng-lead", now=now)
+    check("case2c: stale child is not returned", children == [], children)
+    data = _read_raw(root)
+    check(
+        "case2c: stale claim is gone from the file afterwards",
+        data.get("harness-backend-dev", []) == [],
+        data,
+    )
+
+
+def case_3_staleness_live_claim():
+    root = tempfile.mkdtemp()
+    now = time.time()
+    stale_started = now - ASSUMED_TTL_SECONDS - 1
+    _write_raw(
+        root,
+        {"harness-pm": [{"started_at": stale_started, "dispatcher": "harness-orchestrator", "cwd": "/x"}]},
+    )
+    claim, expired = inflight_registry.live_claim(root, "harness-pm", now=now)
+    check("case3: stale claim is treated as absent", claim is None, claim)
+    check("case3: live_claim reports one expired", expired == 1, expired)
+    ok = inflight_registry.claim(root, "harness-pm", "harness-orchestrator", "/y", now=now)
+    check("case3: a following claim succeeds after staleness expiry", ok is True, ok)
+
+
+def case_4_release():
+    root = tempfile.mkdtemp()
+    inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/a")
+    removed = inflight_registry.release(root, "harness-backend-dev")
+    check("case4: release removes the claim and returns True", removed is True, removed)
+    claim, _ = inflight_registry.live_claim(root, "harness-backend-dev")
+    check("case4: no live claim remains", claim is None, claim)
+
+    root2 = tempfile.mkdtemp()
+    removed2 = inflight_registry.release(root2, "harness-backend-dev")
+    check("case4: releasing an absent claim returns False", removed2 is False, removed2)
+    path2 = os.path.join(root2, inflight_registry.REGISTRY_REL)
+    check("case4: releasing an absent claim does not create the file", not os.path.exists(path2), path2)
+
+
+def case_5_is_single_flight():
+    check(
+        "case5: harness-pm is single-flight",
+        inflight_registry.is_single_flight("harness-pm") is True,
+        None,
+    )
+    check(
+        "case5: harness-backend-dev is not single-flight",
+        inflight_registry.is_single_flight("harness-backend-dev") is False,
+        None,
+    )
+
+
+def case_6_refusal_lines():
+    now = time.time()
+    existing = {"started_at": now, "dispatcher": "harness-orchestrator", "cwd": "/x"}
+    lines = inflight_registry.refusal_lines("harness-pm", existing, inflight_registry.RELEASE_ALL_CMD)
+
+    check(
+        "case6: first line begins with the dispatch-guard marker",
+        bool(lines) and lines[0].startswith("dispatch-guard: BLOCKED - single-flight"),
+        lines,
+    )
+    check("case6: the agent name appears", any("harness-pm" in l for l in lines), lines)
+    check(
+        "case6: an ISO-8601 timestamp appears",
+        any(re.search(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", l) for l in lines),
+        lines,
+    )
+    check("case6: #551 is referenced", any("#551" in l for l in lines), lines)
+    check(
+        "case6: the release command appears byte-for-byte",
+        any(inflight_registry.RELEASE_ALL_CMD in l for l in lines),
+        lines,
+    )
+
+
+def case_6b_children_refusal_lines():
+    now = time.time()
+    children = [
+        ("harness-backend-dev", {"started_at": now, "dispatcher": "harness-eng-lead", "cwd": "/a"}),
+        ("harness-frontend-dev", {"started_at": now - 5, "dispatcher": "harness-eng-lead", "cwd": "/b"}),
+    ]
+    lines = inflight_registry.children_refusal_lines("harness-eng-lead", children)
+
+    check(
+        "case6b: first line begins with the check-digest marker",
+        bool(lines) and lines[0].startswith("check-digest: BLOCKED - returned with children in flight"),
+        lines,
+    )
+    check("case6b: the returning agent is named", any("harness-eng-lead" in l for l in lines), lines)
+    check("case6b: the first child is named", any("harness-backend-dev" in l for l in lines), lines)
+    check("case6b: the second child is named", any("harness-frontend-dev" in l for l in lines), lines)
+    ts_count = sum(len(re.findall(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", l)) for l in lines)
+    check("case6b: two ISO-8601 timestamps appear", ts_count >= 2, lines)
+    check("case6b: #551 is referenced", any("#551" in l for l in lines), lines)
+    check(
+        "case6b: the fires-once sentence is present",
+        any("once" in l.lower() for l in lines),
+        lines,
+    )
+
+
+def case_7_concurrency(trials=20):
+    """CONCURRENCY FOR REAL: 20 trials of two subprocesses both calling claim() for harness-pm.
+    Exactly one must return True per trial and the registry must hold exactly one claim. Any
+    trial where both succeeded is the defect this feature exists to prevent — report it by
+    trial number, never absorb it into the aggregate."""
+    bad_trials = []
+    locked_branch_trials = 0
+    for i in range(trials):
+        root = tempfile.mkdtemp(prefix=f"inflight-c7-{i}-")
+        res_x = os.path.join(root, "res_x")
+        res_y = os.path.join(root, "res_y")
+        code_template = (
+            "import sys\n"
+            "sys.path.insert(0, {module_dir!r})\n"
+            "import inflight_registry\n"
+            "ok = inflight_registry.claim({root!r}, 'harness-pm', 'harness-orchestrator', {cwd!r})\n"
+            "open({res!r}, 'w').write('1' if ok else '0')\n"
+        )
+        code_x = code_template.format(module_dir=MODULE_DIR, root=root, cwd=f"/cwd-x-{i}", res=res_x)
+        code_y = code_template.format(module_dir=MODULE_DIR, root=root, cwd=f"/cwd-y-{i}", res=res_y)
+        px = subprocess.Popen([sys.executable, "-c", code_x], stderr=subprocess.PIPE, text=True)
+        py = subprocess.Popen([sys.executable, "-c", code_y], stderr=subprocess.PIPE, text=True)
+        _out_x, err_x = px.communicate(timeout=30)
+        _out_y, err_y = py.communicate(timeout=30)
+        rc_x, rc_y = px.returncode, py.returncode
+        # A non-zero exit with no result file means claim() let a MergeRefusal (the LOCKED
+        # branch, exit code 6 in harness_merge) propagate uncaught — a real, measured instance
+        # of the admitted-but-rarely-exercised branch, not a hardcoded figure.
+        if (rc_x != 0 and not os.path.exists(res_x)) or (rc_y != 0 and not os.path.exists(res_y)):
+            locked_branch_trials += 1
+
+        rx = open(res_x).read().strip() if os.path.exists(res_x) else "?"
+        ry = open(res_y).read().strip() if os.path.exists(res_y) else "?"
+        true_count = [rx, ry].count("1")
+        if true_count != 1:
+            bad_trials.append(
+                f"trial {i}: rx={rx!r} ry={ry!r} rc_x={rc_x} rc_y={rc_y} err_x={err_x!r} "
+                f"err_y={err_y!r} (expected exactly one True)"
+            )
+        data = _read_raw(root) if os.path.exists(os.path.join(root, inflight_registry.REGISTRY_REL)) else {}
+        n = len(data.get("harness-pm", []))
+        if n != 1:
+            bad_trials.append(f"trial {i}: registry holds {n} claims for harness-pm (expected 1)")
+
+    check(
+        f"case7: {trials} trials each produce exactly one successful claim() and one stored claim",
+        not bad_trials,
+        "\n".join(bad_trials),
+    )
+    # informational only — never asserted on, see the T-03/T-04 residual shape: a LOCKED-style
+    # split-decision (MergeRefusal escaping claim() uncaught) admitted but rarely exercised,
+    # because the 10s lock timeout makes the loser wait rather than fail.
+    check(
+        f"case7: informational — a LOCKED-style split-decision outcome was admitted "
+        f"{locked_branch_trials}/{trials} times",
+        True,
+        "",
+    )
+
+
+def case_8_corrupt_registry():
+    root = tempfile.mkdtemp()
+    path = os.path.join(root, inflight_registry.REGISTRY_REL)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write("{")
+
+    ok = True
+    detail = ""
+    result = None
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(buf):
+            result = inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/a")
+    except Exception as exc:  # noqa: BLE001 - the whole point of the case is "no exception escapes"
+        ok = False
+        detail = repr(exc)
+
+    check("case8: claim against a corrupt registry does not raise", ok, detail)
+    check("case8: claim succeeds, treating the corrupt file as empty", result is True, result)
+    stderr_text = buf.getvalue()
+    check("case8: a message naming the file appears on stderr", path in stderr_text, stderr_text)
+
+
+def case_9_release_all():
+    root = tempfile.mkdtemp()
+    inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/a")
+    inflight_registry.claim(root, "harness-frontend-dev", "harness-eng-lead", "/b")
+    inflight_registry.claim(root, "harness-backend-dev", "harness-eng-lead", "/c")
+
+    n = inflight_registry.release_all(root)
+    check("case9: release_all returns 3", n == 3, n)
+    data = _read_raw(root)
+    check("case9: the registry is empty afterwards", data == {}, data)
+
+    r = subprocess.run(
+        [sys.executable, CLI, "list", "--root", root],
+        capture_output=True,
+        text=True,
+    )
+    check("case9: CLI list exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("case9: CLI list prints NO CLAIMS", "NO CLAIMS" in r.stdout, r.stdout)
+
+
+def case_10_no_own_primitive():
+    path = os.path.join(MODULE_DIR, "inflight_registry.py")
+    src = open(path, encoding="utf-8").read()
+    check("case10: no fcntl usage", "fcntl" not in src, None)
+    check("case10: no O_EXCL usage", "O_EXCL" not in src, None)
+    check("case10: no os.replace usage", "os.replace" not in src, None)
+    check(
+        "case10: calls harness_merge.locked_update",
+        "harness_merge.locked_update(" in src,
+        None,
+    )
+
+
+def main():
+    case_1_claim_then_live_claim()
+    case_2_single_flight_and_parallel_asymmetry()
+    case_2b_live_children_by_dispatcher()
+    case_2c_live_children_expires_stale()
+    case_3_staleness_live_claim()
+    case_4_release()
+    case_5_is_single_flight()
+    case_6_refusal_lines()
+    case_6b_children_refusal_lines()
+    case_7_concurrency()
+    case_8_corrupt_registry()
+    case_9_release_all()
+    case_10_no_own_primitive()
+
+    failed = [r for r in RESULTS if not r[1]]
+    if failed:
+        print(f"FAIL - {len(failed)}/{len(RESULTS)} checks failed")
+        sys.exit(1)
+    print(f"PASS - {len(RESULTS)}/{len(RESULTS)} checks passed")
+
+
+if __name__ == "__main__":
+    main()

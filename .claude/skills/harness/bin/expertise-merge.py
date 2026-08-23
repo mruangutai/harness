@@ -18,13 +18,18 @@ Exit codes are part of the interface (T-07 routes an agent's behaviour on them):
     8  the union would exceed a DEC-145 section cap — nothing applied
 
 python3 stdlib only, no third-party imports, so this runs on any machine that runs the harness.
+
+Locking and the atomic replace are FEAT-32 T-05's rewire onto harness_merge (D-02): this file no
+longer carries its own lock or replace primitive — see harness_merge.py's module docstring for
+the lock dialect this tool now shares with plan-merge.py and observations-merge.py.
 """
 import argparse
 import os
 import re
 import sys
-import tempfile
-import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import harness_merge  # noqa: E402  (local import, after sys.path fix-up)
 
 # DEC-145's four canonical sections and their entry caps, verbatim. This is the one place this
 # tool spells them; test-expertise-merge.py's case 8 reads check-expertise.sh's own CAPS mapping
@@ -35,9 +40,6 @@ CAPS = {"Patterns": 15, "Gotchas": 15, "Outcomes": 10, "Open": 5}
 # writes is read back identically by the checker that governs the format.
 SECTION_RE = re.compile(r"^## (\w+)(?: \(max (\d+)\))?\s*$")
 ENTRY_RE = re.compile(r"^- ([A-Za-z]{1,3}-\d+): (.*)$")
-
-LOCK_TIMEOUT_SECONDS = 10.0
-LOCK_RETRY_INTERVAL = 0.05
 
 # Guards step 3, the union computation, and nothing else. False reproduces today's naive
 # behaviour exactly: the proposal replaces the file, whole, with no comparison against what was
@@ -137,23 +139,6 @@ def compute_union(base_sections, base_order, prop_sections, prop_order):
     return merged, order, conflicts
 
 
-def acquire_lock(lock_path):
-    """Create the lock file exclusively. Retries on contention for at most
-    LOCK_TIMEOUT_SECONDS, then exits 6 naming the lock file — a lock that waits forever inside
-    a close-out is worse than one that reports."""
-    deadline = time.monotonic() + LOCK_TIMEOUT_SECONDS
-    while True:
-        try:
-            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.close(fd)
-            return
-        except FileExistsError:
-            if time.monotonic() >= deadline:
-                print(f"LOCKED: could not acquire {lock_path} within {LOCK_TIMEOUT_SECONDS}s")
-                sys.exit(6)
-            time.sleep(LOCK_RETRY_INTERVAL)
-
-
 def default_title(file_path):
     base = os.path.basename(file_path)
     if base.endswith(".md"):
@@ -166,7 +151,7 @@ EXPERTISE_TAIL = re.compile(
 
 
 def require_expertise_destination(file_path):
-    """REFUSE a --file that is not an Expertise file. Exit 9.
+    """REFUSE a --file that is not an Expertise file. Raises harness_merge.MergeRefusal(9).
 
     WHY THIS EXISTS, and it is not defence-in-depth for its own sake. `bash-write-guard.sh`
     is ALLOW-BY-OMISSION: it scans a command for a write PATTERN it recognises — a
@@ -193,37 +178,41 @@ def require_expertise_destination(file_path):
     `.harness/<repo>/expertise/<agent>.md`. Matched on the REALPATH, so `..` and a symlink
     cannot walk out of the tier and back in under a legal-looking tail.
     """
-    resolved = os.path.realpath(os.path.abspath(file_path))
-    if not EXPERTISE_TAIL.search(resolved):
-        print(f"expertise-merge: REFUSED — {file_path} is not an Expertise file.",
-              file=sys.stderr)
-        print(f"  resolved to: {resolved}", file=sys.stderr)
-        print("  --file must be .harness/expertise/<agent>.md or "
-              ".harness/<repo>/expertise/<agent>.md, and <agent> must be a harness-* "
-              "name.", file=sys.stderr)
-        print("  This tool merges Expertise and writes nothing else. A path the domain "
-              "hook would deny does not become writable by routing through a CLI.",
-              file=sys.stderr)
-        sys.exit(9)
-    return resolved
+    return harness_merge.require_destination(
+        file_path,
+        EXPERTISE_TAIL,
+        "an Expertise file",
+        [
+            "  --file must be .harness/expertise/<agent>.md or "
+            ".harness/<repo>/expertise/<agent>.md, and <agent> must be a harness-* "
+            "name.",
+            "  This tool merges Expertise and writes nothing else. A path the domain "
+            "hook would deny does not become writable by routing through a CLI.",
+        ],
+    )
 
 
 def cmd_apply(args):
     file_path = args.file
-    require_expertise_destination(file_path)
-    lock_path = file_path + ".lock"
-    acquire_lock(lock_path)
     try:
-        if args.entries == "-":
-            proposal_text = sys.stdin.read()
-        else:
-            with open(args.entries, encoding="utf-8") as f:
-                proposal_text = f.read()
-        _, prop_sections, prop_order, _ = parse_expertise(proposal_text)
+        resolved = require_expertise_destination(file_path)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line, file=sys.stderr)
+        sys.exit(refusal.code)
 
-        if os.path.exists(file_path):
-            with open(file_path, encoding="utf-8") as f:
-                base_text = f.read()
+    if args.entries == "-":
+        proposal_text = sys.stdin.read()
+    else:
+        with open(args.entries, encoding="utf-8") as f:
+            proposal_text = f.read()
+    _, prop_sections, prop_order, _ = parse_expertise(proposal_text)
+
+    result = {}
+
+    def transform(base_bytes):
+        if base_bytes is not None:
+            base_text = base_bytes.decode("utf-8")
             title, base_sections, base_order, headers = parse_expertise(base_text)
         else:
             title, base_sections, base_order, headers = None, {}, [], {}
@@ -233,26 +222,26 @@ def cmd_apply(args):
                 base_sections, base_order, prop_sections, prop_order
             )
             if conflicts:
+                lines = []
                 for name, eid, base_txt, prop_txt in conflicts:
-                    print(f"CONFLICT section={name} id={eid}")
-                    print(f"  existing text: {base_txt}")
-                    print(f"  proposed text: {prop_txt}")
-                sys.exit(7)
+                    lines.append(f"CONFLICT section={name} id={eid}")
+                    lines.append(f"  existing text: {base_txt}")
+                    lines.append(f"  proposed text: {prop_txt}")
+                raise harness_merge.MergeRefusal(7, lines)
 
             for name, cap in CAPS.items():
                 size = len(merged.get(name, []))
                 if size > cap:
-                    print(
-                        f"CAP EXCEEDED section={name} cap={cap} union_size={size}"
+                    raise harness_merge.MergeRefusal(
+                        8,
+                        [f"CAP EXCEEDED section={name} cap={cap} union_size={size}"],
                     )
-                    sys.exit(8)
         else:
             # UNION_APPLY off: reproduce today's whole-file overwrite exactly. No comparison
             # against the base at all — that absence of comparison IS the last-writer-wins bug.
             merged, order = prop_sections, prop_order
 
-        if title is None:
-            title = default_title(file_path)
+        out_title = title if title is not None else default_title(file_path)
 
         base_ids_by_section = {
             name: {eid for eid, _ in base_sections.get(name, [])} for name in order
@@ -265,31 +254,24 @@ def cmd_apply(args):
                 else:
                     added.append(eid)
 
-        out_text = render(title, merged, order, headers)
-        dirn = os.path.dirname(os.path.abspath(file_path)) or "."
-        fd, tmp_path = tempfile.mkstemp(dir=dirn, prefix=".expertise-merge-")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write(out_text)
-            os.replace(tmp_path, file_path)
-        except Exception:
-            try:
-                os.remove(tmp_path)
-            except FileNotFoundError:
-                pass
-            raise
+        result["added"] = added
+        result["preserved"] = preserved
 
-        for eid in added:
-            print(f"ADDED {eid}")
-        for eid in preserved:
-            print(f"PRESERVED {eid}")
-        print(f"APPLIED {file_path}")
-        sys.exit(0)
-    finally:
-        try:
-            os.remove(lock_path)
-        except FileNotFoundError:
-            pass
+        return render(out_title, merged, order, headers).encode("utf-8")
+
+    try:
+        harness_merge.locked_update(resolved, transform)
+    except harness_merge.MergeRefusal as refusal:
+        for line in refusal.lines:
+            print(line)
+        sys.exit(refusal.code)
+
+    for eid in result.get("added", []):
+        print(f"ADDED {eid}")
+    for eid in result.get("preserved", []):
+        print(f"PRESERVED {eid}")
+    print(f"APPLIED {file_path}")
+    sys.exit(0)
 
 
 def main():

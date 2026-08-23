@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-32 — where it stands, and the one thing only you can do</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-32-where-it-stands-and-the-one-thing-only-you-can-do">FEAT-32 — where it stands, and the one thing only you can do</h1>
+<p><strong>Bottom line.</strong> The concurrency machinery is built, tested and committed. Six of the eight team tasks and four of the nine you own are done, and I re-ran every one of their verification blocks myself rather than taking a report. <strong>Two tasks remain and both are blocked behind one signature.</strong> Nothing is broken and no gate has failed. The feature is not stuck for a technical reason — it is stuck because three sentences you signed need correcting, and an agent may not correct a sentence you signed.</p>
+<p><strong>What you sign is one page:</strong> <code>notes/research-FEAT-32-operator-request.md</code>. Three items, batched deliberately. Two of the three have <strong>no do-nothing option</strong> — declining costs a signature too and buys a worse outcome for the same price.</p>
+<hr>
+<h2 id="what-actually-got-built">What actually got built</h2>
+<p>One locked read-modify-write core, and four consumers now sharing a single lock dialect. The design choice that matters: the lock file is opened <code>O_CREAT</code> and <strong>never</strong> <code>O_EXCL</code>, and is deliberately never deleted — because a create-and-delete lock survives a <code>kill -9</code> and then refuses every later write, which for a feature&#x27;s plan file means no plan can be written at all, ever. Writes land through a temp file and an atomic rename, so a concurrent reader sees the whole old file or the whole new one, never half of either.</p>
+<p><strong>Verified, not asserted.</strong> I ran all six verification blocks at final bytes: T-02 (18/18), T-03, T-04, T-05, T-06 (55/55), T-10. Every one exits clean.</p>
+<p><strong>I also audited the tests&#x27; ability to fail</strong>, which is the part that usually lies. Each task ships a deliberately broken copy of itself and requires the suite to go red. I checked that each broken copy actually <em>loads</em> — a broken copy that dies on startup produces the same exit code as a real finding — and then counted which checks failed:</p>
+<div class="scroll"><table><thead><tr><th>Sabotage</th><th>Checks that failed</th><th>Reads as</th></tr></thead><tbody><tr><td>lock disabled (core)</td><td>2 of 18, both the kill-9 recovery case</td><td>precise</td></tr><tr><td>merge disabled (plans)</td><td>59 of 110</td><td>broad, as expected</td></tr><tr><td>byte-preservation disabled</td><td>22 of 110</td><td>targeted</td></tr><tr><td>approval-refusal disabled</td><td>10 of 110</td><td>targeted</td></tr><tr><td>merge disabled (observations)</td><td>6 of 33</td><td>targeted</td></tr><tr><td>lock disabled (expertise)</td><td>2 of 38, one case</td><td>precise</td></tr></tbody></table></div>
+<p>A sabotage that breaks everything or nothing is a broken experiment. These each break a small, named, sensible subset — that is what real coverage looks like.</p>
+<p><strong>No test was weakened.</strong> Three assertions were deleted, all three sanctioned in writing, all three about a lock file that under the new design is never removed — so they were either red or meaningless. I counted the file before and after: 30 checks became <strong>32</strong>. Three removed, five added.</p>
+<p><strong>Two success criteria are already provably met.</strong> Every one of the four writers goes through the shared core and none keeps a lock of its own. And the test suite did not shrink: 187 result lines against a 179 baseline, 470 against 221, zero failures, exit clean.</p>
+<p><strong>A runner that was silently dead is alive again.</strong> Before T-10, the test runner exited with an error having run <strong>zero tests</strong> — its registration check aborts everything before a single test executes. It now runs, its internal consistency check executed for the first time in its existence and agrees, and the test that measures all this went from 15 of 23 to <strong>23 of 23</strong>.</p>
+<hr>
+<h2 id="the-one-decision-that-is-yours">The one decision that is yours</h2>
+<p>Three corrections, on one page, in <code>notes/research-FEAT-32-operator-request.md</code>:</p>
+<ol><li><strong>A count says &quot;seven&quot;; it is eight.</strong> Two independent kinds of evidence, and the strong version of the claim was measured against the validator rather than argued.</li><li><strong>The new lock files would be committed to git.</strong> One line fixes it. <strong>No do-nothing option.</strong></li><li><strong>Two YAML readers disagree about what a valid plan file is.</strong> Fails loudly, not silently. Record it and fix it later, outside this feature. <strong>No do-nothing option.</strong></li></ol>
+<p><strong>One refinement I would add to item 1 before you sign it.</strong> The count moved <em>again while I was building</em>. The defect being fixed is one where a supervising agent gets forced to declare a verdict on work it cannot see — and it fired twice more during this feature&#x27;s own construction, once with the validator actively refusing an honest &quot;I don&#x27;t know&quot;. So: <strong>do not freeze an integer into a document that nothing re-checks.</strong> Sign wording like <em>&quot;eight measured occurrences as of this commit, and the mechanism fired again during this feature&#x27;s own build&quot;</em> rather than a bare number that will be wrong again by next week. That is a recommendation, not a finding — the number itself is yours.</p>
+<hr>
+<h2 id="what-i-could-not-do-and-who-must">What I could not do, and who must</h2>
+<ul><li><strong>The worktree is one commit behind <code>main</code></strong> and I cannot fix it: moving <code>HEAD</code> is refused for every governed agent, correctly, because it re-points files under every other agent in the tree. <strong>This is yours</strong>, and the window is open now — the tree is clean and nothing is running.</li><li><strong>Five of your nine tasks remain</strong>: T-08, T-09, T-11, T-12, T-14. T-14 was blocked and is now unblocked — its dependency&#x27;s verification was impossible to satisfy (a one-character typo made an assertion unsatisfiable by construction) and that is fixed and verified.</li><li><strong>Two findings land on T-08/T-09 and would otherwise cost a fix cycle.</strong> The claim function <strong>fails closed</strong> when it cannot get the lock, which in a dispatch hook <em>blocks the dispatch</em> — while the signed design says that particular uncertainty should let dispatches through. And the key naming the <em>dispatching</em> agent was never actually confirmed; the measurement that exists confirms the <em>dispatched</em> one. Do not let either task assume it.</li></ul>
+<hr>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<p>Unstruck rows become issues on your acceptance; anything not listed here dies silently, so this is everything that survived.</p>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Item</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td>The exemption map that blocked every state write for this feature was fixed by hand for two features. Its tests prove lookups work but never that the map covers the features that exist — which is exactly why two were missing.</td><td>bug</td></tr><tr><td>B-2</td><td>The installer template that seeds every other repository has no lock rule either, so a fix here leaves installed projects exposed. It also still carries a path pattern the multi-repo migration outdated.</td><td>bug</td></tr><tr><td>B-3</td><td>Nothing records what re-opens an approval signature. The rule was invented twice this week and lives only in a notes file.</td><td>chore</td></tr><tr><td>B-4</td><td>A task&#x27;s instructions now teach a measurement that is false — it says two entries are missing from a list where they are already present, because the fix landed after the measurement.</td><td>chore</td></tr><tr><td>B-5</td><td>A supervising agent cannot idle while its worker runs: the return contract has no &quot;in progress&quot; value, so the only permitted answers are verdicts it has not earned. Two leads and I all hit this during this feature.</td><td>bug</td></tr><tr><td>B-6</td><td>Run directories are named by a scheme that once sorted a new run before an existing one and overwrote a completed run&#x27;s record. Nothing renames them, because that would destroy the evidence.</td><td>bug</td></tr><tr><td>B-7</td><td>A refusal branch in three concurrency tests is permitted but was never actually taken in 20 attempts each, because the timeout makes the loser wait rather than fail. The behaviour is covered elsewhere; those particular cases do not exercise it.</td><td>chore</td></tr></tbody></table></div>
+<hr>
+<h2 id="how-this-briefing-was-assembled-no-report-round-was-spawned">How this briefing was assembled — no report round was spawned</h2>
+<p>I did not spend three lead spawns re-narrating files I can open. Every claim above comes from a digest on disk or a measurement I ran myself. The digests, by path, under <code>.harness/harness/features/FEAT-32-concurrent-write-merge/</code>:</p>
+<ul><li><code>runs/build-eng/digest.md</code> — T-02..T-05, PASS, 3 send-backs</li><li><code>runs/t06t10-eng/digest.md</code> — T-06, T-10, PASS, 0 send-backs</li><li><code>runs/t13-count-product/digest.md</code> — the occurrence count, ESCALATE</li><li><code>runs/t15-verify-product/digest.md</code> — the unsatisfiable assertion, PASS</li><li><code>runs/lockgap-product/digest.md</code> — the lock files, PASS</li><li><code>runs/yamlgap-product/digest.md</code> — the YAML readers, PASS</li><li><code>runs/2026-08-21-1-product/</code>, <code>runs/2026-08-21-2-product/</code>, <code>runs/2026-08-21-01-product/</code> — the plan phase</li></ul>
+<p><strong>One gap I will not paper over:</strong> two recorded runs from the planning phase have no surviving digest. A run-directory naming defect overwrote one and never created the other. Their substance survives only in this feature&#x27;s state file history. That is backlog row B-6, and it is why I am telling you rather than presenting a complete-looking list.</p>
+<p><strong>Not a goal-check.</strong> The formal criteria review has not run — it comes after every task is done. Two criteria are provably met and I have said which; the rest are unassessed, not passed.</p>
+<p><strong>Budgets.</strong> Rework cycles <strong>3 of 10</strong>, all three from one segment, and both send-backs that segment&#x27;s lead initiated closed real defects rather than cosmetics. Runs <strong>11 of 20</strong> — under budget, and each one resolved something or advanced a criterion.</p><p class='derived'>Derived from <code>ship-review-2026-08-22-build-gate.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
