@@ -560,15 +560,21 @@ def case_749_guard_still_rejects_a_truly_undeclared_key():
 
 def case_749_falls_back_when_no_tree_schema_exists():
     """(#749) A path with no checkout schema above it falls back to this module's own, so
-    every existing caller -- none of which passes for_path -- is unaffected."""
+    every existing caller -- none of which passes for_path -- is unaffected.
+
+    THE PROBE KEY IS SYNTHETIC ON PURPOSE. This case first used `source_issues`, the very
+    key FEAT-26 adds -- green on main, and RED the moment FEAT-26 merged its schema change,
+    because the module's own schema then declared it. Caught by the suite in FEAT-26's
+    worktree before the merge. A fixture keyed on something under change grades the change,
+    not the behaviour. `never_declared_anywhere` is declared by no schema in any tree."""
     with tempfile.TemporaryDirectory() as tmp:
         target = os.path.join(tmp, "feature.json")
         doc = full_doc()
-        doc["github"]["source_issues"] = [492]
+        doc["github"]["never_declared_anywhere"] = [492]
         probs = feature_schema.problems_for_text(json.dumps(doc), "feature.json",
                                                  for_path=target)
         check("case_749c: with no tree schema, the module's own schema still governs",
-              any("source_issues" in p for p in probs), repr(probs[:2]))
+              any("never_declared_anywhere" in p for p in probs), repr(probs[:2]))
 
 
 def main():

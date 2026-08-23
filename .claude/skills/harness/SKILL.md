@@ -208,9 +208,11 @@ procedure gap that looks exactly like a code defect.
 
 **The build branch is created locally, the ordinary way**, once the plan is approved:
 `git checkout -b feat/<FEAT-id>` — for example `git checkout -b feat/FEAT-18-board-truth`.
-Nothing links the branch to the parent issue, and nothing needs to: **the harness composes no
-issue-closing text into any pull request body**, and the parent is closed by `gh-sync.py ship`,
-which also posts the ship review on it.
+Nothing links the branch to the parent issue, and nothing needs to. **`gh-sync.py closes`
+RENDERS the closing keywords but never posts them** (FEAT-26): it prints one `Closes #N` line
+per source issue for the operator to paste into the pull request body, so the harness composes
+text it does not publish. The parent is closed by `gh-sync.py ship`, which also posts the ship
+review on it.
 
 **Failure has three shapes, not one.**
 

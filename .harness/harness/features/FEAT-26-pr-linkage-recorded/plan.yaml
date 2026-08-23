@@ -578,7 +578,9 @@ tasks:
       grep -q 'record-pr' .claude/skills/harness/SKILL.md || exit 1
       grep -q 'gh-sync.py closes' .claude/skills/harness/SKILL.md || exit 1
       grep -q 'source_issues' .claude/skills/harness/SKILL.md || exit 1
-      grep -q 'composes no issue-closing text into any pull request body' .claude/skills/harness/SKILL.md && exit 1
+      # The stale sentence wraps across two lines, so a line-oriented grep can never match it
+      # and could never fail. Read the file whole and collapse every run of whitespace first.
+      python3 -c "import re,sys; t=re.sub(r'\s+',' ',open('.claude/skills/harness/SKILL.md').read()); sys.exit(1 if 'composes no issue-closing text into any pull request body' in t else 0)" || exit 1
       python3 -c "import yaml,sys; d=yaml.safe_load(open('.claude/skills/harness/templates/plan.yaml')); sys.exit(0 if 'source_issues' in d else 1)" || exit 1
       echo VERIFY-OK
     intent: |
