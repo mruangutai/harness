@@ -1,0 +1,31 @@
+{
+  "feature_id": "FEAT-35-orchestrator-stop-and-wake",
+  "branch": "feat/FEAT-35-orchestrator-stop-and-wake",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "none",
+  "cycles_used": 1,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-23-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-23-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": null,
+    "parent": 751,
+    "parent_origin": "existing",
+    "attached": [],
+    "issues": {}
+  }
+}

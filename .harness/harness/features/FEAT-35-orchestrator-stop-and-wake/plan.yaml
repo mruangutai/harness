@@ -1,0 +1,318 @@
+schema: plan/1
+feature: FEAT-35-orchestrator-stop-and-wake
+
+approval:
+  status: approved
+  approved_by: operator
+  date: 2026-08-23
+
+lanes:
+  resolved_at: 569d41779c869479ea81056bb6cee502fa06fa94
+  rows:
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at this sha, so no agent may write it
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: team
+      agent: harness-dev-ops
+      reason: check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops at this sha, and D-08 rules that adding a basename to UNIT_SCRIPTS does not change the script's gate status
+    - surface: .claude/skills/harness/bin/test-orchestrator-playbook.py
+      lane: team
+      agent: harness-dev-ops
+      reason: same grant, and it tests a markdown playbook rather than a gate, so am.4's a-gate-test-joins-the-list rule does not reach it
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+
+decisions:
+  - id: D-01
+    choice: The loop is recast rather than appended to - step 4 becomes On waking, step 6 becomes Advance one wake at a time, and no step keeps a stay-alive verb
+    because: a never-wait rule standing beside Receive the team digest and Loop until DONE is the defect restated, not fixed
+    dec: none
+  - id: D-02
+    choice: An orchestrator learns its own agent id by emitting a fixed literal nonce in one Bash call and grepping the orchestrator-typed sidecars for it in a LATER call
+    because: measured working end to end at 569d417 in 1.14s with no new code, and a same-call grep finds nothing because the message is not yet flushed
+    dec: none
+  - id: D-03
+    choice: Branch chore/744-never-wait-for-a-lead is ABSORBED into T-01 and abandoned, not merged and not superseded
+    because: T-01 rewrites the exact lines it inserts, and its four lines of incident measurement belong in DECISIONS.md under DEC-158, not in a rule skill
+    dec: DEC-158
+  - id: D-04
+    choice: A context-triggered handoff uses the existing capped handoff note at the next step boundary, with no new seam and no new artifact
+    because: DEC-159 already sanctions a mid-phase relay and the note's Next section is exactly what a successor needs
+    dec: DEC-159
+  - id: D-05
+    choice: The playbook's instruction to write a phase field into feature.json is corrected inside this feature rather than split into its own ticket
+    because: it is a refused write in the one file this feature rewrites, and DEC-192 already decided the replacement, so a separate ticket would add a signature and no information
+    dec: DEC-192
+  - id: D-06
+    choice: Whether a stopped orchestrator survives past 600s with a live child is measured by a real feature run, SC-05, not by a synthetic probe
+    because: a synthetic long child is confounded by its own no-progress exposure, and a real lead round-trip routinely exceeds 600s anyway
+    dec: DEC-118
+  - id: D-07
+    choice: The self-identification mechanism is written as literal commands in the playbook, not as a new bin script
+    because: it is three lines run once per wake, and structure is earned by a measured bottleneck rather than anticipated
+    dec: none
+
+  - id: D-08
+    choice: T-05 stays with the eng squad on the team lane (harness-dev-ops) and T-04 writes no DEC-174 amendment 5, because adding a basename to run-unit-tests.sh UNIT_SCRIPTS does not make that script a gate
+    because: am.4's join-the-list rule fires on the DAY a script becomes a gate, and that day is not this one - run-unit-tests.sh was already a step of the required integration CI job before this feature (.github/workflows/tests.yml:81 and :87), T-05's edit to it is one basename added to an array so its gate status is identical before and after, and check-domain.sh --resolve returns harness-backend-dev and harness-dev-ops for it at 569d417. The contrary evidence was engaged - that workflow's own comment says the required context is integration and both suites are steps of it, so the script IS reached by a required check - but the category am.4 governs by is hooks, validators and gate scripts, and a runner that executes assertions refuses nothing itself. Reading it the other way makes every bin/test-*.py enforcement layer, which contradicts both the enumeration naming each gate's own test and the squad grant on .claude/skills/harness/bin/**. The circularity am.4 exists to refuse is absent too - this change only adds assertions, and the runner's drift detector exits 2 for the whole suite on any unlisted test-*.py, so a missing or broken registration is loud rather than invisible
+    dec: DEC-174
+  - id: D-09
+    choice: The three domain leads keep the same enforced wait and this feature does not touch it - accepted as a known cost of the scope boundary, tracked by #610 and #552
+    because: the wait is not merely described by harness-team, it is mechanically enforced - validate-digest.py --hook refuses a lead or orchestrator return made with a live child, printing inflight_registry.children_refusal_lines, which is why leads burn context holding turns open. That refusal fires at most once per return and the second identical return ships, so the cost is one turn rather than an unbounded wait. Removing it means editing validate-digest.py, which is enumerated enforcement layer under DEC-174 am.4 and needs its own signature
+    dec: DEC-174
+tasks:
+  - id: T-01
+    title: Recast the orchestrator loop as stop-and-wake
+    traces: [REQ-01, REQ-02, REQ-03]
+    change_type: ai_behavior
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 569d417
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/SKILL.md
+    verify: |
+      grep -q "NEVER WAIT FOR A LEAD" .claude/skills/harness/SKILL.md && grep -q "The single-flight refusal on your return is EXPECTED" .claude/skills/harness/SKILL.md && ! grep -qE "Receive the team digest|Loop until DONE" .claude/skills/harness/SKILL.md && echo T-01-PASS
+    intent: |
+      Rewrite the delegation loop in .claude/skills/harness/SKILL.md so that no step tells the
+      orchestrator to stay alive. Use the file's existing conventions for emphasis and for
+      code-formatting identifiers; change no other section. Four edits, in order:
+
+      (1) Step 3, appended after the sentence ending "pin review_sha before any validator run
+      (INV-6)." Add a paragraph whose first words are exactly "NEVER WAIT FOR A LEAD. END YOUR
+      TURN." followed by: a dispatch reports back on its own, so you never poll for it, never
+      sleep, and never invent activity to stay alive; with nothing to do until a lead returns,
+      state what is in flight and end your turn; the platform resumes you when the child
+      completes. One clause of why: a stalled orchestrator is killed by the 600s no-progress
+      watchdog and takes its lead and its member with it, while a partial you returned is
+      resumable. Point at the decision recorded by T-04. Do NOT copy the incident numbers from
+      branch chore/744-never-wait-for-a-lead into this file - they live in DECISIONS.md
+      (DEC-158). This paragraph is the absorbed content of that branch, which is then abandoned.
+
+      Then, still inside this same paragraph, add a sentence beginning exactly "The single-flight
+      refusal on your return is EXPECTED" and saying: when you end your turn with a child still in
+      flight, validate-digest.py's issue #551 return contract refuses that return once - stderr
+      "check-digest: BLOCKED - returned with children in flight" - and its own message states that
+      the refusal fires ONCE and that a second identical return will ship. Read it as a prompt to
+      correct any claim you made about a child you cannot see, and NEVER as "you may not return
+      yet". Ending your turn is the rule; one refusal is not permission to start waiting again.
+      That refusal is the exact reading this rewrite exists to remove, so say it here rather than
+      leaving a future orchestrator to infer it.
+
+      (2) Step 4, today titled "Receive the team digest". Retitle it "On waking, assess what came
+      back" and rewrite the body: you resume because a dispatch completed, not because you chose
+      to look; re-read STATE.md and feature.json from disk before acting, because your context
+      may have reset; the SubagentStop hook has checked the digest's shape and roll-up at source,
+      but shape is not truth; and a completion you were told about is a CLAIM until an artifact
+      on disk confirms it - spot-check files_touched against the artifacts when a claim matters,
+      and never act on a digest you cannot open. Name the reason in one clause: a parent has been
+      measured fabricating a completion for its child, with an invented identifier that appeared
+      nowhere but in its own messages, and writing a wrong verdict to disk before the real
+      notification arrived. Cite DEC-199.
+
+      (3) Step 6, today titled "Loop until DONE". Retitle it "Advance until DONE, one wake at a
+      time" and add, before its existing first sentence, that each wake advances the plan by
+      exactly one step - assess, record, dispatch the next thing, end your turn again - and that
+      there is no waiting anywhere in this loop. Keep the rest of the step unchanged: done means
+      the success criteria are met rather than the tasks exhausted, the goal-check delegation,
+      the four bullets, the cycle budget outranking "until done", and the closing "Also stop
+      for" sentence.
+
+      (4) Renumber the steps if and only if T-02's insertion requires it; otherwise leave the
+      numbering as it stands. Do not touch the Authority boundary paragraph, the routing table,
+      or the cycle budget section.
+
+  - id: T-02
+    title: Add the wake-time context check, self-identification and handoff trigger
+    traces: [REQ-04, REQ-05]
+    change_type: ai_behavior
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 569d417
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/SKILL.md
+    verify: |
+      grep -q "context-watch.py" .claude/skills/harness/SKILL.md && grep -q "orchestrator_context_warn_tokens" .claude/skills/harness/SKILL.md && ! grep -qiE "orchestrator_context_warn_tokens.*(refuse|refused|blocked|prevented)" .claude/skills/harness/SKILL.md && grep -q "Exactly one match" .claude/skills/harness/SKILL.md && grep -q "SKIP the context check for this wake" .claude/skills/harness/SKILL.md && grep -q "Never guess an id" .claude/skills/harness/SKILL.md && grep -q "never treat a skipped check as a passed one" .claude/skills/harness/SKILL.md && echo T-02-PASS
+    intent: |
+      Add one new numbered step to the delegation loop in .claude/skills/harness/SKILL.md,
+      immediately after the step T-01 retitled "On waking, assess what came back", and extend the
+      "You are a PHASE, not the feature" section. Nothing else changes.
+
+      The new loop step is titled "Weigh your own context before you continue" and says: before
+      deciding the next dispatch, measure your own context; over
+      budgets.orchestrator_context_warn_tokens in .harness/harness.json (200000 today) you decide
+      whether to finish this phase or hand it to a fresh orchestrator. State plainly that the
+      threshold ADVISES and never refuses, that nothing is blocked by it, and that the decision
+      is yours (DEC-198). Do not write a bound, a refusal, or a stop anywhere near it.
+
+      Give the mechanism as literal commands, in a fenced shell block, with the two-call
+      structure stated as a requirement rather than a formatting choice:
+
+        first Bash call, on its own:
+          echo self-id ORCH-SELF-<pick any fixed literal string, once, and reuse it>
+
+        second Bash call, later:
+          grep -l '"agentType":"harness-orchestrator"' ~/.claude/projects/*/*/subagents/*.meta.json 2>/dev/null | sed 's/\.meta\.json$/.jsonl/' | xargs grep -l ORCH-SELF-<the same literal> 2>/dev/null
+
+        then:
+          python3 .claude/skills/harness/bin/context-watch.py <the id>
+
+      State these four facts about it, because each one is a way to get it wrong:
+      - the two calls must be separate. A single call that greps for a nonce it emitted in the
+        same command finds nothing: the message carrying it is not in the sidecar yet.
+      - the nonce must be a fixed literal you can retype, not one generated in the shell, and it
+        must be unguessable enough that it appears nowhere else.
+      - the match count decides what happens next, and all three outcomes must be written out.
+        Use these words for them, because the task's verify greps for them:
+          "Exactly one match" - your agent id is that filename with the agent- prefix and the
+          .jsonl suffix removed. Proceed with that id.
+          Zero matches - the nonce has not flushed yet, or the sidecar layout has changed.
+          Two or more matches - the nonce was not unique. This is REPRODUCED, not hypothetical:
+          a non-unique probe string matched THREE transcripts.
+          For zero and for two-or-more the outcome is identical: "SKIP the context check for this
+          wake", say so in one line, and continue the loop. "Never guess an id", and
+          "never treat a skipped check as a passed one" - do not report a headroom figure at all
+          when the check was skipped. Skipping is legal because the threshold only ADVISES
+          (DEC-198); reporting a headroom figure read off the wrong transcript is not.
+      - never narrow the glob by your cwd. The transcript directory is named for the SESSION's
+        cwd, not yours, so a worktree cwd resolves to a directory that does not exist.
+      Record that this was measured working end to end at 569d417 in about one second, and that
+      context-watch.py is read-only and decides nothing.
+
+      In the "You are a PHASE" section, extend the handoff paragraph: a handoff triggered by
+      context uses the same notes/handoff-<phase>.md note, written at the next STEP boundary
+      inside the phase - never mid-dispatch and never with a child in flight - and it supersedes
+      any earlier note for that phase rather than being appended to. No new seam, no new
+      artifact, no schema change (DEC-159). The successor's step zero is unchanged: validate the
+      note's Next against the plan and STATE before acting on it.
+
+  - id: T-03
+    title: Correct the refused feature.json phase write to status
+    traces: [REQ-06]
+    change_type: ai_behavior
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 569d417
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/SKILL.md
+    verify: |
+      ! grep -q "Record your phase in" .claude/skills/harness/SKILL.md && grep -q "Record your status in" .claude/skills/harness/SKILL.md && echo T-03-PASS
+    intent: |
+      In .claude/skills/harness/SKILL.md, the phase-exit paragraph of the "You are a PHASE, not
+      the feature" section currently instructs: Record your phase in feature.json phase: and each
+      transition as a STATE.md log entry. That write is refused - the feature schema declares
+      additionalProperties false and has no phase key, because DEC-192 deleted the field and
+      collapsed it into one status field whose six values are the GitHub board's column names,
+      byte for byte and case sensitive: Backlog, Plan, Ready, Building, Review, Done.
+
+      Replace the instruction with one beginning exactly "Record your status in" that says: record
+      your status in feature.json status: using the board's own spelling, and each transition as a
+      STATE.md log entry. Cite DEC-192. Keep the four phase-exit predicates and the fix-loop
+      exception in the same paragraph untouched - the mission is still one phase; only the field
+      that records it changes. Change nothing else in the file, and do not rename the phase names
+      used elsewhere in the playbook: a phase and a status are different things and only the
+      latter is written to disk.
+
+  - id: T-04
+    title: Record the stop-and-wake rule and its measured reason as a decision
+    traces: [REQ-07]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md && grep -q "^- DEC-200 " .harness/harness/docs/DECISIONS-INDEX.md && echo T-04-PASS
+    intent: |
+      Append one new entry, DEC-200, to .harness/harness/docs/DECISIONS.md, after DEC-199 and in
+      the file's existing entry form. Then regenerate the index with
+      python3 .claude/skills/harness/bin/gen-decisions-index.py and hand-write the summary to the
+      right of the :: separator on the new row, which regeneration preserves.
+
+      The decision: an orchestrator never waits. Every dispatch ends its turn, the platform wakes
+      it with the child's completion, and on waking it re-reads state from disk, treats a reported
+      completion as a claim until an artifact confirms it, and weighs its own context against
+      budgets.orchestrator_context_warn_tokens to decide whether to continue the phase or hand it
+      to a fresh orchestrator. The threshold advises and never refuses.
+
+      The evidence, which is why the entry exists and why the playbook does not carry it
+      (DEC-158): one orchestrator spent 354 of its 450 Bash calls on echo hold and sleep, went
+      quiet, and was killed by the 600s no-progress watchdog, taking its lead and its member with
+      it. Three probes on 2026-08-23, each with unguessable identifiers written to disk, measured
+      that a parent subagent that has STOPPED is woken by its child at every depth the org uses -
+      one stopped at 15:17:14, received the completion at 15:18:05 and resumed at 15:18:09
+      quoting the child's identifier exactly. The published sub-agent documentation states the
+      opposite; treat the measurement as the authority and say so. Both stalling parents in the
+      probes invented a hold to stay alive, and one FABRICATED a completion for its child with an
+      identifier that appears nowhere but in its own messages - which is why the woken
+      orchestrator verifies against disk (DEC-199).
+
+      Record the self-identification mechanism as part of the decision, including that the two
+      Bash calls cannot be collapsed into one, and that it needed no new code: it was measured end
+      to end at 569d417, resolving a live orchestrator to its own row in about one second.
+
+      Record the open measurement honestly: whether a STOPPED parent survives past 600s while its
+      child is still running has never been measured, and if it does not, this decision removes
+      the invented stalling without removing the death. Name it as the thing to watch.
+
+      State the lineage: DEC-148 and DEC-159 (one phase per orchestrator, the phase boundary is
+      normal termination, the capped handoff note), DEC-118 (one phase spans several single-squad
+      lead round-trips, which is why 600s is not survivable by waiting), DEC-120, DEC-198 (the
+      threshold advises), DEC-199 (the false-reporting harm shape), DEC-158 (why the incident
+      numbers live here and not in the playbook). Note that branch
+      chore/744-never-wait-for-a-lead is absorbed and abandoned. Keep the entry to the length of
+      its neighbours; nothing in it is repeated from the playbook.
+
+  - id: T-05
+    title: Add a unit test that the playbook cannot regress to waiting
+    traces: [REQ-02, REQ-06]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-03]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-orchestrator-playbook.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit && PLAYBOOK_PATH=$(mktemp) && git show 569d417:.claude/skills/harness/SKILL.md > $PLAYBOOK_PATH && ! PLAYBOOK_PATH=$PLAYBOOK_PATH python3 .claude/skills/harness/bin/test-orchestrator-playbook.py && echo T-05-PASS
+    intent: |
+      Write .claude/skills/harness/bin/test-orchestrator-playbook.py, a stdlib-only test with no
+      subprocess, following the style of the other test files in that directory. It reads the
+      playbook from the path in the PLAYBOOK_PATH environment variable, defaulting to
+      .claude/skills/harness/SKILL.md, so the same assertions can be pointed at an older copy of
+      the file. Exit non-zero on any failure and name the failing assertion.
+
+      Assert, each as its own named case so one failure is locatable:
+      1. the literal string "Receive the team digest" does not appear.
+      2. the literal string "Loop until DONE" does not appear.
+      3. the literal string "NEVER WAIT FOR A LEAD" appears.
+      4. the literal string "context-watch.py" appears.
+      5. the literal string "orchestrator_context_warn_tokens" appears.
+      6. no single line contains orchestrator_context_warn_tokens together with any of refuse,
+         refused, blocked or prevented, matched case-insensitively.
+      7. the literal string "Record your phase in" does not appear.
+      8. the literal string "Record your status in" appears.
+
+      Every one of these eight fails against the file as it stands at 569d417, and the task is not
+      done until that has been demonstrated: extract that copy with git show, point PLAYBOOK_PATH
+      at it, run the test, and confirm it exits non-zero naming all eight. A green run against a
+      copy of the old file means an assertion is not discriminating and must be fixed, not
+      accepted.
+
+      Then register the file in run-unit-tests.sh by adding its basename to the UNIT_SCRIPTS
+      array. UNIT_SCRIPTS is correct rather than INTEGRATION_SCRIPTS because the test spawns no
+      subprocess, and it is what the kind cross-check requires: a UNIT name must NOT appear in
+      harness.json integration.detect, so harness.json is not edited. Registration is not
+      optional - the drift detector in that script exits 2 for the entire suite on any unlisted
+      test-*.py under bin.
