@@ -228,35 +228,74 @@ def cmd_remove(args):
 
     # GATE 3 - ARTIFACTS LANDED, guarded by REQUIRE_LANDED.
     if REQUIRE_LANDED:
-        artifact_rel = os.path.join(".harness", segment, "features", args.id)
+        # ISSUE #727 - ONE --id FEEDS TWO PATHS AND THEY DISAGREE ON EVERY REAL WORKTREE.
+        # dest_for() above named the WORKTREE `<id>`; this names the ARTIFACT directory. Measured
+        # 2026-08-23: all four live worktrees are `FEAT-32` while every feature directory is
+        # `FEAT-32-concurrent-write-merge`, so no single --id satisfied both -- the short form died
+        # here with MISSING ARTIFACT DIRECTORY and the long form died at gate 1 with "not a linked
+        # worktree". Resolve the short form to the one feature directory it prefixes.
+        #
+        # REFUSE ON AMBIGUITY, never guess. Two candidates have no right answer and this deletes a
+        # checkout; a coin flip is strictly worse than a refusal the operator can act on.
+        artifact_id = args.id
+        features_abs = os.path.join(dest, ".harness", segment, "features")
+        if not os.path.isdir(os.path.join(features_abs, artifact_id)) and os.path.isdir(features_abs):
+            cands = sorted(
+                d for d in os.listdir(features_abs)
+                if d.startswith(args.id + "-") and os.path.isdir(os.path.join(features_abs, d))
+            )
+            if len(cands) > 1:
+                print(f"AMBIGUOUS FLOW ID {args.id} matches {len(cands)} feature directories:")
+                for c in cands:
+                    print(f"  {c}")
+                print("Pass the full flow id. Nothing was removed.")
+                sys.exit(5)
+            if len(cands) == 1:
+                artifact_id = cands[0]
+
+        artifact_rel = os.path.join(".harness", segment, "features", artifact_id)
         artifact_abs = os.path.join(dest, artifact_rel)
         if not os.path.isdir(artifact_abs):
             print(f"MISSING ARTIFACT DIRECTORY {artifact_rel}")
             sys.exit(5)
 
+        # ISSUE #726 - THE QUESTION IS "IS EVERY TRACKED FILE LANDED", NOT "DOES EVERY PATH EXIST".
+        # `.gitignore:7` ignores `.harness/*/features/*/runs/**`, so every run digest.md and
+        # state.yaml is untracked BY CONSTRUCTION and can never reach the default branch. Walking
+        # the filesystem meant this gate refused forever, which made act 3 of the worktree
+        # lifecycle (SKILL.md) unrunnable for any feature that ever ran a squad.
+        #
+        # `git ls-files` is the right source and NOT merely a convenience: gate 2 above already
+        # refused a dirty tree, so by this line every file that is neither ignored nor tracked has
+        # already stopped the run. Tracked-and-unlanded therefore still refuses, which is the whole
+        # point of the gate and is asserted separately.
+        r = _run_git(["ls-files", "-z", "--", artifact_rel], dest)
+        if r.returncode != 0:
+            sys.stderr.write(r.stderr)
+            sys.exit(4)
+        tracked = [x for x in r.stdout.split("\0") if x]
+
         landed_fail = False
-        for dirpath, _dirnames, filenames in os.walk(artifact_abs):
-            for fname in sorted(filenames):
-                fpath = os.path.join(dirpath, fname)
-                rel = os.path.relpath(fpath, dest)
-                r = _run_git(["hash-object", fpath], dest)
-                if r.returncode != 0:
-                    sys.stderr.write(r.stderr)
-                    sys.exit(4)
-                worktree_hash = r.stdout.strip()
+        for rel in tracked:
+            fpath = os.path.join(dest, rel)
+            r = _run_git(["hash-object", fpath], dest)
+            if r.returncode != 0:
+                sys.stderr.write(r.stderr)
+                sys.exit(4)
+            worktree_hash = r.stdout.strip()
 
-                r = _run_git(["rev-parse", f"{default_branch}:{rel}"], owner_root)
-                if r.returncode != 0:
-                    print(f"MISSING {rel}")
-                    landed_fail = True
-                    continue
-                landed_hash = r.stdout.strip()
+            r = _run_git(["rev-parse", f"{default_branch}:{rel}"], owner_root)
+            if r.returncode != 0:
+                print(f"MISSING {rel}")
+                landed_fail = True
+                continue
+            landed_hash = r.stdout.strip()
 
-                if landed_hash != worktree_hash:
-                    print(f"DIFFERS {rel}")
-                    landed_fail = True
-                else:
-                    print(f"VERIFIED {rel}")
+            if landed_hash != worktree_hash:
+                print(f"DIFFERS {rel}")
+                landed_fail = True
+            else:
+                print(f"VERIFIED {rel}")
 
         if landed_fail:
             sys.exit(5)
