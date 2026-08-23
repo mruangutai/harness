@@ -41,3 +41,27 @@
   nothing drifted.
 - 2026-08-22: added a decision whose plain-scalar `because:` contained `": "` and broke `safe_load`.
   Validate after every `decisions:` edit, not once at the end.
+- 2026-08-23: FEAT-33 rulings round. A binding operator ruling (stop closing sub-issues at commit)
+  collided with an invariant the plan is forbidden to edit (INV-26 maps task status done to the done
+  column, check-state.sh:1234). Neither the arch review nor the four-angle simplify pass saw it,
+  because both graded the plan before the ruling. Lesson for me: when a ruling changes WHEN a
+  ticket closes, grep the gates for what they assert about that ticket's state before applying it.
+- 2026-08-23: two count claims in the plan were stale and nobody re-counted them — integration.detect
+  said "six explicit filenames" against 22, INTEGRATION_SCRIPTS "14-name" against 22. A count in
+  prose is the citation class least likely to be re-derived, because it does not look like a pointer.
+- 2026-08-23: the scaffold template (.claude/skills/harness/templates/harness.json) carried the
+  five-key station instruction. Grepping only bin/ and .harness/ for a widened constant misses the
+  templates dir, which is the file a NEW repo is built from.
+- 2026-08-22: FEAT-33 cycle 2 — a reviewer finding named ONE unordered writer pair (T-07/T-08 on gh-sync.py); computing the general property (for every file, are all its writers totally ordered in the transitive closure?) over plan.yaml found 20 unordered pairs across 8 files in 4 families. Four depends_on edges closed all of them. Twenty lines of python over the parsed plan is now my default check before returning any plan whose tasks share files.
+- 2026-08-22: FEAT-33 cycle 2 — adding a serialising edge silently ages the successor task intent line anchors (all pinned at one sha). Each new edge got a one-paragraph ORDERING note telling the doer to re-derive by symbol.
+- 2026-08-23: a plain YAML scalar cannot carry ": " — I broke plan.yaml's D-24 `because:` by writing
+  "RULED: the operator..." inside a one-line plain scalar and safe_load failed at column 1135. Any
+  prose I splice into a single-line `because:`/`choice:` value must use " - " where I want a colon.
+  Parse the file right after every edit; check-plan-routes.py would have caught it, but only after
+  I had already written more.
+- 2026-08-23: plan-merge.py cannot EDIT an existing task or decision — it unions by id and exits 7
+  when one id carries two different values. Amending an existing intent is a direct file edit, and
+  the merge tool is for ADDING. Do not reach for it to reword.
+- 2026-08-23: "feature X merged" is two different facts. FEAT-26's plan SIGNATURE merged to main
+  while all eight of its tasks were still pending, and a prior round's BRIEF recorded that as the
+  feature having merged. Check feature.json status AND the task statuses before writing "merged".

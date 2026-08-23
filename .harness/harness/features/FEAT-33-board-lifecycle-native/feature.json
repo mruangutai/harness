@@ -2,15 +2,43 @@
   "feature_id": "FEAT-33-board-lifecycle-native",
   "branch": "feat/FEAT-33",
   "pr": null,
-  "status": "Plan",
+  "status": "Ready",
   "review_sha": "none",
   "cycles_used": 1,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
-    { "id": "2026-08-22-01-product", "squad": "product", "verdict": "PASS" },
-    { "id": "simplify-eng", "squad": "eng", "verdict": "FAIL" },
-    { "id": "arch-eng", "squad": "eng", "verdict": "ESCALATE" },
-    { "id": "2026-08-22-02-product", "squad": "product", "verdict": "PASS" }
+    {
+      "id": "2026-08-22-01-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "simplify-eng",
+      "squad": "eng",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "arch-eng",
+      "squad": "eng",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-22-02-product",
+      "squad": "product",
+      "verdict": "PASS"
+    },
+    {
+      "id": "ruling4-confirm-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "clausefix-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    }
   ]
 }

@@ -2,12 +2,12 @@ schema: plan/1
 feature: FEAT-33-board-lifecycle-native
 
 approval:
-  status: pending
-  approved_by: none
-  date: none
+  status: approved
+  approved_by: Mike Ruangutai
+  date: 2026-08-23
 
 lanes:
-  resolved_at: e3c9187
+  resolved_at: 46ee87c
   rows:
     - surface: .claude/skills/harness/bin/**
       lane: team
@@ -23,24 +23,30 @@ lanes:
       agent: harness-documentor
     - surface: .claude/skills/harness-init/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at e3c9187; no agent domain grants it
+      reason: check-domain.sh --resolve returns NOBODY at 46ee87c; no agent domain grants it
     - surface: .claude/skills/harness/SKILL.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at f5f5185; no agent domain grants it
+      reason: check-domain.sh --resolve returns NOBODY at 46ee87c; no agent domain grants it
     - surface: .claude/commands/harness-plan.md
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at f5f5185; no agent domain grants it
+      reason: check-domain.sh --resolve returns NOBODY at 46ee87c; no agent domain grants it
     - surface: /Users/molchairuangutai/GitHub/harness-factories/kaya-ai/.harness/harness.json
       lane: main-session-direct
-      reason: check-domain.sh --resolve returns NOBODY at e3c9187; a served repo config on another remote
+      reason: check-domain.sh --resolve returns NOBODY at 46ee87c; a served repo config on another remote
     - surface: .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-*.md
       lane: main-session-direct
       reason: resolves to harness-orchestrator, which is not a dispatchable task executor
+    - surface: .claude/skills/harness/templates/harness.json
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY at 46ee87c; the scaffold template for a repository joining the fleet
+    - surface: .claude/skills/harness/bin/check-state.sh and its test file test-check-state.py
+      lane: main-session-direct
+      reason: check-domain.sh --resolve grants harness-backend-dev and harness-dev-ops at 46ee87c, but DEC-174 names check-state.sh in the enforcement layer, so no squad may execute a change to it and the carve-out wins
 
 decisions:
   - id: D-01
     choice: The canonical station map is six keys - backlog, plan, ready, building, review, done - one per DEC-192 status value.
-    because: DEC-192's six case-sensitive values ARE the board columns, and both live boards already carry exactly those six options.
+    because: DEC-192's six case-sensitive values ARE the board columns, and both live boards already carry exactly those six options. Confirmed by the operator on 2026-08-23 as ruling 3 in notes/rulings-2026-08-23.md, so the sixth key is a ruling and no longer the plan's own assumption; the fixture blast radius it causes is T-02's engineering work, not a further decision.
     dec: DEC-192
   - id: D-02
     choice: Declare plan but add NO derivation for it; derive_station keeps returning only the building station, the review station, or None.
@@ -84,7 +90,7 @@ decisions:
     dec: none
   - id: D-12
     choice: Every task whose change type requires the integration kind carries its integration cases in test-factory-integration.py, and NO task edits run-unit-tests.sh's INTEGRATION_SCRIPTS array or harness.json's test_kinds.integration.detect list.
-    because: integration.detect is tests/integration/** plus six explicit filenames and INTEGRATION_SCRIPTS is a matching 14-name array, so a new test-board-lifecycle.py can never be selected as integration; the qa gate refuses an unrelated passing test as coverage, so the three feature-typed tasks would FAIL the gate after being built. test-factory-integration.py is already in both lists, is by its own docstring the only file in the tree that forks a real process against a stub gh, and already answers _project_field_resolve's GraphQL query - so the gate is satisfied by a genuinely covering test with no edit to a runner array and no edit to the matrix, both of which have three concurrent writers.
+    because: integration.detect is tests/integration/** plus 22 explicit filenames and INTEGRATION_SCRIPTS is a matching 22-name array, both re-counted at 46ee87c where an earlier draft said six and fourteen, so a new test-board-lifecycle.py can never be selected as integration; the qa gate refuses an unrelated passing test as coverage, so the three feature-typed tasks would FAIL the gate after being built. test-factory-integration.py is already in both lists, is by its own docstring the only file in the tree that forks a real process against a stub gh, and already answers _project_field_resolve's GraphQL query - so the gate is satisfied by a genuinely covering test with no edit to a runner array and no edit to the matrix, both of which have three concurrent writers.
     dec: DEC-187
   - id: D-13
     choice: T-01's abandon path is a revert pull request on kaya-ai's master, opened by the operator, and it is stated in T-01 rather than discovered.
@@ -105,11 +111,11 @@ decisions:
     dec: DEC-174
   - id: D-17
     choice: gh_board.derive_station is left exactly as it is - it keeps returning the building station, the review station, or None - and the explicit status write is ADDED beside it rather than replacing it.
-    because: check-state.sh INV-26 grades the parent card against derive_station's return, and check-state.sh cannot be edited under DEC-174 and is forbidden by SC-10, so removing the review branch would silence INV-26's parent comparison instead of improving it. The derivation stops being the only path to Review; it does not stop being the expectation INV-26 reads.
+    because: check-state.sh INV-26 grades the parent card against derive_station's return, so removing the review branch would silence INV-26's parent comparison instead of improving it. T-22 does edit check-state.sh, by main-session-direct cutover under the DEC-174 carve-out (D-24), but that edit is a bounded INV-26 widening for the done-task-with-open-sub-issue case and does not touch the parent comparison - so the file being editable here does not license this change. The derivation stops being the only path to Review; it does not stop being the expectation INV-26 reads.
     dec: DEC-174
   - id: D-18
     choice: Ready holds a feature's TASK SUB-ISSUES and never a parent card, on every board, and the factory's claim queue is not touched.
-    because: factory_decompose.py:393 already records that the parent is NEVER added to a served-repo board, so factory_claim.py:302's poll of the ready station has only ever contained tasks - by construction, not by convention. The harness lane does the opposite and carries parents as cards, so the fix is to make the harness lane agree with the shipped factory lane about this one station rather than to move any queue or invent a mechanism. Re-derived at f5f5185.
+    because: factory_decompose.py:393 already records that the parent is NEVER added to a served-repo board, so factory_claim.py:302's poll of the ready station has only ever contained tasks - by construction, not by convention. The harness lane does the opposite and carries parents as cards, so the fix is to make the harness lane agree with the shipped factory lane about this one station rather than to move any queue or invent a mechanism. Both anchors re-derived at 46ee87c and both still resolve.
     dec: none
   - id: D-21
     choice: The parent KEEPS its card and keeps its existing single writer - gh_board.derive_station read through _apply_parent_rule - and gains no second source. feature.json's status is not a parent-station source.
@@ -123,6 +129,14 @@ decisions:
     choice: A task ticket's title carries the FULL feature id, using the same em dash separator gh-sync.py's parent title already uses at :574, and nothing new is invented.
     because: the parent title and the milestone both carry the full id, so a short form would be a third spelling of one name; measured 2026-08-22 the worst existing combination is 226 characters on issue 654, inside GitHub's title cap, and a title that ever exceeded it would fail loudly at the API rather than truncate silently.
     dec: DEC-133
+  - id: D-23
+    choice: gh-sync close-task is NO LONGER RUN per commit. A task sub-issue stays OPEN through Building and Review and closes with the parent when the pull request merges, from the Closes lines in the PR body. Recording a feature status of Review moves the PARENT and EVERY recorded task sub-issue to the review column.
+    because: operator ruling, 2026-08-23, recorded verbatim in notes/rulings-2026-08-23.md. A closed card is moved to the done column by the native Item closed workflow, so a sub-issue cannot hold Review while it is closed - the earlier per-commit close and the ruling that sub-issues reach Review could not both stand, and the operator chose Review. The stated cost the operator accepted - this returns to FEAT-31's close-everything-at-merge shape, so a sub-issue's Done depends on the merge again, and Review becomes reachable because it is written explicitly rather than because the close was deferred. What is no longer written per commit is only the close - the task's status is still recorded as done in plan.yaml in the same act as the commit, and the parent's derived station is still written by start-task.
+    dec: DEC-138
+  - id: D-24
+    choice: A task whose recorded status is done but whose sub-issue is deliberately still open is made legal in check-state.sh INV-26 by a main-session-direct cutover (T-22), and SC-10's untouched-enforcement-file list narrows from five files to four. It is NOT made legal by giving the task a status INV-26 does not map, and NOT absorbed by accepting a standing violation.
+    because: INV-26 builds _EXPECT at check-state.sh:1234 as {building, done, pending} and compares every recorded sub-issue's card against it at :1304-1318 - re-derived at 57e18ca, where _want is read at :1304, the silent skip sits at :1305-1306 and the comparison that appends the violation is the elif at :1315-1318 - so status done demands the done column. Today close-task closes the sub-issue at commit and the native workflow lands it in the done column, which is why the invariant has always agreed. Under D-23 the sub-issue is open and at building or review for the whole Review phase, so EVERY done task of EVERY feature becomes an INV-26 violation in the gate that runs at every harness door and before every commit - including this feature's own validate phase. The two alternatives are worse - a status INV-26 does not map is silently skipped, which weakens a gate by the back door, and a standing false violation trains the operator to read violations as noise. DEC-174 keeps this edit out of every squad's hands, so it is the operator's own, and it is the only edit to the enforcement layer this feature requires. RULED - the operator accepted T-22, this decision and SC-20 on 2026-08-23 as ruling 4 in notes/rulings-2026-08-23.md, and accepted with it the cost that SC-10's untouched list is four gate files rather than five. The separation the ruling made explicit is the one this decision turns on - an issue's STATE is GitHub's own open-or-closed field and a card's STATION is the board column, and INV-26's defect was reading a station off a state.
+    dec: DEC-174
   - id: D-20
     choice: The backfill derives each ticket's feature id from that ticket's OWN milestone and refuses any task ticket with no milestone rather than guessing.
     because: measured 2026-08-22 all 188 task-titled issues on mruangutai/harness carry a milestone naming their feature, so nothing needs recovering; and a wrong feature id on a ticket is a false statement nothing will ever re-check, which is worse than no id at all.
@@ -134,7 +148,7 @@ tasks:
     traces: [REQ-03]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for this path at e3c9187, and it is a config file on another repository's remote default branch
+    execution_reason: check-domain.sh --resolve returns NOBODY for this path at 46ee87c, and it is a config file on another repository's remote default branch
     depends_on: []
     status: pending
     files:
@@ -212,14 +226,18 @@ tasks:
       rejects - in ONE task, because each of the three alone reddens the other two.
 
       READ THIS FIRST. validate_board tests EXACT set equality, so widening the required set turns
-      every five-key station map in the test suite into a rejection. There are nineteen such sites
-      in nine files. Eight of the nine files are NOT the validator's own test file, and two of them
-      are integration-kind, which is why this task's verify is --kind all and not --kind unit: under
+      every five-key station map in the test suite into a rejection. RE-DERIVED AT 46ee87c by
+      parsing every test-*.py in this directory and reporting each dict literal whose key set is a
+      subset of the six station keys and lacks plan: EIGHTEEN station maps in NINE files, which is
+      nineteen edits because one of them - test-factory-claim.py's repo_board - needs its keyword
+      signature widened as well as its dict. Eight of the nine files are NOT the validator's own
+      test file, and three of them are integration-kind, which is why this task's verify is
+      --kind all and not --kind unit: under
       --kind unit the failures in test-gh-sync.py, test-check-state.py and test-factory-integration.py
       are invisible to you and surface later inside T-07 and T-08 as a regression that is not theirs.
       Do NOT reach for the cheap green by loosening the comparison - D-05 forbids it explicitly.
 
-      In .claude/skills/harness/bin/factory_config.py, change _STATION_KEYS (line 41 at e3c9187)
+      In .claude/skills/harness/bin/factory_config.py, change _STATION_KEYS (line 41 at 46ee87c)
       from ("backlog", "ready", "building", "review", "done") to
       ("backlog", "plan", "ready", "building", "review", "done").
 
@@ -233,7 +251,10 @@ tasks:
       In .harness/harness.json, add "plan": "Plan" to github.board.stations so the map reads
       exactly backlog/Backlog, plan/Plan, ready/Ready, building/Building, review/Review,
       done/Done. "Plan" is the option name measured on board 3 on 2026-08-22; it is case
-      sensitive (DEC-192). Leave the _note key in github.board untouched.
+      sensitive (DEC-192). ALSO RE-WORD github.board._note, which at 46ee87c opens "Four keys,
+      resolved BY NAME at runtime" - a count already wrong at five that inverts again at six. Make
+      it read six and name them; change nothing else in that note. A stale count in the very
+      declaration this task makes exact is the same defect as a stale test label.
 
       Do NOT touch gh_board.derive_station. It returns exactly stations["building"],
       stations["review"] or None, and that stays true (D-02). Plan is written at kickoff by
@@ -241,12 +262,15 @@ tasks:
       card the operator promoted to Ready, whose meaning is documented in kaya-ai's own
       harness.json.
 
-      Do NOT touch .claude/skills/harness/bin/check-state.sh. Re-derived at e3c9187: INV-26 builds
-      _EXPECT at :1184-1185 from stations["building"], stations["done"] and stations["backlog"]
-      only, so a sixth key is inert there. Editing it is forbidden by the DEC-174 carve-out.
+      Do NOT touch .claude/skills/harness/bin/check-state.sh in THIS task. Re-derived at 46ee87c,
+      and the anchor MOVED: INV-26 builds _EXPECT at :1234 (not :1184) from stations["building"],
+      stations["done"] and stations["backlog"] only, so a sixth key is inert there. The one INV-26
+      change this feature needs is T-22's, it is the operator's own hand under DEC-174, and it is
+      not yours.
 
       BUT PROVE THE INERTNESS, DO NOT ASSERT IT. This task moves INV-26's accept set: check-state.sh
-      calls gh_board.load_board(root) at :1147, which calls the validator you are widening. DEC-174
+      calls gh_board.load_board(root) at :1197 - re-derived at 46ee87c, the earlier :1147 anchor
+      MOVED - which calls the validator you are widening. DEC-174
       amendment 4 says a module a gate imports is not itself a gate, so this is team work - and it
       names the evidence idiom that makes that safe. Use it: run
       `.claude/skills/harness/bin/check-state.sh` BEFORE any edit and capture the full finding list,
@@ -256,32 +280,37 @@ tasks:
       behaviour from a library, which is the exact thing amendment 4 permits only with this proof.
       Put both captures in your receipt. This also discharges the check-state.sh half of SC-10.
 
-      REPAIR THE FIXTURES. Every site below was re-derived at e3c9187 and declares a five-key
+      REPAIR THE FIXTURES. Every site below was re-derived at 46ee87c and declares a five-key
       station map that this change rejects. Each must gain "plan" with the value the surrounding
       fixture's convention gives it - "Plan" where the values are real column names, the fixture's
       own distinctive scheme where they are not (Col-PL beside Col-BK, Other-Plan beside
-      Other-Backlog). Six of the nineteen sites are a centralised constant or factory and are one
-      edit each; the rest are inline literals.
+      Other-Backlog). Six sites are a centralised constant or factory and are one edit each; the
+      remaining twelve are inline literals.
 
       Centralised, one edit each:
-      - test-factory-config.py:91  FIVE_STATIONS - rename it SIX_STATIONS and add "plan"; the
-        full_stations() helper at :94-97 derives from it and needs no change.
+      - test-factory-config.py:91  FIVE_STATIONS, a TUPLE and not a dict - rename it SIX_STATIONS
+        and add "plan"; the full_stations() helper at :94-97 and both loops at :374 and :383 derive
+        from it and need no change.
       - test-factory-config.py:370-373  _EXPECTED_STATIONS, the independent oracle - add
         "plan": "Col-PL".
       - test-gh-board.py:66-69  FULL_STATIONS - add "plan": "Plan".
       - test-gh-sync.py:287-288  FULL_STATIONS - add "plan": "Plan". THIS FILE IS
         INTEGRATION-KIND.
-      - test-factory-integration.py:335-342  default_board() - add "plan": "Plan" to the stations
-        dict it builds. THIS FILE IS INTEGRATION-KIND.
-      - test-factory-claim.py:205-212  the board fixture's keyword-argument signature and the
-        stations dict at :209-210 - add a plan parameter and its key.
+      - test-factory-integration.py:339 in default_board() - add "plan": "Plan" to the stations
+        dict it builds. THIS FILE IS INTEGRATION-KIND, and it is the site simplify-eng's digest
+        omits and arch-eng's names; re-derived at 46ee87c, it is real.
+      - test-factory-claim.py  repo_board - the keyword-argument signature at :196-198 AND the
+        stations dict at :207-209 - add a plan parameter and its key. This is the one site that is
+        two edits, and it is why eighteen maps are nineteen edits.
 
-      Inline literals, each its own edit:
+      Inline literals, each its own edit. Every line number below was re-derived at 46ee87c and
+      several moved by one or two from the earlier draft, so trust these and not the earlier list:
       - test-board-station.py:138, :183, :242, :257
-      - test-factory-land.py:57, :94, :107 (the third uses the Other-* value scheme)
-      - test-factory-decompose.py:196, :224, :237 (the third uses the Other-* value scheme)
-      - test-check-state.py:1333, :1616 (the second uses its own Icebox/Primed/WIP scheme, so give
-        plan a value in that scheme, not "Plan"). THIS FILE IS INTEGRATION-KIND.
+      - test-factory-land.py:56, :93, :106 (the third uses the Other-* value scheme)
+      - test-factory-decompose.py:195, :223, :236 (the first spells ready as "Promoted", the third
+        uses the Other-* value scheme - follow each fixture's own scheme, never normalise it)
+      - test-check-state.py:1333, :1616 (the second uses its own Icebox/Primed/WIP/Shipped scheme,
+        so give plan a value in that scheme, not "Plan"). THIS FILE IS INTEGRATION-KIND.
 
       RE-WORD, DO NOT ONLY RE-VALUE. Four prose sites assert "five" and INVERT with this change;
       a fixture repaired with a stale label is a test that now documents the opposite of what it
@@ -290,13 +319,18 @@ tasks:
       "validate_board accepts the five-key stations map"), and test-factory-claim.py:202-203 (the
       docstring "The five-key stations map is D-06's required set ... requires all five").
 
-      TWO SITES THAT MUST NOT CHANGE, so nobody "fixes" a passing test:
+      THREE SITES THAT MUST NOT CHANGE, so nobody "fixes" a passing test:
       - test-factory-config.py:427, del _b_stations_key_set_wrong["stations"]["done"] - this case
         still REJECTS, because exact set equality rejects a five-key map. Only its surrounding
         label may need re-wording.
       - test-gh-board.py:146, full_board(stations={three keys}) with the label "load_board raises
         naming the file and the key: stations key set wrong" - a three-key map was rejected before
-        and is rejected after. Leave it exactly as it is.
+        and is rejected after. Leave it exactly as it is, and the same for the empty-value case at
+        :154.
+      - test-factory-config.py:157, the three-key stations map inside mut_top_level_board_present -
+        that case asserts a leftover TOP-LEVEL board key is an error, which holds whatever its
+        station count. Found by the same 46ee87c scan and named here so nobody widens a fixture
+        whose point is a different error.
 
       In test-factory-config.py add three cases to the existing validate_board coverage:
       (a) a six-key map with all six non-empty values is ACCEPTED and returned;
@@ -319,7 +353,7 @@ tasks:
     change_type: api
     execution_mode: team
     execution_agent: harness-dev-ops
-    depends_on: []
+    depends_on: [T-02]
     status: pending
     files:
       - .claude/skills/harness/bin/factory_gh.py
@@ -336,7 +370,7 @@ tasks:
       0. project_resolve(owner, number) -> dict with the project's node id and its title, or None
          when the project genuinely does not exist. THIS PRIMITIVE EXISTS TO PREVENT A SPECIFIC
          DISASTER, so read the reason before implementing it. _project_field_resolve (line 400,
-         re-derived at e3c9187) raises ONE GhError class for FOUR distinct conditions: project
+         re-derived at 46ee87c) raises ONE GhError class for FOUR distinct conditions: project
          owner not found (:435-438), organization-owned board not supported (:441-444), project
          not found (:447-450), and project field not found (:452-457). They are separated only by a
          human-readable message string. Worse, the field case DELIBERATELY collapses two shapes -
@@ -408,6 +442,10 @@ tasks:
       asserting the process exit status and the stub's recorded argv. Do NOT add
       test-factory-integration.py to any list, do not edit run-unit-tests.sh, and do not edit
       harness.json - all three are already correct for this and all three have other writers.
+
+      ORDERING: this task now runs after T-02, which repairs the five-key station fixtures across the
+      test suite including test-factory-integration.py. Write any new fixture in this task with all six
+      station keys from the start; do not reintroduce a five-key map that T-02 already removed.
 
   - id: T-04
     title: board_lifecycle.py provision - create the board, the Status field and the missing options
@@ -500,8 +538,9 @@ tasks:
       run-unit-tests.sh:41-55 runs over the UNION of both arrays for EVERY kind, so an unregistered
       test-*.py exits 2 with "MISCONFIGURED", which reads like a test failure and breaks every
       verify in this plan at once. Change nothing else in that file - do NOT add anything to
-      INTEGRATION_SCRIPTS (D-12). Re-derived at e3c9187: that file is byte-identical to main's copy
-      at d065b3b, so FEAT-31 has landed nothing in it yet; rebase on whatever it lands before you
+      INTEGRATION_SCRIPTS (D-12). Re-derived at 46ee87c: `git diff origin/main -- run-unit-tests.sh`
+      is EMPTY against main at e3392fd, so FEAT-31 has still landed nothing in it; rebase on
+      whatever it lands before you
       write the line, and if the arrays have moved, add only the one UNIT_SCRIPTS entry.
       Do NOT touch .harness/harness.json in this task. The test_kinds.unit.detect glob
       ".claude/skills/harness/bin/test-*.py" at harness.json:105 already matches the new file, so
@@ -525,8 +564,9 @@ tasks:
 
       INTEGRATION COVERAGE (D-12). change_type: feature requires unit AND integration
       (harness.json:40-49). test-board-lifecycle.py can never be selected as integration:
-      test_kinds.integration.detect (harness.json:119) is tests/integration/** plus six explicit
-      filenames, and the qa gate refuses an unrelated passing test as coverage - so without this the
+      test_kinds.integration.detect (harness.json:119) is tests/integration/** plus 22 explicit
+      filenames - re-counted at 46ee87c - and the qa gate refuses an unrelated passing test as
+      coverage - so without this the
       gate reports integration MISSING and FAILs after three tasks are built. Add ONE forking
       end-to-end case for provision to test-factory-integration.py, which is already in
       integration.detect and in INTEGRATION_SCRIPTS and is by its own docstring the only file that
@@ -721,7 +761,7 @@ tasks:
     verify: |
       .claude/skills/harness/bin/run-unit-tests.sh --kind all
     intent: |
-      cmd_start_task in gh-sync.py guards only `if tid not in rec["issues"]` (line 621 at e3c9187)
+      cmd_start_task in gh-sync.py guards only `if tid not in rec["issues"]` (line 621 at 46ee87c)
       and never checks whether the issue is closed or where its card already sits. Measured
       timeline on #642: closed 01:37:47, github-project-automation[bot] set Done at 01:37:48, the
       harness set Building at 02:34:21. #643 is identical. This is the cause of every board error
@@ -798,6 +838,10 @@ tasks:
          gh(["issue", "close", str(n), "--repo", repo, "--reason", "completed"], capture=False).
          Keep the existing ordering comment and the parent-write-before-close ordering exactly as
          it is - that ordering exists because gh() calls skip() which calls sys.exit(0).
+         KEEP THIS EVEN THOUGH D-23 STOPS RUNNING close-task PER COMMIT. The command survives as
+         the deliberate way to close one task's issue, T-14 is what removes its per-commit
+         invocation, and REQ-05 binds every close the harness performs whenever it performs it.
+         Do NOT delete cmd_close_task and do NOT change what it closes.
       2. cmd_ship: change the parent close the same way, inside the existing
          parent_origin == "created" branch. Do not touch the branch condition: DEC-196 keeps the
          close origin-gated, and an adopted parent stays open.
@@ -860,6 +904,11 @@ tasks:
         loudly there and an undeclared name is still writable. Both halves remain true in the tree:
         board-station.py passes the station as a plain string and factory_gh.project_field_set
         resolves the option by name at runtime.
+      - Who reversed it, and on whose authority: the operator ruled on 2026-08-23 that the sixth
+        station key belongs, recorded as ruling 3 in
+        .harness/harness/features/FEAT-33-board-lifecycle-native/notes/rulings-2026-08-23.md.
+        Cite that ruling as the warrant. The parity argument below is the ruling's own reasoning,
+        not this plan's inference.
       - What actually changed and why the clause is reversed: parity, not capability. DEC-192's six
         case-sensitive status values ARE the board's column names, and a station map that names
         five of six cannot express one of them by key. The declaration now carries all six, and
@@ -889,7 +938,7 @@ tasks:
     traces: [REQ-01, REQ-02]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at e3c9187
+    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness-init/SKILL.md at 46ee87c
     depends_on: [T-04, T-05]
     status: pending
     files:
@@ -900,8 +949,9 @@ tasks:
       Add a board step to the onboarding skill, placed immediately after the section headed
       "### GitHub Issues mirror - ask ONCE, here, so it is never forgotten (DEC-138)" and before
       "### 8. Design pass - UI projects only". ANCHOR ON THAT SECTION BY NAME, NOT ON A STEP
-      NUMBER. Re-derived at e3c9187: github.sync and github.repo are pinned inside that mirror
-      section at SKILL.md:200-210, which sits AFTER "### 7. The approval gate" (:174) and after the
+      NUMBER. Re-derived at 46ee87c: the mirror section heading is at SKILL.md:200 and github.sync
+      and github.repo are pinned at :208-209, which sits AFTER "### 7. The approval gate" (:174),
+      after the
       unnumbered "### Map the codebase" section (:189) - so placing the board step "after step 7"
       would put it before its own stated precondition, which is that the repository is known.
 
@@ -951,12 +1001,12 @@ tasks:
     change_type: config
     execution_mode: main-session-direct
     execution_reason: the report path resolves to harness-orchestrator, which is not a dispatchable task executor, and the run performs bulk irreversible writes on the operator's live tracker
-    depends_on: [T-06, T-07, T-08]
+    depends_on: [T-06, T-07, T-08, T-22]
     status: pending
     files:
       - .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-harness.md
     verify: |
-      python3 .claude/skills/harness/bin/board_lifecycle.py audit && test -z "$(git diff --name-only $(git merge-base main HEAD)..HEAD -- .claude/skills/harness/bin/check-state.sh .claude/skills/harness/bin/check-domain.sh .claude/skills/harness/bin/bash-write-guard.sh .claude/skills/harness/bin/validate-digest.py .claude/skills/harness/bin/check-plan-routes.py)" && .claude/skills/harness/bin/check-state.sh && grep -q "0 findings" .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-harness.md && echo OK
+      python3 .claude/skills/harness/bin/board_lifecycle.py audit && test -z "$(git diff --name-only $(git merge-base main HEAD)..HEAD -- .claude/skills/harness/bin/check-domain.sh .claude/skills/harness/bin/bash-write-guard.sh .claude/skills/harness/bin/validate-digest.py .claude/skills/harness/bin/check-plan-routes.py)" && .claude/skills/harness/bin/check-state.sh && grep -q "0 findings" .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-harness.md && echo OK
     intent: |
       Bring the harness project - board 3, mruangutai/harness - to a zero-finding state, and leave
       the evidence on disk.
@@ -979,14 +1029,19 @@ tasks:
          board 2 has it enabled. Name it as an observation for the operator, not as a finding.
 
       7. THIS TASK OWNS SC-10's NEGATIVE CLAUSE, which no other task instruments. SC-10 asserts
-         that nothing already guarded was weakened AND that no edit reached check-state.sh,
-         check-domain.sh, bash-write-guard.sh, validate-digest.py or check-plan-routes.py. A
+         that nothing already weakened AND that no edit reached check-domain.sh,
+         bash-write-guard.sh, validate-digest.py or check-plan-routes.py. THE LIST IS FOUR FILES,
+         NOT FIVE: check-state.sh left it under D-24, because D-23's ruling makes INV-26 fire on
+         every done task with a deliberately-open sub-issue, and T-22 is the operator's own
+         cutover that fixes it. Everything else in the enforcement layer stays untouched. A
          negative assertion nobody runs passes vacuously, so the verify above runs it: a
-         `git diff --name-only <merge-base>..HEAD` over exactly those five paths must be EMPTY, and
+         `git diff --name-only <merge-base>..HEAD` over exactly those four paths must be EMPTY, and
          `check-state.sh` must exit 0 on this checkout. If the diff is non-empty, the DEC-174
          carve-out was violated and this task STOPS - it does not revert someone else's work.
          SC-10's suite half is carried by every build task's `--kind all` verify (T-02 through
-         T-08); do not re-run the full suite here, it takes minutes and adds nothing.
+         T-08); do not re-run the full suite here, it takes minutes and adds nothing. T-22 is in
+         this task's depends_on because check-state.sh must already accept the open-sub-issue
+         shape, or this verify's own `check-state.sh` clause reds on this feature's own tasks.
 
       WHAT THE GREP IS AND IS NOT. `grep -q "0 findings"` reads a report this same session writes,
       so it is satisfied by typing the string and is NOT evidence. The real gate in this verify is
@@ -1045,7 +1100,7 @@ tasks:
     change_type: logic
     execution_mode: team
     execution_agent: harness-dev-ops
-    depends_on: [T-02]
+    depends_on: [T-02, T-08]
     status: pending
     files:
       - .claude/skills/harness/bin/gh-sync.py
@@ -1064,8 +1119,10 @@ tasks:
       into a command that is already mandatory at that moment is the ceiling, and it is chosen
       deliberately (D-16).
 
-      1. THE PARENT'S STATION IS NOT YOURS AND GAINS NO SECOND WRITER (D-21). gh_board.derive_station
-         at gh_board.py:88, called through _apply_parent_rule at :177, stays the ONLY thing that
+      1. THE PARENT'S BUILDING STATION IS NOT YOURS AND GAINS NO SECOND WRITER (D-21).
+         gh_board.derive_station at gh_board.py:88, called through gh-sync.py's own
+         _apply_parent_rule at gh-sync.py:177 - re-derived at 46ee87c, and note the earlier draft
+         put _apply_parent_rule in gh_board.py, which is wrong - stays the ONLY thing that
          writes a parent card from task statuses. Do NOT make _record_status write a station, and do
          not resolve feature.json's status to a column for the parent. derive_station already answers
          "any sub-issue is building" from plan.yaml task statuses, which is the same answer as reading
@@ -1079,7 +1136,14 @@ tasks:
            gh_board.set_station once per sub-issue, reading the numbers from load_recorded's issues
            map. Write NOTHING to the parent. If no sub-issue is recorded, write nothing at all and
            print one line saying so - do NOT fall back to the parent.
-         - Review: move the PARENT to board["stations"]["review"]. No sub-issue is touched.
+         - Review: move the PARENT to board["stations"]["review"] AND move EVERY recorded T-NN
+           sub-issue to board["stations"]["review"] as well, one gh_board.set_station call each,
+           reading the numbers from load_recorded's issues map exactly as the Ready path does.
+           THE SUB-ISSUES ARE PART OF THIS WRITE (operator ruling 2026-08-23, D-23): close-task no
+           longer runs per commit, so a sub-issue is still OPEN when the panel kicks off and it
+           reaches Review with its parent rather than having jumped to Done at its own commit.
+           Assert the EXACT SET of issue numbers written - the parent plus every recorded
+           sub-issue - never a count.
          - Plan: write no station. board-station.py already owns the Plan write at the
            /harness-plan door and it writes the SOURCE ticket, which is not this feature's parent.
          - Done: write NOTHING. GitHub owns it - the ship closes the parent and the native Item
@@ -1120,18 +1184,19 @@ tasks:
 
       6. gh_board.derive_station is NOT changed (D-17). It keeps returning the building station, the
          review station, or None, and _apply_parent_rule keeps calling it. check-state.sh INV-26
-         grades the parent card against that return and check-state.sh cannot be edited under
-         DEC-174 or under SC-10, so removing the review branch would silence INV-26's parent
-         comparison rather than improve it. The derivation stops being the ONLY path to Review; it
-         does not stop being the expectation INV-26 reads.
+         grades the parent card against that return, so removing the review branch would silence
+         INV-26's parent comparison rather than improve it. T-22 does edit check-state.sh, but that
+         edit is a bounded INV-26 widening for the done-task-with-open-sub-issue case and does not
+         touch the parent comparison, so an editable file does not license this change. The
+         derivation stops being the ONLY path to Review; it does not stop being the expectation
+         INV-26 reads.
 
-      7. ONE ORDERING QUESTION IS OPEN AND MUST NOT BE CLOSED HERE. Because step 6 of the lifecycle
-         closes each sub-issue as its commit lands, derive_station reaches all-tasks-done at the LAST
-         close-task - so the parent reaches Review before the panel is dispatched and before the PR
-         exists. The subcommand's Review write and the derivation therefore agree on the VALUE and
-         disagree on the MOMENT. Both are harmless together, since the value is identical and the
-         write is idempotent. BRIEF.md's block "INFERRED, NOT RULED" records it. Build both, change
-         neither, and do not add a guard that suppresses one of them.
+      7. THE TWO REVIEW WRITERS ARE BOTH KEPT, AND THIS IS SETTLED, NOT OPEN. derive_station
+         reaches all-tasks-done whenever gh-sync next runs, so the parent can reach Review from the
+         derivation as well as from this subcommand. They agree on the VALUE and disagree only on
+         the MOMENT, and the write is idempotent, so both are harmless together. The operator ruled
+         the ordering stands as drafted (notes/rulings-2026-08-23.md). Build both, change neither,
+         and do not add a guard that suppresses one of them.
 
       8. Update main()'s usage string at :791 to include status, and the module docstring's command
          list at :4. Do NOT thread board into cmd_ship or cmd_abandon - they call _record_status and
@@ -1152,16 +1217,21 @@ tasks:
       - each refusal in step 5, asserting exit 2 and the offending value in the message;
       - one sub-issue's set_station raising: assert the REMAINING sub-issues were still written, exit
         0, one stderr line, and feature.json's status still recorded.
-      Demonstrate the failing state first: at e3c9187 there is no status subcommand at all and
+      Demonstrate the failing state first: re-derived at 46ee87c, `grep -c "def cmd_status"` on
+      gh-sync.py returns 0 - there is no status subcommand at all - and
       _record_status writes no station, so every positive case above must be shown red before the
       change.
+
+      ORDERING: T-07 and T-08 edit gh-sync.py before this task, so every line anchor above is a
+      46ee87c anchor and may have drifted. Re-derive each one by symbol - the function or the string
+      named beside it - before you edit, and do not trust the number.
 
   - id: T-14
     title: Name the station writer at every door, and give the main session its own cards
     traces: [REQ-08, REQ-09]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for both .claude/skills/harness/SKILL.md and .claude/commands/harness-plan.md at f5f5185
+    execution_reason: check-domain.sh --resolve returns NOBODY for both .claude/skills/harness/SKILL.md and .claude/commands/harness-plan.md at 46ee87c
     depends_on: [T-13]
     status: pending
     files:
@@ -1173,8 +1243,9 @@ tasks:
       Close the station-writer hole in the two documents that address the two actors, and record the
       whole event-driven map once where the orchestrator already reads.
 
-      THE HOLE, measured at f5f5185 so you know exactly what is missing: the only thing in this repo
-      that moves a card mid-build is one row of a markdown table, SKILL.md:191, addressed to the
+      THE HOLE, re-derived at 46ee87c so you know exactly what is missing: the only thing in this
+      repo that moves a card mid-build is one row of a markdown table, SKILL.md:191, addressed to
+      the
       orchestrator. DEC-174 forbids the orchestrator main-session-direct tasks, and the ONLY other
       mention of main-session-direct in that whole file is :131, about run counting. So a
       main-session-direct task has no instructed card mover at all. FEAT-32 carries 9 of 17 tasks in
@@ -1183,25 +1254,38 @@ tasks:
       In .claude/skills/harness/SKILL.md:
 
       1. In the six-sync-point table under "## GitHub mirror", change the Owner cell of the
-         start-task row (:191) and the close-task row (:192) from "orchestrator" alone to name BOTH
-         actors and the rule that selects between them: the orchestrator for a task whose plan
-         execution_mode is team, and the main session for a task whose execution_mode is
-         main-session-direct. Say it as a rule keyed on execution_mode, not as a second sentence of
-         advice - execution_mode is resolved at plan time and is already on every task, so it is the
-         one field that answers this without a judgement call.
+         start-task row (:191) from "orchestrator" alone to name BOTH actors and the rule that
+         selects between them: the orchestrator for a task whose plan execution_mode is team, and
+         the main session for a task whose execution_mode is main-session-direct. Say it as a rule
+         keyed on execution_mode, not as a second sentence of advice - execution_mode is resolved
+         at plan time and is already on every task, so it is the one field that answers this
+         without a judgement call.
+      1b. REWRITE THE close-task ROW (:192) UNDER THE OPERATOR'S RULING (D-23). It currently
+         instructs `gh-sync.py close-task <feature-dir> T-NN` as each `[harness:t-NN]` commit is
+         recorded. close-task is NO LONGER RUN PER COMMIT. What stays per commit is recording the
+         task's status as done in plan.yaml, in the same act as the commit; the sub-issue stays
+         OPEN, holds its column through Building and Review, and closes with the parent when the
+         pull request merges, from the Closes lines in the PR body. Say all three things in the
+         row: what still happens per commit, that the issue is deliberately left open, and what
+         closes it. Say why in one sentence: a closed card is moved to the done column by the
+         native Item closed workflow, so a sub-issue cannot hold Review while it is closed. Do NOT
+         delete the close-task command from the table - name it as the deliberate single-issue
+         close it remains.
       2. Add a seventh row for the new subcommand: `gh-sync.py status <feature-dir> <Status>`, owner
          the actor performing the transition, run at every phase transition, in the same act that
          records the phase. Point at the existing sentence at :343, "Record your phase in
          feature.json phase:", and say that the status record and the station write are now one act.
       3. Add the station-writer map as a short table, six rows, one writer each: Backlog is whoever
          files the ticket; Plan is board-station.py at the /harness-plan door; Ready is the
-         signature, via `gh-sync.py status <dir> Ready`; Building is `gh-sync start-task`; Review is
-         the validation panel kickoff, via `gh-sync.py status <dir> Review`; Done is GITHUB, from
-         Closes N at merge, and the harness writes it never. State the measurement that forced the
-         Review row - board 3 held ZERO items at Review across 539 items at f5f5185, because the
-         last close-task fires while later tasks are still pending and nothing calls gh-sync again
-         until ship - and state that the harness deliberately writes no Done and no Abandoned
-         column.
+         signature, via `gh-sync.py status <dir> Ready`, and it moves the TASK SUB-ISSUES, never
+         the parent; Building is `gh-sync start-task`; Review is the validation panel kickoff, via
+         `gh-sync.py status <dir> Review`, and it moves the PARENT AND EVERY SUB-ISSUE (D-23); Done
+         is GITHUB, from the Closes lines at merge, which close the sub-issues and the parent
+         together, and the harness writes that column never. State the measurement that forced the
+         Review row - board 3 held ZERO items at Review across 539 items, measured 2026-08-22 and
+         recorded at f5f5185, because the last close-task fired while later tasks were still
+         pending and nothing called gh-sync again until ship - and state that the harness
+         deliberately writes no Done and no Abandoned column.
       4. In the validate-phase text, add the instruction that entering validate runs
          `gh-sync.py status <feature-dir> Review` BEFORE the panel is dispatched. Place it beside the
          existing review_sha pin instruction so both preconditions of a panel run sit together.
@@ -1215,14 +1299,18 @@ tasks:
       6. Leave the existing KICKOFF bullet at :11 exactly as it is. board-station.py already writes
          Plan there and that writer is unchanged.
 
-      DO NOT resolve the Ready conflict here. BRIEF.md records three branches and applies none:
-      factory_claim.py:302 polls the ready station as the factory's claim queue. Write the harness
-      lane's instruction as above and add ONE sentence naming the open question, so a reader of this
-      file is not misled into thinking the factory lane was considered and cleared.
+      READY IS SETTLED AND YOU WRITE IT AS SETTLED. Ready holds a feature's TASK SUB-ISSUES and
+      never a parent, on every served board (D-18, operator ruling). The factory's claim queue is
+      untouched by construction, not by convention: factory_decompose.py:393 records that the
+      parent is NEVER added to a served-repo board, so factory_claim.py:302's poll of the ready
+      station has only ever contained tasks - both re-derived at 46ee87c. Do not write "three
+      branches", do not write that a ruling is outstanding, and do not invite a reader to re-open
+      it. Do state the one real cost in one sentence: board 2 loses the human promotion signal,
+      because a card now arrives at Ready from a signature rather than from a person.
 
       WHAT THE VERIFY IS AND IS NOT: the greps prove the words are present and that
-      main-session-direct now appears more than once in SKILL.md, which at f5f5185 it does not - it
-      appears exactly once, at :131. They do not grade whether the rule is stated correctly. That is
+      main-session-direct now appears more than once in SKILL.md, which at 46ee87c it does not -
+      `grep -c` returns exactly 1, at :131. They do not grade whether the rule is stated correctly. That is
       graded by SC-15, by a human reading the file at review_sha.
 
   - id: T-15
@@ -1252,9 +1340,10 @@ tasks:
 
       THERE IS NO Done EXEMPTION, and this is the one thing not to get wrong (D-22). A feature whose
       status reads Done and whose parent card does NOT read the done column IS a finding, whether the
-      parent issue is open or closed. Measured at f5f5185: issues 85 (FEAT-08) and 98 (FEAT-09) are
-      OPEN parents of shipped features whose feature.json status reads Done and whose cards read
-      Backlog. Both were left open because no parent_origin was recorded, so cmd_ship declined to
+      parent issue is open or closed. RE-DERIVED AT 46ee87c: `gh issue view` reports 85 (FEAT-08)
+      and 98 (FEAT-09) still OPEN, and both feature.json files still read status Done. Their cards
+      read Backlog as measured 2026-08-22; that half is a live-board reading and was not re-taken
+      at 46ee87c, so treat the column as the fixture's value rather than as a current fact. Both were left open because no parent_origin was recorded, so cmd_ship declined to
       close them. INV-26 skips them on its terminal exemption and the audit's existing STATION class
       skips them because it keys on CLOSED issues - so a Done exemption here would reproduce exactly
       the blindness this class exists to remove. Use both as fixtures, each its own assertion.
@@ -1270,10 +1359,12 @@ tasks:
 
       THIS DOES NOT DUPLICATE INV-26. INV-26 compares each TASK's plan.yaml status against that
       task's own card, and it compares the parent against gh_board.derive_station. Neither reads
-      feature.json's status, so the shape measured live on 2026-08-22 at f5f5185 - FEAT-32's
-      feature.json status Review with its parent 700 reading Building - is invisible to it. Use that
-      exact shape as the test fixture (SC-16), and demonstrate that the audit as built by T-05
-      returns no such finding for it before the change.
+      feature.json's status, so the shape recorded at f5f5185 - FEAT-32's feature.json status
+      Review with its parent 700 reading Building - is invisible to it. THAT SHAPE IS NO LONGER
+      LIVE and the plan says so rather than pretending: re-derived at 46ee87c, FEAT-32 shipped, its
+      feature.json reads Done and issue 700 is CLOSED as COMPLETED. Use the shape as a written
+      FIXTURE, exactly as recorded, and do not go looking for it on the board. Demonstrate that the
+      audit as built by T-05 returns no such finding for that fixture before the change.
 
       COST: this finding costs NO extra network read. The audit already reads every card's station
       once through gh_board.board_stations for its existing finding classes; this class reads
@@ -1285,8 +1376,8 @@ tasks:
       class is a real outcome and prints as zero rather than being omitted.
 
       Tests in test-board-lifecycle.py against a fake gh injected through BOTH FACTORY_GH and
-      GH_SYNC_GH (D-11): the FEAT-32 shape (status Review, parent at Building) reported with all four
-      facts in the message; the FEAT-08 shape (status Done, OPEN parent at Backlog) reported; the
+      GH_SYNC_GH (D-11): the FEAT-32 shape (status Review, parent at Building - a fixture recorded
+      at f5f5185, not a current board state) reported with all four facts in the message; the FEAT-08 shape (status Done, OPEN parent at Backlog) reported; the
       FEAT-09 shape reported; a matching status and card reported as no finding; each of the three
       exemptions asserted individually, not by a count.
       The integration case goes in test-factory-integration.py, never in a new file - see D-12 for
@@ -1339,7 +1430,11 @@ tasks:
       Tests in test-gh-sync.py: assert the exact title string passed to issue create for a task,
       including both em dashes and the full feature id; assert the parent title at :574 is unchanged;
       assert a re-run of open writes no title at all for an already-recorded task. Demonstrate the
-      first assertion failing at e3c9187, where the title carries no feature id.
+      first assertion failing at 46ee87c, where gh-sync.py:592 builds the title with no feature id.
+
+      ORDERING: T-07, T-08 and T-13 all edit gh-sync.py before this task, so gh-sync.py:592 and :583
+      are 46ee87c anchors that may have drifted. Locate the title builder by its f-string, not by its
+      line number.
 
   - id: T-17
     title: board_lifecycle.py retitle - the backfill, deriving each id from the ticket's own milestone
@@ -1347,7 +1442,7 @@ tasks:
     change_type: feature
     execution_mode: team
     execution_agent: harness-dev-ops
-    depends_on: [T-04, T-16]
+    depends_on: [T-04, T-06, T-16]
     status: pending
     files:
       - .claude/skills/harness/bin/board_lifecycle.py
@@ -1399,6 +1494,10 @@ tasks:
       renames is satisfied by the conformers alone and is blind to the one ticket that conforms to
       nothing. The integration case goes in test-factory-integration.py (D-12).
 
+      ORDERING: T-06 adds the reconcile subcommand to board_lifecycle.py before this task, so retitle
+      is the fourth subcommand appended to a file that already carries provision, audit and reconcile.
+      Register it in the existing subcommand dispatch rather than re-authoring the entry point.
+
   - id: T-18
     title: Run the title backfill over the harness board and capture the report
     traces: [REQ-11]
@@ -1444,7 +1543,7 @@ tasks:
     change_type: docs
     execution_mode: team
     execution_agent: harness-documentor
-    depends_on: [T-13, T-14]
+    depends_on: [T-09, T-13, T-14]
     status: pending
     files:
       - .harness/harness/docs/DECISIONS.md
@@ -1463,9 +1562,26 @@ tasks:
 
       - The map, as six rows, one writer each: Backlog is whoever files the ticket; Plan is
         board-station.py at the /harness-plan door; Ready is the signature step, via
-        `gh-sync.py status <dir> Ready`; Building is `gh-sync start-task`; Review is the validation
-        panel kickoff, via `gh-sync.py status <dir> Review`; Done is GITHUB, from a Closes keyword at
-        merge, and the harness writes it never. Abandoned is not a station and has no writer.
+        `gh-sync.py status <dir> Ready`, moving the task sub-issues and never the parent; Building
+        is `gh-sync start-task`; Review is the validation panel kickoff, via
+        `gh-sync.py status <dir> Review`, moving the parent AND every sub-issue; Done is GITHUB,
+        from the Closes lines at merge, which close the sub-issues and the parent together, and the
+        harness writes that column never. Abandoned is not a station and has no writer.
+      - THE RULING OF 2026-08-23 AND THE COST THE OPERATOR ACCEPTED WITH IT, recorded as it was
+        given: `gh-sync close-task` is no longer run per commit, so a task sub-issue stays OPEN
+        through Building and Review and closes with its parent at merge. Why it had to change: a
+        closed card is moved to the done column by the native Item closed workflow, so a sub-issue
+        cannot hold Review while it is closed - the per-commit close and the ruling that sub-issues
+        reach Review could not both stand. The cost, stated rather than buried: this returns to
+        FEAT-31's close-everything-at-merge shape, which the per-commit close had been written to
+        replace, so a sub-issue's Done depends on the merge again. Review becomes reachable because
+        it is now written explicitly, not because the close was deferred.
+      - The consequence for INV-26, and the one enforcement-layer edit this feature makes: a task
+        whose plan.yaml status is done now has a deliberately OPEN sub-issue standing at the
+        building or review column for the whole Review phase, while check-state.sh:1234's _EXPECT
+        maps status done to the done column. Record that INV-26 was widened by the operator's own
+        hand under the DEC-174 carve-out to accept that shape, and that this is the only edit to a
+        gate script in this feature.
       - The measurement that forced the Review row, with its conditions: board 3, 539 items, at
         f5f5185, held ZERO items at Review - and zero at Ready. Review was reachable in principle,
         since close-task on the final task derives it, and had never fired, because the last
@@ -1491,16 +1607,22 @@ tasks:
         master documents Ready as the human pick-up point and after this nothing on board 2 records
         that a human promoted a ticket. A visible label is the route if that turns out to be needed,
         the same shape as the abandoned label, and it is not built here.
-      - THE OPEN QUESTION, recorded as open and not resolved: factory_claim.py:302 polls the ready
-        station as the factory's CLAIM QUEUE and factory_decompose.py:411 puts served-repo task cards
-        there, both re-derived at f5f5185, so a signed-plan parent card at Ready becomes a claim
-        candidate. Record the three branches BRIEF.md names and record that none was applied. Do not
-        pick one, and do not soften it into a note.
+      - WHY THE CLAIM QUEUE IS NOT AT RISK, recorded as settled rather than as an open question:
+        factory_claim.py:302 polls the ready station as the factory's CLAIM QUEUE and
+        factory_decompose.py:414 puts served-repo TASK cards there - both re-derived at 46ee87c,
+        and the second anchor MOVED from the :411 an earlier draft cited. factory_decompose.py:393
+        records that the parent is NEVER added to a served-repo board, so that poll has only ever
+        contained tasks, by construction. The rule this feature adds - a parent card never reaches
+        Ready on any board - makes the harness lane agree with the factory lane rather than
+        changing it. Record it that way; the earlier three-branch framing was superseded by the
+        operator's ruling and must not be reproduced.
 
       Then run gen-decisions-index.py to regenerate DECISIONS-INDEX.md. Do not hand-edit the row.
 
       Do not touch DEC-192 - its refusal of a seventh column is upheld here, not amended. Do not
-      touch DEC-186 - its question is the operator's and is still outstanding.
+      touch DEC-186 either, and NOT because anything is outstanding: its read-back bound was already
+      widened to four purposes by amendment 2, authored on main at e3392fd under issue 724 and pull
+      request 725. This branch merges that amendment; it never writes one.
 
       This file has other writers this round. Rebase before appending.
 
@@ -1509,7 +1631,7 @@ tasks:
     traces: [REQ-10]
     change_type: config
     execution_mode: main-session-direct
-    execution_reason: check-domain.sh --resolve returns NOBODY for a served repository's own config on another remote at f5f5185
+    execution_reason: check-domain.sh --resolve returns NOBODY for a served repository's own config on another remote at 46ee87c
     depends_on: [T-01, T-19]
     status: pending
     files:
@@ -1544,9 +1666,114 @@ tasks:
       checkout, because factory_config.product_config reads a served repository's config from the
       remote at default_branch and never from a checkout.
 
-      BLOCKED ON THE OPERATOR'S RULING, and this task must not run before it lands. BRIEF.md records
-      three branches for the Ready conflict and applies none: factory_claim.py:302 polls the ready
-      station as the factory's claim queue, and board 2 IS a factory-served board, so the note this
-      task writes is only true under one of the three branches. If the ruling has not landed, return
-      the task unstarted and say so. Writing this note early would put a false statement on the
-      operator's own board.
+      NOT BLOCKED - THE RULING LANDED, and the earlier instruction to return this task unstarted is
+      withdrawn. The operator ruled Ready's one meaning and the plan applies it (D-18), so the note
+      this task writes is true on both served boards. What is still worth one sentence in the note:
+      board 2 IS a factory-served board and factory_claim.py:302 polls its ready station for
+      pickable work, which is exactly why the column must mean one thing - and why only TASK cards
+      ever arrive there.
+
+  - id: T-21
+    title: Correct the scaffold template's five-key station instruction
+    traces: [REQ-01, REQ-03]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for .claude/skills/harness/templates/harness.json at 46ee87c
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/templates/harness.json
+    verify: |
+      python3 -c "import json,sys; n=json.load(open('.claude/skills/harness/templates/harness.json'))['github']['_board_note']; assert 'five keys' not in n, n; assert 'six keys' in n, n; assert all(k in n for k in ('backlog','plan','ready','building','review','done')), n; print('OK')"
+    intent: |
+      One sentence in the template a new repository is scaffolded from is falsified by T-02, and it
+      is the sentence that tells a human what to declare.
+
+      .claude/skills/harness/templates/harness.json is the file /harness-init copies into a project
+      joining the fleet. At 46ee87c its github._board_note reads "a stations mapping with exactly
+      the five keys backlog, ready, building, review and done". After T-02 the validator requires
+      SIX, so a repository onboarded from this template declares five keys and
+      factory_config.board_for raises FleetError naming github.board.stations the first time any
+      factory command runs against it - which is precisely the REQ-01 promise this feature exists
+      to make good.
+
+      Change that clause to name the six keys backlog, plan, ready, building, review and done, in
+      that order, and change the count word from five to six. Change nothing else in the note and
+      nothing else in the file: github.board stays null, which is correct - a project has no board
+      until provision creates or resolves one.
+
+      Nobody found this in either review round; it was found at 46ee87c by grepping the tree for
+      station declarations outside the test suite. It is one edit and it is the only surviving
+      five-key statement outside the fixtures T-02 repairs.
+
+  - id: T-22
+    title: Widen INV-26 to accept a done task whose sub-issue is deliberately still open
+    traces: [REQ-08]
+    change_type: bugfix
+    execution_mode: main-session-direct
+    execution_reason: check-state.sh is named in DEC-174's enforcement layer, so no squad may execute a change to it whatever check-domain.sh grants; this is the operator's own hand
+    depends_on: [T-13, T-14]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      ! .claude/skills/harness/bin/check-state.sh | grep -E "INV-26 .*should read"
+    intent: |
+      THIS TASK IS THE OPERATOR'S OWN HAND. DEC-174 names check-state.sh in the enforcement layer
+      and the harness plans changes to it but never executes them. Nothing here may be dispatched
+      to a squad, and no agent may perform the edit. If you are not the operator, stop and say so.
+
+      THE WARRANT. The operator ruled on 2026-08-23 - ruling 4 in notes/rulings-2026-08-23.md -
+      that the gate is fixed rather than the lifecycle reopened, and accepted this task, D-24 and
+      SC-20 by name. Ruling 1 is not reopened. The ruling separates two words this task depends on:
+      an issue's STATE is GitHub's own field, open or closed, two values; a card's STATION is the
+      board column, six values. The confirmed lifecycle is Ready/open at signature,
+      Building/open while work runs, REVIEW/OPEN once every sub-issue is done building, and
+      Done/closed at merge. The issue stays open for a mechanical reason: GitHub's native Item
+      closed workflow moves a closed issue's card to the done column by itself, so closing at
+      commit makes the review station unobservable. That is the measured reason board 3 has never
+      held a card at Review.
+
+      ORDERING AGAINST THE OTHER LIVE FEATURE. FEAT-26 is APPROVED and unbuilt (its plan.yaml
+      approval reads approved 2026-08-23, all eight tasks pending, measured at 57e18ca), and its
+      T-05 adds INV-28 to these same two files. Whichever lands second re-derives: find _EXPECT and
+      the elif that appends the INV-26 station finding BY SYMBOL, never by the line numbers written
+      here, and do not touch INV-28 if it is already present.
+
+      WHY IT IS UNAVOIDABLE (D-24). INV-26 builds _EXPECT at check-state.sh:1234 as
+      {"building": stations["building"], "done": stations["done"], "pending": stations["backlog"]}
+      and compares every recorded sub-issue's card against it at :1304-1318 - _want at :1304, the
+      silent skip at :1305-1306, the elif that appends the violation at :1315-1318, all re-derived
+      at 57e18ca. Until now a task whose
+      status is done had a CLOSED sub-issue, which GitHub's native Item closed workflow lands in the
+      done column, so the invariant always agreed. Under the operator's ruling of 2026-08-23 (D-23)
+      the sub-issue is deliberately left OPEN and stands at the building or review column for the
+      whole Review phase. Without this change every done task of every in-flight feature becomes an
+      INV-26 violation in the gate that runs at every harness door and before every commit -
+      including this feature's own validate phase, which is why T-11 depends on this task.
+
+      THE CHANGE, and keep it as narrow as this: a recorded sub-issue whose task status is done
+      satisfies INV-26 when its card reads the done station OR the review station OR the building
+      station, and ONLY while the feature's own feature.json status is Review. Outside that status
+      the expectation is unchanged and stays exactly the done station, so a shipped feature with a
+      stray card is still caught. Say in the code comment which ruling widened it and why the
+      widening is bounded by feature.json status rather than being unconditional - an unconditional
+      widening would silence the mis-columned done card the invariant was extended to catch.
+
+      PROVE IT THE WAY DEC-174 amendment 4 requires (DECISIONS.md, DEC-174 amendment 4, the "where
+      the line falls for a library a gate calls" paragraph): capture check-state.sh's FULL finding
+      list before the edit and again after, and show that the two differ ONLY by the INV-26 station
+      findings this change is meant to remove. Any other finding that appears or disappears is a
+      defect in the edit. Put both captures in the task's own record under this feature's notes/.
+
+      Add the matching cases to test-check-state.py in the SAME act - a gate whose new acceptance
+      has no test is a hole, and that file is the gate's own test, which DEC-174 also reserves to
+      this hand: a feature at status Review with a done task whose card reads the review station is
+      ACCEPTED; the same feature at status Done with the same card is still a VIOLATION; a done task
+      whose card reads the backlog station is a VIOLATION at either status.
+
+      DO NOT touch any other invariant, do not touch check-domain.sh, bash-write-guard.sh,
+      validate-digest.py or check-plan-routes.py - SC-10's four-file list still binds - and do not
+      take the cheap route of giving the task a status INV-26 does not map, which would skip the
+      comparison silently instead of widening it honestly.
