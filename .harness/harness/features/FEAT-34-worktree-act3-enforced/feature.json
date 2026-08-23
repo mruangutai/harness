@@ -1,0 +1,31 @@
+{
+  "feature_id": "FEAT-34-worktree-act3-enforced",
+  "branch": "none",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-23-1-product",
+      "squad": "product",
+      "agent": "harness-pm",
+      "verdict": "PASS"
+    },
+    {
+      "id": "brief-fix-1-product",
+      "squad": "product",
+      "agent": "harness-pm",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": null,
+    "parent": 728,
+    "parent_origin": "existing",
+    "attached": [],
+    "issues": {}
+  }
+}
