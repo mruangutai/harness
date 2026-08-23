@@ -5631,6 +5631,35 @@ ready station option per poll; it becomes one such query per repository served p
 with FLEET SIZE and not with board size — a fleet of one repository pays exactly what the original
 model priced, and each repository added costs one more server-side query, whatever its board holds.
 
+### DEC-186 amendment 2 (2026-08-23) — the read-back bound widens to FOUR, and the fourth is `/harness-init` reading a board's workflow list
+
+**The set was closed at three and it is now closed at four.** The fourth purpose is learning **which
+of a board's native workflows are enabled** — `Item closed`, `Auto-close issue`, `Pull request
+merged`. It is bounded to `/harness-init`: no other surface makes this read, and nothing in a build,
+a claim or a station flip may reach for it.
+
+**Widened by an operator ruling, not by re-categorisation.** FEAT-33's plan argued the read is
+*configuration* rather than *control flow* and therefore already inside the bound. The architecture
+review rejected that, correctly: the third purpose was added on 2026-08-08 by an explicit ruling
+recorded as a widening by exactly one item, and re-labelling a fourth read is not the same act. The
+operator was given both branches — widen, or drop REQ-02 — and ruled to widen on 2026-08-23. This
+amendment is that ruling.
+
+**The reason is that the harness does not move cards to `Done` — GitHub does.** When `Item closed`
+fires, a closed issue's card moves. When it is off, every card stops moving and nothing reports it;
+the failure is discovered by a human noticing the board looks wrong. Measured the same day this was
+ruled: FEAT-32's parent `#700` read `Building` while its `feature.json` read `Review`, and its
+sub-issue cards reached `Done` only because that workflow happened to be on. **A dependency only a
+human click can satisfy, with no reader, is the same shape as an assertion that cannot go red.**
+
+**What it does NOT authorise.** The read is REPORT-ONLY and writes nothing. Only a click enables a
+workflow, so `/harness-init` names each one that is off and says so. A read-back value still never
+enters `BRIEF.md`, `plan.yaml` or any approval block, and the fourth purpose gives no tool a new
+write.
+
+**Not a strike.** DEC-186's ruling, its rationale and amendment 1 stand. What changed is the number,
+from three to four, and the fourth carries its own surface bound.
+
 ## DEC-187 — The test matrix is per-project, and a kind with no runner is excluded by decision, never by inference
 
 The qa gate is the project's only blocking gate, and on 2026-08-09 it could not return a verdict on
