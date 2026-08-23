@@ -216,8 +216,10 @@ Runs after the mirror section above, because it needs the repo pinned. Skip it e
 
 - `python3 .claude/skills/harness/bin/board_lifecycle.py provision` — **read the exit code.**
   `0` provisioned or already correct. `2` the declaration is unusable and the message names the
-  key. `3` a NEW project was created, and its number must be written into that project's
-  `harness.json` `github.board.number` **before anything else runs**.
+  key — **nothing was written**. `3` a NEW project was created AND linked, and its number must be
+  written into that project's `harness.json` `github.board.number` **before anything else runs**.
+  `4` a project was created but linking it FAILED: **the project exists.** Record the number the
+  message names before retrying, or the retry creates a second board.
 - **Provisioning works only for a USER-OWNED board.** Every primitive queries `user(login:)`, and
   an organization-owned project is refused with "organization-owned board not supported". Create
   and configure that by hand; `provision` exits 2 saying so rather than doing something partial.

@@ -180,6 +180,13 @@ case "$*" in
       touch "$FAKE_STATE"
     fi
     exit 0 ;;
+  *"repositories(first:"*)
+    # Fix cycle c1, MUST-FIX 1: board_lifecycle._project_linked_repos's own linkage-guard query
+    # -- a unique marker ("repositories(first:") no other query in this fixture sends, matched
+    # BEFORE the generic "repositoryOwner(login: \$owner)" catch-all below so it never falls
+    # through to that branch's RESOLVE_JSON answer.
+    echo "$LINKED_REPOS_JSON"
+    exit 0 ;;
   *"createProjectV2Field"*)
     echo '{"data":{"createProjectV2Field":{"projectV2Field":{"id":"FIELD_STATUS_NEW"}}}}'
     exit 0 ;;
@@ -225,6 +232,23 @@ _RESOLVE_EXISTS = json.dumps(
                                    "projectV2": {"id": "PVT_PROJ", "title": "Board"}}}})
 _RESOLVE_ABSENT = json.dumps(
     {"data": {"repositoryOwner": {"__typename": "User", "projectV2": None}}})
+
+
+def _linked_repos_json(names, has_next_page=False, end_cursor=None):
+    """Fix cycle c1, MUST-FIX 1: the fixture for `_project_linked_repos`'s own query --
+    `names` is the project's linked-repository connection, ordered."""
+    return json.dumps({"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
+        "repositories": {
+            "nodes": [{"nameWithOwner": n} for n in names],
+            "pageInfo": {"hasNextPage": has_next_page, "endCursor": end_cursor},
+        }}}}})
+
+
+# The default answer every case NOT exercising the linkage guard itself relies on: the fixture's
+# own default repo ("acme/widget") IS linked, so every pre-existing provision case (which never
+# set this env var before this fix) keeps passing unchanged.
+_LINKED_REPOS_DEFAULT = _linked_repos_json(["acme/widget"])
+_LINKED_REPOS_UNLINKED = _linked_repos_json(["acme/other-widget"])
 
 _PROBE_ABSENT = json.dumps(
     {"data": {"repositoryOwner": {"__typename": "User",
@@ -299,7 +323,7 @@ def _served_board_contents_b64(board):
 def run(root, args, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
         options=None, issues=None, stations=None, workflows=None, fail_match=None, cwd=None,
         item_id=None, fake_state=None, issues_after=None, stations_after=None,
-        workflows_after=None, contents_b64=None):
+        workflows_after=None, contents_b64=None, linked_repos=None):
     """Fork the real script. Returns (CompletedProcess, log_lines).
 
     The T-06 `*_after` params (and `fake_state`) are the reconcile-only "before" vs "after"
@@ -327,6 +351,7 @@ def run(root, args, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     env["STATIONS_JSON_AFTER"] = stations_after or ""
     env["WORKFLOWS_JSON_AFTER"] = workflows_after or ""
     env["CONTENTS_B64"] = contents_b64 or ""
+    env["LINKED_REPOS_JSON"] = linked_repos if linked_repos is not None else _LINKED_REPOS_DEFAULT
     env.pop("HARNESS_GH_COST_LOG", None)
     r = subprocess.run(
         [sys.executable, SCRIPT] + args,
@@ -456,6 +481,54 @@ with tempfile.TemporaryDirectory() as base:
     check("no project: never calls createProjectV2Field or updateProjectV2Field",
           not any("createProjectV2Field" in l or "updateProjectV2Field" in l for l in log),
           repr(log))
+
+# ---------------- case 5b (fix cycle c1, MUST-FIX 2): create succeeds, link fails -- honest
+# partial-success reporting, no duplicate-board risk on retry -------------------------------
+# `resolved is None` (no project) forces the create-then-link branch; forcing
+# `linkProjectV2ToRepository` itself to fail proves the project's number reaches stdout BEFORE
+# the failure, and that the exit code is neither 2 (this module's OWN "nothing mutated" code)
+# nor 3 (the clean-success race code) -- both would misreport a run that DID create a project.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT,
+                 fail_match="linkProjectV2ToRepository")
+    check("MUST-FIX 2: create-then-link failure exits 4, never 2 (this module's own "
+          "'nothing mutated' code) or 3 (the clean-success race code) -- this run DID create "
+          "a real project",
+          r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("MUST-FIX 2: the created project's number reaches stdout BEFORE the link failure -- "
+          "a retry must be able to see it and record it rather than create a duplicate",
+          "created project 42" in r.stdout, repr(r.stdout))
+    check("MUST-FIX 2: createProjectV2( was actually called -- the project really was created, "
+          "so 'nothing mutated' would be false",
+          any("createProjectV2(" in l and "createProjectV2Field" not in l for l in log),
+          repr(log))
+    check("MUST-FIX 2: the stderr failure names the created project's number and the repo it "
+          "failed to link",
+          "42" in r.stderr and "acme/widget" in r.stderr, repr(r.stderr))
+
+# ---------------- case 8 (fix cycle c1, MUST-FIX 1): the linkage guard -- a resolved project
+# NOT linked to the served repo refuses, zero mutations, before either field-schema branch ----
+# Reuses case 2's missing-options fixture (which otherwise reaches the mutating "extend" branch)
+# so "zero mutations" is not a vacuous assertion of a run that would have done nothing anyway.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    existing = ["Backlog", "Plan", "Ready", "Building"]
+    r, log = run(root, ["provision"], options=_options_json(existing),
+                 linked_repos=_LINKED_REPOS_UNLINKED)
+    check("linkage guard (MUST-FIX 1): refuses exit 2 when the resolved project is not linked "
+          "to the served repo",
+          r.returncode == 2, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("linkage guard: performs ZERO mutations -- the confused-deputy write never reaches "
+          "the fake",
+          not mutation_calls(log), repr(log))
+    check("linkage guard: the refusal names the project (owner and number), the repo, and why",
+          "9" in r.stderr and "acme" in r.stderr and "acme/widget" in r.stderr
+          and "not linked" in r.stderr, repr(r.stderr))
 
 # ---------------- case 6: an explicit null board -- exits 0, writes nothing --------------
 
@@ -992,6 +1065,30 @@ with tempfile.TemporaryDirectory() as base:
           "REFUSED" in r.stdout and "202" in r.stdout, repr(r.stdout))
     check("retitle (no milestone): NO rename call is issued for it",
           not rename_calls(log), repr(log))
+
+# ---------------- retitle case 2b (fix cycle c1, MUST-FIX 3): a per-ticket GhError does not
+# stop the bulk backfill -- the module docstring's own claim ("caught explicitly here exactly
+# as audit and reconcile catch it") is what this proves true, not merely asserts.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    issues = json.dumps([
+        {"number": 401, "title": "T-1 — first ticket", "milestone": {"title": "FEAT-A"}},
+        {"number": 402, "title": "T-2 — second ticket", "milestone": {"title": "FEAT-B"}},
+    ])
+    r, log = run(root, ["retitle", "--apply"], issues=issues, fail_match="401")
+    rc = rename_calls(log)
+    check("MUST-FIX 3: ticket #401's rename was attempted and failed, but the run continues "
+          "-- ticket #402 is still renamed rather than the run stopping at #401",
+          any("402" in l for l in rc), repr(log))
+    check("MUST-FIX 3: ticket #401's failure is reported on stderr, per-ticket",
+          "401" in r.stderr, repr(r.stderr))
+    check("MUST-FIX 3: exits 1 -- a partial failure must be signalled honestly, never exit 2's "
+          "caller/declaration meaning and never a silent exit 0",
+          r.returncode == 1, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("MUST-FIX 3: the summary reports both the renamed and the failed count",
+          "renamed: 1" in r.stdout and "failed: 1" in r.stdout, repr(r.stdout))
 
 # ---------------- retitle case 3: a ticket already carrying its feature id -- skipped ------
 # A title already starting with its own milestone title followed by " — " is idempotent-skip

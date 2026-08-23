@@ -265,6 +265,17 @@ def main():
         # _project_field_resolve's query does. Ordered from most to least specific so no shorter
         # substring shadows a longer one (createProjectV2Field before createProjectV2().
 
+        if "repositories(first:" in query_text:
+            # board_lifecycle.py's own confused-deputy linkage-guard query (fix cycle c1,
+            # MUST-FIX 1, T-04 FEAT-33) -- `_project_linked_repos`. Answered with exactly the
+            # repo this case's own harness.json declares (github.repo, "acme/widget"), matching
+            # the "linked" case; the "not linked" refusal is exercised unit-side, in
+            # test-board-lifecycle.py, which can vary this response per case.
+            ok(json.dumps({"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
+                "repositories": {"nodes": [{"nameWithOwner": "acme/widget"}],
+                                  "pageInfo": {"hasNextPage": False, "endCursor": None}},
+            }}}}))
+
         if "createProjectV2Field" in query_text:
             # project_single_select_create's mutation.
             name_v = None

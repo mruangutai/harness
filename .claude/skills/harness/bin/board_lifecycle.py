@@ -39,12 +39,23 @@ happened.
 `--dry-run` (the default, matching `reconcile`'s shape) previews every pending rename and the
 projected point cost and performs ZERO writes; `--apply` is required to write. A truncated
 enumeration (the returned count reaches the `--limit`) refuses with exit 2 rather than silently
-backfilling a partial list. A `GhError` from either the enumeration or a rename call propagates
-as exit 4, caught explicitly here exactly as `audit` and `reconcile` catch it — never left to
-`factory_cli.run`'s generic trap, which would exit 2 and read as a caller/declaration error
-rather than a network failure. Exit 0 covers every other outcome, including one or more
-individual tickets REFUSED for lacking a milestone — a per-ticket refusal is reported and
-counted, not a reason to fail the whole run.
+backfilling a partial list. A `GhError` from the ENUMERATION call propagates as exit 4, caught
+explicitly here exactly as `audit` and `reconcile` catch it — never left to `factory_cli.run`'s
+generic trap, which would exit 2 and read as a caller/declaration error rather than a network
+failure.
+
+A `GhError` from an INDIVIDUAL RENAME call (fix cycle c1, MUST-FIX 3) is caught PER-TICKET,
+mirroring `reconcile`'s own apply loop (`_apply_fix`'s caller, above) exactly rather than merely
+being described as doing so: printed to stderr and counted as `failed`, and the run continues to
+the next ticket rather than stopping — a `GhError` on ticket N of a 218-ticket bulk backfill must
+never leave N-1 already-renamed tickets unreported behind a caller/declaration exit code, the
+same "a bulk fix that stops at the first failure leaves the board half migrated" principle
+`reconcile` states for its own apply loop. `--apply` exits 1 if one or more renames FAILED (a
+write was attempted and did not land — a genuine partial-completion signal, distinct from
+`factory_cli`'s generic "nothing to do" meaning for exit 1, exactly as `reconcile` already
+overrides the generic exit-1 meaning for its own residual-findings count) and exits 0 otherwise
+— including when every renamable ticket succeeds, or when the only outcomes were REFUSED-for-
+no-milestone tickets, which are decided-not-attempted and never fail the run.
 
 RECONCILE (T-06) — the write side of `audit`. It runs `_audit_findings` (the SAME detection
 `audit` runs, never re-derived) and fixes exactly the classes a write CAN fix, per finding:
@@ -158,6 +169,20 @@ provision is idempotent, and NEVER infers "there is no project" from a field-res
 Projects v2 board on the operator's account). `factory_gh.project_resolve` is the ONLY signal
 this module trusts to decide "call project_create"; every other GhError from that first read
 propagates unhandled and mutates nothing.
+
+THE LINKAGE GUARD (fix cycle c1, MUST-FIX 1) — read this before changing step 2.5's dispatch.
+`factory_gh.project_resolve` confirms only that a project NUMBER exists under `owner` — its query
+carries no repository linkage at all. Projects v2 numbers are per-OWNER, not per-repo (that is why
+`linkProjectV2ToRepository` exists as a separate mutation), so a SERVED repo's own remote
+harness.json can legitimately name a project that is not linked to it — including this checkout's
+OWN board, under the same owner. Both field-schema mutation branches below (create the field,
+extend it) are UNGUARDED against that: `project_single_select_extend`'s mutation REPLACES the
+option set, so landing on the wrong board there deletes its columns. `_project_linked_repos`,
+below, is the read side T-03 never built (T-03 built the write, `project_link_repository`, but no
+read of the same connection) — one paginated, read-only GraphQL query over the project's own
+`repositories` connection, sent through `factory_gh.run_gh` like `_field_probe`. `provision` refuses
+(exit 2, zero mutations) whenever `repo_name` is absent from it, before either field-schema branch
+runs.
 
 THE FIELD-ID GAP — read this before changing step 3's dispatch. factory_gh.py exposes six
 primitives for board provisioning (T-03) plus the pre-existing `project_field_options`, and NONE
@@ -300,6 +325,64 @@ def _field_probe(owner, number, field):
     return field_obj.get("id"), field_obj.get("__typename")
 
 
+# See the module docstring's THE LINKAGE GUARD section. `repositories` is a project's own
+# connection to every repository `linkProjectV2ToRepository` has linked it to; membership there,
+# never the project's mere existence under `owner`, is what makes `repo_name` the RIGHT board.
+_LINKED_REPOS_QUERY = """query($owner: String!, $number: Int!, $after: String) {
+  repositoryOwner(login: $owner) {
+    __typename
+    ... on ProjectV2Owner {
+      projectV2(number: $number) {
+        repositories(first: 100, after: $after) {
+          nodes { nameWithOwner }
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+    }
+  }
+}
+"""
+
+# 100 repos/page x this cap = 1000 -- the SAME truncation bound retitle's own enumeration refuses
+# at (_RETITLE_LIMIT), applied here to the same "never silently trust a partial list" principle.
+_LINKED_REPOS_PAGE_CAP = 10
+
+
+def _project_linked_repos(owner, number):
+    """Every `owner/name` string `owner`'s project `number` is linked to, read-only, via
+    `_LINKED_REPOS_QUERY` paginated through `repositories(first: 100, after:)`. Mutates nothing.
+
+    Raises `factory_gh.GhError` if the connection exceeds `_LINKED_REPOS_PAGE_CAP` pages rather
+    than returning a partial list a caller could mistake for the complete linkage set -- the same
+    posture retitle's own `--limit`-truncation refusal takes for its enumeration.
+    """
+    names = []
+    after = None
+    for _ in range(_LINKED_REPOS_PAGE_CAP):
+        argv = ["api", "graphql", "-f", "query=" + _LINKED_REPOS_QUERY,
+                "-f", "owner=" + owner, "-F", "number=" + str(number)]
+        if after is not None:
+            argv += ["-f", "after=" + after]
+        env = factory_gh.run_gh(argv, json_out=True)
+        data = env.get("data") or {}
+        repo_owner = data.get("repositoryOwner") or {}
+        project = repo_owner.get("projectV2") or {}
+        conn = project.get("repositories") or {}
+        for node in conn.get("nodes", []):
+            nwo = node.get("nameWithOwner")
+            if nwo:
+                names.append(nwo)
+        page = conn.get("pageInfo") or {}
+        if not page.get("hasNextPage"):
+            return names
+        after = page.get("endCursor")
+    raise factory_gh.GhError(
+        [], None, "", "", "linked-repository list exceeds the page cap",
+        f"{owner} project {number} ({_LINKED_REPOS_PAGE_CAP * 100}+ linked repos)",
+        "raise _LINKED_REPOS_PAGE_CAP or confirm the linkage manually before provisioning",
+    )
+
+
 def _missing_options(declared_stations, board_option_names):
     """The declared values absent from the board, byte-for-byte and case-sensitive (DEC-192),
     preserving declared key order. T-05's DECLARATION finding class calls this SAME helper —
@@ -426,14 +509,49 @@ def cmd_provision(repo_arg):
                 _TOOL, "cannot link the new project", "github.repo is not declared",
                 "pin github.repo in harness.json before provisioning",
             )
+        # Fix cycle c1, MUST-FIX 2: the created project's number is printed BEFORE anything
+        # that can still fail (the link call) -- an exit code that follows a partial mutation
+        # must never read like "nothing mutated" (exit 2, this module's OWN caller/declaration
+        # code), and a naive retry that saw exit 2 here would re-enter this branch and create a
+        # SECOND duplicate board, the exact disaster `project_resolve`'s own docstring names.
         created = factory_gh.project_create(owner, f"{repo_name} board")
-        factory_gh.project_link_repository(created["id"], repo_name)
-        _out(f"no project {number} on {owner} -- created project {created['number']} and "
-             f"linked {repo_name}; record number {created['number']} in {repo_name}'s "
-             f"harness.json")
+        _out(f"no project {number} on {owner} -- created project {created['number']}; record "
+             f"number {created['number']} in {repo_name}'s harness.json")
+        try:
+            factory_gh.project_link_repository(created["id"], repo_name)
+        except factory_gh.GhError as exc:
+            print(
+                f"factory: {_TOOL}: created project {created['number']} on {owner} but "
+                f"failed to link {repo_name} -- {exc}; the project EXISTS (record "
+                f"{created['number']} in {repo_name}'s harness.json now to avoid a duplicate "
+                f"on retry) -- link it manually (project_link_repository) or re-run once the "
+                f"failure is resolved",
+                file=sys.stderr,
+            )
+            sys.exit(4)
+        _out(f"linked {repo_name} to project {created['number']}")
         sys.exit(3)
 
     project_id = resolved["id"]
+
+    # Step 2.5, THE LINKAGE GUARD (fix cycle c1, MUST-FIX 1): `project_resolve` above confirmed
+    # only that project `number` EXISTS under `owner` -- never that it is linked to `repo_name`.
+    # A served repo's own harness.json can name a project under the SAME owner it has no link to
+    # (including this checkout's own board), and the field-schema mutation branches below would
+    # then land on the WRONG board -- `project_single_select_extend`'s mutation REPLACES the
+    # option set, so a wrong union there deletes that board's columns. Refuse before either
+    # branch runs, zero mutations, exactly like the field-wrong-type disaster guard above it.
+    linked = _project_linked_repos(owner, number)
+    if repo_name not in linked:
+        factory_cli.refuse(
+            _TOOL, "project is not linked to this repository",
+            f"project {number} ({owner}) is not linked to {repo_name!r} -- confused-deputy "
+            f"guard: a served repo's own harness.json can name a project under the same owner "
+            f"it has no link to, and the field-schema write below would then land on the wrong "
+            f"board",
+            f"link {repo_name!r} to project {number} ({owner}) with project_link_repository, "
+            f"or correct {repo_name}'s declared board number, before provisioning",
+        )
 
     # Step 3: discriminate "field absent" from "field exists but is not single-select" via
     # _field_probe, never via a message substring on factory_gh's collapsed GhError (see the
@@ -802,14 +920,28 @@ def cmd_retitle(repo_arg, apply):
              f"(2 points per rename, measured 2026-08-22 at f5f5185)")
         return
 
+    # MUST-FIX 3: each rename is caught PER-TICKET, mirroring `reconcile`'s own apply loop
+    # (`cmd_reconcile`'s `for f in findings: ... except (gh_board.BoardError,
+    # factory_gh.GhError)`) -- a failed write for one ticket is printed and counted, and the
+    # run continues to the rest, rather than a `GhError` propagating past this loop into
+    # `factory_cli.run`'s generic trap, which would exit 2 and leave every already-renamed
+    # ticket unreported behind a caller/declaration exit code on a run that partially succeeded.
     renamed = 0
+    failed = 0
     for num, old, new in to_rename:
-        factory_gh.run_gh(["issue", "edit", str(num), "--repo", repo_name, "--title", new])
+        try:
+            factory_gh.run_gh(["issue", "edit", str(num), "--repo", repo_name, "--title", new])
+        except factory_gh.GhError as exc:
+            failed += 1
+            print(f"factory: {_TOOL}: rename failed for #{num} -- {exc}", file=sys.stderr)
+            continue
         renamed += 1
         _out(f"renamed #{num}: {old!r} -> {new!r}")
 
     _out(f"renamed: {renamed}; already correct: {already_correct}; refused: {refused}; "
-         f"points spent (approx): {2 * renamed}")
+         f"failed: {failed}; points spent (approx): {2 * renamed}")
+    if failed:
+        sys.exit(1)
 
 
 def _main():
