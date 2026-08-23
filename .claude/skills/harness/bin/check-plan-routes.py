@@ -644,6 +644,110 @@ def discover_plans():
     return root, sorted(plans), examined
 
 
+INV_TOKEN_RE = re.compile(r"\bINV-([0-9]+)\b")
+
+# The EXPLICIT claim. One spelling that works in both files this scans: a bare
+# `invariants: 29` or `invariants: [29, 30]` line in `plan.yaml`, and the same line inside
+# an HTML comment in `BRIEF.md`, which markdown does not render. A feature may add more
+# than one invariant, so the list form is first-class rather than an afterthought.
+INV_DECL_RE = re.compile(r"^\s*(?:<!--\s*)?invariants:\s*\[?([0-9,\s]+?)\]?\s*(?:-->)?\s*$",
+                         re.M)
+
+
+def live_invariant_numbers(root):
+    """The invariant numbers that ALREADY EXIST, read from the gate script itself.
+
+    Returns a set of ints, or None when the script cannot be read. None is NOT an empty
+    set and the caller must not treat it as one: an empty set would make every number in
+    every plan look newly claimed and fire on plans that merely cite an existing rule.
+    """
+    path = os.path.join(root, ".claude", "skills", "harness", "bin", "check-state.sh")
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return {int(m) for m in INV_TOKEN_RE.findall(f.read())}
+    except OSError:
+        return None
+
+
+def check_invariant_number_collisions(root, findings):
+    """TWO UNBUILT FEATURES MUST NOT CLAIM THE SAME `INV-NN`.
+
+    MEASURED 2026-08-23, and this exists because the gap shipped before the check did.
+    `FEAT-26-pr-linkage-recorded/plan.yaml` used `INV-28` sixteen times while
+    `FEAT-34-worktree-act3-enforced/BRIEF.md` used it eight times. Both features were
+    unbuilt, one was signed and entering its build, and NOTHING saw it — not
+    `check-state.sh`, not this checker, not two review rounds on either feature. A human
+    reading a task list found it.
+
+    The rule given to the planner at the time was "do not infer the next free number from
+    the highest in the file." True, and HALF A CHECK: it names the gate script and says
+    nothing about the signed-but-unbuilt plans of other in-flight features. A number is
+    free only when BOTH halves agree, and only one half was ever mechanised.
+
+    THE FEATURE DIRECTORY IS THE UNIT, NOT THE PLAN. FEAT-34 had a BRIEF and no
+    `plan.yaml` at all, so a plan-only scan reproduces the exact miss. Both files are read
+    where they exist.
+
+    A NUMBER ALREADY IN `check-state.sh` IS A REFERENCE, NOT A CLAIM. Plans discuss
+    existing invariants constantly; firing on those would make this unreadable within a
+    week. Only numbers absent from the gate script are treated as claims.
+
+    SHIPPED FEATURES DO NOT PARTICIPATE. Their plan is a record. A live feature reusing a
+    spent number is a real but different problem, and conflating the two would report the
+    wrong pair of features.
+
+    A GATE SCRIPT THAT CANNOT BE READ SUPPRESSES THE CHECK AND SAYS SO. Silence here would
+    be the same fail-open shape the check exists to catch.
+    """
+    live = live_invariant_numbers(root)
+    if live is None:
+        findings.append("NOTE invariant-collision check SKIPPED — "
+                        ".claude/skills/harness/bin/check-state.sh could not be read, so "
+                        "a claimed number cannot be told from a cited one.")
+        return 0
+
+    claims = {}
+    for fdir in sorted(glob.glob(os.path.join(root, ".harness", "*", "features", "*"))):
+        if not os.path.isdir(fdir) or _is_shipped(fdir):
+            continue
+        name = os.path.basename(fdir)
+        declared, inferred = set(), set()
+        for fname in ("BRIEF.md", "plan.yaml"):
+            fpath = os.path.join(fdir, fname)
+            try:
+                with open(fpath, encoding="utf-8", errors="replace") as f:
+                    text = f.read()
+            except OSError:
+                continue
+            for m in INV_DECL_RE.finditer(text):
+                declared |= {int(n) for n in re.findall(r"[0-9]+", m.group(1))}
+            inferred |= {int(m) for m in INV_TOKEN_RE.findall(text)} - live
+        # A DECLARATION WINS AND PROSE IS ONLY THE FALLBACK, because a feature that
+        # resolves a collision must be able to SAY SO. FEAT-34 documented, correctly, that
+        # it moved to INV-29 "not INV-28, because FEAT-26 holds it and builds first" — and
+        # the prose scan read those three citations as a claim and reported a collision
+        # that no longer existed. Punishing a feature for recording its own reasoning is
+        # the wrong incentive, and the check would have been switched off within a week.
+        #
+        # THE DECLARATION IS NOT AN ESCAPE HATCH. Two features declaring the same number
+        # still collide, which case_26g asserts with NEITHER brief writing the token in
+        # prose — so only the declaration path can catch that pair.
+        for num in (declared or inferred):
+            claims.setdefault(num, set()).add(name)
+
+    count = 0
+    for num in sorted(claims):
+        owners = sorted(claims[num])
+        if len(owners) > 1:
+            count += 1
+            findings.append(
+                f"VIOLATION INV-{num} is claimed by {len(owners)} unbuilt features: "
+                f"{', '.join(owners)}. A number is free only when it is absent from "
+                f"check-state.sh AND unclaimed by every signed-but-unbuilt plan. "
+                f"Decide which feature builds first; it keeps the number.")
+    return count
+
+
 def main(argv):
     # The root guard is ARGV-LESS ONLY. `check-plan-routes.py <path>` must keep working
     # from a directory with no .harness/ anywhere — the caller named the file, so there
@@ -666,6 +770,13 @@ def main(argv):
             sys.exit(2)
         total_violations += count
         processed += 1
+
+    # THE CROSS-FEATURE PASS, ARGV-LESS ONLY. It compares features against each other, so
+    # it needs the whole tree; with explicit paths the caller named the files and there is
+    # no tree to reason about. `examined is not None` is the same discovery marker the
+    # summary line below already keys on.
+    if examined is not None:
+        total_violations += check_invariant_number_collisions(root, findings)
 
     for line in findings:
         print(line)

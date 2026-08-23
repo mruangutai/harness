@@ -1200,6 +1200,162 @@ def case_20():
     return ok
 
 
+def _inv_project(td, features):
+    """A fixture project with N feature dirs and a stub check-state.sh.
+
+    `features` is a list of (dir_name, status, brief_text, plan_text_or_None). A plan of
+    None writes NO plan.yaml at all — that is the FEAT-34 shape, the one that actually got
+    through: a signed BRIEF claiming an invariant number, with no plan yet in existence, so
+    a plan-only scan never sees it.
+    """
+    import shutil as _sh
+    os.makedirs(os.path.join(td, ".harness"), exist_ok=True)
+    _sh.copy2(os.path.join(REPO_ROOT, ".harness", "team-config.yaml"),
+              os.path.join(td, ".harness", "team-config.yaml"))
+    binp = os.path.join(td, ".claude", "skills", "harness", "bin")
+    os.makedirs(binp, exist_ok=True)
+    # The LIVE set. Only these three exist in this fixture's gate script.
+    with open(os.path.join(binp, "check-state.sh"), "w") as f:
+        f.write("#!/bin/bash\n# INV-1 something\n# INV-2 another\n# INV-3 a third\n")
+    for name, status, brief, plan in features:
+        fd = os.path.join(td, ".harness", "harness", "features", name)
+        os.makedirs(fd, exist_ok=True)
+        with open(os.path.join(fd, "feature.json"), "w") as f:
+            json.dump({"feature_id": name, "status": status}, f)
+        with open(os.path.join(fd, "BRIEF.md"), "w") as f:
+            f.write(brief)
+        if plan is not None:
+            with open(os.path.join(fd, "plan.yaml"), "w") as f:
+                f.write(plan)
+    return td
+
+
+_INV_PLAN = ("approval:\n  status: approved\n\ntasks:\n"
+             "  - id: T-01\n    title: t\n    traces: [REQ-01]\n"
+             "    change_type: logic\n    execution_mode: main-session-direct\n"
+             "    execution_reason: none\n    status: pending\n"
+             "    files:\n      - .harness/harness.json\n"
+             "    verify: |\n      true\n    intent: |\n      x\n")
+
+
+def case_26():
+    """(26) TWO UNBUILT FEATURES CANNOT CLAIM THE SAME INV NUMBER.
+
+    MEASURED 2026-08-23, and this case exists because the main session shipped the gap it
+    is closing. FEAT-26's plan.yaml used `INV-28` sixteen times and FEAT-34's BRIEF used it
+    eight times. Both were unbuilt, both were signed or about to be, and NOTHING saw it —
+    not check-state.sh, not this checker, not two review rounds. It was found by a human
+    reading a task list.
+
+    The instruction given to pm at the time was "do not infer the next free number from the
+    highest in the file". Correct, and half a check: it names check-state.sh and says
+    nothing about the signed-but-unbuilt plans of other in-flight features. A number is
+    free only when BOTH halves agree, and only one half was mechanised.
+
+    WHY THE FEATURE DIR AND NOT THE PLAN. FEAT-34 had no plan.yaml at all — a BRIEF and
+    nothing else. A plan-only scan would have reproduced the exact miss, which is why
+    case_26c writes a feature with no plan and expects it to still participate.
+    """
+    # (a) THE COLLISION. Two unshipped features, same unclaimed number, both named.
+    with tempfile.TemporaryDirectory() as td:
+        _inv_project(td, [
+            ("FEAT-A", "Ready", "The new invariant is INV-9.\n", _INV_PLAN),
+            ("FEAT-B", "Plan", "Add INV-9, which reports the thing.\n", _INV_PLAN),
+        ])
+        r = run(project_dir=td)
+        out = r.stdout + r.stderr
+        ok = (r.returncode != 0 and "INV-9" in out
+              and "FEAT-A" in out and "FEAT-B" in out)
+        check("case_26a_two_unbuilt_features_claiming_INV-9_is_a_VIOLATION_naming_both",
+              ok, f"exit {r.returncode}: {out[:400]!r}")
+
+    # (b) DIFFERENT numbers are clean — without this, "always violate" passes (a).
+    with tempfile.TemporaryDirectory() as td:
+        _inv_project(td, [
+            ("FEAT-A", "Ready", "The new invariant is INV-9.\n", _INV_PLAN),
+            ("FEAT-B", "Plan", "Add INV-10, which reports the thing.\n", _INV_PLAN),
+        ])
+        r = run(project_dir=td)
+        out = r.stdout + r.stderr
+        check("case_26b_distinct_INV_numbers_are_CLEAN",
+              r.returncode == 0 and "INV-9" not in out and "INV-10" not in out,
+              f"exit {r.returncode}: {out[:400]!r}")
+
+    # (c) THE SHAPE THAT ACTUALLY GOT THROUGH: a feature with a BRIEF and NO plan.yaml.
+    with tempfile.TemporaryDirectory() as td:
+        _inv_project(td, [
+            ("FEAT-A", "Ready", "Add INV-9 to the gate.\n", _INV_PLAN),
+            ("FEAT-B", "Plan", "The new invariant is INV-9.\n", None),
+        ])
+        r = run(project_dir=td)
+        out = r.stdout + r.stderr
+        ok = (r.returncode != 0 and "INV-9" in out
+              and "FEAT-A" in out and "FEAT-B" in out)
+        check("case_26c_a_feature_with_a_BRIEF_and_NO_plan_still_collides",
+              ok, f"exit {r.returncode}: {out[:400]!r}")
+
+    # (d) A number ALREADY LIVE in check-state.sh is a REFERENCE, not a claim. Two features
+    #     citing INV-2 are discussing an invariant that exists; that must stay clean or the
+    #     check fires on every plan that mentions an existing rule.
+    with tempfile.TemporaryDirectory() as td:
+        _inv_project(td, [
+            ("FEAT-A", "Ready", "This interacts with INV-2.\n", _INV_PLAN),
+            ("FEAT-B", "Plan", "INV-2 already grades that card.\n", _INV_PLAN),
+        ])
+        r = run(project_dir=td)
+        out = r.stdout + r.stderr
+        check("case_26d_two_features_citing_a_LIVE_invariant_is_CLEAN",
+              r.returncode == 0 and "VIOLATION" not in out,
+              f"exit {r.returncode}: {out[:400]!r}")
+
+    # (e) A SHIPPED feature's claim is a record, not a contract. Its number is spent, and a
+    #     live feature reusing it is a different problem from two live features colliding.
+    with tempfile.TemporaryDirectory() as td:
+        _inv_project(td, [
+            ("FEAT-A", "Done", "Added INV-9.\n", _INV_PLAN),
+            ("FEAT-B", "Plan", "The new invariant is INV-9.\n", _INV_PLAN),
+        ])
+        r = run(project_dir=td)
+        out = r.stdout + r.stderr
+        check("case_26e_a_SHIPPED_feature_does_not_collide_with_a_live_one",
+              r.returncode == 0 and "VIOLATION" not in out,
+              f"exit {r.returncode}: {out[:400]!r}")
+
+    # (f) A DECLARATION WINS OVER PROSE. FEAT-B declares 10 and merely CITES 9 while
+    #     explaining why it moved. That is history, not a claim, and the check must not
+    #     fire on a feature for documenting the collision it already resolved.
+    with tempfile.TemporaryDirectory() as td:
+        _inv_project(td, [
+            ("FEAT-A", "Ready", "Add INV-9 to the gate.\n", _INV_PLAN),
+            ("FEAT-B", "Plan",
+             "<!-- invariants: 10 -->\nThe new invariant is INV-10, not INV-9, "
+             "because FEAT-A holds INV-9 and builds first.\n", _INV_PLAN),
+        ])
+        r = run(project_dir=td)
+        out = r.stdout + r.stderr
+        check("case_26f_a_DECLARATION_beats_a_prose_citation",
+              r.returncode == 0 and "VIOLATION INV-9" not in out,
+              f"exit {r.returncode}: {out[:400]!r}")
+
+    # (g) THE DECLARATION IS NOT AN ESCAPE HATCH. Two features DECLARING the same number
+    #     still collide — without this, "declare anything and be excused" passes (f).
+    with tempfile.TemporaryDirectory() as td:
+        _inv_project(td, [
+            # NEITHER BRIEF WRITES THE TOKEN `INV-9` IN PROSE. If it did, the prose scan
+            # alone would catch the pair and this case would pass without the declaration
+            # path existing at all — which is exactly how it passed before the feature
+            # was implemented.
+            ("FEAT-A", "Ready", "<!-- invariants: 9 -->\nAdds one invariant.\n", _INV_PLAN),
+            ("FEAT-B", "Plan", "<!-- invariants: 9 -->\nAdds one invariant.\n", _INV_PLAN),
+        ])
+        r = run(project_dir=td)
+        out = r.stdout + r.stderr
+        ok = (r.returncode != 0 and "INV-9" in out
+              and "FEAT-A" in out and "FEAT-B" in out)
+        check("case_26g_two_features_DECLARING_the_same_number_still_collide",
+              ok, f"exit {r.returncode}: {out[:400]!r}")
+
+
 def main():
     case_01_02_03()
     case_04()
@@ -1219,6 +1375,7 @@ def main():
     case_23()
     case_24()
     case_25()
+    case_26()
 
     if failures:
         print(f"\n{len(failures)} FAILURE(S): {failures}")
