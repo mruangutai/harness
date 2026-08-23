@@ -3,11 +3,36 @@
 
 Usage: board_lifecycle.py <provision|audit|reconcile> [--repo <owner/name>]
 
-Only `provision` is wired up here. `audit` (T-05) and `reconcile` (T-06) grow this same file
+`provision` (T-04) and `audit` (T-05) are wired up here. `reconcile` (T-06) grows this same file
 later — one bin, three subcommands over one board-resolution path (D-08) — so the usage line
-above already names all three even though the argument parser below only registers `provision`;
-registering a subcommand with nothing behind it would be exactly the placeholder this task's
-zero-placeholder gate refuses.
+above already names all three even though the argument parser below does not yet register
+`reconcile`; registering a subcommand with nothing behind it would be exactly the placeholder
+this task's zero-placeholder gate refuses.
+
+AUDIT (T-05) — read-only, exits 0/1/4, never 2 or 3 (those are provision's own codes for a
+caller/declaration error and the new-project race). It performs EXACTLY FOUR network calls, one
+answering each bullet below, and this count is the one a later reader is told to trust — if a
+future change adds a fifth call, name it here rather than silently letting this figure go stale:
+  1. `factory_gh.project_field_options` — the board's Status field option names (DECLARATION).
+  2. `gh issue list --repo <repo> --state closed --json number,stateReason,labels --limit 1000`
+     — every closed issue's number, close reason and labels (REASON, LABEL, and feeds STATION).
+  3. `gh_board.board_stations` — the targeted, cost-1 station read (STATION).
+  4. `factory_gh.project_workflows` — the three named automation workflows (WORKFLOW).
+
+The five finding classes are closed (T-05 intent): DECLARATION (a declared station value the
+board's Status field does not carry — via `_missing_options`, the SAME helper `provision` calls,
+never re-authored), STATION (a closed board issue not at the declared done station), REASON (a
+closed issue with a null close reason), LABEL (a `not_planned` issue with no `abandoned` label),
+WORKFLOW (one of "Item closed", "Auto-close issue", "Pull request merged" absent or disabled).
+Workflow detection is by NAME only — `ProjectV2Workflow` exposes neither `trigger` nor `action`
+(D-09) — so a workflow the operator renamed is reported MISSING rather than assumed present; the
+report says this once, in its own header line (SC-09), and every WORKFLOW finding line also says
+no API can enable it and only a click in the project's web UI can.
+
+Failure posture is the INVERSE of gh-sync.py's mirror posture (DEC-186): this is a control-plane
+tool, so a `GhError` propagates as one line on stderr and exit 4 — never exit 1, which means
+"findings were found", and never a silent zero-finding report. An audit that could not run must
+never be mistaken for an audit that found nothing.
 
 BOARD RESOLUTION, one code path for both repositories (T-04 intent):
   - no --repo, or --repo naming THIS checkout's own harness.json `github.repo`: the board comes
@@ -225,6 +250,116 @@ def cmd_provision(repo_arg):
     _out(f"added {len(missing)} option(s) to {field!r}: {', '.join(missing)}")
 
 
+# The three workflows every board needs (T-05 intent, finding class 5). Matched by NAME only —
+# ProjectV2Workflow exposes neither trigger nor action (D-09) — so a renamed workflow is reported
+# MISSING rather than assumed present.
+_REQUIRED_WORKFLOWS = ("Item closed", "Auto-close issue", "Pull request merged")
+
+_WORKFLOW_HEADER = (
+    "workflow detection matches by NAME only -- ProjectV2Workflow exposes neither trigger nor "
+    "action, so a workflow the operator renamed is reported MISSING rather than assumed present"
+)
+_WORKFLOW_SUFFIX = "no API can enable it -- only a click in the project's web UI can"
+
+
+def _audit_findings(board, repo_name):
+    """The closed, finite finding list (T-05 intent). Read-only: no mutation, anywhere.
+
+    Performs exactly the four network calls the module docstring's AUDIT section names, in the
+    order: field options (class 1), the closed-issue list (feeds classes 2, 3 and 4), the board
+    station read (class 2), the project workflows read (class 5).
+    """
+    owner, number, field = board["owner"], board["number"], board["station_field"]
+    done_station = board["stations"]["done"]
+    findings = []
+
+    # Class 1 -- DECLARATION. Call 1/4.
+    declared = _declared_stations(board)
+    options = factory_gh.project_field_options(owner, number, field)
+    value_to_key = {v: k for k, v in board["stations"].items()}
+    for value in _missing_options(declared, options):
+        key = value_to_key.get(value, "?")
+        findings.append(
+            f"DECLARATION: station {key!r} (declared value {value!r}) is not among project "
+            f"{number}'s Status options"
+        )
+
+    # The closed-issue read feeding classes 2, 3 and 4. Call 2/4.
+    issues = factory_gh.run_gh(
+        ["issue", "list", "--repo", repo_name, "--state", "closed",
+         "--json", "number,stateReason,labels", "--limit", "1000"],
+        json_out=True,
+    )
+
+    # Class 2 -- STATION. Call 3/4.
+    stations = gh_board.board_stations(board, repo_name)
+    for issue in issues:
+        num = issue.get("number")
+        if num in stations and stations[num] != done_station:
+            findings.append(
+                f"STATION: issue #{num} reads {stations[num]!r}, expected {done_station!r}"
+            )
+
+    # Class 3 -- REASON.
+    for issue in issues:
+        if issue.get("stateReason") is None:
+            findings.append(f"REASON: issue #{issue.get('number')} is closed with no state_reason")
+
+    # Class 4 -- LABEL.
+    for issue in issues:
+        reason = (issue.get("stateReason") or "").upper()
+        if reason == "NOT_PLANNED":
+            names = {l.get("name") for l in issue.get("labels", []) if isinstance(l, dict)}
+            if "abandoned" not in names:
+                findings.append(
+                    f"LABEL: issue #{issue.get('number')} is not_planned and carries no "
+                    f"'abandoned' label"
+                )
+
+    # Class 5 -- WORKFLOW. Call 4/4.
+    _out(_WORKFLOW_HEADER)
+    workflows = factory_gh.project_workflows(owner, number)
+    by_name = {w["name"]: w for w in workflows}
+    for name in _REQUIRED_WORKFLOWS:
+        w = by_name.get(name)
+        if w is None:
+            findings.append(f"WORKFLOW: {name!r} is MISSING -- {_WORKFLOW_SUFFIX}")
+        elif not w.get("enabled"):
+            findings.append(f"WORKFLOW: {name!r} is disabled -- {_WORKFLOW_SUFFIX}")
+
+    return findings
+
+
+def cmd_audit(repo_arg):
+    root = factory_config.harness_root()
+    repo_name, board = _resolve_board(root, repo_arg)
+    if board is None:
+        # D-07: an explicit `github.board: null` is a declaration, not a misconfiguration.
+        _out("no board declared -- nothing to audit")
+        return
+    if not repo_name:
+        factory_cli.refuse(
+            _TOOL, "cannot audit", "github.repo is not declared",
+            "pin github.repo in harness.json before auditing",
+        )
+
+    # DEC-186's inverse-of-the-mirror posture: a GhError here means the audit COULD NOT RUN, and
+    # must never read like "ran and found nothing" (exit 0) or "ran and found something" (exit
+    # 1) -- it gets its own exit code, 4, caught here rather than left to factory_cli.run's
+    # generic expected-exception trap (which would exit 2, provision's own caller-error code).
+    try:
+        findings = _audit_findings(board, repo_name)
+    except factory_gh.GhError as exc:
+        print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
+        sys.exit(4)
+
+    for f in findings:
+        _out(f)
+    _out(f"{len(findings)} finding(s)")
+    if findings:
+        sys.exit(1)
+
+
 def _main():
     parser = argparse.ArgumentParser(
         prog="board_lifecycle.py",
@@ -233,9 +368,13 @@ def _main():
     sub = parser.add_subparsers(dest="cmd", required=True)
     p_provision = sub.add_parser("provision")
     p_provision.add_argument("--repo", default=None)
+    p_audit = sub.add_parser("audit")
+    p_audit.add_argument("--repo", default=None)
     args = parser.parse_args()
     if args.cmd == "provision":
         cmd_provision(args.repo)
+    elif args.cmd == "audit":
+        cmd_audit(args.repo)
 
 
 if __name__ == "__main__":

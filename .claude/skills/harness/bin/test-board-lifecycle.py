@@ -85,7 +85,26 @@ FAKE_GH_SRC = r'''#!/bin/bash
 # physical line in FAKE_LOG. Skipping the newline collapse would split one call across several
 # log lines and make a positional .find()-ordering assertion compare the wrong lines.
 echo "$*" | tr '\n' ' ' | tr ' ' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+# T-05's GhError case (exit 4): FAIL_MATCH, when set, forces any call whose argv contains it to
+# fail BEFORE the normal dispatch below sees it -- so "an audit that could not run" is a real
+# failure of one specific network call, not a fake gap.
+if [ -n "$FAIL_MATCH" ]; then
+  case "$*" in
+    *"$FAIL_MATCH"*)
+      echo "fake_gh: forced failure for T-05's GhError case" >&2
+      exit 1 ;;
+  esac
+fi
 case "$*" in
+  *"issue list"*)
+    echo "$ISSUES_JSON"
+    exit 0 ;;
+  *"fieldValueByName"*)
+    echo "$STATIONS_JSON"
+    exit 0 ;;
+  *"workflows(first:"*)
+    echo "$WORKFLOWS_JSON"
+    exit 0 ;;
   *"createProjectV2Field"*)
     echo '{"data":{"createProjectV2Field":{"projectV2Field":{"id":"FIELD_STATUS_NEW"}}}}'
     exit 0 ;;
@@ -146,6 +165,36 @@ def _options_json(names):
 
 _ALL_SIX = ["Backlog", "Plan", "Ready", "Building", "Review", "Done"]
 
+# T-05 additions -- the three read-only queries `audit` sends that `provision` never does.
+
+_ALL_WORKFLOWS_ENABLED = json.dumps(
+    {"data": {"user": {"projectV2": {"workflows": {"nodes": [
+        {"name": "Item closed", "enabled": True, "number": 1},
+        {"name": "Auto-close issue", "enabled": True, "number": 2},
+        {"name": "Pull request merged", "enabled": True, "number": 3},
+    ]}}}}})
+
+
+def _workflows_json(workflows):
+    """workflows: list of (name, enabled) pairs."""
+    nodes = [{"name": n, "enabled": e, "number": i + 1} for i, (n, e) in enumerate(workflows)]
+    return json.dumps({"data": {"user": {"projectV2": {"workflows": {"nodes": nodes}}}}})
+
+
+def _stations_json(mapping, repo="acme/widget"):
+    """mapping: {issue_number: station_name_or_None}, exactly `board_stations`'s own shape."""
+    nodes = []
+    for num, station in mapping.items():
+        nodes.append({
+            "content": {"number": num, "repository": {"nameWithOwner": repo}},
+            "fieldValueByName": {"name": station} if station is not None else None,
+        })
+    return json.dumps({"data": {"user": {"projectV2": {"items": {
+        "totalCount": len(nodes),
+        "pageInfo": {"hasNextPage": False, "endCursor": None},
+        "nodes": nodes,
+    }}}}})
+
 
 def install_gh(tmp):
     path = os.path.join(tmp, "fake-gh")
@@ -156,7 +205,7 @@ def install_gh(tmp):
 
 
 def run(root, args, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
-        options=None, cwd=None):
+        options=None, issues=None, stations=None, workflows=None, fail_match=None, cwd=None):
     """Fork the real script. Returns (CompletedProcess, log_lines)."""
     tmp = os.path.dirname(root) if os.path.basename(root) == "root" else root
     gh_path = install_gh(tmp)
@@ -169,6 +218,10 @@ def run(root, args, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     env["RESOLVE_JSON"] = resolve
     env["PROBE_JSON"] = probe
     env["OPTIONS_JSON"] = options if options is not None else _options_json(_ALL_SIX)
+    env["ISSUES_JSON"] = issues if issues is not None else "[]"
+    env["STATIONS_JSON"] = stations if stations is not None else _stations_json({})
+    env["WORKFLOWS_JSON"] = workflows if workflows is not None else _ALL_WORKFLOWS_ENABLED
+    env["FAIL_MATCH"] = fail_match or ""
     env.pop("HARNESS_GH_COST_LOG", None)
     r = subprocess.run(
         [sys.executable, SCRIPT] + args,
@@ -319,6 +372,127 @@ with tempfile.TemporaryDirectory() as base:
     check("unknown --repo: exits 2, naming the repo, with no gh call at all",
           r.returncode == 2 and not log and "acme/unknown-repo" in r.stderr,
           f"rc={r.returncode} stderr={r.stderr!r} log={log}")
+
+# ============================================================================
+# T-05: board_lifecycle.py audit -- the finite finding list, including workflow state.
+# Every case sets BOTH FACTORY_GH and GH_SYNC_GH to the same fake (D-11), via `run()` above.
+# ============================================================================
+
+# ---------------- audit case 1: a clean board -- exit 0, zero findings -------------------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["audit"])
+    check("audit clean board: exits 0",
+          r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("audit clean board: reports zero findings",
+          "0 finding(s)" in r.stdout, repr(r.stdout))
+    check("audit clean board: no finding-class marker on stdout",
+          not any(m in r.stdout for m in
+                  ("DECLARATION:", "STATION:", "REASON:", "LABEL:", "WORKFLOW:")),
+          repr(r.stdout))
+
+# ---------------- audit case 2: DECLARATION -- a declared value the board lacks ----------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["audit"], options=_options_json(["Backlog", "Ready", "Building",
+                                                          "Review", "Done"]))
+    check("audit DECLARATION: exits 1", r.returncode == 1, f"rc={r.returncode}")
+    check("audit DECLARATION: names the missing key and value on stdout",
+          "DECLARATION" in r.stdout and "'plan'" in r.stdout and "'Plan'" in r.stdout,
+          repr(r.stdout))
+
+# ---------------- audit case 3: STATION -- a closed board issue off the done station -----
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    issues = json.dumps([{"number": 10, "stateReason": "COMPLETED", "labels": []}])
+    r, log = run(root, ["audit"], issues=issues, stations=_stations_json({10: "Building"}))
+    check("audit STATION: exits 1", r.returncode == 1, f"rc={r.returncode}")
+    check("audit STATION: names the issue, its actual and expected station",
+          "STATION" in r.stdout and "#10" in r.stdout
+          and "'Building'" in r.stdout and "'Done'" in r.stdout,
+          repr(r.stdout))
+
+# ---------------- audit case 4: REASON -- a closed issue with a null close reason --------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    issues = json.dumps([{"number": 20, "stateReason": None, "labels": []}])
+    r, log = run(root, ["audit"], issues=issues)
+    check("audit REASON: exits 1", r.returncode == 1, f"rc={r.returncode}")
+    check("audit REASON: names the issue",
+          "REASON" in r.stdout and "#20" in r.stdout, repr(r.stdout))
+
+# ---------------- audit case 5: LABEL -- not_planned with no abandoned label -------------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    issues = json.dumps([{"number": 30, "stateReason": "NOT_PLANNED", "labels": []}])
+    r, log = run(root, ["audit"], issues=issues)
+    check("audit LABEL: exits 1", r.returncode == 1, f"rc={r.returncode}")
+    check("audit LABEL: names the issue",
+          "LABEL" in r.stdout and "#30" in r.stdout, repr(r.stdout))
+
+    # a sibling not_planned issue that DOES carry the label produces no LABEL finding.
+    issues_ok = json.dumps([{"number": 31, "stateReason": "NOT_PLANNED",
+                              "labels": [{"name": "abandoned"}]}])
+    r2, log2 = run(root, ["audit"], issues=issues_ok)
+    check("audit LABEL: a not_planned issue carrying the abandoned label is NOT a finding",
+          r2.returncode == 0 and "LABEL" not in r2.stdout, repr(r2.stdout))
+
+# ---------------- audit case 6: WORKFLOW -- renamed/absent reports MISSING ---------------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    workflows = _workflows_json([("Item closed", True), ("Auto-close issue", True)])
+    r, log = run(root, ["audit"], workflows=workflows)
+    check("audit WORKFLOW (renamed/absent): exits 1", r.returncode == 1, f"rc={r.returncode}")
+    check("audit WORKFLOW (renamed/absent): reports 'Pull request merged' MISSING",
+          "WORKFLOW" in r.stdout and "'Pull request merged'" in r.stdout
+          and "MISSING" in r.stdout, repr(r.stdout))
+    check("audit WORKFLOW: the header names detection-by-name, once, on every run",
+          r.stdout.count("workflow detection matches by NAME only") == 1, repr(r.stdout))
+
+# ---------------- audit case 7: WORKFLOW -- present but disabled -------------------------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    workflows = _workflows_json([("Item closed", True), ("Auto-close issue", False),
+                                  ("Pull request merged", True)])
+    r, log = run(root, ["audit"], workflows=workflows)
+    check("audit WORKFLOW (disabled): exits 1", r.returncode == 1, f"rc={r.returncode}")
+    check("audit WORKFLOW (disabled): reports 'Auto-close issue' disabled",
+          "WORKFLOW" in r.stdout and "'Auto-close issue'" in r.stdout
+          and "disabled" in r.stdout, repr(r.stdout))
+    check("audit WORKFLOW (disabled): says no API can enable it, only the web UI can",
+          "no API can enable it" in r.stdout and "web UI" in r.stdout, repr(r.stdout))
+
+# ---------------- audit case 8: a GhError propagates as exit 4, no findings printed ------
+# DEC-186's inverse-of-the-mirror posture (T-05 intent): an audit that could not run must
+# never be mistaken for exit 0 (clean) or exit 1 (findings). Forces the FIRST of the audit's
+# four network calls (project_field_options) to fail, so nothing after it ever runs.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["audit"], fail_match="options { id name }")
+    check("audit GhError: exits 4, never 0 or 1",
+          r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("audit GhError: prints nothing that looks like a finding or a clean report",
+          not any(m in r.stdout for m in
+                  ("DECLARATION:", "STATION:", "REASON:", "LABEL:", "WORKFLOW:", "finding(s)")),
+          repr(r.stdout))
+    check("audit GhError: the failure is on stderr, one line",
+          bool(r.stderr.strip()) and len(r.stderr.strip().splitlines()) == 1, repr(r.stderr))
 
 print(f"\n{len(FAILURES)} failing." if FAILURES else "\nall checks passed.")
 sys.exit(1 if FAILURES else 0)

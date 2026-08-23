@@ -160,6 +160,23 @@ def main():
             rec["assignees"].append(argv[argv.index("--add-assignee") + 1])
         ok()
 
+    if argv[:2] == ["issue", "list"]:
+        # board_lifecycle.py audit's own closed-issue read (T-05, FEAT-33): `--repo <repo>
+        # --state closed --json number,stateReason,labels --limit 1000`. Every issue this stub
+        # ever records is CLOSED only through the ["issue", "edit"] path above never setting
+        # "state" -- so a case that needs a closed issue writes state["issues"] directly rather
+        # than through a stub call this fake does not otherwise expose.
+        out = []
+        for num_s, issue in state["issues"].items():
+            if issue.get("state") != "CLOSED":
+                continue
+            out.append({
+                "number": int(num_s),
+                "stateReason": issue.get("stateReason"),
+                "labels": [{"name": l} for l in issue.get("labels", [])],
+            })
+        ok(json.dumps(out))
+
     if argv[:2] == ["project", "item-add"]:
         url = argv[argv.index("--url") + 1]
         parts = url.rstrip("/").split("/")
@@ -265,6 +282,29 @@ def main():
             # from the projectItems query above, which shares the same repository(owner:,
             # name:) opener but selects issue(number:...) rather than a bare { id }.
             ok(json.dumps({"data": {"repository": {"id": "R_FAKE"}}}))
+
+        if "fieldValueByName" in query_text:
+            # gh_board.board_stations -> factory_gh.project_item_stations's own query
+            # (board_lifecycle.py audit's STATION finding class, T-05 FEAT-33). Built from the
+            # same state["items"] the "project item-add" and "project item-edit" branches above
+            # already maintain, so a case that moved a card with those calls is seen here too.
+            nodes = []
+            for it in state["items"].values():
+                num = it.get("number")
+                repo = it.get("repo")
+                if num is None or repo is None:
+                    continue
+                station = it.get("station")
+                nodes.append({
+                    "content": {"number": num, "repository": {"nameWithOwner": repo}},
+                    "fieldValueByName": {"name": station} if station is not None else None,
+                })
+            payload = {"data": {"user": {"projectV2": {"items": {
+                "totalCount": len(nodes),
+                "pageInfo": {"hasNextPage": False, "endCursor": None},
+                "nodes": nodes,
+            }}}}}
+            ok(json.dumps(payload))
 
         if "workflows(first:" in query_text:
             # project_workflows's query.
@@ -1350,6 +1390,50 @@ with tempfile.TemporaryDirectory() as td:
                           "linkProjectV2ToRepository", "createProjectV2(")
     check("(J) board_lifecycle.py provision: performs ZERO mutations against a complete board",
           not any(m in a for c in calls for a in c for m in _mutation_markers), calls)
+
+
+# ============================================================================
+# Case (K) — T-05 (FEAT-33): ONE forking end-to-end case for board_lifecycle.py's own `audit`
+# subcommand (D-12's integration coverage requirement for a change_type: feature task). The
+# discriminating value of the forking form is the EXIT STATUS — an in-process test catching
+# SystemExit cannot prove the process actually returns 1 to a shell, and T-11's verify depends
+# entirely on that (T-05 intent). Adds no file to any list and edits neither INTEGRATION_SCRIPTS
+# nor harness.json (both already correct and both have other writers, per T-04's own intent,
+# unchanged by this task).
+# ============================================================================
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"schema_version": 1, "github": {
+            "sync": True, "repo": "acme/widget", "board": default_board(),
+        }}, f)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    # ONE fixture carrying exactly one finding: a closed issue with a null close reason (REASON)
+    # — the class that needs no board-item fixture at all, since it never consults station.
+    state_path = write_state(os.path.join(td, "gh_state.json"), issues={
+        "900": {"title": "closed with no reason", "state": "CLOSED", "labels": [],
+                "assignees": [], "stateReason": None},
+    })
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = root
+    env["FACTORY_GH"] = gh
+    env["GH_SYNC_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, BOARD_LIFECYCLE, "audit"], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    check("(K) board_lifecycle.py audit: forked process exits 1 against a fixture carrying "
+          "one finding (the EXIT STATUS, not an in-process SystemExit catch)",
+          r.returncode == 1, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("(K) board_lifecycle.py audit: the finding's text appears on stdout",
+          "REASON" in r.stdout and "#900" in r.stdout, f"stdout={r.stdout!r}")
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")

@@ -589,7 +589,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-03, T-04]
-    status: pending
+    status: done
     absorbs: ["#673"]
     files:
       - .claude/skills/harness/bin/board_lifecycle.py
@@ -824,7 +824,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-02, T-07]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py

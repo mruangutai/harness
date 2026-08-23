@@ -586,6 +586,9 @@ with tempfile.TemporaryDirectory() as tmp:
     check("close-task closes exactly one issue", r.returncode == 0 and len(closes) == 1, str(log))
     check("absorbed #12 #14 NOT closed",
           not any(" 12 " in l + " " for l in closes) and not any(" 14 " in l + " " for l in closes), str(closes))
+    # T-08: close-task's argv, verbatim — never inferred from the exit code alone.
+    check("close-task's issue close carries an explicit --reason completed (T-08)",
+          len(closes) == 1 and "--reason completed" in closes[0], str(closes))
 
     # --- ship closes the milestone
     open(os.path.join(tmp, "calls.log"), "w").close()
@@ -718,6 +721,25 @@ with tempfile.TemporaryDirectory() as tmpA:
           not any(re.search(r"\bissues/40\b", l) for l in logA)
           and not any(l.startswith("issue close 40") for l in logA),
           str(logA))
+    # T-08: each recorded sub-issue gets its OWN assertion — a fixture where one issue is
+    # missed must still fail, so no count-only check over the three lines below.
+    check("abandon labels sub-issue #41 abandoned",
+          any(l.startswith("issue edit 41") and "--repo implentio/fake" in l
+              and "--add-label abandoned" in l for l in logA),
+          str(logA))
+    check("abandon labels sub-issue #42 abandoned",
+          any(l.startswith("issue edit 42") and "--repo implentio/fake" in l
+              and "--add-label abandoned" in l for l in logA),
+          str(logA))
+    check("abandon labels sub-issue #43 abandoned",
+          any(l.startswith("issue edit 43") and "--repo implentio/fake" in l
+              and "--add-label abandoned" in l for l in logA),
+          str(logA))
+    check("abandon does NOT label an adopted parent that stays open",
+          not any(l.startswith("issue edit 40") for l in logA), str(logA))
+    check("ensure_labels sends colour b60205 for the abandoned label",
+          any(l.startswith("label create abandoned") and "--color b60205" in l for l in logA),
+          str(logA))
 
 # --- abandon: a created parent closes not_planned, via the same PATCH form as the subs
 with tempfile.TemporaryDirectory() as tmpB:
@@ -739,6 +761,15 @@ with tempfile.TemporaryDirectory() as tmpB:
           and len(parent40_calls) == 1
           and "state=closed" in parent40_calls[0] and "state_reason=not_planned" in parent40_calls[0]
           and not any(l.startswith("issue close 40") for l in logB),
+          str(logB))
+    # T-08: the sub-issue and the created parent each get their own assertion.
+    check("abandon labels sub-issue #41 abandoned",
+          any(l.startswith("issue edit 41") and "--repo implentio/fake" in l
+              and "--add-label abandoned" in l for l in logB),
+          str(logB))
+    check("abandon labels a created parent that closes",
+          any(l.startswith("issue edit 40") and "--repo implentio/fake" in l
+              and "--add-label abandoned" in l for l in logB),
           str(logB))
 
 # --- abandon: parent recorded with no parent_origin line at all — the specified default,
@@ -874,6 +905,9 @@ with tempfile.TemporaryDirectory() as tmpG:
           and not patch40G
           and bool(close_idxG) and bool(ms_idxG) and close_idxG[0] < ms_idxG[0],
           str(logG))
+    # T-08: ship's parent close carries the same explicit reason as close-task's, verbatim.
+    check("ship's parent close carries an explicit --reason completed (T-08)",
+          len(close40G) == 1 and "--reason completed" in close40G[0], str(close40G))
 
 # --- ship: an adopted parent is left open; the milestone still closes regardless (labelled here)
 with tempfile.TemporaryDirectory() as tmpH:

@@ -665,7 +665,13 @@ def ensure_labels(repo, labels):
     create naming a label the repo does not define — new repos ship `bug` but not
     `harness`/`chore`. Errors here are swallowed (label already exists is the common
     case); the create call below is what surfaces a genuinely broken repo."""
-    colors = {"harness": "5319e7", "chore": "cccccc", "bug": "d73a4a", "enhancement": "a2eeef"}
+    # "abandoned": b60205 is THIS function's colour for the label. factory_gh.ensure_labels
+    # (a separate implementation, D-04 — three stay three) creates the same label name with
+    # `--force` and its own single _LABEL_COLOR, so a run that goes through THAT function
+    # after this one has run would silently overwrite this colour. Named here so a later
+    # reader finds the collision rather than rediscovering it.
+    colors = {"harness": "5319e7", "chore": "cccccc", "bug": "d73a4a", "enhancement": "a2eeef",
+              "abandoned": "b60205"}
     for l in labels:
         subprocess.run([GH, "label", "create", l, "--repo", repo,
                         "--color", colors.get(l, "ededed"),
@@ -826,7 +832,10 @@ def cmd_close_task(feat_dir, tid, repo, board):
     # lands it in Done through the board's own Item-closed workflow (measured, D-03).
     if board is not None:
         _apply_parent_rule(feat_dir, repo, board)
-    gh(["issue", "close", str(rec["issues"][tid]), "--repo", repo], capture=False)
+    # T-08: an explicit reason, always — `gh issue close` with none writes state_reason
+    # null, indistinguishable from an abandoned ticket (measured on #416/#452).
+    gh(["issue", "close", str(rec["issues"][tid]), "--repo", repo,
+        "--reason", "completed"], capture=False)
     print(f"gh-sync: closed issue #{rec['issues'][tid]} for {tid}")
     absorbed = tasks.get(tid, {}).get("absorbs", [])
     if absorbed:
@@ -836,12 +845,15 @@ def cmd_close_task(feat_dir, tid, repo, board):
 def cmd_abandon(feat_dir, repo, reason_file):
     """Terminal state: closes every recorded sub-issue not_planned, closes the milestone,
     posts the reason on the parent, and closes the parent itself only if `open` created it
-    (D-01) — an adopted parent, or one with no recorded origin, is left open. After every
-    close has run, records feature.json's top-level `status` as `Abandoned` (T-01/FEAT-23) —
+    (D-01) — an adopted parent, or one with no recorded origin, is left open. An `abandoned`
+    label (T-08) is applied to every sub-issue closed here and to a created parent that
+    closes — never to an adopted parent, which stays open and unlabeled. After every close
+    has run, records feature.json's top-level `status` as `Abandoned` (T-01/FEAT-23) —
     the write is the LAST STATEMENT of this function's successful path, structurally: the
     early exit above is a CONJUNCTION (milestone is None AND no recorded issues), not a
     single milestone check, so the status write is never re-gated on the milestone alone."""
     reason_file = post_body_path(reason_file, "--reason-file")
+    ensure_labels(repo, {"abandoned"})
     rec = load_recorded(feat_dir)
     if rec["milestone"] is None and not rec["issues"]:
         skip("no recorded milestone or issues — nothing to abandon (was `open` run?)")
@@ -856,6 +868,8 @@ def cmd_abandon(feat_dir, repo, reason_file):
     for tid, num in sorted(rec["issues"].items()):
         gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{num}",
             "-f", "state=closed", "-f", "state_reason=not_planned"], capture=False)
+        gh(["issue", "edit", str(num), "--repo", repo, "--add-label", "abandoned"],
+           capture=False)
         print(f"gh-sync: closed issue #{num} for {tid} (not_planned)")
 
     if rec["milestone"] is not None:
@@ -870,6 +884,8 @@ def cmd_abandon(feat_dir, repo, reason_file):
         if rec["parent_origin"] == "created":
             gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{rec['parent']}",
                 "-f", "state=closed", "-f", "state_reason=not_planned"], capture=False)
+            gh(["issue", "edit", str(rec["parent"]), "--repo", repo,
+                "--add-label", "abandoned"], capture=False)
             print(f"gh-sync: parent #{rec['parent']} closed (not_planned)")
         else:
             print(f"gh-sync: parent #{rec['parent']} left open "
@@ -945,7 +961,10 @@ def cmd_ship(feat_dir, repo, body_file=None, pr_arg=None):
     # D-01: the parent's close follows its recorded origin, never unconditional.
     if rec["parent"] is not None:
         if rec["parent_origin"] == "created":
-            gh(["issue", "close", str(rec["parent"]), "--repo", repo], capture=False)
+            # T-08: explicit reason, same as close-task's issue close — a shipped ticket
+            # must never read state_reason null, indistinguishable from abandoned.
+            gh(["issue", "close", str(rec["parent"]), "--repo", repo,
+                "--reason", "completed"], capture=False)
             print(f"gh-sync: parent #{rec['parent']} closed")
         else:
             print(f"gh-sync: parent #{rec['parent']} left open "
