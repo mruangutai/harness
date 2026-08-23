@@ -855,5 +855,125 @@ with tempfile.TemporaryDirectory() as base:
     check("reconcile (clean board, second run): idempotent -- exits 0, zero mutations",
           r2.returncode == 0 and not mutation_calls(log2), f"rc={r2.returncode} log={log2}")
 
+# ============================================================================
+# T-17: board_lifecycle.py retitle -- the task-ticket title backfill.
+# Every case sets BOTH FACTORY_GH and GH_SYNC_GH to the same fake (D-11), via `run()` above.
+# retitle never touches a project or a card, only issue titles, so most of these cases never
+# even set a board -- `default_github()`'s board is present only because `_resolve_board` is
+# reused for the repo-name half and discards it.
+# ============================================================================
+
+
+def rename_calls(log):
+    """Every logged call that is retitle's own write -- `gh issue edit <n> --title <new>` --
+    distinct from `mutation_calls`'s LABEL-edit marker (`issue\\x01edit` also matches an
+    `--add-label` call from T-06, which retitle never sends): a rename call additionally
+    carries `--title` in the same logged line."""
+    return [l for l in log if "issue\x01edit" in l and "--title" in l]
+
+
+# ---------------- retitle case 1: a ticket with a milestone -- renamed to the exact string -
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    old_title = "T-9 — Add the retitle command"
+    new_title = "FEAT-9-widget — T-9 — Add the retitle command"  # byte-identical to what
+    # gh-sync.py's cmd_open would write today for this same task (f"{feat} — {tid} — {title}",
+    # gh-sync.py:764) -- verified against the live source line, not merely asserted here.
+    issues = json.dumps([{"number": 101, "title": old_title,
+                           "milestone": {"title": "FEAT-9-widget"}}])
+    r, log = run(root, ["retitle", "--apply"], issues=issues)
+    check("retitle (has milestone): exits 0",
+          r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("retitle (has milestone): the summary line reports it renamed",
+          f"renamed #101: {old_title!r} -> {new_title!r}" in r.stdout, repr(r.stdout))
+    rc = rename_calls(log)
+    check("retitle (has milestone): exactly one rename call reaches the fake, for issue 101, "
+          "carrying the new title verbatim in its argv",
+          len(rc) == 1 and "101" in rc[0] and new_title.replace(" ", "\x01") in rc[0],
+          repr(log))
+
+# ---------------- retitle case 2: a ticket with NO milestone -- refused, no rename call -----
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    issues = json.dumps([{"number": 202, "title": "T-3 — Something else", "milestone": None}])
+    r, log = run(root, ["retitle", "--apply"], issues=issues)
+    check("retitle (no milestone): exits 0 -- a per-ticket refusal never fails the whole run",
+          r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("retitle (no milestone): the refusal names issue #202 (SC-18)",
+          "REFUSED" in r.stdout and "202" in r.stdout, repr(r.stdout))
+    check("retitle (no milestone): NO rename call is issued for it",
+          not rename_calls(log), repr(log))
+
+# ---------------- retitle case 3: a ticket already carrying its feature id -- skipped ------
+# A title already starting with its own milestone title followed by " — " is idempotent-skip
+# (D-20's own mechanism, no state file). Constructed so the milestone title ITSELF is "T-9" --
+# an unusual milestone title, but it is what makes one fixture satisfy both the selection
+# regex (which needs `^T-\d+ — `) and the already-correct prefix check in the same title,
+# exactly as the plan's step 4 describes -- a real feature id (`FEAT-NN-slug`) never begins
+# with `T-\d+`, so this shape does not occur on the live backfill and is not claimed to.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    issues = json.dumps([{"number": 303, "title": "T-9 — already renamed rest",
+                           "milestone": {"title": "T-9"}}])
+    r, log = run(root, ["retitle", "--apply"], issues=issues)
+    check("retitle (already correct): exits 0",
+          r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("retitle (already correct): NOT reported as refused or renamed",
+          "REFUSED" not in r.stdout and "renamed #303" not in r.stdout, repr(r.stdout))
+    check("retitle (already correct): the summary counts it already correct",
+          "already correct: 1" in r.stdout, repr(r.stdout))
+    check("retitle (already correct): NO rename call is issued for it",
+          not rename_calls(log), repr(log))
+
+# ---------------- retitle case 4: a truncated enumeration -- refused with exit 2 -----------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    issues = json.dumps([{"number": i, "title": "unrelated", "milestone": None}
+                          for i in range(1000)])
+    r, log = run(root, ["retitle", "--apply"], issues=issues)
+    check("retitle (truncated enumeration): exits 2",
+          r.returncode == 2, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("retitle (truncated enumeration): names the returned count and the limit",
+          "1000" in r.stderr, repr(r.stderr))
+    check("retitle (truncated enumeration): NO rename call is issued -- the refusal is before "
+          "any write is attempted",
+          not rename_calls(log), repr(log))
+
+# ---------------- retitle case 5: --dry-run -- zero write calls ----------------------------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    old_title = "T-9 — Add the retitle command"
+    issues = json.dumps([{"number": 101, "title": old_title,
+                           "milestone": {"title": "FEAT-9-widget"}}])
+    r, log = run(root, ["retitle"], issues=issues)  # --dry-run is the default (matches reconcile)
+    check("retitle (--dry-run default): exits 0",
+          r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("retitle (--dry-run default): previews the pending rename on stdout",
+          "DRY-RUN would rename #101" in r.stdout, repr(r.stdout))
+    check("retitle (--dry-run default): performs ZERO write calls -- not merely exit 0",
+          not rename_calls(log) and not mutation_calls(log), repr(log))
+
+# ---------------- retitle case 6: an unknown --repo -- exits 2, no gh call at all -----------
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github(),
+               fleet={"workspace_root": os.path.join(base, "ws"),
+                      "repos": [{"name": "acme/other", "default_branch": "main"}]})
+    r, log = run(root, ["retitle", "--repo", "acme/unknown-repo"])
+    check("retitle unknown --repo: exits 2, naming the repo, with no gh call at all",
+          r.returncode == 2 and not log and "acme/unknown-repo" in r.stderr,
+          f"rc={r.returncode} stderr={r.stderr!r} log={log}")
+
 print(f"\n{len(FAILURES)} failing." if FAILURES else "\nall checks passed.")
 sys.exit(1 if FAILURES else 0)

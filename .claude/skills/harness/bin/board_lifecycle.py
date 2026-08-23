@@ -1,10 +1,50 @@
 #!/usr/bin/env python3
 """board_lifecycle.py — creates and maintains a GitHub Projects v2 board (FEAT-33 T-04).
 
-Usage: board_lifecycle.py <provision|audit|reconcile> [--repo <owner/name>] [--apply]
+Usage: board_lifecycle.py <provision|audit|reconcile|retitle> [--repo <owner/name>] [--apply]
 
-`provision` (T-04), `audit` (T-05) and `reconcile` (T-06) are all wired up here — one bin, three
-subcommands over one board-resolution path (D-08).
+`provision` (T-04), `audit` (T-05), `reconcile` (T-06) and `retitle` (T-17) are all wired up
+here — one bin, four subcommands (D-08); `retitle` shares only the repo half of the
+board-resolution path (below), never the board itself, which it has no use for.
+
+RETITLE (T-17) — the one-time backfill that renames every OLD-format task ticket
+(`"T-NN — <title>"`, gh-sync.py's title before T-16) to the NEW format T-16 now writes going
+forward (`"<feat> — T-NN — <title>"`, gh-sync.py:764). It touches ISSUE TITLES ONLY — never a
+project or a card — so it never resolves a board at all; it resolves only the REPO NAME half of
+`_resolve_board`, reusing that function and discarding the board it returns, so an unknown
+`--repo` refuses (exit 2) exactly the way every other subcommand's caller error does.
+
+Three network-call shapes, and the cost is retitle's OWN, never covered by audit's four-call
+figure (that count is audit's own contract and nothing else's — see below):
+  - ONE enumeration: `gh issue list --repo <repo> --state all --limit 1000 --json
+    number,title,milestone`. Measured 2026-08-22 at f5f5185: 640 issues, 7 GraphQL points.
+  - ONE `gh issue edit <n> --repo <repo> --title <new>` PER RENAME. Measured 2026-08-22 at
+    f5f5185: 2 GraphQL points each — 188 renames on the harness board is 383 points including
+    the enumeration, 7.7 percent of the 5000/hour budget.
+Every cost figure this subcommand prints or writes carries the repo, the item count and the
+commit it was measured at, so a stale figure is never mistaken for a live one.
+
+Selection: a title matches `^(T-\\d+) — (.+)$` — the OLD format's own separator, not merely a
+bare space, because gh-sync.py wrote the em dash even before T-16 (`f"{task['id']} — {task['title']}"`)
+— captures the task id and the task's own title text UNCHANGED, so the new title this backfill
+writes is byte-identical to what `cmd_open` would write today for the same task: `f"{feat} —
+{tid} — {rest}"`, the SAME f-string gh-sync.py:764 builds, with `rest` the exact substring the
+regex captured (never re-derived from plan.yaml or any other source).
+Each selected ticket's feature id is derived from THAT TICKET'S OWN milestone title and from
+NOTHING ELSE (D-20) — never from plan.yaml, never inferred. No milestone means REFUSED: printed
+and counted, never renamed, never guessed. A ticket already starting with its own milestone
+title followed by " — " is counted "already correct" and skipped with no write — this is what
+makes a re-run idempotent with no state file: the title itself records whether the rename
+happened.
+`--dry-run` (the default, matching `reconcile`'s shape) previews every pending rename and the
+projected point cost and performs ZERO writes; `--apply` is required to write. A truncated
+enumeration (the returned count reaches the `--limit`) refuses with exit 2 rather than silently
+backfilling a partial list. A `GhError` from either the enumeration or a rename call propagates
+as exit 4, caught explicitly here exactly as `audit` and `reconcile` catch it — never left to
+`factory_cli.run`'s generic trap, which would exit 2 and read as a caller/declaration error
+rather than a network failure. Exit 0 covers every other outcome, including one or more
+individual tickets REFUSED for lacking a milestone — a per-ticket refusal is reported and
+counted, not a reason to fail the whole run.
 
 RECONCILE (T-06) — the write side of `audit`. It runs `_audit_findings` (the SAME detection
 `audit` runs, never re-derived) and fixes exactly the classes a write CAN fix, per finding:
@@ -131,6 +171,7 @@ import collections
 import glob
 import json
 import os
+import re
 import subprocess
 import sys
 
@@ -644,10 +685,97 @@ def cmd_reconcile(repo_arg, apply):
         sys.exit(1)
 
 
+# ---------------- retitle (T-17) -- the one-time task-ticket title backfill ----------------
+
+# The OLD format's own separator (gh-sync.py's title before T-16: `f"{task['id']} — {task['title']}"`)
+# -- captures the task id and the task's own title text verbatim, so `_retitled_title` below
+# reproduces `cmd_open`'s new f-string byte for byte from that captured text.
+_OLD_TASK_TITLE_RE = re.compile(r"^(T-\d+) — (.+)$")
+
+_RETITLE_LIMIT = 1000
+
+
+def _retitled_title(feat, tid, rest):
+    """The SAME f-string gh-sync.py:764 builds for a freshly-opened task issue -- byte for
+    byte, so a backfilled title and a freshly-`open`ed one can never disagree."""
+    return f"{feat} — {tid} — {rest}"
+
+
+def cmd_retitle(repo_arg, apply):
+    root = factory_config.harness_root()
+    # retitle has no use for a board -- it renames issue titles, never a card -- so only the
+    # repo-name half of `_resolve_board` is reused; the board it returns is discarded. An
+    # unrecognised --repo still refuses (exit 2) through that same call.
+    repo_name, _board = _resolve_board(root, repo_arg)
+    if not repo_name:
+        factory_cli.refuse(
+            _TOOL, "cannot retitle", "github.repo is not declared",
+            "pin github.repo in harness.json before retitling",
+        )
+
+    try:
+        issues = factory_gh.run_gh(
+            ["issue", "list", "--repo", repo_name, "--state", "all",
+             "--limit", str(_RETITLE_LIMIT), "--json", "number,title,milestone"],
+            json_out=True,
+        )
+    except factory_gh.GhError as exc:
+        print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
+        sys.exit(4)
+
+    if len(issues) >= _RETITLE_LIMIT:
+        factory_cli.refuse(
+            _TOOL, "issue enumeration may be truncated",
+            f"{len(issues)} issues returned for --limit {_RETITLE_LIMIT}",
+            "raise the limit or paginate before trusting this backfill",
+        )
+
+    to_rename = []
+    already_correct = 0
+    refused = 0
+    for issue in issues:
+        title = issue.get("title") or ""
+        m = _OLD_TASK_TITLE_RE.match(title)
+        if not m:
+            continue  # not a task-shaped title at all -- a parent, a milestone, or unrelated.
+        tid, rest = m.group(1), m.group(2)
+
+        milestone = issue.get("milestone")
+        feat = milestone.get("title") if isinstance(milestone, dict) else None
+        if not feat:
+            refused += 1
+            _out(f"REFUSED: issue #{issue.get('number')} {title!r} carries no milestone -- "
+                 f"cannot derive its feature id (D-20)")
+            continue
+
+        if title.startswith(f"{feat} — "):
+            already_correct += 1  # idempotent skip -- the title itself records the rename.
+            continue
+
+        to_rename.append((issue.get("number"), title, _retitled_title(feat, tid, rest)))
+
+    if not apply:
+        for num, old, new in to_rename:
+            _out(f"DRY-RUN would rename #{num}: {old!r} -> {new!r}")
+        _out(f"renamed: 0; already correct: {already_correct}; refused: {refused}; "
+             f"{len(to_rename)} to rename; projected cost {2 * len(to_rename)} GraphQL points "
+             f"(2 points per rename, measured 2026-08-22 at f5f5185)")
+        return
+
+    renamed = 0
+    for num, old, new in to_rename:
+        factory_gh.run_gh(["issue", "edit", str(num), "--repo", repo_name, "--title", new])
+        renamed += 1
+        _out(f"renamed #{num}: {old!r} -> {new!r}")
+
+    _out(f"renamed: {renamed}; already correct: {already_correct}; refused: {refused}; "
+         f"points spent (approx): {2 * renamed}")
+
+
 def _main():
     parser = argparse.ArgumentParser(
         prog="board_lifecycle.py",
-        description="board_lifecycle.py <provision|audit|reconcile> [--repo <owner/name>]",
+        description="board_lifecycle.py <provision|audit|reconcile|retitle> [--repo <owner/name>]",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
     p_provision = sub.add_parser("provision")
@@ -657,6 +785,9 @@ def _main():
     p_reconcile = sub.add_parser("reconcile")
     p_reconcile.add_argument("--repo", default=None)
     p_reconcile.add_argument("--apply", action="store_true")
+    p_retitle = sub.add_parser("retitle")
+    p_retitle.add_argument("--repo", default=None)
+    p_retitle.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     if args.cmd == "provision":
         cmd_provision(args.repo)
@@ -664,6 +795,8 @@ def _main():
         cmd_audit(args.repo)
     elif args.cmd == "reconcile":
         cmd_reconcile(args.repo, args.apply)
+    elif args.cmd == "retitle":
+        cmd_retitle(args.repo, args.apply)
 
 
 if __name__ == "__main__":

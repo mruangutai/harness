@@ -158,9 +158,29 @@ def main():
             rec["labels"].append(argv[argv.index("--add-label") + 1])
         if "--add-assignee" in argv:
             rec["assignees"].append(argv[argv.index("--add-assignee") + 1])
+        if "--title" in argv:
+            # board_lifecycle.py retitle's own rename call (T-17, FEAT-33): `gh issue edit <n>
+            # --repo <repo> --title <new>`. Recorded so a case can read the new title back off
+            # state, not merely off this fake's exit code.
+            rec["title"] = argv[argv.index("--title") + 1]
         ok()
 
     if argv[:2] == ["issue", "list"]:
+        json_fields = argv[argv.index("--json") + 1] if "--json" in argv else ""
+        if "milestone" in json_fields:
+            # board_lifecycle.py retitle's own enumeration (T-17, FEAT-33): `--state all --json
+            # number,title,milestone`. Distinct from audit's closed-issue read below (a
+            # different --json field list on the SAME ["issue", "list"] argv prefix) -- never
+            # filters by state, since retitle backfills both open and closed task tickets.
+            out = []
+            for num_s, issue in state["issues"].items():
+                milestone = issue.get("milestone")
+                out.append({
+                    "number": int(num_s),
+                    "title": issue.get("title"),
+                    "milestone": {"title": milestone} if milestone else None,
+                })
+            ok(json.dumps(out))
         # board_lifecycle.py audit's own closed-issue read (T-05, FEAT-33): `--repo <repo>
         # --state closed --json number,stateReason,labels --limit 1000`. Every issue this stub
         # ever records is CLOSED only through the ["issue", "edit"] path above never setting
@@ -1535,6 +1555,60 @@ with tempfile.TemporaryDirectory() as td:
     check("(M) board_lifecycle.py reconcile with NO flags: ZERO mutations reached the stub "
           "gh -- --apply was never defaulted to",
           not any(m in a for c in calls for a in c for m in _write_markers), calls)
+
+
+# ============================================================================
+# Case (N) — T-17 (FEAT-33): ONE forking end-to-end case for board_lifecycle.py's own
+# `retitle` subcommand (D-12's integration coverage requirement for a change_type: feature
+# task). Run with NO FLAGS AT ALL, matching case (M)'s own boundary-evidence shape: the same
+# proof that --dry-run really is the default and --apply really is required, this time for a
+# tool whose default write is a real title on a real issue rather than a station move.
+# ============================================================================
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"schema_version": 1, "github": {
+            "sync": True, "repo": "acme/widget", "board": default_board(),
+        }}, f)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    old_title = "T-9 — Add the retitle command"
+    state_path = write_state(os.path.join(td, "gh_state.json"), issues={
+        "970": {"title": old_title, "state": "OPEN", "labels": [], "assignees": [],
+                "milestone": "FEAT-INTEG-RETITLE"},
+    })
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = root
+    env["FACTORY_GH"] = gh
+    env["GH_SYNC_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, BOARD_LIFECYCLE, "retitle"], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    calls = []
+    if os.path.exists(call_log):
+        with open(call_log, encoding="utf-8") as f:
+            calls = [json.loads(l) for l in f if l.strip()]
+    check("(N) board_lifecycle.py retitle with NO flags: exits 0 (the dry-run default, even "
+          "though a pending rename is present)",
+          r.returncode == 0, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("(N) board_lifecycle.py retitle with NO flags: the pending rename is previewed, not "
+          "silently skipped (anti-vacuum)",
+          "DRY-RUN would rename #970" in r.stdout, f"stdout={r.stdout!r}")
+    check("(N) board_lifecycle.py retitle with NO flags: ZERO rename calls reached the stub "
+          "gh -- --apply was never defaulted to",
+          not any(argv[:2] == ["issue", "edit"] and "--title" in argv for argv in calls),
+          calls)
+    check("(N) board_lifecycle.py retitle with NO flags: the issue's title on the stub's own "
+          "state is untouched by the preview",
+          read_state(state_path)["issues"]["970"]["title"] == old_title,
+          read_state(state_path)["issues"]["970"])
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")

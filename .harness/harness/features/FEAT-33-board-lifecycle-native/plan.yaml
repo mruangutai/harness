@@ -1451,7 +1451,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-04, T-06, T-16]
-    status: building
+    status: done
     files:
       - .claude/skills/harness/bin/board_lifecycle.py
       - .claude/skills/harness/bin/test-board-lifecycle.py
