@@ -2165,6 +2165,90 @@ def case_t10_red():
         if os.path.exists(mpath):
             os.remove(mpath)
 
+# --- T-05 (FEAT-26): INV-28 — a Done feature whose pull request number was never
+# recorded. Warn level, gated on github.sync, one line per offending feature.
+#
+# WHY SIX CASES AND NOT ONE. The four silence cases are what stop an always-warn
+# implementation passing the first: `pr` recorded, `Abandoned`, non-terminal, and sync off
+# are each a separate reason to say nothing, and an implementation can get one right and
+# the rest wrong. The per-feature naming case exists because a single aggregate count
+# cannot tell the operator WHICH feature to run the remedy on.
+
+def _inv28_fixture(tmp, sync_on, features):
+    """features: list of (feat_id, status, pr_literal_or_None). pr None omits the key."""
+    h = os.path.join(tmp, ".harness")
+    os.makedirs(h, exist_ok=True)
+    with open(os.path.join(h, "harness.json"), "w") as f:
+        f.write(HARNESS_JSON_SYNC_ON if sync_on else HARNESS_JSON_SYNC_OFF)
+    for feat, status, pr in features:
+        d = os.path.join(h, "harness", "features", feat)
+        os.makedirs(d, exist_ok=True)
+        body = '{\n  "feature_id": "%s",\n  "status": "%s"' % (feat, status)
+        if pr is not None:
+            body += ',\n  "pr": %s' % pr
+        body += "\n}\n"
+        with open(os.path.join(d, "feature.json"), "w") as f:
+            f.write(body)
+    return h
+
+
+def case_inv28_warns():
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv28_fixture(tmp, True, [("FEAT-T28", "Done", None)])
+        _code, out = run(tmp)
+        ok = "INV-28" in out and "FEAT-T28" in out and "record-pr" in out
+        print(f"{'ok' if ok else 'FAIL'} - INV-28 warns on a Done feature whose pr is null")
+        return ok
+
+
+def case_inv28_silent_on_integer():
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv28_fixture(tmp, True, [("FEAT-T28", "Done", "543")])
+        _code, out = run(tmp)
+        ok = "INV-28" not in out
+        print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on a Done feature whose pr is an integer")
+        return ok
+
+
+def case_inv28_silent_on_abandoned():
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv28_fixture(tmp, True, [("FEAT-T28", "Abandoned", None)])
+        _code, out = run(tmp)
+        ok = "INV-28" not in out
+        print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on an Abandoned feature whose pr is null")
+        return ok
+
+
+def case_inv28_silent_on_nonterminal():
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv28_fixture(tmp, True, [("FEAT-T28", "Building", None)])
+        _code, out = run(tmp)
+        ok = "INV-28" not in out
+        print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent on a feature that is not terminal")
+        return ok
+
+
+def case_inv28_names_each():
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv28_fixture(tmp, True, [("FEAT-T28A", "Done", None), ("FEAT-T28B", "Done", None)])
+        _code, out = run(tmp)
+        lines = [l for l in out.splitlines() if "INV-28" in l]
+        ok = (len(lines) == 2
+              and any("FEAT-T28A" in l for l in lines)
+              and any("FEAT-T28B" in l for l in lines))
+        print(f"{'ok' if ok else 'FAIL'} - INV-28 names each offending feature on its own line")
+        return ok
+
+
+def case_inv28_silent_sync_off():
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv28_fixture(tmp, False, [("FEAT-T28", "Done", None)])
+        _code, out = run(tmp)
+        ok = "INV-28" not in out
+        print(f"{'ok' if ok else 'FAIL'} - INV-28 is silent when github.sync is off")
+        return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -2183,6 +2267,12 @@ def main():
     ok_m3 = case_m3()
     ok_n = case_n()
     ok_o = case_o()
+    ok_i28a = case_inv28_warns()
+    ok_i28b = case_inv28_silent_on_integer()
+    ok_i28c = case_inv28_silent_on_abandoned()
+    ok_i28d = case_inv28_silent_on_nonterminal()
+    ok_i28e = case_inv28_names_each()
+    ok_i28f = case_inv28_silent_sync_off()
     ok_p = case_p()
     ok_q = case_q()
     ok_r = case_r()
@@ -2221,6 +2311,7 @@ def main():
 
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
             and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14 and ok_t10
+            and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

@@ -106,7 +106,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/feature-schema.json
       - .claude/skills/harness/bin/test-validate-feature-json.py
@@ -176,7 +176,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
@@ -262,7 +262,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
@@ -344,7 +344,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-backend-dev
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
@@ -401,7 +401,7 @@ tasks:
     execution_reason: DEC-174 carve-out - check-state.sh is a gate script the harness never
       executes changes to, and its fixture is kept in the same hand so red-first is provable
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
@@ -479,7 +479,7 @@ tasks:
     execution_reason: a feature.json resolves to harness-orchestrator alone, which is not a
       task-executing lane, so the writes are made directly
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .harness/harness/features/FEAT-01/feature.json
       - .harness/harness/features/FEAT-02/feature.json
@@ -569,7 +569,7 @@ tasks:
     execution_reason: check-domain.sh --resolve returns NOBODY for both the templates directory
       and the playbook
     depends_on: [T-03, T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/templates/plan.yaml
       - .claude/skills/harness/SKILL.md
@@ -624,33 +624,33 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-03, T-04, T-05]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
     verify: |
-      grep -q '^## DEC-197 ' .harness/harness/docs/DECISIONS.md || exit 1
-      grep -q '^- DEC-197 @' .harness/harness/docs/DECISIONS-INDEX.md || exit 1
+      grep -q '^## DEC-200 ' .harness/harness/docs/DECISIONS.md || exit 1
+      grep -q '^- DEC-200 @' .harness/harness/docs/DECISIONS-INDEX.md || exit 1
       python3 - <<'PY' || exit 1
       import re, sys
       idx = open(".harness/harness/docs/DECISIONS-INDEX.md").read()
-      row = [l for l in idx.splitlines() if l.startswith("- DEC-197 ")]
+      row = [l for l in idx.splitlines() if l.startswith("- DEC-200 ")]
       if len(row) != 1:
-          print("expected exactly one DEC-197 row, found", len(row)); sys.exit(1)
-      m = re.match(r"- DEC-197 @(\d+) ", row[0])
+          print("expected exactly one DEC-200 row, found", len(row)); sys.exit(1)
+      m = re.match(r"- DEC-200 @(\d+) ", row[0])
       if not m:
-          print("DEC-197 row carries no line anchor:", row[0]); sys.exit(1)
+          print("DEC-200 row carries no line anchor:", row[0]); sys.exit(1)
       lines = open(".harness/harness/docs/DECISIONS.md").read().splitlines()
       n = int(m.group(1))
-      if not (1 <= n <= len(lines)) or not lines[n - 1].startswith("## DEC-197 "):
-          print("anchor", n, "does not land on the DEC-197 heading"); sys.exit(1)
-      print("ok DEC-197 row and anchor agree")
+      if not (1 <= n <= len(lines)) or not lines[n - 1].startswith("## DEC-200 "):
+          print("anchor", n, "does not land on the DEC-200 heading"); sys.exit(1)
+      print("ok DEC-200 row and anchor agree")
       PY
       echo VERIFY-OK
     intent: |
       Write the entry a future reader will need when they find the mirror reading from GitHub.
 
-      Append a new entry `## DEC-197` to .harness/harness/docs/DECISIONS.md, in the file's
+      Append a new entry `## DEC-200` to .harness/harness/docs/DECISIONS.md, in the file's
       established voice and length, and add its one-row summary to
       .harness/harness/docs/DECISIONS-INDEX.md in the index's exact row format, with the line
       anchor pointing at the new heading. Use the index's generator if this repository has one

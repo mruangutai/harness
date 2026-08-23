@@ -1041,6 +1041,47 @@ for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         else:
             _fac_pairs[key] = feat
 
+# --- INV-28 (FEAT-26 T-05, REQ-04): a feature that shipped but whose pull request
+# number was never recorded. WARN, not violation: the mirror is never a gate (DEC-138),
+# and the remedy is one command that can be run at any time.
+#
+# THE FAILURE THIS MAKES VISIBLE IS A HABIT DECAYING, NOT A BUG. `feature.json`'s `pr`
+# was filled by hand for thirteen features and then the hand stopped; five ran null before
+# anyone noticed (#492). Nothing checked, so nothing complained.
+#
+# ONE LINE PER FEATURE, never an aggregate count. A per-feature check that reports a
+# single total cannot tell the operator WHICH feature to run the remedy on, which makes
+# the report unactionable at exactly the moment it matters.
+#
+# GATED ON github.sync, like INV-21 above: a repository with no mirror has no pull
+# requests to record, and the remedy needs a working `gh`.
+#
+# `Abandoned` IS TERMINAL AND IS SILENT HERE, deliberately. It asserts that no seam was
+# crossed and nothing shipped, so there is no pull request to have missed. Only the exact
+# string `Done` is checked — DEC-192's six status values are case sensitive.
+if cj and (cj.get("github") or {}).get("sync"):
+    for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
+        feat = os.path.basename(os.path.dirname(fy))
+        try:
+            pdoc = harness_yaml.load_file(fy) or {}
+        except Exception as e:
+            bad.append(f"{fpath(feat, 'feature.json')} does not parse, so INV-28 cannot be "
+                       f"checked for it: {e}")
+            continue
+        if not isinstance(pdoc, dict):
+            continue
+        if str(pdoc.get("status", "")).split()[:1] != ["Done"]:
+            continue
+        _pr = pdoc.get("pr")
+        # `isinstance(True, int)` is True in Python, so the bool exclusion is load-bearing:
+        # `pr: true` is not a pull request number and must not read as one.
+        if isinstance(_pr, int) and not isinstance(_pr, bool):
+            continue
+        warn.append(f"INV-28: {feat} is Done but its pull request number was never "
+                    f"recorded — the linkage from the feature to the change that shipped "
+                    f"it is missing. Record it with `gh-sync.py record-pr "
+                    f"{os.path.relpath(os.path.dirname(fy), root)}`.")
+
 # --- INV-25 (issue #103): the environment itself must not contain an out-of-place
 # worktree. The write guards now REFUSE writes into such a tree and refuse a session
 # rooted in one, so an environment holding one is broken rather than merely unusual —

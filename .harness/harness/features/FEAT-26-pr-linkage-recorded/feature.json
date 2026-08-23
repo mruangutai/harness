@@ -1,8 +1,8 @@
 {
   "feature_id": "FEAT-26-pr-linkage-recorded",
-  "branch": "none",
+  "branch": "feat/FEAT-26",
   "pr": null,
-  "status": "Ready",
+  "status": "Building",
   "review_sha": "ada8e9998694e8a72c3827f0103b369ab0bb66e9",
   "cycles_used": 0,
   "max_total_cycles": 10,
@@ -12,13 +12,55 @@
       "id": "2026-08-18-1-product",
       "squad": "product",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-21-1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-22-1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-22-2-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "2026-08-22-3-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
     }
   ],
   "github": {
-    "milestone": null,
-    "parent": null,
-    "parent_origin": null,
-    "attached": [],
-    "issues": {}
+    "milestone": 22,
+    "parent": 732,
+    "parent_origin": "created",
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08"
+    ],
+    "issues": {
+      "T-01": 733,
+      "T-02": 734,
+      "T-03": 735,
+      "T-04": 736,
+      "T-05": 737,
+      "T-06": 738,
+      "T-07": 739,
+      "T-08": 740
+    }
   }
 }
