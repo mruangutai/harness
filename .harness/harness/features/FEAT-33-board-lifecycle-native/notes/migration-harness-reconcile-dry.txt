@@ -1,0 +1,14 @@
+board_lifecycle: workflow detection matches by NAME only -- ProjectV2Workflow exposes neither trigger nor action, so a workflow the operator renamed is reported MISSING rather than assumed present
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #358 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #357 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #349 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #176 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #175 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #173 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #43 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #12 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN cannot fix, needs a human -- STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-06-team-layer-inv6 records status 'Done' (column 'Done') but its parent #25 reads None
+board_lifecycle: DRY-RUN cannot fix, needs a human -- STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-07-verify-teeth-batch-probe records status 'Done' (column 'Done') but its parent #47 reads None
+board_lifecycle: DRY-RUN cannot fix, needs a human -- STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-08-remove-cost-tracking records status 'Done' (column 'Done') but its parent #85 reads 'Backlog'
+board_lifecycle: DRY-RUN cannot fix, needs a human -- STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-09-plan-time-route-check records status 'Done' (column 'Done') but its parent #98 reads 'Backlog'
+board_lifecycle: 8 fixable finding(s) previewed; 4 finding(s) require a human (see above) -- re-run with --apply to write

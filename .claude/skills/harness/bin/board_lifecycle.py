@@ -64,6 +64,13 @@ RECONCILE (T-06) — the write side of `audit`. It runs `_audit_findings` (the S
 DECLARATION and WORKFLOW are never attempted: the declaration is a file a human signs, and no
 API can enable a workflow (D-09).
 
+RECONCILE SHARES STATUS's SCOPING (#783's fix): it runs `_audit_findings`, the SAME detection
+function `audit` calls, so a `--repo` naming anything but this checkout's own repo never
+produces a STATUS finding for reconcile to attempt either -- before the fix this meant
+`reconcile --apply` against a served repo could call `gh_board.set_station` on THAT repo's card
+using a station computed from THIS checkout's own, unrelated feature.json. The fix lives once,
+in detection, so both callers inherit it without a second check.
+
 THE LABEL CREATE IS A DIRECT SHELL-OUT, never a helper, for two measured reasons: `gh-sync.py`
 is HYPHENATED, so its own `ensure_labels` (gh-sync.py:682-696) is not an importable module
 function; and the only importable one, `factory_gh.ensure_labels` (factory_gh.py:186-195),
@@ -109,7 +116,10 @@ future change adds a fifth call, name it here rather than silently letting this 
   3. `gh_board.board_stations` — the targeted, cost-1 station read (STATION).
   4. `factory_gh.project_workflows` — the three named automation workflows (WORKFLOW).
 STATUS (T-15, below) adds a SIXTH finding class but no fifth network call: it reads every
-feature's `feature.json` off disk and reuses call 3's already-fetched station map.
+feature's `feature.json` off disk and reuses call 3's already-fetched station map. STATUS runs
+ONLY when the audited repo is THIS checkout's own declared repo (#783's fix, below) — it
+self-skips, printing one line, for any other `--repo`, since the on-disk features it reads are
+never that repo's.
 
 The six finding classes are closed (T-05/T-15 intent): DECLARATION (a declared station value the
 board's Status field does not carry — via `_missing_options`, the SAME helper `provision` calls,
@@ -120,7 +130,8 @@ STATUS (a feature's recorded `feature.json` status, mapped through the board's d
 exactly as T-13 maps it, disagreeing with its parent card's actual station — feature.json is the
 authority (DEC-138's outbound posture, T-13); the card is what drifted. NO Done exemption, D-22:
 a status of Done whose parent card is not at the done station is a finding whether the parent
-issue is open or closed).
+issue is open or closed. SCOPED TO THIS CHECKOUT'S OWN REPO ONLY, #783's fix — see
+`_status_findings`'s own docstring for the ruling and why).
 Workflow detection is by NAME only — `ProjectV2Workflow` exposes neither `trigger` nor `action`
 (D-09) — so a workflow the operator renamed is reported MISSING rather than assumed present; the
 report says this once, in its own header line (SC-09), and every WORKFLOW finding line also says
@@ -323,6 +334,24 @@ def _status_findings(root, board, stations):
     """Class 6 -- STATUS (T-15). No network call: reads each feature's `feature.json` off disk
     and reuses `stations`, the SAME station map class 2 (STATION) already fetched for this repo.
 
+    CALLED ONLY WHEN THE AUDITED REPO IS THIS CHECKOUT'S OWN REPO (#783's fix) -- see
+    `_audit_findings`'s Class 6 section for the caller-side check and why it lives there rather
+    than in here.
+
+    THE RULING (#783), stated once here because it has to be explicit rather than implied by a
+    filter: `_feature_dirs` walks `<root>/.harness/*/features/*` -- ALWAYS this checkout's own
+    on-disk tree, regardless of which repo `--repo` names. A served fleet repository's features
+    are never there; its own `.harness/harness.json` is read REMOTELY
+    (`factory_config.product_config` -> `factory_gh.file_at_ref`), never from a directory in
+    this checkout, and no feature.json anywhere records a `github.repo` field to filter by
+    (checked: none of this tree's feature.json files carry one). Scoping this class to
+    "features whose recorded repo matches the audited one" would mean inventing a field that
+    does not exist on disk. Self-skip is the honest alternative, and it is what `_audit_findings`
+    does: this class runs ONLY for this checkout's own repo, and prints one line saying so for
+    any other `--repo`, rather than silently comparing this checkout's features against a
+    foreign board (the live defect measured on board 2 with `--repo mruangutai/kaya-ai`: 18 of
+    29 findings were this checkout's own harness issues compared against kaya-ai's board).
+
     feature.json's `status` IS THE AUTHORITY here, never the card (T-13's outbound posture,
     DEC-138) -- a disagreement means the card drifted, not that the recorded status is wrong.
 
@@ -452,7 +481,9 @@ def _audit_findings(root, board, repo_name):
     Performs exactly the four network calls the module docstring's AUDIT section names, in the
     order: field options (class 1), the closed-issue list (feeds classes 2, 3 and 4), the board
     station read (class 2), the project workflows read (class 5). Class 6 (STATUS) adds no
-    network call of its own -- it reuses class 2's station read.
+    network call of its own -- it reuses class 2's station read -- and self-skips (one printed
+    line, no findings) unless `repo_name` is this checkout's own declared repo (#783's fix; see
+    `_status_findings`'s docstring for the ruling).
     """
     owner, number, field = board["owner"], board["number"], board["station_field"]
     done_station = board["stations"]["done"]
@@ -524,8 +555,17 @@ def _audit_findings(root, board, repo_name):
             findings.append(_finding(
                 "WORKFLOW", f"WORKFLOW: {name!r} is disabled -- {_WORKFLOW_SUFFIX}"))
 
-    # Class 6 -- STATUS. No call. See `_status_findings`'s own docstring for the exemptions.
-    findings.extend(_status_findings(root, board, stations))
+    # Class 6 -- STATUS. No call, EXCEPT it self-skips for any repo but this checkout's own
+    # (#783's fix -- see `_status_findings`'s own docstring for the ruling and why). This
+    # checkout's on-disk `.harness/*/features/*` is never a served fleet repo's feature set --
+    # that repo's config is read remotely and no feature.json records a `github.repo` to filter
+    # by, so scoping instead of skipping would mean inventing a field that does not exist.
+    own_repo = _own_repo(root)
+    if repo_name == own_repo:
+        findings.extend(_status_findings(root, board, stations))
+    else:
+        _out(f"STATUS: skipped -- auditing {repo_name!r}, not this checkout's own repo "
+             f"({own_repo!r}); this checkout's on-disk features are never that repo's")
 
     return findings
 

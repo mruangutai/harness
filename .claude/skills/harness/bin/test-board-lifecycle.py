@@ -11,6 +11,7 @@ through gh-sync's own wrapper must not silently reach the real `gh`.
 
     ./test-board-lifecycle.py    -> exit 0 all pass, 1 otherwise
 """
+import base64
 import json
 import os
 import stat
@@ -206,6 +207,14 @@ case "$*" in
   *"repositoryOwner(login: \$owner)"*)
     echo "$RESOLVE_JSON"
     exit 0 ;;
+  *"/contents/"*)
+    # #783's regression guard: factory_config.product_config -> factory_gh.file_at_ref, the
+    # remote read of a FLEET MEMBER's own .harness/harness.json (never a directory in this
+    # checkout). CONTENTS_B64 is the pre-computed --jq .content answer (real gh applies that
+    # filter itself, so the fake must emit the already-extracted field, matching
+    # test-factory-integration.py's own fake gh at this same endpoint).
+    echo "$CONTENTS_B64"
+    exit 0 ;;
 esac
 echo "fake_gh: unmatched argv: $*" >&2
 exit 1
@@ -278,10 +287,19 @@ def install_gh(tmp):
     return path
 
 
+def _served_board_contents_b64(board):
+    """Base64 of the SERVED repo's own remote `.harness/harness.json` `.content` field --
+    board_lifecycle.py never reads a served repo's board from disk (T-04's BOARD RESOLUTION,
+    factory_config.product_config), so a cross-repo case (#783) that resolves a fleet member's
+    board must feed the fake gh this, not a `stations`/`options` local fixture."""
+    doc = {"schema_version": 1, "github": {"board": board}}
+    return base64.b64encode(json.dumps(doc).encode("utf-8")).decode("ascii")
+
+
 def run(root, args, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
         options=None, issues=None, stations=None, workflows=None, fail_match=None, cwd=None,
         item_id=None, fake_state=None, issues_after=None, stations_after=None,
-        workflows_after=None):
+        workflows_after=None, contents_b64=None):
     """Fork the real script. Returns (CompletedProcess, log_lines).
 
     The T-06 `*_after` params (and `fake_state`) are the reconcile-only "before" vs "after"
@@ -308,6 +326,7 @@ def run(root, args, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     env["ISSUES_JSON_AFTER"] = issues_after or ""
     env["STATIONS_JSON_AFTER"] = stations_after or ""
     env["WORKFLOWS_JSON_AFTER"] = workflows_after or ""
+    env["CONTENTS_B64"] = contents_b64 or ""
     env.pop("HARNESS_GH_COST_LOG", None)
     r = subprocess.run(
         [sys.executable, SCRIPT] + args,
@@ -651,6 +670,44 @@ with tempfile.TemporaryDirectory() as base:
     check("audit STATUS: exemption 3 -- factory.issues (product board) is exempt, no STATUS "
           "finding", r.returncode == 0 and "STATUS" not in r.stdout, repr(r.stdout))
 
+# ---------------- audit case 8b: #783 regression guard -- STATUS must not compare THIS
+# checkout's own on-disk features against a DIFFERENT repo's board. `--repo` names a fleet
+# member (never this checkout's own repo); its board is resolved REMOTELY
+# (factory_config.product_config), so this checkout's own `.harness/widget/features/*` are
+# NEVER that repo's features. Before the fix this fixture produced a false STATUS finding
+# (own-repo feature.json, status Done, compared against the SERVED repo's #950 reading
+# Backlog) -- reddened against the pre-fix code (see the receipt's RED proof). After the fix,
+# STATUS self-skips for any --repo but this checkout's own, so this is exit 0, zero STATUS.
+
+_SERVED_BOARD = {
+    "owner": "acme", "number": 42, "station_field": "Status",
+    "stations": _BOARD["stations"],
+}
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github(),
+               fleet={"workspace_root": os.path.join(base, "ws"),
+                      "repos": [{"name": "acme/gadget", "default_branch": "main"}]})
+    # This checkout's OWN feature, on disk, status Done -- would mismatch the served repo's
+    # #950 reading Backlog if STATUS wrongly compared across repos.
+    write_feature(root, "widget", "FEAT-CROSSREPO-783", "Done", parent=950,
+                  github_issues={"T-01": 951})
+    r, log = run(
+        root, ["audit", "--repo", "acme/gadget"],
+        stations=_stations_json({950: "Backlog"}, repo="acme/gadget"),
+        contents_b64=_served_board_contents_b64(_SERVED_BOARD),
+    )
+    check("audit #783: cross-repo audit exits 0 -- STATUS never fires for a repo that is not "
+          "this checkout's own", r.returncode == 0, f"rc={r.returncode} stdout={r.stdout!r}")
+    check("audit #783: no STATUS finding at all -- only the skip line, never a "
+          "'records status' finding",
+          "records status" not in r.stdout, repr(r.stdout))
+    check("audit #783: STATUS reports itself skipped, naming both repos, rather than silently "
+          "omitting the class",
+          "STATUS" in r.stdout and "skipped" in r.stdout
+          and "acme/gadget" in r.stdout and "acme/widget" in r.stdout, repr(r.stdout))
+
 # ---------------- audit case 9: a GhError propagates as exit 4, no findings printed ------
 # DEC-186's inverse-of-the-mirror posture (T-05 intent): an audit that could not run must
 # never be mistaken for exit 0 (clean) or exit 1 (findings). Forces the FIRST of the audit's
@@ -839,6 +896,34 @@ with tempfile.TemporaryDirectory() as base:
           r.returncode == 0, f"rc={r.returncode}")
     check("reconcile (Done exemption): never calls set_station for issue #85",
           not any("number=85" in l for l in log), repr(log))
+
+# ---------------- reconcile case 6b: #783 regression guard -- reconcile shares audit's
+# STATUS scoping, since both run `_audit_findings`. A "Building" (non-Done, otherwise
+# FIXABLE) status mismatch would, before the fix, be previewed as a real fix reconcile could
+# --apply against the SERVED repo's card -- computed from THIS checkout's own, unrelated
+# feature.json. Dry-run only (no --apply): the preview text alone is the discriminator, so
+# this stays a read even against the pre-fix code.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github(),
+               fleet={"workspace_root": os.path.join(base, "ws"),
+                      "repos": [{"name": "acme/gadget", "default_branch": "main"}]})
+    write_feature(root, "widget", "FEAT-CROSSREPO-RECON-783", "Building", parent=960,
+                  github_issues={"T-01": 961})
+    r, log = run(
+        root, ["reconcile", "--repo", "acme/gadget"],
+        stations=_stations_json({960: "Ready"}, repo="acme/gadget"),
+        contents_b64=_served_board_contents_b64(_SERVED_BOARD),
+    )
+    check("reconcile #783: cross-repo dry-run exits 0 with zero fixable findings previewed "
+          "-- STATUS never fires for a repo that is not this checkout's own",
+          r.returncode == 0 and "0 fixable finding(s) previewed" in r.stdout,
+          f"rc={r.returncode} stdout={r.stdout!r}")
+    check("reconcile #783: never previews a write against issue #960",
+          "#960" not in r.stdout, repr(r.stdout))
+    check("reconcile #783: performs zero mutations -- dry-run never writes regardless",
+          not mutation_calls(log), repr(log))
 
 # ---------------- reconcile case 7: a fully reconciled fixture -- exit 0, zero writes -----
 
