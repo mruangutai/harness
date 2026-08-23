@@ -458,6 +458,75 @@ def case_t15_red():
           f"INCONCLUSIVE — original {n_real}, mutant {n_mut}")
     print(f"     (red proof counts: original {n_real}, mutant {n_mut})")
 
+def _tree_with_schema(root, extra_github_key=None):
+    """A checkout-shaped tree with its OWN feature-schema.json under
+    .claude/skills/harness/bin/, optionally declaring one extra key under `github`."""
+    binp = os.path.join(root, ".claude", "skills", "harness", "bin")
+    os.makedirs(binp, exist_ok=True)
+    sch = json.loads(open(feature_schema.SCHEMA_PATH, encoding="utf-8").read())
+    if extra_github_key:
+        sch["properties"]["github"]["properties"][extra_github_key] = {
+            "type": "array", "items": {"type": "integer"}}
+    with open(os.path.join(binp, "feature-schema.json"), "w") as f:
+        json.dump(sch, f)
+    feat = os.path.join(root, ".harness", "harness", "features", "FEAT-T49")
+    os.makedirs(feat, exist_ok=True)
+    return os.path.join(feat, "feature.json")
+
+
+def case_749_schema_comes_from_the_written_tree():
+    """(#749) THE SCHEMA MUST COME FROM THE TREE THE FILE LIVES IN, NOT FROM THIS MODULE.
+
+    MEASURED LIVE 2026-08-23 during FEAT-26's ship. `check-domain.sh --post` refused a
+    legitimate write -- `undeclared key 'source_issues' at /github' -- because the key WAS
+    declared in the worktree's own feature-schema.json and was NOT in main's, and the hook
+    imports this module from CLAUDE_PROJECT_DIR, the main checkout.
+
+    THE GENERAL SHAPE: a feature that ADDS a schema key cannot write data using that key
+    until it merges, and cannot demonstrate the key working before it merges. The schema and
+    the data land in one commit; the guard read them from two trees.
+
+    `github` carries additionalProperties: false (DEC-191), so any new key under it hits
+    this. FEAT-26 survived only because --post reports AFTER the write lands; a --pre route
+    on the same rule blocks it outright."""
+    with tempfile.TemporaryDirectory() as tmp:
+        target = _tree_with_schema(tmp, extra_github_key="source_issues")
+        doc = full_doc()
+        doc["github"]["source_issues"] = [492]
+        text = json.dumps(doc)
+        probs = feature_schema.problems_for_text(text, "feature.json", for_path=target)
+        check("case_749a: a key declared in the WRITTEN tree's schema is accepted",
+              probs == [], repr(probs[:2]))
+
+
+def case_749_guard_still_rejects_a_truly_undeclared_key():
+    """(#749) GUARD -- the fix must not become "trust whatever tree you are in".
+
+    Same tree, its schema NOT extended. An undeclared key must still be refused, or the
+    fix degrades into no schema check at all for any worktree."""
+    with tempfile.TemporaryDirectory() as tmp:
+        target = _tree_with_schema(tmp)          # no extra key declared
+        doc = full_doc()
+        doc["github"]["invented_key"] = [1]
+        probs = feature_schema.problems_for_text(json.dumps(doc), "feature.json",
+                                                 for_path=target)
+        check("case_749b: an UNDECLARED key is still rejected against the written tree",
+              any("invented_key" in p for p in probs), repr(probs[:2]))
+
+
+def case_749_falls_back_when_no_tree_schema_exists():
+    """(#749) A path with no checkout schema above it falls back to this module's own, so
+    every existing caller -- none of which passes for_path -- is unaffected."""
+    with tempfile.TemporaryDirectory() as tmp:
+        target = os.path.join(tmp, "feature.json")
+        doc = full_doc()
+        doc["github"]["source_issues"] = [492]
+        probs = feature_schema.problems_for_text(json.dumps(doc), "feature.json",
+                                                 for_path=target)
+        check("case_749c: with no tree schema, the module's own schema still governs",
+              any("source_issues" in p for p in probs), repr(probs[:2]))
+
+
 def main():
     case_accepted_all_eleven_keys()
     case_accepted_only_eight_required_keys()
@@ -473,6 +542,9 @@ def main():
     case_rejected_status_lowercase_done()
     case_rejected_pr_string_none()
     case_cli_clean_file_exit_0()
+    case_749_schema_comes_from_the_written_tree()
+    case_749_guard_still_rejects_a_truly_undeclared_key()
+    case_749_falls_back_when_no_tree_schema_exists()
     case_cli_invalid_file_exit_1()
     case_cli_jsonschema_unavailable_exit_3()
     case_json_extension_rejects_yaml_content_yaml_extension_accepts_it()
