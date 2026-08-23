@@ -63,17 +63,56 @@ _REDIRECT = (
     "measurements, research and receipts go in notes/."
 )
 
-_schema_cache = None
+_schema_cache = {}
+
+SCHEMA_REL = os.path.join(".claude", "skills", "harness", "bin", "feature-schema.json")
 
 
-def load_schema():
-    """Read feature-schema.json from beside this module. Cached after the
-    first read — the schema file does not change within one process."""
-    global _schema_cache
-    if _schema_cache is None:
-        with open(SCHEMA_PATH, encoding="utf-8") as f:
-            _schema_cache = json.load(f)
-    return _schema_cache
+def schema_path_for(for_path):
+    """The schema that governs `for_path` — the one belonging to the CHECKOUT the file
+    lives in, not the one beside this module.
+
+    ISSUE #749, MEASURED LIVE 2026-08-23 during FEAT-26's ship. check-domain.sh refused a
+    legitimate write — `undeclared key 'source_issues' at /github` — because the key WAS
+    declared in the worktree's own feature-schema.json and was NOT in main's. The hook
+    imports this module through CLAUDE_PROJECT_DIR, which resolves to the main checkout, so
+    the schema always came from main whatever tree was being written.
+
+    THE GENERAL SHAPE, and it is why this is worth a walk-up: a feature that ADDS a schema
+    key cannot write data using that key until it merges, and so cannot demonstrate the key
+    working before it merges. The schema and the data land in ONE commit; the guard read
+    them from TWO trees. `github` carries additionalProperties: false (DEC-191), so any new
+    key under it hits this.
+
+    WALK UP FOR THE SCHEMA FILE ITSELF, never for the `.claude` directory — probing a
+    directory resolves $HOME in a global install, which is the defect dispatch-guard.sh's
+    case_20 catches by name.
+
+    Returns None when no checkout schema is found above `for_path`, and the caller then
+    falls back to this module's own — so every existing caller, none of which passes a
+    path, is unaffected.
+    """
+    if not for_path:
+        return None
+    cur = os.path.dirname(os.path.abspath(for_path))
+    while cur and cur != os.path.dirname(cur):
+        cand = os.path.join(cur, SCHEMA_REL)
+        if os.path.isfile(cand):
+            return cand
+        cur = os.path.dirname(cur)
+    return None
+
+
+def load_schema(for_path=None):
+    """Read feature-schema.json for the tree `for_path` lives in, falling back to the copy
+    beside this module. Cached PER RESOLVED PATH — a single global cache would serve the
+    first tree's schema to every later tree in the same process, which is the same
+    wrong-tree bug one level in."""
+    resolved = schema_path_for(for_path) or SCHEMA_PATH
+    if resolved not in _schema_cache:
+        with open(resolved, encoding="utf-8") as f:
+            _schema_cache[resolved] = json.load(f)
+    return _schema_cache[resolved]
 
 
 def _missing_keys(error):
@@ -225,8 +264,8 @@ def _runs_agent_problems(doc, display):
     return problems
 
 
-def _problems_for_doc(doc, display):
-    schema = load_schema()
+def _problems_for_doc(doc, display, for_path=None):
+    schema = load_schema(for_path)
     validator = jsonschema.Draft202012Validator(schema)
     problems = []
     for error in sorted(validator.iter_errors(doc), key=lambda e: [str(p) for p in e.absolute_path]):
@@ -246,7 +285,7 @@ def _problems_for_doc(doc, display):
     return problems
 
 
-def problems_for_text(text, display):
+def problems_for_text(text, display, for_path=None):
     """Validate JSON document TEXT against the schema. Returns a list of
     stderr LINES, [] when clean. Never exits, never writes a temporary file
     — this is the entry point check-domain.sh imports at T-06, and it is why
@@ -260,7 +299,7 @@ def problems_for_text(text, display):
         doc = json.loads(text)
     except json.JSONDecodeError as e:
         return [f"{display}: not valid JSON: {e}"]
-    return _problems_for_doc(doc, display)
+    return _problems_for_doc(doc, display, for_path)
 
 
 def problems_for_file(path):
@@ -281,7 +320,7 @@ def problems_for_file(path):
                 text = f.read()
         except OSError as e:
             return [f"{path}: cannot be read: {e}"]
-        return problems_for_text(text, path)
+        return problems_for_text(text, path, for_path=path)
 
     # Lazy import, deliberately confined to THIS branch — see module
     # docstring and T-01's receipt: this is what makes "the .json path never
@@ -291,4 +330,4 @@ def problems_for_file(path):
         doc = harness_yaml.load_file(path)
     except harness_yaml.YamlParseError as e:
         return [f"{path}: not valid YAML: {e}"]
-    return _problems_for_doc(doc, path)
+    return _problems_for_doc(doc, path, for_path=path)

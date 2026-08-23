@@ -1103,7 +1103,22 @@ def shape_problems(rel, content, display=None):
         global _SCHEMA_UNAVAILABLE_SAID
         try:
             import feature_schema
-            _sp = feature_schema.problems_for_text(content, display or rel)
+            # ISSUE #749 — THE SCHEMA COMES FROM THE TREE THE FILE LIVES IN. `rel` already
+            # carries the worktree prefix when the target is inside one, so joining it with
+            # `root` gives the real absolute path and feature_schema walks UP from there for
+            # that checkout's own feature-schema.json.
+            #
+            # Measured live 2026-08-23: this refused `source_issues` at /github on a FEAT-26
+            # write. The key WAS declared in that worktree's schema and was NOT in main's,
+            # and this module is imported through CLAUDE_PROJECT_DIR — the main checkout. So
+            # a feature that ADDS a schema key could not write data using it until it
+            # merged, and could not demonstrate it working before merging.
+            #
+            # It falls back to the module's own schema when no checkout schema is above the
+            # path, so a target outside any checkout is checked exactly as before.
+            _sp = feature_schema.problems_for_text(
+                content, display or rel,
+                for_path=os.path.join(root, rel) if root else rel)
         except ImportError:
             _sp = ["feature_schema is not importable, so this file CANNOT be checked. "
                    "Expected at .claude/skills/harness/bin/feature_schema.py, reachable on "
