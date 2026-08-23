@@ -4,9 +4,9 @@ feature: FEAT-26-pr-linkage-recorded
 source_issues: [492]
 
 approval:
-  status: pending
-  approved_by: <name>
-  date: <YYYY-MM-DD>
+  status: approved
+  approved_by: Mike Ruangutai
+  date: 2026-08-23
 
 lanes:
   resolved_at: 8ad7d5298a8012e7670d64d2ee5c1fdf34fbfc54
