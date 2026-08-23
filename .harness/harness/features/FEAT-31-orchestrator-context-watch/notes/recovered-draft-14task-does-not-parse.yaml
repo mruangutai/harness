@@ -1,0 +1,1001 @@
+schema: plan/1
+feature: FEAT-31-orchestrator-context-watch
+
+approval:
+  status: pending
+  approved_by: ""
+  date: ""
+
+lanes:
+  resolved_at: 6f651f16c1e198f4f0e9cc5f78f681835581611d
+  rows:
+    - surface: .claude/skills/harness/bin/context-watch.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-context-watch.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-context-watch-integration.py
+      lane: team
+      agent: harness-dev-ops
+    - surface: .claude/skills/harness/bin/feature_schema.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/feature-schema.json
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/test-validate-feature-json.py
+      lane: team
+      agent: harness-backend-dev
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: team
+      agent: harness-backend-dev
+      reason: not in DEC-174's enumeration and the domain guard grants it; see D-07
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: team
+      agent: harness-documentor
+    - surface: .harness/harness/docs/DECISIONS-INDEX.md
+      lane: team
+      agent: harness-documentor
+    - surface: .claude/skills/harness/bin/check-domain.sh
+      lane: main-session-direct
+      reason: DEC-174 named enforcement layer, a registered PreToolUse gate script
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 named enforcement layer, the state gate
+    - surface: .claude/skills/harness/bin/test-check-state.py
+      lane: main-session-direct
+      reason: DEC-174 am.4 makes the test of an enforcement script enforcement layer too
+    - surface: .claude/settings.json
+      lane: main-session-direct
+      reason: resolves to NOBODY, the hook registration surface itself
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: resolves to NOBODY, the orchestrator's own preloaded rule text
+
+decisions:
+  - id: D-01
+    choice: The tool is .claude/skills/harness/bin/context-watch.py, and its hook mode is
+      the same file invoked as context-watch.py --hook, following validate-digest.py --hook.
+    because: One module means one arithmetic implementation, so the operator view and the
+      in-context warning can never disagree about a number.
+    dec: none
+
+  - id: D-02
+    choice: Context size is the largest single prompt in one request, computed by resolving
+      message.usage.iterations per iteration and taking the maximum, never the top-level
+      input plus cache_read plus cache_creation sum.
+    because: Where a request makes nested sub-calls the top-level fields are their SUM, so
+      the naive read reports tokens READ across sub-calls as if it were one context.
+    dec: none
+
+  - id: D-03
+    choice: SC-07's write-path rule is DIFF-SCOPED against git HEAD. feature_schema builds
+      legacy_ids as the set of ids of runs entries in git HEAD's copy of the target file
+      that themselves lack agent_id, and requires agent_id on every runs entry whose id is
+      not in that set. Prior content unavailable (untracked file, no git) means the set is
+      empty and agent_id is required on every entry.
+    because: check-domain.sh validates the whole proposed document, so a blanket required
+      breaks the no-migration ruling and a blanket optional lets the first new entry omit it.
+      HEAD rather than the on-disk file, because on the PostToolUse route disk already holds
+      the NEW content, which would grandfather every entry and make that route toothless.
+      What it does NOT catch, stated: (a) presence, not truth, so agent_id set to a wrong or
+      placeholder id passes; (b) a new run reusing a legacy entry's id is grandfathered;
+      (c) a feature.json whose legacy entries were never committed loses grandfathering
+      entirely, which is safe today because all 372 existing runs entries across 26 tracked
+      feature.json files carry exactly id, squad and verdict and are committed at
+      6f651f16c1e198f4f0e9cc5f78f681835581611d; (d) an Edit that appends is caught only on
+      the PostToolUse route, after the write has landed, because the PreToolUse route blocks
+      Write alone.
+    dec: DEC-191
+
+  - id: D-04
+    choice: The new runs item key is agent_id, a string, added to feature-schema.json's runs
+      item properties. required stays exactly id, squad, verdict.
+    because: agent_id is the name Claude Code's own hook payload uses, and leaving it out of
+      required is what makes D-03's diff scope the single enforcement point instead of two
+      rules that can disagree.
+    dec: DEC-191
+
+  - id: D-05
+    choice: The threshold key is budgets.orchestrator_context_tokens in .harness/harness.json,
+      with a sibling _orchestrator_context_tokens_rationale string, defaulting to 200000 when
+      absent or unparseable. Its existence is declared inside the DEC-159 edit of T-14.
+    because: DEC-160 requires a decision that adds a harness.json key to say so, and DEC-148
+      is where 200000 came from. The name is new rather than the deleted
+      context_per_turn_tokens because the quantity changed from a per-turn average to a
+      largest-single-prompt peak, and reusing the old name would assert a false equivalence.
+    dec: DEC-160
+
+  - id: D-06
+    choice: The warning fires from a PreToolUse hook on matcher Task|Agent, filtered to
+      agent_type equal to harness-orchestrator, and ALWAYS exits 0. It emits both
+      hookSpecificOutput.additionalContext and systemMessage, and rate-limits itself to one
+      warning per crossing per agent using a stamp file under the system temp directory.
+    because: Task|Agent is the decision point where a relay is actually cheap, is already the
+      registered seam for dispatch-guard.sh, and costs one transcript read per dispatch rather
+      than one per tool call. Exit 0 because the operator ruled the warning advises and never
+      refuses. Both channels because this repository has verified additionalContext delivery
+      only on SubagentStart, never on PreToolUse, so systemMessage is the fallback that at
+      least reaches the operator.
+    dec: DEC-174
+
+  - id: D-07
+    choice: Registering a new test file in run-unit-tests.sh's UNIT_SCRIPTS or
+      INTEGRATION_SCRIPTS array is TEAM lane, not enforcement layer.
+    because: It is absent from DEC-174's enumeration and check-domain.sh --resolve grants it
+      to harness-backend-dev and harness-dev-ops; it selects which tests run and asserts no
+      test file is unregistered, but it decides no policy. Overrule this in one read if the
+      drift detector counts as a gate.
+    dec: none
+
+  - id: D-08
+    choice: SC-14's assertion changes. INV-17 gains a glob over every
+      notes/handoff-*.md it finds under a feature and shape-checks each one, four headings
+      and the 60-line cap, while SEAM_NOTES keeps governing which notes are REQUIRED. The
+      shape check moves out of the SEAM_NOTES loop so a required note is reported once.
+    because: The criterion as written is already true by silence and cannot go red.
+      check-state.sh:593 is the only place a handoff path is constructed and it only builds
+      paths for stems in SEAM_NOTES[status], so notes/handoff-anything-else.md is never
+      opened, never demanded and never rejected. Verified separately that check-domain.sh
+      already shape-gates any stem at write, RE_HANDOFF at check-domain.sh:665 matching
+      handoff-[a-z0-9-]+.md with no stem whitelist, so acceptance of a mid-phase stem exists
+      at both gates today. The real gap the glob closes is a note that never passed through a
+      Write or Edit route, which check-domain.sh cannot see. Verified safe: all 68 handoff
+      notes currently on disk pass the four-heading and 60-line shape, so the widening adds
+      zero findings to the current tree.
+    dec: DEC-159
+
+  - id: D-09
+    choice: A mid-phase handoff is notes/handoff-mid-<phase-stem>.md, for example
+      handoff-mid-build.md. Latest supersedes; a second crossing inside one phase overwrites.
+    because: It matches check-domain.sh's RE_HANDOFF character class, can never collide with
+      the plan, build or validate stems SEAM_NOTES demands, and names the phase it interrupted
+      so a successor knows what it inherited.
+    dec: DEC-159
+
+  - id: D-10
+    choice: Every must-go-red proof uses a named mutation seam rather than an exit status.
+      For Python, the test loads context-watch.py through importlib.util.spec_from_file_location
+      and rebinds one named module attribute, asserting first that the rebind changed the
+      value the function returns. For check-state.sh, the test copies the script and
+      harness_yaml.py into a temp bin directory, deletes the one line carrying a named
+      literal, asserts the literal is present in the original and absent in the copy, and runs
+      the copy through the existing CHECK_STATE_BIN environment override.
+    because: An exit-status-only assertion cannot tell a load-bearing failure from a broken
+      harness, and FEAT-30 paid for that twice. Both seams already exist:
+      test-check-state.py:16 reads CHECK_STATE_BIN and test-check-state.py:1815 already copies
+      the script into a temp bin directory.
+    dec: none
+
+  - id: D-11
+    choice: SC-10 is the UAT and NO TASK IN THIS PLAN DELIVERS IT. See the uat block below.
+    because: It requires at least one orchestrator alive at the moment of measurement, which
+      no checked-in fixture and no CI runner can supply.
+    dec: none
+
+  - id: D-12
+    choice: Every fixture is generated in-process under tempfile.mkdtemp() by the test that
+      needs it, from literal token values written in the test body or from a fixed-seed
+      generator. No transcript, sidecar or projects directory is checked in, and nothing under
+      .harness/ or .claude/skills/ gains a data file.
+    because: CI is ubuntu-latest with no ~/.claude/projects and no existing test reads one, so
+      any test needing a machine-local transcript directory reds the required integration
+      context and blocks every PR. SC-11 also forbids this feature owning a file format.
+    dec: none
+
+  - id: D-13
+    choice: context-watch.py takes --projects-root, defaulting to $CLAUDE_CONFIG_DIR/projects
+      then ~/.claude/projects, and every test passes a fixture root explicitly.
+    because: A loader whose default binds at import reads live machine state, the test then
+      passes for the wrong reason, and it proves nothing about the fixture it appears to
+      exercise.
+    dec: none
+
+  - id: D-14
+    choice: merge-settings.py's required-hook spec list is NOT extended, so the warning hook
+      does not propagate to product checkouts.
+    because: The measured problem is this repository's own orchestrators, and widening the
+      distributed hook set is scope this brief never asked for. The named consequence: an
+      orchestrator running against a product checkout whose settings.json came from
+      merge-settings.py gets no warning.
+    dec: none
+
+uat:
+  sc: SC-10
+  status: not_met
+  who: the operator, by hand
+  why_no_task: Requires at least one harness-orchestrator ALIVE at the moment of
+    measurement. Measuring a finished orchestrator proves nothing about the case the
+    criterion exists for, and no fixture or CI runner can supply a live one.
+  tasks_that_only_make_it_possible: [T-01, T-02]
+  steps:
+    - With at least one orchestrator running, run python3
+      .claude/skills/harness/bin/context-watch.py with no argument from the checkout that
+      orchestrator is running in.
+    - Confirm every running orchestrator appears, each with the feature it is on.
+    - Confirm each row shows current context, peak context and entry count.
+    - Confirm each row shows distance to the threshold as a printed number, so nothing has
+      to be divided, subtracted or compared by hand.
+    - Confirm any orchestrator the tool could not measure is listed as unmeasured with the
+      offending file path named, never omitted.
+    - Re-run naming one orchestrator's agent id as the single argument and confirm the same
+      figures for that one row.
+    - It FAILS if a running orchestrator is missing, if any figure needs hand arithmetic to
+      be useful, or if the operator has to ask what a number means.
+
+tasks:
+  - id: T-01
+    title: Build the context-watch reader, arithmetic and orchestrator discovery
+    traces: [REQ-01, REQ-02, REQ-05, REQ-07]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/context-watch.py
+    verify: |
+      python3 -c "import importlib.util as u;s=u.spec_from_file_location('cw','.claude/skills/harness/bin/context-watch.py');m=u.module_from_spec(s);s.loader.exec_module(m);[getattr(m,n) for n in ('entry_prompt_size','scan_transcript','discover_agents','slug_for_cwd','measure_row','UNMEASURED')];assert m.slug_for_cwd('/Users/molchairuangutai/GitHub/harness/.claude/worktrees/fix-harness-tooling-backlog')=='-Users-molchairuangutai-GitHub-harness--claude-worktrees-fix-harness-tooling-backlog';assert m.entry_prompt_size({'message':{'usage':{'input_tokens':0,'cache_read_input_tokens':1494870,'cache_creation_input_tokens':0,'iterations':[{'usage':{'input_tokens':0,'cache_read_input_tokens':746878,'cache_creation_input_tokens':0}},{'usage':{'input_tokens':0,'cache_read_input_tokens':0,'cache_creation_input_tokens':0}},{'usage':{'input_tokens':0,'cache_read_input_tokens':747992,'cache_creation_input_tokens':0}}]}}})==747992;print('T-01 api and arithmetic ok')"
+    intent: |
+      Create .claude/skills/harness/bin/context-watch.py, a python3 script with no
+      third-party imports. It reads Claude Code's own per-agent transcripts and reports how
+      much context each running orchestrator holds. It WRITES NOTHING except a stamp file
+      under the system temp directory, and it OWNS NO FILE FORMAT: every file it reads is
+      written by Claude Code.
+
+      Expose these module-level names exactly as spelled, because tests rebind them:
+
+      slug_for_cwd(cwd) -> str. The transcript project directory name for an absolute cwd.
+      The rule is a pure string transform: replace every "/" with "-", then every "." with
+      "-". No filesystem access. Verified: the input
+      /Users/molchairuangutai/GitHub/harness/.claude/worktrees/fix-harness-tooling-backlog
+      must produce
+      -Users-molchairuangutai-GitHub-harness--claude-worktrees-fix-harness-tooling-backlog
+      This is what makes the tool work for an orchestrator running inside a worktree rather
+      than only in the primary checkout.
+
+      projects_root(argv_value) -> str. Resolution order: an explicit --projects-root value,
+      then os.environ["CLAUDE_CONFIG_DIR"] joined with "projects", then
+      os.path.expanduser("~/.claude/projects"). Never bind the default at import time; it
+      must be computed inside the function on every call.
+
+      entry_prompt_size(entry) -> int. The size of the single largest prompt this one
+      transcript entry represents. Read entry["message"]["usage"]. If that usage carries a
+      non-empty list under "iterations", return the MAXIMUM over iterations of
+      input_tokens + cache_read_input_tokens + cache_creation_input_tokens taken from each
+      iteration's own "usage" mapping. Otherwise return that sum from the top-level usage
+      mapping. Return 0 when there is no usage mapping at all. This is the whole point of
+      the tool: where a request makes nested sub-calls, Claude Code records them under
+      usage.iterations and the TOP-LEVEL fields are their SUM, so the top-level number is
+      tokens read across sub-calls and not the size of any one context. Never sum across
+      iterations. Never sum across entries.
+
+      scan_transcript(path) -> dict with keys current, peak, entries, no_usage. Read the
+      .jsonl one line at a time, json.loads each line, skip a line that does not parse.
+      entries is the count of lines that carried a usage mapping. no_usage is the count of
+      lines that did not. current is entry_prompt_size of the LAST entry that carried a
+      usage mapping. peak is the maximum entry_prompt_size across all of them. Both 0 for an
+      empty transcript. Raise nothing: an unreadable or absent file is the caller's problem.
+
+      UNMEASURED. A module-level sentinel object used as the marker for a row whose figures
+      could not be obtained.
+
+      measure_row(row) -> dict. Given a discovered row, attach current, peak, entries and
+      no_usage by calling scan_transcript. On ANY failure -- the .jsonl missing, unreadable,
+      or a sidecar that is not valid JSON -- set row["status"] to UNMEASURED and
+      row["defeated_by"] to the absolute path of the exact file that defeated it, and return
+      the row. Never drop a row and never raise. An orchestrator that cannot be measured is
+      reported as unmeasured with the offending path named, never silently omitted from the
+      watch.
+
+      discover_agents(projects_root, cwd, agent_id=None) -> list of dict rows. Compute
+      slug_for_cwd(cwd), then walk projects_root/<slug>/*/subagents/agent-*.meta.json. For
+      each sidecar: parse it, and select it only when its "agentType" is exactly
+      "harness-orchestrator". When agent_id is given, select only the sidecar whose id
+      matches. Build each row with: agent_id taken from the filename between "agent-" and
+      ".meta.json"; session_id taken from the parent-of-subagents directory name; jsonl set
+      to the sibling agent-<id>.jsonl path; agent_type; description; and feature, derived by
+      searching for a regex match of (FEAT|BUG)-[0-9]+ first in the sidecar's optional
+      "worktreeBranch", then in its "description", and set to the literal string "unknown"
+      when neither matches. DEPEND ON ONLY THREE SIDECAR KEYS -- agentType, description and
+      spawnDepth. Every other key including toolUseId, worktreePath, worktreeBranch and
+      model is OPTIONAL and must be read with .get: across 1406 sidecars on this machine
+      those keys fall into ten distinct shapes and nothing this feature does can make the
+      file stable. A sidecar that is not valid JSON still yields a row, carrying UNMEASURED
+      and defeated_by set to that sidecar's own path. Also attach mtime, the .jsonl file's
+      modification time, and live, true when that mtime is within LIVE_WINDOW_SECONDS, a
+      module-level constant set to 900.
+
+      Do not add a command-line interface, a threshold, a report or a hook mode in this
+      task. T-02 and T-08 add those.
+
+  - id: T-02
+    title: Add the threshold, the report, the exit codes and the derived blind-spot footer
+    traces: [REQ-01, REQ-03, REQ-06]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-01]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/context-watch.py
+      - .harness/harness.json
+    verify: |
+      python3 -c "import json;b=json.load(open('.harness/harness.json'))['budgets'];assert b['orchestrator_context_tokens']==200000, b;assert isinstance(b['_orchestrator_context_tokens_rationale'],str);print('key ok')"
+      python3 -c "import importlib.util as u,json,os,tempfile;s=u.spec_from_file_location('cw','.claude/skills/harness/bin/context-watch.py');m=u.module_from_spec(s);s.loader.exec_module(m);d=tempfile.mkdtemp();p=os.path.join(d,'h.json');open(p,'w').write(json.dumps({'budgets':{'orchestrator_context_tokens':1234}}));assert m.threshold(p)==1234;q=os.path.join(d,'e.json');open(q,'w').write('{}');assert m.threshold(q)==200000;assert m.threshold(os.path.join(d,'nope.json'))==200000;assert len(m.blind_spots([],p))==3;print('threshold and footer ok')"
+    intent: |
+      Extend .claude/skills/harness/bin/context-watch.py with its threshold, its printed
+      report and its exit codes, and add the threshold key to .harness/harness.json.
+
+      In .harness/harness.json, inside the existing "budgets" object, add exactly two keys
+      beside max_total_cycles and max_total_runs. First orchestrator_context_tokens, integer,
+      value 200000. Second _orchestrator_context_tokens_rationale, a string, following the
+      style of the two _rationale keys already there. Its text must say: the figure is the
+      largest single prompt one orchestrator request represents, resolved per
+      usage.iterations and never summed across sub-calls; 200000 is carried over from DEC-148
+      rather than guessed fresh; the corrected median peak over 76 orchestrator transcripts
+      measured 2026-08-20 was 136406, which sits BELOW this threshold, while 28 of 76 peaked
+      above it and 10 above twice it, so this is a tripwire for the top of the distribution
+      and not a critique of a normal orchestrator; and crossing it warns and never blocks.
+      Change nothing else in harness.json.
+
+      In context-watch.py add these module-level names, exactly as spelled:
+
+      threshold(harness_json_path) -> int. Read the JSON file, return
+      int(doc["budgets"]["orchestrator_context_tokens"]). Return DEFAULT_THRESHOLD, a
+      module-level constant set to 200000, when the file is absent, unreadable, not valid
+      JSON, missing either key, or holding a value int() rejects. Never raise, and never
+      crash on a deleted key: a stated default is required behaviour, not a fallback nobody
+      sees. When the default is used, the printed report says so on its own line, naming
+      DEFAULT_THRESHOLD and the path it looked in.
+
+      warn_lines(rows, limit) -> list of str. One line for each row whose peak is greater
+      than or equal to limit. Each line names the agent id, the feature, the peak, the
+      limit, and the nearest seam. Empty list when no row crosses. This function is the ONLY
+      place the comparison to limit happens; T-03 and T-13 rebind it to prove the warning is
+      load-bearing, so no caller may re-implement the comparison.
+
+      nearest_seam(row) -> str. Read the feature's .harness/harness/features/<feature>/feature.json
+      status and map it through the same station vocabulary check-state.sh uses: Plan and
+      Ready return "plan", Building returns "build", Review returns "validate", Done and
+      Abandoned and Backlog return "none". When the feature is unknown or its feature.json is
+      absent or unreadable, return the literal string
+      "mid-phase, write notes/handoff-mid-<phase-stem>.md". Never raise.
+
+      blind_spots(rows, harness_json_path) -> list of exactly three strings, each DERIVED
+      from state observed at runtime rather than a fixed sentence. Line one carries the sum
+      of no_usage over rows and the sum of entries over rows, and says a context that has
+      already compacted reads lower than it was because those entries carry no usage record
+      and are not counted. Line two carries the integer read from log_retention_days in
+      harness_json_path and the projects root actually used, and says transcripts older than
+      that window are gone and the figures go stale silently rather than erroring. Line
+      three carries the largest peak in rows and says it is the prompt size the API recorded
+      and not the model's window limit, which this tool does not know. Every one of the three
+      must interpolate a value computed from the arguments; a line with no interpolated value
+      is a failure of this task.
+
+      main(argv) -> int, and an if __name__ == "__main__" guard calling
+      sys.exit(main(sys.argv[1:])). Accept an optional positional agent id and the optional
+      flags --projects-root, --harness-json and --cwd, all defaulting as T-01 and this task
+      specify, with --cwd defaulting to os.getcwd(). Discover rows, measure each, print one
+      aligned table row per orchestrator sorted by mtime descending with columns: live,
+      agent id, feature, entries, current, peak, threshold, headroom, pct. headroom is
+      limit minus peak printed as a signed integer. pct is peak divided by limit as a
+      percentage to one decimal place. Both are PRINTED, never left for the reader to
+      compute. An UNMEASURED row prints the word UNMEASURED in place of its figures and
+      prints its defeated_by path on the same line. After the table print the warn_lines
+      output, then the three blind_spots lines under a heading line reading exactly
+      "What this tool cannot see:". Return 1 when warn_lines is non-empty OR any row is
+      UNMEASURED, otherwise 0. Never return 2 and never raise out of main.
+
+  - id: T-03
+    title: Unit-test the arithmetic, the selection, the threshold and the unmeasured branch
+    traces: [REQ-01, REQ-02, REQ-03, REQ-07]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-context-watch.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Create .claude/skills/harness/bin/test-context-watch.py and append its filename to the
+      UNIT_SCRIPTS array in .claude/skills/harness/bin/run-unit-tests.sh. Change nothing else
+      in run-unit-tests.sh. The drift detector at its lines 17-51 fails the whole suite if a
+      test-*.py under bin/ is in neither array, so the registration is not optional.
+
+      Follow the reporting shape the other test-*.py files in that directory use: a report
+      helper printing a per-case line and a non-zero exit when any case fails. Load the
+      module under test with importlib.util.spec_from_file_location, never by import, because
+      the filename carries a hyphen. Build every fixture with tempfile.mkdtemp() and pass its
+      path explicitly into projects_root, --harness-json or --cwd; never let a default bind
+      to live machine state.
+
+      Case A, the iterations fixture. Write a one-entry .jsonl whose message.usage has
+      cache_read_input_tokens 1494870, input_tokens 0, cache_creation_input_tokens 0, and an
+      iterations list of three entries whose own usage cache_read_input_tokens are 746878, 0
+      and 747992 with the other two fields 0. Assert scan_transcript reports peak exactly
+      747992 and assert it does NOT report 1494870. The two values must stay distinct so the
+      case cannot pass by coincidence. THEN prove the assertion is load-bearing: rebind the
+      module's entry_prompt_size to a naive function returning the top-level
+      input_tokens + cache_read_input_tokens + cache_creation_input_tokens, assert the rebind
+      took effect by calling it directly and getting 1494870, re-run scan_transcript, and
+      assert peak is now 1494870 and the unmutated assertion would therefore have failed.
+      Report the mutated and unmutated numbers in the case line.
+
+      Case B, orchestrator selection. Build a fixture projects root holding one session
+      directory whose subagents/ holds three complete sidecar and .jsonl pairs: one with
+      agentType "harness-orchestrator", one "harness-backend-dev", one "general-purpose".
+      Assert discover_agents returns exactly one row and that its agent_id is the
+      orchestrator's. Assert the row count is 1 and not merely that an orchestrator is
+      present.
+
+      Case C, the threshold from config. Build one fixture whose peak is 500000. Write a
+      fixture harness.json with orchestrator_context_tokens 400000 and assert main returns 1
+      and its stdout contains a warning line naming 500000 and 400000. Rewrite the same
+      fixture harness.json with 600000 and assert main returns 0 and stdout contains no
+      warning line. Then delete the budgets key entirely and assert main does not raise,
+      reports the stated default 200000, and says on its own line that the default was used.
+
+      Case D, the warning must be shown to fail first. On the crossing fixture from case C,
+      assert len(warn_lines(rows, limit)) == 1 with the shipped function. Then rebind the
+      module's warn_lines to a function returning an empty list, assert the rebind took
+      effect by calling it directly, re-run main, and assert the warning count is now 0 and
+      main's return value dropped from 1 to 0. Assert on the COUNT, not on the exit status
+      alone. This is the absent-before, present-after pair, expressed as a same-run
+      differential over the shipped module.
+
+      Case E, four sidecars and two unmeasured. Build a fixture projects root holding exactly
+      four agentType "harness-orchestrator" sidecars: one complete with a readable .jsonl;
+      one carrying agentType but no toolUseId, with a readable .jsonl; one whose .meta.json
+      is not valid JSON; and one whose .meta.json is fine but whose .jsonl is absent. Assert
+      the tool reports exactly FOUR rows, that the row count equals the number of
+      .meta.json files in the fixture directory computed by the test with glob rather than
+      hardcoded, that exactly TWO rows are UNMEASURED, that each of those two names the
+      offending absolute path in defeated_by, and that main returns 1. Then rebind
+      measure_row to a function returning None for a row it cannot measure and have the
+      caller drop it, assert the rebind took effect, and assert the row count falls to 2 --
+      which is the silent drop this case exists to forbid.
+
+  - id: T-04
+    title: Add agent_id to feature-schema.json's runs item properties
+    traces: [REQ-04]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/feature-schema.json
+    verify: |
+      python3 -c "import json;r=json.load(open('.claude/skills/harness/bin/feature-schema.json'))['properties']['runs']['items'];assert r['additionalProperties'] is False;assert r['required']==['id','squad','verdict'], r['required'];assert r['properties']['agent_id']['type']=='string';assert set(r['properties'])=={'id','squad','verdict','agent_id'};print('runs schema ok')"
+      python3 .claude/skills/harness/bin/validate-feature-json.py
+    intent: |
+      In .claude/skills/harness/bin/feature-schema.json, under
+      properties.runs.items.properties, add one new property named agent_id with
+      "type": "string" and a description reading: the id of the harness-orchestrator agent
+      that executed this run, as Claude Code's PreToolUse payload spells it (agent_id), so an
+      orchestrator that ended at its phase seam is distinguishable from one carried past it
+      from disk alone. Leave additionalProperties false and leave the required array exactly
+      ["id", "squad", "verdict"]. Do NOT add agent_id to required: keeping it optional in the
+      schema is deliberate, because a blanket required would refuse every existing
+      feature.json and the operator ruled on 2026-08-20 that no existing file is migrated.
+      The requirement is enforced diff-scoped in feature_schema.py instead, which T-05 adds.
+      Change nothing else in the file, and in particular do not touch the eleven top-level
+      keys DEC-191 closed.
+
+  - id: T-05
+    title: Enforce agent_id diff-scoped against git HEAD in feature_schema.py
+    traces: [REQ-04]
+    change_type: api
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-04]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/feature_schema.py
+    verify: |
+      python3 -c "import sys,json;sys.path.insert(0,'.claude/skills/harness/bin');import feature_schema as f;import inspect;assert 'target_path' in inspect.signature(f.problems_for_text).parameters;base=json.load(open('.harness/harness/features/FEAT-31-orchestrator-context-watch/feature.json'));base['runs']=[{'id':'x','squad':'eng','verdict':'PASS'}];p=f.problems_for_text(json.dumps(base),'d','.harness/harness/features/FEAT-31-orchestrator-context-watch/feature.json');assert any('agent_id' in s for s in p), p;base['runs']=[{'id':'x','squad':'eng','verdict':'PASS','agent_id':'a1'}];assert f.problems_for_text(json.dumps(base),'d','.harness/harness/features/FEAT-31-orchestrator-context-watch/feature.json')==[];print('diff-scoped rule ok')"
+      python3 .claude/skills/harness/bin/validate-feature-json.py
+    intent: |
+      In .claude/skills/harness/bin/feature_schema.py, add the diff-scoped agent_id rule.
+
+      Change problems_for_text(text, display) to problems_for_text(text, display,
+      target_path=None). The new third parameter is OPTIONAL and keyword-or-positional, so
+      every existing caller keeps working unchanged. Thread it through to _problems_for_doc.
+
+      Add a module-level helper legacy_run_ids(target_path) -> set of str. When target_path is
+      None, return an empty set. Otherwise: run git -C <dirname of the absolute target_path>
+      rev-parse --show-toplevel to find the enclosing worktree root; compute the path of the
+      target relative to that root with os.path.relpath; run
+      git -C <root> show HEAD:<relative path> and json.loads the output. Return the set of
+      str(entry["id"]) for every entry in that document's "runs" list that is a mapping and
+      does NOT contain the key agent_id. Return an EMPTY set on any failure at all -- git
+      absent, a non-zero exit, output that is not JSON, no runs list. Never raise. Use
+      subprocess.run with capture_output, text=True and timeout=10; this runs inside a
+      PreToolUse hook so it must be bounded.
+
+      In the per-document checks, after the jsonschema pass, add: for each entry in the
+      document's runs list that is a mapping, if the entry lacks agent_id AND
+      str(entry.get("id")) is not in legacy_run_ids(target_path), append one problem line
+      naming that entry's id and saying the run entry must carry agent_id, that absence is
+      grandfathered only for entries already committed without it, and that the field records
+      which harness-orchestrator executed the run so REQ-04's disk-only read is possible.
+      Emit one line per offending entry, never one summary line for many: a per-entry line is
+      what makes a single non-conforming entry visible among conformers.
+
+      WHY HEAD AND NOT THE FILE ON DISK, stated so nobody simplifies it away: on
+      check-domain.sh's PostToolUse route the file on disk already holds the NEW content, so
+      a disk-prior comparison would grandfather every entry and that route would enforce
+      nothing. Keying on the ids that lack the field in HEAD also means stripping agent_id
+      from an entry that had it is caught, because that id is not in the legacy set.
+
+  - id: T-06
+    title: Pass the absolute target path from check-domain.sh into the schema module
+    traces: [REQ-04]
+    change_type: api
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 names check-domain.sh enforcement layer; it is a registered
+      PreToolUse and PostToolUse gate script, so the harness plans this cutover and the
+      operator's hands execute it. A DEVIATION line from check-plan-routes.py is expected
+      here, because the path is granted to harness-backend-dev and harness-dev-ops.
+    depends_on: [T-05]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-domain.sh
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-domain.py
+      grep -c 'target_path=' .claude/skills/harness/bin/check-domain.sh
+    intent: |
+      In .claude/skills/harness/bin/check-domain.sh, make the absolute path of the file being
+      checked available to the schema module, so T-05's diff-scoped rule can find the prior
+      committed content.
+
+      The targets list built around lines 975-1000 currently holds 3-tuples of
+      (worktree-stripped relative path, text, display path). Widen it to a 4-tuple whose
+      fourth element is the ABSOLUTE path of the file on disk, or None where there is no such
+      path. On the PRE route that is os.path.abspath(target). On the POST route it is the
+      same os.path.abspath(target) that is already opened for reading. On the SWEEP route it
+      is the absolute path the sweep walked to. Keep the arity UNIFORM across all three
+      routes: the mixed-arity version of this list is recorded in the file's own comment as a
+      measured defect, so do not reintroduce it with a len() check or a default.
+
+      Thread the fourth element through shape_problems as a new keyword parameter
+      abs_path=None, and inside the RE_FEATURE_JSON branch pass it to
+      feature_schema.problems_for_text as target_path=abs_path. Change nothing else about
+      that branch: the tight try around the import, the ImportError message, the broad
+      except and its separate message all stay exactly as they are, because the broad except
+      is what stops an illegal document escaping at the non-blocking exit 1.
+
+      Do not change any exit code, any denial message wording, or the 300-line feature.json
+      budget.
+
+  - id: T-07
+    title: Unit-test the diff-scoped agent_id rule both ways
+    traces: [REQ-04]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-06]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-validate-feature-json.py
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+    intent: |
+      Extend .claude/skills/harness/bin/test-validate-feature-json.py, which is already
+      registered in run-unit-tests.sh UNIT_SCRIPTS, with cases for the diff-scoped agent_id
+      rule. Do not create a new test file. Follow the reporting shape already in that file.
+
+      Build a real throwaway git repository under tempfile.mkdtemp() for each case: git init,
+      write a feature.json, git add and git commit with -q, so HEAD genuinely holds the prior
+      content. Call feature_schema.problems_for_text directly with target_path set to the
+      absolute path of that file. Assert on the CONTENT of the returned problem lines, never
+      only on the length of the list.
+
+      Case 1, refusal. Commit a feature.json whose runs is an empty list. Then validate a
+      proposed document whose runs holds one entry with id, squad and verdict and no
+      agent_id. Assert exactly one problem line and that it contains both the string agent_id
+      and that entry's id.
+
+      Case 2, grandfathering. Commit a feature.json whose runs holds three entries each with
+      only id, squad and verdict. Validate that identical document. Assert the returned list
+      is EMPTY. This is the half a blanket required breaks.
+
+      Case 3, grandfathered plus new. Against the same committed file, validate a document
+      holding those same three legacy entries plus one new entry with no agent_id. Assert
+      exactly ONE problem line and that it names the NEW entry's id and no legacy id. Then
+      validate the same document with agent_id present on the new entry only, and assert the
+      list is empty. This is the case any-entry-has-it and last-entry-only both get wrong.
+
+      Case 4, stripping is caught. Commit a feature.json whose one runs entry carries
+      agent_id. Validate a document in which that same entry has had agent_id removed.
+      Assert exactly one problem line naming that id.
+
+      Case 5, no prior content. Do not commit anything. Validate a document with one runs
+      entry lacking agent_id and target_path pointing inside the untracked directory. Assert
+      one problem line. Then assert the same call with target_path=None also produces one
+      problem line, proving the rule fails closed rather than silently disabling itself when
+      it cannot read HEAD.
+
+      Case 6, the live corpus does not regress. Iterate every
+      .harness/harness/features/*/feature.json in this repository, call
+      problems_for_text on its own current text with its own absolute path as target_path,
+      and assert the total problem count across all of them is 0. All 372 existing runs
+      entries carry only id, squad and verdict and are committed, so any non-zero total here
+      means the grandfathering is wrong.
+
+  - id: T-08
+    title: Add the hook mode that warns a crossing orchestrator in its own context
+    traces: [REQ-08]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-02]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/context-watch.py
+    verify: |
+      python3 -c "import subprocess,json,sys;p=subprocess.run([sys.executable,'.claude/skills/harness/bin/context-watch.py','--hook'],input=json.dumps({'hook_event_name':'PreToolUse','tool_name':'Task','agent_type':'harness-backend-dev','agent_id':'zzz','session_id':'s','cwd':'/tmp'}),capture_output=True,text=True);assert p.returncode==0,(p.returncode,p.stderr);assert p.stdout.strip()=='' or 'hookSpecificOutput' not in p.stdout;print('non-orchestrator is silent, exit 0')"
+    intent: |
+      Add a --hook mode to .claude/skills/harness/bin/context-watch.py. It reads one JSON
+      hook payload on stdin and ALWAYS exits 0. It must never exit 2, never print a
+      permissionDecision, and never block a tool call: the operator ruled on 2026-08-20 that
+      the warning advises and does not refuse, because a blocking hook would trap an
+      orchestrator whose own handoff writes fell outside the allow-list.
+
+      Identity comes from the payload's session_id plus agent_id, and NEVER from
+      transcript_path. A probe on 2026-08-20 captured a real subagent PreToolUse payload:
+      transcript_path holds the PARENT session's transcript and session_id is the parent's
+      id, so the transcript this hook must read is
+      <projects_root>/<slug_for_cwd(payload["cwd"])>/<payload["session_id"]>/subagents/agent-<payload["agent_id"]>.jsonl.
+      Build that path with the functions T-01 added; do not re-derive the slug inline.
+
+      Exit 0 immediately and print nothing at all when: the payload does not parse; it lacks
+      agent_id or session_id or cwd; payload["agent_type"] is not exactly
+      "harness-orchestrator"; the transcript file is absent or unreadable; or scan_transcript
+      reports peak below threshold(). A hook that speaks when it has nothing to say is a hook
+      the reader learns to ignore.
+
+      Rate-limit to one warning per crossing per agent. The stamp is
+      os.path.join(tempfile.gettempdir(), "harness-context-watch", payload["agent_id"]),
+      holding the integer peak at which the last warning fired. Warn only when the current
+      peak is at least threshold() AND at least 1.25 times the stamped value, then rewrite
+      the stamp. Create the directory with makedirs(exist_ok=True) and treat any OSError as
+      no stamp: degrade to warning more often, never to warning less. NOTHING under
+      .harness/ or .claude/skills/ is written by this mode.
+
+      When it does warn, print ONE json.dumps object to stdout carrying both channels,
+      because this repository has verified additionalContext delivery only on SubagentStart
+      and never on PreToolUse:
+        hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: <the text>}
+        systemMessage: <the same text>
+      The text must name, in this order: the current peak in tokens; the threshold; the
+      nearest seam from nearest_seam(); and the instruction to end at that seam after writing
+      notes/handoff-<stem>.md, or, when nearest_seam returns the mid-phase string, to write
+      notes/handoff-mid-<phase-stem>.md and end anyway rather than continue. It must state
+      that this advises and does not block. Keep it under 12 lines: it lands inside the
+      context it is warning about.
+
+  - id: T-09
+    title: Register the context-watch hook in settings.json
+    traces: [REQ-08]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: .claude/settings.json resolves to NOBODY under check-domain.sh
+      --resolve and is the hook registration surface itself, which DEC-174 reserves to the
+      operator's hands.
+    depends_on: [T-08]
+    status: pending
+    files:
+      - .claude/settings.json
+    verify: |
+      python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];e=[x for x in h if x['matcher']=='Task|Agent'];assert len(e)==1,h;c=[k['command'] for k in e[0]['hooks']];assert any('dispatch-guard.sh' in x for x in c),c;assert any('context-watch.py --hook' in x for x in c),c;print('registered alongside dispatch-guard')"
+      .claude/skills/harness/bin/check-state.sh
+    intent: |
+      In .claude/settings.json, add one hook command to the EXISTING PreToolUse entry whose
+      matcher is exactly "Task|Agent" -- the entry that already registers dispatch-guard.sh.
+      Append to that entry's hooks array, do not create a second entry with the same matcher.
+      The new element is:
+        {"type": "command",
+         "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/context-watch.py --hook"}
+      This mirrors the existing SubagentStop registration of validate-digest.py --hook, which
+      is the precedent for registering a .py directly with a flag.
+
+      Task|Agent and not a wider matcher, for two measured reasons: it is the moment an
+      orchestrator is about to spawn more work, which is exactly when relaying instead is
+      cheap; and it costs one transcript read per dispatch rather than one per tool call, so
+      the tool does not become a significant consumer of the context it measures.
+
+      Change nothing else in settings.json. Do not touch the SubagentStart, PostToolUse or
+      SubagentStop blocks, do not reorder the existing PreToolUse entries, and do not add
+      anything to merge-settings.py -- D-14 rules that the hook does not propagate to product
+      checkouts, and merge-settings.py --check only asserts its own specs are present, never
+      that no extra hook exists. After the edit, check-state.sh INV-9 must still pass: it
+      asserts specific hooks are registered and does not object to an additional one.
+
+  - id: T-10
+    title: Widen INV-17 to shape-check every handoff note it finds
+    traces: [REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 names check-state.sh enforcement layer and INV-17's seam table
+      lives in it, so the harness plans this cutover and the operator's hands execute it. A
+      DEVIATION line from check-plan-routes.py is expected, because the path is granted to
+      harness-backend-dev and harness-dev-ops.
+    depends_on: []
+    status: pending
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-state.py
+      grep -c 'handoff-\*\.md' .claude/skills/harness/bin/check-state.sh
+      .claude/skills/harness/bin/check-state.sh
+    intent: |
+      In .claude/skills/harness/bin/check-state.sh, restructure INV-17 (currently lines
+      462-628) so that the SHAPE check runs over every handoff note found and the SEAM_NOTES
+      table keeps deciding which notes are REQUIRED. Two separate questions, today conflated.
+
+      Concretely. Leave SEAM_NOTES and HANDOFF_HEADINGS exactly as they are; do not add a
+      stem to SEAM_NOTES and do not derive stems from status values, for the reason the
+      existing comment at lines 470-494 already records. Leave the literal exemption set and
+      the lazy _handoff_exempt logic exactly as they are.
+
+      In the loop at line 592, keep only the missing-required-note branch: for each prev in
+      SEAM_NOTES[_status], construct notes/handoff-<prev>.md and, when it is absent, emit the
+      existing seam-was-crossed message with the existing exemption handling. Delete the
+      shape check from inside that loop.
+
+      After that loop, add a new pass. Use glob.glob(os.path.join(_nd, "handoff-*.md")) where
+      _nd is the feature's notes directory -- that exact literal pattern string
+      handoff-*.md must appear once in the file, because T-11 mutates the line carrying it.
+      Sort the results. For each note found, read it, lowercase and strip each line, and apply
+      the SAME two rules that are there today: every heading in HANDOFF_HEADINGS must be
+      present, and the line count must not exceed 60. On a failure append one violation line
+      naming the note by its BASENAME, listing the missing sections and the line count
+      against the cap, and keeping the existing DEC-159/160 citation. Emit at most one line
+      per note.
+
+      What this changes and what it deliberately does not. It does NOT make a mid-phase stem
+      acceptable -- that was already true and is why the criterion needed changing: line 593
+      is the only place a handoff path is constructed, so notes/handoff-mid-build.md was
+      never opened, never demanded and never rejected, and check-domain.sh's RE_HANDOFF at
+      line 665 already shape-gates any handoff-[a-z0-9-]+.md at write time. What it DOES
+      change is that a malformed note the write-time gate never saw -- one arriving through a
+      git checkout, a merge, or a route other than Write and Edit -- is now reported by the
+      disk audit. Verified before planning: all 68 handoff notes currently on disk pass both
+      rules, so this widening adds zero findings to the current tree and any finding it
+      produces is new information.
+
+  - id: T-11
+    title: Prove the widened INV-17 reddens on a malformed mid-phase note
+    traces: [REQ-09]
+    change_type: feature
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 am.4 makes the test of an enforcement script part of the
+      enforcement layer, naming check-plan-routes.py AND its test, which puts
+      test-check-state.py on the main-session side. A DEVIATION line is expected.
+    depends_on: [T-10]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-state.py
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+    intent: |
+      Add cases to .claude/skills/harness/bin/test-check-state.py proving the widened INV-17
+      is load-bearing. Follow the fixture and reporting conventions already in that file; the
+      script under test is reached through the module-level SCRIPT, which already honours the
+      CHECK_STATE_BIN environment override at line 16, and line 1815 already demonstrates
+      copying SCRIPT plus harness_yaml.py into a temp bin directory and running the copy.
+
+      Fixture. Build a temp repo root with one feature directory whose feature.json has
+      status Building and whose notes/ holds TWO files: a well-formed notes/handoff-plan.md
+      carrying all four headings inside the cap, so the required-note branch is satisfied and
+      cannot mask the result; and a MALFORMED notes/handoff-mid-build.md that carries only
+      three of the four headings -- omit the Trust heading -- and is otherwise short.
+
+      Case 1, the shipped script reddens. Run SCRIPT against that root. Assert stdout plus
+      stderr contains EXACTLY ONE line naming handoff-mid-build.md, and assert that line also
+      names the missing section. Assert on the count of matching lines, not on the exit
+      status: an exit status cannot distinguish this finding from any other violation in the
+      same run.
+
+      Case 2, the mutant greens. Copy SCRIPT and harness_yaml.py into a fresh temp bin
+      directory. In the copy, delete the single line containing the literal handoff-*.md .
+      Assert that literal occurs exactly once in the original and zero times in the copy, so
+      the mutation is proven to have applied before anything is concluded from its result.
+      Run the copy against the SAME fixture root and assert ZERO lines name
+      handoff-mid-build.md. Report both counts in the case line.
+
+      Case 3, a well-formed mid-phase note is silent. Replace the malformed note with a
+      well-formed notes/handoff-mid-build.md and assert zero lines name it under the shipped
+      script. LABEL THIS CASE NON-DISCRIMINATING in its own report text: it was already green
+      before T-10 and stays green after, because acceptance of a mid-phase stem was never
+      conditional. It is here to catch a future over-tightening, not as evidence for T-10.
+
+      Case 4, no regression on the live corpus. Run SCRIPT against this repository's own root
+      and assert zero lines name any handoff note. All 68 handoff notes on disk pass both
+      rules today, so a failure here means T-10 broke the shape check rather than widened it.
+
+  - id: T-12
+    title: Write the mid-phase relay rule into the orchestrator's own preloaded text
+    traces: [REQ-09, REQ-10]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: .claude/skills/harness/SKILL.md resolves to NOBODY under
+      check-domain.sh --resolve; it is the orchestrator's preloaded rule text and no team
+      lane may write it.
+    depends_on: [T-10]
+    status: pending
+    files:
+      - .claude/skills/harness/SKILL.md
+    verify: |
+      grep -c 'handoff-mid-' .claude/skills/harness/SKILL.md
+      grep -c 'orchestrator_context_tokens' .claude/skills/harness/SKILL.md
+      .claude/skills/harness/bin/check-state.sh
+    intent: |
+      In .claude/skills/harness/SKILL.md, extend the seam section around lines 320-338 so an
+      orchestrator that receives the context warning knows exactly what to do. Edit in place;
+      add no new top-level section and no parallel copy of the seam rule.
+
+      Add, in the file's own voice and in no more than eight lines: when the context warning
+      arrives, the orchestrator finds the NEAREST seam rather than the next one. If a phase
+      exit predicate is already satisfied, end there and write
+      notes/handoff-<ending-phase>.md as the existing paragraph already describes. If the
+      phase is genuinely mid-flight, do NOT continue and do not wait for the real seam:
+      write notes/handoff-mid-<phase-stem>.md -- for example handoff-mid-build.md -- carrying
+      the same four sections inside the same 60-line cap, and end. Latest supersedes: a
+      second crossing inside one phase overwrites that file. State that the warning advises
+      and never blocks, so the decision is the orchestrator's, and that the threshold it
+      crossed is budgets.orchestrator_context_tokens in .harness/harness.json.
+
+      Also correct one stale sentence in the same paragraph while you are in it: line 324
+      says to record the phase in feature.json phase:, and that field does not exist --
+      DEC-192 collapsed phase and status into one status field. Change it to name status.
+
+      Do not restate INV-17's mechanics and do not describe check-domain.sh's write-time
+      shape gate: both already have one home. Keep the file's total length change under
+      twelve lines.
+
+  - id: T-13
+    title: Integration-test the corrected peak, the worktree slug and the hook payload
+    traces: [REQ-01, REQ-05, REQ-08]
+    change_type: feature
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-08]
+    status: pending
+    files:
+      - .claude/skills/harness/bin/test-context-watch-integration.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .harness/harness.json
+    verify: |
+      .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+    intent: |
+      Create .claude/skills/harness/bin/test-context-watch-integration.py, append its filename
+      to the INTEGRATION_SCRIPTS array in run-unit-tests.sh, and append its path to
+      test_kinds.integration.detect in .harness/harness.json, which is an explicit
+      pipe-separated file list. Change nothing else in either file. Every fixture is built
+      under tempfile.mkdtemp() and every root is passed explicitly. NOTHING in this file may
+      read ~/.claude/projects: CI is ubuntu-latest, that directory does not exist there, and
+      the integration job is a required context on main.
+
+      Case 1, the corrected peak against an independent computation. Generate a fixture
+      transcript of 40 entries with random.Random(31): each entry's message.usage gets an
+      input_tokens, cache_read_input_tokens and cache_creation_input_tokens, and roughly half
+      the entries also get an iterations list of two to four sub-usages whose three fields are
+      drawn the same way; where iterations are present, set the TOP-LEVEL three fields to the
+      per-field SUMS over the iterations, which is the shape Claude Code actually writes.
+      Then compute the expected peak INLINE IN THIS TEST with a loop that, per entry, takes
+      the max over iterations of the three-field sum when iterations are present and the
+      top-level three-field sum otherwise. Do not import, call or copy any function from
+      context-watch.py to compute it; if the module's arithmetic changes, this expectation
+      must not move with it. Assert the tool's reported peak equals that expectation exactly.
+      Then assert the fixture is discriminating: compute the NAIVE peak as the max top-level
+      three-field sum, assert it is strictly greater than the expectation, and assert the tool
+      does not report it. Print all three numbers in the case line.
+
+      Case 2, the worktree slug. Assert slug_for_cwd of the literal string
+      /Users/molchairuangutai/GitHub/harness/.claude/worktrees/fix-harness-tooling-backlog
+      equals the literal string
+      -Users-molchairuangutai-GitHub-harness--claude-worktrees-fix-harness-tooling-backlog
+      character for character. This is a PURE FUNCTION assertion and touches no filesystem,
+      which is what makes it CI-safe. Then assert the same rule end to end: build a fixture
+      projects root, create inside it the directory named by slug_for_cwd(<a temp path
+      containing .claude/worktrees/>), put one orchestrator sidecar and .jsonl in it, and
+      assert discover_agents finds it when --cwd is that temp path and finds NOTHING when
+      --cwd is that path's grandparent. The second half is what proves the tool resolves the
+      directory for the cwd rather than for a fixed harness root.
+
+      Case 3, the hook warns on a crossing fixture and is silent otherwise. Build a fixture
+      projects root laid out exactly as the hook expects, with a sidecar whose agentType is
+      harness-orchestrator and a .jsonl whose peak is 500000. Feed context-watch.py --hook a
+      payload carrying that session_id, that agent_id, agent_type harness-orchestrator, cwd
+      set to the fixture cwd, and a fixture harness.json with the threshold at 400000. Assert
+      exit 0, that stdout parses as JSON, that
+      hookSpecificOutput.additionalContext exists and contains the strings 500000, 400000 and
+      a nearest-seam phrase, and that systemMessage carries the same text. Assert stdout
+      contains no permissionDecision. Then raise the threshold to 600000, clear the stamp
+      directory, and assert stdout is empty and exit is still 0. Then prove the comparison is
+      load-bearing: rebind the module's warn_lines to return an empty list, assert the rebind
+      took effect, re-run the crossing case in-process, and assert the emitted payload count
+      drops from 1 to 0. Assert on that count, not on the exit status, which is 0 either way.
+
+      NOTE FOR THE READER OF THIS TEST, put it in the file's docstring: whether Claude Code
+      delivers hookSpecificOutput.additionalContext from a PreToolUse hook into a SUBAGENT's
+      context is NOT tested here and cannot be. This file proves the payload is correct and
+      complete; that it lands is observable only against a live orchestrator.
+
+  - id: T-14
+    title: Correct DEC-159 in place and regenerate the decisions index
+    traces: [REQ-09]
+    change_type: docs
+    execution_mode: team
+    execution_agent: harness-documentor
+    depends_on: []
+    status: pending
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      python3 -c "import re;t=open('.harness/harness/docs/DECISIONS.md').read();assert 'the watchdog remains the post-hoc audit' not in t;i=t.index('## DEC-159');j=t.index('## DEC-160');b=t[i:j];assert 'am.' not in b, 'no am.N block permitted';assert 'orchestrator_context_tokens' in b;assert 'handoff-mid-' in b;print('DEC-159 edited in place')"
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+    intent: |
+      Edit the DEC-159 entry in .harness/harness/docs/DECISIONS.md IN PLACE. Do not read the
+      file whole (DEC-150): grep .harness/harness/docs/DECISIONS-INDEX.md for DEC-159, open
+      the entry at its @line anchor, and work only inside it, up to the "## DEC-160" heading.
+      Add NO am.N block and create NO parallel rule anywhere else. One statement, one home.
+      DEC-159 is NOT struck: the operator ruled on 2026-08-20 that its core, the per-phase
+      seam and the capped handoff note, holds and is the basis of FEAT-31.
+
+      Three edits, all inside that entry.
+
+      One. Delete the false clause. The sentence ending "the watchdog remains the post-hoc
+      audit" is no longer true: DEC-178 removed cost tracking entirely and the watchdog went
+      with cost-report.py. Rewrite the whole "Not mechanized" sentence so it reads as a
+      single current rule: the in-flight signal IS now mechanized, as a PreToolUse hook on
+      the dispatch seam that warns an orchestrator in its own context when its largest single
+      prompt crosses a threshold; it advises and never blocks; there is no post-hoc audit and
+      no cost meter behind it. The literal string "the watchdog remains the post-hoc audit"
+      must not survive anywhere in the file.
+
+      Two. State what to do when a phase is genuinely mid-flight at the threshold, which is
+      the case the per-phase seam does not cover. The entry already sanctions "a mid-phase
+      relay is the bounded escape" without saying what it produces; make it concrete. On the
+      warning: find the nearest seam, not the next one. If an exit predicate is already
+      satisfied, end there and write notes/handoff-<ending-phase>.md. If the phase is
+      mid-flight, write notes/handoff-mid-<phase-stem>.md, for example handoff-mid-build.md,
+      carrying the same four sections inside the same 60-line cap, and end anyway. Latest
+      supersedes. Waiting for the real seam is what produced the FEAT-29 case: an
+      orchestrator deep in a fix loop, past every threshold, with the next seam far ahead.
+      Say also that being under the threshold is NOT licence to run past a natural phase
+      seam: the per-phase rule is primary and the threshold only forces the question earlier.
+
+      Three. Declare the new configuration key, which DEC-160 requires a decision to do:
+      budgets.orchestrator_context_tokens in .harness/harness.json, default 200000 carried
+      over from DEC-148, measured in largest single prompt resolved per usage.iterations and
+      never summed across sub-calls. Record the correcting measurement in one clause: over 76
+      orchestrator transcripts on 2026-08-20 the corrected median peak was 136406, BELOW the
+      threshold, with 28 of 76 above it and 10 above twice it, so the problem is at the top of
+      the distribution and not at its middle.
+
+      Also correct, inside the same entry, the two statements the tree already contradicts
+      while you are editing it: the entry says feature.yaml gains a phase: field, and DEC-192
+      collapsed phase and status into one status field, so name status; and the enforcement
+      paragraph says handoff-*.md is denied above 40 lines, while the cap has been 60 since
+      DEC-160, which the entry itself says elsewhere.
+
+      Then regenerate the index with python3
+      .claude/skills/harness/bin/gen-decisions-index.py, which rewrites everything left of
+      the " :: " on each row and preserves the hand-written summary to its right verbatim.
+      Update DEC-159's own summary text to the right of " :: " so it names the mechanized
+      in-flight warning, since the old summary describes only the seam. Do not hand-edit
+      anything left of " :: " on any row.

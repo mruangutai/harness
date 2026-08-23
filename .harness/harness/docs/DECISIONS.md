@@ -3986,9 +3986,27 @@ nothing may ever require it, or a crash becomes unrecoverable.
 DEC-150 write-time shape gate grows a third pattern — handoff-*.md is denied on a missing
 required heading or >40 lines while the author is still alive to fix it; check-state.sh INV-17
 flags a feature whose `phase:` sits past a seam with no handoff note for the crossing, or a
-note that fails the shape. Not mechanized: the in-flight turn-count nudge (warn an orchestrator
-that is N turns deep mid-fix-loop) — deferred until a live fix loop actually produces the
-degraded-relay case; the watchdog remains the post-hoc audit.
+note that fails the shape.
+
+**The in-flight warning, and the metric it is not.** The watchdog is no longer only a post-hoc
+audit: `.claude/skills/harness/bin/context-watch-hook.py` is a PostToolUse hook registered in
+`.claude/settings.json` on the existing `Write|Edit|Bash` matcher, and it tells a running
+`harness-orchestrator`, in its OWN context while it runs, the moment its measured prompt size
+reaches `budgets.orchestrator_context_warn_tokens` (DEC-198). That is a different measurement
+from the one deferred here. What this entry deferred was a turn-count nudge — warn an
+orchestrator that is N turns deep mid-fix-loop — and what shipped is a context-size threshold
+instead: same function, different metric. The turn-count nudge remains deferred; nothing counts
+an orchestrator's turns, and the live fix loop that would justify it has still not been
+observed. The warning advises and never refuses — its own text says "this advises only; the
+orchestrator decides", and PostToolUse fires after the tool has already run, so its exit 2
+carries text back to the orchestrator and stops nothing.
+
+**The mid-flight case, which the seam rule does not cover.** Per-phase assumes a boundary is
+reachable; the warning can land when a phase is genuinely mid-flight. A warned orchestrator
+determines the nearest seam and writes the state a successor needs before it ends. Where no seam
+is reachable it writes a mid-phase handoff rather than continuing — the same note, the same four
+required sections, the same cap. This is when "a mid-phase relay is the bounded escape" above
+applies, and the note is what bounds it.
 
 Relay economics, stated once: a succession costs a fresh ~10k preload plus the working set
 (~30–50k total) and is won back the moment it prevents a handful of 300k-cache-read turns.
@@ -4857,7 +4875,7 @@ built to catch as resolved. Every one was invisible to green gates. A test edite
 cannot see it is the same circularity one level out.
 
 **So the enforcement layer is: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-`check-state.sh`, `check-plan-routes.py`, and the test file of each.** A script that becomes a gate
+`check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, and the test file of each.** A script that becomes a gate
 joins the list on the day it becomes one, and this entry is amended when that happens — the category
 decides, the list records.
 
@@ -4865,6 +4883,11 @@ decides, the list records.
 working rule, applied to FEAT-29: a squad may write the library, and **the cutover that makes a gate
 use it is main-session-direct**, proven by showing the gate's violation set is identical before and
 after. The gate's behaviour changes only by a hand the carve-out governs.
+
+`dispatch-guard.sh` joins the enumeration on the evidence that it refuses dispatches — it
+declined a `harness-orchestrator` dispatch over a `model` parameter on 2026-08-21 — and it joins
+under the rule this amendment already states rather than as a new ruling, so no lane changes and
+amendment 4 remains an amendment about the list and not about the category.
 
 **Not a strike.** DEC-174's ruling, its rationale and amendments 1 through 3 are untouched. What
 changed is that the enumeration is now correct and is declared non-exhaustive.
@@ -5607,6 +5630,35 @@ blocker-state read PER BLOCKER PER CANDIDATE" states the board read as one serve
 ready station option per poll; it becomes one such query per repository served per poll. That scales
 with FLEET SIZE and not with board size — a fleet of one repository pays exactly what the original
 model priced, and each repository added costs one more server-side query, whatever its board holds.
+
+### DEC-186 amendment 2 (2026-08-23) — the read-back bound widens to FOUR, and the fourth is `/harness-init` reading a board's workflow list
+
+**The set was closed at three and it is now closed at four.** The fourth purpose is learning **which
+of a board's native workflows are enabled** — `Item closed`, `Auto-close issue`, `Pull request
+merged`. It is bounded to `/harness-init`: no other surface makes this read, and nothing in a build,
+a claim or a station flip may reach for it.
+
+**Widened by an operator ruling, not by re-categorisation.** FEAT-33's plan argued the read is
+*configuration* rather than *control flow* and therefore already inside the bound. The architecture
+review rejected that, correctly: the third purpose was added on 2026-08-08 by an explicit ruling
+recorded as a widening by exactly one item, and re-labelling a fourth read is not the same act. The
+operator was given both branches — widen, or drop REQ-02 — and ruled to widen on 2026-08-23. This
+amendment is that ruling.
+
+**The reason is that the harness does not move cards to `Done` — GitHub does.** When `Item closed`
+fires, a closed issue's card moves. When it is off, every card stops moving and nothing reports it;
+the failure is discovered by a human noticing the board looks wrong. Measured the same day this was
+ruled: FEAT-32's parent `#700` read `Building` while its `feature.json` read `Review`, and its
+sub-issue cards reached `Done` only because that workflow happened to be on. **A dependency only a
+human click can satisfy, with no reader, is the same shape as an assertion that cannot go red.**
+
+**What it does NOT authorise.** The read is REPORT-ONLY and writes nothing. Only a click enables a
+workflow, so `/harness-init` names each one that is off and says so. A read-back value still never
+enters `BRIEF.md`, `plan.yaml` or any approval block, and the fourth purpose gives no tool a new
+write.
+
+**Not a strike.** DEC-186's ruling, its rationale and amendment 1 stand. What changed is the number,
+from three to four, and the fourth carries its own surface bound.
 
 ## DEC-187 — The test matrix is per-project, and a kind with no runner is excluded by decision, never by inference
 
@@ -6394,3 +6446,121 @@ state.
 **If this is ever implemented, the test must assert on a file matching BOTH globs** and go red when
 the resolution flips. A test over non-overlapping files passes under either rule and proves nothing
 about the only case in question.
+
+## DEC-198 — `budgets.orchestrator_context_warn_tokens` is declared: a context figure, not money, that advises and never refuses
+
+**Chose:** add one integer leaf, `budgets.orchestrator_context_warn_tokens`, to `harness.json`. It is
+the orchestrator context size at which the harness ADVISES. **When the key is absent, the default is
+200000** — read from `.claude/skills/harness/bin/context-watch.py`, where
+`DEFAULT_CONTEXT_WARN_TOKENS = 200000` is returned by the resolver on every miss path: file missing,
+unreadable, not JSON, no `budgets` dict, key absent, or value not a number (bools excluded).
+
+**`budgets` is NOT new; only the leaf is.** The block already held `max_total_cycles` and
+`max_total_runs` in both `.harness/harness.json` and
+`.claude/skills/harness/templates/harness.json`.
+
+**It is a CONTEXT figure, not money.** DEC-178 removed cost tracking entirely — meter, budgets,
+invariant, reporting surfaces — and that removal stands. Nothing here reintroduces a rate table, a
+dollar figure or a spend budget. The unit is tokens of context.
+
+**Why 200000 rather than a fresh guess:** it is the figure DEC-148's watchdog used, carried over.
+Stated precisely, because the entry should not be read as more than it is: DEC-148 wrote the figure
+as "200k" for `budgets.context_per_turn_tokens`, an **average cache-read-per-turn** threshold, and
+DEC-178 deleted that watchdog along with the meter. The same numeral is reused for a **different
+metric** — an orchestrator's context size — because re-deriving a threshold nobody has grounds to
+move invents precision. `.harness/harness.json`'s own rationale string records the distribution
+behind it (28 of 76 orchestrator transcripts above the figure, largest 750837, measured 2026-08-20);
+that is the plan's measurement, quoted, not re-derived in this entry.
+
+**Crossing it ADVISES and never refuses.** It is informational, not a gate. No branch stops, no
+dispatch is denied, nothing is blocked on it.
+
+**Added in BOTH files, because DEC-160 makes the template the propagation source.** The leaf sits in
+`.harness/harness.json` (this repo's live config) and in
+`.claude/skills/harness/templates/harness.json` (what `/harness-init --upgrade` propagates into other
+repos). DEC-160 also requires that a decision adding a `harness.json` key SAY SO; this entry is that
+statement, and it is the reason the entry exists.
+
+**Propagation, stated as what was read in `upgrade-config.py` and not as an expectation.** The script
+required no change and was left byte-unchanged. `merge()` is a recursive additive merge — "template
+fills gaps, project values win" — and the file contains **zero occurrences of `budgets`**, so there is
+no key-specific path; propagation is a property of the generic merge alone. That zero is load-bearing:
+`merge()` consults three exclusion sets — `PRESERVE_ALWAYS`, `NEVER_ADD`, `TEMPLATE_ONLY` — and
+neither `budgets` nor the new leaf appears in any of them. Had `budgets` been in `PRESERVE_ALWAYS`,
+the recursion would be short-circuited and the leaf would not propagate at all.
+
+**Two code paths, and only one is tested.** A project that ALREADY has a `budgets` block receives the
+new leaf through the recursion branch (`elif isinstance(tv, dict) and isinstance(out[k], dict)`), and
+this is the ordinary case since `budgets` has long been in the template. T-05's new case in
+`test-upgrade-config.py` exercises **only** that path — its fixture project config carries
+`budgets: {}`. A project with NO `budgets` block receives the whole dict through the add branch
+(`if k not in out: ... out[k] = tv`), and that path is **untested** for this key. Propagation is
+therefore proven for the first shape and inferred for the second.
+
+**What is NOT guarded, recorded rather than discovered later.** No test in
+`test-upgrade-config.py` pins that an operator's EXISTING value of
+`orchestrator_context_warn_tokens` survives an upgrade. The behaviour rests on `merge()`'s stated
+contract — project values win, scalars the project already set are left alone — and the code reads
+that way, but no assertion holds it. A future change to the merge could overwrite an operator's tuned
+threshold and the suite would stay green.
+
+## DEC-199 — Every shared artifact two contexts can write at once goes through one locked, union-merging core, `harness_merge`, and a named persona is dispatched once per checkout
+
+**Chose:** one core, `.claude/skills/harness/bin/harness_merge.py`, holding the lock, the union-merge scaffolding and
+the atomic replace, with exactly four consumers on it — `plan-merge.py`, `observations-merge.py`, `expertise-merge.py`
+and `inflight_registry.py`. No consumer opens its own lock or rename primitive. DEC-193 is the precedent: one shared
+implementation, divergences recorded.
+
+**The lock is `fcntl.flock` on a sibling lock file opened `O_CREAT|O_RDWR`, never `O_EXCL`**, so the file's existence is
+not itself the lock and the file is never removed. **Over** a create-and-delete `O_EXCL` lock file, which survives a
+`SIGKILL` and then refuses every later write — for a feature's `plan.yaml`, no plan can be written until a human deletes
+a file they have no reason to know exists. **Two divergences, kept in one place:** this is not the shape
+`expertise-merge.py` shipped with, which carried the `O_EXCL` lock and was rewired onto the core rather than forked; and
+the deadline is not uniform — `acquire` and `locked_update` take an optional `timeout`, the four file-merge callers keep
+the 10.0s default and the registry takes 1.0s, a lock held a second on a millisecond read-modify-write meaning the
+holder is stuck, not busy.
+
+| Union is keyed, per file class | On | Notes |
+| --- | --- | --- |
+| Expertise file | section, then entry id | conflict is an error; the cap applies |
+| `plan.yaml` | task id and decision id | spliced as text, never re-rendered; the approval block carried forward as the base file's own bytes |
+| observation log | whitespace-normalised text of a bullet record | order-preserving; no conflict exit and no cap, the file having neither ids nor a budget |
+
+**The single-flight registry.** A named set of personas — today the product manager alone — may not be dispatched twice
+at once on one checkout. The `PreToolUse` Task hook refuses the second, the `SubagentStop` hook releases the claim, a
+claim expires after an hour, and one command, `inflight_registry.py release-all`, clears every claim — already
+exercised, not hypothetical — because a fix that can brick every later dispatch is worse than the defect it prevents.
+**The root comes from the hook payload's `cwd`, one registry per worktree**, by the same precedence in both hooks, which
+is what "on one checkout" means: a shared registry would refuse a second feature's product manager while the first's is
+live.
+
+**Only the dispatch cause of issue #551 is closed.** Its two reporting consequences — a lead emitting a terminal verdict
+about members it cannot see, an orchestrator inferring run verdicts from disk — are NOT closed, and no wait can close
+them: the `SubagentStop` hook passes through on `stop_hook_active` to avoid an infinite stop loop, so a stop refusal
+fires at most once. What ships is aimed at the false REPORT — a lead or orchestrator returning while a child it
+dispatched is still claimed is REFUSED once on that hook, the same one-correction-round strength every other digest
+contract in that file has; the loss itself is prevented at the `PreToolUse` hook, whose refusals have no once-only
+bound. The residual, plainly: a second identical return ships, and an orphaned child of an interrupted parent has no
+parent left to refuse it.
+
+**#551's count is a FLOOR, never a total.** At least eight are measured as of this commit, and the mechanism fired again
+during the build of its own fix: 5 through 8 came from this feature's own runs. The count has already moved four → seven
+→ eight, and this file has no propagation checker, so a bare total written here becomes a false statement nothing
+detects. Occurrence 5 is a lead forced to a terminal digest with its product manager in flight; 6 is the orchestrator
+forced to a stop with its lead in flight; 7 is what 5 cost — that lead's first digest asserted the product manager's
+work was `files_touched` empty and unrecoverable and was COMMITTED as the run's outcome; the product manager was then
+resumed, ran to completion and returned PASS, and `148c8c5` corrected the record. The defect does not merely cost a
+spawn: it WROTE A FALSE VERDICT INTO THE DURABLE RECORD, caught only by a resume. Occurrence 8 is strictly stronger — a
+lead force-closed with a member still in flight has no honest word available to it, because the digest validator ranks
+only PASS, FAIL, ESCALATE and BLOCKED (`.claude/skills/harness/bin/validate-digest.py:703`), so a return declining to
+grade a child it cannot see is REJECTED and the lead must state a verdict on work it has not seen. Seven measured that
+the mechanism PERMITS a false verdict; eight measures that it DEMANDS one. #551's harm is false reporting.
+
+**One deliberate disagreement, not rot.** Run directories are gitignored, so this entry and the feature's `STATE.md` are
+the durable record and the run directory is not. `BRIEF.md` line 16 still reads "seven measured occurrences" and STAYS
+at seven, the operator having declined to reset the brief's approval for a prose change: the plan is the current
+authority on the count, the brief the signed one, and neither is edited to match the other.
+
+**The bound on the whole ruling is identity.** A Bash-invoked CLI has no identity source — no `agent_type` reaches it
+and no environment variable carries one — so it checks WHERE it writes, never WHO called it. That route is reachable
+from a read-only persona because `bash-write-guard.sh` is allow-by-omission (#627), not fixed here.

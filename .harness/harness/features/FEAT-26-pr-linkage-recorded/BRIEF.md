@@ -163,4 +163,4 @@ a `cmd: null` kind.
 
 ## Approval
 
-status: pending
+status: approved

@@ -941,6 +941,147 @@ def case_shared_checkout_negative(root):
     )
 
 
+def case_gitignored_artifact_does_not_block(fx):
+    """#726 — GATE 3 MUST ASK "IS EVERY TRACKED FILE LANDED", NOT "DOES EVERY PATH EXIST ON main".
+
+    Measured on the real repository 2026-08-23: `.gitignore:7` ignores
+    `.harness/*/features/*/runs/**`, so every run `digest.md` and `state.yaml` is untracked by
+    construction and can NEVER reach the default branch. Gate 3 walked those paths anyway and
+    refused, which made act 3 of the worktree lifecycle unrunnable for every feature that ever
+    ran a squad.
+
+    The fixture reproduces exactly that shape: one TRACKED artifact that IS landed, plus one
+    IGNORED run file that never can be. The pre-fix code exits 5 naming the ignored path."""
+    info, r = create_one(fx, "harness", "FEAT-70")
+    assert r.returncode == 0, f"fixture setup for FEAT-70 failed: rc={r.returncode} stderr={r.stderr!r}"
+    dest, seg = info["dest"], info["segment"]
+
+    # The ignore rule, committed on the feature branch and merged, exactly as the real repo has it.
+    with open(os.path.join(dest, ".gitignore"), "w") as f:
+        f.write(".harness/*/features/*/runs/**\n")
+    rel = _commit_artifact(dest, seg, "FEAT-70", "v1\n", "add artifact and ignore rule")
+    _merge_into_default(info["owner_root"], "FEAT-70")
+
+    # An IGNORED run artifact, written AFTER the merge. git status is clean; the path is not on main.
+    run_rel = os.path.join(".harness", seg, "features", "FEAT-70", "runs", "r1", "digest.md")
+    run_abs = os.path.join(dest, run_rel)
+    os.makedirs(os.path.dirname(run_abs), exist_ok=True)
+    with open(run_abs, "w") as f:
+        f.write("a digest that is ignored by construction\n")
+    st = _git(dest, ["status", "--porcelain"]).stdout.strip()
+    check("#726 fixture: the ignored run file leaves the tree CLEAN", st == "", repr(st))
+
+    r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-70"], fx)
+    check(
+        "#726: an IGNORED artifact does not block remove",
+        r2.returncode == 0,
+        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+    )
+    check(
+        "#726: stdout never names the ignored path as MISSING",
+        f"MISSING {run_rel}" not in r2.stdout,
+        r2.stdout,
+    )
+    check(
+        "#726: the tracked artifact is still VERIFIED, so the check did not go blind",
+        f"VERIFIED {rel}" in r2.stdout,
+        r2.stdout,
+    )
+    check("#726: the worktree is gone", not os.path.isdir(dest), dest)
+
+
+def case_gitignored_does_not_mask_a_real_miss(fx):
+    """#726 GUARD — the fix must not become "skip anything not on main".
+
+    Without this case, `if path not in main: continue` passes case_gitignored_artifact_does_not_block
+    and silently deletes worktrees holding genuinely unlanded work. Same fixture, except the
+    TRACKED artifact is never merged. Gate 3 must still refuse."""
+    info, r = create_one(fx, "harness", "FEAT-71")
+    assert r.returncode == 0, f"fixture setup for FEAT-71 failed: rc={r.returncode} stderr={r.stderr!r}"
+    dest, seg = info["dest"], info["segment"]
+
+    with open(os.path.join(dest, ".gitignore"), "w") as f:
+        f.write(".harness/*/features/*/runs/**\n")
+    rel = _commit_artifact(dest, seg, "FEAT-71", "v1\n", "add artifact and ignore rule")
+    # DELIBERATELY NOT MERGED.
+
+    run_abs = os.path.join(dest, ".harness", seg, "features", "FEAT-71", "runs", "r1", "digest.md")
+    os.makedirs(os.path.dirname(run_abs), exist_ok=True)
+    with open(run_abs, "w") as f:
+        f.write("ignored\n")
+
+    r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-71"], fx)
+    check(
+        "#726 guard: an UNLANDED TRACKED artifact still refuses, exit 5",
+        r2.returncode == 5,
+        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+    )
+    check(
+        f"#726 guard: stdout names MISSING {rel}",
+        f"MISSING {rel}" in r2.stdout,
+        r2.stdout,
+    )
+    check("#726 guard: the tree survives the refusal", os.path.isdir(dest), dest)
+
+
+def case_short_id_resolves_to_the_flow_directory(fx):
+    """#727 — ONE --id FEEDS TWO PATHS AND THEY DISAGREE ON EVERY REAL WORKTREE.
+
+    Measured 2026-08-23: all four worktrees are named `FEAT-32` while every feature directory is
+    `FEAT-32-concurrent-write-merge`. `dest_for` takes the short form and gate 3's artifact path
+    takes the long one, so NO value of --id satisfies both: short fails gate 3 with MISSING
+    ARTIFACT DIRECTORY, long fails gate 1 with "not a linked worktree".
+
+    The fixture creates the worktree short and the artifact long, which is the real shape."""
+    info, r = create_one(fx, "harness", "FEAT-72")
+    assert r.returncode == 0, f"fixture setup for FEAT-72 failed: rc={r.returncode} stderr={r.stderr!r}"
+    dest, seg = info["dest"], info["segment"]
+
+    rel = _commit_artifact(dest, seg, "FEAT-72-a-slugged-name", "v1\n", "artifact under the flow id")
+    _merge_into_default(info["owner_root"], "FEAT-72")
+
+    r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-72"], fx)
+    check(
+        "#727: a SHORT --id resolves to the one matching feature directory",
+        r2.returncode == 0,
+        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+    )
+    check(
+        f"#727: the resolved artifact is verified — {rel}",
+        f"VERIFIED {rel}" in r2.stdout,
+        r2.stdout,
+    )
+    check("#727: the worktree is gone", not os.path.isdir(dest), dest)
+
+
+def case_short_id_ambiguous_refuses(fx):
+    """#727 GUARD — resolution must REFUSE on ambiguity, never guess.
+
+    `FEAT-73` prefix-matching both `FEAT-73-one` and `FEAT-73-two` has no right answer. Deleting a
+    checkout on a coin flip is worse than refusing. Without this case, `next(iter(matches))` passes
+    the happy-path test above."""
+    info, r = create_one(fx, "harness", "FEAT-73")
+    assert r.returncode == 0, f"fixture setup for FEAT-73 failed: rc={r.returncode} stderr={r.stderr!r}"
+    dest, seg = info["dest"], info["segment"]
+
+    _commit_artifact(dest, seg, "FEAT-73-one", "v1\n", "artifact one")
+    _commit_artifact(dest, seg, "FEAT-73-two", "v1\n", "artifact two")
+    _merge_into_default(info["owner_root"], "FEAT-73")
+
+    r2 = run_cli(["remove", "--repo", "harness", "--id", "FEAT-73"], fx)
+    check(
+        "#727 guard: an AMBIGUOUS short id refuses, exit 5",
+        r2.returncode == 5,
+        f"rc={r2.returncode} stdout={r2.stdout!r} stderr={r2.stderr!r}",
+    )
+    check(
+        "#727 guard: the refusal names BOTH candidates so the operator can disambiguate",
+        "FEAT-73-one" in (r2.stdout + r2.stderr) and "FEAT-73-two" in (r2.stdout + r2.stderr),
+        r2.stdout + r2.stderr,
+    )
+    check("#727 guard: the tree survives the refusal", os.path.isdir(dest), dest)
+
+
 def main():
     root = tempfile.mkdtemp(prefix="feature-worktree-test-")
     try:
@@ -968,6 +1109,10 @@ def main():
             case_landed_refuse_then_allow(fx)
             case_landed_differs(fx)
             case_no_artifact_directory(fx)
+            case_gitignored_artifact_does_not_block(fx)
+            case_gitignored_does_not_mask_a_real_miss(fx)
+            case_short_id_resolves_to_the_flow_directory(fx)
+            case_short_id_ambiguous_refuses(fx)
             case_behind_default_branch(fx)
         else:
             print("GUARD FAILED — refusing to create anything; skipping remaining cases")
