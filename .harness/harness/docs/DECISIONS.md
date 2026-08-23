@@ -4875,7 +4875,7 @@ built to catch as resolved. Every one was invisible to green gates. A test edite
 cannot see it is the same circularity one level out.
 
 **So the enforcement layer is: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-`check-state.sh`, `check-plan-routes.py`, and the test file of each.** A script that becomes a gate
+`check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, and the test file of each.** A script that becomes a gate
 joins the list on the day it becomes one, and this entry is amended when that happens — the category
 decides, the list records.
 
@@ -4883,6 +4883,11 @@ decides, the list records.
 working rule, applied to FEAT-29: a squad may write the library, and **the cutover that makes a gate
 use it is main-session-direct**, proven by showing the gate's violation set is identical before and
 after. The gate's behaviour changes only by a hand the carve-out governs.
+
+`dispatch-guard.sh` joins the enumeration on the evidence that it refuses dispatches — it
+declined a `harness-orchestrator` dispatch over a `model` parameter on 2026-08-21 — and it joins
+under the rule this amendment already states rather than as a new ruling, so no lane changes and
+amendment 4 remains an amendment about the list and not about the category.
 
 **Not a strike.** DEC-174's ruling, its rationale and amendments 1 through 3 are untouched. What
 changed is that the enumeration is now correct and is declared non-exhaustive.
@@ -6469,3 +6474,64 @@ therefore proven for the first shape and inferred for the second.
 contract — project values win, scalars the project already set are left alone — and the code reads
 that way, but no assertion holds it. A future change to the merge could overwrite an operator's tuned
 threshold and the suite would stay green.
+
+## DEC-199 — Every shared artifact two contexts can write at once goes through one locked, union-merging core, `harness_merge`, and a named persona is dispatched once per checkout
+
+**Chose:** one core, `.claude/skills/harness/bin/harness_merge.py`, holding the lock, the union-merge scaffolding and
+the atomic replace, with exactly four consumers on it — `plan-merge.py`, `observations-merge.py`, `expertise-merge.py`
+and `inflight_registry.py`. No consumer opens its own lock or rename primitive. DEC-193 is the precedent: one shared
+implementation, divergences recorded.
+
+**The lock is `fcntl.flock` on a sibling lock file opened `O_CREAT|O_RDWR`, never `O_EXCL`**, so the file's existence is
+not itself the lock and the file is never removed. **Over** a create-and-delete `O_EXCL` lock file, which survives a
+`SIGKILL` and then refuses every later write — for a feature's `plan.yaml`, no plan can be written until a human deletes
+a file they have no reason to know exists. **Two divergences, kept in one place:** this is not the shape
+`expertise-merge.py` shipped with, which carried the `O_EXCL` lock and was rewired onto the core rather than forked; and
+the deadline is not uniform — `acquire` and `locked_update` take an optional `timeout`, the four file-merge callers keep
+the 10.0s default and the registry takes 1.0s, a lock held a second on a millisecond read-modify-write meaning the
+holder is stuck, not busy.
+
+| Union is keyed, per file class | On | Notes |
+| --- | --- | --- |
+| Expertise file | section, then entry id | conflict is an error; the cap applies |
+| `plan.yaml` | task id and decision id | spliced as text, never re-rendered; the approval block carried forward as the base file's own bytes |
+| observation log | whitespace-normalised text of a bullet record | order-preserving; no conflict exit and no cap, the file having neither ids nor a budget |
+
+**The single-flight registry.** A named set of personas — today the product manager alone — may not be dispatched twice
+at once on one checkout. The `PreToolUse` Task hook refuses the second, the `SubagentStop` hook releases the claim, a
+claim expires after an hour, and one command, `inflight_registry.py release-all`, clears every claim — already
+exercised, not hypothetical — because a fix that can brick every later dispatch is worse than the defect it prevents.
+**The root comes from the hook payload's `cwd`, one registry per worktree**, by the same precedence in both hooks, which
+is what "on one checkout" means: a shared registry would refuse a second feature's product manager while the first's is
+live.
+
+**Only the dispatch cause of issue #551 is closed.** Its two reporting consequences — a lead emitting a terminal verdict
+about members it cannot see, an orchestrator inferring run verdicts from disk — are NOT closed, and no wait can close
+them: the `SubagentStop` hook passes through on `stop_hook_active` to avoid an infinite stop loop, so a stop refusal
+fires at most once. What ships is aimed at the false REPORT — a lead or orchestrator returning while a child it
+dispatched is still claimed is REFUSED once on that hook, the same one-correction-round strength every other digest
+contract in that file has; the loss itself is prevented at the `PreToolUse` hook, whose refusals have no once-only
+bound. The residual, plainly: a second identical return ships, and an orphaned child of an interrupted parent has no
+parent left to refuse it.
+
+**#551's count is a FLOOR, never a total.** At least eight are measured as of this commit, and the mechanism fired again
+during the build of its own fix: 5 through 8 came from this feature's own runs. The count has already moved four → seven
+→ eight, and this file has no propagation checker, so a bare total written here becomes a false statement nothing
+detects. Occurrence 5 is a lead forced to a terminal digest with its product manager in flight; 6 is the orchestrator
+forced to a stop with its lead in flight; 7 is what 5 cost — that lead's first digest asserted the product manager's
+work was `files_touched` empty and unrecoverable and was COMMITTED as the run's outcome; the product manager was then
+resumed, ran to completion and returned PASS, and `148c8c5` corrected the record. The defect does not merely cost a
+spawn: it WROTE A FALSE VERDICT INTO THE DURABLE RECORD, caught only by a resume. Occurrence 8 is strictly stronger — a
+lead force-closed with a member still in flight has no honest word available to it, because the digest validator ranks
+only PASS, FAIL, ESCALATE and BLOCKED (`.claude/skills/harness/bin/validate-digest.py:703`), so a return declining to
+grade a child it cannot see is REJECTED and the lead must state a verdict on work it has not seen. Seven measured that
+the mechanism PERMITS a false verdict; eight measures that it DEMANDS one. #551's harm is false reporting.
+
+**One deliberate disagreement, not rot.** Run directories are gitignored, so this entry and the feature's `STATE.md` are
+the durable record and the run directory is not. `BRIEF.md` line 16 still reads "seven measured occurrences" and STAYS
+at seven, the operator having declined to reset the brief's approval for a prose change: the plan is the current
+authority on the count, the brief the signed one, and neither is edited to match the other.
+
+**The bound on the whole ruling is identity.** A Bash-invoked CLI has no identity source — no `agent_type` reaches it
+and no environment variable carries one — so it checks WHERE it writes, never WHO called it. That route is reachable
+from a read-only persona because `bash-write-guard.sh` is allow-by-omission (#627), not fixed here.

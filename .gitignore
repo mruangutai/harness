@@ -32,3 +32,15 @@ __pycache__/
 # .harness/logs/ — the session journals there are TRACKED and a blanket rule would untrack them.
 # It carries gh argv, which can hold issue titles and body text.
 .harness/logs/gh-cost-*.jsonl
+
+# harness: the single-flight claim registry (issue #551) is per-checkout transient state
+# written by hook processes. Untracked it dirties the working tree, and a dirty tree halts the
+# next team run on the rule for run state directly above it. Same reason as
+# .harness/.pyyaml-bootstrap and .harness/.shape-sweep-stamp; the naming follows those two.
+.harness/.inflight-claims.json
+
+# harness: merge locks (FEAT-32). harness_merge.locked_update takes `<path>.lock` beside every
+# file it guards — the plan, the per-agent observation log, both expertise tiers, and the claim
+# registry. All four live under .harness/, so this covers exactly them. A COMMITTED lock is
+# worse than none: it never expires and wedges the next write on a fresh checkout.
+.harness/**/*.lock

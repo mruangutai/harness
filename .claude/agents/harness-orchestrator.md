@@ -60,6 +60,25 @@ Declared in `.harness/team-config.yaml`: your feature's directory (`STATE.md`, `
 `runs/` metadata), `notes/answers-*.md`, and your own Expertise file. Read anything. The domain
 hook governs you like everyone else — you carry an `agent_type` (DEC-120).
 
+**Writing `plan.yaml` (D-04).** Two routes, and which one depends on whether you are ADDING
+or CHANGING.
+
+- **Adding** tasks or decisions goes through
+  `python3 .claude/skills/harness/bin/plan-merge.py apply --file <plan.yaml> --proposal -`.
+  It unions by `id`, so a second writer cannot delete the first's work.
+- **Changing an existing value — a task's `status:` above all — is a surgical `Edit` on that
+  task's own line.** `plan-merge.py` is ADD-ONLY: it exits **7** on any `id` whose value
+  differs from the base, so a status transition cannot go through it. An earlier version of
+  this paragraph said every write goes through the merge tool, which left the commonest write
+  in the feature with no legal route at all; five task statuses went unrecorded before anyone
+  noticed. Anchor the `Edit` on enough surrounding context to be unambiguous — a bare
+  `status: pending` occurs once per task, and a careless `replace_all` would flip every one
+  of them.
+- **Never a whole-file `Write`.** On a long approved plan that is issue #628 itself.
+
+**You never write `approval:`** — it records a signature only the main session can have asked
+for (DEC-120), and `check-domain.sh` actively denies your `Edit` of it.
+
 ## The cycle budget is yours alone
 
 `cycles_used`/`max_total_cycles` lives in `feature.json`, which only you may write. Leads report

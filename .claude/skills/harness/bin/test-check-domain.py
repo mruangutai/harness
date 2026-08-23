@@ -2325,6 +2325,295 @@ teams:
                 print(f"      | {detail}")
     return fails
 
+# ---------------------------------------------------------------------------
+# T-14 — the approval exclusion, sourced from main_session.writes (D-10).
+# Every case gets its OWN fixture root. Each asserts the exit code AND a
+# distinguishing string, so a crash cannot satisfy it.
+# ---------------------------------------------------------------------------
+
+T14 = []
+
+
+def t14(name, ok, detail=""):
+    T14.append((name, ok, detail))
+
+
+# harness-pm and harness-orchestrator must be GRANTED these paths, or every case below
+# is an ordinary DOMAIN denial that never reaches the approval guard and the suite reports
+# exit 2 for the wrong reason. FEAT-31 T-15 hit this exact trap with this exact fixture.
+APPROVAL_MANIFEST = FIXTURE_MANIFEST.replace(
+    "shared:\n",
+    "  - name: plan\n"
+    "    members:\n"
+    "      - name: harness-pm\n"
+    "        domain:\n"
+    "          - { path: .harness/*/features/*/plan.yaml, upsert: true }\n"
+    "          - { path: .harness/*/features/*/BRIEF.md, upsert: true }\n"
+    "          - { path: .harness/*/features/*/PLAN.md, upsert: true }\n"
+    "      - name: harness-orchestrator\n"
+    "        domain:\n"
+    "          - { path: .harness/*/features/**, upsert: true }\n"
+    "          - { path: .harness/logs/**, upsert: true }\n"
+    "main_session:\n"
+    "  writes:\n"
+    '    - ".harness/*/features/*/BRIEF.md ## Approval"\n'
+    '    - ".harness/*/features/*/PLAN.md ## Approval"\n'
+    '    - ".harness/*/features/*/plan.yaml approval:"\n'
+    '    - ".harness/logs/**"\n'
+    "shared:\n")
+
+PLAN_ON_DISK = (
+    "schema: plan/1\n"
+    "feature: FEAT-99-fixture\n"
+    "\n"
+    "approval:\n"
+    "  status: pending\n"
+    "  approved_by: <name>\n"
+    "  date: <YYYY-MM-DD>\n"
+    "\n"
+    "tasks:\n"
+    "  - id: T-01\n"
+    "    change_type: logic\n"
+    "    status: pending\n"
+    "  - id: T-02\n"
+    "    change_type: logic\n"
+    "    status: pending\n")
+
+BRIEF_ON_DISK = (
+    "# Brief\n"
+    "\n"
+    "## Goal\n"
+    "\n"
+    "Do the thing.\n"
+    "\n"
+    "## Approval\n"
+    "\n"
+    "status: pending\n"
+    "approved-by: <name>\n")
+
+REL_PLAN = ".harness/harness/features/FEAT-99-fixture/plan.yaml"
+REL_BRIEF = ".harness/harness/features/FEAT-99-fixture/BRIEF.md"
+REL_PLANMD = ".harness/harness/features/FEAT-99-fixture/PLAN.md"
+MARK = "may not change"
+
+
+def _approval_root(manifest_text=None, rel=REL_PLAN, body=PLAN_ON_DISK):
+    root = fixture(APPROVAL_MANIFEST if manifest_text is None else manifest_text)
+    full = os.path.join(root, rel)
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    with open(full, "w") as f:
+        f.write(body)
+    return root, full
+
+
+def _fire_write(root, full, content, agent="harness-pm"):
+    payload = {"agent_type": agent, "tool_name": "Write",
+               "tool_input": {"file_path": full, "content": content}}
+    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                          text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+
+def _fire_edit(root, full, old_s, new_s, agent="harness-pm", replace_all=False):
+    ti = {"file_path": full, "old_string": old_s, "new_string": new_s}
+    if replace_all:
+        ti["replace_all"] = True
+    payload = {"agent_type": agent, "tool_name": "Edit", "tool_input": ti}
+    return subprocess.run([HOOK], input=json.dumps(payload), capture_output=True,
+                          text=True, env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+
+
+def run_t14():
+    APPROVED = PLAN_ON_DISK.replace("status: pending\n  approved_by",
+                                    "status: approved\n  approved_by")
+
+    # 1. the flip is DENIED, and the message names the fragment and the route
+    root, full = _approval_root()
+    r = _fire_write(root, full, APPROVED)
+    t14("1: a governed agent flipping approval.status is DENIED", r.returncode == 2,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    t14("1: the denial names the approval mapping", MARK in r.stderr and "approval:" in r.stderr,
+        r.stderr.strip()[:200])
+    t14("1: the denial names the plan-merge route", "plan-merge.py" in r.stderr,
+        r.stderr.strip()[:200])
+
+    # 2. THE ALLOW DIRECTION. A deny-everything implementation fails here.
+    root, full = _approval_root()
+    added = PLAN_ON_DISK + "  - id: T-03\n    change_type: logic\n    status: pending\n"
+    r = _fire_write(root, full, added)
+    t14("2: adding a task with approval byte-identical is ALLOWED", r.returncode == 0,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 3. the ORCHESTRATOR is governed too, and is not the signer (D-10)
+    root, full = _approval_root()
+    r = _fire_write(root, full, APPROVED, agent="harness-orchestrator")
+    t14("3: the orchestrator flipping approval is DENIED too",
+        r.returncode == 2 and MARK in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 4. THE CASE THE WHOLE DESIGN TURNS ON. No agent_type -> the main session -> allowed.
+    root, full = _approval_root()
+    payload = {"tool_name": "Write", "tool_input": {"file_path": full, "content": APPROVED}}
+    r = subprocess.run([HOOK], input=json.dumps(payload), capture_output=True, text=True,
+                       env=dict(os.environ, CLAUDE_PROJECT_DIR=root))
+    t14("4: the MAIN SESSION signing is ALLOWED, by the mechanism not a special case",
+        r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 5a. TARGETED
+    root, full = _approval_root()
+    r = _fire_edit(root, full, "  status: pending", "  status: approved")
+    t14("5a: a targeted Edit of the signature is DENIED",
+        r.returncode == 2 and MARK in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 5b. THE MID-LINE-START EVASION. Its FIRST line carries ZERO leading spaces, so any
+    # rule anchored on a two-space line start is blind to it. The obvious implementation
+    # ALLOWS this, which is why the case exists.
+    root, full = _approval_root()
+    r = _fire_edit(root, full, "status: pending\n  approved_by:", "status: approved\n  approved_by:")
+    t14("5b: the mid-line-start evasion is DENIED",
+        r.returncode == 2 and MARK in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 5c. THE ACCIDENTAL SWEEP. replace_all over a substring that occurs several times,
+    # one of them the signature. Also invisible to an indent rule.
+    root, full = _approval_root()
+    r = _fire_edit(root, full, "status: pending", "status: approved", replace_all=True)
+    t14("5c: the accidental replace_all sweep is DENIED",
+        r.returncode == 2 and MARK in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 5d. LIMB B: INTRODUCING a block rather than replacing one.
+    root, full = _approval_root()
+    r = _fire_edit(root, full, "tasks:", "approval:\n  status: approved\ntasks:")
+    t14("5d: an Edit INTRODUCING an approval block at column zero is DENIED",
+        r.returncode == 2 and MARK in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 5e. THE ALLOW DIRECTION for Edit, and it is the case a deny-everything build fails.
+    root, full = _approval_root()
+    r = _fire_edit(root, full, "    change_type: logic\n    status: pending",
+                   "    change_type: docs\n    status: done")
+    t14("5e: an Edit touching only a task body is ALLOWED", r.returncode == 0,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 6. no file on disk -> no signature to destroy
+    root = fixture(APPROVAL_MANIFEST)
+    full = os.path.join(root, REL_PLAN)
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    r = _fire_write(root, full, APPROVED)
+    t14("6: a plan.yaml that does not exist yet is ALLOWED", r.returncode == 0,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 7. an unparseable proposal is ALLOWED and SAYS SO. A silent allow and a reported
+    # allow are different gates.
+    root, full = _approval_root()
+    r = _fire_write(root, full, "approval:\n  status: [unclosed\n")
+    t14("7: an unparseable proposal is ALLOWED", r.returncode == 0, f"exit {r.returncode}")
+    t14("7: and stderr SAYS the parse failed",
+        "could not parse" in r.stderr, r.stderr.strip()[:200])
+
+    # 8. a whitespace-only reflow loads to the same value. A text-comparing build fails here.
+    root, full = _approval_root()
+    reflowed = PLAN_ON_DISK.replace("  status: pending\n", "  status:   pending\n")
+    r = _fire_write(root, full, reflowed)
+    t14("8: a whitespace-only reflow of the approval block is ALLOWED", r.returncode == 0,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 9. THE ONLY CASE THAT DISCRIMINATES READING THE RECORD FROM REIMPLEMENTING IT.
+    # A hardcoded plan.yaml pattern passes 1-8 and fails this.
+    dropped = APPROVAL_MANIFEST.replace(
+        '    - ".harness/*/features/*/plan.yaml approval:"\n', "")
+    assert dropped != APPROVAL_MANIFEST
+    root, full = _approval_root(manifest_text=dropped)
+    r = _fire_write(root, full, APPROVED)
+    t14("9: dropping the entry from main_session.writes STOPS the denial",
+        r.returncode == 0 and MARK not in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 10. THE LOUD FAIL-OPEN, both shapes.
+    # Derived from APPROVAL_MANIFEST, NOT from FIXTURE_MANIFEST: the grants must stay so
+    # the write reaches the guard. Built from the bare fixture it is an ordinary domain
+    # denial and this case reports exit 2 for entirely the wrong reason.
+    import re as _re
+    no_ms = _re.sub(r"main_session:\n(?:  .*\n|    .*\n)+", "", APPROVAL_MANIFEST)
+    assert "main_session" not in no_ms, "the main_session stanza was not removed"
+    root, full = _approval_root(manifest_text=no_ms)
+    r = _fire_write(root, full, APPROVED)
+    t14("10a: no main_session key at all -> ALLOWED", r.returncode == 0, f"exit {r.returncode}")
+    t14("10a: and stderr says the exclusion list was unreadable",
+        "exclusion list was unreadable" in r.stderr, r.stderr.strip()[:200])
+    empty = no_ms.replace("shared:\n", "main_session:\n  writes: []\nshared:\n")
+    root, full = _approval_root(manifest_text=empty)
+    r = _fire_write(root, full, APPROVED)
+    t14("10b: an empty writes list -> ALLOWED", r.returncode == 0, f"exit {r.returncode}")
+    t14("10b: and stderr says the exclusion list was unreadable",
+        "exclusion list was unreadable" in r.stderr, r.stderr.strip()[:200])
+
+    # 11. A FRAGMENT-LESS ENTRY CONTRIBUTES NO DENIAL. Assert the ABSENCE of the fragment
+    # marker rather than exit 0 -- that path may be refused by ordinary domain rules for
+    # unrelated reasons, and a bare exit assertion would pass for the wrong reason.
+    root = fixture(APPROVAL_MANIFEST)
+    full = os.path.join(root, ".harness", "logs", "2026-01-01.md")
+    os.makedirs(os.path.dirname(full), exist_ok=True)
+    open(full, "w").write("# log\n")
+    r = _fire_write(root, full, "# log\nchanged\n")
+    t14("11: a fragment-less entry (.harness/logs/**) contributes NO fragment denial",
+        MARK not in r.stderr, r.stderr.strip()[:200])
+
+    # 12. THE GENERALISATION, BRIEF.md, BOTH DIRECTIONS. This is the half that FAILS before
+    # the task: team-config granted pm BRIEF.md whole and "except ## Approval" was a comment.
+    root, full = _approval_root(rel=REL_BRIEF, body=BRIEF_ON_DISK)
+    flipped = BRIEF_ON_DISK.replace("status: pending", "status: approved")
+    r = _fire_write(root, full, flipped)
+    t14("12: flipping BRIEF.md's ## Approval body is DENIED",
+        r.returncode == 2 and MARK in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+    t14("12: the denial names the ## Approval heading", "## Approval" in r.stderr,
+        r.stderr.strip()[:200])
+    root, full = _approval_root(rel=REL_BRIEF, body=BRIEF_ON_DISK)
+    goal_only = BRIEF_ON_DISK.replace("Do the thing.", "Do the other thing.")
+    r = _fire_write(root, full, goal_only)
+    t14("12: changing only ## Goal, leaving ## Approval identical, is ALLOWED",
+        r.returncode == 0, f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 13. THE GENERALISATION, PLAN.md. Same hole as case 12.
+    root, full = _approval_root(rel=REL_PLANMD, body=BRIEF_ON_DISK)
+    r = _fire_write(root, full, BRIEF_ON_DISK.replace("status: pending", "status: approved"))
+    t14("13: flipping PLAN.md's ## Approval body is DENIED",
+        r.returncode == 2 and MARK in r.stderr,
+        f"exit {r.returncode}, stderr={r.stderr.strip()[:200]!r}")
+
+    # 14. THE REPOSITORY'S OWN RECORD, not a fixture. This is why T-14 depends_on T-15:
+    # T-15 SUPPLIES the entry. It runs here as well as in T-15's verify because this file
+    # runs in the integration kind on every CI run, so it is what keeps noticing if the
+    # entry is ever deleted.
+    real = os.path.join(os.environ.get("CLAUDE_PROJECT_DIR") or ".",
+                        ".harness", "team-config.yaml")
+    try:
+        import yaml as _y
+        w = (_y.safe_load(open(real)) or {}).get("main_session", {}).get("writes") or []
+    except Exception as exc:
+        w = []
+        t14("14: the real team-config.yaml is readable", False, repr(exc))
+    t14("14: the real record carries the plan.yaml approval: entry",
+        any(g.endswith("plan.yaml approval:") for g in w), repr(w))
+    t14("14: and still carries the BRIEF.md ## Approval entry",
+        any(g.endswith("BRIEF.md ## Approval") for g in w), repr(w))
+    t14("14: and still carries the PLAN.md ## Approval entry",
+        any(g.endswith("PLAN.md ## Approval") for g in w), repr(w))
+
+    fails = 0
+    for name, ok, detail in T14:
+        if ok:
+            print(f"ok    {name}")
+        else:
+            fails += 1
+            print("FAIL  %s" % (name,))
+            print("      | %s" % (detail,))
+    print("\n%d/%d T-14 cases passed." % (len(T14) - fails, len(T14)))
+    return fails
+
+
 def main():
     fails = 0
     for name, path, want, agent, tool in CASES:
@@ -2356,6 +2645,7 @@ def main():
     fails += run_worktree_deep_shape()
     fails += run_sweep_clean_tracked()
     fails += run_runs_agent_write_path()
+    fails += run_t14()
     return fails
 
 

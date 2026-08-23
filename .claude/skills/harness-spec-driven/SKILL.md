@@ -11,6 +11,17 @@ You author `BRIEF.md` and `plan.yaml`. They are the spec — there is no separat
 **`plan.yaml` is REAL YAML, and nothing in it is prose for a human** (DEC-182). The human reads
 `BRIEF.md`. Instantiate from `.claude/skills/harness/templates/plan.yaml`.
 
+**Write it through the merge tool, never whole:**
+
+```bash
+python3 .claude/skills/harness/bin/plan-merge.py apply \
+  --file .harness/<repo>/features/<FEAT>/plan.yaml --proposal -
+```
+
+It unions by task and decision `id`, so a second pm spawn cannot delete the first's tasks.
+The `approval:` block is carried forward byte identical and any approval block in your
+proposal is ignored. Exit 7 means one `id` carries two different values — yours to resolve.
+
 **No markdown in any value — no backticks, no `**bold**`, no links.** They are decoration in a data
 file. Measured on the format this replaced: `safe_load` over every task block in the four live plans
 failed 43 of 44 times, 26 of them because `files:` began with a backtick. A value carrying
