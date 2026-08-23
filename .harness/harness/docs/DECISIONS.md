@@ -5660,6 +5660,40 @@ write.
 **Not a strike.** DEC-186's ruling, its rationale and amendment 1 stand. What changed is the number,
 from three to four, and the fourth carries its own surface bound.
 
+### DEC-186 amendment 3 (2026-08-23) — the read-back bound widens to FIVE, and the fifth is ship deriving a pull request number from the feature's own recorded branch
+
+**The set was closed at four and it is now closed at five.** The fifth purpose is learning **which
+merged pull request a feature's recorded branch resolves to** — `gh pr list --state merged` filtered
+on that branch. It is bounded to `gh-sync.py record-pr` and to `gh-sync.py ship`, which calls it: no
+other surface makes this read, and nothing in a plan, a build, a claim or a station flip may reach
+for it.
+
+**Widened by an operator ruling, not by re-categorisation.** DEC-200 recorded both readings and
+settled neither. The competing reading — that the mirror is simply outside DEC-186's scope — has real
+textual support: DEC-186's own **Scope.** clause says it rules "on factory read-back and on the claim
+mechanism, and on nothing else", and its failure-behaviour clause treats the mirror as a different
+class throughout. It is refused on precedent. **Amendment 2 rejected exactly this move**: FEAT-33
+argued its read was already inside the bound, and the architecture review ruled that "re-labelling a
+fourth read is not the same act" as an explicit widening. Declaring this read outside the scope is
+that same re-categorisation, one step further. The operator was given both branches and ruled to
+widen on 2026-08-23. This amendment is that ruling, and it closes DEC-200's open question.
+
+**The reason the read exists at all is that the number has no local source.** DEC-153 keeps the
+harness out of opening pull requests, so the operator opens it and GitHub alone knows its number.
+Every other value `gh-sync.py` writes has a local receipt to re-derive it from — the parent issue,
+the milestone, the T-NN map. The pull request number has none, which is the distinction DEC-138
+amendment 7 turns on and the reason a write-only mirror may read this one thing.
+
+**What it does NOT authorise.** The read is bounded to the feature's OWN recorded branch and returns
+one integer. It writes only `feature.json`'s `pr`, once, and never overwrites a value already there.
+A read-back value still never enters `BRIEF.md`, `plan.yaml` or any approval block, and the fifth
+purpose gives no tool a new write. **`gh pr list` is never used to discover work, to pick a branch,
+or to decide what a feature is** — only to name the change that already shipped it.
+
+**Not a strike.** DEC-186's ruling, its rationale, amendment 1 and amendment 2 all stand. What
+changed is the number, from four to five, and the fifth carries its own surface bound.
+
+
 ## DEC-187 — The test matrix is per-project, and a kind with no runner is excluded by decision, never by inference
 
 The qa gate is the project's only blocking gate, and on 2026-08-09 it could not return a verdict on
@@ -6605,10 +6639,9 @@ the thing re-derived; and the write is once-only, never overwritten. So the clai
 narrow one — this destination, **and** no competing local source — not that write-only was only ever
 about destinations.
 
-**OPEN QUESTION, deliberately not settled here: whether this read sits inside DEC-186's bound.** DEC-186
-closes factory read-back to a set of purposes — widened to FOUR by its amendment 2, the fourth being
-`/harness-init`'s workflow read — and this read is none of the four. Two readings, both with textual
-support in DEC-186 itself, and the choice is the operator's:
+**SETTLED by DEC-186 amendment 3 (2026-08-23): this read sits INSIDE the bound, and the bound is now
+five.** DEC-186 closes factory read-back to a set of named purposes — three originally, four after its
+amendment 2 — and this read was none of them. Two readings had textual support in DEC-186 itself:
 
 - **Outside the bound, so DEC-186 should say the mirror is out of scope.** Its bound clause grants the
   read to "factory tools"; its own **Scope.** clause says it "rules on factory read-back and on the
@@ -6619,7 +6652,9 @@ support in DEC-186 itself, and the choice is the operator's:
   review rejected that because "re-labelling a fourth read is not the same act" as an explicit widening
   ruling. Declaring this read outside the scope is that same re-categorisation.
 
-Nothing in this entry turns on the answer — the destination argument above holds under either reading.
+The operator ruled to widen on 2026-08-23, on that precedent. The fifth purpose is bounded to
+`record-pr` and to `ship`, which calls it. Nothing in this entry turned on the answer — the destination
+argument above holds under either reading, and it is unchanged by the ruling.
 
 **What else this pins, briefly.** The source tickets are the signed `plan.yaml`'s own `source_issues`;
 `feature.json`'s `github.source_issues` is only ever their mirror, refreshed by re-running `open`, so a
