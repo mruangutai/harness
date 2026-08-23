@@ -6564,3 +6564,73 @@ authority on the count, the brief the signed one, and neither is edited to match
 **The bound on the whole ruling is identity.** A Bash-invoked CLI has no identity source — no `agent_type` reaches it
 and no environment variable carries one — so it checks WHERE it writes, never WHO called it. That route is reachable
 from a read-only persona because `bash-write-guard.sh` is allow-by-omission (#627), not fixed here.
+
+## DEC-200 — The pull request number is derived at ship time from the recorded branch, and write-only survives on the destination AND on the absence of a competing local receipt
+
+**Chose:** at ship, the mirror derives a feature's pull request number from the branch already recorded
+in `feature.json` — one query on that head, merged state only — and writes it to the top-level `pr` key
+**only when exactly one merged pull request is found**. Zero, two-or-more, an unset branch, and a `gh`
+failure are all the same shape: one printed line, no write, exit 0. An already-recorded number is never
+overwritten, which is what makes a backfill re-runnable.
+
+**Over recording the number when the pull request is OPENED.** The opening seat is the user's — DEC-153
+keeps merge, pull request and deploy user-gated — so an open-time write still depends on a human
+remembering to run something at the moment they open it. Ship is a step the harness already takes, and
+the branch it needs is already on disk.
+
+**Exactly one, not first match, and that is measured rather than cautious.** One branch in this
+repository's own history, `feat/harness-native-foundation`, carries TWO merged pull requests. A
+first-match rule would record the wrong one for whichever feature asked second, and nothing downstream
+would contradict it.
+
+**DEC-138's write-only guarantee holds here, and what governs THIS read is the destination.** This IS
+the mirror reading one fact back out of GitHub, and a reader will hit `gh-sync.py`'s own docstring
+first, which says the script never reads GitHub state back into harness state. Both hold, because of
+**where the value lands**: `pr` lives in `feature.json`, which is execution state and carries no
+approval block, and nothing read back reaches `BRIEF.md`, `plan.yaml` or any approval block. DEC-138
+amendment 6 says it in exactly those terms — "issue state is still never read back into an
+approval-gated artifact (DEC-138 proper)".
+
+**The destination test is not all of write-only, and DEC-138 itself supplies the case that does not
+fit.** Amendment 7 (`DECISIONS.md:4359-4362`) refuses a read whose destination is this very class —
+the parent issue number, landing at the feature's `github.parent`, execution state with no approval
+block — and refuses it invoking write-only. What separates the two is not the destination but whether
+GitHub is being asked for something the harness already holds. Amendment 7's refused read is a
+**discovery** path, and it names that as its own reason: "idempotency comes from local receipts, so a
+discovery path would be a second, contradictory source of truth" — the harness creates or adopts that
+parent and records the number at that moment, so re-deriving it from GitHub competes with a receipt
+already on disk. The merged pull request number is not that: the harness never opens the pull request
+(DEC-153), so it holds no receipt of the number; the recorded branch is the query's input rather than
+the thing re-derived; and the write is once-only, never overwritten. So the claim to carry is the
+narrow one — this destination, **and** no competing local source — not that write-only was only ever
+about destinations.
+
+**OPEN QUESTION, deliberately not settled here: whether this read sits inside DEC-186's bound.** DEC-186
+closes factory read-back to a set of purposes — widened to FOUR by its amendment 2, the fourth being
+`/harness-init`'s workflow read — and this read is none of the four. Two readings, both with textual
+support in DEC-186 itself, and the choice is the operator's:
+
+- **Outside the bound, so DEC-186 should say the mirror is out of scope.** Its bound clause grants the
+  read to "factory tools"; its own **Scope.** clause says it "rules on factory read-back and on the
+  claim mechanism, and on nothing else"; and it contrasts its failure behaviour with "the mirror's",
+  treating the mirror as a different class throughout.
+- **Inside it, so the bound must widen to five.** Amendment 2 is direct precedent that the
+  out-of-scope move fails: FEAT-33 argued its read was *already inside* the bound, and the architecture
+  review rejected that because "re-labelling a fourth read is not the same act" as an explicit widening
+  ruling. Declaring this read outside the scope is that same re-categorisation.
+
+Nothing in this entry turns on the answer — the destination argument above holds under either reading.
+
+**What else this pins, briefly.** The source tickets are the signed `plan.yaml`'s own `source_issues`;
+`feature.json`'s `github.source_issues` is only ever their mirror, refreshed by re-running `open`, so a
+re-plan is picked up by that re-run and never by editing the mirror. The closing keywords are RENDERED
+for the operator to paste and posted nowhere — DEC-138 amendment 6 forbids the mirror composing text it
+posts — and no source ticket is ever closed by the harness, per DEC-196.
+
+**All eleven previously null features were backfilled and none grandfathered**, because every one maps
+to a merged pull request, so a cut-off would preserve a gap nobody could later close. Four took a number
+the operator confirmed from the pull request titles, their branch being shared or unresolvable.
+
+**The new invariant is warn, not violation** — INV-28, a feature at `Done` with no recorded number,
+gated on `github.sync` like INV-21. It follows INV-21's recorded reason rather than a fresh judgement:
+the mirror never gates a flow, so a missing mirror value must not fail the state check.

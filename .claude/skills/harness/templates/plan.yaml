@@ -21,6 +21,12 @@
 schema: plan/1
 feature: FEAT-NN-<slug>          # must match the directory name
 
+# The GitHub issue numbers this feature was PLANNED FROM — bare integers, written by pm at
+# plan time and signed with the plan. `gh-sync.py open` mirrors them into feature.json's
+# `github.source_issues`, and `gh-sync.py closes` renders them as the pull request body's
+# closing keywords. An EMPTY LIST IS LEGAL: a feature planned from no ticket has no source.
+source_issues: [<n>, <n>]
+
 approval:
   # Written by the MAIN SESSION only, because it is the only tier with a user channel
   # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an

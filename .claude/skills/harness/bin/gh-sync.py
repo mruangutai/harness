@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mirror a feature to GitHub Issues — one-way, outbound, never a gate (DEC-138).
+"""Mirror a feature to GitHub Issues — outbound but for one read, never a gate (DEC-138).
 
   gh-sync.py open  <feature-dir>          plan approved -> milestone + parent + one issue per T-NN
   gh-sync.py start-task <feature-dir> T-NN    task moved to building -> sub-issue's station
@@ -8,13 +8,24 @@
                                            the parent's derived station (FEAT-18)
   gh-sync.py abandon <feature-dir> --reason-file <path>  feature abandoned -> close subs
                                            not_planned, close the milestone, post the reason
-  gh-sync.py ship  <feature-dir> [--body-file <path>]  shipped -> close the milestone,
-                                           close the parent only if `open` created it, and
-                                           post --body-file on any recorded parent if given
+  gh-sync.py ship  <feature-dir> [--body-file <path>] [--pr <n>]  shipped -> closes the
+                                           milestone, closes the parent only if `open`
+                                           created it, posts --body-file on any recorded
+                                           parent if given, THEN records the pr (T-03,
+                                           FEAT-26)
+  gh-sync.py record-pr <feature-dir> [--pr <n>]  derive the pull request number from the
+                                           recorded branch's exactly-one merged PR and
+                                           record it, or record --pr directly (T-03,
+                                           FEAT-26) — idempotent, never overwrites
 
 TRUTH DIRECTION IS THE POINT. PLAN.md is approval-gated and is the only source; this
-script projects it outward. It never reads GitHub state back into harness state —
-a wiki-editable UI feeding an approval-gated artifact is the DEC-19 bypass shape.
+script projects it outward. It reads GitHub state back exactly ONCE — `record-pr` asks
+for the merged pull request on a recorded branch and writes the number into
+feature.json's `pr` (FEAT-26, DEC-200). No read-back ever reaches an approval-gated
+artifact: a wiki-editable UI feeding one is the DEC-19 bypass shape, and that stays
+refused. DEC-138 am.7 refuses a discovery read for the PARENT number because the parent
+has a local receipt and a second source would contradict it; the pull request number has
+no local receipt, because the harness never opens the pull request.
 
 NEVER A GATE, and since FEAT-18 that is a FOUR-WAY split, not two (D-02, and FEAT-24
 adds the fourth). An ENVIRONMENTAL PRECONDITION — sync off, no repo pinned, gh missing,
@@ -298,6 +309,36 @@ def parse_tasks(feat_dir):
     return tasks
 
 
+def parse_source_issues(feat_dir):
+    """plan.yaml's own top-level `source_issues` — the tickets a plan traces back to,
+    made machine-readable (T-02, FEAT-26). The plan is the truth; feature.json's
+    `github.source_issues` is only ever a mirror of what this function returns, refreshed
+    by `cmd_open` on every run so a re-plan that changes the tickets is picked up by a
+    re-run.
+
+    Returns `[]` — never raises — when plan.yaml is absent, when it carries no
+    `source_issues` key, when the value is not a list, or when the feature is still on
+    the PLAN.md format (no plan.yaml at all, same absence check). Members that are not
+    real integers (bool excluded — an int subclass in Python, same exclusion `_opt_int`
+    documents) are dropped silently, in the order plan.yaml wrote them; a malformed
+    field here must not block issue creation, which is the whole reason this reader is
+    tolerant rather than loud.
+
+    A plan.yaml that does not PARSE is a different failure: `harness_yaml.load_file`
+    raises loudly and this function does not catch it — that failure already exists
+    everywhere else this module reads plan.yaml, and is left unchanged here."""
+    path = os.path.join(feat_dir, "plan.yaml")
+    if not os.path.isfile(path):
+        return []
+    doc = harness_yaml.load_file(path)
+    if not isinstance(doc, dict):
+        return []
+    si = doc.get("source_issues")
+    if not isinstance(si, list):
+        return []
+    return [n for n in si if isinstance(n, int) and not isinstance(n, bool)]
+
+
 def type_label(change_type):
     if change_type in CHORE_TYPES:
         return "chore"
@@ -367,7 +408,8 @@ def load_recorded(feat_dir):
     for the operator — this state was not in the spec's own table.)
     """
     path = os.path.join(feat_dir, "feature.json")
-    rec = {"milestone": None, "parent": None, "parent_origin": None, "attached": [], "issues": {}}
+    rec = {"milestone": None, "parent": None, "parent_origin": None, "attached": [], "issues": {},
+           "source_issues": []}
     # ABSENCE is checked before parsing, not caught after it (review finding 4) — a
     # missing feature.json is a legitimate first sync, never an error.
     if not os.path.exists(path):
@@ -427,6 +469,15 @@ def load_recorded(feat_dir):
             n = _opt_int(v)
             if n is not None and re.fullmatch(r"T-\d+", str(k).strip()):
                 rec["issues"][str(k).strip()] = n
+
+    # T-02 (FEAT-26): source_issues is a MIRROR of plan.yaml's own top-level field (D-01 of
+    # that task — the plan is truth, feature.json just reflects it), so a malformed value
+    # here does not put issue creation at risk: a non-list value, or a non-integer member,
+    # is dropped silently rather than raising, the same tolerance _opt_int already documents
+    # for bool (an int subclass in Python).
+    si = gh.get("source_issues")
+    if isinstance(si, list):
+        rec["source_issues"] = [n for n in si if isinstance(n, int) and not isinstance(n, bool)]
     return rec
 
 
@@ -464,8 +515,9 @@ def _record_status(feat_dir, status):
     `cmd_ship` and `cmd_abandon` are idempotent and the mirror never gates, so this prints one
     plain line and returns rather than raising. This does NOT create a document when one is
     absent — the schema's eight required keys (DEC-191) make a fresh single-key document
-    invalid, and creating one from a status write would be a second, incompatible
-    first-sync path alongside `save_recorded`'s own."""
+    invalid. `save_recorded` (T-02, FEAT-26) now refuses the absent-file case too rather
+    than creating one, so this is no longer a second, incompatible first-sync path
+    alongside it — the two are aligned on the same refusal."""
     path = os.path.join(feat_dir, "feature.json")
     try:
         with open(path, encoding="utf-8") as f:
@@ -481,35 +533,125 @@ def _record_status(feat_dir, status):
     print(f"gh-sync: feature.json status -> {status}")
 
 
+def _record_pr(feat_dir, repo, pr_arg=None):
+    """Set feature.json's top-level `pr` to the number of the branch's exactly-one merged
+    pull request (T-03, FEAT-26) — the mirror image of `_record_status`: same read
+    pattern, same `_atomic_write` on the whole document, same one-line-and-return on
+    every failure path, and it NEVER creates a document either.
+
+    IDEMPOTENT: an already-recorded int `pr` is never overwritten, on any path — not even
+    when `pr_arg` disagrees with it — which is what makes a backfill re-run safe.
+
+    EXACTLY ONE is the rule, not first-match: the branch feat/harness-native-foundation
+    carries two merged pull requests, 15 and 4, so a first-match rule would record the
+    wrong one. Zero or two-or-more merged pull requests, and a gh failure or unparseable
+    output, are all the same shape — one printed line, no write — and every path here
+    returns normally so the process exits 0; the mirror never gates a flow.
+    """
+    path = os.path.join(feat_dir, "feature.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            doc = json.load(f)
+    except (OSError, ValueError):
+        print(f"gh-sync: {path} could not be read — pr not recorded")
+        return
+    if not isinstance(doc, dict):
+        print(f"gh-sync: {path} is not a JSON mapping — pr not recorded")
+        return
+    existing = doc.get("pr")
+    if isinstance(existing, int) and not isinstance(existing, bool):
+        print(f"gh-sync: pr already recorded as #{existing} — not overwritten")
+        return
+    if pr_arg is not None:
+        number = int(pr_arg)
+    else:
+        branch = doc.get("branch")
+        if not isinstance(branch, str) or branch == "none":
+            print("gh-sync: branch is unset — pr not recorded")
+            return
+        args = ["pr", "list", "--repo", repo, "--head", branch, "--state", "merged",
+                "--limit", "10", "--json", "number"]
+        with gh_cost_log.measured(args) as _cost:
+            r = subprocess.run([GH] + args, capture_output=True, text=True)
+            _cost.returncode = r.returncode
+        if r.returncode != 0:
+            # A gh failure here is deliberately NOT routed through gh()/skip() — skip()
+            # exits the whole process, which would swallow cmd_ship's remaining work
+            # (the status write). It is the same "no write" shape as zero results.
+            print(f"gh-sync: no merged pull request found on branch {branch} "
+                  f"(gh pr list failed: {(r.stderr or r.stdout).strip()[:200]})")
+            return
+        try:
+            found = json.loads(r.stdout)
+        except (ValueError, TypeError):
+            found = None
+        if not isinstance(found, list) or not found:
+            print(f"gh-sync: no merged pull request found on branch {branch}")
+            return
+        if len(found) > 1:
+            nums = ", ".join(str(x.get("number")) for x in found if isinstance(x, dict))
+            print(f"gh-sync: branch {branch} is ambiguous — merged pull requests {nums}")
+            return
+        number = found[0].get("number") if isinstance(found[0], dict) else None
+        if not isinstance(number, int) or isinstance(number, bool):
+            print(f"gh-sync: no merged pull request found on branch {branch}")
+            return
+    doc["pr"] = number
+    _atomic_write(path, json.dumps(doc, indent=2) + "\n")
+    print(f"gh-sync: {os.path.basename(os.path.abspath(feat_dir))} pr -> #{number}")
+
+
 def save_recorded(feat_dir, rec):
     """Read-modify-write the `github:` key into feature.json, ATOMICALLY (fix1 Part A).
 
-    Matches factory_decompose.py's write_factory (`:142-186`) exactly in shape: load the
-    document with json.load (or start from `{}` if the file does not exist yet, or is not
-    a JSON mapping — B-5's exists->load-else-{} form, so a genuinely absent feature.json
-    on the row-1 first-sync path does not crash here the way `harness_yaml.load_file`
-    used to, per its OSError-wrapping contract) -> set `github` -> json.dumps the WHOLE
-    document to a temp file created in the SAME DIRECTORY -> fsync -> os.replace onto
-    feature.json. feature.json itself is opened only for reading, never in a truncating
-    mode: every observer sees either the previous complete file or the next one, never a
-    partial or zero-byte one — the truncating `open(p, "w")` this replaces made a
-    zero-byte window OBSERVABLE on every call, which `load_recorded` then read as
-    "nothing recorded", re-creating issues that already exist.
+    Matches factory_decompose.py's write_factory (`:142-186`) in shape for the file that
+    exists: load the document with json.load, tolerating a not-a-JSON-mapping document
+    by starting from `{}` (B-5's exists->load-else-{} form) -> set `github` -> json.dumps
+    the WHOLE document to a temp file created in the SAME DIRECTORY -> fsync ->
+    os.replace onto feature.json. A genuinely ABSENT feature.json is REFUSED (T-02,
+    FEAT-26), not started from `{}` — see the inline comment below for why. feature.json
+    itself is opened only for reading, never in a truncating mode: every observer sees
+    either the previous complete file or the next one, never a partial or zero-byte one —
+    the truncating `open(p, "w")` this replaces made a zero-byte window OBSERVABLE on
+    every call, which `load_recorded` then read as "nothing recorded", re-creating issues
+    that already exist.
     """
     p = os.path.join(feat_dir, "feature.json")
     if os.path.exists(p):
         with open(p, encoding="utf-8") as f:
             doc = json.load(f)
         if not isinstance(doc, dict):
+            # A file that exists and is already being replaced wholesale — same
+            # tolerance load_recorded applies to a non-mapping document, kept here
+            # because this branch is a real file, not the absent-file path below.
             doc = {}
     else:
-        doc = {}
+        # T-02 (FEAT-26), absorbs #289: an absent feature.json is REFUSED, not silently
+        # started from `{}`. The orchestrator instantiates feature.json from
+        # .claude/skills/harness/templates/feature.json on its first cycle; a document
+        # started here from `{}` would carry only the `github` key this function sets,
+        # missing every one of feature-schema.json's eight required keys.
+        #
+        # Accepted ordering gap: on a hand-run of `open` against a directory with no
+        # feature.json, this refusal fires AFTER the milestone create (cmd_open calls
+        # save_recorded immediately after creating the milestone), so the milestone is
+        # orphaned by this exit. The existing 422 title-lookup recovery in cmd_open
+        # resolves it on the next run once the file exists — accepted rather than moved
+        # earlier, because checking for feature.json before the milestone create would be
+        # a SECOND first-sync policy in a file that has already been bitten by having two.
+        raise SystemExit(
+            f"gh-sync: {p} is absent. The orchestrator instantiates feature.json from "
+            f".claude/skills/harness/templates/feature.json on its first cycle; writing "
+            f"one here would produce a document missing the schema's eight required "
+            f"keys. Run this feature through the orchestrator's normal cycle first."
+        )
     doc["github"] = {
         "milestone": rec["milestone"],
         "parent": rec["parent"],
         "parent_origin": rec["parent_origin"],
         "attached": rec["attached"],
         "issues": dict(sorted(rec["issues"].items())),
+        "source_issues": list(rec["source_issues"]),
     }
     text = json.dumps(doc, indent=2) + "\n"
     _atomic_write(p, text)
@@ -532,6 +674,10 @@ def ensure_labels(repo, labels):
 
 def cmd_open(feat_dir, repo, parent_arg=None):
     brief, tasks, rec = parse_brief(feat_dir), parse_tasks(feat_dir), load_recorded(feat_dir)
+    # T-02 (FEAT-26): refreshed from the plan on EVERY run — a re-plan that changes the
+    # source tickets is picked up by a re-run, because the plan is the truth and
+    # feature.json's github.source_issues is only ever the mirror.
+    rec["source_issues"] = parse_source_issues(feat_dir)
     ensure_labels(repo, {"harness"} | {l for tk in tasks if (l := type_label(tk["change_type"]))})
 
     if rec["milestone"] is None:
@@ -719,13 +865,33 @@ def cmd_backlog(feat_dir, repo, items):
         print(f"gh-sync: backlog issue #{url.rstrip('/').rsplit('/', 1)[-1]} [{', '.join(labels)}] — {title.strip()}")
 
 
-def cmd_ship(feat_dir, repo, body_file=None):
+def cmd_closes(feat_dir):
+    """Render the pull-request-body closing keywords from the recorded source tickets
+    (T-04, FEAT-26) — the ONE subcommand whose stdout is captured by the caller, so
+    nothing else may print to stdout on this path. Diagnostics, if load_recorded ever
+    refuses, go to stderr via its own SystemExit(str) — never printed here.
+
+    Reads through `load_recorded(feat_dir)` — the on-disk mirror, not plan.yaml, so what
+    is emitted is what was recorded at open time — and prints one `Closes #<n>` line per
+    recorded number, in recorded order, nothing else. An empty or absent list prints
+    nothing and exits 0. Makes no GitHub call of any kind: DEC-138 amendment 6 forbids
+    the mirror composing text it posts, and DEC-196 limits closing to cards the harness
+    created — the operator opens the pull request and pastes these lines; the harness
+    only derives them. Takes no `repo` for the same reason: it never talks to GitHub.
+    """
+    rec = load_recorded(feat_dir)
+    for n in rec["source_issues"]:
+        print(f"Closes #{n}")
+
+
+def cmd_ship(feat_dir, repo, body_file=None, pr_arg=None):
     """Terminal state: PATCHes the milestone closed unconditionally, and — the mirror image
     of `abandon` step 4 — closes the parent only if `open` created it (D-01, SC-04): an
     adopted parent, or one with no recorded origin, is left open. After the close has run,
-    records feature.json's top-level `status` as `Done` (T-01/FEAT-23) — the write is the
-    LAST STATEMENT of this function's successful path, structurally: `skip()` calls
-    sys.exit(0), so reaching this point is itself the proof no early-exit branch fired."""
+    records the pr (T-03, FEAT-26) and THEN feature.json's top-level `status` as `Done`
+    (T-01/FEAT-23) — that status write stays the LAST STATEMENT of this function's
+    successful path, structurally: `skip()` calls sys.exit(0), so reaching this point is
+    itself the proof no early-exit branch fired."""
     if body_file is not None:
         body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)
@@ -753,6 +919,10 @@ def cmd_ship(feat_dir, repo, body_file=None):
     gh(["api", "-X", "PATCH", f"repos/{repo}/milestones/{rec['milestone']}",
         "-f", "state=closed"])
     print(f"gh-sync: milestone #{rec['milestone']} closed")
+
+    # T-03 (FEAT-26): recorded BEFORE the terminal status write, never after — that final
+    # write must remain the LAST STATEMENT of the successful path (T-01/FEAT-23).
+    _record_pr(feat_dir, repo, pr_arg)
 
     # LAST STATEMENT of the successful path (T-01/FEAT-23) — structural, not re-gated on
     # the milestone check above. Reaching here already proves `skip()` did not fire.
@@ -786,12 +956,37 @@ def main():
             die("--body-file needs a value")
         body_file = argv[i + 1]
         argv = argv[:i] + argv[i + 2:]
+    pr_arg = None
+    if "--pr" in argv:
+        i = argv.index("--pr")
+        if i + 1 >= len(argv):
+            die("--pr needs a value")
+        pr_arg = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+        # MF-1: a non-numeric --pr is a caller mistake at the PARSE boundary, not an
+        # uncaught ValueError from int(pr_arg) inside _record_pr — fixing it here keeps
+        # _record_pr's own never-die contract (T-03) intact for its internal callers
+        # (cmd_ship).
+        try:
+            int(pr_arg)
+        except ValueError:
+            die(f"--pr needs an integer, got {pr_arg!r}")
     if len(argv) < 2:
-        die("usage: gh-sync.py open|start-task|close-task|abandon|ship|backlog <feature-dir> "
-            "[T-NN | nature:title ...] [--parent <n>] [--reason-file <path>] [--body-file <path>]")
+        die("usage: gh-sync.py open|start-task|close-task|abandon|ship|backlog|record-pr|"
+            "closes "
+            "<feature-dir> [T-NN | nature:title ...] [--parent <n>] [--reason-file <path>] "
+            "[--body-file <path>] [--pr <n>]")
     cmd, feat_dir = argv[0], argv[1]
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
+    if cmd == "closes":
+        # Needs no repo, no board, no gh: DEC-138 am.6 forbids the mirror composing text
+        # it posts, and DEC-196 limits closing to cards the harness created. Dispatched
+        # BEFORE the root climb and load_config below so this path never risks printing
+        # load_config's own stdout notices (the board-not-configured note, or a skip())
+        # ahead of the one line format this subcommand's caller captures.
+        cmd_closes(feat_dir)
+        return
     # DEPTH-AGNOSTIC ROOT (FEAT-21 T-10): the old three-level climb was right for
     # .harness/features/<FEAT> and wrong for .harness/<repo>/features/<FEAT> — and a
     # fixed depth is wrong for one of the two in every era. Walk UP from the feature
@@ -841,11 +1036,13 @@ def main():
     elif cmd == "abandon":
         cmd_abandon(feat_dir, repo, reason_file)
     elif cmd == "ship":
-        cmd_ship(feat_dir, repo, body_file)
+        cmd_ship(feat_dir, repo, body_file, pr_arg)
     elif cmd == "backlog":
         if len(argv) < 3:
             die("backlog needs at least one nature:title item")
         cmd_backlog(feat_dir, repo, argv[2:])
+    elif cmd == "record-pr":
+        _record_pr(feat_dir, repo, pr_arg)
     else:
         die(f"unknown command {cmd!r}")
 
