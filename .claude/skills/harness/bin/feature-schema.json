@@ -25,7 +25,7 @@
     },
     "pr": {
       "type": ["integer", "null"],
-      "description": "The feature's pull request number, or null before one exists. No demonstrated code reader. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
+      "description": "The feature's pull request number, or null before one exists. READ BY CODE as of FEAT-26: check-state.sh's INV-28 warns when a Done feature leaves it null, gh-sync.py's record-pr derives and writes it, and ship threads it before the terminal status write. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
     },
     "status": {
       "type": "string",
