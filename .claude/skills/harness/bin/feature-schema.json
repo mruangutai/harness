@@ -25,7 +25,7 @@
     },
     "pr": {
       "type": ["integer", "null"],
-      "description": "The feature's pull request number, or null before one exists. No demonstrated code reader. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
+      "description": "The feature's pull request number, or null before one exists. READ BY CODE as of FEAT-26: check-state.sh's INV-28 warns when a Done feature leaves it null, gh-sync.py's record-pr derives and writes it, and ship threads it before the terminal status write. JSON's native null replaces the YAML-era placeholder string 'none' (T-04 rewrites those to null)."
     },
     "status": {
       "type": "string",
@@ -83,6 +83,11 @@
           "type": "object",
           "additionalProperties": { "type": "integer" },
           "description": "Task id to mirrored GitHub issue number."
+        },
+        "source_issues": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "The GitHub issue numbers this feature was planned from, mirrored from plan.yaml's top-level source_issues by gh-sync.py open. Read by gh-sync.py's `closes` renderer. Absent or empty is legal: a feature planned before this key existed carries none, and a feature can be planned from no ticket at all."
         }
       }
     },

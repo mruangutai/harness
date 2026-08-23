@@ -301,10 +301,14 @@ def write_harness_json_board(tmp, sync=True, repo="implentio/fake", board=True):
     json.dump({"github": g}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
 
 
-def write_plan_yaml(feat_dir, feat_name, task_statuses):
+def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None):
     """A minimal plan.yaml — every REQUIRED_TASK_FIELDS key present — carrying only the
     `status` values a test cares about. Written as JSON text: JSON is valid YAML and this
-    avoids a second parser dependency in the test file itself."""
+    avoids a second parser dependency in the test file itself.
+
+    `source_issues` is OPTIONAL (T-02, FEAT-26) so every existing caller is unchanged when
+    it is omitted; when given, it is written as plan.yaml's own top-level `source_issues`
+    key, exactly the shape `parse_source_issues` reads."""
     doc = {
         "schema": "plan/1",
         "feature": feat_name,
@@ -314,6 +318,8 @@ def write_plan_yaml(feat_dir, feat_name, task_statuses):
             for tid, status in task_statuses
         ],
     }
+    if source_issues is not None:
+        doc["source_issues"] = source_issues
     with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
         json.dump(doc, f)
 
@@ -922,7 +928,7 @@ json.dump({"feature_id": "F2"}, open(os.path.join(_d2, "feature.json"), "w"))
 _rec2 = _ghs.load_recorded(_d2)
 check("T-06C: a feature.json with no github: block returns the default, does not raise",
       _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
-                "attached": [], "issues": {}},
+                "attached": [], "issues": {}, "source_issues": []},
       str(_rec2))
 
 # ---------- fix1 Part B: three states must stay distinct, plus the fourth the operator's
@@ -938,14 +944,14 @@ _dabsent = tempfile.mkdtemp()
 _recAbsent = _ghs.load_recorded(_dabsent)
 check("fix1 B row1a: absent feature.json returns the default rec, does not raise",
       _recAbsent == {"milestone": None, "parent": None, "parent_origin": None,
-                     "attached": [], "issues": {}},
+                     "attached": [], "issues": {}, "source_issues": []},
       str(_recAbsent))
 
 # Row 1b: file present, a dict, but NO github: key -> default rec (already _d2 above,
 # named here again for the fix1 spec's own enumeration).
 check("fix1 B row1b: dict present with no github key returns the default rec",
       _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
-                "attached": [], "issues": {}},
+                "attached": [], "issues": {}, "source_issues": []},
       str(_rec2))
 
 # Row 2: file present but a genuine ZERO-BYTE truncation -- the exact artifact
@@ -1009,7 +1015,7 @@ with open(_atomic_path, "rb") as _f:
 # A set() is not JSON-serializable — json.dump raises TypeError partway through encoding
 # the `github` value, after any truncating open() would already have destroyed the file.
 _bad_rec = {"milestone": 9, "parent": 40, "parent_origin": "created",
-            "attached": ["T-01"], "issues": {"T-01": {1, 2, 3}}}
+            "attached": ["T-01"], "issues": {"T-01": {1, 2, 3}}, "source_issues": []}
 try:
     _ghs.save_recorded(_datomic, _bad_rec)
 except (TypeError, Exception):
@@ -1028,7 +1034,7 @@ check("fix1 A: no leftover temp file after a failed save_recorded", _leftover ==
 # github: block is structurally impossible (a dict has one "github" key by construction) —
 # what matters now is that every key OUTSIDE github round-trips unchanged (T-05, FEAT-14). ----
 _REC = {"milestone": 9, "parent": 40, "parent_origin": "created",
-        "attached": ["T-01"], "issues": {"T-01": 41}}
+        "attached": ["T-01"], "issues": {"T-01": 41}, "source_issues": []}
 for _label, _doc in (
         ("no github block yet", {"feature_id": "F1", "status": "Building"}),
         ("an existing github block",
@@ -1321,6 +1327,289 @@ with tempfile.TemporaryDirectory() as tmpV:
           and all(after_docV.get(k) == before_docV.get(k) for k in other_keys_V)
           and set(after_docV.keys()) == set(before_docV.keys()),
           f"before={before_docV} after={after_docV}")
+
+# ---------- T-02 (FEAT-26): source_issues mirrored from plan.yaml into feature.json,
+# threaded through save_recorded's fixed key set so no later save erases it ------------
+
+# --- open records source_issues from the plan.yaml the feature actually carries
+with tempfile.TemporaryDirectory() as tmpX1:
+    install_gh(tmpX1)
+    featX1 = stage(tmpX1, feat_name="FEAT-26-source-issues")
+    write_plan_yaml(featX1, "FEAT-26-source-issues",
+                     [("T-01", "pending"), ("T-02", "pending"), ("T-03", "pending")],
+                     source_issues=[101, 102])
+    r = run(["open", featX1], tmpX1)
+    docX1 = read_feature_json(os.path.join(featX1, "feature.json"))
+    ghX1 = docX1.get("github") or {}
+    check("open records source_issues from plan.yaml",
+          r.returncode == 0 and ghX1.get("source_issues") == [101, 102],
+          f"rc={r.returncode} github={ghX1}")
+
+# --- source_issues must not be erased by any of the LATER save_recorded calls a full
+#     `open` run makes after it is set (T-02's whole point). Three tasks -> three issue
+#     creates, so this fixture drives 9 total save_recorded calls: 1 after the milestone
+#     create, 1 after the parent create, 3 after each issue create, 3 after each attach,
+#     and 1 unconditional final save at the end of cmd_open — more than one happens AFTER
+#     rec["source_issues"] is set (which is before the milestone save, the first of the 9).
+with tempfile.TemporaryDirectory() as tmpX2:
+    install_gh(tmpX2)
+    featX2 = stage(tmpX2, feat_name="FEAT-26-source-issues-survive")
+    write_plan_yaml(featX2, "FEAT-26-source-issues-survive",
+                     [("T-01", "pending"), ("T-02", "pending"), ("T-03", "pending")],
+                     source_issues=[201, 202, 203])
+    r = run(["open", featX2], tmpX2)
+    logX2 = calls(tmpX2)
+    task_create_linesX2 = [l for l in logX2 if "issue create" in l and re.search(r"\bT-0\d\b", l)]
+    docX2 = read_feature_json(os.path.join(featX2, "feature.json"))
+    ghX2 = docX2.get("github") or {}
+    check("source_issues survives every save during a full open run",
+          r.returncode == 0
+          and len(task_create_linesX2) == 3   # 3 issue creates -> 3 of the 9 total saves
+          and ghX2.get("source_issues") == [201, 202, 203],
+          f"rc={r.returncode} task_creates={len(task_create_linesX2)} github={ghX2}")
+
+# --- a feature with no plan.yaml (PLAN.md-only, stage()'s default) records source_issues
+#     as an empty list rather than failing or omitting the key
+with tempfile.TemporaryDirectory() as tmpX3:
+    install_gh(tmpX3)
+    featX3 = stage(tmpX3, feat_name="FEAT-26-no-source-issues")
+    r = run(["open", featX3], tmpX3)
+    docX3 = read_feature_json(os.path.join(featX3, "feature.json"))
+    ghX3 = docX3.get("github") or {}
+    check("open on a plan with no source_issues records none and still succeeds",
+          r.returncode == 0 and ghX3.get("source_issues") == [],
+          f"rc={r.returncode} github={ghX3}")
+
+# --- save_recorded refuses, loudly, when feature.json is absent — the orchestrator
+#     instantiates it from templates/feature.json on the first cycle; a fresh document
+#     written here would be missing feature-schema.json's eight required keys
+_dabsentT02 = tempfile.mkdtemp()
+_recAbsentT02 = {"milestone": None, "parent": None, "parent_origin": None, "attached": [],
+                 "issues": {}, "source_issues": []}
+try:
+    _ghs.save_recorded(_dabsentT02, _recAbsentT02)
+    check("save_recorded refuses when feature.json is absent", False,
+          "save_recorded returned instead of raising SystemExit")
+except SystemExit as e:
+    _msgT02 = str(e)
+    check("save_recorded refuses when feature.json is absent",
+          "feature.json" in _msgT02
+          and os.path.join(_dabsentT02, "feature.json") in _msgT02
+          and "absent" in _msgT02,
+          _msgT02)
+
+# ---------- T-03 (FEAT-26): record-pr derives and records the PR number from the recorded
+# branch, and cmd_ship threads it in ahead of the terminal status write ------------------
+
+FAKE_GH_PR_LIST = """#!/bin/bash
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+case "$*" in
+  *"pr list"*)
+    echo "$PR_LIST_JSON"
+    exit 0 ;;
+esac
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "api -X")
+    case "$*" in
+      *milestones\\ -f*) echo '{"number": 7}' ;;
+      *) echo '{}' ;;
+    esac ;;
+  "issue create")
+    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
+    echo "https://github.com/implentio/fake/issues/$n" ;;
+  "issue close") exit 0 ;;
+  "label create") exit 0 ;;
+esac
+exit 0
+"""
+
+
+def _pr_fixture(path, feat_name, branch, pr, status="Review", github=None):
+    """A minimal, schema-shaped feature.json carrying `branch` and `pr` (T-03, FEAT-26) —
+    the two fields record-pr reads and writes. `github` is added only when a case needs
+    one (the ship case, so cmd_ship's milestone/parent close has something to act on)."""
+    fields = dict(
+        feature_id=feat_name, branch=branch, pr=pr, status=status,
+        review_sha="none", cycles_used=1, max_total_cycles=10, runs=[],
+    )
+    if github is not None:
+        fields["github"] = github
+    write_feature_json(path, **fields)
+
+
+# --- record-pr writes the number when the branch has exactly one merged PR
+with tempfile.TemporaryDirectory() as tmpPR1:
+    install_gh(tmpPR1, FAKE_GH_PR_LIST)
+    featPR1 = stage(tmpPR1, feat_name="FEAT-26-pr-one")
+    fjPR1 = os.path.join(featPR1, "feature.json")
+    _pr_fixture(fjPR1, "FEAT-26-pr-one", "feat/pr-one", None)
+    r = run(["record-pr", featPR1], tmpPR1, {"PR_LIST_JSON": '[{"number": 501}]'})
+    docPR1 = read_feature_json(fjPR1)
+    logPR1 = calls(tmpPR1)
+    check("record-pr writes the number when the branch has exactly one merged PR",
+          r.returncode == 0 and docPR1.get("pr") == 501
+          and any("pr list" in l and "--head feat/pr-one" in l and "--state merged" in l
+                  for l in logPR1),
+          f"rc={r.returncode} pr={docPR1.get('pr')} log={logPR1}")
+
+# --- record-pr leaves pr null when the branch has no merged PR
+with tempfile.TemporaryDirectory() as tmpPR2:
+    install_gh(tmpPR2, FAKE_GH_PR_LIST)
+    featPR2 = stage(tmpPR2, feat_name="FEAT-26-pr-zero")
+    fjPR2 = os.path.join(featPR2, "feature.json")
+    _pr_fixture(fjPR2, "FEAT-26-pr-zero", "feat/pr-zero", None)
+    r = run(["record-pr", featPR2], tmpPR2, {"PR_LIST_JSON": "[]"})
+    docPR2 = read_feature_json(fjPR2)
+    check("record-pr leaves pr null when the branch has no merged PR",
+          r.returncode == 0 and docPR2.get("pr") is None,
+          f"rc={r.returncode} pr={docPR2.get('pr')}")
+
+# --- record-pr leaves pr null when the branch has two merged PRs — the exactly-one rule,
+#     not first-match (feat/harness-native-foundation carries 15 and 4)
+with tempfile.TemporaryDirectory() as tmpPR3:
+    install_gh(tmpPR3, FAKE_GH_PR_LIST)
+    featPR3 = stage(tmpPR3, feat_name="FEAT-26-pr-two")
+    fjPR3 = os.path.join(featPR3, "feature.json")
+    _pr_fixture(fjPR3, "FEAT-26-pr-two", "feat/harness-native-foundation", None)
+    r = run(["record-pr", featPR3], tmpPR3,
+            {"PR_LIST_JSON": '[{"number": 15}, {"number": 4}]'})
+    docPR3 = read_feature_json(fjPR3)
+    check("record-pr leaves pr null when the branch has two merged PRs",
+          r.returncode == 0 and docPR3.get("pr") is None,
+          f"rc={r.returncode} pr={docPR3.get('pr')}")
+
+# --- record-pr never overwrites a pr that is already an integer — the fake gh returns a
+#     DIFFERENT number than the one on disk, so a fixture that would pass by coincidence
+#     cannot, and no gh pr list call is even made (the check fires before the query).
+with tempfile.TemporaryDirectory() as tmpPR4:
+    install_gh(tmpPR4, FAKE_GH_PR_LIST)
+    featPR4 = stage(tmpPR4, feat_name="FEAT-26-pr-recorded")
+    fjPR4 = os.path.join(featPR4, "feature.json")
+    _pr_fixture(fjPR4, "FEAT-26-pr-recorded", "feat/pr-recorded", 314)
+    r = run(["record-pr", featPR4], tmpPR4, {"PR_LIST_JSON": '[{"number": 999}]'})
+    docPR4 = read_feature_json(fjPR4)
+    logPR4 = calls(tmpPR4)
+    check("record-pr never overwrites a pr that is already an integer",
+          r.returncode == 0 and docPR4.get("pr") == 314
+          and not any("pr list" in l for l in logPR4),
+          f"rc={r.returncode} pr={docPR4.get('pr')} log={logPR4}")
+
+# --- record-pr --pr writes the number given without querying
+with tempfile.TemporaryDirectory() as tmpPR5:
+    install_gh(tmpPR5, FAKE_GH_PR_LIST)
+    featPR5 = stage(tmpPR5, feat_name="FEAT-26-pr-explicit")
+    fjPR5 = os.path.join(featPR5, "feature.json")
+    _pr_fixture(fjPR5, "FEAT-26-pr-explicit", "feat/pr-explicit", None)
+    r = run(["record-pr", featPR5, "--pr", "88"], tmpPR5,
+            {"PR_LIST_JSON": '[{"number": 999}]'})
+    docPR5 = read_feature_json(fjPR5)
+    logPR5 = calls(tmpPR5)
+    check("record-pr --pr writes the number given without querying",
+          r.returncode == 0 and docPR5.get("pr") == 88
+          and not any("pr list" in l for l in logPR5),
+          f"rc={r.returncode} pr={docPR5.get('pr')} log={logPR5}")
+
+# --- ship records the pr and then the status
+with tempfile.TemporaryDirectory() as tmpPR6:
+    install_gh(tmpPR6, FAKE_GH_PR_LIST)
+    featPR6 = stage(tmpPR6, feat_name="FEAT-26-pr-ship")
+    fjPR6 = os.path.join(featPR6, "feature.json")
+    _pr_fixture(fjPR6, "FEAT-26-pr-ship", "feat/pr-ship", None, status="Review",
+                github={"milestone": 7, "parent": 40, "parent_origin": "created",
+                        "attached": ["T-01"], "issues": {"T-01": 41}})
+    r = run(["ship", featPR6], tmpPR6, {"PR_LIST_JSON": '[{"number": 55}]'})
+    docPR6 = read_feature_json(fjPR6)
+    check("ship records the pr and then the status",
+          r.returncode == 0 and docPR6.get("pr") == 55 and docPR6.get("status") == "Done",
+          f"rc={r.returncode} pr={docPR6.get('pr')} status={docPR6.get('status')!r}")
+
+# --- record-pr exits 0 on every branch case (one, zero, and two merged PRs together)
+with tempfile.TemporaryDirectory() as tmpPR7:
+    install_gh(tmpPR7, FAKE_GH_PR_LIST)
+    rcs = []
+    for i, pr_list_json in enumerate(('[{"number": 71}]', "[]", '[{"number": 8}, {"number": 9}]')):
+        featPR7 = stage(tmpPR7, feat_name=f"FEAT-26-pr-exit0-{i}")
+        fjPR7 = os.path.join(featPR7, "feature.json")
+        _pr_fixture(fjPR7, f"FEAT-26-pr-exit0-{i}", f"feat/pr-exit0-{i}", None)
+        r = run(["record-pr", featPR7], tmpPR7, {"PR_LIST_JSON": pr_list_json})
+        rcs.append(r.returncode)
+    check("record-pr exits 0 on every branch case", rcs == [0, 0, 0], str(rcs))
+
+# --- MF-1: --pr with a non-numeric value is a caller error at the parse boundary, never
+#     an uncaught ValueError traceback (T-03's own contract: never die inside _record_pr,
+#     but main()'s flag parse is allowed to reject a caller mistake loudly)
+with tempfile.TemporaryDirectory() as tmpPR8:
+    install_gh(tmpPR8, FAKE_GH_PR_LIST)
+    featPR8 = stage(tmpPR8, feat_name="FEAT-26-pr-non-numeric")
+    fjPR8 = os.path.join(featPR8, "feature.json")
+    _pr_fixture(fjPR8, "FEAT-26-pr-non-numeric", "feat/pr-non-numeric", None)
+    r = run(["record-pr", featPR8, "--pr", "abc"], tmpPR8)
+    check("record-pr --pr abc exits non-zero with no traceback",
+          r.returncode != 0
+          and "Traceback (most recent call last)" not in (r.stdout + r.stderr)
+          and "--pr" in (r.stdout + r.stderr),
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+# ---------- T-04 (FEAT-26): closes emits the pull-request-body closing keywords derived
+# from the recorded source tickets, and nothing else ----------------------------------
+
+
+def _closes_fixture(tmp, feat_name, github=None):
+    """A bare feature dir carrying only feature.json — closes needs no BRIEF/PLAN/board
+    config at all (it makes no GitHub call), so stage()'s full scaffold is not used."""
+    feat = os.path.join(tmp, ".harness", "features", feat_name)
+    os.makedirs(feat)
+    fields = dict(feature_id=feat_name, status="Building")
+    if github is not None:
+        fields["github"] = github
+    write_feature_json(os.path.join(feat, "feature.json"), **fields)
+    return feat
+
+
+# --- closes emits one line per recorded source issue in order — deliberately NOT
+#     ascending on disk, so a sort would be caught
+with tempfile.TemporaryDirectory() as tmpC1:
+    install_gh(tmpC1)
+    featC1 = _closes_fixture(tmpC1, "FEAT-26-closes-order",
+                              github={"source_issues": [305, 101, 220]})
+    r = run(["closes", featC1], tmpC1)
+    check("closes emits one line per recorded source issue in order",
+          r.returncode == 0 and r.stdout == "Closes #305\nCloses #101\nCloses #220\n",
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+# --- closes emits nothing at exit 0 when source_issues is empty
+with tempfile.TemporaryDirectory() as tmpC2:
+    install_gh(tmpC2)
+    featC2 = _closes_fixture(tmpC2, "FEAT-26-closes-empty",
+                              github={"source_issues": []})
+    r = run(["closes", featC2], tmpC2)
+    check("closes emits nothing at exit 0 when source_issues is empty",
+          r.returncode == 0 and r.stdout == "",
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+# --- closes emits nothing at exit 0 when source_issues is absent (no github: block at
+#     all — the legitimate first-sync shape load_recorded returns a default for)
+with tempfile.TemporaryDirectory() as tmpC3:
+    install_gh(tmpC3)
+    featC3 = _closes_fixture(tmpC3, "FEAT-26-closes-absent", github=None)
+    r = run(["closes", featC3], tmpC3)
+    check("closes emits nothing at exit 0 when source_issues is absent",
+          r.returncode == 0 and r.stdout == "",
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+# --- closes makes no gh call at all — asserted against the fake gh's own call log, not
+#     merely against the exit code, even though a real (working) gh is on PATH for it to
+#     call
+with tempfile.TemporaryDirectory() as tmpC4:
+    install_gh(tmpC4)
+    featC4 = _closes_fixture(tmpC4, "FEAT-26-closes-no-gh",
+                              github={"source_issues": [9]})
+    r = run(["closes", featC4], tmpC4)
+    logC4 = calls(tmpC4)
+    check("closes makes no gh call at all",
+          r.returncode == 0 and r.stdout == "Closes #9\n" and logC4 == [],
+          f"rc={r.returncode} stdout={r.stdout!r} log={logC4}")
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

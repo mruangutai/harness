@@ -179,9 +179,12 @@ investigate — that is a plan mission with a `BUG-NN` id (the FEAT-02 pattern).
 
 Ids: **`BUG-NN-<kebab-slug>`**, independent sequence from FEAT, same folder root and machinery.
 
-## GitHub mirror — six sync points, when `github.sync` is on (DEC-138)
+## GitHub mirror — eight sync points, when `github.sync` is on (DEC-138)
 
-`bin/gh-sync.py` — outbound only, idempotent, and **never a gate**. Repo comes from
+`bin/gh-sync.py` — idempotent and **never a gate**. Almost entirely outbound: the one
+read-back is `record-pr`, which asks GitHub for the merged pull request on a recorded
+branch and writes the number into `feature.json` (FEAT-26). Nothing else reads GitHub
+state back, and no read-back ever reaches an approval-gated artifact. Repo comes from
 `harness.json`, pinned at init. **Every subcommand has one owner; run only the ones that are
 yours.**
 
@@ -193,6 +196,8 @@ yours.**
 | the feature is abandoned | **main session** | `gh-sync.py abandon <feature-dir> --reason-file <path>` — sub-issues `not_planned`, and the parent **only if `parent_origin` is `created`** |
 | the main session relays the user's shipped acceptance | **main session** | `gh-sync.py ship <feature-dir>` — closes the milestone unconditionally, and the parent **only if `parent_origin` is `created`** (an adopted issue is someone's live work and stays open) |
 | residual findings become backlog | **main session** | `gh-sync.py backlog <feature-dir> <items>` — plain issues, labelled by nature, no milestone (DEC-138 am.4) |
+| the pull request has merged | **main session** | `gh-sync.py record-pr <feature-dir> [--pr N]` — derives the number from the recorded branch when that branch carries **exactly one** merged pull request, leaves `pr` alone otherwise, and **never overwrites a number already recorded**. `ship` runs it too, so the ordinary flow needs no separate call |
+| composing the pull request body | **main session** | `gh-sync.py closes <feature-dir>` — prints one `Closes #N` line per number in `feature.json`'s `github.source_issues`. **Makes no GitHub call and posts nothing.** pm writes `source_issues` as a top-level list in `plan.yaml`, the operator signs it, and `open` mirrors it |
 
 **THE ORDER IS NOT A STYLE POINT — update `plan.yaml`, THEN run the subcommand.** The parent
 card's station is *derived* from `plan.yaml`'s task statuses, so the plan must already carry the
@@ -203,9 +208,11 @@ procedure gap that looks exactly like a code defect.
 
 **The build branch is created locally, the ordinary way**, once the plan is approved:
 `git checkout -b feat/<FEAT-id>` — for example `git checkout -b feat/FEAT-18-board-truth`.
-Nothing links the branch to the parent issue, and nothing needs to: **the harness composes no
-issue-closing text into any pull request body**, and the parent is closed by `gh-sync.py ship`,
-which also posts the ship review on it.
+Nothing links the branch to the parent issue, and nothing needs to. **`gh-sync.py closes`
+RENDERS the closing keywords but never posts them** (FEAT-26): it prints one `Closes #N` line
+per source issue for the operator to paste into the pull request body, so the harness composes
+text it does not publish. The parent is closed by `gh-sync.py ship`, which also posts the ship
+review on it.
 
 **Failure has three shapes, not one.**
 
