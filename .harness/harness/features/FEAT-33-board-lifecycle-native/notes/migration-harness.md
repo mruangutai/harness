@@ -96,3 +96,35 @@ these two, reddens it.
 
 Before: `audit-before.txt` content is reproduced in the run log; the dry-run write list and the
 apply output likewise. Retained in this feature's notes as the three files below.
+
+## SC-04's two residual findings, resolved by adding the cards (2026-08-23)
+
+The audit's first "after" capture reported `2 finding(s)`, not the zero SC-04 asks for. Both were
+STATUS findings: `FEAT-06` and `FEAT-07` record status `Done`, but their parents #25 and #47 read
+`None` — no card at all. The cause is historical: both issues were closed before board 3 existed,
+so nothing ever created a card for them.
+
+That capture is kept as `migration-harness-audit-after-2-accepted.txt`. The first ruling was to
+accept the two and add no cards. On revisiting, the operator ruled the other way: add them.
+
+**The tool refuses to do this itself, on purpose.** `_fixable` (`board_lifecycle.py:733`) excludes
+a Done-status STATUS finding — "reconcile does not move a card to the done station on its say
+alone, so it is left for a human" (D-22). A hand-add is what that rule intends, not a workaround
+for it.
+
+What was run:
+
+```
+gh project item-add 3 --owner mruangutai --url https://github.com/mruangutai/harness/issues/25
+gh project item-add 3 --owner mruangutai --url https://github.com/mruangutai/harness/issues/47
+```
+
+**Measured, and worth recording because nothing here predicted it: the native `Item closed`
+workflow fires when an ALREADY-CLOSED issue is added to the board, not only when an open issue is
+closed.** Both cards landed at `Done` with no column write of any kind. Verified per issue through
+`projectItems.fieldValueByName(name: "Status")`, because `gh project item-list` truncates at 500
+items and board 3 now holds at least that many — the item-list read found #47 and silently missed
+#25, which the direct query then showed sitting at `Done` all along.
+
+The re-run audit is `migration-harness-audit-after.txt`: `0 finding(s)`, exit 0. SC-04 is met as
+written, with no criterion amended.
