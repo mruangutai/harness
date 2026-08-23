@@ -4875,7 +4875,7 @@ built to catch as resolved. Every one was invisible to green gates. A test edite
 cannot see it is the same circularity one level out.
 
 **So the enforcement layer is: `check-domain.sh`, `bash-write-guard.sh`, `validate-digest.py`,
-`check-state.sh`, `check-plan-routes.py`, and the test file of each.** A script that becomes a gate
+`check-state.sh`, `check-plan-routes.py`, `dispatch-guard.sh`, and the test file of each.** A script that becomes a gate
 joins the list on the day it becomes one, and this entry is amended when that happens — the category
 decides, the list records.
 
@@ -4883,6 +4883,11 @@ decides, the list records.
 working rule, applied to FEAT-29: a squad may write the library, and **the cutover that makes a gate
 use it is main-session-direct**, proven by showing the gate's violation set is identical before and
 after. The gate's behaviour changes only by a hand the carve-out governs.
+
+`dispatch-guard.sh` joins the enumeration on the evidence that it refuses dispatches — it
+declined a `harness-orchestrator` dispatch over a `model` parameter on 2026-08-21 — and it joins
+under the rule this amendment already states rather than as a new ruling, so no lane changes and
+amendment 4 remains an amendment about the list and not about the category.
 
 **Not a strike.** DEC-174's ruling, its rationale and amendments 1 through 3 are untouched. What
 changed is that the enumeration is now correct and is declared non-exhaustive.

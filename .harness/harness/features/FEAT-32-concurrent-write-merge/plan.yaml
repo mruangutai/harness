@@ -1576,7 +1576,7 @@ tasks:
     execution_agent: harness-documentor
     execution_reason: none
     depends_on: [T-02, T-03, T-04, T-05, T-06, T-08, T-09]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
@@ -2196,7 +2196,7 @@ tasks:
     execution_agent: harness-documentor
     execution_reason: none
     depends_on: [T-13]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
