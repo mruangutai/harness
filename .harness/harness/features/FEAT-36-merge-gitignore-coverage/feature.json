@@ -43,6 +43,12 @@
       "squad": "validator",
       "verdict": "FAIL",
       "agent": "harness-validator-lead"
+    },
+    {
+      "id": "review-fix-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
     }
   ],
   "github": {

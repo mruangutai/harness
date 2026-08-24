@@ -1,0 +1,15 @@
+schema_version: 1
+run_id: review-fix-eng
+feature: FEAT-36-merge-gitignore-coverage
+squad: engineering
+host: harness-eng-lead
+status: complete
+steps:
+  - id: MF-01
+    persona: harness-dev-ops
+    status: complete
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-review-fix-eng.md

@@ -6,7 +6,7 @@
 - run: .harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-fix-eng/state.yaml
 - squad: eng
 - status: in_review
-- outcome: panel code, security, and UI reviews passed; mandatory integration matrix failed in test-bash-write-guard.py outside the declared feature diff, so engineering must run a base-pin control, diagnose provenance, and resolve or evidence the blocker before panel rerun
+- outcome: MF-01 was reproduced at the approved base as a same-size/same-mtime CPython bytecode-cache defect; the minimal isolated-fixture correction cleared the exact T-01 gate, and validate must commit the correction, repin, and rerun the panel
 
 ## Open Questions
 

@@ -467,7 +467,7 @@ def run_worktree():
     m_target = os.path.join(m_wt, ".harness", "allowed", "x.txt")
 
     def _both_routes():
-        env = dict(os.environ, CLAUDE_PROJECT_DIR=m_wt,
+        env = dict(os.environ, CLAUDE_PROJECT_DIR=m_wt, PYTHONDONTWRITEBYTECODE="1",
                    PYTHONPATH=m_bin + os.pathsep + os.environ.get("PYTHONPATH", ""))
         b = subprocess.run([os.path.join(m_bin, "bash-write-guard.sh")],
                            input=json.dumps({"agent_type": "harness-backend-dev",
@@ -493,12 +493,9 @@ def run_worktree():
     wtb("the mutation targeted the constant BY NAME (not the bare literal)",
         mutated != src, "WORKTREES_SEGMENT assignment not found in the copied module")
     open(mod, "w").write(mutated)
-    # DROP THE BYTECODE CACHE, AND THIS IS NOT HOUSEKEEPING. The baseline run above left
-    # a __pycache__ beside the module, and CPython validates a cached .pyc by mtime and
-    # SIZE. `.claude/wt-mutant` is exactly as long as `.claude/worktrees`, so within one
-    # mtime tick the stale bytecode is reused and the mutation never loads — measured
-    # here as a 0/0 "no flip" that looked like a second copy of the rule.
-    shutil.rmtree(os.path.join(m_bin, "__pycache__"), ignore_errors=True)
+    # The two source bodies have the same size and can share an mtime tick, which makes
+    # timestamp-validated .pyc reuse load the baseline after this mutation. _both_routes
+    # disables bytecode writes for both subprocesses, so this proof always imports source.
 
     after = _both_routes()
     # A FLIP ON ONE ROUTE ONLY MEANS A SECOND COPY OF THE RULE SURVIVES SOMEWHERE, and
