@@ -49,6 +49,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # OMP extensions execute on Bun. The provider-neutral hook adapter has native
+      # TypeScript contract tests, so CI carries the same runtime required in production.
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
       # NO `actions/setup-python`, BY OWNER DECISION. The job runs on whatever python3
       # `ubuntu-latest` ships. What that gives up is stated rather than discovered: the version
       # is no longer pinned, so a runner-image bump changes the interpreter under the suite
