@@ -1,43 +1,38 @@
 # Receipt — harness-documentor — FEAT-35 — 2026-08-24-01-product
 
-**Done.** DEC-201's control sentence now says BOTH failing sidecars are watchdog deaths, in opposite
-shapes. One sentence changed; nothing else in `DECISIONS.md`. The index needed no regeneration.
+**The dangling pointer now lands.** `.claude/skills/harness/SKILL.md` step 5 closes with "The
+calibration behind those bands is in DEC-201"; DEC-201 now carries that calibration. Three
+paragraphs appended to DEC-201 in `.harness/harness/docs/DECISIONS.md`, occupying **lines 6859-6879**
+(single-hunk diff `@@ -6858,0 +6859,22 @@`), inserted before `**Lineage.**` so the
+`**Branch `chore/744-...`**` closer stays last.
 
-## The rewrite
+## What the passage carries
 
-`.harness/harness/docs/DECISIONS.md`, inside DEC-201's "**The open measurement, stated as open.**"
-paragraph. New text (anchor on the string, not the line):
+- **Warning line, not a budget.** Crossing is normal and expected. DEC-198 is CITED for "advises,
+  never refuses" and explicitly not narrowed — no restatement, no weakening.
+- **Operator calibration, 2026-08-24.** 270,000 against the 200,000 line ruled acceptable, with the
+  verbatim quote *"that's okay, i expect some margin buffer"*; concern line at roughly TWICE the
+  threshold.
+- **The bands, as guidance.** Just over — carry on; around 2x — next seam; far past — an unfinished
+  phase costs more than the handoff avoided. Written with an explicit non-enforcement clause: no
+  hook reads them, no validator checks them, no gate fails on them.
+- **Why they exist.** The step gave a number with no scale, so a normal overshoot was
+  indistinguishable from a real problem — early handoff burns a spawn, late one loses the phase.
+  All five measured figures appear unaltered: **195k, 217k, 270k, 330k** across four correct
+  handoffs, and **418k** past the concern line, framed as a data point FOR the band.
 
-> The control discriminates: all 115 orchestrator sidecars on the machine were swept and exactly two
-> fail, and BOTH are deaths on that same watchdog in opposite shapes — one stalled LOUDLY, 1043
-> events of which 575 assistant and 342 `echo hold` calls, ending on a final gap of exactly 600.0s
-> after 3457.4s alive; the other produced NOTHING, 8 events and zero assistant, ending on a final gap
-> of 642.6s at a lifespan of 642.7s — and they are #744's two incidents, which that ticket files as
-> two diseases sharing one watchdog, matching it independently.
+## Verification
 
-Fixes: the old "one with 342 `echo hold` calls, one dead at 642.7s" implied only the second was
-killed. It also used 642.7s where a *gap* was implied; the entry now labels 642.6s the final gap and
-642.7s the lifespan explicitly.
+- `SKILL.md` **unmodified by this run** — read only. It appears in `git status` as `M` because the
+  tree was already dirty at spawn; `git diff` shows no hunk of mine in it (my only edit is the one
+  hunk above in `DECISIONS.md`).
+- `DECISIONS-INDEX.md`: `python3 .claude/skills/harness/bin/gen-decisions-index.py` run (exit 0);
+  **byte-identical output, no diff**. Correct: DEC-201 is the last entry (`grep '^## DEC-'` tail), so
+  its `@6800` anchor and every earlier offset are unshifted. The row's summary still describes the
+  DECISION, not this addition — no generator defect to report.
+- DEC-158 honoured: no band, figure or quote pushed back into the rule skill.
 
-## Bound of the change
+## Open
 
-- The preceding narrative "spent 354 of its 450 Bash calls on `echo hold` and `sleep` — 342 of them
-  `echo hold`" is UNCHANGED and still at line 6810, byte for byte. Verified by grep after the edit.
-- The edit was a single `str.replace` on a string asserted unique in the file (count == 1), so no
-  other span could have been touched. File grew 6863 → 6865 lines, all inside DEC-201.
-- `.claude/skills/harness/SKILL.md` not touched.
-
-## Index — no-op, confirmed not assumed
-
-`gen-decisions-index.py --stdout | diff - DECISIONS-INDEX.md` is clean. DEC-201 is the last entry and
-its `@6800` anchor sits above my edit, so no offset moved. The row summary describes the wake/stop
-decision and never mentioned a sidecar, so it needed no rewording either.
-
-## Open — an off-by-one I did NOT reconcile (per dispatch)
-
-Re-measuring `agent-a95e1e6e97e80de87.jsonl` myself over `tool_use` blocks named `Bash`: 450 total
-calls (matches), but **341** with `echo hold`, 14 with `sleep`, 355 with either — against the entry's
-342 and 354. Everything else re-measured exactly: 1043 events, 575 assistant, final gap 600.0s,
-lifespan 3457.4s; and 8 / 0 / 642.6s / 642.7s for `agent-a73a98fe020a2ce41.jsonl`. I kept 342 because
-the preceding narrative is frozen at 342 and writing 341 here would contradict it two paragraphs
-apart. Raised as Q1, non-blocking.
+None blocking. DEC-201's own open measurement (post-merge run to prove the rewritten playbook causes
+the long-wait survival) is untouched and still recorded as open.

@@ -37,12 +37,12 @@ surface: 3 files, +201/-7. The tree was clean at the pin throughout and HEAD nev
 
 | SC | Verdict | Basis |
 |----|---------|-------|
-| SC-01 | met | code-reviewer re-ran both SHAs; assertions fail at `569d417`, pass at `e0ae671` |
-| SC-02 | met | both tokens present; no threshold line says refuse/blocked/prevented |
-| SC-03 | **unmet** (3rd) | c0 empty candidate set, c1 non-unique nonce, c2 `context-watch.py` hard-filters to `harness-orchestrator` (`:53`, `:303-304`) — verified by me |
-| SC-04 | met | no `phase:` write instruction; phase-exit paragraph names `status:` |
+| SC-01 | met (re-confirmed at `a2a373b`) | code-reviewer re-ran both SHAs; assertions fail at `569d417`, pass at `e0ae671` |
+| SC-02 | met (re-confirmed) | both tokens present; no threshold line says refuse/blocked/prevented |
+| SC-03 | **Clause A met; Clause B yours** | split by verifier after three failures; Clause A cited to c2, Clause B rests on your live-orchestrator measurements no agent can vouch for |
+| SC-04 | met (re-confirmed) | no `phase:` write instruction; phase-exit paragraph names `status:` |
 | SC-05 | **partial** | see the obligation below |
-| SC-06 | met | steps 3-7 graded with `file:line`; no surviving stay-alive instruction |
+| SC-06 | met (RE-GRADED at `a2a373b`) | steps 3-7 graded with `file:line`; no surviving stay-alive instruction |
 | SC-07 | met | `gen-decisions-index.py --stdout \| diff -` clean; DEC-201 row at `DECISIONS-INDEX.md:219` |
 
 ## SC-05 — the post-merge obligation, on the record
@@ -111,6 +111,8 @@ before signature. It is not recorded as true.
 | B-6 | `feature.json` cannot hold the review base sha; every reviewer needs it and it travels only by prose | enhancement |
 | B-7 | Run `2026-08-24-01-product` completed at 06:41 and was never added to `runs:`; its send-back went uncounted | bug |
 | B-8 | `harness-team` seeded a colliding run id because `Glob` on `runs/*` matches files, not directories, clobbering a `state.yaml`. `runs/` is gitignored, so there is no recovery | bug |
+| B-10 | `SKILL.md:105-107` says handing off "stops being optional" at 2x the threshold — a mandate DEC-198 does not license, three lines after "the decision is yours". Not a gate; nothing enforces it | chore |
+| B-11 | Approval dates are day-granular, so a same-day amendment after signature is invisible to the record. Bit this feature twice | enhancement |
 | B-9 | **Reported by pm, unverified by me:** `bash-write-guard.sh` coverage is redirect-shaped, not write-shaped — it blocked a heredoc redirect to an out-of-domain path while a `python3 -c open(path,'w')` in the same tool ran unchecked. Nothing was evaded; the write performed was in-domain. Whoever tickets this should verify it before acting | bug |
 
 Already ticketed, cited not re-filed: **#803**, **#804**, **#805**, **#806**, **#808**.

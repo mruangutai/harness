@@ -100,11 +100,11 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    own context. Over `budgets.orchestrator_context_warn_tokens` in `.harness/harness.json` (200000
    today) you decide whether to finish this phase or hand it to a fresh orchestrator. **The
    threshold ADVISES and never refuses** — nothing is blocked by it and the decision is yours
-   (DEC-198). **Crossing it is normal and expected**: keep working, and hand off when a seam is
-   near rather than the moment you cross. Operator calibration, 2026-08-24: 270k against the 200k
-   line drew "that's okay, i expect some margin buffer". **Approaching roughly TWICE the threshold
-   is where handing off stops being optional** — and a seam you reach at 2x with the note written
-   beats a phase you fail to finish at 3x.
+   (DEC-198). **Crossing it is normal and expected** — it is a warning line, not a budget — so keep
+   working and hand off at a seam rather than the moment you cross. **Weight the decision by how far
+   past you are:** just over, carry on; around twice the threshold, take the next seam you reach; far
+   past it, a phase you fail to finish costs more than the handoff you avoided. The calibration
+   behind those bands is in DEC-201.
 
    The mechanism, measured working end to end at `569d417` in about one second.
    **It MUST be two separate Bash calls** — a single call that greps for a nonce it emitted in the

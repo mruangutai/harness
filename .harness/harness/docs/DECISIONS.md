@@ -6856,6 +6856,28 @@ spawned agent loads its skills from the main checkout. So it proves the BEHAVIOU
 wait; it does NOT prove the rewritten playbook CAUSES it. Whether one post-merge run is needed to
 settle that is a reviewer's call, recorded here as open rather than resolved.
 
+**The threshold is a WARNING LINE, not a budget, and the operator has calibrated where concern
+starts.** Crossing it is normal and expected; it advises and never refuses (DEC-198), and nothing
+here narrows that. On 2026-08-24 an orchestrator sitting at 270,000 against the 200,000 line was put
+to the operator and ruled acceptable — *"that's okay, i expect some margin buffer"*. So the point
+where an overshoot becomes worth thinking about is roughly TWICE the threshold, not the threshold
+itself.
+
+**The bands are guidance and never a gate.** Just over the line, carry on. Around twice it, take the
+next seam you reach. Far past it, a phase you fail to finish costs more than the handoff you avoided.
+Nothing enforces any of these numbers — no hook reads them, no validator checks them, no gate fails
+on them — and an orchestrator that weighs them and keeps working owes nobody a justification. They
+are a sense of scale offered to the agent doing the measuring, and that is the whole of their force.
+
+**They exist because a number with no scale cannot be weighed.** The playbook's context step
+previously gave the threshold and nothing more, so an orchestrator that crossed it could not tell a
+routine overshoot from a real problem, and both mistakes cost: hand off early and a spawn burns on a
+phase that had one dispatch left in it, stretch too far and the phase dies unfinished. The scale is
+measured, from this feature's own orchestrators — they ran at 195k, 217k, 270k and 330k across four
+handoffs, every one of those handoffs correct, and one reached 418k, past the concern line, without
+harm. That last figure argues FOR the band rather than against it: twice the threshold is where the
+judgement gets hard, not where it gets made for you.
+
 **Lineage.** DEC-148 and DEC-159 make one phase per orchestrator the mission, so the phase boundary is
 normal termination and the successor reads a capped handoff note — ending a turn is the same act at a
 smaller grain. DEC-118 is why waiting could never work: one phase spans several single-squad lead

@@ -95,18 +95,25 @@ orchestrator. One rule, one loop, no step left standing that says otherwise.
   refuse, refused, blocked or prevented. Demonstrated failing at `569d417`, where neither token
   appears anywhere in the file.
   verify: automated      evidence: unit
-- SC-03: The self-identification mechanism the playbook prints actually works from inside an
-  agent's own turn. A reviewer executes it verbatim, in its own two separate Bash calls, with the
-  glob's `agentType` filter set to its OWN `agentType` as stand-in rather than
-  `harness-orchestrator` — a reviewer never carries that type, so the criterion is unclosable if it
-  names it. It records in its review note the single matching sidecar path, the agent id derived
-  from it, and the `context-watch.py` row for that id, each cited as `file:line`. **What this does
-  NOT cover:** the orchestrator-typed glob itself — the literal string
-  `"agentType":"harness-orchestrator"` as the playbook prints it — is never executed by this
-  criterion and stays unexercised until a real orchestrator runs it after merge. What is proven is
-  the mechanism's shape: the two-call sequence (the nonce must be grepped in a LATER call, because
-  a same-call grep finds nothing), the match-count logic, and `context-watch.py` accepting the
-  derived id. What is not proven is that an orchestrator's own sidecar satisfies that filter.
+- SC-03: The self-identification mechanism the playbook prints actually works from inside an agent's
+  own turn. The criterion splits by verifier, because its two halves are reachable by different
+  tiers and each half names who proves it.
+  **Clause A — the SHAPE, proven by a reviewer using its OWN `agentType` as stand-in** rather than
+  `harness-orchestrator`, which a reviewer never carries: two separate Bash calls, the nonce
+  invented fresh in that run and never copied from an earlier one, and the agent id derived from the
+  sidecar filename. What this clause proves is the two-call sequence (the nonce must be grepped in a
+  LATER call, because a same-call grep finds nothing), the match-count logic, and the id derivation
+  — and nothing about `context-watch.py`, which rejects any reviewer-derived id by design
+  (`notes/review-harness-code-reviewer-c2.md:53` records that rejection; it belongs to Clause B).
+  **Already met**, cited at `notes/review-harness-code-reviewer-c2.md:36-43` — exactly one match,
+  agent id correctly derived — and independently confirmed in
+  `runs/2026-08-24-03-validator/digest.md`.
+  **Clause B — the SUBJECT, proven by the main session against a live orchestrator**, which is the
+  only tier that can reach one. Two measurements, **already taken**: the orchestrator-typed glob —
+  the literal string `"agentType":"harness-orchestrator"` as the playbook prints it — matched a real
+  orchestrator's sidecar, `agent-ad292e24ec60c589b.meta.json`; and `context-watch.py` emitted a row
+  for that real orchestrator id, `current=330,527 peak=330,527 entries=149`, with the warning firing
+  in DEC-198's own voice, *"this advises only; the orchestrator decides"*.
   verify: inspection
 - SC-04: The playbook instructs no write the tree refuses:
   `git show <review_sha>:.claude/skills/harness/SKILL.md` contains no instruction to write
@@ -144,3 +151,22 @@ orchestrator. One rule, one loop, no step left standing that says otherwise.
 status: approved
 approved-by: operator
 date: 2026-08-24
+
+Re-signed 2026-08-24 after the SECOND SC-03 amendment (the split by verifier). The first
+signature that day predated it, which is the same signature-predates-content problem the
+validate panel caught earlier and which a same-day date makes invisible. This signature
+covers: `source_issues`, the DEC-200 -> DEC-201 id correction, and BOTH SC-03 amendments.
+
+**SC-03 is MET, recorded by the main session because Clause B is its own measurement.**
+Clause A met at `notes/review-harness-code-reviewer-c2.md:36-43`. Clause B met by two
+measurements taken 2026-08-24: the orchestrator-typed glob matched
+`agent-ad292e24ec60c589b.meta.json`, and `context-watch.py` emitted
+`current=330,527 peak=330,527 entries=149` for that id. No post-merge debt remains on it.
+
+**SC-05 is PARTIAL**, with the obligation named: one orchestrator round-trip over 600s under
+the MERGED skill, no override in its dispatch, measured as longest-survived-gap, stall-call
+count and killed-at-600s. Owner: the main session, on the next feature that runs a build or
+validate phase.
+
+**`matrix_ok` is FALSE and accepted**, on the basis the Verification gaps section disclosed
+before the first signature.
