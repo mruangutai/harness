@@ -227,14 +227,14 @@ tasks:
     execution_mode: team
     execution_agent: harness-documentor
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md
     verify: |
-      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md && grep -q "^- DEC-200 " .harness/harness/docs/DECISIONS-INDEX.md && echo T-04-PASS
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md && grep -q "^- DEC-201 " .harness/harness/docs/DECISIONS-INDEX.md && echo T-04-PASS
     intent: |
-      Append one new entry, DEC-200, to .harness/harness/docs/DECISIONS.md, after DEC-199 and in
+      Append one new entry, DEC-201, to .harness/harness/docs/DECISIONS.md, after DEC-199 and in
       the file's existing entry form. Then regenerate the index with
       python3 .claude/skills/harness/bin/gen-decisions-index.py and hand-write the summary to the
       right of the :: separator on the new row, which regeneration preserves.
@@ -280,7 +280,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-orchestrator-playbook.py
       - .claude/skills/harness/bin/run-unit-tests.sh

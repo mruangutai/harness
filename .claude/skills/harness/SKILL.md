@@ -47,7 +47,7 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    lead returns, state what is in flight and end your turn — the platform resumes you when the
    child completes. Why: a stalled orchestrator is killed by the 600s no-progress watchdog and
    takes its lead and its member down with it, while a partial you returned is resumable
-   (DEC-200). **The single-flight refusal on your return is EXPECTED.** When you end your turn
+   (DEC-201). **The single-flight refusal on your return is EXPECTED.** When you end your turn
    with a child still in flight, `validate-digest.py`'s issue #551 return contract refuses that
    return once — stderr `check-digest: BLOCKED - returned with children in flight` — and its own
    message states that the refusal fires ONCE and that a second identical return will ship. Read
