@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Review",
   "review_sha": "f494553bd9fbb987b4a19f91dcf4c3f37253fe38",
-  "cycles_used": 5,
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -108,6 +108,12 @@
       "id": "distill-validator",
       "squad": "validator",
       "verdict": "BLOCKED",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "distill-c1-validator",
+      "squad": "validator",
+      "verdict": "PASS",
       "agent": "harness-validator-lead"
     }
   ],

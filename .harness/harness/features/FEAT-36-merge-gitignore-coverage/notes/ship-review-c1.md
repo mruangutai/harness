@@ -2,9 +2,9 @@
 
 ## Decision
 
-**The reviewed product is ready, but Harness close-out is blocked before ship acceptance.** All six success criteria pass at `f494553bd9fbb987b4a19f91dcf4c3f37253fe38`, and the independent c2 panel passed with no must-fix. Ship-refresh is validly inapplicable. Product and engineering distillation passed, and two validator Expertise additions landed and checked; however, six accepted cap-bound code-reviewer/QA replacements remain unapplied because the required additive merge tool cannot express replacement or drop.
+**Ready for operator ship acceptance.** All six success criteria pass at `f494553bd9fbb987b4a19f91dcf4c3f37253fe38`, and the independent c2 panel passed with no must-fix. Ship-refresh is validly inapplicable. Product, engineering, and validator distillation are complete: two additive Expertise entries landed and passed the corpus checker; six unexpressible replacement ops are closed as unapplied/not permitted under the operator's explicit permitted-results contract.
 
-Operator decision required: authorize an approved lock-safe replacement/drop mechanism for those six Expertise ops, or explicitly direct their disposition. No PR was created or merged, no issue was closed, no backlog item was filed, and the feature remains at `status: Review` rather than Done.
+No PR was created or merged, no issue was closed, no backlog item was filed, and the feature remains at `status: Review` rather than Done. The operator's available decisions are ship, fix, re-scope, or stop.
 
 ## Success criteria
 
@@ -36,13 +36,13 @@ The ship-refresh and feature-close distillation jobs were issued concurrently. D
 | Ship-refresh | PASS / skipped: `.harness/codebase/` does not exist, so there is no map-domain intersection, stale section, or HTML map to render | Map render/check not applicable; `runs/ship-refresh-product/digest.md` |
 | Product distillation | PASS: PM, documentor, and product lead accepted no ops; all candidates were absent or already covered | No Expertise file changed; `runs/distill-product/digest.md` |
 | Engineering distillation | PASS after one receipt correction: no accepted op; the apparent merge-tool issue was a heading-less empty proposal, not a tool defect | No Expertise file changed; `runs/distill-eng/digest.md` |
-| Validator distillation | BLOCKED: security and UI each added one checked rule; six accepted code-reviewer/QA replacements could not be applied through additive `expertise-merge.py` | `.agents/skills/harness/bin/check-expertise.sh .harness/expertise/` PASS with existing advisories only; blocked replacements remain listed in `runs/distill-validator/digest.md` |
+| Validator distillation | PASS on c1 reassessment: security O-09 and UI G-11 remain applied and checked; code-reviewer P-04/P-06/G-13 and QA P-13/P-03/G-06 are individually closed as unapplied/not permitted | `check-expertise.sh .harness/expertise/` PASS with existing advisories only; `runs/distill-c1-validator/digest.md` supersedes the original blocking disposition without rewriting it |
 
-Observation logs remain archived; none existed and none was created or deleted. The unresolved validator escalation is the only blocking open question. The engineering distillation question was resolved by checking the exact invocation: its scratch input lacked a canonical section heading and therefore parsed empty.
+The six replacements are not permitted results because harness-distill requires: “Apply through the merge tool. Never write the file yourself,” while the available merge tool supports lock-safe additive union only. Direct or whole-file replacement was not attempted. The stale code-reviewer P-06 wording and replace/drop capability gap remain recorded as non-gating close-out dispositions; neither creates a second backlog row. Observation logs remain archived; none existed and none was created or deleted.
 
 ## Budget
 
-The feature records 17 runs against the informational 20-run threshold and 5 rework cycles against the hard 10-cycle cap. The run-budget tripwire was not crossed. The runs remained productive: they closed one mandatory matrix failure, one SC-05 evidence gap, and surfaced the current close-out mechanism conflict.
+The feature records 18 runs against the informational 20-run threshold and 6 rework cycles against the hard 10-cycle cap. The run-budget tripwire was not crossed. The runs remained productive: they closed one mandatory matrix failure, one SC-05 evidence gap, and the close-out disposition conflict.
 
 ## Proposed backlog
 
@@ -52,9 +52,9 @@ The feature records 17 runs against the informational 20-run threshold and 5 rew
 
 This row is proposed only. It has not been filed through `gh-sync.py backlog`.
 
-## Open question
+## Open questions
 
-- **Q1 (blocking):** Which approved lock-safe mechanism should apply the six cap-bound `harness-code-reviewer` and `harness-qa` Expertise replacements when `expertise-merge.py` supports additive union only?
+None.
 
 ## Source disclosure
 
@@ -77,3 +77,4 @@ No report round was spawned. This briefing was assembled directly from every fea
 15. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-product/digest.md`
 16. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-eng/digest.md`
 17. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-validator/digest.md`
+18. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-c1-validator/digest.md`
