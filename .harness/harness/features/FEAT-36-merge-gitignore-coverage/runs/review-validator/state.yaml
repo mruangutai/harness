@@ -1,0 +1,47 @@
+schema_version: 1
+run_id: review-validator
+feature: FEAT-36-merge-gitignore-coverage
+squad: validator
+team: review
+host: harness-validator-lead
+review_sha: ce29a059e37af5133ae5b4f87df6f622ed966a92
+base_sha: 0fa8f336e55dc57bca09a9f7df0524a35195ee7e
+status: failed
+cycles_used: 0
+steps:
+  - id: code
+    persona: harness-code-reviewer
+    status: complete
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-5
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-code-reviewer-c0.md
+    note: spec-pass-quality-pass-one-med-advisory
+  - id: qa
+    persona: harness-qa
+    status: complete
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-4
+    verdict: FAIL
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-qa-c0.md
+    note: matrix-fail-integration
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-3
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-security-reviewer-c0.md
+    note: in-scope-no-findings
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-ui-reviewer-c0.md
+    note: scoped-out-no-ui
