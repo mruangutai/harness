@@ -1,0 +1,1112 @@
+<title>Representable Invalid States</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --ground:      #f4f6f9;
+    --surface:     #ffffff;
+    --surface-sunk:#eceff4;
+    --ink:         #171b22;
+    --ink-mid:     #4a5462;
+    --ink-soft:    #6f7987;
+    --rule:        #d5dae2;
+    --rule-soft:   #e4e8ee;
+    --accent:      #7a5c1f;
+    --accent-soft: #f2ead8;
+    --silent:      #a02b3f;
+    --silent-soft: #f7e6e9;
+    --loud:        #8a5a10;
+    --loud-soft:   #f7ecd9;
+    --clean:       #1c6357;
+    --clean-soft:  #e0efec;
+    --shadow:      0 1px 2px rgba(23,27,34,.05), 0 8px 24px -16px rgba(23,27,34,.18);
+
+    --step--1: 0.813rem;
+    --step-0:  0.975rem;
+    --step-1:  1.14rem;
+    --step-2:  1.42rem;
+    --step-3:  1.85rem;
+    --step-4:  2.5rem;
+
+    --sans: "Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #101319;
+      --surface:     #171b22;
+      --surface-sunk:#1e232c;
+      --ink:         #e7eaef;
+      --ink-mid:     #a9b3c1;
+      --ink-soft:    #838d9b;
+      --rule:        #2b323d;
+      --rule-soft:   #232932;
+      --accent:      #d9ad52;
+      --accent-soft: #2b2415;
+      --silent:      #eb8b9c;
+      --silent-soft: #2e1a1f;
+      --loud:        #d7a25a;
+      --loud-soft:   #2b2014;
+      --clean:       #6fc4b2;
+      --clean-soft:  #142623;
+      --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #101319;
+    --surface:     #171b22;
+    --surface-sunk:#1e232c;
+    --ink:         #e7eaef;
+    --ink-mid:     #a9b3c1;
+    --ink-soft:    #838d9b;
+    --rule:        #2b323d;
+    --rule-soft:   #232932;
+    --accent:      #d9ad52;
+    --accent-soft: #2b2415;
+    --silent:      #eb8b9c;
+    --silent-soft: #2e1a1f;
+    --loud:        #d7a25a;
+    --loud-soft:   #2b2014;
+    --clean:       #6fc4b2;
+    --clean-soft:  #142623;
+    --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--step-0);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: clamp(1.75rem, 4vw, 4rem) clamp(1.1rem, 3vw, 2.5rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.25rem;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead { display: flex; flex-direction: column; gap: 1rem; }
+
+  .eyebrow {
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  h1 {
+    font-size: var(--step-4);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1.08;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .standfirst {
+    font-family: var(--serif);
+    font-size: var(--step-1);
+    line-height: 1.6;
+    color: var(--ink-mid);
+    max-width: 40rem;
+    margin: 0;
+  }
+
+  .provenance {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    border-top: 1px solid var(--rule);
+    padding-top: .85rem;
+    margin: .35rem 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem 1.5rem;
+  }
+
+  /* ---------- tallies ---------- */
+
+  .tallies {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .tally { background: var(--surface); padding: 1.05rem 1.15rem; }
+
+  .tally dt {
+    font-size: var(--step--1);
+    font-weight: 500;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 .4rem;
+  }
+
+  .tally dd {
+    margin: 0;
+    font-size: var(--step-3);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.01em;
+    line-height: 1;
+  }
+
+  .tally dd small {
+    display: block;
+    font-size: var(--step--1);
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--ink-soft);
+    margin-top: .45rem;
+    line-height: 1.35;
+  }
+
+  .t-silent dd { color: var(--silent); }
+  .t-signal dd { color: var(--loud); }
+  .t-cheap  dd { color: var(--clean); }
+
+  /* ---------- sections ---------- */
+
+  section { display: flex; flex-direction: column; gap: 1.25rem; }
+
+  h2 {
+    font-size: var(--step-2);
+    font-weight: 700;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+    margin: 0;
+    padding-bottom: .6rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  h3 {
+    font-size: var(--step-1);
+    font-weight: 600;
+    letter-spacing: -.01em;
+    margin: 0;
+  }
+
+  p { margin: 0; max-width: 42rem; }
+
+  .prose { font-family: var(--serif); line-height: 1.62; color: var(--ink-mid); }
+
+  .lede {
+    font-family: var(--serif);
+    font-size: var(--step-1);
+    line-height: 1.6;
+    color: var(--ink);
+    max-width: 40rem;
+    margin: 0;
+  }
+
+  code, .mono { font-family: var(--mono); font-size: .89em; }
+
+  code {
+    background: var(--surface-sunk);
+    padding: .1em .34em;
+    border-radius: 2px;
+    color: var(--ink);
+    overflow-wrap: break-word;
+  }
+
+  strong { font-weight: 600; color: var(--ink); }
+
+  /* ---------- the three ---------- */
+
+  .three {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .pick {
+    background: var(--surface);
+    padding: 1.2rem 1.25rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+  }
+
+  .pick-id {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: .04em;
+  }
+
+  .pick h3 { font-size: var(--step-0); }
+
+  .pick p {
+    font-family: var(--serif);
+    font-size: var(--step--1);
+    line-height: 1.55;
+    color: var(--ink-mid);
+    max-width: none;
+  }
+
+  .pick-cost {
+    margin-top: auto;
+    padding-top: .5rem;
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    color: var(--clean);
+    border-top: 1px dashed var(--rule);
+  }
+
+  /* ---------- ledger ---------- */
+
+  .ledger { display: flex; flex-direction: column; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 3.25rem 1fr;
+    gap: 0 1rem;
+    padding: 1.35rem 0;
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  .row:first-child { border-top: 1px solid var(--rule); }
+
+  .row-id {
+    font-family: var(--mono);
+    font-size: var(--step-0);
+    font-weight: 500;
+    color: var(--ink-soft);
+    padding-top: .1rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .row-body { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
+
+  .row-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .5rem .75rem;
+  }
+
+  .chip {
+    font-family: var(--sans);
+    font-size: .688rem;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    padding: .22em .55em;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .c-silent { background: var(--silent-soft); color: var(--silent); }
+  .c-loud   { background: var(--loud-soft);   color: var(--loud); }
+  .c-signal { background: var(--loud-soft);   color: var(--loud); }
+
+  .row-where {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    overflow-wrap: break-word;
+  }
+
+  .row-fail {
+    font-family: var(--serif);
+    line-height: 1.6;
+    color: var(--ink-mid);
+    max-width: 44rem;
+  }
+
+  .row-fix {
+    font-size: var(--step--1);
+    line-height: 1.55;
+    color: var(--ink-mid);
+    max-width: 44rem;
+    padding: .7rem .85rem;
+    background: var(--surface);
+    border-left: 2px solid var(--clean);
+    border-radius: 0 2px 2px 0;
+  }
+
+  .row-fix b {
+    font-weight: 600;
+    color: var(--clean);
+    letter-spacing: .04em;
+    font-size: .688rem;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: .25rem;
+  }
+
+  /* ---------- keep table ---------- */
+
+  .scroller { overflow-x: auto; border: 1px solid var(--rule); border-radius: 3px; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 34rem;
+    background: var(--surface);
+    font-size: var(--step--1);
+  }
+
+  th, td { text-align: left; padding: .7rem .9rem; vertical-align: top; }
+
+  thead th {
+    font-size: .688rem;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface-sunk);
+    white-space: nowrap;
+  }
+
+  tbody tr + tr td { border-top: 1px solid var(--rule-soft); }
+  td.mono-cell { font-family: var(--mono); white-space: nowrap; color: var(--accent); }
+  td .why { display: block; color: var(--ink-mid); }
+
+  /* ---------- agent block ---------- */
+
+  .agents { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .agent {
+    display: grid;
+    grid-template-columns: 2.75rem 1fr;
+    gap: 0 1rem;
+    padding-top: 1.35rem;
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  .agent:first-child { border-top: 1px solid var(--rule); }
+
+  .agent-id {
+    font-family: var(--mono);
+    font-size: var(--step-0);
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .agent-body { display: flex; flex-direction: column; gap: .55rem; min-width: 0; }
+
+  .agent-body p { font-family: var(--serif); line-height: 1.6; color: var(--ink-mid); }
+
+  pre {
+    margin: .2rem 0 0;
+    padding: .85rem 1rem;
+    background: var(--surface-sunk);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    line-height: 1.55;
+    color: var(--ink);
+  }
+
+  /* ---------- closing ---------- */
+
+  .closing {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--accent);
+    border-radius: 0 0 3px 3px;
+    padding: 1.5rem 1.6rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+  }
+
+  .closing h2 { border-bottom: none; padding-bottom: 0; font-size: var(--step-2); }
+  .closing p { font-family: var(--serif); line-height: 1.62; color: var(--ink-mid); max-width: 44rem; }
+
+  footer {
+    font-family: var(--mono);
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    border-top: 1px solid var(--rule);
+    padding-top: 1rem;
+    line-height: 1.7;
+  }
+
+  ul { margin: 0; padding-left: 1.15rem; display: flex; flex-direction: column; gap: .4rem; }
+  li { font-family: var(--serif); line-height: 1.55; color: var(--ink-mid); max-width: 42rem; }
+
+  a { color: var(--accent); text-underline-offset: .18em; }
+  a:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 34rem) {
+    .row, .agent { grid-template-columns: 1fr; gap: .5rem; }
+    .row-id, .agent-id { padding-top: 0; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Harness · self-audit · 2026-08-23</p>
+    <h1>Representable Invalid States</h1>
+    <p class="standfirst">
+      Fifteen places where the harness can hold a state that should be impossible. Eleven of them
+      let a wrong state pass with exit&nbsp;0 and nothing printed — which is the only kind that
+      compounds, because a loud failure gets fixed the day it lands.
+    </p>
+    <p class="provenance">
+      <span>34 features</span><span>432 run entries</span><span>24 plan.yaml</span><span>118 domain entries</span><span>counted, not estimated</span>
+    </p>
+  </header>
+
+  <dl class="tallies">
+    <div class="tally t-silent">
+      <dt>Pass silently</dt>
+      <dd>11<small>Wrong state, exit 0, no output</small></dd>
+    </div>
+    <div class="tally t-signal">
+      <dt>Signal loss</dt>
+      <dd>96.6%<small>of check-state.sh output is one broken invariant</small></dd>
+    </div>
+    <div class="tally t-cheap">
+      <dt>Under 5 lines</dt>
+      <dd>4<small>F7, F8, F10, F12 — fixes already have a seam</small></dd>
+    </div>
+    <div class="tally">
+      <dt>Already right</dt>
+      <dd>15<small>Patterns the fixes should aim toward</small></dd>
+    </div>
+  </dl>
+
+  <section>
+    <h2>If only three things get done</h2>
+    <p class="lede">
+      Ranked by what a wrong state costs when nothing announces it, divided by what the fix costs.
+      All three have the seam or the schema already in place.
+    </p>
+    <div class="three">
+      <article class="pick">
+        <span class="pick-id">F7</span>
+        <h3>parent_origin accepts any string</h3>
+        <p>
+          A hand-edit writing <code>"Created"</code> passes the schema, the reader coerces it to
+          <code>None</code>, and <code>abandon</code> leaves a real GitHub issue open forever while
+          printing <code>origin=none</code>. The message contradicts the file.
+        </p>
+        <span class="pick-cost">2 JSON lines · already write-time enforced</span>
+      </article>
+      <article class="pick">
+        <span class="pick-id">F8</span>
+        <h3>The state checker drowns itself</h3>
+        <p>
+          426 of 441 output lines are one invariant pointing at directories <code>.gitignore</code>
+          excludes. Underneath sit 15 real notes, including a genuine orphan the paired invariant
+          found.
+        </p>
+        <span class="pick-cost">3 lines · restores 15 notes from under 426</span>
+      </article>
+      <article class="pick">
+        <span class="pick-id">F1</span>
+        <h3>Five writers, no lock</h3>
+        <p>
+          <code>feature.json</code> is the last state file whose writers all read-modify-write the
+          whole document unlocked. <code>harness_merge.locked_update</code> already exists and
+          already has four callers.
+        </p>
+        <span class="pick-cost">~30 lines · the seam is already built</span>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <h2>The ledger</h2>
+    <p class="prose">
+      Each row names where the invalid state lives, what it costs when it happens, and the shape
+      that makes it unrepresentable. Severity is one axis only: whether a wrong state can pass
+      without saying so.
+    </p>
+
+    <div class="ledger">
+
+      <article class="row">
+        <span class="row-id">F1</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>feature.json has five concurrent writers and no lock</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">gh-sync.py:504, :531, :556, :624 — plus the orchestrator's own Edit tool</p>
+          <p class="row-fail">
+            <code>cmd_ship</code> calls <code>_record_pr</code> then <code>_record_status</code> —
+            two separate whole-document read-modify-writes. An orchestrator appending a run entry
+            between them is erased: the second write read the document before the append and puts
+            its own copy back. Exit 0, nothing printed. The inverse silently reverts <code>pr</code>
+            to null, which is the exact decay FEAT-26 was built to stop.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            Route all four through <code>harness_merge.locked_update</code> — lock, read, transform,
+            atomic rename, in one transaction. Its four existing callers prove the seam. Making
+            <code>runs[]</code> appends a subcommand closes the orchestrator's unlockable path too.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F2</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>A task's status is an unvalidated bare string</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">harness_yaml.py:286 — status is not even a required field, and load_plan never validates it</p>
+          <p class="row-fail">
+            Write <code>status: Done</code> with a capital D. <code>derive_station</code>'s
+            <code>all(s == "done")</code> is False, so the parent card never moves to Review.
+            <code>_EXPECT.get("Done")</code> returns None, so the board comparison
+            <code>continue</code>s and that card is never checked. A feature whose plan says done,
+            whose board says Building, and whose checker reports clean.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            One <code>TaskStatus</code> enum in <code>harness_yaml.py</code> beside the existing
+            <code>LEGAL_EXECUTION_MODES</code>, validated in <code>load_plan</code> — which every
+            runtime reader already goes through. Then delete the duplicate list in
+            <code>check-plan-routes.py</code> and make <code>_EXPECT</code> total, so
+            <code>.get</code> cannot return None.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F3</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>Two parallel collections keyed the same way, already drifted</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">gh-sync.py:431, :756, :776 — github.attached (list) beside github.issues (dict)</p>
+          <p class="row-fail">
+            Two features on disk are drifted right now: FEAT-08 has 12 issues and 0 attached,
+            FEAT-12 has 14 and 0. Nothing checks the relation — <code>attached</code> has zero
+            grep hits in the state checker, the board auditor, or the schema validator. With
+            <code>T-05</code> in <code>attached</code> but not in <code>issues</code>, the code
+            creates a fresh sub-issue then <code>continue</code>s past attaching it. Orphan
+            sub-issue, exit 0, every checker clean.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            Collapse to one map — <code>issues: {T-NN: {number, attached}}</code> — so
+            "attached but unmirrored" cannot be written. Cheaper interim: make it a set and add one
+            invariant asserting <code>attached ⊆ issues</code>.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F4</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>A count stored beside the thing it counts, hand-patched twice</h3>
+            <span class="chip c-loud">Mixed</span>
+          </div>
+          <p class="row-where">feature_schema.py:170-219 — a 34-entry map of feature → integer exemption count</p>
+          <p class="row-fail">
+            The map was generated by scanning one working tree, so a feature whose record lives only
+            on its branch defaulted to zero and its first run entry became unsatisfiable — FEAT-32
+            hit this minutes into its build. Deleting any legacy entry shifts every index after it.
+            The file documents its own three failure modes, and two have already fired. Its own
+            comment reads: <em>read #718 before adding a third hand-written line.</em>
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            Put the flag in the data, not in a parallel count. The honest form is a predicate on the
+            entry itself — require the field only when the entry carries a marker the current writer
+            always emits, or only when the entry is not already on <code>origin/main</code>. Either
+            way the exemption stops being an integer that must track a list's length.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F5</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>A tagged union whose tag is a string and whose payload is an open dict</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">board_lifecycle.py:268 — six kinds, three uncoupled consumers at :928, :933, :960</p>
+          <p class="row-fail">
+            Add a seventh finding class, spelled right in the fixer and omitted from the fixable set.
+            The dry run prints <em>cannot fix, needs a human</em> for something the tool can fix, and
+            <code>--apply</code> never attempts it. The mirror case falls off the end of the fixer,
+            writes nothing, and the re-audit reports the finding surviving a fix never attempted.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            One frozen dataclass per class with <code>fix()</code> as a method — and no method for
+            the classes that have no fix. Then "fixable" is <code>hasattr(f, "fix")</code>, three sets
+            collapse to one, and a wrong key becomes a type error rather than a KeyError inside a
+            broad handler. No on-disk format changes; the type never leaves the process.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F6</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>change_type has no authoritative definition anywhere</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">harness.json test_matrix (10 keys, read by no code) · gh-sync.py:94 · validate-digest.py:158</p>
+          <p class="row-fail">
+            Three partial copies, and two of them contain values the matrix does not
+            (<code>infra</code>, <code>ci</code>). Mistype <code>bugfix</code> as
+            <code>bugfx</code>: the label lookup returns None for both branches, so the issue is
+            created with no <code>bug</code> label, silently. The matrix declares itself
+            <em>a floor, not a ceiling</em>, so a missing row reads as "no required kinds" rather
+            than an error. The bugfix ships with its test requirement never applied.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            A <code>CHANGE_TYPES</code> frozenset validated in <code>load_plan</code>, generated
+            from the matrix keys so the two cannot disagree — the matrix is per-project, so
+            hardcoding is wrong. The other two sets become subsets asserted at import, which
+            surfaces the infra/ci gap immediately. That is the point.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F7</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>parent_origin is a sentinel string with no schema enum</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">feature-schema.json:76 and :101 — type ["string","null"], no enum · four copies of the two-value set</p>
+          <p class="row-fail">
+            A merge or hand-edit writes <code>"Created"</code>. The schema accepts any string. The
+            reader silently coerces it to <code>None</code>. <code>abandon</code> then takes the else
+            branch and prints <em>parent #675 left open (origin=none)</em> — leaving an issue this
+            harness created open forever, and reporting a state the file does not contain. The
+            coercion is the silent step: a value the schema allowed becomes indistinguishable from
+            absence.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            <code>"enum": ["created","adopted",null]</code> in both schema locations, and one shared
+            tuple instead of four copies. The schema is already validated at write time, so this
+            becomes a blocking refusal for free.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F8</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>A committed foreign key into a gitignored tree</h3>
+            <span class="chip c-signal">Signal loss</span>
+          </div>
+          <p class="row-where">.gitignore:7 excludes the runs tree · check-state.sh:296-315 asserts every id resolves to a directory</p>
+          <p class="row-fail">
+            441 output lines, 426 of them <em>run &lt;id&gt; is referenced but its dir is absent</em>.
+            One feature of 34 has a runs directory in this checkout; the other 33 reference 425
+            directories that cannot exist here by construction. The 15 real notes — three pending
+            approvals, three exemptions, three state violations, and one genuine orphan — are buried.
+            Exit code 0, so this destroys signal rather than failing a gate.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            The two facts are different kinds. Either gate the check on the parent directory
+            existing at all, so a feature with no runs tree contributes zero notes; or accept that a
+            run id is a log pointer rather than a foreign key and keep only the inverse check — which
+            found a real orphan.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F9</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>In-flight claims have no identity, so release pops the oldest</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">inflight_registry.py:182, :209 — a claim is three fields and no id</p>
+          <p class="row-fail">
+            Two leads each dispatch the same specialist. The second one's child returns first, and
+            release removes the <em>first</em> lead's claim. Now the first lead has no live children
+            recorded, so the refusal that stops a lead reporting a verdict about a child still
+            running does not fire — silently. Meanwhile the second lead is falsely blocked, with a
+            refusal naming a start time and a dispatcher that are not its child's. One persona being
+            single-flight is all that keeps the window narrow today.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            <code>claim()</code> returns an opaque token stored in the claim, and
+            <code>release()</code> takes it — removing that claim or reporting it already gone.
+            Keying on dispatcher plus working directory is cheaper but not unique.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F10</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>The station vocabulary is defined in eight places</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">feature-schema.json:47 · gh-sync.py:99 · check-state.sh:494 and :495 · check-plan-routes.py:409 · factory_config.py:41 · board_lifecycle.py:438 and :445</p>
+          <p class="row-fail">
+            Two of the eight are a literal duplicate of the same six-tuple, in files that already
+            import each other. Add a seventh column: seven sites get updated and the duplicate is
+            missed, so the declaration helper returns six values, the comparison covers only those,
+            and the auditor reports a board carrying an undeclared column as <strong>clean</strong>.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            One line: read the shared tuple instead of re-authoring it. The Title-case bridge is
+            derivable from it — a capitalise-and-map expression produces exactly today's content.
+            The remaining six sites are genuinely different vocabularies; consolidating those is a
+            real refactor and lower priority.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F11</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>One flag is dead on 102 of 118 entries; the other revokes a write grant</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">harness_yaml.py:380 — the only line reading either flag · team-config.yaml, 118 domain entries</p>
+          <p class="row-fail">
+            Write <code>upsert: false</code> intending read-only: the flag is never read, the entry
+            lands in the writable set, and full write is granted — a denial the author believes
+            exists does not exist. Add <code>read: true</code> to an existing writable entry
+            meaning "also readable": the entry is dropped and <strong>the write grant is
+            revoked</strong>, with the eventual denial pointing at a path rather than at the flag
+            that caused it.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            One required tagged field — <code>access: write | read</code> — raising on any other
+            value or on absence, so every ambiguous combination becomes unrepresentable. Cheaper
+            interim: raise when both flags appear together, and raise on <code>upsert: false</code>.
+            Two lines, and both silent cases become loud.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F12</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>Role rosters hardcoded in guards, beside the file claiming authority</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">team-config.yaml:5-8 says "nothing is declared twice" · check-state.sh:748 · bash-write-guard.sh:322 · validate-digest.py:189 · inflight_registry.py:32</p>
+          <p class="row-fail">
+            Add a fourth lead persona. Domain resolution grants it, dispatch works, runs execute —
+            and the invariant requiring a complete lead-hosted run to produce a valid digest
+            <strong>silently skips every one of its runs</strong>, because the membership test is a
+            literal set. A typo in a run's recorded host has the same effect on an existing lead.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            Derive the lead set from the manifest — the checker already imports the loader and
+            already reads that file. Roughly five lines. The reviewer and single-flight sets are
+            genuine policy rather than roster and should stay literal, but should raise if a name in
+            them is absent from the manifest.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F13</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>review_sha has four live shapes, and one is not a SHA</h3>
+            <span class="chip c-silent">Silent</span>
+          </div>
+          <p class="row-where">feature-schema.json:53 — plain string · check-state.sh:224 only asks whether it is empty or a placeholder</p>
+          <p class="row-fail">
+            Measured across 34 features: 9 full SHAs, 21 abbreviations, 3 <code>"none"</code>
+            strings, and <strong>one SHA range</strong> — <code>a606d7a..9b07cfc</code>. Nothing
+            resolves the value against git. One character off reports as pinned, and the reviewer
+            either gets <code>fatal: bad object</code> or, worse, a different real commit — a review
+            pinned to a tree nobody built. Meanwhile <code>pr</code> was migrated to native null and
+            this field was left behind, so one document carries two conventions for absence.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            <code>{"type": ["string","null"], "pattern": "^[0-9a-f]{40}$"}</code>, and migrate the
+            four non-conforming values once. Write-time enforced already, so the pattern gets teeth
+            for free, and the invariant simplifies to a null check.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F14</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>4.17 seconds for one plan, mostly re-parsing one unchanged file</h3>
+            <span class="chip c-loud">Cost</span>
+          </div>
+          <p class="row-where">check-plan-routes.py:61-83 — one subprocess per declared path, no memoisation anywhere</p>
+          <p class="row-fail">
+            Each resolution spawns a subprocess that re-parses the 318-line team manifest 19 times —
+            once per name, 23 ms — for a total of 96 ms per call. One in-flight plan declares 53
+            paths. Measured end to end: <strong>4.17 s</strong>, with 33 of 34 features skipped as
+            shipped. Across all 24 plans that is 524 paths, and the design explicitly allows several
+            concurrent flows.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            Two one-liners: cache the loader keyed by path and mtime, and memoise the resolver by
+            path. The structural fix is a batch mode taking paths on stdin, turning 53 subprocesses
+            into one and 4.17 s into roughly 0.1 s.
+          </p>
+        </div>
+      </article>
+
+      <article class="row">
+        <span class="row-id">F15</span>
+        <div class="row-body">
+          <div class="row-head">
+            <h3>Every feature record is parsed seven times per run</h3>
+            <span class="chip c-loud">Cost</span>
+          </div>
+          <p class="row-where">check-state.sh:177, :573, :708, :914, :953, :1063, :1278 — seven independent glob-and-parse passes</p>
+          <p class="row-fail">
+            At 34 features that is 238 opens and 238 parses of documents that cannot change during
+            the run, plus one record read a second time inside a loop that already parsed it, plus a
+            fleet file loaded inside a per-feature loop. Seconds today, but linear in feature count
+            with a 7× constant — and the project reached 34 features in four weeks. Two invariants
+            can also disagree because a file changed mid-run.
+          </p>
+          <p class="row-fix"><b>Shape</b>
+            One pass at the top building a record map, exactly as the file already does for four
+            other document types — so the pattern is established and the diff is mechanical. Hoist
+            the fleet load above its loop.
+          </p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>What is already right</h2>
+    <p class="prose">
+      Not filler. Several of these are the model the findings above should be fixed toward, and
+      three of the fifteen fixes are cheap precisely because the mechanism already exists next door.
+    </p>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Where</th><th>What it gets right</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono-cell">validate-digest.py:490</td>
+            <td>An unknown persona is a loud refusal, never a pass.
+              <span class="why">The one roster lookup in the tree that fails closed — and the fix template for F12.</span></td>
+          </tr>
+          <tr>
+            <td class="mono-cell">validate-digest.py:100</td>
+            <td>Gate failures keyed persona → field → <em>value</em>, because the failing values differ in type.
+              <span class="why">Its own comment: a string-keyed table would silently never fire on the boolean one. This audit's reasoning, already done.</span></td>
+          </tr>
+          <tr>
+            <td class="mono-cell">validate-digest.py:113</td>
+            <td>"Field A's validity depends on field B" expressed as data rather than scattered conditionals.
+              <span class="why">And the empty-string default is documented as load-bearing, because the obvious alternative fails the mechanism open.</span></td>
+          </tr>
+          <tr>
+            <td class="mono-cell">harness_merge.py:121</td>
+            <td>Lock, read, transform, atomic replace — with a refusal that leaves the file byte-identical.
+              <span class="why">Four callers. F1 is only asking for a fifth.</span></td>
+          </tr>
+          <tr>
+            <td class="mono-cell">gh_board.py:132</td>
+            <td>A three-state result where a nullable was the obvious choice: not on the board, on it with no station, on it with one.
+              <span class="why">Its docstring names the failure: a missed lookup leaves both sides of a comparison empty, every record reports clean, and that silence reads as proof.</span></td>
+          </tr>
+          <tr>
+            <td class="mono-cell">gh-sync.py:406</td>
+            <td>Five separately-named unreadable shapes, each with its own message, instead of falling back to an empty dict.
+              <span class="why">It names a fourth state the spec's own table omitted.</span></td>
+          </tr>
+          <tr>
+            <td class="mono-cell">factory_config.py:78</td>
+            <td>One board validator, imported rather than copied — F10's counter-example inside the same subsystem.</td>
+          </tr>
+          <tr>
+            <td class="mono-cell">board-station.py:81</td>
+            <td>A parser used as the validator instead of a growing list of predicates.
+              <span class="why">The reasoning is recorded: two rounds of adding one more predicate each shipped with one class still open.</span></td>
+          </tr>
+          <tr>
+            <td class="mono-cell">context-watch.py:426</td>
+            <td>Reads the transcript from the end in 64 KB chunks and stops at the first match.
+              <span class="why">Correct asymptotics on a multi-megabyte file, with a note saying why scanning the whole thing is a different function's job.</span></td>
+          </tr>
+          <tr>
+            <td class="mono-cell">feature_schema.py:60</td>
+            <td>The schema resolves from the checkout the data lives in, and the cache is keyed per resolved path.
+              <span class="why">A single global cache would serve the first tree's schema to every later tree in the same process. Measured live.</span></td>
+          </tr>
+          <tr>
+            <td class="mono-cell">feature-schema.json</td>
+            <td>Closed at every level, enforced at write time.
+              <span class="why">This is the mechanism that makes F7 two lines instead of a project.</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>The agents that write and review this code</h2>
+    <p class="lede">
+      Measured by grep across every engineer definition and every skill they preload: <strong>no rule
+      that reaches any of the five engineers mentions performance, complexity, data structure choice,
+      or input size.</strong> The code reviewer has no instruction about any of them either.
+    </p>
+
+    <div class="agents">
+
+      <article class="agent">
+        <span class="agent-id">A1</span>
+        <div class="agent-body">
+          <h3>Give the reviewer four named shapes, enforced by the hook</h3>
+          <p>
+            The security reviewer has an enumerable vocabulary, so you can ask it whether it covered
+            injection. The code reviewer works from judgement — it finds real defects and nobody can
+            say what it did not look at. Four shapes, each with a measured instance in this tree:
+            one thing with two record shapes (F7's neighbour), absence spelled as a value (F7, F13),
+            a matcher whose shape cannot reach what it seeks (eleven instances in three days), and a
+            test double answering what the real system would refuse.
+          </p>
+          <p>
+            The detail that makes it a gate rather than a ritual: set-valued schema entries get exact
+            membership checks, while list-valued ones get a type check only — no row validation
+            anywhere in the validator. So it must be four enum scalars. A list field would let an
+            empty list pass the hook while asserting nothing.
+          </p>
+        </div>
+      </article>
+
+      <article class="agent">
+        <span class="agent-id">A2</span>
+        <div class="agent-body">
+          <h3>The two sentinel strings are the same shape, already live</h3>
+          <p>
+            F7 and F13 are one finding wearing two names: absence spelled inside the domain of real
+            values. Both fix with a schema line, both are already enforced at write time, and both
+            are currently causing damage — an issue left open forever, and 25 of 34 features carrying
+            a review pin that nothing resolves.
+          </p>
+        </div>
+      </article>
+
+      <article class="agent">
+        <span class="agent-id">A3</span>
+        <div class="agent-body">
+          <h3>One row in the rationalization table</h3>
+          <p>
+            All five engineers already load the skill that carries this table, and the table exists
+            to kill rationalizations. One line, and it is the defect that cost four live API runs.
+          </p>
+          <pre>| "The fake returns success, so the path works" | Then you
+tested the fake. A double whose success answer is what the
+real thing returns when the case is ABSENT proves nothing —
+name what the real call rejects, and assert on that |</pre>
+        </div>
+      </article>
+
+      <article class="agent">
+        <span class="agent-id">A4</span>
+        <div class="agent-body">
+          <h3>Require the input size, never the optimization</h3>
+          <p>
+            "Always reach for the better structure" collides with this project's own rule that
+            structure is earned by a real bottleneck and never designed in anticipation of one. That
+            instruction produces a hash map over five known rows plus a cache with an invalidation
+            bug — debt manufactured by the rule meant to prevent it.
+          </p>
+          <p>
+            What separates a principal engineer here is knowing N and saying which term binds. So a
+            required <code>scale:</code> field in the shared engineer digest, where
+            <code>unbounded</code> is a finding rather than an answer. One engineer definition
+            already carries exactly this sentence about data volume; the work is generalizing it, not
+            importing it.
+          </p>
+        </div>
+      </article>
+
+      <article class="agent">
+        <span class="agent-id">A5</span>
+        <div class="agent-body">
+          <h3>The chain is closed at the planning layer, not the engineer</h3>
+          <p>
+            Two planning skills use "performance is good" as the canonical example of a bad
+            criterion — correctly — but neither shows a falsifiable one. So omitting performance is
+            the compliant path. Then no change type requires performance evidence, so the gate cannot
+            ask, so the dispatch does not carry it. And the reviewer's first stage treats unrequested
+            optimization as scope creep, <em>a finding even when it is an improvement</em>.
+          </p>
+          <p>
+            An engineer told to optimize without fixing the brief layer first is being put in
+            conflict with a review gate. Give the planner the falsifiable form — a bound and the
+            input it was measured on — before asking anyone downstream to honour it.
+          </p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <div class="closing">
+    <h2>Before any of this is written</h2>
+    <p>
+      Four of these findings land in the layer that does the checking — the state checker, the digest
+      validator, and the schema the domain guard enforces. This project's own rule is that it plans
+      changes to its enforcement layer and never executes them through the team, for the stated
+      reason that the artifact under change is the artifact doing the checking. So A1's teeth, F8,
+      and both sentinel fixes route through a brief and a signature, not a dispatch.
+    </p>
+    <p>
+      The two that are free of it are the rationalization row and the input-size field. The
+      rationalization row is one line, and it is the one that would have caught the defect four live
+      API calls had to find instead.
+    </p>
+  </div>
+
+  <footer>
+    Counts taken on the FEAT-33 worktree, 2026-08-23 — 34 features, 432 run entries, 239 mirrored
+    issue numbers, 524 declared task paths across 24 plans, 118 domain entries.<br>
+    Every figure here was counted by a command rather than estimated. Line numbers drift; each is
+    given with the identifier beside it so the anchor survives a shift.
+  </footer>
+
+</div>
