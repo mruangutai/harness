@@ -216,10 +216,18 @@ Runs after the mirror section above, because it needs the repo pinned. Skip it e
 
 - `python3 .claude/skills/harness/bin/board_lifecycle.py provision` — **read the exit code.**
   `0` provisioned or already correct. `2` the declaration is unusable and the message names the
-  key — **nothing was written**. `3` a NEW project was created AND linked, and its number must be
-  written into that project's `harness.json` `github.board.number` **before anything else runs**.
-  `4` a project was created but linking it FAILED: **the project exists.** Record the number the
-  message names before retrying, or the retry creates a second board.
+  key — **nothing was written**. `3` a NEW project was created, linked, AND its Status field
+  made to carry every declared station — one run, not two — and its number must be written
+  into that project's `harness.json` `github.board.number` **before anything else runs**.
+  `4` a project was created but a follow-up write FAILED — either the link, or the Status field
+  after a successful link: **the project exists.** Record the number the message names before
+  retrying, or the retry creates a second board.
+- **On a NEW board, `provision` DELETES GitHub's default columns.** A brand-new Projects v2
+  project already ships a `Status` single-select carrying `Todo`, `In Progress` and `Done`
+  (measured 2026-08-23 on project 7), so on the board it just created `provision` replaces that
+  option set with exactly the declared stations and prints which options it removed. It does this
+  only for a board created in that same run — no items exist yet, so no card can lose its column.
+  On an EXISTING board it only ever ADDS the missing stations and never removes a column.
 - **Provisioning works only for a USER-OWNED board.** Every primitive queries `user(login:)`, and
   an organization-owned project is refused with "organization-owned board not supported". Create
   and configure that by hand; `provision` exits 2 saying so rather than doing something partial.

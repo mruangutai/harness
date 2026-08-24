@@ -257,6 +257,18 @@ _PROBE_SINGLE_SELECT = json.dumps(
     {"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
         "id": "PVT_PROJ",
         "field": {"__typename": "ProjectV2SingleSelectField", "id": "FIELD_STATUS"}}}}})
+# Fix cycle c3, MEASURED 2026-08-23 on project 7 (owner mruangutai): a brand-new Projects v2
+# project ALREADY carries a `Status` single-select. This is the probe answer the CREATE branch
+# really gets from GitHub -- `_PROBE_ABSENT` is the fresh-board shape only for a declaration
+# whose `station_field` is not `Status`.
+_PROBE_FRESH_DEFAULT_STATUS = json.dumps(
+    {"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
+        "id": "PVT_NEW",
+        "field": {"__typename": "ProjectV2SingleSelectField",
+                   "id": "FIELD_STATUS_DEFAULT"}}}}})
+# The option set GitHub ships on that default field, in the order the API returns it.
+_GITHUB_DEFAULT_OPTIONS = ["Todo", "In Progress", "Done"]
+
 _PROBE_TEXT_FIELD = json.dumps(
     {"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
         "id": "PVT_PROJ", "field": {"__typename": "ProjectV2Field", "id": "FIELD_STATUS"}}}}})
@@ -464,12 +476,31 @@ with tempfile.TemporaryDirectory() as base:
     check("field wrong type (disaster guard ii): ZERO mutations of any kind reached the fake",
           not mutation_calls(log), repr(log))
 
-# ---------------- case 5: no project -- creates, links, exits 3 --------------------------
+# ---------------- case 5: no project, field ABSENT -- creates, links, creates it, exits 3 -
+# Fix cycle c3: this case now pins `probe=_PROBE_ABSENT` explicitly. An absent field on a
+# just-created project is reachable only for a declaration whose `station_field` is NOT `Status`
+# (a real fresh board ships a default `Status` -- see case 5d), so the create branch is the
+# absent-field branch and the fixture must say so rather than inherit the default.
+# Fix cycle c2 (SC-01): the Status field is created in the SAME run as the project. It used to
+# take a SECOND run (the operator had to write the new number into harness.json first), and the
+# assertion below used to read "never calls createProjectV2Field or updateProjectV2Field" --
+# asserting the defect. createProjectV2Field is now REQUIRED here; updateProjectV2Field is still
+# forbidden (extend can never run on a board whose field was just created with all six).
+
+def _expected_options_literal(names):
+    """The EXACT `singleSelectOptions` GraphQL literal factory_gh._options_literal renders,
+    re-authored here on purpose (never imported) so the assertion is a byte-for-byte
+    specification of what goes over the wire (SC-01), not a tautology against the renderer.
+    chr(1) is FAKE_LOG's own space substitution -- see FAKE_GH_SRC's header comment."""
+    parts = ['{name: "%s", color: GRAY, description: ""}' % n for n in names]
+    return ("[" + ", ".join(parts) + "]").replace(" ", "\x01")
+
 
 with tempfile.TemporaryDirectory() as base:
     root = os.path.join(base, "root")
     write_root(root, default_github())
-    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT)
+    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_ABSENT)
+    field_calls = [l for l in log if "createProjectV2Field" in l]
     check("no project: exits 3",
           r.returncode == 3, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
     check("no project: creates the project and links the repository",
@@ -478,9 +509,168 @@ with tempfile.TemporaryDirectory() as base:
           repr(log))
     check("no project: reports the new project number",
           "42" in r.stdout, repr(r.stdout))
-    check("no project: never calls createProjectV2Field or updateProjectV2Field",
+    check("SC-01: no project: createProjectV2Field is called exactly ONCE in the SAME run -- "
+          "the field never waits for a second run",
+          len(field_calls) == 1, f"rc={r.returncode} log={log}")
+    check("SC-01: no project: the field is created ON THE NEWLY CREATED project "
+          "(projectId=PVT_NEW, the id createProjectV2 returned) and is named Status",
+          field_calls
+          and "projectId=PVT_NEW" in field_calls[0]
+          and "name=Status" in field_calls[0],
+          repr(field_calls))
+    check("SC-01: no project: all six declared station names go over the wire BYTE FOR BYTE, "
+          "in declared order, in the singleSelectOptions literal",
+          field_calls and _expected_options_literal(_ALL_SIX) in field_calls[0],
+          f"expected={_expected_options_literal(_ALL_SIX)!r} calls={field_calls!r}")
+    check("no project: still exits 3 AFTER the field creation -- the operator must record the "
+          "new number, and 3 is that signal (its meaning is unchanged)",
+          r.returncode == 3 and len(field_calls) == 1,
+          f"rc={r.returncode} log={log}")
+    check("no project: updateProjectV2Field is STILL never called -- extend must never run on a "
+          "board whose field was just created with all six options",
+          not any("updateProjectV2Field" in l for l in log),
+          repr(log))
+    check("no project: reports the field it created on stdout",
+          "created field 'Status'" in r.stdout, repr(r.stdout))
+
+# ---------------- case 5c (fix cycle c2, SC-01): create + link succeed, the FIELD creation
+# fails -- exit 4, and stderr names the created number so a retry cannot duplicate the board ---
+# Same reasoning as case 5b: a write landed (the project exists and is linked), so the code must
+# be 4, never 2 ("nothing mutated") and never 3 ("clean success"). FAIL_MATCH is scoped to
+# createProjectV2Field, which no other call in this branch carries.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_ABSENT,
+                 fail_match="createProjectV2Field")
+    check("SC-01: field-create failure after a successful create+link exits 4, never 2 or 3",
+          r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("SC-01: the field-create failure names the CREATED project's number on stderr -- a "
+          "retry that cannot see it would create a second board",
+          "42" in r.stderr, repr(r.stderr))
+    check("SC-01: the field-create failure names the field it failed to create",
+          "Status" in r.stderr, repr(r.stderr))
+    check("SC-01: create and link really did happen before the field failure",
+          any("createProjectV2(" in l and "createProjectV2Field" not in l for l in log)
+          and any("linkProjectV2ToRepository" in l for l in log),
+          repr(log))
+    check("SC-01: the field-create was actually attempted (the failure is a real call's, not a "
+          "gap in the branch)",
+          any("createProjectV2Field" in l for l in log), repr(log))
+
+# ---------------- case 5d (fix cycle c3): a REAL fresh board -- the default Status field is
+# already there, and provision sets it to EXACTLY the declared six -------------------------
+# The finding c3 fixes: c2 assumed a just-created project cannot already carry `Status`, and a
+# live run (2026-08-23, project 7 on mruangutai) proved otherwise -- createProjectV2Field failed
+# with "Name has already been taken" and provision exited 4 on a board it had just created. The
+# operator's ruling: on a project THIS SAME RUN created, replace the option set with exactly the
+# declared stations, deleting GitHub's Todo and In Progress. Safe there and only there -- a
+# brand-new board holds no items, so no card can lose its column.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT,
+                 probe=_PROBE_FRESH_DEFAULT_STATUS,
+                 options=_options_json(_GITHUB_DEFAULT_OPTIONS))
+    extend_calls = [l for l in log if "updateProjectV2Field" in l]
+    check("c3: fresh board whose Status field ALREADY EXISTS as single-select: still exits 3 -- "
+          "the operator must record the new number, and 3 is that signal",
+          r.returncode == 3, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("c3: fresh board with a pre-existing Status: updateProjectV2Field is called EXACTLY "
+          "once",
+          len(extend_calls) == 1, f"rc={r.returncode} log={log}")
+    check("c3: fresh board with a pre-existing Status: createProjectV2Field is NEVER called -- "
+          "that is the call the real API rejected with 'Name has already been taken'",
+          not any("createProjectV2Field" in l for l in log), repr(log))
+    check("c3: the option list sent over the wire is EXACTLY the six declared, in declared "
+          "order, BYTE FOR BYTE -- nothing appended, nothing preserved from GitHub's default",
+          extend_calls and _expected_options_literal(_ALL_SIX) in extend_calls[0],
+          f"expected={_expected_options_literal(_ALL_SIX)!r} calls={extend_calls!r}")
+    check("c3: the exact replace targets the DEFAULT field's id, the one _field_probe read off "
+          "the just-created project",
+          extend_calls and "fieldId=FIELD_STATUS_DEFAULT" in extend_calls[0],
+          repr(extend_calls))
+    check("c3: GitHub's undeclared defaults are GONE from the payload -- Todo and In Progress "
+          "appear in NO argv the fake received",
+          not any("Todo" in l or "In\x01Progress" in l for l in log), repr(log))
+    check("c3: stdout names the options it REMOVED, so the operator sees Todo and In Progress "
+          "went",
+          "Todo" in r.stdout and "In Progress" in r.stdout and "REMOVED" in r.stdout,
+          repr(r.stdout))
+
+# ---------------- case 5e (fix cycle c3): the exact replace FAILS on a fresh board -- exit 4,
+# stderr names the created number ----------------------------------------------------------
+# Same reasoning as 5b and 5c: a write landed (the project exists and is linked), so the code is
+# 4, never 2 ("nothing mutated") and never 3 ("clean success").
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT,
+                 probe=_PROBE_FRESH_DEFAULT_STATUS,
+                 options=_options_json(_GITHUB_DEFAULT_OPTIONS),
+                 fail_match="updateProjectV2Field")
+    check("c3: an extend failure on a just-created board exits 4, never 2 or 3",
+          r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("c3: the extend failure names the CREATED project's number on stderr -- a retry that "
+          "cannot see it would create a second board",
+          "42" in r.stderr, repr(r.stderr))
+    check("c3: the extend failure names the field it could not set",
+          "Status" in r.stderr, repr(r.stderr))
+    check("c3: the extend really was attempted (the failure is a real call's, not a gap)",
+          any("updateProjectV2Field" in l for l in log), repr(log))
+
+# ---------------- case 5f (fix cycle c3): a fresh board whose field is NOT single-select ---
+# Unreachable against today's API -- GitHub's default `Status` IS a single-select -- but the API
+# is not promised to stay still, and c2's own falsified comment is why this branch exists rather
+# than an assumption. A project was created, so it is exit 4, not the resolved path's exit 2.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_TEXT_FIELD)
+    check("c3: a fresh board whose field is not single-select exits 4 (a project WAS created), "
+          "never 2",
+          r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("c3: that refusal names the created number and the type it found",
+          "42" in r.stderr and "ProjectV2Field" in r.stderr, repr(r.stderr))
+    check("c3: it converts nothing -- no field mutation of any kind reached the fake",
           not any("createProjectV2Field" in l or "updateProjectV2Field" in l for l in log),
           repr(log))
+
+# ---------------- case 5g (fix cycle c3) REGRESSION GUARD: the EXISTING-board path still sends
+# existing + missing, and can never send a bare `declared` -----------------------------------
+# The disaster the exact replace above must never reach: an established board carries columns the
+# declaration does not name (here `Icebox`), and updateProjectV2Field REPLACES the option set, so
+# a bare `declared` there DELETES the operator's column. Case 2's fixture cannot catch that --
+# every option it holds is also declared, so union and bare-declared render identically.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    existing = ["Backlog", "Icebox", "Plan", "Ready"]
+    r, log = run(root, ["provision"], options=_options_json(existing))
+    extend_calls = [l for l in log if "updateProjectV2Field" in l]
+    check("c3 regression: an EXISTING board with an undeclared column still exits 0 and extends "
+          "exactly once",
+          r.returncode == 0 and len(extend_calls) == 1,
+          f"rc={r.returncode} stdout={r.stdout!r} log={log}")
+    check("c3 regression: the payload is BYTE FOR BYTE existing + missing -- the undeclared "
+          "Icebox survives, in its existing position",
+          extend_calls
+          and _expected_options_literal(existing + ["Building", "Review", "Done"])
+          in extend_calls[0],
+          f"expected={_expected_options_literal(existing + ['Building', 'Review', 'Done'])!r} "
+          f"calls={extend_calls!r}")
+    check("c3 regression: the payload is NEVER the bare declared six -- that is the "
+          "column-deletion disaster, and no existing-board path may reach it",
+          extend_calls and _expected_options_literal(_ALL_SIX) not in extend_calls[0],
+          repr(extend_calls))
+    check("c3 regression: Icebox is still in the argv the fake received -- the operator's "
+          "column was not deleted",
+          any("Icebox" in l for l in log), repr(log))
 
 # ---------------- case 5b (fix cycle c1, MUST-FIX 2): create succeeds, link fails -- honest
 # partial-success reporting, no duplicate-board risk on retry -------------------------------

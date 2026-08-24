@@ -170,6 +170,32 @@ Projects v2 board on the operator's account). `factory_gh.project_resolve` is th
 this module trusts to decide "call project_create"; every other GhError from that first read
 propagates unhandled and mutates nothing.
 
+PROVISION'S EXIT CODES: 0 the board is correct — either nothing needed doing, or the station
+field was created/widened on an EXISTING project. 2 the declaration or the caller is unusable
+and NOTHING was written (an unknown --repo, an org-owned board, a `github.repo` that is not
+declared, the wrong-field-type disaster guard, the linkage guard). 3 a NEW project was created,
+linked, AND its station field made to carry every declared station (fix cycle c2, SC-01 — the
+field lands in the SAME run, it never waits for a second one); the operator must record the new
+number in that repo's harness.json before anything else runs, and 3 is that signal — its
+meaning is unchanged by c2 or c3. 4 a write was attempted and the run did not fully land: the
+link failed, or the field work failed after a successful create+link. Every 4 path names the
+CREATED project's number on stderr, because a retry that cannot see it re-enters the create
+branch and produces a SECOND duplicate board — the exact disaster `project_resolve`'s own
+docstring names. 4 is never conflated with 2: "nothing mutated" would be false.
+
+A FRESH BOARD IS NOT EMPTY — MEASURED 2026-08-23 on project 7, owner mruangutai (fix cycle c3).
+A brand-new Projects v2 project ALREADY carries a `Status` single-select field whose options are
+Todo, In Progress and Done (plus Title, Assignees, Labels, Linked pull requests, Milestone,
+Repository, Reviewers, Parent issue, Sub-issues progress, Created, Updated and Closed, all plain
+ProjectV2Field). c2 asserted the opposite — that a just-created project "is empty by
+construction, so `field` cannot already be taken" — and a live provision against that project
+proved it false: `createProjectV2Field` returned "Name cannot have a reserved value, Name has
+already been taken" and the run exited 4 with the project created and linked. So the create
+branch PROBES with `_field_probe` exactly like the resolved-project path, and where the field
+already exists as a single-select it is set to EXACTLY the declared stations — deleting GitHub's
+Todo and In Progress. That exact replace is confined to a project the SAME run created, where no
+item exists to lose a column; see `_fresh_board_station_field` and `_extend_to_union`.
+
 THE LINKAGE GUARD (fix cycle c1, MUST-FIX 1) — read this before changing step 2.5's dispatch.
 `factory_gh.project_resolve` confirms only that a project NUMBER exists under `owner` — its query
 carries no repository linkage at all. Projects v2 numbers are per-OWNER, not per-repo (that is why
@@ -488,7 +514,97 @@ def _status_findings(root, board, stations):
     return findings
 
 
+def _fresh_board_station_field(created, repo_name, owner, field, declared):
+    """Put the declared station field on a project THIS RUN created -- and ONLY such a project.
+
+    THE EXACT-REPLACE CARVE-OUT (fix cycle c3). This is the one place in this module that may
+    hand `project_single_select_extend` the bare `declared` list. That mutation REPLACES a
+    field's option set, so passing `declared` DELETES every option not declared -- on an
+    established board that is the column-deletion disaster the primitive's own docstring warns
+    about and D-plan T-03 forbids, which is why the resolved-project path goes through
+    `_extend_to_union` instead and never sees an option list it could pass through. It is safe
+    HERE, and only here: `created` is `project_create`'s own return value from the same run, so
+    the project holds no items and no card can lose its column. The parameter is the create
+    record for that reason -- an existing-board caller has nothing to pass.
+
+    MEASURED, not assumed (2026-08-23, project 7 on mruangutai): a brand-new Projects v2 project
+    already carries a `Status` single-select field with options Todo / In Progress / Done. So all
+    three shapes are reachable and each is handled: field ABSENT (a declaration whose
+    `station_field` is not `Status` -- e.g. `Station`), field EXISTS as single-select (what a
+    real fresh board gives you for `Status`, and where the exact replace leaves precisely the
+    declared six), field EXISTS as something else (no fresh board does this today; the API is
+    not promised to stay still, so it exits rather than guessing).
+
+    Returns None on success -- the caller then exits 3, whose meaning is unchanged. Exits 4 on
+    every failure, the same code and the same shape as the create+link failure paths: a project
+    EXISTS and is LINKED, so "nothing mutated" (exit 2) would be false, and stderr names the
+    CREATED number because a retry that cannot see it re-enters the create branch and produces a
+    SECOND duplicate board.
+    """
+    def _bail(what, detail):
+        print(
+            f"factory: {_TOOL}: created project {created['number']} on {owner} and linked "
+            f"{repo_name}, but {what} -- {detail}; the project EXISTS and is LINKED (record "
+            f"{created['number']} in {repo_name}'s harness.json now to avoid a duplicate on "
+            f"retry) -- re-run provision once the failure is resolved and it will repair the "
+            f"field on the recorded project",
+            file=sys.stderr,
+        )
+        sys.exit(4)
+
+    # The probe reads `created["number"]`, never the DECLARED `number` -- the declaration's
+    # number is the one that did not resolve, which is why this branch is running at all.
+    try:
+        field_id, typename = _field_probe(owner, created["number"], field)
+        if field_id is None:
+            factory_gh.project_single_select_create(created["id"], field, declared)
+            _out(f"created field {field!r} with {len(declared)} option(s): "
+                 f"{', '.join(declared)}")
+            return
+        if typename != _SINGLE_SELECT:
+            # Unreachable on a fresh board TODAY (GitHub's default `Status` is a single-select).
+            # Kept because this module never converts an existing field's type -- the same
+            # refusal the resolved-project path makes, at exit 4 rather than 2 because a project
+            # was created here.
+            _bail(f"field {field!r} already exists on it as {typename}, not a single-select",
+                  "board_lifecycle never converts an existing field's type -- convert or rename "
+                  "that field by hand, then re-run provision against the recorded number")
+        existing = factory_gh.project_field_options(owner, created["number"], field)
+        factory_gh.project_single_select_extend(created["id"], field_id, declared)
+    except factory_gh.GhError as exc:
+        _bail(f"failed to put field {field!r} on it", str(exc))
+    removed = [o for o in existing if o not in declared]
+    _out(f"field {field!r} already existed on the new project (GitHub's default) -- replaced "
+         f"its options with exactly the {len(declared)} declared: {', '.join(declared)}"
+         + (f"; REMOVED {len(removed)}: {', '.join(removed)}" if removed
+            else "; removed nothing"))
+
+
+def _extend_to_union(project_id, field_id, owner, number, field, declared):
+    """Widen an EXISTING board's single-select to cover every declared station, keeping every
+    option the operator already has. Takes NO option list on purpose (fix cycle c3): the union is
+    computed here from its own read, so no caller can hand this path a bare `declared` -- that
+    would DELETE the undeclared columns of a live board, since the mutation REPLACES the option
+    set (D-plan T-03, and `project_single_select_extend`'s own docstring). The exact-replace
+    behaviour exists in exactly one other place, `_fresh_board_station_field`, and is reachable
+    only from a project the same run created.
+    """
+    existing = factory_gh.project_field_options(owner, number, field)
+    missing = _missing_options(declared, existing)
+    if not missing:
+        _out("nothing to do")
+        return
+    factory_gh.project_single_select_extend(project_id, field_id, existing + missing)
+    _out(f"added {len(missing)} option(s) to {field!r}: {', '.join(missing)}")
+
+
 def cmd_provision(repo_arg):
+    """Create or repair the declared board. Exits 0 (correct), 2 (unusable declaration/caller,
+    zero mutations), 3 (a new project was created, linked and its station field made to carry
+    every declared station — record the number) or 4 (a write was attempted and did not fully
+    land; stderr names the created number). See the module docstring's PROVISION'S EXIT CODES
+    and A FRESH BOARD IS NOT EMPTY paragraphs for the full contract.
+    """
     root = factory_config.harness_root()
     repo_name, board = _resolve_board(root, repo_arg)
     if board is None:
@@ -530,6 +646,19 @@ def cmd_provision(repo_arg):
             )
             sys.exit(4)
         _out(f"linked {repo_name} to project {created['number']}")
+        # Fix cycle c2 (SC-01): the station field lands HERE, in the SAME run as the project --
+        # it never waits for a second one. Every input is already in hand: `created["id"]` is
+        # the new project's node id, and both `field` and `declared` come from the DECLARATION
+        # (harness.json's `github.board`), never from the board number, so neither depends on
+        # the operator having recorded the new number yet.
+        # Fix cycle c3: this branch PROBES rather than assuming the field is absent. c2 asserted
+        # here that a just-created project "is empty by construction, so `field` cannot already
+        # be taken" -- MEASURED FALSE against the real API on 2026-08-23 (project 7, owner
+        # mruangutai): a brand-new Projects v2 project already carries a `Status` single-select
+        # with Todo / In Progress / Done, and createProjectV2Field returned "Name has already
+        # been taken" (exit 4). The whole field decision lives in `_fresh_board_station_field`,
+        # which is the ONLY caller of the exact-replace path -- see its docstring.
+        _fresh_board_station_field(created, repo_name, owner, field, declared)
         sys.exit(3)
 
     project_id = resolved["id"]
@@ -569,16 +698,11 @@ def cmd_provision(repo_arg):
             "convert it manually -- board_lifecycle never converts an existing field's type",
         )
 
-    # Step 4: compute the union via the ONE shared helper, then send existing options first
-    # (preserved) followed only by the additions -- project_single_select_extend's mutation
-    # REPLACES the option set, so sending anything less deletes a column (D-plan T-03).
-    existing = factory_gh.project_field_options(owner, number, field)
-    missing = _missing_options(declared, existing)
-    if not missing:
-        _out("nothing to do")
-        return
-    factory_gh.project_single_select_extend(project_id, field_id, existing + missing)
-    _out(f"added {len(missing)} option(s) to {field!r}: {', '.join(missing)}")
+    # Step 4: an EXISTING board's option set is only ever WIDENED, never replaced -- and that
+    # is enforced structurally (fix cycle c3), not by a comment: this path cannot name a bare
+    # `declared` list at all, because `_extend_to_union` takes no option list and computes
+    # `existing + missing` from its own read.
+    _extend_to_union(project_id, field_id, owner, number, field, declared)
 
 
 # The three workflows every board needs (T-05 intent, finding class 5). Matched by NAME only —
