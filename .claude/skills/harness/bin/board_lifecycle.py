@@ -181,7 +181,24 @@ meaning is unchanged by c2 or c3. 4 a write was attempted and the run did not fu
 link failed, or the field work failed after a successful create+link. Every 4 path names the
 CREATED project's number on stderr, because a retry that cannot see it re-enters the create
 branch and produces a SECOND duplicate board — the exact disaster `project_resolve`'s own
-docstring names. 4 is never conflated with 2: "nothing mutated" would be false.
+docstring names.
+
+ONCE A PROJECT EXISTS, 2 IS UNREACHABLE FROM ANY FAILURE THIS MODULE CATCHES — enforced by
+exception class, not asserted (fix cycle c4). Both post-create blocks (the link, and
+`_fresh_board_station_field`'s field work) catch BaseException, re-raising only SystemExit so a
+deliberate exit 4 passes through. c3 stated this outcome while catching GhError alone, which was
+false: `factory_gh.run_gh`'s bare `json.loads(r.stdout)` (factory_gh.py:170) raises ValueError on
+an unparseable success body, and `_project_field_resolve`'s unguarded `field_obj["id"]` /
+`o["name"]` (factory_gh.py:459-462) raise KeyError or TypeError — each escaped to
+`factory_cli.run`'s `except BaseException` (factory_cli.py:88) and exited 2, the code that means
+nothing was written, with a board already created and linked.
+ONE WINDOW REMAINS, and it is named rather than papered over: `factory_gh.project_create` itself
+is not wrapped, because a failure there has no created number to report. Every GhError it raises
+is a genuine zero-mutation failure (the owner-id read failed, or the mutation was rejected and
+returned null), so 2 is correct for those. A non-GhError inside it — a `json.loads` ValueError on
+the createProjectV2 response, where gh exited 0 and the board therefore EXISTS — exits 2 while a
+board exists, and no catch here could name its number. Closing it needs a read-back
+(`project_resolve` by title) that this module does not do today.
 
 A FRESH BOARD IS NOT EMPTY — MEASURED 2026-08-23 on project 7, owner mruangutai (fix cycle c3).
 A brand-new Projects v2 project ALREADY carries a `Status` single-select field whose options are
@@ -522,7 +539,9 @@ def _fresh_board_station_field(created, repo_name, owner, field, declared):
     field's option set, so passing `declared` DELETES every option not declared -- on an
     established board that is the column-deletion disaster the primitive's own docstring warns
     about and D-plan T-03 forbids, which is why the resolved-project path goes through
-    `_extend_to_union` instead and never sees an option list it could pass through. It is safe
+    `_extend_to_union` instead -- which does take `declared` (c3's comments said it took no
+    option list; that was false, corrected in c4) but uses it only to compute the missing set,
+    and passes the replacing mutation an inline `existing + missing` from its own read. It is safe
     HERE, and only here: `created` is `project_create`'s own return value from the same run, so
     the project holds no items and no card can lose its column. The parameter is the create
     record for that reason -- an existing-board caller has nothing to pass.
@@ -540,6 +559,23 @@ def _fresh_board_station_field(created, repo_name, owner, field, declared):
     EXISTS and is LINKED, so "nothing mutated" (exit 2) would be false, and stderr names the
     CREATED number because a retry that cannot see it re-enters the create branch and produces a
     SECOND duplicate board.
+
+    THAT PROMISE IS ENFORCED BY EXCEPTION CLASS, not merely stated (fix cycle c4). The catch
+    below is not GhError-only: a ValueError from `run_gh`'s `json.loads` or a KeyError/TypeError
+    from `_project_field_resolve`'s unguarded subscripts would otherwise reach
+    `factory_cli.run`'s generic `except BaseException` and exit 2 -- the one code that asserts
+    nothing was written, after a project has been created and linked. See the comment on that
+    clause.
+
+    A CONSIDERED, ACCEPTED RESIDUAL (fix cycle c4): the exact-replace confinement rests on
+    `created` being a create record by SHAPE (it is subscripted for `number` and `id`), never on
+    a type, so a future caller could hand-build a dict with those keys and reach the exact
+    replace against an established board. Accepted rather than closed: the only other
+    project-record shape in this module is `project_resolve`'s `{"id", "title"}`
+    (factory_gh.py:544), which has no `number` key and so raises KeyError before any mutation --
+    a real barrier, not a comment. Moving `project_create` inside this helper would close it
+    fully, but that would reorder the "created project N" print which fix cycle c1's MUST-FIX 2
+    established must come BEFORE anything that can still fail, and that ordering is load-bearing.
     """
     def _bail(what, detail):
         print(
@@ -573,6 +609,25 @@ def _fresh_board_station_field(created, repo_name, owner, field, declared):
         factory_gh.project_single_select_extend(created["id"], field_id, declared)
     except factory_gh.GhError as exc:
         _bail(f"failed to put field {field!r} on it", str(exc))
+    except SystemExit:
+        # `_bail` itself raises this from inside the try (the wrong-field-type branch above).
+        # It is the intended exit 4 and must reach the interpreter unchanged -- re-wrapping it
+        # would replace a precise refusal message with the generic unexpected-failure one.
+        raise
+    except BaseException as exc:
+        # Fix cycle c4, finding 1. A GhError-only catch here was a REAL exit-code defect, not a
+        # hypothetical: `factory_gh.run_gh`'s bare `json.loads(r.stdout)` (factory_gh.py:170)
+        # raises ValueError on an unparseable success body, and `_project_field_resolve`'s
+        # unguarded `field_obj["id"]` / `o["name"]` (factory_gh.py:459-462) raise KeyError or
+        # TypeError on a shape it did not expect -- both inside this try, neither a GhError.
+        # Each escaped to `factory_cli.run`'s `except BaseException` (factory_cli.py:88), which
+        # exits EXIT_REFUSED = 2, and 2 means "nothing was written". A project has been created
+        # and linked by the time this runs, so an operator or script reading 2 as "nothing
+        # happened" retries, re-enters the create branch and gets a SECOND board. Every failure
+        # here is exit 4 regardless of class; nothing is swallowed.
+        _bail(f"an UNEXPECTED {type(exc).__name__} interrupted the field work for {field!r}",
+              f"{exc} -- this is not a gh failure the module anticipated, so the field's state "
+              f"on the new project is UNKNOWN; check it before re-running")
     removed = [o for o in existing if o not in declared]
     _out(f"field {field!r} already existed on the new project (GitHub's default) -- replaced "
          f"its options with exactly the {len(declared)} declared: {', '.join(declared)}"
@@ -582,12 +637,20 @@ def _fresh_board_station_field(created, repo_name, owner, field, declared):
 
 def _extend_to_union(project_id, field_id, owner, number, field, declared):
     """Widen an EXISTING board's single-select to cover every declared station, keeping every
-    option the operator already has. Takes NO option list on purpose (fix cycle c3): the union is
-    computed here from its own read, so no caller can hand this path a bare `declared` -- that
-    would DELETE the undeclared columns of a live board, since the mutation REPLACES the option
-    set (D-plan T-03, and `project_single_select_extend`'s own docstring). The exact-replace
-    behaviour exists in exactly one other place, `_fresh_board_station_field`, and is reachable
-    only from a project the same run created.
+    option the operator already has.
+
+    THE MUTATION ARGUMENT IS COMPUTED HERE, never passed through (fix cycle c3, restated
+    correctly in c4). `declared` IS a parameter -- it has to be, it is what the union is computed
+    against -- and c3's comments claimed otherwise ("takes NO option list"), which was false as
+    literal code. The property that actually holds is narrower and sufficient: `declared` is
+    consumed ONLY by `_missing_options` below, and the single argument
+    `project_single_select_extend` ever receives from this function is the inline
+    `existing + missing`, built from this function's own read. So no caller can cause a bare
+    `declared` to reach that mutation through this path -- which matters because the mutation
+    REPLACES a field's option set, so a bare `declared` on a live board DELETES every column the
+    declaration does not name (D-plan T-03, and `project_single_select_extend`'s own docstring).
+    The exact-replace behaviour exists in exactly one other place,
+    `_fresh_board_station_field`, and is reachable only from a project the same run created.
     """
     existing = factory_gh.project_field_options(owner, number, field)
     missing = _missing_options(declared, existing)
@@ -635,7 +698,19 @@ def cmd_provision(repo_arg):
              f"number {created['number']} in {repo_name}'s harness.json")
         try:
             factory_gh.project_link_repository(created["id"], repo_name)
-        except factory_gh.GhError as exc:
+        except SystemExit:
+            raise
+        except BaseException as exc:
+            # Fix cycle c4, finding 1, SECOND instance: this catch was GhError-only too, and
+            # `project_link_repository` sends TWO `run_gh(json_out=True)` calls
+            # (factory_gh.py:613, 622) whose `json.loads` raises ValueError, plus an unguarded
+            # `repository["id"]`. A project already exists at this point, so the same reasoning
+            # applies verbatim -- exit 2 here would claim nothing was written and a retry would
+            # duplicate the board. Broadened alongside `_fresh_board_station_field`'s, because
+            # leaving it would keep the module docstring's "4 is never conflated with 2" false
+            # for a different line.
+            if not isinstance(exc, factory_gh.GhError):
+                exc = f"unexpected {type(exc).__name__}: {exc}"
             print(
                 f"factory: {_TOOL}: created project {created['number']} on {owner} but "
                 f"failed to link {repo_name} -- {exc}; the project EXISTS (record "
@@ -699,9 +774,12 @@ def cmd_provision(repo_arg):
         )
 
     # Step 4: an EXISTING board's option set is only ever WIDENED, never replaced -- and that
-    # is enforced structurally (fix cycle c3), not by a comment: this path cannot name a bare
-    # `declared` list at all, because `_extend_to_union` takes no option list and computes
-    # `existing + missing` from its own read.
+    # is enforced structurally (fix cycle c3, restated correctly in c4), not by a comment.
+    # `_extend_to_union` DOES take `declared` -- c3's comment here claimed it takes no option
+    # list, which was false as literal code. What is structural is that `declared` reaches only
+    # `_missing_options` inside it, and the argument it hands
+    # `project_single_select_extend` is the inline `existing + missing` computed from its own
+    # read -- so a bare `declared` cannot reach the replacing mutation along this path.
     _extend_to_union(project_id, field_id, owner, number, field, declared)
 
 

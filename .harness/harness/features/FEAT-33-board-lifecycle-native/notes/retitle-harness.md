@@ -60,6 +60,21 @@ agent…". The summary's `refused: 0` was accurate and my matcher was the wrong 
 That is the same defect this feature has found nine times in other places: a matcher that cannot
 distinguish the thing it seeks from prose mentioning it. Recorded because it was mine.
 
-## Cost
+## Cost, against the budget
 
-436 GraphQL points, 2 per rename, matching T-17's projection of the same figure.
+**436 GraphQL points spent, of the 5000/hour budget — 8.72%.** 2 points per rename x 218 renames.
+T-17 projected 2 per rename and that rate held exactly; the total is higher than its 383 only because
+the population was larger than the 188 measured a day earlier (see the note on drift below).
+
+The budget comparison was ADDED 2026-08-23. It was required by SC-19 ("the report records the GraphQL
+points spent against the 5000/hour budget") and this report recorded only the raw 436 — `grep -c 5000`
+returned 0. The points were never in doubt; the comparison the criterion asked for was simply absent.
+
+## Population drift, disclosed rather than absorbed
+
+SC-19 names **188** tickets. This run renamed **218**. The criterion pinned a population MEASURED on
+2026-08-22 rather than an outcome the work controls, and the board grew before the run — every one of
+the 218 carried a milestone naming a real feature, so nothing was guessed and nothing was refused.
+The outcome is strictly better than the criterion asked for: more tickets renamed, zero refused,
+idempotent re-run. The wording is still not satisfied, and the goal-check grades it on that basis
+rather than on this one.

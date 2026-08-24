@@ -222,12 +222,18 @@ Runs after the mirror section above, because it needs the repo pinned. Skip it e
   `4` a project was created but a follow-up write FAILED — either the link, or the Status field
   after a successful link: **the project exists.** Record the number the message names before
   retrying, or the retry creates a second board.
-- **On a NEW board, `provision` DELETES GitHub's default columns.** A brand-new Projects v2
-  project already ships a `Status` single-select carrying `Todo`, `In Progress` and `Done`
-  (measured 2026-08-23 on project 7), so on the board it just created `provision` replaces that
-  option set with exactly the declared stations and prints which options it removed. It does this
-  only for a board created in that same run — no items exist yet, so no card can lose its column.
-  On an EXISTING board it only ever ADDS the missing stations and never removes a column.
+- **On a NEW board, `provision` DELETES GitHub's default columns — when your `station_field` is
+  the one GitHub already made.** A brand-new Projects v2 project ships a `Status` single-select
+  carrying `Todo`, `In Progress` and `Done` (measured 2026-08-23 on project 7). Declare
+  `station_field: "Status"`, as every board here does, and `provision` replaces that option set
+  with exactly your declared stations and prints which options it removed. Declare any other
+  name — `"Station"`, say — and there is nothing to replace: `provision` CREATES that field and
+  GitHub's own `Status` field survives untouched, still carrying `Todo` and `In Progress`, as a
+  column the board does not use. Neither behaviour is a bug; the difference is worth knowing
+  before you pick a field name.
+  Either way it touches only a board created in that same run — no items exist yet, so no card
+  can lose its column. On an EXISTING board it only ever ADDS the missing stations and never
+  removes a column.
 - **Provisioning works only for a USER-OWNED board.** Every primitive queries `user(login:)`, and
   an organization-owned project is refused with "organization-owned board not supported". Create
   and configure that by hand; `provision` exits 2 saying so rather than doing something partial.

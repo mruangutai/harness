@@ -77,6 +77,22 @@ decisions:
     choice: The harness CREATES a board, its Status field and its missing options, and never renames, reorders or deletes an existing option.
     because: six case-sensitive column names typed by a human is a silent-drift generator, while a destructive provisioner could erase a column the operator uses.
     dec: none
+    amended: >-
+      AMENDED 2026-08-23, NOT struck, and the label is the operator's ruling of that date. DEC-188
+      strikes only a decision the tree flatly contradicts with zero room for interpretation, and
+      names the softer cases - dated, NARROWED, partly overtaken - as amendments. This clause is
+      narrowed in scope, not contradicted: it still holds, unweakened, for every ESTABLISHED board,
+      which is the whole population it was protecting, and the reason recorded above is why - a
+      destructive provisioner could erase a column the operator uses. An earlier record of this same
+      narrowing was labelled struck_in_part; that label was wrong and this replaces it. The choice
+      above stays byte-identical as signed so a citation still lands. WHAT IS NARROWED: the clause -
+      never renames, reorders or deletes an existing option - no longer holds for a project the SAME
+      RUN created. There the option set is replaced with exactly the declared stations, deleting
+      GitHub's default Todo and In Progress, because a brand-new board holds no items and no card can
+      lose its column. Nothing else in D-07 changes - the explicit-null branch and the create duties
+      are untouched. Full record - T-04's record block, entry 2. Measurement -
+      notes/live-provision-sc01.md. Criterion - BRIEF.md SC-07, amended the same day by the same
+      ruling.
   - id: D-08
     choice: One new bin, board_lifecycle.py, with three subcommands - provision, audit, reconcile.
     because: all three resolve the same board from the same declaration; three bins would restate that resolution three times.
@@ -503,6 +519,11 @@ tasks:
          the operator must record the new number in that repository's harness.json. Do not edit any
          harness.json from this tool: a tool that rewrites the declaration it was validating cannot
          be trusted to have validated it.
+         [STRUCK 2026-08-23 - the clause above reading "then report the NEW project number and
+         STOP with exit 3 and one line". Its wording is left exactly as signed and is no longer in
+         force; the record of what replaced it, and what falsified it, is the record: block at the
+         end of this task, entry 1. Everything else in step 2 still binds, including the exit-3 meaning and
+         the do-not-edit-any-harness.json rule.]
          When project_resolve RAISES (the owner does not resolve, or the board is organization-
          owned): exit 2 with the message, and perform ZERO mutations.
       3. The project exists. Read its Status field options with factory_gh.project_field_options for
@@ -535,6 +556,13 @@ tasks:
       5. NEVER rename, reorder or delete an existing option, and never write an option the
          declaration does not name. There must be no code path that can produce an option named
          "Abandoned" (D-03).
+         [AMENDED 2026-08-23 - step 5's OPENING CLAUSE ONLY, reading "NEVER rename, reorder or
+         delete an existing option". NARROWED, not struck (DEC-188: a clause merely narrowed is
+         amended): it still binds absolutely for every ESTABLISHED board and is carved out only for
+         a board the same run created. Its wording is left exactly as signed; see the record: block
+         at the end of this task, entry 2. The rest of step 5 is untouched and still binds in full -
+         never write an option the declaration does not name, and no code path may produce an option
+         named "Abandoned" (D-03).]
       6. Print one line per action taken and one summary line. Exit 0 on success, 2 on a caller or
          declaration error, 3 on the new-project case in step 2.
 
@@ -581,6 +609,118 @@ tasks:
       and asserts exit 0 and zero mutations - that is the shape that catches an __main__ block that
       forgets to dispatch or a module that raises at import, which no in-process test can see. Add
       no file to any list and do not edit run-unit-tests.sh's INTEGRATION_SCRIPTS or harness.json.
+
+    record:
+      - date: 2026-08-23
+        label: STRUCK
+        why_this_label: >-
+          Flatly contradicted, DEC-188's own test, with zero room for interpretation and no
+          population left over. The clause ordered the run to STOP before the field work; the
+          shipped run never stops there, on any board, so nothing of it survives. Contrast entry 2,
+          which is narrowed rather than contradicted and is therefore an amendment.
+        clause: >-
+          intent step 2, the clause reading - then report the NEW project number and STOP with
+          exit 3 and one line.
+        in_force: false
+        replaced_by: >-
+          ONE RUN. provision creates the project, links the repository, AND puts the declared
+          stations on the station field, then exits 3. Exit 3's meaning is unchanged - the operator
+          must still record the new number - but the run no longer stops before the field work.
+          Landed as fix cycle c2, hardened by c3.
+        falsified_by: >-
+          BRIEF.md SC-01, which the same signature covers. SC-01 asks for one run that creates the
+          project, creates the station field carrying every declared station option byte for byte,
+          and links the repository. This task specified two runs, so the two signed texts could not
+          both hold. The goal-check concluded from that conflict that SC-01 was the defect. That
+          conclusion was WRONG, and the code is why - project_create returns the new project's node
+          id, and both the field name and the station names come from the DECLARATION rather than
+          from the board number, so every input the field write needs is already in hand at the
+          moment of creation. Two runs was a choice, never a constraint. The operator ruled to fix
+          the code rather than reword SC-01.
+        evidence: >-
+          board_lifecycle.py:648-662 - the fix-cycle-c2 comment naming the inputs, the
+          _fresh_board_station_field call and sys.exit(3), all in the one create branch.
+          notes/live-provision-sc01.md, section - SC-01 proven live, both halves - records the live
+          run - board 8 created, linked, and carrying exactly the six declared options, in one run
+          against the real API.
+      - date: 2026-08-23
+        label: AMENDED
+        why_this_label: >-
+          NARROWED, not contradicted. An earlier version of this entry was labelled a strike; that
+          label was wrong and the operator ruled it an amendment on 2026-08-23. DEC-188 strikes only
+          what the tree flatly contradicts with zero room for interpretation, and names the softer
+          cases - dated, NARROWED, partly overtaken - as amendments. Reading a narrowed absolute as
+          contradicted because it fails on the instances carved out would collapse the amendment
+          category entirely, since that is true of every narrowing. Here the clause survives over
+          every ESTABLISHED board, which is the whole population it was protecting. D-07 carries the
+          SAME SENTENCE and is amended for the same reason by the same ruling and the same
+          measurement, so the two labels now agree; while they disagreed the record contradicted
+          itself about which rule applied.
+        clause: >-
+          intent step 5, its OPENING CLAUSE ONLY, reading - NEVER rename, reorder or delete an
+          existing option.
+        in_force: narrowed
+        scope_of_the_amendment: >-
+          The rest of step 5 is untouched and is not weakened - never write an option the
+          declaration does not name, and there must be no code path that can produce an option
+          named Abandoned (D-03). Both still bind. The amended clause also still governs every
+          ESTABLISHED board absolutely, which is what it was actually protecting; only the same-run
+          fresh board is carved out of it.
+        replaced_by: >-
+          On a project the SAME RUN created, the station field's option set is set to exactly the
+          declared stations, which DELETES GitHub's default Todo and In Progress. Safe there and
+          only there - a brand-new board holds no items, so no card can lose its column. Landed as
+          fix cycle c3.
+        falsified_by: >-
+          A MEASUREMENT, then an operator ruling. Measured 2026-08-23 on project 7, owner
+          mruangutai - a brand-new Projects v2 project ALREADY carries a Status single-select field
+          whose options are Todo, In Progress, Done. Step 3 above assumed the only two shapes were
+          field-name-absent and field-exists-but-not-single-select; the real API gives a third,
+          field exists with the right type and the wrong options, and createProjectV2Field answered
+          - Name cannot have a reserved value, Name has already been taken. No test in this tree
+          could have found it - every fake answers that mutation with success, because success is
+          what the real API returns when the field is genuinely absent. The operator then ruled the
+          delete in, confined to a board the same run created.
+        confinement: >-
+          Structural rather than by comment. The exact-replace call has exactly one site,
+          _fresh_board_station_field in board_lifecycle.py, whose create-record parameter is
+          project_create's own return value from the same run, so an established-board caller has
+          nothing to pass it. The resolved-project path goes through _extend_to_union in the same
+          file, which computes existing + missing from its own read of the board and never hands a
+          caller-supplied option list to the mutation. Both cited by function, not line - that file
+          is under concurrent edit and the line anchors this block first carried are already stale.
+        evidence: >-
+          notes/live-provision-sc01.md - the read-back table for project 7 and the ruling.
+          test-board-lifecycle.py, case 5d - updateProjectV2Field called exactly once, the
+          payload exactly the six declared options in declared order byte for byte, Todo and In
+          Progress in no argv the fake received, and the removal named on stdout.
+      - date: 2026-08-23
+        clause: >-
+          intent, the tests paragraph, the clause reading - the no-project path creates and exits 3.
+        in_force: true
+        label: IN FORCE, INCOMPLETE
+        note: >-
+          Neither struck nor amended, recorded because it sits twelve lines from a struck clause and
+          reads like one. It is still true and is now INCOMPLETE rather than wrong - the no-project
+          path does create and does exit 3, and it now also writes the station field, which this
+          sentence never named. The shipped suite covers that with three cases this paragraph does
+          not mention - 5d, 5e and 5f in test-board-lifecycle.py, cited by case label because that
+          file is under concurrent edit. Do not read the silence as a prohibition.
+      - date: 2026-08-23
+        label: IN FORCE, INCOMPLETE
+        clause: >-
+          intent step 3, the clause reading - discriminate the two shapes its GhError collapses -
+          and its enumeration of those shapes as field-name-absent and field-exists-but-not-single-
+          select.
+        in_force: true
+        note: >-
+          Recorded at the site's own request rather than only inside entry 2's falsified_by, because
+          nothing in this tree detects a falsified statement left standing (DEC-188 says so in its
+          own words) and step 3 carried no marker at all. Both branches step 3 names still exist and
+          still bind. The enumeration is INCOMPLETE, not wrong: the measurement in entry 2 found a
+          THIRD shape the real API gives - the field exists, is single-select, and carries the wrong
+          options - which step 3 never named and no fake in this tree could have produced. That
+          third shape is handled by the fresh-board branch entry 2 records. Nothing here is struck.
 
   - id: T-05
     title: board_lifecycle.py audit - the finite finding list, including workflow state
@@ -1014,26 +1154,40 @@ tasks:
     files:
       - .harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-harness.md
     verify: |
-      # CORRECTED 2026-08-23 during the run. The original demanded `audit` exit 0 and this
-      # report contain "0 findings". BOTH were unsatisfiable: reconcile will not write a Done
-      # column (that column is GitHub's, by the station-writer map), so the two accepted
-      # findings cannot be cleared by the tool, and the operator ruled not to clear them by
-      # hand. `grep -q "0 findings"` also read a report this same session writes, so it was
-      # satisfied by typing the string and was never evidence. This asserts EXACTLY the two
-      # accepted findings: a third, or the loss of one, reddens it.
-      test "$(python3 .claude/skills/harness/bin/board_lifecycle.py audit 2>&1 | grep -c '^board_lifecycle: STATUS:')" = 2 \
-        && python3 .claude/skills/harness/bin/board_lifecycle.py audit 2>&1 | grep -q "parent #25 reads None" \
-        && python3 .claude/skills/harness/bin/board_lifecycle.py audit 2>&1 | grep -q "parent #47 reads None" \
+      # CORRECTED 2026-08-23, and this is the SECOND correction of this block. THE LESSON,
+      # recorded here because the defect recurred: an equality assertion on a transient count
+      # fails in BOTH directions, and the improving direction is the one nobody anticipates.
+      # The previous version pinned `= 2` STATUS findings and `= 1` check-state VIOLATION.
+      # Both went RED because the things they measured got BETTER -- #25 and #47 gained cards
+      # at ace0b06, and FEAT-34's BRIEF was signed at 3df18d3. That version's own comment
+      # predicted its death: it said "Signing FEAT-34's BRIEF is the one act that would let
+      # the original clause pass", and signing it is exactly what reddened the narrowed clause
+      # that replaced it. Narrowing an assertion to make it pass today is what breaks it
+      # tomorrow. Assert invariants, not snapshots.
+      # TWO CAPTURES ONE WORD APART, AND THE DIFFERENCE IS LOAD-BEARING:
+      #   ...-audit-after-2-accepted.txt  ARCHIVED, the earlier state -- 2 findings
+      #   ...-audit-after.txt             LIVE, the delivered state   -- 0 findings
+      # Reading the archived one as current is a real, made mistake, not a hypothetical.
+      # Both are read with `git show HEAD:` and never from the working tree, so a capture that
+      # was never committed, or was deleted, reddens instead of passing.
+      # WHAT THIS BLOCK IS AND IS NOT: a committed capture is evidence that a run happened and
+      # what it returned. It is NOT a live re-derivation -- no runner in this repository can
+      # reach a live board. The live outcome is carried by SC-04 (inspection) and SC-11 (uat).
+      ARCH=$(git show HEAD:.harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-harness-audit-after-2-accepted.txt) \
+        && LIVE=$(git show HEAD:.harness/harness/features/FEAT-33-board-lifecycle-native/notes/migration-harness-audit-after.txt) \
+        && test "$(printf '%s\n' "$ARCH" | grep -c '^board_lifecycle: STATUS:')" = 2 \
+        && printf '%s\n' "$ARCH" | grep -q 'parent #25 reads None' \
+        && printf '%s\n' "$ARCH" | grep -q 'parent #47 reads None' \
+        && printf '%s\n' "$LIVE" | tail -1 | grep -q '0 finding(s)' \
+        && test "$(printf '%s\n' "$LIVE" | grep -c '^board_lifecycle: STATUS:')" = 0 \
         && test -z "$(git diff --name-only $(git merge-base main HEAD)..HEAD -- .claude/skills/harness/bin/check-domain.sh .claude/skills/harness/bin/bash-write-guard.sh .claude/skills/harness/bin/validate-digest.py .claude/skills/harness/bin/check-plan-routes.py)" \
         && test -z "$(.claude/skills/harness/bin/check-state.sh 2>&1 | grep '^  VIOLATION' | grep FEAT-33)" \
-        && test "$(.claude/skills/harness/bin/check-state.sh 2>&1 | grep -c '^  VIOLATION')" = 1 \
+        && test -z "$(.claude/skills/harness/bin/check-state.sh 2>&1 | grep '^  VIOLATION')" \
         && echo OK
-      # The check-state clause is NARROWED, not weakened. The original said `check-state.sh`
-      # must exit 0. It cannot: FEAT-34's BRIEF is unsigned, which is a DIFFERENT FLOW and
-      # nothing this feature did. SC-10's intent is that nothing was already weakened, so the
-      # assertion is now exactly that: NO violation names FEAT-33, and the total violation
-      # count is 1 -- so a second unrelated violation, or any FEAT-33 violation, reddens it.
-      # Signing FEAT-34's BRIEF is the one act that would let the original clause pass.
+      # The two check-state clauses are deliberately redundant and neither is a count. Zero
+      # violations is the invariant SC-10 was always after. The FEAT-33 clause is the one that
+      # can NEVER decay: the zero clause can redden on an unrelated feature's violation, which
+      # is stated here rather than discovered, and is why the narrower clause is kept beside it.
     intent: |
       Bring the harness project - board 3, mruangutai/harness - to a zero-finding state, and leave
       the evidence on disk.

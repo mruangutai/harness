@@ -117,6 +117,20 @@ if [ -n "$FAIL_MATCH" ]; then
       exit 1 ;;
   esac
 fi
+# Fix cycle c4, finding 1: MALFORMED_MATCH makes a call SUCCEED (exit 0) with a body that is not
+# JSON. That is the real shape behind the defect -- `factory_gh.run_gh`'s bare
+# `json.loads(r.stdout)` (factory_gh.py:170) then raises ValueError, which is NOT a GhError and
+# so escaped the GhError-only catches in the post-create blocks straight to `factory_cli.run`'s
+# `except BaseException`, exiting 2 ("nothing was written") on a board that had just been
+# created and linked. FAIL_MATCH cannot express this: a nonzero exit produces a GhError, the
+# class that was already handled.
+if [ -n "$MALFORMED_MATCH" ]; then
+  case "$*" in
+    *"$MALFORMED_MATCH"*)
+      echo 'this is not json'
+      exit 0 ;;
+  esac
+fi
 # T-06 (reconcile): a marker file toggles the "before" vs "after" answer for the three reads a
 # write can affect (issues, stations, workflows never changes and keeps its single env var).
 # `FAKE_STATE`, when set, is touched by every successful WRITE case below; a read case that
@@ -335,7 +349,7 @@ def _served_board_contents_b64(board):
 def run(root, args, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
         options=None, issues=None, stations=None, workflows=None, fail_match=None, cwd=None,
         item_id=None, fake_state=None, issues_after=None, stations_after=None,
-        workflows_after=None, contents_b64=None, linked_repos=None):
+        workflows_after=None, contents_b64=None, linked_repos=None, malformed_match=None):
     """Fork the real script. Returns (CompletedProcess, log_lines).
 
     The T-06 `*_after` params (and `fake_state`) are the reconcile-only "before" vs "after"
@@ -357,6 +371,7 @@ def run(root, args, resolve=_RESOLVE_EXISTS, probe=_PROBE_SINGLE_SELECT,
     env["STATIONS_JSON"] = stations if stations is not None else _stations_json({})
     env["WORKFLOWS_JSON"] = workflows if workflows is not None else _ALL_WORKFLOWS_ENABLED
     env["FAIL_MATCH"] = fail_match or ""
+    env["MALFORMED_MATCH"] = malformed_match or ""
     env["ITEM_ID"] = item_id or "ITEM_FAKE"
     env["FAKE_STATE"] = fake_state or os.path.join(tmp, "fake-state-absent-by-default")
     env["ISSUES_JSON_AFTER"] = issues_after or ""
@@ -384,6 +399,22 @@ def mutation_calls(log):
                "createProjectV2(", "project\x01item-edit", "label\x01create", "issue\x01edit",
                "state_reason=")
     return [l for l in log if any(m in l for m in markers)]
+
+
+def number_arg(line):
+    """The `-F number=<N>` value the fake gh was REALLY called with on one logged call.
+
+    Fix cycle c4, finding 2. FAKE_GH_SRC's first line has always logged the full argv, so the
+    number argument was recorded all along -- what was missing was any assertion that READ it.
+    The fake DISPATCHES on query text alone, so which project number a read is sent for changes
+    no fixture answer: swapping `created["number"]` for the declared `number` in
+    `_fresh_board_station_field` left the whole suite green while breaking every live fresh
+    provision at exit 4, because the declared number is precisely the one that did not resolve.
+    `number=` is unambiguous in the log -- the GraphQL bodies spell it `number: $number`, and
+    only the `-F` flag uses `=`. Returns None unless exactly one such token is present, so an
+    ambiguous line fails the assertion rather than silently picking one."""
+    hits = [t.split("=", 1)[1] for t in line.split("\x01") if t.startswith("number=")]
+    return hits[0] if len(hits) == 1 else None
 
 
 # ---------------- case 1: complete board -- zero mutations, exit 0 ----------------
@@ -532,6 +563,12 @@ with tempfile.TemporaryDirectory() as base:
           repr(log))
     check("no project: reports the field it created on stdout",
           "created field 'Status'" in r.stdout, repr(r.stdout))
+    # Fix cycle c4, finding 2, on the field-ABSENT create branch as well.
+    probe_calls = [l for l in log if "ProjectV2IterationField" in l]
+    check("c4: the probe on the field-absent create branch is sent for the CREATED number (42), "
+          "never the DECLARED 9",
+          len(probe_calls) == 1 and number_arg(probe_calls[0]) == "42",
+          f"probe_calls={probe_calls!r}")
 
 # ---------------- case 5c (fix cycle c2, SC-01): create + link succeed, the FIELD creation
 # fails -- exit 4, and stderr names the created number so a retry cannot duplicate the board ---
@@ -599,6 +636,20 @@ with tempfile.TemporaryDirectory() as base:
           "went",
           "Todo" in r.stdout and "In Progress" in r.stdout and "REMOVED" in r.stdout,
           repr(r.stdout))
+    # Fix cycle c4, finding 2: WHICH project number the two reads were sent for. The declaration
+    # says 9 (`_BOARD["number"]`) and it did not resolve -- that is why this branch is running --
+    # so every read here must carry the CREATED 42. Nothing asserted this before, and the fake
+    # answers by query text alone, so `created["number"]` -> `number` was a silent mutant.
+    probe_calls = [l for l in log if "ProjectV2IterationField" in l]
+    options_calls = [l for l in log if "options\x01{\x01id\x01name\x01}" in l]
+    check("c4: the fresh-board probe is sent for the CREATED project number (42), never the "
+          "DECLARED 9 -- the declared number is the one that did not resolve",
+          len(probe_calls) == 1 and number_arg(probe_calls[0]) == "42",
+          f"probe_calls={probe_calls!r}")
+    check("c4: the fresh-board options read is sent for the CREATED number (42) too -- reading "
+          "the declared board's options would compute the removal set off the WRONG project",
+          len(options_calls) == 1 and number_arg(options_calls[0]) == "42",
+          f"options_calls={options_calls!r}")
 
 # ---------------- case 5e (fix cycle c3): the exact replace FAILS on a fresh board -- exit 4,
 # stderr names the created number ----------------------------------------------------------
@@ -637,6 +688,54 @@ with tempfile.TemporaryDirectory() as base:
     check("c3: that refusal names the created number and the type it found",
           "42" in r.stderr and "ProjectV2Field" in r.stderr, repr(r.stderr))
     check("c3: it converts nothing -- no field mutation of any kind reached the fake",
+          not any("createProjectV2Field" in l or "updateProjectV2Field" in l for l in log),
+          repr(log))
+
+# ---------------- cases 5h/5i (fix cycle c4, finding 1): a NON-GhError failure after a
+# successful create+link is exit 4, never exit 2 ---------------------------------------------
+# The defect: both post-create blocks caught `factory_gh.GhError` only. `run_gh`'s bare
+# `json.loads(r.stdout)` raises ValueError on a body gh returned with exit 0, and
+# `_project_field_resolve`'s unguarded subscripts raise KeyError/TypeError -- none of them a
+# GhError, so each reached `factory_cli.run`'s `except BaseException` and exited EXIT_REFUSED = 2.
+# 2 is documented as "nothing was written". A project has been created and linked by then, so an
+# operator or script that reads 2 as "nothing happened" retries, re-enters the create branch and
+# gets a SECOND board -- the exact disaster the exit-code contract exists to prevent. These two
+# cases pin the FIELD work and the LINK call, the two blocks that were broadened.
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT,
+                 probe=_PROBE_FRESH_DEFAULT_STATUS,
+                 options=_options_json(_GITHUB_DEFAULT_OPTIONS),
+                 malformed_match="ProjectV2IterationField")
+    check("c4: a NON-GhError (ValueError from run_gh's json.loads) in the field work after a "
+          "successful create+link exits 4, NEVER 2 -- 2 would claim nothing was written",
+          r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("c4: that unexpected failure still names the CREATED project's number on stderr -- a "
+          "retry that cannot see 42 re-enters the create branch and duplicates the board",
+          "42" in r.stderr, repr(r.stderr))
+    check("c4: it says plainly that the failure was UNEXPECTED and names the exception class, "
+          "rather than dressing a ValueError up as a gh error",
+          "UNEXPECTED" in r.stderr and "JSONDecodeError" in r.stderr, repr(r.stderr))
+    check("c4: it still tells the operator to record the number now",
+          "record 42" in r.stderr, repr(r.stderr))
+    check("c4: create and link really did land before the unexpected failure",
+          any("createProjectV2(" in l and "createProjectV2Field" not in l for l in log)
+          and any("linkProjectV2ToRepository" in l for l in log), repr(log))
+
+with tempfile.TemporaryDirectory() as base:
+    root = os.path.join(base, "root")
+    write_root(root, default_github())
+    r, log = run(root, ["provision"], resolve=_RESOLVE_ABSENT, probe=_PROBE_ABSENT,
+                 malformed_match="linkProjectV2ToRepository")
+    check("c4: a NON-GhError in the LINK call after a successful create exits 4, never 2 -- the "
+          "same hole lived in that block too",
+          r.returncode == 4, f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("c4: the link's unexpected failure names the created number and the exception class",
+          "42" in r.stderr and "unexpected" in r.stderr and "JSONDecodeError" in r.stderr,
+          repr(r.stderr))
+    check("c4: no field work was attempted after the link failed",
           not any("createProjectV2Field" in l or "updateProjectV2Field" in l for l in log),
           repr(log))
 

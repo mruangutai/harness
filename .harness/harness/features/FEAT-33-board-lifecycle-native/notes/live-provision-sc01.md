@@ -8,7 +8,9 @@ genuinely absent. Against the real API it fails.
 
 ## Why this run existed
 
-BRIEF.md:198-200 states it plainly: "What is therefore NOT proven by any runner: that the real
+BRIEF.md's `## Verification gaps` stated it plainly AS SIGNED (quoted here as the warrant for this
+run; that sentence was itself corrected on 2026-08-23 once these runs proved its first half, and the
+`:198-200` anchor the original draft of this note carried has since moved): "What is therefore NOT proven by any runner: that the real
 GitHub API accepts the provisioning mutations, and that the reconciliation moved the cards the
 operator sees." SC-01's own evidence is `unit`. The operator authorised a live run to close the
 first half.

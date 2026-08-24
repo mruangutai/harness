@@ -9,7 +9,10 @@ REMOTE at default branch, never from a checkout. The kaya-ai checkout was not to
 
 **29 findings → 11 real findings → 0 findings.** `audit` exits **0**.
 
-Unlike board 3, this board genuinely reaches zero: nothing here needed a human.
+Nothing here needed a human — every one of the 11 real findings was in a class `reconcile` fixes.
+(An earlier draft added "unlike board 3"; that contrast is gone, because board 3 also reads
+`0 finding(s)` since its two missing cards were added at `ace0b06`. What board 3 needed was a human
+hand for a class the tool deliberately refuses, which is a difference in ROUTE, not in outcome.)
 
 | | count |
 |---|---|
@@ -56,7 +59,7 @@ a dry-run-only fixture rather than assumed.
 | board | before fix | after fix |
 |---|---|---|
 | 2 (foreign) | 29, incl. 18 false STATUS | 11, one skip line, **no false STATUS** |
-| 3 (own) | 2 | **2** — STATUS still runs |
+| 3 (own) | 2 | **2 — STATUS still runs.** Read at the time of the fix; board 3 now reports 0 after two cards were added at `ace0b06`, which does not affect this comparison |
 
 A fix that silenced STATUS everywhere would look identical on board 2 and wrong on board 3.
 

@@ -62,6 +62,15 @@ ground, then kaya-ai board 2.
   field carrying all six declared station option names byte for byte, and links the repository; running
   it against an existing board adds only the options that are missing.
   verify: automated      evidence: unit
+  **NOTE appended 2026-08-23, on the operator's ruling — SC-01's text, `verify:` and `evidence:` above
+  are BYTE-IDENTICAL to what was signed and are NOT amended.** SC-01 grades an END STATE, and that end
+  state is met and was proven live on board 8 (`notes/live-provision-sc01.md`): after one run the
+  project exists, the repository is linked, and the Status field carries all six declared station option
+  names byte for byte. Only the mechanism verb is imprecise. On a fresh board the station field is not
+  *created* — GitHub already ships a `Status` single-select carrying `Todo`, `In Progress` and `Done`,
+  and `createProjectV2Field` answers *"Name has already been taken"* — so the field is brought to the
+  declared options by REPLACEMENT instead (see SC-07 as amended). The note exists so the next reader
+  does not write create-only code to match the verb, which is exactly the bug the live run found.
 - SC-02: The station declaration and the board agree: the declared key set is exactly the six the board
   columns carry, and a declaration naming a key with no matching option on the board is reported as a
   finding naming both the key and the board.
@@ -80,8 +89,32 @@ ground, then kaya-ai board 2.
   REJECTED by the single board validator with a message naming `github.board.stations`, and a six-key
   declaration is accepted.
   verify: automated      evidence: unit
-- SC-07: Provisioning is non-destructive and idempotent — no code path renames, deletes or reorders an
-  existing Status option, and a second run reports "nothing to do" rather than writing.
+- SC-07: Provisioning is non-destructive on every ESTABLISHED board and is idempotent — no code path
+  renames, deletes or reorders a Status option on a board that existed before the run, and a second
+  run reports "nothing to do" rather than writing. **ONE exception, and it is the whole of the
+  exception: a board the SAME RUN created.** There the option set is replaced with exactly the six
+  declared stations, which deletes GitHub's defaults `Todo` and `In Progress`. **AMENDED 2026-08-23
+  on the operator's express ruling; as signed it read** *"Provisioning is non-destructive and
+  idempotent — no code path renames, deletes or reorders an existing Status option, and a second run
+  reports 'nothing to do' rather than writing."* **What forced the exception is a MEASUREMENT, not a
+  preference:** measured 2026-08-23 on project 7, owner `mruangutai`, a brand-new Projects v2 project
+  ALREADY carries a `Status` single-select field whose options are `Todo`, `In Progress` and `Done`,
+  so a fresh board cannot be provisioned without either replacing those options or leaving two
+  columns nobody chose. The operator ruled to replace them. **The idempotence half is unchanged and
+  still binds in full**, and so does non-destructiveness everywhere else — which is what this
+  criterion was always protecting, since a destructive provisioner could erase a column the operator
+  uses, and a same-run board holds no items and no card that could lose one. **TWO production call
+  sites, not one** (cited by function, because this file is under concurrent edit and line anchors
+  rot): `_fresh_board_station_field` in `.claude/skills/harness/bin/board_lifecycle.py` hands the
+  mutation the bare declared list and is reachable only from `project_create`'s own return value in
+  the same run; `_extend_to_union` in the same file computes `existing + missing` from its own read
+  and serves every established board. Evidence: `test-board-lifecycle.py` case 5d (the fresh-board
+  payload is exactly the six declared options, `Todo` and `In Progress` in no argv, the removal named
+  on stdout) and provision case 1 (a complete board and a second consecutive run each perform zero mutations;
+  the label is qualified because that file carries four separate "case 1" headers -- provision, audit,
+  reconcile and retitle).
+  Records: `plan.yaml` T-04's record entry 2 and D-07's amendment; `notes/live-provision-sc01.md`;
+  `notes/research-FEAT-33-goal-check.md`.
   verify: automated      evidence: unit
 - SC-08: No board gains an `Abandoned` Status option and no declared station key set contains
   `abandoned`; DEC-192's refusal of a seventh column stands unstruck.
@@ -196,8 +229,39 @@ ground, then kaya-ai board 2.
   fake `gh` binary injected through BOTH `FACTORY_GH` and `GH_SYNC_GH` (the fake-binary trap documented
   at the top of `gh_board.py` — a fake set through one variable alone leaves the other calls hitting the
   real board). The live outcome on board 3 is carried by SC-04's captured report (inspection) and on
-  board 2 by SC-11 (uat). What is therefore NOT proven by any runner: that the real GitHub API accepts
-  the provisioning mutations, and that the reconciliation moved the cards the operator sees.
+  board 2 by SC-11 (uat). **What NO RUNNER proves, and what captured live runs now do.** The runner
+  clause above is unchanged and is still the bullet's whole point: no runner in this tree reaches a live
+  board, and every automated criterion proves logic against the fake. **BOTH halves of what this bullet
+  used to call unproven are now proven by captured live runs, and the captures are named here because
+  two of them differ by one word.**
+  *Provisioning* — `notes/live-provision-sc01.md`: project 7's read-back exposed GitHub's own default
+  `Status` field carrying `Todo`, `In Progress`, `Done`; board 8 was then created, linked, and had its
+  option set replaced with exactly the six declared stations in ONE run, removing `Todo` and
+  `In Progress`; a re-run reported "nothing to do"; and a union re-run added exactly one option (`Done`)
+  while the operator's undeclared `Icebox` column survived untouched.
+  *Reconciliation* — it moved six cards, on board 2. `notes/migration-kaya-ai-reconcile-dry.txt`
+  previews six `STATION` fixes (`#297`, `#296`, `#152`, `#83`, `#49`, `#31`, each reading `Building`
+  where `Done` was expected), and `notes/migration-kaya-ai-audit-after.txt` reads `0 finding(s)`.
+  Moving a card IS a thing `reconcile` does: `STATION` is in `_ALWAYS_FIXABLE_KINDS` in
+  `board_lifecycle.py` and is fixed by `gh_board.set_station`.
+  *Board 3 is the special case, and it is where a stale capture misled a reader.* Board 3 carried NO
+  `STATION` findings, so `reconcile` moved no card there; its own two residual `Done`-status `STATUS`
+  findings were resolved by hand-adding cards for `#25` and `#47`, after which GitHub's native
+  `Item closed` workflow placed both at `Done` with no column write at all. **The live capture is
+  `notes/migration-harness-audit-after.txt` and it reads `0 finding(s)`** (committed at `ace0b06`;
+  see `notes/migration-harness.md`, *"SC-04's two residual findings, resolved by adding the cards"*).
+  `notes/migration-harness-audit-after-2-accepted.txt` is the ARCHIVED EARLIER capture reading
+  `2 finding(s)` — it is history, not the current state, and reading it as current is what produced a
+  wrong number in an earlier draft of this very correction.
+  *CORRECTED 2026-08-23 on the operator's ruling. As signed, this bullet ended:* "What is therefore NOT
+  proven by any runner: that the real GitHub API accepts the provisioning mutations, and that the
+  reconciliation moved the cards the operator sees." *Both halves were falsified, and both are
+  corrected. An intermediate draft of this correction claimed only the first half was — that draft was
+  wrong twice over, from reading the archived capture and from generalising board 3's absence of
+  `STATION` findings into a claim about the tool.*
+  **The general point this feature demonstrated: a verification-gap note is itself a claim, and it
+  decays the moment the gap it names closes.** This one UNDERSTATED the evidence the feature holds
+  rather than overstating it — the inverse of the usual failure, and the reason no reviewer flagged it.
 - **Cross-repo verification is asymmetric on purpose.** `factory_config.product_config` reads a served
   repo's `.harness/harness.json` from the REMOTE at `default_branch` and never from a checkout, so no
   harness-side test can see kaya-ai's configuration until it is merged to `master`. SC-11 is `uat` for
@@ -274,11 +338,24 @@ uses `--force` and would overwrite the colour, and that collision is recorded he
 
 ## The five previously-unspecified items, each closed
 
-1. **Create or only validate?** **CREATE, guarded.** The harness creates the project when absent,
-   creates the Status field when absent, adds missing options to an existing field, and links the
-   repository — then reports what it cannot do. Reason: the six option names are case-sensitive board
-   column names (DEC-192, byte for byte), and a human typing six of them is a silent-drift generator the
-   operator only discovers when INV-26 fires. Provisioning is never destructive (SC-07).
+1. **Create or only validate?** **CREATE, guarded.** The harness creates the project when absent, and
+   brings that board's Status field to the declared stations by ONE of three routes, chosen from what
+   it reads — the third was missing from this item until 2026-08-23 and is the one the live run found:
+   it creates the field when the field is absent; it adds only the missing options to an existing
+   single-select field; and on a board the SAME RUN created — where GitHub has already shipped a
+   `Status` field of the right type carrying the wrong options, so `createProjectV2Field` answers *"Name
+   has already been taken"* — it replaces that option set with exactly the six declared stations. It
+   links the repository, then reports what it cannot do. Reason: the six option names are case-sensitive
+   board column names (DEC-192, byte for byte), and a human typing six of them is a silent-drift
+   generator the operator only discovers when INV-26 fires.
+   **Provisioning is non-destructive on every ESTABLISHED board (SC-07, as amended 2026-08-23), with
+   one exception: a board the same run created, where GitHub's defaults `Todo` and `In Progress` are
+   deleted. Safe there and only there — a brand-new board holds no items, so no card can lose its
+   column.** *CORRECTED 2026-08-23 on the operator's ruling. As signed, this item ended:* "Provisioning
+   is never destructive (SC-07)." *That sentence was falsified by the same measurement that amended
+   SC-07 — project 7, owner `mruangutai`, 2026-08-23 — and it is corrected rather than ticketed because
+   it sits in a scope-call, where a false line reads as reassurance and a reader who is reassured stops
+   checking.*
 2. **The canonical station map.** **Six keys — `backlog`, `plan`, `ready`, `building`, `review`,
    `done`** — one per DEC-192 status value, spelled as that board's own column names. Measured
    2026-08-22: board 3 and board 2 both already carry exactly `Backlog | Plan | Ready | Building |
@@ -408,15 +485,32 @@ inferences and marked overturnable. Three are now ruled and one is rejected; not
    write and the derivation agree on the value and differ only on the moment; the write is
    idempotent, so both are kept and neither is guarded against the other.
 
-**The hole: a station write is REMEMBERED, not caused.** The only thing in the repo that moves a
-card mid-build is one row of a markdown table — `.claude/skills/harness/SKILL.md:191` — addressed to
-the **orchestrator**. `main-session-direct` tasks are forbidden to the orchestrator by DEC-174, and
-nothing anywhere instructs the main session to move their cards; the only mention of
-`main-session-direct` in that file is `:131`, about run counting. FEAT-32 carries **9 of 17** tasks
-in that mode. Its cards read correctly today only because the merge's `Closes #N` closed the issues
-and GitHub's own `Item closed` workflow moved them — **the only station that self-heals is the one
-GitHub writes.** Its parent `#700` still reads `Building` while its `feature.json` status reads
-`Review`.
+**The hole: a station write is REMEMBERED, not caused — AS MEASURED AT `46ee87c`, which is the
+state this feature was written to fix and NOT the state today.** Pinned to a sha on purpose, and
+this brief's one recorded lesson about record-keeping is why: SC-15 states the same baseline and is
+still true because it says *"at `46ee87c`"*; the bare, timeless copy of that same baseline stood in
+this paragraph until 2026-08-23 and had become false, falsified by this feature's own delivery. A
+problem statement is a measurement, so it carries the sha it was taken at or it silently becomes a
+lie the moment the problem is solved.
+
+At `46ee87c`: the only thing in the repo that moved a card mid-build was one row of a markdown table
+in `.claude/skills/harness/SKILL.md`, addressed to the **orchestrator**. `main-session-direct` tasks
+are forbidden to the orchestrator by DEC-174, and nothing anywhere instructed the main session to
+move their cards; the only mention of `main-session-direct` in that file was the one about run
+counting — `grep -c` returned 1. FEAT-32 carried **9 of 17** tasks in that mode. Its cards read
+correctly only because the merge's `Closes #N` closed the issues and GitHub's own `Item closed`
+workflow moved them — **the only station that self-heals is the one GitHub writes.** Its parent
+`#700` read `Building` while its `feature.json` status read `Review`.
+
+**What is true at `8dfee3b`, re-derived 2026-08-23 rather than assumed:** `grep -c
+"main-session-direct" .claude/skills/harness/SKILL.md` returns **3**, and two of those are the
+subcommand-owner rows `T-14` added, which assign the owner **by `execution_mode`** and name the main
+session explicitly — one for `start-task` on a `main-session-direct` task, one for a phase
+transition it holds itself. So the hole this paragraph describes is CLOSED for the surface `T-14`
+touched. FEAT-32's `9 of 17` still holds (re-counted from its `plan.yaml`), and its
+`feature.json` status now reads **`Done`**, not `Review` — that feature shipped. Its parent card's
+column is NOT re-read here: no live GitHub call is made from this brief, and the last recorded
+reading is SC-16's, which records `#700` CLOSED as `COMPLETED` at `46ee87c`.
 
 **The ceiling on "caused", stated rather than sold as solved.** Two things in this system cause a
 write without an agent choosing to: GitHub's own workflows, and a Claude Code hook. Hooks are the

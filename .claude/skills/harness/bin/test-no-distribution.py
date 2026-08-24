@@ -165,9 +165,16 @@ def case3():
     # had hidden: a fresh Projects v2 board already carries a `Status` field.
     expected_repos = {"mruangutai/kaya-ai", "mruangutai/harness-factory-smoke"}
     found_repos = {r.get("name") for r in repos if isinstance(r, dict)}
+    # CARDINALITY IS ASSERTED SEPARATELY, and the set comparison alone is NOT enough. A set
+    # loses duplicates: two `- name: mruangutai/kaya-ai` entries carrying DIFFERENT
+    # `default_branch` values satisfy `found_repos == expected_repos` and satisfy `load_fleet`,
+    # and `repo_entry`'s first-match-wins then hands `factory_workspace` a branch nobody chose.
+    # The earlier `len(repos) == 1` form caught that case and the set form does not, so this
+    # assertion is only strictly stronger than the count with the length check beside it.
     check("case3_presence_fleet_is_exactly_the_declared_set",
-          found_repos == expected_repos,
-          f"expected {sorted(expected_repos)}, found {sorted(n for n in found_repos if n)}")
+          found_repos == expected_repos and len(repos) == len(expected_repos),
+          f"expected {sorted(expected_repos)} ({len(expected_repos)} entries), found "
+          f"{sorted(n for n in found_repos if n)} in {len(repos)} entries")
 
     # DEC-174 (amended): harness is not a fleet member. The convention that harness
     # develops itself in the live checkout and in worktrees — never in a factory
