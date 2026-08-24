@@ -6796,3 +6796,97 @@ the operator confirmed from the pull request titles, their branch being shared o
 **The new invariant is warn, not violation** — INV-28, a feature at `Done` with no recorded number,
 gated on `github.sync` like INV-21. It follows INV-21's recorded reason rather than a fresh judgement:
 the mirror never gates a flow, so a missing mirror value must not fail the state check.
+
+## DEC-201 — An orchestrator never waits: every dispatch ends its turn, and the platform's wake is measured, not documented
+
+**Chose:** an orchestrator ends its turn at every dispatch. It does not poll, does not sleep, and
+does not invent activity to stay alive. The platform resumes it when the child completes, and on
+waking it (a) re-reads `STATE.md` and `feature.json` from disk, because its context may have reset,
+(b) treats a reported completion as a CLAIM until an artifact on disk confirms it, and (c) weighs its
+own context against `budgets.orchestrator_context_warn_tokens` to decide whether to finish this phase
+or hand it to a fresh orchestrator. That threshold ADVISES and never refuses (DEC-198).
+
+**Over keeping the orchestrator alive across the wait**, which is what it was doing. One orchestrator
+spent 354 of its 450 Bash calls on `echo hold` and `sleep` — 341 of them `echo hold` — went quiet,
+and was killed by the platform's 600s no-progress watchdog, taking its lead and its member down with
+it. The other 13 were not that command again: `sleep N; echo tick` six times, over five different
+values of N, then seven singletons — `echo waiting`, `echo heartbeat`, `date '+%H:%M:%S tick'`,
+`echo t`, `echo t1`, a bare `sleep N`, and one trailing a real `git status`. Six plus seven is the
+13, and they are 12 distinct strings — an agent with nothing to do does not merely repeat itself,
+it keeps INVENTING new ways to look busy.
+A partial return is resumable; a killed subtree is not.
+
+**The evidence is MEASUREMENT, and the published sub-agent documentation states the opposite. Treat
+the measurement as the authority.** Three probes on 2026-08-23, each writing an unguessable
+identifier to disk so that no result could be confused with a model's paraphrase, measured that a
+parent subagent which has STOPPED is woken by its child at every depth the org uses: one stopped at
+`15:17:14`, received the completion at `15:18:05`, and resumed at `15:18:09` quoting the child's
+identifier exactly. The documentation says a stopped parent does not resume. It is wrong here, and no
+argument from it overrides these three runs.
+
+**Both stalling parents in the probes invented a hold to stay alive, and one FABRICATED a completion
+for its child** — an identifier appearing nowhere but in its own messages. That is the harm shape
+DEC-199 names, and it is why the woken orchestrator verifies against disk rather than against what it
+was told. Waiting is not merely expensive; a parent with nothing to do manufactures both activity and
+findings.
+
+**Self-identification is part of the ruling, and it needed no new code.** To weigh its own context an
+orchestrator must first know which transcript is its own: it emits a fixed, unguessable literal, then
+LATER greps the orchestrator sidecars for it, then runs `context-watch.py`, which is read-only and
+decides nothing. **The two Bash calls cannot be collapsed into one** — a single call grepping for a
+nonce it emitted in the same command finds nothing, because the message carrying that nonce has not
+reached the sidecar yet. Measured end to end at `569d417`, resolving a live orchestrator to its own
+row in about a second. Zero matches and two-or-more matches both SKIP the check for that wake, which
+is legal only because the threshold advises.
+
+**The open measurement, stated as open.** Whether a STOPPED parent survives past 600s while its child
+is still running had never been measured when this was decided. If it does not, this decision removes
+the invented stalling without removing the death — the orchestrator would die quietly instead of
+noisily. That is the thing to watch. **One data point since:** this feature's own PLAN-phase
+orchestrator survived a gap of 1057.1s (`15:34:10.019Z` → `15:51:47.145Z`), past the watchdog, with
+**0** Bash calls made to stay alive, not killed, closing with its own text. The control discriminates:
+all 115 orchestrator sidecars on the machine were swept and exactly two fail, and BOTH are deaths on
+that same watchdog in opposite shapes — one stalled LOUDLY, 1043 events of which 575 assistant and 341
+`echo hold` calls, ending on a final gap of exactly 600.0s after 3457.4s alive; the other produced
+NOTHING, 8 events and zero assistant, ending on a final gap of 642.6s at a lifespan of 642.7s — and
+they are #744's two incidents, which that ticket files as two diseases sharing one watchdog, matching
+it independently. **The limit, which must travel with the number:** that run was under a
+DISPATCH-LEVEL OVERRIDE, not under the rewritten playbook, which is committed in a worktree while a
+spawned agent loads its skills from the main checkout. So it proves the BEHAVIOUR survives a long
+wait; it does NOT prove the rewritten playbook CAUSES it. Whether one post-merge run is needed to
+settle that is a reviewer's call, recorded here as open rather than resolved.
+
+**The threshold is a WARNING LINE, not a budget, and the operator has calibrated where concern
+starts.** Crossing it is normal and expected; it advises and never refuses (DEC-198), and nothing
+here narrows that. On 2026-08-24 an orchestrator sitting at 270,000 against the 200,000 line was put
+to the operator and ruled acceptable — *"that's okay, i expect some margin buffer"*. So the point
+where an overshoot becomes worth thinking about is roughly TWICE the threshold, not the threshold
+itself.
+
+**The bands are guidance and never a gate.** Just over the line, carry on. Around twice it, take the
+next seam you reach. Far past it, a phase you fail to finish costs more than the handoff you avoided.
+Nothing enforces any of these numbers — no hook reads them, no validator checks them, no gate fails
+on them — and an orchestrator that weighs them and keeps working owes nobody a justification. They
+are a sense of scale offered to the agent doing the measuring, and that is the whole of their force.
+
+**They exist because a number with no scale cannot be weighed.** The playbook's context step
+previously gave the threshold and nothing more, so an orchestrator that crossed it could not tell a
+routine overshoot from a real problem, and both mistakes cost: hand off early and a spawn burns on a
+phase that had one dispatch left in it, stretch too far and the phase dies unfinished. The scale is
+measured, from this feature's own orchestrators — they ran at 195k, 217k, 270k and 330k across four
+handoffs, every one of those handoffs correct, and one reached 418k, past the concern line, without
+harm. That last figure argues FOR the band rather than against it: twice the threshold is where the
+judgement gets hard, not where it gets made for you.
+
+**Lineage.** DEC-148 and DEC-159 make one phase per orchestrator the mission, so the phase boundary is
+normal termination and the successor reads a capped handoff note — ending a turn is the same act at a
+smaller grain. DEC-118 is why waiting could never work: one phase spans several single-squad lead
+round-trips, each far longer than 600s, so no amount of holding survives them. DEC-120 places the
+orchestrator at layer 1, one per in-flight feature, under a spawn depth cap of 3 — the depths the
+probes covered. DEC-198 supplies the advisory threshold; DEC-199 supplies the false-reporting harm
+shape. **DEC-158 is why the incident numbers are HERE and not in the playbook:** the rule skill
+carries the rule, one clause of why, and a pointer; the history is this entry's job, and nothing above
+is repeated there.
+
+**Branch `chore/744-never-wait-for-a-lead` is absorbed and abandoned.** Its work lands through this
+feature; the branch is not to be merged or revived.

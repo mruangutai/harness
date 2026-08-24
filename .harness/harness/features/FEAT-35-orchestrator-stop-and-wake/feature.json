@@ -1,0 +1,106 @@
+{
+  "feature_id": "FEAT-35-orchestrator-stop-and-wake",
+  "branch": "feat/FEAT-35-orchestrator-stop-and-wake",
+  "pr": null,
+  "status": "Review",
+  "review_sha": "a2a373b1ef351f94b0a4310bea928f1384727a08",
+  "cycles_used": 6,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-23-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-23-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t04-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t05-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "BLOCKED"
+    },
+    {
+      "id": "2026-08-24-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-03-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-02-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-24-03-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-24-04-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-04-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "PASS"
+    }
+  ],
+  "github": {
+    "milestone": 24,
+    "parent": 751,
+    "parent_origin": null,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05"
+    ],
+    "issues": {
+      "T-01": 798,
+      "T-02": 799,
+      "T-03": 800,
+      "T-04": 801,
+      "T-05": 802
+    },
+    "source_issues": [
+      751
+    ]
+  }
+}
