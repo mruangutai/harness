@@ -1116,6 +1116,332 @@ check("project_field_options: absent-field message carries no generic subcommand
       raised and "api graphql" not in str(exc), f"exc={exc if raised else None}")
 
 
+# ---------------- project_resolve: the disaster-prevention discriminator (T-03, FEAT-33) ------
+GRAPHQL_PROJECT_RESOLVE_OK_JSON = json.dumps({"data": {"repositoryOwner": {
+    "__typename": "User", "projectV2": {"id": "PVT_kwHOEXIST", "title": "Board"}}}})
+
+GRAPHQL_PROJECT_RESOLVE_ABSENT_JSON = json.dumps({"data": {"repositoryOwner": {
+    "__typename": "User", "projectV2": None}}})
+
+GRAPHQL_PROJECT_RESOLVE_OWNER_NULL_JSON = json.dumps({"data": {"repositoryOwner": None}})
+
+GRAPHQL_PROJECT_RESOLVE_ORG_JSON = json.dumps({"data": {"repositoryOwner": {
+    "__typename": "Organization", "projectV2": None}}})
+
+fake, calls = recorder([Result(0, stdout=GRAPHQL_PROJECT_RESOLVE_OK_JSON)])
+fgh.subprocess.run = fake
+resolved = fgh.project_resolve("owner", 3)
+restore()
+check("project_resolve: returns the project id and title when it exists",
+      resolved == {"id": "PVT_kwHOEXIST", "title": "Board"}, f"resolved={resolved!r}")
+check("project_resolve: sends owner and number as GraphQL variables",
+      "owner=owner" in calls[0]["argv"] and "number=3" in calls[0]["argv"], f"calls={calls}")
+
+# ABSENT PROJECT — the case D-plan T-03 exists to make safe: an existing owner with no project
+# number N returns None and raises NOTHING. A caller that inferred "no project" from a raised
+# GhError (the old, dangerous inference) would call project_create here and duplicate a board;
+# this case is the one that would go RED if project_resolve raised instead of returning None.
+fake, calls = recorder([Result(0, stdout=GRAPHQL_PROJECT_RESOLVE_ABSENT_JSON)])
+fgh.subprocess.run = fake
+absent_result, absent_raised = "unset", False
+try:
+    absent_result = fgh.project_resolve("owner", 99)
+except fgh.GhError as e:
+    absent_raised = True
+    RAISED.append(e)
+restore()
+check("project_resolve: an absent project (owner resolves, projectV2 null) returns None, "
+      "raises nothing",
+      absent_result is None and not absent_raised, f"result={absent_result!r} raised={absent_raised}")
+
+# OWNER ABSENT — raises GhError, never None. Proven red-capable: swapping this branch's `raise`
+# for `return None` (as the ABSENT-PROJECT case legitimately does) would make this very case pass
+# with result None instead of an exception — the assertion on `raised` is what a mutant deleting
+# the owner-absent raise turns red.
+fake, calls = recorder([Result(0, stdout=GRAPHQL_PROJECT_RESOLVE_OWNER_NULL_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_resolve("nosuchowner", 3)
+    owner_raised, owner_exc = False, None
+except fgh.GhError as e:
+    owner_raised, owner_exc = True, e
+    RAISED.append(e)
+restore()
+check("project_resolve: an unresolvable owner raises GhError naming the owner",
+      owner_raised and "nosuchowner" in str(owner_exc), f"exc={owner_exc if owner_raised else None}")
+
+# ORGANIZATION — raises GhError with the organization message, and sends NO mutation (no argv
+# here contains a mutation keyword at all, since project_resolve issues only the one query call).
+fake, calls = recorder([Result(0, stdout=GRAPHQL_PROJECT_RESOLVE_ORG_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_resolve("acmeorg", 3)
+    org_raised, org_exc = False, None
+except fgh.GhError as e:
+    org_raised, org_exc = True, e
+    RAISED.append(e)
+restore()
+check("project_resolve: an organization-owned login raises GhError with the organization message",
+      org_raised and "organization" in str(org_exc).lower(), f"exc={org_exc if org_raised else None}")
+check("project_resolve: the organization case sends no mutation",
+      not any("mutation" in a for c in calls for a in c["argv"]), f"calls={calls}")
+check("project_resolve: organization and owner-absent messages differ",
+      org_raised and owner_raised and str(org_exc) != str(owner_exc),
+      f"org={org_exc}, owner={owner_exc}")
+
+
+# ---------------- project_create: resolves the owner id first, then creates -------------------
+GRAPHQL_OWNER_ID_JSON = json.dumps({"data": {"user": {"id": "U_kwHOOWNER"}}})
+GRAPHQL_OWNER_ID_NULL_JSON = json.dumps({"data": {"user": None}})
+GRAPHQL_CREATE_PROJECT_JSON = json.dumps(
+    {"data": {"createProjectV2": {"projectV2": {"id": "PVT_kwHONEW", "number": 7}}}})
+GRAPHQL_CREATE_PROJECT_NULL_JSON = json.dumps(
+    {"data": {"createProjectV2": {"projectV2": None}}})
+
+fake, calls = recorder([
+    Result(0, stdout=GRAPHQL_OWNER_ID_JSON),
+    Result(0, stdout=GRAPHQL_CREATE_PROJECT_JSON),
+])
+fgh.subprocess.run = fake
+created = fgh.project_create("owner", "kaya-ai board")
+restore()
+check("project_create: returns the new project's id and number",
+      created == {"id": "PVT_kwHONEW", "number": 7}, f"created={created!r}")
+check("project_create: first call resolves the owner id",
+      "login=owner" in calls[0]["argv"], f"calls={calls}")
+check("project_create: second call sends the resolved owner id and the title as variables",
+      "ownerId=U_kwHOOWNER" in calls[1]["argv"] and "title=kaya-ai board" in calls[1]["argv"],
+      f"calls={calls}")
+check("project_create: second call's query mutates createProjectV2",
+      any("createProjectV2" in a for a in calls[1]["argv"]), f"calls={calls}")
+
+fake, calls = recorder([Result(0, stdout=GRAPHQL_OWNER_ID_NULL_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_create("nosuchowner", "t")
+    create_owner_raised = False
+except fgh.GhError as e:
+    create_owner_raised = True
+    RAISED.append(e)
+restore()
+check("project_create: an unresolvable owner raises GhError before any create call",
+      create_owner_raised and len(calls) == 1, f"calls={calls}")
+
+fake, calls = recorder([
+    Result(0, stdout=GRAPHQL_OWNER_ID_JSON),
+    Result(0, stdout=GRAPHQL_CREATE_PROJECT_NULL_JSON),
+])
+fgh.subprocess.run = fake
+try:
+    fgh.project_create("owner", "t")
+    create_null_raised, create_null_exc = False, None
+except fgh.GhError as e:
+    create_null_raised, create_null_exc = True, e
+    RAISED.append(e)
+restore()
+check("project_create: a null projectV2 in the create response raises GhError naming owner+title",
+      create_null_raised and "owner" in str(create_null_exc) and "t" in str(create_null_exc),
+      f"exc={create_null_exc if create_null_raised else None}")
+
+
+# ---------------- project_link_repository: resolves the repo id, treats already-linked as OK ---
+GRAPHQL_REPO_ID_JSON = json.dumps({"data": {"repository": {"id": "R_kwHOREPO"}}})
+GRAPHQL_REPO_ID_NULL_JSON = json.dumps({"data": {"repository": None}})
+GRAPHQL_LINK_OK_JSON = json.dumps(
+    {"data": {"linkProjectV2ToRepository": {"repository": {"id": "R_kwHOREPO"}}}})
+
+fake, calls = recorder([
+    Result(0, stdout=GRAPHQL_REPO_ID_JSON),
+    Result(0, stdout=GRAPHQL_LINK_OK_JSON),
+])
+fgh.subprocess.run = fake
+link_result = fgh.project_link_repository("PVT_kwHOEXIST", "mruangutai/kaya-ai")
+restore()
+check("project_link_repository: returns None on success", link_result is None, f"r={link_result!r}")
+check("project_link_repository: resolves owner/name split from the repo string",
+      "owner=mruangutai" in calls[0]["argv"] and "name=kaya-ai" in calls[0]["argv"],
+      f"calls={calls}")
+check("project_link_repository: second call sends the resolved project and repository ids",
+      "projectId=PVT_kwHOEXIST" in calls[1]["argv"] and "repositoryId=R_kwHOREPO" in calls[1]["argv"],
+      f"calls={calls}")
+
+fake, calls = recorder([Result(0, stdout=GRAPHQL_REPO_ID_NULL_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_link_repository("PVT_1", "owner/nope")
+    link_repo_raised = False
+except fgh.GhError as e:
+    link_repo_raised = True
+    RAISED.append(e)
+restore()
+check("project_link_repository: an unresolvable repository raises GhError before linking",
+      link_repo_raised and len(calls) == 1, f"calls={calls}")
+
+# already-linked — proven red-capable: a genuinely UNRELATED mutation failure (e.g. auth) below
+# is asserted to raise, so this case's swallow is specific to the already-linked text, not a
+# blanket except-and-continue that would make BOTH cases pass identically.
+fake, calls = recorder([
+    Result(0, stdout=GRAPHQL_REPO_ID_JSON),
+    Result(1, stdout="", stderr="Repository is already linked to this project"),
+])
+fgh.subprocess.run = fake
+try:
+    already_result = fgh.project_link_repository("PVT_1", "owner/repo")
+    already_raised = False
+except fgh.GhError as e:
+    already_result, already_raised = None, True
+    RAISED.append(e)
+restore()
+check("project_link_repository: an already-linked failure returns None, raises nothing",
+      already_result is None and not already_raised, f"raised={already_raised}")
+
+fake, calls = recorder([
+    Result(0, stdout=GRAPHQL_REPO_ID_JSON),
+    Result(1, stdout="", stderr="gh: authentication required"),
+])
+fgh.subprocess.run = fake
+try:
+    fgh.project_link_repository("PVT_1", "owner/repo")
+    unrelated_link_raised = False
+except fgh.GhError as e:
+    unrelated_link_raised = True
+    RAISED.append(e)
+restore()
+check("project_link_repository: an UNRELATED link failure (not already-linked) still raises",
+      unrelated_link_raised)
+
+
+# ---------------- project_single_select_create: color/description sent explicitly, in order ----
+GRAPHQL_CREATE_FIELD_JSON = json.dumps(
+    {"data": {"createProjectV2Field": {"projectV2Field": {"id": "PVTSSF_kwHONEW"}}}})
+GRAPHQL_CREATE_FIELD_NULL_JSON = json.dumps(
+    {"data": {"createProjectV2Field": {"projectV2Field": None}}})
+
+fake, calls = recorder([Result(0, stdout=GRAPHQL_CREATE_FIELD_JSON)])
+fgh.subprocess.run = fake
+field_id = fgh.project_single_select_create(
+    "PVT_1", "Status", ["Backlog", "Plan", "Ready", "Building", "Review", "Done"])
+restore()
+check("project_single_select_create: returns the new field's node id",
+      field_id == "PVTSSF_kwHONEW", f"field_id={field_id!r}")
+sent_query = next(a for a in calls[0]["argv"] if a.startswith("query="))
+check("project_single_select_create: sends every option in the given order",
+      sent_query.find('"Backlog"') < sent_query.find('"Plan"') <
+      sent_query.find('"Ready"') < sent_query.find('"Building"') <
+      sent_query.find('"Review"') < sent_query.find('"Done"'),
+      f"query={sent_query!r}")
+check("project_single_select_create: sends color: GRAY and description: \"\" for every option "
+      "(GitHub rejects the mutation when either is omitted)",
+      sent_query.count("color: GRAY") == 6 and sent_query.count('description: ""') == 6,
+      f"query={sent_query!r}")
+check("project_single_select_create: sends the field name and project id as variables",
+      "name=Status" in calls[0]["argv"] and "projectId=PVT_1" in calls[0]["argv"],
+      f"calls={calls}")
+
+fake, calls = recorder([Result(0, stdout=GRAPHQL_CREATE_FIELD_NULL_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_single_select_create("PVT_1", "Status", ["Backlog"])
+    create_field_raised, create_field_exc = False, None
+except fgh.GhError as e:
+    create_field_raised, create_field_exc = True, e
+    RAISED.append(e)
+restore()
+check("project_single_select_create: a null projectV2Field raises GhError naming the field",
+      create_field_raised and "Status" in str(create_field_exc),
+      f"exc={create_field_exc if create_field_raised else None}")
+
+
+# ---------------- project_single_select_extend: REPLACEMENT — sends every option it was given --
+GRAPHQL_UPDATE_FIELD_JSON = json.dumps(
+    {"data": {"updateProjectV2Field": {"projectV2Field": {"id": "PVTSSF_1"}}}})
+GRAPHQL_UPDATE_FIELD_NULL_JSON = json.dumps(
+    {"data": {"updateProjectV2Field": {"projectV2Field": None}}})
+
+# THE CASE THE PLAN NAMES EXPLICITLY: every option it was given, in the order given — including
+# the EXISTING leading options, so a future refactor that drops them (sending only the additions)
+# goes RED here rather than silently deleting an operator's columns. Proven red-capable: dropping
+# "Backlog" and "Plan" from the call below (the shape a broken refactor would produce) makes the
+# ordering assertion fail because "Backlog" is absent from sent_query entirely.
+fake, calls = recorder([Result(0, stdout=GRAPHQL_UPDATE_FIELD_JSON)])
+fgh.subprocess.run = fake
+extend_result = fgh.project_single_select_extend(
+    "PVT_1", "PVTSSF_1", ["Backlog", "Plan", "Ready", "Building", "Review", "Done"])
+restore()
+check("project_single_select_extend: returns None", extend_result is None, f"r={extend_result!r}")
+extend_query = next(a for a in calls[0]["argv"] if a.startswith("query="))
+check("project_single_select_extend: sends EVERY option — existing first, then additions — "
+      "in the exact order given",
+      extend_query.find('"Backlog"') < extend_query.find('"Plan"') <
+      extend_query.find('"Ready"') < extend_query.find('"Building"') <
+      extend_query.find('"Review"') < extend_query.find('"Done"'),
+      f"query={extend_query!r}")
+check("project_single_select_extend: sends color: GRAY and description: \"\" explicitly",
+      extend_query.count("color: GRAY") == 6 and extend_query.count('description: ""') == 6,
+      f"query={extend_query!r}")
+check("project_single_select_extend: sends the field id as a variable, not the project id",
+      "fieldId=PVTSSF_1" in calls[0]["argv"] and "projectId=PVT_1" not in calls[0]["argv"],
+      f"calls={calls}")
+check("project_single_select_extend: mutates updateProjectV2Field, never createProjectV2Field",
+      any("updateProjectV2Field" in a for a in calls[0]["argv"])
+      and not any("createProjectV2Field" in a for a in calls[0]["argv"]), f"calls={calls}")
+
+fake, calls = recorder([Result(0, stdout=GRAPHQL_UPDATE_FIELD_NULL_JSON)])
+fgh.subprocess.run = fake
+try:
+    fgh.project_single_select_extend("PVT_1", "PVTSSF_1", ["Backlog"])
+    extend_null_raised = False
+except fgh.GhError as e:
+    extend_null_raised = True
+    RAISED.append(e)
+restore()
+check("project_single_select_extend: a null projectV2Field raises GhError",
+      extend_null_raised)
+
+
+# ---------------- project_workflows: raises, never [], on any unresolved hop -------------------
+GRAPHQL_WORKFLOWS_JSON = json.dumps({"data": {"user": {"projectV2": {"workflows": {"nodes": [
+    {"name": "Item closed", "enabled": True, "number": 1},
+    {"name": "Auto-close issue", "enabled": False, "number": 2},
+]}}}}})
+GRAPHQL_WORKFLOWS_USER_NULL_JSON = json.dumps({"data": {"user": None}})
+GRAPHQL_WORKFLOWS_PROJECT_NULL_JSON = json.dumps({"data": {"user": {"projectV2": None}}})
+GRAPHQL_WORKFLOWS_NULL_JSON = json.dumps(
+    {"data": {"user": {"projectV2": {"workflows": None}}}})
+
+fake, calls = recorder([Result(0, stdout=GRAPHQL_WORKFLOWS_JSON)])
+fgh.subprocess.run = fake
+workflows = fgh.project_workflows("owner", 3)
+restore()
+check("project_workflows: returns one dict per workflow with name/enabled/number",
+      workflows == [
+          {"name": "Item closed", "enabled": True, "number": 1},
+          {"name": "Auto-close issue", "enabled": False, "number": 2},
+      ], f"workflows={workflows!r}")
+check("project_workflows: sends owner and number as GraphQL variables",
+      "owner=owner" in calls[0]["argv"] and "number=3" in calls[0]["argv"], f"calls={calls}")
+
+# THREE separate unresolved-hop cases — each must RAISE, never return []. Proven red-capable: an
+# implementation that read `.get("workflows", {}).get("nodes", [])` with defaulting instead of an
+# explicit None check would return [] for every one of these three and pass none of them.
+for label, fixture in (
+    ("user null", GRAPHQL_WORKFLOWS_USER_NULL_JSON),
+    ("projectV2 null", GRAPHQL_WORKFLOWS_PROJECT_NULL_JSON),
+    ("workflows null", GRAPHQL_WORKFLOWS_NULL_JSON),
+):
+    fake, calls = recorder([Result(0, stdout=fixture)])
+    fgh.subprocess.run = fake
+    try:
+        wf_result = fgh.project_workflows("owner", 3)
+        wf_raised = False
+    except fgh.GhError as e:
+        wf_result, wf_raised = None, True
+        RAISED.append(e)
+    restore()
+    check(f"project_workflows ({label}): raises GhError rather than returning []",
+          wf_raised and wf_result is None, f"result={wf_result!r} raised={wf_raised}")
+
+
 # ---------------- default_branch_sha ----------------
 fake, calls = recorder([Result(0, stdout="deadbeef\n")])
 fgh.subprocess.run = fake

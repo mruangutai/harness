@@ -135,7 +135,8 @@ with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
                                         "station_field": "Status",
-                                        "stations": {"backlog": "Backlog", "ready": "Ready",
+                                        "stations": {"backlog": "Backlog", "plan": "Plan",
+                                                     "ready": "Ready",
                                                      "building": "Building", "review": "Review",
                                                      "done": "Done"}}})
     r, log = run(tmp, ["326", "Plan"])
@@ -180,7 +181,8 @@ with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
                                         "station_field": "Status",
-                                        "stations": {"backlog": "Backlog", "ready": "Ready",
+                                        "stations": {"backlog": "Backlog", "plan": "Plan",
+                                                     "ready": "Ready",
                                                      "building": "Building", "review": "Review",
                                                      "done": "Done"}}})
     r, log = run(tmp, ["327", "Ready"], gh_script=FAKE_GH_NOT_ON_BOARD)
@@ -239,7 +241,8 @@ with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"sync": False, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
                                         "station_field": "Status",
-                                        "stations": {"backlog": "Backlog", "ready": "Ready",
+                                        "stations": {"backlog": "Backlog", "plan": "Plan",
+                                                     "ready": "Ready",
                                                      "building": "Building", "review": "Review",
                                                      "done": "Done"}}})
     r, log = run(tmp, ["326", "Plan"])
@@ -254,7 +257,8 @@ with tempfile.TemporaryDirectory() as tmp:
     write_harness_json(tmp, {"sync": True, "repo": "mruangutai/harness",
                               "board": {"owner": "mruangutai", "number": 3,
                                         "station_field": "Status",
-                                        "stations": {"backlog": "Backlog", "ready": "Ready",
+                                        "stations": {"backlog": "Backlog", "plan": "Plan",
+                                                     "ready": "Ready",
                                                      "building": "Building", "review": "Review",
                                                      "done": "Done"}}})
     r, log = run(tmp, ["326", "Plan"], gh_script=FAKE_GH_NON_JSON)

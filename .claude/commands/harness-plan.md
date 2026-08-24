@@ -20,4 +20,8 @@ Read `.claude/commands/harness.md` and follow it with **mission: plan**. The dif
   product-lead's squad plans, the eng squad runs the four-angle simplify pass over the plan surface (`.claude/skills/harness-simplify/SKILL.md`) — FLAG-ONLY, findings return to `harness-pm`, which applies them to its own draft before the signature, because `check-domain.sh` grants `plan.yaml` and `BRIEF.md` to pm alone (D-03) — eng-lead reviews architecture, ui-reviewer checks the design contract.
 - **Terminus:** ONE approval, taken by you — the user signs PLAN **and** the prototype (if the
   feature needs one) together. Completing plan is NOT a briefing (§10.3).
+  **The signature is immediately followed by**
+  `python3 .claude/skills/harness/bin/gh-sync.py status <feature-dir> Ready`, which moves the
+  task sub-issues to `Ready` and never the parent. It **refuses unless `approval.status` is
+  `approved`**, so a card at Ready is proof of a signature rather than a claim about one.
 - After approval, offer `/harness-ship` — do not start it unasked.

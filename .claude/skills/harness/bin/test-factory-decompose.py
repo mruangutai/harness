@@ -91,10 +91,11 @@ class Recorder:
         self._item_seq = 5000
         self.raise_on = {}   # name -> exception instance, or callable(args) -> exception|None
         # Matches good_fleet_dict's station option names exactly, so every existing fixture's
-        # stations validate clean by default. Five, not three: D-06's required key set, and
-        # _validate_stations (factory_decompose.py:228-241) refuses any declared station whose
-        # value the live board does not offer, backlog and done included.
-        self.field_options = ["Promoted", "Building", "Review", "Backlog", "Done"]
+        # stations validate clean by default. Six, not three: D-06's required key set (widened
+        # by FEAT-33 T-02), and _validate_stations (factory_decompose.py:228-241) refuses any
+        # declared station whose value the live board does not offer, backlog, plan and done
+        # included.
+        self.field_options = ["Promoted", "Building", "Review", "Backlog", "Done", "Plan"]
         self.board_items = []   # project_items() return value, set per-test
         # issue_board_item_id() return value: number -> item id, set per-test. Consulted only
         # for the issue number asked; anything not in this map means "no item" (returns None).
@@ -193,7 +194,8 @@ def good_fleet_dict(workspace_root):
                 "number": 3,
                 "station_field": "Status",
                 "stations": {
-                    "backlog": "Backlog", "ready": "Promoted", "building": "Building",
+                    "backlog": "Backlog", "plan": "Plan", "ready": "Promoted",
+                    "building": "Building",
                     "review": "Review", "done": "Done",
                 },
             },
@@ -221,7 +223,8 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
                     "number": 3,
                     "station_field": "Status",
                     "stations": {
-                        "backlog": "Backlog", "ready": "Promoted", "building": "Building",
+                        "backlog": "Backlog", "plan": "Plan", "ready": "Promoted",
+                        "building": "Building",
                         "review": "Review", "done": "Done",
                     },
                 },
@@ -234,7 +237,7 @@ def two_repo_fleet_dict(workspace_root, repo_a=REPO, repo_b="acme/other"):
                     "number": 7,
                     "station_field": "Stage",
                     "stations": {
-                        "backlog": "Other-Backlog", "ready": "Other-Ready",
+                        "backlog": "Other-Backlog", "plan": "Other-Plan", "ready": "Other-Ready",
                         "building": "Other-Building", "review": "Other-Review",
                         "done": "Other-Done",
                     },

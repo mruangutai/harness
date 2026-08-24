@@ -153,7 +153,7 @@
     "_note": "GitHub Issues mirror (DEC-138). sync is asked ONCE at /harness-init; repo is pinned there from `gh repo view` under the user's eyes and NEVER re-inferred per call. One-way outbound after plan approval; gh absent = skip-and-report, never a gate.",
     "sync": false,
     "repo": null,
-    "_board_note": "Project board for the station mirror (FEAT-18): owner, number, station_field, and a stations mapping with exactly the five keys backlog, ready, building, review and done, each naming an option that exists on that board \u2014 every value resolved by name at runtime, never by a pinned id. null = this project has no board and no station is ever written. A board that is present but incomplete is a loud error naming the offending key, never a silently disabled feature.",
+    "_board_note": "Project board for the station mirror (FEAT-18): owner, number, station_field, and a stations mapping with exactly the six keys backlog, plan, ready, building, review and done, each naming an option that exists on that board \u2014 every value resolved by name at runtime, never by a pinned id. null = this project has no board and no station is ever written. A board that is present but incomplete is a loud error naming the offending key, never a silently disabled feature.",
     "board": null
   }
 }

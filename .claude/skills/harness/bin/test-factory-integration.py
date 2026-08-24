@@ -158,7 +158,44 @@ def main():
             rec["labels"].append(argv[argv.index("--add-label") + 1])
         if "--add-assignee" in argv:
             rec["assignees"].append(argv[argv.index("--add-assignee") + 1])
+        if "--title" in argv:
+            # board_lifecycle.py retitle's own rename call (T-17, FEAT-33): `gh issue edit <n>
+            # --repo <repo> --title <new>`. Recorded so a case can read the new title back off
+            # state, not merely off this fake's exit code.
+            rec["title"] = argv[argv.index("--title") + 1]
         ok()
+
+    if argv[:2] == ["issue", "list"]:
+        json_fields = argv[argv.index("--json") + 1] if "--json" in argv else ""
+        if "milestone" in json_fields:
+            # board_lifecycle.py retitle's own enumeration (T-17, FEAT-33): `--state all --json
+            # number,title,milestone`. Distinct from audit's closed-issue read below (a
+            # different --json field list on the SAME ["issue", "list"] argv prefix) -- never
+            # filters by state, since retitle backfills both open and closed task tickets.
+            out = []
+            for num_s, issue in state["issues"].items():
+                milestone = issue.get("milestone")
+                out.append({
+                    "number": int(num_s),
+                    "title": issue.get("title"),
+                    "milestone": {"title": milestone} if milestone else None,
+                })
+            ok(json.dumps(out))
+        # board_lifecycle.py audit's own closed-issue read (T-05, FEAT-33): `--repo <repo>
+        # --state closed --json number,stateReason,labels --limit 1000`. Every issue this stub
+        # ever records is CLOSED only through the ["issue", "edit"] path above never setting
+        # "state" -- so a case that needs a closed issue writes state["issues"] directly rather
+        # than through a stub call this fake does not otherwise expose.
+        out = []
+        for num_s, issue in state["issues"].items():
+            if issue.get("state") != "CLOSED":
+                continue
+            out.append({
+                "number": int(num_s),
+                "stateReason": issue.get("stateReason"),
+                "labels": [{"name": l} for l in issue.get("labels", [])],
+            })
+        ok(json.dumps(out))
 
     if argv[:2] == ["project", "item-add"]:
         url = argv[argv.index("--url") + 1]
@@ -222,6 +259,118 @@ def main():
                 "totalCount": len(nodes), "nodes": nodes,
             }}}}}))
 
+        # T-03 (FEAT-33) additions below — the six new board-lifecycle primitives in
+        # factory_gh.py. Each is dispatched on distinctive TEXT within query_text, never on argv
+        # order, because every one of these calls ["api", "graphql"] the same way
+        # _project_field_resolve's query does. Ordered from most to least specific so no shorter
+        # substring shadows a longer one (createProjectV2Field before createProjectV2().
+
+        if "repositories(first:" in query_text:
+            # board_lifecycle.py's own confused-deputy linkage-guard query (fix cycle c1,
+            # MUST-FIX 1, T-04 FEAT-33) -- `_project_linked_repos`. Answered with exactly the
+            # repo this case's own harness.json declares (github.repo, "acme/widget"), matching
+            # the "linked" case; the "not linked" refusal is exercised unit-side, in
+            # test-board-lifecycle.py, which can vary this response per case.
+            ok(json.dumps({"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
+                "repositories": {"nodes": [{"nameWithOwner": "acme/widget"}],
+                                  "pageInfo": {"hasNextPage": False, "endCursor": None}},
+            }}}}))
+
+        if "createProjectV2Field" in query_text:
+            # project_single_select_create's mutation.
+            name_v = None
+            for i, a in enumerate(argv):
+                if a == "-f" and i + 1 < len(argv) and argv[i + 1].startswith("name="):
+                    name_v = argv[i + 1][len("name="):]
+            ok(json.dumps({"data": {"createProjectV2Field": {"projectV2Field": {
+                "id": f"FIELD_{name_v or 'NEW'}",
+            }}}}))
+
+        if "updateProjectV2Field" in query_text:
+            # project_single_select_extend's mutation — a REPLACEMENT, never validated by this
+            # stub for content; the ordering/color/description assertions live in
+            # test-factory-gh.py, unit-side, against the recorded query text.
+            ok(json.dumps({"data": {"updateProjectV2Field": {"projectV2Field": {
+                "id": "FIELD_STATUS",
+            }}}}))
+
+        if "linkProjectV2ToRepository" in query_text:
+            # project_link_repository's mutation.
+            ok(json.dumps({"data": {"linkProjectV2ToRepository": {"repository": {
+                "id": "R_FAKE",
+            }}}}))
+
+        if "createProjectV2(" in query_text:
+            # project_create's second call (createProjectV2Field is excluded above, so this
+            # substring only matches project_create's own mutation).
+            state["next_project"] = state.get("next_project", 100) + 1
+            ok(json.dumps({"data": {"createProjectV2": {"projectV2": {
+                "id": "PVT_kwFAKENEW", "number": state["next_project"],
+            }}}}))
+
+        if "repository(owner: $owner, name: $name) { id }" in query_text:
+            # project_link_repository's first call, resolving the repository node id. Distinct
+            # from the projectItems query above, which shares the same repository(owner:,
+            # name:) opener but selects issue(number:...) rather than a bare { id }.
+            ok(json.dumps({"data": {"repository": {"id": "R_FAKE"}}}))
+
+        if "fieldValueByName" in query_text:
+            # gh_board.board_stations -> factory_gh.project_item_stations's own query
+            # (board_lifecycle.py audit's STATION finding class, T-05 FEAT-33). Built from the
+            # same state["items"] the "project item-add" and "project item-edit" branches above
+            # already maintain, so a case that moved a card with those calls is seen here too.
+            nodes = []
+            for it in state["items"].values():
+                num = it.get("number")
+                repo = it.get("repo")
+                if num is None or repo is None:
+                    continue
+                station = it.get("station")
+                nodes.append({
+                    "content": {"number": num, "repository": {"nameWithOwner": repo}},
+                    "fieldValueByName": {"name": station} if station is not None else None,
+                })
+            payload = {"data": {"user": {"projectV2": {"items": {
+                "totalCount": len(nodes),
+                "pageInfo": {"hasNextPage": False, "endCursor": None},
+                "nodes": nodes,
+            }}}}}
+            ok(json.dumps(payload))
+
+        if "workflows(first:" in query_text:
+            # project_workflows's query.
+            ok(json.dumps({"data": {"user": {"projectV2": {"workflows": {"nodes": [
+                {"name": "Item closed", "enabled": True, "number": 1},
+                {"name": "Auto-close issue", "enabled": True, "number": 2},
+                {"name": "Pull request merged", "enabled": True, "number": 3},
+            ]}}}}}))
+
+        if "user(login: $login) { id }" in query_text:
+            # project_create's first call, resolving the owner's node id.
+            ok(json.dumps({"data": {"user": {"id": "U_FAKE"}}}))
+
+        if "repositoryOwner(login: $owner)" in query_text and "field(name:" not in query_text:
+            # project_resolve's own query — same repositoryOwner/__typename shape as
+            # _project_field_resolve's query below, but with no field(name:...) selection, which
+            # is what tells the two apart.
+            ok(json.dumps({"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
+                "id": "PVT_kwFAKE", "title": "Board",
+            }}}}))
+
+        if "ProjectV2IterationField" in query_text:
+            # board_lifecycle.py's own _field_probe query (T-04, FEAT-33) — not one of
+            # factory_gh.py's named primitives; see board_lifecycle.py's module docstring
+            # (FIELD-ID GAP) for why it exists. Matched on a marker no other query in this tree
+            # sends, so it cannot shadow (or be shadowed by) any branch above or below it.
+            # Answered as "field exists, is single-select" — the complete-board shape this
+            # file's own T-04 case below needs; a case that needs "field absent" or "field is
+            # some other type" belongs to board_lifecycle.py's own unit-side fake in
+            # test-board-lifecycle.py, which can vary this response per case.
+            ok(json.dumps({"data": {"repositoryOwner": {"__typename": "User", "projectV2": {
+                "id": "PVT_kwFAKE",
+                "field": {"__typename": "ProjectV2SingleSelectField", "id": "FIELD_STATUS"},
+            }}}}))
+
         # The single GraphQL query factory_gh._project_field_resolve sends (D-01). Answered
         # unconditionally, without inspecting the query= text — that guard lives once, in
         # test-factory-gh.py. Placed BEFORE the generic ["api", ...] REST branch below: after it
@@ -236,6 +385,7 @@ def main():
                 "id": "FIELD_STATUS", "name": field_name,
                 "options": [
                     {"id": "OPT_BACKLOG", "name": "Backlog"},
+                    {"id": "OPT_PLAN", "name": "Plan"},
                     {"id": "OPT_READY", "name": "Ready"},
                     {"id": "OPT_BUILDING", "name": "Building"},
                     {"id": "OPT_REVIEW", "name": "Review"},
@@ -252,8 +402,8 @@ def main():
             bad(f"fake_gh: item-edit --project-id was {project_id!r}, want the node id "
                 f"from the graphql field-resolve call, not the bare board number", 1)
         mapping = {
-            "OPT_BACKLOG": "Backlog", "OPT_READY": "Ready", "OPT_BUILDING": "Building",
-            "OPT_REVIEW": "Review", "OPT_DONE": "Done",
+            "OPT_BACKLOG": "Backlog", "OPT_PLAN": "Plan", "OPT_READY": "Ready",
+            "OPT_BUILDING": "Building", "OPT_REVIEW": "Review", "OPT_DONE": "Done",
         }
         rec = state["items"].setdefault(item_id, {"number": None, "repo": None})
         rec["station"] = mapping.get(option_id, option_id)
@@ -333,11 +483,11 @@ DEFAULT_BRANCH = "main"
 
 
 def default_board(owner="acme", number=9, station_field="Status", **stations_kw):
-    """The five-key stations map (D-06), returned by every fixture as a fleet member's own
-    `github.board` — T-02/T-03 moved the board out of fleet.yaml, so this is what
-    `factory_config.product_config` resolves to, never a `repos[].board` key."""
+    """The six-key stations map (D-06, widened by FEAT-33 T-02), returned by every fixture as a
+    fleet member's own `github.board` — T-02/T-03 moved the board out of fleet.yaml, so this is
+    what `factory_config.product_config` resolves to, never a `repos[].board` key."""
     stations = {
-        "backlog": "Backlog", "ready": "Ready", "building": "Building",
+        "backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
         "review": "Review", "done": "Done",
     }
     stations.update(stations_kw)
@@ -1126,6 +1276,350 @@ with tempfile.TemporaryDirectory() as td:
         "(proves the check above has power)",
         str(served_number) in board_numbers_seen, sorted(board_numbers_seen),
     )
+
+
+# ============================================================================
+# Case (I) — T-03 (FEAT-33): one forking case per WRITE primitive factory_gh.py gains in this
+# task (D-12). factory_gh.py is a LIBRARY with no __main__ (its own module docstring says so), so
+# "forking a real process" here means a real `python3 -c` subprocess that imports factory_gh and
+# calls the primitive — the discriminating property is that the GraphQL call round-trips through
+# a genuinely forked `gh` binary reading GH_STATE from disk, which an in-process
+# subprocess.run-monkeypatch (test-factory-gh.py, unit-side) cannot exercise. Each case asserts
+# BOTH the forked process's own exit status and the argv/query text GH_CALL_LOG recorded for it —
+# never the return value alone, per the plan's "assert on argv and variables" instruction.
+# ============================================================================
+def run_factory_gh_call(td, script, gh_state=None):
+    """Fork `python3 -c <script>` with factory_gh importable (cwd=BIN_DIR puts it on
+    sys.path[0]), FACTORY_GH pointed at the stub, and GH_CALL_LOG recording every argv the stub
+    receives. Returns (CompletedProcess, [argv, ...])."""
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    state_path = gh_state or write_state(os.path.join(td, "gh_state.json"))
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["FACTORY_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, "-c", script], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    calls = []
+    if os.path.exists(call_log):
+        with open(call_log, encoding="utf-8") as f:
+            calls = [json.loads(l) for l in f if l.strip()]
+    return r, calls
+
+
+with tempfile.TemporaryDirectory() as td:
+    r, calls = run_factory_gh_call(td, (
+        "import json, factory_gh as fgh\n"
+        "print(json.dumps(fgh.project_create('acmeowner', 'kaya-ai board')))\n"
+    ))
+    check("(I) project_create: forked process exits 0",
+          r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
+    check("(I) project_create: one call resolves the owner id, one call mutates createProjectV2",
+          any("user(login: $login) { id }" in a for c in calls for a in c) and
+          any("createProjectV2(" in a and "createProjectV2Field" not in a
+              for c in calls for a in c),
+          calls)
+    check("(I) project_create: the title is sent verbatim as a GraphQL variable",
+          any("title=kaya-ai board" in a for c in calls for a in c), calls)
+
+with tempfile.TemporaryDirectory() as td:
+    r, calls = run_factory_gh_call(td, (
+        "import json, factory_gh as fgh\n"
+        "print(json.dumps(fgh.project_link_repository('PVT_kwFAKE', 'acme/widget')))\n"
+    ))
+    check("(I) project_link_repository: forked process exits 0",
+          r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
+    check("(I) project_link_repository: resolves the repo id then mutates "
+          "linkProjectV2ToRepository",
+          any("repository(owner: $owner, name: $name) { id }" in a for c in calls for a in c) and
+          any("linkProjectV2ToRepository" in a for c in calls for a in c), calls)
+    check("(I) project_link_repository: repo owner/name split sent verbatim",
+          any("owner=acme" in a for c in calls for a in c) and
+          any("name=widget" in a for c in calls for a in c), calls)
+
+with tempfile.TemporaryDirectory() as td:
+    r, calls = run_factory_gh_call(td, (
+        "import json, factory_gh as fgh\n"
+        "print(json.dumps(fgh.project_single_select_create("
+        "'PVT_kwFAKE', 'Status', ['Backlog','Plan','Ready','Building','Review','Done'])))\n"
+    ))
+    check("(I) project_single_select_create: forked process exits 0",
+          r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
+    sent = "".join(a for c in calls for a in c if a.startswith("query="))
+    check("(I) project_single_select_create: mutates createProjectV2Field, sends every "
+          "option's color and description explicitly",
+          "createProjectV2Field" in sent and sent.count("color: GRAY") == 6
+          and sent.count('description: ""') == 6, sent)
+
+with tempfile.TemporaryDirectory() as td:
+    r, calls = run_factory_gh_call(td, (
+        "import json, factory_gh as fgh\n"
+        "print(json.dumps(fgh.project_single_select_extend("
+        "'PVT_kwFAKE', 'FIELD_STATUS', "
+        "['Backlog','Plan','Ready','Building','Review','Done'])))\n"
+    ))
+    check("(I) project_single_select_extend: forked process exits 0",
+          r.returncode == 0, f"code={r.returncode} stderr={r.stderr!r}")
+    sent = "".join(a for c in calls for a in c if a.startswith("query="))
+    check("(I) project_single_select_extend: mutates updateProjectV2Field, never "
+          "createProjectV2Field, sending every option in the given order",
+          "updateProjectV2Field" in sent and "createProjectV2Field" not in sent
+          and sent.find('"Backlog"') < sent.find('"Plan"') < sent.find('"Ready"')
+          < sent.find('"Building"') < sent.find('"Review"') < sent.find('"Done"'), sent)
+
+
+# ============================================================================
+# Case (J) — T-04 (FEAT-33): ONE forking end-to-end case for board_lifecycle.py's own
+# `provision` subcommand (D-12's integration coverage requirement for a change_type: feature
+# task). This is the shape that catches an `if __name__ == "__main__":` block that forgets to
+# dispatch, or a module that raises at import — no in-process test (test-board-lifecycle.py,
+# unit-side) can see either. Adds no file to any list and edits neither INTEGRATION_SCRIPTS nor
+# harness.json (both already correct and both have other writers, per T-04's own intent).
+# ============================================================================
+BOARD_LIFECYCLE = os.path.join(BIN_DIR, "board_lifecycle.py")
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"schema_version": 1, "github": {
+            "sync": True, "repo": "acme/widget", "board": default_board(),
+        }}, f)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    state_path = write_state(os.path.join(td, "gh_state.json"))
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = root
+    env["FACTORY_GH"] = gh
+    env["GH_SYNC_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, BOARD_LIFECYCLE, "provision"], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    calls = []
+    if os.path.exists(call_log):
+        with open(call_log, encoding="utf-8") as f:
+            calls = [json.loads(l) for l in f if l.strip()]
+    check("(J) board_lifecycle.py provision: forked process exits 0 against a complete board",
+          r.returncode == 0, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("(J) board_lifecycle.py provision: reports its own verdict on stdout (anti-vacuum — "
+          "an __main__ block that forgets to dispatch also exits 0 with an empty log, which "
+          "would make the exit-0 and zero-mutations checks below pass for the wrong reason)",
+          "nothing to do" in r.stdout, f"stdout={r.stdout!r}")
+    check("(J) board_lifecycle.py provision: at least one gh call was actually recorded",
+          bool(calls), calls)
+    _mutation_markers = ("createProjectV2Field", "updateProjectV2Field",
+                          "linkProjectV2ToRepository", "createProjectV2(")
+    check("(J) board_lifecycle.py provision: performs ZERO mutations against a complete board",
+          not any(m in a for c in calls for a in c for m in _mutation_markers), calls)
+
+
+# ============================================================================
+# Case (K) — T-05 (FEAT-33): ONE forking end-to-end case for board_lifecycle.py's own `audit`
+# subcommand (D-12's integration coverage requirement for a change_type: feature task). The
+# discriminating value of the forking form is the EXIT STATUS — an in-process test catching
+# SystemExit cannot prove the process actually returns 1 to a shell, and T-11's verify depends
+# entirely on that (T-05 intent). Adds no file to any list and edits neither INTEGRATION_SCRIPTS
+# nor harness.json (both already correct and both have other writers, per T-04's own intent,
+# unchanged by this task).
+# ============================================================================
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"schema_version": 1, "github": {
+            "sync": True, "repo": "acme/widget", "board": default_board(),
+        }}, f)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    # ONE fixture carrying exactly one finding: a closed issue with a null close reason (REASON)
+    # — the class that needs no board-item fixture at all, since it never consults station.
+    state_path = write_state(os.path.join(td, "gh_state.json"), issues={
+        "900": {"title": "closed with no reason", "state": "CLOSED", "labels": [],
+                "assignees": [], "stateReason": None},
+    })
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = root
+    env["FACTORY_GH"] = gh
+    env["GH_SYNC_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, BOARD_LIFECYCLE, "audit"], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    check("(K) board_lifecycle.py audit: forked process exits 1 against a fixture carrying "
+          "one finding (the EXIT STATUS, not an in-process SystemExit catch)",
+          r.returncode == 1, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("(K) board_lifecycle.py audit: the finding's text appears on stdout",
+          "REASON" in r.stdout and "#900" in r.stdout, f"stdout={r.stdout!r}")
+
+
+# ============================================================================
+# Case (L) — T-15 (FEAT-33): ONE forking end-to-end case for board_lifecycle.py audit's STATUS
+# finding class (D-12's integration coverage requirement for a change_type: feature task). Same
+# discriminating value as case (K): the EXIT STATUS, not an in-process SystemExit catch. This
+# fixture carries no closed issues at all — STATUS reads feature.json off disk and reuses the
+# station read, never the closed-issue list, so a case that leaves `issues` empty is a genuine
+# STATUS-only discriminator, not an accidental overlap with REASON/LABEL/STATION.
+# ============================================================================
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"schema_version": 1, "github": {
+            "sync": True, "repo": "acme/widget", "board": default_board(),
+        }}, f)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    # feature.json: status Done, parent #950 recorded but the board reads Backlog -- there is
+    # no Done exemption (D-22), so this is a finding whether #950 is open or closed.
+    feat_dir = os.path.join(root, ".harness", "widget", "features", "FEAT-STATUS")
+    os.makedirs(feat_dir, exist_ok=True)
+    with open(os.path.join(feat_dir, "feature.json"), "w", encoding="utf-8") as f:
+        json.dump({"status": "Done", "github": {"parent": 950, "issues": {"T-01": 951}}}, f)
+    state_path = write_state(os.path.join(td, "gh_state.json"), issues={}, items={
+        "ITEM1": {"number": 950, "repo": "acme/widget", "station": "Backlog"},
+    })
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = root
+    env["FACTORY_GH"] = gh
+    env["GH_SYNC_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, BOARD_LIFECYCLE, "audit"], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    check("(L) board_lifecycle.py audit STATUS: forked process exits 1 against a feature.json "
+          "status disagreeing with its parent card (the EXIT STATUS, not an in-process "
+          "SystemExit catch)",
+          r.returncode == 1, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("(L) board_lifecycle.py audit STATUS: the finding names the feature dir, recorded "
+          "status Done, and the actual column Backlog",
+          "STATUS" in r.stdout and "FEAT-STATUS" in r.stdout and "#950" in r.stdout
+          and "'Done'" in r.stdout and "'Backlog'" in r.stdout, f"stdout={r.stdout!r}")
+
+
+# ============================================================================
+# Case (M) — T-06 (FEAT-33): ONE forking end-to-end case for board_lifecycle.py's own
+# `reconcile` subcommand (D-12's integration coverage requirement for a change_type: feature
+# task). Run with NO FLAGS AT ALL -- the boundary evidence that --dry-run really is the
+# default and --apply really is required before this tool touches the operator's live
+# tracker. A fixture carrying exactly one fixable finding (REASON, same shape as case (K))
+# makes "zero mutations" a real discriminator: an accidentally-defaulted --apply would fire a
+# real PATCH here, not merely fail to preview one.
+# ============================================================================
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"schema_version": 1, "github": {
+            "sync": True, "repo": "acme/widget", "board": default_board(),
+        }}, f)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    state_path = write_state(os.path.join(td, "gh_state.json"), issues={
+        "960": {"title": "closed with no reason", "state": "CLOSED", "labels": [],
+                "assignees": [], "stateReason": None},
+    })
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = root
+    env["FACTORY_GH"] = gh
+    env["GH_SYNC_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, BOARD_LIFECYCLE, "reconcile"], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    calls = []
+    if os.path.exists(call_log):
+        with open(call_log, encoding="utf-8") as f:
+            calls = [json.loads(l) for l in f if l.strip()]
+    check("(M) board_lifecycle.py reconcile with NO flags: exits 0 (the dry-run default, "
+          "even though a fixable REASON finding is present)",
+          r.returncode == 0, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("(M) board_lifecycle.py reconcile with NO flags: the finding is previewed, not "
+          "silently skipped (anti-vacuum)",
+          "REASON" in r.stdout and "#960" in r.stdout and "DRY-RUN" in r.stdout,
+          f"stdout={r.stdout!r}")
+    _write_markers = ("edit", "create", "item-edit", "PATCH")
+    check("(M) board_lifecycle.py reconcile with NO flags: ZERO mutations reached the stub "
+          "gh -- --apply was never defaulted to",
+          not any(m in a for c in calls for a in c for m in _write_markers), calls)
+
+
+# ============================================================================
+# Case (N) — T-17 (FEAT-33): ONE forking end-to-end case for board_lifecycle.py's own
+# `retitle` subcommand (D-12's integration coverage requirement for a change_type: feature
+# task). Run with NO FLAGS AT ALL, matching case (M)'s own boundary-evidence shape: the same
+# proof that --dry-run really is the default and --apply really is required, this time for a
+# tool whose default write is a real title on a real issue rather than a station move.
+# ============================================================================
+
+with tempfile.TemporaryDirectory() as td:
+    root = make_root(td)
+    os.makedirs(os.path.join(root, ".harness"), exist_ok=True)
+    with open(os.path.join(root, ".harness", "harness.json"), "w", encoding="utf-8") as f:
+        json.dump({"schema_version": 1, "github": {
+            "sync": True, "repo": "acme/widget", "board": default_board(),
+        }}, f)
+    gh = os.path.join(td, "fake_gh.py")
+    write_exec(gh, _FAKE_GH_SRC)
+    old_title = "T-9 — Add the retitle command"
+    state_path = write_state(os.path.join(td, "gh_state.json"), issues={
+        "970": {"title": old_title, "state": "OPEN", "labels": [], "assignees": [],
+                "milestone": "FEAT-INTEG-RETITLE"},
+    })
+    call_log = os.path.join(td, "gh_call_log.jsonl")
+    env = dict(os.environ)
+    env["CLAUDE_PROJECT_DIR"] = root
+    env["FACTORY_GH"] = gh
+    env["GH_SYNC_GH"] = gh
+    env["GH_STATE"] = state_path
+    env["GH_CALL_LOG"] = call_log
+    env.pop("HARNESS_GH_COST_LOG", None)
+    r = subprocess.run(
+        [sys.executable, BOARD_LIFECYCLE, "retitle"], cwd=BIN_DIR, env=env,
+        capture_output=True, text=True, stdin=subprocess.DEVNULL, timeout=20,
+    )
+    calls = []
+    if os.path.exists(call_log):
+        with open(call_log, encoding="utf-8") as f:
+            calls = [json.loads(l) for l in f if l.strip()]
+    check("(N) board_lifecycle.py retitle with NO flags: exits 0 (the dry-run default, even "
+          "though a pending rename is present)",
+          r.returncode == 0, f"code={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("(N) board_lifecycle.py retitle with NO flags: the pending rename is previewed, not "
+          "silently skipped (anti-vacuum)",
+          "DRY-RUN would rename #970" in r.stdout, f"stdout={r.stdout!r}")
+    check("(N) board_lifecycle.py retitle with NO flags: ZERO rename calls reached the stub "
+          "gh -- --apply was never defaulted to",
+          not any(argv[:2] == ["issue", "edit"] and "--title" in argv for argv in calls),
+          calls)
+    check("(N) board_lifecycle.py retitle with NO flags: the issue's title on the stub's own "
+          "state is untouched by the preview",
+          read_state(state_path)["issues"]["970"]["title"] == old_title,
+          read_state(state_path)["issues"]["970"])
 
 
 print(f"\n{RAN - FAILS}/{RAN} checks passed." if FAILS == 0 else f"\n{FAILS} of {RAN} FAILING.")

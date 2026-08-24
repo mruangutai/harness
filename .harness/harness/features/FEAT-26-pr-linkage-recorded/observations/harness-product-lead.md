@@ -28,3 +28,22 @@
   the lead tier to fix the ceremony would be worse — three orchestrators were planning concurrently
   and two of them both coined FEAT-25, so widening the window between coinage and write is the
   actual hazard.
+
+- 2026-08-22: `Glob` with a `path:` argument plus a relative pattern reaching into a dot-prefixed
+  tree returned "No files found" TWICE for directories I had provably just written into —
+  `path=<worktree>` + `.harness/harness/features/FEAT-26-.../notes/*.md`, and `path=<worktree>` +
+  `runs/**/*`. The same files came back immediately from a single ABSOLUTE pattern with no `path:`
+  argument. I had already begun treating the first empty result as evidence that pm's notes dir was
+  empty, which is exactly the false-absence assertion G-14 exists to prevent — and unlike G-14 no
+  amount of careful reading would have caught it, because the tool answered confidently and wrongly.
+  Every path in this repo's state tree is dot-prefixed (`.harness/`, `.claude/`), so this is not an
+  edge case here, it is the default case. Absolute pattern, no `path:`, whenever a Glob result is
+  going to be read as an absence.
+
+- 2026-08-22: My dispatch told pm its artifact went to "your own per-feature notes path under
+  notes/" without pinning the filename prefix. `team-config.yaml` L92-94 grants pm exactly
+  `notes/research-*.md` and `notes/uat-*.md`, so any other filename would have been denied by the
+  domain guard and cost the whole spawn on a naming technicality. pm chose
+  `notes/research-FEAT-26-brief-amend.md` and was fine, but that was pm knowing its own grant, not
+  my dispatch being correct. A dispatch that names an output DIRECTORY rather than the exact glob
+  the grant carries is one guard-denial away from a wasted member spawn.

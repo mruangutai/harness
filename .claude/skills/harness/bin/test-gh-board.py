@@ -64,7 +64,7 @@ def fake_gh_failing(tmp):
 # ---------------- load_board ----------------
 
 FULL_STATIONS = {
-    "backlog": "Backlog", "ready": "Ready", "building": "Building",
+    "backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
     "review": "Review", "done": "Done",
 }
 

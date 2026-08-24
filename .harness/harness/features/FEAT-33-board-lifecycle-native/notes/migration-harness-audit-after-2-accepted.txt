@@ -1,0 +1,4 @@
+board_lifecycle: workflow detection matches by NAME only -- ProjectV2Workflow exposes neither trigger nor action, so a workflow the operator renamed is reported MISSING rather than assumed present
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-06-team-layer-inv6 records status 'Done' (column 'Done') but its parent #25 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-07-verify-teeth-batch-probe records status 'Done' (column 'Done') but its parent #47 reads None
+board_lifecycle: 2 finding(s)

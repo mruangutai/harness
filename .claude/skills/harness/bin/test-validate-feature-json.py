@@ -326,6 +326,50 @@ def case_migrated_depth_discovery_scans_the_segment_layout():
               ".harness/*/features/" in r.stderr, r.stderr)
 
 
+# ---------------------------------------------------------------------------
+# FEAT-26 T-01 — github.source_issues, mirrored from plan.yaml's top-level
+# source_issues by gh-sync.py open, read by gh-sync.py's `closes` renderer.
+# Absent or empty is legal (D-08): no `required` change, no
+# `additionalProperties` change at any level.
+# ---------------------------------------------------------------------------
+
+
+def case_accepted_source_issues_list_of_integers():
+    doc = full_doc()
+    doc["github"]["source_issues"] = [492, 501]
+    problems = clean(doc)
+    check("accepted_source_issues_list_of_integers", problems == [], problems)
+
+
+def case_rejected_source_issues_non_integer():
+    doc = full_doc()
+    doc["github"]["source_issues"] = [492.5]
+    problems = clean(doc)
+    check("rejected_source_issues_non_integer", problems != [], problems)
+
+
+def case_rejected_source_issues_quoted_number():
+    doc = full_doc()
+    doc["github"]["source_issues"] = ["492"]
+    problems = clean(doc)
+    check("rejected_source_issues_quoted_number", problems != [], problems)
+
+
+def case_rejected_undeclared_sibling_of_source_issues():
+    doc = full_doc()
+    doc["github"]["source_issues"] = [492]
+    doc["github"]["source_issue"] = 492
+    problems = clean(doc)
+    named = any("'source_issue'" in p for p in problems)
+    check("rejected_undeclared_sibling_of_source_issues", problems != [] and named, problems)
+
+
+def case_accepted_github_block_without_source_issues():
+    doc = full_doc()
+    doc["github"].pop("source_issues", None)
+    problems = clean(doc)
+    check("accepted_github_block_without_source_issues", problems == [], problems)
+
 
 # ---------------------------------------------------------------------------
 # SC-07's positional agent rule (FEAT-31 T-15). Read D-23.
@@ -516,15 +560,21 @@ def case_749_guard_still_rejects_a_truly_undeclared_key():
 
 def case_749_falls_back_when_no_tree_schema_exists():
     """(#749) A path with no checkout schema above it falls back to this module's own, so
-    every existing caller -- none of which passes for_path -- is unaffected."""
+    every existing caller -- none of which passes for_path -- is unaffected.
+
+    THE PROBE KEY IS SYNTHETIC ON PURPOSE. This case first used `source_issues`, the very
+    key FEAT-26 adds -- green on main, and RED the moment FEAT-26 merged its schema change,
+    because the module's own schema then declared it. Caught by the suite in FEAT-26's
+    worktree before the merge. A fixture keyed on something under change grades the change,
+    not the behaviour. `never_declared_anywhere` is declared by no schema in any tree."""
     with tempfile.TemporaryDirectory() as tmp:
         target = os.path.join(tmp, "feature.json")
         doc = full_doc()
-        doc["github"]["source_issues"] = [492]
+        doc["github"]["never_declared_anywhere"] = [492]
         probs = feature_schema.problems_for_text(json.dumps(doc), "feature.json",
                                                  for_path=target)
         check("case_749c: with no tree schema, the module's own schema still governs",
-              any("source_issues" in p for p in probs), repr(probs[:2]))
+              any("never_declared_anywhere" in p for p in probs), repr(probs[:2]))
 
 
 def main():
@@ -551,6 +601,13 @@ def main():
     case_problems_for_text_names_real_display_path_in_every_line()
     case_problems_for_text_jsonschema_forced_unavailable()
     case_migrated_depth_discovery_scans_the_segment_layout()
+
+    # FEAT-26 T-01 — github.source_issues
+    case_accepted_source_issues_list_of_integers()
+    case_rejected_source_issues_non_integer()
+    case_rejected_source_issues_quoted_number()
+    case_rejected_undeclared_sibling_of_source_issues()
+    case_accepted_github_block_without_source_issues()
 
     # FEAT-31 T-15 — SC-07's positional agent rule.
     case_t15_refused_when_absent_from_map()

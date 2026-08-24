@@ -179,6 +179,20 @@ case "$*" in
   *"ProjectV2SingleSelectField"*)
     printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
     exit 0 ;;
+  *"items(first: 100, after:"*)
+    # T-07's guard read (gh_board.board_stations). GUARD_ISSUE/GUARD_STATION_NAME/GUARD_STATE
+    # default to empty when unset — an unset GUARD_STATION_NAME reports no station (null),
+    # never "Done", and an unset GUARD_STATE reports open (not "CLOSED"), so a case that
+    # sets none of them (the pre-existing start-task fixture) exercises the guard's happy
+    # path without changing its own assertions.
+    if [ -z "$GUARD_STATION_NAME" ]; then
+      fv=null
+    else
+      fv='{"name":"'"$GUARD_STATION_NAME"'"}'
+    fi
+    num="${GUARD_ISSUE:-326}"
+    printf '{"data":{"user":{"projectV2":{"items":{"totalCount":1,"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[{"content":{"number":%s,"repository":{"nameWithOwner":"implentio/fake"}},"fieldValueByName":%s}]}}}}}\\n' "$num" "$fv"
+    exit 0 ;;
   *"projectItems(first: 100)"*)
     num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
     printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
@@ -188,6 +202,106 @@ case "$*" in
 esac
 case "$1 $2" in
   "auth status") exit 0 ;;
+  "issue view")
+    printf '{"state":"%s"}\\n' "${GUARD_STATE:-OPEN}"
+    exit 0 ;;
+  "api -X")
+    case "$*" in
+      *milestones\\ -f*) echo '{"number": 7}' ;;
+      *) echo '{}' ;;
+    esac ;;
+  "issue create")
+    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
+    echo "https://github.com/implentio/fake/issues/$n" ;;
+  "issue close") exit 0 ;;
+  "label create") exit 0 ;;
+esac
+exit 0
+"""
+
+# Same as FAKE_GH_STATIONS, except the guard's board read (`items(first: 100, after:`) fails —
+# proves a gh/network failure DURING THE GUARD ITSELF must not gate: the guard read is caught,
+# printed, and start-task falls through to its ORIGINAL behaviour (still writes the station).
+FAKE_GH_STATIONS_GUARD_READ_FAILS = """#!/bin/bash
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+case "$*" in
+  *"sub_issues -F sub_issue_id="*)
+    echo '{}'
+    exit 0 ;;
+  *"--jq .id"*)
+    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
+    echo "9000$num"
+    exit 0 ;;
+  *"ProjectV2SingleSelectField"*)
+    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
+    exit 0 ;;
+  *"items(first: 100, after:"*)
+    echo "simulated network failure" >&2
+    exit 1 ;;
+  *"projectItems(first: 100)"*)
+    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
+    printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
+    exit 0 ;;
+  *"project item-edit"*)
+    exit 0 ;;
+esac
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "issue view")
+    printf '{"state":"%s"}\\n' "${GUARD_STATE:-OPEN}"
+    exit 0 ;;
+  "api -X")
+    case "$*" in
+      *milestones\\ -f*) echo '{"number": 7}' ;;
+      *) echo '{}' ;;
+    esac ;;
+  "issue create")
+    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
+    echo "https://github.com/implentio/fake/issues/$n" ;;
+  "issue close") exit 0 ;;
+  "label create") exit 0 ;;
+esac
+exit 0
+"""
+
+# Custom station spellings (T-07's de-hardcoding requirement): the field's "Building" OPTION
+# is renamed to "Doing"/OPT_DOING, so a re-hardcoding of the literal string "Building" at the
+# call site would select an option this board does not offer and the write would fail (or, if
+# selected by an unguarded literal string comparison, silently write the wrong option).
+FAKE_GH_STATIONS_CUSTOM = """#!/bin/bash
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+case "$*" in
+  *"sub_issues -F sub_issue_id="*)
+    echo '{}'
+    exit 0 ;;
+  *"--jq .id"*)
+    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
+    echo "9000$num"
+    exit 0 ;;
+  *"ProjectV2SingleSelectField"*)
+    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_TODO","name":"Todo"},{"id":"OPT_PLANNED","name":"Planned"},{"id":"OPT_QUEUED","name":"Queued"},{"id":"OPT_DOING","name":"Doing"},{"id":"OPT_CHECKING","name":"Checking"},{"id":"OPT_SHIPPED","name":"Shipped"}]}}}}}\\n'
+    exit 0 ;;
+  *"items(first: 100, after:"*)
+    if [ -z "$GUARD_STATION_NAME" ]; then
+      fv=null
+    else
+      fv='{"name":"'"$GUARD_STATION_NAME"'"}'
+    fi
+    num="${GUARD_ISSUE:-326}"
+    printf '{"data":{"user":{"projectV2":{"items":{"totalCount":1,"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[{"content":{"number":%s,"repository":{"nameWithOwner":"implentio/fake"}},"fieldValueByName":%s}]}}}}}\\n' "$num" "$fv"
+    exit 0 ;;
+  *"projectItems(first: 100)"*)
+    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
+    printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
+    exit 0 ;;
+  *"project item-edit"*)
+    exit 0 ;;
+esac
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "issue view")
+    printf '{"state":"%s"}\\n' "${GUARD_STATE:-OPEN}"
+    exit 0 ;;
   "api -X")
     case "$*" in
       *milestones\\ -f*) echo '{"number": 7}' ;;
@@ -284,27 +398,39 @@ exit 0
 """
 
 
-FULL_STATIONS = {"backlog": "Backlog", "ready": "Ready", "building": "Building",
+FULL_STATIONS = {"backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
                   "review": "Review", "done": "Done"}
 
 
-def write_harness_json_board(tmp, sync=True, repo="implentio/fake", board=True):
+def write_harness_json_board(tmp, sync=True, repo="implentio/fake", board=True, stations=None):
     """harness.json's github block, carrying T-02's `board` sub-mapping when `board` is True,
     or an EXPLICIT null (FEAT-24 D-07 — the one non-error "no board" shape) when `board` is
     False. An absent `board` key is a different, REJECTED shape (FleetError) and is not what
-    this helper's `board=False` means; nothing in this file drives that shape through here."""
+    this helper's `board=False` means; nothing in this file drives that shape through here.
+
+    `stations` OPTIONAL (T-07): defaults to FULL_STATIONS, but a caller proving the guard's
+    write is de-hardcoded (rather than re-hardcoded to the literal "Building") passes a
+    six-key map whose `building` value is something else entirely."""
     g = {"sync": sync}
     if repo:
         g["repo"] = repo
     g["board"] = ({"owner": "mruangutai", "number": 3, "station_field": "Status",
-                    "stations": dict(FULL_STATIONS)} if board else None)
+                    "stations": dict(stations or FULL_STATIONS)} if board else None)
     json.dump({"github": g}, open(os.path.join(tmp, ".harness", "harness.json"), "w"))
 
 
-def write_plan_yaml(feat_dir, feat_name, task_statuses):
+def write_plan_yaml(feat_dir, feat_name, task_statuses, source_issues=None, approval=None):
     """A minimal plan.yaml — every REQUIRED_TASK_FIELDS key present — carrying only the
     `status` values a test cares about. Written as JSON text: JSON is valid YAML and this
-    avoids a second parser dependency in the test file itself."""
+    avoids a second parser dependency in the test file itself.
+
+    `source_issues` is OPTIONAL (T-02, FEAT-26) so every existing caller is unchanged when
+    it is omitted; when given, it is written as plan.yaml's own top-level `source_issues`
+    key, exactly the shape `parse_source_issues` reads.
+
+    `approval` is OPTIONAL (T-13): a dict written verbatim as plan.yaml's top-level
+    `approval:` key when given, omitted otherwise — every existing caller (none of which
+    cares about approval) is unchanged."""
     doc = {
         "schema": "plan/1",
         "feature": feat_name,
@@ -314,18 +440,26 @@ def write_plan_yaml(feat_dir, feat_name, task_statuses):
             for tid, status in task_statuses
         ],
     }
+    if source_issues is not None:
+        doc["source_issues"] = source_issues
+    if approval is not None:
+        doc["approval"] = approval
     with open(os.path.join(feat_dir, "plan.yaml"), "w", encoding="utf-8") as f:
         json.dump(doc, f)
 
 
 def stage_station(tmp, feat_name, task_statuses, board=True, sync=True, repo="implentio/fake",
-                   feature_status="Building", issues=None, parent=40, milestone=7):
+                   feature_status="Building", issues=None, parent=40, milestone=7, stations=None,
+                   approval=None, source_issues=None):
     """A plan.yaml-backed feature, wired for the T-03 station-write tests: harness.json's
     github.board (optionally), a plan.yaml carrying the given task statuses, and a
-    feature.json recording the given issues/parent so `load_recorded` needs no live sync."""
+    feature.json recording the given issues/parent so `load_recorded` needs no live sync.
+
+    `approval` and `source_issues` are OPTIONAL passthroughs to `write_plan_yaml` (T-13) —
+    every existing caller, which passes neither, is unchanged."""
     feat = os.path.join(tmp, ".harness", "features", feat_name)
     os.makedirs(feat)
-    write_harness_json_board(tmp, sync=sync, repo=repo, board=board)
+    write_harness_json_board(tmp, sync=sync, repo=repo, board=board, stations=stations)
     open(os.path.join(feat, "BRIEF.md"), "w").write(f"""# BRIEF — {feat_name} — station fixture
 
 ## Problem
@@ -344,7 +478,8 @@ Station fixture.
 
 status: approved
 """)
-    write_plan_yaml(feat, feat_name, task_statuses)
+    write_plan_yaml(feat, feat_name, task_statuses, source_issues=source_issues,
+                     approval=approval)
     write_feature_json(
         os.path.join(feat, "feature.json"),
         feature_id=feat_name, status=feature_status,
@@ -405,6 +540,15 @@ with tempfile.TemporaryDirectory() as tmp:
           any("milestones" in l and "SC-01" in l for l in log))
     task_create_lines = [l for l in log if "issue create" in l and re.search(r"\bT-0\d\b", l)]
     check("3 issues created", len(task_create_lines) == 3, str(log))
+    # T-16: the task title carries its own feature id, prefixed with the same em dash
+    # the parent title already uses at :746 — the exact argv sent, not just a substring
+    # or a count, per the harness-dev-ops rule against count-only assertions.
+    t01_argv = [l for l in task_create_lines if "T-01" in l]
+    check("T-01 issue create carries the exact title "
+          "\"FEAT-05-export-fix — T-01 — streaming export rebuild\" (T-16)",
+          len(t01_argv) == 1
+          and "--title FEAT-05-export-fix — T-01 — streaming export rebuild" in t01_argv[0],
+          str(t01_argv))
     parent_create_lines = [l for l in log if "issue create" in l and not re.search(r"\bT-0\d\b", l)]
     check("parent created and recorded",
           len(parent_create_lines) == 1
@@ -462,6 +606,9 @@ with tempfile.TemporaryDirectory() as tmp:
     check("close-task closes exactly one issue", r.returncode == 0 and len(closes) == 1, str(log))
     check("absorbed #12 #14 NOT closed",
           not any(" 12 " in l + " " for l in closes) and not any(" 14 " in l + " " for l in closes), str(closes))
+    # T-08: close-task's argv, verbatim — never inferred from the exit code alone.
+    check("close-task's issue close carries an explicit --reason completed (T-08)",
+          len(closes) == 1 and "--reason completed" in closes[0], str(closes))
 
     # --- ship closes the milestone
     open(os.path.join(tmp, "calls.log"), "w").close()
@@ -594,6 +741,25 @@ with tempfile.TemporaryDirectory() as tmpA:
           not any(re.search(r"\bissues/40\b", l) for l in logA)
           and not any(l.startswith("issue close 40") for l in logA),
           str(logA))
+    # T-08: each recorded sub-issue gets its OWN assertion — a fixture where one issue is
+    # missed must still fail, so no count-only check over the three lines below.
+    check("abandon labels sub-issue #41 abandoned",
+          any(l.startswith("issue edit 41") and "--repo implentio/fake" in l
+              and "--add-label abandoned" in l for l in logA),
+          str(logA))
+    check("abandon labels sub-issue #42 abandoned",
+          any(l.startswith("issue edit 42") and "--repo implentio/fake" in l
+              and "--add-label abandoned" in l for l in logA),
+          str(logA))
+    check("abandon labels sub-issue #43 abandoned",
+          any(l.startswith("issue edit 43") and "--repo implentio/fake" in l
+              and "--add-label abandoned" in l for l in logA),
+          str(logA))
+    check("abandon does NOT label an adopted parent that stays open",
+          not any(l.startswith("issue edit 40") for l in logA), str(logA))
+    check("ensure_labels sends colour b60205 for the abandoned label",
+          any(l.startswith("label create abandoned") and "--color b60205" in l for l in logA),
+          str(logA))
 
 # --- abandon: a created parent closes not_planned, via the same PATCH form as the subs
 with tempfile.TemporaryDirectory() as tmpB:
@@ -615,6 +781,15 @@ with tempfile.TemporaryDirectory() as tmpB:
           and len(parent40_calls) == 1
           and "state=closed" in parent40_calls[0] and "state_reason=not_planned" in parent40_calls[0]
           and not any(l.startswith("issue close 40") for l in logB),
+          str(logB))
+    # T-08: the sub-issue and the created parent each get their own assertion.
+    check("abandon labels sub-issue #41 abandoned",
+          any(l.startswith("issue edit 41") and "--repo implentio/fake" in l
+              and "--add-label abandoned" in l for l in logB),
+          str(logB))
+    check("abandon labels a created parent that closes",
+          any(l.startswith("issue edit 40") and "--repo implentio/fake" in l
+              and "--add-label abandoned" in l for l in logB),
           str(logB))
 
 # --- abandon: parent recorded with no parent_origin line at all — the specified default,
@@ -750,6 +925,9 @@ with tempfile.TemporaryDirectory() as tmpG:
           and not patch40G
           and bool(close_idxG) and bool(ms_idxG) and close_idxG[0] < ms_idxG[0],
           str(logG))
+    # T-08: ship's parent close carries the same explicit reason as close-task's, verbatim.
+    check("ship's parent close carries an explicit --reason completed (T-08)",
+          len(close40G) == 1 and "--reason completed" in close40G[0], str(close40G))
 
 # --- ship: an adopted parent is left open; the milestone still closes regardless (labelled here)
 with tempfile.TemporaryDirectory() as tmpH:
@@ -922,7 +1100,7 @@ json.dump({"feature_id": "F2"}, open(os.path.join(_d2, "feature.json"), "w"))
 _rec2 = _ghs.load_recorded(_d2)
 check("T-06C: a feature.json with no github: block returns the default, does not raise",
       _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
-                "attached": [], "issues": {}},
+                "attached": [], "issues": {}, "source_issues": []},
       str(_rec2))
 
 # ---------- fix1 Part B: three states must stay distinct, plus the fourth the operator's
@@ -938,14 +1116,14 @@ _dabsent = tempfile.mkdtemp()
 _recAbsent = _ghs.load_recorded(_dabsent)
 check("fix1 B row1a: absent feature.json returns the default rec, does not raise",
       _recAbsent == {"milestone": None, "parent": None, "parent_origin": None,
-                     "attached": [], "issues": {}},
+                     "attached": [], "issues": {}, "source_issues": []},
       str(_recAbsent))
 
 # Row 1b: file present, a dict, but NO github: key -> default rec (already _d2 above,
 # named here again for the fix1 spec's own enumeration).
 check("fix1 B row1b: dict present with no github key returns the default rec",
       _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
-                "attached": [], "issues": {}},
+                "attached": [], "issues": {}, "source_issues": []},
       str(_rec2))
 
 # Row 2: file present but a genuine ZERO-BYTE truncation -- the exact artifact
@@ -1009,7 +1187,7 @@ with open(_atomic_path, "rb") as _f:
 # A set() is not JSON-serializable — json.dump raises TypeError partway through encoding
 # the `github` value, after any truncating open() would already have destroyed the file.
 _bad_rec = {"milestone": 9, "parent": 40, "parent_origin": "created",
-            "attached": ["T-01"], "issues": {"T-01": {1, 2, 3}}}
+            "attached": ["T-01"], "issues": {"T-01": {1, 2, 3}}, "source_issues": []}
 try:
     _ghs.save_recorded(_datomic, _bad_rec)
 except (TypeError, Exception):
@@ -1028,7 +1206,7 @@ check("fix1 A: no leftover temp file after a failed save_recorded", _leftover ==
 # github: block is structurally impossible (a dict has one "github" key by construction) —
 # what matters now is that every key OUTSIDE github round-trips unchanged (T-05, FEAT-14). ----
 _REC = {"milestone": 9, "parent": 40, "parent_origin": "created",
-        "attached": ["T-01"], "issues": {"T-01": 41}}
+        "attached": ["T-01"], "issues": {"T-01": 41}, "source_issues": []}
 for _label, _doc in (
         ("no github block yet", {"feature_id": "F1", "status": "Building"}),
         ("an existing github block",
@@ -1081,6 +1259,154 @@ with tempfile.TemporaryDirectory() as tmpN:
           len(edits) == 2 and {"ITEM_326", "ITEM_40"} == {
               next(p for p in l.split() if p.startswith("ITEM_")) for l in edits},
           str(edits))
+
+# ---------- T-07: start-task must not drive a CLOSED card, or one already at Done, backwards
+# ----------
+
+# --- REGRESSION, #642's exact shape: issue closed, card already at Done, start-task invoked
+#     anyway. Must refuse: no station write of any kind reaches the fake (neither the
+#     sub-issue's nor the parent's), and exactly the refusal line prints. Proven RED against
+#     the pre-fix code separately (see the T-07 receipt) — this fixture is what reproduced it.
+with tempfile.TemporaryDirectory() as tmpN2:
+    install_gh(tmpN2, FAKE_GH_STATIONS)
+    featN2 = stage_station(
+        tmpN2, "FEAT-09-start-task-closed-done",
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        issues={"T-01": 41, "T-02": 326},
+        parent=40,
+    )
+    r = run(["start-task", featN2, "T-02"], tmpN2,
+            {"FACTORY_GH": os.path.join(tmpN2, "gh"),
+             "GUARD_ISSUE": "326", "GUARD_STATE": "CLOSED", "GUARD_STATION_NAME": "Done"})
+    logN2 = calls(tmpN2)
+    check("#642 replay: exits 0 (a refusal is not a failure, D-02/DEC-146)",
+          r.returncode == 0, r.stdout + r.stderr)
+    check("#642 replay: no station write of any kind reaches the fake",
+          not any("item-edit" in l for l in logN2), str(logN2))
+    check("#642 replay: refuses, naming the issue, the task id, the current station and why",
+          "gh-sync: refusing #326" in r.stdout and "T-02" in r.stdout and "Done" in r.stdout,
+          r.stdout)
+
+# --- an open issue at Backlog is still moved to Building — the guard changes nothing for the
+#     case it was never meant to touch.
+with tempfile.TemporaryDirectory() as tmpN3:
+    install_gh(tmpN3, FAKE_GH_STATIONS)
+    featN3 = stage_station(
+        tmpN3, "FEAT-09-start-task-open-backlog",
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        issues={"T-01": 41, "T-02": 326},
+        parent=40,
+    )
+    r = run(["start-task", featN3, "T-02"], tmpN3,
+            {"FACTORY_GH": os.path.join(tmpN3, "gh"),
+             "GUARD_ISSUE": "326", "GUARD_STATE": "OPEN", "GUARD_STATION_NAME": "Backlog"})
+    logN3 = calls(tmpN3)
+    editsN3 = [l for l in logN3 if "project item-edit" in l]
+    check("open at Backlog: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("open at Backlog: still writes the sub-issue's station to Building",
+          any("--id ITEM_326" in l and "--single-select-option-id OPT_BUILDING" in l
+              for l in editsN3),
+          str(editsN3))
+    check("open at Backlog: still writes the parent's station too",
+          any("--id ITEM_40" in l and "--single-select-option-id OPT_BUILDING" in l
+              for l in editsN3),
+          str(editsN3))
+
+# --- an OPEN issue whose card already reads Done is refused — the card's current station
+#     alone is sufficient, independent of the issue's open/closed state.
+with tempfile.TemporaryDirectory() as tmpN4:
+    install_gh(tmpN4, FAKE_GH_STATIONS)
+    featN4 = stage_station(
+        tmpN4, "FEAT-09-start-task-open-done",
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        issues={"T-01": 41, "T-02": 326},
+        parent=40,
+    )
+    r = run(["start-task", featN4, "T-02"], tmpN4,
+            {"FACTORY_GH": os.path.join(tmpN4, "gh"),
+             "GUARD_ISSUE": "326", "GUARD_STATE": "OPEN", "GUARD_STATION_NAME": "Done"})
+    logN4 = calls(tmpN4)
+    check("open but card at Done: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("open but card at Done: refused, no station write reaches the fake",
+          not any("item-edit" in l for l in logN4), str(logN4))
+    check("open but card at Done: refusal line printed",
+          "gh-sync: refusing #326" in r.stdout, r.stdout)
+
+# --- a CLOSED issue whose card reads Building (not yet Done) is STILL refused — the issue's
+#     state alone is sufficient, independent of the card's current station.
+with tempfile.TemporaryDirectory() as tmpN5:
+    install_gh(tmpN5, FAKE_GH_STATIONS)
+    featN5 = stage_station(
+        tmpN5, "FEAT-09-start-task-closed-building",
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        issues={"T-01": 41, "T-02": 326},
+        parent=40,
+    )
+    r = run(["start-task", featN5, "T-02"], tmpN5,
+            {"FACTORY_GH": os.path.join(tmpN5, "gh"),
+             "GUARD_ISSUE": "326", "GUARD_STATE": "CLOSED", "GUARD_STATION_NAME": "Building"})
+    logN5 = calls(tmpN5)
+    check("closed but card at Building: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("closed but card at Building: refused, no station write reaches the fake",
+          not any("item-edit" in l for l in logN5), str(logN5))
+    check("closed but card at Building: refusal line printed",
+          "gh-sync: refusing #326" in r.stdout, r.stdout)
+
+# --- a board read that raises (network blip mid-guard) must NOT gate: falls through to the
+#     original behaviour and still writes Building for both the sub-issue and the parent.
+with tempfile.TemporaryDirectory() as tmpN6:
+    install_gh(tmpN6, FAKE_GH_STATIONS_GUARD_READ_FAILS)
+    featN6 = stage_station(
+        tmpN6, "FEAT-09-start-task-guard-read-fails",
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        issues={"T-01": 41, "T-02": 326},
+        parent=40,
+    )
+    r = run(["start-task", featN6, "T-02"], tmpN6, {"FACTORY_GH": os.path.join(tmpN6, "gh")})
+    logN6 = calls(tmpN6)
+    editsN6 = [l for l in logN6 if "project item-edit" in l]
+    check("guard read fails: exits 0 (a failed guard read is not a gate either)",
+          r.returncode == 0, r.stdout + r.stderr)
+    check("guard read fails: falls through and still writes the sub-issue's station",
+          any("--id ITEM_326" in l and "--single-select-option-id OPT_BUILDING" in l
+              for l in editsN6),
+          str(editsN6))
+    check("guard read fails: falls through and still writes the parent's station",
+          any("--id ITEM_40" in l and "--single-select-option-id OPT_BUILDING" in l
+              for l in editsN6),
+          str(editsN6))
+    check("guard read fails: one ERROR line printed, not a silent swallow",
+          "gh-sync: ERROR" in r.stderr and "326" in r.stderr, r.stderr)
+
+# --- DE-HARDCODING: the board's `building` station is spelled "Doing", not "Building". A
+#     re-hardcoded literal "Building" at the call site would select the wrong option (or
+#     none at all); the write must select OPT_DOING, and the printed line must say "Doing".
+CUSTOM_STATIONS = {"backlog": "Todo", "plan": "Planned", "ready": "Queued",
+                    "building": "Doing", "review": "Checking", "done": "Shipped"}
+with tempfile.TemporaryDirectory() as tmpN7:
+    install_gh(tmpN7, FAKE_GH_STATIONS_CUSTOM)
+    featN7 = stage_station(
+        tmpN7, "FEAT-09-start-task-custom-stations",
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        issues={"T-01": 41, "T-02": 326},
+        parent=40,
+        stations=CUSTOM_STATIONS,
+    )
+    r = run(["start-task", featN7, "T-02"], tmpN7,
+            {"FACTORY_GH": os.path.join(tmpN7, "gh"),
+             "GUARD_ISSUE": "326", "GUARD_STATE": "OPEN", "GUARD_STATION_NAME": "Todo"})
+    logN7 = calls(tmpN7)
+    editsN7 = [l for l in logN7 if "project item-edit" in l]
+    check("custom stations: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("custom stations: sets the sub-issue's station to the DECLARED building option "
+          "(OPT_DOING), not the hardcoded literal OPT_BUILDING",
+          any("--id ITEM_326" in l and "--single-select-option-id OPT_DOING" in l
+              for l in editsN7)
+          and not any("OPT_BUILDING" in l for l in editsN7),
+          str(editsN7))
+    check("custom stations: prints the declared name (\"Doing\"), never the literal \"Building\"",
+          "-> Doing" in r.stdout and "-> Building" not in r.stdout,
+          r.stdout)
 
 # --- close-task on the last outstanding task sets the parent to Review and attempts the
 #     sub-issue close — and the parent write happens even when the close FAILS, which pins
@@ -1217,6 +1543,198 @@ with tempfile.TemporaryDirectory() as tmpW:
           r.returncode == 2 and "station_field" in r.stderr and "station_field" not in r.stdout,
           f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
 
+# ---------- T-13: gh-sync.py status <feature-dir> <Status> ----------
+# Couples recording feature.json's phase status to the station writes that event implies.
+# Every case sets BOTH FACTORY_GH and GH_SYNC_GH (D-11) — gh_board's calls go through
+# factory_gh, which reads FACTORY_GH, not GH_SYNC_GH.
+
+# --- an unknown Status value is refused, exit 2, before anything is recorded or written.
+with tempfile.TemporaryDirectory() as tmpSt1:
+    install_gh(tmpSt1, FAKE_GH_STATIONS)
+    featSt1 = stage_station(
+        tmpSt1, "FEAT-33-status-unknown",
+        [("T-01", "done")],
+        issues={"T-01": 326},
+        feature_status="Building",
+    )
+    r = run(["status", featSt1, "Banana"], tmpSt1, {"FACTORY_GH": os.path.join(tmpSt1, "gh")})
+    check("status: an unknown value is refused with exit 2",
+          r.returncode == 2, r.stdout + r.stderr)
+    check("status: the refusal names the offending value",
+          "Banana" in (r.stdout + r.stderr), r.stdout + r.stderr)
+    check("status: an unknown value writes no station of any kind",
+          not any("item-edit" in l for l in calls(tmpSt1)), str(calls(tmpSt1)))
+    check("status: an unknown value leaves feature.json's status unrecorded",
+          read_feature_json(os.path.join(featSt1, "feature.json"))["status"] == "Building",
+          read_feature_json(os.path.join(featSt1, "feature.json")))
+
+# --- status Ready on a signed plan moves every recorded T-NN sub-issue to the declared
+#     ready station and touches the parent NOWHERE (D-18) — assert the EXACT SET, never a
+#     count: a count of three is satisfied by two sub-issues plus the parent.
+with tempfile.TemporaryDirectory() as tmpSt2:
+    install_gh(tmpSt2, FAKE_GH_STATIONS)
+    featSt2 = stage_station(
+        tmpSt2, "FEAT-33-status-ready",
+        [("T-01", "done"), ("T-02", "building"), ("T-03", "pending")],
+        issues={"T-01": 41, "T-02": 42, "T-03": 43},
+        parent=40,
+        approval={"status": "approved"},
+    )
+    r = run(["status", featSt2, "Ready"], tmpSt2, {"FACTORY_GH": os.path.join(tmpSt2, "gh")})
+    logSt2 = calls(tmpSt2)
+    editsSt2 = [l for l in logSt2 if "project item-edit" in l]
+    ids_written = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt2}
+    check("status Ready: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("status Ready: writes exactly the three sub-issues, never the parent",
+          ids_written == {"ITEM_41", "ITEM_42", "ITEM_43"}, str(editsSt2))
+    check("status Ready: every write selects the declared Ready option",
+          all("--single-select-option-id OPT_READY" in l for l in editsSt2), str(editsSt2))
+    check("status Ready: feature.json status recorded as Ready",
+          read_feature_json(os.path.join(featSt2, "feature.json"))["status"] == "Ready",
+          read_feature_json(os.path.join(featSt2, "feature.json")))
+
+# --- status Review moves the PARENT and every recorded T-NN sub-issue, and only those.
+with tempfile.TemporaryDirectory() as tmpSt3:
+    install_gh(tmpSt3, FAKE_GH_STATIONS)
+    featSt3 = stage_station(
+        tmpSt3, "FEAT-33-status-review",
+        [("T-01", "done"), ("T-02", "done")],
+        issues={"T-01": 41, "T-02": 42},
+        parent=40,
+    )
+    r = run(["status", featSt3, "Review"], tmpSt3, {"FACTORY_GH": os.path.join(tmpSt3, "gh")})
+    logSt3 = calls(tmpSt3)
+    editsSt3 = [l for l in logSt3 if "project item-edit" in l]
+    ids_written3 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt3}
+    check("status Review: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("status Review: writes exactly the parent plus every sub-issue",
+          ids_written3 == {"ITEM_40", "ITEM_41", "ITEM_42"}, str(editsSt3))
+    check("status Review: every write selects the declared Review option",
+          all("--single-select-option-id OPT_REVIEW" in l for l in editsSt3), str(editsSt3))
+
+# --- status Plan, Done and Abandoned each write NO station at all — the harness never
+#     writes those three columns (Plan is board-station.py's, Done is GitHub's own workflow,
+#     Abandoned has no column at all, D-03/DEC-192).
+for _st3_status in ("Plan", "Done", "Abandoned"):
+    with tempfile.TemporaryDirectory() as tmpSt4:
+        install_gh(tmpSt4, FAKE_GH_STATIONS)
+        featSt4 = stage_station(
+            tmpSt4, f"FEAT-33-status-{_st3_status.lower()}",
+            [("T-01", "done")],
+            issues={"T-01": 41},
+            parent=40,
+        )
+        r = run(["status", featSt4, _st3_status], tmpSt4,
+                {"FACTORY_GH": os.path.join(tmpSt4, "gh")})
+        logSt4 = calls(tmpSt4)
+        check(f"status {_st3_status}: exits 0", r.returncode == 0, r.stdout + r.stderr)
+        check(f"status {_st3_status}: writes NO station at all",
+              not any("item-edit" in l for l in logSt4), str(logSt4))
+        check(f"status {_st3_status}: feature.json status recorded",
+              read_feature_json(os.path.join(featSt4, "feature.json"))["status"] == _st3_status,
+              read_feature_json(os.path.join(featSt4, "feature.json")))
+
+# --- SC-14's fixture: status Ready on a feature with ZERO recorded sub-issues writes
+#     nothing and prints one line — proves there is no fallback to the parent.
+with tempfile.TemporaryDirectory() as tmpSt5:
+    install_gh(tmpSt5, FAKE_GH_STATIONS)
+    featSt5 = stage_station(
+        tmpSt5, "FEAT-33-status-ready-zero-subissues",
+        [("T-01", "pending")],
+        issues={},
+        parent=40,
+        approval={"status": "approved"},
+    )
+    r = run(["status", featSt5, "Ready"], tmpSt5, {"FACTORY_GH": os.path.join(tmpSt5, "gh")})
+    logSt5 = calls(tmpSt5)
+    check("status Ready, zero sub-issues: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("status Ready, zero sub-issues: no set_station call at all — no parent fallback",
+          not any("item-edit" in l for l in logSt5), str(logSt5))
+    check("status Ready, zero sub-issues: prints one line saying there is nothing to move",
+          "no sub-issues recorded" in r.stdout, r.stdout)
+
+# --- refusal: status Ready with an UNSIGNED plan (no approval.status: approved) is
+#     refused, exit 2, and nothing is recorded or written.
+with tempfile.TemporaryDirectory() as tmpSt6:
+    install_gh(tmpSt6, FAKE_GH_STATIONS)
+    featSt6 = stage_station(
+        tmpSt6, "FEAT-33-status-ready-unsigned",
+        [("T-01", "pending")],
+        issues={"T-01": 41},
+        parent=40,
+        feature_status="Plan",
+        approval=None,
+    )
+    r = run(["status", featSt6, "Ready"], tmpSt6, {"FACTORY_GH": os.path.join(tmpSt6, "gh")})
+    check("status Ready, unsigned plan: refused with exit 2",
+          r.returncode == 2, r.stdout + r.stderr)
+    check("status Ready, unsigned plan: names the value Ready in the refusal",
+          "Ready" in (r.stdout + r.stderr), r.stdout + r.stderr)
+    check("status Ready, unsigned plan: no station write reaches the fake",
+          not any("item-edit" in l for l in calls(tmpSt6)), str(calls(tmpSt6)))
+    check("status Ready, unsigned plan: feature.json status is NOT recorded as Ready",
+          read_feature_json(os.path.join(featSt6, "feature.json"))["status"] == "Plan",
+          read_feature_json(os.path.join(featSt6, "feature.json")))
+
+# --- refusal: status Review while a task is not yet done is refused, exit 2, and nothing
+#     is recorded or written.
+with tempfile.TemporaryDirectory() as tmpSt7:
+    install_gh(tmpSt7, FAKE_GH_STATIONS)
+    featSt7 = stage_station(
+        tmpSt7, "FEAT-33-status-review-unfinished",
+        [("T-01", "done"), ("T-02", "building")],
+        issues={"T-01": 41, "T-02": 42},
+        parent=40,
+        feature_status="Building",
+    )
+    r = run(["status", featSt7, "Review"], tmpSt7, {"FACTORY_GH": os.path.join(tmpSt7, "gh")})
+    check("status Review, unfinished tasks: refused with exit 2",
+          r.returncode == 2, r.stdout + r.stderr)
+    check("status Review, unfinished tasks: names the value Review in the refusal",
+          "Review" in (r.stdout + r.stderr), r.stdout + r.stderr)
+    check("status Review, unfinished tasks: no station write reaches the fake",
+          not any("item-edit" in l for l in calls(tmpSt7)), str(calls(tmpSt7)))
+    check("status Review, unfinished tasks: feature.json status is NOT recorded as Review",
+          read_feature_json(os.path.join(featSt7, "feature.json"))["status"] == "Building",
+          read_feature_json(os.path.join(featSt7, "feature.json")))
+
+# --- one sub-issue's set_station raising must not stop the remaining sub-issues from
+#     being written, exit 0, one stderr line, and feature.json's status still recorded.
+#     Custom fake: item-edit fails ONLY for ITEM_41; ITEM_42 and ITEM_43 still succeed.
+FAKE_GH_STATIONS_FIRST_ITEM_FAILS = FAKE_GH_STATIONS.replace(
+    '  *"project item-edit"*)\n    exit 0 ;;',
+    '  *"project item-edit"*"--id ITEM_41 "*)\n'
+    '    echo "simulated item-edit failure for ITEM_41" >&2\n'
+    '    exit 1 ;;\n'
+    '  *"project item-edit"*)\n    exit 0 ;;',
+)
+assert 'ITEM_41' in FAKE_GH_STATIONS_FIRST_ITEM_FAILS and (
+    FAKE_GH_STATIONS_FIRST_ITEM_FAILS != FAKE_GH_STATIONS), "fixture patch did not apply"
+with tempfile.TemporaryDirectory() as tmpSt8:
+    install_gh(tmpSt8, FAKE_GH_STATIONS_FIRST_ITEM_FAILS)
+    featSt8 = stage_station(
+        tmpSt8, "FEAT-33-status-ready-one-fails",
+        [("T-01", "done"), ("T-02", "done"), ("T-03", "done")],
+        issues={"T-01": 41, "T-02": 42, "T-03": 43},
+        parent=40,
+        approval={"status": "approved"},
+    )
+    r = run(["status", featSt8, "Ready"], tmpSt8, {"FACTORY_GH": os.path.join(tmpSt8, "gh")})
+    logSt8 = calls(tmpSt8)
+    editsSt8 = [l for l in logSt8 if "project item-edit" in l]
+    ids8 = {next(p for p in l.split() if p.startswith("ITEM_")) for l in editsSt8}
+    check("status Ready, one write raises: process still exits 0", r.returncode == 0,
+          r.stdout + r.stderr)
+    check("status Ready, one write raises: ITEM_41's write was attempted (and is what failed)",
+          "ITEM_41" in ids8, str(editsSt8))
+    check("status Ready, one write raises: the REMAINING sub-issues were still written",
+          {"ITEM_42", "ITEM_43"}.issubset(ids8), str(editsSt8))
+    check("status Ready, one write raises: one stderr ERROR line naming the issue",
+          "gh-sync: ERROR" in r.stderr and "41" in r.stderr, r.stderr)
+    check("status Ready, one write raises: feature.json status still recorded as Ready",
+          read_feature_json(os.path.join(featSt8, "feature.json"))["status"] == "Ready",
+          read_feature_json(os.path.join(featSt8, "feature.json")))
+
 # ---- FEAT-21 T-10: the root walk-up is depth-agnostic ----------------------------
 # migrated_depth: a feature dir one segment deeper than the old arithmetic assumed.
 # The fixed three-level climb would resolve <tmp>/.harness and find no harness.json
@@ -1321,6 +1839,289 @@ with tempfile.TemporaryDirectory() as tmpV:
           and all(after_docV.get(k) == before_docV.get(k) for k in other_keys_V)
           and set(after_docV.keys()) == set(before_docV.keys()),
           f"before={before_docV} after={after_docV}")
+
+# ---------- T-02 (FEAT-26): source_issues mirrored from plan.yaml into feature.json,
+# threaded through save_recorded's fixed key set so no later save erases it ------------
+
+# --- open records source_issues from the plan.yaml the feature actually carries
+with tempfile.TemporaryDirectory() as tmpX1:
+    install_gh(tmpX1)
+    featX1 = stage(tmpX1, feat_name="FEAT-26-source-issues")
+    write_plan_yaml(featX1, "FEAT-26-source-issues",
+                     [("T-01", "pending"), ("T-02", "pending"), ("T-03", "pending")],
+                     source_issues=[101, 102])
+    r = run(["open", featX1], tmpX1)
+    docX1 = read_feature_json(os.path.join(featX1, "feature.json"))
+    ghX1 = docX1.get("github") or {}
+    check("open records source_issues from plan.yaml",
+          r.returncode == 0 and ghX1.get("source_issues") == [101, 102],
+          f"rc={r.returncode} github={ghX1}")
+
+# --- source_issues must not be erased by any of the LATER save_recorded calls a full
+#     `open` run makes after it is set (T-02's whole point). Three tasks -> three issue
+#     creates, so this fixture drives 9 total save_recorded calls: 1 after the milestone
+#     create, 1 after the parent create, 3 after each issue create, 3 after each attach,
+#     and 1 unconditional final save at the end of cmd_open — more than one happens AFTER
+#     rec["source_issues"] is set (which is before the milestone save, the first of the 9).
+with tempfile.TemporaryDirectory() as tmpX2:
+    install_gh(tmpX2)
+    featX2 = stage(tmpX2, feat_name="FEAT-26-source-issues-survive")
+    write_plan_yaml(featX2, "FEAT-26-source-issues-survive",
+                     [("T-01", "pending"), ("T-02", "pending"), ("T-03", "pending")],
+                     source_issues=[201, 202, 203])
+    r = run(["open", featX2], tmpX2)
+    logX2 = calls(tmpX2)
+    task_create_linesX2 = [l for l in logX2 if "issue create" in l and re.search(r"\bT-0\d\b", l)]
+    docX2 = read_feature_json(os.path.join(featX2, "feature.json"))
+    ghX2 = docX2.get("github") or {}
+    check("source_issues survives every save during a full open run",
+          r.returncode == 0
+          and len(task_create_linesX2) == 3   # 3 issue creates -> 3 of the 9 total saves
+          and ghX2.get("source_issues") == [201, 202, 203],
+          f"rc={r.returncode} task_creates={len(task_create_linesX2)} github={ghX2}")
+
+# --- a feature with no plan.yaml (PLAN.md-only, stage()'s default) records source_issues
+#     as an empty list rather than failing or omitting the key
+with tempfile.TemporaryDirectory() as tmpX3:
+    install_gh(tmpX3)
+    featX3 = stage(tmpX3, feat_name="FEAT-26-no-source-issues")
+    r = run(["open", featX3], tmpX3)
+    docX3 = read_feature_json(os.path.join(featX3, "feature.json"))
+    ghX3 = docX3.get("github") or {}
+    check("open on a plan with no source_issues records none and still succeeds",
+          r.returncode == 0 and ghX3.get("source_issues") == [],
+          f"rc={r.returncode} github={ghX3}")
+
+# --- save_recorded refuses, loudly, when feature.json is absent — the orchestrator
+#     instantiates it from templates/feature.json on the first cycle; a fresh document
+#     written here would be missing feature-schema.json's eight required keys
+_dabsentT02 = tempfile.mkdtemp()
+_recAbsentT02 = {"milestone": None, "parent": None, "parent_origin": None, "attached": [],
+                 "issues": {}, "source_issues": []}
+try:
+    _ghs.save_recorded(_dabsentT02, _recAbsentT02)
+    check("save_recorded refuses when feature.json is absent", False,
+          "save_recorded returned instead of raising SystemExit")
+except SystemExit as e:
+    _msgT02 = str(e)
+    check("save_recorded refuses when feature.json is absent",
+          "feature.json" in _msgT02
+          and os.path.join(_dabsentT02, "feature.json") in _msgT02
+          and "absent" in _msgT02,
+          _msgT02)
+
+# ---------- T-03 (FEAT-26): record-pr derives and records the PR number from the recorded
+# branch, and cmd_ship threads it in ahead of the terminal status write ------------------
+
+FAKE_GH_PR_LIST = """#!/bin/bash
+echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
+case "$*" in
+  *"pr list"*)
+    echo "$PR_LIST_JSON"
+    exit 0 ;;
+esac
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "api -X")
+    case "$*" in
+      *milestones\\ -f*) echo '{"number": 7}' ;;
+      *) echo '{}' ;;
+    esac ;;
+  "issue create")
+    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
+    echo "https://github.com/implentio/fake/issues/$n" ;;
+  "issue close") exit 0 ;;
+  "label create") exit 0 ;;
+esac
+exit 0
+"""
+
+
+def _pr_fixture(path, feat_name, branch, pr, status="Review", github=None):
+    """A minimal, schema-shaped feature.json carrying `branch` and `pr` (T-03, FEAT-26) —
+    the two fields record-pr reads and writes. `github` is added only when a case needs
+    one (the ship case, so cmd_ship's milestone/parent close has something to act on)."""
+    fields = dict(
+        feature_id=feat_name, branch=branch, pr=pr, status=status,
+        review_sha="none", cycles_used=1, max_total_cycles=10, runs=[],
+    )
+    if github is not None:
+        fields["github"] = github
+    write_feature_json(path, **fields)
+
+
+# --- record-pr writes the number when the branch has exactly one merged PR
+with tempfile.TemporaryDirectory() as tmpPR1:
+    install_gh(tmpPR1, FAKE_GH_PR_LIST)
+    featPR1 = stage(tmpPR1, feat_name="FEAT-26-pr-one")
+    fjPR1 = os.path.join(featPR1, "feature.json")
+    _pr_fixture(fjPR1, "FEAT-26-pr-one", "feat/pr-one", None)
+    r = run(["record-pr", featPR1], tmpPR1, {"PR_LIST_JSON": '[{"number": 501}]'})
+    docPR1 = read_feature_json(fjPR1)
+    logPR1 = calls(tmpPR1)
+    check("record-pr writes the number when the branch has exactly one merged PR",
+          r.returncode == 0 and docPR1.get("pr") == 501
+          and any("pr list" in l and "--head feat/pr-one" in l and "--state merged" in l
+                  for l in logPR1),
+          f"rc={r.returncode} pr={docPR1.get('pr')} log={logPR1}")
+
+# --- record-pr leaves pr null when the branch has no merged PR
+with tempfile.TemporaryDirectory() as tmpPR2:
+    install_gh(tmpPR2, FAKE_GH_PR_LIST)
+    featPR2 = stage(tmpPR2, feat_name="FEAT-26-pr-zero")
+    fjPR2 = os.path.join(featPR2, "feature.json")
+    _pr_fixture(fjPR2, "FEAT-26-pr-zero", "feat/pr-zero", None)
+    r = run(["record-pr", featPR2], tmpPR2, {"PR_LIST_JSON": "[]"})
+    docPR2 = read_feature_json(fjPR2)
+    check("record-pr leaves pr null when the branch has no merged PR",
+          r.returncode == 0 and docPR2.get("pr") is None,
+          f"rc={r.returncode} pr={docPR2.get('pr')}")
+
+# --- record-pr leaves pr null when the branch has two merged PRs — the exactly-one rule,
+#     not first-match (feat/harness-native-foundation carries 15 and 4)
+with tempfile.TemporaryDirectory() as tmpPR3:
+    install_gh(tmpPR3, FAKE_GH_PR_LIST)
+    featPR3 = stage(tmpPR3, feat_name="FEAT-26-pr-two")
+    fjPR3 = os.path.join(featPR3, "feature.json")
+    _pr_fixture(fjPR3, "FEAT-26-pr-two", "feat/harness-native-foundation", None)
+    r = run(["record-pr", featPR3], tmpPR3,
+            {"PR_LIST_JSON": '[{"number": 15}, {"number": 4}]'})
+    docPR3 = read_feature_json(fjPR3)
+    check("record-pr leaves pr null when the branch has two merged PRs",
+          r.returncode == 0 and docPR3.get("pr") is None,
+          f"rc={r.returncode} pr={docPR3.get('pr')}")
+
+# --- record-pr never overwrites a pr that is already an integer — the fake gh returns a
+#     DIFFERENT number than the one on disk, so a fixture that would pass by coincidence
+#     cannot, and no gh pr list call is even made (the check fires before the query).
+with tempfile.TemporaryDirectory() as tmpPR4:
+    install_gh(tmpPR4, FAKE_GH_PR_LIST)
+    featPR4 = stage(tmpPR4, feat_name="FEAT-26-pr-recorded")
+    fjPR4 = os.path.join(featPR4, "feature.json")
+    _pr_fixture(fjPR4, "FEAT-26-pr-recorded", "feat/pr-recorded", 314)
+    r = run(["record-pr", featPR4], tmpPR4, {"PR_LIST_JSON": '[{"number": 999}]'})
+    docPR4 = read_feature_json(fjPR4)
+    logPR4 = calls(tmpPR4)
+    check("record-pr never overwrites a pr that is already an integer",
+          r.returncode == 0 and docPR4.get("pr") == 314
+          and not any("pr list" in l for l in logPR4),
+          f"rc={r.returncode} pr={docPR4.get('pr')} log={logPR4}")
+
+# --- record-pr --pr writes the number given without querying
+with tempfile.TemporaryDirectory() as tmpPR5:
+    install_gh(tmpPR5, FAKE_GH_PR_LIST)
+    featPR5 = stage(tmpPR5, feat_name="FEAT-26-pr-explicit")
+    fjPR5 = os.path.join(featPR5, "feature.json")
+    _pr_fixture(fjPR5, "FEAT-26-pr-explicit", "feat/pr-explicit", None)
+    r = run(["record-pr", featPR5, "--pr", "88"], tmpPR5,
+            {"PR_LIST_JSON": '[{"number": 999}]'})
+    docPR5 = read_feature_json(fjPR5)
+    logPR5 = calls(tmpPR5)
+    check("record-pr --pr writes the number given without querying",
+          r.returncode == 0 and docPR5.get("pr") == 88
+          and not any("pr list" in l for l in logPR5),
+          f"rc={r.returncode} pr={docPR5.get('pr')} log={logPR5}")
+
+# --- ship records the pr and then the status
+with tempfile.TemporaryDirectory() as tmpPR6:
+    install_gh(tmpPR6, FAKE_GH_PR_LIST)
+    featPR6 = stage(tmpPR6, feat_name="FEAT-26-pr-ship")
+    fjPR6 = os.path.join(featPR6, "feature.json")
+    _pr_fixture(fjPR6, "FEAT-26-pr-ship", "feat/pr-ship", None, status="Review",
+                github={"milestone": 7, "parent": 40, "parent_origin": "created",
+                        "attached": ["T-01"], "issues": {"T-01": 41}})
+    r = run(["ship", featPR6], tmpPR6, {"PR_LIST_JSON": '[{"number": 55}]'})
+    docPR6 = read_feature_json(fjPR6)
+    check("ship records the pr and then the status",
+          r.returncode == 0 and docPR6.get("pr") == 55 and docPR6.get("status") == "Done",
+          f"rc={r.returncode} pr={docPR6.get('pr')} status={docPR6.get('status')!r}")
+
+# --- record-pr exits 0 on every branch case (one, zero, and two merged PRs together)
+with tempfile.TemporaryDirectory() as tmpPR7:
+    install_gh(tmpPR7, FAKE_GH_PR_LIST)
+    rcs = []
+    for i, pr_list_json in enumerate(('[{"number": 71}]', "[]", '[{"number": 8}, {"number": 9}]')):
+        featPR7 = stage(tmpPR7, feat_name=f"FEAT-26-pr-exit0-{i}")
+        fjPR7 = os.path.join(featPR7, "feature.json")
+        _pr_fixture(fjPR7, f"FEAT-26-pr-exit0-{i}", f"feat/pr-exit0-{i}", None)
+        r = run(["record-pr", featPR7], tmpPR7, {"PR_LIST_JSON": pr_list_json})
+        rcs.append(r.returncode)
+    check("record-pr exits 0 on every branch case", rcs == [0, 0, 0], str(rcs))
+
+# --- MF-1: --pr with a non-numeric value is a caller error at the parse boundary, never
+#     an uncaught ValueError traceback (T-03's own contract: never die inside _record_pr,
+#     but main()'s flag parse is allowed to reject a caller mistake loudly)
+with tempfile.TemporaryDirectory() as tmpPR8:
+    install_gh(tmpPR8, FAKE_GH_PR_LIST)
+    featPR8 = stage(tmpPR8, feat_name="FEAT-26-pr-non-numeric")
+    fjPR8 = os.path.join(featPR8, "feature.json")
+    _pr_fixture(fjPR8, "FEAT-26-pr-non-numeric", "feat/pr-non-numeric", None)
+    r = run(["record-pr", featPR8, "--pr", "abc"], tmpPR8)
+    check("record-pr --pr abc exits non-zero with no traceback",
+          r.returncode != 0
+          and "Traceback (most recent call last)" not in (r.stdout + r.stderr)
+          and "--pr" in (r.stdout + r.stderr),
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+# ---------- T-04 (FEAT-26): closes emits the pull-request-body closing keywords derived
+# from the recorded source tickets, and nothing else ----------------------------------
+
+
+def _closes_fixture(tmp, feat_name, github=None):
+    """A bare feature dir carrying only feature.json — closes needs no BRIEF/PLAN/board
+    config at all (it makes no GitHub call), so stage()'s full scaffold is not used."""
+    feat = os.path.join(tmp, ".harness", "features", feat_name)
+    os.makedirs(feat)
+    fields = dict(feature_id=feat_name, status="Building")
+    if github is not None:
+        fields["github"] = github
+    write_feature_json(os.path.join(feat, "feature.json"), **fields)
+    return feat
+
+
+# --- closes emits one line per recorded source issue in order — deliberately NOT
+#     ascending on disk, so a sort would be caught
+with tempfile.TemporaryDirectory() as tmpC1:
+    install_gh(tmpC1)
+    featC1 = _closes_fixture(tmpC1, "FEAT-26-closes-order",
+                              github={"source_issues": [305, 101, 220]})
+    r = run(["closes", featC1], tmpC1)
+    check("closes emits one line per recorded source issue in order",
+          r.returncode == 0 and r.stdout == "Closes #305\nCloses #101\nCloses #220\n",
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+# --- closes emits nothing at exit 0 when source_issues is empty
+with tempfile.TemporaryDirectory() as tmpC2:
+    install_gh(tmpC2)
+    featC2 = _closes_fixture(tmpC2, "FEAT-26-closes-empty",
+                              github={"source_issues": []})
+    r = run(["closes", featC2], tmpC2)
+    check("closes emits nothing at exit 0 when source_issues is empty",
+          r.returncode == 0 and r.stdout == "",
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+# --- closes emits nothing at exit 0 when source_issues is absent (no github: block at
+#     all — the legitimate first-sync shape load_recorded returns a default for)
+with tempfile.TemporaryDirectory() as tmpC3:
+    install_gh(tmpC3)
+    featC3 = _closes_fixture(tmpC3, "FEAT-26-closes-absent", github=None)
+    r = run(["closes", featC3], tmpC3)
+    check("closes emits nothing at exit 0 when source_issues is absent",
+          r.returncode == 0 and r.stdout == "",
+          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+
+# --- closes makes no gh call at all — asserted against the fake gh's own call log, not
+#     merely against the exit code, even though a real (working) gh is on PATH for it to
+#     call
+with tempfile.TemporaryDirectory() as tmpC4:
+    install_gh(tmpC4)
+    featC4 = _closes_fixture(tmpC4, "FEAT-26-closes-no-gh",
+                              github={"source_issues": [9]})
+    r = run(["closes", featC4], tmpC4)
+    logC4 = calls(tmpC4)
+    check("closes makes no gh call at all",
+          r.returncode == 0 and r.stdout == "Closes #9\n" and logC4 == [],
+          f"rc={r.returncode} stdout={r.stdout!r} log={logC4}")
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")
 sys.exit(1 if fails else 0)

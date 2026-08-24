@@ -1,0 +1,31 @@
+board_lifecycle: workflow detection matches by NAME only -- ProjectV2Workflow exposes neither trigger nor action, so a workflow the operator renamed is reported MISSING rather than assumed present
+board_lifecycle: STATION: issue #297 reads 'Building', expected 'Done'
+board_lifecycle: STATION: issue #296 reads 'Building', expected 'Done'
+board_lifecycle: STATION: issue #152 reads 'Building', expected 'Done'
+board_lifecycle: STATION: issue #83 reads 'Building', expected 'Done'
+board_lifecycle: STATION: issue #49 reads 'Building', expected 'Done'
+board_lifecycle: STATION: issue #31 reads 'Building', expected 'Done'
+board_lifecycle: LABEL: issue #214 is not_planned and carries no 'abandoned' label
+board_lifecycle: LABEL: issue #154 is not_planned and carries no 'abandoned' label
+board_lifecycle: LABEL: issue #105 is not_planned and carries no 'abandoned' label
+board_lifecycle: LABEL: issue #75 is not_planned and carries no 'abandoned' label
+board_lifecycle: LABEL: issue #2 is not_planned and carries no 'abandoned' label
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-12-end-copy-distribution records status 'Done' (column 'Done') but its parent #223 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-13-single-issue-board-lookup records status 'Done' (column 'Done') but its parent #244 reads 'Backlog'
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-16-factory-per-repo-board records status 'Done' (column 'Done') but its parent #299 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-18-board-truth records status 'Done' (column 'Done') but its parent #326 reads 'Backlog'
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-20-migration-detector records status 'Done' (column 'Done') but its parent #360 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-21-features-layout-migration records status 'Done' (column 'Done') but its parent #388 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-22-docs-layout-migration records status 'Done' (column 'Done') but its parent #418 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-23-ship-flow-fixes records status 'Done' (column 'Done') but its parent #454 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-24-config-responsibility-split records status 'Done' (column 'Done') but its parent #501 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-25-claim-feature-root records status 'Done' (column 'Done') but its parent #539 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-26-pr-linkage-recorded records status 'Done' (column 'Done') but its parent #732 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-27-expertise-repository-tier records status 'Done' (column 'Done') but its parent #494 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-29-graphql-budget records status 'Done' (column 'Done') but its parent #571 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-30-worktree-per-feature records status 'Done' (column 'Done') but its parent #572 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-31-orchestrator-context-watch records status 'Done' (column 'Done') but its parent #598 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-32-concurrent-write-merge records status 'Done' (column 'Done') but its parent #700 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-33-board-lifecycle-native records status 'Building' (column 'Building') but its parent #675 reads None
+board_lifecycle: STATUS: /Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-33-board-lifecycle-native/.harness/harness/features/FEAT-34-worktree-act3-enforced records status 'Plan' (column 'Plan') but its parent #728 reads None
+board_lifecycle: 29 finding(s)

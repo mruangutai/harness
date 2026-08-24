@@ -73,6 +73,9 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    permanent build step with no `max_cycles` of its own. Never dispatched to the validator lead.
    An empty pass is a real outcome; nothing is invented to justify the step.
    The INV-6 pin above applies unchanged: `review_sha` is pinned before any validator run.
+   **Entering validate also runs `gh-sync.py status <feature-dir> Review` BEFORE the panel
+   is dispatched.** Both preconditions of a panel run sit here on purpose: the pin fixes
+   what is reviewed, the status write puts the parent and every sub-issue at Review.
 4. **Receive the team digest.** The `SubagentStop` hook has checked its shape and roll-up at source,
    but shape is not truth: spot-check `files_touched` against the artifacts when a claim matters.
 5. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now (it holds no
@@ -179,33 +182,45 @@ investigate — that is a plan mission with a `BUG-NN` id (the FEAT-02 pattern).
 
 Ids: **`BUG-NN-<kebab-slug>`**, independent sequence from FEAT, same folder root and machinery.
 
-## GitHub mirror — six sync points, when `github.sync` is on (DEC-138)
+## GitHub mirror — nine sync points, when `github.sync` is on (DEC-138)
 
-`bin/gh-sync.py` — outbound only, idempotent, and **never a gate**. Repo comes from
+`bin/gh-sync.py` — idempotent and **never a gate**. Almost entirely outbound: the one
+read-back is `record-pr`, which asks GitHub for the merged pull request on a recorded
+branch and writes the number into `feature.json` (FEAT-26). Nothing else reads GitHub
+state back, and no read-back ever reaches an approval-gated artifact. Repo comes from
 `harness.json`, pinned at init. **Every subcommand has one owner; run only the ones that are
 yours.**
 
 | When | Owner | Run |
 |---|---|---|
 | mission ship, right after the approval gate passes | **orchestrator** | `gh-sync.py open <feature-dir>` — milestone + one **parent** issue (adopted or created, recorded with its `parent_origin`) + one **sub-issue** per T-NN (re-run safe: already-recorded ids skip) |
-| a task starts | **orchestrator** | `gh-sync.py start-task <feature-dir> T-NN` — moves that task's card to `Building` and re-derives the parent. **Set the task's status to `building` in `plan.yaml` FIRST, in the same act** |
-| a task's `[harness:t-NN]` commit is recorded | **orchestrator** | `gh-sync.py close-task <feature-dir> T-NN` — closes **that task's sub-issue and nothing else**; issues it `absorbs:` are cited, never closed (DEC-138 am.7). **Record the task's status as `done` in `plan.yaml` FIRST, in the same act** |
+| a task starts | **by `execution_mode`**: the **orchestrator** for a `team` task, the **main session** for a `main-session-direct` one | `gh-sync.py start-task <feature-dir> T-NN` — moves that task's card to `Building` and re-derives the parent. **Set the task's status to `building` in `plan.yaml` FIRST, in the same act** |
+| a task's `[harness:t-NN]` commit is recorded | **by `execution_mode`**, as above | **Record the task's status as `done` in `plan.yaml`, in the same act as the commit — and run nothing else.** `close-task` is **no longer run per commit** (D-23): the sub-issue is deliberately left OPEN so it can hold its column through Building and Review, and it closes with the parent when the pull request merges, from the `Closes` lines in the PR body. The reason is mechanical — the native `Item closed` workflow moves a closed card to the done column, so a closed sub-issue cannot sit at Review. `gh-sync.py close-task <feature-dir> T-NN` remains, as the deliberate **single-issue** close for when you want exactly that; issues it `absorbs:` are cited, never closed (DEC-138 am.7) |
+| a phase transition happens | **by `execution_mode` of the phase's own work**: the **orchestrator** for a phase it is running, the **main session** for a phase it holds itself — plan, ship acceptance, and any `main-session-direct` segment | `gh-sync.py status <feature-dir> <Status>` — records `feature.json`'s `status` and writes the station changes that phase implies. `feature.json` is the authority and the card is its mirror. Run it **in the same act** that records the phase (see "Record your phase in `feature.json`" below): the status record and the station write are now one act, not two |
 | the feature is abandoned | **main session** | `gh-sync.py abandon <feature-dir> --reason-file <path>` — sub-issues `not_planned`, and the parent **only if `parent_origin` is `created`** |
 | the main session relays the user's shipped acceptance | **main session** | `gh-sync.py ship <feature-dir>` — closes the milestone unconditionally, and the parent **only if `parent_origin` is `created`** (an adopted issue is someone's live work and stays open) |
 | residual findings become backlog | **main session** | `gh-sync.py backlog <feature-dir> <items>` — plain issues, labelled by nature, no milestone (DEC-138 am.4) |
+| the pull request has merged | **main session** | `gh-sync.py record-pr <feature-dir> [--pr N]` — derives the number from the recorded branch when that branch carries **exactly one** merged pull request, leaves `pr` alone otherwise, and **never overwrites a number already recorded**. `ship` runs it too, so the ordinary flow needs no separate call |
+| composing the pull request body | **main session** | `gh-sync.py closes <feature-dir>` — prints one `Closes #N` line per number in `feature.json`'s `github.source_issues`. **Makes no GitHub call and posts nothing.** pm writes `source_issues` as a top-level list in `plan.yaml`, the operator signs it, and `open` mirrors it |
 
 **THE ORDER IS NOT A STYLE POINT — update `plan.yaml`, THEN run the subcommand.** The parent
 card's station is *derived* from `plan.yaml`'s task statuses, so the plan must already carry the
-new status when the subcommand runs. Record `done` **after** running `close-task` and the
-derivation reads the old value, the parent write is a no-op, and after the last task the parent
-sits in `Building` forever while the session-entry check reports it as drift every session — a
-procedure gap that looks exactly like a code defect.
+new status when `start-task` runs. Set `building` **after** running it and the derivation reads
+the old value and the parent write is a no-op — a procedure gap that looks exactly like a code
+defect.
+
+**Recording `done` is the whole of the per-commit act** (D-23) — nothing derives a station from a
+task's completion. The parent leaves `Building` when the panel kickoff runs `gh-sync.py status
+<feature-dir> Review`, and reaches `Done` only when GitHub closes it from the `Closes` lines at
+merge.
 
 **The build branch is created locally, the ordinary way**, once the plan is approved:
 `git checkout -b feat/<FEAT-id>` — for example `git checkout -b feat/FEAT-18-board-truth`.
-Nothing links the branch to the parent issue, and nothing needs to: **the harness composes no
-issue-closing text into any pull request body**, and the parent is closed by `gh-sync.py ship`,
-which also posts the ship review on it.
+Nothing links the branch to the parent issue, and nothing needs to. **`gh-sync.py closes`
+RENDERS the closing keywords but never posts them** (FEAT-26): it prints one `Closes #N` line
+per source issue for the operator to paste into the pull request body, so the harness composes
+text it does not publish. The parent is closed by `gh-sync.py ship`, which also posts the ship
+review on it.
 
 **Failure has three shapes, not one.**
 
@@ -235,6 +250,30 @@ mirror.
 The mirror never composes: a post takes its body from a file path — the signed ship-review, the
 approved artifact — never from a string you assembled. Agents doing the work post nothing; they
 return digests.
+
+### Who writes each station — one writer per column
+
+| Station | Writer |
+|---|---|
+| **Backlog** | whoever files the ticket. Not the harness |
+| **Plan** | `board-station.py`, at the `/harness-plan` door |
+| **Ready** | the signature, via `gh-sync.py status <dir> Ready`. It moves the **task sub-issues** and **never the parent** |
+| **Building** | `gh-sync.py start-task`, by `execution_mode` as the table above says |
+| **Review** | the validation panel kickoff, via `gh-sync.py status <dir> Review`. It moves the **parent AND every sub-issue** (D-23) |
+| **Done** | **GitHub**, from the `Closes` lines at merge, which close the sub-issues and the parent together. The harness writes this column **never** |
+
+**The Review row exists because of a measurement.** Board 3 held **ZERO** items at Review across
+539 items (2026-08-22, recorded at `f5f5185`). The last `close-task` fired while later tasks were
+still pending, and nothing called `gh-sync` again until ship — so no card ever reached that column.
+
+**The harness deliberately writes no `Done` and no `Abandoned` column.** `Done` is GitHub's, from
+the closing keywords. `Abandoned` has no board column at all.
+
+**Ready holds task sub-issues, never a parent, on every served board** (D-18). That is true by
+construction rather than convention: `factory_decompose.py` never adds a parent to a served-repo
+board, so `factory_claim.py`'s poll of the ready station has only ever contained tasks. **The one
+real cost:** board 2 loses the human promotion signal, because a card now arrives at Ready from a
+signature rather than from a person.
 
 ## Missions map and deepen — read the reference when dispatched with one
 
