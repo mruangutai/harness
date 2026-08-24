@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   detectHarnessAgent,
   extractEditPaths,
+  normalizeYieldInput,
   yieldContractText,
 } from "../../../../.omp/extensions/harness-hooks.ts";
 
@@ -71,5 +72,16 @@ describe("yieldContractText", () => {
 
   test("uses the last assistant message for an omitted yield payload", () => {
     expect(yieldContractText({}, "VERDICT: PASS")).toBe("VERDICT: PASS");
+  });
+
+  test("rewrites an empty yield to explicit last-turn data", () => {
+    expect(normalizeYieldInput({ result: {} }, "VERDICT: PASS")).toEqual({
+      result: { data: { content: "VERDICT: PASS" } },
+    });
+  });
+
+  test("keeps explicit yield data unchanged", () => {
+    const input = { result: { data: { VERDICT: "PASS" } } };
+    expect(normalizeYieldInput(input, "ignored")).toEqual(input);
   });
 });

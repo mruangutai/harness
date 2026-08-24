@@ -106,6 +106,16 @@ export function yieldContractText(result: unknown, fallback = ""): string {
   return text(result) || fallback;
 }
 
+export function normalizeYieldInput(input: Dict, fallback: string): Dict {
+  const result = input.result;
+  if (result && typeof result === "object" && !Array.isArray(result)) {
+    const envelope = result as Dict;
+    if ("data" in envelope || "error" in envelope) return input;
+  }
+  if (!fallback.trim()) return input;
+  return { ...input, result: { data: { content: fallback } } };
+}
+
 function parseDecision(stdout: string): string | undefined {
   for (const line of stdout.split("\n")) {
     if (!line.trim().startsWith("{")) continue;
@@ -266,6 +276,14 @@ export default function harnessHooks(pi: any): void {
     }
   });
 
+  pi.on("message_update", async (event: Dict) => {
+    const candidate = event.message && typeof event.message === "object"
+      ? event.message
+      : event;
+    const found = lastAssistantText([candidate]);
+    if (found.trim()) lastAssistantMessage = found;
+  });
+
   pi.on("message_end", async (event: Dict) => {
     const candidate = event.message && typeof event.message === "object"
       ? event.message
@@ -279,6 +297,7 @@ export default function harnessHooks(pi: any): void {
     const toolName = text(event.toolName);
     const input = (event.input && typeof event.input === "object" ? event.input : {}) as Dict;
 
+    let revisedInput: Dict | undefined;
     let reason = firstBlock(preDomain(ctx.cwd, currentAgent, toolName, input));
     if (!reason && toolName === "bash") {
       const payload = {
@@ -293,7 +312,8 @@ export default function harnessHooks(pi: any): void {
     }
     if (!reason && toolName === "task") reason = taskModelOverride(input);
     if (!reason && toolName === "yield") {
-      const contract = yieldContractText(input.result, lastAssistantMessage);
+      const normalized = normalizeYieldInput(input, lastAssistantMessage);
+      const contract = yieldContractText(normalized.result, lastAssistantMessage);
       const result = runPolicy(ctx.cwd, "validate-digest.py", ["--hook"], {
         ...basePayload(currentAgent, "SubagentStop", ctx.cwd),
         stop_hook_active: false,
@@ -302,8 +322,10 @@ export default function harnessHooks(pi: any): void {
       debug(`yield agent=${currentAgent} value=${contract.slice(0, 500)}`);
       debug(`yield verdict blocked=${result.blocked} reason=${result.reason || "none"}`);
       reason = result.blocked ? result.reason : undefined;
+      if (!reason && normalized !== input) revisedInput = normalized;
     }
     if (reason) return { block: true, reason };
+    if (revisedInput) return { input: revisedInput };
   });
 
   pi.on("tool_result", async (event: Dict, ctx: any) => {

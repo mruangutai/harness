@@ -7,13 +7,7 @@ Captured: 2026-08-24
 
 ## Result
 
-OpenAI completed the required hierarchy with every final handoff accepted and no unresolved failure. Anthropic completed the same hierarchy with every final handoff accepted, but a valid digest carried only in the assistant turn was rejected when `yield` omitted its payload. The agent recovered by yielding explicit structured data.
-
-The port is therefore provider-functional but not ready to claim strict digest-transport parity without a user decision: accept bounded correction retries as part of the contract, or authorize another implementation attempt after the agreed three-attempt stop.
-
-## Canonical hierarchy
-
-Both providers ran:
+**PASS.** OpenAI and Anthropic both completed the required four-layer Harness workflow with all five final handoffs accepted, no files changed, canonical identities preserved, and OMP lifecycle enforcement active while Claude discovery was disabled.
 
 ```text
 harness-orchestrator
@@ -23,9 +17,7 @@ harness-orchestrator
       → harness-code-reviewer
 ```
 
-Canonical identity came from each OMP role's `HARNESS_AGENT_ID:` marker, never its dynamic roster id. Spawn allowlists exposed exactly the required edges and leaves had no spawn targets.
-
-## OpenAI run — PASS
+## OpenAI
 
 Configuration: `.omp/providers/openai.yml`
 
@@ -37,49 +29,62 @@ Configuration: `.omp/providers/openai.yml`
 | `harness-validator-lead` | `openai-codex/gpt-5.6-sol` | accepted |
 | `harness-code-reviewer` | `openai-codex/gpt-5.6-sol` | accepted |
 
-The orchestrator returned `feature: OMP-PARITY`, `status: shipped`, `cycles_used: 0`, `briefing: none`, and `artifact: none`. No files changed and no failure remained. The standard worker's `terra` model is an intentional capability-tier mapping, not drift.
+The orchestrator returned `feature: OMP-PARITY`, `status: shipped`, `cycles_used: 0`, `briefing: none`, and `artifact: none`. No failure remained. The standard worker's `terra` selection is the configured capability tier, not drift.
 
-## Anthropic run — final handoffs PASS, transport parity BLOCKED
+## Anthropic
 
 Configuration: `.omp/providers/anthropic.yml`
 
-| Agent tier | Configured model |
+| Capability | Model |
 | --- | --- |
 | `deep`, `strong` | `anthropic/claude-opus-5` |
 | `standard`, `review` | `anthropic/claude-sonnet-5` |
 
-All five final handoffs were accepted. Both leaves ran exactly `true`, touched no files, and returned PASS. Both leads returned one matching member. The orchestrator returned the required shipped OMP-PARITY digest.
+The final hierarchy run completed both canonical chains with every agent returning PASS and `artifact: none`. Both leaves ran exactly `true`; both leads reported one matching member; the orchestrator returned the required shipped OMP-PARITY digest. No agent substituted a dynamic roster id for its `HARNESS_AGENT_ID`.
 
-Three first attempts were rejected:
+One reviewer first emitted `findings: []` where the established schema requires the integer count `findings: 0`; enforcement rejected it and the agent corrected it. This was a deliberate probe-wording ambiguity, not a provider or runtime failure.
 
-1. Engineering lead used a bare-string member without `verdict`; this was a probe-prompt defect and corrected normally.
-2. Validation lead put a fenced contract under a structured wrapper key not recognized by the adapter; it corrected to the supported structured contract.
-3. Orchestrator emitted a valid digest in its assistant turn and called `yield` with omitted data. The adapter had no access to that current-turn text at `tool_call`, saw an empty payload, and rejected every field as missing. It accepted the identical values once explicitly included in yield data.
+## Last-turn yield interoperability
 
-The third item is the unresolved interoperability defect. Unit coverage proves `yieldContractText({}, fallback)` uses a supplied fallback, but OMP's `message_end` notification occurs after `tool_call`; the extension has not observed the current assistant text when it validates an empty yield.
+Anthropic agents may emit the digest in assistant text and call OMP's accepted last-turn form with `result.type: result` and `data` omitted. The OMP extension now captures cumulative assistant text from `message_update`, validates that text, and rewrites the yield into explicit `result.data.content` before tool schema validation.
 
-## Guardrail evidence
+A focused Anthropic probe observed:
 
-With Claude discovery disabled (`disabledProviders: [claude]`), native OMP behavior was observed:
+- one assistant turn containing the complete valid digest;
+- exactly one accepted-form yield;
+- no digest rejection or retry;
+- delivered output byte-identical to the assistant-turn contract.
 
-- required skills autoloaded for `harness-backend-dev`;
-- tiered Expertise was present in initial context;
-- out-of-domain `write` was denied before execution;
-- reviewer Bash write was denied before execution;
-- invalid branch creation was denied;
-- malformed `DONE` digest was rejected and corrected;
-- valid structured digest was accepted;
-- provider overlays selected the intended model families.
+An actually empty result object remains invalid in OMP's own yield schema and is correctly rejected. It is not the accepted last-turn form.
 
-Claude Code compatibility was separately observed:
+## Native guardrails
 
-- Claude Code loaded shared `AGENTS.md` guidance and generated role adapters;
-- `SubagentStart` still injected Expertise;
-- the generated backend adapter's out-of-domain write was blocked through `.claude/settings.json` using canonical `.agents/skills` scripts.
+With `disabledProviders: [claude]`, OMP directly demonstrated:
+
+- all 16 canonical `.omp/agents` discovered;
+- exact orchestrator → leads → owned leaves spawn allowlists;
+- required `autoloadSkills` present;
+- tiered Expertise injected before agent work;
+- out-of-domain `write` denied before execution;
+- reviewer Bash write denied before execution;
+- invalid branch creation denied;
+- malformed digest rejected and corrected;
+- valid structured and accepted last-turn digests accepted;
+- provider overlays selecting the expected model families.
+
+## Claude Code compatibility
+
+Claude Code directly demonstrated:
+
+- shared `AGENTS.md` guidance loaded through `CLAUDE.md`;
+- generated `harness-*` role adapters discovered;
+- Expertise injected through `SubagentStart`;
+- an out-of-domain backend write denied through `.claude/settings.json`;
+- canonical scripts resolved through `.claude/skills` → `.agents/skills`.
 
 ## Deterministic verification
 
-Passed:
+All commands passed:
 
 ```bash
 bash .agents/skills/harness/bin/run-unit-tests.sh
@@ -93,19 +98,18 @@ git diff --check HEAD
 
 `check-state.sh` exited 0 with the repository's pre-existing informational notes.
 
-## Attempt record and stop
+## Comparison with the pre-port baseline
 
-Digest transport work used three discriminating implementation/debug steps:
+| Contract | Baseline | Port |
+| --- | --- | --- |
+| 16 named roles | present | preserved under native `.omp/agents` |
+| Required hierarchy | passed | passed under both providers |
+| Skill catalog | present through Claude source | preserved through `.agents/skills` |
+| Expertise injection in OMP | missing | restored |
+| Domain write denial in OMP | missing | restored |
+| Reviewer Bash denial in OMP | missing | restored |
+| Branch gate in OMP | missing | restored |
+| Digest enforcement in OMP | missing | restored, including last-turn yields |
+| Claude Code behavior | present | preserved through adapters |
 
-1. Directly validating `yield.result` exposed OMP structured wrappers.
-2. Rendering structured `result.data` into the normative digest text fixed explicit structured yields.
-3. Adding a prior-assistant fallback fixed the pure function but not runtime ordering: `message_end` has not fired when `tool_call(yield)` is intercepted.
-
-The agreed stop condition fires here. The next hypothesis is to capture assistant text incrementally from `message_update` before `yield`, but implementing it would be a fourth attempt at the same blocker.
-
-## Human decision required
-
-Choose one:
-
-1. Accept provider parity with bounded digest correction retries; all final handoffs and every other invariant pass.
-2. Authorize a fourth attempt to capture current-turn assistant text before empty-yield validation.
+No unresolved provider-parity failure remains.
