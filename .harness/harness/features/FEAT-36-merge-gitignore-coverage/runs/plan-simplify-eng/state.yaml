@@ -1,0 +1,40 @@
+schema_version: 1
+run_id: plan-simplify-eng
+feature: FEAT-36-merge-gitignore-coverage
+squad: eng
+host: harness-eng-lead
+status: complete
+cycles_used: 0
+steps:
+  - id: reuse
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-plan-simplify-reuse.md
+    cycles: 0
+  - id: simplification
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-plan-simplify-simplification.md
+    cycles: 0
+  - id: efficiency
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-plan-simplify-efficiency.md
+    cycles: 0
+  - id: altitude
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-plan-simplify-altitude.md
+    cycles: 0

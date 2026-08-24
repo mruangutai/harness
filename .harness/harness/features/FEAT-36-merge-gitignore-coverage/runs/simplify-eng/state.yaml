@@ -1,0 +1,56 @@
+schema_version: 1
+run_id: simplify-eng
+feature: FEAT-36-merge-gitignore-coverage
+squad: engineering
+host: harness-eng-lead
+status: complete
+steps:
+  - id: reuse
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    cycles: 0
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-simplify-reuse.md
+  - id: simplification
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    cycles: 0
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-simplify-simplification.md
+  - id: efficiency
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    cycles: 0
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-simplify-efficiency.md
+  - id: altitude
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    cycles: 0
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-simplify-altitude.md
+  - id: apply
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: none
+    completed_at: seq-2
+    verdict: PASS
+    cycles: 0
+    artifact: none
+    note: no findings eligible for apply
+  - id: final-suites
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: seq-3
+    completed_at: seq-4
+    verdict: PASS
+    cycles: 1
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-simplify-final-suites.md

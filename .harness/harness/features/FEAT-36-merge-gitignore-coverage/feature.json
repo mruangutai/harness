@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Building",
   "review_sha": "none",
-  "cycles_used": 0,
+  "cycles_used": 1,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -22,6 +22,18 @@
     },
     {
       "id": "t01-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "qa-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "simplify-eng",
       "squad": "eng",
       "verdict": "PASS",
       "agent": "harness-eng-lead"

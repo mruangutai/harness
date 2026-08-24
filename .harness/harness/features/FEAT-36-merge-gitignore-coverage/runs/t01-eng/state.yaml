@@ -1,0 +1,16 @@
+schema_version: 1
+run_id: t01-eng
+feature: FEAT-36-merge-gitignore-coverage
+squad: eng
+host: harness-eng-lead
+status: complete
+cycles_used: 0
+steps:
+  - id: T-01
+    persona: harness-dev-ops
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-T-01-c0.md
+    cycles: 0

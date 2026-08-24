@@ -1,0 +1,18 @@
+schema_version: 1
+run_id: qa-validator
+feature: FEAT-36-merge-gitignore-coverage
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: qa-T-01
+    task: T-01
+    persona: harness-qa
+    status: complete
+    depends_on: []
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/qa-T-01.md
+    note: unit and integration satisfied; red-capability and untouched-production audits passed
