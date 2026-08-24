@@ -43,7 +43,7 @@ jobs:
     # `skip … (running as root)` branch, so if it ever did run as root those checks would go
     # QUIET rather than red. NOTHING KEEPS THE KEY BANNED. An earlier version of this comment
     # cited `case_25b9` as the guard; measured 2026-08-21, no such case exists anywhere under
-    # .claude/skills/harness/bin/. The ban is this comment and the absence of the key, nothing
+    # .agents/skills/harness/bin/. The ban is this comment and the absence of the key, nothing
     # more, and nothing checks the uid either.
     runs-on: ubuntu-latest
     steps:
@@ -78,13 +78,13 @@ jobs:
       - name: Unit suite
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
-        run: .claude/skills/harness/bin/run-unit-tests.sh --kind unit
+        run: .agents/skills/harness/bin/run-unit-tests.sh --kind unit
 
       # Integration kind measured at 12 scripts, ~15s.
       - name: Integration suite
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
-        run: .claude/skills/harness/bin/run-unit-tests.sh --kind integration
+        run: .agents/skills/harness/bin/run-unit-tests.sh --kind integration
 
       # VALIDATE EVERY FEATURE'S EXECUTION STATE (FEAT-14/T-03, REQ-06/REQ-07). No
       # arguments: the CLI sweeps every .harness/*/features/*/feature.{json,yaml,yml} file
@@ -93,7 +93,7 @@ jobs:
       - name: Validate feature execution state
         env:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
-        run: .claude/skills/harness/bin/validate-feature-json.py
+        run: .agents/skills/harness/bin/validate-feature-json.py
 
       # THE ROUTE CHECK, PROMOTED (issue #133, DEC-183). `check-plan-routes.py` worked from the
       # day it shipped and NOTHING mechanical ran it: not this workflow, not check-state.sh, not
@@ -145,7 +145,7 @@ jobs:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
         run: |
           rc=0
-          out=$(python3 .claude/skills/harness/bin/check-plan-routes.py 2>&1) || rc=$?
+          out=$(python3 .agents/skills/harness/bin/check-plan-routes.py 2>&1) || rc=$?
           printf '%s\n' "$out"
 
           # THE REGEX IS COUPLED to `check-plan-routes.py`'s final `print()` — the summary
@@ -205,7 +205,7 @@ jobs:
           CLAUDE_PROJECT_DIR: ${{ github.workspace }}
         run: |
           rc=0
-          out=$(python3 .claude/skills/harness/bin/layout_migration.py . 2>&1) || rc=$?
+          out=$(python3 .agents/skills/harness/bin/layout_migration.py . 2>&1) || rc=$?
           printf '%s\n' "$out"
 
           # THE REGEXES ARE COUPLED to `layout_migration.py`'s `render()` — the "layout:"

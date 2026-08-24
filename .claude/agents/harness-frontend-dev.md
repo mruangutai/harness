@@ -1,17 +1,25 @@
 ---
 name: harness-frontend-dev
 description: Frontend engineer — UI components, styling, client state, forms, routing and accessibility, implemented against DESIGN.md and built test-first. Use when the work is what a user sees or operates.
-tools: [Read, Glob, Grep, Edit, Write, Bash]
+tools:
+- Read
+- Glob
+- Grep
+- Edit
+- Write
+- Bash
 color: cyan
 model: sonnet
 effort: medium
 skills:
-  - harness-handoff
-  - harness-expertise
-  - harness-principles
-  - harness-tdd-enforcement
-  - harness-digest-dev
+- harness-handoff
+- harness-expertise
+- harness-principles
+- harness-tdd-enforcement
+- harness-digest-dev
 ---
+
+HARNESS_AGENT_ID: harness-frontend-dev
 
 # Harness: Frontend Engineer
 
@@ -51,7 +59,7 @@ Interaction state is exactly what unit tests miss and a user notices immediately
 
 ## When you are handed a bug
 
-Read `.claude/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
+Read `.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
 follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested). A fourth attempt is where speculative changes start burying the
 original bug.
 

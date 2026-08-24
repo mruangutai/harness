@@ -6796,3 +6796,72 @@ the operator confirmed from the pull request titles, their branch being shared o
 **The new invariant is warn, not violation** — INV-28, a feature at `Done` with no recorded number,
 gated on `github.sync` like INV-21. It follows INV-21's recorded reason rather than a fresh judgement:
 the mirror never gates a flow, so a missing mirror value must not fail the state check.
+
+---
+
+## DEC-201 — OMP is the canonical Harness runtime; providers and host adapters are replaceable configuration
+
+**Chose:** Harness is authored against OMP-native and open Agent Skills surfaces:
+
+- shared project guidance is root `AGENTS.md`;
+- canonical roles are `.omp/agents/harness-*.md`;
+- canonical skills and utilities are `.agents/skills/harness-*/`;
+- lifecycle enforcement is `.omp/extensions/harness-hooks.ts`;
+- concrete model selections live only in `.omp/providers/*.yml` as `modelRoles`;
+- `.claude/agents/`, `.claude/skills`, `CLAUDE.md`, and `.claude/settings.json` are Claude Code
+  compatibility adapters, not policy authorities.
+
+**Why this is forced by the goal rather than preferred syntax.** A role whose frontmatter says `opus`
+or `sonnet` cannot run unchanged on OpenAI, and a hook present only in Claude settings is absent when
+OMP disables the Claude discovery provider. The pre-port probe at
+`.harness/notes/omp-port-baseline.md` measured exactly that split: all 16 roles and both required
+three-level spawn chains were discoverable, while Expertise injection, domain denial, reviewer Bash
+denial, branch gating and digest rejection were all absent. Two providers agreeing after the port
+would not prove preservation, so that measured baseline is the third comparison point.
+
+**Role policy and deployment policy are separate.** Canonical agents select `@deep`, `@strong`,
+`@standard`, or `@review`. The OpenAI and Anthropic overlays resolve those aliases to concrete
+models. Dispatches still select only an agent; the tool schema exposes no per-dispatch model field.
+Changing provider therefore changes configuration, never prompts, tools, skills, spawn permissions,
+hooks or digest schemas.
+
+**The organization is explicit in OMP frontmatter.** `spawns` records orchestrator → leads → owned
+members and every leaf carries an empty list. `task.maxRecursionDepth: 3` remains the outer bound.
+Every canonical role body carries a machine-readable `HARNESS_AGENT_ID:` line; OMP lifecycle events
+do not expose the task-agent name, so the extension reads this exact marker from the role system
+prompt. That is declared metadata, not inference from prose or model identity.
+
+**Expertise remains durable Harness data.** `.harness/expertise/<agent>.md`,
+`.harness/*/expertise/<agent>.md`, and `.harness/codebase/INDEX.md` do not move. The delivery seam
+moves from Claude `SubagentStart` to OMP `before_agent_start`, preserving repository > project >
+global precedence and the existing budgets. Skills and artifacts stay selectively loaded; none is
+copied into `AGENTS.md`.
+
+**Enforcement reuses policy and replaces delivery.** The OMP extension converts native `write`,
+hash-anchored `edit`, `bash`, `task`, and `yield` events into the tested script contracts.
+`tool_call` denies before execution; `tool_result` reports post-write shape failures; `yield` is the
+task-agent stop boundary and validates structured OMP results after rendering them into the
+normative digest text. The TypeScript layer owns no domain, branch, Expertise or digest rule.
+
+**The control plane expands.** `.agents/**`, `.omp/**`, and `AGENTS.md` are Harness-owned paths in
+`harness_boundary.py`; hidden-root grants remain checkout-local and never reach a product
+repository's same-named directories. `.claude/worktrees/` remains the sanctioned development
+location, because this port changes runtime discovery, not DEC-193's worktree placement ruling.
+
+**Claude Code stays usable during and after the port.** `sync-agent-adapters.py` generates Claude
+role frontmatter and identical bodies from canonical OMP agents, while `.claude/skills` is a symlink
+to `.agents/skills`. `CLAUDE.md` imports `AGENTS.md` and states only Claude-specific delivery.
+`check-omp-port.py` rejects adapter drift, concrete provider IDs in canonical agents, missing skills,
+missing provider overlays, missing OMP hooks, or re-enabled Claude discovery.
+
+**Cost accepted:** OMP runs require an explicit provider overlay, the OMP extension is a maintained
+host adapter, and Claude Code compatibility adds generated files. The alternative is cheaper only by
+keeping provider coupling and silently losing guardrails under a non-Claude host.
+
+**DEC-174 governs the cutover.** Agent prompts, skills and Expertise may be migrated normally, but
+changes to hooks, validators, gate scripts and their tests are direct main-session work with explicit
+tests and human diff review. The Harness enforcement path never certifies its own replacement.
+
+This decision supersedes the Claude-only conclusions of DEC-63, DEC-64, DEC-100, DEC-108,
+DEC-110, DEC-111 and DEC-122 for the canonical OMP runtime. Their measured Claude Code behavior
+remains true for the compatibility adapter and their historical evidence remains authoritative.

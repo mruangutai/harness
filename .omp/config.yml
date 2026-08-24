@@ -1,0 +1,8 @@
+# Harness must run from OMP-native and provider-neutral sources.
+disabledProviders:
+  - claude
+
+# Harness requires an explicit provider overlay from `.omp/providers/`.
+# Concrete models never live in canonical agent definitions.
+task:
+  maxRecursionDepth: 3

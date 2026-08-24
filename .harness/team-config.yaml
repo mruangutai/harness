@@ -30,7 +30,7 @@ main_session:
 # domain below. It cannot call AskUserQuestion; questions bubble to the main session.
 orchestrator:
   name: harness-orchestrator
-  skill: .claude/skills/harness/SKILL.md   # the playbook it runs
+  skill: .agents/skills/harness/SKILL.md   # the provider-neutral playbook it runs
   color: blue
   domain:
     - { path: .harness/*/features/**, upsert: true }   # its feature's STATE.md, feature.json, runs/
@@ -41,21 +41,21 @@ orchestrator:
     - { path: .harness/*/features/*/observations/harness-orchestrator.md, upsert: true }   # hot layer (DEC-145)
     - { path: ".", read: true }
 
-# .claude/agents/** IS DELIBERATELY UNOWNED — no agent may write it, and that is the point.
-# Agent definitions are the org's own constitution; an agent editing them is self-modification,
-# and the tier that can change what the org IS should be the one with a user channel. Edits are
-# the MAIN SESSION's. An agent that finds a defect in an agent file raises `open_questions`.
+# `.omp/agents/**` IS DELIBERATELY UNOWNED — no agent may write it.
+# Canonical role definitions are the organization's constitution. Changing what
+# the organization is stays with the main session; agents raise `open_questions`.
+# `.claude/agents/**` is generated compatibility output and is equally unowned.
 # (Decided after a review panel found harness-ui-reviewer.md's output template packs two fields
 # per line — the exact defect its own validator rejects — and no domain covered the file.)
 
 paths:
-  agents: .claude/agents/
-  teams: .claude/skills/harness/teams/     # the shipped set, owned by harness
+  agents: .omp/agents/
+  teams: .agents/skills/harness/teams/     # the shipped set, owned by harness
   team_overrides: .harness/teams/          # project-owned. Resolved FIRST (DEC-113)
   features: .harness/*/features/
   expertise: .harness/expertise/
 
-# Preloaded into all 16 agents at every spawn via `skills:`. KEEP THIS MINIMAL —
+# Autoloaded into all 16 OMP agents at every spawn. KEEP THIS MINIMAL —
 # measured at ~1,727 tokens per spawn, ~59k per feature (DEC-105).
 universal_rules:
   - harness-handoff
@@ -171,7 +171,7 @@ teams:
           server-side integration, error handling at the service boundary.
         domain:
           - { path: src/**, upsert: true }               # seeded by /harness-init
-          - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
+          - { path: .agents/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
           - { path: .harness/codebase/api-surface.md, upsert: true }      # its map lens (DEC-137)
           - { path: .harness/codebase/domains/**, upsert: true }        # module grouping
           - { path: .harness/*/features/*/notes/receipt-harness-backend-dev-*.md, upsert: true }   # its verification receipt (B-7)
@@ -216,7 +216,7 @@ teams:
           - { path: .github/**, upsert: true }
           - { path: Dockerfile, upsert: true }
           - { path: .harness/harness.json, upsert: true }
-          - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
+          - { path: .agents/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
           - { path: .harness/codebase/stack.md, upsert: true }            # its map lens (DEC-137)
           - { path: .harness/*/features/*/notes/receipt-harness-dev-ops-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-dev-ops.md, upsert: true }

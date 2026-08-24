@@ -1,6 +1,6 @@
 <!-- index-contract v1 -->
 <!-- GENERATED except the text after ` :: ` on each row.
-     Regenerate: .claude/skills/harness/bin/gen-decisions-index.py -->
+     Regenerate: .agents/skills/harness/bin/gen-decisions-index.py -->
 
 # DECISIONS — index
 
@@ -216,3 +216,4 @@ A row ending `— SUPERSEDED BY DEC-NN` is one you must not act on.
 - DEC-198 @6611 [budget,orchestrator,state,skills] refs: DEC-148 DEC-160 DEC-178 :: `budgets.orchestrator_context_warn_tokens`: an integer CONTEXT token count (not money), default 200000, in both harness.json and the upgrade template; crossing it advises, never refuses; propagated by `upgrade-config.py`'s generic merge.
 - DEC-199 @6668 [digest,dispatch,plan,brief] refs: DEC-193 :: One locked union-merging core, `harness_merge.py`, carries every concurrent-write artifact, and a named persona is single-flight per checkout; #551's dispatch cause closes, its false-reporting consequences do not.
 - DEC-200 @6729 [github,state,approval,plan] refs: DEC-138 DEC-153 DEC-186 DEC-196 :: Ship derives a feature's PR number from the branch's exactly-one merged PR; DEC-138 write-only holds by destination AND absent local receipt; the read is inside DEC-186's bound.
+- DEC-201 @6802 [skills,expertise,digest,hooks] refs: DEC-63 DEC-64 DEC-100 DEC-108 DEC-110 DEC-111 DEC-122 DEC-174 DEC-193 :: OMP owns canonical agents, skills and lifecycle enforcement; providers resolve model-role aliases, while Claude Code is a generated compatibility adapter.
