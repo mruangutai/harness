@@ -73,7 +73,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for this path at 569d417
     depends_on: []
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
     verify: |
@@ -134,7 +134,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for this path at 569d417
     depends_on: [T-01]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
     verify: |
@@ -199,7 +199,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for this path at 569d417
     depends_on: [T-02]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/SKILL.md
     verify: |

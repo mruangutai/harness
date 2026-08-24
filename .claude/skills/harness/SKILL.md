@@ -42,6 +42,18 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    routes it by `consult-when`. Cross-squad work is **one run per squad, sequenced by you** — a lead
    cannot dispatch another squad (DEC-118). Pass paths, never content; pin `review_sha` before any
    validator run (INV-6).
+   **NEVER WAIT FOR A LEAD. END YOUR TURN.** A dispatch reports back on its own, so you never
+   poll for it, never sleep, and never invent activity to stay alive. With nothing to do until a
+   lead returns, state what is in flight and end your turn — the platform resumes you when the
+   child completes. Why: a stalled orchestrator is killed by the 600s no-progress watchdog and
+   takes its lead and its member down with it, while a partial you returned is resumable
+   (DEC-200). **The single-flight refusal on your return is EXPECTED.** When you end your turn
+   with a child still in flight, `validate-digest.py`'s issue #551 return contract refuses that
+   return once — stderr `check-digest: BLOCKED - returned with children in flight` — and its own
+   message states that the refusal fires ONCE and that a second identical return will ship. Read
+   it as a prompt to correct any claim you made about a child you cannot see, and NEVER as "you
+   may not return yet". Ending your turn is the rule; one refusal is not permission to start
+   waiting again.
    **In the build phase, dispatch the named `build` team — never compose a step list at dispatch.**
    Resolve it `.harness/teams/build.yaml` first, then `.claude/skills/harness/teams/build.yaml`
    (`harness-team/SKILL.md` step 1). **You choose WHICH tasks go to `eng-lead`** and hand it that
@@ -76,15 +88,63 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    **Entering validate also runs `gh-sync.py status <feature-dir> Review` BEFORE the panel
    is dispatched.** Both preconditions of a panel run sit here on purpose: the pin fixes
    what is reviewed, the status write puts the parent and every sub-issue at Review.
-4. **Receive the team digest.** The `SubagentStop` hook has checked its shape and roll-up at source,
+4. **On waking, assess what came back.** You resume because a dispatch completed, not because you
+   chose to look. **Re-read `STATE.md` and `feature.json` from disk before acting** — your context
+   may have reset. The `SubagentStop` hook has checked the digest's shape and roll-up at source,
    but shape is not truth: spot-check `files_touched` against the artifacts when a claim matters.
-5. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now (it holds no
+   **A completion you were told about is a CLAIM until an artifact on disk confirms it**, and never
+   act on a digest you cannot open. Why: a parent has been measured fabricating a completion for
+   its child — an invented identifier that appeared nowhere but in its own messages — and writing a
+   wrong verdict to disk before the real notification arrived (DEC-199).
+5. **Weigh your own context before you continue.** Before deciding the next dispatch, measure your
+   own context. Over `budgets.orchestrator_context_warn_tokens` in `.harness/harness.json` (200000
+   today) you decide whether to finish this phase or hand it to a fresh orchestrator. **The
+   threshold ADVISES and never refuses** — nothing is blocked by it and the decision is yours
+   (DEC-198).
+
+   The mechanism, measured working end to end at `569d417` in about one second.
+   **It MUST be two separate Bash calls** — a single call that greps for a nonce it emitted in the
+   same command finds nothing, because the message carrying it is not in the sidecar yet:
+
+   ```sh
+   # first Bash call, on its own — a FIXED literal you can retype, never one the shell generates
+   echo self-id ORCH-SELF-7Q4X2M9K
+
+   # second Bash call, LATER
+   grep -l '"agentType":"harness-orchestrator"' ~/.claude/projects/*/*/subagents/*.meta.json 2>/dev/null \
+     | sed 's/\.meta\.json$/.jsonl/' | xargs grep -l ORCH-SELF-7Q4X2M9K 2>/dev/null
+
+   # then
+   python3 .claude/skills/harness/bin/context-watch.py <the id>
+   ```
+
+   Four ways to get this wrong:
+   - **The two calls must be separate**, for the reason above.
+   - **The nonce must be a fixed literal you can retype**, not one generated in the shell, and
+     unguessable enough that it appears nowhere else.
+   - **The match count decides what happens next, and all three outcomes are written out here.**
+     **Exactly one match** — your agent id is that filename with the `agent-` prefix and the
+     `.jsonl` suffix removed. Proceed with that id. **Zero matches** — the nonce has not flushed
+     yet, or the sidecar layout has changed. **Two or more matches** — the nonce was not unique;
+     this is REPRODUCED, not hypothetical, a non-unique probe string having matched THREE
+     transcripts. For zero and for two-or-more the outcome is identical:
+     **SKIP the context check for this wake**, say so in one line, and continue the loop. **Never guess an id**, and
+     **never treat a skipped check as a passed one** — do not report a headroom figure at all when
+     the check was skipped. Skipping is legal because the threshold only advises (DEC-198);
+     reporting a headroom figure read off the wrong transcript is not.
+   - **Never narrow the glob by your cwd.** The transcript directory is named for the SESSION's
+     cwd, not yours, so a worktree cwd resolves to a directory that does not exist.
+
+   `context-watch.py` is read-only and decides nothing.
+6. **Adjust and record** — REPLACE `STATE.md`'s `## Current` with the new now (it holds no
    history; the per-run detail already lives in that run's digest), update `feature.json`'s DATA
    (runs list, `cycles_used` from the lead's reported SEND-BACKS — a clean first-pass run adds
    ZERO cycles; only rework counts (DEC-157) — values, never narrative: the
    shape gate denies a feature.json over 200 lines or 20 comment lines, DEC-150), then route
    (below).
-6. **Loop until DONE — and done means the success criteria are met, not the tasks exhausted.**
+7. **Advance until DONE, one wake at a time — and done means the success criteria are met, not the
+   tasks exhausted.** Each wake advances the plan by exactly one step: assess, record, dispatch the
+   next thing, end your turn again. **There is no waiting anywhere in this loop.**
    PLAN tasks completing is the builder's claim; BRIEF's `SC-NN` are the goal's. When the last task
    lands, delegate **pm's goal-check** (through product-lead): every SC verified by its declared
    `verify:` method. Then:
@@ -196,7 +256,7 @@ yours.**
 | mission ship, right after the approval gate passes | **orchestrator** | `gh-sync.py open <feature-dir>` — milestone + one **parent** issue (adopted or created, recorded with its `parent_origin`) + one **sub-issue** per T-NN (re-run safe: already-recorded ids skip) |
 | a task starts | **by `execution_mode`**: the **orchestrator** for a `team` task, the **main session** for a `main-session-direct` one | `gh-sync.py start-task <feature-dir> T-NN` — moves that task's card to `Building` and re-derives the parent. **Set the task's status to `building` in `plan.yaml` FIRST, in the same act** |
 | a task's `[harness:t-NN]` commit is recorded | **by `execution_mode`**, as above | **Record the task's status as `done` in `plan.yaml`, in the same act as the commit — and run nothing else.** `close-task` is **no longer run per commit** (D-23): the sub-issue is deliberately left OPEN so it can hold its column through Building and Review, and it closes with the parent when the pull request merges, from the `Closes` lines in the PR body. The reason is mechanical — the native `Item closed` workflow moves a closed card to the done column, so a closed sub-issue cannot sit at Review. `gh-sync.py close-task <feature-dir> T-NN` remains, as the deliberate **single-issue** close for when you want exactly that; issues it `absorbs:` are cited, never closed (DEC-138 am.7) |
-| a phase transition happens | **by `execution_mode` of the phase's own work**: the **orchestrator** for a phase it is running, the **main session** for a phase it holds itself — plan, ship acceptance, and any `main-session-direct` segment | `gh-sync.py status <feature-dir> <Status>` — records `feature.json`'s `status` and writes the station changes that phase implies. `feature.json` is the authority and the card is its mirror. Run it **in the same act** that records the phase (see "Record your phase in `feature.json`" below): the status record and the station write are now one act, not two |
+| a phase transition happens | **by `execution_mode` of the phase's own work**: the **orchestrator** for a phase it is running, the **main session** for a phase it holds itself — plan, ship acceptance, and any `main-session-direct` segment | `gh-sync.py status <feature-dir> <Status>` — records `feature.json`'s `status` and writes the station changes that phase implies. `feature.json` is the authority and the card is its mirror. Run it **in the same act** that records the phase (see "Record your status in `feature.json`" below): the status record and the station write are now one act, not two |
 | the feature is abandoned | **main session** | `gh-sync.py abandon <feature-dir> --reason-file <path>` — sub-issues `not_planned`, and the parent **only if `parent_origin` is `created`** |
 | the main session relays the user's shipped acceptance | **main session** | `gh-sync.py ship <feature-dir>` — closes the milestone unconditionally, and the parent **only if `parent_origin` is `created`** (an adopted issue is someone's live work and stays open) |
 | residual findings become backlog | **main session** | `gh-sync.py backlog <feature-dir> <items>` — plain issues, labelled by nature, no milestone (DEC-138 am.4) |
@@ -379,8 +439,11 @@ so one long orchestrator outspends every other saving in the org.
 
 Phase exit predicates, all disk-checkable: **plan** and **ship** end at user gates (approval,
 acceptance). **build** exits when every planned T-NN has a PASS run in `feature.json`.
-**validate** exits at panel PASS with `must_fix` resolved. Record your phase in `feature.json`
-`phase:` and each transition as a STATE.md log entry. The **fix loop is the exception**: validator
+**validate** exits at panel PASS with `must_fix` resolved. Record your status in `feature.json`
+`status:` using the board's own spelling — `Backlog`, `Plan`, `Ready`, `Building`, `Review`, `Done`,
+byte for byte and case sensitive — and each transition as a STATE.md log entry. There is no `phase:`
+key: DEC-192 deleted it and collapsed it into that one `status` field, and the feature schema
+declares `additionalProperties: false`, so a `phase:` write is REFUSED. The **fix loop is the exception**: validator
 FAILs are worked inside your validate session, never relayed per cycle — but a fix loop that runs
 your session long is the one sanctioned mid-phase relay.
 
@@ -390,6 +453,12 @@ your session long is the one sanctioned mid-phase relay.
 (claims the successor acts on — `claim — evidence pointer — verified-at <sha> | UNVERIFIED`),
 `## Dead ends` (exclusions active for the next phase, same grammar; no pointer, no entry),
 `## Working set` (3–5 paths, everything else is archive). Superseded, never appended.
+
+**A handoff triggered by CONTEXT uses that same note** — `notes/handoff-<phase>.md`, no new seam, no
+new artifact, no schema change (DEC-159). Write it at the next STEP boundary inside the phase, never
+mid-dispatch and never with a child in flight, and it supersedes any earlier note for that phase
+rather than being appended to. The successor's step zero is unchanged: validate `## Next` against
+PLAN and STATE before acting on it.
 
 **As a successor:** step zero is validating `## Next` against PLAN/STATE — the note prices trust,
 it never grants it; anything UNVERIFIED gets re-checked before you act on it (stale inherited
