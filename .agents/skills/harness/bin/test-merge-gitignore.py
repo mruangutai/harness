@@ -117,10 +117,13 @@ def case_explicit_project_root_ignores_caller_cwd():
         caller = root / "unrelated-caller"
         project.mkdir()
         caller.mkdir()
+        caller_target = caller / ".gitignore"
+        caller_target.write_bytes(b"caller-only-rule\n")
+        caller_before = caller_target.read_bytes()
         result = run(project.resolve(), cwd=caller)
         require(result.returncode == 0, result.stderr)
         require((project / ".gitignore").exists(), "explicit project root was not updated")
-        require(not (caller / ".gitignore").exists(), "caller cwd unexpectedly gained .gitignore")
+        require(caller_target.read_bytes() == caller_before, "caller cwd .gitignore changed")
 
 
 CASES = [
