@@ -3,10 +3,10 @@
 ## Current
 
 - feature: FEAT-36-merge-gitignore-coverage
-- run: .harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-fix-eng/state.yaml
-- squad: eng
+- run: .harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-validator-c1/state.yaml
+- squad: validator
 - status: in_review
-- outcome: MF-01 was reproduced at the approved base as a same-size/same-mtime CPython bytecode-cache defect; the minimal isolated-fixture correction cleared the exact T-01 gate, and validate must commit the correction, repin, and rerun the panel
+- outcome: corrected candidate df23bdaa7113700977ec43e617e293c854c0854e is pinned; the full independent panel must reassess the expanded diff and clear MF-01
 
 ## Open Questions
 
