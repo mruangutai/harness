@@ -96,9 +96,17 @@ orchestrator. One rule, one loop, no step left standing that says otherwise.
   appears anywhere in the file.
   verify: automated      evidence: unit
 - SC-03: The self-identification mechanism the playbook prints actually works from inside an
-  agent's own turn. A reviewer executes it verbatim, in its own two Bash calls, and records in its
-  review note the single matching sidecar path, the agent id derived from it, and the
-  `context-watch.py` row for that id. Cited as `file:line` in the note.
+  agent's own turn. A reviewer executes it verbatim, in its own two separate Bash calls, with the
+  glob's `agentType` filter set to its OWN `agentType` as stand-in rather than
+  `harness-orchestrator` — a reviewer never carries that type, so the criterion is unclosable if it
+  names it. It records in its review note the single matching sidecar path, the agent id derived
+  from it, and the `context-watch.py` row for that id, each cited as `file:line`. **What this does
+  NOT cover:** the orchestrator-typed glob itself — the literal string
+  `"agentType":"harness-orchestrator"` as the playbook prints it — is never executed by this
+  criterion and stays unexercised until a real orchestrator runs it after merge. What is proven is
+  the mechanism's shape: the two-call sequence (the nonce must be grepped in a LATER call, because
+  a same-call grep finds nothing), the match-count logic, and `context-watch.py` accepting the
+  derived id. What is not proven is that an orchestrator's own sidecar satisfies that filter.
   verify: inspection
 - SC-04: The playbook instructs no write the tree refuses:
   `git show <review_sha>:.claude/skills/harness/SKILL.md` contains no instruction to write
@@ -135,4 +143,4 @@ orchestrator. One rule, one loop, no step left standing that says otherwise.
 
 status: approved
 approved-by: operator
-date: 2026-08-23
+date: 2026-08-24

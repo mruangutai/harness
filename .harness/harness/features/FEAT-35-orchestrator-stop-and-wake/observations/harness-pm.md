@@ -10,3 +10,4 @@
   basename to UNIT_SCRIPTS changes nothing, and check-domain.sh --resolve already answered
   (harness-backend-dev, harness-dev-ops). Resolve the lane from --resolve plus the day-it-changes
   test, not from what the script is downstream of.
+- 2026-08-24: adding `source_issues` to plan.yaml is NOT sufficient for `gh-sync.py closes` to emit. `closes` reads feature.json `github.source_issues` (gh-sync.py:1054, load_recorded), which only `cmd_open` refreshes (gh-sync.py:705,784). FEAT-35 plan.yaml got the key; the mirror was still `[]` and `closes` printed nothing until `open` re-ran. Same shape stranded FEAT-33/PR #785 (#806).

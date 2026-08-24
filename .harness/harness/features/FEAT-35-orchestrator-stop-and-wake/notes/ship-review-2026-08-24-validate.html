@@ -1,0 +1,95 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FEAT-35 — validate phase review</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="feat-35-validate-phase-review">FEAT-35 — validate phase review</h1>
+<h2 id="conclusion">Conclusion</h2>
+<p><strong>The rewrite is sound and should merge.</strong> Nothing in the code under review is defective. All five operator questions are answered and their consequences are on disk. What remains is one signature and one short verification run, in that order.</p>
+<p>Six of seven success criteria are met, each re-verified by the panel against both <code>569d417</code> and the pinned <code>e0ae671</code> rather than taken from the build phase. The seventh, SC-03, was unclosable as written; it has been amended and now needs one reviewer run to be graded at all.</p>
+<p><strong>The most valuable finding is not a blocker and is deliberately not fixed here.</strong> Four of the eight assertions in the new regression test bind exact strings, so a future edit reintroducing stay-alive behaviour in different words — &quot;Await the team digest&quot; — passes all eight green while the defect is fully restored. That is filed as #804 with the ask attached: decide whether those assertions are warranted at all before reaching for a better pattern, because a test that cannot fail on the case it guards is worse than none — it reads as coverage.</p>
+<h2 id="how-this-was-assembled">How this was assembled</h2>
+<p><strong>No report round was spawned.</strong> Drawn entirely from run digests on disk:</p>
+<ul><li><code>runs/2026-08-23-01-product/digest.md</code> — PASS, plan signable in 5 tasks</li><li><code>runs/2026-08-23-02-product/digest.md</code> — PASS, consolidated revision, T-05 relaned to eng</li><li><code>runs/t04-product/digest.md</code> — PASS, DEC-201 landed, T-04 gate printed T-04-PASS</li><li><code>runs/t05-eng/digest.md</code> — PASS, test proven both directions, 9 named failures at <code>569d417</code></li><li><code>runs/2026-08-24-01-product/digest.md</code> — PASS, DEC-201 control sentence corrected</li><li><code>runs/2026-08-24-01-validator/digest.md</code> — BLOCKED, the reviewer panel</li><li><code>runs/2026-08-24-02-product/digest.md</code> — PASS, <code>source_issues</code> added to the plan</li><li><code>runs/2026-08-24-03-product/digest.md</code> — PASS, SC-03 amended</li></ul>
+<p><code>review_sha</code> is <code>e0ae671526978a2f8982de1c94121d836b97d098</code>, reviewed against <code>df18fe5</code>. Source surface: 3 files, +201/-7. The tree was clean at the pin throughout and HEAD never moved.</p>
+<h2 id="success-criteria-final-state">Success criteria — final state</h2>
+<div class="scroll"><table><thead><tr><th>SC</th><th>Verdict</th><th>Basis</th></tr></thead><tbody><tr><td>SC-01</td><td>met</td><td>code-reviewer re-ran both SHAs; assertions fail at <code>569d417</code>, pass at <code>e0ae671</code></td></tr><tr><td>SC-02</td><td>met</td><td>both tokens present; no threshold line says refuse/blocked/prevented</td></tr><tr><td>SC-03</td><td><strong>unmet</strong> (3rd)</td><td>c0 empty candidate set, c1 non-unique nonce, c2 <code>context-watch.py</code> hard-filters to <code>harness-orchestrator</code> (<code>:53</code>, <code>:303-304</code>) — verified by me</td></tr><tr><td>SC-04</td><td>met</td><td>no <code>phase:</code> write instruction; phase-exit paragraph names <code>status:</code></td></tr><tr><td>SC-05</td><td><strong>partial</strong></td><td>see the obligation below</td></tr><tr><td>SC-06</td><td>met</td><td>steps 3-7 graded with <code>file:line</code>; no surviving stay-alive instruction</td></tr><tr><td>SC-07</td><td>met</td><td>`gen-decisions-index.py --stdout \</td></tr></tbody></table></div>
+<h2 id="sc-05-the-post-merge-obligation-on-the-record">SC-05 — the post-merge obligation, on the record</h2>
+<p><strong>What SC-05 exists to measure:</strong> whether a stopped orchestrator actually survives a child running past the 600s watchdog. The whole feature rests on it. If a stopped parent does not survive, this change removes a noisy death and leaves a silent one.</p>
+<p><strong>What was measured:</strong> an orchestrator stopped, waited 1057.1s (<code>15:34:10.019Z</code> → <code>15:51:47.145Z</code>), was woken, and continued — 0 Bash calls made to stay alive, not killed, closing with its own text.</p>
+<p><strong>What was NOT measured:</strong> that the rewritten playbook <em>causes</em> that behaviour. The run followed a dispatch-level override, because a spawned agent loads skills from the main checkout while the rewrite sits in the worktree. The gap is unsatisfiable before merge by construction.</p>
+<p><strong>Obligation.</strong> One orchestrator round-trip over 600s under the MERGED skill, no override in its dispatch, measured the same way: longest survived gap, stall-call count, killed-at-600s. <strong>Owner: the main session, on the next feature that runs a build or validate phase</strong> — that run supplies the evidence for free; no dedicated run is needed.</p>
+<h2 id="what-remains-in-order-revised-after-three-sc-03-runs">What remains, in order — REVISED after three SC-03 runs</h2>
+<ol><li><strong>Commit the uncommitted <code>SKILL.md</code> nonce fix and RE-PIN <code>review_sha</code>.</strong> The pin holds the defect (<code>e0ae671</code> greps 2 for <code>7Q4X2M9K</code>; working tree greps 0). Every verdict currently describes text that would not merge. Then re-confirm SC-01/02/04 and re-grade SC-06, whose c0 certification covers the edited region.</li><li><strong>Rule on SC-03&#x27;s third clause</strong> — the <code>context-watch.py</code> row is unreachable by any reviewer. Drop it, accept the tool&#x27;s rejection as fail-closed evidence, or re-spec onto <code>--warn-for</code>. My read and the c2 lead&#x27;s agree: accept the rejection; a tool refusing an id it cannot vouch for is the safety property working, not a gap.</li><li>~~<strong>Re-sign both artifacts at 2026-08-24.</strong>~~ DONE. Covers exactly three edits: <code>source_issues</code>, the DEC-200→DEC-201 id correction, and the SC-03 amendment. Nothing else rode on it — I verified the amendment touched SC-03 only and left <code>## Approval</code> byte-unchanged at <code>2026-08-23</code>.</li><li><strong>Then grade SC-03</strong> — one reviewer run against the amended criterion. It is deliberately not done yet: verifying against unsigned criterion text would be void if the wording changes at signature. This is the last open gate.</li><li>Commit, PR (body takes <code>Closes #751</code> from <code>gh-sync.py closes</code>), merge, acceptance, <code>ship</code>.</li></ol>
+<h2 id="resolved-this-phase">Resolved this phase</h2>
+<p><strong><code>source_issues</code> is fixed end to end.</strong> It was absent from <code>plan.yaml</code> entirely, so <code>gh-sync.py closes</code> printed nothing and #751 plus #798-#802 would have survived the merge exactly as FEAT-33&#x27;s did. pm added <code>source_issues: [751]</code>; I re-ran <code>gh-sync.py open</code> to refresh the mirror because <code>closes</code> reads <code>feature.json</code>, not the plan; <code>closes</code> now prints <code>Closes #751</code>.</p>
+<p><strong><code>parent_origin</code> stays <code>None</code></strong> — the instruction to write <code>created</code> was withdrawn. <code>gh-sync</code> sets <code>created</code> only where it runs <code>gh issue create</code> itself (<code>:751</code>); #751 was authored by <code>mruangutai</code> before any harness command, which is the adopted branch (<code>:742</code>). Writing <code>created</code> would have armed <code>cmd_abandon</code> to close the operator&#x27;s own ticket as <code>not_planned</code> and label it <code>abandoned</code>.</p>
+<p><strong><code>matrix_ok</code> remains FALSE, accepted explicitly</strong> on the basis that the BRIEF disclosed the gap before signature. It is not recorded as true.</p>
+<p><strong><code>base</code> could not be pinned into <code>feature.json</code></strong> — <code>additionalProperties: false</code>, validator returns <code>undeclared key &#x27;base&#x27; at /</code>. It lives in <code>STATE.md</code> and the handoff instead.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Finding</th><th>Nature</th></tr></thead><tbody><tr><td>B-1</td><td>Assertions 1, 2, 7, 8 in <code>test-orchestrator-playbook.py</code> bind literal strings; a reworded stay-alive instruction passes all eight green — <strong>now on #804</strong></td><td>bug</td></tr><tr><td>B-2</td><td><code>SKILL.md:156</code> is an orphaned fragment contradicting <code>:154-155</code> on whether budget exhaustion halts the loop. Pre-existing, byte-identical at <code>569d417:93</code></td><td>chore</td></tr><tr><td>B-3</td><td><code>validate-digest.py</code> never checks that a <strong>member&#x27;s</strong> artifact path exists — only a lead&#x27;s (DEC-156). A ui-reviewer reported a file that was not on disk</td><td>bug</td></tr><tr><td>B-4</td><td>No <code>eval</code> runner exists, so <code>ai_behavior</code> changes have no binding automated gate</td><td>enhancement</td></tr><tr><td>B-5</td><td><code>parent_origin</code> semantics are a trap: &quot;a human created the issue&quot; reads as <code>created</code> but means <code>adopted</code></td><td>chore</td></tr><tr><td>B-6</td><td><code>feature.json</code> cannot hold the review base sha; every reviewer needs it and it travels only by prose</td><td>enhancement</td></tr><tr><td>B-7</td><td>Run <code>2026-08-24-01-product</code> completed at 06:41 and was never added to <code>runs:</code>; its send-back went uncounted</td><td>bug</td></tr><tr><td>B-8</td><td><code>harness-team</code> seeded a colliding run id because <code>Glob</code> on <code>runs/*</code> matches files, not directories, clobbering a <code>state.yaml</code>. <code>runs/</code> is gitignored, so there is no recovery</td><td>bug</td></tr><tr><td>B-9</td><td><strong>Reported by pm, unverified by me:</strong> <code>bash-write-guard.sh</code> coverage is redirect-shaped, not write-shaped — it blocked a heredoc redirect to an out-of-domain path while a <code>python3 -c open(path,&#x27;w&#x27;)</code> in the same tool ran unchecked. Nothing was evaded; the write performed was in-domain. Whoever tickets this should verify it before acting</td><td>bug</td></tr></tbody></table></div>
+<p>Already ticketed, cited not re-filed: <strong>#803</strong>, <strong>#804</strong>, <strong>#805</strong>, <strong>#806</strong>, <strong>#808</strong>.</p>
+<h2 id="two-corrections-to-my-own-record">Two corrections to my own record</h2>
+<p>I was initially skeptical of the pm lead&#x27;s self-reported clobber of <code>runs/2026-08-24-01-product/state.yaml</code>. Checking timestamps showed the lead was accurate and I was wrong: <code>digest.md</code> (06:41) predates the reconstructed <code>state.yaml</code> (07:10), so a real unrecorded run did exist there. It reported its own error unprompted and I should not have leaned toward doubt before measuring. The deliverable survives; only per-step sequencing metadata was lost, honestly labelled <code>RECONSTRUCTED</code>.</p>
+<p>The product lead also overturned its own member twice this phase — correcting pm&#x27;s <code>needs_approval: false</code> and refusing pm&#x27;s <code>sc_status</code> entry for a criterion nothing had executed. Both corrections were right.</p>
+<h2 id="budget">Budget</h2>
+<p><code>cycles_used</code> 4 of 10 — two from the build phase, one for the DEC-201 run&#x27;s uncounted send-back, one for the panel&#x27;s ui-reviewer send-back. 8 runs against an informational bound of 20; each resolved something and none repeated another&#x27;s work.</p><p class='derived'>Derived from <code>ship-review-2026-08-24-validate.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>

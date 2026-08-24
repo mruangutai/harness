@@ -100,19 +100,24 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
    own context. Over `budgets.orchestrator_context_warn_tokens` in `.harness/harness.json` (200000
    today) you decide whether to finish this phase or hand it to a fresh orchestrator. **The
    threshold ADVISES and never refuses** — nothing is blocked by it and the decision is yours
-   (DEC-198).
+   (DEC-198). **Crossing it is normal and expected**: keep working, and hand off when a seam is
+   near rather than the moment you cross. Operator calibration, 2026-08-24: 270k against the 200k
+   line drew "that's okay, i expect some margin buffer". **Approaching roughly TWICE the threshold
+   is where handing off stops being optional** — and a seam you reach at 2x with the note written
+   beats a phase you fail to finish at 3x.
 
    The mechanism, measured working end to end at `569d417` in about one second.
    **It MUST be two separate Bash calls** — a single call that greps for a nonce it emitted in the
    same command finds nothing, because the message carrying it is not in the sidecar yet:
 
    ```sh
-   # first Bash call, on its own — a FIXED literal you can retype, never one the shell generates
-   echo self-id ORCH-SELF-7Q4X2M9K
+   # first Bash call, on its own. INVENT the 8 characters NOW — do not copy them from here,
+   # and never reuse a nonce another orchestrator may also have used.
+   echo self-id ORCH-SELF-<8 random characters you invent, e.g. by mashing the keyboard>
 
-   # second Bash call, LATER
+   # second Bash call, LATER — the SAME nonce you just invented, retyped
    grep -l '"agentType":"harness-orchestrator"' ~/.claude/projects/*/*/subagents/*.meta.json 2>/dev/null \
-     | sed 's/\.meta\.json$/.jsonl/' | xargs grep -l ORCH-SELF-7Q4X2M9K 2>/dev/null
+     | sed 's/\.meta\.json$/.jsonl/' | xargs grep -l ORCH-SELF-<the same 8 characters> 2>/dev/null
 
    # then
    python3 .claude/skills/harness/bin/context-watch.py <the id>
@@ -120,8 +125,13 @@ is namespaced under `.harness/harness/features/<FEAT>/` (DEC-120).
 
    Four ways to get this wrong:
    - **The two calls must be separate**, for the reason above.
-   - **The nonce must be a fixed literal you can retype**, not one generated in the shell, and
-     unguessable enough that it appears nowhere else.
+   - **The nonce must be a fixed literal you can retype**, not one generated in the shell — the
+     second call needs the same characters and cannot recover a shell-generated value. **But you
+     must INVENT it, not copy one.** `<8 random characters>` above is a blank to fill, not a value:
+     a nonce copied from this page is shared by every orchestrator that copied it, so the grep
+     returns two-or-more, the check is SKIPPED, and it is skipped silently for everyone forever.
+     Copying the example verbatim IS the failure mode — measured on this feature's own reviewer,
+     2026-08-24.
    - **The match count decides what happens next, and all three outcomes are written out here.**
      **Exactly one match** — your agent id is that filename with the `agent-` prefix and the
      `.jsonl` suffix removed. Proceed with that id. **Zero matches** — the nonce has not flushed

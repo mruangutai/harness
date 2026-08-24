@@ -4,7 +4,7 @@ feature: FEAT-35-orchestrator-stop-and-wake
 approval:
   status: approved
   approved_by: operator
-  date: 2026-08-23
+  date: 2026-08-24
 
 lanes:
   resolved_at: 569d41779c869479ea81056bb6cee502fa06fa94
@@ -316,3 +316,4 @@ tasks:
       harness.json integration.detect, so harness.json is not edited. Registration is not
       optional - the drift detector in that script exits 2 for the entire suite on any unlisted
       test-*.py under bin.
+source_issues: [751]
