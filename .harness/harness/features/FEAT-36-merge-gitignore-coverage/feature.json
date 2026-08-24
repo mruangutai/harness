@@ -3,8 +3,8 @@
   "branch": "feat/FEAT-36-merge-gitignore-coverage",
   "pr": null,
   "status": "Review",
-  "review_sha": "df23bdaa7113700977ec43e617e293c854c0854e",
-  "cycles_used": 2,
+  "review_sha": "f494553bd9fbb987b4a19f91dcf4c3f37253fe38",
+  "cycles_used": 5,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -54,6 +54,60 @@
       "id": "review-c1-validator",
       "squad": "validator",
       "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "goal-check-product",
+      "squad": "product",
+      "verdict": "FAIL",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "goal-check-fix-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "goal-check-fix-qa-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "review-c2-validator",
+      "squad": "validator",
+      "verdict": "PASS",
+      "agent": "harness-validator-lead"
+    },
+    {
+      "id": "goal-check-c1-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "ship-refresh-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "distill-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "distill-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "distill-validator",
+      "squad": "validator",
+      "verdict": "BLOCKED",
       "agent": "harness-validator-lead"
     }
   ],

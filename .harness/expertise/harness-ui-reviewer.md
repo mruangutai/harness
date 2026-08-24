@@ -1,5 +1,4 @@
 # Expertise — harness-ui-reviewer
-
 ## Patterns (max 15)
 - P-01: WHEN scoping a diff for a Mode B UI review DO run a file-extension census (html/css/scss/tsx/jsx/vue/svelte/less) across the full diff before concluding no UI surface exists — a census makes "no UI" a measured finding, not an inferred guess.
 - P-02: WHEN a dispatch or ambient context claims a design contract's presence, absence, or content DO confirm it with a direct object check (`git cat-file -e`, `git diff`) at the pinned commit — a dispatch's description of a file is a hypothesis, not evidence.
@@ -16,7 +15,6 @@
 - P-13: WHEN you find a contract gap in one task or document's wording DO sweep sibling tasks/documents that independently restate the same intent for the identical gap before scoping a fix — a fix landing in only one instance leaves the other reading the same ambiguity.
 - P-14: WHEN filing a completeness/consistency finding that cites an unstated house convention DO grep multiple live examples of that convention in the codebase and quote them before filing — a consistency finding needs the convention confirmed to exist, not assumed from general style expectations.
 - P-15: WHEN a verify discriminates old versus new literal via two substring checks DO confirm the new literal does not itself contain the old literal as a substring — otherwise a correctly migrated line can satisfy the stale check too, silently defeating the discrimination the verify exists to make.
-
 ## Gotchas (max 15)
 - G-01: WHEN closing a prior FAIL's must_fix in a Mode A recheck DO verify the fix's literal text in the document itself (grep the actual wording/query/value) before marking closed — a closing review's own narration, or the plan's stated intent, is not evidence until the artifact is read directly.
 - G-02: WHEN a surface under review is batch/CLI text with no colour-only state encoding DO state the accessibility and theme-parity sections as explicitly not-applicable with the reasoning, rather than omitting them — an omitted section reads as unchecked, not confirmed inapplicable.
@@ -25,16 +23,13 @@
 - G-05: WHEN a file-extension census returns matches you plan to scope in DO confirm each is not a 100% rename with zero content delta (`git diff --summary -M`) before treating it as touched content — an extension match on a pure directory move carries no design contract to audit.
 - G-06: WHEN probing whether a verify closes a stated coverage gap DO cover all three probe polarities — total-silence, false-FAIL, false-PASS — before ruling coverage closed; varying only wording within one polarity can return a clean verdict while the false-PASS shape stays open.
 - G-07: WHEN a remedy is written to close a prior finding DO confirm it discharges the exact shape the finding was ranked on — closing a related-but-different shape (e.g. total-silence when the gating shape was false-PASS) is not closure.
-- G-08: WHEN a wording finding exactly matches text an approved plan's intent block mandates DO
-  treat it as a plan-change question, not a defect remedy — this holds even for newly introduced
-  text, not only an untouched pre-existing sibling.
+- G-08: WHEN a wording finding exactly matches text an approved plan's intent block mandates DO treat it as a plan-change question, not a defect remedy — this holds even for newly introduced text, not only an untouched pre-existing sibling.
 - G-09: WHEN rating severity of an emitted-contract or precedence gap DO check whether a design/architecture review document settled that exact case before finalizing severity — a gap that reintroduces a case a review's own rationale rejected is a deviation from a reviewed resolution, heavier than a plain coverage gap.
 - G-10: WHEN a criterion asserts a property for one representative case (e.g. 'states X once') without naming the input combination DO grep the test suite for which fixture variables are populated across cases — an unpopulated one names the untested combination; flag as open, don't assume covered.
-
+- G-11: WHEN a changed-path extension census appears UI-free DO compare all pinned changed objects and potentially interactive production utilities before scoping out — extensionless CLI changes remain possible, and every not-applicable design or accessibility dimension requires measured absence.
 ## Outcomes (max 10)
 - O-01: WHEN a scoped-out verdict rests on a measured check (extension census, direct object check) rather than a prediction DO record it as such — a scoped-out review that looked holds up under cross-review scrutiny; one that merely predicted absence does not.
 - O-02: WHEN declining a sub-question because it sits outside your lens (e.g. path arithmetic, message semantics, test-mutation correctness) DO name the peer lens that should cover it in your return — a decline that names the receiving lens produced real coverage under panel review; a silent decline would not.
 - O-03: WHEN citing a peer artifact as covering ground your own remit scoped out DO check whether that artifact predates the change it is cited for, and raise it as an open question rather than assume — provenance is checkable from any lens, and panel review confirmed this call correct.
 - O-04: WHEN a Mode A census measured no UI surface but your Mode A note left opens unresolved DO treat the opens as in-remit Mode B work, not grounds to decline — lead review confirmed: a census answers whether a surface exists, not whether prior opens are discharged.
-
 ## Open (max 5)

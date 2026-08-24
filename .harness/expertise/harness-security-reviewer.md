@@ -40,4 +40,5 @@
 - O-06: WHEN self-scoping a diff that reads as security-irrelevant DO also ask whether its surface has ever had a security review, and say so in scope_reason — 'this delta needs none' and 'this surface has never been reviewed' are different questions; only the first licenses a decline.
 - O-07: WHEN self-scoping a diff DO produce a per-file census — every path, in or out, with a reason — not an aggregate claim; a measured decline is verifiable evidence another agent's routing decision (e.g. skipping a specialist reviewer) can cite directly instead of re-deriving it.
 - O-08: WHEN your finding's mechanism is independently matched by another reviewer's finding at the same site, from a different lens, DO name the convergence explicitly — it is stronger evidence of a real gap than either alone — and reconcile severity down to the shared value, never average or escalate.
+- O-09: WHEN self-scoping a test-only diff DO audit subprocess, environment, filesystem, and configuration effects before declaring no exploitable regression — tests can invoke production code, mutate inherited state, or change enforcement reachability.
 ## Open (max 5)
