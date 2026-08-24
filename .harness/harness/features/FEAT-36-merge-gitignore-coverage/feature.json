@@ -1,0 +1,44 @@
+{
+  "feature_id": "FEAT-36-merge-gitignore-coverage",
+  "branch": "feat/FEAT-36-merge-gitignore-coverage",
+  "pr": null,
+  "status": "Building",
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "plan-product",
+      "squad": "product",
+      "verdict": "PASS",
+      "agent": "harness-product-lead"
+    },
+    {
+      "id": "plan-simplify-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    },
+    {
+      "id": "t01-eng",
+      "squad": "eng",
+      "verdict": "PASS",
+      "agent": "harness-eng-lead"
+    }
+  ],
+  "github": {
+    "milestone": 25,
+    "parent": 816,
+    "parent_origin": "created",
+    "attached": [
+      "T-01"
+    ],
+    "issues": {
+      "T-01": 817
+    },
+    "source_issues": [
+      814
+    ]
+  }
+}
