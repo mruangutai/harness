@@ -1,0 +1,14 @@
+board_lifecycle: workflow detection matches by NAME only -- ProjectV2Workflow exposes neither trigger nor action, so a workflow the operator renamed is reported MISSING rather than assumed present
+board_lifecycle: STATUS: skipped -- auditing 'mruangutai/kaya-ai', not this checkout's own repo ('mruangutai/harness'); this checkout's on-disk features are never that repo's
+board_lifecycle: DRY-RUN would fix -- STATION: issue #297 reads 'Building', expected 'Done'
+board_lifecycle: DRY-RUN would fix -- STATION: issue #296 reads 'Building', expected 'Done'
+board_lifecycle: DRY-RUN would fix -- STATION: issue #152 reads 'Building', expected 'Done'
+board_lifecycle: DRY-RUN would fix -- STATION: issue #83 reads 'Building', expected 'Done'
+board_lifecycle: DRY-RUN would fix -- STATION: issue #49 reads 'Building', expected 'Done'
+board_lifecycle: DRY-RUN would fix -- STATION: issue #31 reads 'Building', expected 'Done'
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #214 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #154 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #105 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #75 is not_planned and carries no 'abandoned' label
+board_lifecycle: DRY-RUN would fix -- LABEL: issue #2 is not_planned and carries no 'abandoned' label
+board_lifecycle: 11 fixable finding(s) previewed; 0 finding(s) require a human (see above) -- re-run with --apply to write

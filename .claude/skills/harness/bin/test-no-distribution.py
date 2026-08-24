@@ -150,8 +150,31 @@ def case3():
         check("case3_presence_fleet_yaml_safe_loads", True)
 
     repos = (data or {}).get("repos", []) if loaded_ok else []
-    check("case3_presence_fleet_has_exactly_one_repo", len(repos) == 1,
-          f"repos: {repos}")
+    # THIS IS THE WRITE-SURFACE TRIPWIRE, and it is an EXACT SET rather than a count. A fleet
+    # member is a repository the factory may write to, so every addition must be a decision that
+    # fails a test until someone records it here. `len(repos) == 1` was the earlier form and it
+    # was strictly weaker: it could not tell an addition from a SUBSTITUTION, so swapping a
+    # member for a different repository passed. Naming the set catches both.
+    #
+    # `harness-factory-smoke` earns its place as a KEPT FIXTURE (FEAT-33 SC-01, 2026-08-23), not
+    # as a served product. `provision --repo` resolves a declaration through this file, and
+    # `mruangutai/harness` is deliberately absent from it (DEC-174 am.1), so a live run of the
+    # board-create path had nowhere else to point. That path cannot be reached by any runner —
+    # its create branch fires only when the declared project number does not exist, and no fake
+    # can prove GitHub accepts the mutation. The live run immediately found a defect eleven fakes
+    # had hidden: a fresh Projects v2 board already carries a `Status` field.
+    expected_repos = {"mruangutai/kaya-ai", "mruangutai/harness-factory-smoke"}
+    found_repos = {r.get("name") for r in repos if isinstance(r, dict)}
+    # CARDINALITY IS ASSERTED SEPARATELY, and the set comparison alone is NOT enough. A set
+    # loses duplicates: two `- name: mruangutai/kaya-ai` entries carrying DIFFERENT
+    # `default_branch` values satisfy `found_repos == expected_repos` and satisfy `load_fleet`,
+    # and `repo_entry`'s first-match-wins then hands `factory_workspace` a branch nobody chose.
+    # The earlier `len(repos) == 1` form caught that case and the set form does not, so this
+    # assertion is only strictly stronger than the count with the length check beside it.
+    check("case3_presence_fleet_is_exactly_the_declared_set",
+          found_repos == expected_repos and len(repos) == len(expected_repos),
+          f"expected {sorted(expected_repos)} ({len(expected_repos)} entries), found "
+          f"{sorted(n for n in found_repos if n)} in {len(repos)} entries")
 
     # DEC-174 (amended): harness is not a fleet member. The convention that harness
     # develops itself in the live checkout and in worktrees — never in a factory

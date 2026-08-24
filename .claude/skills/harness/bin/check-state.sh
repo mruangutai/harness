@@ -1345,6 +1345,21 @@ if _inv26_board:
                 _want = _EXPECT.get(_tstat.get(_tid, "pending"))
                 if _want is None:
                     continue
+                # D-24, on the operator's ruling 4 of 2026-08-23 (FEAT-33 T-22). Under D-23
+                # a done task's sub-issue is deliberately left OPEN so it can hold its
+                # column through the whole Review phase: GitHub's native `Item closed`
+                # workflow lands a closed issue's card in the done column by itself, which
+                # is the measured reason board 3 has never held a card at Review. So a done
+                # task's card satisfies this invariant at the done, review OR building
+                # station — but ONLY while the feature's own feature.json status is Review.
+                # BOUNDED ON THAT STATUS ON PURPOSE: an unconditional widening would
+                # silence the mis-columned done card the invariant was extended to catch.
+                _accept = {_want}
+                if (_tstat.get(_tid) == "done"
+                        and str(_fj.get("status") or "").split()[:1] == ["Review"]):
+                    _accept |= {_st26["review"], _st26["building"]}
+                _wanttxt = (_want if len(_accept) == 1
+                            else ", ".join(sorted(_accept)[:-1]) + " or " + sorted(_accept)[-1])
                 _found, _reason = _gb.read_station(_stations, _num)
                 if _reason:
                     # CANNOT VERIFY, NOT CLEAN. A lookup that misses leaves both sides of
@@ -1352,11 +1367,11 @@ if _inv26_board:
                     # precisely the silence this invariant exists to break.
                     bad.append(f"INV-26 CANNOT VERIFY {_feat} {_tid} (issue #{_num}): "
                                f"{_reason}. The plan says {_tstat.get(_tid, 'pending')}, so "
-                               f"the card should read {_want}.")
-                elif _found != _want:
+                               f"the card should read {_wanttxt}.")
+                elif _found not in _accept:
                     bad.append(f"INV-26 {_feat} {_tid} (issue #{_num}): plan says "
                                f"{_tstat.get(_tid, 'pending')}, so the card should read "
-                               f"{_want} — the board reads {_found}.")
+                               f"{_wanttxt} — the board reads {_found}.")
 
             # THE PARENT. A derived station with no recorded parent is INV-21's finding,
             # not this one.

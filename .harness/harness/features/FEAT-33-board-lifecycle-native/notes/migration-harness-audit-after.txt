@@ -1,0 +1,2 @@
+board_lifecycle: workflow detection matches by NAME only -- ProjectV2Workflow exposes neither trigger nor action, so a workflow the operator renamed is reported MISSING rather than assumed present
+board_lifecycle: 0 finding(s)

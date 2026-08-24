@@ -88,17 +88,17 @@ def deep_copy(d):
     return json.loads(json.dumps(d))
 
 
-FIVE_STATIONS = ("backlog", "ready", "building", "review", "done")
+SIX_STATIONS = ("backlog", "plan", "ready", "building", "review", "done")
 
 
 def full_stations(**overrides):
-    st = {k: k.capitalize() for k in FIVE_STATIONS}
+    st = {k: k.capitalize() for k in SIX_STATIONS}
     st.update(overrides)
     return st
 
 
 def board_dict(number, **station_overrides):
-    """A valid five-key board mapping (FEAT-24 T-02 / D-06)."""
+    """A valid six-key board mapping (FEAT-24 T-02 / D-06, widened to six by FEAT-33 T-02)."""
     return {
         "owner": "mruangutai",
         "number": number,
@@ -362,25 +362,25 @@ check("load_fleet still requires repos[].name, repos[].default_branch and worksp
       _name_bad and _default_branch_missing and _workspace_root_missing,
       (_name_bad, _default_branch_missing, _workspace_root_missing))
 
-# --- validate_board: the five-key stations map, accept/reject per key -----------------------
+# --- validate_board: the six-key stations map, accept/reject per key -----------------------
 # Independent oracle, per-key distinctive values (the same shape T-04 uses for derive_station's
 # Col-B/Col-R) — comparing the RETURNED mapping to the INPUT mapping is x == x, since item 2c
 # mutates the board in place and returns it, and cannot redden for any implementation that fails
 # to preserve a key. _EXPECTED_STATIONS is the oracle instead.
 _EXPECTED_STATIONS = {
-    "backlog": "Col-BK", "ready": "Col-RD", "building": "Col-BL",
+    "backlog": "Col-BK", "plan": "Col-PL", "ready": "Col-RD", "building": "Col-BL",
     "review": "Col-RV", "done": "Col-DN",
 }
-for _key in FIVE_STATIONS:
+for _key in SIX_STATIONS:
     _board = board_dict(3, **_EXPECTED_STATIONS)
     try:
         _result = fc.validate_board(_board, "github.board", "test-path")
         _ok = _result["stations"][_key] == _EXPECTED_STATIONS[_key]
     except Exception as e:
         _ok, _result = False, f"{type(e).__name__}: {e}"
-    check(f"validate_board accepts the five-key stations map: {_key}", _ok, _result)
+    check(f"validate_board accepts the six-key stations map: {_key}", _ok, _result)
 
-for _key in FIVE_STATIONS:
+for _key in SIX_STATIONS:
     _board = board_dict(3)
     del _board["stations"][_key]
     try:
@@ -391,6 +391,63 @@ for _key in FIVE_STATIONS:
     except Exception as e:
         check(f"validate_board rejects a stations map missing {_key}", False,
               f"{type(e).__name__}: {e}")
+
+# --- validate_board: three edge cases on the exact-set-equality boundary (FEAT-33 T-02) -------
+_six_key_board = board_dict(3)
+try:
+    _six_result = fc.validate_board(_six_key_board, "github.board", "test-path")
+    _six_ok = (
+        _six_result is _six_key_board
+        and set(_six_result["stations"].keys()) == set(SIX_STATIONS)
+    )
+except Exception as e:
+    _six_ok, _six_result = False, f"{type(e).__name__}: {e}"
+check("(X) validate_board accepts a six-key map with all six non-empty values, and returns it",
+      _six_ok, _six_result)
+
+_five_key_board_pre_widening = {
+    "owner": "mruangutai",
+    "number": 3,
+    "station_field": "Status",
+    "stations": {
+        "backlog": "Backlog", "ready": "Ready", "building": "Building",
+        "review": "Review", "done": "Done",
+    },
+}
+try:
+    fc.validate_board(_five_key_board_pre_widening, "github.board", "test-path")
+    check("(X) validate_board rejects the five-key map .harness/harness.json carried before "
+          "this change", False, "did not raise")
+except fc.FleetError as e:
+    check("(X) validate_board rejects the five-key map .harness/harness.json carried before "
+          "this change", "github.board.stations" in str(e), str(e))
+except Exception as e:
+    check("(X) validate_board rejects the five-key map .harness/harness.json carried before "
+          "this change", False, f"{type(e).__name__}: {e}")
+
+_seven_key_board = board_dict(3, abandoned="Abandoned")
+try:
+    fc.validate_board(_seven_key_board, "github.board", "test-path")
+    check("(X) validate_board rejects a seven-key map that adds abandoned", False,
+          "did not raise")
+except fc.FleetError:
+    check("(X) validate_board rejects a seven-key map that adds abandoned", True)
+except Exception as e:
+    check("(X) validate_board rejects a seven-key map that adds abandoned", False,
+          f"{type(e).__name__}: {e}")
+
+# _STATION_KEYS must be exactly the six lowercase forms of feature-schema.json's status enum
+# minus "Abandoned", read at runtime, so the two declarations cannot drift apart silently.
+_schema_path = os.path.join(os.path.dirname(os.path.abspath(fc.__file__)), "feature-schema.json")
+with open(_schema_path, encoding="utf-8") as f:
+    _schema = json.load(f)
+_schema_stations = {
+    s.lower() for s in _schema["properties"]["status"]["enum"] if s != "Abandoned"
+}
+check("(X) _STATION_KEYS is exactly the six lowercase forms of feature-schema.json's status "
+      "enum minus Abandoned",
+      set(fc._STATION_KEYS) == _schema_stations,
+      (set(fc._STATION_KEYS), _schema_stations))
 
 # --- board_for: the eight malformed shapes, driven through product_config + board_for ---------
 # The SAME eight shapes T-04 drives through gh_board.load_board, driven here through the OTHER

@@ -6445,6 +6445,133 @@ amendment quoting the struck clause, not by leaving it in the position where it 
 and the amendment-1 record itself, is untouched. No DEC number is opened, superseded or retired
 here, and the entry's rule is the same rule.
 
+**Amendment 3 (2026-08-23) — the `plan` station is declared, and amendment 1's refusal of it is reversed**
+
+DEC-196 amendment 3. FEAT-33 declares a sixth station key on every board the factory serves,
+falsifying one clause of amendment 1. Amendment 1's body stays standing unedited, as does the
+original entry: the record is appended to, never rewritten.
+
+*What became false.* Amendment 1's clause "`plan` is deliberately NOT declared". Measured at the SHA
+this feature ships at, `.harness/harness.json`'s `github.board.stations` declares six keys —
+`backlog`, `plan`, `ready`, `building`, `review`, `done` — and `mruangutai/kaya-ai`'s own
+`.harness/harness.json` on `master` declares the same six, landed as `mruangutai/kaya-ai#336`.
+
+*Amendment 1's REASONING is not falsified, so this is not a strike under DEC-188.* That clause
+argued the option resolves BY NAME at the board, so a wrong value fails loudly there and a name
+nobody declares is still writable. Both halves remain true in the tree: `board-station.py` hands the
+station through to `gh_board.set_station` as a plain CLI string, validated against no list, and
+`factory_gh.project_field_set` resolves the option by matching `o["name"] == option` at runtime,
+raising `project field option not found` when nothing matches. What is reversed is the CHOICE that
+reasoning supported, not the reasoning.
+
+*Who reversed it, and on whose authority.* The operator ruled on 2026-08-23 that the sixth station
+key belongs, recorded as ruling 3 in
+`.harness/harness/features/FEAT-33-board-lifecycle-native/notes/rulings-2026-08-23.md`. That ruling
+is this amendment's warrant, and the parity argument below is the ruling's own reasoning.
+
+*What actually changed is parity, not capability.* DEC-192's six case-sensitive status values ARE
+the board's column names, and a station map that names five of the six cannot express one of them by
+key. The declaration now carries all six, and `factory_config._STATION_KEYS` requires exactly those
+six, so a five-key declaration is rejected with a message naming `github.board.stations`.
+
+*What did NOT change, stated so a future scan does not add it.* `gh_board.derive_station` still
+returns exactly the building station, the review station, or None. There is no `Plan` derivation and
+none is wanted — `Plan` is written at kickoff by `board-station.py`, invoked by `/harness-plan` with
+the station as a literal argument. An all-pending derivation would overwrite a card the operator
+promoted to `Ready`, a station whose meaning is documented in kaya-ai's own `harness.json`, where
+`Ready` means promoted for the factory and `Backlog` means filed-and-untriaged; that would be a new
+backwards-move defect of the same class as issue 674. DEC-196's rule is otherwise untouched: the
+harness still MOVES any card it is pointed at and CLOSES only the cards it created, and no DEC number
+is opened, superseded or retired here.
+
+*The accepted cost.* The required key set is now exact at six across every repository served, so a
+repository joining the fleet with a five-key declaration is rejected until it declares all six.
+
+**Amendment 4 (2026-08-23) — the station lifecycle is event driven, and every station has exactly one named writer**
+
+DEC-196 amendment 4. FEAT-33 makes each board column the consequence of an event the harness already
+performs, and names the one writer of each. The original entry and amendments 1 through 3 stay
+standing unedited: the record is appended to, never rewritten. No DEC number is opened, superseded or
+retired, and DEC-192's refusal of a seventh column is upheld here rather than amended.
+
+*The map, one writer per station.* Recorded in `.claude/skills/harness/SKILL.md` under the heading
+*"Who writes each station — one writer per column"*, and cited here by content because a permanent
+record must survive the line moving.
+
+| Station | The one writer |
+|---|---|
+| `Backlog` | whoever files the ticket. Not the harness |
+| `Plan` | `board-station.py`, at the `/harness-plan` door |
+| `Ready` | the signature, via `gh-sync.py status <feature-dir> Ready` — it moves the **task sub-issues** and **never the parent** |
+| `Building` | `gh-sync.py start-task`, owned by the task's `execution_mode` |
+| `Review` | the validation panel kickoff, via `gh-sync.py status <feature-dir> Review` — it moves the **parent AND every recorded sub-issue** |
+| `Done` | **GitHub**, from the `Closes` lines at merge, which close the sub-issues and the parent together. The harness writes this column **never** |
+
+`Abandoned` is not a station and has no writer: DEC-192 gave it no column at all. Both `status`
+station writes are in `cmd_status` in `gh-sync.py`, and `feature.json`'s `status` is the authority
+there — `_record_status` runs first and unconditionally, before any board write, and nothing rolls it
+back from the board. The station is its mirror, which is DEC-138's outbound posture, never a gate.
+
+*The ruling of 2026-08-23, and the cost the operator accepted with it.* `gh-sync close-task` is **no
+longer run per commit** — ruling 1 in
+`.harness/harness/features/FEAT-33-board-lifecycle-native/notes/rulings-2026-08-23.md`. A task
+sub-issue therefore stays OPEN through Building and Review and closes with its parent at merge. Why
+it had to change: GitHub's native `Item closed` workflow moves a closed card to the done column, so a
+sub-issue cannot hold `Review` while it is closed — the per-commit close and the ruling that
+sub-issues reach `Review` could not both stand. The cost, stated rather than buried: this returns to
+FEAT-31's close-everything-at-merge shape, which the per-commit close had been written to replace, so
+a sub-issue's `Done` depends on the merge again. `Review` becomes reachable because it is now written
+explicitly, not because the close was deferred.
+
+*The consequence for INV-26, and the one enforcement-layer edit this feature makes.* A task whose
+`plan.yaml` status is `done` now has a deliberately OPEN sub-issue standing at the building or review
+column for the whole Review phase, while INV-26's `_EXPECT` map in `check-state.sh` maps status
+`done` to the done column — every `done` task of every feature would become a violation in the gate
+that runs at every harness door. INV-26 was widened to accept that shape by the operator's own hand
+under the DEC-174 carve-out, ruling 4 of the same date, and that widening is the ONLY edit to a gate
+script this feature makes. The separation the ruling turns on: an issue's STATE is GitHub's own
+open-or-closed field, a card's STATION is the board column, and INV-26's defect was reading a station
+off a state.
+
+*The measurement that forced the `Review` row, with its conditions.* Board 3, 539 items, measured at
+`f5f5185` and recorded in `notes/research-FEAT-33-station-writers.md`: **ZERO** items at `Review`,
+and zero at `Ready`. `Review` was reachable in principle — `close-task` on the final task derives it
+— and had never fired, because the last `close-task` runs while later tasks are still `pending` and
+nothing calls `gh-sync` again until ship. A station that is never written is the same shape as an
+assertion that cannot go red.
+
+*What did NOT change, stated so a future scan does not remove it.* `gh_board.derive_station` still
+returns exactly the building station, the review station, or None, and `check-state.sh`'s INV-26
+still grades the PARENT card against it. The derivation stopped being the only path to `Review`; it
+did not stop being the expectation the gate reads. Removing it would silence INV-26's parent
+comparison, and `check-state.sh` is untouchable under DEC-174.
+
+*The ceiling, recorded as a limit rather than as a solution.* The only genuinely CAUSED writes
+available are GitHub's own workflows and a Claude Code hook. Hooks are the enforcement layer DEC-174
+forbids executing here, and a board read inside a `PostToolUse` `Write`/`Edit` hook costs a measured
+490 to 506 GraphQL points per fire on board 3 and would fire on every edit in every session. So each
+write is instead folded into a command already mandatory at that moment, which makes forgetting the
+station require forgetting the whole act. It is not impossible.
+
+*The hole that was closed, with its measurement.* At `f5f5185` the only thing moving a card mid-build
+was one `SKILL.md` row addressed to the orchestrator — `SKILL.md:191` as measured — while DEC-174
+forbids the orchestrator `main-session-direct` tasks and nothing instructed the main session to move
+their cards. FEAT-32 carried 9 of 17 tasks in that mode.
+
+*`Ready` has ONE meaning on every served board — the plan is signed — and the cost is stated rather
+than discovered.* `mruangutai/kaya-ai` loses a signal it has today: its own `.harness/harness.json`
+on `master` documents `Ready` as the human pick-up point, and after this nothing on board 2 records
+that a human promoted a ticket. A visible label is the route if that turns out to be needed, the same
+shape as the `abandoned` label, and it is not built here.
+
+*Why the claim queue is not at risk — settled, not open.* `factory_claim.py:302` polls the ready
+station as the factory's CLAIM QUEUE and `factory_decompose.py:414` is what puts served-repo TASK
+cards there; both re-derived in this worktree, and the second anchor MOVED from the `:411` an earlier
+draft cited. `factory_decompose.py:393` records that the parent is NEVER added to a served-repo
+board, so that poll has only ever contained tasks, by construction. The rule this amendment carries —
+a parent card never reaches `Ready` on any board — makes the harness lane AGREE with the factory lane
+rather than change it.
+
 ## DEC-197 — A test file matching two `detect` globs resolves to the explicit kind, and the record is the enforcement
 
 **Chose:** state the precedence that was already in force. In `.harness/harness.json`'s `test_kinds`,
