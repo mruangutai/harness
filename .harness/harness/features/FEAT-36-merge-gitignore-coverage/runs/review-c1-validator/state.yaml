@@ -1,0 +1,47 @@
+schema_version: 1
+run_id: review-c1-validator
+feature: FEAT-36-merge-gitignore-coverage
+squad: review
+team: review
+host: harness-validator-lead
+status: complete
+review_sha: df23bdaa7113700977ec43e617e293c854c0854e
+base_sha: 0fa8f336e55dc57bca09a9f7df0524a35195ee7e
+cycles_used: 0
+steps:
+  - id: code
+    persona: harness-code-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-2
+    completed_at: seq-4
+    note: resumed missing c1 artifact; spec-pass then quality-pass with one med advisory
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-code-reviewer-c1.md
+  - id: qa
+    persona: harness-qa
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-2
+    completed_at: seq-3
+    note: resumed missing c1 artifact; required unit and integration matrix passed
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-qa-c1.md
+  - id: security
+    persona: harness-security-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-2
+    completed_at: seq-4
+    note: resumed missing c1 artifact; in scope with no introduced security finding
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-security-reviewer-c1.md
+  - id: ui
+    persona: harness-ui-reviewer
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-1
+    note: retained fresh pinned c1 artifact; scoped out after measured UI census
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/review-harness-ui-reviewer-c1.md
