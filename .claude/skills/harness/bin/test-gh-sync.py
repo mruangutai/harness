@@ -823,6 +823,20 @@ with tempfile.TemporaryDirectory() as tmp6:
     check("issue recorded before the failed attach survives the crash",
           re.match(r"^4\d$", str((gh6.get("issues") or {}).get("T-01"))) is not None, doc6)
 
+
+# `issue edit ... --add-label` fails, and NOTHING ELSE does. The one write in `abandon` that is
+# purely cosmetic is the one made to fail, because that is the whole shape of the defect: a
+# cosmetic failure used to abort the run through `gh()`'s `skip()`, taking the backlog write,
+# the rest of the batch and the status write down with it.
+FAKE_GH_STATIONS_LABEL_FAILS = FAKE_GH_STATIONS.replace(
+    'case "$1 $2" in',
+    'case "$*" in\n'
+    '  *"--add-label"*) echo "label service unavailable" >&2; exit 1 ;;\n'
+    'esac\n'
+    'case "$1 $2" in',
+    1,
+)
+
 # --- abandon: adopted parent stays open, subs + milestone close not_planned/closed
 with tempfile.TemporaryDirectory() as tmpA:
     install_gh(tmpA)
@@ -2403,6 +2417,15 @@ with tempfile.TemporaryDirectory() as tmpS8:
           "done=%s" % sorted(moved_to_done(calls(tmpS8))))
     check("ship UNKNOWN: it prints one stderr line naming the issue",
           "#40" in r.stderr and "child list unreadable" in r.stderr, repr(r.stderr))
+    # THE REPORT IS THE POINT, not the exit code. An earlier cut printed the stderr line and
+    # continued WITHOUT recording the miss, so the run ended with no `FAILED` line at all --
+    # and post-merge-sweep.sh gates worktree removal on exactly three things: a non-zero exit,
+    # `SKIP`, and `FAILED`. A card that silently missed done therefore had its evidence swept
+    # away with the tree. An unreadable child list is a card that did not reach done, which is
+    # what `FAILED` means, so it is reported like every other one.
+    check("ship UNKNOWN: the miss is REPORTED on the FAILED line, so the sweep keeps the tree",
+          "gh-sync: FAILED" in r.stdout and "#40" in r.stdout.split("gh-sync: FAILED")[1],
+          repr(r.stdout))
     check("ship UNKNOWN: exit status is still 0", r.returncode == 0, r.stdout + r.stderr)
 
 # --- a BoardError on one card does not stop the rest, and IS reported -------------------------
@@ -2728,6 +2751,75 @@ with tempfile.TemporaryDirectory() as tmpAC:
           r.returncode == 0, r.stdout + r.stderr)
     check("abandon: the close still runs when the detach fails",
           any("issues/41 " in l and "state=closed" in l for l in logAC), str(logAC))
+
+
+
+# ---------- ABANDON PUTS THE CARD BACK IN THE BACKLOG, AND NOTHING COSMETIC CAN STOP IT ------
+# The operator's ruling: an abandoned ticket is NOT done work. It closes `not_planned`, keeps
+# the `abandoned` label, detaches from its parent, and its card returns to the BACKLOG station.
+# Probe #860 measured why the order is forced: a close moves the card to the done station at
+# t+0s, so the backlog write must come AFTER the close or GitHub overwrites it.
+
+with tempfile.TemporaryDirectory() as tmpAB:
+    install_gh(tmpAB, FAKE_GH_STATIONS)
+    featAB = stage_station(tmpAB, "FEAT-40-abandon-backlog",
+                           [("T-01", "pending")], issues={"T-01": 41}, parent=40)
+    reasonAB = os.path.join(tmpAB, "reason.txt")
+    open(reasonAB, "w").write("dropped")
+    rAB = run(["abandon", featAB, "--reason-file", reasonAB, "--yes"], tmpAB,
+              {"FACTORY_GH": os.path.join(tmpAB, "gh")})
+    logAB = calls(tmpAB)
+    editsAB = [l for l in logAB if "project item-edit" in l]
+    check("abandon exits 0", rAB.returncode == 0, rAB.stdout + rAB.stderr)
+    check("abandon writes BACKLOG for the sub-issue's card, never the done station",
+          any("--id ITEM_41" in l and "--single-select-option-id OPT_BACKLOG" in l
+              for l in editsAB)
+          and not any("--id ITEM_41" in l and "OPT_DONE" in l for l in editsAB),
+          str(editsAB))
+    check("abandon writes BACKLOG for the parent's card too",
+          any("--id ITEM_40" in l and "--single-select-option-id OPT_BACKLOG" in l
+              for l in editsAB),
+          str(editsAB))
+    # ORDERING, asserted by position in the ONE call log rather than by counting: the close
+    # must land before the backlog write, or GitHub's own workflow overwrites it.
+    _close41 = next((i for i, l in enumerate(logAB)
+                     if "api -X PATCH" in l and "issues/41" in l and "not_planned" in l), None)
+    _back41 = next((i for i, l in enumerate(logAB)
+                    if "project item-edit" in l and "--id ITEM_41" in l
+                    and "OPT_BACKLOG" in l), None)
+    check("the close precedes the backlog write, because a close moves the card to done at "
+          "t+0s and a write made before it would be silently overwritten",
+          _close41 is not None and _back41 is not None and _close41 < _back41,
+          f"close={_close41} backlog={_back41}")
+
+with tempfile.TemporaryDirectory() as tmpAC:
+    install_gh(tmpAC, FAKE_GH_STATIONS_LABEL_FAILS)
+    featAC = stage_station(tmpAC, "FEAT-40-abandon-label-fails",
+                           [("T-01", "pending"), ("T-02", "pending")],
+                           issues={"T-01": 41, "T-02": 42}, parent=40)
+    reasonAC = os.path.join(tmpAC, "reason.txt")
+    open(reasonAC, "w").write("dropped")
+    rAC = run(["abandon", featAC, "--reason-file", reasonAC, "--yes"], tmpAC,
+              {"FACTORY_GH": os.path.join(tmpAC, "gh")})
+    logAC = calls(tmpAC)
+    editsAC = [l for l in logAC if "project item-edit" in l]
+    patchedAC = {re.search(r"issues/(\d+)", l).group(1) for l in logAC
+                 if "api -X PATCH" in l and "issues/" in l and "not_planned" in l}
+    check("a failing --add-label does not abort the run — no SKIP, exit 0",
+          rAC.returncode == 0 and "gh-sync: SKIP" not in rAC.stdout,
+          f"rc={rAC.returncode} stdout={rAC.stdout!r}")
+    check("a failing --add-label on the FIRST issue still leaves every later issue closed",
+          {"41", "42", "40"} <= patchedAC, sorted(patchedAC))
+    check("a failing --add-label still leaves the card in the BACKLOG, never at done — the "
+          "cosmetic write cannot cost the state correction",
+          any("--id ITEM_41" in l and "OPT_BACKLOG" in l for l in editsAC)
+          and not any("OPT_DONE" in l for l in editsAC),
+          str(editsAC))
+    check("the label failure is REPORTED on stderr, naming the issue",
+          "#41" in rAC.stderr and "not labelled" in rAC.stderr, repr(rAC.stderr))
+    check("_record_status still runs — feature.json reaches Abandoned",
+          json.load(open(os.path.join(featAC, "feature.json")))["status"] == "Abandoned",
+          open(os.path.join(featAC, "feature.json")).read())
 
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")

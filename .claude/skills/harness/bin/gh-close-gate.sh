@@ -15,70 +15,43 @@
 # grilling flagged. What actually stops a harness command from closing an issue is deleting
 # it: T-11 removes `close-task`, leaving `abandon` as the only one.
 #
+# IT TOKENIZES, IT DOES NOT GREP. An earlier cut matched the raw command string with
+# `grep -E`, and a character class is not a shell lexer. Ten forms were measured reaching
+# `gh issue close` straight through it: `gh "issue" close`, `/opt/homebrew/bin/gh issue
+# close`, `\gh issue close`, `eval "..."`, `bash -c '...'`, `x=$(gh issue close 5)`,
+# `$(echo gh) issue close`, `-f state="closed"`, a JSON body on `--input -`, and the
+# GraphQL `closeIssue` mutation. `shlex` strips the quoting and the backslash, `basename`
+# strips the path, and each token is re-scanned as a command line so `eval` and `bash -c`
+# are read rather than skipped.
+#
+# WHAT IT STILL CANNOT SEE, stated rather than implied: a `gh` that only exists after
+# shell expansion -- `G=gh; $G issue close 5`. Catching that needs the shell's own
+# expansion, which a PreToolUse hook does not have and never will. So this gate is a
+# guardrail against a close typed out of habit, NOT a security boundary; nothing here
+# stops a determined evasion, and `curl` to the REST API would not even be a shell
+# builtin away. What actually bounds the harness is structural: no harness command closes
+# an issue except `abandon`.
+#
 # MATCHES ON THE COMMAND STRING ONLY. It never resolves the issue number, never calls gh,
 # and never reads GitHub state, so it works offline and cannot fail open on a network error.
 # The cost of that is real and accepted: this gate CANNOT TELL A TRACKED ISSUE FROM AN
 # UNTRACKED ONE, so a legitimate close of an untracked issue is a false deny. A false deny
-# is recoverable and a false allow is not, so where the two cannot be distinguished --
-# including a `gh issue close` that appears only inside a quoted string -- IT DENIES. The
-# refusal text is what makes that acceptable: it names the route out.
+# is recoverable and a false allow is not, so where the two cannot be distinguished -- a
+# close inside a quoted string, or an unparseable command line -- IT DENIES. The refusal
+# text is what makes that acceptable: it names the route out.
 #
 # SELF-GATING, as branch-create-gate.sh is: github.sync off or absent exits 0 instantly, so
 # this costs nothing where the mirror is off.
+#
+# ONE python3, not three. The config read, the command extract and the decision share a
+# single interpreter start in gh-close-gate.py, because this hook runs ahead of EVERY Bash
+# call in the session and three process spawns per call is a cost paid forever for nothing.
+#
+# THE DECISION LIVES IN A FILE, NOT A HEREDOC. A `python3 - <<'PY'` feeds the SCRIPT on
+# stdin, which is the same stdin the hook's own JSON arrives on -- the reader would find it
+# already consumed and every command would be allowed. `exec`ing a file keeps stdin the
+# hook's, and replaces this shell rather than adding a process to it.
 set -uo pipefail
 root="${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
 
-input=$(cat)
-
-# ---- config gate: github.sync on -- else pass through instantly
-SYNC="$(python3 - "$root" <<'PY'
-import json, os, sys
-try:
-    g = json.load(open(os.path.join(sys.argv[1], ".harness", "harness.json"))).get("github") or {}
-except Exception:
-    g = {}
-print(str(bool(g.get("sync"))).lower())
-PY
-)"
-[ "$SYNC" = "true" ] || exit 0
-
-cmd=$(printf '%s' "$input" | python3 -c 'import sys,json; print((json.load(sys.stdin).get("tool_input") or {}).get("command") or "")')
-
-# ONE refusal text, used verbatim for BOTH denials. A second wording would drift, and the
-# operator would learn two different answers to one question.
-read -r -d '' REASON <<'MSG'
-Refused: the harness closes tickets by landing their card at Done, never by closing an issue.
-If the work is finished, do nothing here — gh-sync.py ship writes Done at the merge and GitHub
-closes the issue. If it is being dropped, run:
-  python3 .claude/skills/harness/bin/gh-sync.py abandon <feature-dir> --reason-file <path> --yes
-If the issue is not tracked by the harness at all, close it in the GitHub web UI; this gate
-cannot tell tracked from untracked, by design.
-MSG
-
-deny() {
-  python3 -c 'import sys,json; print(json.dumps({"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":sys.argv[1]}}))' "$1"
-  exit 0
-}
-
-# THERE IS DELIBERATELY NO gh-sync.py EXEMPTION CLAUSE. An earlier cut of this gate exited 0
-# early on any command line mentioning gh-sync.py, to keep the sanctioned route from being
-# caught. It bought nothing -- neither pattern below can match `gh-sync.py`, because both
-# anchor on a `gh` invocation followed by `issue` or `api` -- and it opened a hole: a compound
-# command like `gh issue close 1 && gh-sync.py ship` would have been waved through by the
-# exemption before either pattern was ever tested.
-
-# `gh issue close` in any position: after a leading env assignment, a cd, a pipe, a
-# semicolon, or an && -- the anchor is the gh invocation itself, not the start of the line.
-if printf '%s' "$cmd" | grep -qE '(^|[;&|]|[[:space:]])gh[[:space:]]+issue[[:space:]]+close([[:space:]]|$)'; then
-  deny "$REASON"
-fi
-
-# `gh api ... repos/<owner>/<name>/issues/<n> ... state=closed`, IN ANY ARGUMENT ORDER --
-# so the two halves are tested separately rather than as one ordered pattern.
-if printf '%s' "$cmd" | grep -qE '(^|[;&|]|[[:space:]])gh[[:space:]]+api([[:space:]]|$)' \
-   && printf '%s' "$cmd" | grep -qE 'repos/[^/[:space:]]+/[^/[:space:]]+/issues/[0-9]+' \
-   && printf '%s' "$cmd" | grep -qE 'state=closed'; then
-  deny "$REASON"
-fi
-
-exit 0
+exec python3 "$(dirname "$0")/gh-close-gate.py" "$root"

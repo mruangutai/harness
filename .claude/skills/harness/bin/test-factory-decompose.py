@@ -569,6 +569,9 @@ with tempfile.TemporaryDirectory() as td:
         "github": {
             "milestone": 5,
             "parent": 9,
+            # DELIBERATELY STALE (DEC-203). `parent_origin` is gone from the schema, and an
+            # old feature.json still carries it. `load_factory` must DROP it rather than
+            # round-trip it, or every touched feature.json fails validation.
             "parent_origin": "created",
             "attached": ["T-01"],
             "issues": {"T-01": 9},
@@ -626,7 +629,7 @@ with tempfile.TemporaryDirectory() as td:
 # ============================================================================
 
 # --- 12. no --parent: a parent is created with exactly harness + feature:<FEAT>, a two-part
-#         body (problem, blank, **Goal:**), no change_type/traces; parent_origin recorded created
+#         body (problem, blank, **Goal:**), no change_type/traces; NO parent_origin recorded
 with tempfile.TemporaryDirectory() as td:
     feat_dir, fleet_path = make_feature(td)
     rec = Recorder()
@@ -642,8 +645,8 @@ with tempfile.TemporaryDirectory() as td:
     check("(12) parent body carries no change_type/traces line",
           "change_type:" not in pbody and "traces:" not in pbody, pbody)
     fblock = read_factory_block(feat_dir)
-    check("(12) feature.json records parent_origin created",
-          fblock.get("parent_origin") == "created", fblock)
+    check("(12) feature.json records the created parent and no parent_origin (DEC-203)",
+          fblock.get("parent") is not None and "parent_origin" not in fblock, fblock)
 
 # --- 13. --parent <n>: no issue created for the parent; recorded adopted; feature:<FEAT>
 #         applied but no title/body edit call
@@ -656,8 +659,8 @@ with tempfile.TemporaryDirectory() as td:
                       and not re.match(r"^T-\d+ ", c[1][1])]
     check("(13) no issue is created for the adopted parent", parent_creates == [], parent_creates)
     fblock = read_factory_block(feat_dir)
-    check("(13) feature.json records parent 777 with parent_origin adopted",
-          fblock.get("parent") == 777 and fblock.get("parent_origin") == "adopted", fblock)
+    check("(13) feature.json records parent 777 and no parent_origin (DEC-203)",
+          fblock.get("parent") == 777 and "parent_origin" not in fblock, fblock)
     add_label_calls = [c for c in rec.calls if c[0] == "add_label" and c[1][1] == 777]
     check("(13) feature:<FEAT> label applied to the adopted parent",
           any(c[1][2] == f"feature:{FEAT}" for c in add_label_calls), rec.calls)
@@ -936,9 +939,11 @@ with tempfile.TemporaryDirectory() as td:
         payload = json.loads(out)
         check("(C-3b) happy path stdout is exactly one JSON object", True)
         check("(C-3b) payload carries the expected keys",
-              set(payload.keys()) >= {"repo", "feature", "parent", "parent_origin", "issues",
+              set(payload.keys()) >= {"repo", "feature", "parent", "issues",
                                        "edges_drawn", "edges_skipped"},
               payload)
+        check("(C-3b) payload carries no parent_origin (DEC-203)",
+              "parent_origin" not in payload, payload)
     except Exception as e:
         check("(C-3b) happy path stdout is exactly one JSON object", False, str(e))
 

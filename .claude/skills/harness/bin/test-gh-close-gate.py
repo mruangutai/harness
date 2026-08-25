@@ -107,6 +107,77 @@ _rc, _d, _ = gate("gh issue close 1 && python3 .claude/skills/harness/bin/gh-syn
 check("a compound command carrying BOTH a close and a gh-sync.py call is still denied",
       _d == "deny", f"decision={_d!r}")
 
+# ---------------- THE EVASIONS A CHARACTER CLASS LET THROUGH ----------------------------------
+# Every line below was MEASURED reaching `gh issue close` straight through the gate's first
+# cut, which matched the raw command string with `grep -E`. A character class is not a shell
+# lexer: it cannot strip a quote, resolve a path, or read inside `eval`. The gate tokenizes
+# with `shlex` now, and each of these is a distinct escape route, so each gets its own
+# assertion rather than a loop over a blob.
+for _cmd, _why in (
+    ('gh "issue" close 5',                       "a quote inside the subcommand"),
+    ("gh 'issue' 'close' 5",                     "single quotes on every word"),
+    ("/opt/homebrew/bin/gh issue close 5",       "an absolute path to the same binary"),
+    ("/usr/bin/env gh issue close 5",            "reached through env"),
+    ("\\gh issue close 5",                         "a backslash, which defeats an alias not a gate"),
+    ('eval "gh issue close 5"',                  "a whole command line inside one eval token"),
+    ("bash -c 'gh issue close 5'",               "a whole command line inside one bash -c token"),
+    ("sh -c \"gh issue close 5\"",                 "the same through sh"),
+    ("x=$(gh issue close 5)",                    "command substitution in an assignment"),
+    ("$(echo gh) issue close 5",                 "the binary produced by a substitution"),
+    ('gh api -X PATCH repos/o/r/issues/5 -f state="closed"', "a quoted state value"),
+    ("gh api --method PATCH repos/o/r/issues/5 --input -",
+     "the state hidden in a JSON body on stdin, invisible to the command string"),
+    ('gh api graphql -f query="mutation{closeIssue(input:{issueId:\"x\"}){clientMutationId}}"',
+     "the GraphQL mutation, which never spells state=closed"),
+):
+    _rc, _d, _ = gate(_cmd)
+    check(f"evasion denied — {_why}: {_cmd!r}", _d == "deny", f"decision={_d!r}")
+
+# An unparseable line is indistinguishable from an evasive one, and the gate's stated bias is
+# that a false deny is recoverable while a false allow is not.
+_rc, _d, _ = gate('gh issue close "5')
+check("an unbalanced quote DENIES rather than falling through to allow",
+      _d == "deny", f"decision={_d!r}")
+
+# THE KNOWN BLIND SPOT, asserted so it cannot be quietly lost or quietly fixed without notice.
+# Catching this needs the shell's own expansion, which a PreToolUse hook does not have. The
+# gate's header states it; this pins it. What bounds the harness is structural instead: no
+# harness command closes an issue except `abandon`.
+# A close that appears only inside a quoted string DENIES, and that is the DESIGN rather than
+# an accident of the tokenizer: the gate cannot tell `echo 'gh issue close 5'` from
+# `eval 'gh issue close 5'` without running the shell, and the header commits to denying where
+# the two cannot be distinguished. The cost is a false deny on a benign echo, which is
+# recoverable; the alternative is a false allow on an eval, which is not.
+_rc, _d, _ = gate("echo 'gh issue close is refused here'")
+check("a close inside a quoted string DENIES, as the header commits to — the gate cannot "
+      "distinguish echo from eval without running the shell",
+      _d == "deny", f"decision={_d!r}")
+
+_rc, _d, _ = gate("G=gh; $G issue close 5")
+check("KNOWN BLIND SPOT — a binary that exists only after shell expansion is NOT caught, and "
+      "the gate is a guardrail against habit rather than a security boundary",
+      _d is None, f"decision={_d!r}")
+
+# Denials all carry the ONE reason string, whatever route reached them.
+_reasons = set()
+for _cmd in ('gh "issue" close 5', "eval \"gh issue close 5\"",
+             "gh api --method PATCH repos/o/r/issues/5 --input -"):
+    _reasons.add(gate(_cmd)[2])
+check("every evasion route returns the IDENTICAL reason string, so the operator learns one "
+      "answer to one question",
+      len(_reasons) == 1, sorted(_reasons))
+
+# ---------------- what tokenizing must NOT start refusing --------------------------------------
+for cmd in ("gh pr close 5",
+            "gh issue close-milestone 5",
+            "gh api repos/o/r/issues/5 --jq .state",
+            "gh api -X GET repos/o/r/issues/5",
+            "git commit -m 'closes the loop'",
+            "gh issue edit 5 --add-label wontfix"):
+    _rc, _d, _ = gate(cmd)
+    check(f"tokenizing does not widen the refusal to: {cmd!r}", _rc == 0 and _d is None,
+          f"rc={_rc} decision={_d!r}")
+
 # ---------------- self-gating ------------------------------------------------------------------
 _rc, _d, _ = gate("gh issue close 728", root=_root(sync=False))
 check("github.sync false: the gate exits 0 with no output, even for gh issue close — it costs "

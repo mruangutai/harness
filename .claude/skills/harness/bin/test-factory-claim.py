@@ -350,7 +350,7 @@ def build_features_root():
         "max_total_cycles": 10,
         "max_total_runs": 20,
         "runs": [],
-        "github": {"milestone": None, "parent": None, "parent_origin": None,
+        "github": {"milestone": None, "parent": None,
                    "attached": [], "issues": {}},
         "factory": {"issues": {"T-01": 501}},
     })

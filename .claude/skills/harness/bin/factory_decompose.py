@@ -85,7 +85,6 @@ def _empty_factory():
     return {
         "repo": None,
         "parent": None,
-        "parent_origin": None,
         "issues": {},
         "items": {},
         "edges": {"parent": [], "blocked_by": {}},
@@ -110,9 +109,6 @@ def load_factory(feat_dir):
     parent = f.get("parent")
     if isinstance(parent, int) and not isinstance(parent, bool):
         factory["parent"] = parent
-
-    po = f.get("parent_origin")
-    factory["parent_origin"] = po if po in ("adopted", "created") else None
 
     issues = f.get("issues")
     if isinstance(issues, dict):
@@ -160,7 +156,6 @@ def write_factory(feat_dir, factory):
     doc["factory"] = {
         "repo": factory["repo"],
         "parent": factory["parent"],
-        "parent_origin": factory["parent_origin"],
         "issues": dict(sorted(factory["issues"].items())),
         "items": dict(sorted(factory["items"].items())),
         "edges": {
@@ -355,7 +350,6 @@ def _main():
             )
         elif args.parent is not None:
             factory["parent"] = args.parent
-            factory["parent_origin"] = "adopted"
             write_factory(feat_dir, factory)
             factory_gh.add_label(args.repo, args.parent, f"feature:{feat_id}")
         else:
@@ -375,7 +369,6 @@ def _main():
                 args.repo, title, body, ["harness", f"feature:{feat_id}"],
             )
             factory["parent"] = num
-            factory["parent_origin"] = "created"
             write_factory(feat_dir, factory)
 
     # 6. create an issue for every task in the third disposition (new).
@@ -475,7 +468,6 @@ def _main():
         "repo": args.repo,
         "feature": feat_id,
         "parent": factory["parent"],
-        "parent_origin": factory["parent_origin"],
         "issues": dict(factory["issues"]),
         "edges_drawn": edges_drawn,
         "edges_skipped": edges_skipped,

@@ -7216,6 +7216,22 @@ and the close is GitHub's consequence.
 **8. The guardrail, and the one narrow exception.** A `PreToolUse` Bash gate refuses a hand-typed
 `gh issue close` and names the sanctioned command in its refusal.
 
+**It is a guardrail against habit, not a security boundary, and the difference is measured.** The
+gate's first cut matched the raw command line with `grep -E`. Thirteen forms were measured reaching
+`gh issue close` straight through it — a quote inside the subcommand, an absolute path to the same
+binary, a leading backslash, `eval`, `bash -c`, command substitution, a quoted `state="closed"`, a
+JSON body arriving on `--input -`, and the GraphQL `closeIssue` mutation, which never spells
+`state=closed` at all. A character class is not a shell lexer. The gate therefore tokenizes with
+`shlex`, compares the basename of the command word, and re-scans each token as a command line so
+`eval` and `bash -c` are read rather than skipped.
+
+One class survives and is recorded rather than implied: a binary that exists only after shell
+expansion, as in `G=gh; $G issue close 5`. Catching it needs the shell's own expansion, which a
+`PreToolUse` hook does not have. So nothing here stops a determined evasion — `curl` to the REST API
+would not even be a shell builtin away. **What bounds the harness is structural, not textual: no
+harness command closes an issue except `abandon`.** The gate's value is that it stops the close a
+tired operator types out of habit, which is the case that actually happens.
+
 The gate is structurally blind to a Python subprocess: a hook receives only the Bash command line, and
 `gh-sync.py` reaches `gh` through `subprocess.run`, which never crosses that route. So the gate alone
 cannot stop a harness command from closing an issue. `gh-sync.py close-task` is therefore **deleted**

@@ -1092,31 +1092,65 @@ def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
 
     ensure_labels(repo, {"abandoned"})
 
+    # NOTHING IN THIS LOOP MAY EXIT, and that is the whole shape of it. Every write used to
+    # go through `gh()`, which calls `skip()` -- print `gh-sync: SKIP` and `sys.exit(0)` --
+    # on any non-zero return. So a single failed `--add-label` after a SUCCESSFUL close
+    # abandoned the run mid-batch: the backlog write never ran, and probe #860 measured that
+    # a close moves the card to the DONE station at t+0s, so the dropped ticket came to rest
+    # at Done. That is exactly the state DEC-203's backlog rule exists to prevent, reached by
+    # the command that implements the rule. `_record_status` never ran either, and every
+    # later issue in the batch was left untouched with no report. `gh_try` returns instead.
+    failed = []
+
+    def _close_and_reseat(num, what):
+        """Close one ticket as not_planned, then put its card back in the backlog.
+
+        THE ORDER IS THE POINT. The close is the one irreversible act, so it goes first and
+        its failure costs nothing. The backlog write is the state CORRECTION and follows it
+        immediately -- before the label, which is cosmetic by comparison -- so no cosmetic
+        failure can leave a card at Done."""
+        ok, out = gh_try(["api", "-X", "PATCH", f"repos/{repo}/issues/{num}",
+                          "-f", "state=closed", "-f", "state_reason=not_planned"])
+        if not ok:
+            print(f"gh-sync: ERROR - could not close {what} #{num}: {out}", file=sys.stderr)
+            failed.append(num)
+            return
+        print(f"gh-sync: {what} #{num} closed (not_planned)")
+        _to_backlog(board, repo, num)
+        ok, out = gh_try(["issue", "edit", str(num), "--repo", repo,
+                          "--add-label", "abandoned"])
+        if not ok:
+            print(f"gh-sync: ERROR - #{num} closed but not labelled `abandoned`: {out}",
+                  file=sys.stderr)
+
     for kind, num, _line in plan:
         if kind == "comment":
-            gh(["issue", "comment", str(num), "--repo", repo,
-                "--body-file", reason_file], capture=False)
-            print(f"gh-sync: reason posted on parent #{num}")
+            ok, out = gh_try(["issue", "comment", str(num), "--repo", repo,
+                              "--body-file", reason_file])
+            if ok:
+                print(f"gh-sync: reason posted on parent #{num}")
+            else:
+                print(f"gh-sync: ERROR - reason not posted on parent #{num}: {out}",
+                      file=sys.stderr)
         elif kind == "issue":
             if rec["parent"] is not None:
                 _detach_from_parent(repo, rec["parent"], num)
-            gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{num}",
-                "-f", "state=closed", "-f", "state_reason=not_planned"], capture=False)
-            gh(["issue", "edit", str(num), "--repo", repo, "--add-label", "abandoned"],
-               capture=False)
-            print(f"gh-sync: closed issue #{num} (not_planned)")
-            _to_backlog(board, repo, num)
+            _close_and_reseat(num, "issue")
         elif kind == "milestone":
-            gh(["api", "-X", "PATCH", f"repos/{repo}/milestones/{num}",
-                "-f", "state=closed"])
-            print(f"gh-sync: milestone #{num} closed")
+            ok, out = gh_try(["api", "-X", "PATCH", f"repos/{repo}/milestones/{num}",
+                              "-f", "state=closed"])
+            if ok:
+                print(f"gh-sync: milestone #{num} closed")
+            else:
+                print(f"gh-sync: ERROR - milestone #{num} not closed: {out}",
+                      file=sys.stderr)
         elif kind == "parent":
-            gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{num}",
-                "-f", "state=closed", "-f", "state_reason=not_planned"], capture=False)
-            gh(["issue", "edit", str(num), "--repo", repo, "--add-label", "abandoned"],
-               capture=False)
-            print(f"gh-sync: parent #{num} closed (not_planned)")
-            _to_backlog(board, repo, num)
+            _close_and_reseat(num, "parent")
+
+    if failed:
+        nums = ", ".join(f"#{n}" for n in failed)
+        print(f"gh-sync: FAILED {len(failed)} of {len(plan)} — {nums} did not close and "
+              f"nothing downstream reports it")
 
     if rec["parent"] is None:
         print("gh-sync: no parent recorded — reason not posted")
@@ -1269,8 +1303,15 @@ def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
         try:
             blocker = first_open_child(num)
         except Exception as e:
+            # SAME BUCKET as the board-read failure four lines above, and for the same
+            # reason: this card did not reach done, and nothing downstream reports it. An
+            # earlier cut printed and continued WITHOUT recording it, so the run exited 0
+            # with no `FAILED` line -- which post-merge-sweep.sh reads as a clean ship and
+            # removes the worktree on. A network blip on one child list would have left the
+            # ticket open and said nothing.
             print(f"gh-sync: ERROR - #{num} child list unreadable, card not moved: {e}",
                   file=sys.stderr)
+            failed.append(num)
             continue
         if blocker is not None:
             kid, note = blocker
