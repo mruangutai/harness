@@ -1,0 +1,919 @@
+schema: plan/1
+feature: FEAT-34-worktree-act3-enforced
+
+approval:
+  # Written by the MAIN SESSION only, because it is the only tier with a user channel
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
+  # agent's write of this mapping. Any change to the task set resets this to pending.
+  status: approved               # pending | approved
+  approved_by: Mike Ruangutai
+  date: 2026-08-24
+  # RESET AND RE-SIGNED 2026-08-24, second signature of the day. The first signed a
+  # 9-decision set. D-10 then added the tenth and edited six task intents and two
+  # verifies, which the comment above says resets this mapping - so it was reset to
+  # pending and signed again rather than left standing over changed content. This
+  # signature covers D-10 in full, including that it REOPENS T-01 and T-02, both
+  # measured green at 19 of 19, and takes cycles_used to 2 of 10.
+  signatures:
+    - { date: 2026-08-24, covers: 'D-01..D-09, 13 tasks' }
+    - { date: 2026-08-24, covers: 'D-10 and the six edited task intents' }
+
+# invariants: [29, 30]
+# 29 is this brief's own signed claim. 30 is the milestone invariant added by the #806
+# amendment, derived at 9165162 on both halves of the rule check-plan-routes.py enforces:
+# absent from check-state.sh, and unclaimed by every signed-but-unbuilt plan. Not inferred
+# from the gate script's highest, which is 28 and has BUILT since this brief was signed.
+invariants: [29, 30]
+
+source_issues: [728, 806]
+
+lanes:
+  resolved_at: 9165162
+  rows:
+    - surface: .claude/skills/harness/bin/worktree_terminal.py
+      lane: team
+      agent: harness-backend-dev
+      reason: check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops
+    - surface: .claude/skills/harness/bin/test-worktree-terminal.py
+      lane: team
+      agent: harness-backend-dev
+      reason: check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops
+    - surface: .claude/skills/harness/bin/post-merge-sweep.sh
+      lane: team
+      agent: harness-backend-dev
+      reason: D-07. DEC-174's stated test at DECISIONS.md:4709 is that the artifact under change is the artifact doing the checking, and a post-merge sweep checks nothing - it fires after the merge and performs two writes, so it cannot refuse anything and falls outside the enforcement category. The grant corroborates the lane rather than setting it - check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops.
+    - surface: .claude/skills/harness/bin/test-post-merge-sweep.py
+      lane: team
+      agent: harness-backend-dev
+      reason: D-07. Amendment 4 extends the enumeration to the test file of each ENUMERATED gate; the sweep is not one, so its test is not one either. The grant corroborates the lane rather than setting it - check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops.
+    - surface: .claude/skills/harness/bin/run-unit-tests.sh
+      lane: team
+      agent: harness-dev-ops
+      reason: check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops
+    - surface: .harness/harness.json
+      lane: team
+      agent: harness-dev-ops
+      reason: check-domain.sh --resolve at 9165162 prints harness-dev-ops
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration. The tool disagrees and the decision governs - check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane
+    - surface: .claude/skills/harness/bin/test-check-state.py
+      lane: main-session-direct
+      reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate, on the ground that a gate test is the only thing proving the gate discriminates. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops
+    - surface: .claude/skills/harness/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve at 9165162 prints NOBODY
+    - surface: .claude/skills/harness-handoff/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve at 9165162 prints NOBODY
+    - surface: .claude/skills/harness-principles/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve at 9165162 prints NOBODY
+    - surface: .claude/skills/harness-expertise/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve at 9165162 prints NOBODY
+    - surface: .claude/skills/harness/hooks/post-merge
+      lane: main-session-direct
+      reason: check-domain.sh --resolve at 9165162 prints NOBODY. A domain fact under DEC-179, not a DEC-174 fact - per D-07 the hook is outside the enforcement category.
+    - surface: .claude/skills/harness-init/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve at 9165162 prints NOBODY
+    - surface: .claude/skills/harness/bin/test-hooks-install.py
+      lane: team
+      agent: harness-dev-ops
+      reason: check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops. harness-dev-ops is the agent because the same task also edits .harness/harness.json, which resolves to harness-dev-ops alone.
+
+decisions:
+  - id: D-01
+    choice: One post-merge firing sweeps EVERY eligible worktree it finds, not only the feature whose merge triggered it. This resolves the brief's Q2.
+    because: post-merge receives only the squash flag as its argument and never the merged ref, so identifying the triggering feature means inferring it - and a single git pull can land several merges at once, which is exactly the shape the ten batch-closed milestones measured. Sweeping all makes the hook compute the same predicate as INV-29 WITHIN one checkout. D-10 later gave INV-29 a cross-repository entry point (classify_all) that the sweep does not call, so the two agree on which worktrees of this checkout are eligible and differ on which repositories are in view - see D-11. The accepted cost is that a pull can remove a checkout the operator was not thinking about; REQ-08's self-exclusion guard is what keeps that from being destructive to the running session.
+    dec: none
+  - id: D-02
+    choice: The hook and the invariants share one predicate module, worktree_terminal.py, written by the squad; the edit that makes check-state.sh call it is a separate main-session-direct task.
+    because: DEC-174 amendment 4's working rule for a library a gate imports - a squad may write the library, the cutover that makes the gate use it is main-session-direct, proven by showing the violation set is identical before and after. One predicate is also what makes the brief's hook-versus-invariant split honest - two implementations could drift and each would look correct alone.
+    dec: DEC-174
+  - id: D-03
+    choice: The sweep does not re-implement the terminal write. For each terminal feature it invokes gh-sync.py ship on that feature directory.
+    because: the operator's design note for #806 - status Done has more than one path that can write it and the milestone has exactly one, cmd_ship. Reimplementing the close would create a second writer of the one fact INV-30 keys on, which would make the invariant unable to detect its own bypass.
+    dec: none
+  - id: D-04
+    choice: Within one worktree the sweep records the terminal status first and removes the checkout second, and it SKIPS the removal when the record step failed.
+    because: the operator's ruling fixes the order - record the terminal status, then remove the checkout that status makes obsolete. Skipping removal on a failed record is the load-bearing half - a checkout left standing is the evidence INV-29 then reports, whereas removing it after a failed ship would destroy the only local trace that the feature was ever terminal.
+    dec: none
+  - id: D-05
+    choice: INV-30 keys on the recorded milestone being open on GitHub, and records nothing when gh or the network is unavailable.
+    because: keying on status would ask the status to corroborate itself. The offline posture is INV-26's, established at check-state.sh:1205 - an offline or unconfigured environment must never become a red gate, since check-state.sh runs before every commit. The cost is that INV-30 is silent offline, recorded as a verification gap in the amendment rather than argued away.
+    dec: none
+  - id: D-06
+    choice: The milestone invariant is INV-30.
+    because: derived at 9165162 on both halves of the rule check-plan-routes.py enforces, never from the gate script's highest number. INV-28 has BUILT into check-state.sh since this brief was signed, at :1044, :1068 and :1080, which falsifies the brief's original premise that the script held neither 28 nor 29. INV-29 is claimed by this feature's own signed brief. grep -rn INV-30 over .harness/ and .claude/ returns zero occurrences, so 30 is absent from the gate script AND unclaimed by every signed-but-unbuilt plan.
+    dec: none
+
+  - id: D-07
+    choice: post-merge-sweep.sh and its test are team, not main-session-direct. No DEC-174 amendment is written by this feature and nothing joins the enforcement enumeration.
+    because: DEC-174's own stated test, in the table at DECISIONS.md:4709, is that the artifact under change is the artifact doing the checking. A post-merge hook checks nothing - it fires after the merge has already happened and performs two writes, record the terminal status and remove the checkout, so it cannot refuse anything. That is the same functional test amendment 4 applied when dispatch-guard.sh joined at DECISIONS.md:4887, on the evidence that it refuses dispatches. A sweep that ACTS fails it. DEC-196 amendment 4 does not govern - read in context at DECISIONS.md:6550 its subject is a Claude Code PostToolUse Write/Edit hook, a different mechanism, and the sentence was not written about a git hook. The cost, named rather than argued away - the hook deletes directories, so it is destructive, but destructive is not CIRCULAR. A broken post-merge hook fails loudly at merge time; a broken gate hides its own breakage, and only the second is what DEC-174 exists to prevent. The category decides, the hook falls outside it, so the enumeration is untouched.
+    dec: DEC-174
+  - id: D-08
+    choice: The tracked hooks directory is .claude/skills/harness/hooks/, holding one file, post-merge, a shim that execs post-merge-sweep.sh. This resolves the brief's Q1.
+    because: this is a design choice with nothing to look up - check-domain.sh --resolve at 9165162 prints NOBODY for .githooks/post-merge, .claude/hooks/post-merge and .claude/skills/harness/hooks/post-merge alike, so no existing grant picks a winner. .claude/skills/harness/ is chosen because it is already the tree every harness executable resolves under - settings.snippet.json points all seven hook entries at CLAUDE_PROJECT_DIR/.claude/skills/harness/bin/, so an initialised project provably carries this tree, and a new repository-root .githooks/ would be a second harness-owned location competing with the one that exists. Rejected alternative, recorded so a future scan does not re-suggest it - .claude/hooks/, because Claude Code's own hooks are settings.json entries and not a directory, so the name would assert a relationship that does not exist. The accepted cost is that core.hooksPath takes over hook resolution for the WHOLE clone, not just this one hook, which is exactly why REQ-13 requires the setup step to state what it displaced.
+    dec: DEC-179
+  - id: D-09
+    choice: check-plan-routes.py prints DEVIATION on exactly four tasks - T-06, T-07, T-08 and T-09 - and all four deviations are correct and must stay. Nobody resolves them by moving a task to team.
+    because: measured from the worktree root at 9165162, the checker reports 0 violations and those four DEVIATION lines, all on the two files .claude/skills/harness/bin/check-state.sh and .claude/skills/harness/bin/test-check-state.py. DEC-174 amendment 4 names check-state.sh in the enforcement enumeration and extends it to the test file of each enumerated gate, on the ground that a gate's test is the only thing proving the gate discriminates. A domain grant is not a lane - check-domain.sh --resolve prints harness-backend-dev and harness-dev-ops for both files, which is what makes the checker call it a deviation, and the decision overrides the grant. Recorded here because a DEVIATION line reads like an unfinished item and the cheapest way to make it disappear is the wrong one.
+    dec: DEC-174
+
+  - id: D-10
+    choice: >-
+      REQ-04's cross-repository enumeration lives in worktree_terminal.py as a SECOND entry
+      point, classify_all(root), not in check-state.sh. classify_all returns classify(root)
+      for the harness checkout plus classify(owner_root) for every repository declared in
+      fleet.yaml, resolved through factory_config.workspace_path. check-state.sh's INV-29
+      and post-merge-sweep.sh both keep calling one module. The failure posture is three-way
+      and settles REQ-04's no-exception clause - fleet.yaml failing to load is a blocking
+      violation, a declared repository whose checkout directory does not exist produces no
+      record, and a declared repository whose checkout exists but cannot be enumerated
+      produces one repository-level unresolved record, which is blocking.
+    because: >-
+      Measured at 9165162 - classify(root) covers ONE repository, a single git worktree list
+      run with cwd=root at worktree_terminal.py:56-58, and feature-worktree.py dest_for
+      at :56-59 joins WORKTREES_SEGMENT only to a resolved owner_root, so a served repo's
+      worktrees sit inside a DIFFERENT git repository that a git worktree list in the harness
+      checkout can never report. test-worktree-terminal.py:382 calls classify(repo2) directly
+      on the second repository's own root, so the 19 green cases prove the per-repo predicate
+      and prove nothing about one caller covering both, which is what SC-04 and T-07 case (e)
+      grade from ONE check-state.sh run.
+      THE COST ON BOTH SIDES. Putting the enumeration in check-state.sh costs nothing in
+      rework because T-06 is still pending, and that is exactly why it is the wrong lane -
+      check-state.sh is main-session-direct and DEC-174-enumerated, so the logic would land
+      where the only grader is test-check-state.py, which must stand up a fleet.yaml, a
+      second real git repository and a full gate run for every branch of the posture. That is
+      the slowest fixture in the suite and no library-level test can reach the logic at all.
+      It would also put a second piece of the predicate outside the shared module, weakening
+      D-02's guarantee that the gate and the hook can never disagree, on the repository
+      dimension. Putting it in worktree_terminal.py costs REAL rework - T-01 and T-02 are
+      status building and measured green at 19 of 19 on 2026-08-24, so both reopen and the
+      squad re-runs them. That cost is bounded because test-worktree-terminal.py:337-406
+      already builds the fleet.yaml plus real second repository fixture this needs, and it is
+      one-time, whereas the lost test leverage is permanent. DEC-174 amendment 4's own
+      library rule points the same way - a squad may write the library, the cutover that
+      makes the gate use it is main-session-direct.
+      THE POSTURE, and it is NOT a copy of D-05. INV-30 records nothing offline because its
+      fact lives on GitHub, off this machine, so requiring it would turn a pre-commit gate
+      into an availability dependency. Every fact INV-29 needs is local and decidable, so
+      there is no availability dependency to accept and INV-26's posture does not transfer.
+      fleet.yaml failing to load follows INV-25's import posture at check-state.sh:1109 for
+      INV-25's stated reason - the file is tracked, so it being unloadable is a defect in the
+      tree and never a property of the environment, and a silent failure collapses the
+      enumeration to the harness alone, which is precisely the harness-only implementation
+      SC-04 says must fail. DEC-193 amendment 1 already ruled this direction on the same
+      file - a malformed fleet.yaml fails CLOSED on the Bash write route, because the value
+      that identifies product paths is the one that failed.
+      A declared repository whose checkout is ABSENT produces no record because the answer is
+      known rather than unknown - a directory that does not exist holds no worktrees, so
+      nothing goes unreported. This is one rule applied identically to every declared repo,
+      not the per-repository exception REQ-04 forbids: there is nothing to remember and
+      nothing to remove later. It is load-bearing rather than convenient, measured at
+      9165162 - fleet.yaml declares mruangutai/kaya-ai and mruangutai/harness-factory-smoke,
+      the kaya-ai checkout exists with zero linked worktrees, and no
+      harness-factory-smoke checkout exists at all, so treating an absent checkout as a
+      violation would make check-state.sh red on this machine today for a kept fixture
+      repository nobody provisioned.
+      A declared repository whose checkout EXISTS but cannot be enumerated is the unknown
+      case and is blocking, by REQ-06's own signed rule applied one level up - absence of the
+      directory is the exempting fact, failure of the lookup is not. It reuses the existing
+      unresolved klass rather than adding one, so check-state.sh needs no new branch.
+    dec: DEC-174
+  - id: D-11
+    choice: >-
+      The post-merge sweep is HARNESS-CHECKOUT-ONLY for this feature. post-merge-sweep.sh
+      keeps calling worktree_terminal.classify(root); it does not call classify_all. REQ-07 is
+      read as scoped to the checkout whose merge fired the hook. A served repository's terminal
+      worktree stays reported-not-removed, by INV-29, until a future feature gives fleet repos
+      their own trigger. This resolves the fleet half of the brief's Q1, which D-08 left open.
+    because: >-
+      three facts measured at 4c7b650 make classify_all at the sweep a no-op rather than a
+      fix. First, no served checkout carries .claude/skills/harness/hooks, and the shim resolves
+      its root from its own file location, so a merge in a served repository fires no harness hook
+      and REQ-07's own trigger never occurs there. Second, post-merge-sweep.sh:163 resolves the
+      landed feature directory under the harness main checkout, while a served repository's feature
+      directories live in that repository's own .harness/<repo>/features, so every served-repo
+      record would take the :164 SKIP. Third, D-03's gh-sync.py ship invocation has no parameter
+      for a second repository's state store. The accepted cost, named rather than argued away: the
+      hook and INV-29 now compute DIFFERENT predicates on the repository dimension, which is exactly
+      what D-01's because said must never happen. That asymmetry is deliberate here and is safe only
+      because it errs toward inaction - INV-29 still refuses at exit 2 on a served repository's
+      terminal worktree, so nothing ships silently wrong; the checkout merely waits for a manual
+      removal. A test asserting the narrower scope is required so the asymmetry is pinned rather
+      than latent.
+    dec: none
+
+tasks:
+  - id: T-01
+    title: Add worktree_terminal.py, the shared eligibility predicate over standing worktrees
+    traces: [REQ-01, REQ-04, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/bin/worktree_terminal.py
+    verify: |
+      python3 -c "import sys; sys.path.insert(0,'.claude/skills/harness/bin'); import worktree_terminal as w; assert sorted(w.CLASSES)==['exempt_absent','terminal','unresolved'], w.CLASSES; assert callable(w.classify) and callable(w.classify_all), 'classify_all is missing - D-10'; print('OK', sorted(w.CLASSES))"
+    intent: |
+      Create .claude/skills/harness/bin/worktree_terminal.py, a library with no side
+      effects and no argv handling. It is imported by check-state.sh's INV-29 and by
+      post-merge-sweep.sh; nothing else may duplicate this logic.
+
+      Export CLASSES = ("terminal", "exempt_absent", "unresolved") and one function:
+
+        classify(root) -> list of records
+
+      Each record is a dict with keys: path (str, the worktree's absolute path as git
+      reported it), feature_id (str or None), klass (one of CLASSES), dirty (bool),
+      reason (str, one clause naming why this klass was chosen), repo (str, the repository
+      segment under WORKTREES_SEGMENT the worktree belongs to).
+
+      Algorithm:
+      1. Enumerate worktrees with subprocess ["git","worktree","list","--porcelain"] run
+         with cwd=root, timeout 10. Parse blank-line-separated records; "worktree <path>"
+         opens each. Reuse the exact parsing shape check-state.sh already uses at :1117
+         through :1135 - do not invent a second parser. Skip the record whose path is root
+         itself (that is the main checkout, not a linked worktree).
+      2. For each worktree, determine its repository segment and feature id from its path
+         relative to WORKTREES_SEGMENT (.claude/worktrees/<repo>/<id>), per DEC-193.
+      3. Resolve the repository's default_branch. Import feature-worktree.py's resolve_repo
+         via importlib (the filename has a hyphen so a plain import will not work); do not
+         re-derive the default branch yourself.
+      4. Read the LANDED copy of that feature's feature.json with
+         git rev-parse <default_branch>:<rel> then git cat-file, exactly as
+         feature-worktree.py:287 does. NEVER read the working tree's copy - that is the
+         deadlock case the brief's SC-02 grades, and check-state.sh's own root variable
+         reads the working tree by default.
+      5. Classify:
+         - The feature directory is genuinely ABSENT from the default branch, proven by a
+           git ls-tree of the default branch's features directory showing no entry whose
+           name equals OR begins with the worktree's id -> klass "exempt_absent".
+         - The lookup resolved and the landed status is Done -> klass "terminal".
+         - The lookup resolved and the landed status is anything else -> the record is
+           omitted from the returned list entirely.
+         - ANY other outcome -> klass "unresolved". This covers: a short-named worktree
+           whose id is a prefix of MORE THAN ONE directory on the default branch, a
+           feature.json present but unparseable, and a git command that errored. Absence of
+           the directory is the exempting fact; failure of the lookup is not. An
+           implementation that folds these into exempt_absent silently stops every refusal
+           in REQ-01 through REQ-05 from firing, which is SC-05's red proof.
+         When the id is a prefix of exactly one landed directory, resolve to that directory
+         and classify by its status - a short-named worktree for a landed Done feature is
+         "terminal", not "unresolved". "unresolved" is for a prefix matching MORE THAN ONE
+         landed directory. A prefix matching ZERO landed directories while the directory
+         listing itself SUCCEEDED is "exempt_absent", never "unresolved": REQ-06 exempts a
+         worktree exactly when the default branch genuinely carries no feature directory for
+         it, and no landed name equalling or beginning with the id IS that condition. It is
+         the ls-tree itself failing that is the lookup failure, and that is already covered
+         by the errored-git-command clause above.
+      6. dirty is git status --porcelain run with cwd=the worktree path, non-empty output.
+      Callers treat both "terminal" and "unresolved" as reportable; only "exempt_absent" is
+      silent. Return records sorted by path.
+
+      SECOND ENTRY POINT, D-10 - classify_all(root) -> list of records. THIS is what REQ-04
+      needs and classify(root) cannot give it: classify runs ONE git worktree list with
+      cwd=root, and feature-worktree.py's dest_for joins WORKTREES_SEGMENT only to a resolved
+      owner_root, so a served repository's worktrees live inside a DIFFERENT git repository
+      that a git worktree list in the harness checkout can never report. classify_all is the
+      only function check-state.sh's INV-29 calls.
+
+      classify_all(root) returns classify(root) for the harness checkout, plus classify of
+      each declared repository's own owner_root, one combined list sorted by path:
+      a. Load the fleet with factory_config.load_fleet(). If that raises for ANY reason -
+         file absent, unparseable, FleetError - return a single record with klass
+         "unresolved", path = the fleet path factory_config.FLEET_PATH, feature_id None,
+         repo None, dirty False, and a reason naming the exception, ALONGSIDE the harness's
+         own classify(root) records. Never swallow it and never return only the harness's
+         records: a silent failure here collapses the enumeration to the harness alone,
+         which is exactly the harness-only implementation SC-04 says must fail.
+      b. For each entry in fleet["repos"], owner_root is
+         factory_config.workspace_path(fleet, entry["name"]). Do not re-derive that join.
+      c. If owner_root does not exist as a directory, emit NOTHING for that repository. A
+         directory that does not exist holds no worktrees, so nothing goes unreported, and
+         this is one rule applied identically to every declared repo rather than the
+         per-repository exception REQ-04 forbids. Measured at 9165162: fleet.yaml declares
+         mruangutai/harness-factory-smoke and no checkout for it exists, so any other
+         posture makes check-state.sh red on this machine today.
+      d. Otherwise call classify(owner_root). If the git worktree list inside classify could
+         not be run or returned non-zero - not a git repository, unreadable, git errored -
+         classify_all emits ONE repository-level record for it: klass "unresolved", path =
+         owner_root, feature_id None, repo = the entry's segment after the slash, dirty
+         False, reason naming what failed. That is REQ-06's own rule one level up - absence
+         of the directory is the exempting fact, failure of the lookup is not - and it
+         reuses the existing unresolved klass so no caller needs a new branch. Distinguish
+         "enumeration failed" from "enumerated, found nothing" inside classify by whatever
+         private signal you choose; do NOT widen CLASSES and do NOT change classify's own
+         public return shape, which T-02's nineteen green cases already grade.
+      e. Records from a repository whose feature_id is None and whose path is that
+         repository's own owner_root are the repository-level records; every other record
+         keeps the six-key shape unchanged.
+      classify_all takes root because check-state.sh's root is the checkout actually being
+      graded, which may itself be a worktree. Never substitute factory_config.harness_root()
+      for it - the CWD trap this module already documents at _repo_arg_for_segment applies.
+
+  - id: T-02
+    title: Test worktree_terminal.py against real git fixtures, including a second repository
+    traces: [REQ-01, REQ-04, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-worktree-terminal.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-worktree-terminal.py
+    intent: |
+      Create .claude/skills/harness/bin/test-worktree-terminal.py following the existing
+      harness test-script convention: a results list of (name, bool, detail) tuples, PASS
+      or FAIL printed per line, exit 1 if any failed.
+
+      Build REAL git repositories with real commits and real git worktree add, the way
+      test-check-state.py's case_u already does for INV-25. Directory trees are not enough
+      here because every classification depends on reading a LANDED blob.
+
+      Cases, each its own assertion - never a file-global count, never one combined
+      substring:
+      (a) default branch feature.json Done, worktree standing -> klass terminal.
+      (b) same fixture at Review -> the record is absent from the returned list.
+      (c) DEADLOCK: working tree Done, default branch Review -> not terminal. Inverse,
+          default branch Done and working tree Review -> terminal. An implementation
+          reading the working tree fails both halves; demonstrate that failing state by
+          running the pair against a deliberately working-tree-reading stub before the
+          real implementation is wired in.
+      (d) feature directory genuinely absent from the default branch -> exempt_absent.
+      (e) SHORT-NAMED worktree whose full-named directory on the default branch reads Done
+          -> terminal, NOT exempt_absent.
+      (f) feature.json present on the default branch but unparseable -> unresolved.
+      (g) SECOND REPOSITORY: a real second git repo under WORKTREES_SEGMENT with its own
+          default branch, its own Done feature and its own real git worktree add -> that
+          worktree classifies terminal.
+          THIS FIXTURE IS THE FIRST OF ITS KIND IN THIS REPOSITORY. Do not go looking for a
+          precedent to copy; there is none, and assuming one exists is how this case gets
+          written as a thin variation of something weaker. Verified at 9165162: the only
+          multi-repo fixture anywhere in the tree is test-check-state.py's
+          _factory_tree/case_s, and it is purely declarative - a fleet.yaml plus plain files,
+          with no second git repository, no second default branch and no landed blob to read.
+          Building the real one is the substance of this case, not an afterthought, and it is
+          what makes SC-04 gradable at all.
+      (h) a Done feature whose worktree has an uncommitted change -> terminal with
+          dirty True.
+      For (e) and (f), assert the red proof explicitly: a classify that keys the exemption
+      on "the lookup returned nothing" passes (a) and (d) and fails (e) and (f).
+
+      CLASSIFY_ALL CASES, D-10. Case (g) already stands up the whole fixture these need - a
+      probe root carrying .harness/factory/fleet.yaml, a workspace_root, and a real second
+      git repository at workspace_root/second-repo with a landed Done feature and a real
+      git worktree add. Reuse it; build no second fixture shape.
+      (i) ONE CALL, TWO REPOSITORIES: classify_all(probe_root) returns the second
+          repository's worktree as terminal. This is the case that grades REQ-04 at the
+          library level and the one case (g) cannot reach - (g) calls classify on the second
+          repository's own root, so it proves the per-repo predicate and proves nothing
+          about one caller covering both. RED PROOF: an implementation whose classify_all is
+          classify(root) alone passes (a) through (h) and fails this. Demonstrate that
+          failing state.
+      (j) ABSENT CHECKOUT: declare a SECOND repos entry in the same fleet.yaml whose
+          workspace_path directory is never created. classify_all still returns the
+          second-repo worktree from (i), returns NO record for the absent one, and does not
+          raise. Assert on the absence of a record for it, not on a total count.
+      (k) PRESENT BUT UNENUMERABLE: a declared repository whose workspace_path directory
+          EXISTS and is a plain directory that is not a git repository. Exactly one
+          repository-level record for it, with klass "unresolved" and path equal to that
+          directory. Assert klass and path separately. This is the clause that discriminates
+          (j) from (k): an implementation that skips both passes (j) and fails (k), and an
+          implementation that reports both passes (k) and fails (j). Demonstrate BOTH
+          failing states.
+      (l) FLEET UNLOADABLE: overwrite the probe root's fleet.yaml with bytes that
+          load_fleet rejects. classify_all returns a record with klass "unresolved" whose
+          path is the fleet path, AND still returns the harness root's own records. Two
+          assertions. RED PROOF: an implementation that swallows the exception and returns
+          only the harness's records passes every other case and fails this one.
+
+  - id: T-03
+    title: Add post-merge-sweep.sh, the hook body that records terminal status then removes
+    traces: [REQ-07, REQ-08, REQ-11]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/post-merge-sweep.sh
+    verify: |
+      bash -n .claude/skills/harness/bin/post-merge-sweep.sh && bash .claude/skills/harness/bin/post-merge-sweep.sh --dry-run
+    intent: |
+      Create .claude/skills/harness/bin/post-merge-sweep.sh, executable, the entire body of
+      the post-merge git hook. The tracked hook file itself is a shim that execs this
+      script; that shim's location is the brief's Q1 and is deliberately NOT part of this
+      task. This script must be invocable directly so its behaviour is testable without
+      settling Q1.
+
+      Contract:
+      - Accepts git's post-merge argument (the squash flag) and IGNORES it. Per D-01 the
+        sweep is over every eligible worktree, not over the merged ref - post-merge is
+        never told which ref merged, and one git pull can land several merges.
+      - Accepts an optional --dry-run flag: prints what it would do, changes nothing,
+        exits 0. This is the verify above and must be safe in any tree.
+      - Resolves the repository root, then calls worktree_terminal.classify(root) via
+        python3. Acts ONLY on records whose klass is terminal. A record whose klass is
+        unresolved is printed and left alone: refusing is the invariant's job, and a hook
+        that removed on an unresolved lookup would delete a checkout for a feature it could
+        not identify.
+      - SELF-EXCLUSION, REQ-08. Before acting on a record, compare the realpath of the
+        current working directory against the realpath of that worktree's path. If cwd is
+        inside it, SKIP it and print one line saying the sweep declined because it is
+        running inside that worktree. git worktree remove exits 0 from inside the tree it
+        deletes, so an unguarded sweep deletes its own working directory mid-run - the same
+        mechanical fact check-state.sh:1173 already carries a comment about.
+      - ORDER, D-04, per record: FIRST run
+        python3 .claude/skills/harness/bin/gh-sync.py ship <feature dir on the default branch>
+        to record the terminal status and close the milestone through their single writer.
+        THEN, only if that exited 0, run
+        python3 .claude/skills/harness/bin/feature-worktree.py remove --repo <repo> --id <id>.
+        If ship exited non-zero, print why and SKIP the removal - the standing checkout is
+        the evidence INV-29 will then report.
+        BOTH ARGUMENT FORMS ARE MEASURED AT 9165162, not assumed. gh-sync.py takes the VERB
+        FIRST: its usage line is "gh-sync.py open|start-task|...|ship|... <feature-dir>", and
+        the reversed form gh-sync.py <feature-dir> ship exits 1 with
+        "gh-sync: ERROR - ship is not a directory". feature-worktree.py remove takes NAMED
+        options only: its usage is "feature-worktree.py remove [-h] --repo REPO --id ID", and
+        the positional form remove <id> exits 2 with
+        "the following arguments are required: --repo, --id". The --repo value is the same
+        string worktree_terminal resolves for a worktree's repo segment - the literal
+        "harness", or the owner/repo fleet name whose trailing segment matches.
+      - NO FORCE FLAG, and none may be passed to remove. feature-worktree.py remove already
+        declines on a dirty tree at exit 4 and on an unlanded artifact at exit 5; those
+        refusals are printed and the sweep continues to the next record.
+      - The script NEVER exits non-zero for a skipped or declined record. A post-merge hook
+        that fails makes git print an error after a successful pull; the invariant is what
+        turns a missed removal into a refusal, not the hook.
+      - Every path it reads is resolved against the LOCAL default branch. Never
+        origin/<default_branch>: that ref is only as fresh as the last fetch, which
+        reproduces the same hole one level out.
+
+  - id: T-04
+    title: Test post-merge-sweep.sh on both merge shapes, the self-exclusion guard, and the per-feature record
+    traces: [REQ-07, REQ-08, REQ-11]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-backend-dev
+    depends_on: [T-03]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-post-merge-sweep.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-post-merge-sweep.py
+    intent: |
+      Create .claude/skills/harness/bin/test-post-merge-sweep.py, same convention as the
+      other harness test scripts: a results list of (name, bool, detail), PASS or FAIL per
+      line, exit 1 if any failed.
+
+      The test installs post-merge-sweep.sh as .git/hooks/post-merge in its own throwaway
+      repositories. It therefore does NOT depend on how a real clone sets core.hooksPath -
+      that is the brief's Q1 and is out of this task. Stub gh on PATH so no network call is
+      made, and have the stub log every invocation to a file the assertions read.
+
+      Cases, each asserted separately:
+      (a) FAST-FORWARD merge, hook argument 0: a Done feature's worktree is gone after the
+          merge. Measured 2026-08-23: a fast-forward merge fires post-merge with $1 = 0.
+      (b) SQUASH: git merge --squash plus commit, hook argument 1. Same assertion. These
+          two shapes are asserted separately, never by one merge and a claim about both.
+      (c) SELF-EXCLUSION: invoke the script with cwd inside a linked worktree that is
+          itself eligible. That worktree is still standing afterwards AND stdout carries a
+          line saying the sweep declined because it is running inside it. Red proof: run a
+          variant with the guard removed, and assert that variant deletes it - an unguarded
+          hook must be shown to fail this.
+      (d) PER-FEATURE RECORD, SC-11: a fixture with TWO terminal features. Assert the gh
+          stub log shows a milestone close for EACH feature id, checked one at a time. A
+          total call count is satisfied by an implementation that ships the triggering
+          feature twice, so do not use one.
+      (e) ORDER, D-04: with the gh stub made to fail for one feature, that feature's
+          worktree is STILL STANDING afterwards and the other feature's is gone. This is
+          the assertion that proves the record-then-remove order rather than assuming it.
+      (f) An unresolved record - a short-named worktree matching no landed directory - is
+          printed and its worktree is left standing.
+
+  - id: T-05
+    title: Register the two new test files in both integration enumerations
+    traces: [REQ-01, REQ-07]
+    change_type: config
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-02, T-04]
+    status: done
+    files:
+      - .harness/harness.json
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      set -e
+      bash .claude/skills/harness/bin/run-unit-tests.sh --check-kinds
+      for f in test-worktree-terminal.py test-post-merge-sweep.py; do
+        grep -qF "\"$f\"" .claude/skills/harness/bin/run-unit-tests.sh || { echo "NOT REGISTERED in INTEGRATION_SCRIPTS: $f"; exit 1; }
+        grep -qF ".claude/skills/harness/bin/$f" .harness/harness.json || { echo "NOT REGISTERED in test_kinds.integration.detect: $f"; exit 1; }
+      done
+      echo REGISTERED-BOTH
+    intent: |
+      Add test-worktree-terminal.py and test-post-merge-sweep.py to BOTH enumerations, so
+      the integration kind actually runs them.
+
+      1. .harness/harness.json, test_kinds.integration.detect. Measured at 9165162: it is
+         23 pipe-separated entries, 22 of them literal filenames under
+         .claude/skills/harness/bin/ and one the tests/integration/** glob. Add each new
+         file as an explicit literal path in the same form as the existing 22.
+      2. .claude/skills/harness/bin/run-unit-tests.sh line 18, INTEGRATION_SCRIPTS. Measured
+         at 9165162: 22 entries, and the two sets are identical today with no KIND-DRIFT.
+         Add both new filenames.
+
+      Both edits or neither. run-unit-tests.sh:110 and :115 report KIND-DRIFT when the two
+      lists disagree, and :48 through :61 print MISCONFIGURED and exit 2 for a file under
+      BIN_DIR that is missing from the script list. Both new files ARE under BIN_DIR, so
+      the trap here is loud rather than silent - which is why they were placed there.
+
+      The verify above must exit 0 and print REGISTERED-BOTH on its last line.
+
+      WHY THAT VERIFY AND NOT A GREP OVER A TEST RUN. The earlier form,
+      run-unit-tests.sh integration piped to grep -c, was VACUOUS and measured so at 9165162:
+      "integration" as a bare positional hits the else branch at run-unit-tests.sh:33-36,
+      prints the usage line and exits 2 BEFORE the drift detector at :48-61 or the kind
+      cross-check at :82-120 runs at all, so grep -c prints 0 on every tree including a
+      wrong one. --kind is the flag the script accepts; --check-kinds runs both checkers and
+      no tests. Discrimination demonstrated at 9165162 on three deliberately wrong copies of
+      this tree: dropping test-post-merge-sweep.py from INTEGRATION_SCRIPTS alone gives
+      MISCONFIGURED and exit 2; dropping it from test_kinds.integration.detect alone gives
+      KIND-DRIFT and exit 2; and the pre-T-05 state, both files absent and unmentioned in
+      either list, PASSES --check-kinds and is caught only by the two explicit greps, which
+      is why they are in the verify and not decoration.
+
+  - id: T-06
+    title: Cut check-state.sh over to worktree_terminal and add INV-29
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration, and its library rule puts the cutover that makes a gate use a module on this lane. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
+    depends_on: [T-01]
+    status: done
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+    verify: |
+      bash .claude/skills/harness/bin/check-state.sh 2>&1 | grep -c "INV-29 CANNOT RUN"
+    intent: |
+      Add INV-29 to check-state.sh, next to INV-25 whose worktree enumeration it replaces
+      rather than duplicates.
+
+      Import worktree_terminal and call classify_all(root) - NEVER classify(root). Per D-10
+      classify alone covers ONE repository, so INV-29 built on it would satisfy every other
+      criterion and fail SC-04 and T-07 case (e), which grade an INV-29 line for a SECOND
+      repository produced by ONE check-state.sh run. Follow INV-25's import posture at
+      :1109 and INV-26's at :1203: the import FAILING is itself a violation, because the
+      module ships with this repository, so being unimportable is a defect in the tree and
+      never a property of the environment. Emit
+      "INV-29 CANNOT RUN: worktree_terminal.py did not import ..." in that case.
+
+      For every record whose klass is terminal or unresolved, append to bad - a BLOCKING
+      violation at exit 2, never warn and never a note. REQ-01 is explicit that this
+      refuses. exempt_absent records produce nothing.
+
+      Message content, which SC-01 grades as one exact composed string:
+      - it names the worktree directory actually found, that record's own path;
+      - it carries the removal command with THAT worktree's own path substituted into it,
+        not a bare command and not another worktree's path;
+      - when dirty is true it ADDITIONALLY says the tree is dirty and that remove will
+        decline until the changes are dealt with. Two distinct clauses, because SC-03
+        grades them one at a time.
+      - an unresolved record says the lookup failed and that failure of the lookup is not
+        an exemption, so a reader cannot mistake it for the abandoned-flow case.
+      - a REPOSITORY-LEVEL record - D-10's shape, feature_id None and path equal to a
+        declared repository's own owner_root or to the fleet path - names the repository or
+        the fleet file and what failed, and carries NO removal command. There is no worktree
+        to remove, and a removal command pointed at a repository root would be actively
+        dangerous. It is still a BLOCKING violation, for D-10's reason: the enumeration
+        failed there, so a terminal worktree could be standing and unreported.
+
+      Read the comment at check-state.sh:1173 before writing any of this. It deliberately
+      withholds removal guidance when the session is rooted in the tree, for the same
+      mechanical reason: git worktree remove exits 0 from inside the tree it deletes.
+      INV-29 follows that precedent - when root is inside the record's worktree, print the
+      finding but not the command.
+
+      This is a cutover as DEC-174 amendment 4 defines one: show that the violation set is
+      identical before and after for every case that is not newly INV-29, so the gate's
+      behaviour changed only where intended.
+
+  - id: T-07
+    title: Add INV-29 cases to test-check-state.py
+    traces: [REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate, on the ground that a gate test is the only thing proving the gate discriminates. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
+    depends_on: [T-06]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-state.py
+    intent: |
+      Add INV-29 cases, built on case_u's existing idiom of real git repositories with real
+      commits and real git worktree add.
+
+      SEVERITY IS ASSERTED ON THE FINDING LINE'S OWN PREFIX, NEVER ON THE RUN'S EXIT CODE.
+      test-check-state.py:1214 through :1218 already records as a measurement that these
+      fixtures are red for other reasons, so a comparison against a non-zero exit code
+      passes whether or not the invariant fired. Assert VIOLATION on the INV-29 lines
+      themselves, exactly as the INV-25 sibling case does.
+
+      Cases, each its own assertion:
+      (a) default branch Done plus standing worktree -> an INV-29 line at VIOLATION.
+          Same fixture at Review -> no INV-29 line at all.
+      (b) that firing line equals one exact string composed from the fixture's own path,
+          carrying the removal command with that path substituted in. Three inputs that
+          must make it FAIL, each demonstrated before the invariant exists: a message
+          naming the directory but carrying no command; a bare removal command with no
+          path; a command carrying a different worktree's path.
+      (c) DEADLOCK, SC-02: working tree Done and default branch Review -> no INV-29 line.
+          The inverse -> one. Demonstrate the failing state of a working-tree read against
+          both halves.
+      (d) dirty Done worktree -> INV-29 fires, and the message is graded on TWO separate
+          assertions, one per clause: that the tree is dirty, and that remove will decline
+          until the changes are dealt with. Not one combined substring.
+      (e) a second repository with a real git repo, its own Done feature and its own real
+          worktree -> an INV-29 line for it, from ONE check-state.sh run. A harness-only
+          implementation fails this.
+          THE FIXTURE SHAPE IS FLEET-RESOLVED, per D-10, and it is not a directory placed
+          under the harness checkout's own WORKTREES_SEGMENT - no such second repository can
+          exist, because feature-worktree.py's dest_for joins WORKTREES_SEGMENT only to a
+          resolved owner_root. Build it the way test-worktree-terminal.py case (g) already
+          does at :337-406: a probe root carrying .harness/factory/fleet.yaml declaring the
+          repo and a workspace_root, the real second git repository at
+          workspace_path(fleet, name), its Done feature landed on its own default branch,
+          and a real git worktree add inside it. That worktree's path is then under the
+          SECOND repository's WORKTREES_SEGMENT, which is what REQ-04's wording denotes.
+          RED PROOF: an INV-29 built on classify(root) rather than classify_all(root)
+          satisfies (a) through (d) and (f) and fails this. Demonstrate that failing state.
+      (f) ONE fixture, four standing worktrees, four separate assertions: genuinely absent
+          from the default branch -> silent; a full-named Done sibling -> fires; a
+          SHORT-NAMED worktree whose full-named directory on the default branch reads Done
+          -> fires; a feature.json present but unparseable -> fires. The red proof is that
+          an implementation keying the exemption on "the lookup returned nothing" passes
+          the first two and fails the last two.
+      The live tree is NOT a substitute for (f): the standing FEAT-33 worktree is
+      short-named AND genuinely absent from main, so it cannot discriminate those cases.
+
+  - id: T-08
+    title: Add INV-30 to check-state.sh, keyed on the open milestone
+    traces: [REQ-12]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
+    depends_on: [T-06]
+    status: done
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+    verify: |
+      bash .claude/skills/harness/bin/check-state.sh 2>&1 | grep -c "INV-30 CANNOT RUN"
+    intent: |
+      Add INV-30: a feature whose feature.json status is Done while its recorded
+      github.milestone is still OPEN on GitHub is reported.
+
+      Key on the MILESTONE, never on the status agreeing with itself. Per D-03 and the #806
+      amendment, status Done has more than one path that can write it - the repair on
+      2026-08-24 wrote ten by hand - while the milestone has exactly one writer, gh-sync.py
+      cmd_ship, which PATCHes it closed unconditionally once entered. So an open milestone
+      on a Done feature is proof ship never ran.
+
+      Walk .harness/*/features/*/feature.json. Skip any whose status is not Done or whose
+      github.milestone is null. For the rest, read each milestone's state from GitHub.
+
+      OFFLINE POSTURE, and it is INV-26's, not a new one. Copy the pattern at
+      check-state.sh:1203 through :1210 exactly: the IMPORT failing is a violation, because
+      the module ships with this repository; everything else - gh absent, unauthenticated,
+      network unreachable, a milestone that 404s - records NOTHING. check-state.sh runs
+      before every commit and an offline environment must never become a red gate. Emit
+      "INV-30 CANNOT RUN: ..." only on the import failure.
+
+      Batch the milestone reads into as few gh calls as the API allows; do not issue one
+      request per feature. There are 24 features with a recorded milestone at 9165162.
+
+      The finding names the feature id, its milestone number, and the exact command that
+      closes it, which is gh-sync.py ship on that feature directory. Severity: a violation,
+      matching REQ-12's framing that it is reported rather than noted.
+
+  - id: T-09
+    title: Add INV-30 cases to test-check-state.py, including the offline clause
+    traces: [REQ-12]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
+    depends_on: [T-08]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      python3 .claude/skills/harness/bin/test-check-state.py
+    intent: |
+      Add INV-30 cases. Stub gh on PATH so no case makes a real network call.
+
+      Three clauses, asserted separately, matching SC-12:
+      (a) a Done feature whose recorded milestone the gh stub reports as open -> an INV-30
+          line at VIOLATION, asserted on the line's own prefix and never on the exit code,
+          for the reason already recorded at test-check-state.py:1214.
+      (b) THE SAME FIXTURE with the gh stub reporting that milestone closed -> no INV-30
+          line. This is the discriminating clause: the status is Done in both, so an
+          implementation keying on status alone passes (a) and fails (b). Demonstrate that
+          failing state.
+      (c) the gh stub made to fail as if offline or unauthenticated -> no INV-30 line AND
+          no error, and the run's other findings are unchanged. This grades the INV-26
+          offline posture the design deliberately copies.
+      Also assert that a Done feature whose github.milestone is null produces no INV-30
+      line, so the invariant cannot fire on the eight features that have no milestone
+      recorded at 9165162.
+
+  - id: T-10
+    title: Make the do-not-remove-a-worktree rule reachable by every dispatchable agent
+    traces: [REQ-10]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve at 9165162 prints NOBODY for all four files; no agent domain grants any of them.
+    depends_on: []
+    status: done
+    files:
+      - .claude/skills/harness/SKILL.md
+      - .claude/skills/harness-handoff/SKILL.md
+      - .claude/skills/harness-principles/SKILL.md
+      - .claude/skills/harness-expertise/SKILL.md
+    verify: |
+      for a in .claude/agents/harness-*.md; do grep -q "worktree" "$a" || true; done; grep -lc "worktree remove" .claude/skills/harness-handoff/SKILL.md .claude/skills/harness-expertise/SKILL.md .claude/skills/harness-principles/SKILL.md | wc -l
+    intent: |
+      Today the act-3 statement lives only in .claude/skills/harness/SKILL.md, at :430 as
+      re-derived at 9165162, and that skill is preloaded by harness-orchestrator alone.
+      Fifteen of the sixteen agents in .claude/agents/ carry no statement of a rule they are
+      bound by. Verified at 9165162: harness-handoff, harness-principles and
+      harness-expertise contain zero occurrences of the word worktree.
+
+      Put ONE sentence of the rule into the universal skills so it reaches every agent. It
+      must state both halves, because the second is why the first exists:
+      removing a worktree is never an agent's act - it belongs to the main session or the
+      post-merge hook, from OUTSIDE the tree - AND git worktree remove exits 0 when run
+      from inside the tree it deletes, so an agent obeying an instruction to remove its own
+      worktree destroys its working directory mid-run.
+
+      Choose the smallest set of the three universal skills that gets the sentence to all
+      sixteen agents; harness-handoff is preloaded most widely. Do NOT add a new skill and
+      do NOT add a new agent - none of the sixteen removes a worktree, which is the point.
+
+      In .claude/skills/harness/SKILL.md, leave the act-3 prose at :430 in place and make
+      it point at the enforcement rather than repeat the habit that failed: the hook removes
+      the checkout when the merge lands, and INV-29 refuses if one is still standing.
+
+      Re-derive every line number before editing. This file was rewritten by FEAT-35, merged
+      2026-08-24 at 92b3fec, which shifted every anchor the signed brief cites.
+  - id: T-11
+    title: Add the tracked hooks directory and the post-merge shim that execs the sweep
+    traces: [REQ-09]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve at 9165162 prints NOBODY for .claude/skills/harness/hooks/post-merge - no agent domain grants the path, so DEC-179 makes it a declared main-session-direct step. This is a domain fact and NOT a DEC-174 fact - per D-07 the hook is outside the enforcement category, and if the path is later granted this task becomes team.
+    depends_on: [T-03]
+    status: done
+    files:
+      - .claude/skills/harness/hooks/post-merge
+    verify: |
+      test -x .claude/skills/harness/hooks/post-merge && bash -n .claude/skills/harness/hooks/post-merge && git -C . ls-files --error-unmatch .claude/skills/harness/hooks/post-merge
+    intent: |
+      Create .claude/skills/harness/hooks/post-merge, mode 755, TRACKED in git. Per D-08 this
+      directory is the one core.hooksPath will point at, and it holds this file only.
+
+      The file is a shim and nothing else. It must:
+      - be a POSIX sh or bash script with a shebang;
+      - resolve the repository root from its own location rather than from the caller's cwd -
+        a git hook runs with cwd at the top of the working tree for a normal merge, but that
+        is not guaranteed for every invocation, so derive the root from $0;
+      - exec .claude/skills/harness/bin/post-merge-sweep.sh, passing "$@" through unchanged so
+        git's squash flag reaches the sweep, which per T-03's contract ignores it;
+      - if post-merge-sweep.sh is absent or not executable, print one line naming the missing
+        path and exit 0. A post-merge hook that exits non-zero makes git print an error after a
+        successful pull, and a missing sweep is a broken tree, not a broken merge. INV-29 is
+        what turns the resulting missed removal into a refusal.
+
+      Do NOT duplicate any sweep logic here. The whole point of the split is that the shim's
+      only content is a path, so SC-14 is the assertion that the path is real.
+
+      core.hooksPath REPLACES the clone's hook directory entirely - every hook git looks for is
+      resolved here and .git/hooks is bypassed. Any hook this repository later wants must live
+      in this directory. Nothing else changes in this task.
+
+  - id: T-12
+    title: harness-init sets core.hooksPath, idempotently, and reports a value it did not write
+    traces: [REQ-09, REQ-13]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve at 9165162 prints NOBODY for .claude/skills/harness-init/SKILL.md - no agent domain grants it, so DEC-179 makes it a declared main-session-direct step.
+    depends_on: [T-11]
+    status: done
+    files:
+      - .claude/skills/harness-init/SKILL.md
+    verify: |
+      grep -c "core.hooksPath" .claude/skills/harness-init/SKILL.md
+    intent: |
+      Add the per-clone hook prerequisite to the harness-init procedure. Today, measured at
+      9165162 in this checkout, git config --get core.hooksPath returns
+      /Users/molchairuangutai/GitHub/harness/.git/hooks - an absolute path carrying a username,
+      so no tracked hook can run in any other clone, and harness-init installs no step that
+      sets it.
+
+      Place it in "### 1. Install the eight prerequisites", as a per-clone step alongside the
+      eight rather than as a ninth entry in that count. The eight are settings and package
+      prerequisites merged by scripts; this one is a git config a clone carries. Do not
+      renumber the eight and do not restate the count anywhere - the phrase "the eight
+      prerequisites" appears in the skill's own frontmatter description at :3 and elsewhere,
+      and changing the number there would falsify every existing reference. Re-derive every
+      line number before editing.
+
+      The step is:
+
+        git config core.hooksPath .claude/skills/harness/hooks
+
+      A RELATIVE path, deliberately. An absolute one is what produced today's broken value, and
+      a relative core.hooksPath resolves against the repository root in every clone.
+
+      Write the procedure so it satisfies REQ-13 on both clauses, and write it as commands the
+      main session actually runs, never as prose the reader is trusted to follow:
+      1. Read the current value with git config --get core.hooksPath, tolerating exit 1 for
+         unset.
+      2. If it is unset, or already equals .claude/skills/harness/hooks, set it and report
+         which of the two happened. Running the step twice must leave the same value and must
+         not be an error - that is SC-13 clause one.
+      3. If it is set to ANYTHING ELSE, PRINT the value found, name it as a directory the
+         harness did not write, and say that pointing git at the harness directory will stop
+         every hook currently resolved from it. Then ask the user before writing. Silently
+         overwriting an operator's own hooks path is not acceptable, and this is SC-13
+         clause two. Note the mechanism plainly in the text: core.hooksPath takes over hook
+         resolution for the whole clone, not for one hook.
+      4. State that .git/hooks is bypassed once this is set, so a hook an operator previously
+         hand-installed there stops firing.
+
+      Also add the check to the "--upgrade" path if that path enumerates prerequisites, so an
+      already-initialised project acquires it. Re-derive whether it does before writing.
+
+  - id: T-13
+    title: Test the hooks install end to end in a fresh clone fixture, and register the test
+    traces: [REQ-09, REQ-13]
+    change_type: logic
+    execution_mode: team
+    execution_agent: harness-dev-ops
+    depends_on: [T-05, T-12]
+    status: done
+    files:
+      - .claude/skills/harness/bin/test-hooks-install.py
+      - .harness/harness.json
+      - .claude/skills/harness/bin/run-unit-tests.sh
+    verify: |
+      python3 .claude/skills/harness/bin/test-hooks-install.py
+    intent: |
+      Create .claude/skills/harness/bin/test-hooks-install.py, same convention as the other
+      harness test scripts - a results list of (name, bool, detail) tuples, PASS or FAIL per
+      line, exit 1 if any failed. This is the only automated evidence for SC-08, SC-13 and
+      SC-14; none of them is graded by any existing test file.
+
+      Fixtures are REAL git clones, built with git clone from a throwaway origin repository
+      that carries a .claude/skills/harness/hooks/post-merge shim and a
+      .claude/skills/harness/bin/post-merge-sweep.sh. Stub gh on PATH so no case makes a
+      network call, and have the stub log every invocation to a file the assertions read.
+
+      Cases, each its own assertion - never a file-global count, never one combined substring:
+      (a) SC-08 first half: in the fresh clone BEFORE the setup step, the automation is absent
+          and reported as not installed - git config --get core.hooksPath does not resolve to
+          .claude/skills/harness/hooks.
+      (b) SC-08 second half: after the setup step, core.hooksPath resolves to the tracked
+          directory AND the post-merge file there is executable. Two assertions, not one.
+      (c) SC-13 clause one, IDEMPOTENCE: run the setup step twice. Both runs exit 0 and the
+          value after the second equals the value after the first.
+      (d) SC-13 clause two, REPORTING: in a clone whose core.hooksPath is already set to an
+          unrelated directory, the step's stdout carries that directory's own value. Assert on
+          the found value appearing, not on any fixed wording. RED PROOF: run a variant that
+          writes the config unconditionally, and assert that variant passes (c) and fails (d).
+          The failing state must be demonstrated, not asserted to exist.
+      (e) SC-14, END TO END: in a clone where the setup step has run and NOTHING has been
+          hand-installed into .git/hooks/, perform a real merge that lands a terminal feature,
+          and assert that feature's worktree is gone afterwards. RED PROOF: repoint the shim at
+          a path that does not exist, and assert that variant still passes (a) through (d) and
+          fails this one - that is what proves the wiring is graded rather than assumed.
+
+      The setup step under test is the one T-12 writes into harness-init. Because it lives in a
+      SKILL.md rather than a script, invoke the same command sequence the skill states, and
+      assert that the command string the test runs is present verbatim in
+      .claude/skills/harness-init/SKILL.md. A test running a command nobody documented would
+      grade an implementation that does not exist.
+
+      REGISTRATION, both enumerations or neither, exactly as T-05 does for its two files - add
+      test-hooks-install.py to .harness/harness.json test_kinds.integration.detect as an
+      explicit literal path, and to INTEGRATION_SCRIPTS in
+      .claude/skills/harness/bin/run-unit-tests.sh. This task depends on T-05 so the two edits
+      to those files never race. run-unit-tests.sh reports KIND-DRIFT when the two lists
+      disagree and prints MISCONFIGURED with exit 2 for a file under BIN_DIR missing from the
+      script list; this file IS under BIN_DIR, so the trap is loud rather than silent.

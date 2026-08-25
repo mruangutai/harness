@@ -79,6 +79,8 @@ must read is lost there. Use it only for lessons about *how you work*.
 | expensive or hard to reverse — schema, API contract, new dependency | **ask** via `open_questions` |
 | changes scope, the goal, or an approved decision | **always ask.** It is not yours |
 
+**One act is never yours, whatever the table says: removing a worktree.** It belongs to the main session or the `post-merge` hook, from OUTSIDE the tree — because `git worktree remove` exits 0 when run from INSIDE the tree it deletes, so an agent following an instruction to remove its own worktree destroys its working directory mid-run.
+
 You are not blocked while a question is outstanding: raise it, do what you can, and return. A member
 never waits on a human — questions travel up and answers come back down.
 

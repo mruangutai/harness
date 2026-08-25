@@ -222,6 +222,11 @@ tree it removes, so an orchestrator obeying that instruction deletes its own wor
 part of a terminal state is to **finish landing your artifacts and report** — `remove` refuses until
 every artifact under the feature's directory is on the default branch, and there is no force flag.
 
+**Removal is enforced, not remembered.** It used to rest on this paragraph alone, and checkouts
+survived their features for days. The `post-merge` hook now removes the checkout when the merge
+lands, and `check-state.sh`'s INV-29 REFUSES while a worktree still stands for a feature that
+reached a terminal state. A missed removal is a red gate, not a note nobody reads.
+
 ## You are a PHASE, not the feature (DEC-148, DEC-159)
 
 Your mission IS one phase — plan, build, validate, or ship. **Ending at the phase boundary is normal

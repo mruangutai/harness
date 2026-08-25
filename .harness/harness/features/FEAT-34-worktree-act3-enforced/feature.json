@@ -1,10 +1,10 @@
 {
   "feature_id": "FEAT-34-worktree-act3-enforced",
-  "branch": "none",
+  "branch": "feat/FEAT-34-worktree-act3-enforced",
   "pr": null,
-  "status": "Plan",
-  "review_sha": "none",
-  "cycles_used": 0,
+  "status": "Done",
+  "review_sha": "adfe16fef60693cd360eb2057542bf6dbe886625",
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -19,13 +19,129 @@
       "squad": "product",
       "agent": "harness-pm",
       "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-1-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "build-t01-t05-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "plan-fix-req04-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "brief-amend2-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t01-t02-rework-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "t01-t02-classify-skip-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-24-02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "goal-scope-linked-worktree-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "req07-scope-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-03-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-04-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
+      "verdict": "FAIL"
+    },
+    {
+      "id": "2026-08-24-05-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "FAIL"
     }
   ],
   "github": {
-    "milestone": null,
+    "milestone": 26,
     "parent": 728,
-    "parent_origin": "existing",
-    "attached": [],
-    "issues": {}
+    "parent_origin": null,
+    "attached": [
+      "T-01",
+      "T-02",
+      "T-03",
+      "T-04",
+      "T-05",
+      "T-06",
+      "T-07",
+      "T-08",
+      "T-09",
+      "T-10",
+      "T-11",
+      "T-12",
+      "T-13"
+    ],
+    "issues": {
+      "T-01": 818,
+      "T-02": 819,
+      "T-03": 820,
+      "T-04": 821,
+      "T-05": 822,
+      "T-06": 823,
+      "T-07": 824,
+      "T-08": 825,
+      "T-09": 826,
+      "T-10": 827,
+      "T-11": 828,
+      "T-12": 829,
+      "T-13": 830
+    },
+    "source_issues": [
+      728,
+      806
+    ]
   }
 }

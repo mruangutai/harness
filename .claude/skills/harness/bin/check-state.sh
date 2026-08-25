@@ -1163,6 +1163,160 @@ if _wt_seg:
                     # defect.
                     bad.append(_where + f" Remove it with `git worktree remove {_wpath}`.")
 
+# --- INV-29 (FEAT-34 T-06, REQ-01..REQ-06): a worktree must not survive its feature
+# reaching a terminal state. INV-25's SIBLING, deliberately placed next to it: INV-25 asks
+# whether a worktree belongs where it is, INV-29 asks whether it should still exist at all.
+# Two different questions, so INV-25 above is untouched — the brief lists its enumeration
+# under "already built — do not strike, do not rebuild".
+#
+# THE ENUMERATION IS NOT REPEATED HERE. `git worktree list` is run by worktree_terminal, the
+# single shared predicate this gate and post-merge-sweep.sh both cross (D-02), so the gate and
+# the hook can never disagree about what is eligible. A second copy of the walk in this file
+# is exactly what D-02 exists to prevent.
+#
+# classify_all, NEVER classify (D-10). classify covers ONE repository — it runs one
+# `git worktree list` with cwd=root, and feature-worktree.py joins WORKTREES_SEGMENT only to a
+# resolved owner_root, so a served repository's worktrees live inside a DIFFERENT git
+# repository that a list in this checkout can never report. An INV-29 built on classify would
+# satisfy every other criterion and fail SC-04, which grades an INV-29 line for a SECOND
+# repository produced by ONE run of this script.
+#
+# THE IMPORT FAILING IS ITSELF A VIOLATION, exactly as INV-25 at :1109 and INV-26 at :1203.
+# The module ships with this repository, so being unimportable is a defect in the tree and
+# never a property of the environment.
+try:
+    import worktree_terminal as _wt29
+except Exception as _wt29e:
+    _wt29 = None
+    bad.append("INV-29 CANNOT RUN: worktree_terminal.py did not import (%s: %s), so a "
+               "worktree surviving its feature's terminal state would go unreported. The "
+               "module ships with this repository — restore "
+               ".agents/skills/harness/bin/worktree_terminal.py."
+               % (type(_wt29e).__name__, _wt29e))
+
+if _wt29 is not None:
+    # The fleet path is read as a CONSTANT, not re-derived. It is one of the two things that
+    # tells a repository-level record apart from a worktree record — see the discriminator
+    # below — and reading it here duplicates none of classify_all's resolution logic.
+    try:
+        import factory_config as _fc29
+        _fleet_path29 = os.path.realpath(_fc29.FLEET_PATH)
+    except Exception:
+        _fleet_path29 = None
+
+    # A raise here is caught rather than allowed to abort the interpreter. classify_all
+    # already handles the three failure shapes D-10 specifies; an unexpected exception is a
+    # defect, and letting it propagate would take EVERY other invariant's findings down with
+    # it — the gate would print a traceback and report nothing at all.
+    try:
+        _recs29 = _wt29.classify_all(root)
+    except Exception as _ce29:
+        _recs29 = []
+        bad.append("INV-29 CANNOT RUN: worktree_terminal.classify_all raised (%s: %s), so a "
+                   "worktree surviving its feature's terminal state would go unreported."
+                   % (type(_ce29).__name__, _ce29))
+
+    _real_root29 = os.path.realpath(root)
+
+    def _root_is_inside29(worktree_path):
+        """Is this session standing inside the worktree the record describes?"""
+        try:
+            return os.path.commonpath([_real_root29, os.path.realpath(worktree_path)]) == \
+                   os.path.realpath(worktree_path)
+        except ValueError:      # different drives / unrelated roots
+            return False
+
+    for _r29 in _recs29:
+        if _r29["klass"] == "exempt_absent":
+            # The feature directory is genuinely absent from the default branch. Nothing to
+            # report: that is the abandoned-flow case, and it is silence by design.
+            continue
+
+        # THE DISCRIMINATOR KEYS ON MORE THAN feature_id, AND IT HAS TO. A worktree whose path
+        # is not under WORKTREES_SEGMENT emits feature_id None / repo None / unresolved
+        # (worktree_terminal.py:202-206) — identical on class AND on feature_id to the
+        # fleet-load record (:303-306). Keying on feature_id alone would classify a REAL
+        # worktree as a repository-level failure and withhold the removal command from it.
+        # What separates them: a repository-level record either names a declared repository
+        # (repo is set) or IS the fleet file itself.
+        _repo_level29 = (
+            _r29["feature_id"] is None
+            and (_r29["repo"] is not None
+                 or (_fleet_path29 is not None
+                     and os.path.realpath(_r29["path"]) == _fleet_path29))
+        )
+
+        if _repo_level29:
+            # D-10's repository-level shape. BLOCKING for D-10's reason — the enumeration
+            # failed there, so a terminal worktree could be standing and unreported.
+            #
+            # NO REMOVAL COMMAND, EVER, ON THIS BRANCH. The path is a repository root or the
+            # fleet declaration, not a worktree. A removal command pointed at a repository
+            # root would be actively dangerous, and there is nothing there to remove.
+            _what29 = ("the fleet declaration"
+                       if _fleet_path29 is not None
+                       and os.path.realpath(_r29["path"]) == _fleet_path29
+                       else "repository %s" % _r29["repo"])
+            bad.append("INV-29: cross-repository enumeration failed at %s (%s) — %s. A "
+                       "worktree surviving its feature's terminal state could be standing "
+                       "there and unreported. No removal command is given: this path is not "
+                       "a worktree."
+                       % (_r29["path"], _what29, _r29["reason"]))
+            continue
+
+        # From here every record describes an actual worktree.
+        if _r29["klass"] == "terminal":
+            _head29 = ("INV-29: %s is a standing worktree whose feature %s reached a terminal "
+                       "state on the default branch. Act 3 is not optional — the checkout is "
+                       "removed once the work has landed."
+                       % (_r29["path"], _r29["feature_id"]))
+        else:
+            # unresolved, at the worktree level. THE FAILED LOOKUP IS NOT AN EXEMPTION, and
+            # the message says so outright: a reader who mistook this for the abandoned-flow
+            # case would treat the loudest branch as the quietest one.
+            _head29 = ("INV-29: %s is a standing worktree whose terminal status could not be "
+                       "determined — %s. A lookup that FAILED is not an exemption; the "
+                       "worktree is reported rather than passed over."
+                       % (_r29["path"], _r29["reason"]))
+
+        # THE DIRTY CLAUSE IS ITS OWN SENTENCE, not folded into the command line. SC-03 grades
+        # the two claims one at a time: that the tree is dirty, and that remove will decline.
+        if _r29["dirty"]:
+            _head29 += (" The tree is dirty: `remove` will DECLINE until those changes are "
+                        "committed, landed or discarded.")
+
+        if _root_is_inside29(_r29["path"]):
+            # INV-25's precedent at :1173, for the same mechanical reason: `git worktree
+            # remove` exits 0 from inside the tree it deletes, so handing this session that
+            # command is telling it to delete the ground it is standing on. The finding still
+            # prints; only the guidance is withheld.
+            bad.append(_head29 + " This session is rooted in it, so no removal command is "
+                                 "given here: run it from the main checkout instead.")
+        elif _r29["repo"] is not None and _r29["feature_id"] is not None:
+            # THE COMMAND CARRIES THIS WORKTREE'S OWN IDENTITY, composed from this record's
+            # own repo segment and id — never a bare command, and never another worktree's.
+            # feature-worktree.py remove is named rather than `git worktree remove` because it
+            # declines a dirty tree at exit 4 and an unlanded artifact directory at exit 5,
+            # and it has no force flag. Raw git would take --force.
+            # THE --id IS THE WORKTREE DIRECTORY'S OWN NAME, never the record's feature_id.
+            # They differ for a SHORT-NAMED worktree: feature_id is the LANDED directory on the
+            # default branch, which is the full name, while `remove` matches the checkout. Printing
+            # feature_id there gives a command that exits "not a linked worktree" for a directory
+            # plainly sitting in front of the reader. post-merge-sweep.sh:150 already derives it
+            # this way; this is the same derivation, not a second rule.
+            bad.append(_head29 + " Remove it with `python3 "
+                                 ".agents/skills/harness/bin/feature-worktree.py remove "
+                                 "--repo %s --id %s` (path: %s)."
+                                 % (_r29["repo"],
+                                    os.path.basename(_r29["path"].rstrip(os.sep)),
+                                    _r29["path"]))
+        else:
+            # An out-of-segment worktree: there is no repo/id pair to build the command from,
+            # because the path never resolved to one. INV-25 above reports the same tree with
+            # its own removal guidance, so nothing is lost by withholding it here.
+            bad.append(_head29 + " Its path did not resolve to a repository and id, so no "
+                                 "removal command can be composed for it.")
+
 # --- INV-26 BEGINS — the marker T-05's verify slices on. Without it the slice is EMPTY and
 # every literal-absence grep below trivially passes, which is the vacuous-grep failure this
 # feature exists to remove. The verify's positive control requires derive_station INSIDE the
@@ -1362,6 +1516,106 @@ if _inv26_board:
                 elif _pfound != _derived:
                     bad.append(f"INV-26 {_feat} parent (issue #{_parent}): the plan derives "
                                f"{_derived} — the board reads {_pfound}.")
+# --- INV-30 (FEAT-34 T-08, REQ-12): a feature recorded `Done` whose milestone is still OPEN.
+#
+# IT KEYS ON THE MILESTONE, NEVER ON THE STATUS AGREEING WITH ITSELF. `status: Done` has more
+# than one path that can write it — the 2026-08-24 repair wrote ten by hand — so a Done status
+# corroborating a Done status proves nothing. The milestone has exactly ONE writer,
+# `gh-sync.py`'s `cmd_ship`, which PATCHes it closed unconditionally once entered. So an OPEN
+# milestone on a Done feature is proof that `ship` never ran.
+#
+# THE OFFLINE POSTURE IS INV-26's, NOT A NEW ONE. The IMPORT failing is a violation, because
+# the module ships with this repository. Everything else — `gh` absent, unauthenticated, the
+# network unreachable, a milestone that 404s — records NOTHING. `check-state.sh` runs before
+# every commit, and an offline environment must never become a red gate.
+#
+# ONE `gh` CALL, NOT ONE PER FEATURE. 24 features carry a recorded milestone at 9165162; a
+# request each would make the pre-commit gate pay 24 round trips for a check that one paginated
+# list answers. The whole milestone list is fetched once and matched by number in memory.
+try:
+    import gh_board as _gb30
+    _inv30_import_ok = True
+except Exception as _gbe30:
+    _inv30_import_ok = False
+    bad.append("INV-30 CANNOT RUN: gh_board.py did not import (%s: %s), so a feature recorded "
+               "Done whose milestone is still open would go unreported. The module ships with "
+               "this repository — restore .agents/skills/harness/bin/gh_board.py."
+               % (type(_gbe30).__name__, _gbe30))
+
+_g30 = cj.get("github") if isinstance(cj, dict) else None
+_repo30 = (_g30 or {}).get("repo")
+
+if _inv30_import_ok and (_g30 or {}).get("sync") and _repo30:
+    # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
+    # something to ask about. A tree with no Done-and-milestoned feature makes no gh call at all.
+    _cand30 = []
+    for _fy30 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
+        _feat30 = os.path.basename(os.path.dirname(_fy30))
+        try:
+            _doc30 = harness_yaml.load_file(_fy30) or {}
+        except Exception:
+            # INV-28 above already reports an unparseable feature.json. Restating it here would
+            # report one defect twice.
+            continue
+        if not isinstance(_doc30, dict):
+            continue
+        # DEC-192's six status values are case sensitive — the exact string `Done` and nothing
+        # else. `Abandoned` is terminal and silent here for INV-28's reason: nothing shipped, so
+        # there is no milestone that ship should have closed.
+        if str(_doc30.get("status", "")).split()[:1] != ["Done"]:
+            continue
+        _ms30 = (_doc30.get("github") or {}).get("milestone")
+        if _ms30 is None:
+            # A Done feature with no recorded milestone is outside this invariant's reach, not a
+            # finding. Eight features are in that state at 9165162 and none of them is a defect
+            # INV-30 can speak to.
+            continue
+        try:
+            _cand30.append((_feat30, int(_ms30)))
+        except (TypeError, ValueError):
+            continue
+
+    if _cand30:
+        # SAME RESOLUTION AS INV-26 at :1371 — FACTORY_GH first. A fixture that stubs
+        # `gh` through that variable must reach this invariant too, or INV-30 would be
+        # untestable offline while claiming an offline posture.
+        _gh_bin30 = os.environ.get("FACTORY_GH") or "gh"
+        _open30 = None
+        try:
+            _auth30 = subprocess.run([_gh_bin30, "auth", "status"],
+                                     capture_output=True, text=True, timeout=15)
+            _gh_ok30 = _auth30.returncode == 0
+        except Exception:
+            _gh_ok30 = False
+
+        if _gh_ok30:
+            # `--paginate` rather than a bare per_page: the list is small today and silently
+            # truncating it later would make this invariant quietly stop firing on the oldest
+            # features, which is the decay shape INV-28 was written to catch.
+            try:
+                _r30 = subprocess.run(
+                    [_gh_bin30, "api", "--paginate",
+                     "repos/%s/milestones?state=open&per_page=100" % _repo30,
+                     "-q", ".[].number"],
+                    capture_output=True, text=True, timeout=60)
+                if _r30.returncode == 0:
+                    _open30 = {int(x) for x in _r30.stdout.split() if x.strip().isdigit()}
+            except Exception:
+                _open30 = None
+
+        # None means "we could not ask", which is NOT the same as "nothing is open" and must
+        # never be treated as one. Silence here is the whole offline posture.
+        if _open30 is not None:
+            for _feat30, _num30 in _cand30:
+                if _num30 not in _open30:
+                    continue
+                bad.append(
+                    "INV-30 %s: status is Done but milestone #%d is still OPEN, so "
+                    "`gh-sync.py ship` never ran for it. The status is not evidence — it has "
+                    "several writers and the milestone has one. Close it with `python3 "
+                    ".agents/skills/harness/bin/gh-sync.py ship %s`."
+                    % (_feat30, _num30, fpath(_feat30)))
+
 # --- INV-26 ENDS
 
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
