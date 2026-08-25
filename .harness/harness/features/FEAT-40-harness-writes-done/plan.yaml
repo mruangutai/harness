@@ -1002,7 +1002,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: check-domain.sh --resolve returns NOBODY for all three files, so there is no agent granted to write them; this is a declared main-session step, not a dispatchable task
     depends_on: [T-03, T-06, T-07, T-11]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/references/github-mirror.md
       - .claude/commands/harness.md

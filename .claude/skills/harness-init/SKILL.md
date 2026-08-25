@@ -90,6 +90,14 @@ harness directory will do to it:
 into `.claude/skills/harness/hooks/` or they stop firing — say that too, rather than leaving them
 to discover it at the next merge.
 
+**A clone that skipped this step is caught, not left silent.** `check-state.sh`'s **INV-31** reports
+an uninstalled merge hook on every run — separately for a `core.hooksPath` that does not resolve
+here, and for a `post-merge` that is missing or not executable. That matters because this document
+is read once, at onboarding, and an already-onboarded clone never comes back to it: a doc step
+reaches a clone once, an invariant reaches every clone every run. Without the hook the post-merge
+sweep never fires, and after DEC-203 that sweep is the only thing that runs `ship` — so the clone
+silently stops closing tickets.
+
 **If either line prints `MISSING`, STOP.** Both packages are REQUIRED, not optional.
 
 **PyYAML** (DEC-171 am.1): there is no line-scan fallback anywhere in `bin/`, deliberately, because
