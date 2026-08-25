@@ -3942,6 +3942,47 @@ shape. DEC-160 records the identical config lag for `max_total_cycles`.
 
 ## DEC-158 — Context-budget pass: skills carry the rule, DECISIONS carries the rule's history
 
+**Amendment 1 (2026-08-24) — move 3 is widened from rare missions to any bounded PROCEDURE, and
+three of this entry's statements are corrected.**
+
+*What went stale.* `references/missions.md` no longer exists: missions map and deepen were retired
+with the codebase map tier (DEC-137, struck), and mission debug — the only survivor — moved to
+`references/debug-mission.md`. Ship-refresh, named above as staying inline because it "runs every
+ship", was removed with the same tier. Feature-close distillation does stay inline and still does,
+though it is now triggered at merge rather than at close-out (DEC-145).
+
+*What changed.* Move 3 as written keyed on FREQUENCY — rare missions move, every-ship work stays.
+That criterion does not survive contact: the `gh-sync.py` contract runs every ship and the
+context-probe runs every wake, yet both are step-by-step procedures an orchestrator consults once
+and does not need resident for the rest of its life. **The criterion is now SHAPE, not frequency: a
+bounded procedure with a named trigger moves to `references/` and leaves a pointer; a rule that must
+be resident to be obeyed stays inline.** A procedure is looked up when its trigger fires. A rule has
+to already be in context at the moment it would otherwise be broken.
+
+Applied: `references/github-mirror.md` (the nine subcommands, their owners, the station table and
+the failure shapes) and `references/context-check.md` (the two-call nonce probe). The playbook keeps
+the rule that governs each — you run three subcommands and no others; the threshold advises and a
+check you cannot complete is skipped, never guessed.
+
+*The cost, stated because it is real.* Every pointer can be skipped, and a skipped pointer is
+silent. The preload-versus-pointer measurement — every artifact delivered by preload worked on first
+contact, every artifact relying on being pointed at failed silently at least once (DEC-125 ×4) —
+still stands, and the playbook now carries five pointers where it carried one. That is the bound:
+**move 3 is not a licence to keep extracting.** Distillation, the CEO briefing and the build phase
+were each considered for extraction and each kept inline, because their triggers fire on the ship
+path where a silent skip costs the most.
+
+*Move 1's red-flag protection is NARROWED, not repealed.* The orchestrator playbook's `## Red
+flags` table is removed on the operator's word. The supporting observation: after this pass all six
+of its rows restated rules still present in the body — no user channel, lead-not-member, pm re-plans,
+the hard cycle bound, counters on disk, shape is not truth — so the table carried no rule of its own.
+The counter-argument this entry made still stands and is recorded here rather than lost: bare
+imperatives get rationalized around (DEC-19's lesson), and a rule stated once as prose and once as a
+named temptation is harder to talk past than a rule stated once. That trade was taken knowingly.
+**The other nineteen red-flag tables in the tree are untouched** — this narrows move 1 for one file,
+it does not withdraw the pattern.
+
+
 Measured per-spawn preload (agent file + `skills:` + injected Expertise): orchestrator ~12.3k
 tokens, leads ~8.4–9.2k, dev specialists ~4.8k — replayed across every spawn (kaya FEAT-02:
 58 frontend-dev, 46 product-lead spawns). Profiling the two largest skills (`harness-team` 3.6k
@@ -6544,7 +6585,8 @@ performs, and names the one writer of each. The original entry and amendments 1 
 standing unedited: the record is appended to, never rewritten. No DEC number is opened, superseded or
 retired, and DEC-192's refusal of a seventh column is upheld here rather than amended.
 
-*The map, one writer per station.* Recorded in `.claude/skills/harness/SKILL.md` under the heading
+*The map, one writer per station.* Recorded in
+`.claude/skills/harness/references/github-mirror.md` under the heading
 *"Who writes each station — one writer per column"*, and cited here by content because a permanent
 record must survive the line moving.
 
