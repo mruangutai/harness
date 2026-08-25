@@ -1,8 +1,14 @@
-<!-- invariants: 29 -->
+<!-- invariants: [29, 30] -->
 <!-- The EXPLICIT claim, read by check-plan-routes.py. Declared rather than left to a
      prose scan because this brief also CITES INV-28 while recording why the number
      moved, and a scanner cannot tell a claim from a citation. FEAT-26's T-05 holds
-     INV-28 and builds first, measured 2026-08-23. -->
+     INV-28 and builds first, measured 2026-08-23.
+     AMENDED 2026-08-24 (issue #806, RE-SIGNED same day): the list gains 30, the milestone
+     invariant. Derived at 9165162, not inferred from the gate script's highest: INV-28 has
+     since BUILT into check-state.sh (:1044, :1068, :1080) so the brief's original premise
+     that the script holds neither 28 nor 29 is stale; INV-29 is claimed by this brief; and
+     `grep -rn 'INV-30' .harness/ .claude/` returns zero occurrences, so 30 is free on both
+     halves of the rule check-plan-routes.py enforces. -->
 
 # BRIEF — FEAT-34 Worktree act 3, enforced
 
@@ -235,8 +241,180 @@ and pre-slicing them would decide at brief time what belongs in the plan or to t
   eligible worktree it finds or only the feature whose merge triggered it. REQ-07 and SC-06 are
   written to be neutral — both readings satisfy them — so this does not block the signature.
 
+## Amendment 1 (2026-08-24) — two additions: the terminal `Done` write, and the per-clone `core.hooksPath` prerequisite
+
+**NOT YET RE-SIGNED. The `## Approval` block below records what was signed on 2026-08-23 and is
+unchanged; this amendment is presented for re-signature at the plan signature.**
+
+**One amendment, both additions, one re-signature.** Issue #806's terminal `Done` write (part A) and
+the `core.hooksPath` prerequisite (part B) are each scope beyond the 2026-08-23 signature. They are
+not separated into two amendments because they are re-signed together, in one act, and a second
+amendment would invite half a signature.
+
+**Why it belongs here and not in its own feature.** A hook that fires when a feature reaches `Done`
+cannot fire if nothing reliably writes `Done`. #806 is this feature's missing prerequisite, not its
+neighbour, and it rides the SAME trigger this feature already uses — the merge landing locally on the
+default branch.
+
+**Measured at `9165162` on 2026-08-24, and the premise holds.** 24 features read `status: Done` with a
+milestone recorded. Ten of those milestones — 4, 5, 6, 7, 8, 10, 16, 17, 20, 21 — carry
+`closed_at` timestamps inside a four-second window, `2026-08-24T14:07:46Z` through
+`2026-08-24T14:07:50Z`, while their pull requests merged between `2026-08-06T00:41:45Z` (#136) and
+`2026-08-23T01:20:31Z` (#721). `cmd_ship` closes the milestone unconditionally once entered, so a
+milestone that stayed open for one to eighteen days after its merge and then closed in a batch is
+proof that `ship` never ran on the merge. **Skipping `ship` is the normal case, not an accident.**
+The batch close is a hand repair performed after the measurement; the harm it repaired is the record.
+
+**The ruling — the same two-mechanism architecture this brief already argues.** One post-merge hook
+does both jobs in the order the state requires: **record the terminal status, then remove the checkout
+that status makes obsolete.** And `check-state.sh` gains an invariant refusing a `Done` feature whose
+milestone is open. The brief's own words for the worktree half carry over unchanged: *the hook closes
+the window, the invariant proves it closed.*
+
+**The invariant keys on the milestone, never on the status agreeing with itself.** `status: Done` has
+more than one path that can write it — #806's own repair wrote it by hand. The milestone has exactly
+one, `cmd_ship`.
+
+### Part B — the tracked hook cannot run in any clone, this one included
+
+**Measured at `9165162`, in this checkout:**
+
+```
+$ git config --get core.hooksPath
+/Users/molchairuangutai/GitHub/harness/.git/hooks
+```
+
+An absolute path carrying a username. It is not merely unset — it is set to a value no other clone
+can have, and `harness-init` installs no step that sets it. So REQ-09's outcome ("a fresh clone
+acquires the automation by running a named setup step") has, today, no step to run: the tracked hook
+directory does not exist and nothing points git at one.
+
+REQ-09 and SC-08 already state the outcome and grade both of its halves, and neither is restated
+here. What the signature of 2026-08-23 does not cover is the behaviour the operator added when
+answering Q1: the setup step must be **idempotent**, and when `core.hooksPath` is already set to
+something the harness did not write, it must **say what it found** rather than silently displace an
+operator's own hooks directory. `core.hooksPath` takes over hook resolution for the entire clone —
+that is the mechanism's cost, and stating what was displaced is the whole of the mitigation.
+
+The second uncovered thing is the wiring itself. SC-08 grades that the path resolves and the hook
+file is executable; SC-06 and SC-07 grade the sweep body, installed by hand into a fixture's
+`.git/hooks/`. **Nothing today grades that the tracked hook actually reaches the sweep body**, so a
+shim pointing at a path that does not exist satisfies every criterion in the signed brief.
+
+This also closes `## Open Questions` Q1. Where the tracked directory lives is a design choice with no
+existing answer to look up, and it is recorded as a `D-NN` in `plan.yaml`, not as a requirement.
+
+### Added requirements
+
+- REQ-11: When a merge lands the default branch locally and a feature it carries has reached its
+  terminal state, that feature's terminal status and its milestone closure are recorded without
+  anyone running a command.
+- REQ-12: A feature whose recorded status is `Done` while its recorded milestone is still open is
+  reported by `check-state.sh`. The **milestone** is the fact keyed on, because it has exactly one
+  writer; the status does not corroborate itself.
+- REQ-13: The setup step that points a clone at the tracked hooks directory can be run repeatedly
+  with the same result, and when it finds `core.hooksPath` already set to a value it did not write,
+  it reports what it found. An operator's own hooks directory is never displaced silently.
+
+### Added success criteria
+
+- SC-11: In a fixture carrying two terminal features and a stubbed `gh`, the sweep records each
+  feature's terminal status and closes each feature's milestone, **asserted per feature** rather than
+  by a total call count. Red proof: an implementation that records the triggering feature only passes
+  a count-based assertion and fails the per-feature one.
+  verify: automated        evidence: integration
+- SC-12: Three clauses, each asserted separately. A fixture whose `Done` feature has an open recorded
+  milestone produces an `INV-30` finding; the same fixture with that milestone closed produces none;
+  and with GitHub unreachable the run produces neither an `INV-30` finding nor an error, matching
+  INV-26's established offline posture at `check-state.sh:1205`. An implementation that keys on
+  `status` alone fails clause two, since the status is `Done` in both.
+  verify: automated        evidence: integration
+- SC-13: Three clauses, each asserted separately. In a fresh clone fixture the setup step run twice
+  leaves `core.hooksPath` at the same value and exits 0 both times; run against a clone whose
+  `core.hooksPath` is already set to an unrelated directory, it reports the value it found on stdout
+  and names it; and no run leaves the clone pointing at a directory the harness did not write without
+  having said so. Red proof: an implementation that unconditionally writes the config passes clause
+  one and fails clause two, and that failing state is demonstrated before the step is written.
+  verify: automated        evidence: integration
+- SC-14: In a fresh clone fixture, after the setup step and with no hook hand-installed into
+  `.git/hooks/`, a real merge that lands a terminal feature removes that feature's worktree. This
+  grades the tracked hook's wiring end to end. Red proof: a shim whose target path does not exist
+  satisfies SC-08 in full and fails this.
+  verify: automated        evidence: integration
+
+### Added verification gaps
+
+- **This operator's own clone is graded by nobody.** SC-13 and SC-14 grade a fresh clone FIXTURE.
+  Whether the working clone at `/Users/molchairuangutai/GitHub/harness` — measured at `9165162`
+  pointing `core.hooksPath` at `/Users/molchairuangutai/GitHub/harness/.git/hooks` — is ever
+  repointed is an act the operator performs, carried by INV-29's refusal and by one UAT observation
+  at ship. It is deliberately not an SC, because a fixture can fake it and this one cannot be faked.
+- **INV-30 is silent offline by construction.** Its fact lives on GitHub, and `check-state.sh` runs
+  before every commit, so it follows INV-26 and records nothing when the network or `gh` is
+  unavailable. A clone that never reaches GitHub is outside its reach — the same shape, and the same
+  accepted cost, as the local-default-branch reading in `## Goal`.
+
+## Amendment 2 (2026-08-24) — the cross-repository failure posture is graded
+
+**PURELY ADDITIVE. NOT YET RE-SIGNED.** This amendment adds one success criterion, `SC-15`. It
+changes no existing requirement, no existing success criterion and no existing verification gap; every
+word of `REQ-01`..`REQ-13` and `SC-01`..`SC-14` above stands exactly as signed. The `## Approval`
+block below records the signature of Amendment 1 and is therefore **stale from the moment this
+amendment lands** — it needs one re-signature covering `SC-15`, and nothing else.
+
+**The gap, verified at source.** `SC-04` grades only the positive second-repository case: a `Done`
+feature in a second repository under `WORKTREES_SEGMENT` producing an `INV-29` finding. `REQ-04`
+requires that the refusal cover **every** repository "with no per-repository exception to remember or
+later remove". What satisfies that clause is not the positive case alone but the posture the
+enumeration takes when a declared repository cannot be read — and no criterion above grades any branch
+of it. A repository silently skipped because its checkout could not be enumerated passes every
+criterion in the signed brief. This is not hypothetical: `.harness/factory/fleet.yaml` declares
+`mruangutai/harness-factory-smoke` and no checkout for it exists on this machine, so the
+absent-checkout branch is live today.
+
+**No new requirement.** `REQ-04`'s no-exception clause already commits the outcome; what was missing
+was the criterion that can falsify it. Adding a requirement here would restate `REQ-04` in narrower
+words and give the goal-check two homes for one commitment.
+
+**It costs no new work.** The behaviour graded is the failure posture the approved plan already
+specifies, and the fixture it is graded on — a `fleet.yaml`, a workspace root, and a real second git
+repository with a landed `Done` feature and a real `git worktree add` — already exists in
+`test-worktree-terminal.py` (`case_second_repo`). This makes evidence that will exist anyway into
+graded evidence.
+
+### Added success criterion
+
+- SC-15: **The cross-repository failure posture, three branches, each asserted separately and never by
+  a total record count.** Over the second-repository fixture in `test-worktree-terminal.py`, with the
+  fleet declaring a readable repository alongside the two failure shapes, a single cross-repository
+  enumeration call produces: **(a)** for a declared repository whose checkout directory does not
+  exist, no record for it and no error — asserted on the absence of a record for that repository, not
+  on how many records came back; **(b)** for a declared repository whose checkout directory exists but
+  cannot be enumerated, exactly one repository-level `unresolved` record, its class and its path
+  asserted as separate claims and its path being that checkout directory; **(c)** when `fleet.yaml`
+  itself cannot be loaded, one `unresolved` record naming the fleet path **and** the harness
+  checkout's own records still returned — two assertions, because a failure that is swallowed
+  collapses the enumeration to the harness alone, which is the harness-only implementation `SC-04`
+  says must fail. Each of the three is blocking where the posture says blocking: (b) and (c) are
+  reportable records, (a) is silence. **Red proofs, each demonstrated failing before the
+  implementation is wired in:** an implementation that emits nothing for both (a) and (b) passes (a)
+  and fails (b); one that emits a record for both passes (b) and fails (a); one that catches the fleet
+  load error and returns only the harness's records passes (a) and (b) and fails (c). A total-count
+  assertion is satisfied by the wrong distribution of records and grades none of the three.
+  verify: automated        evidence: integration
+
+
 ## Approval
 
 status: approved
 approved-by: Mike Ruangutai
-date: 2026-08-23
+date: 2026-08-24
+amendments-signed: Amendment 1, Amendment 2
+note: RE-SIGNED TWICE on 2026-08-24. The original signature of 2026-08-23 covered the
+  brief without either amendment. The second signature covers Amendment 1 in full —
+  REQ-11/12/13 and SC-11/12/13/14. The third covers Amendment 2 — SC-15, the
+  cross-repository failure posture, added because SC-04 graded only the positive
+  second-repository case while REQ-04 requires no per-repository exception, so a
+  repository silently skipped passed every criterion in the brief. The date moves rather
+  than being kept alongside the old ones, so a reader never has to work out which date
+  governs which paragraph.
