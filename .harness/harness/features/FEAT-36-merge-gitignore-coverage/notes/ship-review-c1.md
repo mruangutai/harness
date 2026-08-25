@@ -2,30 +2,30 @@
 
 ## Decision
 
-**Ready for operator ship acceptance.** All six success criteria pass at `f494553bd9fbb987b4a19f91dcf4c3f37253fe38`, and the independent c2 panel passed with no must-fix. Ship-refresh is validly inapplicable. Product, engineering, and validator distillation are complete: two additive Expertise entries landed and passed the corpus checker; six unexpressible replacement ops are closed as unapplied/not permitted under the operator's explicit permitted-results contract.
+**Ready for operator PR acceptance.** All six success criteria pass at `be27d99454352e581fdf7cbace20fb52d0f45133`, and the independent c3 panel passed with no must-fix. The operator-requested B-1 diagnostic-set weakness is closed with discriminating mutant evidence. Ship-refresh was inapplicable; close-out distillation remains complete.
 
-No PR was created or merged, no issue was closed, no backlog item was filed, and the feature remains at `status: Review` rather than Done. The operator's available decisions are ship, fix, re-scope, or stop.
+No PR was created or merged, no issue was closed, and the feature remains at `status: Review`. The operator may create the stacked PR, fix the unrelated renderer follow-up, or stop.
 
 ## Success criteria
 
 | Criterion | Result | Declared verify | Evidence |
 |---|---|---|---|
-| SC-01 | PASS | automated / integration | `runs/goal-check-c1-product/digest.md` SC-01; pinned test `f494553:.agents/skills/harness/bin/test-merge-gitignore.py:9-23,36-47`; c2 QA direct and registered PASS |
-| SC-02 | PASS | automated / integration | `runs/goal-check-c1-product/digest.md` SC-02; pinned test lines 50-73 separately prove exits 0/1, every missing rule, and byte identity |
-| SC-03 | PASS | automated / integration | `runs/goal-check-c1-product/digest.md` SC-03; pinned test lines 76-98 separately prove absent and partial targets contain every rule exactly once |
-| SC-04 | PASS | automated / integration | `runs/goal-check-c1-product/digest.md` SC-04; pinned test lines 101-110 compare complete-target bytes across the second merge |
-| SC-05 | PASS | automated / integration | `runs/goal-check-c1-product/digest.md` SC-05; pinned test lines 113-126 prove requested-target creation and byte-identical preservation of a pre-existing caller `.gitignore`; `runs/review-c2-validator/digest.md` |
-| SC-06 | PASS | inspection | `runs/goal-check-c1-product/digest.md` SC-06; pinned runner lines 17-18 and `.harness/harness.json:118-122` register integration coverage; base/pin `merge-gitignore.sh` SHA-256 is unchanged |
+| SC-01 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-01; c3 QA direct and registered PASS |
+| SC-02 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-02; exact emitted bullet-set equality rejects missing and unexpected values, including the controlled fabricated-superset mutant |
+| SC-03 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-03; absent and partial targets contain every rule exactly once |
+| SC-04 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-04; second merge is byte-identical |
+| SC-05 | PASS | automated / integration | `runs/goal-check-c2-product/digest.md` SC-05; explicit project root changes only the requested target |
+| SC-06 | PASS | inspection | `runs/goal-check-c2-product/digest.md` SC-06; integration registration is correct and `merge-gitignore.sh` remains byte-identical |
 
 No criterion declares UAT, and no waiver was used.
 
 ## Validation
 
-- Reviewed pin: `f494553bd9fbb987b4a19f91dcf4c3f37253fe38` (current HEAD when ship review began).
-- `runs/review-c2-validator/digest.md`: PASS from code, QA, security, and UI; no must-fix.
+- Reviewed pin: `be27d99454352e581fdf7cbace20fb52d0f45133`.
+- `runs/review-c3-validator/digest.md`: PASS from code, QA, security, and UI; no must-fix.
 - Matrix: 23 unit + 23 integration registrations, all 46 passing; changed behavioral program 7/7 directly and through registration; no `MISCONFIGURED` or kind drift.
-- Earlier F-01/MF-01 is closed after the bytecode-disabled mutation-child correction and pinned rerun (`runs/review-fix-eng/digest.md`, `runs/review-c1-validator/digest.md`).
-- The initial SC-05 evidence gap was fixed and re-gated, not waived (`runs/goal-check-product/digest.md`, `runs/goal-check-fix-eng/digest.md`, `runs/goal-check-fix-qa-validator/digest.md`).
+- B-1/F-02 is closed by exact-set comparison and a controlled mutant that reports `.claude/worktrees/NOT-THE-RULE` as unexpected.
+- The generated ship-review HTML contrast finding was ruled unrelated to FEAT-36 and did not waive or substitute for any approved success criterion (`notes/operator-ruling-rendered-review-scope.md`).
 
 ## Close-out
 
@@ -42,15 +42,15 @@ The six replacements are not permitted results because harness-distill requires:
 
 ## Budget
 
-The feature records 18 runs against the informational 20-run threshold and 6 rework cycles against the hard 10-cycle cap. The run-budget tripwire was not crossed. The runs remained productive: they closed one mandatory matrix failure, one SC-05 evidence gap, and the close-out disposition conflict.
+The feature records 24 completed runs against the informational 20-run threshold and 7 rework cycles against the hard 10-cycle cap. The informational run tripwire was crossed. The extra runs closed a mandatory matrix failure, the SC-05 evidence gap, B-1's exact-diagnostic weakness, and the scope dispute without crossing the hard cycle cap.
 
 ## Proposed backlog
 
 | ID | Nature | Finding | Evidence | Proposed action |
 |---|---|---|---|---|
-| B-1 | chore | F-02: substring membership can accept a fabricated diagnostic superset such as `.claude/worktrees/NOT-THE-RULE` as naming the missing canonical rule | `.agents/skills/harness/bin/test-merge-gitignore.py:67-72`; `runs/review-c2-validator/digest.md` F-02 | In a later approved change, compare the exact emitted bullet-rule set with the expected missing-rule set |
+| B-2 | chore | The shared briefing renderer's pre-existing light-theme quiet-text token is below the normal-text contrast floor in generated ship-review HTML | `notes/operator-ruling-rendered-review-scope.md`; `runs/review-b1-validator/digest.md` UI-A11Y-01 | Address separately from FEAT-36; do not couple renderer changes to shell-utility coverage |
 
-This row is proposed only. It has not been filed through `gh-sync.py backlog`.
+This row is proposed only. B-1 was fixed in this cycle; no backlog issue has been filed.
 
 ## Open questions
 
@@ -78,3 +78,9 @@ No report round was spawned. This briefing was assembled directly from every fea
 16. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-eng/digest.md`
 17. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-validator/digest.md`
 18. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-c1-validator/digest.md`
+19. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/fix-b1-eng/digest.md`
+20. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/fix-b1-qa-validator/digest.md`
+21. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/fix-b1-simplify-eng/digest.md`
+22. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-b1-validator/digest.md`
+23. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-c3-validator/digest.md`
+24. `.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/goal-check-c2-product/digest.md`
