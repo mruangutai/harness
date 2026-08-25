@@ -3,6 +3,12 @@ feature: FEAT-40-harness-writes-done
 
 source_issues: [842]
 
+approval:
+  # Written by the MAIN SESSION only, because it is the only tier with a user channel
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
+  # agent's write of this mapping. Any change to the task set resets this to pending.
+  status: pending                # pending | approved
+
 lanes:
   resolved_at: e69c2ae29897e66e0435fe955ae745aa4248bdb6
   rows:
