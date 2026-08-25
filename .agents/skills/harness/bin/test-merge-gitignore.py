@@ -68,8 +68,18 @@ def case_check_incomplete_reports_missing_and_is_read_only():
         target.write_bytes(original)
         result = run(project, check=True)
         require(result.returncode == 1, "incomplete --check did not exit 1")
-        for rule in RULES[1:]:
-            require(rule in result.stderr, "missing rule absent from --check output: %s" % rule)
+        actual_missing_rules = {
+            line[len("  - "):] for line in result.stderr.splitlines() if line.startswith("  - ")
+        }
+        expected_missing_rules = set(RULES[1:])
+        require(
+            actual_missing_rules == expected_missing_rules,
+            "missing-rule bullets differ: missing=%r unexpected=%r"
+            % (
+                sorted(expected_missing_rules - actual_missing_rules),
+                sorted(actual_missing_rules - expected_missing_rules),
+            ),
+        )
         require(target.read_bytes() == original, "incomplete --check modified .gitignore")
 
 

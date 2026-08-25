@@ -1,0 +1,16 @@
+schema_version: 1
+run_id: fix-b1-qa-validator
+feature: FEAT-36-merge-gitignore-coverage
+squad: validator
+host: harness-validator-lead
+status: complete
+steps:
+  - id: T-01-qa-gate
+    persona: harness-qa
+    status: complete
+    dispatched_at: seq-1
+    completed_at: seq-2
+    cycles: 0
+    verdict: PASS
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/qa-fix-b1.md
+    note: Unit 23/23, integration 23/23, and all-kinds 46/46 passed; discriminating mutant failed only the exact-set case.

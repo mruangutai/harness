@@ -1,0 +1,16 @@
+schema_version: 1
+run_id: fix-b1-eng
+feature: FEAT-36-merge-gitignore-coverage
+squad: engineering
+host: harness-eng-lead
+status: complete
+steps:
+  - id: B-1
+    task_id: T-01
+    persona: harness-dev-ops
+    status: complete
+    verdict: PASS
+    cycles: 0
+    dispatched_at: seq-1
+    completed_at: seq-2
+    artifact: .harness/harness/features/FEAT-36-merge-gitignore-coverage/notes/receipt-harness-dev-ops-fix-b1-eng.md
