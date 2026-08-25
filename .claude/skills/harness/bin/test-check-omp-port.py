@@ -39,6 +39,17 @@ def main() -> int:
             failures += 1
             print(f"FAIL  {label}" + (f" — {detail}" if detail else ""))
 
+    claude_skills = ROOT / ".claude" / "skills"
+    canonical_link = ROOT / ".agents" / "skills"
+    check(
+        "Claude skills remain a real directory",
+        claude_skills.is_dir() and not claude_skills.is_symlink(),
+    )
+    check(
+        "Agent Skills path links to Claude skills",
+        canonical_link.is_symlink() and canonical_link.resolve() == claude_skills.resolve(),
+    )
+
     clean = run(ROOT)
     check("live provider-neutral tree passes", clean.returncode == 0, clean.stderr)
 
@@ -71,7 +82,7 @@ def main() -> int:
     finally:
         td.cleanup()
 
-    print(f"\n{7 - failures}/7 cases passed")
+    print(f"\n{9 - failures}/9 cases passed")
     return 1 if failures else 0
 
 

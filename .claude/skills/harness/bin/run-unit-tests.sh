@@ -2,7 +2,7 @@
 set -uo pipefail
 cd "${HARNESS_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(pwd)}}"
 
-BIN_DIR=".agents/skills/harness/bin"
+BIN_DIR=".claude/skills/harness/bin"
 # THE SPLIT IS BY WHAT IS TESTED, NOT BY THE CLOCK (issue #160). A runtime threshold
 # drifts and teaches people to bump it; "does this drive a real script end to end?" does
 # not. Measured when this landed: 3 files never spawn a subprocess (~0.33s total), 11 do
@@ -99,7 +99,7 @@ except Exception as e:
     print("KIND-DRIFT: cannot read %s: %s" % (path, e), file=sys.stderr)
     sys.exit(2)
 
-PREFIX = ".agents/skills/harness/bin/"
+PREFIX = ".claude/skills/harness/bin/"
 declared = {p.strip() for p in detect.split("|") if p.strip()}
 unit = [n for n in os.environ.get("UNIT_LIST", "").splitlines() if n.strip()]
 integ = [n for n in os.environ.get("INTEGRATION_LIST", "").splitlines() if n.strip()]

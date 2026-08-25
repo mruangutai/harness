@@ -49,7 +49,7 @@ Three rules explain most of the table:
 ## How work flows
 
 A **team** is a lead plus its members. The lead conducts a DAG of steps, dispatching only its own
-squad (`harness-team` skill; definitions in `.agents/skills/harness/teams/*.yaml`).
+squad (`harness-team` skill; authored in `.claude/skills/harness/teams/*.yaml` and exposed to OMP through `.agents/skills`).
 
 ```
 main session ──▶ orchestrator ──▶ lead ──▶ members
@@ -84,6 +84,7 @@ lead, so multi-squad lifecycles are sequenced by the orchestrator as one run per
 Run `.agents/skills/harness/bin/check-state.sh` any time; it checks invariants that fail silently,
 including required lifecycle integration, approvals, and tasks missing `change_type`.
 
-> **Schemas live in `.agents/skills/harness/templates/`** — `BRIEF.md`, `plan.yaml`, `STATE.md`,
+> **Schemas are authored in `.claude/skills/harness/templates/`** and exposed to OMP through
+> `.agents/skills` — `BRIEF.md`, `plan.yaml`, `STATE.md`,
 > `DESIGN.md`, `harness.json`, `team-config.yaml`. Copy from there, not from examples in prose:
 > an out-of-date template silently skips required gates.

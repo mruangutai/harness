@@ -27,7 +27,7 @@ REPO_ROOT = (os.environ.get("HARNESS_PROJECT_DIR") or os.environ.get("CLAUDE_PRO
     os.path.join(BIN_DIR, "..", "..", "..", ".."))
 REAL_CONFIG = os.path.join(REPO_ROOT, ".harness", "harness.json")
 
-PREFIX = ".agents/skills/harness/bin/"
+PREFIX = ".claude/skills/harness/bin/"
 REMOVE_ME = PREFIX + "test-check-state.py"      # in INTEGRATION_SCRIPTS, long in detect
 APPEND_ME = PREFIX + "test-render-brief.py"     # a UNIT_SCRIPTS member
 

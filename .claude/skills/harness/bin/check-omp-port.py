@@ -111,15 +111,15 @@ def check(root: Path) -> list[str]:
         except Exception as exc:
             errors.append(f"cannot read {path.relative_to(root)}: {exc}")
 
-    canonical_skills = root / ".agents" / "skills"
     claude_skills = root / ".claude" / "skills"
-    if not canonical_skills.is_dir():
-        errors.append(".agents/skills is missing")
+    agent_skills = root / ".agents" / "skills"
+    if not claude_skills.is_dir() or claude_skills.is_symlink():
+        errors.append(".claude/skills must be the real authored skill directory")
     try:
-        if not claude_skills.is_symlink() or claude_skills.resolve() != canonical_skills.resolve():
-            errors.append(".claude/skills must be a symlink to .agents/skills")
+        if not agent_skills.is_symlink() or agent_skills.resolve() != claude_skills.resolve():
+            errors.append(".agents/skills must be a symlink to .claude/skills")
     except OSError as exc:
-        errors.append(f"cannot resolve .claude/skills compatibility link: {exc}")
+        errors.append(f"cannot resolve .agents/skills compatibility link: {exc}")
 
     extension = root / ".omp" / "extensions" / "harness-hooks.ts"
     if not extension.is_file():

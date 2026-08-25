@@ -40,7 +40,7 @@ lanes:
   # A surface whose lane is a carve-out is declared once here, not re-argued per task.
   resolved_at: <sha>
   rows:
-    - surface: .agents/skills/harness/bin/**
+    - surface: .claude/skills/harness/bin/**
       lane: team
       agent: harness-backend-dev | harness-dev-ops
     - surface: <a DEC-174 carve-out path>

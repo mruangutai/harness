@@ -26,11 +26,11 @@
 # both arrays). Move an entry from INTEGRATION_SCRIPTS to UNIT_SCRIPTS and it is still
 # "registered", so the detector stays quiet, while CI never executes it again.
 #
-# Pinned to the one file, not to `/.agents/skills/harness/bin/`. That directory holds
+# Pinned to the one file, not to `/.claude/skills/harness/bin/`. That directory holds
 # every test file and hook script in the repo; owning it would put the owner in the
 # review path for the majority of agent PRs, which is the friction this file is trying
 # not to spend.
-/.agents/skills/harness/bin/run-unit-tests.sh  @mruangutai
+/.claude/skills/harness/bin/run-unit-tests.sh  @mruangutai
 
 # NOT OWNED, deliberately:
 #
