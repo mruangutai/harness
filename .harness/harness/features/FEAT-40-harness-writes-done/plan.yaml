@@ -219,7 +219,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: the entry is the operator's own ruling on a permanent record, and the operator settled its prose register personally on 2026-08-25; harness-documentor is granted the path but the wording of a signed decision stays with the tier that owns it
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/harness/docs/DECISIONS.md
       - .harness/harness/docs/DECISIONS-INDEX.md

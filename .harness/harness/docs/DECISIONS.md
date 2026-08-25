@@ -4506,6 +4506,41 @@ every `/harness` entry on an edit no agent may make. The checker is silent about
 SC-13's own grep at the ship gate is what detects it. If the mechanical route is preferred, the ordering
 is: land the SKILL.md edit first, then a marker may be declared — never before.
 
+
+### DEC-138 amendment 8 (2026-08-25) — the parent origin table is struck, and the harness writes the `Done` station
+
+Amendment 7's **origin table is struck** under DEC-188, together with the origin prose around it.
+That table gave `ship` and `abandon` three columns — a `created` parent closed, an `adopted` parent
+left open, no recorded origin left open — and the surrounding paragraphs argued the case for each.
+DEC-203 replaces the whole shape: **origin stops mattering, and an open child is what holds a parent
+back.** Amendment 7's body stays standing so citations resolve; this record is what a citation to the
+table lands on.
+
+**What falsified it, measured.** `parent_origin` read **null** on FEAT-34 and FEAT-35, the two most
+recent features that recorded a parent, because both parents were recorded by hand. Under the struck
+table a null origin means leave-open, so #728 was left open with all thirteen of its children already
+finished. The field was meant to protect someone else's live epic and instead failed open on the two
+cases it was newest to.
+
+**A correction to the plan that instructed this amendment, recorded rather than quietly fixed.** That
+plan said amendment 7 also carries the D-23 reasoning that a closed sub-issue cannot sit at `Review`.
+It does not. That reasoning is in **DEC-196 amendment 4**, which is struck whole today, so the
+reasoning goes with it either way — but it is not struck from here, because it was never here.
+
+**The measurement that falsifies that reasoning, recorded so it is not re-derived.** It argued
+GitHub's native `Item closed` workflow moves a closed card to the done column, so a closed sub-issue
+*cannot* hold `Review`. At `cc84b29`, FEAT-34's thirteen sub-issues **#818 through #830 are all
+closed and all sit at `Review`**. A closed issue's card stays where it is; nothing drags it.
+
+**The replacement station-writer row for `Done`:**
+
+| Station | The one writer |
+|---|---|
+| `Done` | **the harness**, at `gh-sync.py ship`, which writes the done station on every recorded card. GitHub's `Auto-close issue` workflow then closes the issue |
+
+Every other row of amendment 4's table is carried forward unchanged. `Abandoned` is still not a
+station and still has no writer.
+
 ## DEC-169 — An absence check is never a criterion on its own; pair it with a presence check
 
 Demonstrated, not argued. SC-13 required that `.claude/skills/harness/SKILL.md` stop stating the
@@ -5633,7 +5668,19 @@ ruling amended the Bootstrap section: the first harvest produced a Harness backl
 outside project was registered, and the operator ruled Harness-first with the outside-ship tripwire
 kept (pre-rewrite rule 10 and "Bootstrap" of `docs/PRINCIPLES.md`; git history holds the text).
 
-## DEC-186 — GitHub is the factory's control plane, and factory read-back is bounded to exactly three purposes
+## DEC-186 — STRUCK 2026-08-25
+
+**Struck under DEC-188, replaced by DEC-203.** Its heading read *"GitHub is the factory's control
+plane, and factory read-back is bounded to exactly three purposes"*; amendments 2 and 3 had already
+widened three to five. DEC-203 carries the read-back bound forward at SEVEN purposes and keeps the
+rule the bound exists for — a read-back value never enters `BRIEF.md`, `plan.yaml` or any approval
+block — and it keeps amendment 1's one-board-per-repository-served framing.
+
+Struck rather than amended because the sixth and seventh purposes arrive together with a change to
+who writes the done station, and three entries were each stating part of one lifecycle. Splitting a
+seventh amendment off from that would have left the rule in three places again.
+
+The body below stands so citations resolve. Do not act on its numbers: read DEC-203.
 
 The factory publishes work to GitHub Issues and one Projects v2 board, and then has to read some of
 it back — otherwise no tool can tell whether an item is already taken. DEC-138 made the mirror
@@ -6047,7 +6094,17 @@ Lineage: DEC-150 (the authority is read by index, never whole — a file nobody 
 a shape a machine can check), DEC-154, DEC-160, DEC-174 (the enforcement layer is changed directly,
 never through a run whose gates are the thing changing), DEC-183, and DEC-190 for the library.
 
-## DEC-192 — `phase` and `status` collapse into ONE field whose values are the board's six columns
+## DEC-192 — STRUCK 2026-08-25
+
+**Struck under DEC-188, replaced by DEC-203.** Its heading read *"`phase` and `status` collapse
+into ONE field whose values are the board's six columns"*.
+
+**Nothing in this entry is reversed.** DEC-203 item 6 carries the single `status` field, its six
+case-sensitive values, the refusal of any alias or translation table, the deliberate absence of
+`blocked`, and both named collapses with their costs — forward unchanged in substance. It is struck
+only so that one entry, not three, states the lifecycle.
+
+The body below stands so citations resolve. Read DEC-203 for the live rule.
 
 **There is one lifecycle field, `status`, and its six values are the GitHub board's own column
 names: `Backlog`, `Plan`, `Ready`, `Building`, `Review`, `Done`.** The `phase` field is **deleted**.
@@ -6443,7 +6500,23 @@ Lineage: DEC-118 for why this is a squad segment rather than part of the `build`
 DEC-86 for the roster this refuses to grow; DEC-174, because the pass reads and applies across the
 harness's own tree and the enforcement-layer carve-out still governs what it may touch there.
 
-## DEC-196 — The harness moves any board card it is pointed at and closes only the cards it created
+## DEC-196 — STRUCK 2026-08-25
+
+**Struck under DEC-188, replaced by DEC-203.** Its heading read *"The harness moves any board card
+it is pointed at and closes only the cards it created"*.
+
+**The second half is reversed.** The harness now writes the done station itself at `gh-sync.py ship`,
+on every recorded card, and GitHub's `Auto-close issue` workflow turns that write into a close. Origin
+stops being part of the decision; an open child is what holds a card back. The first half is
+unchanged and is not a rule DEC-203 needs to restate: the harness still moves any card it is pointed
+at, which is why `/harness-plan` may move a source ticket it did not create.
+
+Amendment 4's station-writer table is struck with the entry. Its `Done` row said the harness writes
+that column **never**. Measured on board 3 on 2026-08-25, probe #847 moved to `Done` at 19:06:14Z and
+read `CLOSED` at 19:06:20Z, so the write works and the close follows it. DEC-138 amendment 8 carries
+the replacement row.
+
+The body below stands so citations resolve. Do not act on its close rule: read DEC-203.
 
 Two shapes a future scan will try to add are refused here, and the boundary they would be added
 against is stated as the rule the code already enforces rather than the rule the doctrine assumed.
@@ -7060,3 +7133,110 @@ tests and human diff review. The Harness enforcement path never certifies its ow
 This decision supersedes the Claude-only conclusions of DEC-63, DEC-64, DEC-100, DEC-108,
 DEC-110, DEC-111 and DEC-122 for the canonical OMP runtime. Their measured Claude Code behavior
 remains true for the compatibility adapter and their historical evidence remains authoritative.
+
+## DEC-203 — A ticket is open until its card reaches `Done`, the harness writes `Done` at ship, and a parent waits for its children
+
+Replaces DEC-186, DEC-192 and DEC-196, all three struck under DEC-188 in the same act. Those three
+ran to about 4,900 words and stated one lifecycle three ways. This entry states it once, and it is
+written plainly on purpose: the dense register of the three is part of what is being replaced.
+
+**1. What "open" means.** A tracked ticket is open while its card is not at the done station. The
+station is the record. The issue's own open-or-closed field is a consequence of the station, not the
+other way round.
+
+**2. Who writes `Done`.** The harness does, at `gh-sync.py ship`. GitHub's `Auto-close issue`
+workflow then closes the issue. This reverses DEC-196 amendment 4's station table, which gave the
+done column to GitHub's `Closes` lines and said the harness writes it **never**. Measured on board 3
+on 2026-08-25: probe issue #847 was moved to `Done` at 19:06:14Z and read `CLOSED` at 19:06:20Z.
+
+**3. Which cards ship moves.** Every card the feature records — each task sub-issue, each entry of
+`source_issues`, and the parent.
+
+**4. The parent rule.** A card is not moved to done while its ticket has an open child. Ship skips
+it and prints one line naming the child that held it open.
+
+**Origin stops mattering entirely.** Who created a ticket is no longer part of the decision. This
+replaces DEC-196's created-versus-adopted gate and DEC-138 amendment 7's `ship` and `abandon` parent
+table, both of which asked where a ticket came from.
+
+The child check is the better guard because it is true of the ticket rather than true of its
+history. The old rule left an adopted parent open on the theory that closing someone else's epic
+asserts something false about it. That theory names the right harm and picks the wrong test. A
+parent with no open children is finished whoever opened it. A parent with open children is not
+finished even when the harness created it. Origin also failed in practice: `parent_origin` read null
+on the two most recent features that recorded a parent, because both were recorded by hand.
+
+**5. The read-back bound, carried forward from DEC-186 and now SEVEN purposes.** A factory or mirror
+tool may read GitHub state back for these and no others:
+
+1. whether an item is claimed;
+2. which station it is at;
+3. whether a blocker issue is finished;
+4. which of a board's native workflows are enabled — bounded to `/harness-init` and to
+   `gh-sync.py ship`, which calls the audit;
+5. which merged pull request a recorded branch resolves to — bounded to `gh-sync.py record-pr` and
+   to `gh-sync.py ship`, which calls it;
+6. which children a card's ticket has — bounded to `gh-sync.py ship`;
+7. which closed tickets a repository holds, with their close reasons and labels, and which station
+   options its board declares — the detection reads inside `board_lifecycle.py`'s audit — bounded to
+   `/harness-init` and to `gh-sync.py ship`, which calls the audit.
+
+**The fourth purpose's surface is WIDER here than DEC-186 amendment 2 left it, and that is a ruling,
+not a tidy-up.** Amendment 2 bounded the workflow read to `/harness-init` in the words *no other
+surface makes this read*. Scheduling the audit inside `ship` falsifies that sentence unless this
+entry widens it, so it is widened here in as many words. The precedent for widening a purpose by
+naming a second caller is DEC-186 amendment 3, which bounds its purpose to `record-pr` and to `ship`,
+which calls it.
+
+**A read-back value still never enters `BRIEF.md`, `plan.yaml` or any approval block.** That bound is
+the whole reason DEC-138 made the mirror outbound, and nothing here touches it. The control plane is
+one board **per repository served** (DEC-186 amendment 1), and the signed `plan.yaml` remains the
+source of truth for what the work is.
+
+**6. The status field, carried forward from DEC-192 unchanged in substance.** There is one lifecycle
+field, `status`. Its six values are the board's own column names: `Backlog`, `Plan`, `Ready`,
+`Building`, `Review`, `Done`. They are **case sensitive**, byte for byte, because the board is the
+surface the operator actually reads. There is no alias, no translation table and no compatibility
+shim. `blocked` is deliberately absent, not overlooked: a blocked feature is waiting on the
+operator, which is `Review`.
+
+Two collapses, and both are real losses:
+
+- **`Review` cannot tell a running review panel from waiting on the operator.** A reader of the
+  board cannot tell from the column alone whether anything is executing.
+- **`Done` cannot tell shipped from abandoned.** This affects one record, FEAT-01. It is accepted
+  because expressing it would need a seventh column the board does not have.
+
+**7. What DEC-168 keeps, and what it loses.** Its three probe results stand: closure does not cascade
+in either direction, so closing a sub-issue never closes its parent and closing
+a parent never closes its subs. What is superseded is its operational conclusion — that the parent is
+closed deliberately at ship acceptance, by a close. The parent now reaches done by a station write,
+and the close is GitHub's consequence.
+
+**8. The guardrail, and the one narrow exception.** A `PreToolUse` Bash gate refuses a hand-typed
+`gh issue close` and names the sanctioned command in its refusal.
+
+The gate is structurally blind to a Python subprocess: a hook receives only the Bash command line, and
+`gh-sync.py` reaches `gh` through `subprocess.run`, which never crosses that route. So the gate alone
+cannot stop a harness command from closing an issue. `gh-sync.py close-task` is therefore **deleted**
+in this same feature rather than left standing as a harness-blessed way around the rule this entry
+installs. After that, `abandon` is the ONLY mirror command that closes an issue directly, and it
+reports what it would close and asks first.
+
+The gate also cannot see a close typed in another terminal or made in the GitHub web interface. The
+compensating control is `board_lifecycle.py`'s audit, run once per feature, inside `ship`. **The cost
+is stated as a cost: a card closed outside the harness can sit wrong for the whole build and is only
+caught at ship.** That is tolerable only because ship is the moment the wrongness would otherwise
+cause harm, since ship is where the open-child decision is made.
+
+**9. The accepted cost, and it is the largest one here.** The harness now depends on a board
+automation that only a click in the project web interface can enable. Nothing in a checkout can turn
+it on, and nothing in a build reports it off. The one reader of that dependency is the `WORKFLOW`
+finding class in `board_lifecycle.py`'s audit. If the audit stops running, or its finding class is
+removed, the dependency goes unwatched and tickets stop closing with nothing saying so.
+
+Lineage: DEC-138 for the outbound mirror this sits inside and amendment 8 for the station row this
+entry rewrites; DEC-168 for the cascade measurement; DEC-174, because the Bash gate and the
+invariants are the enforcement layer, so this feature's code lands as direct main-session work;
+DEC-188 for the striking of the three entries replaced here; DEC-191 for the closed key set `status`
+lives in; DEC-200, which cites DEC-186 for its own read and is repointed separately under issue #844.
