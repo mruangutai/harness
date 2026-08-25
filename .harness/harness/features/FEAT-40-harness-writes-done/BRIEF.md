@@ -264,4 +264,13 @@ a card that silently misses `Done` with its only signal one line inside the outp
 
 ## Approval
 
-status: pending
+status: approved
+approved-by: operator
+date: 2026-08-25
+
+Signed at plan.yaml a5e605c, with one standing instruction: EXECUTION STOPS AFTER T-03.
+The operator signs the whole plan and authorises T-01, T-02 and T-03 only. T-01 measures
+the board's second direction, T-02 installs the merge hook, and T-03 writes DEC-203 and
+strikes DEC-186, DEC-192, DEC-196 and DEC-138 amendment 7. The struck decisions are shown
+to the operator before any code change is made, because every later task cites DEC-203 and
+a decision misworded here would be built on eight times over.
