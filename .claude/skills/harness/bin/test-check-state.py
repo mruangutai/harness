@@ -32,7 +32,6 @@ HARNESS_JSON_SYNC_OFF = """{
 def feature_yaml(parent_line):
     return f"""github:
 {parent_line}
-  parent_origin: none
   issues:
     T-01: 41
 """
@@ -144,7 +143,6 @@ runs:
     verdict: FAIL
 github:
   parent: 40
-  parent_origin: none
   issues:
     T-01: 41
 """

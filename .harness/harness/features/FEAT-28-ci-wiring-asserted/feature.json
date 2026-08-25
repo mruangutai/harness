@@ -8,8 +8,7 @@
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "github": {
-    "parent": 279,
-    "parent_origin": "adopted"
+    "parent": 279
   },
   "runs": [
     {

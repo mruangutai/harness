@@ -73,7 +73,6 @@
       "properties": {
         "milestone": { "type": ["integer", "null"], "description": "The GitHub milestone number, or null." },
         "parent": { "type": ["integer", "null"], "description": "The parent issue number, or null." },
-        "parent_origin": { "type": ["string", "null"], "description": "Where the parent issue number came from, or null." },
         "attached": {
           "type": "array",
           "items": { "type": "string" },
@@ -98,7 +97,6 @@
       "properties": {
         "repo": { "type": ["string", "null"], "description": "The factory repo name, or null." },
         "parent": { "type": ["integer", "null"], "description": "The parent issue number, or null." },
-        "parent_origin": { "type": ["string", "null"], "description": "Where the parent issue number came from, or null." },
         "issues": { "type": "object", "description": "Task id to mirrored GitHub issue number." },
         "items": { "type": "object", "description": "Factory item bookkeeping." },
         "edges": {

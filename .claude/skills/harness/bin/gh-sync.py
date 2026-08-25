@@ -6,13 +6,18 @@
                                            -> Building, then the parent's derived station (FEAT-18)
   gh-sync.py close-task <feature-dir> T-NN    task's commit landed -> close its issue, then
                                            the parent's derived station (FEAT-18)
-  gh-sync.py abandon <feature-dir> --reason-file <path>  feature abandoned -> close subs
-                                           not_planned, close the milestone, post the reason
-  gh-sync.py ship  <feature-dir> [--body-file <path>] [--pr <n>]  shipped -> closes the
-                                           milestone, closes the parent only if `open`
-                                           created it, posts --body-file on any recorded
-                                           parent if given, THEN records the pr (T-03,
-                                           FEAT-26)
+  gh-sync.py abandon <feature-dir> --reason-file <path> [--yes]  feature abandoned ->
+                                           WITHOUT --yes it prints every write it would make
+                                           and makes none; WITH --yes it closes every sub-issue
+                                           AND the parent not_planned, labels them abandoned,
+                                           closes the milestone and posts the reason
+  gh-sync.py ship  <feature-dir> [--body-file <path>] [--pr <n>]  shipped -> writes the
+                                           board's done station on every recorded card
+                                           (children first, skipping any card with an open
+                                           child), closes the milestone, posts --body-file on
+                                           any recorded parent if given, THEN records the pr
+                                           (T-03, FEAT-26). It closes NO issue: GitHub's
+                                           Auto-close issue workflow does that (DEC-203)
   gh-sync.py record-pr <feature-dir> [--pr <n>]  derive the pull request number from the
                                            recorded branch's exactly-one merged PR and
                                            record it, or record --pr directly (T-03,
@@ -448,7 +453,7 @@ def load_recorded(feat_dir):
     for the operator — this state was not in the spec's own table.)
     """
     path = os.path.join(feat_dir, "feature.json")
-    rec = {"milestone": None, "parent": None, "parent_origin": None, "attached": [], "issues": {},
+    rec = {"milestone": None, "parent": None, "attached": [], "issues": {},
            "source_issues": []}
     # ABSENCE is checked before parsing, not caught after it (review finding 4) — a
     # missing feature.json is a legitimate first sync, never an error.
@@ -494,8 +499,10 @@ def load_recorded(feat_dir):
 
     rec["milestone"] = _opt_int(gh.get("milestone"))
     rec["parent"] = _opt_int(gh.get("parent"))
-    po = gh.get("parent_origin")
-    rec["parent_origin"] = po if po in ("created", "adopted") else None
+    # THE PARENT'S ORIGIN IS NOT RECORDED (DEC-203 item 4). A github block written before
+    # this feature may still carry that key; it is read without complaint and never
+    # surfaced, because the record has no such field any more. Where a parent came from is
+    # not part of any decision the mirror makes.
 
     attached = gh.get("attached")
     if isinstance(attached, list):
@@ -688,7 +695,6 @@ def save_recorded(feat_dir, rec):
     doc["github"] = {
         "milestone": rec["milestone"],
         "parent": rec["parent"],
-        "parent_origin": rec["parent_origin"],
         "attached": rec["attached"],
         "issues": dict(sorted(rec["issues"].items())),
         "source_issues": list(rec["source_issues"]),
@@ -759,7 +765,6 @@ def cmd_open(feat_dir, repo, parent_arg=None):
         print(f"gh-sync: parent #{rec['parent']} already recorded — skipping")
     elif parent_arg is not None:
         rec["parent"] = int(parent_arg)
-        rec["parent_origin"] = "adopted"
         save_recorded(feat_dir, rec)   # DEC-131: record immediately, same call as the number
         print(f"gh-sync: parent #{rec['parent']} adopted")
     else:
@@ -768,7 +773,6 @@ def cmd_open(feat_dir, repo, parent_arg=None):
         url = gh(["issue", "create", "--repo", repo, "--title", title,
                   "--body", body, "--label", "harness"])
         rec["parent"] = int(url.rstrip("/").rsplit("/", 1)[-1])
-        rec["parent_origin"] = "created"
         save_recorded(feat_dir, rec)
         print(f"gh-sync: parent #{rec['parent']} created")
 
@@ -981,54 +985,100 @@ def cmd_status(feat_dir, status, repo, board):
                 print(f"gh-sync: ERROR - {e}", file=sys.stderr)
 
 
-def cmd_abandon(feat_dir, repo, reason_file):
-    """Terminal state: closes every recorded sub-issue not_planned, closes the milestone,
-    posts the reason on the parent, and closes the parent itself only if `open` created it
-    (D-01) — an adopted parent, or one with no recorded origin, is left open. An `abandoned`
-    label (T-08) is applied to every sub-issue closed here and to a created parent that
-    closes — never to an adopted parent, which stays open and unlabeled. After every close
-    has run, records feature.json's top-level `status` as `Abandoned` (T-01/FEAT-23) —
-    the write is the LAST STATEMENT of this function's successful path, structurally: the
-    early exit above is a CONJUNCTION (milestone is None AND no recorded issues), not a
-    single milestone check, so the status write is never re-gated on the milestone alone."""
+def _abandon_plan(rec):
+    """Every write `abandon` would make, in the order `cmd_abandon` performs them, as a list
+    of (kind, number, line).
+
+    ONE renderer, called by BOTH paths. The dry run prints these lines prefixed
+    `gh-sync: would `; the real run walks the SAME list to decide what it closes. Two
+    renderers drift, and the drift here is invisible until it destroys the wrong ticket --
+    the operator confirms a list and a different list executes.
+
+    THE PARENT IS LABELLED AS THE PARENT, never as one more number. Under DEC-203 it closes
+    UNCONDITIONALLY where it previously turned on where the parent came from, so a reader
+    skimming a column of issue numbers has no way to see that the epic is in the list."""
+    plan = []
+    if rec["parent"] is not None:
+        plan.append(("comment", rec["parent"],
+                     f"post the abandon reason on parent #{rec['parent']}"))
+    for tid, num in sorted(rec["issues"].items()):
+        plan.append(("issue", num,
+                     f"close issue #{num} for {tid} (not_planned) and label it abandoned"))
+    if rec["milestone"] is not None:
+        plan.append(("milestone", rec["milestone"],
+                     f"close milestone #{rec['milestone']}"))
+    if rec["parent"] is not None:
+        plan.append(("parent", rec["parent"],
+                     f"close parent #{rec['parent']} (not_planned) and label it abandoned"))
+    return plan
+
+
+def cmd_abandon(feat_dir, repo, reason_file, yes=False):
+    """Terminal state: closes every recorded sub-issue and the PARENT `not_planned`, closes
+    the milestone, posts the signed reason, and labels everything it closed `abandoned`.
+
+    ABANDON REPORTS AND ASKS. Without `--yes` it prints every write it WOULD make and makes
+    none of them, and does not record the status. `--yes` is what executes it.
+
+    THE CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No `isatty()`
+    branch, no default-on-no-TTY, no stdin read. No script in this directory calls `input()`,
+    and `ship` is already invoked with captured output by `post-merge-sweep.sh`, so a TTY
+    prompt would be both a first for this codebase and unanswerable from the sweep.
+
+    THE PARENT CLOSES WHATEVER ITS HISTORY. Where it came from is no longer recorded at all
+    (DEC-203 item 4). The operator's confirmation is what replaces the old origin gate, and it
+    is a better guard because a human looked at the list. That gate answered "did we create
+    this?", which is a fact about the past rather than about the ticket.
+
+    THE DRY RUN EXITS 0, deliberately. Nothing wraps `abandon` today -- its only references in
+    the tree are this file's usage line and `github-mirror.md`'s prose -- so no caller can
+    misread 0 as "abandoned". If an automated caller is ever written, the dry run needs its
+    own exit code at that point, not before.
+
+    `_record_status(feat_dir, "Abandoned")` stays the LAST STATEMENT of the successful path
+    and runs only under `--yes`."""
     reason_file = post_body_path(reason_file, "--reason-file")
-    ensure_labels(repo, {"abandoned"})
     rec = load_recorded(feat_dir)
     if rec["milestone"] is None and not rec["issues"]:
         skip("no recorded milestone or issues — nothing to abandon (was `open` run?)")
 
-    if rec["parent"] is not None:
-        gh(["issue", "comment", str(rec["parent"]), "--repo", repo,
-            "--body-file", reason_file], capture=False)
-        print(f"gh-sync: reason posted on parent #{rec['parent']}")
-    else:
-        print("gh-sync: no parent recorded — reason not posted")
+    plan = _abandon_plan(rec)
 
-    for tid, num in sorted(rec["issues"].items()):
-        gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{num}",
-            "-f", "state=closed", "-f", "state_reason=not_planned"], capture=False)
-        gh(["issue", "edit", str(num), "--repo", repo, "--add-label", "abandoned"],
-           capture=False)
-        print(f"gh-sync: closed issue #{num} for {tid} (not_planned)")
+    if not yes:
+        for _kind, _num, line in plan:
+            print(f"gh-sync: would {line}")
+        print("gh-sync: abandon is a decision the operator makes — re-run with --yes to "
+              "close the issues listed above")
+        return
 
-    if rec["milestone"] is not None:
-        gh(["api", "-X", "PATCH", f"repos/{repo}/milestones/{rec['milestone']}",
-            "-f", "state=closed"])
-        print(f"gh-sync: milestone #{rec['milestone']} closed")
-    else:
-        print("gh-sync: no milestone recorded — nothing to close")
+    ensure_labels(repo, {"abandoned"})
 
-    # D-01: the parent's fate follows its recorded origin, never unconditional leave-open.
-    if rec["parent"] is not None:
-        if rec["parent_origin"] == "created":
-            gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{rec['parent']}",
+    for kind, num, _line in plan:
+        if kind == "comment":
+            gh(["issue", "comment", str(num), "--repo", repo,
+                "--body-file", reason_file], capture=False)
+            print(f"gh-sync: reason posted on parent #{num}")
+        elif kind == "issue":
+            gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{num}",
                 "-f", "state=closed", "-f", "state_reason=not_planned"], capture=False)
-            gh(["issue", "edit", str(rec["parent"]), "--repo", repo,
-                "--add-label", "abandoned"], capture=False)
-            print(f"gh-sync: parent #{rec['parent']} closed (not_planned)")
-        else:
-            print(f"gh-sync: parent #{rec['parent']} left open "
-                  f"(origin={rec['parent_origin'] or 'none'})")
+            gh(["issue", "edit", str(num), "--repo", repo, "--add-label", "abandoned"],
+               capture=False)
+            print(f"gh-sync: closed issue #{num} (not_planned)")
+        elif kind == "milestone":
+            gh(["api", "-X", "PATCH", f"repos/{repo}/milestones/{num}",
+                "-f", "state=closed"])
+            print(f"gh-sync: milestone #{num} closed")
+        elif kind == "parent":
+            gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{num}",
+                "-f", "state=closed", "-f", "state_reason=not_planned"], capture=False)
+            gh(["issue", "edit", str(num), "--repo", repo, "--add-label", "abandoned"],
+               capture=False)
+            print(f"gh-sync: parent #{num} closed (not_planned)")
+
+    if rec["parent"] is None:
+        print("gh-sync: no parent recorded — reason not posted")
+    if rec["milestone"] is None:
+        print("gh-sync: no milestone recorded — nothing to close")
 
     # LAST STATEMENT of the successful path (T-01/FEAT-23) — structural, not re-gated on
     # the milestone check above (that guard is a conjunction with the issues check, not
@@ -1309,12 +1359,26 @@ def main():
             int(pr_arg)
         except ValueError:
             die(f"--pr needs an integer, got {pr_arg!r}")
+    # STRIPPED BY NAME-SEARCH, BEFORE THE POSITIONAL PARSE, exactly as the four flags above
+    # are. It takes NO VALUE, so this removes one element rather than two. Without the strip,
+    # `abandon --yes <dir>` reads `--yes` as the feature directory and dies with "--yes is not
+    # a directory" -- at precisely the moment the operator is being careful. Both orders must
+    # behave identically, and that is its own test assertion.
+    yes_flag = False
+    if "--yes" in argv:
+        i = argv.index("--yes")
+        yes_flag = True
+        argv = argv[:i] + argv[i + 1:]
     if len(argv) < 2:
         die("usage: gh-sync.py open|start-task|close-task|abandon|ship|backlog|record-pr|"
             "closes|status "
             "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
-            "[--reason-file <path>] [--body-file <path>] [--pr <n>]")
+            "[--reason-file <path>] [--body-file <path>] [--pr <n>] [--yes]")
     cmd, feat_dir = argv[0], argv[1]
+    # A flag that silently does nothing teaches the operator it is harmless everywhere, and
+    # the next place they try it is the one that closes tickets. It is a caller error.
+    if yes_flag and cmd != "abandon":
+        die(f"--yes is only accepted by abandon, not {cmd!r}")
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
     if cmd == "closes":
@@ -1372,7 +1436,7 @@ def main():
             die("close-task needs a T-NN")
         cmd_close_task(feat_dir, argv[2], repo, board)
     elif cmd == "abandon":
-        cmd_abandon(feat_dir, repo, reason_file)
+        cmd_abandon(feat_dir, repo, reason_file, yes_flag)
     elif cmd == "ship":
         cmd_ship(feat_dir, repo, board, body_file, pr_arg)
     elif cmd == "backlog":

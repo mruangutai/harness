@@ -666,7 +666,8 @@ with tempfile.TemporaryDirectory() as tmp:
     check("issue numbers recorded in feature.json",
           gh.get("milestone") == 7
           and re.match(r"^4\d$", str((gh.get("issues") or {}).get("T-01"))), doc)
-    check("created parent records origin created", gh.get("parent_origin") == "created", doc)
+    check("created parent records its NUMBER and no origin key at all (DEC-203 item 4)",
+          isinstance(gh.get("parent"), int) and "parent_origin" not in gh, doc)
 
     attach_lines = [l for l in log if "sub_issues -F sub_issue_id=" in l]
     check("three sub-issues attached to the parent", len(attach_lines) == 3, str(attach_lines))
@@ -749,7 +750,9 @@ with tempfile.TemporaryDirectory() as tmp3:
     gh3 = doc3.get("github") or {}
     check("--parent adopts",
           r.returncode == 0 and len(parent_creates3) == 0 and gh3.get("parent") == 55, doc3)
-    check("adopted parent records origin adopted", gh3.get("parent_origin") == "adopted", doc3)
+    check("an ADOPTED parent records its number and no origin key either — where a parent "
+          "came from is not recorded on either path",
+          gh3.get("parent") == 55 and "parent_origin" not in gh3, doc3)
 
 # --- crash resume: recorded-but-unattached task is attached, not re-created;
 #     and the pre-existing parent + its origin survive every per-task save
@@ -777,7 +780,13 @@ with tempfile.TemporaryDirectory() as tmp4:
           and re.match(r"^4\d$", str(issues4.get("T-02")))
           and re.match(r"^4\d$", str(issues4.get("T-03"))),
           doc4)
-    check("parent_origin survives per-task saves", gh4.get("parent_origin") == "created", doc4)
+    # THE LEGACY KEY IS TOLERATED, NOT PRESERVED. This fixture's feature.json was written
+    # with the key still in its github block (see the write_feature_json call above), which is
+    # what every feature on disk looked like before this task. load_recorded must read it
+    # without crashing, and save_recorded must not write it back.
+    check("a github block written with the old origin key is read without crashing, and the "
+          "key is not written back",
+          gh4.get("parent") == 40 and "parent_origin" not in gh4, doc4)
 
 # --- a phrase containing its own em-dash is taken whole, not truncated at the second one
 with tempfile.TemporaryDirectory() as tmp5:
@@ -817,12 +826,13 @@ with tempfile.TemporaryDirectory() as tmpA:
     )
     reasonA = os.path.join(tmpA, "reason.txt")
     open(reasonA, "w").write("budget cut — deprioritized this quarter")
-    r = run(["abandon", featA, "--reason-file", reasonA], tmpA)
+    r = run(["abandon", featA, "--reason-file", reasonA, "--yes"], tmpA)
     logA = calls(tmpA)
     patchedA = [l for l in logA if "api -X PATCH" in l and "issues/" in l and "state_reason=not_planned" in l]
     check("abandon closes 3 subs not_planned",
           r.returncode == 0
-          and {re.search(r"issues/(\d+)", l).group(1) for l in patchedA} == {"41", "42", "43"},
+          and {re.search(r"issues/(\d+)", l).group(1) for l in patchedA}
+              == {"41", "42", "43", "40"},
           str(logA))
     check("abandon closes the milestone",
           any("milestones/7" in l and "state=closed" in l for l in logA), str(logA))
@@ -830,9 +840,12 @@ with tempfile.TemporaryDirectory() as tmpA:
           any(l.startswith("issue comment 40") and "--body-file" in l and reasonA in l for l in logA)
           and not any("budget cut" in l for l in logA),
           str(logA))
-    check("abandon leaves an adopted parent open",
-          not any(re.search(r"\bissues/40\b", l) for l in logA)
-          and not any(l.startswith("issue close 40") for l in logA),
+    # REVERSED BY T-05. This read "abandon leaves an adopted parent open". Under DEC-203 the
+    # parent closes whatever its history: the operator's --yes is what replaces the origin
+    # gate, and it is a better guard because a human read the list first.
+    check("abandon closes an ADOPTED parent not_planned — origin decides nothing now",
+          any(re.search(r"\bissues/40\b", l) and "state_reason=not_planned" in l
+              for l in logA),
           str(logA))
     # T-08: each recorded sub-issue gets its OWN assertion — a fixture where one issue is
     # missed must still fail, so no count-only check over the three lines below.
@@ -848,8 +861,11 @@ with tempfile.TemporaryDirectory() as tmpA:
           any(l.startswith("issue edit 43") and "--repo implentio/fake" in l
               and "--add-label abandoned" in l for l in logA),
           str(logA))
-    check("abandon does NOT label an adopted parent that stays open",
-          not any(l.startswith("issue edit 40") for l in logA), str(logA))
+    # REVERSED BY T-05, with the clause above. An adopted parent now closes, so it is
+    # labelled like every other issue this run closed.
+    check("abandon labels the adopted parent it closed",
+          any(l.startswith("issue edit 40") and "--add-label abandoned" in l for l in logA),
+          str(logA))
     check("ensure_labels sends colour b60205 for the abandoned label",
           any(l.startswith("label create abandoned") and "--color b60205" in l for l in logA),
           str(logA))
@@ -866,7 +882,7 @@ with tempfile.TemporaryDirectory() as tmpB:
     )
     reasonB = os.path.join(tmpB, "reason.txt")
     open(reasonB, "w").write("cutting this")
-    r = run(["abandon", featB, "--reason-file", reasonB], tmpB)
+    r = run(["abandon", featB, "--reason-file", reasonB, "--yes"], tmpB)
     logB = calls(tmpB)
     parent40_calls = [l for l in logB if re.search(r"\bissues/40\b", l)]
     check("abandon closes a created parent not_planned",
@@ -898,14 +914,18 @@ with tempfile.TemporaryDirectory() as tmpC:
     )
     reasonC = os.path.join(tmpC, "reason.txt")
     open(reasonC, "w").write("cutting this too")
-    r = run(["abandon", featC, "--reason-file", reasonC], tmpC)
+    r = run(["abandon", featC, "--reason-file", reasonC, "--yes"], tmpC)
     logC = calls(tmpC)
     docC = read_feature_json(os.path.join(featC, "feature.json"))
     ghC = docC.get("github") or {}
-    check("abandon leaves a parent with no recorded origin open",
+    # REVERSED BY T-05. This read "abandon leaves a parent with no recorded origin open" —
+    # the default that left #728 open with all thirteen of its children finished, because both
+    # of the two most recent features recorded their parent by hand and the key read null.
+    check("abandon closes a parent that carries no origin at all — the leave-open default is "
+          "gone, and the key is still absent from the saved block",
           r.returncode == 0
-          and not any(re.search(r"\bissues/40\b", l) for l in logC)
-          and not any(l.startswith("issue close 40") for l in logC)
+          and any(re.search(r"\bissues/40\b", l) and "state_reason=not_planned" in l
+                  for l in logC)
           and "parent_origin" not in ghC,
           str(logC) + " | " + str(docC))
 
@@ -971,7 +991,7 @@ with tempfile.TemporaryDirectory() as tmpE:
     )
     reasonE = os.path.join(tmpE, "reason.txt")
     open(reasonE, "w").write("no milestone was ever recorded")
-    r = run(["abandon", featE, "--reason-file", reasonE], tmpE)
+    r = run(["abandon", featE, "--reason-file", reasonE, "--yes"], tmpE)
     logE = calls(tmpE)
     check("abandon with no recorded milestone never builds milestones/None",
           r.returncode == 0
@@ -993,7 +1013,7 @@ with tempfile.TemporaryDirectory() as tmpF:
     json.dump({"github": {"sync": False}}, open(os.path.join(tmpF, ".harness", "harness.json"), "w"))
     reasonF = os.path.join(tmpF, "reason.txt")
     open(reasonF, "w").write("does not matter, sync is off")
-    r = run(["abandon", featF, "--reason-file", reasonF], tmpF)
+    r = run(["abandon", featF, "--reason-file", reasonF, "--yes"], tmpF)
     check("abandon with sync disabled -> SKIP, exit 0", r.returncode == 0 and "SKIP" in r.stdout, r.stdout)
 
 # --- ship: a created parent closes completed, milestone patched closed AFTER the parent close
@@ -1201,7 +1221,7 @@ _d2 = tempfile.mkdtemp()
 json.dump({"feature_id": "F2"}, open(os.path.join(_d2, "feature.json"), "w"))
 _rec2 = _ghs.load_recorded(_d2)
 check("T-06C: a feature.json with no github: block returns the default, does not raise",
-      _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
+      _rec2 == {"milestone": None, "parent": None,
                 "attached": [], "issues": {}, "source_issues": []},
       str(_rec2))
 
@@ -1217,14 +1237,14 @@ check("T-06C: a feature.json with no github: block returns the default, does not
 _dabsent = tempfile.mkdtemp()
 _recAbsent = _ghs.load_recorded(_dabsent)
 check("fix1 B row1a: absent feature.json returns the default rec, does not raise",
-      _recAbsent == {"milestone": None, "parent": None, "parent_origin": None,
+      _recAbsent == {"milestone": None, "parent": None,
                      "attached": [], "issues": {}, "source_issues": []},
       str(_recAbsent))
 
 # Row 1b: file present, a dict, but NO github: key -> default rec (already _d2 above,
 # named here again for the fix1 spec's own enumeration).
 check("fix1 B row1b: dict present with no github key returns the default rec",
-      _rec2 == {"milestone": None, "parent": None, "parent_origin": None,
+      _rec2 == {"milestone": None, "parent": None,
                 "attached": [], "issues": {}, "source_issues": []},
       str(_rec2))
 
@@ -1313,7 +1333,7 @@ for _label, _doc in (
         ("no github block yet", {"feature_id": "F1", "status": "Building"}),
         ("an existing github block",
          {"feature_id": "F1", "status": "Building",
-          "github": {"milestone": 1, "parent": 2, "parent_origin": None, "attached": [],
+          "github": {"milestone": 1, "parent": 2, "attached": [],
                      "issues": {}}}),
         ("other keys present",
          {"feature_id": "F1", "status": "Building", "review_sha": "abc1234",
@@ -1903,7 +1923,7 @@ with tempfile.TemporaryDirectory() as tmpT:
     _full_fixture(fjT, "FEAT-23-abandon-status", "Review", 900142)
     reasonT = os.path.join(tmpT, "reason.txt")
     open(reasonT, "w").write("cutting scope")
-    r = run(["abandon", featT, "--reason-file", reasonT], tmpT)
+    r = run(["abandon", featT, "--reason-file", reasonT, "--yes"], tmpT)
     docT = read_feature_json(fjT)
     check("abandon records feature.json status Abandoned",
           r.returncode == 0 and docT.get("status") == "Abandoned",
@@ -1934,7 +1954,7 @@ with tempfile.TemporaryDirectory() as tmpV:
     before_docV = read_feature_json(fjV)
     reasonV = os.path.join(tmpV, "reason.txt")
     open(reasonV, "w").write("cutting scope")
-    r = run(["abandon", featV, "--reason-file", reasonV], tmpV)
+    r = run(["abandon", featV, "--reason-file", reasonV, "--yes"], tmpV)
     after_docV = read_feature_json(fjV)
     other_keys_V = [k for k in before_docV if k != "status"]
     check("abandon leaves every other top-level key unchanged",
@@ -1999,7 +2019,7 @@ with tempfile.TemporaryDirectory() as tmpX3:
 #     instantiates it from templates/feature.json on the first cycle; a fresh document
 #     written here would be missing feature-schema.json's eight required keys
 _dabsentT02 = tempfile.mkdtemp()
-_recAbsentT02 = {"milestone": None, "parent": None, "parent_origin": None, "attached": [],
+_recAbsentT02 = {"milestone": None, "parent": None, "attached": [],
                  "issues": {}, "source_issues": []}
 try:
     _ghs.save_recorded(_dabsentT02, _recAbsentT02)
@@ -2521,6 +2541,145 @@ _doneRefsSD = [ln.strip() for ln in _srcSD.splitlines()
 check("SC-12 (secondary): exactly one place BINDS the done station for writing, and it is "
       "cmd_ship's own local",
       len(_doneRefsSD) == 1, repr(_doneRefsSD))
+
+
+
+# =============================================================================================
+# T-05 — abandon REPORTS AND ASKS, and the parent's origin is no longer recorded anywhere.
+# =============================================================================================
+
+def _abandon_fixture(tmp, name="FEAT-40-abandon", parent=40, issues=None, milestone=7):
+    install_gh(tmp, FAKE_GH)
+    feat = stage(tmp, feat_name=name)
+    write_feature_json(
+        os.path.join(feat, "feature.json"), feature_id=name,
+        github={"milestone": milestone, "parent": parent,
+                "attached": list((issues or {"T-01": 41, "T-02": 42}).keys()),
+                "issues": issues or {"T-01": 41, "T-02": 42}},
+    )
+    reason = os.path.join(tmp, "reason.txt")
+    open(reason, "w").write("the operator's signed reason")
+    return feat, reason
+
+
+# --- without --yes: it makes NO write at all ---------------------------------------------------
+with tempfile.TemporaryDirectory() as tmpA1:
+    featA1, reasonA1 = _abandon_fixture(tmpA1)
+    r = run(["abandon", featA1, "--reason-file", reasonA1], tmpA1)
+    logA1 = calls(tmpA1)
+    wouldA1 = [l for l in r.stdout.splitlines() if l.startswith("gh-sync: would ")]
+    check("abandon dry run: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    # `load_config` runs `gh auth status` as a precondition before ANY subcommand, so the log
+    # is not expected to be empty. The discriminating assertion is that no WRITE was attempted
+    # -- an empty-log assertion would also pass if the fixture were broken.
+    _writesA1 = [l for l in logA1
+                 if "state=closed" in l or l.startswith("issue edit ")
+                 or l.startswith("issue comment ") or l.startswith("issue close ")
+                 or l.startswith("label create ")]
+    check("abandon dry run: makes ZERO writes - no close, no label, no comment",
+          _writesA1 == [], str(logA1))
+    check("abandon dry run: one would-line per recorded sub-issue",
+          sum(1 for l in wouldA1 if "close issue #41" in l) == 1
+          and sum(1 for l in wouldA1 if "close issue #42" in l) == 1,
+          repr(wouldA1))
+    check("abandon dry run: one would-line for the milestone",
+          sum(1 for l in wouldA1 if "close milestone #7" in l) == 1, repr(wouldA1))
+    check("abandon dry run: the parent is LABELLED as the parent, never as one more number - "
+          "it now closes unconditionally, so a column of numbers would hide the epic",
+          any("close parent #40" in l for l in wouldA1), repr(wouldA1))
+    check("abandon dry run: it says what the operator must do next",
+          "re-run with --yes" in r.stdout, repr(r.stdout))
+    check("abandon dry run: does NOT record the status",
+          read_feature_json(os.path.join(featA1, "feature.json")).get("status") != "Abandoned",
+          read_feature_json(os.path.join(featA1, "feature.json")))
+
+# --- with --yes: it closes exactly what the dry run listed, in that order ------------------------
+with tempfile.TemporaryDirectory() as tmpA2:
+    featA2, reasonA2 = _abandon_fixture(tmpA2)
+    dry = run(["abandon", featA2, "--reason-file", reasonA2], tmpA2)
+    dry_numbers = [int(m.group(1)) for m in
+                    (re.search(r"#(\d+)", l) for l in dry.stdout.splitlines()
+                     if l.startswith("gh-sync: would "))
+                    if m]
+
+with tempfile.TemporaryDirectory() as tmpA3:
+    featA3, reasonA3 = _abandon_fixture(tmpA3)
+    r = run(["abandon", featA3, "--reason-file", reasonA3, "--yes"], tmpA3)
+    logA3 = calls(tmpA3)
+    real_numbers = []
+    for l in logA3:
+        m = re.search(r"issues/(\d+) -f state=closed", l) or \
+            re.search(r"milestones/(\d+) -f state=closed", l) or \
+            re.search(r"^issue comment (\d+) ", l)
+        if m:
+            real_numbers.append(int(m.group(1)))
+    check("abandon --yes: the numbers it actually closes, in order, equal the numbers the dry "
+          "run listed - ONE renderer, so the operator confirms the list that executes",
+          real_numbers == dry_numbers,
+          "dry=%s real=%s log=%s" % (dry_numbers, real_numbers, logA3))
+    check("abandon --yes: every sub-issue is closed not_planned",
+          all(any("issues/%d" % n in l and "state_reason=not_planned" in l for l in logA3)
+              for n in (41, 42)), str(logA3))
+    check("abandon --yes: the PARENT is closed not_planned whatever its history - the "
+          "confirmation replaces the old origin gate",
+          any("issues/40" in l and "state_reason=not_planned" in l for l in logA3), str(logA3))
+    check("abandon --yes: everything it closed is labelled abandoned, parent included",
+          all(any(l.startswith("issue edit %d " % n) and "abandoned" in l for l in logA3)
+              for n in (41, 42, 40)), str(logA3))
+    check("abandon --yes: the milestone is closed",
+          any("milestones/7" in l and "state=closed" in l for l in logA3), str(logA3))
+    check("abandon --yes: records status Abandoned",
+          read_feature_json(os.path.join(featA3, "feature.json")).get("status") == "Abandoned",
+          read_feature_json(os.path.join(featA3, "feature.json")))
+
+# --- --yes BEFORE the directory behaves identically to --yes after it ----------------------------
+# Without the name-search strip in main(), `abandon --yes <dir>` reads --yes as the feature
+# directory and dies "--yes is not a directory" -- at exactly the moment the operator is being
+# careful about a destructive command.
+with tempfile.TemporaryDirectory() as tmpA4:
+    featA4, reasonA4 = _abandon_fixture(tmpA4)
+    r = run(["abandon", "--yes", featA4, "--reason-file", reasonA4], tmpA4)
+    docA4 = read_feature_json(os.path.join(featA4, "feature.json"))
+    check("abandon --yes BEFORE the directory: does not die with 'is not a directory'",
+          "is not a directory" not in (r.stdout + r.stderr), r.stdout + r.stderr)
+    check("abandon --yes BEFORE the directory: behaves identically - status recorded, parent "
+          "closed",
+          r.returncode == 0 and docA4.get("status") == "Abandoned"
+          and any("issues/40" in l and "state_reason=not_planned" in l for l in calls(tmpA4)),
+          "rc=%s doc=%s" % (r.returncode, docA4))
+
+# --- --yes on any other subcommand is a CALLER ERROR ----------------------------------------------
+with tempfile.TemporaryDirectory() as tmpA5:
+    featA5, _reasonA5 = _abandon_fixture(tmpA5, name="FEAT-40-yes-on-ship")
+    r = run(["ship", featA5, "--yes"], tmpA5)
+    check("--yes on ship exits 1 with a caller-error message naming the subcommand - a flag "
+          "that silently does nothing teaches the operator it is harmless everywhere",
+          r.returncode == 1 and "--yes" in (r.stdout + r.stderr)
+          and "abandon" in (r.stdout + r.stderr), "rc=%s %r" % (r.returncode, r.stderr))
+    check("--yes on ship makes no gh call at all", calls(tmpA5) == [], str(calls(tmpA5)))
+
+# --- a github block still carrying the old origin key is read, and never written back --------------
+with tempfile.TemporaryDirectory() as tmpA6:
+    install_gh(tmpA6, FAKE_GH)
+    featA6 = stage(tmpA6, feat_name="FEAT-40-legacy-key")
+    fjA6 = os.path.join(featA6, "feature.json")
+    # Written by hand, bypassing write_feature_json, because the schema no longer allows the
+    # key: this is what every feature on disk looked like before this task.
+    json.dump({"feature_id": "FEAT-40-legacy-key", "branch": None, "pr": None,
+               "status": "Review", "review_sha": None, "cycles_used": 0,
+               "max_total_cycles": 10, "runs": [],
+               "github": {"milestone": 7, "parent": 40, "parent_origin": "adopted",
+                          "attached": ["T-01"], "issues": {"T-01": 41}}},
+              open(fjA6, "w"), indent=2)
+    reasonA6 = os.path.join(tmpA6, "reason.txt")
+    open(reasonA6, "w").write("legacy reason")
+    r = run(["abandon", featA6, "--reason-file", reasonA6, "--yes"], tmpA6)
+    ghA6 = (read_feature_json(fjA6).get("github") or {})
+    check("legacy origin key: abandon reads the block without crashing",
+          r.returncode == 0, r.stdout + r.stderr)
+    check("legacy origin key: the parent closes anyway - the key is read but decides nothing",
+          any("issues/40" in l and "state_reason=not_planned" in l for l in calls(tmpA6)),
+          str(calls(tmpA6)))
 
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")

@@ -633,7 +633,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: operator route ruling on issue 842; the same file and the same commit as T-04, and it rewrites the schema every feature.json is validated against
     depends_on: [T-04]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/feature-schema.json
