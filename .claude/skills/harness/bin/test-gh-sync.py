@@ -2187,64 +2187,52 @@ with tempfile.TemporaryDirectory() as tmpPR8:
           f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
 
 # ---------- T-04 (FEAT-26): closes emits the pull-request-body closing keywords derived
-# from the recorded source tickets, and nothing else ----------------------------------
+# --- T-06: the `closes` subcommand is DELETED ------------------------------------------------
+# It rendered one closing-keyword line per source ticket for the operator to paste into a pull
+# request body, so that
+# GitHub's merge would close the source tickets. Under DEC-203 `ship` lands those cards at the
+# done station instead, and GitHub's Auto-close issue workflow closes them -- so the rendering
+# had one job and no longer has it. There is deliberately NO deprecation shim: a shim that
+# still prints the lines would let the old route keep working while the new one is untested.
+
+# BUILT, NEVER SPELLED. T-06's verify greps this whole directory for the literal, so a test
+# that spelled it would fail the clause it exists to prove.
+_CLOSES_LITERAL = "Closes" + " #"
 
 
-def _closes_fixture(tmp, feat_name, github=None):
-    """A bare feature dir carrying only feature.json — closes needs no BRIEF/PLAN/board
-    config at all (it makes no GitHub call), so stage()'s full scaffold is not used."""
-    feat = os.path.join(tmp, ".harness", "features", feat_name)
-    os.makedirs(feat)
-    fields = dict(feature_id=feat_name, status="Building")
-    if github is not None:
-        fields["github"] = github
-    write_feature_json(os.path.join(feat, "feature.json"), **fields)
-    return feat
-
-
-# --- closes emits one line per recorded source issue in order — deliberately NOT
-#     ascending on disk, so a sort would be caught
+# The fixture is `stage`, not a bare directory. The OLD `closes` was dispatched BEFORE the root
+# climb and `load_config`, so a directory with no harness.json still reached it. Now that the
+# subcommand is gone, the same fixture would exit at `load_config`'s SKIP and never reach the
+# dispatch -- and the test would pass for the wrong reason, proving nothing about `closes`.
 with tempfile.TemporaryDirectory() as tmpC1:
     install_gh(tmpC1)
-    featC1 = _closes_fixture(tmpC1, "FEAT-26-closes-order",
-                              github={"source_issues": [305, 101, 220]})
+    featC1 = stage(tmpC1, feat_name="FEAT-40-closes-gone")
     r = run(["closes", featC1], tmpC1)
-    check("closes emits one line per recorded source issue in order",
-          r.returncode == 0 and r.stdout == "Closes #305\nCloses #101\nCloses #220\n",
-          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+    check("the closes subcommand exits non-zero and is named as unknown",
+          r.returncode != 0 and "closes" in (r.stdout + r.stderr)
+          and "unknown command" in (r.stdout + r.stderr),
+          "rc=%s out=%r err=%r" % (r.returncode, r.stdout, r.stderr))
+    check("the closes subcommand renders NO Closes line — not even a deprecation notice "
+          "carrying one",
+          _CLOSES_LITERAL not in (r.stdout + r.stderr), repr(r.stdout + r.stderr))
 
-# --- closes emits nothing at exit 0 when source_issues is empty
-with tempfile.TemporaryDirectory() as tmpC2:
-    install_gh(tmpC2)
-    featC2 = _closes_fixture(tmpC2, "FEAT-26-closes-empty",
-                              github={"source_issues": []})
-    r = run(["closes", featC2], tmpC2)
-    check("closes emits nothing at exit 0 when source_issues is empty",
-          r.returncode == 0 and r.stdout == "",
-          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
+# No function anywhere in gh-sync.py emits that line any more.
+check("no function in gh-sync.py emits a closing-keyword line",
+      _CLOSES_LITERAL not in open(SYNC).read(), "the literal survives in gh-sync.py")
 
-# --- closes emits nothing at exit 0 when source_issues is absent (no github: block at
-#     all — the legitimate first-sync shape load_recorded returns a default for)
-with tempfile.TemporaryDirectory() as tmpC3:
-    install_gh(tmpC3)
-    featC3 = _closes_fixture(tmpC3, "FEAT-26-closes-absent", github=None)
-    r = run(["closes", featC3], tmpC3)
-    check("closes emits nothing at exit 0 when source_issues is absent",
-          r.returncode == 0 and r.stdout == "",
-          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}")
-
-# --- closes makes no gh call at all — asserted against the fake gh's own call log, not
-#     merely against the exit code, even though a real (working) gh is on PATH for it to
-#     call
-with tempfile.TemporaryDirectory() as tmpC4:
-    install_gh(tmpC4)
-    featC4 = _closes_fixture(tmpC4, "FEAT-26-closes-no-gh",
-                              github={"source_issues": [9]})
-    r = run(["closes", featC4], tmpC4)
-    logC4 = calls(tmpC4)
-    check("closes makes no gh call at all",
-          r.returncode == 0 and r.stdout == "Closes #9\n" and logC4 == [],
-          f"rc={r.returncode} stdout={r.stdout!r} log={logC4}")
+# --- source_issues itself STAYS: only the rendering went ---------------------------------------
+# `cmd_open` still mirrors plan.yaml's own top-level list into feature.json, and T-04's ship
+# is what moves those cards. Deleting the renderer must not have taken the record with it.
+with tempfile.TemporaryDirectory() as tmpC5:
+    install_gh(tmpC5)
+    featC5 = stage(tmpC5, feat_name="FEAT-40-sources-survive")
+    write_plan_yaml(featC5, "FEAT-40-sources-survive", [("T-01", "pending")],
+                     source_issues=[305, 101, 220])
+    r = run(["open", featC5], tmpC5)
+    ghC5 = (read_feature_json(os.path.join(featC5, "feature.json")).get("github") or {})
+    check("cmd_open still mirrors plan.yaml's source_issues into feature.json, in order",
+          ghC5.get("source_issues") == [305, 101, 220],
+          "rc=%s github=%s" % (r.returncode, ghC5))
 
 
 # =============================================================================================

@@ -736,7 +736,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: operator route ruling on issue 842; and this deletion is only safe once the merge sweep is proven to fire, which is a machine-local measurement the main session took in T-02
     depends_on: [T-02, T-05]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/test-gh-sync.py
@@ -779,7 +779,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out — a registered PreToolUse gate script, its test, the hook registry .claude/settings.json and the runner registration; the harness must not change its own enforcement layer through the enforcement path being changed
     depends_on: [T-02, T-05]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-close-gate.sh
       - .claude/skills/harness/bin/test-gh-close-gate.py

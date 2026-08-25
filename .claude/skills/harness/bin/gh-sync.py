@@ -1108,25 +1108,6 @@ def cmd_backlog(feat_dir, repo, items):
         print(f"gh-sync: backlog issue #{url.rstrip('/').rsplit('/', 1)[-1]} [{', '.join(labels)}] — {title.strip()}")
 
 
-def cmd_closes(feat_dir):
-    """Render the pull-request-body closing keywords from the recorded source tickets
-    (T-04, FEAT-26) — the ONE subcommand whose stdout is captured by the caller, so
-    nothing else may print to stdout on this path. Diagnostics, if load_recorded ever
-    refuses, go to stderr via its own SystemExit(str) — never printed here.
-
-    Reads through `load_recorded(feat_dir)` — the on-disk mirror, not plan.yaml, so what
-    is emitted is what was recorded at open time — and prints one `Closes #<n>` line per
-    recorded number, in recorded order, nothing else. An empty or absent list prints
-    nothing and exits 0. Makes no GitHub call of any kind: DEC-138 amendment 6 forbids
-    the mirror composing text it posts, and DEC-196 limits closing to cards the harness
-    created — the operator opens the pull request and pastes these lines; the harness
-    only derives them. Takes no `repo` for the same reason: it never talks to GitHub.
-    """
-    rec = load_recorded(feat_dir)
-    for n in rec["source_issues"]:
-        print(f"Closes #{n}")
-
-
 def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
     """Terminal state: lands every recorded card at the board's DONE STATION, and closes no
     issue at all. GitHub's own `Auto-close issue` workflow turns each station write into a
@@ -1371,7 +1352,7 @@ def main():
         argv = argv[:i] + argv[i + 1:]
     if len(argv) < 2:
         die("usage: gh-sync.py open|start-task|close-task|abandon|ship|backlog|record-pr|"
-            "closes|status "
+            "status "
             "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
             "[--reason-file <path>] [--body-file <path>] [--pr <n>] [--yes]")
     cmd, feat_dir = argv[0], argv[1]
@@ -1381,14 +1362,6 @@ def main():
         die(f"--yes is only accepted by abandon, not {cmd!r}")
     if not os.path.isdir(feat_dir):
         die(f"{feat_dir} is not a directory")
-    if cmd == "closes":
-        # Needs no repo, no board, no gh: DEC-138 am.6 forbids the mirror composing text
-        # it posts, and DEC-196 limits closing to cards the harness created. Dispatched
-        # BEFORE the root climb and load_config below so this path never risks printing
-        # load_config's own stdout notices (the board-not-configured note, or a skip())
-        # ahead of the one line format this subcommand's caller captures.
-        cmd_closes(feat_dir)
-        return
     # DEPTH-AGNOSTIC ROOT (FEAT-21 T-10): the old three-level climb was right for
     # .harness/features/<FEAT> and wrong for .harness/<repo>/features/<FEAT> — and a
     # fixed depth is wrong for one of the two in every era. Walk UP from the feature
