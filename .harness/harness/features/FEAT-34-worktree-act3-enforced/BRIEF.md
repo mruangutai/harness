@@ -191,9 +191,16 @@ pre-commit gate into an availability dependency. Neither is reintroduced.
   live tree is NOT this fixture: at `3ed95a4` the standing `FEAT-33` worktree is short-named **and**
   genuinely absent from `main`, so it cannot discriminate (c) from (a).
   verify: automated        evidence: integration
-- SC-06: In a throwaway repository, the hook removes the merged feature's worktree on **both**
-  measured shapes — fast-forward (`$1 = 0`) and `merge --squash` plus commit (`$1 = 1`) — and each
-  shape is asserted separately.
+- SC-06 (AMENDED, Amendment 4): In a throwaway repository, the hook removes the merged feature's
+  worktree on the **fast-forward** shape (`$1 = 0`), asserted on that shape alone. **The squash
+  clause is struck as unsatisfiable by any implementation, not as unmet.** Measured: `git merge
+  --squash` fires `post-merge` with `$1 = 1` while the default branch ref still points at its
+  PRE-squash commit — `git cat-file -e HEAD:<feature.json>` exits non-zero at hook-fire time — and
+  the separate `git commit` that completes the squash **does not re-fire the hook**. So a feature
+  landed BY the squash is invisible when the hook runs and visible only when nothing will run again.
+  That is git's behaviour, not the sweep's, and no code change closes it. What replaces the struck
+  clause: the hook on the squash path must record nothing and remove nothing, asserted as silence
+  rather than as a removal.
   verify: automated        evidence: integration
 - SC-07: Invoked with its cwd inside a linked worktree that is itself eligible, the hook leaves
   that worktree standing and reports why it declined. Red proof: an unguarded hook deletes it and
@@ -441,12 +448,55 @@ carries the fixture and the red proof.
   verify: automated        evidence: integration
 
 
+## Amendment 4 (2026-08-25) — the printed command must RUN, the squash clause was impossible, and SC-08 was never a UAT
+
+**Three corrections the review panel forced, none of them optional.**
+
+**One.** `REQ-02` had no criterion that could falsify it. Sixteen criteria graded `INV-29` and every
+one was blind to a command that prints correctly and cannot be executed: `SC-01` asserts the command
+against an exact-named fixture where both id derivations produce the same string, and `SC-05`'s
+short-named case asserts the refusal FIRES without ever reading the command text. **Counting a line
+is not reading it.** The defect shipped through all sixteen and was found by a human reading the
+message. `SC-17` below is that gap closed, and its clause (c) runs the printed command.
+
+**Two.** `SC-06`'s squash clause is amended above. It is struck as **unsatisfiable by any
+implementation**, on a measurement, not marked unmet — `git merge --squash` fires the hook before
+the ref moves and the completing commit never re-fires it. Recording it as a failure would blame the
+sweep for git's behaviour.
+
+**Three.** `SC-08` was mistakenly instructed to the validate phase as an operator-run UAT that must
+stay `not_met`. **That instruction was wrong and the artifact says so:** `BRIEF.md:202-205` declares
+it `verify: automated`, T-13 grades it through `test-hooks-install.py`, and `grep -i uat` over
+`BRIEF.md` and `plan.yaml` returns two hits, both Verification-gaps entries, neither a criterion.
+`pm` graded it MET on its own reading rather than obeying the instruction, and checked rather than
+deferring. **SC-08 stands as automated and met.** The genuinely outstanding item is the
+operator's-own-clone gap already recorded at `:217-221` and `:346-352`, which this brief
+deliberately refuses to make a criterion because a fixture can fake it and that cannot.
+
+### Added success criterion
+
+- SC-17: **The printed removal command must actually run.** Over the same one fixture `SC-05`
+  grades — four standing worktrees, including the **short-named** worktree whose landed directory on
+  the default branch is full-named and `Done` — the `INV-29` line for THAT worktree is graded on its
+  command text, three clauses each asserted separately and never by one substring match: **(a)** the
+  line carries a `feature-worktree.py remove` command; **(b)** the command's `--id` value is composed
+  from the found worktree's OWN directory basename, asserted as an exact string built from the
+  fixture's worktree path and NOT from the landed directory name — the two differ in this fixture and
+  are identical in every exact-named one, which is why this criterion names the short-named worktree
+  specifically; **(c)** running the printed command verbatim exits 0 and that worktree is gone
+  afterwards. **Red proof, demonstrated failing before the fix:** an implementation composing `--id`
+  from the resolved landed feature id passes (a), passes every clause of `SC-01` and every clause of
+  `SC-05`, and fails (b) and (c) — `feature-worktree.py remove`'s GATE 1 exits 3, "not a linked
+  worktree". This is also `D-02`'s guarantee stated as a criterion: `post-merge-sweep.sh:150` already
+  derives the id from the record's own path, and the gate must not disagree with the hook.
+  verify: automated        evidence: integration
+
 ## Approval
 
 status: approved
 approved-by: Mike Ruangutai
-date: 2026-08-24
-amendments-signed: Amendment 1, Amendment 2, Amendment 3
+date: 2026-08-25
+amendments-signed: Amendment 1, Amendment 2, Amendment 3, Amendment 4
 note: RE-SIGNED TWICE on 2026-08-24. The original signature of 2026-08-23 covered the
   brief without either amendment. The second signature covers Amendment 1 in full —
   REQ-11/12/13 and SC-11/12/13/14. The third covers Amendment 2 — SC-15, the
@@ -456,3 +506,6 @@ note: RE-SIGNED TWICE on 2026-08-24. The original signature of 2026-08-23 covere
   than being kept alongside the old ones, so a reader never has to work out which date
   governs which paragraph. The fourth signature covers Amendment 3 - SC-16, the criterion
   naming what the already-built linked-worktree test proves. It commissions no work.
+  The fifth signature covers Amendment 4 - SC-17, SC-06's struck squash clause, and the
+  correction that SC-08 was never a UAT. SC-17 DOES commission work: its clause (c) runs
+  the printed command, which no existing test did.

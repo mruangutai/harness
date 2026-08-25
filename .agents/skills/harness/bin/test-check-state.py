@@ -6,6 +6,7 @@ with CLAUDE_PROJECT_DIR pointed at each, never against the real repo state.
 No test invokes a real `gh` binary and none asserts on `sub_issues_summary` (SC-09).
 """
 import json, os
+import re
 import subprocess
 import sys
 import shutil
@@ -2544,6 +2545,49 @@ def case_inv29():
                         "--id FEAT-SHORT`" in short_line, short_line))
         results.append(("(f.5) and NOT the landed full name",
                         "--id FEAT-SHORT-named-in-full" not in short_line, short_line))
+        # ---- SC-17 clause (c): THE PRINTED COMMAND IS EXECUTED, not merely read ----------
+        #
+        # (f.4) and (f.5) grade the command's TEXT. Text can be right and the command still fail,
+        # which is the whole reason SC-17 exists: sixteen criteria graded INV-29 and none of them
+        # ever ran what it printed. This clause runs it verbatim and asserts the worktree is gone.
+        #
+        # THE SAFETY ASSERTION IS NOT OPTIONAL. feature-worktree.py resolves owner_root from
+        # factory_config.harness_root(), which honours CLAUDE_PROJECT_DIR only when that directory
+        # holds a readable .harness/harness/docs/SPEC.md. Without the probe file it falls back to
+        # the SCRIPT's own location — the REAL harness checkout — and this case would delete a live
+        # worktree. So the probe is written first and the resolved path is asserted inside the
+        # fixture BEFORE anything is removed.
+        _sd = os.path.join(r, ".harness", "harness", "docs")
+        os.makedirs(_sd, exist_ok=True)
+        with open(os.path.join(_sd, "SPEC.md"), "w") as f:
+            f.write("fixture\n")
+        import shlex
+        m = re.search(r"`python3 ([^`]+)`", short_line) if short_line else None
+        ran_ok = False
+        gone = False
+        detail = "no command found in the line"
+        if m:
+            argv = [sys.executable] + shlex.split(m.group(1))
+            # THE SCRIPT PATH IS RESOLVED AGAINST THE REAL BIN DIR; EVERY OTHER ARGUMENT IS
+            # VERBATIM. The printed command is repo-relative, and an operator runs it from their
+            # own checkout where that path exists. A tmpdir fixture has no bin/ of its own, so
+            # only argv[1] is rewritten to the real script — the `--repo` and `--id` values SC-17
+            # actually grades are untouched, and CLAUDE_PROJECT_DIR still points the resolver at
+            # the fixture. Copying the whole bin dir in would test the copy, not the message.
+            argv[1] = os.path.join(os.path.dirname(SCRIPT), os.path.basename(argv[1]))
+            env = dict(os.environ)
+            env["CLAUDE_PROJECT_DIR"] = r
+            probe = subprocess.run(argv,
+                                   capture_output=True, text=True, env=env, cwd=r)
+            ran_ok = probe.returncode == 0
+            gone = not os.path.exists(wt_short)
+            detail = ("exit=%d inside_fixture=%s stdout=%s stderr=%s"
+                      % (probe.returncode,
+                         os.path.realpath(wt_short).startswith(os.path.realpath(r)),
+                         probe.stdout.strip()[-200:], probe.stderr.strip()[-200:]))
+        results.append(("(f.7) SC-17(c): the printed command RUNS and exits 0", ran_ok, detail))
+        results.append(("(f.8) SC-17(c): and that worktree is GONE afterwards", gone, detail))
+
         results.append(("(f.6) a landed feature.json that is present but UNPARSEABLE -> "
                         "fires", len(_i29_for(out, wt_bad)) == 1,
                         "\n".join(_i29_lines(out))))
