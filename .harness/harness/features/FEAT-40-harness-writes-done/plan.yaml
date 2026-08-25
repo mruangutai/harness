@@ -66,7 +66,7 @@ decisions:
     dec: DEC-146
   - id: D-06
     choice: the Bash gate refuses every gh issue close unconditionally, with no environment marker
-    because: a PreToolUse hook is handed only tool_input.command and gh-sync.py reaches gh through subprocess, so abandon's close never traverses the tool and needs no exemption
+    because: a PreToolUse hook is handed only tool_input.command and gh-sync.py reaches gh through subprocess, so abandon's close never traverses the tool and needs no exemption; this reaches the OUTCOME issue 842 constraint 5 mandates by a simpler route than the mechanism that constraint names, and no marker exists for anyone to forge - the operator amended constraint 5 to this effect on 2026-08-25
     dec: none
   - id: D-07
     choice: the new entry restates DEC-192's one-status-field rule and DEC-186's read-back bound, widened to six purposes, rather than only the close rule
@@ -89,10 +89,6 @@ decisions:
     because: reusing SKIP would preserve the standing worktree but overload a token the module reserves for an environmental no-go where nothing was written, so a partial write would report as no write at all; a second literal preserves the same worktree evidence while keeping the prefix taxonomy one meaning per token
     dec: none
 
-  - id: D-12
-    choice: the five suite-gated verifies compare the suite's FAIL set against an enumerated, diagnosed baseline of five pre-existing red unit scripts and additionally assert PASS by name for every test script the task itself owns, rather than requiring a green suite or narrowing to the scripts the task touches
-    because: six unit scripts are red at cc84b29 through no act of this feature, and run-unit-tests.sh exits 1 on any failure and cannot select individual scripts, so as written those five tasks could never be marked done; repairing all six is roughly sixty assertions over about six root causes, one of them a behaviour question, which is a feature of its own, while invoking the test scripts directly would lose the drift detector and the kind cross-check that T-07's own registration proof depends on; the owned-script PASS clause is what keeps the green discriminating, and it is why T-11 repairs test-validate-feature-json.py outright - it is the only red script a later task edits
-    dec: none
 tasks:
   - id: T-01
     title: Re-measure that moving a card to the done station closes its issue
@@ -212,7 +208,7 @@ tasks:
     traces: [REQ-01, REQ-04, REQ-08]
     change_type: docs
     execution_mode: main-session-direct
-    execution_reason: the entry is the operator's own ruling and its prose register is an open blocking question (Q1); harness-documentor is granted the path but must not author text whose style the operator has not settled
+    execution_reason: the entry is the operator's own ruling on a permanent record, and the operator settled its prose register personally on 2026-08-25; harness-documentor is granted the path but the wording of a signed decision stays with the tier that owns it
     depends_on: []
     status: pending
     files:
@@ -222,10 +218,14 @@ tasks:
       python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
       python3 .claude/skills/harness/bin/test-gen-decisions-index.py
     intent: |
-      DO NOT START THIS TASK until the operator has answered open question Q1 on the prose register
-      of the new entry. The current reading is plain readable prose, clarity over compression, and
-      the main session has flagged that wording as ambiguous. Writing to the wrong register means
-      rewriting a permanent record.
+      THE PROSE REGISTER IS SETTLED (operator, 2026-08-25): DEC-203 is SHORTER AND PLAINER than the
+      three entries it replaces. Cut the length and the density together, not the word count alone.
+      The finished entry must be materially shorter than DEC-186, DEC-192 and DEC-196 taken
+      together, and written in ordinary words - short sentences, plain nouns, no stacked
+      subordinate clauses. Nothing essential in the nine items below is dropped; the dense,
+      clause-heavy register of the current entries is the thing being removed. Before writing,
+      count the words of the three entries you are replacing; check the finished DEC-203 comes in
+      materially under that total.
 
       Append ONE new entry, DEC-203, at the end of DECISIONS.md. It replaces DEC-186, DEC-192 and
       DEC-196, which are struck under DEC-188 in the same act. It must state all of the following,
@@ -288,7 +288,7 @@ tasks:
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: operator route ruling on issue 842; this is the close path itself and the same file's ship step is what runs at this feature's own merge, so a dispatched member would be building under a half-changed mirror
-    depends_on: [T-01, T-11]
+    depends_on: [T-01]
     status: pending
     files:
       - .claude/skills/harness/bin/gh-sync.py
@@ -298,10 +298,7 @@ tasks:
       - .claude/skills/harness/bin/test-post-merge-sweep.py
     verify: |
       out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
-      test $rc -ne 2
-      got=$(printf '%s\n' "$out" | grep -E '^FAIL test-' | sed 's/^FAIL //' | sort | tr '\n' ' ')
-      want=$(grep -E '^test-[a-z0-9-]+\.py$' .harness/harness/features/FEAT-40-harness-writes-done/notes/suite-baseline.md | sort | tr '\n' ' ')
-      test "$got" = "$want"
+      test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-post-merge-sweep.py'
       grep -q 'gh-sync: FAILED' .claude/skills/harness/bin/post-merge-sweep.sh
@@ -502,7 +499,7 @@ tasks:
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: operator route ruling on issue 842; the same file and the same commit as T-04, and it rewrites the schema every feature.json is validated against
-    depends_on: [T-04, T-11]
+    depends_on: [T-04]
     status: pending
     files:
       - .claude/skills/harness/bin/gh-sync.py
@@ -512,10 +509,7 @@ tasks:
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
-      test $rc -ne 2
-      got=$(printf '%s\n' "$out" | grep -E '^FAIL test-' | sed 's/^FAIL //' | sort | tr '\n' ' ')
-      want=$(grep -E '^test-[a-z0-9-]+\.py$' .harness/harness/features/FEAT-40-harness-writes-done/notes/suite-baseline.md | sort | tr '\n' ' ')
-      test "$got" = "$want"
+      test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-validate-feature-json.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-check-state.py'
@@ -608,7 +602,7 @@ tasks:
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: operator route ruling on issue 842; and this deletion is only safe once the merge sweep is proven to fire, which is a machine-local measurement the main session took in T-02
-    depends_on: [T-02, T-05, T-11]
+    depends_on: [T-02, T-05]
     status: pending
     files:
       - .claude/skills/harness/bin/gh-sync.py
@@ -616,10 +610,7 @@ tasks:
       - .claude/skills/harness/templates/plan.yaml
     verify: |
       out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
-      test $rc -ne 2
-      got=$(printf '%s\n' "$out" | grep -E '^FAIL test-' | sed 's/^FAIL //' | sort | tr '\n' ' ')
-      want=$(grep -E '^test-[a-z0-9-]+\.py$' .harness/harness/features/FEAT-40-harness-writes-done/notes/suite-baseline.md | sort | tr '\n' ' ')
-      test "$got" = "$want"
+      test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
       test -z "$(grep -rl 'Closes #' .claude/skills/harness/bin/ .claude/skills/harness/templates/)"
     intent: |
@@ -654,7 +645,7 @@ tasks:
     change_type: config
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out — a registered PreToolUse gate script, its test, the hook registry .claude/settings.json and the runner registration; the harness must not change its own enforcement layer through the enforcement path being changed
-    depends_on: [T-02, T-05, T-11]
+    depends_on: [T-02, T-05]
     status: pending
     files:
       - .claude/skills/harness/bin/gh-close-gate.sh
@@ -664,13 +655,10 @@ tasks:
       - .harness/harness.json
     verify: |
       out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
-      test $rc -ne 2
-      got=$(printf '%s\n' "$out" | grep -E '^FAIL test-' | sed 's/^FAIL //' | sort | tr '\n' ' ')
-      want=$(grep -E '^test-[a-z0-9-]+\.py$' .harness/harness/features/FEAT-40-harness-writes-done/notes/suite-baseline.md | sort | tr '\n' ' ')
-      test "$got" = "$want"
+      test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-gh-close-gate.py'
       printf '%s\n' "$out" | grep -qx 'PASS test-run-unit-tests-kinds.py'
-      python3 .claude/skills/harness/bin/test-branch-create-gate.py 2>&1 | grep -q '^5/8 cases passed\.$'
+      printf '%s\n' "$out" | grep -qx 'PASS test-branch-create-gate.py'
       python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];assert any('gh-close-gate.sh' in c['command'] for m in h if m.get('matcher')=='Bash' for c in m['hooks'])"
     intent: |
       Create .claude/skills/harness/bin/gh-close-gate.sh, a third PreToolUse Bash hook, modelled on
@@ -759,17 +747,14 @@ tasks:
     change_type: config
     execution_mode: main-session-direct
     execution_reason: DEC-174 carve-out — check-state.sh is the harness's own state validator and its test is the gate's test; neither may be changed through the enforcement path being changed
-    depends_on: [T-02, T-11]
+    depends_on: [T-02]
     status: pending
     files:
       - .claude/skills/harness/bin/check-state.sh
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
       out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
-      test $rc -ne 2
-      got=$(printf '%s\n' "$out" | grep -E '^FAIL test-' | sed 's/^FAIL //' | sort | tr '\n' ' ')
-      want=$(grep -E '^test-[a-z0-9-]+\.py$' .harness/harness/features/FEAT-40-harness-writes-done/notes/suite-baseline.md | sort | tr '\n' ' ')
-      test "$got" = "$want"
+      test $rc -eq 0
       printf '%s\n' "$out" | grep -qx 'PASS test-check-state.py'
       grep -q "INV-31" .claude/skills/harness/bin/check-state.sh
       out=$(bash .claude/skills/harness/bin/check-state.sh 2>&1)
@@ -1006,13 +991,13 @@ tasks:
       would print a held-open line instead — that is the failure this task is built to catch.
 
       RUN IT:
-        1. Confirm the suite is at its recorded baseline and no further:
+        1. Confirm the suite is green:
            .agents/skills/harness/bin/run-unit-tests.sh --kind all
-           It does NOT exit 0 and it is not meant to (D-12). Five unit scripts are quarantined by
-           T-11 and stay red. What must hold is that the FAIL lines are exactly the five names in
-           .harness/harness/features/FEAT-40-harness-writes-done/notes/suite-baseline.md, that the
-           exit status is 1 rather than 2, and that test-gh-sync.py, test-check-state.py and
-           test-post-merge-sweep.py each report PASS. Do not read a bare non-zero exit as a stop.
+           It must exit 0 with no FAIL line, and test-gh-sync.py, test-check-state.py and
+           test-post-merge-sweep.py must each report PASS. One trap, measured 2026-08-25: if
+           test-validate-digest.py fails saying "returned with children in flight", that is stale
+           state and not a regression - it reads the live .harness/.inflight-claims.json, which is
+           untracked and gitignored. Release the claims and re-run before treating it as real.
         2. Run, and capture the full stdout and stderr:
            python3 .claude/skills/harness/bin/gh-sync.py ship \
              /Users/molchairuangutai/GitHub/harness/.harness/harness/features/FEAT-34-worktree-act3-enforced
@@ -1033,140 +1018,3 @@ tasks:
       assertions above, and one paragraph stating whether the acceptance passed. If #728 is skipped
       as held open, do NOT fix it by hand: report the failure, name the child that held it, and
       route it back as a fix cycle on T-04.
-  - id: T-11
-    title: Make the suite baseline honest - repair the one failing script a later task edits, and enumerate the rest
-    traces: [REQ-04]
-    change_type: logic
-    execution_mode: main-session-direct
-    execution_reason: operator route ruling on issue 842, every task in this plan runs directly; and the deliverable is a measurement plus a fixture repair to a validator's own test, which no member domain covers cleanly
-    depends_on: []
-    status: pending
-    files:
-      - .claude/skills/harness/bin/test-validate-feature-json.py
-      - .claude/skills/harness/bin/validate-feature-json.py
-      - .harness/harness/features/FEAT-40-harness-writes-done/notes/suite-baseline.md
-    verify: |
-      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
-      test $rc -ne 2
-      printf '%s\n' "$out" | grep -qx 'PASS test-validate-feature-json.py'
-      got=$(printf '%s\n' "$out" | grep -E '^FAIL test-' | sed 's/^FAIL //' | sort | tr '\n' ' ')
-      want='test-board-lifecycle.py test-branch-create-gate.py test-factory-config.py test-inject-expertise.py test-layout-migration.py '
-      test "$got" = "$want"
-      file=$(grep -E '^test-[a-z0-9-]+\.py$' .harness/harness/features/FEAT-40-harness-writes-done/notes/suite-baseline.md | sort | tr '\n' ' ')
-      test "$file" = "$want"
-      grep -q 'cc84b29' .harness/harness/features/FEAT-40-harness-writes-done/notes/suite-baseline.md
-    intent: |
-      THE PROBLEM THIS TASK EXISTS TO FIX, and it blocks five other tasks outright. T-04, T-05,
-      T-06, T-07 and T-08 each open their verify with
-
-        .agents/skills/harness/bin/run-unit-tests.sh --kind all
-
-      and run-unit-tests.sh:146-148 exits 1 if ANY script fails. Measured at cc84b29 in this
-      worktree, with HARNESS_PROJECT_DIR set to it, UNIT_SCRIPTS ran to completion - 18 PASS,
-      6 FAIL, 24 of 24 - and the six failures are test-factory-config.py,
-      test-validate-feature-json.py, test-branch-create-gate.py, test-layout-migration.py,
-      test-inject-expertise.py and test-board-lifecycle.py. Independently reproduced by the main
-      session's own --kind unit run at the same sha with the same six names. None is this
-      feature's doing. As written, none of those five tasks can EVER be marked done.
-
-      WHY NOT THE OBVIOUS ESCAPES, recorded here so a later reader does not re-suggest them:
-        - run-unit-tests.sh CANNOT select individual scripts. Its only arguments are
-          --kind unit|integration|all and --check-kinds; any other first argument prints usage and
-          exits 2 (:24-40). Narrowing a verify to the scripts a task touches means invoking
-          python3 .claude/skills/harness/bin/test-*.py directly, which loses the drift detector
-          (:42-61) and the kind cross-check (:63-127). Those run on EVERY invocation of the runner
-          deliberately, so a mismatch is "not skippable by choosing a kind" (:82) - and T-07's own
-          intent DEPENDS on that: it requires registering test-gh-close-gate.py in two places "or
-          the suite refuses to run".
-        - --kind integration is not an escape either. harness.json:107 and :121 configure the
-          project's unit and integration gates separately, so a red unit set leaves the configured
-          unit gate red regardless. And T-05's own files: names test-validate-feature-json.py,
-          which is a UNIT script and one of the six - so narrowing T-05 to integration would stop
-          looking at the very test T-05 edits. Green because it stopped looking is worse than a
-          verify that cannot pass.
-        - repairing all six is a large, unscoped body of work. Roughly sixty failing assertions
-          clustering into about six root causes, and at least one of them - test-board-lifecycle's
-          linkage guard refusing "project 3 (mruangutai) is not linked to mruangutai/harness" -
-          is a behaviour question, not a fixture fix. That is plausibly a feature of its own.
-
-      SO THIS TASK REPAIRS ONE AND ENUMERATES FIVE. The discriminating line is ownership: a script
-      any later task EDITS must be green, because its greenness is the only evidence that task's
-      own change works. Exactly one failing script meets that test.
-
-      DO THIS.
-
-      Step 1. MEASURE THE WHOLE SUITE TO COMPLETION, before changing anything. Run
-      .agents/skills/harness/bin/run-unit-tests.sh --kind all with HARNESS_PROJECT_DIR set to this
-      worktree, capture the full combined output to a file, and count the PASS and FAIL lines.
-      The INTEGRATION bucket has NEVER been observed to completion in this worktree: both my run
-      and the main session's stalled inside test-check-state.py, which is slow and was competing
-      with two other concurrent copies of itself. Run this ALONE, with no other suite running, and
-      let it finish. Confirm 50 scripts reported - 24 unit plus 26 integration
-      (run-unit-tests.sh:17-18).
-        IF ANY INTEGRATION SCRIPT FAILS, STOP AND ESCALATE. Do not add it to the quarantine list.
-        Several integration scripts are owned by later tasks - test-gh-sync.py by T-04, T-05 and
-        T-06, test-check-state.py by T-05 and T-08, test-post-merge-sweep.py by T-04 - so an
-        integration failure is a new fact the operator must price, not a line in a baseline. The
-        quarantine list is CLOSED AT FIVE and the verify pins those five by literal for exactly
-        this reason.
-
-      Step 2. REPAIR test-validate-feature-json.py TO GREEN. Its single failing case is
-      case_migrated_depth, which asserts the sweep reports ZERO files and got 37: the case is
-      scanning this worktree's real
-      .harness/*/features/*/feature.{json,yaml,yml} instead of an isolated fixture tree. Diagnose
-      it properly rather than adjusting the expected number - a case that expects zero and is
-      handed the live repository is an isolation defect, and moving the number to 37 would make it
-      depend on how many features exist. If the defect turns out to be in validate-feature-json.py
-      rather than in its test, fix it there; that file is in files: for that reason. Show the case
-      failing before and passing after, and change no other case.
-
-      Step 3. DIAGNOSE THE OTHER FIVE, AND REPAIR NONE OF THEM. One line of root cause each, from
-      the captured output, plus the count of failing cases. Do not open a debugger on them. The
-      observed causes at cc84b29, as a starting point and not as a conclusion:
-        - test-factory-config.py, 1 case: (21) a CLAUDE_PROJECT_DIR with no probe file is
-          discarded but the discard is not announced on stderr;
-        - test-branch-create-gate.py, 3 of 8 ("5/8 cases passed"): all three are self-gate cases
-          expecting exit 0 with no stdout - no github block, github.sync false, repo unpinned;
-        - test-layout-migration.py, 7 cases: every one is case 20 parity - the real gate and the
-          render do not name the same reader set and their cause clauses differ;
-        - test-inject-expertise.py, 9 cases: tier precedence, the 40-line and 150-line truncation
-          caps, and the nothing-on-disk case - reads like one injection contract that moved
-          without its test;
-        - test-board-lifecycle.py, about 40 cases: two visible causes, a linkage guard the test's
-          gh fake does not satisfy, and a "workflow detection matches by NAME only" banner
-          printed to STDOUT that the audit assertions compare against.
-
-      Step 4. WRITE THE BASELINE at
-      .harness/harness/features/FEAT-40-harness-writes-done/notes/suite-baseline.md. It has two
-      jobs and both matter.
-        - MACHINE-READ PART: the five script names, one per line, as BARE FILENAMES with nothing
-          else on the line - no leading dash, no backtick, no indentation - so that
-          grep -E '^test-[a-z0-9-]+\.py$' selects exactly them and nothing else in the document.
-          Put them in a fenced block. Nothing else in the file may match that pattern.
-        - HUMAN PART: the sha the set was observed at, which must be the literal cc84b29, the
-          command and the HARNESS_PROJECT_DIR used, the PASS and FAIL counts for both buckets, and
-          the one-line diagnosis and failing-case count from step 3 for each of the five. A
-          recorded baseline that does not carry the sha and the condition it was observed at is
-          unfalsifiable (B-12).
-        - AND THE BOUND, in the file's own words: this list is what the five consuming verifies
-          TOLERATE. A regression introduced INSIDE one of these five scripts is invisible to those
-          verifies, because their failure counts can grow without the set changing. Name that cost
-          in the file, name T-07's compensating clause, and state that adding a sixth name to this
-          list is an operator decision, never a fix.
-
-      WHAT THE FIVE CONSUMING VERIFIES NOW DO, so the shape is recorded in one place. Each runs the
-      suite once and then asserts three things:
-        1. rc != 2 - the drift detector and the kind cross-check still bite, which is what T-07's
-           two-place registration proof rests on. Do not assert rc = 0: 1 is the expected status
-           while five scripts are quarantined;
-        2. the set of FAIL lines equals this baseline file's list, exactly - so ANY newly failing
-           script, in either bucket, fails the verify;
-        3. PASS <script>, by exact line, for every test script that task itself owns - so the task's
-           own evidence cannot be absorbed by the tolerated set.
-      Clause 3 is what stops this remedy from being green-because-it-stopped-looking, and it is why
-      step 2 is a repair rather than a sixth quarantine line.
-
-      THE VERIFY'S OWN LITERAL IS DELIBERATELY NOT READ FROM THE BASELINE FILE for the equality
-      against the suite: this task WRITES that file, so grading it against itself would be true by
-      construction. The five names are spelled into the verify, and the file is then compared to
-      the same literal. Do not simplify the two comparisons into one.
