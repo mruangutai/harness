@@ -1276,7 +1276,7 @@ def case_u():
     # different file. An isolated copy is required — a check-state running from the real
     # bin/ finds the real module whatever the fixture looks like.
     with tempfile.TemporaryDirectory() as tmp2:
-        isobin = os.path.join(tmp2, ".claude", "skills", "harness", "bin")
+        isobin = os.path.join(tmp2, ".agents", "skills", "harness", "bin")
         os.makedirs(isobin)
         _bin = os.path.dirname(os.path.abspath(SCRIPT))
         for fn in ("check-state.sh", "harness_yaml.py"):
@@ -2529,10 +2529,22 @@ def case_inv29():
         # f.3 AND f.4 ARE THE RED PROOF. An implementation keying the exemption on "the
         # lookup returned nothing" passes f.1 and f.2 and fails both of these — which is the
         # over-suppression that would make every refusal in REQ-01..REQ-05 silently stop.
+        short_lines = _i29_for(out, wt_short)
         results.append(("(f.3) a SHORT-named worktree whose landed dir is full-named and "
-                        "Done -> fires", len(_i29_for(out, wt_short)) == 1,
+                        "Done -> fires", len(short_lines) == 1,
                         "\n".join(_i29_lines(out))))
-        results.append(("(f.4) a landed feature.json that is present but UNPARSEABLE -> "
+        # THE MESSAGE IS READ, NOT JUST COUNTED. Firing is not enough: the printed command has to
+        # be RUNNABLE. `--id` must be the worktree DIRECTORY's own name, because that is what
+        # `feature-worktree.py remove` matches; the record's feature_id is the LANDED directory,
+        # which for a short-named worktree is a different string and yields
+        # "not a linked worktree" for a directory plainly sitting in front of the reader.
+        # (f.3) counted the line and never read it, which is exactly how that shipped.
+        short_line = short_lines[0] if short_lines else ""
+        results.append(("(f.4) the SHORT-named worktree's command carries its OWN directory name",
+                        "--id FEAT-SHORT`" in short_line, short_line))
+        results.append(("(f.5) and NOT the landed full name",
+                        "--id FEAT-SHORT-named-in-full" not in short_line, short_line))
+        results.append(("(f.6) a landed feature.json that is present but UNPARSEABLE -> "
                         "fires", len(_i29_for(out, wt_bad)) == 1,
                         "\n".join(_i29_lines(out))))
 

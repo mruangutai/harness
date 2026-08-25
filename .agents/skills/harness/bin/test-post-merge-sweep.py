@@ -131,7 +131,7 @@ def _install_fixture_bin(fixture_root):
 
     Returns the fixture-local `post-merge-sweep.sh` path (itself a symlink) that every case must
     invoke in place of the module-level SWEEP constant."""
-    fixture_bin = os.path.join(fixture_root, ".claude", "skills", "harness", "bin")
+    fixture_bin = os.path.join(fixture_root, ".agents", "skills", "harness", "bin")
     os.makedirs(fixture_bin, exist_ok=True)
     for name in BIN_ENTRIES:
         os.symlink(os.path.join(BIN_DIR, name), os.path.join(fixture_bin, name))

@@ -45,8 +45,8 @@ import tempfile
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = os.path.dirname(SCRIPT)
 REAL_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(BIN_DIR))))
-SKILL_MD = os.path.join(REAL_ROOT, ".claude", "skills", "harness-init", "SKILL.md")
-REAL_SHIM = os.path.join(REAL_ROOT, ".claude", "skills", "harness", "hooks", "post-merge")
+SKILL_MD = os.path.join(REAL_ROOT, ".agents", "skills", "harness-init", "SKILL.md")
+REAL_SHIM = os.path.join(REAL_ROOT, ".agents", "skills", "harness", "hooks", "post-merge")
 
 BIN_ENTRIES = sorted(
     f for f in os.listdir(BIN_DIR) if os.path.isfile(os.path.join(BIN_DIR, f))
@@ -105,13 +105,13 @@ def _install_real_bin_and_hook(root):
     UNMODIFIED T-11 shim — so the origin repository this builds is self-contained and a plain
     local `git clone` carries a real, working `.agents/skills/harness/bin/` and
     `.agents/skills/harness/hooks/post-merge` with no dependency on anything outside the clone."""
-    bin_dst = os.path.join(root, ".claude", "skills", "harness", "bin")
+    bin_dst = os.path.join(root, ".agents", "skills", "harness", "bin")
     os.makedirs(bin_dst, exist_ok=True)
     for name in BIN_ENTRIES:
         dst = os.path.join(bin_dst, name)
         shutil.copy2(os.path.join(BIN_DIR, name), dst)
         os.chmod(dst, 0o755)
-    hooks_dst_dir = os.path.join(root, ".claude", "skills", "harness", "hooks")
+    hooks_dst_dir = os.path.join(root, ".agents", "skills", "harness", "hooks")
     os.makedirs(hooks_dst_dir, exist_ok=True)
     hook_dst = os.path.join(hooks_dst_dir, "post-merge")
     shutil.copy2(REAL_SHIM, hook_dst)
@@ -408,7 +408,7 @@ def case_sc14_end_to_end_and_red_proof():
         # in a SEPARATE origin, then confirm (a)-(d) still pass against a clone of THIS origin
         # before confirming (e) fails. ---
         origin_red = _bootstrap_origin(os.path.join(tmp, "origin-red"))
-        shim_path = os.path.join(origin_red, ".claude", "skills", "harness", "hooks",
+        shim_path = os.path.join(origin_red, ".agents", "skills", "harness", "hooks",
                                   "post-merge")
         real_shim_text = open(shim_path).read()
         needle = '_sweep="$_root/.agents/skills/harness/bin/post-merge-sweep.sh"'
