@@ -1413,10 +1413,11 @@ if _inv26_board:
                 # report one defect twice.
                 continue
 
-            # THE TERMINAL EXEMPTION. The ship closes the parent, GitHub's Item-closed
-            # workflow lands it in Done, and the derivation would still say Review — so
-            # without this every shipped feature is a permanent false violation. Case
-            # sensitive on purpose: `done` is not `Done` (DEC-192).
+            # THE TERMINAL EXEMPTION. `ship` writes the parent's card to the done
+            # station and records the terminal status, while the plan-derived station
+            # would still say Review — so without this every shipped feature is a
+            # permanent false violation. Case sensitive on purpose: `done` is not `Done`
+            # (DEC-203). THE CONDITION IS UNCHANGED: it keys on feature.json's status.
             try:
                 _fj = json.load(open(os.path.join(_fp, "feature.json"), encoding="utf-8"))
             except Exception:
@@ -1474,15 +1475,26 @@ if _inv26_board:
                 _want = _EXPECT.get(_tstat.get(_tid, "pending"))
                 if _want is None:
                     continue
-                # D-24, on the operator's ruling 4 of 2026-08-23 (FEAT-33 T-22). Under D-23
-                # a done task's sub-issue is deliberately left OPEN so it can hold its
-                # column through the whole Review phase: GitHub's native `Item closed`
-                # workflow lands a closed issue's card in the done column by itself, which
-                # is the measured reason board 3 has never held a card at Review. So a done
-                # task's card satisfies this invariant at the done, review OR building
-                # station — but ONLY while the feature's own feature.json status is Review.
-                # BOUNDED ON THAT STATUS ON PURPOSE: an unconditional widening would
-                # silence the mis-columned done card the invariant was extended to catch.
+                # D-24, on the operator's ruling 4 of 2026-08-23 (FEAT-33 T-22). Under
+                # D-23 a done task's sub-issue is deliberately left OPEN so it can hold its
+                # column through the whole Review phase.
+                #
+                # THE ORIGINAL JUSTIFICATION HERE WAS FALSE and is corrected rather than
+                # deleted. It argued that GitHub's native `Item closed` workflow lands a
+                # closed issue's card in the done column by itself, and cited board 3 never
+                # having held a card at Review as the measurement. Measured 2026-08-25:
+                # FEAT-34's thirteen sub-issues #818 through #830 are ALL CLOSED and ALL sit
+                # at Review. A closed issue's card stays where it is.
+                #
+                # What is actually true, and what this widening rests on now: `ship` — not a
+                # close — is what writes the done station (DEC-203). So while a feature's own
+                # status is Review, a done task's card may legitimately read the done, review
+                # OR building station: done if ship has already run, and review or building
+                # because those are what the Review phase itself leaves behind.
+                #
+                # BOUNDED ON THAT STATUS ON PURPOSE, unchanged in force: an unconditional
+                # widening would silence the mis-columned done card the invariant was
+                # extended to catch.
                 _accept = {_want}
                 if (_tstat.get(_tid) == "done"
                         and str(_fj.get("status") or "").split()[:1] == ["Review"]):
@@ -1684,6 +1696,66 @@ if _lmod is not None:
                 _suffix = f"; readers: {_named}" if _named else ""
                 bad.append(f"INV-27 CANNOT VERIFY {_sname}: "
                            f"{_lmod.cause_text(_srep, root)}{_suffix}. {_lrem}")
+
+# --- INV-31 (FEAT-40 T-08, REQ-02/REQ-09): this clone's merge hook is not installed.
+#
+# WHY IT EXISTS AT ALL. The setup step lives in `.claude/skills/harness-init/SKILL.md`, and an
+# already-onboarded clone NEVER RE-RUNS IT. A doc step reaches a clone once; an invariant
+# reaches every clone, every run. Measured at cc84b29 on this very checkout,
+# `core.hooksPath` read `/Users/molchairuangutai/GitHub/harness/.git/hooks`, a directory
+# holding fourteen files every one of which is a `.sample` — so `gh-sync.py ship` never ran at
+# a merge, and NOTHING SAID SO. After this feature `ship` is the only thing that closes
+# tickets and the post-merge sweep is the only thing that runs `ship`, so a clone without the
+# hook silently stops closing tickets altogether.
+#
+# BOTH FINDINGS APPEND TO `bad`, NEVER `warn`, and that is a deliberate departure from INV-28,
+# which warns on the stated ground that the mirror is never a gate. This is not a mirror fact.
+# It is whether THIS MACHINE runs the hook that runs ship.
+#
+# SCOPE, decided rather than omitted: this invariant does NOT check whether a card is closed
+# but away from the done station. `board_lifecycle.py`'s audit already reports exactly that as
+# its STATION finding class, and a second detector for one fact is two rules that will drift.
+# What was missing there was a RUNNER, not a detector, and that runner now sits inside `ship`,
+# once per feature (DEC-203 item 8) — deliberately not here, where the audit's four network
+# calls would fall on every run of the state checker.
+_HOOKS_REL = os.path.join(".claude", "skills", "harness", "hooks")
+
+try:
+    _hp = subprocess.run(["git", "config", "--get", "core.hooksPath"],
+                         cwd=root, capture_output=True, text=True)
+    _hp_ok = True
+except Exception as _hpe:
+    _hp_ok = False
+    # CANNOT RUN IS A VIOLATION, NOT A PASS — the same posture INV-25, INV-26 and INV-29 take
+    # for an import failure. An unreadable git config is not evidence the hook is installed.
+    bad.append("INV-31 CANNOT RUN: git config could not be read (%s: %s), so an uninstalled "
+               "merge hook would go unreported. Fix: make git runnable in this checkout."
+               % (type(_hpe).__name__, _hpe))
+
+if _hp_ok:
+    _found_hp = _hp.stdout.strip() if _hp.returncode == 0 else ""
+    _want_abs = os.path.realpath(os.path.join(root, _HOOKS_REL))
+    # RESOLVED AND COMPARED AS REAL PATHS, so an ABSOLUTE value naming the same directory
+    # passes and a RELATIVE one naming a different directory fails. Comparing the strings
+    # would report a working clone as broken and vice versa.
+    _found_abs = os.path.realpath(os.path.join(root, _found_hp)) if _found_hp else ""
+    if _found_abs != _want_abs:
+        _shown = "unset" if not _found_hp else '"%s"' % _found_hp
+        bad.append("INV-31: core.hooksPath is %s, not %s — no harness hook runs on this "
+                   "clone. Fix: git config core.hooksPath %s"
+                   % (_shown, _HOOKS_REL, _HOOKS_REL))
+    else:
+        # A SECOND FINDING WITH A DIFFERENT SUBJECT, never a variable tail on the first. One
+        # is a misconfigured clone; this one is a damaged checkout. They have different fixes,
+        # so they are different lines.
+        _pm = os.path.join(_want_abs, "post-merge")
+        if not os.path.isfile(_pm):
+            bad.append("INV-31: %s/post-merge is missing — the hook path resolves but the "
+                       "merge sweep cannot run. Fix: restore it" % _HOOKS_REL)
+        elif not os.access(_pm, os.X_OK):
+            bad.append("INV-31: %s/post-merge is not executable (mode %o) — the hook path "
+                       "resolves but the merge sweep cannot run. Fix: chmod +x it"
+                       % (_HOOKS_REL, os.stat(_pm).st_mode & 0o777))
 
 # INV-10 IS GONE, AND THE NUMBER IS RETIRED WITH IT. It ran check-docs.sh, the
 # propagation checker, which no longer exists: the operator struck the whole

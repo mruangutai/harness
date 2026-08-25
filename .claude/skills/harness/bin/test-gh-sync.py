@@ -2,7 +2,7 @@
 """gh-sync.py must get these right — offline, against a fake gh.
 
 The fake logs every invocation and returns canned JSON, so the tests assert the
-EXACT outward calls (repo pinned on every one, labels derived, close-task
+EXACT outward calls (repo pinned on every one, labels derived, abandon
 closes exactly one issue and leaves absorbed issues open) and the exit-code
 contract: environmental problems exit 0 (the mirror never gates), caller
 errors exit 1.
@@ -356,47 +356,6 @@ esac
 exit 0
 """
 
-# Same board reads/writes, station write succeeds, but `issue close` fails — this is the
-# fixture that pins the ORDERING in close-task: the parent write must already have happened
-# by the time this failure is hit.
-FAKE_GH_STATIONS_CLOSE_FAILS = """#!/bin/bash
-echo "$*" | tr '\n' '\001' >> "$FAKE_LOG"; echo >> "$FAKE_LOG"
-case "$*" in
-  *"sub_issues -F sub_issue_id="*)
-    echo '{}'
-    exit 0 ;;
-  *"--jq .id"*)
-    num=$(echo "$*" | grep -oE 'issues/[0-9]+' | head -1 | grep -oE '[0-9]+')
-    echo "9000$num"
-    exit 0 ;;
-  *"ProjectV2SingleSelectField"*)
-    printf '{"data":{"repositoryOwner":{"__typename":"User","projectV2":{"id":"PVT_PROJ","field":{"id":"FIELD_STATUS","name":"Status","options":[{"id":"OPT_BACKLOG","name":"Backlog"},{"id":"OPT_PLAN","name":"Plan"},{"id":"OPT_READY","name":"Ready"},{"id":"OPT_BUILDING","name":"Building"},{"id":"OPT_REVIEW","name":"Review"},{"id":"OPT_DONE","name":"Done"}]}}}}}\\n'
-    exit 0 ;;
-  *"projectItems(first: 100)"*)
-    num=$(echo "$*" | grep -oE 'number=[0-9]+' | tail -1 | grep -oE '[0-9]+')
-    printf '{"data":{"repository":{"issue":{"projectItems":{"totalCount":1,"nodes":[{"id":"ITEM_%s","project":{"number":3}}]}}}}}\\n' "$num"
-    exit 0 ;;
-  *"project item-edit"*)
-    exit 0 ;;
-esac
-case "$1 $2" in
-  "auth status") exit 0 ;;
-  "api -X")
-    case "$*" in
-      *milestones\\ -f*) echo '{"number": 7}' ;;
-      *) echo '{}' ;;
-    esac ;;
-  "issue create")
-    n=$(( $(grep -c "issue create" "$FAKE_LOG") + 40 ))
-    echo "https://github.com/implentio/fake/issues/$n" ;;
-  "issue close")
-    echo "simulated close failure" >&2
-    exit 1 ;;
-  "label create") exit 0 ;;
-esac
-exit 0
-"""
-
 
 FULL_STATIONS = {"backlog": "Backlog", "plan": "Plan", "ready": "Ready", "building": "Building",
                   "review": "Review", "done": "Done"}
@@ -588,6 +547,56 @@ def install_gh(tmp, script=FAKE_GH):
     os.chmod(gh_path, 0o755)
 
 
+# T-04's ship fixtures, defined HERE with the other helpers rather than beside the ship cases,
+# because T-11 retargeted an earlier block onto them: a helper used by two sections belongs
+# above both.
+def stage_ship(tmp, feat_name, issues, parent=40, source_issues=None, milestone=7):
+    """A ship fixture: a board-backed feature plus the SPEC.md probe `factory_config`'s
+    `harness_root()` looks for, so the audit ship now schedules resolves THIS fixture's
+    harness.json rather than climbing out to the real checkout."""
+    feat = stage_station(tmp, feat_name, [(t, "done") for t in issues],
+                          issues=issues, parent=parent, milestone=milestone,
+                          source_issues=source_issues, feature_status="Review")
+    if source_issues:
+        # feature.json's github.source_issues is the MIRROR `load_recorded` reads; plan.yaml's
+        # own top-level field is what `open` copies from. `stage_station` writes only the
+        # plan, so the mirror is written here.
+        fj = os.path.join(feat, "feature.json")
+        doc = json.load(open(fj))
+        doc["github"]["source_issues"] = list(source_issues)
+        json.dump(doc, open(fj, "w"), indent=2)
+    docs = os.path.join(tmp, ".harness", "harness", "docs")
+    os.makedirs(docs, exist_ok=True)
+    open(os.path.join(docs, "SPEC.md"), "w").write("# fixture probe\n")
+    return feat
+
+
+def ship_env(tmp, stations, children=None, **extra):
+    env = {"FACTORY_GH": os.path.join(tmp, "gh"),
+           "CLAUDE_PROJECT_DIR": tmp,
+           "SHIP_STATIONS": stations,
+           "SHIP_BOARD_STATE": os.path.join(tmp, "board-state")}
+    for num, kids in (children or {}).items():
+        env["SHIP_CHILDREN_%s" % num] = " ".join(str(k) for k in kids)
+    env.update(extra)
+    return env
+
+
+def edits_to(log, station_opt):
+    return [l for l in log if "project item-edit" in l and station_opt in l]
+
+
+def moved_to_done(log):
+    """The ITEM ids written to the Done option. Callers assert PER NUMBER, never as a count,
+    so a run that moved the wrong three cards cannot pass."""
+    out = set()
+    for l in edits_to(log, "OPT_DONE"):
+        m = re.search(r"--id ITEM_(\d+)", l)
+        if m:
+            out.add(int(m.group(1)))
+    return out
+
+
 fails = 0
 
 
@@ -692,17 +701,18 @@ with tempfile.TemporaryDirectory() as tmp:
            or "sub_issue_id=" in l or "--jq .id" in l]
     check("re-run open creates nothing", r.returncode == 0 and not new, str(new))
 
-    # --- close-task closes exactly one issue; absorbed issues are cited and left open
+    # --- T-11: the subcommand is GONE. It closed an issue while writing no station, so it
+    #     could produce the exact state this feature exists to prevent -- an issue CLOSED with
+    #     its card away from the done station. T-07's Bash gate would NOT have stopped it:
+    #     gh-sync.py reaches gh through subprocess, which a PreToolUse Bash hook never sees.
+    #     Deleting it is what stops it. The three assertions that stood here were about
+    #     close-task itself and have no surviving subject.
     open(os.path.join(tmp, "calls.log"), "w").close()
     r = run(["close-task", feat, "T-01"], tmp)
-    log = calls(tmp)
-    closes = [l for l in log if l.startswith("issue close")]
-    check("close-task closes exactly one issue", r.returncode == 0 and len(closes) == 1, str(log))
-    check("absorbed #12 #14 NOT closed",
-          not any(" 12 " in l + " " for l in closes) and not any(" 14 " in l + " " for l in closes), str(closes))
-    # T-08: close-task's argv, verbatim — never inferred from the exit code alone.
-    check("close-task's issue close carries an explicit --reason completed (T-08)",
-          len(closes) == 1 and "--reason completed" in closes[0], str(closes))
+    check("close-task is not a subcommand any more",
+          r.returncode != 0 and "close-task" in (r.stdout + r.stderr)
+          and "unknown command" in (r.stdout + r.stderr),
+          "rc=%s out=%r err=%r" % (r.returncode, r.stdout, r.stderr))
 
     # --- ship closes the milestone
     open(os.path.join(tmp, "calls.log"), "w").close()
@@ -1533,37 +1543,33 @@ with tempfile.TemporaryDirectory() as tmpN7:
           "-> Doing" in r.stdout and "-> Building" not in r.stdout,
           r.stdout)
 
-# --- close-task on the last outstanding task sets the parent to Review and attempts the
-#     sub-issue close — and the parent write happens even when the close FAILS, which pins
-#     the ordering (parent write BEFORE the close) required by step 4.
+# --- the parent reaches Review when every task is done. RETARGETED to start-task by T-11.
+#     The derivation is CALLER-INDEPENDENT BY CONSTRUCTION -- _apply_parent_rule's own
+#     docstring says it reads plan.yaml from disk and never infers the transition from which
+#     subcommand called it -- so start-task exercises the same property close-task did.
+#     The two ORDERING assertions that stood here are deleted, not retargeted: they ordered
+#     the parent write against a sub-issue close that no longer exists.
 with tempfile.TemporaryDirectory() as tmpO:
-    install_gh(tmpO, FAKE_GH_STATIONS_CLOSE_FAILS)
+    install_gh(tmpO, FAKE_GH_STATIONS)
     featO = stage_station(
         tmpO, "FEAT-09-close-last-task",
         [("T-01", "done"), ("T-02", "done"), ("T-03", "done")],
         issues={"T-01": 41, "T-02": 42, "T-03": 43},
         parent=40,
     )
-    r = run(["close-task", featO, "T-03"], tmpO, {"FACTORY_GH": os.path.join(tmpO, "gh")})
+    r = run(["start-task", featO, "T-03"], tmpO, {"FACTORY_GH": os.path.join(tmpO, "gh")})
     logO = calls(tmpO)
     editsO = [l for l in logO if "project item-edit" in l]
-    check("close-task on the last task exits 0 even though the close fails (SKIP, not a gate)",
-          r.returncode == 0, r.stdout + r.stderr)
-    check("close-task sets the parent to Review",
+    check("every task done: exits 0", r.returncode == 0, r.stdout + r.stderr)
+    check("every task done: the parent card is set to Review",
           any("--id ITEM_40" in l and "--single-select-option-id OPT_REVIEW" in l
               for l in editsO),
           str(editsO))
-    check("the sub-issue close was ATTEMPTED (and is the thing that failed)",
-          any(l.startswith("issue close 43") for l in logO), str(logO))
-    _parent_edit_idx = next((i for i, l in enumerate(logO) if "--id ITEM_40" in l), None)
-    _close_idx = next((i for i, l in enumerate(logO) if l.startswith("issue close 43")), None)
-    check("the parent write is ORDERED BEFORE the close in the log",
-          _parent_edit_idx is not None and _close_idx is not None
-          and _parent_edit_idx < _close_idx,
-          str(logO))
 
-# --- close-task on a feature whose feature.json status is Done writes NO station at all —
-#     the terminal exemption (D-03/D-04) — even though the sub-issue itself still closes.
+# --- a feature whose feature.json status is Done writes NO station at all -- the terminal
+#     exemption (D-03/D-04). RETARGETED to start-task by T-11; the exemption is a property of
+#     _apply_parent_rule, which reads feature.json, not of whichever subcommand called it.
+#     The third assertion, that the sub-issue still closes, went with the command.
 with tempfile.TemporaryDirectory() as tmpP:
     install_gh(tmpP, FAKE_GH_STATIONS)
     featP = stage_station(
@@ -1573,33 +1579,43 @@ with tempfile.TemporaryDirectory() as tmpP:
         parent=40,
         feature_status="Done",
     )
-    r = run(["close-task", featP, "T-01"], tmpP, {"FACTORY_GH": os.path.join(tmpP, "gh")})
+    r = run(["start-task", featP, "T-01"], tmpP, {"FACTORY_GH": os.path.join(tmpP, "gh")})
     logP = calls(tmpP)
-    check("close-task on a Done feature exits 0", r.returncode == 0, r.stdout + r.stderr)
-    check("close-task on a Done feature makes no item-edit call at all",
-          not any("item-edit" in l for l in logP), str(logP))
-    check("close-task on a Done feature still closes the sub-issue",
-          any(l.startswith("issue close 41") for l in logP), str(logP))
+    check("a Done feature exits 0", r.returncode == 0, r.stdout + r.stderr)
+    # NARROWED FROM "no item-edit at all". The terminal exemption is _apply_parent_rule's,
+    # and it covers the PARENT card. The deleted subcommand wrote no station for its own
+    # sub-issue, so "none at all" happened to be true through it; start-task writes the
+    # sub-issue's own station unconditionally, which the exemption never governed. Asserting
+    # the wider claim through the new caller would assert something that was never the rule.
+    check("a Done feature writes NO PARENT station — the terminal exemption",
+          not any("item-edit" in l and "ITEM_40" in l for l in logP), str(logP))
 
 # --- THE LOUD PAIR (SC-04/D-02), one fixture per half, both required —
 #     half 1: gh works but the station write (item-edit) fails -> exit 0, one ERROR line on
 #     stderr naming the issue, AND the call that follows (the sub-issue close) still happens.
+# THE FIXTURE CHANGED WITH THE CALLER. The deleted subcommand made no board READ, so a stub
+# that only answered item-edit was enough for it. start-task reads the board first (its
+# already-Done guard), so the stub has to answer that query too, and FAKE_GH_SHIP is the one
+# that does. SHIP_EDIT_FAIL picks which single card's write fails.
 with tempfile.TemporaryDirectory() as tmpQ1:
-    install_gh(tmpQ1, FAKE_GH_STATIONS_ITEM_EDIT_FAILS)
-    featQ1 = stage_station(
-        tmpQ1, "FEAT-09-loud-item-edit-fails",
-        [("T-01", "done"), ("T-02", "done")],
-        issues={"T-01": 41, "T-02": 42},
-        parent=40,
-    )
-    r = run(["close-task", featQ1, "T-02"], tmpQ1, {"FACTORY_GH": os.path.join(tmpQ1, "gh")})
+    install_gh(tmpQ1, FAKE_GH_SHIP)
+    featQ1 = stage_ship(tmpQ1, "FEAT-09-loud-item-edit-fails", {"T-01": 41, "T-02": 42},
+                         parent=40)
+    r = run(["start-task", featQ1, "T-02"], tmpQ1,
+            ship_env(tmpQ1, "40=Building 41=Building 42=Backlog", SHIP_EDIT_FAIL="ITEM_42"))
     logQ1 = calls(tmpQ1)
     check("loud pair (item-edit fails): process still exits 0", r.returncode == 0,
           r.stdout + r.stderr)
-    check("loud pair (item-edit fails): stderr carries the gh-sync: ERROR line naming issue 40",
-          "gh-sync: ERROR" in r.stderr and "40" in r.stderr, r.stderr)
-    check("loud pair (item-edit fails): the issue call that follows it still happened",
-          any(l.startswith("issue close 42") for l in logQ1), str(logQ1))
+    check("loud pair (item-edit fails): stderr carries the gh-sync: ERROR line naming the "
+          "card whose write failed",
+          "gh-sync: ERROR" in r.stderr and "42" in r.stderr, r.stderr)
+    # RETARGETED by T-11, and the PROPERTY is unchanged: one failed write must not stop the
+    # call that follows it. It used to be asserted against the sub-issue close; the surviving
+    # sequence is the sub-issue's own station write followed by the parent's, so the parent
+    # write must still be attempted after the sub-issue's fails.
+    check("loud pair (item-edit fails): a failed card write does not stop the write that "
+          "follows it — the parent write was still attempted",
+          any("item-edit" in l and "ITEM_40" in l for l in logQ1), str(logQ1))
 
 #     half 2: gh is absent from PATH entirely -> one SKIP line, exit 0, and no item-edit call
 #     is even attempted — proving the failing half alone would be satisfied by a tool that
@@ -1611,7 +1627,7 @@ with tempfile.TemporaryDirectory() as tmpQ2:
         issues={"T-01": 41, "T-02": 42},
         parent=40,
     )
-    r = run(["close-task", featQ2, "T-02"], tmpQ2,
+    r = run(["start-task", featQ2, "T-02"], tmpQ2,
             {"GH_SYNC_GH": os.path.join(tmpQ2, "no-such-gh"),
              "FACTORY_GH": os.path.join(tmpQ2, "no-such-gh")})
     check("loud pair (gh absent): one SKIP line, exit 0",
@@ -1619,8 +1635,10 @@ with tempfile.TemporaryDirectory() as tmpQ2:
     check("loud pair (gh absent): no item-edit call is even attempted",
           not calls(tmpQ2), str(calls(tmpQ2)))
 
-# --- a feature whose harness.json carries no github.board runs open and close-task
-#     unchanged, exits 0, and makes no item-edit call — the environmental precondition (D-02).
+# --- a feature whose harness.json carries no github.board runs open and start-task unchanged,
+#     exits 0, and makes no item-edit call — the environmental precondition (D-02).
+#     RETARGETED from close-task by T-11: the precondition is a property of the environment,
+#     not of the subcommand that meets it.
 with tempfile.TemporaryDirectory() as tmpR:
     install_gh(tmpR, FAKE_GH_STATIONS)
     featR = stage_station(
@@ -1640,13 +1658,17 @@ with tempfile.TemporaryDirectory() as tmpR:
     t2R = (ghR.get("issues") or {}).get("T-02")
     check("no board configured: open still recorded T-02's issue — the lifecycle ran, not skipped",
           t2R is not None, str(docR))
-    r2 = run(["close-task", featR, "T-01"], tmpR, {"FACTORY_GH": os.path.join(tmpR, "gh")})
+    open(os.path.join(tmpR, "calls.log"), "w").close()
+    r2 = run(["start-task", featR, "T-02"], tmpR, {"FACTORY_GH": os.path.join(tmpR, "gh")})
     logR = calls(tmpR)
-    check("no board configured: close-task exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
+    check("no board configured: start-task exits 0", r2.returncode == 0, r2.stdout + r2.stderr)
     check("no board configured: no item-edit call is ever made",
           not any("item-edit" in l for l in logR), str(logR))
-    check("no board configured: close-task actually closed T-01's issue — the lifecycle ran",
-          t1R is not None and any(l.startswith(f"issue close {t1R}") for l in logR), str(logR))
+    # The lifecycle-ran proof, retargeted: it used to be that close-task really closed T-01's
+    # issue. start-task's own recorded evidence is the plan.yaml status it requires and the
+    # exit 0 above; assert it did not silently no-op by requiring the recorded issue exists.
+    check("no board configured: the issue lifecycle still ran — T-01 and T-02 are recorded",
+          t1R is not None and t2R is not None, str(docR))
 
 # --- an UNUSABLE board config (github.board missing station_field) is a LOUD failure of the
 #     WHOLE invocation — exit 2, the offending key on stderr — not an environmental
@@ -2241,53 +2263,6 @@ with tempfile.TemporaryDirectory() as tmpC5:
 # =============================================================================================
 # T-04 — ship writes the DONE STATION, closes nothing, and waits for open children.
 # =============================================================================================
-
-def stage_ship(tmp, feat_name, issues, parent=40, source_issues=None, milestone=7):
-    """A ship fixture: a board-backed feature plus the SPEC.md probe `factory_config`'s
-    `harness_root()` looks for, so the audit ship now schedules resolves THIS fixture's
-    harness.json rather than climbing out to the real checkout."""
-    feat = stage_station(tmp, feat_name, [(t, "done") for t in issues],
-                          issues=issues, parent=parent, milestone=milestone,
-                          source_issues=source_issues, feature_status="Review")
-    if source_issues:
-        # feature.json's github.source_issues is the MIRROR `load_recorded` reads; plan.yaml's
-        # own top-level field is what `open` copies from. `stage_station` writes only the
-        # plan, so the mirror is written here.
-        fj = os.path.join(feat, "feature.json")
-        doc = json.load(open(fj))
-        doc["github"]["source_issues"] = list(source_issues)
-        json.dump(doc, open(fj, "w"), indent=2)
-    docs = os.path.join(tmp, ".harness", "harness", "docs")
-    os.makedirs(docs, exist_ok=True)
-    open(os.path.join(docs, "SPEC.md"), "w").write("# fixture probe\n")
-    return feat
-
-
-def ship_env(tmp, stations, children=None, **extra):
-    env = {"FACTORY_GH": os.path.join(tmp, "gh"),
-           "CLAUDE_PROJECT_DIR": tmp,
-           "SHIP_STATIONS": stations,
-           "SHIP_BOARD_STATE": os.path.join(tmp, "board-state")}
-    for num, kids in (children or {}).items():
-        env["SHIP_CHILDREN_%s" % num] = " ".join(str(k) for k in kids)
-    env.update(extra)
-    return env
-
-
-def edits_to(log, station_opt):
-    return [l for l in log if "project item-edit" in l and station_opt in l]
-
-
-def moved_to_done(log):
-    """The ITEM ids written to the Done option. Callers assert PER NUMBER, never as a count,
-    so a run that moved the wrong three cards cannot pass."""
-    out = set()
-    for l in edits_to(log, "OPT_DONE"):
-        m = re.search(r"--id ITEM_(\d+)", l)
-        if m:
-            out.add(int(m.group(1)))
-    return out
-
 
 # --- every recorded card reaches Done, and NOTHING is closed --------------------------------
 with tempfile.TemporaryDirectory() as tmpS1:

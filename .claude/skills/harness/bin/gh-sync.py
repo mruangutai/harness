@@ -4,8 +4,6 @@
   gh-sync.py open  <feature-dir>          plan approved -> milestone + parent + one issue per T-NN
   gh-sync.py start-task <feature-dir> T-NN    task moved to building -> sub-issue's station
                                            -> Building, then the parent's derived station (FEAT-18)
-  gh-sync.py close-task <feature-dir> T-NN    task's commit landed -> close its issue, then
-                                           the parent's derived station (FEAT-18)
   gh-sync.py abandon <feature-dir> --reason-file <path> [--yes]  feature abandoned ->
                                            WITHOUT --yes it prints every write it would make
                                            and makes none; WITH --yes it closes every sub-issue
@@ -44,7 +42,7 @@ gh unauthenticated, network down, or `github.board` declared as an EXPLICIT null
 prints one loud line and exits 0 for the WHOLE invocation, because a flow that fails on
 its *mirror* has inverted its priorities (SPEC §12 precedent for branch/PR ops). An
 explicit null board (FEAT-24 D-07) prints one plain line, station writes are not
-attempted, and the issue lifecycle (open, close-task's issue close, abandon, ship) runs
+attempted, and the issue lifecycle (open, abandon, ship) runs
 unchanged — the whole invocation is never abandoned for it. An UNUSABLE board
 declaration — `github.board` absent, present but not a mapping, or malformed in any
 field `factory_config.validate_board` checks — is NOT an environmental precondition
@@ -181,7 +179,7 @@ def gh_try(args):
 def load_config(root):
     """Return `(repo, board)`. `board` is `gh_board.load_board(root)` — a dict, or None when
     `github.board` is an EXPLICIT null. An explicit null is the ONLY environmental precondition
-    left (D-02, D-07): the issue lifecycle (open, close-task's issue close, abandon, ship)
+    left (D-02, D-07): the issue lifecycle (open, abandon, ship)
     still runs; only station writes are skipped.
 
     Every OTHER unusable board shape — the `github` block absent, `board` key absent, or any
@@ -230,10 +228,13 @@ def _feature_status(feat_dir):
 
 
 def _apply_parent_rule(feat_dir, repo, board):
-    """THE PARENT RULE (T-03, D-03/D-04) — called identically at the end of `start-task` and
-    `close-task`, and written ONCE here rather than twice.
+    """THE PARENT RULE (T-03, D-03/D-04) — called at the end of `start-task`, which is now
+    its ONLY caller. The per-commit subcommand that used to be the second one was deleted
+    under DEC-203 item 8: it closed an issue while writing no station. This stays a separate
+    function rather than being folded into its one caller, because the derivation is
+    deliberately caller-independent and the next caller must inherit that, not re-derive it.
 
-    THE DERIVATION PRESUPPOSES THE PLAN IS ALREADY UPDATED. Both callers read plan.yaml from
+    THE DERIVATION PRESUPPOSES THE PLAN IS ALREADY UPDATED. The caller reads plan.yaml from
     disk, so the CALLER (the orchestrator) must have recorded the task's new status in
     plan.yaml BEFORE invoking this subcommand — this function never infers the transition
     from which subcommand called it, because that would make the subcommand a second status
@@ -864,28 +865,6 @@ def cmd_start_task(feat_dir, tid, repo, board):
         _apply_parent_rule(feat_dir, repo, board)
 
 
-def cmd_close_task(feat_dir, tid, repo, board):
-    rec = load_recorded(feat_dir)
-    if tid not in rec["issues"]:
-        skip(f"{tid} has no recorded issue — nothing to close (was `open` run?)")
-    tasks = {t["id"]: t for t in parse_tasks(feat_dir)}
-    # THE PARENT WRITE IS ORDERED BEFORE THE ISSUE CLOSE (T-03 step 4, D-02). gh() calls
-    # skip() on a failing close, and skip() calls sys.exit(0) — terminating the process
-    # immediately. Writing the parent's station first means a failing close can never
-    # swallow it. close-task writes NO station for its OWN sub-issue: closing it is what
-    # lands it in Done through the board's own Item-closed workflow (measured, D-03).
-    if board is not None:
-        _apply_parent_rule(feat_dir, repo, board)
-    # T-08: an explicit reason, always — `gh issue close` with none writes state_reason
-    # null, indistinguishable from an abandoned ticket (measured on #416/#452).
-    gh(["issue", "close", str(rec["issues"][tid]), "--repo", repo,
-        "--reason", "completed"], capture=False)
-    print(f"gh-sync: closed issue #{rec['issues'][tid]} for {tid}")
-    absorbed = tasks.get(tid, {}).get("absorbs", [])
-    if absorbed:
-        print(f"gh-sync: {tid} absorbs {', '.join('#' + n for n in absorbed)} — left open for the ship briefing")
-
-
 def _status_plan_doc(feat_dir):
     """plan.yaml, loaded and validated, or None on any failure (absent file, unparseable,
     or schema-invalid). `status`'s two guarded transitions (Ready, Review) both need this
@@ -1415,7 +1394,7 @@ def main():
         yes_flag = True
         argv = argv[:i] + argv[i + 1:]
     if len(argv) < 2:
-        die("usage: gh-sync.py open|start-task|close-task|abandon|ship|backlog|record-pr|"
+        die("usage: gh-sync.py open|start-task|abandon|ship|backlog|record-pr|"
             "status "
             "<feature-dir> [T-NN | nature:title ... | <Status>] [--parent <n>] "
             "[--reason-file <path>] [--body-file <path>] [--pr <n>] [--yes]")
@@ -1468,10 +1447,6 @@ def main():
         if len(argv) < 3:
             die("start-task needs a T-NN")
         cmd_start_task(feat_dir, argv[2], repo, board)
-    elif cmd == "close-task":
-        if len(argv) < 3:
-            die("close-task needs a T-NN")
-        cmd_close_task(feat_dir, argv[2], repo, board)
     elif cmd == "abandon":
         cmd_abandon(feat_dir, repo, board, reason_file, yes_flag)
     elif cmd == "ship":
