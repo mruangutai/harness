@@ -44,20 +44,15 @@ skill; it is not restated here.
   `/harness-wayfinding` (a persistent map under `.harness/efforts/`). Then `pm` plans it:
   `/harness-plan`.
 - **"where are we?"** → relay a briefing request to that feature's orchestrator (trigger 3, §10.3).
-- **A bug report** ("X is broken", a stack trace, a failing repro) → mission **debug**: cause
+- **A bug report** ("X is broken", a stack trace, a failing repro) → mission **debug** (the
+  orchestrator reads `.claude/skills/harness/references/debug-mission.md`): cause
   unknown → an investigation segment runs FIRST and its root-cause report seeds the plan; cause
   already known → straight to `/harness-plan` (the FEAT-02 pattern). Either way the fix ships
   through the normal gates under a `BUG-NN-<slug>` id — there is no ungated bug lane (DEC-139).
 - **"what should we do next?"** → mission **triage**: the one sanctioned direct dispatch to
   `harness-product-lead` (no feature exists for an orchestrator to own; triage writes no state).
-  pm reads the backlog (GitHub Issues if `github.sync`), the codebase map, and shipped history,
+  pm reads the backlog (GitHub Issues if `github.sync`) and shipped history,
   and returns ranked candidates with rationale. You pick; the pick seeds `/harness-plan` (DEC-138).
-- **"deepen" / "review the architecture"** → mission **deepen** (DEC-149) — between features
-  only; `/harness-deepen` is the explicit door.
-- **"map the codebase"** (or INV-14 warning of code without a map) → mission **map**
-  (`/harness-map` is the explicit door). Normally
-  this ran AT INIT (DEC-140) and this route is for re-maps and projects onboarded before the rule;
-  everything plans against the map, so run it before the next feature if it is missing.
 
 ## 2. Approvals are yours
 

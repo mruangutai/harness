@@ -14,7 +14,7 @@ channel to the user. Delegate the *mechanical detection* to `dev-ops`; never del
 **The interview IS a grilling (DEC-164).** Load `harness-grilling` and run it: one question at a
 time with your recommendation, facts looked up rather than asked, destination named first, and the
 artifact written to `.harness/notes/`. Its answers seed `harness.json`, the domain description, and
-the first `glossary.md` terms.
+the first `.harness/glossary.md` terms.
 
 ## Preflight — stop if any of these fails
 
@@ -185,17 +185,6 @@ not finished onboarding.
 **If the user amends or defers, leave it pending** — and tell them plainly that the harness is blocked
 until they approve, and that `/harness` will keep saying so. A pending brief is a correct state; a
 brief you approved on their behalf is not.
-
-### Map the codebase — runs AS PART OF INIT, not as a remembered follow-up (DEC-140)
-
-If the project has **existing source code**, the last act of init is spawning
-`harness-orchestrator` with **mission map** (DEC-137) — the org's structural knowledge is built
-before the first feature ever plans, so nothing downstream runs unmapped.
-
-- **Existing code** (dev-ops detection found source beyond scaffolding) → spawn mission map now,
-  in the background; tell the user it is running and that `codebase/map.html` lands when done.
-- **Greenfield** (no meaningful source) → skip, and say so — the map builds naturally as ships
-  refresh it. INV-14 will start nagging the moment real code exists without a map.
 
 ### GitHub Issues mirror — ask ONCE, here, so it is never forgotten (DEC-138)
 

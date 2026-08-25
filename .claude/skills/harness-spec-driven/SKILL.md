@@ -129,7 +129,7 @@ classic D-NN: record the load-bearing reason so it is not re-litigated.
 
 ## The glossary — the domain's language is yours to keep sharp
 
-`.harness/codebase/glossary.md` is your map lens for the domain's **ubiquitous language**: one
+`.harness/glossary.md` is the domain's **ubiquitous language**: one
 canonical term per concept, no implementation detail — a glossary, never a spec or scratch pad.
 Working rules (DEC-149, adapted from domain-modeling practice):
 
@@ -141,7 +141,7 @@ Working rules (DEC-149, adapted from domain-modeling practice):
 - **Code wins:** when a stated meaning contradicts what the code does, surface the contradiction —
   the same re-derive discipline you already apply to anchors, aimed at language.
 - **Update inline, at the moment a term is settled** — a feature that pins a vocabulary (an enum,
-  a status set) updates the glossary in the same ship-refresh pass that updates your
+  a status set) updates the glossary in the same pass that updates your
   product-surface lens. Create the file lazily; empty is worse than absent.
 
 ## Citations and baselines rot — anchor them so they cannot (B-11, B-12)

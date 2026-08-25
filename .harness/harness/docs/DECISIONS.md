@@ -3106,7 +3106,32 @@ two historical sentences.
 
 ---
 
-## DEC-137 — The codebase map: a third knowledge tier, role-authored, index-preloaded, ship-refreshed
+## DEC-137 — STRUCK 2026-08-24
+
+Recorded the codebase map as a third knowledge tier at `.harness/codebase/`, authored by the role
+that consumes it, carved per role in `team-config.yaml`, with `INDEX.md` preloaded at every spawn
+and kept true by a ship-refresh pass at every close-out.
+
+Struck under DEC-188 on the operator's word, on a measurement: across **35 feature directories the
+map was never built**. `.harness/codebase/` did not exist, so thirty-five features planned against
+a tier that `/harness-map` describes as the thing "everything plans against". A tier nothing ever
+used is not under-adopted; it is unneeded, and every gate and pointer still naming it was a false
+statement standing in the tree.
+
+Removed from every gate and surface: `INV-14` and `INV-20` deleted from `check-state.sh`, the
+`INDEX.md` injection deleted from the `inject-expertise.sh` SubagentStart hook, ten map paths
+dropped from `team-config.yaml` and its template, `/harness-map` and `/harness-deepen` deleted,
+`bin/render-map.py` and `templates/codebase-INDEX.md` deleted, and the playbook's ship-refresh
+section removed.
+
+**The glossary survived the tier it lived in.** `.harness/codebase/glossary.md` is the domain's
+ubiquitous language, used by `harness-spec-driven`, `harness-grilling` and `harness-init` — none of
+them the map. It moved to `.harness/glossary.md`; DEC-162 and its INV-19 hold, with the map
+precondition dropped.
+
+**DEC-137's number is retired, not reused.** DEC-140 and DEC-149 cite it.
+
+**The original entry follows, left standing unedited (DEC-188: appended to, never rewritten).**
 
 Raised by the user before kaya-ai: agents entering an existing codebase should consult a durable
 map instead of combing the code per task — domains, architecture, data flows, stack, LLM patterns —
@@ -3285,7 +3310,18 @@ qa, review, or a signature between diagnosis and change.
 
 ---
 
-## DEC-140 — The map runs at init; INV-14 nags code that has none
+## DEC-140 — STRUCK 2026-08-24
+
+Recorded that the map is built AT INIT rather than as a remembered follow-up, and that `INV-14`
+warns whenever real source exists with no `.harness/codebase/INDEX.md`.
+
+Struck under DEC-188 with DEC-137, whose tier it scheduled. `INV-14` is deleted from
+`check-state.sh` and the map spawn is deleted from `harness-init`. Nothing survives that could nag
+for a file the harness no longer produces.
+
+**DEC-140's number is retired, not reused.**
+
+**The original entry follows, left standing unedited (DEC-188: appended to, never rewritten).**
 
 Field report from kaya-ai's first onboarding: a feature build ran **before** the map, because
 "mission map is the first flow" lived only in prose — the forgettable class, same as the GitHub
@@ -3504,6 +3540,11 @@ of distillation because kaya still ran the old rules — deploy is the gating co
 discipline.
 
 
+**Note (2026-08-24): am.3 below is MOOTED.** Ship-refresh existed only to keep the codebase map
+true, and it was removed with that map tier (DEC-137, struck). Close-out is now one dispatch —
+distillation — so there is no second job to run concurrently with. The amendment is left standing
+below as the record of why the pairing existed; nothing acts on it.
+
 **Amendment am.3 (issue #80): ship-refresh and distillation dispatch concurrently, and the cold
 property survives it.** They were two sequential close-out rounds; they share no data and neither
 reads the other's output, so the round-trip bought nothing. They are now **two separate dispatches
@@ -3572,6 +3613,15 @@ and the path.
 ---
 
 ## DEC-149 — Design knowledge enters the org: vocabulary, glossary, and the deepen mission
+
+**Amendment 1 (2026-08-24) — mission `deepen` is retired; the two skills and the glossary stand.**
+`deepen` scanned the codebase map, and the map tier was struck (DEC-137) after 35 features never
+built one. `/harness-deepen` is deleted and the mission is removed from `harness.md`'s resolution
+list. What this entry ALSO created is untouched and live: `harness-codebase-design`,
+`harness-spec-driven`, and the glossary — which moved with the tier's retirement to
+`.harness/glossary.md`. This entry is amended rather than struck because only its mission clause is
+contradicted.
+
 
 Three imports from Matt Pocock's MIT-licensed skills (mattpocock/skills), each re-homed onto
 existing harness machinery rather than bolted on:

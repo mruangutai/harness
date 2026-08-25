@@ -13,7 +13,6 @@ into a product repository.
 | `plan.yaml` | `.harness/features/<FEAT>/plan.yaml` | `harness-pm` | first planning pass, not init |
 | `PLAN.md` | `.harness/features/<FEAT>/PLAN.md` | `harness-pm` | **superseded by `plan.yaml` (DEC-182)** — never instantiated for a new feature; kept because features planned before DEC-182 keep their `PLAN.md` until they ship |
 | `STATE.md` | `.harness/features/<FEAT>/STATE.md` — **one per flow**, never a project-level file (DEC-120) | that feature's orchestrator | first run of that feature, not init |
-| `codebase-INDEX.md` | `.harness/codebase/INDEX.md` | `documentor`, via the understand-codebase playbook | first map run, not init |
 | `DESIGN.md` | `.harness/features/<FEAT>/DESIGN.md` | `harness-visual-designer` | init's optional design pass, for UI projects only |
 
 **Everything directly in this directory is a template.** Anything that is not one lives in

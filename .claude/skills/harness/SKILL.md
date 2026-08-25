@@ -231,27 +231,6 @@ a single additive line, a byte-identical revert, one suite re-run. Take that mea
 before any claim about it travels up. Inferring one such question cost a working day and two retracted claims,
 and the probe that settled it disproved the inference.
 
-## Mission: debug — investigate first, then it becomes a plan (DEC-139)
-
-For *symptom known, cause unknown*. When the cause is already known there is nothing to
-investigate — that is a plan mission with a `BUG-NN` id (the FEAT-02 pattern).
-
-1. **Investigation segment** — dispatch eng-lead: one specialist, chosen by `consult-when`, in
-   debug mode (`harness-systematic-debugging` governs it — NOT preloaded since DEC-158: the
-   dispatch prompt must tell the specialist to Read
-   `.claude/skills/harness-systematic-debugging/SKILL.md` first): **reproduce → localize → root-cause,
-   with evidence — no fix.** The deliverable is a root-cause report in the flow's `notes/`
-   (repro steps, the failing case, the causal chain with `file:line` anchors, and the fix surface
-   it implies). Three failed reproduction/hypothesis cycles → `BLOCKED` up, per the skill — an
-   uninvestigatable bug is a decision for the user, not a budget sink.
-2. **The report seeds the plan** — pm drafts the mini-BRIEF/PLAN from it (`## Problem` = the
-   diagnosis; SC-01 is always "the repro fails pre-fix and passes post", verify: automated;
-   tasks are `change_type: bugfix`). Same signature, same gates, same mirror (`bug` label derives).
-3. **Ship as normal.** Nothing about being a bug relaxes a gate — a second, lighter lane is how
-   approval bypasses grow (DEC-19).
-
-Ids: **`BUG-NN-<kebab-slug>`**, independent sequence from FEAT, same folder root and machinery.
-
 ## GitHub mirror — nine sync points, when `github.sync` is on (DEC-138)
 
 `bin/gh-sync.py` — idempotent and **never a gate**. Almost entirely outbound: the one
@@ -345,47 +324,25 @@ board, so `factory_claim.py`'s poll of the ready station has only ever contained
 real cost:** board 2 loses the human promotion signal, because a card now arrives at Ready from a
 signature rather than from a person.
 
-## Missions map and deepen — read the reference when dispatched with one
+## Mission debug — read the reference when dispatched with it
 
-Mission **map** (understand-codebase, DEC-137) and mission **deepen** (the architecture-review
-scan, DEC-149) run between features, never inside a build. When your dispatch names one, Read
-`.claude/skills/harness/references/missions.md` before acting — the full procedure lives there
-(DEC-158).
+Mission **debug** (symptom known, cause unknown — DEC-139) is the one mission outside the
+plan-to-ship loop. When your dispatch names it, Read
+`.claude/skills/harness/references/debug-mission.md` before acting — the full procedure lives there
+(DEC-158 move 3).
 
-## Close-out — ONE dispatch turn, not three rounds (#80)
+## Close-out — ONE dispatch, not a round of them
 
-After the SCs pass and before the briefing there are two jobs — ship-refresh and distillation.
-**Issue them as TWO SEPARATE DISPATCHES IN ONE MESSAGE**, so they run concurrently. They share no
-data and neither reads the other's output, so running them as separate rounds costs a full lead
-round-trip for nothing. **There is no third round:** the briefing needs no report spawn (see below).
+After the SCs pass and before the briefing there is **one** job: distillation. **There is no second
+round and no report spawn** — the briefing is assembled from digests you read off disk (below).
 
-**NEVER fold both jobs into one dispatch to a lead.** That is not the same saving and it has a real
-quality cost (#80): ship-refresh is hot, mechanical routing — intersect `files_touched`, spawn the
-owning specialist — while distillation is explicitly a **cold, stepping-back** judgment (DEC-145;
-`harness-expertise`: *"Mid-run you only observe; distillation happens later, cold"*). A lead handed
-both in one prompt does the second while still hot from the first, and its distillation degrades
-into summarising the run it just routed. That failure is invisible at ship time and surfaces as a
-worse next feature. **Concurrency is free; combining the prompts is not.**
-
-Sequencing them serially is the other way to be wrong here, because the result looks identical and
-nothing surfaces the wait — the same trap as serial dispatch inside a team.
-
-## Ship-refresh — the map stays true (DEC-137 amendment)
-
-Dispatched in the close-out turn:
-
-1. Union the feature's `files_touched` across its team digests; intersect with the map's domains.
-2. No intersection → skip, note it, done. Intersection →
-3. **Documentor** (skeleton grant only): update `INDEX.md` provenance and mark each affected role
-   section `stale: <FEAT>`.
-4. **Each owning specialist** rewrites its own stale sections — one member spawn per actually-
-   touched domain, dispatched through its lead in the same flow. Nobody rewrites a view they do
-   not own; the map is never knowingly stale at rest.
-5. **Re-render:** run `bin/render-map.py` — the HTML follows the markdown mechanically.
+Ship-refresh used to run here as a second, concurrent dispatch. It kept the codebase map true, and
+it was retired with that map tier — DEC-137 is STRUCK and DEC-145 am.3's two-job concurrency rule
+has nothing left to pair.
 
 ## Feature-close distillation — observations become Expertise (DEC-145)
 
-Dispatched in the SAME turn as ship-refresh, never as a following round:
+The one close-out dispatch:
 
 1. Dispatch **each lead that ran this feature** once: "distill — **read
    `.claude/skills/harness-distill/SKILL.md` first (NOT preloaded, DEC-158) and tell each member to
@@ -511,7 +468,7 @@ wholesale sweep (DEC-150).
 3. Write it to `.harness/harness/features/<FEAT>/notes/ship-review-<runid>.md` — plain English, bounded length,
    conclusions first. It is the one artifact addressed to a human. Then render the reading view:
    `python3 .claude/skills/harness/bin/render-brief.py <that path>` writes the `.html` sibling. The
-   markdown stays the record; **never hand-author the HTML** — same law as `render-map.py` (DEC-141).
+   markdown stays the record; **never hand-author the HTML** (DEC-141).
 4. Return it as `briefing:` in your digest. You wrote it; the main session presents it. Ship, fix,
    re-scope, stop — that instruction comes back down to you.
 
