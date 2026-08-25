@@ -15,8 +15,8 @@ onboarding; everything after that is written by the agents that own each path (s
 | `DESIGN.md` | The visual design contract: palette in both themes, type scale, spacing, component direction | `visual-designer` |
 | `team-config.yaml` | **The org as data** — membership, `consult-when` routing, and each agent's writable `domain`. Read by `check-domain.sh` on every write | `/harness-init`, seeded from detection |
 | `harness.json` | `test_matrix`, `test_kinds`, `gates`, `budgets`, `log_retention_days` | `/harness-init` · `dev-ops` fills `test_kinds` |
-| `expertise/<agent>.md` | Per-agent durable **craft** — how that agent works, true wherever it works. Budget **150 lines**. Injected at every spawn by the `SubagentStart` hook; the agent never reads it itself | each agent, its own file only |
-| `<repo>/expertise/<agent>.md` | Per-agent knowledge **specific to one repository** — true of that repository and nowhere else. Budget **40 lines**. Injected at every spawn by the same hook, alongside the craft file; the agent never reads it itself | each agent, its own file only |
+| `expertise/<agent>.md` | Per-agent durable **craft** — how that agent works, true wherever it works. Budget **150 lines**. Injected at every OMP task-agent start; the agent never reads it itself | each agent, its own file only |
+| `<repo>/expertise/<agent>.md` | Per-agent repository-specific knowledge. Budget **40 lines**. Injected by the same OMP lifecycle extension alongside craft knowledge | each agent, its own file only |
 | `efforts/<slug>/` | A pre-feature **wayfinding map** (`MAP.md` + `tickets/`): a vague idea being taken to plannable clarity across sittings. Local markdown, never the issue tracker (DEC-165). Retired or archived once its effort hands off to `/harness-plan` | the **main session** |
 | `notes/grilling-*.md` | A single-sitting dialog-to-clarity record: destination, settled decisions, fog, out-of-scope, facts verified — pm's BRIEF input (DEC-164) | the **main session** |
 | `features/<FEAT>/notes/` | That feature's durable artifacts: `research-*`, `review-<persona>-c<cycle>.md`, `qa-*`, `answers-<runid>.md`, `ship-review-<runid>.md`, `uat.md`, `mockups/`, `prototypes/` — **the path carries the feature id** (DEC-130) | the owning agent |
@@ -26,7 +26,7 @@ onboarding; everything after that is written by the agents that own each path (s
 | `features/<FEAT>/feature.yaml` | Execution facts: branch, PR, `review_sha`, `cycles_used`/`max_total_cycles`, run list | that feature's **orchestrator** |
 | `features/<FEAT>/runs/<run>/` | One team run: `state.yaml` + the lead's `digest.md` | that run's **lead** |
 | `teams/*.yaml` | *Optional.* Project overrides for shipped team definitions | you |
-| `.claude/agents/*.md` | The org's own definitions. **Deliberately unowned by every agent** — an agent editing these is self-modification, so changing what the org *is* stays with the tier that has a user channel. Agents raise `open_questions` instead | **you** (main session) |
+| `.omp/agents/*.md` | Canonical role definitions. **Deliberately unowned by every agent** — editing the organization is self-modification, so agents raise `open_questions` instead. `.claude/agents/` contains generated Claude Code adapters. | **you** (main session) |
 
 **Committed**, except `features/*/runs/**`, which is ephemeral scratch — and must be git-ignored, or
 a dirty tree deadlocks the next run.
@@ -49,7 +49,7 @@ Three rules explain most of the table:
 ## How work flows
 
 A **team** is a lead plus its members. The lead conducts a DAG of steps, dispatching only its own
-squad (`harness-team` skill; definitions in `.claude/skills/harness/teams/*.yaml`).
+squad (`harness-team` skill; definitions in `.agents/skills/harness/teams/*.yaml`).
 
 ```
 main session ──▶ orchestrator ──▶ lead ──▶ members
@@ -81,10 +81,9 @@ lead, so multi-squad lifecycles are sequenced by the orchestrator as one run per
 
 `BRIEF.md` missing means the project is not onboarded — run `/harness-init`.
 
-Run `bin/check-state.sh` any time; it checks the invariants that fail silently, including the five
-`settings.json` prerequisites, an unapproved brief, and tasks missing `change_type`.
+Run `.agents/skills/harness/bin/check-state.sh` any time; it checks invariants that fail silently,
+including required lifecycle integration, approvals, and tasks missing `change_type`.
 
-> **Schemas live in `.claude/skills/harness/templates/`** — `BRIEF.md`, `PLAN.md`, `STATE.md`,
-> `DESIGN.md`, `harness.json`, `team-config.yaml`. Copy from there, not from examples in prose: an
-> out-of-date template in a README is how a task ends up without a `change_type` and silently skips
-> the test gate.
+> **Schemas live in `.agents/skills/harness/templates/`** — `BRIEF.md`, `plan.yaml`, `STATE.md`,
+> `DESIGN.md`, `harness.json`, `team-config.yaml`. Copy from there, not from examples in prose:
+> an out-of-date template silently skips required gates.
