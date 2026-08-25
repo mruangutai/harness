@@ -4,7 +4,7 @@
   "pr": null,
   "status": "Plan",
   "review_sha": "none",
-  "cycles_used": 5,
+  "cycles_used": 6,
   "max_total_cycles": 10,
   "max_total_runs": 20,
   "runs": [
@@ -40,6 +40,12 @@
     },
     {
       "id": "2026-08-25-06-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-25-07-product",
       "squad": "product",
       "agent": "harness-product-lead",
       "verdict": "PASS"

@@ -313,7 +313,7 @@ tasks:
     change_type: logic
     execution_mode: main-session-direct
     execution_reason: operator route ruling on issue 842; this is the close path itself and the same file's ship step is what runs at this feature's own merge, so a dispatched member would be building under a half-changed mirror
-    depends_on: [T-01]
+    depends_on: [T-01, T-03]
     status: pending
     files:
       - .claude/skills/harness/bin/gh-sync.py
@@ -539,6 +539,50 @@ tasks:
       T-11 owns that removal, its tests and its doc reference, and T-11 depends on this task so
       the two never edit gh-sync.py at the same time. Do not correct that comment here, and do
       not delete the function here.
+
+      Step 8d. CORRECT cmd_status's DOCSTRING, gh-sync.py:898 — the Plan, Done and Abandoned line
+      of its STATION WRITES block. Re-derive the anchor before editing: earlier steps of this task
+      rewrite this file. At 4571bda the line reads that Done is GitHub's native Item-closed
+      workflow, and cites D-03 and DEC-192. BOTH HALVES ARE WRONG and both are corrected in one
+      edit.
+        First, the causality. Measured at 4571bda: issues #818 through #830 are CLOSED and all
+        thirteen of their cards sit at Review. Closing an issue does not land its card at the done
+        station on this board. State instead that cmd_status writes no station for Done because
+        ship is the only writer of the done station (D-01), and a Done feature's cards are already
+        there when ship finishes. Do not replace one causal claim with another one this feature
+        has not measured.
+        Second, the citation. The line cites DEC-192, which T-03 STRIKES. Live code must not
+        justify itself by a struck decision. THE CORRECTED LINE MUST CITE DEC-203 BY NAME. D-03
+        alone is not sufficient: it is plan-local and stops resolving as a pointer the moment this
+        feature merges, which would leave live code citing nothing permanent. Keep D-03 alongside
+        it if it still reads well; DEC-203 is the required durable pointer.
+      BEHAVIOUR IS UNCHANGED. cmd_status still writes no station at all for Plan, Done or
+      Abandoned. This is a docstring edit of roughly two to three lines; no test and no clause of
+      this task's verify asserts the docstring's text, which is why the verify block is untouched.
+
+      Step 8e. CORRECT test-gh-sync.py's cmd_status FIXTURE COMMENT, test-gh-sync.py:1615-1617 —
+      the three-line comment that introduces the status Plan, Done and Abandoned loop. Re-derive
+      the anchor before editing: earlier steps of this task rewrite this file. At 4571bda it says
+      the harness never writes those three columns because Done is GitHub's own workflow, and it
+      cites D-03 and DEC-192. It is a paraphrase of the gh-sync.py:898 line Step 8d corrects, and
+      BOTH HALVES ARE WRONG in the same way, so correct both in one edit.
+        First, the causality. Closing an issue does not land its card at the done station on this
+        board: measured at 4571bda, issues #818 through #830 are closed and all thirteen of their
+        cards sit at Review. State instead that cmd_status writes no station for Done because ship
+        is the only writer of the done station (D-01). Plan remains board-station.py's and
+        Abandoned still has no column at all; leave those two clauses as they are and do not
+        replace the Done clause with a new causal claim this feature has not measured.
+        Second, the citation. DEC-192 is STRUCK by T-03, and a test file must not justify itself by
+        a struck decision. THE CORRECTED COMMENT MUST CITE DEC-203 BY NAME, for the same durability
+        reason as Step 8d: D-03 alone is plan-local and stops resolving as a pointer the moment
+        this feature merges. Keep D-03 alongside it if it still reads well.
+      THIS IS A COMMENT-ONLY EDIT, roughly two lines of comment. NO ASSERTION CHANGES. The checks
+      below it, at 4571bda test-gh-sync.py:1630-1632, assert exit 0, that no item-edit call is made
+      for Plan, Done or Abandoned, and that feature.json records the status; all three remain true
+      after this task, because cmd_status still writes no station for those three. Only the
+      parenthetical reason was false. This task's verify block is therefore untouched, and T-11
+      does not absorb this comment: T-11 touches only close-task material in this file plus its
+      header comment at test-gh-sync.py:5.
 
       Step 9. When board is None (no github.board configured), print one line saying no board is
       configured so no card was moved, still close the milestone, still record the pr and the
@@ -896,6 +940,44 @@ tasks:
       where the audit's four network calls would fall on every run of the state checker. The two
       notes are consistent rather than contradictory: the detector is now scheduled, and it is
       scheduled somewhere other than here. Do not add it here.
+
+      CORRECT THE TWO FALSIFIED Item-closed COMMENTS IN check-state.sh, in this same task. This
+      task is their only legal home: under the DEC-174 carve-out check-state.sh may be changed only
+      through the main-session route, and this is the sole task in the plan carrying that file.
+      Both sites are comment-only. No assertion in test-check-state.py and no clause of this task's
+      verify reads either one. Re-derive both anchors before editing.
+      THE PREMISE THAT IS FALSE, measured at 4571bda: issues #818 through #830 are CLOSED and every
+      one of their thirteen cards sits at Review. Closing an issue does not move its card to the
+      done station on this board. After this feature, ship writes the done station itself (D-01),
+      so a card that is at Done is there because ship put it there.
+        (a) check-state.sh:1416, INV-26's TERMINAL EXEMPTION. At 4571bda it justifies the exemption
+            by saying the ship closes the parent and GitHub's Item-closed workflow lands it in
+            Done. Restate the reason: ship writes the parent's card to the done station and records
+            the terminal status, while the plan-derived station would still say Review — so without
+            this exemption every shipped feature is a permanent false violation. Keep the
+            case-sensitivity note that follows it as it stands. Roughly two lines. THE EXEMPTION'S
+            CONDITION IS UNCHANGED: it still keys on feature.json status being Done or Abandoned.
+        (b) check-state.sh:1479, D-24's JUSTIFICATION COMMENT. This one is a REWRITE, not a
+            relabel — roughly five to eight lines. At 4571bda it argues that under D-23 a done
+            task's sub-issue is deliberately left OPEN so it can hold its column through the Review
+            phase, because GitHub's native Item closed workflow would otherwise land a closed
+            issue's card in the done column by itself, and it cites board 3 never having held a
+            card at Review as the measurement for that. That measurement is now contradicted by the
+            thirteen cards above. Rewrite the justification on what is actually true: under D-23 a
+            done task's card may legitimately read the done, review OR building station while the
+            feature's own status is Review, because ship — not a close — is what writes the done
+            station, and the review and building stations are what the Review phase legitimately
+            leaves behind. Carry forward into the rewritten text, unchanged in force, the bound and
+            its reason: the widening applies ONLY while the feature's own feature.json status is
+            Review, because an unconditional widening would silence the mis-columned done card the
+            invariant was extended to catch. Keep the D-24 attribution and the operator's ruling 4
+            of 2026-08-23.
+        THE ACCEPT SET'S BEHAVIOUR IS UNCHANGED, and this is a hard constraint on step (b). At
+        4571bda lines 1486-1489 build _accept as the single expected station, widened with the
+        review and building stations when the task is done and the feature's status is Review. That
+        set does not rest on the falsified premise. Do not narrow it, do not widen it, do not
+        reorder it, and do not touch it at all. The correction is to the justification comment
+        only, and every existing INV-26 assertion in test-check-state.py must still pass unchanged.
 
       THE VERIFY'S THIRD CLAUSE ASSERTS THE RUN COMPLETED before it asserts INV-31 is absent, and
       must not be simplified back to a pipe into grep. check-state.sh's embedded python exits 1
