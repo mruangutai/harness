@@ -98,10 +98,10 @@ EXCLUDED_PREFIXES = (".harness/logs/", ".harness/notes/", ".harness/harness/feat
 ALLOW_LIST = [
     # this file necessarily contains all four tokens above, in its own pattern and this list;
     # inert on a run where it is untracked (git ls-files does not see it), load-bearing once committed.
-    ".agents/skills/harness/bin/test-no-distribution.py",
+    ".claude/skills/harness/bin/test-no-distribution.py",
     # case 20's $HOME-shaped trap builds its OWN synthetic registry.json inside a temp dir (SC-02);
     # that fixture is legitimate and must not be swept away to satisfy this check.
-    ".agents/skills/harness/bin/test-check-plan-routes.py",
+    ".claude/skills/harness/bin/test-check-plan-routes.py",
 ]
 
 

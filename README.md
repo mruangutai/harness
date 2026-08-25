@@ -48,13 +48,13 @@ The overlays map `deep`, `strong`, `standard`, and `review` to concrete models. 
 | Provider mappings | `.omp/providers/*.yml` |
 | Canonical agents | `.omp/agents/harness-*.md` |
 | OMP lifecycle enforcement | `.omp/extensions/harness-hooks.ts` |
-| Canonical skills and utilities | `.agents/skills/harness-*/` |
+| Authored skills and utilities | `.claude/skills/harness-*/` |
 | Project state and durable artifacts | `.harness/` |
 | Organization, routing, and write domains | `.harness/team-config.yaml` |
 
-`CLAUDE.md`, `.claude/agents/`, `.claude/skills`, and `.claude/settings.json` are Claude Code compatibility adapters. `sync-agent-adapters.py` generates Claude role files from the OMP definitions, and `.claude/skills` points to the canonical Agent Skills tree.
+`.claude/skills/` is the single authored skill tree used directly by Claude Code. `.agents/skills` is a compatibility symlink to that tree, giving OMP the standard Agent Skills path without a second copy. `CLAUDE.md`, `.claude/agents/`, and `.claude/settings.json` remain Claude Code adapters; `sync-agent-adapters.py` generates Claude role files from the OMP definitions.
 
-OMP project configuration disables Claude-format discovery. This proves the Harness runtime does not depend on `.claude/**` even though Claude Code remains supported.
+OMP project configuration disables Claude-format discovery. Skills remain available through `.agents/skills`, proving that OMP discovery does not depend on enabling the Claude provider even though the shared files are authored under `.claude/skills`.
 
 ## Guardrails
 
@@ -68,7 +68,7 @@ The native OMP extension preserves the Harness enforcement contracts:
 - report post-write state-shape failures;
 - reject malformed task-agent digests before accepting a handoff.
 
-Policy remains in the tested shell/Python modules under `.agents/skills/harness/bin/`; the TypeScript extension adapts OMP lifecycle events and does not duplicate policy.
+Policy remains in the tested shell/Python modules authored under `.claude/skills/harness/bin/` and exposed to OMP through `.agents/skills/harness/bin/`; the TypeScript extension adapts OMP lifecycle events and does not duplicate policy.
 
 ## Expertise and artifacts
 
@@ -109,7 +109,7 @@ python3 .agents/skills/harness/bin/sync-agent-adapters.py --apply
 python3 .agents/skills/harness/bin/sync-agent-adapters.py --check
 ```
 
-To add a skill, create `.agents/skills/harness-<name>/SKILL.md` and add its name to the applicable agents' `autoloadSkills` lists.
+To add a skill, create `.claude/skills/harness-<name>/SKILL.md` and add its name to the applicable agents' `autoloadSkills` lists. OMP discovers it through the `.agents/skills` symlink.
 
 ## Factory repositories
 

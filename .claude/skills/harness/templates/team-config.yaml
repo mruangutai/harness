@@ -146,7 +146,7 @@ teams:
           server-side integration, error handling at the service boundary.
         domain:
           - { path: src/**, upsert: true }                 # SEED — backend source root
-          - { path: .agents/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
+          - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's authored harness source (FEAT-02 Q3)
           - { path: .harness/features/*/notes/receipt-harness-backend-dev-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-backend-dev.md, upsert: true }
           - { path: ".", read: true }
@@ -181,7 +181,7 @@ teams:
           - { path: .github/**, upsert: true }
           - { path: Dockerfile, upsert: true }
           - { path: .harness/harness.json, upsert: true }
-          - { path: .agents/skills/harness/bin/**, upsert: true }   # this repo's source IS the harness (FEAT-02 Q3)
+          - { path: .claude/skills/harness/bin/**, upsert: true }   # this repo's authored harness source (FEAT-02 Q3)
           - { path: .harness/features/*/notes/receipt-harness-dev-ops-*.md, upsert: true }   # its verification receipt (B-7)
           - { path: .harness/expertise/harness-dev-ops.md, upsert: true }
           - { path: ".", read: true }

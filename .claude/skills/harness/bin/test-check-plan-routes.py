@@ -19,7 +19,7 @@ SCRIPT = os.environ.get("CHECK_PLAN_ROUTES_BIN") or os.path.join(
     BIN_DIR, "check-plan-routes.py")
 REPO_ROOT = os.path.abspath(os.path.join(BIN_DIR, "..", "..", "..", ".."))
 
-GRANTED_PATH = ".agents/skills/harness/bin/check-domain.sh"  # granted to two agents
+GRANTED_PATH = ".claude/skills/harness/bin/check-domain.sh"  # granted to two agents
 
 
 def cpr():
@@ -240,7 +240,7 @@ def case_18():
             "- T-01: block form, every path granted\n"
             "  files:\n"
             "    - .harness/harness/docs/SPEC.md\n"
-            "    - .agents/skills/harness/bin/check-domain.sh\n"
+            "    - .claude/skills/harness/bin/check-domain.sh\n"
             "  execution_mode: team\n"
             "  status: pending\n"))
         r4 = run(allg)
