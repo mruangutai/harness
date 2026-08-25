@@ -3223,10 +3223,12 @@ acceptance.
 a decision as an issue invites drive-by reopening of signed choices), approvals, run dirs/digests,
 Expertise, the codebase map. Mirror the work, not the machinery.
 
-**Intake absorbs, never imports 1:1.** Backlog issues are symptoms written by whoever hit them; pm
-plans work by its real shape. One T-NN may cover several existing issues — its issue body records
-`absorbs: #12, #14, #31` and they close with it, so nothing silently vanishes and every watcher
-sees where their item went. Inbound the backlog gets a vote; outbound the plan gets the decision.
+**Intake reshapes, never imports 1:1.** Backlog issues are symptoms written by whoever hit them; pm
+plans work by its real shape. One T-NN may cover several existing issues. **The `absorbs:` citation
+that recorded this is STRUCK 2026-08-25 under DEC-188 — see amendment 7.** An issue a feature
+actually does is a ticket in its own right and closes when its card reaches `Done`; an issue the
+feature does not do stays open, cited nowhere. Inbound the backlog gets a vote; outbound the plan
+gets the decision.
 
 **The harness's own design docs (SPEC/DECISIONS/BUILD) do not mirror.** If this repo ever wants
 Issues, it eats its own dog food — features through `/harness-plan`, same machinery — not a
@@ -4431,17 +4433,18 @@ read back into an approval-gated artifact (DEC-138 proper).
 The shipped shape of the GitHub Issues mirror after the sub-issue migration. Two things here reverse
 earlier text; the rest is the contract as the code now runs it (`.claude/skills/harness/bin/gh-sync.py`).
 
-**`absorbs:` is a citation and closes nothing — this supersedes am.1's "they close with it."** A
-task's issue body still records `absorbs: #12, #14, #31` (written at create, `gh-sync.py:278-279`), but
-`close-task` issues **exactly one** `issue close` — the task's own issue — and then only *prints* the
-absorbed numbers, `— left open for the ship briefing` (`gh-sync.py:310-314`). The suite assertion
-inverted with it: `absorbed #12 #14 NOT closed` (`test-gh-sync.py:245`) replaced the old
-`absorbed #12 #14 closed`. The reason, recorded so the reversal is not re-litigated: **absorption is
-normally partial.** kaya's #315/#209/#309/#312/#305 were each only *part*-covered by the task that
-cited them, and a script must not infer that a partly-covered issue is done. So the only route from
-"the feature covered this" to "this is closed" is a **human signature** — the same briefing-gated route
-am.4 uses for leads' residual findings. Trade-off, accepted: watchers of an absorbed issue no longer
-see it close automatically; they see the citation and the ship briefing.
+**The `absorbs:` rule is STRUCK 2026-08-25 under DEC-188.** It said a task's issue body cites
+`absorbs: #12, #14, #31`, closes none of them, and leaves them for a human signature, because
+absorption is normally partial. The operator struck the concept whole: it named a third category
+between "this feature does the work" and "it does not", and no such category exists. A sub-issue is
+a ticket. It is planned, tasked and shipped like any other, by whoever picks it up.
+
+DEC-138's own body carried the text this clause superseded — absorbed issues "close with it". That
+text is struck in the same act and does NOT revive; nothing in the tree now says an issue closes
+because another task mentioned it.
+
+What replaces both: **a ticket is open while its card is not at the `Done` station, and a parent
+closes when it has no open children.** Station is the authority on open, not the issue's own state.
 
 **`open` creates one sub-issue per `T-NN` under a single parent, adopted-or-created but never
 discovered.** Precedence, first match wins: (1) `feature.yaml github.parent` already holds a number →
