@@ -3,72 +3,87 @@
 ## Current
 
 - feature: FEAT-34-worktree-act3-enforced
-- status: Building (feature.json, board spelling)
-- cycles_used: 6 / 10 · runs: 13 / 20
-- in flight: NOTHING. All squads returned.
-- FULLY HELD ON THE OPERATOR — four acts, none of them dispatchable by me.
-- HEAD 4c7b650. Most of the feature is UNCOMMITTED; the operator holds the pen.
+- status: Review (feature.json, board spelling) — awaiting the operator
+- cycles_used: 6 / 10 - runs: 16 / 20
+- in flight: NOTHING. All three squads returned.
+- HEAD 513c4a4 == review_sha, unmoved all phase. Nothing under .claude/ modified by any agent.
 
-THE FOUR OPERATOR ACTS: (1) execute T-07/T-08/T-09 — `main-session-direct`, `pending`, and they
-ARE the qa gate's M1/M2/M3; (2) sign Amendment 3 / SC-16; (3) sign D-11; (4) approve the
-one-clause D-01 `because` correction. pm asked for the three signatures to stay INDEPENDENT so
-each can be accepted or refused separately; I have not bundled them.
+VALIDATE IS COMPLETE AS A PHASE. All four steps ran and returned: simplify (PASS, 0 send-backs,
+flag-only so the pin survived), reviewer panel (FAIL, one high must_fix), goal-check (FAIL, 14/16
+met), and the CEO briefing, written and rendered at exit 0 —
+notes/ship-review-2026-08-24-validate.md plus .html. Handoff superseded at seq-4,
+notes/handoff-validate.md, 60 lines.
 
-Q2/M4 ANSWERED: SHAPE 3 — genuinely undecided at plan time, and pm CORRECTED MY FRAMING. I
-dispatched two shapes ("deliberately harness-only" vs "REQ-07 does reach"), both presupposing the
-brief had decided. It had explicitly declined to: BRIEF.md:237-239 reads "Whether the harness and
-a fleet repository share one mechanism or need two is undecided, and REQ-07 through REQ-09 are
-written to be satisfied by either." REQ-07 (:73-74) carries no repository quantifier. I verified
-both at source. My dispatch rested on a false premise and pm caught it.
+THE FEATURE SHIPS ONE DEFECT ALL SIXTEEN CRITERIA ARE BLIND TO. INV-29 refuses correctly but prints
+a removal command that fails for any SHORT-NAMED worktree. I verified all four links myself at the
+pin rather than routing the panel's claim onward — my P-06 — and this time the check CONFIRMED the
+finding. SC-01 asserts the command on an EXACT-named fixture where both id derivations coincide;
+SC-05 (f.3) uses the short-named fixture but asserts only that a finding appears, never reading the
+command text. REQ-02 is violated while both criteria touching it are met AS WRITTEN.
 
-I VERIFIED THE "DO LESS" RECOMMENDATION RATHER THAN ACCEPTING IT — it is the convenient kind.
-`classify` -> `classify_all` at post-merge-sweep.sh:234 would be a NO-OP THAT LOOKS GREEN:
-no served checkout carries `.claude/skills/harness/hooks` (kaya-ai exists WITHOUT it,
-harness-factory-smoke absent entirely), so no harness hook fires there at all; and :163-167 builds
-feat_dir under `main_checkout_root`, so every served-repo record takes the SKIP. Measured by me
-via factory_config.load_fleet(). M4 does NOT go to eng. `med` stands.
+pm GRADED SC-01/SC-05 met AND THAT WAS THE HARDER, BETTER CALL. Grading them not_met points the
+remedy at code and leaves the blind spot standing; grading them met is what forces SC-17 to exist.
+A criterion reworded until it fails has caught nothing. The product lead's own tier initially
+disagreed and then recorded that pm was right — a shape worth preserving.
 
-D-01's `because` (plan.yaml:88) is FALSE AS WRITTEN on the repository dimension. pm judges it a
-CORRECTION, not a DEC-188 strike — D-01's CHOICE still stands, only its stated reason overreaches,
-and its other two grounds are untouched. That distinction is pm's and I accept it: DEC-188 governs
-a decision the tree FLATLY CONTRADICTS. The correction is the half most likely to be dropped, and
-with no propagation checker nothing will ever detect it.
+FOUR OPERATOR ACTS, NONE DISPATCHABLE: (1) the two-file fix — check-state.sh's --id derivation AND
+test-check-state.py's (f.3) message assertion, together or the class regresses silently; (2) adopt
+SC-17; (3) amend SC-06 plus a verification gap; (4) rule on SC-08.
 
-qa GATE FAIL STANDS, and NO CYCLE WAS SPENT. cycles_used is 6. DEC-157 makes a cycle REWORK ONLY;
-T-07/T-08/T-09 have never been executed, so they are first-pass FORWARD work. The FAIL records an
-incomplete plan, not a defect. Verified by me: INV-30 = 0 occurrences in check-state.sh (INV-29 =
-9), and INV-29/INV-30 = 0 in test-check-state.py.
+SC-08: MY DISPATCH'S PREMISE DID NOT SURVIVE THE ARTIFACT, and pm independently reached the same
+place. BRIEF.md:202-205 declares `verify: automated`; T-13 (done) grades it; `grep -i uat` returns
+two hits, both Verification-gaps entries, neither an SC. SC-08 is MET. The genuinely outstanding
+item is the operator's-own-clone gap the brief deliberately refuses to make a criterion. I never
+graded it either way — only the operator can say which was meant.
 
-MEASURED BY ME, all green: sweep 47 PASS, hooks-install 29 PASS, worktree-terminal 34 PASS, each
-exit 0; check-state.sh exit 0; run-unit-tests.sh exit 0 with zero ^FAIL.
+SC-06 IS UNSATISFIABLE BY GIT, NOT BY IMPLEMENTATION. pm probed it in a throwaway repo: merge
+--squash fires post-merge with HEAD still pre-squash and the landed feature.json unreadable, and the
+completing commit never re-fires. REQ-07 unmet on that path. Criterion change, never code. I did NOT
+re-run pm's probe — that one claim is pm-verified, not me-verified.
 
-CONTEXT CHECK SKIPPED AGAIN — the transcript grep is denied by the permission classifier. A
-skipped check is NOT a passed one, so no headroom figure is claimed. Handoff superseded at seq-3
-(notes/handoff-build.md, 57 lines) because everything is now held and the next wake may be a
-fresh orchestrator.
+SC-11 IS A NEW concern THE PANEL GRADED pass — its first half has no assertion at all, because the
+fixture lands both features already Done so the status write is unobservable.
 
-TWO PROCESS ERRORS THIS WAKE, recorded rather than smoothed: `bash-write-guard.sh` blocked a
-heredoc whose target was an unresolved `$D` shell variable — a correct refusal, and I re-issued
-with the literal path. Then `check-domain.sh` refused the handoff at 65 lines against a 60 cap;
-I trimmed to 57. Both guards worked.
+NO CYCLE CHARGED, reasoning stated rather than implied. DEC-157 counts a FAIL routed back to the
+lead whose member produced it. Both defective files are hand-written main-session-direct, so there
+is no squad to route to and no rework to charge. 6/10 stands. Runs 16/20, no crossing to surface.
 
-TASK LEDGER at HEAD: T-01..T-06, T-10..T-12 `done`. T-13 `building`, complete in substance.
-T-07/T-08/T-09 `pending`, OPERATOR'S.
+THREE CLAIMS FAILED RE-DERIVATION THIS PHASE, preserved rather than smoothed: Q6 arrived INVERTED
+(code and tests correct, plan.yaml:499-500 is the wrong artifact); the validator lead retracted its
+"stale-citation class falsified" claim when its pattern proved unable to match 2/3 of the citations;
+the product lead's SC-09 grep reported 16/16 where a per-agent parse finds 15, and it said so
+itself. The 15.6s suite baseline is FALSIFIED, not thin: 235-236s sole-runner twice, cause
+unattributed.
 
-REMAINING AFTER THE OPERATOR: re-run qa gate -> SIMPLIFY (carrying Q7) -> operator commits ->
-pin review_sha -> gh-sync.py status Review -> panel -> goal-check -> close-out. I pinned NO
-review_sha and will not until the work is committed: a pin at a HEAD lacking the work grades
-nothing.
+I DID NOT COMMIT AND DID NOT OPEN A PR. Both are the operator's, by instruction.
 
 ## Open Questions
 
-- Q10 (BLOCKING): execute T-07/T-08/T-09. They are M1/M2/M3 and they gate `status Review`.
-- Q9a/Q9b (BLOCKING): sign Amendment 3 / SC-16; its red proof is already discharged.
-- Q11 (operator): sign D-11 (harness-checkout-only, drafted verbatim in pm's artifact), or direct
-  the cross-repository sweep as its own feature. Nothing in FEAT-34 waits on this.
-- Q12 (operator): approve the one-clause correction to D-01's `because` at plan.yaml:88.
-- Q8: concurrent run-unit-tests.sh runs produce transient failures. Q3 STAYS CLOSED.
-- Q7 (into SIMPLIFY): stale module docstring, test-post-merge-sweep.py:13-19.
-- Q6 (residual): T-04 case (f) plan prose says unresolved; classify calls that shape exempt_absent.
-- Q4 (residual): orchestrator has no Edit tool, so D-04's route for a status change does not exist.
+- M1 (BLOCKING, operator's to fix — no squad can): INV-29 prints a removal command that fails for
+  any short-named worktree. Violates REQ-02. check-state.sh + test-check-state.py together.
+- Q16 (BLOCKING, operator): SC-08 is declared `verify: automated` in the signed brief, not uat.
+  Settle whether the outstanding item is SC-08 itself or the operator's-own-clone verification gap.
+- Q17 (operator): SC-06's squash clause looks unsatisfiable as worded. Amend the criterion and add
+  a verification gap, or accept a criterion that reads as met when it is not?
+- Q13 (operator): INV-30's 15s+60s timeouts on a measured 0.475s call, 75s worst case on a
+  pre-commit gate. One main-session commit before ship, or a backlog row after?
+- Q12 (operator): the duplicated-helper remedy widens worktree_terminal.py's public surface, which
+  D-10 pinned to CLASSES/classify/classify_all. Plan-level, not a squad fix.
+- Q16b (operator): T-10's verify: contains `|| true` and cannot go red. SC-09 is true anyway, but
+  proven by two unplanned enumerations, not by the command that claims to prove it.
+- Q18: BRIEF.md:246 and :359 read NOT YET RE-SIGNED; :449 says all three are signed. Strike?
+- Q15: integration suite 235-236s vs a documented 15.6s baseline, sole-runner reproduced twice.
+  Cause unattributed.
+- Q14 (harness defect): eng-lead holds Agent but no SendMessage, so continuing an in-flight member
+  needed a duplicate spawn onto one receipt path. It folded in by luck, not by design.
+- Q7 (backlog, med): test-post-merge-sweep.py's module docstring omits case_linked_worktree_main_
+  checkout entirely. Corrected wording paste-ready in the simplify receipt.
+- Q6 RESOLVED — and its premise was INVERTED as handed to me. plan.yaml:499-500 is the sole wrong
+  artifact; the code and the tests are correct. Failed lookup yields `unresolved`, and only genuine
+  absence yields `exempt_absent`, which is what REQ-06 requires.
 - Q5 (backlog): feature-worktree.py remove exits 5 DIFFERS when the default branch is AHEAD.
+- Q4 (residual): orchestrator has no Edit tool, so D-04's route for a status change does not exist.
+- TWO RUNS HAVE NO DIGEST ON DISK: 2026-08-23-1-product and brief-fix-1-product, both recorded PASS.
+  The briefing's plan-phase account rests on BRIEF.md and plan.yaml, and says so.
+- AT DISTILLATION: DROP harness-backend-dev observations line 5 — it records the c1 conclusion that
+  one caller covering both repos is unasked-for, which D-10 falsified. It would teach a falsehood.

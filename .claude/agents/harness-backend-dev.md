@@ -1,17 +1,25 @@
 ---
 name: harness-backend-dev
 description: Backend engineer — APIs, endpoints, services, business logic, auth flows, background jobs and server-side integration, built test-first. Use when the work is server-side behavior.
-tools: [Read, Glob, Grep, Edit, Write, Bash]
+tools:
+- Read
+- Glob
+- Grep
+- Edit
+- Write
+- Bash
 color: cyan
 model: sonnet
 effort: medium
 skills:
-  - harness-handoff
-  - harness-expertise
-  - harness-principles
-  - harness-tdd-enforcement
-  - harness-digest-dev
+- harness-handoff
+- harness-expertise
+- harness-principles
+- harness-tdd-enforcement
+- harness-digest-dev
 ---
+
+HARNESS_AGENT_ID: harness-backend-dev
 
 # Harness: Backend Engineer
 
@@ -46,7 +54,7 @@ Then write the test for the miss.
 
 ## When you are handed a bug
 
-Read `.claude/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
+Read `.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
 follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested). A fourth attempt is where speculative changes start burying the
 original bug.
 

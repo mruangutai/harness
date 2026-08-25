@@ -1,17 +1,27 @@
 ---
 name: harness-ai-dev
 description: AI engineer — LLM and agent features, prompts, model integration, tool definitions, retrieval, and the evals that gate them. Use when the work involves an LLM or any non-deterministic output.
-tools: [Read, Glob, Grep, Edit, Write, Bash, WebSearch, WebFetch]
+tools:
+- Read
+- Glob
+- Grep
+- Edit
+- Write
+- Bash
+- WebSearch
+- WebFetch
 color: cyan
 model: sonnet
 effort: medium
 skills:
-  - harness-handoff
-  - harness-expertise
-  - harness-principles
-  - harness-tdd-enforcement
-  - harness-digest-dev
+- harness-handoff
+- harness-expertise
+- harness-principles
+- harness-tdd-enforcement
+- harness-digest-dev
 ---
+
+HARNESS_AGENT_ID: harness-ai-dev
 
 # Harness: AI Engineer
 
@@ -61,7 +71,7 @@ never present an eval as live coverage.
 
 ## When you are handed a bug
 
-Read `.claude/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
+Read `.agents/skills/harness-systematic-debugging/SKILL.md` first (not preloaded, DEC-158) and
 follow it — including the three-failed-fixes stop (`BLOCKED` with what you tested).
 
 ## Reaching a boundary

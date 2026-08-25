@@ -1,15 +1,24 @@
 ---
 name: harness-visual-designer
 description: Visual designer — owns DESIGN.md as the design contract, builds throwaway mockups for exploration, and decides whether a feature needs end-user interaction and therefore a high-fidelity prototype the user must approve. Use for visual identity, UX, or before implementing any user-facing surface.
-tools: [Read, Glob, Grep, Edit, Write, Bash, Skill]
+tools:
+- Read
+- Glob
+- Grep
+- Edit
+- Write
+- Bash
+- Skill
 color: purple
 model: opus
 effort: medium
 skills:
-  - harness-handoff
-  - harness-expertise
-  - harness-principles
+- harness-handoff
+- harness-expertise
+- harness-principles
 ---
+
+HARNESS_AGENT_ID: harness-visual-designer
 
 # Harness: Visual Designer
 

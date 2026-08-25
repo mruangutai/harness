@@ -3106,7 +3106,32 @@ two historical sentences.
 
 ---
 
-## DEC-137 — The codebase map: a third knowledge tier, role-authored, index-preloaded, ship-refreshed
+## DEC-137 — STRUCK 2026-08-24
+
+Recorded the codebase map as a third knowledge tier at `.harness/codebase/`, authored by the role
+that consumes it, carved per role in `team-config.yaml`, with `INDEX.md` preloaded at every spawn
+and kept true by a ship-refresh pass at every close-out.
+
+Struck under DEC-188 on the operator's word, on a measurement: across **35 feature directories the
+map was never built**. `.harness/codebase/` did not exist, so thirty-five features planned against
+a tier that `/harness-map` describes as the thing "everything plans against". A tier nothing ever
+used is not under-adopted; it is unneeded, and every gate and pointer still naming it was a false
+statement standing in the tree.
+
+Removed from every gate and surface: `INV-14` and `INV-20` deleted from `check-state.sh`, the
+`INDEX.md` injection deleted from the `inject-expertise.sh` SubagentStart hook, ten map paths
+dropped from `team-config.yaml` and its template, `/harness-map` and `/harness-deepen` deleted,
+`bin/render-map.py` and `templates/codebase-INDEX.md` deleted, and the playbook's ship-refresh
+section removed.
+
+**The glossary survived the tier it lived in.** `.harness/codebase/glossary.md` is the domain's
+ubiquitous language, used by `harness-spec-driven`, `harness-grilling` and `harness-init` — none of
+them the map. It moved to `.harness/glossary.md`; DEC-162 and its INV-19 hold, with the map
+precondition dropped.
+
+**DEC-137's number is retired, not reused.** DEC-140 and DEC-149 cite it.
+
+**The original entry follows, left standing unedited (DEC-188: appended to, never rewritten).**
 
 Raised by the user before kaya-ai: agents entering an existing codebase should consult a durable
 map instead of combing the code per task — domains, architecture, data flows, stack, LLM patterns —
@@ -3285,7 +3310,18 @@ qa, review, or a signature between diagnosis and change.
 
 ---
 
-## DEC-140 — The map runs at init; INV-14 nags code that has none
+## DEC-140 — STRUCK 2026-08-24
+
+Recorded that the map is built AT INIT rather than as a remembered follow-up, and that `INV-14`
+warns whenever real source exists with no `.harness/codebase/INDEX.md`.
+
+Struck under DEC-188 with DEC-137, whose tier it scheduled. `INV-14` is deleted from
+`check-state.sh` and the map spawn is deleted from `harness-init`. Nothing survives that could nag
+for a file the harness no longer produces.
+
+**DEC-140's number is retired, not reused.**
+
+**The original entry follows, left standing unedited (DEC-188: appended to, never rewritten).**
 
 Field report from kaya-ai's first onboarding: a feature build ran **before** the map, because
 "mission map is the first flow" lived only in prose — the forgettable class, same as the GitHub
@@ -3504,6 +3540,11 @@ of distillation because kaya still ran the old rules — deploy is the gating co
 discipline.
 
 
+**Note (2026-08-24): am.3 below is MOOTED.** Ship-refresh existed only to keep the codebase map
+true, and it was removed with that map tier (DEC-137, struck). Close-out is now one dispatch —
+distillation — so there is no second job to run concurrently with. The amendment is left standing
+below as the record of why the pairing existed; nothing acts on it.
+
 **Amendment am.3 (issue #80): ship-refresh and distillation dispatch concurrently, and the cold
 property survives it.** They were two sequential close-out rounds; they share no data and neither
 reads the other's output, so the round-trip bought nothing. They are now **two separate dispatches
@@ -3572,6 +3613,15 @@ and the path.
 ---
 
 ## DEC-149 — Design knowledge enters the org: vocabulary, glossary, and the deepen mission
+
+**Amendment 1 (2026-08-24) — mission `deepen` is retired; the two skills and the glossary stand.**
+`deepen` scanned the codebase map, and the map tier was struck (DEC-137) after 35 features never
+built one. `/harness-deepen` is deleted and the mission is removed from `harness.md`'s resolution
+list. What this entry ALSO created is untouched and live: `harness-codebase-design`,
+`harness-spec-driven`, and the glossary — which moved with the tier's retirement to
+`.harness/glossary.md`. This entry is amended rather than struck because only its mission clause is
+contradicted.
+
 
 Three imports from Matt Pocock's MIT-licensed skills (mattpocock/skills), each re-homed onto
 existing harness machinery rather than bolted on:
@@ -3891,6 +3941,47 @@ shape. DEC-160 records the identical config lag for `max_total_cycles`.
 
 
 ## DEC-158 — Context-budget pass: skills carry the rule, DECISIONS carries the rule's history
+
+**Amendment 1 (2026-08-24) — move 3 is widened from rare missions to any bounded PROCEDURE, and
+three of this entry's statements are corrected.**
+
+*What went stale.* `references/missions.md` no longer exists: missions map and deepen were retired
+with the codebase map tier (DEC-137, struck), and mission debug — the only survivor — moved to
+`references/debug-mission.md`. Ship-refresh, named above as staying inline because it "runs every
+ship", was removed with the same tier. Feature-close distillation does stay inline and still does,
+though it is now triggered at merge rather than at close-out (DEC-145).
+
+*What changed.* Move 3 as written keyed on FREQUENCY — rare missions move, every-ship work stays.
+That criterion does not survive contact: the `gh-sync.py` contract runs every ship and the
+context-probe runs every wake, yet both are step-by-step procedures an orchestrator consults once
+and does not need resident for the rest of its life. **The criterion is now SHAPE, not frequency: a
+bounded procedure with a named trigger moves to `references/` and leaves a pointer; a rule that must
+be resident to be obeyed stays inline.** A procedure is looked up when its trigger fires. A rule has
+to already be in context at the moment it would otherwise be broken.
+
+Applied: `references/github-mirror.md` (the nine subcommands, their owners, the station table and
+the failure shapes) and `references/context-check.md` (the two-call nonce probe). The playbook keeps
+the rule that governs each — you run three subcommands and no others; the threshold advises and a
+check you cannot complete is skipped, never guessed.
+
+*The cost, stated because it is real.* Every pointer can be skipped, and a skipped pointer is
+silent. The preload-versus-pointer measurement — every artifact delivered by preload worked on first
+contact, every artifact relying on being pointed at failed silently at least once (DEC-125 ×4) —
+still stands, and the playbook now carries five pointers where it carried one. That is the bound:
+**move 3 is not a licence to keep extracting.** Distillation, the CEO briefing and the build phase
+were each considered for extraction and each kept inline, because their triggers fire on the ship
+path where a silent skip costs the most.
+
+*Move 1's red-flag protection is NARROWED, not repealed.* The orchestrator playbook's `## Red
+flags` table is removed on the operator's word. The supporting observation: after this pass all six
+of its rows restated rules still present in the body — no user channel, lead-not-member, pm re-plans,
+the hard cycle bound, counters on disk, shape is not truth — so the table carried no rule of its own.
+The counter-argument this entry made still stands and is recorded here rather than lost: bare
+imperatives get rationalized around (DEC-19's lesson), and a rule stated once as prose and once as a
+named temptation is harder to talk past than a rule stated once. That trade was taken knowingly.
+**The other nineteen red-flag tables in the tree are untouched** — this narrows move 1 for one file,
+it does not withdraw the pattern.
+
 
 Measured per-spawn preload (agent file + `skills:` + injected Expertise): orchestrator ~12.3k
 tokens, leads ~8.4–9.2k, dev specialists ~4.8k — replayed across every spawn (kaya FEAT-02:
@@ -6494,7 +6585,8 @@ performs, and names the one writer of each. The original entry and amendments 1 
 standing unedited: the record is appended to, never rewritten. No DEC number is opened, superseded or
 retired, and DEC-192's refusal of a seventh column is upheld here rather than amended.
 
-*The map, one writer per station.* Recorded in `.claude/skills/harness/SKILL.md` under the heading
+*The map, one writer per station.* Recorded in
+`.claude/skills/harness/references/github-mirror.md` under the heading
 *"Who writes each station — one writer per column"*, and cited here by content because a permanent
 record must survive the line moving.
 
@@ -6890,3 +6982,71 @@ is repeated there.
 
 **Branch `chore/744-never-wait-for-a-lead` is absorbed and abandoned.** Its work lands through this
 feature; the branch is not to be merged or revived.
+---
+
+## DEC-202 — OMP is the canonical Harness runtime; providers and host adapters are replaceable configuration
+
+**Chose:** Harness is authored against OMP-native and open Agent Skills surfaces:
+
+- shared project guidance is root `AGENTS.md`;
+- canonical roles are `.omp/agents/harness-*.md`;
+- canonical skills and utilities are `.agents/skills/harness-*/`;
+- lifecycle enforcement is `.omp/extensions/harness-hooks.ts`;
+- concrete model selections live only in `.omp/providers/*.yml` as `modelRoles`;
+- `.claude/agents/`, `.claude/skills`, `CLAUDE.md`, and `.claude/settings.json` are Claude Code
+  compatibility adapters, not policy authorities.
+
+**Why this is forced by the goal rather than preferred syntax.** A role whose frontmatter says `opus`
+or `sonnet` cannot run unchanged on OpenAI, and a hook present only in Claude settings is absent when
+OMP disables the Claude discovery provider. The pre-port probe at
+`.harness/notes/omp-port-baseline.md` measured exactly that split: all 16 roles and both required
+three-level spawn chains were discoverable, while Expertise injection, domain denial, reviewer Bash
+denial, branch gating and digest rejection were all absent. Two providers agreeing after the port
+would not prove preservation, so that measured baseline is the third comparison point.
+
+**Role policy and deployment policy are separate.** Canonical agents select `@deep`, `@strong`,
+`@standard`, or `@review`. The OpenAI and Anthropic overlays resolve those aliases to concrete
+models. Dispatches still select only an agent; the tool schema exposes no per-dispatch model field.
+Changing provider therefore changes configuration, never prompts, tools, skills, spawn permissions,
+hooks or digest schemas.
+
+**The organization is explicit in OMP frontmatter.** `spawns` records orchestrator → leads → owned
+members and every leaf carries an empty list. `task.maxRecursionDepth: 3` remains the outer bound.
+Every canonical role body carries a machine-readable `HARNESS_AGENT_ID:` line; OMP lifecycle events
+do not expose the task-agent name, so the extension reads this exact marker from the role system
+prompt. That is declared metadata, not inference from prose or model identity.
+
+**Expertise remains durable Harness data.** `.harness/expertise/<agent>.md`,
+`.harness/*/expertise/<agent>.md`, and `.harness/codebase/INDEX.md` do not move. The delivery seam
+moves from Claude `SubagentStart` to OMP `before_agent_start`, preserving repository > project >
+global precedence and the existing budgets. Skills and artifacts stay selectively loaded; none is
+copied into `AGENTS.md`.
+
+**Enforcement reuses policy and replaces delivery.** The OMP extension converts native `write`,
+hash-anchored `edit`, `bash`, `task`, and `yield` events into the tested script contracts.
+`tool_call` denies before execution; `tool_result` reports post-write shape failures; `yield` is the
+task-agent stop boundary and validates structured OMP results after rendering them into the
+normative digest text. The TypeScript layer owns no domain, branch, Expertise or digest rule.
+
+**The control plane expands.** `.agents/**`, `.omp/**`, and `AGENTS.md` are Harness-owned paths in
+`harness_boundary.py`; hidden-root grants remain checkout-local and never reach a product
+repository's same-named directories. `.claude/worktrees/` remains the sanctioned development
+location, because this port changes runtime discovery, not DEC-193's worktree placement ruling.
+
+**Claude Code stays usable during and after the port.** `sync-agent-adapters.py` generates Claude
+role frontmatter and identical bodies from canonical OMP agents, while `.claude/skills` is a symlink
+to `.agents/skills`. `CLAUDE.md` imports `AGENTS.md` and states only Claude-specific delivery.
+`check-omp-port.py` rejects adapter drift, concrete provider IDs in canonical agents, missing skills,
+missing provider overlays, missing OMP hooks, or re-enabled Claude discovery.
+
+**Cost accepted:** OMP runs require an explicit provider overlay, the OMP extension is a maintained
+host adapter, and Claude Code compatibility adds generated files. The alternative is cheaper only by
+keeping provider coupling and silently losing guardrails under a non-Claude host.
+
+**DEC-174 governs the cutover.** Agent prompts, skills and Expertise may be migrated normally, but
+changes to hooks, validators, gate scripts and their tests are direct main-session work with explicit
+tests and human diff review. The Harness enforcement path never certifies its own replacement.
+
+This decision supersedes the Claude-only conclusions of DEC-63, DEC-64, DEC-100, DEC-108,
+DEC-110, DEC-111 and DEC-122 for the canonical OMP runtime. Their measured Claude Code behavior
+remains true for the compatibility adapter and their historical evidence remains authoritative.
