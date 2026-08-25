@@ -2,7 +2,7 @@
   "feature_id": "FEAT-34-worktree-act3-enforced",
   "branch": "feat/FEAT-34-worktree-act3-enforced",
   "pr": null,
-  "status": "Review",
+  "status": "Done",
   "review_sha": "adfe16fef60693cd360eb2057542bf6dbe886625",
   "cycles_used": 6,
   "max_total_cycles": 10,
