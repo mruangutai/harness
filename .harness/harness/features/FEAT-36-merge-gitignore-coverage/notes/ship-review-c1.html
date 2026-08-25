@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Ship review — FEAT-36 merge-gitignore behavioral coverage</title><style>
+:root{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+}
+/* Token-level theming: components style through the tokens and never inside the
+   media query, so the viewer's explicit toggle can override the OS in BOTH
+   directions. */
+@media (prefers-color-scheme:dark){
+  :root{ --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+         --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733; }
+}
+:root[data-theme="dark"]{
+  --ink:#e4eaf0; --paper:#11171e; --sunk:#182029; --line:#293441;
+  --slate:#9aa9b8; --quiet:#77869a; --accent:#7fb2dd; --accent-soft:#1a2733;
+}
+:root[data-theme="light"]{
+  --ink:#16202b; --paper:#fbfcfd; --sunk:#f1f4f7; --line:#dbe2e9;
+  --slate:#5b6b7c; --quiet:#7d8b99; --accent:#2b5c8a; --accent-soft:#e8f0f7;
+}
+*{box-sizing:border-box}
+body{margin:0; background:var(--paper); color:var(--ink);
+  font:400 16px/1.65 var(--sans); padding:clamp(1.5rem,5vw,4rem) clamp(1rem,5vw,2rem) 6rem}
+.wrap{max-width:56rem; margin:0 auto}
+/* Layout owns the spacing: gap between siblings, not per-element margins that
+   collapse or double. */
+.wrap{display:flex; flex-direction:column; gap:1rem}
+.eyebrow{font:500 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase;
+  color:var(--quiet); margin:0}
+h1{font:600 clamp(1.6rem,4vw,2.3rem)/1.15 var(--sans); letter-spacing:-.02em;
+  margin:.4rem 0 .2rem; text-wrap:balance}
+h2{font:600 1.15rem/1.3 var(--sans); letter-spacing:-.01em; margin:2rem 0 0;
+  padding-top:1.25rem; border-top:1px solid var(--line); text-wrap:balance}
+h3{font:600 .98rem/1.4 var(--sans); margin:1.1rem 0 0}
+h4,h5,h6{font:500 11px/1.4 var(--mono); letter-spacing:.1em; text-transform:uppercase;
+  color:var(--quiet); margin:1rem 0 0}
+p,li{max-width:65ch; margin:0}
+ul,ol{margin:0; padding-left:1.4rem; display:flex; flex-direction:column; gap:.4rem}
+li>ul,li>ol{margin-top:.4rem}
+strong{font-weight:600}
+code{font:400 .875em/1.5 var(--mono); background:var(--sunk); padding:.1em .35em; border-radius:3px}
+pre{background:var(--sunk); border:1px solid var(--line); border-radius:6px;
+  padding:.85rem 1rem; overflow-x:auto; margin:0}
+pre code{background:none; padding:0}
+blockquote{margin:0; padding:.75rem 1rem; border-left:3px solid var(--accent);
+  background:var(--accent-soft); border-radius:0 5px 5px 0}
+blockquote p{max-width:none}
+hr{border:0; border-top:1px solid var(--line); margin:.5rem 0}
+/* Wide content pans inside its OWN container; the page body never scrolls sideways. */
+.scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.9rem}
+th,td{text-align:left; padding:.6rem .8rem; border-bottom:1px solid var(--line); vertical-align:top}
+thead th{font:500 10px/1.3 var(--mono); letter-spacing:.11em; text-transform:uppercase;
+  color:var(--quiet); background:var(--sunk); white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+/* Figures in a column line up. */
+td,th{font-variant-numeric:tabular-nums}
+.derived{color:var(--slate); font-size:.85rem; margin-top:2.5rem;
+  padding-top:1rem; border-top:1px solid var(--line)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style></head><body><div class='wrap'><p class='eyebrow'>Ship review · reading view</p><h1 id="ship-review-feat-36-merge-gitignore-behavioral-coverage">Ship review — FEAT-36 merge-gitignore behavioral coverage</h1>
+<h2 id="decision">Decision</h2>
+<p><strong>Ready for an independent main-targeting PR.</strong> All six success criteria passed in the OpenAI Harness cycle, and the extracted pre-port implementation passed the complete repository suite at <code>638cb20289ed2aa96448cbaf6a0e7f21249b890a</code>. The operator-requested B-1 diagnostic-set weakness remains closed with discriminating mutant evidence.</p>
+<p>The earlier stacked PR #833 is historical only. This extraction keeps FEAT-36 separate from the OMP port and leaves merge to the new main-targeting PR.</p>
+<h2 id="success-criteria">Success criteria</h2>
+<div class="scroll"><table><thead><tr><th>Criterion</th><th>Result</th><th>Declared verify</th><th>Evidence</th></tr></thead><tbody><tr><td>SC-01</td><td>PASS</td><td>automated / integration</td><td><code>runs/goal-check-c2-product/digest.md</code> SC-01; c3 QA direct and registered PASS</td></tr><tr><td>SC-02</td><td>PASS</td><td>automated / integration</td><td><code>runs/goal-check-c2-product/digest.md</code> SC-02; exact emitted bullet-set equality rejects missing and unexpected values, including the controlled fabricated-superset mutant</td></tr><tr><td>SC-03</td><td>PASS</td><td>automated / integration</td><td><code>runs/goal-check-c2-product/digest.md</code> SC-03; absent and partial targets contain every rule exactly once</td></tr><tr><td>SC-04</td><td>PASS</td><td>automated / integration</td><td><code>runs/goal-check-c2-product/digest.md</code> SC-04; second merge is byte-identical</td></tr><tr><td>SC-05</td><td>PASS</td><td>automated / integration</td><td><code>runs/goal-check-c2-product/digest.md</code> SC-05; explicit project root changes only the requested target</td></tr><tr><td>SC-06</td><td>PASS</td><td>inspection</td><td><code>runs/goal-check-c2-product/digest.md</code> SC-06; integration registration is correct and <code>merge-gitignore.sh</code> remains byte-identical</td></tr></tbody></table></div>
+<p>No criterion declares UAT, and no waiver was used.</p>
+<h2 id="validation">Validation</h2>
+<ul><li>Standalone implementation pin: <code>638cb20289ed2aa96448cbaf6a0e7f21249b890a</code>.</li><li>Original OpenAI panel: PASS from code, QA, security, and UI with no in-scope must-fix (<code>runs/review-c3-validator/digest.md</code>).</li><li>Standalone pre-port matrix: 21 unit + 23 integration registrations passed, including the changed behavioral program 7/7 directly and through registration; no <code>MISCONFIGURED</code> or kind drift.</li><li>B-1/F-02 is closed by exact-set comparison and a controlled mutant that reports <code>.claude/worktrees/NOT-THE-RULE</code> as unexpected.</li><li>The generated ship-review HTML contrast finding was ruled unrelated to FEAT-36 and did not waive or substitute for any approved success criterion (<code>notes/operator-ruling-rendered-review-scope.md</code>).</li></ul>
+<h2 id="close-out">Close-out</h2>
+<p>The ship-refresh and feature-close distillation jobs were issued concurrently. Distillation was split into product, engineering, and validator squad-owned segments so no lead crossed squad boundaries.</p>
+<div class="scroll"><table><thead><tr><th>Workstream</th><th>Disposition</th><th>Affected gate</th></tr></thead><tbody><tr><td>Ship-refresh</td><td>PASS / skipped: <code>.harness/codebase/</code> does not exist, so there is no map-domain intersection, stale section, or HTML map to render</td><td>Map render/check not applicable; <code>runs/ship-refresh-product/digest.md</code></td></tr><tr><td>Product distillation</td><td>PASS: PM, documentor, and product lead accepted no ops; all candidates were absent or already covered</td><td>No Expertise file changed; <code>runs/distill-product/digest.md</code></td></tr><tr><td>Engineering distillation</td><td>PASS after one receipt correction: no accepted op; the apparent merge-tool issue was a heading-less empty proposal, not a tool defect</td><td>No Expertise file changed; <code>runs/distill-eng/digest.md</code></td></tr><tr><td>Validator distillation</td><td>PASS on c1 reassessment: security O-09 and UI G-11 remain applied and checked; code-reviewer P-04/P-06/G-13 and QA P-13/P-03/G-06 are individually closed as unapplied/not permitted</td><td><code>check-expertise.sh .harness/expertise/</code> PASS with existing advisories only; <code>runs/distill-c1-validator/digest.md</code> supersedes the original blocking disposition without rewriting it</td></tr></tbody></table></div>
+<p>The six replacements are not permitted results because harness-distill requires: “Apply through the merge tool. Never write the file yourself,” while the available merge tool supports lock-safe additive union only. Direct or whole-file replacement was not attempted. The stale code-reviewer P-06 wording and replace/drop capability gap remain recorded as non-gating close-out dispositions; neither creates a second backlog row. Observation logs remain archived; none existed and none was created or deleted.</p>
+<h2 id="budget">Budget</h2>
+<p>The feature records 24 completed runs against the informational 20-run threshold and 7 rework cycles against the hard 10-cycle cap. The informational run tripwire was crossed. The extra runs closed a mandatory matrix failure, the SC-05 evidence gap, B-1&#x27;s exact-diagnostic weakness, and the scope dispute without crossing the hard cycle cap.</p>
+<h2 id="proposed-backlog">Proposed backlog</h2>
+<div class="scroll"><table><thead><tr><th>ID</th><th>Nature</th><th>Finding</th><th>Evidence</th><th>Proposed action</th></tr></thead><tbody><tr><td>B-2</td><td>chore</td><td>The shared briefing renderer&#x27;s pre-existing light-theme quiet-text token is below the normal-text contrast floor in generated ship-review HTML</td><td><code>notes/operator-ruling-rendered-review-scope.md</code>; <code>runs/review-b1-validator/digest.md</code> UI-A11Y-01</td><td>Address separately from FEAT-36; do not couple renderer changes to shell-utility coverage</td></tr></tbody></table></div>
+<p>This row is proposed only. B-1 was fixed in this cycle; no backlog issue has been filed.</p>
+<h2 id="open-questions">Open questions</h2>
+<p>None.</p>
+<h2 id="source-disclosure">Source disclosure</h2>
+<p>No report round was spawned. This briefing was assembled directly from every feature run digest:</p>
+<ol><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/plan-product/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/plan-simplify-eng/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/t01-eng/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/qa-validator/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/simplify-eng/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-validator/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-fix-eng/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-c1-validator/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/goal-check-product/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/goal-check-fix-eng/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/goal-check-fix-qa-validator/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-c2-validator/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/goal-check-c1-product/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/ship-refresh-product/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-product/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-eng/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-validator/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/distill-c1-validator/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/fix-b1-eng/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/fix-b1-qa-validator/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/fix-b1-simplify-eng/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-b1-validator/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/review-c3-validator/digest.md</code></li><li><code>.harness/harness/features/FEAT-36-merge-gitignore-coverage/runs/goal-check-c2-product/digest.md</code></li></ol><p class='derived'>Derived from <code>ship-review-c1.md</code> — the markdown is the record; do not edit this file. Regenerate with <code>bin/render-brief.py</code>.</p></div></body></html>
