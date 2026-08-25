@@ -69,7 +69,7 @@ decisions:
     because: a PreToolUse hook is handed only tool_input.command and gh-sync.py reaches gh through subprocess, so abandon's close never traverses the tool and needs no exemption; this reaches the OUTCOME issue 842 constraint 5 mandates by a simpler route than the mechanism that constraint names, and no marker exists for anyone to forge - the operator amended constraint 5 to this effect on 2026-08-25
     dec: none
   - id: D-07
-    choice: the new entry restates DEC-192's one-status-field rule and DEC-186's read-back bound, widened to six purposes, rather than only the close rule
+    choice: the new entry restates DEC-192's one-status-field rule and DEC-186's read-back bound, widened to seven purposes and to a wider surface on the fourth, rather than only the close rule
     because: striking DEC-192 without restating it would delete the status contract the whole board depends on
     dec: none
   - id: D-08
@@ -255,11 +255,20 @@ tasks:
          ship and abandon parent table, and say why the child check is the better guard: it
          protects someone else's live epic for a reason that is true of the ticket rather than true
          of its history.
-      5. THE READ-BACK BOUND, carried forward from DEC-186 and widened by exactly one. The purposes
-         are now SIX: whether an item is claimed; which station it is at; whether a blocker issue is
-         finished; which of a board's native workflows are enabled, bounded to /harness-init;
-         which merged pull request a recorded branch resolves to, bounded to record-pr and ship;
-         and, new, which children a card's ticket has, bounded to gh-sync.py ship. State that a
+      5. THE READ-BACK BOUND, carried forward from DEC-186, widened by exactly two purposes and by
+         one surface on an existing purpose. The purposes are now SEVEN: whether an item is claimed;
+         which station it is at; whether a blocker issue is finished; which of a board's native
+         workflows are enabled, bounded to /harness-init and to gh-sync.py ship, which calls the
+         audit; which merged pull request a recorded branch resolves to, bounded to record-pr and
+         ship; and two that are new: which children a card's ticket has, bounded to gh-sync.py
+         ship; and which closed tickets a repository holds, with their close reasons and labels,
+         and which station options its board declares — the detection reads of board_lifecycle.py's
+         audit — bounded to /harness-init and to gh-sync.py ship, which calls the audit. Say
+         plainly that the fourth purpose's surface is WIDER than DEC-186 amendment 2 left it: that
+         amendment bound the workflow read to /harness-init with the words that no other surface
+         makes this read, and scheduling the audit inside ship falsifies it unless this entry
+         widens it here. The precedent for widening by caller is DEC-186 amendment 3, which bounds
+         a purpose to gh-sync.py record-pr and to gh-sync.py ship, which calls it. State that a
          read-back value still never enters BRIEF.md, plan.yaml or any approval block. Restate
          DEC-186 amendment 1's one-board-per-repository framing.
       6. THE STATUS FIELD, carried forward from DEC-192 unchanged in substance: one lifecycle field
@@ -446,8 +455,23 @@ tasks:
         def audit_findings(repo_arg=None)
       It resolves root and board exactly as cmd_audit does, returns _audit_findings' list, prints
       nothing, exits never, and lets factory_gh.GhError propagate. Return an empty list when the
-      board is None, matching cmd_audit's no-board-declared branch. Rewrite cmd_audit to call it,
-      so one code path performs the audit and the printing stays inside the subcommand. Then, in
+      board is None, matching cmd_audit's no-board-declared branch.
+      ACHIEVING THAT CONTRACT MEANS MOVING PRINTS AND AN EXIT UP INTO cmd_audit, NOT WRAPPING THE
+      CODE AS IT STANDS. Measured at 86ea3ad, the reused code breaks all three clauses:
+        - _audit_findings PRINTS twice — board_lifecycle.py:866, _out(_WORKFLOW_HEADER), which
+          fires on EVERY run, and :887, the STATUS self-skip line. Both must move up into
+          cmd_audit, which means _audit_findings must hand cmd_audit enough to print them where it
+          prints them today: the workflow header before the WORKFLOW findings, the STATUS skip line
+          after them. Leaving either print where it is fails the contract;
+        - cmd_audit's no-board-declared branch PRINTS at :898. audit_findings returns [] there and
+          that print stays in cmd_audit;
+        - cmd_audit EXITS at :901-904, factory_cli.refuse when github.repo is not declared.
+          audit_findings must NOT reuse that branch — it returns or raises, never exits — and
+          cmd_audit keeps the refuse unchanged.
+      Rewrite cmd_audit to call audit_findings, so one code path performs the audit while every
+      print and every exit stays inside the subcommand. cmd_audit's own output must be unchanged
+      for the same inputs; test-board-lifecycle.py's existing audit tests are that guard and must
+      not be relaxed to make the move pass. Then, in
       gh-sync.py, import board_lifecycle and call audit_findings(repo) as the last act of cmd_ship
       before the status record of step 8. Print one line per finding, each prefixed with the
       literal "gh-sync: audit — " followed by the finding's own message unchanged, then one
@@ -467,14 +491,25 @@ tasks:
       THE ACCEPTED COST, stated rather than hidden: a card closed outside the harness can sit wrong
       for the whole build and is only caught at ship. That is tolerable because ship is where the
       open-child decision is made, which is the moment the wrongness would otherwise cause harm.
-      THE READ-BACK BOUND IS NOT WIDENED BY THIS. The four reads are board_lifecycle's own, made
-      under its inverse-of-the-mirror posture (its cmd_audit comment), and ship performs none of
-      them itself. DEC-203's enumerated six purposes are unchanged, and this task must not add a
-      seventh.
+      THE READ-BACK BOUND IS WIDENED BY THIS, and T-03 is where the widening is recorded. The bound
+      is written over purposes and surfaces, not over components: scheduling the audit inside ship
+      makes ship a bounded surface for the audit's four reads, exactly as DEC-186 amendment 3 binds
+      a purpose to gh-sync.py record-pr and to gh-sync.py ship, which calls it. Attribution by
+      component — these reads belong to board_lifecycle — is not a defence and was rejected by the
+      operator on 2026-08-25. So T-03 records the audit's detection reads as DEC-203 item 5's
+      SEVENTH purpose, and widens item 5's FOURTH purpose, the workflow read, from /harness-init to
+      /harness-init and gh-sync.py ship. This task writes nothing — no comment, no docstring, no
+      test name, no commit message — asserting that ship's reads leave the bound unchanged or that
+      DEC-203 enumerates six purposes.
       TESTS for this step, each its own assertion:
-        - in test-board-lifecycle.py: audit_findings returns the finding list cmd_audit prints,
-          prints nothing itself, and raises factory_gh.GhError rather than exiting when the read
-          fails. Shown failing before the function exists;
+        - in test-board-lifecycle.py: audit_findings returns the finding list cmd_audit prints and
+          prints nothing itself — no workflow header and no STATUS skip line, which is what forces
+          board_lifecycle.py:866 and :887 up into cmd_audit — and raises factory_gh.GhError rather
+          than exiting when the read fails. Shown failing before the function exists;
+        - in test-board-lifecycle.py: cmd_audit still prints the workflow header and the STATUS
+          skip line, in their existing order relative to the findings, still prints the no-board
+          line, and still refuses via factory_cli.refuse when github.repo is not declared. This is
+          the guard that the move preserved cmd_audit's behaviour;
         - in test-gh-sync.py: a ship run whose stubbed board leaves a closed issue away from the
           done station prints one line beginning "gh-sync: audit — STATION" naming that issue;
         - THE ORDERING: a card this same run moved to done produces no STATION finding, because
@@ -944,9 +979,12 @@ tasks:
             ship. So this is a correction of the record, not only a consequence of this change.
             Replace the first two sentences with a statement that the mirror is predominantly
             outbound and that its read-backs are BOUNDED TO AN ENUMERATED SET, then enumerate the
-            six purposes DEC-203 carries, naming for each the subcommand that performs it —
-            start-task for the claimed and station reads, record-pr and ship for the merged pull
-            request, /harness-init for the workflow detection, and ship for the children read.
+            seven purposes DEC-203 carries, naming for each the surface that performs it —
+            start-task for the claimed and station reads; factory_claim for whether a blocker issue
+            is finished, which no gh-sync.py subcommand performs; /harness-init and ship for the
+            workflow detection, ship because it calls the audit; record-pr and ship for the merged
+            pull request; ship for the children read; and /harness-init and ship for the audit's
+            own detection reads, the seventh purpose.
             KEEP THE LAST CLAUSE VERBATIM AND UNCONDITIONAL: no read-back ever reaches an
             approval-gated artifact. That clause is still true and it is the only stated bound on
             what a read-back may do, so deleting it would remove the guarantee while correcting

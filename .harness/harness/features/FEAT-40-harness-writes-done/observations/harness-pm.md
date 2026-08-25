@@ -22,3 +22,4 @@
   The intent said "all three strings are present in these files" — true of the set, false per file.
 - 2026-08-25: test-check-state.py takes tens of minutes when more than one copy runs in the same tree;
   each fork of check-state.sh scans the whole repo. Never run two suites concurrently in one worktree.
+- 2026-08-25 (FEAT-40): a dispatch enumerated three sites for a numeral defect; the set was four, and the miss was in plan.yaml's approval-gated decisions: block (D-07). Enumerated sites are a hypothesis about where a defect class lives. Grep the class across both artifacts before returning, and report the hit list with a disposition per hit.

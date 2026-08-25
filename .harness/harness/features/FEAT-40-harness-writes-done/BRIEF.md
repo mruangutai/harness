@@ -225,7 +225,10 @@ a card that silently misses `Done` with its only signal one line inside the outp
 - DEC-146 — station writes are best-effort per card. This is the posture the terminal `Done` write
   inherits unless the architecture review changes it.
 - DEC-186 — the read-back bound, currently five purposes. Reading a card's children is a sixth, and
-  the replacement decision carries it.
+  the audit's own detection reads — which `ship` now schedules once per feature — are a seventh.
+  The same act widens amendment 2's workflow purpose from `/harness-init` to `/harness-init` and
+  `ship`, because a caller inherits the bound (amendment 3's own precedent). The replacement
+  decision carries all three.
 - DEC-188 — a decision the tree flatly contradicts is STRUCK, never marked stale.
 - DEC-192 — one `status` field whose six values are the board's column names. Its substance must
   survive inside the replacement entry; striking it without restating it would delete the status
