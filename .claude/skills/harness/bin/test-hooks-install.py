@@ -137,9 +137,30 @@ def _bootstrap_origin(path, github_repo="acme/repo-x"):
     return path
 
 
+def _git(args, cwd, env=None):
+    """Every git call the (e) fixture depends on, run LOUDLY. These were capture_output-and-drop,
+    and a single swallowed failure is exactly how CI went red while this file was green locally:
+    the clone's `git commit` failed for want of an identity, `topic` never diverged from `main`,
+    and the only symptom left was `git merge` printing "Already up to date." — three assertions
+    away from the command that actually broke."""
+    r = subprocess.run(["git"] + list(args), cwd=cwd, capture_output=True, text=True, env=env)
+    assert r.returncode == 0, (
+        f"git {' '.join(args)} failed in {cwd}: rc={r.returncode} "
+        f"stdout={r.stdout!r} stderr={r.stderr!r}"
+    )
+    return r
+
+
 def _clone(origin, dest):
     r = subprocess.run(["git", "clone", "-q", origin, dest], capture_output=True, text=True)
     assert r.returncode == 0, f"git clone failed: {r.stderr!r}"
+    # THE CLONE CARRIES ITS OWN IDENTITY. _repo sets user.email/user.name on the ORIGIN, and a
+    # clone inherits none of that - it inherits the AMBIENT global config instead. A developer
+    # machine has one; a GitHub-hosted runner does not, and git there cannot auto-detect either
+    # (the hostname has no domain), so every commit this fixture makes inside a clone failed on
+    # CI and succeeded locally. The fixture must not depend on the environment for this.
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=dest, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=dest, capture_output=True)
     return dest
 
 
@@ -153,16 +174,15 @@ def _commit_feature(repo, feature_id, status, milestone=None, repo_segment="harn
         doc["github"] = {"milestone": milestone}
     with open(abs_path, "w") as f:
         json.dump(doc, f)
-    subprocess.run(["git", "add", rel], cwd=repo, capture_output=True)
-    subprocess.run(["git", "commit", "-qm", f"add {feature_id}"], cwd=repo, capture_output=True)
+    _git(["add", rel], cwd=repo)
+    _git(["commit", "-qm", f"add {feature_id}"], cwd=repo)
     return abs_path
 
 
 def _add_wt(repo, worktree_id, repo_segment="harness", ref="HEAD", new_branch=None):
     dest = os.path.join(repo, ".claude", "worktrees", repo_segment, worktree_id)
     branch = new_branch or f"wt-{worktree_id}-{repo_segment}"
-    subprocess.run(["git", "worktree", "add", "-q", "-b", branch, dest, ref], cwd=repo,
-                    capture_output=True)
+    _git(["worktree", "add", "-q", "-b", branch, dest, ref], cwd=repo)
     return dest
 
 
@@ -366,10 +386,10 @@ def _run_merge_and_check(tmp, origin, label, expect_removed):
     log, gh_env = _stub_gh(tmp)
     env = _sweep_env(clone, gh_env)
 
-    subprocess.run(["git", "checkout", "-qb", "topic"], cwd=clone, capture_output=True)
+    _git(["checkout", "-qb", "topic"], cwd=clone)
     _commit_feature(clone, f"FEAT-90-{label}-thing", "Done", milestone=9001)
     dest = _add_wt(clone, f"FEAT-90-{label}-thing", ref="topic", new_branch=f"wt-{label}")
-    subprocess.run(["git", "checkout", "-q", "main"], cwd=clone, capture_output=True)
+    _git(["checkout", "-q", "main"], cwd=clone)
 
     r = subprocess.run(["git", "merge", "topic"], cwd=clone, capture_output=True, text=True,
                         env=env)
