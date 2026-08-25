@@ -106,7 +106,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: a live write to the operator's own board, creating and closing a throwaway issue; no member's domain grants a live board write and the deliverable is a measurement, not code
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/harness/features/FEAT-40-harness-writes-done/notes/probe-done-closes.md
     verify: |
