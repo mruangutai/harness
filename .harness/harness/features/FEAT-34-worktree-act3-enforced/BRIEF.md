@@ -404,12 +404,49 @@ graded evidence.
   verify: automated        evidence: integration
 
 
+## Amendment 3 (2026-08-24) — the sweep's own location must never decide which copy it acts on
+
+**Measured, not feared.** `post-merge-sweep.sh` used to build `feat_dir` from the same root it
+locates its sibling scripts under. That root can BE a linked worktree carrying its own divergent,
+never-landed copy of the same feature id — and `os.path.isdir(feat_dir)` then finds that copy and
+proceeds. **No SKIP branch is ever reached**, so `gh-sync.py ship` reads and writes the wrong
+`feature.json`. This is the FEAT-35 divergence already on record: the worktree read
+`Review / pr: null` while `main` read `Done / pr: 812`.
+
+It is reachable because `harness-init` writes a **relative** `core.hooksPath` (T-12), so every
+worktree resolves to its own hooks directory and its own sweep.
+
+**The fix is built and the test is written.** This amendment adds only the criterion that names
+what that test proves. It commissions no engineering — `test-post-merge-sweep.py:665-687` already
+carries the fixture and the red proof.
+
+### Added success criterion
+
+- SC-16: **The sweep's own on-disk location never decides which copy of a feature it acts on.** In a
+  fixture where the sweep script runs from inside a **linked worktree** that carries its own
+  divergent, never-landed copy of the same feature id as the main checkout, six clauses, each
+  asserted separately and never by one substring match: **(a)** the sweep exits 0; **(b)** the root
+  derived from the script's own location resolves to that linked worktree, which is what proves the
+  fixture is the per-worktree-hooks scenario and not an accidental main-checkout run; **(c)** the
+  root the feature directory is resolved under is the **main checkout**, asserted as an exact path
+  both equal to the main checkout and unequal to the linked worktree, read from a resolved-path line
+  the sweep prints unconditionally — **never from a skip**, because the wrong copy exists on disk
+  and no skip branch is ever reached; **(d)** the landed copy's milestone is closed; **(e)** the
+  divergent copy's own milestone is never touched, asserted on the absence of any call naming it;
+  **(f)** the terminal worktree under the main checkout is removed, proving the correct copy was
+  found rather than merely not written to. **Red proof:** an implementation that resolves the
+  feature directory from the same root it locates its sibling scripts under passes (a), (b) and (f),
+  closes the divergent milestone, and fails (c), (d) and (e) — and that failing state must be
+  demonstrated, not asserted.
+  verify: automated        evidence: integration
+
+
 ## Approval
 
 status: approved
 approved-by: Mike Ruangutai
 date: 2026-08-24
-amendments-signed: Amendment 1, Amendment 2
+amendments-signed: Amendment 1, Amendment 2, Amendment 3
 note: RE-SIGNED TWICE on 2026-08-24. The original signature of 2026-08-23 covered the
   brief without either amendment. The second signature covers Amendment 1 in full —
   REQ-11/12/13 and SC-11/12/13/14. The third covers Amendment 2 — SC-15, the
@@ -417,4 +454,5 @@ note: RE-SIGNED TWICE on 2026-08-24. The original signature of 2026-08-23 covere
   second-repository case while REQ-04 requires no per-repository exception, so a
   repository silently skipped passed every criterion in the brief. The date moves rather
   than being kept alongside the old ones, so a reader never has to work out which date
-  governs which paragraph.
+  governs which paragraph. The fourth signature covers Amendment 3 - SC-16, the criterion
+  naming what the already-built linked-worktree test proves. It commissions no work.

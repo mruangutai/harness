@@ -1,41 +1,57 @@
-# Handoff — FEAT-34-worktree-act3-enforced, build → build (context) — written at 9165162, seq-1
+# Handoff — FEAT-34-worktree-act3-enforced, build → build (context) — at 4c7b650, seq-3
+
+Supersedes seq-2. All re-verified by me at source; nothing inherited unchecked.
 
 ## Next
 
-Nothing is dispatchable by an orchestrator right now. The feature is HELD on the operator for two
-acts: re-sign `BRIEF.md`'s `## Approval` to cover Amendment 2, and execute T-06..T-12
-(`execution_mode: main-session-direct`). When T-12 lands, dispatch T-13 to `harness-eng-lead` as the
-named `build` team — inputs are `plan.yaml`'s T-13 intent and `BRIEF.md` REQ-09/REQ-13. Then the qa
-`test_matrix` segment to `harness-qa`, then SIMPLIFY to eng-lead, then pin `review_sha` and run
-`gh-sync.py status <dir> Review` before the panel.
+FULLY HELD ON THE OPERATOR — nothing is dispatchable, no squad can reach the remaining work.
+Four operator acts, any order: (1) execute T-07/T-08/T-09, all `main-session-direct` + `pending`,
+which ARE the qa gate's M1/M2/M3; (2) sign Amendment 3 / SC-16; (3) sign D-11; (4) approve the
+one-clause D-01 `because` correction. THEN: re-run qa gate, SIMPLIFY (carrying Q7), operator
+commits, pin `review_sha`, `gh-sync.py status <dir> Review`, panel, goal-check, close-out.
 
 ## Trust
 
-- All FEAT-34 work is UNCOMMITTED; HEAD is still 9165162 and the operator holds the commit pen — `git -C <worktree> status --porcelain` and `rev-parse --short HEAD` — verified-at 9165162
-- `test-worktree-terminal.py` is 31/31, exit 0, 0 FAIL — I ran it myself rather than relaying it — verified-at 9165162
-- T-01..T-05 are BUILT but carry `status: building`, never `done`; `done` is the operator's write with each `[harness:t-NN]` commit — plan.yaml tasks, feature.json — verified-at 9165162
-- `gh-sync.py status <dir> Review` REFUSES until every task reads `done` — gh-sync.py cmd_status:916-921 — verified-at 9165162
-- `plan.yaml` approval is `approved` with a two-entry `signatures:` list covering D-10 — plan.yaml:4-11 — verified-at 9165162
-- `BRIEF.md` `## Approval` is STALE, still `amendments-signed: Amendment 1`, not covering SC-15 — BRIEF.md:407-416 — verified-at 9165162
-- SC-15 is at BRIEF.md:387-404, `verify: automated`, `evidence: integration`, purely additive — direct read — verified-at 9165162
-- pm's vacuity risk on SC-15 clause (c) was RESOLVED by the eng run independently: `_build_probe_repo` makes the probe root a real git repo with a standing worktree — test-worktree-terminal.py:424-441 — verified-at 9165162
-- `check-state.sh` exits 0 with ZERO violations on this tree — run by me — verified-at 9165162
-- FOR T-06, from eng-lead: the repository-level discriminator must key on `path`, NOT `feature_id` alone — `classify` emits feature_id None / repo None / unresolved for a worktree outside WORKTREES_SEGMENT (worktree_terminal.py:203-206), identical on all three fields to the fleet-load record (:303-306) — UNVERIFIED, re-check before T-06
-- `classify_all` runs `git worktree list` twice per declared repo; eng-lead judged the alternative worse — eng digest Q3 — UNVERIFIED
+- qa gate FAILed, matrix_ok false, and is CORRECT: the plan is incomplete, the squad work is not
+  at fault — runs/2026-08-24-01-validator/digest.md — verified-at 4c7b650
+- `INV-30` occurs 0 times in check-state.sh (`INV-29` 9x): REQ-12 is UNBUILT, not untested; SC-12
+  has nothing to evidence — grep by me — verified-at 4c7b650
+- `INV-29`/`INV-30` occur 0 times in test-check-state.py: SC-01..SC-05 have no gate-level
+  evidence. Predicate tested, GATE not — grep by me — verified-at 4c7b650
+- NO CYCLE spent on the qa FAIL, deliberately; cycles_used stays 6. DEC-157 = rework only, and
+  T-07/T-08/T-09 were never executed — first-pass forward work — verified-at 4c7b650
+- Suites measured by me: sweep 47, hooks-install 29, worktree-terminal 34, each exit 0;
+  check-state.sh exit 0; run-unit-tests.sh exit 0, zero ^FAIL — verified-at 4c7b650
+- REQ-07's repository scope was left OPEN BY THE BRIEF: BRIEF.md:237-239 — "REQ-07 through REQ-09
+  are written to be satisfied by either." REQ-07 (:73-74) has no repo quantifier — verified-at 4c7b650
+- `classify`->`classify_all` at post-merge-sweep.sh:234 is a NO-OP THAT LOOKS GREEN: no served
+  checkout carries `.claude/skills/harness/hooks` (kaya-ai lacks it, smoke absent), and :163-167
+  builds feat_dir under `main_checkout_root` so served records SKIP — measured — verified-at 4c7b650
+- D-01's `because` (plan.yaml:88) is FALSE as written on the repository dimension. pm judges it a
+  CORRECTION not a DEC-188 strike: the choice stands, the reason overreaches — verified-at 4c7b650
+- SC-16's red proof is already DISCHARGED — test-post-merge-sweep.py:665-687 records "(RED: not
+  found)" against today's code — verified-at 4c7b650
 
 ## Dead ends
 
-- Do NOT put REQ-04's enumeration in `check-state.sh` — D-10 placed it in `worktree_terminal.py`, operator-signed — plan.yaml D-10 — verified-at 9165162
-- Do NOT edit `check-state.sh` or `test-check-state.py` from a squad — DEC-174 am.4 enumeration; D-09 records why the four route DEVIATIONs are correct — verified-at 9165162
-- Do NOT re-run `check-plan-routes.py` expecting zero DEVIATION lines — exactly four are correct and permanent — D-09 — verified-at 9165162
-- There is NO SendMessage tool at the orchestrator tier — Read, Agent, Write, Bash only. A finding arriving while a squad builds must be checked on RETURN, never relayed mid-run — measured 2026-08-24, cost one stray inert spawn — verified-at 9165162
-- Do NOT run harness bin scripts needing the MAIN checkout from inside the worktree — `factory_config.harness_root()` derives from script location, factory_config.py:46 — verified-at 9165162
-- At distillation, DROP backend-dev observations line 5 — it records the c1 conclusion that one caller covering both repos is unasked-for, which D-10 falsified — eng digest Q2 — UNVERIFIED
+- Do NOT route M4 to eng — the code change is a measured no-op; follow-up is TEST-ONLY and only if
+  D-11 signs — verified-at 4c7b650
+- Do NOT edit check-state.sh / test-check-state.py from a squad — DEC-174 am.4; the three tasks
+  are main-session-direct by `execution_mode` — verified-at 4c7b650
+- Do NOT pin `review_sha` before the operator commits — HEAD lacks the work, so a pin grades
+  nothing (P-02/P-07); the trap was live all phase — verified-at 4c7b650
+- Do NOT file Q3 — falsified; test-validate-digest.py is ALL PASSED exit 0. Q8 (concurrent runs)
+  explains the phantom — verified-at 4c7b650
+- Do NOT trust a count in any digest — THREE failed re-measurement (36/41, 27/29 twice). Measure
+  without a pipe — verified-at 4c7b650
+- Do NOT fold D-11 or the D-01 correction into Amendment 3 — three independent signatures, pm's
+  explicit instruction — verified-at 4c7b650
+- At distillation DROP backend-dev observations line 5 (D-10 falsified it) — UNVERIFIED
 
 ## Working set
 
-- .harness/harness/features/FEAT-34-worktree-act3-enforced/plan.yaml
-- .harness/harness/features/FEAT-34-worktree-act3-enforced/BRIEF.md
 - .harness/harness/features/FEAT-34-worktree-act3-enforced/STATE.md
-- .harness/harness/features/FEAT-34-worktree-act3-enforced/notes/answers-ship-1-2026-08-24.md
-- .harness/harness/features/FEAT-34-worktree-act3-enforced/runs/t01-t02-rework-eng/digest.md
+- .harness/harness/features/FEAT-34-worktree-act3-enforced/runs/2026-08-24-01-validator/digest.md
+- .harness/harness/features/FEAT-34-worktree-act3-enforced/notes/research-req07-sweep-scope-2026-08-24.md
+- .harness/harness/features/FEAT-34-worktree-act3-enforced/notes/research-goal-scope-linked-worktree-2026-08-24.md
+- .harness/harness/features/FEAT-34-worktree-act3-enforced/plan.yaml

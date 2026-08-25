@@ -4,64 +4,71 @@
 
 - feature: FEAT-34-worktree-act3-enforced
 - status: Building (feature.json, board spelling)
-- cycles_used: 4 / 10 · runs: 8 / 20
-- in flight: nothing. The eng rework run has CLOSED.
+- cycles_used: 6 / 10 · runs: 13 / 20
+- in flight: NOTHING. All squads returned.
+- FULLY HELD ON THE OPERATOR — four acts, none of them dispatchable by me.
+- HEAD 4c7b650. Most of the feature is UNCOMMITTED; the operator holds the pen.
 
-JOB ONE IS CLOSED. The classify main-checkout defect is fixed and the gate is green.
-Run dir is `t01-t02-classify-skip-eng` (an earlier STATE line called it
-`t01-t02-classify-mainroot-eng`; that name was mine and never existed on disk — corrected here).
+THE FOUR OPERATOR ACTS: (1) execute T-07/T-08/T-09 — `main-session-direct`, `pending`, and they
+ARE the qa gate's M1/M2/M3; (2) sign Amendment 3 / SC-16; (3) sign D-11; (4) approve the
+one-clause D-01 `because` correction. pm asked for the three signatures to stay INDEPENDENT so
+each can be accepted or refused separately; I have not bundled them.
 
-VERIFIED BY ME AT MY OWN TIER, not relayed. The lead stated plainly that it holds no Bash and
-that its gate results were member-reported, so I re-measured all of it:
-- `test-worktree-terminal.py`: exit 0, 34 PASS, 0 FAIL. Exit code captured without a pipe —
-  `$?` after `| tail` reports tail's status, not python's, and my first attempt made that error.
-- `check-state.sh`: exit 0, zero violation lines. It was exit 1 with exactly one violation before.
-- The operator's original probe, both directions: `classify(<this worktree>)` and
-  `classify(<main checkout>)` now return the SAME 4 records and ZERO main-checkout records.
-  The asymmetry that defined the defect is gone.
+Q2/M4 ANSWERED: SHAPE 3 — genuinely undecided at plan time, and pm CORRECTED MY FRAMING. I
+dispatched two shapes ("deliberately harness-only" vs "REQ-07 does reach"), both presupposing the
+brief had decided. It had explicitly declined to: BRIEF.md:237-239 reads "Whether the harness and
+a fleet repository share one mechanism or need two is undecided, and REQ-07 through REQ-09 are
+written to be satisfied by either." REQ-07 (:73-74) carries no repository quantifier. I verified
+both at source. My dispatch rested on a false premise and pm caught it.
 
-THE FIX: `worktree_terminal.py:203-205` is `enumerate` + `if i == 0: continue`. No `root_real`
-remains anywhere in the file (grep, zero hits). It is INV-25's precedent, not a second rule.
+I VERIFIED THE "DO LESS" RECOMMENDATION RATHER THAN ACCEPTING IT — it is the convenient kind.
+`classify` -> `classify_all` at post-merge-sweep.sh:234 would be a NO-OP THAT LOOKS GREEN:
+no served checkout carries `.claude/skills/harness/hooks` (kaya-ai exists WITHOUT it,
+harness-factory-smoke absent entirely), so no harness hook fires there at all; and :163-167 builds
+feat_dir under `main_checkout_root`, so every served-repo record takes the SKIP. Measured by me
+via factory_config.load_fleet(). M4 does NOT go to eng. `med` stands.
 
-THE PRECEDENT IS NOW MEASURED, not just cited: `git worktree list --porcelain` run from INSIDE
-this linked worktree returns the main checkout as entry 1 of 6, with this worktree at entry 4.
-That is the guarantee check-state.sh:1138-1143 asserts, confirmed live.
+D-01's `because` (plan.yaml:88) is FALSE AS WRITTEN on the repository dimension. pm judges it a
+CORRECTION, not a DEC-188 strike — D-01's CHOICE still stands, only its stated reason overreaches,
+and its other two grounds are untouched. That distinction is pm's and I accept it: DEC-188 governs
+a decision the tree FLATLY CONTRADICTS. The correction is the half most likely to be dropped, and
+with no propagation checker nothing will ever detect it.
 
-WHY THIS WORKTREE IS ABSENT FROM ITS OWN CLASSIFY OUTPUT — it is NOT a residual bug. It is
-enumerated (entry 4) and classified, then correctly filtered out because its landed feature.json
-on `main` reads `status: Plan`, which is not terminal. Non-terminal records are absent from the
-returned list by design (T-02 case (b)). I checked the landed blob rather than assume.
+qa GATE FAIL STANDS, and NO CYCLE WAS SPENT. cycles_used is 6. DEC-157 makes a cycle REWORK ONLY;
+T-07/T-08/T-09 have never been executed, so they are first-pass FORWARD work. The FAIL records an
+incomplete plan, not a defect. Verified by me: INV-30 = 0 occurrences in check-state.sh (INV-29 =
+9), and INV-29/INV-30 = 0 in test-check-state.py.
 
-ON THE RECORDED VERDICT — stated openly, not buried. The lead returned VERDICT: FAIL. I recorded
-this run as PASS in feature.json, and here is the whole reasoning so nobody has to reconstruct it:
-the lead's FAIL is the mechanical worst-wins roll-up over step T-02, a step I DISPATCHED to fail,
-because I required the new case be red before the fix landed. No gate failed, `must_fix` is
-empty, and I verified the end state myself. Recording FAIL would misdescribe a run in which
-nothing went wrong; recording PASS silently would hide that I overrode the lead. Both are in the
-record. The operator can overrule this.
+MEASURED BY ME, all green: sweep 47 PASS, hooks-install 29 PASS, worktree-terminal 34 PASS, each
+exit 0; check-state.sh exit 0; run-unit-tests.sh exit 0 with zero ^FAIL.
 
-RESIDUAL, MEASURED BY ME, NOT ACTED ON — `post-merge-sweep.sh:42-59` `_resolve_repo_root()` is
-now a no-op with respect to classify's output: it derives the main checkout to pass as `root`,
-but classify no longer keys the skip on `root` at all, and porcelain output is identical from
-any worktree of one repo. Its docstring asserts classify would otherwise "silently drop" the
-caller's own worktree — a contract that NO LONGER EXISTS. The false docstring is the part that
-must not stand; this repo has no propagation checker, so it will survive indefinitely. Whether
-the function itself is deleted is a scope call for the operator. It is T-03's file, outside the
-dispatch I gave, so I left it entirely alone.
+CONTEXT CHECK SKIPPED AGAIN — the transcript grep is denied by the permission classifier. A
+skipped check is NOT a passed one, so no headroom figure is claimed. Handoff superseded at seq-3
+(notes/handoff-build.md, 57 lines) because everything is now held and the next wake may be a
+fresh orchestrator.
 
-MINE vs THE OPERATOR'S: T-07..T-12 are `main-session-direct` (#824-#829). T-13 is mine and
-depends on T-12. After T-13: the qa `test_matrix` segment, then SIMPLIFY, then pin `review_sha`
-and `gh-sync.py status <dir> Review` before the panel. I do not commit and do not open a PR.
+TWO PROCESS ERRORS THIS WAKE, recorded rather than smoothed: `bash-write-guard.sh` blocked a
+heredoc whose target was an unresolved `$D` shell variable — a correct refusal, and I re-issued
+with the literal path. Then `check-domain.sh` refused the handoff at 65 lines against a 60 cap;
+I trimmed to 57. Both guards worked.
 
-BACKLOG, from the operator, not acted on: `feature-worktree.py remove` refuses at exit 5 with
-DIFFERS when the default branch is strictly AHEAD of the worktree's copy of feature.json. The
-guard cannot distinguish "you would lose work" from "you are simply behind".
+TASK LEDGER at HEAD: T-01..T-06, T-10..T-12 `done`. T-13 `building`, complete in substance.
+T-07/T-08/T-09 `pending`, OPERATOR'S.
+
+REMAINING AFTER THE OPERATOR: re-run qa gate -> SIMPLIFY (carrying Q7) -> operator commits ->
+pin review_sha -> gh-sync.py status Review -> panel -> goal-check -> close-out. I pinned NO
+review_sha and will not until the work is committed: a pin at a HEAD lacking the work grades
+nothing.
 
 ## Open Questions
 
-- Q1 (non-blocking, needs the operator): `post-merge-sweep.sh` `_resolve_repo_root()` — delete
-  it, or keep it as defence-in-depth and correct only its now-false docstring? T-03's file.
-- Q2 (non-blocking, a real contract defect): a deliberately red-first TDD step returns FAIL by
-  design, and worst-wins roll-up means a build whose end state is fully green CANNOT report PASS.
-  This run hit it live.
-- Q6 (settled 2026-08-24): sign D-08 as written. Ruling in `notes/answers-plan-2026-08-24.md`.
+- Q10 (BLOCKING): execute T-07/T-08/T-09. They are M1/M2/M3 and they gate `status Review`.
+- Q9a/Q9b (BLOCKING): sign Amendment 3 / SC-16; its red proof is already discharged.
+- Q11 (operator): sign D-11 (harness-checkout-only, drafted verbatim in pm's artifact), or direct
+  the cross-repository sweep as its own feature. Nothing in FEAT-34 waits on this.
+- Q12 (operator): approve the one-clause correction to D-01's `because` at plan.yaml:88.
+- Q8: concurrent run-unit-tests.sh runs produce transient failures. Q3 STAYS CLOSED.
+- Q7 (into SIMPLIFY): stale module docstring, test-post-merge-sweep.py:13-19.
+- Q6 (residual): T-04 case (f) plan prose says unresolved; classify calls that shape exempt_absent.
+- Q4 (residual): orchestrator has no Edit tool, so D-04's route for a status change does not exist.
+- Q5 (backlog): feature-worktree.py remove exits 5 DIFFERS when the default branch is AHEAD.

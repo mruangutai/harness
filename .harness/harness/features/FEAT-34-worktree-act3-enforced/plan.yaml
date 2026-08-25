@@ -86,7 +86,7 @@ lanes:
 decisions:
   - id: D-01
     choice: One post-merge firing sweeps EVERY eligible worktree it finds, not only the feature whose merge triggered it. This resolves the brief's Q2.
-    because: post-merge receives only the squash flag as its argument and never the merged ref, so identifying the triggering feature means inferring it - and a single git pull can land several merges at once, which is exactly the shape the ten batch-closed milestones measured. Sweeping all makes the hook compute the SAME predicate as INV-29, so the hook and the invariant can never disagree about what is eligible. The accepted cost is that a pull can remove a checkout the operator was not thinking about; REQ-08's self-exclusion guard is what keeps that from being destructive to the running session.
+    because: post-merge receives only the squash flag as its argument and never the merged ref, so identifying the triggering feature means inferring it - and a single git pull can land several merges at once, which is exactly the shape the ten batch-closed milestones measured. Sweeping all makes the hook compute the same predicate as INV-29 WITHIN one checkout. D-10 later gave INV-29 a cross-repository entry point (classify_all) that the sweep does not call, so the two agree on which worktrees of this checkout are eligible and differ on which repositories are in view - see D-11. The accepted cost is that a pull can remove a checkout the operator was not thinking about; REQ-08's self-exclusion guard is what keeps that from being destructive to the running session.
     dec: none
   - id: D-02
     choice: The hook and the invariants share one predicate module, worktree_terminal.py, written by the squad; the edit that makes check-state.sh call it is a separate main-session-direct task.
@@ -183,6 +183,30 @@ decisions:
       directory is the exempting fact, failure of the lookup is not. It reuses the existing
       unresolved klass rather than adding one, so check-state.sh needs no new branch.
     dec: DEC-174
+  - id: D-11
+    choice: >-
+      The post-merge sweep is HARNESS-CHECKOUT-ONLY for this feature. post-merge-sweep.sh
+      keeps calling worktree_terminal.classify(root); it does not call classify_all. REQ-07 is
+      read as scoped to the checkout whose merge fired the hook. A served repository's terminal
+      worktree stays reported-not-removed, by INV-29, until a future feature gives fleet repos
+      their own trigger. This resolves the fleet half of the brief's Q1, which D-08 left open.
+    because: >-
+      three facts measured at 4c7b650 make classify_all at the sweep a no-op rather than a
+      fix. First, no served checkout carries .claude/skills/harness/hooks, and the shim resolves
+      its root from its own file location, so a merge in a served repository fires no harness hook
+      and REQ-07's own trigger never occurs there. Second, post-merge-sweep.sh:163 resolves the
+      landed feature directory under the harness main checkout, while a served repository's feature
+      directories live in that repository's own .harness/<repo>/features, so every served-repo
+      record would take the :164 SKIP. Third, D-03's gh-sync.py ship invocation has no parameter
+      for a second repository's state store. The accepted cost, named rather than argued away: the
+      hook and INV-29 now compute DIFFERENT predicates on the repository dimension, which is exactly
+      what D-01's because said must never happen. That asymmetry is deliberate here and is safe only
+      because it errs toward inaction - INV-29 still refuses at exit 2 on a served repository's
+      terminal worktree, so nothing ships silently wrong; the checkout merely waits for a manual
+      removal. A test asserting the narrower scope is required so the asymmetry is pinned rather
+      than latent.
+    dec: none
+
 tasks:
   - id: T-01
     title: Add worktree_terminal.py, the shared eligibility predicate over standing worktrees
@@ -588,7 +612,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate, on the ground that a gate test is the only thing proving the gate discriminates. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
     depends_on: [T-06]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
@@ -647,7 +671,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 amendment 4 names check-state.sh in the enforcement enumeration. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops, which is a domain grant and not a lane. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
     depends_on: [T-06]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/check-state.sh
     verify: |
@@ -686,7 +710,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: DEC-174 amendment 4 extends the enumeration to the test file of each gate. check-domain.sh --resolve at 9165162 prints harness-backend-dev harness-dev-ops. check-plan-routes.py therefore prints DEVIATION on this task; per D-09 that deviation is correct and must not be resolved by moving the task to team.
     depends_on: [T-08]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-check-state.py
     verify: |
@@ -843,7 +867,7 @@ tasks:
     execution_mode: team
     execution_agent: harness-dev-ops
     depends_on: [T-05, T-12]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/test-hooks-install.py
       - .harness/harness.json

@@ -10,7 +10,29 @@ with the full case list: fast-forward and squash merge shapes, the self-exclusio
 red proof, the per-feature milestone record (SC-11), the record-then-remove order (D-04) with its
 red proof, an unresolved record left standing, and the SKIP-is-not-success gate with its red proof.
 
-case_dry_run_safety() below is T-03's original, UNCHANGED.
+REWORK, T-03/T-04 combined dispatch: `_resolve_repo_root()` in post-merge-sweep.sh used to derive
+the repository root from `git worktree list --porcelain` run with `cwd=os.getcwd()`, discarding
+the root the T-11 shim derives from `$0` and substituting the CALLER's cwd — MEASURED to defeat
+T-11 entirely when invoked from outside the repository. post-merge-sweep.sh now derives its root
+purely from ITS OWN on-disk location (BIN_DIR walked up), never from cwd. Case (h),
+`case_cwd_outside_repo()`, is the new case that would have caught this: cwd outside any git
+repository, the sweep still finds and sweeps the repository's terminal worktree.
+
+That fix changes what EVERY case in this file must guard against: post-merge-sweep.sh no longer
+"just happens" to resolve the fixture repo because cwd pointed there — root now depends on where
+the INVOKED SCRIPT ITSELF lives on disk. Running the real, absolute-path `post-merge-sweep.sh`
+(the module-level `SWEEP` constant) against a fixture would therefore resolve root as THIS real
+checkout, not the fixture, and a non-dry-run case would act — `gh-sync.py ship` /
+`feature-worktree.py remove` — on real worktrees. `_install_fixture_bin()` is the fix: it gives
+each fixture repository its own real `.claude/skills/harness/bin/` directory, populated with
+symlinks to every real bin-dir file, and every case now invokes the fixture-local
+`post-merge-sweep.sh` found THERE instead of `SWEEP`. `_assert_resolved_root_in_fixture()` is the
+mandatory safety belt on top of that construction: every case reads the root the running sweep
+process itself reported and asserts it lands inside that case's own fixture and never equals
+`REAL_ROOT` — proof, not just an arrangement that happens to be safe.
+
+case_dry_run_safety() below is T-03's original, updated only for the fixture-local bin dir and the
+root-safety assertion; its own case-specific assertions are otherwise UNCHANGED.
 
 FIXTURE MECHANICS SHARED BY EVERY CASE THAT INVOKES A REAL `gh-sync.py ship` OR
 `feature-worktree.py remove`:
@@ -38,6 +60,7 @@ FIXTURE MECHANICS SHARED BY EVERY CASE THAT INVOKES A REAL `gh-sync.py ship` OR
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -45,6 +68,74 @@ import tempfile
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = os.path.dirname(SCRIPT)
 SWEEP = os.path.join(BIN_DIR, "post-merge-sweep.sh")
+
+# REAL_ROOT is the actual repository this checkout lives in — BIN_DIR walked up the same four
+# path segments (.claude/skills/harness/bin) post-merge-sweep.sh itself now walks to derive its
+# own root. Every fixture below must resolve to somewhere UNDER a throwaway tempdir and NEVER to
+# this value — that is the mandatory safety belt the T-03 rework requires of every case, since
+# post-merge-sweep.sh's root resolution no longer depends on cwd at all.
+REAL_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(BIN_DIR))))
+
+# Every real file directly under BIN_DIR (skip __pycache__ and other directories) — the set each
+# fixture's OWN bin dir symlinks in, so worktree_terminal.py/factory_config.py/gh-sync.py/
+# feature-worktree.py and whatever THEY import all resolve for a sweep script invoked from
+# inside the fixture.
+BIN_ENTRIES = sorted(
+    f for f in os.listdir(BIN_DIR) if os.path.isfile(os.path.join(BIN_DIR, f))
+)
+
+_ROOT_RE = re.compile(r"^post-merge-sweep: resolved repository root: (.+)$", re.M)
+
+
+def _extract_resolved_root(stdout):
+    m = _ROOT_RE.search(stdout or "")
+    return m.group(1) if m else None
+
+
+def _assert_resolved_root_in_fixture(results, label, stdout, fixture_root):
+    """MANDATORY SAFETY BELT (T-03/T-04 rework). Every case that runs the real sweep against a
+    fixture must prove — not merely arrange by construction — that the root it resolved is INSIDE
+    that fixture and is NOT this real checkout. A case that only asserted on the fixture's own
+    files could pass vacuously even if the sweep silently resolved and acted on REAL_ROOT instead;
+    this reads the root the running process itself reported and compares both ways."""
+    found = _extract_resolved_root(stdout)
+    ok = (
+        found is not None
+        and os.path.realpath(found) == os.path.realpath(fixture_root)
+        and os.path.realpath(found) != os.path.realpath(REAL_ROOT)
+    )
+    results.append((
+        f"{label} SAFETY: sweep resolved its root inside this fixture, never the real harness "
+        "checkout",
+        ok,
+        f"resolved={found!r} fixture_root={fixture_root!r} REAL_ROOT={REAL_ROOT!r} "
+        f"stdout={stdout!r}",
+    ))
+
+
+def _install_fixture_bin(fixture_root):
+    """Give this fixture repository its OWN .claude/skills/harness/bin/ directory — a REAL
+    directory, because BIN_DIR resolution inside post-merge-sweep.sh is
+    `cd "$(dirname "${BASH_SOURCE[0]}")" && pwd`, which needs a real directory to `cd` into — that
+    holds a SYMLINK to every file the real bin dir carries (BIN_ENTRIES).
+
+    Why this exists at all: post-merge-sweep.sh derives its own root purely from ITS OWN on-disk
+    location (the T-03 rework — see post-merge-sweep.sh's `_resolve_repo_root`), never from the
+    caller's cwd. A test that ran the REAL post-merge-sweep.sh at its real absolute path — as every
+    case here did before this rework, with only cwd pointed at a throwaway fixture — would resolve
+    root as THIS repository, not the fixture, and a non-dry-run case would then run `gh-sync.py
+    ship` / `feature-worktree.py remove` against real worktrees. Giving each fixture its own bin
+    directory, and invoking the sweep script found THERE, makes the resolved root land inside the
+    fixture regardless of what cwd the case chooses — which is exactly what the new
+    case_cwd_outside_repo() below needs to be able to test safely.
+
+    Returns the fixture-local `post-merge-sweep.sh` path (itself a symlink) that every case must
+    invoke in place of the module-level SWEEP constant."""
+    fixture_bin = os.path.join(fixture_root, ".claude", "skills", "harness", "bin")
+    os.makedirs(fixture_bin, exist_ok=True)
+    for name in BIN_ENTRIES:
+        os.symlink(os.path.join(BIN_DIR, name), os.path.join(fixture_bin, name))
+    return os.path.join(fixture_bin, "post-merge-sweep.sh")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -116,19 +207,25 @@ def _stub_gh(tmp, fail_milestones=()):
 
 def case_dry_run_safety():
     """`--dry-run` against a real terminal-eligible worktree: exits 0, the worktree survives,
-    and no `gh` invocation is made at all (not even through the stub)."""
+    and no `gh` invocation is made at all (not even through the stub).
+
+    Invokes the fixture-local sweep (via `_install_fixture_bin`), not the module-level SWEEP
+    constant, and asserts the resolved root lands inside this fixture — the mandatory safety belt
+    every case in this file now carries."""
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
         _commit_feature(repo, "FEAT-01-dry-run-thing", "Done")
         dest = _add_wt(repo, "FEAT-01-dry-run-thing")
         gh_log, env = _stub_gh(tmp)
 
-        r = subprocess.run(["bash", SWEEP, "--dry-run"], cwd=repo, capture_output=True,
+        r = subprocess.run(["bash", sweep, "--dry-run"], cwd=repo, capture_output=True,
                             text=True, env=env)
 
         results.append(("--dry-run exits 0", r.returncode == 0,
                          f"exit={r.returncode} stderr={r.stderr!r}"))
+        _assert_resolved_root_in_fixture(results, "--dry-run", r.stdout, repo)
         results.append(("--dry-run leaves the terminal worktree standing",
                          os.path.isdir(dest), f"dest={dest}"))
         results.append(("--dry-run mentions the feature id in its output",
@@ -163,14 +260,16 @@ def _sweep_env(repo, gh_env):
     return env
 
 
-def _install_hook(repo):
-    """Install post-merge-sweep.sh as `.git/hooks/post-merge`, per T-04's intent. A thin exec
-    shim (rather than a byte-for-byte copy) is unavoidable: the real script derives its own bin
-    dir from `$BASH_SOURCE`, so copying its TEXT into `.git/hooks/post-merge` would make it hunt
-    for worktree_terminal.py etc. next to the hook instead of in the real bin dir. execing the
-    real file by its absolute path preserves BASH_SOURCE correctly inside the sweep itself and
-    changes nothing about what runs — this is fixture plumbing, never the T-11 shim (out of
-    scope, DEC-179/D-08's own separate task)."""
+def _install_hook(repo, sweep):
+    """Install `sweep` (the fixture-local post-merge-sweep.sh from `_install_fixture_bin`, never
+    the module-level SWEEP constant) as `.git/hooks/post-merge`, per T-04's intent. A thin exec
+    shim (rather than a byte-for-byte copy) is unavoidable: the sweep script derives its own root
+    from ITS OWN on-disk location (BASH_SOURCE), so copying its TEXT into `.git/hooks/post-merge`
+    would make it resolve root as wherever `.git/hooks` sits rather than the fixture's own bin
+    dir. execing `sweep` by its fixture-local absolute path (a symlink into the real bin dir, but
+    living inside the fixture's own .claude/skills/harness/bin/) preserves BASH_SOURCE correctly
+    and keeps the resolved root inside this fixture — this is fixture plumbing, never the T-11
+    shim (out of scope, DEC-179/D-08's own separate task)."""
     hooks_dir = os.path.join(repo, ".git", "hooks")
     os.makedirs(hooks_dir, exist_ok=True)
     hook_path = os.path.join(hooks_dir, "post-merge")
@@ -178,7 +277,7 @@ def _install_hook(repo):
     with open(hook_path, "w") as f:
         f.write("#!/usr/bin/env bash\n")
         f.write(f'echo "$1" > "{hooklog}"\n')
-        f.write(f'exec "{SWEEP}" "$@"\n')
+        f.write(f'exec "{sweep}" "$@"\n')
     os.chmod(hook_path, 0o755)
     return hooklog
 
@@ -189,21 +288,24 @@ def _has_line_with_all(log_text, *needles):
 
 _GUARD_LINE = "    if cwd_real == path_real or cwd_real.startswith(path_real + os.sep):"
 _SKIP_LINE = '    if "gh-sync: SKIP" in combined:'
-_BIN_DIR_LINE = 'BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"'
 
 
-def _mutated_copy(tmp, name, needle, replacement):
+def _mutated_copy(fixture_bin, name, needle, replacement):
     """A SOURCE COPY of post-merge-sweep.sh, mutated by name (the technique the plan cites,
     matching feature-worktree.py's own REFUSE_ON_DIRTY/REQUIRE_LANDED precedent) — never a
     from-scratch stub, so the demonstration exercises the real guard text rather than a
-    caricature of it. BIN_DIR is hardcoded to the REAL bin dir so the copy, which no longer
-    lives next to worktree_terminal.py/gh-sync.py/feature-worktree.py, still finds them."""
+    caricature of it.
+
+    Written into `fixture_bin` — the SAME directory `_install_fixture_bin` populated with
+    symlinks to worktree_terminal.py, factory_config.py, gh-sync.py, feature-worktree.py etc —
+    rather than a bare tmp dir. No BIN_DIR hardcoding is needed as a result: the mutated copy's
+    own unmodified `BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` line resolves to
+    `fixture_bin` on its own, exactly like the real sweep script it was copied from, which is what
+    keeps its resolved root inside the fixture rather than pointing at this real checkout."""
     real_text = open(SWEEP).read()
     assert needle in real_text, f"expected text not found verbatim in {SWEEP} — mutation would be a no-op"
     mutated = real_text.replace(needle, replacement)
-    assert _BIN_DIR_LINE in mutated
-    mutated = mutated.replace(_BIN_DIR_LINE, f'BIN_DIR="{BIN_DIR}"')
-    path = os.path.join(tmp, name)
+    path = os.path.join(fixture_bin, name)
     with open(path, "w") as f:
         f.write(mutated)
     os.chmod(path, 0o755)
@@ -218,9 +320,10 @@ def case_fast_forward():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
-        hooklog = _install_hook(repo)
+        hooklog = _install_hook(repo, sweep)
 
         # The Done feature is committed on a topic branch; the worktree is added from THAT
         # branch's tip so its own tracked copy of feature.json already matches what lands on
@@ -238,6 +341,10 @@ def case_fast_forward():
                          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}"))
         results.append(("(a) MEASURED: fast-forward fires post-merge with hook arg 0",
                          arg_seen == "0", f"hook arg seen: {arg_seen!r}"))
+        # MEASURED: git redirects a post-merge hook's OWN stdout to git's stderr channel, so the
+        # sweep's "resolved repository root: ..." line lands in r.stderr here, never r.stdout.
+        _assert_resolved_root_in_fixture(results, "(a)", (r.stdout or "") + (r.stderr or ""),
+                                          repo)
         results.append(("(a) the Done feature's worktree is gone after the merge",
                          not os.path.isdir(dest), f"dest={dest}"))
     return results
@@ -251,9 +358,10 @@ def case_squash():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
-        hooklog = _install_hook(repo)
+        hooklog = _install_hook(repo, sweep)
 
         # The terminal feature is landed on `main` BEFORE the squash. Measured (probe script,
         # see the receipt): `git merge --squash` fires post-merge with arg 1 WHILE `main`'s ref
@@ -283,6 +391,10 @@ def case_squash():
                          f"rc={r.returncode} stdout={r.stdout!r} stderr={r.stderr!r}"))
         results.append(("(b) MEASURED: squash fires post-merge with hook arg 1",
                          arg_seen == "1", f"hook arg seen: {arg_seen!r}"))
+        # MEASURED: git redirects a post-merge hook's OWN stdout to git's stderr channel, so the
+        # sweep's "resolved repository root: ..." line lands in r.stderr here, never r.stdout.
+        _assert_resolved_root_in_fixture(results, "(b)", (r.stdout or "") + (r.stderr or ""),
+                                          repo)
         results.append(("(b) the Done feature's worktree is gone after the merge",
                          not os.path.isdir(dest), f"dest={dest}"))
     return results
@@ -296,16 +408,19 @@ def case_self_exclusion():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        fixture_bin = os.path.dirname(sweep)
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
 
         _commit_feature(repo, "FEAT-22-self-exclude", "Done", milestone=703)
         dest = _add_wt(repo, "FEAT-22-self-exclude")
 
-        r = subprocess.run(["bash", SWEEP], cwd=dest, capture_output=True, text=True, env=env)
+        r = subprocess.run(["bash", sweep], cwd=dest, capture_output=True, text=True, env=env)
 
         results.append(("(c) sweep run from inside its own eligible worktree exits 0",
                          r.returncode == 0, f"rc={r.returncode} stderr={r.stderr!r}"))
+        _assert_resolved_root_in_fixture(results, "(c)", r.stdout, repo)
         results.append(("(c) SELF-EXCLUSION: that worktree is still standing afterwards",
                          os.path.isdir(dest), f"dest={dest}"))
         results.append(("(c) SELF-EXCLUSION: stdout states the sweep declined because it is "
@@ -314,7 +429,7 @@ def case_self_exclusion():
                          f"stdout={r.stdout!r}"))
 
         # RED PROOF: a source copy with the guard's condition line forced false.
-        mutated_path = _mutated_copy(tmp, "sweep-no-guard.sh", _GUARD_LINE,
+        mutated_path = _mutated_copy(fixture_bin, "sweep-no-guard.sh", _GUARD_LINE,
                                       "    if False:  # RED PROOF: self-exclusion guard removed")
         r2 = subprocess.run(["bash", mutated_path], cwd=dest, capture_output=True, text=True,
                              env=env)
@@ -335,6 +450,7 @@ def case_per_feature_record():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
 
@@ -343,11 +459,12 @@ def case_per_feature_record():
         _commit_feature(repo, "FEAT-31-two-b", "Done", milestone=802)
         dest_b = _add_wt(repo, "FEAT-31-two-b")
 
-        r = subprocess.run(["bash", SWEEP], cwd=repo, capture_output=True, text=True, env=env)
+        r = subprocess.run(["bash", sweep], cwd=repo, capture_output=True, text=True, env=env)
         log_text = open(log).read() if os.path.exists(log) else ""
 
         results.append(("(d) sweep over two terminal features exits 0", r.returncode == 0,
                          f"rc={r.returncode} stderr={r.stderr!r}"))
+        _assert_resolved_root_in_fixture(results, "(d)", r.stdout, repo)
         results.append(("(d) SC-11: milestone close call logged for FEAT-30-two-a's OWN "
                          "milestone (801), checked on its own",
                          _has_line_with_all(log_text, "milestones/801", "state=closed"),
@@ -370,6 +487,7 @@ def case_order_d04():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
         log, gh_env = _stub_gh(tmp, fail_milestones=(901,))
         env = _sweep_env(repo, gh_env)
 
@@ -378,10 +496,11 @@ def case_order_d04():
         _commit_feature(repo, "FEAT-33-order-ok", "Done", milestone=902)
         dest_ok = _add_wt(repo, "FEAT-33-order-ok")
 
-        r = subprocess.run(["bash", SWEEP], cwd=repo, capture_output=True, text=True, env=env)
+        r = subprocess.run(["bash", sweep], cwd=repo, capture_output=True, text=True, env=env)
 
         results.append(("(e) sweep exits 0 even though the `gh` write for one feature failed",
                          r.returncode == 0, f"rc={r.returncode} stderr={r.stderr!r}"))
+        _assert_resolved_root_in_fixture(results, "(e)", r.stdout, repo)
         results.append(("(e) D-04 ORDER: the feature whose write failed keeps its worktree "
                          "standing — removal never runs ahead of a confirmed record",
                          os.path.isdir(dest_fail), f"dest_fail={dest_fail} stdout={r.stdout!r}"))
@@ -399,6 +518,7 @@ def case_unresolved_left_standing():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
 
@@ -413,10 +533,11 @@ def case_unresolved_left_standing():
         _commit_feature(repo, "FEAT-40-amb-two", "Done")
         dest = _add_wt(repo, "FEAT-40")
 
-        r = subprocess.run(["bash", SWEEP], cwd=repo, capture_output=True, text=True, env=env)
+        r = subprocess.run(["bash", sweep], cwd=repo, capture_output=True, text=True, env=env)
 
         results.append(("(f) sweep exits 0 on an unresolved record", r.returncode == 0,
                          f"rc={r.returncode} stderr={r.stderr!r}"))
+        _assert_resolved_root_in_fixture(results, "(f)", r.stdout, repo)
         results.append(("(f) the unresolved record is printed", "unresolved" in r.stdout,
                          f"stdout={r.stdout!r}"))
         results.append(("(f) the unresolved record's worktree is left standing",
@@ -432,6 +553,8 @@ def case_skip_is_not_success():
     results = []
     with tempfile.TemporaryDirectory() as tmp:
         repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        fixture_bin = os.path.dirname(sweep)
         log, gh_env = _stub_gh(tmp)
         env = _sweep_env(repo, gh_env)
 
@@ -443,10 +566,11 @@ def case_skip_is_not_success():
         _commit_feature(repo, "FEAT-41-no-milestone", "Done", milestone=None)
         dest = _add_wt(repo, "FEAT-41-no-milestone")
 
-        r = subprocess.run(["bash", SWEEP], cwd=repo, capture_output=True, text=True, env=env)
+        r = subprocess.run(["bash", sweep], cwd=repo, capture_output=True, text=True, env=env)
 
         results.append(("(g) sweep exits 0 even though ship SKIPped", r.returncode == 0,
                          f"rc={r.returncode} stderr={r.stderr!r}"))
+        _assert_resolved_root_in_fixture(results, "(g)", r.stdout, repo)
         results.append(("(g) SKIP IS NOT SUCCESS: a feature whose ship exited 0 but printed "
                          "`gh-sync: SKIP` keeps its worktree standing",
                          os.path.isdir(dest), f"dest={dest} stdout={r.stdout!r}"))
@@ -463,7 +587,7 @@ def case_skip_is_not_success():
         # string check deleted, replaced with `if False:` so the dead branch below it never
         # fires and removal proceeds whenever ship merely exits 0.
         mutated_path = _mutated_copy(
-            tmp, "sweep-exit-code-only.sh", _SKIP_LINE,
+            fixture_bin, "sweep-exit-code-only.sh", _SKIP_LINE,
             '    if False:  # RED PROOF: SKIP-string gate removed, exit code alone decides')
         r2 = subprocess.run(["bash", mutated_path], cwd=repo, capture_output=True, text=True,
                              env=env)
@@ -473,6 +597,152 @@ def case_skip_is_not_success():
                          not os.path.isdir(dest),
                          f"rc={r2.returncode} stdout={r2.stdout!r} "
                          f"dest_still_exists={os.path.isdir(dest)}"))
+    return results
+
+
+# ---------------------------------------------------------------------------------------------
+# (h) CWD OUTSIDE THE REPOSITORY, the T-03 rework's own RED proof.
+# ---------------------------------------------------------------------------------------------
+
+def case_cwd_outside_repo():
+    """MEASURED DEFECT (operator, T-03 rework brief): `_resolve_repo_root()` ran
+    `git worktree list --porcelain` with `cwd=os.getcwd()`, discarding the root the T-11 shim
+    derives from `$0` and substituting the CALLER's cwd instead. Run from cwd `/`, outside the
+    repository entirely, the T-11 shim reached the sweep correctly — and the sweep printed
+    "could not resolve the repository root via `git worktree list` — nothing to sweep" and did
+    nothing, actively defeating T-11's own $0-based resolution.
+
+    Reproduces that exactly: cwd is a directory that is not part of ANY git repository (verified
+    before the sweep runs, not assumed), yet the repository has a real terminal worktree eligible
+    for sweeping. Uses the fixture-local bin dir (`_install_fixture_bin`) throughout, so this case
+    is safe to run — and to observe RED against unfixed code — without any risk of resolving to
+    the real harness checkout: the fixture-local sweep's root resolution depends only on where the
+    fixture-local bin dir itself sits, never on the outside cwd this case deliberately sets."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        log, gh_env = _stub_gh(tmp)
+        env = _sweep_env(repo, gh_env)
+
+        _commit_feature(repo, "FEAT-50-outside-cwd", "Done", milestone=999)
+        dest = _add_wt(repo, "FEAT-50-outside-cwd")
+
+        outside_cwd = os.path.join(tmp, "not-a-repo")
+        os.makedirs(outside_cwd, exist_ok=True)
+        probe = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], cwd=outside_cwd,
+                                capture_output=True, text=True)
+        results.append(("(h) fixture precondition: outside_cwd is not inside any git repository",
+                         probe.returncode != 0,
+                         f"probe_rc={probe.returncode} probe_stdout={probe.stdout!r}"))
+
+        r = subprocess.run(["bash", sweep], cwd=outside_cwd, capture_output=True, text=True,
+                            env=env)
+
+        results.append(("(h) sweep exits 0 when invoked with cwd outside any git repository",
+                         r.returncode == 0, f"rc={r.returncode} stderr={r.stderr!r}"))
+        _assert_resolved_root_in_fixture(results, "(h)", r.stdout, repo)
+        results.append(("(h) MEASURED DEFECT PROOF: the sweep still finds and sweeps the "
+                         "repository's terminal worktree despite cwd being OUTSIDE it",
+                         not os.path.isdir(dest), f"dest={dest} stdout={r.stdout!r}"))
+        log_text = open(log).read() if os.path.exists(log) else ""
+        results.append(("(h) the milestone close call reached gh for this feature's own "
+                         "milestone (999), proving the record-then-remove flow actually ran",
+                         _has_line_with_all(log_text, "milestones/999", "state=closed"),
+                         f"log={log_text!r}"))
+    return results
+
+
+# ---------------------------------------------------------------------------------------------
+# (i) LINKED WORKTREE, T-03/T-04 SECOND REWORK. The sweep's OWN on-disk location (BIN_DIR) can be
+# a LINKED WORKTREE, not the main checkout — a relative core.hooksPath (harness-init SKILL.md:73/
+# :78) resolves per-worktree, so each worktree gets its own hooks dir and its own copy of this
+# script. feat_dir must resolve under the MAIN checkout, never under whichever worktree the
+# script happens to be running from.
+# ---------------------------------------------------------------------------------------------
+
+def case_linked_worktree_main_checkout():
+    """MEASURED DEFECT (operator ruling, T-03/T-04 second rework brief): `feat_dir` used to be
+    computed from the SAME BIN_DIR-derived `root` that locates the bin scripts — correct for
+    finding `gh-sync.py`/`feature-worktree.py`, wrong for `feat_dir`, because that root can BE a
+    linked worktree carrying its own, possibly divergent, copy of `.harness/<repo>/features/
+    <FEAT>/`. `os.path.isdir(feat_dir)` then finds that copy and proceeds — no SKIP at all — so
+    `gh-sync.py ship` reads and writes the WRONG feature.json (this is the FEAT-35 divergence
+    already on record: worktree read `Review / pr:null` while main read `Done / pr:812`).
+
+    FIXTURE: main checkout R carries the LANDED copy of FEAT-90-linked (status Done, milestone
+    810). A SEPARATE linked worktree WT_CALLER, branched from BEFORE that commit, carries its OWN
+    divergent, never-landed copy of the SAME feature id (status Review, milestone 811) — and this
+    case installs the fixture-local bin dir INSIDE WT_CALLER, so BIN_DIR-derived root resolves to
+    WT_CALLER, exactly matching the per-worktree-hooksPath scenario the brief describes. A THIRD
+    worktree, W_TARGET (`dest`), is the actual terminal worktree eligible for sweeping, added from
+    R's own landed commit.
+
+    THE ASSERTION TURNS ON THE RESOLVED PATH, never on a SKIP: it reads the "resolved main
+    checkout root" line the sweep must print unconditionally and requires it to equal R — never
+    WT_CALLER — and it reads the gh stub's call log and requires R's milestone (810) to have been
+    closed while WT_CALLER's divergent milestone (811) is never touched. Against TODAY's code this
+    line does not exist at all (RED: not found), and because WT_CALLER's own copy of the feature
+    dir EXISTS, `os.path.isdir(feat_dir)` never routes through any SKIP branch — it silently ships
+    against milestone 811, the wrong copy, which is the measured defect."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        base_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo,
+                                      capture_output=True, text=True).stdout.strip()
+
+        # WT_CALLER: a linked worktree branched from BEFORE the landed feature commit, carrying
+        # its OWN divergent copy of the same feature id. The fixture-local bin dir lives here, so
+        # BIN_DIR-derived root resolves to WT_CALLER, never to R.
+        wt_caller = os.path.join(tmp, "WT-CALLER")
+        subprocess.run(["git", "worktree", "add", "-q", "-b", "caller-branch", wt_caller,
+                        base_commit], cwd=repo, capture_output=True)
+        _commit_feature(wt_caller, "FEAT-90-linked", "Review", milestone=811)
+        sweep = _install_fixture_bin(wt_caller)
+
+        # R (the main checkout): the ACTUAL landed copy, committed independently of WT_CALLER's.
+        _commit_feature(repo, "FEAT-90-linked", "Done", milestone=810)
+        dest = _add_wt(repo, "FEAT-90-linked")
+
+        log, gh_env = _stub_gh(tmp)
+        env = _sweep_env(repo, gh_env)
+
+        r = subprocess.run(["bash", sweep], cwd=wt_caller, capture_output=True, text=True,
+                            env=env)
+
+        results.append(("(i) sweep exits 0 when invoked from inside a linked worktree",
+                         r.returncode == 0, f"rc={r.returncode} stderr={r.stderr!r}"))
+
+        found_bin_root = _extract_resolved_root(r.stdout)
+        results.append(("(i) BIN_DIR-derived root resolves to the LINKED WORKTREE it actually "
+                         "runs from, not the main checkout",
+                         found_bin_root is not None
+                         and os.path.realpath(found_bin_root) == os.path.realpath(wt_caller),
+                         f"resolved={found_bin_root!r} wt_caller={wt_caller!r} "
+                         f"stdout={r.stdout!r}"))
+
+        m = re.search(r"^post-merge-sweep: resolved main checkout root: (.+)$", r.stdout or "",
+                      re.M)
+        found_main_root = m.group(1) if m else None
+        results.append(("(i) RESOLVED-PATH PROOF: the main-checkout root used for feat_dir is "
+                         "R, the ACTUAL main checkout — never WT_CALLER, the linked worktree the "
+                         "script happens to run from",
+                         found_main_root is not None
+                         and os.path.realpath(found_main_root) == os.path.realpath(repo)
+                         and os.path.realpath(found_main_root) != os.path.realpath(wt_caller),
+                         f"resolved_main={found_main_root!r} repo={repo!r} "
+                         f"wt_caller={wt_caller!r} stdout={r.stdout!r}"))
+
+        log_text = open(log).read() if os.path.exists(log) else ""
+        results.append(("(i) the milestone close call reached gh for R's LANDED milestone (810)",
+                         _has_line_with_all(log_text, "milestones/810", "state=closed"),
+                         f"log={log_text!r}"))
+        results.append(("(i) DIVERGENCE PROOF: WT_CALLER's own divergent milestone (811) was "
+                         "NEVER closed — the sweep did not write into the wrong copy",
+                         "milestones/811" not in log_text, f"log={log_text!r}"))
+        results.append(("(i) the terminal worktree under R was removed, proving feat_dir was "
+                         "found and ship succeeded against the correct main-checkout copy",
+                         not os.path.isdir(dest), f"dest={dest}"))
     return results
 
 
@@ -486,6 +756,8 @@ def main():
         + case_order_d04()
         + case_unresolved_left_standing()
         + case_skip_is_not_success()
+        + case_cwd_outside_repo()
+        + case_linked_worktree_main_checkout()
     )
     ok = True
     for name, passed, detail in results:

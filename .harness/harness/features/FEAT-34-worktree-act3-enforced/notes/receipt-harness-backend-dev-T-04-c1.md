@@ -1,105 +1,164 @@
-# Receipt — harness-backend-dev — T-04 — c1
+# Receipt — harness-backend-dev — T-04 (rework, combined with T-03)
 
-**Verdict: PASS.** `test-post-merge-sweep.py` now covers (a)-(g) — every case T-04 lists plus the
-brief-added SKIP-is-not-success case (g), all against REAL `git` fixtures (real `git merge`,
-`git merge --squash`, `git worktree add`), a stubbed `gh` on `PATH` (logs every call, no network),
-and two red-proof source mutations of `post-merge-sweep.sh` by name (never touched in place —
-T-03's delivered file is unmodified). Nobody removed a real worktree; every mutation happened in a
-`tempfile.TemporaryDirectory()`.
+## BLUF
 
-## Verify — verbatim command and ACTUAL output
+Added `case_cwd_outside_repo()` (case (h)) to `test-post-merge-sweep.py`: the sweep invoked with
+cwd OUTSIDE the repository still finds the repository and sweeps it. Written and run RED against
+the UNFIXED `post-merge-sweep.sh` first (verbatim failing output below), then T-03's fix applied,
+then the full suite re-run GREEN. Every existing case (a)-(g) was reworked around a new
+fixture-local-bin-dir mechanism so that, once T-03's fix lands (root derived from the sweep
+script's own on-disk location, not cwd), no case is capable of resolving root to — and therefore
+acting on — the real harness checkout.
 
+## THE HAZARD, and how it was closed
+
+Before this rework every case ran the REAL `post-merge-sweep.sh` at its real absolute path
+(`SWEEP`), with only `cwd` pointed at a throwaway fixture. That worked only because the OLD
+`_resolve_repo_root()` derived root from cwd. Once root is derived from the script's own location
+instead, every one of those cases would resolve root as THIS repository, and non-dry-run cases
+would run `gh-sync.py ship` / `feature-worktree.py remove` against real worktrees.
+
+Fix: `_install_fixture_bin(fixture_root)` gives each fixture its own REAL
+`.claude/skills/harness/bin/` directory (real, because `BIN_DIR` resolution is
+`cd "$(dirname ...)" && pwd`, which needs a real directory), populated with a SYMLINK to every
+file the real bin dir carries (`worktree_terminal.py`, `factory_config.py`, `gh-sync.py`,
+`feature-worktree.py`, and everything else under `BIN_DIR` — enumerated via `os.listdir(BIN_DIR)`
+filtered to files, not guessed). Every case now invokes the fixture-local
+`post-merge-sweep.sh` (itself a symlink) instead of the module-level `SWEEP` constant.
+`_install_hook` and `_mutated_copy` were updated the same way — hooks exec the fixture-local
+sweep; mutated copies are written INTO the fixture's own bin dir (no more `BIN_DIR` hardcoding
+needed, since the mutated copy's unmodified `BIN_DIR=...` line now resolves correctly on its own).
+
+**Mandatory safety belt — how it's proven, not just arranged.** `post-merge-sweep.sh`'s `main()`
+now prints `post-merge-sweep: resolved repository root: {root}` before acting on any record (T-03
+change). Every case in this file calls `_assert_resolved_root_in_fixture(results, label, output,
+fixture_root)`, which reads that printed line back out of the sweep's own output and asserts
+`os.path.realpath(found) == os.path.realpath(fixture_root)` AND
+`os.path.realpath(found) != os.path.realpath(REAL_ROOT)` — `REAL_ROOT` being this actual checkout,
+computed the same way (`BIN_DIR` walked up four segments). This is a runtime assertion against the
+process's own reported root, not an assumption from fixture construction. Cases (a) and (b), which
+fire the hook through a real `git merge`, needed one adjustment: git redirects a post-merge hook's
+OWN stdout to git's STDERR channel, so those two cases check `r.stdout + r.stderr` — measured by
+running the fixture manually and observing the "resolved repository root" line land in `stderr`,
+not `stdout`, of the `git merge` subprocess.
+
+## Order of work — RED first, verbatim
+
+1. Wrote `case_cwd_outside_repo()` plus the full fixture-local-bin-dir rework (all of the above)
+   in `test-post-merge-sweep.py`, with `post-merge-sweep.sh` still UNCHANGED (unfixed,
+   `_resolve_repo_root()` still cwd-based via `git worktree list --porcelain`).
+
+2. Ran, invocation:
+   ```
+   python3 .claude/skills/harness/bin/test-post-merge-sweep.py
+   ```
+   against the unfixed script. It failed as required. Verbatim relevant lines (full run had 8
+   `SAFETY` failures across cases (a)-(h), because the "resolved repository root:" print line
+   did not exist yet in the unfixed script — only case (h)'s failure is the one that matters,
+   since it demonstrates the actual measured defect symptom, not merely the not-yet-added print
+   line):
+
+   ```
+   PASS: (h) fixture precondition: outside_cwd is not inside any git repository
+   PASS: (h) sweep exits 0 when invoked with cwd outside any git repository
+   FAIL: (h) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout — resolved=None fixture_root='/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpc297leo6/R' REAL_ROOT='/Users/molchairuangutai/GitHub/harness/.claude/worktrees/harness/FEAT-34-worktree-act3-enforced' stdout='post-merge-sweep: could not resolve the repository root via `git worktree list` — nothing to sweep\n'
+   FAIL: (h) MEASURED DEFECT PROOF: the sweep still finds and sweeps the repository's terminal worktree despite cwd being OUTSIDE it — dest=/var/folders/y3/nd_jssrd5dq8lbds73f0fy5m0000gn/T/tmpc297leo6/R/.claude/worktrees/harness/FEAT-50-outside-cwd stdout='post-merge-sweep: could not resolve the repository root via `git worktree list` — nothing to sweep\n'
+   FAIL: (h) the milestone close call reached gh for this feature's own milestone (999), proving the record-then-remove flow actually ran — log=''
+   EXIT=1
+   EXITCODE=1
+   ```
+
+   The full run's tail: `EXIT=1` / `EXITCODE=1`. This is the exact bug the operator measured:
+   `post-merge-sweep: could not resolve the repository root via \`git worktree list\` — nothing to
+   sweep`, printed verbatim by the unfixed script, and the fixture's terminal worktree left
+   standing with no `gh` call ever reaching the milestone.
+
+3. Applied T-03's fix to `post-merge-sweep.sh` (see the T-03 receipt) — nothing in this file
+   touched between steps 2 and 3.
+
+4. Re-ran the same command. All cases, including (h)'s three assertions, now PASS. Full output
+   in "Verify" below.
+
+**Case (h) is deliberately not asserted purely on the SAFETY line** — that line alone would have
+failed identically on unfixed code even for a reason unrelated to the actual bug (the print
+statement not existing yet), which is why the "MEASURED DEFECT PROOF" assertion (worktree gone)
+and the milestone-log assertion are the ones that carry the real red proof; SAFETY is the
+mandatory belt layered on top, present on every case in the file, not this case's own defect
+signal.
+
+## Verify — verbatim, GREEN, no pipe
+
+Command:
 ```
-$ python3 .claude/skills/harness/bin/test-post-merge-sweep.py
+python3 .claude/skills/harness/bin/test-post-merge-sweep.py
+```
+Full output (36 cases, all PASS):
+```
 PASS: --dry-run exits 0
+PASS: --dry-run SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
 PASS: --dry-run leaves the terminal worktree standing
 PASS: --dry-run mentions the feature id in its output
 PASS: --dry-run makes no `gh` invocation
 PASS: (a) fast-forward merge succeeds
 PASS: (a) MEASURED: fast-forward fires post-merge with hook arg 0
+PASS: (a) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
 PASS: (a) the Done feature's worktree is gone after the merge
 PASS: (b) squash merge succeeds
 PASS: (b) MEASURED: squash fires post-merge with hook arg 1
+PASS: (b) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
 PASS: (b) the Done feature's worktree is gone after the merge
 PASS: (c) sweep run from inside its own eligible worktree exits 0
+PASS: (c) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
 PASS: (c) SELF-EXCLUSION: that worktree is still standing afterwards
 PASS: (c) SELF-EXCLUSION: stdout states the sweep declined because it is running inside the worktree
 PASS: (c) RED PROOF: with the self-exclusion guard removed, an unguarded sweep DELETES the worktree it is running inside — demonstrating the guard was load-bearing
 PASS: (d) sweep over two terminal features exits 0
+PASS: (d) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
 PASS: (d) SC-11: milestone close call logged for FEAT-30-two-a's OWN milestone (801), checked on its own
 PASS: (d) SC-11: milestone close call logged for FEAT-31-two-b's OWN milestone (802), checked separately from FEAT-30's
 PASS: (d) both worktrees removed after their own record succeeded
 PASS: (e) sweep exits 0 even though the `gh` write for one feature failed
+PASS: (e) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
 PASS: (e) D-04 ORDER: the feature whose write failed keeps its worktree standing — removal never runs ahead of a confirmed record
 PASS: (e) D-04 ORDER: the OTHER feature, whose write succeeded, has its worktree removed
 PASS: (f) sweep exits 0 on an unresolved record
+PASS: (f) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
 PASS: (f) the unresolved record is printed
 PASS: (f) the unresolved record's worktree is left standing
 PASS: (g) sweep exits 0 even though ship SKIPped
+PASS: (g) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
 PASS: (g) SKIP IS NOT SUCCESS: a feature whose ship exited 0 but printed `gh-sync: SKIP` keeps its worktree standing
 PASS: (g) no milestone-close call was ever made for this feature (ship SKIPped before reaching gh() for the write)
 PASS: (g) RED PROOF: gated on exit code alone, the sweep DELETES a worktree whose ship only SKIPped — the destructive fail-open D-04's comment warns about
+PASS: (h) fixture precondition: outside_cwd is not inside any git repository
+PASS: (h) sweep exits 0 when invoked with cwd outside any git repository
+PASS: (h) SAFETY: sweep resolved its root inside this fixture, never the real harness checkout
+PASS: (h) MEASURED DEFECT PROOF: the sweep still finds and sweeps the repository's terminal worktree despite cwd being OUTSIDE it
+PASS: (h) the milestone close call reached gh for this feature's own milestone (999), proving the record-then-remove flow actually ran
 EXIT=0
 ```
-Exit code: `0`. 27/27 assertions PASS.
+Exit code: 0
 
-## Per-case results
-- **(a) fast-forward, arg 0** — worktree added from a topic branch's tip (so its tracked
-  `feature.json` already matches the landed blob once `main` fast-forwards); `git merge topic-ff`
-  fires the installed hook with `$1=0`; worktree gone after.
-- **(b) squash, arg 1** — MEASURED empirically first (throwaway probe script, not committed):
-  `git merge --squash` fires post-merge with `$1=1` **before** `main`'s ref advances (squash never
-  auto-commits), so the terminal feature under test is landed on `main` in an earlier commit, and
-  the squash itself carries only an unrelated file — decouples the squash *shape* (what this case
-  tests) from the landing-timing gap. Worktree gone after both `merge --squash` + `commit`.
-- **(c) self-exclusion** — sweep invoked directly with `cwd` inside its own eligible worktree;
-  worktree survives, stdout carries the decline line. **Red proof**: `_mutated_copy()` flips the
-  guard's condition line (`if cwd_real == path_real or …:`) to `if False:` in a source copy (never
-  touches T-03's file) — that variant deletes the worktree it's running inside, proving the guard
-  was load-bearing.
-- **(d) SC-11 per-feature record** — two terminal features, distinct milestones (801, 802); stub
-  log checked for a `milestones/801 … state=closed` line and a `milestones/802 … state=closed`
-  line, **as two separate assertions** (never a total call count, which a
-  ship-the-triggering-feature-twice bug could satisfy).
-- **(e) D-04 order** — stub forced to fail exactly the `milestones/901` call (`FEAT-32-order-fails`);
-  that feature's worktree stands, `FEAT-33-order-ok` (milestone 902, untouched by the stub) is
-  removed. Mechanically this exercises `gh()`'s own `skip()` conversion (a failed `gh` call never
-  makes `gh-sync.py` itself exit non-zero — it prints `gh-sync: SKIP` and exits 0, `gh()`'s own
-  documented contract) rather than the `ship.returncode != 0` branch; both are the SAME
-  "positive-signal gate" in `post-merge-sweep.sh`, and this case demonstrates the write-failure
-  side of it distinct from (g)'s never-attempted-write side.
-- **(f) unresolved** — an AMBIGUOUS-PREFIX fixture (`FEAT-40` prefixing two landed dirs
-  `FEAT-40-amb-one`/`-two`), which is `worktree_terminal.classify()`'s actual `"unresolved"`
-  trigger for a short name (confirmed by re-reading the delivered `classify()` and its own
-  `test-worktree-terminal.py` cases). **Note on wording**: T-04's case (f) text says "a short-named
-  worktree matching no landed directory" — the delivered `classify()` treats a prefix matching
-  **zero** landed directories as `exempt_absent` (the class the sweep silently skips), not
-  `unresolved`; only a prefix matching **more than one** (or an unparseable/unreadable landed
-  `feature.json`, or a `default_branch`/`git ls-tree` resolution failure) is `unresolved`. I built
-  the fixture against the real predicate rather than the literal phrase, since `worktree_terminal.py`
-  is delivered work I don't touch and its own test suite already fixes what "unresolved" means.
-  Flagging this as an `open_question` rather than silently reinterpreting.
-- **(g) SKIP is not success** — a Done feature with **no** recorded `github.milestone`; `cmd_ship`
-  hits its own `skip("no recorded milestone — nothing to close")` before any `gh` call for the
-  write; worktree stands; stub log confirms zero `milestones/…` calls (though `load_config`'s own
-  `gh auth status` call does land in the log — the first version of this assertion wrongly expected
-  an empty log and failed; fixed to check for the absence of a milestone-close line specifically).
-  **Red proof**: `_mutated_copy()` deletes the `"gh-sync: SKIP" in combined` gate (source copy,
-  `if False:`) — that variant deletes the worktree on exit-code-0 alone, the exact destructive
-  fail-open D-04's comment names.
+Cross-checked verbatim against `plan.yaml` T-04's `verify:` block — identical string, no mismatch.
 
-## Open question
-- **Q1**: T-04's case (f) prose ("a short-named worktree matching no landed directory") does not
-  match the delivered `worktree_terminal.classify()`'s actual `unresolved` trigger (that shape is
-  `exempt_absent`, silently skipped). I built the fixture against the real predicate (ambiguous
-  prefix) rather than BLOCKING, since the assertion's *intent* — an unresolved record is printed
-  and left standing — is fully satisfiable and tested. Worth reconciling the plan's T-01 intent
-  text against T-01's delivered code at some point; not blocking for this task. `blocking: false`.
+## Additional required runs — verbatim exit codes and counts, captured WITHOUT a pipe
+
+- `python3 .claude/skills/harness/bin/test-post-merge-sweep.py` — exit `0`, 36/36 PASS (see above).
+- `python3 .claude/skills/harness/bin/test-worktree-terminal.py` — exit `0`, 34/34 PASS
+  (`grep -c "^PASS"` on the same run = 34; last line `T02_EXIT=0`). Unaffected by this dispatch's
+  scope — run to confirm no regression.
+- `.claude/skills/harness/bin/run-unit-tests.sh --check-kinds` — output
+  `check-kinds: the script arrays and test_kinds.integration.detect agree.`, exit `0`. No
+  KIND-DRIFT, no MISCONFIGURED.
+- `.claude/skills/harness/bin/check-state.sh` — exit `0`. Output contains only `note`-severity
+  lines (pre-existing, unrelated to this dispatch — stale run references, STATE.md budget/section
+  notes on other features); `grep -iE "violation"` over the full captured output, excluding `note`
+  lines, returned zero matches. Zero violations.
 
 ## Files touched
-- `.claude/skills/harness/bin/test-post-merge-sweep.py` (extended, T-03's baseline case
-  untouched)
 
-No other file was modified. `post-merge-sweep.sh`, `worktree_terminal.py`,
-`feature-worktree.py`, `gh-sync.py` were read only; every mutation used for a red proof lives in
-a `tempfile.TemporaryDirectory()` and is discarded when the case's `with` block exits.
+- `.claude/skills/harness/bin/post-merge-sweep.sh`
+- `.claude/skills/harness/bin/test-post-merge-sweep.py`
+
+`git diff --stat` on these two paths only: `2 files changed, 229 insertions(+), 52 deletions(-)`.
+No other file touched. No commit made.

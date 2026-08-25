@@ -40,27 +40,60 @@ import factory_config      # noqa: E402
 
 
 def _resolve_repo_root():
-    """The MAIN checkout's path — never merely cwd's own toplevel. `git worktree list
-    --porcelain`'s FIRST record is always the main checkout, even when the command runs from
-    inside a linked worktree (the same guarantee check-state.sh's INV-25 relies on, see its
-    comment at :1145). Deriving root this way means a self-exclusion run — cwd inside a linked
-    worktree — still sees that worktree as a genuine record in classify()'s output, rather than
-    having classify() silently drop it as "the root itself" because root was mis-resolved to
-    the worktree's own path.
+    """The repository root, derived from THIS SCRIPT's OWN on-disk location — never from the
+    caller's cwd. BIN_DIR (set by the bash wrapper's
+    `cd "$(dirname "${BASH_SOURCE[0]}")" && pwd`) is always `<root>/.claude/skills/harness/bin`,
+    the same four path segments the T-11 shim (`.claude/skills/harness/hooks/post-merge`) already
+    walks up from its own location — so walking BIN_DIR up those same four segments recovers
+    `<root>` exactly, regardless of what directory the sweep happens to be invoked from.
 
-    None on any git failure — the caller treats that as nothing to sweep, never as an error
-    that should abort the hook."""
+    MEASURED DEFECT this replaces: the previous implementation ran
+    `git worktree list --porcelain` with `cwd=os.getcwd()`, which discarded the root the T-11
+    shim derived from `$0` and substituted the CALLER's cwd instead — invoked from outside the
+    repository entirely, that command failed and the sweep did nothing, actively defeating T-11's
+    own $0-based resolution. Deriving root from BIN_DIR instead means the caller's cwd — inside
+    the repository, inside a linked worktree, or entirely outside any git repository — can never
+    change what this resolves to.
+
+    None only if BIN_DIR's own directory math points somewhere that does not exist as a
+    directory at all — a broken installation, never a property of the caller's cwd. The caller
+    treats that as nothing to sweep, never as an error that should abort the hook."""
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(BIN_DIR))))
+    return root if os.path.isdir(root) else None
+
+
+def _resolve_main_checkout_root(root):
+    """The repository's MAIN checkout root — porcelain index 0, run with `cwd=root` (the
+    BIN_DIR-derived root from `_resolve_repo_root()`, NEVER `os.getcwd()`). `root` answers "where
+    do the bin scripts live" and can itself BE a linked worktree (a relative core.hooksPath
+    resolves per-worktree — harness-init SKILL.md:73/:78 — so each worktree gets its own hooks
+    dir and its own copy of this script). This function answers a SEPARATE question — "which
+    checkout holds the feature directory that actually landed" — and the two must never be fused
+    into one value again (the measured defect this replaces: a linked worktree's OWN, possibly
+    divergent, copy of `.harness/<repo>/features/<FEAT>/` could exist and get shipped instead of
+    the landed one — FEAT-35's `Review / pr:null` vs `Done / pr:812` divergence).
+
+    `root` is always a valid checkout of the repository (main or linked) — INV-25's own
+    precedent (check-state.sh:1138-1143, `worktree_terminal.classify`'s docstring): the first
+    porcelain entry is always the main checkout, even queried from inside a linked worktree, and
+    a repository with no linked worktrees returns itself. Running `git worktree list` with
+    `cwd=root` therefore stays exactly as cwd-independent as `_resolve_repo_root()` itself —
+    never `os.getcwd()`, which would reintroduce the original defect this module's docstring
+    already warns about.
+
+    None only if the subprocess cannot be run, times out, exits non-zero, or produces no
+    parseable `worktree <path>` line at all — the caller treats that as nothing to sweep, the
+    same "never abort the hook" contract `_resolve_repo_root()` follows."""
     try:
-        r = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=os.getcwd(),
-                            capture_output=True, text=True, timeout=10)
+        proc = subprocess.run(["git", "worktree", "list", "--porcelain"], cwd=root,
+                               capture_output=True, text=True, timeout=10)
     except Exception:
         return None
-    if r.returncode != 0 or not r.stdout:
+    if proc.returncode != 0 or not proc.stdout:
         return None
-    for rec in r.stdout.split("\n\n"):
-        for line in rec.splitlines():
-            if line.startswith("worktree "):
-                return line[len("worktree "):].strip()
+    for line in proc.stdout.splitlines():
+        if line.startswith("worktree "):
+            return line[len("worktree "):].strip()
     return None
 
 
@@ -91,7 +124,7 @@ def _print_proc_output(proc):
             sys.stdout.write(stream if stream.endswith("\n") else stream + "\n")
 
 
-def _handle_record(rec, root, cwd_real):
+def _handle_record(rec, main_checkout_root, cwd_real):
     path = rec["path"]
 
     if rec["klass"] == "unresolved":
@@ -122,10 +155,12 @@ def _handle_record(rec, root, cwd_real):
               f"{repo_segment!r}")
         return
 
-    # The feature dir ON THE LOCAL DEFAULT BRANCH: a real filesystem directory under the MAIN
-    # checkout `root` (never origin/<default_branch> — that ref is only as fresh as the last
-    # fetch, which reproduces the same hole one level out).
-    feat_dir = os.path.join(root, ".harness", repo_segment, "features", feature_id)
+    # The feature dir ON THE LOCAL DEFAULT BRANCH: a real filesystem directory under
+    # `main_checkout_root` — resolved SEPARATELY from the BIN_DIR-derived root that locates the
+    # bin scripts (see `_resolve_main_checkout_root`'s docstring for why the two must never be
+    # fused) — never origin/<default_branch> (that ref is only as fresh as the last fetch, which
+    # reproduces the same hole one level out).
+    feat_dir = os.path.join(main_checkout_root, ".harness", repo_segment, "features", feature_id)
     if not os.path.isdir(feat_dir):
         print(f"post-merge-sweep: SKIP {path} — landed feature dir not found at {feat_dir} "
               f"on the local default branch")
@@ -177,16 +212,31 @@ def _handle_record(rec, root, cwd_real):
 def main():
     root = _resolve_repo_root()
     if root is None:
-        print("post-merge-sweep: could not resolve the repository root via "
-              "`git worktree list` — nothing to sweep")
+        print("post-merge-sweep: could not resolve the repository root from this script's own "
+              "on-disk location — nothing to sweep")
         return 0
+    print(f"post-merge-sweep: resolved repository root: {root}")
+
+    # `root` (above) answers "where do the bin scripts live" — BIN_DIR-derived, and can itself BE
+    # a linked worktree. `main_checkout_root` answers a SEPARATE question — "which checkout holds
+    # the feature directory that actually landed" — resolved from `git worktree list`'s porcelain
+    # index 0, run with cwd=root (never os.getcwd()). classify() still receives `root`: its own
+    # contract already handles `root` being a linked worktree correctly (skips it at index 0,
+    # classifies it as a genuine record otherwise) — only feat_dir resolution needed splitting
+    # out. See `_resolve_main_checkout_root`'s docstring for the full rationale.
+    main_checkout_root = _resolve_main_checkout_root(root)
+    if main_checkout_root is None:
+        print("post-merge-sweep: could not resolve the main checkout root via `git worktree "
+              "list` — nothing to sweep")
+        return 0
+    print(f"post-merge-sweep: resolved main checkout root: {main_checkout_root}")
 
     records = worktree_terminal.classify(root)
     cwd_real = os.path.realpath(os.getcwd())
 
     for rec in records:
         try:
-            _handle_record(rec, root, cwd_real)
+            _handle_record(rec, main_checkout_root, cwd_real)
         except Exception as e:
             print(f"post-merge-sweep: ERROR handling {rec.get('path')}: {e}")
     return 0
