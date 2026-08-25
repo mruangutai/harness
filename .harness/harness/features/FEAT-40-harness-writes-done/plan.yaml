@@ -165,7 +165,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: a git config on the operator's own clone plus a scratch clone and a real merge; no agent domain covers machine-local git configuration and no file in the repository changes
     depends_on: []
-    status: pending
+    status: done
     files:
       - .harness/harness/features/FEAT-40-harness-writes-done/notes/probe-sweep-fires.md
     verify: |
