@@ -208,42 +208,6 @@ def case8():
     report("case8: 151-line craft file truncates at 150", ok, ctx[:200])
 
 
-# --- Case 9: codebase-map index survives ------------------------------------
-def case9():
-    root = tempfile.mkdtemp()
-    home = fresh_home()
-    write(os.path.join(root, ".harness/expertise/harness-qa.md"), "GLOBAL BODY\n")
-    write(os.path.join(root, ".harness/harness/expertise/harness-qa.md"), "REPO BODY\n")
-    write(os.path.join(root, ".harness/codebase/INDEX.md"), "INDEX BODY TEXT\n")
-    r = run_hook(root, home, b'{"agent_type": "harness-qa"}')
-    ctx = get_context(r) or ""
-    index_hdr = "## Codebase map — index"
-    checks = [
-        index_hdr in ctx,
-        "INDEX BODY TEXT" in ctx,
-    ]
-    header_positions = [
-        ctx.find(h) for h in [
-            "## Your Expertise — cross-project craft (global tier)",
-            "## Your Expertise — this checkout's craft (project tier)",
-            "## Your Expertise — harness repository (repository tier)",
-        ] if ctx.find(h) != -1
-    ]
-    index_idx = ctx.find(index_hdr)
-    order_ok = index_idx != -1 and all(index_idx > p for p in header_positions)
-    ok = all(checks) and order_ok
-    report("case9a: index block present, body present, ordered last", ok, f"checks={checks} order_ok={order_ok}")
-
-    # sub-case: index present, no expertise file of any tier
-    root2 = tempfile.mkdtemp()
-    home2 = fresh_home()
-    write(os.path.join(root2, ".harness/codebase/INDEX.md"), "SOLO INDEX BODY\n")
-    r2 = run_hook(root2, home2, b'{"agent_type": "harness-qa"}')
-    ctx2 = get_context(r2) or ""
-    ok2 = r2.returncode == 0 and index_hdr in ctx2 and "SOLO INDEX BODY" in ctx2
-    report("case9b: index present with no expertise file -> still emitted", ok2, f"exit={r2.returncode} ctx={ctx2[:200]!r}")
-
-
 # --- Case 10: repository tier with no craft tier -----------------------------
 def case10():
     root = tempfile.mkdtemp()
@@ -339,7 +303,6 @@ def main():
     case6()
     case7()
     case8()
-    case9()
     case10()
     case11()
     case12()

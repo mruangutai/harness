@@ -5,7 +5,7 @@
 
 The markdown briefing is the record the orchestrator writes and the main session
 presents; this is a deterministic projection of it for the human who reads it once
-to make a ship decision. Same law as render-map.py (DEC-141): **no agent writes
+to make a ship decision. The law (DEC-141): **no agent writes
 HTML, ever.** A hand-authored HTML copy of a briefing is the duplication-drift
 class this repo has killed twice (DEC-126 templates, DEC-135 CLAUDE.md) — and it
 would also cost a briefing-sized model spend per feature to produce something a
@@ -14,7 +14,7 @@ regex can produce for free.
 Zero judgment, so it needs no owner and no freshness policy: it is exactly as
 fresh as the markdown beside it. Re-running it IS the refresh.
 
-WHY NOT SHARE render-map.py's converter: that one has no table support, and a
+WHY A DEDICATED CONVERTER: the retired render-map.py's had no table support, and a
 briefing is table-heavy — the proposed backlog and the verification evidence are
 both tables, and piped rows rendered as paragraphs are unreadable. Extracting a
 shared converter would fix the map's tables too and is worth doing; it is a

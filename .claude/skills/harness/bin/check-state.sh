@@ -853,63 +853,19 @@ for sy in glob.glob(os.path.join(H, "*", "features", "*", "runs", "*", "state.ya
                            f"contract — a successor reads this file, not the transcript "
                            f"(DEC-156). Run bin/validate-digest.py lead on it for reasons.")
 
-# --- INV-14: real code with no codebase map (DEC-140). The map moved into init
-# after the first real onboarding built a feature UNMAPPED — "run the map first"
-# as prose is the forgettable class. Greenfield is fine: the heuristic only fires
-# when meaningful source exists. A warn, not a violation — flows still run.
-SRC_EXT = (".py",".ts",".tsx",".js",".jsx",".go",".rb",".rs",".java",".kt",".swift",".php",".c",".cc",".cpp")
-if not os.path.isfile(os.path.join(H, "codebase", "INDEX.md")):
-    n_src = 0
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if not d.startswith(".")
-                       and d not in ("node_modules","vendor","dist","build","docs")]
-        n_src += sum(1 for f in filenames if f.endswith(SRC_EXT))
-        if n_src > 5:
-            break
-    if n_src > 5:
-        warn.append("codebase has real source but no map (.harness/codebase/INDEX.md) — "
-                    "run mission map (/harness \"map the codebase\"). Every unmapped spawn "
-                    "re-derives structure the map would have carried (DEC-140).")
-
-# --- INV-19 (DEC-162): a mapped codebase without a glossary means the ubiquitous
-# language lives nowhere — "create lazily" fired zero times across three shipped
-# features while enums and status vocabularies were being pinned. Warn-level, like
-# INV-14: flows still run, but pm's next map/plan pass owes the file.
-if os.path.isfile(os.path.join(H, "codebase", "INDEX.md")) and \
-   not os.path.isfile(os.path.join(H, "codebase", "glossary.md")):
-    warn.append("codebase is mapped but has no glossary.md — the domain's ubiquitous language "
-                "is unrecorded (DEC-162). pm authors it (mission map assigns it; or seed it "
-                "from shipped features' pinned vocabulary).")
-
-# --- INV-20 (DEC-163): a test kind with cmd: null is an HONEST record of no runner — but
-# when the product HAS that surface, it is also a silent hole: qa resolves the kind to a soft
-# skip, so an SC resting on it can never fail loudly, and pm quietly stops writing SCs against
-# it. The discriminating check is the codebase map, which already records which surfaces exist:
-# a null runner matters exactly when its surface view is more than a self-scoped-out stub.
-# Warn-level (INV-14's level) — flows still run; the point is that the gap reaches a human.
-KIND_SURFACE = {"ui": "ui-surface.md", "component": "ui-surface.md",
-                "eval": "llm-patterns.md", "integration": "data-flows.md"}
-if cj:
-    kinds = cj.get("test_kinds") or {}
-    for kind, view in KIND_SURFACE.items():
-        spec = kinds.get(kind)
-        if not isinstance(spec, dict) or spec.get("cmd"):
-            continue
-        vp = os.path.join(H, "codebase", view)
-        vt = read(vp)
-        # A self-scoped-out view is a line or two ("no UI surface here"); a real one is long.
-        if vt and len(vt.splitlines()) > 20:
-            warn.append(f"test kind '{kind}' has cmd: null but {view} describes a real surface "
-                        f"({len(vt.splitlines())} lines) — SCs cannot rest on '{kind}' and qa "
-                        f"records it as a soft skip, so the gap is invisible at ship time "
-                        f"(DEC-163). Either stand up a runner (a dev-ops task) or accept it "
-                        f"explicitly in the BRIEF's verification-gaps line.")
+# --- INV-19 (DEC-162): no glossary means the domain's ubiquitous language lives
+# nowhere — "create lazily" fired zero times across three shipped features while
+# enums and status vocabularies were being pinned. Warn-level: flows still run, but
+# pm's next plan pass owes the file. The map precondition went with the map tier.
+if not os.path.isfile(os.path.join(H, "glossary.md")):
+    warn.append("no .harness/glossary.md — the domain's ubiquitous language is unrecorded "
+                "(DEC-162). pm authors it, seeded from shipped features' pinned vocabulary.")
 
 # --- INV-21 (D-05): a mirrored feature whose task issues are recorded but whose
 # container (parent) never was — `ship`/`abandon` cannot close it and `open` will not
 # re-derive it (the mirror is write-only, DEC-138). Warn, not violation (D-05): the
-# GitHub Issues sync is never a gate, and a re-run of `open` fixes it (INV-20's
-# precedent). Vacuous when github.sync is off — the check costs nothing then.
+# GitHub Issues sync is never a gate, and a re-run of `open` fixes it. Vacuous
+# when github.sync is off — the check costs nothing then.
 if cj and (cj.get("github") or {}).get("sync"):
     for fy in glob.glob(os.path.join(H, "*", "features", "*", "feature.json")):
         feat = os.path.basename(os.path.dirname(fy))

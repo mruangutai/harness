@@ -42,7 +42,7 @@ Skipping this step is the user's call to make explicitly, never yours to assume.
   `Explore` subagent for anything broad. Then put the *decision* to them and wait.
 - **Walk the decision tree, dependencies first.** A question whose answer depends on an open
   question belongs later. Settle the parent, then ask what it unblocks.
-- **Challenge the language as you go** — a term that conflicts with `.harness/codebase/glossary.md`
+- **Challenge the language as you go** — a term that conflicts with `.harness/glossary.md`
   gets called out here, not after it lands in a REQ (`harness-spec-driven`'s glossary rules).
 - **Never act on it until the user confirms** you have reached shared understanding.
 
