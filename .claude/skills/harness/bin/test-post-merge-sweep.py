@@ -24,7 +24,7 @@ the INVOKED SCRIPT ITSELF lives on disk. Running the real, absolute-path `post-m
 (the module-level `SWEEP` constant) against a fixture would therefore resolve root as THIS real
 checkout, not the fixture, and a non-dry-run case would act — `gh-sync.py ship` /
 `feature-worktree.py remove` — on real worktrees. `_install_fixture_bin()` is the fix: it gives
-each fixture repository its own real `.agents/skills/harness/bin/` directory, populated with
+each fixture repository its own real `.claude/skills/harness/bin/` directory, populated with
 symlinks to every real bin-dir file, and every case now invokes the fixture-local
 `post-merge-sweep.sh` found THERE instead of `SWEEP`. `_assert_resolved_root_in_fixture()` is the
 mandatory safety belt on top of that construction: every case reads the root the running sweep
@@ -70,7 +70,7 @@ BIN_DIR = os.path.dirname(SCRIPT)
 SWEEP = os.path.join(BIN_DIR, "post-merge-sweep.sh")
 
 # REAL_ROOT is the actual repository this checkout lives in — BIN_DIR walked up the same four
-# path segments (.agents/skills/harness/bin) post-merge-sweep.sh itself now walks to derive its
+# path segments (.claude/skills/harness/bin) post-merge-sweep.sh itself now walks to derive its
 # own root. Every fixture below must resolve to somewhere UNDER a throwaway tempdir and NEVER to
 # this value — that is the mandatory safety belt the T-03 rework requires of every case, since
 # post-merge-sweep.sh's root resolution no longer depends on cwd at all.
@@ -114,7 +114,7 @@ def _assert_resolved_root_in_fixture(results, label, stdout, fixture_root):
 
 
 def _install_fixture_bin(fixture_root):
-    """Give this fixture repository its OWN .agents/skills/harness/bin/ directory — a REAL
+    """Give this fixture repository its OWN .claude/skills/harness/bin/ directory — a REAL
     directory, because BIN_DIR resolution inside post-merge-sweep.sh is
     `cd "$(dirname "${BASH_SOURCE[0]}")" && pwd`, which needs a real directory to `cd` into — that
     holds a SYMLINK to every file the real bin dir carries (BIN_ENTRIES).
@@ -131,7 +131,7 @@ def _install_fixture_bin(fixture_root):
 
     Returns the fixture-local `post-merge-sweep.sh` path (itself a symlink) that every case must
     invoke in place of the module-level SWEEP constant."""
-    fixture_bin = os.path.join(fixture_root, ".agents", "skills", "harness", "bin")
+    fixture_bin = os.path.join(fixture_root, ".claude", "skills", "harness", "bin")
     os.makedirs(fixture_bin, exist_ok=True)
     for name in BIN_ENTRIES:
         os.symlink(os.path.join(BIN_DIR, name), os.path.join(fixture_bin, name))
@@ -267,7 +267,7 @@ def _install_hook(repo, sweep):
     from ITS OWN on-disk location (BASH_SOURCE), so copying its TEXT into `.git/hooks/post-merge`
     would make it resolve root as wherever `.git/hooks` sits rather than the fixture's own bin
     dir. execing `sweep` by its fixture-local absolute path (a symlink into the real bin dir, but
-    living inside the fixture's own .agents/skills/harness/bin/) preserves BASH_SOURCE correctly
+    living inside the fixture's own .claude/skills/harness/bin/) preserves BASH_SOURCE correctly
     and keeps the resolved root inside this fixture — this is fixture plumbing, never the T-11
     shim (out of scope, DEC-179/D-08's own separate task)."""
     hooks_dir = os.path.join(repo, ".git", "hooks")

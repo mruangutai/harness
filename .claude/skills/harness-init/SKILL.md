@@ -54,7 +54,7 @@ and packages a script merges into the project. This one is a git config a *clone
 fresh clone of an already-onboarded project still needs it and the eight will already be in place.
 
 **Why it is needed at all.** The harness ships a tracked `post-merge` hook at
-`.agents/skills/harness/hooks/`, and git ignores it until `core.hooksPath` points there. Measured
+`.claude/skills/harness/hooks/`, and git ignores it until `core.hooksPath` points there. Measured
 in this checkout: `git config --get core.hooksPath` returned
 `/Users/molchairuangutai/GitHub/harness/.git/hooks` — an absolute path carrying a username, so no
 tracked hook could run in any other clone.
@@ -66,12 +66,12 @@ Run these three steps in order. **Never skip to step 2.**
 git config --get core.hooksPath || echo "(unset)"
 ```
 
-**2. Unset, or already `.agents/skills/harness/hooks`?** Set it, and say which of the two you
+**2. Unset, or already `.claude/skills/harness/hooks`?** Set it, and say which of the two you
 found:
 
 ```bash
-git config core.hooksPath .agents/skills/harness/hooks
-git config --get core.hooksPath      # must print .agents/skills/harness/hooks
+git config core.hooksPath .claude/skills/harness/hooks
+git config --get core.hooksPath      # must print .claude/skills/harness/hooks
 ```
 
 **The path is RELATIVE, deliberately.** An absolute one is exactly what produced the broken value
@@ -87,7 +87,7 @@ harness directory will do to it:
 > entirely. So every hook currently resolved from `<the value you found>` stops running.
 
 **Never overwrite an operator's own hooks path silently.** If they agree, their hooks must move
-into `.agents/skills/harness/hooks/` or they stop firing — say that too, rather than leaving them
+into `.claude/skills/harness/hooks/` or they stop firing — say that too, rather than leaving them
 to discover it at the next merge.
 
 **If either line prints `MISSING`, STOP.** Both packages are REQUIRED, not optional.

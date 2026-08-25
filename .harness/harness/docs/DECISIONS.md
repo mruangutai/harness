@@ -6990,11 +6990,11 @@ feature; the branch is not to be merged or revived.
 
 - shared project guidance is root `AGENTS.md`;
 - canonical roles are `.omp/agents/harness-*.md`;
-- canonical skills and utilities are `.agents/skills/harness-*/`;
+- OMP's canonical skill access path is `.agents/skills`, a symlink to the single authored tree at `.claude/skills/`;
 - lifecycle enforcement is `.omp/extensions/harness-hooks.ts`;
 - concrete model selections live only in `.omp/providers/*.yml` as `modelRoles`;
-- `.claude/agents/`, `.claude/skills`, `CLAUDE.md`, and `.claude/settings.json` are Claude Code
-  compatibility adapters, not policy authorities.
+- `.claude/agents/`, `CLAUDE.md`, and `.claude/settings.json` are Claude Code compatibility
+  adapters, not policy authorities; `.claude/skills/` is shared authored source consumed by both runtimes.
 
 **Why this is forced by the goal rather than preferred syntax.** A role whose frontmatter says `opus`
 or `sonnet` cannot run unchanged on OpenAI, and a hook present only in Claude settings is absent when
@@ -7034,10 +7034,17 @@ repository's same-named directories. `.claude/worktrees/` remains the sanctioned
 location, because this port changes runtime discovery, not DEC-193's worktree placement ruling.
 
 **Claude Code stays usable during and after the port.** `sync-agent-adapters.py` generates Claude
-role frontmatter and identical bodies from canonical OMP agents, while `.claude/skills` is a symlink
-to `.agents/skills`. `CLAUDE.md` imports `AGENTS.md` and states only Claude-specific delivery.
-`check-omp-port.py` rejects adapter drift, concrete provider IDs in canonical agents, missing skills,
-missing provider overlays, missing OMP hooks, or re-enabled Claude discovery.
+role frontmatter and identical bodies from canonical OMP agents. `.claude/skills` remains a real
+directory for Claude Code discovery, while `.agents/skills` symlinks to it for OMP Agent Skills
+discovery. `CLAUDE.md` imports `AGENTS.md` and states only Claude-specific delivery.
+`check-omp-port.py` rejects adapter drift, a reversed or broken skills link, concrete provider IDs
+in canonical agents, missing provider overlays, missing OMP hooks, or re-enabled Claude discovery.
+
+**Amended by #836 after local compatibility testing.** The first cut reversed this link: it moved
+the authored tree to `.agents/skills` and made `.claude/skills` the symlink. Local filesystem reads
+worked, but Claude Code's discovery contract requires the real directory at its native path.
+Reversing the link preserves one copy and OMP discovery—measured with Claude-provider discovery
+disabled—without making Claude Code consume a compatibility link.
 
 **Cost accepted:** OMP runs require an explicit provider overlay, the OMP extension is a maintained
 host adapter, and Claude Code compatibility adds generated files. The alternative is cheaper only by

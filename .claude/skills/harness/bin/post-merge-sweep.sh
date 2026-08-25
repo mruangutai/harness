@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # post-merge-sweep.sh — the entire body of the post-merge git hook (FEAT-34 T-03).
 #
-# Invocable directly, by its absolute path — the tracked `.agents/skills/harness/hooks/post-merge`
+# Invocable directly, by its absolute path — the tracked `.claude/skills/harness/hooks/post-merge`
 # shim (T-11, out of scope here) execs this script, but this script never assumes that shim ran
 # it and never reads anything the shim would have set up.
 #
@@ -42,8 +42,8 @@ import factory_config      # noqa: E402
 def _resolve_repo_root():
     """The repository root, derived from THIS SCRIPT's OWN on-disk location — never from the
     caller's cwd. BIN_DIR (set by the bash wrapper's
-    `cd "$(dirname "${BASH_SOURCE[0]}")" && pwd`) is always `<root>/.agents/skills/harness/bin`,
-    the same four path segments the T-11 shim (`.agents/skills/harness/hooks/post-merge`) already
+    `cd "$(dirname "${BASH_SOURCE[0]}")" && pwd`) is always `<root>/.claude/skills/harness/bin`,
+    the same four path segments the T-11 shim (`.claude/skills/harness/hooks/post-merge`) already
     walks up from its own location — so walking BIN_DIR up those same four segments recovers
     `<root>` exactly, regardless of what directory the sweep happens to be invoked from.
 

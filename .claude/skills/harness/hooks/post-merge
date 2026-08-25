@@ -14,13 +14,13 @@
 # THE ROOT COMES FROM $0, NOT FROM THE CALLER'S CWD. git runs a hook with cwd at the top of the
 # working tree for a normal merge, but that is not guaranteed for every invocation, and a hook
 # that silently resolves the wrong tree would sweep the wrong repository's worktrees.
-# This file sits at <root>/.agents/skills/harness/hooks/post-merge, so the root is four
+# This file sits at <root>/.claude/skills/harness/hooks/post-merge, so the root is four
 # directories above the one holding it. `pwd -P` rather than `pwd` so a symlinked checkout
 # resolves to the real tree.
 _here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P) || exit 0
 _root=$(CDPATH= cd -- "$_here/../../../.." && pwd -P) || exit 0
 
-_sweep="$_root/.agents/skills/harness/bin/post-merge-sweep.sh"
+_sweep="$_root/.claude/skills/harness/bin/post-merge-sweep.sh"
 
 # EXIT 0 WHEN THE SWEEP IS MISSING, AND SAY SO ONCE. A post-merge hook that exits non-zero makes
 # git print an error after a merge that SUCCEEDED, which reads as a broken pull. A missing sweep

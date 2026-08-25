@@ -2585,6 +2585,17 @@ def case_inv29():
                       % (probe.returncode,
                          os.path.realpath(wt_short).startswith(os.path.realpath(r)),
                          probe.stdout.strip()[-200:], probe.stderr.strip()[-200:]))
+        # THE REWRITE ABOVE HAS A COST AND THIS CLOSES IT. Rewriting argv[1] means the run does
+        # NOT prove the printed script path resolves in a real checkout — so that is asserted
+        # separately, against the real root. The path is repo-relative and may reach the tree
+        # through the .agents compatibility symlink; what matters is that it resolves at all.
+        printed_rel = shlex.split(m.group(1))[0] if m else ""
+        real_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.dirname(SCRIPT)))))
+        results.append(("(f.9) SC-17(c): the printed script path resolves in a real checkout",
+                        bool(printed_rel) and os.path.exists(
+                            os.path.join(real_root, printed_rel)),
+                        "printed=%r real_root=%r" % (printed_rel, real_root)))
         results.append(("(f.7) SC-17(c): the printed command RUNS and exits 0", ran_ok, detail))
         results.append(("(f.8) SC-17(c): and that worktree is GONE afterwards", gone, detail))
 

@@ -5,7 +5,7 @@ WHAT THIS GRADES. `harness-init/SKILL.md`'s "per-clone step" (T-12) is prose, no
 steps, of which only steps 1 and 2 carry literal command strings —
 
   step 1: `git config --get core.hooksPath || echo "(unset)"`
-  step 2: `git config core.hooksPath .agents/skills/harness/hooks`
+  step 2: `git config core.hooksPath .claude/skills/harness/hooks`
           `git config --get core.hooksPath`
 
 step 3 ("Set to ANYTHING ELSE? STOP and ask the user before writing") is prose with no command.
@@ -27,7 +27,7 @@ test-factory-workspace.py) of a throwaway ORIGIN repository this file builds and
 copies (never symlinks, so the origin is self-contained and a plain local clone carries them) of
 every real file under BIN_DIR (`_install_real_bin_and_hook`, mirroring
 `_install_fixture_bin`/`BIN_ENTRIES` in test-post-merge-sweep.py) plus the real, unmodified T-11
-shim at `.agents/skills/harness/hooks/post-merge`. Every case that runs the real sweep asserts the
+shim at `.claude/skills/harness/hooks/post-merge`. Every case that runs the real sweep asserts the
 resolved root lands inside its own fixture and never equals REAL_ROOT — the same mandatory safety
 belt test-post-merge-sweep.py requires, reused here because case (e) invokes the same sweep script
 through the same $0-based root resolution.
@@ -45,8 +45,8 @@ import tempfile
 SCRIPT = os.path.abspath(__file__)
 BIN_DIR = os.path.dirname(SCRIPT)
 REAL_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(BIN_DIR))))
-SKILL_MD = os.path.join(REAL_ROOT, ".agents", "skills", "harness-init", "SKILL.md")
-REAL_SHIM = os.path.join(REAL_ROOT, ".agents", "skills", "harness", "hooks", "post-merge")
+SKILL_MD = os.path.join(REAL_ROOT, ".claude", "skills", "harness-init", "SKILL.md")
+REAL_SHIM = os.path.join(REAL_ROOT, ".claude", "skills", "harness", "hooks", "post-merge")
 
 BIN_ENTRIES = sorted(
     f for f in os.listdir(BIN_DIR) if os.path.isfile(os.path.join(BIN_DIR, f))
@@ -55,10 +55,10 @@ BIN_ENTRIES = sorted(
 # The two literal command strings SKILL.md's per-clone step carries. Asserted verbatim present
 # in case_commands_verbatim_in_skill() before anything else runs them.
 STEP1_CMD = 'git config --get core.hooksPath || echo "(unset)"'
-STEP2_CMD_SET = "git config core.hooksPath .agents/skills/harness/hooks"
+STEP2_CMD_SET = "git config core.hooksPath .claude/skills/harness/hooks"
 STEP2_CMD_GET = "git config --get core.hooksPath"
 
-TARGET = ".agents/skills/harness/hooks"
+TARGET = ".claude/skills/harness/hooks"
 
 _ROOT_RE = re.compile(r"^post-merge-sweep: resolved repository root: (.+)$", re.M)
 
@@ -103,15 +103,15 @@ def _repo(path, branch="main"):
 def _install_real_bin_and_hook(root):
     """REAL COPIES (never symlinks) of every file under the real BIN_DIR, plus the real,
     UNMODIFIED T-11 shim — so the origin repository this builds is self-contained and a plain
-    local `git clone` carries a real, working `.agents/skills/harness/bin/` and
-    `.agents/skills/harness/hooks/post-merge` with no dependency on anything outside the clone."""
-    bin_dst = os.path.join(root, ".agents", "skills", "harness", "bin")
+    local `git clone` carries a real, working `.claude/skills/harness/bin/` and
+    `.claude/skills/harness/hooks/post-merge` with no dependency on anything outside the clone."""
+    bin_dst = os.path.join(root, ".claude", "skills", "harness", "bin")
     os.makedirs(bin_dst, exist_ok=True)
     for name in BIN_ENTRIES:
         dst = os.path.join(bin_dst, name)
         shutil.copy2(os.path.join(BIN_DIR, name), dst)
         os.chmod(dst, 0o755)
-    hooks_dst_dir = os.path.join(root, ".agents", "skills", "harness", "hooks")
+    hooks_dst_dir = os.path.join(root, ".claude", "skills", "harness", "hooks")
     os.makedirs(hooks_dst_dir, exist_ok=True)
     hook_dst = os.path.join(hooks_dst_dir, "post-merge")
     shutil.copy2(REAL_SHIM, hook_dst)
@@ -408,14 +408,14 @@ def case_sc14_end_to_end_and_red_proof():
         # in a SEPARATE origin, then confirm (a)-(d) still pass against a clone of THIS origin
         # before confirming (e) fails. ---
         origin_red = _bootstrap_origin(os.path.join(tmp, "origin-red"))
-        shim_path = os.path.join(origin_red, ".agents", "skills", "harness", "hooks",
+        shim_path = os.path.join(origin_red, ".claude", "skills", "harness", "hooks",
                                   "post-merge")
         real_shim_text = open(shim_path).read()
-        needle = '_sweep="$_root/.agents/skills/harness/bin/post-merge-sweep.sh"'
+        needle = '_sweep="$_root/.claude/skills/harness/bin/post-merge-sweep.sh"'
         assert needle in real_shim_text, (
             "expected shim text not found verbatim — the repoint mutation would be a no-op")
         mutated = real_shim_text.replace(
-            needle, '_sweep="$_root/.agents/skills/harness/bin/does-not-exist-sweep.sh"')
+            needle, '_sweep="$_root/.claude/skills/harness/bin/does-not-exist-sweep.sh"')
         with open(shim_path, "w") as f:
             f.write(mutated)
         os.chmod(shim_path, 0o755)

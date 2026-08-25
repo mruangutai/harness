@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/inject-expertise.sh"
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/inject-expertise.sh"
           }
         ]
       }
@@ -20,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/check-domain.sh"
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh"
           }
         ]
       },
@@ -29,11 +29,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/branch-create-gate.sh"
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/branch-create-gate.sh"
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/bash-write-guard.sh"
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/bash-write-guard.sh"
           }
         ]
       },
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/dispatch-guard.sh"
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/dispatch-guard.sh"
           }
         ]
       }
@@ -53,11 +53,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/check-domain.sh --post"
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/check-domain.sh --post"
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/context-watch-hook.py"
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/context-watch-hook.py"
           }
         ]
       }
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/validate-digest.py --hook"
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/validate-digest.py --hook"
           }
         ]
       }

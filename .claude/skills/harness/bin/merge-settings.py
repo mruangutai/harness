@@ -123,7 +123,7 @@ DEPTH_WHY = ("Pins nesting to main-session -> orchestrator -> lead -> member (DE
              "Verified at this value: layers 1 and 2 can spawn, layer 3 runs with Agent "
              "withheld, layer 4 is unreachable — so members stay leaves.")
 
-CMD = "${CLAUDE_PROJECT_DIR}/.agents/skills/harness/bin/%s"
+CMD = "${CLAUDE_PROJECT_DIR}/.claude/skills/harness/bin/%s"
 
 
 # The matcher values that are literal TOOL alternations, as opposed to agent-name regexes
