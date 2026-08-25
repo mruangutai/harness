@@ -193,6 +193,20 @@ def _handle_record(rec, main_checkout_root, cwd_real):
         print(f"post-merge-sweep: SKIP removal of {path} — gh-sync ship reported SKIP, "
               f"which is not proof the terminal status was recorded")
         return
+    # T-04, the same gate at the new terminal write. `ship` now lands every recorded card at
+    # the done station instead of closing issues, and it is best-effort per card (DEC-146):
+    # one card's write can fail while the rest succeed, and the run still exits 0. It prints
+    # "gh-sync: FAILED <k> of <n> — ..." naming exactly those cards. That card did not reach
+    # Done, so its ticket stays open and NOTHING downstream reports it — the standing worktree
+    # is again the only remaining evidence.
+    #
+    # HELD is deliberately NOT in this gate. A held card is a healthy run's designed outcome —
+    # a parent waiting on a child that is genuinely unfinished — and keeping a worktree for
+    # every hold would accumulate worktrees during normal operation.
+    if "gh-sync: FAILED" in combined:
+        print(f"post-merge-sweep: SKIP removal of {path} — gh-sync ship reported FAILED, so at "
+              f"least one card never reached the done station")
+        return
 
     # NO FORCE FLAG. feature-worktree.py remove already declines a dirty tree at exit 4 and an
     # unlanded artifact at exit 5; those refusals print and the sweep moves to the next record.

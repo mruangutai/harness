@@ -22,6 +22,13 @@ def attach_sub_issue_args(repo, parent, child_id):
     return ["api", f"repos/{repo}/issues/{parent}/sub_issues", "-F", f"sub_issue_id={child_id}"]
 
 
+def sub_issues_args(repo, num):
+    """GET one issue's children. Read-only, and bounded to `gh-sync.py ship`'s open-child
+    check (DEC-203 item 5, the sixth read-back purpose). Unlike `attach_sub_issue_args` this
+    takes the issue's NUMBER, because it is the REST path segment, not a payload id."""
+    return ["api", f"repos/{repo}/issues/{num}/sub_issues"]
+
+
 def parent_args(repo, num):
     return ["api", f"repos/{repo}/issues/{num}/parent"]
 

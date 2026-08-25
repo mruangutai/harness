@@ -81,10 +81,11 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-from gh_issues import internal_id_args, attach_sub_issue_args
+from gh_issues import internal_id_args, attach_sub_issue_args, sub_issues_args
 
 import factory_config
 import factory_gh
+import board_lifecycle
 import gh_board
 import gh_cost_log
 import harness_yaml
@@ -152,6 +153,23 @@ def gh(args, capture=True):
     return r.stdout.strip() if capture else ""
 
 
+def gh_try(args):
+    """`gh` WITHOUT `skip()`. Returns `(ok, stdout)`; on failure returns `(False, stderr)`.
+
+    `gh()` turns any non-zero exit into `skip()`, which prints the literal `gh-sync: SKIP` and
+    calls `sys.exit(0)`. That is right for a mid-flight environmental failure of the whole
+    invocation, and WRONG for `cmd_ship`'s per-card child read: it would abandon a ship that
+    had already written most of its cards, and `post-merge-sweep.sh` greps that exact literal
+    to decide whether to keep the worktree, so a single unreadable child list would silently
+    change worktree behaviour on an otherwise healthy run."""
+    with gh_cost_log.measured(args) as _cost:
+        r = subprocess.run([GH] + args, capture_output=True, text=True)
+        _cost.returncode = r.returncode
+    if r.returncode != 0:
+        return (False, (r.stderr or r.stdout).strip()[:200])
+    return (True, r.stdout.strip())
+
+
 # ---------- config ----------
 
 def load_config(root):
@@ -216,8 +234,10 @@ def _apply_parent_rule(feat_dir, repo, board):
     record, which is exactly the drift D-03 removes.
     """
     if _feature_status(feat_dir) in ("Done", "Abandoned"):
-        # Terminal exemption: `ship` already closed the parent and GitHub's own Item
-        # closed workflow landed it in Done; the derivation would still say Review.
+        # Terminal exemption: `ship` wrote the parent's card to the done station and
+        # recorded the terminal status, while the plan-derived station would still say
+        # Review. Without this exemption every shipped feature is a permanent false
+        # violation. The CONDITION is unchanged -- it still keys on feature.json's status.
         return
     plan_path = os.path.join(feat_dir, "plan.yaml")
     if not os.path.isfile(plan_path):
@@ -895,7 +915,9 @@ def cmd_status(feat_dir, status, repo, board):
       each. A parent that is not recorded prints one stderr line and the sub-issue writes
       still proceed; this does not raise and does not restate INV-21's finding.
     - Plan, Done, Abandoned: no station write at all (Plan is board-station.py's own write;
-      Done is GitHub's native Item-closed workflow; Abandoned has no column, D-03/DEC-192).
+      Done is written by `ship` alone, which is the only writer of the done station, so a
+      Done feature's cards are already there by the time this runs; Abandoned has no column
+      at all, D-03/DEC-203).
 
     FAILURE POSTURE, unchanged from every other station write in this file: a `BoardError`
     from one card prints one stderr line and the remaining cards still get written — a bulk
@@ -1055,14 +1077,32 @@ def cmd_closes(feat_dir):
         print(f"Closes #{n}")
 
 
-def cmd_ship(feat_dir, repo, body_file=None, pr_arg=None):
-    """Terminal state: PATCHes the milestone closed unconditionally, and — the mirror image
-    of `abandon` step 4 — closes the parent only if `open` created it (D-01, SC-04): an
-    adopted parent, or one with no recorded origin, is left open. After the close has run,
-    records the pr (T-03, FEAT-26) and THEN feature.json's top-level `status` as `Done`
-    (T-01/FEAT-23) — that status write stays the LAST STATEMENT of this function's
-    successful path, structurally: `skip()` calls sys.exit(0), so reaching this point is
-    itself the proof no early-exit branch fired."""
+def cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None):
+    """Terminal state: lands every recorded card at the board's DONE STATION, and closes no
+    issue at all. GitHub's own `Auto-close issue` workflow turns each station write into a
+    close (DEC-203 items 1-4). Measured on board 3 on 2026-08-25: probe #847 moved to `Done`
+    at 19:06:14Z and read CLOSED at 19:06:20Z.
+
+    THE OPEN-CHILD TEST APPLIES TO `source_issues` AND THE PARENT ONLY, and the exemption for
+    the task sub-issues is DECIDED, not omitted (D-10). REQ-03 states the rule unconditionally,
+    so a later reader has to be able to see why this group is out of it. `cmd_open` is the only
+    writer of `rec["issues"]`, and it creates each sub-issue FLAT, with no sub-issue of its own,
+    so that group's recursion has depth 1 BY CONSTRUCTION. Checking each would add one
+    `sub_issues` read per task sub-issue -- thirteen extra network calls on FEAT-34's
+    acceptance run -- to prove a set that is empty by construction.
+
+    THE MILESTONE PATCH STAYS. A milestone is not a card and has no station, so closing it is
+    still the only way to record it finished.
+
+    FAILURE POSTURE, unchanged (DEC-146): best-effort per card. A `BoardError` on one card
+    prints one stderr line and the loop continues, the exit status stays 0, and there is no
+    transaction across N `project_field_set` calls. git ignores a post-merge hook's exit status
+    anyway, which is why `post-merge-sweep.sh` greps this function's OUTPUT rather than its exit
+    code.
+
+    ORDER: `_record_pr` runs before `_record_status(feat_dir, "Done")`, and that status write
+    stays the LAST STATEMENT of the successful path (T-01/FEAT-23) -- `skip()` calls
+    `sys.exit(0)`, so reaching it is itself the proof no early-exit branch fired."""
     if body_file is not None:
         body_file = post_body_path(body_file, "--body-file")
     rec = load_recorded(feat_dir)
@@ -1075,21 +1115,145 @@ def cmd_ship(feat_dir, repo, body_file=None, pr_arg=None):
             "--body-file", body_file], capture=False)
         print(f"gh-sync: ship review posted on parent #{rec['parent']}")
 
-    # D-01: the parent's close follows its recorded origin, never unconditional.
-    if rec["parent"] is not None:
-        if rec["parent_origin"] == "created":
-            # T-08: explicit reason, same as close-task's issue close — a shipped ticket
-            # must never read state_reason null, indistinguishable from abandoned.
-            gh(["issue", "close", str(rec["parent"]), "--repo", repo,
-                "--reason", "completed"], capture=False)
-            print(f"gh-sync: parent #{rec['parent']} closed")
-        else:
-            print(f"gh-sync: parent #{rec['parent']} left open "
-                  f"(origin={rec['parent_origin'] or 'none'})")
-    else:
-        print("gh-sync: no parent recorded — closing milestone only")
+    if board is None:
+        print("gh-sync: no board configured — no card was moved")
+        _ship_close_milestone(feat_dir, repo, rec, pr_arg)
+        return
 
-    # The milestone is unaffected by parent origin: it PATCHes closed in all three cases.
+    done = board["stations"]["done"]
+
+    # Step 2 — the three groups, in the order they are written.
+    children = sorted(rec["issues"].values())
+    sources = list(rec["source_issues"])
+    parents = [rec["parent"]] if rec["parent"] is not None else []
+
+    # Step 3 — ONE targeted, cost-1 board read for every card's current station.
+    try:
+        stations = gh_board.board_stations(board, repo)
+    except Exception as e:  # factory_gh.GhError and anything it wraps
+        print(f"gh-sync: ERROR - board read failed, no card moved: {e}", file=sys.stderr)
+        stations = None
+
+    held = []      # (card number, the child that held it)
+    failed = []    # card numbers whose station write failed
+
+    def write_done(num):
+        """Write one card's done station and, ON SUCCESS, REFRESH THE MAP IN PLACE.
+
+        The refresh lives HERE, in the one helper every write site goes through, rather than
+        after step 4's loop, so no future write site can forget it. It is not a tidiness
+        point: a `source_issues` entry can itself be a child of the parent, or of a source
+        evaluated later in the same pass. A map refreshed only for step 4's writes would still
+        read such a card as open and skip a parent that should have landed."""
+        try:
+            gh_board.set_station(board, repo, num, done)
+        except gh_board.BoardError as e:
+            print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+            failed.append(num)
+            return False
+        if stations is not None:
+            stations[int(num)] = done
+        print(f"gh-sync: issue #{num} -> {done}")
+        return True
+
+    # Step 4 — the task sub-issues. No child check: see the docstring's D-10 paragraph.
+    for num in children:
+        write_done(num)
+
+    def first_open_child(num):
+        """(child number, parenthetical) for the LOWEST-numbered open child, or None.
+
+        Raises on a failed `sub_issues` read: an UNKNOWN child set is never treated as
+        childless, because that is the one error that would close someone else's live epic.
+
+        A child counts as OPEN when its card is not at the done station. Both of
+        `gh_board.read_station`'s failure reasons count as open, and they are DISTINGUISHED in
+        the parenthetical so the operator can tell an unstationed child from a missing one
+        without running a second command."""
+        ok, raw = gh_try(sub_issues_args(repo, num))
+        if not ok:
+            raise RuntimeError(raw)
+        kids = json.loads(raw) if raw and raw.strip() else []
+        numbers = sorted(int(k["number"]) for k in kids
+                         if isinstance(k, dict) and k.get("number") is not None)
+        for kid in numbers:
+            station, reason = gh_board.read_station(stations or {}, kid)
+            if station == done:
+                continue
+            note = "not on the board" if reason == "not on the board" else f"not at {done}"
+            return (kid, note)
+        return None
+
+    # Step 5 — the source issues, then the parent. Only after step 4, so a parent whose only
+    # open children are cards THIS RUN lands can still reach done in this run.
+    for num in sources + parents:
+        if stations is None:
+            print(f"gh-sync: ERROR - #{num} not evaluated, the board read failed",
+                  file=sys.stderr)
+            failed.append(num)
+            continue
+        try:
+            blocker = first_open_child(num)
+        except Exception as e:
+            print(f"gh-sync: ERROR - #{num} child list unreadable, card not moved: {e}",
+                  file=sys.stderr)
+            continue
+        if blocker is not None:
+            kid, note = blocker
+            print(f"gh-sync: HELD — #{num} waiting on open child #{kid} ({note})")
+            held.append((num, kid))
+            continue
+        write_done(num)
+
+    # Step 7 — the batch summary. TWO LINES, never one merged list.
+    total = len(children) + len(sources) + len(parents)
+    if held:
+        pairs = ", ".join(f"#{n} (child #{c})" for n, c in held)
+        print(f"gh-sync: HELD {len(held)} of {total} — {pairs}")
+    if failed:
+        names = ", ".join(f"#{n}" for n in failed)
+        print(f"gh-sync: FAILED {len(failed)} of {total} — {names} did not reach Done and "
+              f"nothing downstream reports it")
+    if not held and not failed:
+        print(f"gh-sync: every recorded card is at {done}")
+
+    # Step 7c — REQ-06's compensating control (D-13). Runs ONCE per feature, HERE and nowhere
+    # else, and AFTER every station write of this run, so a card this run moved to done does
+    # not report itself as a STATION finding.
+    #
+    # WHY HERE. The Bash gate cannot see a close typed in another terminal or made in the web
+    # UI, and this audit's STATION class is the only detector of what such a close leaves
+    # behind. Running it at each station write was rejected: the leak happens when the harness
+    # is NOT writing a station, so a station-change trigger catches it no sooner in practice,
+    # at several times the cost.
+    #
+    # SHIP NEVER GATES ON THE AUDIT. A read failure means the audit COULD NOT RUN, which is
+    # not a failed write: one stderr line, and the ship carries on at exit 0.
+    _ship_audit(repo)
+
+    _ship_close_milestone(feat_dir, repo, rec, pr_arg)
+
+
+def _ship_audit(repo):
+    """Run the board audit and print each finding under ship's own prefix.
+
+    No audit line may carry the substring `gh-sync: SKIP` or `gh-sync: FAILED`.
+    `post-merge-sweep.sh` greps ship's combined output for both, and an audit finding is
+    neither an environmental no-go nor a failed write -- a line carrying either literal would
+    silently change worktree behaviour on a healthy run."""
+    try:
+        findings = board_lifecycle.audit_findings(repo)
+    except Exception as e:
+        print(f"gh-sync: ERROR - the board audit could not run: {e}", file=sys.stderr)
+        return
+    for f in findings:
+        print(f"gh-sync: audit — {f.message}")
+    print(f"gh-sync: audit — {len(findings)} finding(s)")
+
+
+def _ship_close_milestone(feat_dir, repo, rec, pr_arg):
+    """The tail every ship path shares: the milestone PATCH, then the pr, then the terminal
+    status. A milestone is not a card, so it is closed rather than stationed."""
     gh(["api", "-X", "PATCH", f"repos/{repo}/milestones/{rec['milestone']}",
         "-f", "state=closed"])
     print(f"gh-sync: milestone #{rec['milestone']} closed")
@@ -1210,7 +1374,7 @@ def main():
     elif cmd == "abandon":
         cmd_abandon(feat_dir, repo, reason_file)
     elif cmd == "ship":
-        cmd_ship(feat_dir, repo, body_file, pr_arg)
+        cmd_ship(feat_dir, repo, board, body_file, pr_arg)
     elif cmd == "backlog":
         if len(argv) < 3:
             die("backlog needs at least one nature:title item")

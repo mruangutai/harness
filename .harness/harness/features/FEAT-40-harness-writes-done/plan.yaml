@@ -314,7 +314,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: operator route ruling on issue 842; this is the close path itself and the same file's ship step is what runs at this feature's own merge, so a dispatched member would be building under a half-changed mirror
     depends_on: [T-01, T-03]
-    status: pending
+    status: done
     files:
       - .claude/skills/harness/bin/gh-sync.py
       - .claude/skills/harness/bin/gh_issues.py

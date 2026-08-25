@@ -601,6 +601,112 @@ def case_skip_is_not_success():
 
 
 # ---------------------------------------------------------------------------------------------
+# (g2) FAILED IS NOT SUCCESS EITHER, and HELD still is. T-04.
+# ---------------------------------------------------------------------------------------------
+
+_FAILED_LINE = '    if "gh-sync: FAILED" in combined:'
+
+
+def _stub_ship(fixture_bin, output, rc=0):
+    """Replace the fixture's `gh-sync.py` SYMLINK with a stub that prints `output` and exits
+    `rc`.
+
+    Deliberately a stub and not the real ship: this case tests the SWEEP's gate, which is a
+    decision about a string in ship's output. Driving the real `cmd_ship` to a genuine
+    partial board failure would need a live board, and would make a test of five lines of
+    bash depend on the whole mirror. The string is the contract between the two, so the
+    string is what is fed in."""
+    path = os.path.join(fixture_bin, "gh-sync.py")
+    if os.path.islink(path) or os.path.exists(path):
+        os.remove(path)
+    with open(path, "w") as f:
+        f.write("#!/usr/bin/env python3\nimport sys\n"
+                f"print({output!r})\nsys.exit({rc})\n")
+    os.chmod(path, 0o755)
+
+
+def case_failed_is_not_success():
+    """A ship whose board write FAILED leaves the worktree standing; a ship that only HELD
+    cards does not.
+
+    WHY THE ASYMMETRY, so it is not "fixed" later into consistency: a FAILED card is a card
+    that did not reach the done station, so its ticket stays open and nothing downstream
+    reports it -- the standing worktree is the only remaining evidence. A HELD card is a
+    DESIGNED outcome of a completely healthy run: the parent is waiting on a child that is
+    genuinely unfinished. Keeping a worktree for every hold would accumulate worktrees during
+    normal operation, which is a cost paid on the common path to signal nothing."""
+    results = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        fixture_bin = os.path.dirname(sweep)
+        log, gh_env = _stub_gh(tmp)
+        env = _sweep_env(repo, gh_env)
+
+        _commit_feature(repo, "FEAT-42-failed-write", "Done", milestone=7)
+        dest = _add_wt(repo, "FEAT-42-failed-write")
+
+        _stub_ship(fixture_bin,
+                   "gh-sync: FAILED 1 of 3 - #55 did not reach Done and nothing "
+                   "downstream reports it")
+        r = subprocess.run(["bash", sweep], cwd=repo, capture_output=True, text=True, env=env)
+
+        results.append(("(g2) sweep exits 0 even though ship reported FAILED",
+                         r.returncode == 0, f"rc={r.returncode} stderr={r.stderr!r}"))
+        results.append(("(g2) FAILED IS NOT SUCCESS: a ship that exited 0 but printed "
+                         "`gh-sync: FAILED` keeps its worktree standing",
+                         os.path.isdir(dest), f"dest={dest} stdout={r.stdout!r}"))
+        results.append(("(g2) the declined removal PRINTS a reason naming FAILED, rather "
+                         "than silently leaving the tree",
+                         "FAILED" in r.stdout and dest in r.stdout, f"stdout={r.stdout!r}"))
+
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        fixture_bin = os.path.dirname(sweep)
+        log, gh_env = _stub_gh(tmp)
+        env = _sweep_env(repo, gh_env)
+
+        _commit_feature(repo, "FEAT-43-held-only", "Done", milestone=7)
+        dest2 = _add_wt(repo, "FEAT-43-held-only")
+
+        _stub_ship(fixture_bin,
+                   "gh-sync: HELD 1 of 3 - #60 (child #61)")
+        r2 = subprocess.run(["bash", sweep], cwd=repo, capture_output=True, text=True, env=env)
+
+        results.append(("(g2) HELD IS STILL SUCCESS: a ship that only held cards has its "
+                         "worktree removed as usual",
+                         not os.path.isdir(dest2), f"dest={dest2} stdout={r2.stdout!r}"))
+
+    # RED PROOF: the FAILED half of the gate deleted. The worktree of a partly failed ship is
+    # then destroyed, which is the same destructive fail-open D-04's comment warns about for
+    # SKIP -- reintroduced at the new terminal write.
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _bootstrap_repo(os.path.join(tmp, "R"))
+        sweep = _install_fixture_bin(repo)
+        fixture_bin = os.path.dirname(sweep)
+        log, gh_env = _stub_gh(tmp)
+        env = _sweep_env(repo, gh_env)
+
+        _commit_feature(repo, "FEAT-44-red-proof", "Done", milestone=7)
+        dest3 = _add_wt(repo, "FEAT-44-red-proof")
+        _stub_ship(fixture_bin,
+                   "gh-sync: FAILED 1 of 3 - #70 did not reach Done and nothing "
+                   "downstream reports it")
+
+        mutated = _mutated_copy(
+            fixture_bin, "sweep-skip-only.sh", _FAILED_LINE, _SKIP_LINE)
+        r3 = subprocess.run(["bash", mutated], cwd=repo, capture_output=True, text=True,
+                             env=env)
+        results.append(("(g2) RED PROOF: with only the SKIP half of the gate, the sweep "
+                         "DELETES the worktree of a ship that reported FAILED",
+                         not os.path.isdir(dest3),
+                         f"rc={r3.returncode} stdout={r3.stdout!r} "
+                         f"dest_still_exists={os.path.isdir(dest3)}"))
+    return results
+
+
+# ---------------------------------------------------------------------------------------------
 # (h) CWD OUTSIDE THE REPOSITORY, the T-03 rework's own RED proof.
 # ---------------------------------------------------------------------------------------------
 
@@ -756,6 +862,7 @@ def main():
         + case_order_d04()
         + case_unresolved_left_standing()
         + case_skip_is_not_success()
+        + case_failed_is_not_success()
         + case_cwd_outside_repo()
         + case_linked_worktree_main_checkout()
     )
