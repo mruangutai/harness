@@ -884,11 +884,14 @@ with tempfile.TemporaryDirectory() as tmpB:
     open(reasonB, "w").write("cutting this")
     r = run(["abandon", featB, "--reason-file", reasonB, "--yes"], tmpB)
     logB = calls(tmpB)
-    parent40_calls = [l for l in logB if re.search(r"\bissues/40\b", l)]
-    check("abandon closes a created parent not_planned",
+    # NARROWED: `issues/40` now also matches the DETACH call
+    # (api -X DELETE repos/.../issues/40/sub_issue), so a bare substring filter counts two.
+    # The assertion is about the CLOSE, so it selects the close.
+    parent40_calls = [l for l in logB if re.search(r"\bissues/40 ", l) and "state=closed" in l]
+    check("abandon closes the parent not_planned, exactly once",
           r.returncode == 0
           and len(parent40_calls) == 1
-          and "state=closed" in parent40_calls[0] and "state_reason=not_planned" in parent40_calls[0]
+          and "state_reason=not_planned" in parent40_calls[0]
           and not any(l.startswith("issue close 40") for l in logB),
           str(logB))
     # T-08: the sub-issue and the created parent each get their own assertion.
@@ -2567,8 +2570,16 @@ with tempfile.TemporaryDirectory() as tmpA1:
     check("abandon dry run: makes ZERO writes - no close, no label, no comment",
           _writesA1 == [], str(logA1))
     check("abandon dry run: one would-line per recorded sub-issue",
-          sum(1 for l in wouldA1 if "close issue #41" in l) == 1
-          and sum(1 for l in wouldA1 if "close issue #42" in l) == 1,
+          sum(1 for l in wouldA1 if "issue #41" in l) == 1
+          and sum(1 for l in wouldA1 if "issue #42" in l) == 1,
+          repr(wouldA1))
+    check("abandon dry run: the sub-issue line names all four acts — detach, close, label, "
+          "and the return to the backlog — so the dry run and the real run diff by eye",
+          all(w in next(l for l in wouldA1 if "issue #41" in l)
+              for w in ("detach", "parent #40", "not_planned", "abandoned", "backlog")),
+          repr(wouldA1))
+    check("abandon dry run: the parent line says it returns to the backlog too",
+          any("parent #40" in l and "backlog" in l and "not_planned" in l for l in wouldA1),
           repr(wouldA1))
     check("abandon dry run: one would-line for the milestone",
           sum(1 for l in wouldA1 if "close milestone #7" in l) == 1, repr(wouldA1))
@@ -2668,6 +2679,80 @@ with tempfile.TemporaryDirectory() as tmpA6:
     check("legacy origin key: the parent closes anyway - the key is read but decides nothing",
           any("issues/40" in l and "state_reason=not_planned" in l for l in calls(tmpA6)),
           str(calls(tmpA6)))
+
+
+
+# --- abandon with a BOARD: detach, close, label, and back to the BACKLOG ------------------------
+# The operator's correction of 2026-08-25. Measured the same day on probe #860: closing an issue
+# moves its card to the done station at t+0s, not_planned included. So before this, every
+# abandoned ticket landed at Done and the board could not tell dropped work from shipped work.
+with tempfile.TemporaryDirectory() as tmpAB:
+    install_gh(tmpAB, FAKE_GH_SHIP)
+    featAB = stage_ship(tmpAB, "FEAT-40-abandon-backlog", {"T-01": 41, "T-02": 42}, parent=40)
+    reasonAB = os.path.join(tmpAB, "reason.txt")
+    open(reasonAB, "w").write("dropped")
+    r = run(["abandon", featAB, "--reason-file", reasonAB, "--yes"], tmpAB,
+            ship_env(tmpAB, "40=Review 41=Review 42=Review"))
+    logAB = calls(tmpAB)
+    backlogAB = set()
+    for l in edits_to(logAB, "OPT_BACKLOG"):
+        m = re.search(r"--id ITEM_(\d+)", l)
+        if m:
+            backlogAB.add(int(m.group(1)))
+    check("abandon: exits 0 with a board configured", r.returncode == 0, r.stdout + r.stderr)
+    for numAB in (41, 42, 40):
+        check("abandon: card #%d is returned to the BACKLOG station, not left at Done" % numAB,
+              numAB in backlogAB, "backlog=%s stdout=%r" % (sorted(backlogAB), r.stdout))
+    check("abandon: NO card is written to the done station",
+          not edits_to(logAB, "OPT_DONE"), str(logAB))
+
+    # THE ORDER IS THE WHOLE POINT. A backlog write made BEFORE the close is overwritten by
+    # GitHub's own workflow, silently. Measured on #860: a write AFTER the close sticks.
+    close41 = next(i for i, l in enumerate(logAB)
+                   if "issues/41 " in l and "state=closed" in l)
+    backlog41 = next(i for i, l in enumerate(logAB)
+                     if "item-edit" in l and "ITEM_41" in l and "OPT_BACKLOG" in l)
+    check("abandon: the backlog write comes AFTER the close — a write before it would be "
+          "overwritten by GitHub's Item-closed workflow",
+          backlog41 > close41, "close=%d backlog=%d log=%s" % (close41, backlog41, logAB))
+
+    # DETACH. Under DEC-203 a ticket is open while its card is not at Done, so an abandoned
+    # ticket at the backlog reads as OPEN — and ship refuses to move a parent with an open
+    # child. Left attached, one abandoned child holds its parent forever, and the Bash gate
+    # refuses a hand close, so there is no way out.
+    for numAB in (41, 42):
+        check("abandon: sub-issue #%d is DETACHED from parent #40, so it cannot hold the "
+              "parent open" % numAB,
+              any("DELETE" in l and "issues/40/sub_issue" in l
+                  and "sub_issue_id=9000%d" % numAB in l for l in logAB), str(logAB))
+    detach41 = next(i for i, l in enumerate(logAB)
+                    if "DELETE" in l and "sub_issue_id=900041" in l)
+    check("abandon: the detach comes BEFORE the close — a detach is a write on the parent, "
+          "and doing it first means a failed close cannot leave a half-detached child",
+          detach41 < close41, "detach=%d close=%d" % (detach41, close41))
+
+    check("abandon: everything it closed still carries the abandoned label",
+          all(any(l.startswith("issue edit %d " % n) and "abandoned" in l for l in logAB)
+              for n in (41, 42, 40)), str(logAB))
+    check("abandon: still records status Abandoned",
+          read_feature_json(os.path.join(featAB, "feature.json")).get("status") == "Abandoned",
+          read_feature_json(os.path.join(featAB, "feature.json")))
+
+# --- a detach that FAILS does not stop the close ------------------------------------------------
+# Best-effort, like every other write here. An attached-but-closed ticket is a worse outcome
+# than a detached one, and far better than not closing it at all.
+with tempfile.TemporaryDirectory() as tmpAC:
+    install_gh(tmpAC, FAKE_GH_SHIP)
+    featAC = stage_ship(tmpAC, "FEAT-40-detach-fails", {"T-01": 41}, parent=40)
+    reasonAC = os.path.join(tmpAC, "reason.txt")
+    open(reasonAC, "w").write("dropped")
+    r = run(["abandon", featAC, "--reason-file", reasonAC, "--yes"], tmpAC,
+            ship_env(tmpAC, "40=Review 41=Review", SHIP_SUBISSUES_FAIL="40"))
+    logAC = calls(tmpAC)
+    check("abandon: exits 0 even when a detach cannot be made",
+          r.returncode == 0, r.stdout + r.stderr)
+    check("abandon: the close still runs when the detach fails",
+          any("issues/41 " in l and "state=closed" in l for l in logAC), str(logAC))
 
 
 print(f"\n{'ALL PASSED' if not fails else str(fails) + ' FAILED'}")

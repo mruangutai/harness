@@ -7229,6 +7229,24 @@ is stated as a cost: a card closed outside the harness can sit wrong for the who
 caught at ship.** That is tolerable only because ship is the moment the wrongness would otherwise
 cause harm, since ship is where the open-child decision is made.
 
+**An abandoned card goes back to the BACKLOG station, and its ticket is DETACHED from its parent.**
+Not to done. Measured on 2026-08-25 with probe #860: closing an issue moves its card to the done
+station immediately, `not_planned` included — so before this rule, every abandoned ticket landed at
+`Done` and the board could not tell dropped work from shipped work. `abandon` therefore writes the
+backlog station **after** the close, which the same probe measured as the order that sticks; a write
+made before the close is overwritten by GitHub's own workflow, silently.
+
+The detach follows from item 1 rather than from taste. A ticket is open while its card is not at
+done, so an abandoned ticket sitting at `Backlog` reads as **open** — and `ship` refuses to move a
+parent that has an open child. Left attached, one abandoned child would hold its parent open forever,
+and the Bash gate above refuses the hand close that would otherwise end it. Detaching is what makes
+the backlog station safe rather than a trap. The ticket survives, closed and labelled `abandoned`,
+for the operator to pick up or clear later.
+
+Both writes are best-effort, like every other write the mirror makes: a failed detach prints one line
+and the close still runs. An attached-but-closed ticket is a worse outcome than a detached one, and a
+far better one than a ticket that was never closed.
+
 **9. The accepted cost, and it is the largest one here.** The harness now depends on a board
 automation that only a click in the project web interface can enable. Nothing in a checkout can turn
 it on, and nothing in a build reports it off. The one reader of that dependency is the `WORKFLOW`

@@ -86,7 +86,8 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-from gh_issues import internal_id_args, attach_sub_issue_args, sub_issues_args
+from gh_issues import (internal_id_args, attach_sub_issue_args, sub_issues_args,
+                       detach_sub_issue_args)
 
 import factory_config
 import factory_gh
@@ -985,6 +986,44 @@ def cmd_status(feat_dir, status, repo, board):
                 print(f"gh-sync: ERROR - {e}", file=sys.stderr)
 
 
+def _detach_from_parent(repo, parent, num):
+    """Break the sub-issue link so an abandoned ticket stops holding its parent open.
+
+    Best-effort, like every other write here: a failure prints one stderr line and the close
+    still runs. An attached-but-closed ticket is a worse outcome than a detached one, but it
+    is far better than not closing it at all."""
+    ok, out = gh_try(internal_id_args(repo, num))
+    if not ok:
+        print(f"gh-sync: ERROR - could not read #{num}'s internal id, left attached to "
+              f"#{parent}: {out}", file=sys.stderr)
+        return
+    ok, out = gh_try(detach_sub_issue_args(repo, parent, out.strip()))
+    if not ok:
+        print(f"gh-sync: ERROR - could not detach #{num} from #{parent}: {out}",
+              file=sys.stderr)
+        return
+    print(f"gh-sync: detached #{num} from parent #{parent}")
+
+
+def _to_backlog(board, repo, num):
+    """Return an abandoned card to the backlog station, AFTER its close.
+
+    THE ORDER IS THE WHOLE POINT and is measured, not assumed. Probe #860, 2026-08-25:
+    `gh api -X PATCH ... state=closed state_reason=not_planned` moved the card to the done
+    station at t+0s, and a `Backlog` write made after that stuck. A write made BEFORE the
+    close would be overwritten by GitHub's own workflow, silently.
+
+    Abandoned work is not done work, and the board is the surface the operator reads."""
+    if board is None:
+        return
+    backlog = board["stations"]["backlog"]
+    try:
+        gh_board.set_station(board, repo, num, backlog)
+        print(f"gh-sync: issue #{num} -> {backlog} (abandoned, not done)")
+    except gh_board.BoardError as e:
+        print(f"gh-sync: ERROR - {e}", file=sys.stderr)
+
+
 def _abandon_plan(rec):
     """Every write `abandon` would make, in the order `cmd_abandon` performs them, as a list
     of (kind, number, line).
@@ -1003,17 +1042,23 @@ def _abandon_plan(rec):
                      f"post the abandon reason on parent #{rec['parent']}"))
     for tid, num in sorted(rec["issues"].items()):
         plan.append(("issue", num,
-                     f"close issue #{num} for {tid} (not_planned) and label it abandoned"))
+                     f"detach issue #{num} for {tid} from parent "
+                     f"#{rec['parent']}, close it (not_planned), label it abandoned and "
+                     f"return its card to the backlog"
+                     if rec["parent"] is not None else
+                     f"close issue #{num} for {tid} (not_planned), label it abandoned and "
+                     f"return its card to the backlog"))
     if rec["milestone"] is not None:
         plan.append(("milestone", rec["milestone"],
                      f"close milestone #{rec['milestone']}"))
     if rec["parent"] is not None:
         plan.append(("parent", rec["parent"],
-                     f"close parent #{rec['parent']} (not_planned) and label it abandoned"))
+                     f"close parent #{rec['parent']} (not_planned), label it abandoned and "
+                     f"return its card to the backlog"))
     return plan
 
 
-def cmd_abandon(feat_dir, repo, reason_file, yes=False):
+def cmd_abandon(feat_dir, repo, board, reason_file, yes=False):
     """Terminal state: closes every recorded sub-issue and the PARENT `not_planned`, closes
     the milestone, posts the signed reason, and labels everything it closed `abandoned`.
 
@@ -1034,6 +1079,21 @@ def cmd_abandon(feat_dir, repo, reason_file, yes=False):
     the tree are this file's usage line and `github-mirror.md`'s prose -- so no caller can
     misread 0 as "abandoned". If an automated caller is ever written, the dry run needs its
     own exit code at that point, not before.
+
+    AN ABANDONED CARD GOES BACK TO THE BACKLOG, NOT TO DONE, and this is a correction the
+    operator made on 2026-08-25. Measured the same day on probe #860: closing an issue moves
+    its card to the done station IMMEDIATELY, `not_planned` included. So before this, every
+    abandoned ticket landed at Done and the board could not tell dropped work from shipped
+    work. The station write therefore runs AFTER the close, deliberately -- measured on the
+    same probe, a write after the close sticks, and a write before it is overwritten by
+    GitHub's own workflow.
+
+    IT ALSO DETACHES EACH SUB-ISSUE FROM THE PARENT. Under DEC-203 a ticket is open while its
+    card is not at the done station, so an abandoned ticket sitting at the backlog reads as
+    OPEN -- and `ship` refuses to move a parent that has an open child. Left attached, one
+    abandoned child would hold its parent forever, with no way out, because the Bash gate
+    refuses a hand close. Detaching is what makes the backlog station safe rather than a trap.
+    The ticket survives, labelled and closed, for the operator to clean up later.
 
     `_record_status(feat_dir, "Abandoned")` stays the LAST STATEMENT of the successful path
     and runs only under `--yes`."""
@@ -1059,11 +1119,14 @@ def cmd_abandon(feat_dir, repo, reason_file, yes=False):
                 "--body-file", reason_file], capture=False)
             print(f"gh-sync: reason posted on parent #{num}")
         elif kind == "issue":
+            if rec["parent"] is not None:
+                _detach_from_parent(repo, rec["parent"], num)
             gh(["api", "-X", "PATCH", f"repos/{repo}/issues/{num}",
                 "-f", "state=closed", "-f", "state_reason=not_planned"], capture=False)
             gh(["issue", "edit", str(num), "--repo", repo, "--add-label", "abandoned"],
                capture=False)
             print(f"gh-sync: closed issue #{num} (not_planned)")
+            _to_backlog(board, repo, num)
         elif kind == "milestone":
             gh(["api", "-X", "PATCH", f"repos/{repo}/milestones/{num}",
                 "-f", "state=closed"])
@@ -1074,6 +1137,7 @@ def cmd_abandon(feat_dir, repo, reason_file, yes=False):
             gh(["issue", "edit", str(num), "--repo", repo, "--add-label", "abandoned"],
                capture=False)
             print(f"gh-sync: parent #{num} closed (not_planned)")
+            _to_backlog(board, repo, num)
 
     if rec["parent"] is None:
         print("gh-sync: no parent recorded — reason not posted")
@@ -1409,7 +1473,7 @@ def main():
             die("close-task needs a T-NN")
         cmd_close_task(feat_dir, argv[2], repo, board)
     elif cmd == "abandon":
-        cmd_abandon(feat_dir, repo, reason_file, yes_flag)
+        cmd_abandon(feat_dir, repo, board, reason_file, yes_flag)
     elif cmd == "ship":
         cmd_ship(feat_dir, repo, board, body_file, pr_arg)
     elif cmd == "backlog":
