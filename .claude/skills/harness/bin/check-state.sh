@@ -1533,6 +1533,106 @@ if _inv26_board:
                 elif _pfound != _derived:
                     bad.append(f"INV-26 {_feat} parent (issue #{_parent}): the plan derives "
                                f"{_derived} — the board reads {_pfound}.")
+# --- INV-30 (FEAT-34 T-08, REQ-12): a feature recorded `Done` whose milestone is still OPEN.
+#
+# IT KEYS ON THE MILESTONE, NEVER ON THE STATUS AGREEING WITH ITSELF. `status: Done` has more
+# than one path that can write it — the 2026-08-24 repair wrote ten by hand — so a Done status
+# corroborating a Done status proves nothing. The milestone has exactly ONE writer,
+# `gh-sync.py`'s `cmd_ship`, which PATCHes it closed unconditionally once entered. So an OPEN
+# milestone on a Done feature is proof that `ship` never ran.
+#
+# THE OFFLINE POSTURE IS INV-26's, NOT A NEW ONE. The IMPORT failing is a violation, because
+# the module ships with this repository. Everything else — `gh` absent, unauthenticated, the
+# network unreachable, a milestone that 404s — records NOTHING. `check-state.sh` runs before
+# every commit, and an offline environment must never become a red gate.
+#
+# ONE `gh` CALL, NOT ONE PER FEATURE. 24 features carry a recorded milestone at 9165162; a
+# request each would make the pre-commit gate pay 24 round trips for a check that one paginated
+# list answers. The whole milestone list is fetched once and matched by number in memory.
+try:
+    import gh_board as _gb30
+    _inv30_import_ok = True
+except Exception as _gbe30:
+    _inv30_import_ok = False
+    bad.append("INV-30 CANNOT RUN: gh_board.py did not import (%s: %s), so a feature recorded "
+               "Done whose milestone is still open would go unreported. The module ships with "
+               "this repository — restore .claude/skills/harness/bin/gh_board.py."
+               % (type(_gbe30).__name__, _gbe30))
+
+_g30 = cj.get("github") if isinstance(cj, dict) else None
+_repo30 = (_g30 or {}).get("repo")
+
+if _inv30_import_ok and (_g30 or {}).get("sync") and _repo30:
+    # THE CANDIDATE SET IS BUILT FROM DISK FIRST, so the network is touched only if there is
+    # something to ask about. A tree with no Done-and-milestoned feature makes no gh call at all.
+    _cand30 = []
+    for _fy30 in sorted(glob.glob(os.path.join(H, "*", "features", "*", "feature.json"))):
+        _feat30 = os.path.basename(os.path.dirname(_fy30))
+        try:
+            _doc30 = harness_yaml.load_file(_fy30) or {}
+        except Exception:
+            # INV-28 above already reports an unparseable feature.json. Restating it here would
+            # report one defect twice.
+            continue
+        if not isinstance(_doc30, dict):
+            continue
+        # DEC-192's six status values are case sensitive — the exact string `Done` and nothing
+        # else. `Abandoned` is terminal and silent here for INV-28's reason: nothing shipped, so
+        # there is no milestone that ship should have closed.
+        if str(_doc30.get("status", "")).split()[:1] != ["Done"]:
+            continue
+        _ms30 = (_doc30.get("github") or {}).get("milestone")
+        if _ms30 is None:
+            # A Done feature with no recorded milestone is outside this invariant's reach, not a
+            # finding. Eight features are in that state at 9165162 and none of them is a defect
+            # INV-30 can speak to.
+            continue
+        try:
+            _cand30.append((_feat30, int(_ms30)))
+        except (TypeError, ValueError):
+            continue
+
+    if _cand30:
+        # SAME RESOLUTION AS INV-26 at :1371 — FACTORY_GH first. A fixture that stubs
+        # `gh` through that variable must reach this invariant too, or INV-30 would be
+        # untestable offline while claiming an offline posture.
+        _gh_bin30 = os.environ.get("FACTORY_GH") or "gh"
+        _open30 = None
+        try:
+            _auth30 = subprocess.run([_gh_bin30, "auth", "status"],
+                                     capture_output=True, text=True, timeout=15)
+            _gh_ok30 = _auth30.returncode == 0
+        except Exception:
+            _gh_ok30 = False
+
+        if _gh_ok30:
+            # `--paginate` rather than a bare per_page: the list is small today and silently
+            # truncating it later would make this invariant quietly stop firing on the oldest
+            # features, which is the decay shape INV-28 was written to catch.
+            try:
+                _r30 = subprocess.run(
+                    [_gh_bin30, "api", "--paginate",
+                     "repos/%s/milestones?state=open&per_page=100" % _repo30,
+                     "-q", ".[].number"],
+                    capture_output=True, text=True, timeout=60)
+                if _r30.returncode == 0:
+                    _open30 = {int(x) for x in _r30.stdout.split() if x.strip().isdigit()}
+            except Exception:
+                _open30 = None
+
+        # None means "we could not ask", which is NOT the same as "nothing is open" and must
+        # never be treated as one. Silence here is the whole offline posture.
+        if _open30 is not None:
+            for _feat30, _num30 in _cand30:
+                if _num30 not in _open30:
+                    continue
+                bad.append(
+                    "INV-30 %s: status is Done but milestone #%d is still OPEN, so "
+                    "`gh-sync.py ship` never ran for it. The status is not evidence — it has "
+                    "several writers and the milestone has one. Close it with `python3 "
+                    ".claude/skills/harness/bin/gh-sync.py ship %s`."
+                    % (_feat30, _num30, fpath(_feat30)))
+
 # --- INV-26 ENDS
 
 # --- INV-13: the GitHub mirror is either configured or explicitly off — never limbo
