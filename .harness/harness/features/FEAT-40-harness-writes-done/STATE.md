@@ -3,51 +3,48 @@
 ## Current
 
 - feature: FEAT-40-harness-writes-done
-- run: PLAN PHASE COMPLETE and CORRECTED. The blocking premise was FALSE — the suite is GREEN, so
-  the suite-quarantine task and its decision are deleted and the plan is 10 tasks. Three operator
-  rulings applied (the environment marker is dropped, DEC-203's register is settled, and the
-  acceptance-test correction was already on disk). Awaiting the operator's signature on BRIEF.md and
-  plan.yaml. cycles_used 3/10, 3 runs vs informational bound 20.
+- run: PLAN PHASE COMPLETE. The suite premise was corrected (it is GREEN), and all five carried
+  questions are now ruled. Two of them changed the plan: the board audit is scheduled inside `ship`,
+  and `close-task` is deleted. The plan is 11 tasks, 13 decisions, REQ-01..REQ-12 all traced.
+  Awaiting the operator's signature on BRIEF.md and plan.yaml. cycles_used 3/10, 4 runs vs
+  informational bound 20.
 - squad: none
 - status: Plan
 
-<!-- THE RED BASELINE WAS AN ARTIFACT OF STALE RUNTIME STATE, not of the code. Measured by me at
-     a60bc49, one suite at a time with nothing else running and no environment variable set:
-     --kind unit 355 PASS / 0 FAIL / exit 0, and --kind integration 0 FAIL / exit 0 / 26 of 26,
-     including test-post-merge-sweep.py and test-hooks-install.py. My predecessor's eight-script
-     red does not reproduce.
+<!-- ID REUSE, RECORDED SO THE RECORD READS TRUE. answers-2026-08-25-01.md:36 ruled "delete T-11 and
+     D-12" — that was the SUITE-QUARANTINE task and its decision, and they ARE deleted. pm then
+     reused both freed ids for new work in the same unsigned plan: T-11 is now the close-task
+     deletion and D-12 its decision. Nothing is behaviourally wrong and the plan is internally
+     consistent, but any reader comparing the two documents will otherwise conclude the deletion
+     never happened. Whether to renumber is the operator's call (carried as a question).
 
-     THE DISCRIMINATOR, proven causally rather than inferred: test-validate-digest.py's [hook]
-     cases call the real check-digest hook through subprocess.run with NO env= override, so it
-     reads the LIVE .harness/.inflight-claims.json. That file is untracked and gitignored
-     (.gitignore:40) — which is exactly why the main checkout and CI were green while this
-     worktree was red. A --kind all run that was still in flight when I arrived (25 minutes old)
-     had left six harness-backend-dev claims behind. The hook's refusal fires ONCE per claim, so
-     re-running the script drained them 6, 4, 2, 1, 0 and the fourth run passed 14/14 with ZERO
-     code changes. Nothing was repaired; stale state simply ran out.
-
-     Residue: one stale harness-pm claim remains in that registry. It is harmless to the suite but
-     should be cleared with `python3 .agents/skills/harness/bin/inflight_registry.py release-all`
-     — outside my domain, so I did not run it. Full detail in notes/handoff-plan.md. -->
+     THE SUITE IS GREEN, measured by me at a60bc49, one kind at a time, nothing else running, no
+     environment variable set: --kind unit 355 PASS / 0 FAIL / exit 0; --kind integration 26 of 26,
+     zero FAIL lines, exit 0. The predecessor's eight-script red was stale runtime state:
+     test-validate-digest.py's [hook] cases read the LIVE .harness/.inflight-claims.json, which is
+     untracked and gitignored, so the main checkout and CI were green while this worktree was red.
+     Proven causally — the refusal fires ONCE per claim, so re-running drained six claims and the
+     fourth run passed 14/14 with zero code changes. Filed as #843. -->
 
 ## Open Questions
 
-- BLOCKING, OPERATOR — the five non-blocking questions carried since run 1 are still unruled: the
-  sweep's `gh-sync: FAILED` literal, the prototype gate, REQ-06 narrowed to what a Bash gate can
-  see, DEC-200 citing the struck three, and whether `close-task` survives. The operator asked to
-  rule on all five in one pass, so they gate the signature together.
-- BLOCKING, MAIN SESSION — BRIEF.md's `## Approval` is still unsigned and check-state.sh reports it
-  as a violation. plan.yaml's `approval.status` is `pending`, which is correct and untouched: the
-  task set changed this run, so it stays pending until the operator signs. No agent may write it.
-- RESOLVED this run — the red-suite premise was false. The quarantine task and its decision are
-  gone, the five tasks that depended on them no longer do, and their verifies now assert a plainly
-  green suite (`test $rc -eq 0`) instead of FAIL-set equality against a baseline file.
-- RESOLVED this run — the environment marker. D-06 now records that refusing every `gh issue close`
-  unconditionally reaches issue 842 constraint 5's OUTCOME by a simpler route than the mechanism it
-  names, and that no marker exists to forge.
-- RESOLVED this run — DEC-203's register. T-03 now carries the operator's ruling: shorter AND
-  plainer than the three entries it replaces, measured against their combined word count.
-- NOT A DEFECT — the acceptance-test correction needed no edit. BRIEF.md:108-111 and :219-222 and
-  plan.yaml's acceptance task already describe #728 as thirteen children, #818-#830, all at
-  `Review` and therefore all open, and already frame it as the open-child skip plus children-first
-  ordering.
+- BLOCKING, MAIN SESSION — BRIEF.md's `## Approval` is unsigned and is the sole remaining
+  check-state.sh violation. plan.yaml's `approval.status` is `pending` and correct: the task set
+  changed again this run. No agent may write either.
+- BLOCKING, OPERATOR — the falsified Item-closed premise survives at THREE UNPLANNED code sites,
+  re-verified by grep at 242bba0: `gh-sync.py:898`, `check-state.sh:1416`, `check-state.sh:1479`.
+  `gh-sync.py:898` cites DEC-192, which T-03 STRIKES, so after T-03 lands live code justifies itself
+  by a struck decision. Both files are already opened by T-04, T-05 and T-08, so all three have a
+  home without a new task — but no task currently claims them. Fold in, or backlog? Inherited from
+  run 03, which died without a digest and never delivered it.
+- BLOCKING, ENG — T-04 step 7c calls a NEW public `board_lifecycle.audit_findings()` in process and
+  asserts DEC-203's six read-back purposes are NOT widened. If that reading is wrong, T-03 must write
+  a SEVENTH purpose into a permanent decision. Raised by pm, unreviewed by engineering. Routed to
+  eng-lead rather than to the operator.
+- NON-BLOCKING, OPERATOR — the T-11/D-12 id reuse described above. Renumber, or accept with the
+  provenance note?
+- NON-BLOCKING, OPERATOR — `wayfind.py:318` runs `gh issue close` through a Python subprocess, so the
+  new Bash gate is blind to it exactly as it was to `close-task`. Same leak class, outside the
+  mirror. Scoped out in BRIEF.md:214. File separately?
+- RESOLVED this run — Q4 (D-11 stands), Q5 (no prototype), Q6 (audit inside `ship`, with SC-17),
+  Q7 (DEC-200 untouched, filed as #844), Q8 (`close-task` deleted as T-11, with REQ-12 and SC-16).

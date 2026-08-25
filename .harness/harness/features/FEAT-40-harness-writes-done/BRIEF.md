@@ -23,9 +23,10 @@ not the issue's open/closed field. Who created a ticket stops mattering; whether
 child starts mattering. A `gh issue close` made through the Bash tool is refused, and the refusal
 tells the operator what to do instead of typing it. That is a gate on agents, not a seal on the
 repository: a human at a terminal, or in the GitHub web UI, can still close a tracked issue. The
-acknowledged compensating control for that leak is `board_lifecycle.py audit`'s STATION finding
-class, which already detects a closed card that is not at `Done`. What that detector lacks is a
-runner, and scheduling it is priced separately by the operator.
+compensating control for that leak is `board_lifecycle.py audit`'s STATION finding class, which
+already detects a closed card that is not at `Done`. What it lacked was a runner: `ship` now runs
+it, once per feature. And no harness command in the mirror closes an issue directly any more except
+`abandon`, which reports what it would close and asks first.
 
 ## Requirements
 
@@ -45,7 +46,9 @@ runner, and scheduling it is priced separately by the operator.
   operator by intent: do nothing if the work is finished, run `gh-sync.py abandon` if it is being
   dropped, use the web UI if the issue is not tracked. This is the whole of what the gate can
   deliver — a `PreToolUse:Bash` hook sees only `tool_input.command`, so a close typed in a terminal
-  or made in the GitHub web UI is out of its reach and REQ-06 does not claim otherwise.
+  or made in the GitHub web UI is out of its reach and REQ-06 does not claim otherwise. What the
+  gate cannot reach is reported instead: once per feature, the harness reports every tracked issue
+  that is closed while its card is not at `Done`.
 - REQ-07: `gh-sync.py closes` no longer exists, and nothing composes closing keywords for a pull
   request body.
 - REQ-08: The decision record carries exactly one live rule for closing and station authority; no
@@ -56,6 +59,8 @@ runner, and scheduling it is priced separately by the operator.
   returns clean.
 - REQ-11: Every document describing who closes a ticket, and when, matches the code shipped beside
   it.
+- REQ-12: Inside the GitHub mirror, `abandon` is the only command that closes an issue directly,
+  and it reports what it would close and asks first. `gh-sync.py close-task` no longer exists.
 
 ## Success Criteria
 
@@ -129,6 +134,20 @@ runner, and scheduling it is priced separately by the operator.
   standing. A run in which cards were only held prints no `FAILED` line and the worktree is removed.
   No output of any `ship` run contains the substring `gh-sync: SKIP` unless `ship` genuinely skipped.
   verify: automated      evidence: integration
+- SC-16: `gh-sync.py close-task` exits non-zero with the unknown-subcommand message, the string
+  `close-task` survives nowhere in `gh-sync.py`, and `abandon` is the only function in that file
+  that issues a `gh issue close` or a `state=closed` PATCH against an issue. Every behaviour the
+  suite asserted through `close-task` — the parent-station derivation, the loud pair, the
+  no-board precondition — is still asserted, through `start-task`, and the assertion count for
+  those does not fall.
+  verify: automated      evidence: integration
+- SC-17: `ship` runs `board_lifecycle.py`'s audit exactly once per run, after its own station
+  writes, and prints each finding on its own line prefixed `gh-sync: audit — `. A card this same
+  run moved to `Done` produces no `STATION` finding, demonstrated failing first against an
+  implementation that audits before it writes. An audit that cannot run leaves `ship`'s exit
+  status 0 and prints one line saying so, and no audit line carries `gh-sync: SKIP` or
+  `gh-sync: FAILED`.
+  verify: automated      evidence: integration
 
 ## Verification gaps
 
@@ -173,19 +192,27 @@ a card that silently misses `Done` with its only signal one line inside the outp
   its own tests. Operator-ruled.
 - It does not add a `check-state.sh` invariant for a card that is CLOSED but not at `Done`.
   `board_lifecycle.py` already detects exactly that, as its STATION finding class
-  (`board_lifecycle.py:_audit_findings`, class 2 of six). What is missing is not a detector but a
-  runner — nothing schedules `audit`. A second detector in `check-state.sh` would be two rules for
-  one fact, and wiring `audit` into the pre-commit gate costs four network calls on every run, which
-  is a price the operator should set. Raised as a backlog item, not planned here. **This is the same
-  defect as the gate's limited reach, seen from the other side**: the Bash gate cannot see a close
-  typed in a terminal or made in the web UI, and the one thing that would catch such a close after
-  the fact is a detector nobody runs. REQ-06 is narrowed to what the gate can deliver and the Goal
-  names this detector as the acknowledged compensating control; scheduling it is the open question
-  the operator prices.
+  (`board_lifecycle.py:_audit_findings`, class 2 of six). What was missing was not a detector but a
+  runner — nothing scheduled `audit`. A second detector in `check-state.sh` would be two rules for
+  one fact, and wiring `audit` into the pre-commit gate would cost four network calls on every run.
+  **This is the same defect as the gate's limited reach, seen from the other side**: the Bash gate
+  cannot see a close typed in a terminal or made in the web UI, and the one thing that catches such
+  a close after the fact is that detector. REQ-06 stays narrowed to what the gate can deliver, and
+  the compensating control is now settled rather than open — the operator ruled it on 2026-08-25.
+  `ship` runs the audit, once per feature, and nowhere else: `ship` already reads GitHub for the
+  open-child check, so the audit's four calls are a small increment on a read already happening.
+  Running it at each station write was rejected, because the leak happens when the harness is *not*
+  writing a station — a human closing an issue in the web UI triggers nothing — so a station-change
+  trigger catches it no sooner in practice, at several times the cost. **The cost this accepts,
+  stated:** a card closed outside the harness can sit wrong for the whole build and is only caught
+  at ship. That is tolerable because ship is where the open-child decision is made — the moment the
+  wrongness would otherwise cause harm.
 - It does not repair FEAT-34's stranded cards as a goal. SC-11's acceptance run does move them, as a
   consequence of shipping FEAT-34's own recorded set — that is the same act, not extra scope.
-- It does not remove `gh-sync.py close-task`. It is already out of the ordinary flow (DEC-138 am.7,
-  D-23) but it remains a harness close that bypasses the station. Raised as an open question.
+- It does not close the same leak outside the mirror. `wayfind.py resolve` runs a `gh issue close`
+  on a wayfinding ticket (`wayfind.py:318`), and the Bash gate is blind to that subprocess exactly
+  as it was to `close-task`. Wayfinding tickets are not feature tickets and are out of this
+  feature's scope; raised as a separate question rather than silently absorbed.
 
 ## Constraints
 
