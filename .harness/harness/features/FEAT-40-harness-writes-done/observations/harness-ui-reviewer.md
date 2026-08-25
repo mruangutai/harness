@@ -1,0 +1,3 @@
+# Observations - harness-ui-reviewer
+
+- 2026-08-25: FEAT-40 Mode B recheck. My prior Mode A must_fix claimed plan.yaml had no task touching post-merge-sweep.sh, based on grepping only near T-02's probe intent. plan.yaml T-04 lists .claude/skills/harness/bin/post-merge-sweep.sh in its files: block (plan.yaml:324), has step 7b wiring the FAILED-line read (plan.yaml:430), and its verify greps for the literal in the shipped file (plan.yaml:332). The grep that produced the false must_fix covered one task's narrative mention, not a files:-block sweep across all tasks. Lesson: a claim that no task touches file X must be a grep of every task's files: block in plan.yaml, not a read of the task where the file first comes up in prose.

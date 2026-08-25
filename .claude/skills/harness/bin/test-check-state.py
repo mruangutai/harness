@@ -32,7 +32,6 @@ HARNESS_JSON_SYNC_OFF = """{
 def feature_yaml(parent_line):
     return f"""github:
 {parent_line}
-  parent_origin: none
   issues:
     T-01: 41
 """
@@ -144,7 +143,6 @@ runs:
     verdict: FAIL
 github:
   parent: 40
-  parent_origin: none
   issues:
     T-01: 41
 """
@@ -2739,6 +2737,140 @@ def case_inv30_silent_on_nonterminal():
         return ok
 
 
+
+# ---------------------------------------------------------------------------------------------
+# INV-31 (FEAT-40 T-08): this clone's merge hook is not installed.
+#
+# EVERY FIXTURE IS A REAL GIT REPOSITORY, because the invariant reads `git config --get
+# core.hooksPath` in the checkout it is invoked in. A plain temp directory would answer "unset"
+# for the wrong reason and the silent case could never be built at all.
+# ---------------------------------------------------------------------------------------------
+
+_HOOKS_REL_T = os.path.join(".claude", "skills", "harness", "hooks")
+
+
+def _inv31_fixture(tmp, hooks_path=None, post_merge="executable"):
+    """A git repo carrying a minimal .harness, with core.hooksPath and the hook file under the
+    caller's control.
+
+    `hooks_path` None leaves the config unset. `post_merge` is "executable", "plain" (present
+    but mode 0644) or "absent"."""
+    subprocess.run(["git", "init", "-q"], cwd=tmp, capture_output=True)
+    h = os.path.join(tmp, ".harness")
+    os.makedirs(os.path.join(h, "harness", "features"), exist_ok=True)
+    with open(os.path.join(h, "harness.json"), "w") as f:
+        f.write('{"github": {"sync": false}}\n')
+    hooks_dir = os.path.join(tmp, _HOOKS_REL_T)
+    os.makedirs(hooks_dir, exist_ok=True)
+    if post_merge != "absent":
+        pm = os.path.join(hooks_dir, "post-merge")
+        with open(pm, "w") as f:
+            f.write("#!/usr/bin/env bash\nexit 0\n")
+        os.chmod(pm, 0o755 if post_merge == "executable" else 0o644)
+    if hooks_path is not None:
+        subprocess.run(["git", "config", "core.hooksPath", hooks_path],
+                       cwd=tmp, capture_output=True)
+    return h
+
+
+def _inv31_lines(out):
+    return [l for l in out.splitlines() if "INV-31" in l]
+
+
+def case_inv31_unset():
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=None)
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = (len(lines) == 1
+              and lines[0].strip().startswith("VIOLATION")
+              and "unset" in lines[0]
+              and _HOOKS_REL_T in lines[0]
+              and "git config core.hooksPath" in lines[0])
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 fires at VIOLATION when core.hooksPath is "
+              f"unset, saying so and carrying the fix command"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
+def case_inv31_wrong_value():
+    """THE VALUE FOUND IS REPORTED. An operator who cannot see what it currently reads has to
+    go and run the command themselves before they can act on the line."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=".git/hooks")
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = (len(lines) == 1
+              and lines[0].strip().startswith("VIOLATION")
+              and ".git/hooks" in lines[0]
+              and "no harness hook runs" in lines[0])
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 fires when core.hooksPath names another "
+              f"directory, quoting the value found"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
+def case_inv31_absolute_same_dir_passes():
+    """AN ABSOLUTE VALUE NAMING THE SAME DIRECTORY IS FINE. The comparison resolves both sides
+    to real paths on purpose; a string comparison would call a working clone broken."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=os.path.join(tmp, _HOOKS_REL_T))
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = not lines
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 is silent when an ABSOLUTE core.hooksPath "
+              f"names the same directory"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
+def case_inv31_post_merge_absent():
+    """A SECOND FINDING WITH A DIFFERENT SUBJECT. The first is a misconfigured clone; this is a
+    damaged checkout. Different fixes, so they must never collapse into one message."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=_HOOKS_REL_T, post_merge="absent")
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = (len(lines) == 1
+              and lines[0].strip().startswith("VIOLATION")
+              and "post-merge is missing" in lines[0]
+              and "restore it" in lines[0]
+              and "core.hooksPath" not in lines[0])
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 reports a MISSING post-merge as its own "
+              f"finding, with its own fix, never as a tail on the config one"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
+def case_inv31_post_merge_not_executable():
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=_HOOKS_REL_T, post_merge="plain")
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = (len(lines) == 1
+              and lines[0].strip().startswith("VIOLATION")
+              and "not executable" in lines[0]
+              and "644" in lines[0]
+              and "chmod +x" in lines[0])
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 reports a NON-EXECUTABLE post-merge, naming "
+              f"the mode it found and the fix"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
+def case_inv31_silent_when_installed():
+    """THE DISCRIMINATING CASE. An invariant that fires on everything is not a check."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _inv31_fixture(tmp, hooks_path=_HOOKS_REL_T, post_merge="executable")
+        _code, out = run(tmp)
+        lines = _inv31_lines(out)
+        ok = not lines
+        print(f"{'ok' if ok else 'FAIL'} - INV-31 is SILENT when the hook is installed and "
+              f"executable"
+              + ("" if ok else f"\n      {lines}"))
+        return ok
+
+
 def main():
     ok_a, code_a = case_a()
     ok_b, code_b = case_b()
@@ -2807,6 +2939,15 @@ def main():
         case_t10_red(),
     ])
 
+    ok_i31 = all([
+        case_inv31_unset(),
+        case_inv31_wrong_value(),
+        case_inv31_absolute_same_dir_passes(),
+        case_inv31_post_merge_absent(),
+        case_inv31_post_merge_not_executable(),
+        case_inv31_silent_when_installed(),
+    ])
+
     ok_exit_unchanged = code_a == code_b
     print(
         f"{'ok' if ok_exit_unchanged else 'FAIL'} - exit code unchanged by INV-21 "
@@ -2816,7 +2957,7 @@ def main():
     if (ok_a and ok_b and ok_c and ok_d and ok_e and ok_f and ok_g
             and ok_h and ok_i and ok_j and ok_k and ok_l and ok_m and ok_m2 and ok_m3 and ok_n and ok_o and ok_p and ok_q and ok_r and ok_s and ok_t and ok_u and ok_v and ok_w and ok_x and ok_t14 and ok_t10
             and ok_i28a and ok_i28b and ok_i28c and ok_i28d and ok_i28e and ok_i28f
-            and ok_i29 and ok_i30
+            and ok_i29 and ok_i30 and ok_i31
             and ok_exit_unchanged):
         sys.exit(0)
     sys.exit(1)

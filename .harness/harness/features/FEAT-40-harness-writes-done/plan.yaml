@@ -1,0 +1,1291 @@
+schema: plan/1
+feature: FEAT-40-harness-writes-done
+
+source_issues: [842]
+
+approval:
+  # Written by the MAIN SESSION only, because it is the only tier with a user channel
+  # (DEC-120). Neither pm nor the orchestrator writes it, and check-domain.sh denies an
+  # agent's write of this mapping. Any change to the task set resets this to pending.
+  status: approved               # pending | approved
+
+lanes:
+  resolved_at: e69c2ae29897e66e0435fe955ae745aa4248bdb6
+  rows:
+    - surface: .claude/skills/harness/bin/gh-sync.py
+      lane: main-session-direct
+      reason: operator route ruling on issue 842; this file is the close path being replaced and its own ship step runs at this feature's merge
+    - surface: .claude/skills/harness/bin/gh_issues.py
+      lane: main-session-direct
+      reason: same act as gh-sync.py, one commit, operator route ruling on issue 842
+    - surface: .claude/skills/harness/bin/check-state.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out, the state checker is a validator the harness must not change through itself
+    - surface: .claude/skills/harness/bin/gh-close-gate.sh
+      lane: main-session-direct
+      reason: DEC-174 carve-out, a registered PreToolUse Bash gate script
+    - surface: .claude/settings.json
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY, and it is the hook registry itself
+    - surface: .harness/harness.json
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY for the gate config surface
+    - surface: .claude/skills/harness/references/github-mirror.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY
+    - surface: .claude/commands/harness.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY
+    - surface: .claude/skills/harness-init/SKILL.md
+      lane: main-session-direct
+      reason: check-domain.sh --resolve returns NOBODY
+    - surface: .harness/harness/docs/DECISIONS.md
+      lane: main-session-direct
+      reason: resolves to harness-documentor, but the entry is the operator's own ruling whose prose register is unsettled (Q1)
+
+decisions:
+  - id: D-01
+    choice: ship writes the done station on every recorded card and issues no close of its own; GitHub's Auto-close issue workflow closes the issue behind it
+    because: reversing the direction makes the station the single authority on open, which is the whole point of the change
+    dec: none
+  - id: D-02
+    choice: a card's children are read back from the GitHub sub_issues endpoint per card, never derived from the harness's own recorded issue map
+    because: origin no longer gates the close, so the child check must see children the harness never created or the safety valve it replaces is toothless
+    dec: none
+  - id: D-03
+    choice: a child counts as OPEN when its card is not at the done station, and a child that is not on the board at all also counts as open
+    because: an unstationed child is unknown rather than finished, and the conservative reading is the one that cannot close someone else's live work
+    dec: none
+  - id: D-04
+    choice: ship writes every child card before it evaluates any parent, in one pass over children then one pass over parents
+    because: FEAT-34's parent 728 has 13 children whose cards read Review, so a single-pass order would skip it and the acceptance test would fail for the wrong reason
+    dec: none
+  - id: D-05
+    choice: the terminal done write keeps DEC-146's best-effort per-card posture and exit 0, and ship prints two distinct summary literals - gh-sync HELD for a designed skip and gh-sync FAILED for a write that failed - of which post-merge-sweep.sh reads FAILED as a reason to decline the worktree removal
+    because: no transaction spans N project_field_set calls and git ignores a post-merge hook's exit status, so the reader must change rather than the writer; the sweep already treats a literal's absence as its positive evidence and never the exit code, and a standing worktree is the evidence a human trips over
+    dec: DEC-146
+  - id: D-06
+    choice: the Bash gate refuses every gh issue close unconditionally, with no environment marker
+    because: a PreToolUse hook is handed only tool_input.command and gh-sync.py reaches gh through subprocess, so abandon's close never traverses the tool and needs no exemption; this reaches the OUTCOME issue 842 constraint 5 mandates by a simpler route than the mechanism that constraint names, and no marker exists for anyone to forge - the operator amended constraint 5 to this effect on 2026-08-25
+    dec: none
+  - id: D-07
+    choice: the new entry restates DEC-192's one-status-field rule and DEC-186's read-back bound, widened to seven purposes and to a wider surface on the fourth, rather than only the close rule
+    because: striking DEC-192 without restating it would delete the status contract the whole board depends on
+    dec: none
+  - id: D-08
+    choice: github.parent_origin is removed from feature-schema.json and stripped from all 24 feature.json files carrying it, in one task
+    because: the github block is additionalProperties false, so removing the property from the schema alone invalidates every existing feature
+    dec: DEC-191
+  - id: D-09
+    choice: factory_decompose.py's own factory block parent_origin is left in place
+    because: it is a different ledger for served repos and no close branches on it; conflating the two would widen this change into the fleet control plane
+    dec: none
+  - id: D-10
+    choice: the open-child test applies to source_issues and the parent only; a task sub-issue's card is written to done with no child check of its own
+    because: cmd_open is the only writer of the recorded issue map and creates each task issue flat, attaching it to the parent and never to another task issue, so the recursion has depth 1 by construction; checking each would add one sub_issues read per task sub-issue - thirteen on FEAT-34's acceptance run - to prove a set that is empty by construction
+    dec: none
+  - id: D-11
+    choice: an incomplete terminal batch emits the new literal gh-sync FAILED, never gh-sync SKIP, and post-merge-sweep.sh gains FAILED as a second condition of its existing positive-signal gate
+    because: reusing SKIP would preserve the standing worktree but overload a token the module reserves for an environmental no-go where nothing was written, so a partial write would report as no write at all; a second literal preserves the same worktree evidence while keeping the prefix taxonomy one meaning per token
+    dec: none
+
+  - id: D-12
+    choice: gh-sync.py close-task is deleted rather than left standing, and abandon becomes the only command in the mirror that closes an issue directly
+    because: the new Bash gate refuses a typed gh issue close but is structurally blind to a Python subprocess (gh-sync.py:147), so it would never have stopped close-task; keeping the subcommand leaves a harness-blessed route to the exact state this feature exists to prevent, an issue CLOSED with its card not at the done station. Operator ruling on Q8, 2026-08-25. The cost, accepted, is that the deliberate single-issue close is gone with no replacement, and abandon, which reports and asks first, is the one narrow exception
+    dec: DEC-203
+  - id: D-13
+    choice: board_lifecycle.py's audit runs once per feature, inside ship, and nowhere else - not per commit, not per station write, and not in check-state.sh
+    because: ship already reads GitHub for the open-child check, so the audit's four calls (board_lifecycle.py:831) are a small increment on a read already happening; a station-change trigger was rejected because the leak happens when the harness is NOT writing a station, so it would catch nothing sooner at several times the cost. Operator ruling on Q6, 2026-08-25. The cost, accepted, is that a card closed outside the harness can sit wrong for the whole build and is only caught at ship, which is where the open-child decision is made
+    dec: DEC-203
+
+tasks:
+  - id: T-01
+    title: Re-measure that moving a card to the done station closes its issue
+    traces: [REQ-01, REQ-02]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: a live write to the operator's own board, creating and closing a throwaway issue; no member's domain grants a live board write and the deliverable is a measurement, not code
+    depends_on: []
+    status: done
+    files:
+      - .harness/harness/features/FEAT-40-harness-writes-done/notes/probe-done-closes.md
+    verify: |
+      out=$(python3 .claude/skills/harness/bin/board_lifecycle.py audit --repo mruangutai/harness 2>&1); rc=$?
+      test $rc -ne 4
+      test -n "$out"
+      ! printf '%s' "$out" | grep -q "WORKFLOW: 'Auto-close issue'"
+      grep -Eq '^probe_issue: #[0-9]+ moved_to_done_at=[^ ]+ closed_at=[^ ]+$' .harness/harness/features/FEAT-40-harness-writes-done/notes/probe-done-closes.md
+    intent: |
+      The entire feature rests on one direction that was last measured in probe #807 and was NOT
+      re-verified during the 2026-08-25 grilling: that moving a card to the Done station causes
+      GitHub to close the issue. Every close path in the harness is deleted by later tasks and a
+      Bash gate removes the manual fallback, so if this direction does not hold, tickets stop
+      closing and nothing reports it. Measure it before anything else changes.
+
+      Do this:
+
+      1. Run: python3 .claude/skills/harness/bin/board_lifecycle.py audit --repo mruangutai/harness
+         Record whether it emits a WORKFLOW finding naming 'Auto-close issue'. A MISSING or
+         disabled workflow is a hard stop: report it and do not proceed to step 2, because only a
+         click in the project web UI can enable it.
+      2. Create a throwaway issue in mruangutai/harness titled
+         "FEAT-40 probe: does a Done station write close the issue" with the label harness and a
+         one-line body saying it is a throwaway probe for FEAT-40.
+      3. Add it to the harness board and set its Status field to the value of
+         .harness/harness.json github.board.stations.done, using
+         python3 .claude/skills/harness/bin/board-station.py, not the web UI. Record the UTC
+         timestamp of that write.
+      4. Poll the issue's state with gh issue view for up to 60 seconds. Record the UTC timestamp
+         at which it first reads CLOSED, or record that it did not close.
+      5. Write the note at the path in files:. It must contain, as its first content line, exactly
+         one line of the form:
+           probe_issue: #<number> moved_to_done_at=<iso8601> closed_at=<iso8601>
+         If the issue did not close, write closed_at=NEVER and stop the feature here: report
+         BLOCKED to the operator, because the whole design has no close path.
+      6. Below that line, record the audit output for the three named workflows verbatim, and one
+         paragraph naming what was measured, on which board number, and by which command.
+      7. Leave the throwaway issue closed. Do not delete it; it is the evidence.
+
+      Do not re-derive anything already recorded in
+      .harness/notes/grilling-board-done-and-parent-close-2026-08-25.md. This task measures exactly
+      one thing that note explicitly flags as unverified.
+
+      WHY THE VERIFY CAPTURES BEFORE IT GREPS, and do not simplify it back: cmd_audit exits 4 on a
+      factory_gh.GhError — network down, unauthenticated, project unresolvable
+      (board_lifecycle.py:906-914). A pipe into grep takes grep's status, so on exit 4 the string
+      is absent, grep exits 1, and the clause passes while nothing was measured. That clause
+      authorises every later deletion in this feature, so it asserts the run completed (rc != 4,
+      output non-empty) before it asserts the string is absent. Do not demand exit 0: audit exits 1
+      on any finding of any class.
+
+  - id: T-02
+    title: Install core.hooksPath on this clone and prove the post-merge sweep fires at a real merge
+    traces: [REQ-02, REQ-09]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: a git config on the operator's own clone plus a scratch clone and a real merge; no agent domain covers machine-local git configuration and no file in the repository changes
+    depends_on: []
+    status: done
+    files:
+      - .harness/harness/features/FEAT-40-harness-writes-done/notes/probe-sweep-fires.md
+    verify: |
+      test "$(git -C /Users/molchairuangutai/GitHub/harness config --get core.hooksPath)" = ".claude/skills/harness/hooks"
+      grep -Eq '^sweep_fired: yes scratch_clone=[^ ]+ merge_commit=[0-9a-f]{7,40}$' .harness/harness/features/FEAT-40-harness-writes-done/notes/probe-sweep-fires.md
+    intent: |
+      ship becomes the only thing that closes tickets and the post-merge sweep is the only thing
+      that runs ship. Measured at cc84b29, that sweep has never fired on this clone: core.hooksPath
+      reads /Users/molchairuangutai/GitHub/harness/.git/hooks, which holds only samples.
+
+      Two parts, both required.
+
+      PART A, install it. In the OWNER clone /Users/molchairuangutai/GitHub/harness, not in this
+      worktree, follow the three steps in .claude/skills/harness-init/SKILL.md exactly:
+        1. git -C /Users/molchairuangutai/GitHub/harness config --get core.hooksPath
+           Record the value you found.
+        2. It currently reads an absolute path ending in .git/hooks. That directory holds only
+           git's own .sample files, so nothing the operator wrote is being bypassed. Confirm that
+           by listing it and recording the listing. If it holds any executable non-sample hook,
+           STOP and ask the operator before writing, per step 3 of that skill.
+        3. git -C /Users/molchairuangutai/GitHub/harness config core.hooksPath .claude/skills/harness/hooks
+           The value is RELATIVE, deliberately: an absolute one is what produced the broken value.
+           Re-read it and confirm it prints .claude/skills/harness/hooks.
+
+      PART B, prove a real merge fires it. A configuration value is not proof of execution.
+      Do NOT test this by merging anything in the owner clone or in any feature worktree.
+        1. git clone --no-hardlinks /Users/molchairuangutai/GitHub/harness <scratch>, into the
+           session scratchpad directory.
+        2. In the scratch clone: git config core.hooksPath .claude/skills/harness/hooks
+        3. Create a branch, add one trivial file, commit, return to the default branch, and
+           git merge --no-ff that branch. A merge that creates a commit is what fires post-merge;
+           an "Already up to date" merge fires nothing, so assert a merge commit was created.
+        4. Capture the merge's combined stdout and stderr. The post-merge shim execs
+           post-merge-sweep.sh, which prints its own lines prefixed post-merge-sweep:. Assert at
+           least one such line is present. If instead you see the shim's
+           "post-merge: ... is missing or not executable" line, that is also proof the hook
+           resolved; record which of the two you saw.
+        5. Delete the scratch clone.
+
+      Write the note at the path in files:. Its first content line must be exactly one line of the
+      form:
+        sweep_fired: yes scratch_clone=<abs path used> merge_commit=<sha>
+      followed by the captured hook output verbatim, the before and after values of
+      core.hooksPath in the owner clone, and the listing of the old hooks directory.
+      If the hook did not run, write sweep_fired: no and report BLOCKED.
+
+  - id: T-03
+    title: Write the replacement decision, strike DEC-186, DEC-192 and DEC-196, and strike DEC-138 amendment 7's parent table
+    traces: [REQ-01, REQ-04, REQ-08]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: the entry is the operator's own ruling on a permanent record, and the operator settled its prose register personally on 2026-08-25; harness-documentor is granted the path but the wording of a signed decision stays with the tier that owns it
+    depends_on: []
+    status: done
+    files:
+      - .harness/harness/docs/DECISIONS.md
+      - .harness/harness/docs/DECISIONS-INDEX.md
+    verify: |
+      python3 .claude/skills/harness/bin/gen-decisions-index.py --stdout | diff - .harness/harness/docs/DECISIONS-INDEX.md
+      python3 .claude/skills/harness/bin/test-gen-decisions-index.py
+    intent: |
+      THE PROSE REGISTER IS SETTLED (operator, 2026-08-25): DEC-203 is SHORTER AND PLAINER than the
+      three entries it replaces. Cut the length and the density together, not the word count alone.
+      The finished entry must be materially shorter than DEC-186, DEC-192 and DEC-196 taken
+      together, and written in ordinary words - short sentences, plain nouns, no stacked
+      subordinate clauses. Nothing essential in the nine items below is dropped; the dense,
+      clause-heavy register of the current entries is the thing being removed. Before writing,
+      count the words of the three entries you are replacing; check the finished DEC-203 comes in
+      materially under that total.
+
+      Append ONE new entry, DEC-203, at the end of DECISIONS.md. It replaces DEC-186, DEC-192 and
+      DEC-196, which are struck under DEC-188 in the same act. It must state all of the following,
+      because striking three entries and restating only one of their rules would delete two live
+      contracts:
+
+      1. THE OPEN RULE. A tracked ticket is open while its card is not at the done station. The
+         station is the authority; the issue's own open or closed field is a consequence, not the
+         record.
+      2. WHO WRITES DONE. The harness writes it, at gh-sync.py ship. GitHub's Auto-close issue
+         workflow then closes the issue. This reverses DEC-196's "the harness writes this column
+         never" and DEC-138 amendment 7's station table row for Done.
+      3. WHICH CARDS SHIP MOVES. Every card the feature records: each task sub-issue, each entry of
+         source_issues, and the parent.
+      4. THE PARENT RULE. A card is not moved to done while its ticket has an open child. Origin
+         stops mattering entirely: who created a ticket is no longer part of the decision. Say
+         plainly that this replaces DEC-196's created-versus-adopted gate and DEC-138 amendment 7's
+         ship and abandon parent table, and say why the child check is the better guard: it
+         protects someone else's live epic for a reason that is true of the ticket rather than true
+         of its history.
+      5. THE READ-BACK BOUND, carried forward from DEC-186, widened by exactly two purposes and by
+         one surface on an existing purpose. The purposes are now SEVEN: whether an item is claimed;
+         which station it is at; whether a blocker issue is finished; which of a board's native
+         workflows are enabled, bounded to /harness-init and to gh-sync.py ship, which calls the
+         audit; which merged pull request a recorded branch resolves to, bounded to record-pr and
+         ship; and two that are new: which children a card's ticket has, bounded to gh-sync.py
+         ship; and which closed tickets a repository holds, with their close reasons and labels,
+         and which station options its board declares — the detection reads of board_lifecycle.py's
+         audit — bounded to /harness-init and to gh-sync.py ship, which calls the audit. Say
+         plainly that the fourth purpose's surface is WIDER than DEC-186 amendment 2 left it: that
+         amendment bound the workflow read to /harness-init with the words that no other surface
+         makes this read, and scheduling the audit inside ship falsifies it unless this entry
+         widens it here. The precedent for widening by caller is DEC-186 amendment 3, which bounds
+         a purpose to gh-sync.py record-pr and to gh-sync.py ship, which calls it. State that a
+         read-back value still never enters BRIEF.md, plan.yaml or any approval block. Restate
+         DEC-186 amendment 1's one-board-per-repository framing.
+      6. THE STATUS FIELD, carried forward from DEC-192 unchanged in substance: one lifecycle field
+         named status, six case-sensitive values that are the board's own column names, Backlog,
+         Plan, Ready, Building, Review, Done. No alias, no translation table, and blocked stays
+         deliberately absent. Carry forward the two named collapses and their costs.
+      7. WHAT DEC-168 KEEPS AND LOSES. DEC-168's three measured probe results stand: closure does
+         not cascade in either direction. Its operational conclusion, that the parent is closed
+         deliberately at ship acceptance by a close, is superseded by this entry.
+      8. THE GUARDRAIL, and the ONE narrow exception. A PreToolUse Bash gate refuses a
+         hand-typed gh issue close and names the sanctioned command. The gate is structurally
+         blind to a Python subprocess, so gh-sync.py close-task is DELETED in this same feature
+         rather than left standing as a harness-blessed route around the rule this entry installs.
+         After that, abandon is the ONLY harness command in the mirror that closes an issue
+         directly, and it reports what it would close and asks first. The gate still cannot see a
+         close typed in a terminal or made in the web UI, so board_lifecycle.py's audit runs once
+         per feature, inside ship, as the compensating control. State the cost as a cost: a card
+         closed outside the harness can sit wrong for the whole build and is only caught at ship.
+      9. THE ACCEPTED COST, stated as cost: the harness now depends on a board automation only a
+         click in the project web UI can enable, and board_lifecycle.py audit's WORKFLOW finding
+         class is the only reader of that dependency.
+
+      Then, in the same edit:
+
+      - Add a strike record to DEC-186, DEC-192 and DEC-196 in the form DEC-188 already uses in
+        this file (see DEC-90, DEC-103 and DEC-104 for the shape). A struck entry keeps its body
+        so citations still resolve; the strike record names DEC-203 as what replaces it.
+      - Add DEC-138 amendment 8, striking amendment 7's ship-and-abandon parent table and its
+        surrounding origin prose, and striking amendment 7's D-23 reasoning that a closed
+        sub-issue cannot sit at Review. Record the measurement that falsifies it: FEAT-34's 13
+        sub-issues, #818 through #830, are closed and at Review at cc84b29.
+      - Add DEC-138 amendment 8's replacement station-writer row for Done: the harness writes it,
+        at ship.
+
+      Then regenerate the index: python3 .claude/skills/harness/bin/gen-decisions-index.py
+      The hand-written summary right of ' :: ' on DEC-203's row must be at most 30 words;
+      test-gen-decisions-index.py enforces that cap and a recent commit had to fix a 46-word row.
+
+  - id: T-04
+    title: Make ship write the done station on every recorded card, children first, skipping any card with an open child
+    traces: [REQ-01, REQ-02, REQ-03, REQ-06, REQ-10, REQ-11]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: operator route ruling on issue 842; this is the close path itself and the same file's ship step is what runs at this feature's own merge, so a dispatched member would be building under a half-changed mirror
+    depends_on: [T-01, T-03]
+    status: done
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/gh_issues.py
+      - .claude/skills/harness/bin/board_lifecycle.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+      - .claude/skills/harness/bin/test-board-lifecycle.py
+      - .claude/skills/harness/bin/post-merge-sweep.sh
+      - .claude/skills/harness/bin/test-post-merge-sweep.py
+    verify: |
+      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      test $rc -eq 0
+      printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
+      printf '%s\n' "$out" | grep -qx 'PASS test-post-merge-sweep.py'
+      printf '%s\n' "$out" | grep -qx 'PASS test-board-lifecycle.py'
+      grep -q 'gh-sync: FAILED' .claude/skills/harness/bin/post-merge-sweep.sh
+      grep -q 'def audit_findings' .claude/skills/harness/bin/board_lifecycle.py
+    intent: |
+      Rewrite cmd_ship in .claude/skills/harness/bin/gh-sync.py so the harness lands cards at the
+      board's done station instead of closing issues. Write the failing tests first and show them
+      red before the implementation.
+
+      NEW ARGV BUILDER in gh_issues.py. Add:
+        def sub_issues_args(repo, num):
+            return ["api", f"repos/{repo}/issues/{num}/sub_issues"]
+      Keep the module's existing rule: it builds argv, it never runs anything. gh-sync.py keeps its
+      own runner. Do NOT import parent_args or blocked_by_args into gh-sync.py; their absence is a
+      standing regression guard for the write-only rule (DEC-138 amendment 7).
+
+      NEW BEHAVIOUR of cmd_ship(feat_dir, repo, board, body_file=None, pr_arg=None). Note that it
+      now takes board; update main()'s dispatch accordingly.
+
+      Step 1. Load the recorded block. As today, skip with the existing message when no milestone is
+      recorded. Post the signed --body-file comment on the parent, unconditionally, exactly as
+      today.
+
+      Step 2. Build the card set, in this order and recorded as three named groups:
+        children  = sorted(rec["issues"].values())          the task sub-issues
+        sources   = list(rec["source_issues"])              in recorded order
+        parents   = [rec["parent"]] if rec["parent"] is not None else []
+
+      Step 3. ONE call to gh_board.board_stations(board, repo) to get every card's current station
+      as {issue number: station or None}. This is the cost-1 targeted read; never
+      factory_gh.project_items.
+
+      Step 4. Write the done station for every number in `children`, one gh_board.set_station call
+      each, printing one line per card in the existing format:
+        gh-sync: issue #<n> -> <done station>
+      A BoardError prints one stderr line and the loop CONTINUES to the remaining cards, exactly as
+      cmd_status already does. Record which numbers failed.
+
+      NO CHILD CHECK RUNS ON THIS GROUP, and that is decided, not omitted (D-10). The open-child
+      test applies to `sources` and to the parent only. A task sub-issue is a harness-created leaf:
+      cmd_open is the only writer of rec["issues"], and it creates each one flat with no sub-issue
+      of its own, so the recursion has depth 1 by construction. Checking each would add one
+      sub_issues read per task sub-issue — thirteen extra network calls on FEAT-34's acceptance run
+      — to prove a set that is empty by construction. Write this reason into cmd_ship's own
+      docstring, because a later reader who finds REQ-03 stated unconditionally must be able to see
+      that the exemption was chosen and why.
+
+      Step 5. Only after step 4, evaluate `sources` and then `parents`. For each such number:
+        a. Read its children: run gh_issues.sub_issues_args(repo, num) through the module's own
+           gh() runner with capture, parse the JSON list, and take each element's "number".
+           A failure of this read means the child set is UNKNOWN: print one stderr line naming the
+           issue and the error, do NOT write its station, and continue. Unknown is never treated
+           as childless.
+        b. A child counts as OPEN when its card is not at the done station. Resolve each child's
+           station from the map built in step 3. THE MAP IS REFRESHED IN PLACE AFTER EVERY
+           SUCCESSFUL set_station ANYWHERE IN THIS FUNCTION, not only after step 4's writes: a
+           source_issues entry can itself be a child of the parent, or of a source evaluated later
+           in the same pass, and a map refreshed only for step 4 would still read it as open and
+           skip a card that should have landed. Make the refresh a property of set_station's caller
+           — one helper that writes the station and, on success, updates the map — so no future
+           write site can forget it. Use gh_board.read_station, and treat both of its failure
+           reasons — not on the board, and no station set — as OPEN.
+        c. If any child is open, do NOT write the card's station, and print exactly one line, whose
+           literal shape is pinned by DESIGN.md Contract 2:
+             gh-sync: HELD — #<n> waiting on open child #<first open child number> (not at Done)
+           naming ONE child, the lowest-numbered open one. When that child is absent from the board
+           entirely, the parenthetical reads (not on the board) instead, so the operator can tell an
+           unstationed child from a stationed one without a second command.
+        d. Otherwise write the done station for that card and print the usual line.
+
+      Step 6. cmd_ship issues NO gh issue close and NO state=closed PATCH on any issue. Delete the
+      parent close entirely. The milestone PATCH to state=closed STAYS: a milestone is not a card
+      and has no station.
+
+      Step 7. After every card write, print the batch summary. It is TWO LINES, never one merged
+      list, and their literal shapes are pinned by DESIGN.md Contract 2:
+        gh-sync: HELD <k> of <n> — #<n> (child #<c>), #<n> (child #<c>)
+        gh-sync: FAILED <k> of <n> — #<n> did not reach Done and nothing downstream reports it
+      Rules, each of which is an assertion in the tests:
+        - the HELD line is printed whenever anything was held, whether or not anything failed;
+        - the FAILED line is printed ONLY when a write actually failed. Its PRESENCE is the signal,
+          so a machine greps one literal rather than parsing a count;
+        - FAILED never covers a held card. Held is correct behaviour; a word shared with failure
+          teaches the operator to ignore both;
+        - FAILED is a new token, not a reuse of the per-card "gh-sync: ERROR - " line, which already
+          fires once per failed write on stderr and is unfindable in the merge output it is buried
+          in. The summary names WHICH cards; the per-card ERROR lines above it say why;
+        - when neither class occurred, print the single line, unchanged:
+            gh-sync: every recorded card is at <done>
+      NO NEW LINE THIS TASK ADDS MAY CONTAIN THE SUBSTRING "gh-sync: SKIP", and this is a hard
+      constraint, not a style note: post-merge-sweep.sh:192 greps ship's combined stdout+stderr for
+      exactly that substring and declines to remove the worktree on a match. A new line carrying it
+      would silently change worktree behaviour on runs that are entirely healthy. Contract 1 of
+      DESIGN.md also reserves SKIP for an environmental no-go where nothing was written, which a
+      half-written batch is not.
+
+      The exit status stays 0 and the failure posture stays best-effort per card (DEC-146): a mirror
+      never gates, no transaction exists across N project_field_set calls, and git ignores a
+      post-merge hook's exit status anyway.
+
+      Step 7b. TEACH THE SWEEP TO READ THE FAILED LINE, in .claude/skills/harness/bin/post-merge-sweep.sh.
+      That script already refuses to trust ship's exit code: it greps the combined output for
+      "gh-sync: SKIP" and declines the removal on a match, because the standing worktree is "the
+      only remaining evidence" the status was never recorded (its own comment, :180-195). Add the
+      literal "gh-sync: FAILED" to that same positive-signal gate, as a second condition beside the
+      SKIP one, with its own printed reason naming the failed cards. Do not add HELD: a held parent
+      is a designed outcome of a healthy run, and keeping a worktree for every one of them would
+      accumulate worktrees during normal operation. Do not change ship's exit status, and do not
+      make the sweep exit non-zero — only the removal is declined.
+        Cost of doing this, stated: a partially failed ship leaves a worktree standing and the
+        operator must clear it by hand — cheap, visible, reversible.
+        Cost of not doing it: a card silently misses Done, its ticket silently stays open, and the
+        only signal is one line in the output of a git merge — the exact defect class this feature
+        exists to end, reintroduced at the new terminal write.
+      Add the matching assertions to test-post-merge-sweep.py: a ship whose captured output carries
+      "gh-sync: FAILED" leaves the worktree in place and prints a reason naming it; a ship carrying
+      only "gh-sync: HELD" still removes it; the existing SKIP behaviour is unchanged.
+
+      Step 7c. SCHEDULE THE BOARD AUDIT, once per feature, here and nowhere else (D-13). After
+      every station write of this run, and after the summary lines of step 7, ship runs
+      board_lifecycle.py's audit and prints what it found. This is REQ-06's compensating control:
+      the Bash gate cannot see a close typed in a terminal or made in the GitHub web UI, and the
+      audit's STATION finding class is the only detector of the state such a close leaves behind,
+      an issue CLOSED with its card not at the done station.
+      HOW. Add one public function to .claude/skills/harness/bin/board_lifecycle.py:
+        def audit_findings(repo_arg=None)
+      It resolves root and board exactly as cmd_audit does, returns _audit_findings' list, prints
+      nothing, exits never, and lets factory_gh.GhError propagate. Return an empty list when the
+      board is None, matching cmd_audit's no-board-declared branch.
+      ACHIEVING THAT CONTRACT MEANS MOVING PRINTS AND AN EXIT UP INTO cmd_audit, NOT WRAPPING THE
+      CODE AS IT STANDS. Measured at 86ea3ad, the reused code breaks all three clauses:
+        - _audit_findings PRINTS twice — board_lifecycle.py:866, _out(_WORKFLOW_HEADER), which
+          fires on EVERY run, and :887, the STATUS self-skip line. Both must move up into
+          cmd_audit, which means _audit_findings must hand cmd_audit enough to print them where it
+          prints them today: the workflow header before the WORKFLOW findings, the STATUS skip line
+          after them. Leaving either print where it is fails the contract;
+        - cmd_audit's no-board-declared branch PRINTS at :898. audit_findings returns [] there and
+          that print stays in cmd_audit;
+        - cmd_audit EXITS at :901-904, factory_cli.refuse when github.repo is not declared.
+          audit_findings must NOT reuse that branch — it returns or raises, never exits — and
+          cmd_audit keeps the refuse unchanged.
+      Rewrite cmd_audit to call audit_findings, so one code path performs the audit while every
+      print and every exit stays inside the subcommand. cmd_audit's own output must be unchanged
+      for the same inputs; test-board-lifecycle.py's existing audit tests are that guard and must
+      not be relaxed to make the move pass. Then, in
+      gh-sync.py, import board_lifecycle and call audit_findings(repo) as the last act of cmd_ship
+      before the status record of step 8. Print one line per finding, each prefixed with the
+      literal "gh-sync: audit — " followed by the finding's own message unchanged, then one
+      summary line "gh-sync: audit — N finding(s)".
+      SHIP NEVER GATES ON THE AUDIT. A factory_gh.GhError means the audit COULD NOT RUN: print one
+      stderr line saying exactly that and continue. Ship's exit status stays 0 whatever the audit
+      reports, and no audit line may carry the substring "gh-sync: SKIP" or the substring
+      "gh-sync: FAILED" — post-merge-sweep.sh greps both, and an audit finding is not a failed
+      write.
+      WHY HERE AND NOWHERE ELSE, recorded so it is not re-litigated (operator ruling, 2026-08-25):
+      ship already reads GitHub for the open-child check, so the audit's four calls
+      (board_lifecycle.py:831, "Call 3/4") are a small increment on a read that is already
+      happening. Running it at each station write was rejected explicitly: the leak happens when
+      the harness is NOT writing a station — a human closing an issue in the web UI triggers
+      nothing — so a station-change trigger catches it no sooner in practice, at several times the
+      cost.
+      THE ACCEPTED COST, stated rather than hidden: a card closed outside the harness can sit wrong
+      for the whole build and is only caught at ship. That is tolerable because ship is where the
+      open-child decision is made, which is the moment the wrongness would otherwise cause harm.
+      THE READ-BACK BOUND IS WIDENED BY THIS, and T-03 is where the widening is recorded. The bound
+      is written over purposes and surfaces, not over components: scheduling the audit inside ship
+      makes ship a bounded surface for the audit's four reads, exactly as DEC-186 amendment 3 binds
+      a purpose to gh-sync.py record-pr and to gh-sync.py ship, which calls it. Attribution by
+      component — these reads belong to board_lifecycle — is not a defence and was rejected by the
+      operator on 2026-08-25. So T-03 records the audit's detection reads as DEC-203 item 5's
+      SEVENTH purpose, and widens item 5's FOURTH purpose, the workflow read, from /harness-init to
+      /harness-init and gh-sync.py ship. This task writes nothing — no comment, no docstring, no
+      test name, no commit message — asserting that ship's reads leave the bound unchanged or that
+      DEC-203 enumerates six purposes.
+      TESTS for this step, each its own assertion:
+        - in test-board-lifecycle.py: audit_findings returns the finding list cmd_audit prints and
+          prints nothing itself — no workflow header and no STATUS skip line, which is what forces
+          board_lifecycle.py:866 and :887 up into cmd_audit — and raises factory_gh.GhError rather
+          than exiting when the read fails. Shown failing before the function exists;
+        - in test-board-lifecycle.py: cmd_audit still prints the workflow header and the STATUS
+          skip line, in their existing order relative to the findings, still prints the no-board
+          line, and still refuses via factory_cli.refuse when github.repo is not declared. This is
+          the guard that the move preserved cmd_audit's behaviour;
+        - in test-gh-sync.py: a ship run whose stubbed board leaves a closed issue away from the
+          done station prints one line beginning "gh-sync: audit — STATION" naming that issue;
+        - THE ORDERING: a card this same run moved to done produces no STATION finding, because
+          the audit runs after the writes. Shown failing against an implementation that audits
+          first;
+        - an audit that cannot run leaves ship's exit status 0 and prints one stderr line naming
+          the failure;
+        - no line any of these runs prints contains "gh-sync: SKIP", and none of the audit lines
+          contains "gh-sync: FAILED".
+
+      Step 8. Keep the existing ordering of the tail unchanged: _record_pr runs before
+      _record_status(feat_dir, "Done"), and that status write stays the LAST STATEMENT of the
+      successful path.
+
+      Step 8b. CORRECT _apply_parent_rule's TERMINAL-EXEMPTION COMMENT, gh-sync.py:218-221. It
+      currently justifies the exemption as "ship already closed the parent and GitHub's own Item
+      closed workflow landed it in Done". This commit falsifies that sentence: ship closes nothing.
+      The behaviour is unaffected — the exemption keys on _feature_status, which ship still writes
+      as Done (gh-sync.py:1100-1102) — but a comment asserting the superseded contract is the artifact a
+      later reader trusts over the code. Restate the reason as: ship wrote the parent's card to the
+      done station and recorded the terminal status, while the plan-derived station would still say
+      Review. Nothing else in that function changes.
+
+      Step 8c. THERE IS NOTHING TO CORRECT HERE ANY MORE. An earlier draft of this task
+      corrected cmd_close_task's comment about the board's Item-closed workflow. The operator
+      ruled Q8 on 2026-08-25: close-task is DELETED, and its comment goes with the function.
+      T-11 owns that removal, its tests and its doc reference, and T-11 depends on this task so
+      the two never edit gh-sync.py at the same time. Do not correct that comment here, and do
+      not delete the function here.
+
+      Step 8d. CORRECT cmd_status's DOCSTRING, gh-sync.py:898 — the Plan, Done and Abandoned line
+      of its STATION WRITES block. Re-derive the anchor before editing: earlier steps of this task
+      rewrite this file. At 4571bda the line reads that Done is GitHub's native Item-closed
+      workflow, and cites D-03 and DEC-192. BOTH HALVES ARE WRONG and both are corrected in one
+      edit.
+        First, the causality. Measured at 4571bda: issues #818 through #830 are CLOSED and all
+        thirteen of their cards sit at Review. Closing an issue does not land its card at the done
+        station on this board. State instead that cmd_status writes no station for Done because
+        ship is the only writer of the done station (D-01), and a Done feature's cards are already
+        there when ship finishes. Do not replace one causal claim with another one this feature
+        has not measured.
+        Second, the citation. The line cites DEC-192, which T-03 STRIKES. Live code must not
+        justify itself by a struck decision. THE CORRECTED LINE MUST CITE DEC-203 BY NAME. D-03
+        alone is not sufficient: it is plan-local and stops resolving as a pointer the moment this
+        feature merges, which would leave live code citing nothing permanent. Keep D-03 alongside
+        it if it still reads well; DEC-203 is the required durable pointer.
+      BEHAVIOUR IS UNCHANGED. cmd_status still writes no station at all for Plan, Done or
+      Abandoned. This is a docstring edit of roughly two to three lines; no test and no clause of
+      this task's verify asserts the docstring's text, which is why the verify block is untouched.
+
+      Step 8e. CORRECT test-gh-sync.py's cmd_status FIXTURE COMMENT, test-gh-sync.py:1615-1617 —
+      the three-line comment that introduces the status Plan, Done and Abandoned loop. Re-derive
+      the anchor before editing: earlier steps of this task rewrite this file. At 4571bda it says
+      the harness never writes those three columns because Done is GitHub's own workflow, and it
+      cites D-03 and DEC-192. It is a paraphrase of the gh-sync.py:898 line Step 8d corrects, and
+      BOTH HALVES ARE WRONG in the same way, so correct both in one edit.
+        First, the causality. Closing an issue does not land its card at the done station on this
+        board: measured at 4571bda, issues #818 through #830 are closed and all thirteen of their
+        cards sit at Review. State instead that cmd_status writes no station for Done because ship
+        is the only writer of the done station (D-01). Plan remains board-station.py's and
+        Abandoned still has no column at all; leave those two clauses as they are and do not
+        replace the Done clause with a new causal claim this feature has not measured.
+        Second, the citation. DEC-192 is STRUCK by T-03, and a test file must not justify itself by
+        a struck decision. THE CORRECTED COMMENT MUST CITE DEC-203 BY NAME, for the same durability
+        reason as Step 8d: D-03 alone is plan-local and stops resolving as a pointer the moment
+        this feature merges. Keep D-03 alongside it if it still reads well.
+      THIS IS A COMMENT-ONLY EDIT, roughly two lines of comment. NO ASSERTION CHANGES. The checks
+      below it, at 4571bda test-gh-sync.py:1630-1632, assert exit 0, that no item-edit call is made
+      for Plan, Done or Abandoned, and that feature.json records the status; all three remain true
+      after this task, because cmd_status still writes no station for those three. Only the
+      parenthetical reason was false. This task's verify block is therefore untouched, and T-11
+      does not absorb this comment: T-11 touches only close-task material in this file plus its
+      header comment at test-gh-sync.py:5.
+
+      Step 9. When board is None (no github.board configured), print one line saying no board is
+      configured so no card was moved, still close the milestone, still record the pr and the
+      status. The issue lifecycle must still run to completion.
+
+      TESTS, in test-gh-sync.py, using the file's existing gh-stub harness. Each of these is its own
+      assertion; do not collapse them into a count:
+        - every task sub-issue, every source_issues entry and the parent each receive a done-station
+          write, asserted per number;
+        - no argv anywhere in the run contains "issue","close" or state=closed against an issue;
+        - a parent with one child whose card reads Review is not moved, and stdout carries exactly
+          one line beginning "gh-sync: HELD — " and naming that child's number;
+        - a child that is absent from the station map produces a HELD line whose parenthetical
+          reads (not on the board);
+        - a child that is present with a null station produces a HELD line whose parenthetical
+          reads (not at Done);
+        - the ordering case: a parent whose only children are cards this same run moves to done DOES
+          reach done in that run. This is the assertion that must be shown failing against a
+          single-pass implementation before the fix;
+        - THE REFRESH SCOPE: a source_issues entry that is itself a child of the parent, moved to
+          done in step 5's own pass, lets the parent land in the same run. Shown failing against an
+          implementation that refreshes the map only for step 4's writes;
+        - a task sub-issue is moved to done regardless of anything the sub_issues endpoint would
+          report about it, and cmd_ship makes no sub_issues call for any number in the children
+          group — the depth-1 assertion for D-10;
+        - a sub_issues read that errors leaves that card unmoved and prints a stderr line;
+        - a BoardError on one child does not stop the remaining child writes;
+        - the HELD summary line lists exactly the held cards and no failed one; the FAILED summary
+          line lists exactly the cards whose write failed and no held one; a run with holds and no
+          failures prints no FAILED line at all;
+        - no line of the combined stdout+stderr of any of these runs contains the substring
+          "gh-sync: SKIP" — the assertion that protects post-merge-sweep.sh's worktree gate;
+        - the milestone is still PATCHed closed;
+        - REGRESSION GUARD for REQ-10: after cmd_status(feat_dir, "Review", ...), the parent and
+          every recorded sub-issue receive a review-station write;
+        - REGRESSION GUARD for SC-12's second clause, BEHAVIOURAL first: run status, start-task
+          and abandon against the gh stub and assert that no argv any of them issues sets the
+          done station. close-task is deliberately absent from that list: T-11 deletes the
+          subcommand, so a deleted command cannot be exercised here, and T-11's own test asserts
+          it is gone. Keep the grep over the whole of gh-sync.py for
+          board["stations"]["done"] as a SECONDARY check only — it dies to a rename and cannot see
+          a value passed through a local or a helper, so it must not be the only evidence.
+
+  - id: T-05
+    title: Delete github.parent_origin everywhere and make abandon report and ask instead of deciding from origin
+    traces: [REQ-04, REQ-05]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: operator route ruling on issue 842; the same file and the same commit as T-04, and it rewrites the schema every feature.json is validated against
+    depends_on: [T-04]
+    status: done
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/feature-schema.json
+      - .claude/skills/harness/bin/test-gh-sync.py
+      - .claude/skills/harness/bin/test-validate-feature-json.py
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      test $rc -eq 0
+      printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
+      printf '%s\n' "$out" | grep -qx 'PASS test-validate-feature-json.py'
+      printf '%s\n' "$out" | grep -qx 'PASS test-check-state.py'
+      test -z "$(grep -rl parent_origin .claude/skills/harness/bin/gh-sync.py .claude/skills/harness/bin/feature-schema.json .harness/harness/features/*/feature.json)"
+    intent: |
+      Remove the recorded parent origin from the harness's own mirror. Write the failing assertions
+      first.
+
+      1. gh-sync.py: delete the "parent_origin" key from load_recorded's default record and from its
+         reader (the po = gh.get("parent_origin") lines), delete it from save_recorded's serialised
+         github block, delete both assignments in cmd_open (the "adopted" and "created" branches —
+         the numbers are still recorded and still printed, only the origin goes), and delete every
+         remaining branch on it. After T-04 the only remaining branch is in cmd_abandon.
+
+      2. feature-schema.json: remove the parent_origin property from the github block. That block is
+         additionalProperties: false, so this makes every existing feature.json carrying the key
+         invalid — which is why step 3 is part of THIS task and not a follow-up.
+
+      3. Strip the "parent_origin" key from every .harness/harness/features/*/feature.json that
+         carries it. Twenty-four files carry it at cc84b29. Change nothing else in those files:
+         preserve key order and formatting for every surviving key, and do not touch any other
+         feature's github block contents. Re-run the schema validator over all of them afterwards.
+
+      4. cmd_abandon: replace the origin branch with a report-and-ask. Add a --yes flag to the
+         abandon subcommand.
+
+         STRIP --yes BY NAME-SEARCH IN main(), BEFORE THE POSITIONAL PARSE, exactly as --parent,
+         --reason-file, --body-file and --pr are already stripped (gh-sync.py:1111-1145). It takes
+         no value, so the strip removes one element rather than two. Without this, main() reads
+         argv[1] as the feature dir and `abandon --yes <dir>` dies with "--yes is not a directory"
+         (gh-sync.py:1155) at exactly the moment the operator is being careful. Both orders —
+         `abandon --yes <dir>` and `abandon <dir> --yes` — must behave identically, and that is its
+         own test assertion. Add --yes to main()'s usage string. --yes on any OTHER subcommand is a
+         caller error: die() with exit 1, never silently ignored, because a flag that silently does
+         nothing teaches the operator it is harmless everywhere.
+
+         CONFIRMATION IS THE FLAG AND NOTHING ELSE (DESIGN.md Contract 3). No isatty() branch, no
+         default-on-no-TTY, no stdin read: no script in .claude/skills/harness/bin/ calls input()
+         today, and ship is already invoked with captured output by post-merge-sweep.sh, so a TTY
+         prompt would be both a first for the codebase and unanswerable from the sweep.
+
+         Without --yes, abandon must:
+           - print one line per write it WOULD make, in the order cmd_abandon performs them — the
+             reason-file post, then each sub-issue, then the milestone, then the parent — each
+             prefixed "gh-sync: would ", so the dry run and the real run diff by eye;
+           - label the parent AS the parent, never as one more number, because under this feature it
+             closes unconditionally where it previously turned on parent_origin. The line reads:
+             "gh-sync: would close parent #<n> (not_planned) and label it abandoned";
+           - render those numbers from ONE function that the --yes path also calls. Two renderers
+             drift, and the drift is invisible until it destroys the wrong ticket;
+           - print one final line: "gh-sync: abandon is a decision the operator makes — re-run with
+             --yes to close the issues listed above";
+           - make NO GitHub write at all, and NOT record feature.json's status as Abandoned;
+           - exit 0. That is deliberate and recorded: nothing wraps abandon today — its only
+             references in the tree are gh-sync.py:9's usage line and github-mirror.md:32's prose —
+             so no caller can misread 0 as "abandoned". If an automated caller is ever written, the
+             dry run needs a distinct exit at that point, not now.
+         With --yes, do exactly what today's cmd_abandon does, except that the parent is closed
+         unconditionally rather than only when origin is created — the operator's confirmation is
+         what replaces the origin gate. The abandoned label still goes on every issue closed here,
+         parent included. _record_status(feat_dir, "Abandoned") stays the last statement of the
+         successful path and runs only under --yes.
+
+      5. Update .claude/skills/harness/bin/test-check-state.py and
+         .claude/skills/harness/bin/test-validate-feature-json.py fixtures that carry
+         parent_origin so they no longer do. Do NOT change
+         .claude/skills/harness/bin/factory_decompose.py, test-factory-decompose.py or
+         test-factory-claim.py: their parent_origin lives in feature.yaml's `factory` block, a
+         different ledger for served repos, and no close branches on it (D-09).
+
+      TESTS in test-gh-sync.py, each its own assertion:
+        - cmd_open records a parent number and no origin key, for both the adopted and the created
+          path;
+        - load_recorded over a github block that still contains parent_origin does not crash and
+          does not surface the key;
+        - abandon without --yes makes zero gh calls, prints one "would close" line per recorded
+          sub-issue, one for the milestone, one for the parent, and does not write status;
+        - abandon --yes <dir> and abandon <dir> --yes produce identical behaviour, and neither dies
+          with "is not a directory";
+        - --yes on the ship subcommand exits 1 with a caller-error message;
+        - the numbers and their order in the dry-run listing equal the numbers and order of the
+          issues the --yes run actually closes, asserted against the stub's recorded argv;
+        - abandon with --yes closes every sub-issue not_planned, closes the parent not_planned
+          whatever its history, labels all of them abandoned, closes the milestone, and records
+          status Abandoned last.
+
+  - id: T-06
+    title: Remove the closes subcommand and its source_issues rendering
+    traces: [REQ-07]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: operator route ruling on issue 842; and this deletion is only safe once the merge sweep is proven to fire, which is a machine-local measurement the main session took in T-02
+    depends_on: [T-02, T-05]
+    status: done
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+      - .claude/skills/harness/templates/plan.yaml
+    verify: |
+      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      test $rc -eq 0
+      printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
+      test -z "$(grep -rl 'Closes #' .claude/skills/harness/bin/ .claude/skills/harness/templates/)"
+    intent: |
+      THIS TASK MUST NOT RUN BEFORE T-02 HAS PROVEN THE POST-MERGE SWEEP FIRES. ship becomes the
+      only thing that closes tickets, and the sweep is the only thing that runs ship. Delete this
+      subcommand while the sweep is still dead and a merge closes nothing and says nothing. T-02's
+      note must carry sweep_fired: yes before this task starts.
+
+      1. Delete cmd_closes from .claude/skills/harness/bin/gh-sync.py in full, including its
+         docstring, and delete its dispatch entry and its argument parser entry from main(). After
+         this, running `gh-sync.py closes <dir>` must exit non-zero with the file's existing
+         unknown-subcommand message; do not add a deprecation shim.
+
+      2. rec["source_issues"] STAYS. It is still recorded by cmd_open from plan.yaml's own
+         top-level source_issues, and T-04's ship moves those cards. Only the rendering goes.
+         parse_source_issues stays.
+
+      3. .claude/skills/harness/templates/plan.yaml: the comment above source_issues says
+         "gh-sync.py closes renders them as the pull request body's closing keywords". Replace that
+         clause with a statement that gh-sync.py ship lands their cards at the done station. Change
+         nothing else in the template.
+
+      TESTS in test-gh-sync.py:
+        - invoking the closes subcommand exits non-zero and the message names it as unknown;
+        - no function in gh-sync.py emits a line matching "Closes #";
+        - cmd_open still mirrors plan.yaml's source_issues into feature.json's
+          github.source_issues, unchanged.
+
+  - id: T-07
+    title: Add the PreToolUse Bash gate that refuses a hand-typed gh issue close
+    traces: [REQ-06]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out — a registered PreToolUse gate script, its test, the hook registry .claude/settings.json and the runner registration; the harness must not change its own enforcement layer through the enforcement path being changed
+    depends_on: [T-02, T-05]
+    status: done
+    files:
+      - .claude/skills/harness/bin/gh-close-gate.sh
+      - .claude/skills/harness/bin/test-gh-close-gate.py
+      - .claude/skills/harness/bin/run-unit-tests.sh
+      - .claude/settings.json
+      - .harness/harness.json
+    verify: |
+      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      test $rc -eq 0
+      printf '%s\n' "$out" | grep -qx 'PASS test-gh-close-gate.py'
+      printf '%s\n' "$out" | grep -qx 'PASS test-run-unit-tests-kinds.py'
+      printf '%s\n' "$out" | grep -qx 'PASS test-branch-create-gate.py'
+      python3 -c "import json;h=json.load(open('.claude/settings.json'))['hooks']['PreToolUse'];assert any('gh-close-gate.sh' in c['command'] for m in h if m.get('matcher')=='Bash' for c in m['hooks'])"
+    intent: |
+      Create .claude/skills/harness/bin/gh-close-gate.sh, a third PreToolUse Bash hook, modelled on
+      the structure of branch-create-gate.sh: read the hook JSON from stdin, take
+      (tool_input or {}).get("command"), and deny with a structured permissionDecision — exit 0
+      plus JSON with hookSpecificOutput.permissionDecision = "deny" and a
+      permissionDecisionReason. Reuse that file's deny() helper shape verbatim in structure.
+
+      WHAT IT REFUSES. Any command string that invokes the gh CLI to close a tracked issue:
+        - gh issue close ...        in any position, including after a leading env assignment, a
+          cd, a pipe or a semicolon;
+        - gh api ... repos/<owner>/<name>/issues/<n> ... state=closed, in any argument order.
+      Match on the command string only. Do not attempt to resolve the issue number, do not call gh,
+      and do not read GitHub state: this gate must work offline and must never fail open on a
+      network error.
+
+      WHAT IT MUST NOT REFUSE:
+        - any command that does not invoke gh at all;
+        - gh issue close appearing only inside a quoted string that is being written to a file or
+          echoed — do not attempt to be clever here; a false deny is recoverable and a false allow
+          is not, so if you cannot distinguish, deny. Say so in the script's header comment.
+        - a command invoking gh-sync.py, whatever its subcommand.
+
+      THE REFUSAL TEXT, pinned character for character by DESIGN.md Contract 4. It routes by the
+      operator's INTENT, in three clauses, and is used verbatim for both the gh issue close deny
+      and the gh api state=closed deny — there is no second refusal text:
+
+        Refused: the harness closes tickets by landing their card at Done, never by closing an issue.
+        If the work is finished, do nothing here — gh-sync.py ship writes Done at the merge and GitHub
+        closes the issue. If it is being dropped, run:
+          python3 .claude/skills/harness/bin/gh-sync.py abandon <feature-dir> --reason-file <path> --yes
+        If the issue is not tracked by the harness at all, close it in the GitHub web UI; this gate
+        cannot tell tracked from untracked, by design.
+
+      WHY THREE CLAUSES AND NOT ONE COMMAND NAME. An earlier draft of this task named
+      gh-sync.py abandon as "the only sanctioned close". That satisfies SC-07's substring and is
+      actively harmful: abandon PATCHes state_reason=not_planned and adds the abandoned label
+      (gh-sync.py:986-991), and the likeliest intent behind a hand-typed gh issue close is that the
+      work is FINISHED. An operator who obeyed that refusal would mark shipped work abandoned. The
+      finished branch therefore comes first and its answer is to type nothing. The abandon branch is
+      given as a runnable command, not a name — the bare name omits the interpreter, the path, the
+      feature dir, the mandatory --reason-file (gh-sync.py:972) and the new --yes. The untracked
+      branch exists because this gate must not resolve the issue number, so a legitimate close of an
+      untracked issue is a false deny; false denies are accepted as recoverable only if the refusal
+      says how to recover. The string gh-sync.py abandon is still present, so SC-07 holds.
+
+      NO ENVIRONMENT MARKER. Issue 842 specifies an environment marker gh-sync.py sets to exempt
+      abandon's own call. It cannot work and is not needed: a PreToolUse hook is handed only
+      tool_input.command (branch-create-gate.sh:47), and gh-sync.py reaches gh through subprocess,
+      which never traverses the Bash tool, so abandon's close is never presented to this gate. A
+      marker would only be settable by hand, which is the hole the grilling flagged. Record this
+      reasoning in the script's header comment, citing the measurement.
+
+      SELF-GATING, as branch-create-gate.sh does: read .harness/harness.json github.sync and exit 0
+      immediately when it is off or absent, so the hook costs nothing where the mirror is off.
+
+      REGISTER IT in .claude/settings.json as a third command under the existing PreToolUse Bash
+      matcher, after bash-write-guard.sh, using the same ${CLAUDE_PROJECT_DIR} prefix form.
+
+      TEST at .claude/skills/harness/bin/test-gh-close-gate.py, feeding hook JSON on stdin and
+      asserting the process stdout. Each case its own assertion:
+        - gh issue close 728 --repo x/y                      -> deny, and the reason carries all
+          three clauses, each its own assertion: the finished clause naming gh-sync.py ship, the
+          runnable abandon command including --reason-file and --yes, and the untracked-issue
+          escape naming the GitHub web UI;
+        - the gh api state=closed deny returns the SAME reason string as the gh issue close deny,
+          asserted by equality, so a second wording cannot drift into existence;
+        - cd /tmp && gh issue close 728                      -> deny
+        - FOO=1 gh issue close 728                           -> deny
+        - gh api -X PATCH repos/o/r/issues/9 -f state=closed  -> deny
+        - gh issue view 728                                  -> allow (no output)
+        - python3 .claude/skills/harness/bin/gh-sync.py abandon d --reason-file r --yes -> allow
+        - git status                                          -> allow
+        - github.sync false in a fixture harness.json          -> allow even for gh issue close
+      All of these must be shown failing against a tree without the script.
+
+      REGISTER THE TEST in two places or the suite refuses to run: add "test-gh-close-gate.py" to
+      INTEGRATION_SCRIPTS in .claude/skills/harness/bin/run-unit-tests.sh, and add the same path to
+      the integration kind's detect glob list in .harness/harness.json. run-unit-tests.sh's drift
+      detector exits 2 on an unregistered test-*.py, and its kind cross-check compares the two
+      lists.
+
+  - id: T-08
+    title: Add the invariant that reports an uninstalled merge hook
+    traces: [REQ-09]
+    change_type: config
+    execution_mode: main-session-direct
+    execution_reason: DEC-174 carve-out — check-state.sh is the harness's own state validator and its test is the gate's test; neither may be changed through the enforcement path being changed
+    depends_on: [T-02]
+    status: done
+    files:
+      - .claude/skills/harness/bin/check-state.sh
+      - .claude/skills/harness/bin/test-check-state.py
+    verify: |
+      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      test $rc -eq 0
+      printf '%s\n' "$out" | grep -qx 'PASS test-check-state.py'
+      grep -q "INV-31" .claude/skills/harness/bin/check-state.sh
+      out=$(bash .claude/skills/harness/bin/check-state.sh 2>&1)
+      printf '%s' "$out" | grep -Eq 'all state invariants hold\.|VIOLATION|note  '
+      ! printf '%s' "$out" | grep -q Traceback
+      ! printf '%s' "$out" | grep -q "INV-31"
+    intent: |
+      Add INV-31 to .claude/skills/harness/bin/check-state.sh. INV-30 is the highest number in use
+      at cc84b29; take 31 and do not reuse a retired number.
+
+      WHY IT EXISTS, and record this in the invariant's own header comment: the setup step lives in
+      .claude/skills/harness-init/SKILL.md, which an already-onboarded clone never re-runs. A doc
+      step reaches a clone once; an invariant reaches every clone, every run. Measured at cc84b29,
+      this clone's core.hooksPath was /Users/molchairuangutai/GitHub/harness/.git/hooks, holding
+      only samples, so gh-sync.py ship never ran at a merge and nothing said so.
+
+      WHAT IT CHECKS, as two distinct findings that must never be collapsed into one message:
+        1. git config --get core.hooksPath does not resolve to the tracked directory
+           .claude/skills/harness/hooks. Both an unset value and any other value are violations.
+           Compare by resolving the configured value against the repository root and comparing
+           real paths, so that an absolute path naming the same directory passes and a relative one
+           naming a different directory fails. Report the value found.
+        2. The file post-merge inside that tracked directory is missing, or is not executable.
+           Report which of the two.
+      The two findings differ in SUBJECT, not only in a variable tail — one is about a config
+      value, the other about a file — because they are two different failures: a misconfigured
+      clone, and a damaged checkout. Each is one line beginning "INV-31: ", follows the file's
+      measured grammar (INV-NN: <subject> <what is wrong> — <consequence>, check-state.sh:1258-1262),
+      and carries its own fix. The pinned shapes, from DESIGN.md Contract 5:
+        INV-31: core.hooksPath is <unset | "<value found>">, not .claude/skills/harness/hooks — no
+        harness hook runs on this clone. Fix: git config core.hooksPath .claude/skills/harness/hooks
+        INV-31: .claude/skills/harness/hooks/post-merge is <missing | not executable (mode <m>)> —
+        the hook path resolves but the merge sweep cannot run. Fix: restore it | chmod +x it
+      Both append to `bad`, never `warn`. INV-28 is a warn on the stated reason that the mirror is
+      never a gate (check-state.sh:1018-1020); INV-31 is not a mirror fact — it is whether the machine
+      runs the hook that runs ship, and after this feature the sweep is ship's only caller, so a
+      clone without it silently stops closing tickets.
+
+      WHERE IT RUNS. Follow the file's existing convention for an invariant that reads git config:
+      it must run against the checkout check-state.sh is invoked in, and it must not fail the run
+      when git itself is unavailable — an unreadable git config is CANNOT RUN, reported as its own
+      line, exactly as INV-25, INV-26 and INV-29 already handle an import failure. A CANNOT RUN is a
+      violation, not a pass.
+
+      SCOPE, decided and recorded: this invariant does NOT check whether a card is closed but not at
+      the done station. board_lifecycle.py's audit already reports exactly that as its STATION
+      finding class, and a second detector for one fact is two rules that will drift. What was
+      missing there is a runner, not a detector, and the operator has now placed that runner
+      inside ship, once per feature (T-04 step 7c, D-13) — deliberately NOT inside check-state.sh,
+      where the audit's four network calls would fall on every run of the state checker. The two
+      notes are consistent rather than contradictory: the detector is now scheduled, and it is
+      scheduled somewhere other than here. Do not add it here.
+
+      CORRECT THE TWO FALSIFIED Item-closed COMMENTS IN check-state.sh, in this same task. This
+      task is their only legal home: under the DEC-174 carve-out check-state.sh may be changed only
+      through the main-session route, and this is the sole task in the plan carrying that file.
+      Both sites are comment-only. No assertion in test-check-state.py and no clause of this task's
+      verify reads either one. Re-derive both anchors before editing.
+      THE PREMISE THAT IS FALSE, measured at 4571bda: issues #818 through #830 are CLOSED and every
+      one of their thirteen cards sits at Review. Closing an issue does not move its card to the
+      done station on this board. After this feature, ship writes the done station itself (D-01),
+      so a card that is at Done is there because ship put it there.
+        (a) check-state.sh:1416, INV-26's TERMINAL EXEMPTION. At 4571bda it justifies the exemption
+            by saying the ship closes the parent and GitHub's Item-closed workflow lands it in
+            Done. Restate the reason: ship writes the parent's card to the done station and records
+            the terminal status, while the plan-derived station would still say Review — so without
+            this exemption every shipped feature is a permanent false violation. Keep the
+            case-sensitivity note that follows it as it stands. Roughly two lines. THE EXEMPTION'S
+            CONDITION IS UNCHANGED: it still keys on feature.json status being Done or Abandoned.
+        (b) check-state.sh:1479, D-24's JUSTIFICATION COMMENT. This one is a REWRITE, not a
+            relabel — roughly five to eight lines. At 4571bda it argues that under D-23 a done
+            task's sub-issue is deliberately left OPEN so it can hold its column through the Review
+            phase, because GitHub's native Item closed workflow would otherwise land a closed
+            issue's card in the done column by itself, and it cites board 3 never having held a
+            card at Review as the measurement for that. That measurement is now contradicted by the
+            thirteen cards above. Rewrite the justification on what is actually true: under D-23 a
+            done task's card may legitimately read the done, review OR building station while the
+            feature's own status is Review, because ship — not a close — is what writes the done
+            station, and the review and building stations are what the Review phase legitimately
+            leaves behind. Carry forward into the rewritten text, unchanged in force, the bound and
+            its reason: the widening applies ONLY while the feature's own feature.json status is
+            Review, because an unconditional widening would silence the mis-columned done card the
+            invariant was extended to catch. Keep the D-24 attribution and the operator's ruling 4
+            of 2026-08-23.
+        THE ACCEPT SET'S BEHAVIOUR IS UNCHANGED, and this is a hard constraint on step (b). At
+        4571bda lines 1486-1489 build _accept as the single expected station, widened with the
+        review and building stations when the task is done and the feature's status is Review. That
+        set does not rest on the falsified premise. Do not narrow it, do not widen it, do not
+        reorder it, and do not touch it at all. The correction is to the justification comment
+        only, and every existing INV-26 assertion in test-check-state.py must still pass unchanged.
+
+      THE VERIFY'S THIRD CLAUSE ASSERTS THE RUN COMPLETED before it asserts INV-31 is absent, and
+      must not be simplified back to a pipe into grep. check-state.sh's embedded python exits 1
+      both when it finds violations and when it dies on a traceback, so the exit code cannot tell
+      the two apart; a pipe into grep would take grep's status and green on a run that never
+      reached INV-31 at all. The terminal report block — one of "all state invariants hold.", a
+      VIOLATION line, or a note line — is the last thing the program prints, so its presence is
+      what proves every invariant body ran.
+
+      TESTS in test-check-state.py, using the file's existing fixture-repo harness. Three states,
+      each its own assertion, all shown failing before the invariant exists:
+        - hooksPath unset                      -> one INV-31 line naming the unset value;
+        - hooksPath set to some other directory -> one INV-31 line naming that value;
+        - hooksPath correct but post-merge absent      -> one INV-31 line naming the missing file;
+        - hooksPath correct but post-merge not executable -> one INV-31 line naming the mode;
+        - hooksPath correct and post-merge present and executable -> no INV-31 line at all.
+
+  - id: T-09
+    title: Bring every document describing who closes a ticket into line with the shipped code
+    traces: [REQ-11, REQ-04, REQ-07, REQ-10]
+    change_type: docs
+    execution_mode: main-session-direct
+    execution_reason: check-domain.sh --resolve returns NOBODY for all three files, so there is no agent granted to write them; this is a declared main-session step, not a dispatchable task
+    depends_on: [T-03, T-06, T-07, T-11]
+    status: done
+    files:
+      - .claude/skills/harness/references/github-mirror.md
+      - .claude/commands/harness.md
+      - .claude/skills/harness-init/SKILL.md
+    verify: |
+      ! grep -q "parent_origin\|Closes #\|closes the milestone" .claude/skills/harness/references/github-mirror.md .claude/commands/harness.md .claude/skills/harness-init/SKILL.md
+      grep -q "INV-31" .claude/skills/harness-init/SKILL.md
+      ! grep -q "The one read-back is" .claude/skills/harness/references/github-mirror.md
+      grep -q "approval-gated artifact" .claude/skills/harness/references/github-mirror.md
+      ! grep -q "remains, as the deliberate" .claude/skills/harness/references/github-mirror.md
+    intent: |
+      These three files are correct today and the code change makes them false. Fix each named
+      claim. Do not restructure the documents beyond what these edits require.
+
+      A. .claude/skills/harness/references/github-mirror.md
+        1. The per-subcommand owner table. Delete the `closes` row entirely (line 36 at cc84b29).
+        2. The `abandon` row: replace "sub-issues not_planned, and the parent only if
+           parent_origin is created" with a description of the new report-and-ask shape and the
+           --yes flag.
+        3. The `ship` row: replace "closes the milestone unconditionally, and the parent only if
+           parent_origin is created" with what ship now does — closes the milestone, and lands
+           every recorded card at the done station, children first, skipping any card that still
+           has an open child and naming that child. State the two summary literals ship prints,
+           gh-sync: HELD and gh-sync: FAILED, and that post-merge-sweep.sh declines the worktree
+           removal on the second — the mirror still never gates a GitHub write, and the worktree is
+           not one.
+        4. The `open` row: remove "recorded with its parent_origin".
+        5. The per-commit row's D-23 paragraph. Delete the clause "the native Item closed workflow
+           moves a closed card to the done column, so a closed sub-issue cannot sit at Review".
+           It is false: FEAT-34's 13 sub-issues, #818 through #830, are closed and at Review at
+           cc84b29. Replace it with the real reason the sub-issue stays open — nothing closes it
+           until ship writes its card to done — and state that sub-issues hold Review from validate
+           entry until the panel returns clean.
+        6. The "Recording done is the whole of the per-commit act" paragraph: its last sentence says
+           the parent "reaches Done only when GitHub closes it from the Closes lines at merge".
+           Replace with: ship writes the parent's card to done, and GitHub closes the issue behind
+           that write.
+        7. The "The build branch" section: delete the paragraph beginning "gh-sync.py closes
+           RENDERS the closing keywords but never posts them" in full, including its last sentence
+           about the parent being closed by ship.
+        8. The station-writer table's Done row: replace "GitHub, from the Closes lines at merge ...
+           The harness writes this column never" with: the harness, at gh-sync.py ship, whose write
+           GitHub's Auto-close issue workflow then turns into a close.
+        9. The sentence "The harness deliberately writes no Done and no Abandoned column": strike
+           the Done half, keep the Abandoned half.
+        10. Cite DEC-203 wherever the file currently cites DEC-196 for the close rule. Measured at
+            cc84b29 this file contains no DEC-196 citation at all, so this edit may well be a
+            no-op; do not manufacture a citation to satisfy it.
+        11. The read-back paragraph, lines 7-9 at cc84b29. It reads "Almost entirely outbound. The
+            one read-back is record-pr ... Nothing else reads GitHub state back, and no read-back
+            ever reaches an approval-gated artifact." Its FIRST TWO CLAUSES ARE ALREADY FALSE AT
+            cc84b29, before this feature adds anything: gh-sync.py:804-806 documents start-task
+            performing ONE board read (gh_board.board_stations) and ONE issue read
+            (factory_gh.issue_view for state) before its writes, and calls that "squarely inside
+            DEC-186's second sanctioned purpose". D-02 then adds a third, the sub_issues read at
+            ship. So this is a correction of the record, not only a consequence of this change.
+            Replace the first two sentences with a statement that the mirror is predominantly
+            outbound and that its read-backs are BOUNDED TO AN ENUMERATED SET, then enumerate the
+            seven purposes DEC-203 carries, naming for each the surface that performs it —
+            start-task for the claimed and station reads; factory_claim for whether a blocker issue
+            is finished, which no gh-sync.py subcommand performs; /harness-init and ship for the
+            workflow detection, ship because it calls the audit; record-pr and ship for the merged
+            pull request; ship for the children read; and /harness-init and ship for the audit's
+            own detection reads, the seventh purpose.
+            KEEP THE LAST CLAUSE VERBATIM AND UNCONDITIONAL: no read-back ever reaches an
+            approval-gated artifact. That clause is still true and it is the only stated bound on
+            what a read-back may do, so deleting it would remove the guarantee while correcting
+            the count.
+            CROSS-CHECK AGAINST T-03's OWN TEXT BEFORE WRITING: T-03 writes DEC-203 item 5, which
+            is the authority for that enumeration. Open DEC-203 in DECISIONS.md and copy the set
+            from it. If the two disagree, the decision entry wins and this file is corrected to
+            match it — never the reverse. This is why T-09 depends on T-03.
+        12. The close-task sentence in the per-commit row (line 30 at cc84b29): "gh-sync.py
+            close-task <feature-dir> T-NN remains, as the deliberate single-issue close for when
+            you want exactly that." DELETE THAT SENTENCE IN FULL. The operator ruled Q8 on
+            2026-08-25: the subcommand itself is removed by T-11, so a sentence describing it
+            would document a command that does not exist. This task depends on T-11 for exactly
+            that reason. Do not replace it with a deprecation note. In its place, state what is
+            now true of the per-commit act: nothing closes a task sub-issue, and the sub-issue
+            closes when ship writes its card to the done station.
+            The related accuracy point, measured and already recorded as D-06: the new Bash gate
+            does NOT refuse a Python subprocess (gh-sync.py:147), so the gate would never have
+            stopped close-task — deleting it is what stops it. Do not write that the gate stops
+            it. Say instead that abandon is the only harness command in gh-sync.py that closes an
+            issue directly, and that it asks the operator first (D-12, DEC-203 item 8).
+        13. LEAVE line 87's close-task mention alone. It reads "the last close-task fired while
+            later tasks were still pending" — a past-tense measurement of what was observed, which
+            stays true after the command is gone. Deleting a measurement because its subject was
+            removed would falsify the record.
+
+      B. .claude/commands/harness.md, the shipped / PASS row of the return-routing table (line 95 at
+         cc84b29). It says to run bin/gh-sync.py ship <feature-dir> "(closes the milestone)".
+         Replace the parenthetical with what ship now does: closes the milestone and lands every
+         recorded card at the Done station, from which GitHub closes the issues. Leave the rest of
+         that row, including the distill dispatch and the backlog step, unchanged.
+
+      C. .claude/skills/harness-init/SKILL.md, the core.hooksPath section. Add one sentence after
+         step 3 naming INV-31 as the invariant that reports an uninstalled hook on every
+         check-state.sh run, so a clone that skipped this step is caught rather than silently
+         losing its merge sweep. Do not change the three steps themselves — they are the fix
+         instruction the invariant points at.
+
+      WHAT THE VERIFY DISCRIMINATES, PER FILE — and the earlier wording of this paragraph, "all
+      three strings are present in these files", was true of the SET and false of EACH file, which
+      is exactly what hid the hole. Measured at cc84b29:
+        - github-mirror.md carries 5 matches of the absence-grep (lines 28, 32, 33, 36, 55);
+        - commands/harness.md carries 1 (line 95);
+        - harness-init/SKILL.md carries ZERO.
+      So the absence-grep discriminates for part A and part B and is COMPLETELY BLIND TO PART C:
+      part C only ADDS a sentence to harness-init/SKILL.md, and that file already satisfies an
+      absence test. Part C would pass whether or not it was done.
+      The verify therefore has five clauses, three of them positive:
+        1. the absence-grep over all three files — parts A.1-A.4, A.9 and B;
+        2. INV-31 present in harness-init/SKILL.md — part C's own deliverable, and the only clause
+           that can see it. It fails today: that file has no INV-31 at cc84b29;
+        3. "The one read-back is" absent from github-mirror.md — part A.11's first two sentences
+           are gone. Present once today;
+        4. "approval-gated artifact" still present in github-mirror.md — part A.11 corrected the
+           count without deleting the bound. Present once today, so this clause is a REGRESSION
+           GUARD, not a proof of new work, and is written as one on purpose;
+        5. "remains, as the deliberate" absent from github-mirror.md — part A.12 DELETED the
+           close-task sentence. Present once today.
+      WHAT NO CLAUSE PROVES, stated so nobody reads the green as more than it is: the CONTENT of
+      the replacement prose in A.3, A.5, A.6, A.7, A.8, A.11 and A.12 is not asserted by any
+      grep — only that the false sentences are gone. Those are graded by SC-13 at inspection, over
+      git show <review_sha>:<path>. A verify cannot grade whether replacement prose is correct;
+      claiming otherwise would be the larger dishonesty.
+      SC-13 HAS THE SAME BLINDNESS AS THE OLD VERIFY, and it is not mine to fix: SC-13 is a pure
+      ABSENCE criterion — the three files "carry no surviving sentence" — and no SC in the brief
+      asserts part C's POSITIVE deliverable, the INV-31 sentence in harness-init/SKILL.md. Clause
+      2 of this verify closes the hole at the task tier. Whether SC-13 should also gain a positive
+      clause is raised as open question Q11; changing an approved success criterion is the
+      operator's, not this task's.
+
+  - id: T-10
+    title: Close #728 end to end with nobody touching GitHub
+    traces: [REQ-01, REQ-02, REQ-03]
+    change_type: scaffolding
+    execution_mode: main-session-direct
+    execution_reason: a live run of the shipped mirror against the operator's own board and against another feature's directory; it is an acceptance measurement, not a code change, and no member domain grants a live board write
+    depends_on: [T-04, T-05, T-06, T-07, T-08, T-09]
+    status: done
+    files:
+      - .harness/harness/features/FEAT-40-harness-writes-done/notes/acceptance-728.md
+    verify: |
+      test "$(gh issue view 728 --repo mruangutai/harness --json state -q .state)" = "CLOSED"
+      test "$(gh issue view 728 --repo mruangutai/harness --json projectItems -q '.projectItems[0].status.name')" = "Done"
+    intent: |
+      The operator named #728 as the end-to-end acceptance test: this change must close it and land
+      its card at Done with nobody touching GitHub.
+
+      WHAT #728 ACTUALLY IS, measured 2026-08-25 — the source ticket's description of it as having
+      no children is wrong, and this matters:
+        - it is FEAT-34's recorded parent (feature.json github.parent = 728, parent_origin null,
+          which is exactly why the old origin gate left it open);
+        - gh api repos/mruangutai/harness/issues/728/sub_issues returns THIRTEEN children, #818
+          through #830, all closed;
+        - those thirteen cards read Review, so under the new rule every one of them is OPEN.
+      So this run exercises the children-first ordering (D-04) and the open-child skip (D-03)
+      together. If ship evaluated the parent in a single pass, #728 would be skipped and the run
+      would print a held-open line instead — that is the failure this task is built to catch.
+
+      RUN IT:
+        1. Confirm the suite is green:
+           .agents/skills/harness/bin/run-unit-tests.sh --kind all
+           It must exit 0 with no FAIL line, and test-gh-sync.py, test-check-state.py and
+           test-post-merge-sweep.py must each report PASS. One trap, measured 2026-08-25: if
+           test-validate-digest.py fails saying "returned with children in flight", that is stale
+           state and not a regression - it reads the live .harness/.inflight-claims.json, which is
+           untracked and gitignored. Release the claims and re-run before treating it as real.
+        2. Run, and capture the full stdout and stderr:
+           python3 .claude/skills/harness/bin/gh-sync.py ship \
+             /Users/molchairuangutai/GitHub/harness/.harness/harness/features/FEAT-34-worktree-act3-enforced
+        3. Type no gh command that writes anything. The only permitted hand-run gh calls are reads:
+           gh issue view and gh api GETs.
+
+      WHAT MUST HOLD, each recorded as its own line in the note:
+        - #728 reads CLOSED and its card reads Done;
+        - #806, FEAT-34's other source issue, reads CLOSED and its card reads Done;
+        - each of #818 through #830 has its card at Done, asserted per number, not as a count;
+        - the captured output contains no "gh-sync: HELD" line naming #728;
+        - the captured output contains no "gh-sync: FAILED" line at all, and carries the single
+          line "gh-sync: every recorded card is at <done>";
+        - the captured output contains no occurrence of the substring "gh-sync: SKIP";
+        - no line of the captured output shows an issue close call.
+
+      Write the note at the path in files: with the captured output verbatim, the per-number
+      assertions above, and one paragraph stating whether the acceptance passed. If #728 is skipped
+      as held open, do NOT fix it by hand: report the failure, name the child that held it, and
+      route it back as a fix cycle on T-04.
+  - id: T-11
+    title: Delete the close-task subcommand so abandon is the only mirror command that closes an issue
+    traces: [REQ-12]
+    change_type: logic
+    execution_mode: main-session-direct
+    execution_reason: operator route ruling on issue 842; this is the close path itself, in the same file and the same commit family as the ship rewrite, and a dispatched member would be building under a half-changed mirror
+    depends_on: [T-04, T-06]
+    status: done
+    files:
+      - .claude/skills/harness/bin/gh-sync.py
+      - .claude/skills/harness/bin/test-gh-sync.py
+    verify: |
+      out=$(.agents/skills/harness/bin/run-unit-tests.sh --kind all 2>&1); rc=$?
+      test $rc -eq 0
+      printf '%s\n' "$out" | grep -qx 'PASS test-gh-sync.py'
+      ! grep -qi 'close.task' .claude/skills/harness/bin/gh-sync.py
+      grep -q 'close-task is not a subcommand any more' .claude/skills/harness/bin/test-gh-sync.py
+    intent: |
+      Delete gh-sync.py's close-task subcommand. It is a harness command that closes an issue while
+      writing no station, so it can produce the exact state this feature exists to prevent, an
+      issue CLOSED with its card not at the done station. The Bash gate of T-07 would NOT have
+      stopped it: gh-sync.py reaches gh through subprocess (gh-sync.py:147) and a PreToolUse Bash
+      hook never sees a Python subprocess. Deleting it is what stops it. Operator ruling on Q8,
+      2026-08-25 (D-12). Write the test change first and show the new assertion red before the
+      deletion.
+
+      1. DELETE cmd_close_task from .claude/skills/harness/bin/gh-sync.py in full, including its
+         comments, together with its dispatch branch and its entry in the usage die string. At
+         242bba0 those are the def at gh-sync.py:842, the dispatch elif at gh-sync.py:1206-1209
+         and the usage string at gh-sync.py:1149. RE-DERIVE EACH ANCHOR before editing: T-04 and
+         T-06 have already rewritten this file. After the deletion, running gh-sync.py close-task
+         on any feature directory exits non-zero with the file's existing unknown-subcommand
+         message. Do not add a deprecation shim and do not print a redirect to another command.
+
+      2. KEEP _apply_parent_rule and its behaviour exactly as T-04 step 8b left it. start-task is
+         now its only caller, so correct its docstring, which at 242bba0 says it is called
+         identically at the end of start-task and close-task (gh-sync.py:208-210). Nothing else in
+         that function changes and the terminal exemption is not touched.
+
+      3. CORRECT every other close-task mention in gh-sync.py. At 242bba0 they are the usage header
+         (:7), the module docstring's issue-lifecycle list (:42), the same list restated at :160,
+         and the D-02 and D-07 comment at :210. In each place the issue lifecycle becomes open,
+         abandon, ship. Delete only the close-task term and the clause that exists to describe it,
+         and leave the rest of each sentence intact. Do not invent a new claim about any other
+         subcommand. gh-sync.py:1081's comment naming close-task's issue close sits inside ship's
+         parent close, which T-04 step 6 already deleted; if it survived T-04, it goes here too.
+
+      4. TESTS in .claude/skills/harness/bin/test-gh-sync.py. At 242bba0 six blocks invoke
+         close-task. COVERAGE MUST NOT SHRINK: every behaviour those blocks assert about
+         _apply_parent_rule, about the loud pair, and about the no-board precondition is a property
+         of the function or of the environment, not of close-task, and start-task is the surviving
+         caller. Retarget each rather than deleting it, and note in each retargeted comment that
+         the derivation is caller-independent by construction, which _apply_parent_rule's own
+         docstring already states.
+           a. The block at test-gh-sync.py:601-612, close-task closes exactly one issue, absorbed
+              issues left open, and the argv carries an explicit --reason completed. This block is
+              about close-task itself and has no surviving subject. REPLACE it with one assertion
+              whose check label is the literal string
+                close-task is not a subcommand any more
+              asserting that running close-task exits non-zero and that its output names the
+              subcommand as unknown. That label is pinned because this task's verify greps for it.
+           b. The block at :1411-1438, the parent reaches Review on the last outstanding task, and
+              the parent write is ordered before the sub-issue close. Retarget the Review
+              assertion to start-task. DELETE the two ordering assertions and the fixture comment
+              that explains them, because the close they order against no longer exists. Keep
+              FAKE_GH_STATIONS_CLOSE_FAILS only if another block still uses it; otherwise delete
+              it too rather than leaving a fixture nothing exercises.
+           c. The block at :1440-1457, a feature whose feature.json status is Done writes no
+              station at all. Retarget to start-task and keep both surviving assertions, exit 0
+              and no item-edit call at all. The third assertion, that the sub-issue still closes,
+              goes with the command.
+           d. The block at :1459-1476, the loud pair half 1, the station write fails. Retarget to
+              start-task. Keep exit 0 and the gh-sync ERROR line naming the parent. Replace the
+              third assertion, the issue call that follows still happened, with the same property
+              against the surviving call sequence: a failed card write does not stop the parent
+              station write that follows it. The property under test is that one failure does not
+              stop the next call, and it must still be asserted.
+           e. The block at :1481-1495, the loud pair half 2, gh absent from PATH. Retarget to
+              start-task and keep both assertions unchanged in substance, one SKIP line with exit
+              0 and no item-edit attempted.
+           f. The block at :1497-1525, no github.board configured. Keep the open assertions
+              unchanged. Retarget the close-task invocation to start-task and keep exit 0 and no
+              item-edit call. The last assertion, that close-task actually closed T-01's issue so
+              the lifecycle ran, is replaced by the same proof against start-task, that it made
+              its own recorded call.
+         Also correct the file's header comment at test-gh-sync.py:5, which names close-task as one
+         of the EXACT outward calls the file pins.
+
+      5. DO NOT TOUCH .claude/skills/harness/references/github-mirror.md in this task. T-09 part
+         A.12 deletes its close-task sentence and T-09 depends on this task, so the code and the
+         document change in that order and never at the same time. Line 87 of that file keeps its
+         past-tense close-task measurement, which stays true after the command is gone.
+
+      6. DO NOT TOUCH .harness/harness/docs/DECISIONS.md. T-03 records the guardrail and the one
+         narrow exception in DEC-203 item 8, and DEC-168 keeps its close-task prose under its
+         strike record, because a struck entry keeps its body so citations still resolve (DEC-188).

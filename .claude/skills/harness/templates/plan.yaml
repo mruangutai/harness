@@ -23,8 +23,8 @@ feature: FEAT-NN-<slug>          # must match the directory name
 
 # The GitHub issue numbers this feature was PLANNED FROM — bare integers, written by pm at
 # plan time and signed with the plan. `gh-sync.py open` mirrors them into feature.json's
-# `github.source_issues`, and `gh-sync.py closes` renders them as the pull request body's
-# closing keywords. An EMPTY LIST IS LEGAL: a feature planned from no ticket has no source.
+# `github.source_issues`, and `gh-sync.py ship` lands their cards at the board's done station
+# at the merge. An EMPTY LIST IS LEGAL: a feature planned from no ticket has no source.
 source_issues: [<n>, <n>]
 
 approval:

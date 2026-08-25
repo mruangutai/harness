@@ -55,12 +55,10 @@ def full_doc(status="Building"):
         "runs": [{"id": "r1", "squad": "code", "verdict": "PASS", "agent": "harness-qa"}],
         "max_total_runs": 10,
         "github": {
-            "milestone": 1, "parent": 2, "parent_origin": "x",
-            "attached": ["a"], "issues": {"T-01": 10},
+            "milestone": 1, "parent": 2,             "attached": ["a"], "issues": {"T-01": 10},
         },
         "factory": {
-            "repo": "r", "parent": 1, "parent_origin": "x",
-            "issues": {}, "items": {}, "edges": {"parent": [], "blocked_by": {}},
+            "repo": "r", "parent": 1,             "issues": {}, "items": {}, "edges": {"parent": [], "blocked_by": {}},
         },
     }
 

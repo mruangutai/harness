@@ -808,6 +808,11 @@ def _audit_findings(root, board, repo_name):
     owner, number, field = board["owner"], board["number"], board["station_field"]
     done_station = board["stations"]["done"]
     findings = []
+    # T-04: this function PRINTS NOTHING. Lines it used to emit are collected here and printed
+    # by `cmd_audit`, in the same order, so `audit_findings` can be called from `gh-sync.py
+    # ship` -- which prefixes every audit line with its own literal and must never have a bare
+    # line escape from inside this module.
+    notes = []
 
     # Class 1 -- DECLARATION. Call 1/4.
     declared = _declared_stations(board)
@@ -863,7 +868,7 @@ def _audit_findings(root, board, repo_name):
                 ))
 
     # Class 5 -- WORKFLOW. Call 4/4.
-    _out(_WORKFLOW_HEADER)
+    notes.append(_WORKFLOW_HEADER)
     workflows = factory_gh.project_workflows(owner, number)
     by_name = {w["name"]: w for w in workflows}
     for name in _REQUIRED_WORKFLOWS:
@@ -884,9 +889,44 @@ def _audit_findings(root, board, repo_name):
     if repo_name == own_repo:
         findings.extend(_status_findings(root, board, stations))
     else:
-        _out(f"STATUS: skipped -- auditing {repo_name!r}, not this checkout's own repo "
-             f"({own_repo!r}); this checkout's on-disk features are never that repo's")
+        notes.append(f"STATUS: skipped -- auditing {repo_name!r}, not this checkout's own repo "
+                     f"({own_repo!r}); this checkout's on-disk features are never that repo's")
 
+    return findings, notes
+
+
+def audit_findings(repo_arg=None):
+    """The audit as a LIBRARY CALL: returns the finding list, prints nothing, exits never.
+
+    `gh-sync.py ship` runs the audit once per feature as REQ-06's compensating control -- the
+    Bash gate cannot see a close typed in another terminal or made in the web UI, and this
+    audit's STATION class is the only detector of what such a close leaves behind: an issue
+    CLOSED with its card away from the done station.
+
+    THREE THINGS THIS DELIBERATELY DOES NOT DO, each of which `cmd_audit` still does:
+    - it does not PRINT. Ship prefixes every audit line with its own literal, so a line
+      escaping from in here would be unprefixed and unfindable in a merge's output;
+    - it does not EXIT. Ship has already written every card by the time this runs; an audit
+      that cannot run must not take the ship down with it;
+    - it does not turn a failed read into an exit code. `factory_gh.GhError` propagates, and
+      the caller decides -- `cmd_audit` makes it exit 4, ship prints one stderr line and
+      carries on.
+
+    Returns `[]` when no board is declared, matching `cmd_audit`'s own `github.board: null`
+    branch: an explicit null is a declaration, not a misconfiguration (D-07).
+
+    Raises `factory_gh.GhError` when `github.repo` is not declared. `cmd_audit` refuses there
+    instead, and that refusal stays inside the subcommand -- a library call that exits is the
+    thing this function exists not to be.
+    """
+    root = factory_config.harness_root()
+    repo_name, board = _resolve_board(root, repo_arg)
+    if board is None:
+        return []
+    if not repo_name:
+        raise factory_gh.GhError(
+            "github.repo is not declared -- pin it in harness.json before auditing")
+    findings, _notes = _audit_findings(root, board, repo_name)
     return findings
 
 
@@ -908,10 +948,17 @@ def cmd_audit(repo_arg):
     # 1) -- it gets its own exit code, 4, caught here rather than left to factory_cli.run's
     # generic expected-exception trap (which would exit 2, provision's own caller-error code).
     try:
-        findings = _audit_findings(root, board, repo_name)
+        findings, notes = _audit_findings(root, board, repo_name)
     except factory_gh.GhError as exc:
         print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
         sys.exit(4)
+
+    # T-04 moved these two lines OUT of `_audit_findings` so `audit_findings` can print
+    # nothing. They are emitted here in the order they were emitted before -- the workflow
+    # header, then the STATUS skip line, then the findings, then the count -- so this
+    # subcommand's output is byte-identical for the same inputs.
+    for note in notes:
+        _out(note)
 
     for f in findings:
         _out(f.message)
@@ -997,10 +1044,16 @@ def cmd_reconcile(repo_arg, apply):
         )
 
     try:
-        findings = _audit_findings(root, board, repo_name)
+        findings, notes = _audit_findings(root, board, repo_name)
     except factory_gh.GhError as exc:
         print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
         sys.exit(4)
+
+    # T-04: the workflow header and the STATUS skip line used to be printed from inside the
+    # detection. They are printed here, in the same place in the output, so `reconcile`'s own
+    # stdout is unchanged.
+    for note in notes:
+        _out(note)
 
     if not apply:
         # --dry-run (the default): preview only, zero writes, zero risk of a half-applied
@@ -1030,10 +1083,13 @@ def cmd_reconcile(repo_arg, apply):
     # Re-run the SAME detection in this process to report the residual state truthfully,
     # rather than assume every write landed.
     try:
-        residual = _audit_findings(root, board, repo_name)
+        residual, residual_notes = _audit_findings(root, board, repo_name)
     except factory_gh.GhError as exc:
         print(f"factory: {_TOOL}: {exc}", file=sys.stderr)
         sys.exit(4)
+
+    for note in residual_notes:
+        _out(note)
 
     for f in residual:
         _out(f.message)
