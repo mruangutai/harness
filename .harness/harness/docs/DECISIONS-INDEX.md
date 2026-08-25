@@ -1,6 +1,6 @@
 <!-- index-contract v1 -->
 <!-- GENERATED except the text after ` :: ` on each row.
-     Regenerate: .claude/skills/harness/bin/gen-decisions-index.py -->
+     Regenerate: .agents/skills/harness/bin/gen-decisions-index.py -->
 
 # DECISIONS — index
 
@@ -217,3 +217,4 @@ A row ending `— SUPERSEDED BY DEC-NN` is one you must not act on.
 - DEC-199 @6760 [digest,dispatch,plan,brief] refs: DEC-193 :: One locked union-merging core, `harness_merge.py`, carries every concurrent-write artifact, and a named persona is single-flight per checkout; #551's dispatch cause closes, its false-reporting consequences do not.
 - DEC-200 @6821 [github,state,approval,plan] refs: DEC-138 DEC-153 DEC-186 DEC-196 :: Ship derives a feature's PR number from the branch's exactly-one merged PR; DEC-138 write-only holds by destination AND absent local receipt; the read is inside DEC-186's bound.
 - DEC-201 @6892 [orchestrator,dispatch,state,budget] refs: DEC-118 DEC-120 DEC-148 DEC-158 DEC-159 DEC-198 DEC-199 :: An orchestrator never waits: every dispatch ends its turn and the platform wakes it; on waking it verifies claims against disk and weighs its context against an advisory threshold.
+- DEC-202 @6987 [skills,expertise,digest,hooks] refs: DEC-63 DEC-64 DEC-100 DEC-108 DEC-110 DEC-111 DEC-122 DEC-174 DEC-193 :: OMP is the canonical runtime; provider roles and host adapters are configuration, while Claude surfaces are generated compatibility adapters.

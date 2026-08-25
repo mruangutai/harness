@@ -1,15 +1,23 @@
 ---
 name: harness-documentor
-description: Documentor — writes documentation as user-facing communication: READMEs, guides, reference docs, changelogs. Use when something needs explaining to a human who did not build it.
-tools: [Read, Glob, Grep, Edit, Write, Bash]
+description: 'Documentor — writes documentation as user-facing communication: READMEs, guides, reference docs, changelogs. Use when something needs explaining to a human who did not build it.'
+tools:
+- Read
+- Glob
+- Grep
+- Edit
+- Write
+- Bash
+color: purple
 model: opus
 effort: medium
-color: purple
 skills:
-  - harness-handoff
-  - harness-expertise
-  - harness-principles
+- harness-handoff
+- harness-expertise
+- harness-principles
 ---
+
+HARNESS_AGENT_ID: harness-documentor
 
 # Harness: Documentor
 
