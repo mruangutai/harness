@@ -1144,7 +1144,7 @@ tasks:
     execution_mode: main-session-direct
     execution_reason: a live run of the shipped mirror against the operator's own board and against another feature's directory; it is an acceptance measurement, not a code change, and no member domain grants a live board write
     depends_on: [T-04, T-05, T-06, T-07, T-08, T-09]
-    status: pending
+    status: done
     files:
       - .harness/harness/features/FEAT-40-harness-writes-done/notes/acceptance-728.md
     verify: |
