@@ -1,0 +1,53 @@
+{
+  "feature_id": "FEAT-37-lead-stop-and-wake",
+  "branch": "feat/FEAT-37-lead-stop-and-wake",
+  "pr": null,
+  "status": "Plan",
+  "review_sha": "none",
+  "cycles_used": 0,
+  "max_total_cycles": 10,
+  "max_total_runs": 20,
+  "runs": [
+    {
+      "id": "2026-08-24-01-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-02-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-02-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "ESCALATE"
+    },
+    {
+      "id": "2026-08-24-03-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-24-04-product",
+      "squad": "product",
+      "agent": "harness-product-lead",
+      "verdict": "BLOCKED"
+    }
+  ],
+  "github": {
+    "source_issues": [
+      831
+    ]
+  }
+}
