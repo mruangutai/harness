@@ -133,11 +133,31 @@ for _cmd, _why in (
     _rc, _d, _ = gate(_cmd)
     check(f"evasion denied — {_why}: {_cmd!r}", _d == "deny", f"decision={_d!r}")
 
-# An unparseable line is indistinguishable from an evasive one, and the gate's stated bias is
-# that a false deny is recoverable while a false allow is not.
+# AN UNLEXABLE LINE FALLS BACK TO A TEXT SCAN. It is not indistinguishable from an evasive
+# one -- it can still be READ -- so it gets the weaker raw-string check rather than a blanket
+# refusal. A line that will not lex AND is genuinely closing is still denied.
 _rc, _d, _ = gate('gh issue close "5')
-check("an unbalanced quote DENIES rather than falling through to allow",
+check("an unbalanced quote still DENIES when the line is genuinely a close",
       _d == "deny", f"decision={_d!r}")
+
+_rc, _d, _ = gate("echo it's here; gh issue close 5")
+check("an unlexable line carrying a real close is caught by the text fallback",
+      _d == "deny", f"decision={_d!r}")
+
+# THE REGRESSION THIS FALLBACK EXISTS FOR, pinned so it cannot come back. `shlex` raises on
+# ANY unbalanced quote, so an English possessive inside a heredoc made the gate refuse an
+# ordinary comment. Blanket-denying the unlexable blocked real work and caught nothing: a
+# genuine evasion has no need of an unbalanced quote.
+for _cmd, _why in (
+    ("echo it's fine", "an English contraction"),
+    ("git commit -m \"don't close the loop\"", "a possessive in a commit message"),
+    ("cat > /tmp/x.md <<'MD'\nthe module's contract\nMD\n"
+     "gh issue comment 8 --repo o/r --body-file /tmp/x.md",
+     "a possessive inside a heredoc, ahead of a legitimate gh issue comment"),
+):
+    _rc, _d, _ = gate(_cmd)
+    check(f"an unlexable line that closes NOTHING is allowed — {_why}",
+          _rc == 0 and _d is None, f"decision={_d!r}")
 
 # THE KNOWN BLIND SPOT, asserted so it cannot be quietly lost or quietly fixed without notice.
 # Catching this needs the shell's own expansion, which a PreToolUse hook does not have. The

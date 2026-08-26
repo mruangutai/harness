@@ -32,6 +32,14 @@ ISSUE_PATH = re.compile(r"repos/[^/\s]+/[^/\s]+/issues/\d+")
 MUTATES = {"PATCH", "POST", "PUT", "DELETE"}
 MAX_DEPTH = 3
 
+# The TEXT fallback, for a command line `shlex` cannot lex at all. It is the pre-tokenizer
+# match, kept for exactly this case: it reads the raw string, so an unbalanced quote does not
+# stop it. Weaker than tokenizing -- it cannot see through quoting or a path -- but it is only
+# ever reached when tokenizing is impossible, and something is far better than nothing.
+RAW_CLOSE = re.compile(r"(^|[;&|(]|\s)gh\s+issue\s+close(\s|$)")
+RAW_API = re.compile(r"(^|[;&|(]|\s)gh\s+api(\s|$)")
+RAW_STATE = re.compile(r"state=[\"']?closed")
+
 
 def words(s):
     """Token list with quoting resolved, or None when the line will not lex."""
@@ -51,8 +59,22 @@ def is_gh(tok):
 def denies(line, depth=0):
     toks = words(line)
     if toks is None:
-        # Unparseable is indistinguishable from evasive, and the bias is stated above.
-        return True
+        # UNPARSEABLE FALLS BACK TO A TEXT SCAN, IT DOES NOT BLANKET-DENY. An earlier cut
+        # returned True here on the reasoning that unparseable is indistinguishable from
+        # evasive. That was wrong by a wide margin, and it was measured: `shlex` raises on
+        # ANY unbalanced quote, and an apostrophe inside a heredoc or an English contraction
+        # is an unbalanced quote. `echo it's fine` did not lex, so the gate refused it. So
+        # did every `gh issue comment --body-file` whose heredoc contained the word "does
+        # not" in the possessive. The rule refused ordinary work all day and caught nothing,
+        # because a real evasion does not need an unbalanced quote to hide behind.
+        #
+        # A false deny is recoverable and a false allow is not -- but that trade only holds
+        # where the two are genuinely indistinguishable. Here they are not: an unlexable line
+        # can still be READ as text, so it gets the weaker check rather than a refusal.
+        return bool(
+            RAW_CLOSE.search(line)
+            or (RAW_API.search(line) and ISSUE_PATH.search(line) and RAW_STATE.search(line))
+        )
     for i, t in enumerate(toks):
         if not is_gh(t):
             continue

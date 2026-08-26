@@ -37,8 +37,17 @@
 # The cost of that is real and accepted: this gate CANNOT TELL A TRACKED ISSUE FROM AN
 # UNTRACKED ONE, so a legitimate close of an untracked issue is a false deny. A false deny
 # is recoverable and a false allow is not, so where the two cannot be distinguished -- a
-# close inside a quoted string, or an unparseable command line -- IT DENIES. The refusal
-# text is what makes that acceptable: it names the route out.
+# close inside a quoted string -- IT DENIES. The refusal text is what makes that acceptable:
+# it names the route out.
+#
+# THAT TRADE HAS A LIMIT, and an earlier cut of this gate ran past it. It also denied any
+# command line `shlex` could not lex, on the reasoning that unparseable is indistinguishable
+# from evasive. Measured: `shlex` raises on ANY unbalanced quote, so `echo it's fine` did not
+# lex and was refused, as was every `gh issue comment --body-file` whose heredoc held an
+# English possessive. The rule blocked ordinary work and caught nothing, because a real
+# evasion has no need of an unbalanced quote. An unlexable line is NOT indistinguishable --
+# it can still be read as text -- so it now falls back to the weaker raw-string patterns and
+# is refused only if those match.
 #
 # SELF-GATING, as branch-create-gate.sh is: github.sync off or absent exits 0 instantly, so
 # this costs nothing where the mirror is off.
