@@ -3,15 +3,14 @@
 ## Current
 
 - feature: FEAT-41-one-station-vocabulary
-- run: .harness/harness/features/FEAT-41-one-station-vocabulary/runs/2026-08-25-03-product/state.yaml
+- run: .harness/harness/features/FEAT-41-one-station-vocabulary/runs/2026-08-25-04-product/state.yaml
 - squad: none
-- status: blocked
+- status: awaiting-user
 
 ## Open Questions
 
-- Q1 BLOCKING: every harness-pm dispatch is refused on a live single-flight claim held by the decisions-triage pm (03:49:40Z). Operator must release it or tell me to wait. I will not clear it.
-- Q2 BLOCKING: plan.yaml does not parse (line 83, D-09 because, colon-space in a plain scalar). Unsignable until pm can run.
-- Q3: ruling 2 is on HOLD; T-12's recording form becomes a named open dependency. Not yet applied.
-- Q4: F-1 (high) and F-2 (med) from the code-review pass are not yet applied.
-- Q5: both-ends deadlock — dispatch-guard refuses the dispatch and validate-digest refuses the return, reading the same claim. Lead recommends a discriminator on claim age.
-- Q6: T-04 vs T-06 disagree on the terminal-feature count; D-11's arithmetic rests on it.
+- Q1: ruling 2 AMENDMENT not yet applied. Cycle 5 wrote the three in-place clause strikes under the ORIGINAL ruling 2; the hold arrived afterwards. T-12 must become a named open dependency on the triage.
+- Q2: code-review F-1 (high) and F-2 (med) not yet applied - T-09 denial must state why and must not call deny(); T-08 must assert the refusal names sign-approval.
+- Q3: issue 223 (FEAT-12 parent) is not on board 3; T-10's one-time pass now ADDS it. Exempt or accept?
+- Q4: FEAT-28 abandoned with its card at Done; project places no card for a terminal-marker feature, so a Done card persists for an abandoned feature.
+- Q5: T-10's board-agreement verify cannot distinguish "board disagrees" from "cannot reach board". Fails closed, so safe.
