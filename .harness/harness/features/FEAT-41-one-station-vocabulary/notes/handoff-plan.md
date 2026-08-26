@@ -2,48 +2,45 @@
 
 ## Next
 
-BLOCKED ON AN EXTERNAL CLAIM. Do not attempt to clear it.
-Every harness-pm dispatch is refused by dispatch-guard.sh on a single-flight
-claim held by a DIFFERENT product-lead's pm, claimed 03:49:40Z against this
-same repo root. The operator confirmed it belongs to the decisions-authority
-triage and is LIVE. The operator's instruction is explicit: report the refusal,
-never clear the claim, and NEVER run inflight_registry release-all. A lead will
-recommend `release --agent harness-pm` on the reasoning that the claim predates
-its own spawn; that reasoning is WRONG and the operator holds the fact refuting it.
+The plan is SOUND and nearly signature-ready. plan.yaml parses: 13 tasks,
+12 decisions, 12 main-session-direct, T-12 alone on a team lane, approval pending.
+Rulings 1, 3, 4 and 5 are applied and verified. Two pieces of work remain, both
+harness-pm edits, neither large:
 
-When the claim clears on its own, the pm work is, in order:
-1. plan.yaml DOES NOT PARSE. D-09's `because:` at line 83 is a 616-char plain
-   scalar containing a colon-space. Quote it or use a literal block, then audit
-   every value written in that cycle for the same shape.
-2. RULING 2 IS ON HOLD. Do NOT write the three clause strikes. T-12 stays, and
-   its recording form becomes a NAMED OPEN DEPENDENCY: in-place clause strike
-   under DEC-188, versus subsuming the correction in one voice. D-09's because
-   must say the form is pending and name both candidates.
-3. F-1 (high): T-09 must state WHY the Edit route closed and must NOT call deny().
-   Amend SC-05, which today accepts a message with no reason.
-4. F-2 (med): T-08 must assert the refusal names sign-approval, not exit codes only.
-5. A contradiction pm found: T-04 circa 372-374 says "exactly two" terminal
-   features while T-06 circa 490 names FEAT-28 abandoned. D-11's arithmetic rests
-   on this count.
+1. THE RULING-2 AMENDMENT, not yet applied. Cycle 5 wrote the three in-place
+   clause strikes under the ORIGINAL ruling 2; the operator's HOLD arrived after
+   that run was already dispatched. Required now: do NOT leave decided strikes in
+   T-12. Keep T-12 and its scope, but make the RECORDING FORM a named open
+   dependency — in-place clause strike under DEC-188, versus subsuming the
+   correction into the entry in one voice — decided by the decisions-authority
+   triage, with T-12 executing whichever lands. D-09's because must say the form
+   is pending and name both candidates. This does NOT block signature.
+2. CODE-REVIEW FINDINGS. F-1 (high): T-09's denial must state WHY the Edit route
+   closed and must NOT call deny(); amend SC-05, which today accepts a message
+   with no reason. F-2 (med): T-08 must assert the refusal names sign-approval,
+   not exit codes only; amend SC-07.
+
+Then re-parse, run check-plan-routes.py, commit, and return for signature.
 
 ## Trust
 
-- plan.yaml fails safe_load at line 83 col 530 — verified by me AFTER the run closed, so real and not a torn read
-- The blocking claim is 1787716180.77 which IS 03:49:40Z, matching the live triage pm the operator named — verified by me against the operator's own message
-- Nothing is signed; BRIEF.md:174 status pending — verified by me, so the reviewer's "signed SC" premise is false and SC edits need no ruling
+- plan.yaml parses; 13 tasks, 12 decisions, 12 msd, approval pending — verified by me AFTER every child returned
+- Removing the ready/Backlog exception costs ZERO card moves; board 3 holds 656 cards, 211 are task sub-issues, 0 at Backlog — pm measured, and it OVERTURNS the operator's assumed cost
+- The migration is 7 features and 55 task lines, not 28; my independent count agreed with pm exactly — verified by both of us separately
+- The three strikes use the in-place form at DECISIONS.md:3228 and :4436 — pm read :3228, I read the same shape near :3200
 - F-1 is well founded: check-domain.sh circa 1161-1167 says deny() appends ROUTING speaking about STATE.md — verified by me
-- Six features carry a pending task, not 28, and all six are Done or Abandoned — measured by me across 29 plan files
-- Rulings 1 and 5 were applied by cycle 5 into the now-unparseable file | UNVERIFIED, cannot confirm until it parses
-- T-04 vs T-06 terminal-count contradiction — pm's claim, I did not check | UNVERIFIED
+- Nothing is signed; BRIEF.md:174 pending — verified by me, so SC edits need no operator ruling
+- T-06's parent rule would have projected 22 of 23 parent cards to Review while they sit at Done, now fixed by rule — pm's finding, I did NOT re-check | UNVERIFIED
+- Issue 223 absent from board 3, and FEAT-28's Done card for an abandoned feature — pm's claims | UNVERIFIED
 
 ## Dead Ends
 
-- Never run inflight_registry release-all, and do not release the harness-pm claim — operator instruction, and it admits a second writer onto one file
-- Do not edit plan.yaml or BRIEF.md yourself — check-domain.sh grants both to harness-pm alone
-- Do not plan the struck-decisions removal — separate triage, explicitly not this feature
-- Do not add a glossary task — ruled out of scope
-- Do not re-run the simplify pass, the design-contract gate or the code-review pass — all three ran
-- Do not read cycle 6's digest as evidence about T-12 — it ran pre-amendment and zero members ran anyway
+- Do NOT trust a run directory's existence as proof its run finished — I did, read plan.yaml mid-write, and committed a false defect report (31da5fb, corrected by 49ebd28)
+- Do NOT release the harness-pm single-flight claim — the one that refused cycle 6 was most likely cycle 5's OWN pm; releasing it destroys live work
+- Never run inflight_registry release-all
+- Do not edit plan.yaml or BRIEF.md yourself — granted to harness-pm alone
+- Do not plan the struck-decisions removal, and do not add a glossary task — both ruled out of scope
+- Do not re-run the simplify pass, design-contract gate, or code-review pass — all three ran
 
 ## Working Set
 
@@ -51,4 +48,4 @@ When the claim clears on its own, the pm work is, in order:
 - .harness/harness/features/FEAT-41-one-station-vocabulary/BRIEF.md
 - .harness/harness/features/FEAT-41-one-station-vocabulary/notes/orchestrator-measurements-2026-08-25.md
 - .harness/harness/features/FEAT-41-one-station-vocabulary/notes/review-harness-code-reviewer-refusal-text.md
-- .harness/harness/features/FEAT-41-one-station-vocabulary/feature.json
+- .harness/harness/features/FEAT-41-one-station-vocabulary/runs/2026-08-25-04-product/digest.md
