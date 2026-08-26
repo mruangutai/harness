@@ -1,0 +1,6 @@
+# Observations - harness-orchestrator
+
+- 2026-08-26: a lead can return a complete digest and create NO run dir; check-state.sh then emits "run X is referenced but its dir is absent". Deleting the runs: entry would falsify the record, so I recorded the lead's digest verbatim under runs/<id>/digest.md, attributed, and the note cleared.
+- 2026-08-26: bash-write-guard refuses a shell redirect whose target is a SHELL VARIABLE ($D/digest.md) even when the resolved path is inside my domain — it cannot resolve the variable. Write with a literal absolute path through the Write tool instead; do not retry the redirect with an expanded string, which reads as evasion.
+- 2026-08-26: the inflight registry is a usable completion signal for MEMBERS (they claim and release) but NOT for leads — harness-validator-lead never appeared in `inflight_registry.py list` while it ran, though harness-eng-lead did. Do not infer a lead's completion from NO CLAIMS.
+- 2026-08-26: waiting out a child by reading its half-written note is the failure this whole run existed to correct. Reading a reviewer's note only AFTER its claim drops from the registry worked; validator-lead's synthesis then matched my own independent reading of the same anchors exactly, which is corroboration rather than repetition because the methods differed (it read the note, I read plan.yaml at the sha).
