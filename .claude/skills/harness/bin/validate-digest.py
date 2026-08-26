@@ -116,6 +116,46 @@ GATE_FAIL_VALUES = {"dev": {"suite": "fail", "task_verify": "fail"},
 # dispatch-carries-the-T-NN-id rule (T-05) gives a cross-reference to.
 CONDITIONAL = {"task_verify": "task"}
 
+# A field whose obligation is lifted by what the return BOTH DECLARED and DID.
+# An ANALYSIS dispatch -- read this, report that -- writes no production code, so the
+# Iron Law binds on nothing: there is no code owed a passing test, and `suite` has no
+# gate to decline. Before this, such a return had NO truthful digest. MEASURED
+# 2026-08-26: three of four member runs lost their report body to the re-prompt, and
+# TWO agents reasoned themselves into a fabricated `suite: pass` to satisfy the schema.
+# A schema that teaches agents to misreport the record is worse than no schema.
+#
+# BOTH CONDITIONS, NEVER ONE. Each closes the other's hole, and both holes were real:
+#
+#   `task: none` alone       a CLAIM about the dispatch. A return can write it and
+#                            still edit ten files, and the Iron Law would be bypassed
+#                            on code that exists.
+#   `files_touched: []` alone a dev handed a REAL task that REFUSED it also touches
+#                            nothing, and its PASS is unearned. The case
+#                            "suite: n/a with VERDICT PASS is a fail-open" pins that
+#                            exact return -- `task: T-01`, `files_touched: []` -- and
+#                            it MUST stay rejected.
+#
+# Only the pair separates "had nothing to test" from "declined to test".
+NOTHING_TO_GATE = {"dev": {"suite"}}
+
+
+def _nothing_to_gate(field, persona, seen):
+    """True when this return declared no task AND changed no file, so `field` would
+    gate work that does not exist.
+
+    FAILS CLOSED on anything unexpected -- a missing, unparsed or non-list
+    `files_touched`, or any `task` value other than the literal `none`, leaves the
+    gate BINDING. The default in the `task` read is load-bearing for the same reason
+    `_unbound`'s is: `str(None).lower()` is `"none"` in Python, so a MISSING `task`
+    written without it would switch the requirement off.
+    """
+    if field not in NOTHING_TO_GATE.get(persona, ()):
+        return False
+    if str(seen.get("task", "")).strip().lower() != "none":
+        return False
+    touched = seen.get("files_touched")
+    return isinstance(touched, list) and not touched
+
 def _unbound(field, seen):
     """True when `field`'s governor declares this dispatch carries no PLAN task.
 
@@ -609,7 +649,8 @@ def validate(persona, text):
             # DEC-173: declining a GATE while claiming PASS is the fail-open the
             # widened NULLABLE would otherwise have created. Reported here rather
             # than as a separate pass so the message lands next to the field.
-            if field in GATE_FIELDS.get(persona, ()) and m and m.group(1) == "PASS":
+            if field in GATE_FIELDS.get(persona, ()) and m and m.group(1) == "PASS" \
+                    and not _nothing_to_gate(field, persona, seen):
                 err.append(f"{field}={val!r} declines to report a gate, but VERDICT is "
                            f"PASS — a gate that did not run cannot have passed. Return "
                            f"BLOCKED or FAIL, or report the real result.")

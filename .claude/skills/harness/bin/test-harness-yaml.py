@@ -105,6 +105,10 @@ COLLECT_FIXTURE = {
             ".harness/expertise/harness-eng-lead.md",
             ".harness/*/expertise/harness-eng-lead.md",
             ".harness/*/features/*/observations/harness-eng-lead.md",
+            # 2026-08-26: standalone team analysis, granted to all three leads
+            # because a lead dispatched OUTSIDE a feature has no run directory
+            # to write into and its 41-minute report had nowhere to land.
+            ".harness/notes/analysis-*.md",
         ],
         [
             "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",

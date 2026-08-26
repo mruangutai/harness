@@ -1156,6 +1156,69 @@ case("dev refusing an under-specified task can say suite: n/a", "harness-backend
 case("suite: n/a with VERDICT PASS is a fail-open and is REJECTED", "harness-backend-dev",
      DEV_NA.replace("VERDICT: BLOCKED", "VERDICT: PASS"), False, "pass")
 
+# --- 2026-08-26: an ANALYSIS dispatch owes no test result --------------------------
+# A dev asked to READ and REPORT writes no production code, so the Iron Law binds on
+# nothing: there is no code owed a passing test. Before this, such a return had NO
+# truthful digest -- `suite: n/a` + PASS was rejected, it was re-prompted, and the
+# re-emission dropped its report body. MEASURED on 2026-08-26: three of four member
+# runs lost their report that way, and TWO agents reasoned themselves into a
+# fabricated `suite: pass` to satisfy the schema.
+#
+# THE GATE OPENS ON BOTH CONDITIONS, NEVER ONE. `files_touched: []` alone is not
+# enough -- DEV_NA above is `task: T-01` refused with nothing touched, and that must
+# STAY rejected. `task: none` alone is not enough either: it is a CLAIM, and a return
+# can write it while editing ten files. Only the pair -- no task declared AND nothing
+# touched -- separates "had nothing to test" from "declined to test".
+DEV_ANALYSIS = """
+VERDICT: PASS
+DIGEST:
+  headline: censused 84 path-returning functions; harness_boundary.py is the candidate
+  tests_added: 0
+  suite: n/a
+  blocked_on: none
+  task: none
+  task_verify: n/a
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: none
+"""
+case("an analysis dev -- task: none AND files_touched: [] -- may say suite: n/a with PASS",
+     "harness-backend-dev", DEV_ANALYSIS, True)
+
+case("task: none but files WERE touched -- suite: n/a with PASS is still REJECTED, "
+     "because `task: none` is a claim and the edit is the fact",
+     "harness-backend-dev",
+     DEV_ANALYSIS.replace("files_touched: []", "files_touched: [gh-sync.py]"),
+     False, "pass")
+
+# THE SUITE GATE, ISOLATED. Found by mutation on 2026-08-26: deleting the `task: none`
+# half of `_nothing_to_gate` broke NO test, because the case above it -- DEV_NA with
+# PASS -- is rejected over `task_verify: n/a`, never over `suite`. It asserts the right
+# outcome for the wrong reason, so it could not pin this half.
+#
+# This return satisfies EVERY other gate: a real task, its verify PASSED, nothing
+# touched. The ONLY thing wrong with it is `suite: n/a` alongside PASS. It must stay
+# REJECTED -- a task was worked and the suite still did not run -- and it is the only
+# case that can go red when the task half is removed.
+DEV_REAL_TASK_NO_SUITE = """
+VERDICT: PASS
+DIGEST:
+  headline: T-01 verified against its own command; the full suite was not run
+  tests_added: 0
+  suite: n/a
+  blocked_on: none
+  task: T-01
+  task_verify: pass
+  open_questions: []
+  files_touched: []
+  expertise_update: []
+artifact: none
+"""
+case("a REAL task whose verify passed still owes a suite result -- suite: n/a with "
+     "PASS is REJECTED even with nothing touched",
+     "harness-backend-dev", DEV_REAL_TASK_NO_SUITE, False, "pass")
+
 QA_NA = """
 VERDICT: BLOCKED
 DIGEST:
