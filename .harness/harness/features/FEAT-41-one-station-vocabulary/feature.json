@@ -3,7 +3,7 @@
   "branch": "feat/FEAT-41-one-station-vocabulary",
   "pr": null,
   "status": "Plan",
-  "review_sha": "none",
+  "review_sha": "e5afc19",
   "cycles_used": 7,
   "max_total_cycles": 10,
   "runs": [
@@ -59,6 +59,18 @@
       "id": "2026-08-25-05-product",
       "squad": "product",
       "agent": "harness-product-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-26-01-eng",
+      "squad": "eng",
+      "agent": "harness-eng-lead",
+      "verdict": "PASS"
+    },
+    {
+      "id": "2026-08-26-01-validator",
+      "squad": "validator",
+      "agent": "harness-validator-lead",
       "verdict": "PASS"
     }
   ]
