@@ -398,8 +398,10 @@ tasks:
       - .claude/skills/harness-spec-driven/SKILL.md
       - .claude/skills/harness/bin/test-orchestrator-playbook.py
     verify: |
-      grep -n "set-task-station" .omp/agents/harness-orchestrator.md .claude/agents/harness-orchestrator.md
-      grep -n "surgical .Edit" .omp/agents/harness-orchestrator.md ; test $? -eq 1
+      for f in .omp/agents/harness-orchestrator.md .claude/agents/harness-orchestrator.md; do
+        if ! grep -q "set-task-station" "$f"; then echo "MISSING set-task-station: $f"; exit 1; fi
+        if grep -q "surgical .Edit" "$f"; then echo "STALE Edit route present: $f"; exit 1; fi
+      done
       python3 .claude/skills/harness/bin/test-orchestrator-playbook.py
     intent: |
       THIS TASK IS HALF OF WHAT CLOSES THE WRITE WINDOW. It must land before T-09 denies the Edit
@@ -430,6 +432,13 @@ tasks:
 
       Extend test-orchestrator-playbook.py with a case asserting the playbook names
       set-task-station and does NOT tell the orchestrator to Edit plan.yaml.
+
+      WHY THE VERIFY LOOPS PER FILE. A skipped adapter regeneration is the failure this task is
+      most likely to produce, and a multi-file grep exits 0 on either file, so it is exactly blind
+      to it. The loop asserts each file on its own and exits 1 naming the file that failed. The
+      absence check runs against BOTH files for the same reason the presence check does: the
+      adapter is what a Claude-hosted orchestrator actually reads, so an adapter still carrying the
+      Edit route leaves the old route live no matter what the canonical source says.
 
   - id: T-06
     title: One function projects plan.yaml onto the board
@@ -656,6 +665,9 @@ tasks:
       python3 .claude/skills/harness/bin/test-validate-feature-json.py
       python3 .claude/skills/harness/bin/test-check-state.py
       python3 .claude/skills/harness/bin/test-worktree-terminal.py
+      python3 .claude/skills/harness/bin/test-check-plan-routes.py
+      python3 .claude/skills/harness/bin/test-board-lifecycle.py
+      python3 .claude/skills/harness/bin/test-gh-sync.py
       grep -l '"status"' .harness/harness/features/*/feature.json ; test $? -eq 1
       python3 -c "import json;d=json.load(open('.claude/skills/harness/bin/feature-schema.json'));assert len(d['properties'])==10 and len(d['required'])==7 and 'status' not in d['properties'],(len(d['properties']),len(d['required']))"
 
@@ -726,6 +738,26 @@ tasks:
 
       Update every named test to the new shape. Where a test asserts a capitalised feature.json
       status, it now asserts the lowercase plan.yaml station.
+
+      THE POSITIVE SIDE OF THIS MIGRATION IS THE PART THAT MUST BE PROVEN, and it is not proven by
+      the schema and absence assertions above: every one of those goes green on a HALF-APPLIED
+      migration in which the key is deleted and a reader still expects it. So each of the five
+      readers gains a case, in its own test, DEMONSTRATED FAILING BEFORE THE REPOINTING, that
+      builds a feature directory carrying NO feature.json status and a sibling plan.yaml whose
+      top-level status is a lowercase station, and asserts the reader returns the station:
+      check-state.sh:113 and its Done gates through test-check-state.py; _is_shipped through
+      test-check-plan-routes.py; board_lifecycle.py:504 and :988 through test-board-lifecycle.py;
+      gh-sync.py _feature_status and its set-feature-station writer through test-gh-sync.py;
+      worktree_terminal.py:271 through test-worktree-terminal.py. An un-repointed reader reads no
+      feature.json status, finds no station and reds that case. Those five test files are the
+      reason the three additional test commands are in the verify: without them the verify runs no
+      code from board_lifecycle.py, check-plan-routes.py or gh-sync.py at all.
+      A residual grep was considered instead and rejected: status, Done and Review all occur
+      legitimately in these files as board column names and as the approval status, so no grep over
+      them is both discriminating and reachable.
+      RUNTIME: test-gh-sync.py is the 149 s case T-10 discloses, so this verify runs long for the
+      same reason and under the same accepted deferral, proposed backlog row PB-01 in BRIEF.md.
+      Do not drop it to buy the time back - it is the only proof gh-sync was repointed.
 
   - id: T-08
     title: Gate sign-approval on identity, so only the main session can sign
@@ -832,14 +864,22 @@ tasks:
         so an editor write is not a shape violation to be measured but a route that no longer
         exists.
       - On the Write and Edit routes: deny with exit 2 and a message that STATES THE REASON FIRST -
-        that plan.yaml now has exactly one writer, plan-write.py, because every station value must
-        be validated before it lands - and then names the four verbs and the tool path. The message
+        that plan.yaml now has exactly one writer, plan-merge.py (plan-write.py after T-13),
+        because every station value must be validated before it lands - and then names the four verbs and the tool path. The message
         must name set-task-station explicitly, because recording a task status is the write an
         agent will actually attempt. THE REASON CLAUSE IS LOAD-BEARING, NOT DECORATION: a denial
         that says only what to use instead is indistinguishable from a stuck or over-broad gate to
         an agent that has not loaded T-05's updated playbook, and a reader who takes it for a
         harness malfunction routes around it through a shell write of a LEGAL station value - the
         one channel the sweep below admits it cannot attribute to an author.
+      - THE BASENAME IN THAT MESSAGE IS THE ONE ON THE DISK WHEN THIS TASK RUNS, which is
+        plan-merge.py; do not retype a name from this plan, read the bin directory. T-13 renames
+        the tool and lands LAST, and its own verify greps for the absence of the old name, so it
+        will carry this refusal text with it. Naming the post-rename basename here would ship a
+        refusal pointing at a file that does not exist yet - and, if T-13 is struck, never will -
+        which is precisely the unusable refusal the reason clause above exists to prevent. It also
+        keeps T-13 separately strikeable: nothing here depends on the rename happening. This is the
+        same convention T-08 already uses for the same tool.
       - DO NOT EMIT THIS REFUSAL THROUGH deny(). check-domain.sh defines deny() at 1063-1066 and
         its last line appends the module-level ROUTING constant defined at 879, which speaks about
         STATE.md, digests and notes/ - a different file class entirely. Emitting ROUTING beside a
@@ -872,8 +912,8 @@ tasks:
 
       In test-check-domain.py add cases, each shown failing first: an Edit of a plan.yaml by an
       agent exits 2 and the message names set-task-station; the SAME message CONTAINS the reason
-      clause - it names plan-write.py as plan.yaml's one writer and says station values are
-      validated before they land - and DOES NOT CONTAIN the ROUTING text, asserted by searching the
+      clause - it names the writer script by the basename that exists on disk when this task runs,
+      which is plan-merge.py, and says station values are validated before they land - and DOES NOT CONTAIN the ROUTING text, asserted by searching the
       denial for a distinctive substring of the ROUTING constant at 879, such as its STATE.md
       mention, and requiring it absent; an Edit of a plan.yaml by a payload with NO agent_type also
       exits 2; a Bash write that lands an illegal station value is
@@ -924,9 +964,14 @@ tasks:
 
       Defect two - ship accepts a feature dir inside a worktree that is about to be deleted. At
       the top of cmd_ship, resolve the feature dir with os.path.realpath and refuse when it lies
-      under harness_boundary.WORKTREES_SEGMENT: exit 1 with one line naming the equivalent path in
-      the main checkout, derived by replacing everything up to the worktree root with the owner
-      root that harness_boundary.worktree_owner returns. This is a refusal, not a skip: skip()
+      under harness_boundary.WORKTREES_SEGMENT: exit 1 with one line that STATES THE REASON FIRST -
+      that this feature directory resolves inside a worktree which is about to be deleted, so a
+      terminal station written there would not survive - and THEN names the equivalent path in the
+      main checkout, derived by replacing everything up to the worktree root with the owner root
+      that harness_boundary.worktree_owner returns. THE REASON CLAUSE IS LOAD-BEARING, NOT
+      DECORATION, for the same reason it is in T-09: a refusal that says only what to use instead
+      is indistinguishable from a stuck gate, and an agent that reads it as one retries ship from
+      somewhere else instead of moving the write. This is a refusal, not a skip: skip()
       exits 0 and post-merge-sweep.sh would then delete the worktree.
 
       The repair: FEAT-40's plan.yaml must record the done station. Set it with plan-merge.py
